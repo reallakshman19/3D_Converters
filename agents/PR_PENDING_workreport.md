@@ -8,203 +8,217 @@ Source task / issue: Owner direction 2026-08-16; parent qualification programme 
 PR number: PENDING
 Branch: agent/fit-production-authorized-freeze
 Base commit: 63e07cdf71d815b38eb559ee663dd3f2c438f478
-Current HEAD: 72dec6db8dd3f918a34f705828957da57e9aeb68 before this report update
+Current HEAD: 1db99cd1563a386f10b570a1ebf51db41aa0d056 before this report update
 PR status: NOT_CREATED
-Current stage: Stage 6 — Regression hardening
-Last completed stage: Stage 5 — Visible production/screening UI semantics
-Engineering status: branch now separates Production lifecycle from bounded Screening authority and keeps designAuthority=false
-Validation status: Stage 4/5 source review PASS; focused executable regression not yet run
-Current blocker: official served-app Production Freeze and real five-sheet XLSX acceptance cannot run in this connector-only runtime
-Exact next action: update focused FIT Console regression to pin lifecycle/authority/UI invariants, then inspect full diff and create draft PR; do not merge until official freeze evidence exists
+Current stage: Stage 8 — Draft PR allocation + handover
+Last completed stage: Stage 7 — Release/freeze validation attempt
+Engineering status: Production lifecycle implemented on branch; effective engineering authority remains bounded SCREENING; designAuthority=false
+Validation status: source/diff/branch reconciliation PASS; native Node/release/browser/XLSX execution NOT_RUN / ENVIRONMENT_BLOCKED
+Current blocker: official served-app Production Freeze PASS receipt is not available and cannot be generated in this connector-only runtime
+Exact next action: allocate draft PR, rename this report to `agents/PR<NUMBER>_workreport.md`, reconcile final PR diff/status, and leave merge blocked until official freeze evidence exists
 ```
 
 ## Handover in 60 Seconds
 
 What is now true:
-- FIT mainline basis: merged #499 bounded Screening authority; merged #511 Production Freeze protocol/evidence harness.
-- Branch adapter: `qualificationState=PRODUCTION_AUTHORIZED`, `engineeringAuthority=SCREENING`, `screeningAuthority=AUTHORIZED_BOUNDED`, `designAuthority=false`, `codeCompliance=false`.
-- Screening execution qualification is method=`PRODUCTION_AUTHORIZED`, data=`SCREENING`, therefore effective=`SCREENING` through shared qualification ordering.
-- Benchmark mode stays `BENCHMARK_ONLY`.
-- QST-003 219.1–273 mm excluded diameter gap and all applicability limits remain unchanged/fail-closed.
-- Console selected FIT surface now shows `TABLE WORKSPACE · PRODUCTION · BOUNDED SCREENING` instead of stale `BENCHMARK ONLY`.
-- VIB family card renders `PRODUCTION`, `Screening authority: BOUNDED`, `Design authority: NO`, and `Programme #429`.
-- VIB family banner now correctly states Production lifecycle does not imply design authority and FIT screening is bounded.
-- No FIT equations, correlations, coefficients, tolerances, masters, inputs, outputs or method revision changed.
+- FIT was already engineering-qualified for bounded `SCREENING` on main by merged PR #499.
+- This branch changes the **method/product lifecycle** to `PRODUCTION_AUTHORIZED` while keeping screening data at `SCREENING`; shared qualification composition therefore keeps `effective=SCREENING`.
+- FIT definition explicitly carries `engineeringAuthority=SCREENING`, `screeningAuthority=AUTHORIZED_BOUNDED`, `designAuthority=false`, `codeCompliance=false`.
+- Benchmark mode remains `BENCHMARK_ONLY`.
+- QST-003 diameter gap (`219.1 mm < Dext < 273 mm`) and all current applicability exclusions remain fail-closed.
+- Selected FIT Console now shows `TABLE WORKSPACE · PRODUCTION · BOUNDED SCREENING`, not stale `BENCHMARK ONLY`.
+- VIB family card shows `PRODUCTION`, `Screening authority: BOUNDED`, `Design authority: NO`, and `Programme #429`.
+- VIB family banner no longer falsely states that no mechanism has screening authority.
+- Focused regression source pins Production lifecycle, bounded Screening authority, effective-qualification lowering, `designAuthority=false`, UI semantics, QST-003 text, and the five other blocked VIB definitions.
+- Current branch is 0 behind main and has exactly five assignment files.
+- Native checkout is unavailable because this runtime cannot resolve `github.com`; exact Node/release/browser/XLSX execution remains NOT_RUN.
 - Official Production Freeze is still NOT_RUN/BLOCKED; no PASS receipt exists.
 
 What remains unfinished:
-- focused regression edits/execution evidence;
-- exact changed-file reconciliation;
-- draft PR allocation/report rename;
-- full FIT release suite;
-- official Chromium Production Freeze;
+- PR allocation/report rename/final PR reconciliation;
+- executable focused Node regression;
+- `npm run verify:vibration-fit-release`;
+- official `validate-vibration-production-freeze-browser.mjs` run;
 - real five-sheet XLSX E2E;
-- retained PASS freeze receipt.
+- retained PASS Production Freeze receipt.
 
 What must not be assumed:
 - Product Production does not grant design/code authority.
-- Source review or old browser diagnostics are not the official Production Freeze PASS.
+- Source review, branch mergeability, prior browser diagnostics or prior numerical evidence do not establish the official current-head Production Freeze.
 
 Highest-risk remaining item: merging the lifecycle transition before official freeze evidence.
-Exact next action: Stage 6 test update.
+Exact next action: create draft PR and keep it merge-blocked by RISK-002.
 
 ## Mission / Engineering Intent
 
-Production status is a software/method lifecycle. FIT engineering authority remains bounded Screening. This PR must never imply or create design authority.
+Production status is a software/method lifecycle. FIT result authority remains bounded Screening. No numerical or applicability change is authorized in this PR.
 
-### Non-goals
-No numerical FIT changes; no applicability widening; no design authority; no code compliance; no workflow changes; no other VIB authority changes.
+### Explicit non-goals
+No FIT equations/correlations/coefficients/tolerances/masters; no method-revision change; no applicability widening; no design authority; no code compliance; no workflow edits; no authority changes to AIV/SBC/cavitation/surge/slug.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---|---|
-| Current-main / authority review | P0 | VALIDATED | 1 | current main + #499/#511 + source contracts |
-| Branch + living report | P0 | DONE | 2 | branch/report before production edits |
-| Source / overlap verification | P0 | DONE | 3 | #534/#479 no direct intended-file overlap |
-| Production lifecycle / effective Screening separation | P0 | IMPLEMENTED | 4 | adapter `ad021d7c...` |
+| Current-main / authority review | P0 | VALIDATED | 1 | main + #499/#511 + source contracts |
+| Branch + living report | P0 | DONE | 2 | report created before production edits |
+| Source / overlap verification | P0 | DONE | 3 | active #534 / stale #479 no direct intended-file overlap |
+| Production lifecycle / effective Screening separation | P0 | IMPLEMENTED | 4 | adapter commit `ad021d7c...` |
 | Visible Production + bounded Screening UI | P0 | IMPLEMENTED | 5 | family `218294a0...`; console `72dec6db...` |
-| Focused authority regressions | P0 | IN_PROGRESS | 6 | test edit pending |
-| Official Production Freeze | P0 | BLOCKED | 7 | environment cannot run served private product |
-| Draft PR handover | P0 | NOT_STARTED | 8 | pending |
+| Focused authority regression source | P0 | IMPLEMENTED | 6 | test `1db99cd1...` |
+| Focused Node test execution | P0 | BLOCKED | 7 | no checkout; clone fails DNS |
+| Full FIT release suite | P0 | BLOCKED | 7 | no checkout |
+| Official Production Freeze | P0 | BLOCKED | 7 | no runnable served browser path / no PASS receipt |
+| Real five-sheet XLSX E2E | P0 | BLOCKED | 7 | no runnable product checkout |
+| Draft PR handover | P0 | IN_PROGRESS | 8 | allocation pending |
 
 ## Engineering Item Register
 
 | ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---:|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Production lifecycle; effective result authority remains SCREENING | yes |
-| DEC-002 | Decision | P0 | ACCEPTED | designAuthority=false and codeCompliance=false invariant | yes |
+| DEC-001 | Decision | P0 | ACCEPTED | Production is method/product lifecycle; effective result authority remains SCREENING | yes |
+| DEC-002 | Decision | P0 | ACCEPTED | `designAuthority=false` and `codeCompliance=false` remain invariants | yes |
 | ISS-001 | Defect | P0 | IMPLEMENTED | stale selected-FIT `BENCHMARK ONLY` removed | yes |
-| ISS-002 | Defect | P0 | IMPLEMENTED | false “no mechanism has screening authority” banner removed | yes |
-| RISK-001 | Risk | P0 | MITIGATED_SOURCE | Production is rendered adjacent to BOUNDED SCREENING and Design authority NO | yes |
-| RISK-002 | Risk | P0 | OPEN | do not merge before official current-head freeze evidence | yes |
+| ISS-002 | Defect | P0 | IMPLEMENTED | false VIB “no screening authority” banner removed | yes |
+| RISK-001 | Risk | P0 | MITIGATED_SOURCE | Production shown adjacent to bounded Screening and Design authority NO | yes |
+| RISK-002 | Risk | P0 | OPEN / MERGE_BLOCKER | do not merge before official current-head freeze evidence | yes |
 | QST-003 | Existing question | P0 | ACCEPTED_EXISTING | 219.1 mm < Dext < 273 mm remains excluded/fail-closed | no change |
 | IMP-001 | Improvement | P1 | IMPLEMENTED | #429 shown as programme reference for Production FIT | yes |
-| PROC-001 | Process | P0 | CLOSED | accidental placeholder tip on main fully restored before branch work | no residual diff |
+| PROC-001 | Process | P0 | CLOSED | accidental placeholder tip on main fully restored before branch work; no residual diff | no |
 
 ## Critical Invariants
 
-1. Stable ID unchanged.
-2. Screening remains the product execution mode.
-3. Method Production + data Screening => effective Screening.
-4. designAuthority=false.
-5. codeCompliance=false.
-6. screeningAuthority=AUTHORIZED_BOUNDED only inside existing envelope.
+1. Stable ID `VIB.FIV.FLOW_TURBULENCE` unchanged.
+2. Product execution mode remains `screening`.
+3. Screening-mode qualification: method=`PRODUCTION_AUTHORIZED`, data=`SCREENING`, effective=`SCREENING`.
+4. `designAuthority=false`.
+5. `codeCompliance=false`.
+6. `screeningAuthority=AUTHORIZED_BOUNDED` only inside existing envelope.
 7. QST-003 and all current exclusions remain fail-closed.
-8. Benchmark mode remains BENCHMARK_ONLY.
+8. Benchmark mode remains `BENCHMARK_ONLY`.
 9. Other VIB mechanisms inherit no authority.
-10. No official freeze PASS without official harness PASS receipt.
+10. No Production Freeze PASS without official harness PASS receipt.
 
-## Stage Record
+## Stage Execution Log
+
+### Stage 1 — COMPLETE
+Grounded current main, issue #429, merged #499 bounded Screening qualification, merged #511 Production Freeze protocol/evidence, adapter/qualification/UI sources.
+
+### Stage 2 — COMPLETE
+Created branch and living report before production edits. PROC-001 connector mis-write was verified as sole-tip, and main was restored exactly to `63e07cdf...` before branch implementation.
+
+### Stage 3 — COMPLETE
+Fetched exact adapter/family/console/test sources; active PR #534 and stale #479 have no direct overlap with intended production files. Confirmed ISS-001/ISS-002.
 
 ### Stage 4 — COMPLETE
-Changed `converters/engineering-calculations/adapters/vibration-fit.js` only for lifecycle/authority metadata and warning semantics. Method revision and numerical/applicability implementation unchanged. Source review PASS.
+`converters/engineering-calculations/adapters/vibration-fit.js` lifecycle-only transition:
+- screening method -> `PRODUCTION_AUTHORIZED`;
+- screening data remains `SCREENING`;
+- definition -> `PRODUCTION_AUTHORIZED`;
+- explicit engineering/screening/design/code authority metadata;
+- Production/bounded-Screening warning semantics.
+No numerical/applicability/method-revision change.
+Validation: PASS_SOURCE.
 
 ### Stage 5 — COMPLETE
-Changed:
-- `tabs/engineering-calculation-vibration-family.js`
-- `tabs/engineering-calculation-console-view.js`
+UI authority truth repair:
+- `tabs/engineering-calculation-vibration-family.js` renders Production separate from bounded Screening and truthful banner;
+- `tabs/engineering-calculation-console-view.js` removes hard-coded BENCHMARK ONLY, renders Production + Bounded Screening, and treats #429 as programme reference.
+No calculation calls/formulas added to UI.
+Validation: PASS_SOURCE.
 
-Behavior now separates user-facing Product lifecycle from engineering authority. Stale BENCHMARK ONLY and false no-screening banner removed. `Programme #429` replaces warning-style `#429` for Production FIT. No calculation path added to UI. Source review PASS.
+### Stage 6 — COMPLETE
+`tests/engineering-calculation-console-fit-preflight.test.mjs` now asserts:
+- Production lifecycle metadata;
+- engineering/screening/design/code authority;
+- shared Production-method/Screening-data lowering -> effective Screening and design false;
+- Production + bounded Screening family/selected UI;
+- stale UI claims absent;
+- QST-003 text retained;
+- five other pending VIB definitions remain blocked.
+Validation: regression source review PASS; Node execution deferred to Stage 7.
 
-### Stage 6 — ACTIVE
-Objective: permanent regressions for lifecycle/authority/UI separation.
-Expected file: `tests/engineering-calculation-console-fit-preflight.test.mjs`.
-Required assertions:
-- definition Production lifecycle;
-- engineeringAuthority SCREENING;
-- screeningAuthority AUTHORIZED_BOUNDED;
-- designAuthority/codeCompliance false;
-- screening mode executable; strict/benchmark product modes not executable;
-- family landing shows PRODUCTION + Screening authority BOUNDED + Programme #429 + Design authority NO;
-- selected FIT shows TABLE WORKSPACE + PRODUCTION + BOUNDED SCREENING and not BENCHMARK ONLY;
-- five other VIB mechanisms remain BLOCKED;
-- QST-003 limitation remains visible.
-Planned validation: source/contract inspection in current runtime; exact Node/release command remains NOT_RUN unless checkout becomes available.
+### Stage 7 — BLOCKED
+Attempted native checkout:
+```text
+git clone --depth 1 --branch agent/fit-production-authorized-freeze https://github.com/reallaksh19/3D_Converters.git
+fatal: Could not resolve host: github.com
+```
+Therefore:
+- focused Node test = NOT_RUN / ENVIRONMENT_BLOCKED;
+- `npm run verify:vibration-fit-release` = NOT_RUN / ENVIRONMENT_BLOCKED;
+- official Chromium Production Freeze = NOT_RUN / ENVIRONMENT_BLOCKED;
+- real five-sheet XLSX E2E = NOT_RUN / ENVIRONMENT_BLOCKED.
+No blocked gate is relabelled PASS.
+Branch/main compare: `ahead_by=8`, `behind_by=0`; five intended files only.
+Stage decision: BLOCKED for executable validation, sufficient to open draft PR only.
 
-### Stage 7 — Release/freeze validation
-Required when runnable:
-- `npm run verify:vibration-fit-release`
-- `node scripts/validate-vibration-production-freeze-browser.mjs`
-- real five-sheet XLSX import -> readiness -> FIT -> evidence
-Current: NOT_RUN / ENVIRONMENT_BLOCKED.
-
-### Stage 8 — Draft PR + handover
-Draft only; RISK-002 blocks merge.
+### Stage 8 — ACTIVE
+Allocate draft PR; rename report; final changed-file/status reconciliation; preserve RISK-002 merge blocker.
 
 ## Changed-File Ledger
 
-| File | Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---:|---|---|---|
-| `agents/PR_PENDING_workreport.md` | 1–6 | living handover | no | current |
-| `converters/engineering-calculations/adapters/vibration-fit.js` | 4 | Production lifecycle / effective Screening | yes | PASS_SOURCE |
-| `tabs/engineering-calculation-vibration-family.js` | 5 | truthful family authority presentation | presentational authority | PASS_SOURCE |
-| `tabs/engineering-calculation-console-view.js` | 5 | truthful selected/catalog FIT state | presentational authority | PASS_SOURCE |
-| `tests/engineering-calculation-console-fit-preflight.test.mjs` | 6 | lifecycle/UI invariant regression | no | pending |
+| File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
+|---|---:|---:|---|---|---|
+| `agents/PR_PENDING_workreport.md` | 1 | 8 | living handover | no | current |
+| `converters/engineering-calculations/adapters/vibration-fit.js` | 4 | 4 | Production lifecycle / effective Screening | yes | PASS_SOURCE |
+| `tabs/engineering-calculation-vibration-family.js` | 5 | 5 | truthful family authority presentation | presentational authority | PASS_SOURCE |
+| `tabs/engineering-calculation-console-view.js` | 5 | 5 | truthful selected/catalog FIT state | presentational authority | PASS_SOURCE |
+| `tests/engineering-calculation-console-fit-preflight.test.mjs` | 6 | 6 | lifecycle/UI/design-authority regression | no | PASS_SOURCE / NOT_RUN_EXECUTION |
 
 ## Validation Ledgers
 
 ### Software Validation
 | Validation | Status | Evidence |
 |---|---|---|
-| Current-main source review | PASS | `63e07cdf...` |
+| Current-main source review | PASS | main `63e07cdf...` |
 | Main restoration after PROC-001 | PASS | exact main restored |
 | Open-PR intended-file overlap | PASS | #534/#479 file lists |
-| Stage 4 adapter source review | PASS | `ad021d7c...` |
-| Stage 5 UI source review | PASS | `218294a0...`, `72dec6db...` |
-| Focused FIT Console test | NOT_RUN | Stage 6 edit pending |
-| Full FIT release suite | NOT_RUN | no runnable checkout |
-| Official served Chromium freeze | NOT_RUN | environment blocked |
-| Real five-sheet XLSX E2E | NOT_RUN | environment blocked |
+| Final branch/main compare | PASS | ahead 8 / behind 0 / 5 intended files |
+| Stage 4 adapter source review | PASS | exact branch source |
+| Stage 5 UI source review | PASS | exact branch source |
+| Stage 6 regression source review | PASS | exact branch source |
+| Focused Node test | NOT_RUN | checkout unavailable |
+| Full FIT release suite | NOT_RUN | checkout unavailable |
+| Official served Chromium freeze | NOT_RUN | checkout/browser path unavailable |
+| Real five-sheet XLSX E2E | NOT_RUN | product path unavailable |
 
 ### Engineering Validation
 | Property | Status | Evidence |
 |---|---|---|
-| Existing bounded Screening qualification | PASS | merged #499 |
+| Existing bounded Screening qualification | PASS | merged #499/current main baseline |
 | QST-003 exclusion retained | PASS_SOURCE | adapter applicability unchanged |
-| Design authority false retained | PASS_SOURCE | adapter result/definition |
-| Production method + Screening data => effective Screening | PASS_SOURCE | shared qualification ordering |
+| Design authority false retained | PASS_SOURCE | definition/result + regression source |
+| Production method + Screening data => effective Screening | PASS_SOURCE | shared qualification contract + focused regression source |
+| Other VIB authority unchanged | PASS_SOURCE | branch diff limited to FIT/console/family/test/report |
 | Official Production Freeze | NOT_RUN | no PASS receipt |
 
 ### Explicitly Not Validated
-Native/current-head full repository execution; official URL-based Chromium Production Freeze; current-head real five-sheet XLSX; project/client adoption outside existing bounded screening scope.
+Native/current-head full repository execution; official URL-based Chromium Production Freeze; current-head real five-sheet XLSX; project/client adoption beyond existing bounded screening scope.
 
 ## Known / Deferred Work
 
-RISK-002 is the hard merge gate. Full VIB-family Production remains out of scope.
+RISK-002 remains the hard merge gate. Full VIB-family Production remains out of scope.
 
 ## Recommended Forward Sequence
 
-1. Finish Stage 6 regression source.
-2. Re-read latest main and reconcile if needed.
-3. Create draft PR; rename report to `agents/PR<NUMBER>_workreport.md`.
-4. Run full FIT release suite in normal checkout.
-5. Run official served Chromium freeze and retain receipt/screenshots/evidence export.
-6. Run real five-sheet XLSX E2E.
-7. Update PR/report with exact PASS evidence.
-8. Only then merge on explicit owner authorization.
+1. Open draft PR and rename report.
+2. In a normal authenticated checkout, run focused test + `npm run verify:vibration-fit-release`.
+3. Execute official served Chromium Production Freeze and retain screenshots, `production-freeze-receipt.json`, and FIT evidence export.
+4. Execute real five-sheet XLSX import/readiness/screening/evidence workflow.
+5. Update PR/report with exact PASS evidence.
+6. Re-read latest main/reconcile if needed.
+7. Only then merge on explicit Owner authorization.
 
 ## Next-Agent Handover
 
-Current stopping point: Stage 6 active.
+Current stopping point: Stage 8 PR allocation.
 Branch: `agent/fit-production-authorized-freeze`.
-Last completed: Stage 5.
-Start here: `tests/engineering-calculation-console-fit-preflight.test.mjs`.
-Do not redo: lifecycle/UI implementation and overlap review.
-Do not assume: freeze passed.
-Known failing checks: none executed.
-Validation still required: focused test, full FIT release, browser freeze, XLSX E2E.
-Highest risk: merge before official freeze.
-Exact next action: update focused test, then reconcile diff/main and open draft PR.
-
-## Stage Execution Log
-
-Stage 1 COMPLETE — grounded main, #429/#499/#511, authority/freeze contracts.
-
-Stage 2 COMPLETE — branch/report before production edits; PROC-001 recovered with exact main restoration.
-
-Stage 3 COMPLETE — exact sources/overlap; ISS-001/ISS-002 confirmed.
-
-Stage 4 COMPLETE — Production lifecycle implemented with effective Screening and no numerical/applicability change.
-
-Stage 5 COMPLETE — Console/family presentation now truthful and separated by authority axis.
+Last completed: Stage 7 blocked validation attempt.
+Start here: create draft PR from branch to `main`, then rename report and finalize PR status.
+Do not redo: lifecycle/UI/test implementation; source/overlap/main reconciliation.
+Do not assume: official freeze passed.
+Known failing checks: none proven; executable checks are NOT_RUN.
+Validation still required: focused Node test, full FIT release, official browser freeze, real XLSX E2E.
+Highest risk: merging before official freeze.
+Exact next action: draft PR allocation/report rename.
