@@ -1,6 +1,6 @@
 // Standalone app shell runtime delegate.
 import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v=standalone-3';
-import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260815-aiv-526-unified-1';
+import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260816-aiv-526-editor-1';
 import * as runtime from './app-standalone-runtime.js?v=20260804-fbx-multifamily-release-1';
 
 const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260804-fbx-multifamily-release-1';
