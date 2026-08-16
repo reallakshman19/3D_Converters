@@ -90,7 +90,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       if (definition.id === AIV_CALCULATION_ID) {
         const host = container.querySelector('[data-aiv-qualification-host]');
         if (!host) return;
-        const module = await import('./vibration-aiv-qualification-tab.js?v=20260816-aiv-526-editor-3');
+        const module = await import('./vibration-aiv-qualification-tab.js?v=20260816-aiv-canvas-release-1');
         if (destroyed || token !== productToken || definition.id !== AIV_CALCULATION_ID || state.familyLanding) return;
         host.innerHTML = '';
         const maybeDestroy = module.renderAivQualificationWorkspace(host);
@@ -118,7 +118,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     state.familyLanding = null;
     state.selectedId = next.id;
     state.selectedFamily = next.family;
-    state.draft = createEngineeringConsoleDraft(next, context?.calculationId === next.id ? context?.inputs ?? {} : {});
+    state.draft = createEngineeringConsoleDraft(next, context?.inputs ?? {});
     state.editorErrors = [];
     invalidateEngineeringConsoleExecution(state);
     state.activeView = isEngineeringCalculationExecutable(next) ? 'results' : 'basis';
