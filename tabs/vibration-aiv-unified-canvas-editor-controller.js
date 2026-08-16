@@ -19,16 +19,24 @@ function editor(container) { return container.querySelector('[data-aiv-network-e
 function isNetworkDriven(container) { return card(container)?.dataset.aivInputMode === AIV_INPUT_MODE.NETWORK_DRIVEN; }
 function canvasObject(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-segment],[data-aiv-canvas-relationship]') ?? null; }
 function editingControl(event) { return Boolean(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')); }
-function pointFromEvent(canvas, event) {
+function viewBoxPoint(canvas, event) {
   const rect = canvas.getBoundingClientRect(); const box = canvas.viewBox.baseVal;
   return { x: (event.clientX - rect.left) * box.width / rect.width, y: (event.clientY - rect.top) * box.height / rect.height };
+}
+function scenePoint(container, event) {
+  const canvas = svg(container); const raw = viewBoxPoint(canvas, event);
+  const transform = container.querySelector('[data-aiv-canvas-viewport]')?.getAttribute('transform') ?? '';
+  const match = /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\)/u.exec(transform);
+  if (!match) return raw;
+  const x = Number(match[1]); const y = Number(match[2]); const zoom = Number(match[3]);
+  return zoom > 0 ? { x: (raw.x - x) / zoom, y: (raw.y - y) / zoom } : raw;
 }
 
 export function createAivUnifiedCanvasEditorController(container, callbacks = {}) {
   let state = createAivUnifiedCanvasEditorState();
   const getNetwork = callbacks.getNetwork ?? (() => null);
   const getSelection = callbacks.getSelection ?? (() => null);
-  const toCanvasPoint = callbacks.toCanvasPoint ?? ((event) => pointFromEvent(svg(container), event));
+  const toCanvasPoint = callbacks.toCanvasPoint ?? ((event) => scenePoint(container, event));
 
   function sync() {
     const status = container.querySelector('[data-aiv-canvas-editor-status]');
