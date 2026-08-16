@@ -17,7 +17,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    load: () => import('./hp-piping-class-tab.js?v=engineering-2').then((module) => module.renderHpPipingClassTab),
+    load: () => import('./hp-piping-class-tab.js?v=20260816-hp-i5-native-editors-1').then((module) => module.renderHpPipingClassTab),
   },
 ]);
 const SUBTAB_IDS = new Set(SUBTABS.map((tab) => tab.id));
