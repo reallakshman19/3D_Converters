@@ -18,12 +18,12 @@ import {
   aivCanvasSelectionFromElement,
   applyAivCanvasSelection,
   revealAivCanvasSelection,
-} from './vibration-aiv-canvas-selection.js';
+} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-1';
 import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
-} from './vibration-aiv-unified-canvas-author.js';
-import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js';
+} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-1';
+import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-1';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -34,6 +34,7 @@ function scene(container) { return container.querySelector('[data-aiv-canvas-vie
 function inputMode(container) { return card(container)?.dataset.aivInputMode ?? AIV_INPUT_MODE.TABLE_DRIVEN; }
 function isNetworkDriven(container) { return inputMode(container) === AIV_INPUT_MODE.NETWORK_DRIVEN; }
 function canvasTarget(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship],[data-aiv-canvas-segment]') ?? null; }
+function editingControl(event) { return Boolean(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')); }
 
 function domNodes(container) {
   return [...container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-node]')].map((element, displayOrder) => ({
@@ -195,7 +196,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     if (editorController.handleKeyDown(event)) { event.preventDefault(); return; }
     if (event.key === 'Escape') { relationship = setAivCanvasRelationshipMode(relationship, AIV_CANVAS_MODE.NAVIGATE); setModePresentation(container, relationship.mode); return; }
     const tab = event.target.closest('[data-aiv-detail-tab]'); if (tab && moveAivCanvasDetailTab(tab, event.key)) { event.preventDefault(); return; }
-    if (['Delete', 'Backspace'].includes(event.key) && !isNetworkDriven(container)) { deleteSelectedRelationship(); return; }
+    if (['Delete', 'Backspace'].includes(event.key) && !isNetworkDriven(container) && !editingControl(event)) { deleteSelectedRelationship(); return; }
     if (!['Enter', ' '].includes(event.key)) return;
     if (tab) { activateAivCanvasDetailTab(tab, true); event.preventDefault(); return; }
     const target = canvasTarget(event); if (!target) return; select(aivCanvasSelectionFromElement(target));
