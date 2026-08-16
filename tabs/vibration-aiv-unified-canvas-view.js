@@ -165,7 +165,6 @@ function labelModeButtons() {
 function labelLegendIcon() {
   return `<span data-aiv-canvas-label-legend="true" aria-label="Labels" title="Labels" role="img" style="width:28px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:#94a3b8">${renderAivCanvasControlIcon('labels')}</span>`;
 }
-
 export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const value = projection(state); const networkDriven = value.inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN;
   const screeningCurrent = isAivLineageCurrent(state, 'screening');
@@ -178,11 +177,13 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const relationshipLabel = networkDriven ? 'Inspect paths' : 'Relationships';
   return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}" data-aiv-canvas-label-display="NORMAL">
     <div class="aivq-section-head"><div><h4>AIV Network Canvas Editor</h4><p>One SVG is the AIV input editor, topology view, relationship view and registered-result surface.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">${esc(modeLabel)}</span><span class="aiv-canvas-badge authority">SVG x/y = presentation only</span><span class="aiv-canvas-badge authority">registered results</span></div></div>
-    <div class="aiv-canvas-head-actions" aria-label="Canvas navigation controls">${iconButton('Navigate', 'navigate', 'data-aiv-canvas-mode="NAVIGATE"', { active: true, pressed: true })}${iconButton(relationshipLabel, 'relationships', 'data-aiv-canvas-mode="RELATIONSHIPS"', { pressed: false })}${iconButton('Zoom +', 'zoomIn', 'data-aiv-canvas-action="zoom-in"')}${iconButton('Zoom −', 'zoomOut', 'data-aiv-canvas-action="zoom-out"')}${iconButton('Reset view', 'reset', 'data-aiv-canvas-action="reset-view"')}${iconButton('Export canvas package', 'export', 'data-aiv-canvas-export="screening"', { disabled: true })}</div>
-    <div class="aiv-canvas-head-actions" aria-label="Canvas engineering labels">${labelLegendIcon()}${labelModeButtons()}</div>
     ${currentnessHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
-    <div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true">${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg></div>
+    <div class="aiv-canvas-frame" style="position:relative">
+      <div class="aiv-canvas-head-actions" aria-label="Canvas navigation controls" style="position:absolute;z-index:6;top:8px;right:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${iconButton('Navigate', 'navigate', 'data-aiv-canvas-mode="NAVIGATE"', { active: true, pressed: true })}${iconButton(relationshipLabel, 'relationships', 'data-aiv-canvas-mode="RELATIONSHIPS"', { pressed: false })}${iconButton('Zoom +', 'zoomIn', 'data-aiv-canvas-action="zoom-in"')}${iconButton('Zoom −', 'zoomOut', 'data-aiv-canvas-action="zoom-out"')}${iconButton('Reset view', 'reset', 'data-aiv-canvas-action="reset-view"')}${iconButton('Export canvas package', 'export', 'data-aiv-canvas-export="screening"', { disabled: true })}</div>
+      <div class="aiv-canvas-head-actions" aria-label="Canvas engineering labels" style="position:absolute;z-index:6;left:8px;bottom:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${labelLegendIcon()}${labelModeButtons()}</div>
+      <svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true">${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg>
+    </div>
     <div class="aivq-readiness-note"><strong>Label authority:</strong> Process/Geometry/Completeness labels project authoritative inputs below the canvas; Results shows registered results only. Labels never infer engineering distance from SVG geometry.</div>
     ${summaryHtml(value)}<div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div>
   </section>`;
