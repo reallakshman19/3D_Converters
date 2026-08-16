@@ -8,6 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '..');
 const tab = fs.readFileSync(path.join(repo, 'tabs/hp-piping-class-tab.js'), 'utf8');
 const controller = fs.readFileSync(path.join(repo, 'tabs/hp-piping-class-workspace-controller.js'), 'utf8');
+const workspace = fs.readFileSync(path.join(repo, 'tabs/engineering-workspace-tab.js'), 'utf8');
 
 test('native HP editor owns v2 state, persistence and canonical orchestration seam', () => {
   assert.match(tab, /createHpPipingClassWorkspaceController/);
@@ -56,4 +57,8 @@ test('legacy compatibility remains lazy and does not own native editor state', (
   const root = tab.match(/container\.innerHTML = `([\s\S]*?)`;\n\n  const panelHost/);
   assert.ok(root, 'native root template not found');
   assert.doesNotMatch(root[1], /<iframe/i);
+});
+
+test('engineering workspace cache-busts the I5 HP module', () => {
+  assert.match(workspace, /hp-piping-class-tab\.js\?v=20260816-hp-i5-native-editors-1/);
 });
