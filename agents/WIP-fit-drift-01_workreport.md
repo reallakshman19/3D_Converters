@@ -1,40 +1,26 @@
 # WIP-fit-drift-01 — FIT machine truth / drift hardening
 
-## Mission
+Status: **DRAFT PR OPEN / EXECUTABLE VALIDATION ENVIRONMENT-BLOCKED**
 
-Deliver `FIT-DRIFT-01` for `VIB.FIV.FLOW_TURBULENCE`: one machine-readable Engineering Work Pack, a deterministic drift validator, UI projection repair, stale-document classification/reconciliation, and a regression gate. No FIT numerical-method or authority promotion is authorized.
-
-Owner issue: #443. Parent vibration gate: #429. Merge authority remains Owner-only.
+Owner issue: #443. Parent vibration gate: #429. Draft PR: #565. Merge authority remains Owner-only.
 
 ## Live grounding
 
 ```text
-CURRENT_MAIN_SHA              d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
-CURRENT_BRANCH                agent/fit-drift-01-workpack
-CURRENT_PR                    NONE / WIP
-FIT_ADAPTER_BLOB              eef88d59846a5c779d5f56b71b9502955ddf1b41
-ACTIVE_REGISTRY_STATE         ACTIVE
-CURRENT_TEST_MANIFEST_COUNT   57 (pre-mutation observation)
-CURRENT_PRODUCT_FREEZE_STATE  BLOCKED / NOT FROZEN
+CURRENT_MAIN_SHA               d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
+CURRENT_BRANCH                 agent/fit-drift-01-workpack
+CURRENT_PR                     #565 DRAFT / OPEN / UNMERGED
+PR_HEAD_SHA_AT_LAST_ORACLE      9897b4cdff73a3b7045cce4dc38f39b4be264b5d
+FIT_ADAPTER_BLOB               eef88d59846a5c779d5f56b71b9502955ddf1b41
+ACTIVE_REGISTRY_STATE          ACTIVE
+PRE_MUTATION_MANIFEST_COUNT    57
+BRANCH_MANIFEST_COUNT          58
+CURRENT_PRODUCT_FREEZE_STATE   BLOCKED / NOT FROZEN
 ```
 
-Open FIT proposal PRs:
+`main` was re-read after PR creation and remained at the SHA above.
 
-```text
-#539 OPEN/DRAFT — stale production/lifecycle proposal; diverged from current main
-#540 OPEN/DRAFT — stacked authority-boundary proposal; diverged from current main
-```
-
-Repository-wide lifecycle proposal:
-
-```text
-#564 OPEN/DRAFT — RESERVED -> QUALIFIED -> ACTIVE -> DEPRECATED
-main has no converters/engineering-calculations/lifecycle.js
-```
-
-Do not copy #564 into FIT. Capability lifecycle remains separate from method qualification.
-
-## Current FIT truth
+## Current FIT method / authority state
 
 ```text
 capabilityId          VIB.FIV.FLOW_TURBULENCE
@@ -50,19 +36,7 @@ full vibration         INCOMPLETE
 product freeze         BLOCKED / NOT FROZEN
 ```
 
-PR #499 is the merged bounded-screening engineering qualification event. PR #511 merged the product-freeze machinery/evidence work but explicitly did not establish the official URL-based Product Freeze.
-
-## Protected engineering invariants
-
-- FIT is main-line Flow-Induced Turbulence only.
-- `60 <= Dext <= 219.1 mm` bounded screening.
-- `219.1 < Dext < 273 mm` excluded / fail closed (QST-003).
-- `273 <= Dext <= 762 mm` bounded screening.
-- QST-003 may not be resolved by interpolation, nearest family, nominal-size inference, workbook selector, or user-entered family.
-- Advanced path requires `FLEXIBLE_SMALL|FLEXIBLE_LARGE`, standard LOF >= 1, actual `fn`, and `1 Hz < fn <= 3 Hz`.
-- Exactly 1 Hz excluded; exactly 3 Hz included.
-- No `safe=true`, `pass=true`, `designAcceptable=true`, or universal vibration score.
-- Product Freeze is independent of method qualification.
+PR #499 is the merged bounded-screening engineering qualification event. PR #511 merged freeze machinery/evidence work but did not establish the official URL-based Product Freeze.
 
 ## Takeover qualification — Appendix A
 
@@ -76,21 +50,27 @@ TOTAL                            98/100
 minimum challenge                18/20
 ```
 
-A4 is intentionally not scored as executable runtime proof: this connector runtime has not executed the Node/browser suites. Controlled benchmark/source identities and merged qualification/freeze records were independently re-read.
-
 ```text
 TAKEOVER_DECISION   CONTINUE from fresh current main
 OLD_BRANCH_RULE     SUPERSEDE direct continuation of #539/#540
-TAKEOVER_AUTHORITY  IMPLEMENTATION within FIT-DRIFT-01 scope
+TAKEOVER_AUTHORITY  FIT-DRIFT-01 implementation only
 ```
 
-## Current drift / failure isolation
+Draft #564 remains an unmerged capability-lifecycle proposal. No `RESERVED -> QUALIFIED -> ACTIVE -> DEPRECATED` implementation was copied into FIT.
 
-1. `tabs/engineering-calculation-console-view.js` hard-codes FIT `BENCHMARK ONLY` although the registered definition is `SCREENING`.
-2. `tabs/engineering-calculation-vibration-family.js` says no mechanism has screening authority although FIT and AIV are registered `SCREENING` calculations.
-3. `docs/vibration/FIT-Source-Basis-Evidence-v1.md` still presents `BENCHMARK_ONLY / NONE / NOT_AUTHORIZED` as current authority.
-4. `docs/vibration/FIT-source-register.md` still presents `NUMERICAL_METHOD_BLOCKED / ENGINEERING_AUTHORITY_NONE` without historical classification.
-5. Current FIT qualification/scope documents retain older release-suite count prose; the executable manifest is the only count oracle.
+## Implemented drift-hardening
+
+1. Added `engineering/workpacks/VIB-FIT.json` as the machine-readable FIT current-state/work-pack contract.
+2. Added generic `scripts/verify-engineering-workpack.mjs` with FIT-WP-001..012 deterministic gates.
+3. Added `tests/vibration-fit-workpack-drift.test.mjs` and wired it into the FIT/VIB release manifest.
+4. Replaced FIT console `BENCHMARK ONLY` hard-code with registered `definitionState(definition)` projection.
+5. Replaced the family-level no-screening-authority statement with a registered/executable SCREENING projection.
+6. Reconciled `FIT-Source-Basis-Evidence-v1.md` as `CURRENT_AUTHORITY`.
+7. Classified `FIT-source-register.md` as `HISTORICAL_BASELINE` while retaining its original blocked-state history.
+8. Reconciled Issue #443 by comment: its old `BENCHMARK_ONLY / NONE / NOT_AUTHORIZED` block is historical, not current truth.
+9. Hardened Product Freeze verification so only current `BLOCKED + frozen=false` or future `FROZEN + frozen=true + protocol PASS receipt` can pass FIT-WP-012.
+
+No FIT equation, correlation coefficient, empirical constant, benchmark expected value/tolerance, applicability boundary, QST-003 disposition, method revision, screening/design/code authority, or `.github/workflows/*` file was changed.
 
 ## Benchmark state
 
@@ -99,69 +79,88 @@ FIT-EI-WORKED-EXAMPLES-V1
   10 controlled cases = 8 Appendix D2.1 + 2 Appendix D4
 
 FIT-INDEPENDENT-HAND-BENCHMARKS-V1
-  independent standard-family, advanced, threshold, support-boundary,
-  unit-invariance, QST-003 fail-close and fn-boundary evidence
+  liquid / gas / multiphase
+  standard families
+  flexible-small and flexible-large advanced branches
+  LOF thresholds
+  fn/support boundaries
+  unit invariance
+  QST-003 fail-close
 ```
 
-Production output must never create/correct expected values, relax tolerance, or fit a benchmark.
+All required work-pack benchmark IDs were re-read from the controlled JSON datasets. Production output remains forbidden from creating/correcting expected values, relaxing tolerances, or fitting benchmarks.
 
-## Coordination / file overlap
+## Coordination / overlap
 
 ```text
-#539  COORDINATION_REQUIRED
-      overlaps proposed UI projection files; branch is diverged/stale proposal only
-
-#540  COORDINATION_REQUIRED
-      overlaps UI and FIT release-gate paths; branch is stacked/diverged proposal only
-
-#564  SAFE exact-file scope if this WIP does not edit
-      converters/engineering-calculations/lifecycle.js or
-      tabs/engineering-calculation-console-sections.js
-      conceptual lifecycle overlap remains explicitly quarantined
+#539  DESIGN/PATCH PROPOSAL ONLY — stale/diverged; do not continue branch
+#540  DESIGN/PATCH PROPOSAL ONLY — stale/diverged; do not continue branch
+#564  DRAFT LIFECYCLE PROPOSAL — not on main; no exact-file implementation copied
 ```
 
-## Planned changed-file ledger
+The PR deliberately does not edit `converters/engineering-calculations/lifecycle.js` or `tabs/engineering-calculation-console-sections.js`.
 
-New:
+## Changed-file ledger
+
+Implementation / governance files:
 
 ```text
-engineering/workpacks/VIB-FIT.json
-scripts/verify-engineering-workpack.mjs
-tests/vibration-fit-workpack-drift.test.mjs
 agents/WIP-fit-drift-01_workreport.md
-```
-
-Existing, subject to backup custody before edit:
-
-```text
+docs/vibration/FIT-Source-Basis-Evidence-v1.md
+docs/vibration/FIT-source-register.md
+engineering/workpacks/VIB-FIT.json
 package.json
+scripts/verify-engineering-workpack.mjs
 scripts/verify-vibration-fit-release.mjs
 tabs/engineering-calculation-console-view.js
 tabs/engineering-calculation-vibration-family.js
-docs/vibration/FIT-Source-Basis-Evidence-v1.md
-docs/vibration/FIT-source-register.md
+tests/vibration-fit-workpack-drift.test.mjs
 ```
 
-No FIT equation/correlation/master/benchmark/tolerance/applicability/methodRevision/authority mutation. No `.github/workflows/*` change.
+Exact pre-edit connector custody:
+
+```text
+.backups/connector-20260816-fit-drift-01/docs/vibration/FIT-Source-Basis-Evidence-v1.md
+.backups/connector-20260816-fit-drift-01/docs/vibration/FIT-source-register.md
+.backups/connector-20260816-fit-drift-01/package.json
+.backups/connector-20260816-fit-drift-01/scripts/verify-vibration-fit-release.mjs
+.backups/connector-20260816-fit-drift-01/tabs/engineering-calculation-console-view.js
+.backups/connector-20260816-fit-drift-01/tabs/engineering-calculation-vibration-family.js
+```
+
+The native `node utils/backup.js save ...` CLI was not runnable in this connector environment; custody uses exact pre-edit Git blobs and is not represented as a native-backup PASS.
 
 ## Validation ledger
 
 ```text
-STATUS       OBSERVATION                                      ORACLE
-PASS         live main SHA re-read                            GitHub branch ref
-PASS         FIT adapter/registry current authority inspected current production source
-PASS         57-file pre-mutation manifest counted            release manifest source
-PASS         #499 bounded screening event is merged            merged PR record
-PASS         #511 official freeze remained blocked             merged PR record/protocol
-NOT_RUN      npm run workpack:verify -- VIB-FIT                connector runtime
-NOT_RUN      npm run verify:vibration-fit-release               connector runtime
-NOT_RUN      official Chromium Product Freeze                   protocol requires served browser journey
+STATUS       OBSERVATION                                             ORACLE
+PASS         live main SHA re-read                                   GitHub branch ref
+PASS         FIT adapter/registry current authority inspected        current production source
+PASS         pre-mutation release manifest = 57                      release manifest source
+PASS         branch release manifest = 58 paths                      branch manifest source
+PASS         EI + independent controlled benchmark identities re-read controlled JSON sources
+PASS         no FIT numerical/benchmark/workflow path changed        PR changed-file ledger
+PASS         #443 current-authority reconciliation comment posted    issue #443 comment 5308272919
+NOT_RUN      npm run workpack:verify -- VIB-FIT                      connector runtime has no repo Node execution
+NOT_RUN      npm run verify:vibration-fit-release                    connector runtime has no repo Node execution
+FAIL         GitHub Actions job start                                Actions budget prevented job from starting
+NOT_RUN      source tests/browser bundle inside failed Action        job never started
+NOT_RUN      official Chromium Product Freeze                        protocol remains BLOCKED / NOT FROZEN
+```
+
+GitHub Actions run `31956658656`, job `95188211970`, annotation: `The job was not started because an Actions budget is preventing further use.` This is an environment blocker, not a source-test failure and not a PASS.
+
+## Active blockers
+
+```text
+FIT-CI-001  GitHub Actions budget prevents executable PR validation.
+FIT-PF-001  Official Product Freeze remains BLOCKED until the protocol-defined served Chromium journey emits a PASS receipt.
 ```
 
 ## Highest risk
 
-Creating a second independent FIT status model rather than a checked contract. The work pack must be validated against runtime registry/adapter behavior and consumed as a guardrail; UI must project registered calculation metadata rather than invent a new FIT-only authority constant.
+The highest remaining risk is claiming executable validation from static inspection. The new work-pack code is reviewable and machine-enforcing by construction, but `workpack:verify` and the 58-file FIT/VIB release suite still require an executable Node environment or restored Actions budget before merge consideration.
 
 ## EXACT_NEXT_ACTION
 
-Create backup custody for every existing file listed above, then add `engineering/workpacks/VIB-FIT.json` and the generic work-pack validator without modifying FIT numerical code.
+Restore/obtain an executable validation environment, run `npm run workpack:verify -- VIB-FIT` and `npm run verify:vibration-fit-release` on PR #565 current head, record the actual STATUS/OBSERVATION/ORACLE in `agents/PR565_workreport.md`, and do not merge unless the Owner separately authorizes it.
