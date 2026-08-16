@@ -29,19 +29,19 @@ function assertPdftotext() {
   if (probe.status !== 0) throw new Error(`T29_PDFTOTEXT_UNAVAILABLE: ${probe.stderr || probe.stdout}`);
 }
 
-function boundedReviewLines(extraction, pages) {
-  const selected = new Set(pages);
-  const pattern = /(T2\.9|cavitation|flashing|pressure\s+recovery|recovery\s+factor|\bF\s*L\b|\bP1\b|\bP2\b|\bPv\b|0\.96|\bsigma\b|σ|\bKc\b|\bLOF\b)/iu;
-  const rows = [];
-  for (const page of extraction.pages) {
-    if (!selected.has(page.pdfPageNumber)) continue;
-    page.text.split(/\r?\n/u).forEach((line, index) => {
-      const text = line.trim().replace(/\s+/gu, ' ');
-      if (!text || !pattern.test(text)) return;
-      rows.push({ page: page.pdfPageNumber, line: index + 1, text: text.slice(0, 240) });
-    });
-  }
-  return rows.slice(0, 40);
+function publicLocatorEvidence(locator, requestedPages) {
+  const selected = new Set(requestedPages);
+  return locator.navigationCandidates
+    .filter((candidate) => selected.has(candidate.pdfPageNumber))
+    .map((candidate) => ({
+      pdfPageNumber: candidate.pdfPageNumber,
+      textSha256: candidate.textSha256,
+      utf8Bytes: candidate.utf8Bytes,
+      lineCount: candidate.lineCount,
+      tokenCounts: candidate.tokenCounts,
+      selectionReason: candidate.selectionReason,
+      score: candidate.score,
+    }));
 }
 
 test('T2.9 exact controlled source can be located and provisionally extracted in trusted CI', {
@@ -63,13 +63,26 @@ test('T2.9 exact controlled source can be located and provisionally extracted in
     const locator = locateT29ControlledSource(pdf, REGISTER_PATH);
     assert.equal(locator.schema, 'T29ControlledSourceLocator.v1');
     assert.equal(locator.source.gitBlobSha1, SOURCE.gitBlobSha1);
+    assert.equal(locator.rankingPolicy.genericPressureRecoveryAloneIsCandidate, false);
     assert.ok(locator.navigationCandidates.length > 0);
-    console.log(`T29_CONTROLLED_LOCATOR=${JSON.stringify(locator)}`);
 
     const request = JSON.parse(readFileSync(REQUEST_PATH, 'utf8'));
+    const selectedEvidence = publicLocatorEvidence(locator, request.pdfPages);
+    assert.equal(selectedEvidence.length, request.pdfPages.length,
+      'provisional reviewer page selection is not a ranked T2.9 navigation candidate');
+    console.log(`T29_CONTROLLED_LOCATOR_EVIDENCE=${JSON.stringify({
+      source: {
+        gitBlobSha1: locator.source.gitBlobSha1,
+        sizeBytes: locator.source.sizeBytes,
+      },
+      extraction: locator.extraction,
+      selectedEvidence,
+      exactMethodSemanticsAuthorized: locator.exactMethodSemanticsAuthorized,
+      authority: locator.authority,
+    })}`);
+
     const register = JSON.parse(readFileSync(REGISTER_PATH, 'utf8'));
     const extraction = extractPdfText(pdf);
-    console.log(`T29_REVIEW_LINES=${JSON.stringify(boundedReviewLines(extraction, request.pdfPages))}`);
     const manifest = buildVibrationMasterSourceExtractionManifest(bytes, register, request, extraction);
     assert.equal(manifest.schema, 'VibrationMasterSourceExtraction.v1');
     assert.equal(manifest.masterId, 'EI_AVIFF.T2.9.VALVE_RECOVERY_FACTORS.v1');
