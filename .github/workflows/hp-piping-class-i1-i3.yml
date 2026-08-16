@@ -12,6 +12,7 @@ on:
       - 'scripts/verify-hp-piping-class-i1-i3.mjs'
       - '.github/workflows/hp-piping-class-i1-i3.yml'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
     paths:
