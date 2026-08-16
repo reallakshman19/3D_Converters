@@ -13,6 +13,19 @@
     "exportName": "ACTIVE_ENGINEERING_CALCULATION_DEFINITIONS",
     "state": "ACTIVE"
   },
+  "authorityProjectionModules": [
+    {
+      "path": "converters/vibration/fit/source-basis-evidence.js",
+      "exportName": "FIT_SOURCE_BASIS_EVIDENCE",
+      "authorityProperty": "authority",
+      "fields": [
+        "qualificationState",
+        "engineeringAuthority",
+        "screeningAuthority",
+        "designAuthority"
+      ]
+    }
+  ],
   "methodRevision": "ei-aviff2-fit-screening-v1",
   "authority": {
     "calculationState": "IMPLEMENTED",
@@ -157,6 +170,7 @@
   "staleArtifacts": [
     { "artifact": "Issue #443 baseline authority block", "classification": "HISTORICAL_BASELINE" },
     { "artifact": "docs/vibration/FIT-source-register.md", "classification": "HISTORICAL_BASELINE" },
+    { "artifact": "51-file release-suite statements in qualification-era records", "classification": "HISTORICAL_QUALIFICATION_OBSERVATION_NOT_COUNT_ORACLE" },
     { "artifact": "PR #539", "classification": "DESIGN_PATCH_PROPOSAL_NOT_BASELINE" },
     { "artifact": "PR #540", "classification": "DESIGN_PATCH_PROPOSAL_NOT_BASELINE" },
     { "artifact": "PR #564 lifecycle implementation", "classification": "DRAFT_NOT_ON_MAIN" }
