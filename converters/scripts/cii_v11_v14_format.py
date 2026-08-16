@@ -274,15 +274,36 @@ def _numeric_row_expected_width(field_count: int) -> int:
     return 15 + 13 * (field_count - 1)
 
 
+def _token_is_real_literal(token: str) -> bool:
+    """Return True when a numeric token is lexically a REAL rather than INTEGER.
+
+    CAESAR neutral records can mix I13 and G13.6 fields on one physical line.
+    Re-rendering such a line as an all-REAL row changes integer fields like
+    ``0`` into ``0.000000`` and violates the FORTRAN input contract.  The
+    lexical distinction is therefore structural evidence, not formatting noise.
+    """
+    lowered = token.lower()
+    return "." in token or "e" in lowered or "d" in lowered
+
+
 def _generic_numeric_convert(line: str, target: int) -> str:
     parsed = _is_float_row(line)
     if parsed is None:
         return line
-    values, _tokens = parsed
-    # Fixed-format numeric rows are 15 + 13*(n-1).  Permit source lines with
-    # trailing blanks, but do not reinterpret arbitrary short/long text lines.
+    values, tokens = parsed
+
+    # Never reinterpret a mixed I/G fixed record as an all-REAL row.  Known
+    # examples include the MISCEL_1 execution options and hanger defaults.
+    # Their numeric widths are compatible across the qualified generations, so
+    # preserving the source record byte-for-byte is safer than destroying the
+    # integer field grammar merely to change floating-point presentation.
+    token_kinds = {_token_is_real_literal(token) for token in tokens}
+    if len(token_kinds) > 1:
+        return line
+
+    # Fixed-format all-REAL numeric rows are 15 + 13*(n-1).  Permit source lines
+    # with trailing blanks, but do not reinterpret arbitrary short/long text.
     expected = _numeric_row_expected_width(len(values))
     if len(line.rstrip()) > expected or len(line) < expected:
         return line
     return _render_float_row(values, target)
-
