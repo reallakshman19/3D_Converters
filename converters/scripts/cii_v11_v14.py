@@ -17,10 +17,11 @@ from cii_v11_v14_format import (
     _render_float_row, _sha256, parse_sections,
 )
 from cii_v11_v14_records import (
-    _close_to, _convert_allowables, _convert_coords, _convert_elements,
+    _close_to, _convert_coords, _convert_elements,
     _convert_reducers, _convert_restraints, _convert_units,
     _convert_version, _row_is_all_zero, detect_version,
 )
+from cii_v11_v14_allowables import _convert_allowables
 from cii_v11_v14_sif import _convert_sif_tees
 from cii_v11_v14_validate import CiiStructureError, validate_text_for_version
 
