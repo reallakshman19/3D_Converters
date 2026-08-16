@@ -22,6 +22,17 @@ function screeningAuthority(definition) {
     : 'Screening authority: NOT AUTHORIZED';
 }
 
+function authorityUse(definition) {
+  if (definition.id !== FIT_ID) return '<span>Design authority: NO</span>';
+  const design = definition.authority?.designAuthorityDisposition === 'NOT_A_DESIGN_CHECK'
+    ? 'Design use: SCREENING ONLY'
+    : 'Design authority: NO';
+  const code = definition.authority?.codeComplianceDisposition === 'NOT_A_CODE_COMPLIANCE_CHECK'
+    ? 'Code compliance: NOT A CODE CHECK'
+    : 'Code compliance: NO';
+  return `<span>${esc(design)}</span><span>${esc(code)}</span>`;
+}
+
 function qualificationReference(definition) {
   if (!definition.qualificationIssue) return 'No qualification issue';
   return definition.id === FIT_ID && definitionState(definition) === 'PRODUCTION_AUTHORIZED'
@@ -57,7 +68,7 @@ function mechanismCard(definition) {
       <div class="engineering-vibration-card-status">${pill(displayState(definition), statusKind(definition))}</div>
     </div>
     <p>${esc(definition.purpose || '')}</p>
-    <div class="engineering-vibration-meta"><span>${esc(qualificationReference(definition))}</span><span>${esc(screeningAuthority(definition))}</span><span>Design authority: NO</span></div>
+    <div class="engineering-vibration-meta"><span>${esc(qualificationReference(definition))}</span><span>${esc(screeningAuthority(definition))}</span>${authorityUse(definition)}</div>
     ${limitations.length ? `<ul>${limitations.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>` : ''}
     <div class="engineering-console-actions">${mechanismAction(definition)}</div>
   </article>`;
@@ -74,7 +85,7 @@ export function renderVibrationFamilyLanding(definitions = []) {
       </div>
       <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
-    <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> Production lifecycle does not imply design authority. FIT carries bounded screening authority only inside its declared applicability; every other mechanism retains its own registered authority.</div>
+    <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> Production lifecycle does not imply design or code-compliance authority. FIT is a bounded screening method, not a design/code check; every other mechanism retains its own registered authority.</div>
     <div class="engineering-vibration-boundary"><strong>TABLE DATA ONLY</strong><span>Vibration consumes 3D EDIT table exports. No 3D viewer or canvas is embedded here.</span></div>
     <div class="engineering-vibration-grid">${rows.map(mechanismCard).join('')}</div>
   </section>`;
