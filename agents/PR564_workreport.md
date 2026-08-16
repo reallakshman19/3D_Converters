@@ -1,4 +1,4 @@
-# PR564 — SBC reserved Type 1–4 scaffold + controlled structural blanks
+# PR564 — SBC reserved Type 1–4 scaffold + source-grounded structural contracts
 
 ## Recovery summary
 
@@ -32,186 +32,264 @@ IMPLEMENTATION QUALIFICATION != SCREENING AUTHORITY
 SCREENING AUTHORITY != DESIGN AUTHORITY
 ```
 
-## Live grounding at takeover checkpoint
+## Live grounding at this checkpoint
 
 ```text
-main SHA                                      = d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
-PR                                             = #564 OPEN / DRAFT
-branch                                         = agent/sbc-reserved-vertical-scaffold
-merge base                                     = 042025bfe3f9c60ba11d8c653f98af78ac587a64
-PR engineering head after structural slice     = e9bc1074b808840922c41277e7687ce2dc9e0933
-PR head immediately before this report update  = ff698bd0b95f80b594c1daee5432907f7e23a817
-base drift at checkpoint                       = branch behind main by 2 unrelated CII commits
-mergeable                                      = true
-review threads                                 = none
+main SHA                                  = d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
+PR                                         = #564 OPEN / DRAFT
+branch                                     = agent/sbc-reserved-vertical-scaffold
+merge base                                 = 042025bfe3f9c60ba11d8c653f98af78ac587a64
+engineering head before report update      = 2b20021147aadf67799c177ea7ff35e08878111e
+base drift                                 = behind live main by 2 unrelated CII commits
+mergeable                                  = true
+changed files before report update         = 28
+review threads at takeover                 = none
 ```
 
-This report update is itself a later report-only commit, so a future takeover must re-read live GitHub head/base/checks rather than treating the parent SHA above as perpetually current.
+This report update creates a later report-only head. Future takeover must re-read live PR/main/checks rather than treating the engineering-head SHA above as perpetually current.
 
-The two main-only commits are CII work and do not justify rebasing this engineering-critical SBC branch merely to erase drift.
-
-## Mandatory first-read reconciliation
-
-Re-read at takeover:
+## Scope / ownership
 
 ```text
-AGENTS.md
-.agents/AGENTS.md
-agents/PR564_workreport.md
-docs/vibration/SBC-Implementation-Scaffold-v1.md
-docs/FIVroadmap.md
-Issue #563
-Issue #429
-Issue #514
-PR #564
+#563 = SBC scaffold, fill-in-the-blanks architecture, structural contracts
+#429 = Vibration family qualification/completeness and qualified EI main-line assessment
+#514 = Type-3 source/qualification evidence and T3 source conflict
 ```
 
-Stale/inherited fact corrected:
+PR #546 remains evidence/source-reconciliation work only and is not an implementation baseline. PR #508 Type-3 candidate code remains salvage/evidence only. PR #480/#483 remain adjacent source/master infrastructure without authority transfer.
 
-- prior workreport/PR body recorded `main=042025...`; live `main` is now `d12ca2d...`;
-- prior workreport recorded the scaffold test as `NOT_RUN`; the committed test has now actually executed and is `PASS`;
-- hosted workflow entries whose GitHub conclusion says `failure` exposed zero executed steps, `runner_id=0`, and no runner name, so they remain `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product test failures.
-
-## Appendix A — takeover qualification
-
-Repository-specific implementation takeover gate completed before production-manifest mutation.
-
-```text
-A1 Production Trace               20/20
-A2 Current Failure Isolation      19/20
-A3 Authority / Invariant          20/20
-A4 Independent Validation         19/20
-A5 Next-Commit / Minimal Patch    19/20
-TOTAL                              97/100
-minimum challenge                  19/20
-required total                     92/100
-required minimum                   17/20
-DECISION                           CONTINUE
-```
-
-### A1 Production trace
-
-Traced public path:
-
-```text
-PENDING_ENGINEERING_CALCULATION_DEFINITIONS
-→ VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION
-→ calculateReservedSbc()
-→ explicit TYPE_1 / TYPE_2 / TYPE_3 / TYPE_4 reserved route
-→ createReservedSbcTypeResult()
-```
-
-Observed fail-closed behavior:
-
-```text
-public lifecycle = RESERVED
-public calculation/qualification = BLOCKED
-ui.executionModes = []
-reserved executionAllowed = false
-reserved result has no `lof`
-```
-
-### A2 Current failure isolation
-
-The committed reserved-scaffold regression passes. Therefore there is no demonstrated current scaffold defect to “fix” by changing authority or numerical behavior.
-
-The remaining #563 deficiency is deterministic structural incompleteness before numerical activation:
-
-```text
-method specification
-→ source/trace register
-→ benchmark registry
-→ explicit Type 1–4 input contracts
-→ applicability/type classification
-→ qualified master dependencies
-→ pure Type kernels
-```
-
-This checkpoint fills only the first three as **non-frozen scaffolds** and stops before source-dependent engineering input definitions.
-
-### A3 Authority / invariants
-
-Protected during the checkpoint:
-
-1. SBC main-line input is a qualified EI main-line assessment with completeness semantics, never FIT LOF alone.
-2. Type 1–4 remain explicit branches.
-3. D5/D6/D7/D8 are B1 families; each type also requires independent B2 engineering evidence.
-4. Production code does not generate/correct benchmark expected values.
-5. D7 remains oracle-only, never calibration data.
-6. Type-3 candidate code remains salvage/evidence only.
-7. T3 curves remain quarantined while source conflict exists.
-8. No hidden engineering defaults; only source-provenanced `METHOD_MANDATED_CONSERVATIVE_ASSUMPTION` may introduce a conservative value.
-9. Lifecycle state does not replace method/data/master qualification or authority.
-10. No lifecycle transition occurs in this slice.
-
-### A4 Independent validation
-
-A native private clone could not be obtained because the execution container could not resolve `github.com` DNS.
-
-Fallback validation was not inferred from source inspection. The committed test and every imported/transitive source file in its dependency set were reconstructed from the authenticated GitHub connector and verified by exact Git blob SHA before executing the unchanged test command. The same procedure was used for the new controlled-structure test after publication.
-
-### A5 Minimal patch boundary
-
-Selected patch:
-
-- freeze structural stage/order names only;
-- add non-frozen method specification scaffold;
-- add unpopulated controlled source/trace register scaffold;
-- add B1/B2 benchmark registry scaffold with **no expected benchmark values**;
-- expose exact artifact references and downstream `NOT_FROZEN` / `NOT_QUALIFIED` states from the consumed SBC manifest;
-- add regression coverage;
-- do not create numerical Type kernels or source-dependent input definitions yet.
-
-This is the smallest useful continuation that improves determinism without inventing engineering facts.
-
-## Active PR/WIP coordination
-
-Overall classification:
+Coordination classification:
 
 ```text
 COORDINATION_REQUIRED
 not BLOCKED_BY_ACTIVE_CLAIM
 ```
 
-### PR #546
+No exact #546 file was modified.
 
-Exact changed-file overlap with PR #564 remains zero. #546 owns Type-3 production-freeze/source-reconciliation evidence and is not an implementation baseline for this work.
+## Authority invariants preserved
 
-### PR #508
+1. SBC main-line input requires a qualified EI main-line assessment with completeness semantics; FIT LOF alone is rejected.
+2. Type 1–4 remain explicit branches.
+3. D5/D6/D7/D8 remain B1 worked-example families; each materially distinct branch also requires independent B2 engineering evidence.
+4. Production code does not generate or correct benchmark expected values.
+5. D7 remains an oracle, never calibration data.
+6. Existing Type-3 candidate code remains salvage/evidence only.
+7. T3 curves remain quarantined while the controlled-source conflict exists.
+8. No hidden engineering defaults are introduced.
+9. A conservative value remains legal only as `METHOD_MANDATED_CONSERVATIVE_ASSUMPTION` with exact source rule/provenance.
+10. Structural completeness does not establish method qualification or execution authority.
+11. No lifecycle transition occurs in this slice.
 
-No exact-file overlap with this checkpoint, but path/authority adjacency exists under `converters/vibration/sbc/`. Treat its Type-3 code as salvage/evidence only; do not baseline or activate it.
+## Controlled source identities now pinned
 
-### PR #480
-
-Source-inventory work is adjacent evidence only. It does not grant SBC method qualification.
-
-### PR #483
-
-Vibration master-registry framework is adjacent infrastructure. This checkpoint does not publish or qualify SBC masters.
-
-### PR #539 / #540
-
-Both touch `tabs/engineering-calculation-vibration-family.js`; PR #564 does not modify that file. Existing SBC UI behavior continues through shared consumed state metadata.
-
-### PR #560
-
-Touches `docs/FIVroadmap.md`. PR #564 reads the roadmap but does not modify that active PR's file.
-
-## Controlled structural sequence now encoded
-
-`converters/vibration/sbc/vertical-manifest.js` now exposes:
+Implemented in:
 
 ```text
-METHOD_SPECIFICATION
-→ SOURCE_TRACE_REGISTER
-→ BENCHMARK_REGISTRY
-→ TYPE_INPUT_CONTRACTS
-→ APPLICABILITY_TYPE_CLASSIFICATION
-→ QUALIFIED_MASTER_DEPENDENCIES
-→ PURE_TYPE_KERNELS
+converters/vibration/sbc/source-trace.js
 ```
 
-Current states:
+### SBC-SRC-001 — controlled EI PDF identity
+
+```text
+repository          = reallaksh19/Common
+commit              = fb549185b9b27edc2379734240320a85c5bef9f6
+path                = EI - AVIFF Guidelines 2nd Edition.pdf
+blob                = 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
+role                = CONTROLLED_SOURCE_IDENTITY
+qualificationStatus = IDENTITY_PINNED_ENGINEERING_QUALIFICATION_NOT_ESTABLISHED
+```
+
+### SBC-SRC-002 — Appendix D structured transcription reference
+
+```text
+repository          = reallaksh19/Advanced_Analysis
+commit              = 76eb4bd075ce2e8e2442d02b2798df7be491fb4b
+path                = docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md
+blob                = c050cd90802c27241c510c6f0ac43bfaf7a89e9d
+qualificationStatus = REFERENCE_ONLY_NOT_ENGINEERING_AUTHORITY
+```
+
+### SBC-SRC-003 — T3 structured transcription reference
+
+```text
+repository          = reallaksh19/Advanced_Analysis
+commit              = 76eb4bd075ce2e8e2442d02b2798df7be491fb4b
+path                = docs/EI data/P0_SBC_Master_Data.md
+blob                = 5312c9e2cf86af9e940ba722fcbee64702aeccd3
+qualificationStatus = REFERENCE_ONLY_CURVE_VALUES_QUARANTINED
+```
+
+Source identity and transcription references do not establish engineering qualification.
+
+## Source/trace population status
+
+Updated:
+
+```text
+docs/vibration/SBC-source-trace-register-v1.md
+```
+
+Current status:
+
+```text
+artifactStatus       = SCAFFOLD_PRESENT_NOT_FROZEN
+populationStatus     = REFERENCE_ROWS_POPULATED_NOT_ENGINEERING_QUALIFIED
+engineeringAuthority = NONE
+sourceQualification  = NOT_ESTABLISHED
+```
+
+Populated non-numerical reference rows:
+
+```text
+SBC-TYPE-001  TYPE_1  D5  T3-2  cantilever / single-parent
+SBC-TYPE-002  TYPE_2  D6  T3-4  loop/bypass re-entering same main line
+SBC-TYPE-003  TYPE_3  D7  T3-5  supported first + subsequent spans
+SBC-TYPE-004  TYPE_4  D8  T3-8  bridge between distinct parent lines
+
+SBC-APP-001  T3-1  first span with unsupported mass
+SBC-APP-002  T3-2  first span without unsupported mass
+SBC-APP-003  T3-3  subsequent span with unsupported mass
+SBC-APP-004  T3-4  subsequent span without unsupported mass
+SBC-APP-005  T3-2 table  first span connected to deck/steelwork
+SBC-APP-006  T3-3 table  SBC between two main lines
+```
+
+The applicability rows carry labels only. Numerical figure/table use is not authorized by this slice. `SBC-FIG-*` remains `BLOCKED_SOURCE_DATA_CONFLICT`; `SBC-EQ-*`, numerical `SBC-TBL-*`, `SBC-CONST-*`, `SBC-ASS-*`, and `SBC-UNIT-*` remain unpopulated.
+
+## Explicit Type confirmation contract
+
+New module:
+
+```text
+converters/vibration/sbc/type-classification-contract.js
+```
+
+Current status:
+
+```text
+SOURCE_GROUNDED_EXAMPLE_SCOPE_NOT_METHOD_FROZEN
+classificationAuthority        = NONE
+automaticClassificationAllowed = false
+numericalExecutionAllowed      = false
+```
+
+The contract requires an explicit declared Type and checks only whether supplied topology contradicts the D5–D8 structural facts. It is not a complete EI automatic classifier.
+
+Structural confirmation contracts:
+
+```text
+TYPE_1 = CANTILEVER_SINGLE_PARENT
+         parentConnectionCount=1
+         parentLineRelationship=SINGLE_PARENT_LINE
+
+TYPE_2 = LOOP_BYPASS_SAME_MAIN_LINE
+         parentConnectionCount=2
+         parentLineRelationship=SAME_MAIN_LINE
+
+TYPE_3 = SUPPORTED_FIRST_AND_SUBSEQUENT_SPANS
+         parentConnectionCount=1
+         parentLineRelationship=SINGLE_PARENT_LINE
+         subsequentSpanEvidenceRequired=true
+
+TYPE_4 = BRIDGE_DISTINCT_PARENT_LINES
+         parentConnectionCount=2
+         parentLineRelationship=DISTINCT_MAIN_LINES
+```
+
+Positive structural confirmation returns:
+
+```text
+CONFIRMED_EXAMPLE_SCOPE_NOT_QUALIFIED
+```
+
+Contradiction returns `STRUCTURAL_CONFIRMATION_FAILED`. Missing/unknown explicit type returns `EXPLICIT_TYPE_CONFIRMATION_REQUIRED`.
+
+## Explicit Type 1–4 input contracts
+
+New module:
+
+```text
+converters/vibration/sbc/type-input-contracts.js
+```
+
+Current status:
+
+```text
+SOURCE_GROUNDED_EXAMPLE_SCOPE_NOT_METHOD_FROZEN
+validationPurpose          = STRUCTURAL_COMPLETENESS_ONLY
+numericalExecutionAllowed = false
+benchmarkExecutionAllowed = false
+engineeringDefaultsAllowed = false
+fitOnlyAccepted            = false
+```
+
+Common required structural fields:
+
+```text
+connectionId
+declaredSbcType
+operatingScenario.scenarioId
+mainLineAssessment.assessmentId
+mainLineAssessment.sourceContract
+topology.topologyKind
+topology.parentConnectionCount
+topology.parentLineIds
+geometry.minimumNominalDiameter
+attachments.fittings
+attachments.valves
+locationContext
+```
+
+Required main-line source contract declaration:
+
+```text
+QUALIFIED_EI_MAIN_LINE_ASSESSMENT
+```
+
+This declaration does not itself prove #429 qualification/completeness. `FIT_LOF_ONLY` or `fitOnly=true` fails closed.
+
+Type-specific structural fields:
+
+```text
+TYPE_1
+  geometry.overallBranchLength
+
+TYPE_2
+  topology.returnsToSameMainLine
+  geometry.branchLegs
+
+TYPE_3
+  topology.hasSubsequentSpans
+  geometry.firstSpan
+  geometry.subsequentSpans
+  supportTopology.firstSpanSupport
+
+TYPE_4
+  topology.bridgesDistinctMainLines
+  geometry.endLegs
+  geometry.bridgeSpan
+```
+
+Even a fully populated structural request returns:
+
+```text
+STRUCTURE_COMPLETE_NOT_QUALIFIED_FOR_NUMERICAL_EXECUTION
+qualificationEstablished = false
+numericalExecutionAllowed = false
+```
+
+The contracts contain no SBC equation, LOF arithmetic, curve value, table value, hidden engineering default, or benchmark expected value.
+
+## Manifest status
+
+Updated consumed manifest:
+
+```text
+converters/vibration/sbc/vertical-manifest.js
+```
+
+Overall states deliberately remain:
 
 ```text
 METHOD_SPECIFICATION               = SCAFFOLD_PRESENT_NOT_FROZEN
@@ -223,155 +301,74 @@ QUALIFIED_MASTER_DEPENDENCIES      = NOT_FROZEN
 PURE_TYPE_KERNELS                  = NOT_QUALIFIED
 ```
 
-The manifest also freezes only the structural stage order:
+New sub-statuses make the partial progress machine-readable without removing blockers:
 
 ```text
-VALIDATE_SBC_CONNECTION
-RESOLVE_COHERENT_OPERATING_SCENARIO
-RESOLVE_QUALIFIED_EI_MAIN_LINE_ASSESSMENT
-CLASSIFY_OR_CONFIRM_SBC_TYPE
-RESOLVE_QUALIFIED_TYPE_INPUTS_AND_MASTERS
-EXECUTE_QUALIFIED_TYPE_KERNEL
-ASSESS_SBC_LOF_REFERENCE_BAND
-PRODUCE_REQUIRED_ACTIONS
-RETURN_PROVENANCE_EVIDENCE_AUTHORITY
+SOURCE_TRACE_REGISTER.populationStatus
+  = REFERENCE_ROWS_POPULATED_NOT_ENGINEERING_QUALIFIED
+
+TYPE_INPUT_CONTRACTS.structuralContractStatus
+  = SOURCE_GROUNDED_EXAMPLE_SCOPE_NOT_METHOD_FROZEN
+
+APPLICABILITY_TYPE_CLASSIFICATION.confirmationContractStatus
+  = SOURCE_GROUNDED_EXAMPLE_SCOPE_NOT_METHOD_FROZEN
+
+APPLICABILITY_TYPE_CLASSIFICATION.automaticClassificationAllowed
+  = false
 ```
 
-No stage contains SBC equations in this slice.
+## Type-3 boundary
 
-## Method specification status
-
-New artifact:
+Unchanged:
 
 ```text
-docs/vibration/SBC-Engineering-Method-Specification-v1.md
+issue #514 owns source/qualification evidence
+D7 = B1 oracle only
+D7 calibration use = forbidden
+T3-1..T3-4 numerical curves = BLOCKED_SOURCE_DATA_CONFLICT
+existing Type-3 candidate = salvage/evidence only
+runtime curve activation = false
 ```
 
-State:
-
-```text
-SCAFFOLD_PRESENT_NOT_FROZEN
-```
-
-It records:
-
-- fail-closed authority;
-- structural stage boundaries;
-- qualified main-line assessment requirement;
-- explicit Type 1–4 branch obligations;
-- trace namespaces;
-- B1/B2 evidence rule;
-- no-hidden-default rule;
-- requiredActions/provenance/evidence result boundary;
-- freeze gate.
-
-It deliberately contains no SBC numerical equations or asserted controlled source locators.
-
-## Source / trace status
-
-New artifact:
-
-```text
-docs/vibration/SBC-source-trace-register-v1.md
-```
-
-State:
-
-```text
-artifactStatus        = SCAFFOLD_PRESENT_NOT_FROZEN
-sourceQualification   = NOT_ESTABLISHED
-engineeringAuthority  = NONE
-```
-
-Required namespaces remain:
-
-```text
-SBC-APP-*
-SBC-TYPE-*
-SBC-EQ-*
-SBC-TBL-*
-SBC-FIG-*
-SBC-CONST-*
-SBC-ASS-*
-SBC-SRC-*
-SBC-UNIT-*
-```
-
-The register is intentionally `UNPOPULATED` for exact source identities/rules. Unknown source fields are not guessed from browser evidence, candidate code, cached workbook values, or benchmarks.
-
-Type-3 boundary remains:
-
-```text
-D7 = oracle only
-T3 curves = BLOCKED_SOURCE_DATA_CONFLICT
-#514 = source/engineering evidence owner
-```
-
-## Benchmark status
-
-New artifact:
-
-```text
-Benchmarks/VibrationSBC/sbc-benchmark-registry-v1.json
-```
-
-State:
-
-```text
-artifactStatus                    = SCAFFOLD_PRESENT_NOT_FROZEN
-benchmarkExecutionAllowed         = false
-productionExpectedValueGenerationForbidden = true
-```
-
-Registered requirements:
-
-```text
-TYPE_1 B1 = EI_APPENDIX_D5; B2 = MISSING_INDEPENDENT_ENGINEERING_EVIDENCE
-TYPE_2 B1 = EI_APPENDIX_D6; B2 = MISSING_INDEPENDENT_ENGINEERING_EVIDENCE
-TYPE_3 B1 = EI_APPENDIX_D7; B2 = MISSING_INDEPENDENT_ENGINEERING_EVIDENCE
-TYPE_4 B1 = EI_APPENDIX_D8; B2 = MISSING_INDEPENDENT_ENGINEERING_EVIDENCE
-```
-
-There are **no `expectedValues` arrays/objects** in the registry. Each entry explicitly records `expectedValuesPresent=false`.
-
-Type 3 additionally records:
-
-```text
-oracleUseOnly = true
-calibrationUseForbidden = true
-SBC_T3_CURVES_BLOCKED_SOURCE_DATA_CONFLICT
-ISSUE_514_ENGINEERING_EVIDENCE_REQUIRED
-```
-
-Boundary/unit/API/UI regressions remain additional evidence and do not replace B2.
+The Type-3 structural input contract names first/subsequent span evidence only. It does not derive D/F/G or consume quarantined curve values.
 
 ## Existing-file backup custody
 
-For `converters/vibration/sbc/vertical-manifest.js`, the repository's exact `utils/backup.js` blob (`cd0c755457bb623b0487200a7d0b7217d8b3478e`) was reconstructed and the mandated command was actually executed against the exact pre-edit manifest blob (`75668afa30975581101cd4672afbd302da328ac7`):
+The exact repository `utils/backup.js` was executed against hash-verified pre-edit copies for the two existing engineering-sensitive files changed in this slice.
 
 ```text
-node utils/backup.js save converters/vibration/sbc/vertical-manifest.js "Issue #563 takeover: add controlled structural artifact sequence after reserved scaffold PASS"
-STATUS = PASS
-backup id = #1 in the local validation reconstruction
+backup #1
+file    = converters/vibration/sbc/vertical-manifest.js
+old blob = a70d5aa4bf56733e7eca9cf18065f6479c99f9e9
+context = PR564 #563 type-contract structural source population pre-edit
+result  = PASS
+committed backup = .backups/1_converters_vibration_sbc_vertical_manifest_js.bak
+
+backup #2
+file    = docs/vibration/SBC-source-trace-register-v1.md
+old blob = 001ec6a71501374a4122fd4e5bd63b97fbe49d0d
+context = PR564 #563 controlled source trace population pre-edit
+result  = PASS
+committed backup = .backups/2_docs_vibration_SBC_source_trace_register_v1_md.bak
 ```
 
-The backup utility's local `.backups` output is not claimed as a committed branch artifact.
+The backup CLI created a local `.backups/log.json`; the connector refused the remote write for that log, so a committed backup-log receipt is **not claimed**. The `.bak` content files are committed.
 
-For this workreport edit, exact pre-edit custody was committed before mutation because the connector cannot run the backup CLI against a remote-only file:
+For this workreport edit, the connector cannot materialize the current remote-only file through the native backup CLI. Immutable pre-edit custody is therefore recorded as:
 
 ```text
-pre-edit workreport blob = 27e7e1e8cfe1a874cdf9bf2a3204140ab71d89cb
-backup path = .backups/connector-20260816-sbc563/agents/PR564_workreport-before-takeover.md
-backup blob = 27e7e1e8cfe1a874cdf9bf2a3204140ab71d89cb
+pre-edit workreport blob = 5c40a5184536c5aafe0022778df4c7e9a9c7b8a7
+backup mechanism = Git immutable blob/history fallback
+backup CLI for report = NOT_RUN / CONNECTOR_REMOTE_FILE
 ```
 
-This report backup is exact byte-for-byte fallback custody; it is not a claim that `node utils/backup.js save agents/PR564_workreport.md ...` ran remotely.
+No contrary PASS is claimed.
 
 ## Validation truth
 
-### Mandatory reserved-scaffold regression
+### Mandatory reserved-scaffold command
 
-Command actually executed unchanged:
+Actually executed against the exact published/hash-matched engineering bytes:
 
 ```bash
 node --test tests/vibration-sbc-reserved-scaffold.test.mjs
@@ -380,141 +377,146 @@ node --test tests/vibration-sbc-reserved-scaffold.test.mjs
 ```text
 STATUS = PASS
 OBSERVATION = 9 tests, 9 pass, 0 fail
-ORACLE = implementation-coupled scaffold/authority guardrail regression
-EXECUTION_BASIS = exact PR-head Git blobs reconstructed from authenticated connector and hash-verified before execution
+ORACLE = implementation-coupled scaffold/lifecycle/authority regression
 ```
 
-The mandatory test was executed once before mutation against head `efbb58d...` and again after the structural slice against the hash-matched updated manifest/dependencies. Both executions passed 9/9.
+### Aggregate SBC structural validation
 
-### Controlled structural regression
-
-Command actually executed:
+Actually executed:
 
 ```bash
-node --test tests/vibration-sbc-controlled-structure.test.mjs
+node --test \
+  tests/vibration-sbc-reserved-scaffold.test.mjs \
+  tests/vibration-sbc-controlled-structure.test.mjs \
+  tests/vibration-sbc-type-contracts.test.mjs
 ```
 
 ```text
 STATUS = PASS
-OBSERVATION = 5 tests, 5 pass, 0 fail
-ORACLE = implementation-coupled structural/authority guardrail regression
-EXECUTION_BASIS = exact published Git blobs hash-matched before execution
+OBSERVATION = 21 tests, 21 pass, 0 fail
 ```
 
-It proves:
-
-- controlled structural sequence ordering;
-- qualified main-line and required-action stage boundaries;
-- Type 1–4 artifact references remain explicit;
-- input contracts remain `NOT_FROZEN`;
-- benchmark execution remains forbidden;
-- no benchmark expected values are present;
-- B2 evidence remains missing for all types;
-- D7 remains oracle-only/non-calibration;
-- Type-3 source conflict remains quarantined.
-
-### Hosted workflows
-
-Current PR-head hosted runs observed earlier on the branch:
+Subsets:
 
 ```text
-HP Piping Class I1-I3 Qualification Gate          NOT_RUN / INFRASTRUCTURE_BLOCKED
-Vibration AIV Controlled Source Qualification     NOT_RUN / INFRASTRUCTURE_BLOCKED
-Vibration Production Freeze Validation            NOT_RUN / INFRASTRUCTURE_BLOCKED
+reserved scaffold             PASS 9/9
+controlled structural blanks  PASS 5/5
+source/type/input contracts   PASS 7/7
 ```
 
-Observation: each job exposed `steps=[]`, `runner_id=0`, and no runner name. GitHub's workflow conclusion string `failure` is not treated as executed product failure evidence.
+Syntax checks actually executed and passed for:
 
-### Native checkout
+```text
+converters/vibration/sbc/source-trace.js
+converters/vibration/sbc/type-classification-contract.js
+converters/vibration/sbc/type-input-contracts.js
+converters/vibration/sbc/vertical-manifest.js
+```
+
+Published-byte verification:
+
+```text
+source-trace.js                         90b2897b394155641071f2dfb9cd1613a743cc42
+ type-classification-contract.js        51c5fb1788b2f0cb437d0599d58c16d43f61ad87
+ type-input-contracts.js                86c399bb3c9899d0324bcda1e3c3d03750b09968
+ vertical-manifest.js                   a991a694ef8f955432ffe7e1e22ecf303bfe0425
+ SBC-source-trace-register-v1.md        24e323b8d9b094aaf6694d399372bef1ecd6390d
+ SBC-Type-Classification-and-Input-Contracts-v1.md 4861d73bb80b53546e892fe706d5afb7b5048641
+ vibration-sbc-type-contracts.test.mjs  87b6f020ec27d54560816a0ba30046cc6910fd07
+```
+
+Each re-fetched GitHub blob matched the tested local Git hash exactly.
+
+### Hosted workflows on engineering head `2b200211...`
+
+```text
+HP Piping Class I1-I3 Qualification Gate           NOT_RUN / INFRASTRUCTURE_BLOCKED
+Vibration Production Freeze Validation             NOT_RUN / INFRASTRUCTURE_BLOCKED
+Vibration AIV Controlled Source Qualification      NOT_RUN / INFRASTRUCTURE_BLOCKED
+```
+
+Observation: every job exposed `steps=[]`, `runner_id=0`, and no runner name. GitHub's workflow conclusion string `failure` is not treated as executed product failure evidence.
+
+### Native private checkout
 
 ```text
 STATUS = NOT_RUN / ENVIRONMENT_BLOCKED
-OBSERVATION = `git clone` failed because `github.com` DNS could not resolve in the execution container
+OBSERVATION = github.com and api.github.com DNS resolution unavailable in execution container
 ```
 
 ### Browser validation
 
 ```text
-STATUS = NOT_RUN / NOT_REQUIRED_FOR_THIS STRUCTURAL SLICE
+STATUS = NOT_RUN / NOT_REQUIRED_FOR_THIS_STRUCTURAL_SLICE
 ```
 
-No UI equations or authority were introduced.
+No UI equation or authority path changed.
 
-## Exact changed-file ledger at this checkpoint
-
-Current PR changed-file set is the prior scaffold plus this checkpoint. Newly added/modified in this takeover checkpoint:
+## Exact files added/modified by this continuation slice
 
 ```text
-.backups/connector-20260816-sbc563/agents/PR564_workreport-before-takeover.md
-Benchmarks/VibrationSBC/sbc-benchmark-registry-v1.json
+.backups/1_converters_vibration_sbc_vertical_manifest_js.bak
+.backups/2_docs_vibration_SBC_source_trace_register_v1_md.bak
 agents/PR564_workreport.md
+converters/vibration/sbc/source-trace.js
+converters/vibration/sbc/type-classification-contract.js
+converters/vibration/sbc/type-input-contracts.js
 converters/vibration/sbc/vertical-manifest.js
-docs/vibration/SBC-Engineering-Method-Specification-v1.md
+docs/vibration/SBC-Type-Classification-and-Input-Contracts-v1.md
 docs/vibration/SBC-source-trace-register-v1.md
-tests/vibration-sbc-controlled-structure.test.mjs
+tests/vibration-sbc-type-contracts.test.mjs
 ```
 
-Prior PR files still in the diff:
-
-```text
-.backups/connector-20260816-sbc563/converters/engineering-calculations/pending-definitions.js
-.backups/connector-20260816-sbc563/tabs/engineering-calculation-console-sections.js
-converters/engineering-calculations/adapters/vibration-sbc-reserved.js
-converters/engineering-calculations/lifecycle.js
-converters/engineering-calculations/pending-definitions.js
-converters/vibration/sbc/reserved-kernel.js
-converters/vibration/sbc/reserved-result.js
-converters/vibration/sbc/type1/reserved.js
-converters/vibration/sbc/type2/reserved.js
-converters/vibration/sbc/type3/reserved.js
-converters/vibration/sbc/type4/reserved.js
-docs/vibration/SBC-Implementation-Scaffold-v1.md
-tabs/engineering-calculation-console-sections.js
-tests/vibration-sbc-reserved-scaffold.test.mjs
-```
-
-No #546 implementation/source-reconciliation file was modified.
+Current PR changed-file inventory immediately before this report update contained 28 paths total. Re-read live PR after this report commit for final head/count.
 
 ## Active blockers
 
 ```text
 SBC_ENGINEERING_METHOD_SPECIFICATION_NOT_FROZEN
-SBC_SOURCE_TRACE_REGISTER_NOT_FROZEN
+SBC_SOURCE_ENGINEERING_QUALIFICATION_NOT_ESTABLISHED
+SBC_COMPLETE_TYPE_SELECTION_METHOD_NOT_FROZEN
+SBC_TYPE_INPUT_UNITS_AND_SEMANTICS_NOT_FROZEN
 SBC_BENCHMARK_REGISTRY_NOT_FROZEN
-SBC_TYPE_INPUT_CONTRACTS_NOT_FROZEN
-SBC_APPLICABILITY_CLASSIFICATION_NOT_FROZEN
+SBC_B1_EXPECTED_VALUES_NOT_CONTROLLED
+SBC_B2_INDEPENDENT_ENGINEERING_EVIDENCE_MISSING_TYPE_1
+SBC_B2_INDEPENDENT_ENGINEERING_EVIDENCE_MISSING_TYPE_2
+SBC_B2_INDEPENDENT_ENGINEERING_EVIDENCE_MISSING_TYPE_3
+SBC_B2_INDEPENDENT_ENGINEERING_EVIDENCE_MISSING_TYPE_4
+SBC_MAIN_LINE_ASSESSMENT_CONTRACT_NOT_QUALIFIED_BY_429
 SBC_QUALIFIED_MASTER_DEPENDENCIES_NOT_FROZEN
-SBC_PURE_TYPE_KERNELS_NOT_QUALIFIED
-SBC_MAIN_LINE_ASSESSMENT_CONTRACT_NOT_QUALIFIED
 SBC_REQUIRED_ACTION_CONTRACT_NOT_QUALIFIED
-```
-
-Type 3 additionally:
-
-```text
+SBC_PURE_TYPE_KERNELS_NOT_QUALIFIED
 SBC_T3_CURVES_BLOCKED_SOURCE_DATA_CONFLICT
-SBC_TYPE3_INDEPENDENT_B2_NOT_FROZEN
-EXISTING_TYPE3_CANDIDATE_NOT_PRODUCTION_AUTHORITY
 ```
 
 ## Highest risk
 
-The highest risk remains accidental authority promotion by treating structural artifact presence, candidate code, or green implementation-coupled tests as engineering qualification. In particular, the new method/source/benchmark artifacts are scaffolds, not frozen evidence; no agent may infer `QUALIFIED`, benchmark execution authority, screening authority, or design authority from their existence.
+A future agent may mistake either:
+
+```text
+CONFIRMED_EXAMPLE_SCOPE_NOT_QUALIFIED
+```
+
+or:
+
+```text
+STRUCTURE_COMPLETE_NOT_QUALIFIED_FOR_NUMERICAL_EXECUTION
+```
+
+for engineering method qualification. They are structural statements only. D5–D8 examples are insufficient to claim a complete automatic classifier, and source/transcription identity is insufficient to claim engineering qualification.
 
 ## EXACT_NEXT_ACTION
 
-Continue only inside #563 and preserve `RESERVED/BLOCKED`.
-
-Populate the controlled source/trace register with **exact source identities and locators for the non-numerical applicability/type-classification and input-definition rules first**, using independently reviewable controlled-source evidence. Then use those populated trace rows to draft the explicit Type 1–4 input-contract fields and applicability/type-classification contracts.
-
-Hard stops for that next action:
+Remain inside #563 and continue **controlled-source reconciliation only**:
 
 ```text
-- do not invent any SBC engineering input field from candidate code alone;
-- do not copy Type-3 candidate behavior as the general SBC contract;
-- do not activate or interpolate T3 curves;
-- do not create benchmark expected values from production code or D7 calibration;
-- do not publish/qualify masters;
-- do not change lifecycle from RESERVED;
-- do not implement numerical Type kernels until source-grounded input/applicability contracts and B1/B2 evidence are controlled.
+1. establish the exact controlled-source locator/custody for the governing SBC Type-selection rules beyond the D5–D8 example descriptions;
+2. populate/review SBC-TYPE-* rows for the complete method if the controlled source supports them;
+3. populate SBC-UNIT-* and input-semantic trace rows for each required Type 1–4 structural/numerical input;
+4. reconcile those rows against the controlled PDF identity, with independent review;
+5. only then propose freezing the Type classification/input contract scope.
 ```
+
+If the controlled source cannot establish a rule or unit semantic, leave it unknown / `NOT_FROZEN`. Do **not** infer a rule from the examples, candidate Type-3 code, browser evidence, or quarantined T3 digitization.
+
+Do not implement pure numerical Type kernels, publish masters, activate T3 curves, or propose `RESERVED -> QUALIFIED` until the method/source/benchmark prerequisites are genuinely satisfied.
