@@ -3,10 +3,17 @@ pr_or_wip: PR528
 claim_state: ACTIVE
 files:
   exact:
+    - index.html
+    - main-rhbg-fitguard.js
+    - core/app.js
+    - core/engineering-tabs-extension.js
+    - tabs/engineering-workspace-tab.js
+    - tabs/engineering-calculations-tab.js
     - tabs/vibration-aiv-state.js
     - tabs/vibration-aiv-dataset-loader.js
     - tabs/vibration-aiv-execution.js
     - tabs/vibration-aiv-qualification-tab.js
+    - tabs/vibration-aiv-qualification-view.js
     - tabs/vibration-aiv-input-view.js
     - tabs/vibration-aiv-workspace-loaders.js
     - tabs/vibration-aiv-engineering-revision.js
@@ -15,27 +22,22 @@ files:
     - tabs/vibration-aiv-master-currentness.js
     - tabs/vibration-aiv-master-db-controller.js
     - tabs/vibration-aiv-unified-canvas-projection.js
+    - tabs/vibration-aiv-unified-canvas-view.js
+    - tabs/vibration-aiv-unified-canvas-controller.js
+    - tabs/vibration-aiv-unified-canvas-author.js
+    - tabs/vibration-aiv-unified-canvas-author-view.js
+    - tabs/vibration-aiv-unified-canvas-inspector.js
     - tests/vibration-aiv-engineering-revision.test.mjs
     - tests/vibration-aiv-mode-transition.test.mjs
     - tests/vibration-aiv-network-transaction.test.mjs
     - tests/vibration-aiv-master-currentness.test.mjs
     - tests/vibration-aiv-input-mode-integration.test.mjs
     - tests/vibration-aiv-unified-canvas-projection.test.mjs
+    - tests/vibration-aiv-unified-canvas-cutover.test.mjs
+    - tests/vibration-aiv-runtime-cache-chain.test.mjs
     - agents/PR528_workreport.md
     - agents/status/PR528.yaml
     - agents/claims/PR528.yaml
-  future_exact:
-    - tabs/vibration-aiv-canvas-export-controller.js
-    - tabs/vibration-aiv-workbench.css
-    - tests/vibration-module-boundaries.test.mjs
-    - tests/vibration-aiv-runtime-cache-chain.test.mjs
-  planned_new:
-    - tabs/vibration-aiv-unified-canvas-view.js
-    - tabs/vibration-aiv-unified-canvas-controller.js
-    - tabs/vibration-aiv-unified-canvas-pointer.js
-    - tabs/vibration-aiv-unified-canvas-author.js
-    - tabs/vibration-aiv-unified-canvas-relationships.js
-    - tabs/vibration-aiv-unified-canvas-inspector.js
   prefixes:
     - tabs/vibration-aiv-unified-canvas-
 authority_domains:
@@ -61,14 +63,12 @@ exclusions:
   - WORKFLOW_FILES
 notes:
   - "Issue #526 qualification gate is satisfied by reviewer comment 5303402441."
-  - "Stage 1 owns explicit input-mode, engineering-revision, stale-operation, generated-table read-only and detach custody."
-  - "Stage 2 projection consumes graph pathEvidence and registered result projections without new engineering math."
-  - "Network engineering commits receive a fresh UI transaction revision before generation; controlled fixture replacement may explicitly preserve its declared revision."
-  - "Master DB integration only detects whether effective/provenance inputs changed for currentness invalidation; PR528 does not redefine master engineering authority or resolver semantics."
-  - "Stage 4 cutover may replace active relationship-canvas/flare-network controller wiring, but old modules remain rollback sources until parity is proven."
-  - "PR #517 has ACTIVE/EXCLUSIVE authority over AIV readiness/executable parity. PR528 consumes, not rewrites, that contract."
-  - "Open PR #506 overlaps UI/state files but remains candidate/salvage evidence only and is not the base for PR528."
-  - "NETWORK_DRIVEN graph and TABLE_DRIVEN working tables must never be silently synchronized as dual engineering owners."
-  - "SVG/pixel x/y remains presentation-only and cannot establish physical distance."
+  - "Stages 1-5 are implemented at source/candidate level: ownership/currentness, projection, graph/master currentness, single-canvas cutover, cache custody."
+  - "NETWORK_DRIVEN graph and TABLE_DRIVEN tables are never silent dual engineering owners; detach is explicit."
+  - "SVG/pixel geometry remains presentation-only; physical distance comes from explicit engineering evidence."
+  - "PR #517 retains readiness/executable parity authority; PR528 consumes and does not rewrite it."
+  - "Current main is f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac. Branch history is two commits behind; shared engineering-calculations-tab cache custody was reconciled to preserve current-main FIV key and PR528 AIV key."
+  - "Current AIV/production-freeze Actions attempts are infrastructure-blocked with zero executed steps; no CI/browser PASS is claimed."
   - "No workflow files are claimed or authorized."
-last_verified_head: dac7679b0b4f57bc307afa4b34f3bd2f19a41d18
+last_verified_code_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+last_verified_main: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
