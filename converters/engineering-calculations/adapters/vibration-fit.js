@@ -13,12 +13,22 @@ import {
   evaluateFitApplicability,
 } from '../../vibration/fit/index.js';
 
+export const FIT_AUTHORITY_BOUNDARY = Object.freeze({
+  engineeringUse: 'BOUNDED_SCREENING_ONLY',
+  designAuthority: false,
+  designAuthorityDisposition: 'NOT_A_DESIGN_CHECK',
+  codeCompliance: false,
+  codeComplianceDisposition: 'NOT_A_CODE_COMPLIANCE_CHECK',
+  futureAuthorityRoute: 'SEPARATE_QUALIFIED_ASSESSMENT_REQUIRED',
+});
+
 const QUALIFICATION_REASONS = Object.freeze([
   'CONTROLLED_EI_WORKED_EXAMPLE_PRODUCT_PATH_QUALIFICATION',
   'OWNER_WORKED_EXAMPLE_BENCHMARK_SUFFICIENT_POLICY',
   'BOUNDED_BRANCH_QUALIFICATION_EVIDENCE',
   'QST_003_DIAMETER_GAP_FAIL_CLOSED',
   'PRODUCTION_LIFECYCLE_SCREENING_AUTHORITY_SEPARATED',
+  'FIT_DESIGN_CODE_AUTHORITY_BOUNDARY_LOCKED',
   'SCREENING_ONLY_DESIGN_AUTHORITY_FALSE',
 ]);
 
@@ -27,7 +37,7 @@ function qualification(mode) {
   return composeEngineeringQualification({
     method: screening ? 'PRODUCTION_AUTHORIZED' : 'BENCHMARK_ONLY',
     data: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
-    designAuthority: false,
+    designAuthority: FIT_AUTHORITY_BOUNDARY.designAuthority,
     reasons: QUALIFICATION_REASONS,
   });
 }
@@ -144,11 +154,11 @@ function correlationIds(intermediates) {
 
 function warning(mode) {
   return mode === 'screening' ? {
-    code: 'PRODUCTION_SCREENING_ONLY_NOT_DESIGN_AUTHORITY',
-    message: 'FIT is a production-authorized bounded screening product; effective engineering authority remains SCREENING, design authority remains false, and declared exclusions remain fail-closed.',
+    code: 'PRODUCTION_SCREENING_ONLY_NOT_DESIGN_OR_CODE_AUTHORITY',
+    message: 'FIT is a production-authorized bounded screening product. It is not a design check or code-compliance check; a separate qualified assessment is required for design/code authority.',
   } : {
     code: 'BENCHMARK_REFERENCE_ONLY',
-    message: 'FIT result is running in benchmark mode and does not carry screening or design authority.',
+    message: 'FIT result is running in benchmark mode and does not carry screening, design or code-compliance authority.',
   };
 }
 
@@ -163,7 +173,7 @@ function calculate(input, runtime = {}) {
       errors: result.errors.map(engineeringError),
       qualification: currentQualification,
       applicability: { applicable: false, limitations: result.applicability?.limitations ?? [] },
-      provenance: { sourceWorkbook: FIT_WORKBOOK_SOURCE },
+      provenance: { sourceWorkbook: FIT_WORKBOOK_SOURCE, authorityBoundary: FIT_AUTHORITY_BOUNDARY },
     };
   }
   if (mode === 'screening' && result.screeningCandidate?.screeningAuthorized !== true) {
@@ -179,13 +189,16 @@ function calculate(input, runtime = {}) {
     assessment: {
       ...assessment,
       screeningAuthority: mode === 'screening' ? 'AUTHORIZED_BOUNDED' : 'NOT_AUTHORIZED',
-      designAuthority: false,
+      designAuthority: FIT_AUTHORITY_BOUNDARY.designAuthority,
+      codeCompliance: FIT_AUTHORITY_BOUNDARY.codeCompliance,
+      authorityBoundary: FIT_AUTHORITY_BOUNDARY,
     },
     qualification: currentQualification,
     applicability: { applicable: true, limitations: result.applicability.limitations },
     provenance: {
       domainApi: 'calculateFit',
       engineeringAuthority: mode === 'screening' ? 'SCREENING' : FIT_REFERENCE_AUTHORITY,
+      authorityBoundary: FIT_AUTHORITY_BOUNDARY,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       inputResolution: result.evidence.inputResolution,
       qualificationCoverageId: result.qualificationCoverage.coverageId,
@@ -198,6 +211,7 @@ function calculate(input, runtime = {}) {
       inputResolution: result.evidence.inputResolution,
       qualificationCoverage: result.qualificationCoverage,
       screeningCandidate: result.screeningCandidate,
+      authorityBoundary: FIT_AUTHORITY_BOUNDARY,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
@@ -231,18 +245,23 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   shortName: 'Flow-Induced Vibration Screening',
   methodRevision: 'ei-aviff2-fit-screening-v1',
   purpose: 'Execute the production-authorized EI/FIT method for bounded screening with explicit evidence, exclusions and reproducibility.',
-  authority: {
+  authority: Object.freeze({
     calculationState: 'IMPLEMENTED',
     qualificationState: 'PRODUCTION_AUTHORIZED',
     engineeringAuthority: 'SCREENING',
     screeningAuthority: 'AUTHORIZED_BOUNDED',
-    designAuthority: false,
-    codeCompliance: false,
-  },
+    designAuthority: FIT_AUTHORITY_BOUNDARY.designAuthority,
+    designAuthorityDisposition: FIT_AUTHORITY_BOUNDARY.designAuthorityDisposition,
+    codeCompliance: FIT_AUTHORITY_BOUNDARY.codeCompliance,
+    codeComplianceDisposition: FIT_AUTHORITY_BOUNDARY.codeComplianceDisposition,
+    futureAuthorityRoute: FIT_AUTHORITY_BOUNDARY.futureAuthorityRoute,
+  }),
   applicability: {
     description: 'Bounded main-line FIT screening scope.',
     limitations: [
-      'Production product with bounded screening authority only; designAuthority=false.',
+      'Production product with bounded screening authority only; FIT is not a design acceptance check.',
+      'FIT reference bands are screening classifications, not a qualified code-compliance PASS/FAIL criterion.',
+      'A separate qualified assessment with its own governing basis and acceptance criterion is required for design/code authority.',
       'Outside diameter 219.1 mm < Dext < 273 mm remains excluded and fail-closed.',
       'Advanced screening requires the declared flexible-family, LOF and 1 Hz < fn <= 3 Hz criteria.',
       'Mixed aggregate/component multiphase data require an explicit resolution mode.',
@@ -264,7 +283,7 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
     minimumQualificationToShow: 'PRODUCTION_AUTHORIZED',
     requiredQualificationMode: 'screening',
     productSurface: 'VIBRATION_INTEGRITY_TABLE_WORKSPACE',
-    warning: 'PRODUCTION · BOUNDED SCREENING ONLY — design authority remains false.',
+    warning: 'PRODUCTION · BOUNDED SCREENING ONLY — not a design check or code-compliance check.',
   },
   validateInput,
   calculate,
