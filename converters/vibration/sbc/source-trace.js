@@ -18,6 +18,8 @@ export const SBC_SOURCE_IDENTITIES = Object.freeze({
     blob: 'c050cd90802c27241c510c6f0ac43bfaf7a89e9d',
     role: 'STRUCTURED_TRANSCRIPTION_REFERENCE',
     qualificationStatus: 'REFERENCE_ONLY_NOT_ENGINEERING_AUTHORITY',
+    alsoVerifiedAtCommit: '16d1e58f728e72b04b761c02dce682aa189779f2',
+    sameBlobAtVerifiedCommit: true,
   }),
   EI_T3_STRUCTURED_TRANSCRIPTION: Object.freeze({
     sourceId: 'SBC-SRC-003',
@@ -27,6 +29,8 @@ export const SBC_SOURCE_IDENTITIES = Object.freeze({
     blob: '5312c9e2cf86af9e940ba722fcbee64702aeccd3',
     role: 'STRUCTURED_T3_REFERENCE_WITH_KNOWN_CURVE_CONFLICT',
     qualificationStatus: 'REFERENCE_ONLY_CURVE_VALUES_QUARANTINED',
+    alsoVerifiedAtCommit: '16d1e58f728e72b04b761c02dce682aa189779f2',
+    sameBlobAtVerifiedCommit: true,
   }),
 });
 
