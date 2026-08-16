@@ -52,6 +52,15 @@ function glyphObstacles(container) {
 function controlObstacles(container) {
   return [...container.querySelectorAll('.aiv-canvas-head-actions')].map(rect).filter(Boolean);
 }
+function preserveSelectedTextSize(element, zoom, isSelected) {
+  if (!element) return;
+  const values = element.matches?.('text') ? [element] : [...element.querySelectorAll?.('text') ?? []];
+  for (const item of values) {
+    if (!item.dataset.aivBaseFontSize) item.dataset.aivBaseFontSize = String(parseFloat(getComputedStyle(item).fontSize) || 10);
+    const base = Number(item.dataset.aivBaseFontSize) || 10;
+    item.style.fontSize = isSelected && zoom < 0.65 ? `${base / Math.max(0.35, zoom)}px` : '';
+  }
+}
 function svgScale(canvas, layout) {
   const value = canvas?.getBoundingClientRect?.(); const box = canvas?.viewBox?.baseVal;
   if (!value || !box || !(box.width > 0)) return 1;
@@ -97,11 +106,13 @@ export function applyAivCanvasWorkspacePresentation(container, layout) {
 export function applyAivCanvasSemanticPresentation(container, layout, selection) {
   const level = aivCanvasSemanticLevel(layout?.viewport?.zoom); const card = container.querySelector('[data-aiv-unified-canvas]');
   if (card) card.dataset.aivCanvasSemanticLevel = level;
-  const mode = card?.dataset?.aivCanvasLabelDisplay ?? 'NORMAL';
+  const mode = card?.dataset?.aivCanvasLabelDisplay ?? 'NORMAL'; const zoom = Number(layout?.viewport?.zoom ?? 1);
   for (const owner of container.querySelectorAll('[data-aiv-canvas-node],[data-aiv-canvas-segment],[data-aiv-canvas-relationship]')) {
     const isSelected = selected(owner, selection); const label = activeLabel(owner, mode); const title = owner.querySelector('.aiv-canvas-node-title');
     if (title) title.style.visibility = level === AIV_CANVAS_SEMANTIC_LEVEL.OVERVIEW && !isSelected ? 'hidden' : '';
+    preserveSelectedTextSize(title, zoom, isSelected);
     if (!label) continue;
+    preserveSelectedTextSize(label, zoom, isSelected);
     label.style.visibility = level === AIV_CANVAS_SEMANTIC_LEVEL.OVERVIEW && !isSelected ? 'hidden' : '';
     const rows = [...label.querySelectorAll('text')]; rows.forEach((row) => { row.style.display = ''; });
     if (level === AIV_CANVAS_SEMANTIC_LEVEL.COMPACT && !isSelected) rows.slice(1).forEach((row) => { row.style.display = 'none'; });
