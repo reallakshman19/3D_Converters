@@ -1,0 +1,30 @@
+{
+  "schema": "VibrationMasterSourceExtractionRequest.v1",
+  "masterId": "EI_AVIFF.T2.9.VALVE_RECOVERY_FACTORS.v1",
+  "pdfPages": [77],
+  "locator": {
+    "identifier": "T2.9.2",
+    "section": "T2.9",
+    "printedPage": "69"
+  },
+  "requiredAnchors": [
+    {
+      "id": "T29-ANCHOR-SECTION",
+      "text": "T2.9.2",
+      "expectedOccurrences": 1,
+      "caseSensitive": false
+    },
+    {
+      "id": "T29-ANCHOR-CAVITATION",
+      "text": "cavitation",
+      "expectedOccurrences": 1,
+      "caseSensitive": false
+    },
+    {
+      "id": "T29-ANCHOR-FLASHING",
+      "text": "flashing",
+      "expectedOccurrences": 1,
+      "caseSensitive": false
+    }
+  ]
+}
