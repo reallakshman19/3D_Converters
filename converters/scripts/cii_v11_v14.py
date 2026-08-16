@@ -18,9 +18,10 @@ from cii_v11_v14_format import (
 )
 from cii_v11_v14_records import (
     _close_to, _convert_allowables, _convert_coords, _convert_elements,
-    _convert_reducers, _convert_restraints, _convert_sif_tees, _convert_units,
+    _convert_reducers, _convert_restraints, _convert_units,
     _convert_version, _row_is_all_zero, detect_version,
 )
+from cii_v11_v14_sif import _convert_sif_tees
 from cii_v11_v14_validate import CiiStructureError, validate_text_for_version
 
 
@@ -167,8 +168,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--allow-lossy", action="store_true",
         help=(
-            "Explicitly allow discarding only version-owned extension data with no v11 storage "
-            "(for example SIF/TEE items 31-42, reducer items 6-10, or ALLOWBLS items 154-168)."
+            "Explicitly allow discarding version-owned data with no qualified v11 semantic slot "
+            "(including Ver14 B31J SIF/TEE fields, reducer items 6-10, or ALLOWBLS items 154-168)."
         ),
     )
     parser.add_argument("--audit-json", type=Path, default=None, help="Optional JSON audit report path")
