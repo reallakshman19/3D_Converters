@@ -2,8 +2,8 @@ import { buildDeterministicAivCanvasLayout, createAivCanvasLayout } from '../con
 import { renderAivCanvasFilterControls } from './vibration-aiv-canvas-filter.js';
 import { renderAivCanvasNodeGlyph, renderAivCanvasStatusGlyphs } from './vibration-aiv-canvas-icons.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
-import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js';
+import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-1';
 import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js';
 
 function esc(value) {
