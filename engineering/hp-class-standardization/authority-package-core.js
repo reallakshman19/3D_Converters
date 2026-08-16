@@ -8,6 +8,15 @@
 
   const SCHEMA = 'hp-piping-class-authority-package/v1';
   const LIFECYCLES = new Set(['draft', 'for-review', 'approved-record']);
+  const USER_FATIGUE_POLICY = Object.freeze({
+    calculationMode: 'USER_CALCULATED_KD3',
+    requiredSeqMode: 'manual',
+    requiredNiMode: 'manual',
+    nativeCoreKd3Qualified: false,
+    canUseForDesignAuthority: false,
+    codeCompliance: false,
+    reason: 'CONTROLLED_KD320_FORMULATION_AND_CUSTODY_NOT_ESTABLISHED',
+  });
   const SOURCES = Object.freeze({
     b31: Object.freeze({
       edition: '2024',
@@ -31,6 +40,10 @@
 
   function same(actual, expected) {
     return String(actual ?? '') === String(expected ?? '');
+  }
+
+  function normalizedIdentity(value) {
+    return String(value ?? '').trim().toLocaleLowerCase();
   }
 
   function sourceErrors(sources) {
@@ -65,6 +78,10 @@
     if (metadata.lifecycle === 'approved-record' && !String(metadata.checkedBy || '').trim()) {
       errors.push('Checked by is required for an approved record.');
     }
+    if (normalizedIdentity(metadata.checkedBy)
+      && normalizedIdentity(metadata.checkedBy) === normalizedIdentity(metadata.preparedBy)) {
+      errors.push('Prepared by and checked by must be independent identities.');
+    }
     return errors;
   }
 
@@ -81,6 +98,31 @@
     return errors;
   }
 
+  function authorityErrors(authority) {
+    const errors = [];
+    if (!authority || typeof authority !== 'object') return ['Authority inputs are missing.'];
+    const seqMode = String(authority.seqMode || '').trim();
+    const niMode = String(authority.fatigueCurveMode || '').trim();
+    if (seqMode !== USER_FATIGUE_POLICY.requiredSeqMode) {
+      errors.push('Native/automatic KD-3 Seq is not qualified. Use USER_CALCULATED_KD3 with externally supplied Seq.');
+    }
+    if (niMode !== USER_FATIGUE_POLICY.requiredNiMode) {
+      errors.push('CORE fatigue-curve Ni evaluation is not authorized for this product path. Supply permissible cycles N externally.');
+    }
+    if (authority.seqRouteApproved && !String(authority.seqRouteSourceRef || '').trim()) {
+      errors.push('External KD-3 calculation/source reference is required when the Seq route is marked reviewed.');
+    }
+    for (const field of ['seqBeta', 'seqReferenceCycles', 'seqMeanTermLimit']) {
+      if (authority[field] !== null && authority[field] !== undefined && String(authority[field]).trim() !== '') {
+        errors.push(`${field} is legacy native-KD3 input and is not accepted while CORE KD-3 is unqualified.`);
+      }
+    }
+    if (String(authority.fatigueCurveData || '').trim()) {
+      errors.push('Embedded fatigue-curve data are not accepted on the USER_CALCULATED_KD3 product path.');
+    }
+    return errors;
+  }
+
   function rowEvidenceErrors(rowEvidence) {
     const errors = [];
     if (rowEvidence == null) return errors;
@@ -91,6 +133,17 @@
       if (!key) errors.push(`rowEvidence item ${index + 1} has no key.`);
       else if (keys.has(key)) errors.push(`Duplicate rowEvidence key ${key}.`);
       else keys.add(key);
+      if (item?.approved) {
+        if (!(typeof item.seq === 'number' && Number.isFinite(item.seq) && item.seq > 0)) {
+          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite Seq > 0.`);
+        }
+        if (!(typeof item.ni === 'number' && Number.isFinite(item.ni) && item.ni > 0)) {
+          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite permissible cycle count N > 0.`);
+        }
+        if (!String(item.source || '').trim()) {
+          errors.push(`Approved rowEvidence ${key || index + 1} requires an external KD-3 calculation/source reference.`);
+        }
+      }
     });
     return errors;
   }
@@ -108,7 +161,7 @@
     } else {
       if (!pkg.inputs.design || typeof pkg.inputs.design !== 'object') errors.push('Design inputs are missing.');
       else if (!same(pkg.inputs.design.b31Edition, SOURCES.b31.edition)) errors.push('Design B31.3 edition does not match this tool.');
-      if (!pkg.inputs.authority || typeof pkg.inputs.authority !== 'object') errors.push('Authority inputs are missing.');
+      errors.push(...authorityErrors(pkg.inputs.authority));
       errors.push(...cycleErrors(pkg.inputs.cycles));
     }
     errors.push(...rowEvidenceErrors(pkg.rowEvidence));
@@ -153,7 +206,8 @@
       inputs: plainClone(inputs || {}),
       rowEvidence: plainClone(rowEvidence || []),
       snapshot: plainClone(snapshot || {}),
-      authorityNote: 'snapshot is audit-only; import restores inputs/evidence and recalculates',
+      fatigueAuthority: plainClone(USER_FATIGUE_POLICY),
+      authorityNote: 'Package lifecycle is document custody only. USER_CALCULATED_KD3 remains review-only; native CORE KD-3, Code compliance and design authority are not established.',
     };
   }
 
@@ -172,11 +226,13 @@
   return Object.freeze({
     SCHEMA,
     SOURCES,
+    USER_FATIGUE_POLICY,
     createPackage,
     validatePackage,
     importPayload,
     matchRowEvidence,
     sourceErrors,
+    authorityErrors,
     rowKey,
     safeFilename,
   });
