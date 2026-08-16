@@ -398,16 +398,38 @@ def _sif(rows: Sequence[str], offset: int, label: str) -> list[str]:
     return out
 
 
+def _coord_record(row: str, label: str) -> tuple[int, tuple[float, float, float]]:
+    """Parse one COORDS record using CAESAR's FORMAT(2X,I13,3F13.4).
+
+    Fixed-width fields are authoritative.  A whitespace-token fallback is kept
+    for hand-authored/noncanonical files, but legal adjacent 13-character
+    fields must never be split on whitespace.
+    """
+    try:
+        node = _i(_field(row, 0), f"{label}: COORDS node")
+        xyz = tuple(_f(_field(row, index), f"{label}: COORDS") for index in (1, 2, 3))
+        return node, xyz
+    except MergeError as fixed_error:
+        tokens = row.split()
+        if len(tokens) >= 4:
+            try:
+                node = _i(tokens[0], f"{label}: COORDS node")
+                xyz = tuple(_f(token, f"{label}: COORDS") for token in tokens[1:4])
+                return node, xyz
+            except MergeError:
+                pass
+        raise MergeError(
+            f"{label}: invalid COORDS row; expected FORTRAN FORMAT(2X,I13,3F13.4): {row!r}"
+        ) from fixed_error
+
+
 def _coords(models: Sequence[InputModel], allow_overlap: bool) -> list[str]:
     merged: dict[int, tuple[float, float, float]] = {}
     for model in models:
         rows = model.sections.get("COORDS", [])
         for row in rows[1:]:
-            tok = row.split()
-            if len(tok) < 4:
-                raise MergeError(f"{model.label}: incomplete COORDS row")
-            node = _node_i(_i(tok[0], f"{model.label}: COORDS node"), model.offset, f"{model.label}: COORDS node")
-            xyz = tuple(_f(x, f"{model.label}: COORDS") for x in tok[1:4])
+            source_node, xyz = _coord_record(row, model.label)
+            node = _node_i(source_node, model.offset, f"{model.label}: COORDS node")
             if node in merged:
                 if not allow_overlap:
                     raise MergeError(f"{model.label}: duplicate COORDS node {node}")
