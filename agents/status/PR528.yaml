@@ -4,29 +4,33 @@ pr_or_wip: PR528
 mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority"
 workstream: AIV_UNIFIED_NETWORK_CANVAS
 branch: agent/aiv-unified-network-canvas-526
-pr_head: dac7679b0b4f57bc307afa4b34f3bd2f19a41d18
-main_head_last_checked: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
+pr_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+main_head_last_checked: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: IMPLEMENTING
+agent_state: IMPLEMENTATION_COMPLETE_ACCEPTANCE_BLOCKED
 pr_recovery_state: RECOVERABLE
 handover_readiness: READY
 report_path: agents/PR528_workreport.md
-report_basis_head: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
+report_basis_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_SATISFIED
-grounding_epoch: AIV526-GE-007
-current_stage: STAGE_4_UNIFIED_VIEW_CONTROLLER_CUTOVER
-last_completed_stage: STAGE_3_MASTER_AND_NETWORK_CURRENTNESS
+grounding_epoch: AIV526-GE-009
+current_stage: STAGE_5_COMPLETE__FULL_ACCEPTANCE_OUTSTANDING
+last_completed_stage: STAGE_5_CACHE_CUSTODY_AND_CURRENT_MAIN_OVERLAP_RECONCILIATION
 qualification_comment: 5303402441
-blocker: NONE_FOR_FOCUSED_CUTOVER
-highest_risk: "Cutover must end with one visible canvas and one active controller while preserving physical pathEvidence, logical table relationships and registered result authority."
+blocker: "Full native/release/Chromium/B1-B10 acceptance is not executable in the current connector environment; current Actions attempts fail before executing any job steps."
+highest_risk: "Runtime proof must still demonstrate one visible unified canvas/controller on an exact integrated candidate and complete B1-B10 without changing frozen engineering authority."
 validation:
   focused_stage1: "PASS 9/9 exact reconstruction at Stage 1 checkpoint"
   unified_projection: "PASS 4/4 exact local reconstruction"
   network_transaction: "PASS 2/2 exact local reconstruction"
   master_currentness: "PASS 3/3 exact local reconstruction"
-  github_statuses_at_dac7679: NONE_REPORTED
+  single_canvas_cutover: "SOURCE_INSPECTION + permanent regression committed; native execution NOT_RUN"
+  cache_custody: "SOURCE_INSPECTION; fresh 20260815-aiv-526-unified-1 chain committed"
+  current_main_overlap: "engineering-calculations-tab FIV cache token synchronized to current main while retaining AIV candidate token"
+  actions_aiv_31916306146: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
+  actions_freeze_31916306123: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
   full_native_repo: NOT_RUN_NO_PRIVATE_CHECKOUT
   chromium: NOT_RUN
   b1_b10: NOT_RUN
@@ -36,17 +40,18 @@ completed_capabilities:
   - "Revision/token stale async currentness and export lineage"
   - "One graph engineering revision per committed mutation"
   - "Master effective/provenance no-op versus changed currentness"
-  - "Pure unified physical/logical/path projection"
+  - "Unified physical/logical/path projection"
+  - "One production unified canvas view/controller source path"
+  - "Integrated network authoring without a second SVG"
+  - "Fresh AIV cache identity through active startup and changed leaves"
 residual_risks:
-  - "Two visible canvas surfaces/controllers remain until Stage 4 cutover"
-  - "Final production cache identity still PF-01 key"
-  - "Full browser/native/B1-B10 validation remains outstanding"
+  - "Branch history remains two commits behind current main, though the only shared changed production file identified was reconciled to preserve current-main FIV cache custody."
+  - "Real browser/runtime proof remains outstanding."
+  - "Complete B1-B10 and full native release validation remain outstanding."
 dependencies:
   - "Issue #526 qualification satisfied by comment 5303402441"
   - "PR #517 active PF-02 readiness/executable parity claim; consume only"
   - "PR #506 broad AIV candidate overlap; salvage evidence only"
-  - "Merged PR #518 simultaneous-source semantics"
-  - "Merged PR #525 PF-01 cache-custody chain"
-coordination_state: COORDINATION_REQUIRED_WRITE_ALLOWED_WITH_BOUNDARY
-exact_next_action: "Implement and qualify unified view/controller; then replace dual production render/controller wiring without deleting rollback modules."
-last_updated: 2026-08-15T21:29:49+04:00
+coordination_state: COORDINATION_REQUIRED_BOUNDARIES_PRESERVED
+exact_next_action: "Run the full native AIV release suite and B1-B10/Chromium acceptance on an exact current-main-integrated candidate when a navigation/runtime-capable environment is available; do not merge before owner authorization."
+last_updated: 2026-08-16T04:01:00+04:00
