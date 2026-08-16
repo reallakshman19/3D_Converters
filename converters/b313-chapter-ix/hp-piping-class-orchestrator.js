@@ -1,13 +1,7 @@
-import { createEngineeringCalculationEngine } from '../engineering-calculations/engine.js';
-import { createEngineeringCalculationRegistry } from '../engineering-calculations/registry.js';
-import { B313_CHAPTER_IX_BASIS_ENGINEERING_CALCULATION_DEFINITION } from '../engineering-calculations/adapters/b313-chapter-ix-basis.js';
-import { B313_CHAPTER_IX_STRAIGHT_PIPELINE_ENGINEERING_CALCULATION_DEFINITION } from '../engineering-calculations/adapters/b313-chapter-ix-straight-pipeline.js';
-import { B313_CHAPTER_IX_ENGINEERING_CALCULATION_DEFINITION } from '../engineering-calculations/adapters/b313-chapter-ix.js';
-import { B313_CHAPTER_IX_WALL_STATE_ENGINEERING_CALCULATION_DEFINITION } from '../engineering-calculations/adapters/b313-chapter-ix-wall-state.js';
 import {
-  B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ENGINEERING_CALCULATION_DEFINITION,
   B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
-} from '../engineering-calculations/adapters/b313-chapter-ix-user-calculated-fatigue.js';
+  calculateEngineering,
+} from '../engineering-calculations/index.js';
 import {
   HP_PIPING_CLASS_AUTHORITY_POLICY,
   HP_PIPING_CLASS_PROJECT_VERSION,
@@ -24,14 +18,6 @@ const CALCULATION_IDS = Object.freeze({
   wallState: 'PIPE.B313.CH9.WALL_STATE',
   fatigue: B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
 });
-
-const HP_CALCULATION_DEFINITIONS = Object.freeze([
-  B313_CHAPTER_IX_BASIS_ENGINEERING_CALCULATION_DEFINITION,
-  B313_CHAPTER_IX_STRAIGHT_PIPELINE_ENGINEERING_CALCULATION_DEFINITION,
-  B313_CHAPTER_IX_ENGINEERING_CALCULATION_DEFINITION,
-  B313_CHAPTER_IX_WALL_STATE_ENGINEERING_CALCULATION_DEFINITION,
-  B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ENGINEERING_CALCULATION_DEFINITION,
-]);
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -50,16 +36,7 @@ function authority() {
   };
 }
 
-export function createHpPipingClassCalculationEngine({ clock } = {}) {
-  const registry = createEngineeringCalculationRegistry({ definitions: HP_CALCULATION_DEFINITIONS });
-  return createEngineeringCalculationEngine({
-    registry,
-    implementationRevision: HP_PIPING_CLASS_ORCHESTRATOR_VERSION,
-    ...(clock ? { clock } : {}),
-  });
-}
-
-const DEFAULT_ENGINE = createHpPipingClassCalculationEngine();
+const DEFAULT_ENGINE = Object.freeze({ calculate: calculateEngineering });
 
 function benchmarkRequest(calculationId, inputs, includeEvidence) {
   return {
