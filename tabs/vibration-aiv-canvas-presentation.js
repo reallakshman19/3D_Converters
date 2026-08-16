@@ -4,6 +4,8 @@ const ICONS = Object.freeze({
   zoomIn: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/>',
   zoomOut: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6"/>',
   reset: '<path d="M4 7V3m0 0h4M4 3l3.1 3.1A8 8 0 1 1 4.6 15"/>',
+  fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path d="M8 12h8"/>',
+  tidy: '<path d="M4 6h7M4 12h11M4 18h15"/><circle cx="15" cy="6" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="23" cy="18" r="2"/>',
   export: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 18v3h14v-3"/>',
   labels: '<path d="M4 5v6l8 8 7-7-8-8H5a1 1 0 0 0-1 1Z"/><circle cx="8" cy="8" r="1"/>',
   normal: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v3m0 10v3M4 12h3m10 0h3"/>',
