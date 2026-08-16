@@ -17,9 +17,9 @@ PR: 531
 BRANCH: agent/hp-ch9-fatigue-foundation-r3
 BASE_MAIN: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 SOURCE_BASIS: reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr
-CURRENT_STAGE: FATIGUE FOUNDATION + USER_CALCULATED_KD3 INTAKE COMPLETE
+CURRENT_STAGE: FATIGUE FOUNDATION + USER_CALCULATED_KD3 INTAKE + NATIVE KD320 VALIDATION RECORD COMPLETE
 CURRENT_BLOCKER: native CORE KD320 formulation/custody is not qualified; UI/registry expansion is outside the locked PR531 scope
-EXACT_NEXT_ACTION: preserve USER_CALCULATED_KD3 as the usable intake; only start a separate UI/registry or native-KD320 phase under its own authorized scope.
+EXACT_NEXT_ACTION: preserve USER_CALCULATED_KD3 as the usable intake; satisfy VR-B313-CH9-KD320-NATIVE-001 evidence/gates before any native KD320 implementation or authority promotion.
 ```
 
 ## Mission / Current Design
@@ -41,7 +41,8 @@ Implemented:
 - optional user `Salt` cross-check against CORE;
 - external `Seq` and `N` custody;
 - calculator/checker provenance;
-- JSON candidate verifier and authoring template.
+- JSON candidate verifier and authoring template;
+- formal native KD320 validation record and qualification gate matrix.
 
 Removed after research review:
 - the provisional CORE arithmetic `Seq = Salt/(1-beta*sigmaMean/Sy)`;
@@ -157,6 +158,7 @@ fatigue_curve_point.csv  d773a01bf550e343dddf5b3ac85f328d859116f9
 cycle_spectrum.csv       e972475b9b12864aea6d2b8975babe3f6b6b482c
 operating_state.csv      812498264cb0de94907c34b0e076fb827a17ccdb
 cycle_transition.csv     9393f7da50bc1575476af0c183834c3f6dea38e2
+code_source_revision.csv 33367b2e471ccb5189327a9d06c38ac34cd72582
 ```
 
 ## Validation Receipt
@@ -186,17 +188,44 @@ fatigue-foundation.test.mjs         b01f49ea3f6e2401be2b256d32b31c72eaf55647
 user-calculated-fatigue.test.mjs    a98769a49c7f68f8b4746b2953cabee15a2c1259
 ```
 
-## Final Reconciliation Receipt
+## Native KD320 Validation Record
 
-After the correction implementation:
+Record:
 
 ```text
-main = f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
-PR531 compare = 30 ahead / 0 behind
-changed files = 19
+engineering/hp-class-standardization/qualification/KD320_NATIVE_CORE_VALIDATION_RECORD.md
 ```
 
-No `.github/workflows/*`, UI/runtime, package script, or central registry files are changed.
+Disposition:
+
+```text
+record_id = VR-B313-CH9-KD320-NATIVE-001
+disposition = NOT_QUALIFIED_FAIL_CLOSED
+native_execution = BLOCKED
+authority = NOT_ESTABLISHED
+permitted_interim_path = USER_CALCULATED_KD3
+```
+
+The record freezes the qualification package required before native CORE KD320 can be implemented or released:
+
+- `E01-E12` mandatory evidence package covering controlled B31.3/VIII-3 custody, semantic extraction, mean-stress definition and parameters, fatigue-curve custody, material/temperature rules, applicability envelope, independent numerical oracles, negative testing, checker, and release authorization;
+- `G0-G6` qualification gates from source custody through explicit authority release;
+- independent benchmark matrix `KD320-BM-01` through `KD320-BM-12` including zero range, mean-stress branches, curve exact/interpolation/no-extrapolation cases, Miner spectrum, applicability boundary, edition mismatch, and missing/ambiguous parameter blocks;
+- immutable benchmark-record format and user-calculated oracle admission rules;
+- change-control and independent approval/sign-off requirements.
+
+The validation record explicitly treats the provisional project-spec KD320 expression as non-authoritative until the exact controlled licensed method semantics and custody are independently reconciled. The validation-record commit changes documentation only; it does not modify calculation behavior, relax any blocker, or promote authority.
+
+## Final Reconciliation Receipt
+
+After the correction implementation and native KD320 validation-record addition:
+
+```text
+base main = f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
+native KD320 validation-record commit = 998522160455d46a363514cf9d64c42bd284769e
+```
+
+No `.github/workflows/*`, UI/runtime, package script, or central registry files are changed by the native KD320 validation-record addition.
 
 ## Validation Truth
 
@@ -209,12 +238,14 @@ PASS:
 - native KD320 fail-closed behavior;
 - `USER_CALCULATED_KD3` focused suite 22/22;
 - exact branch-blob identity for tested changed files;
-- final base reconciliation 0 behind.
+- formal native KD320 validation/evidence/gate/benchmark record created;
+- base main re-read before validation-record mutation.
 
 NOT_RUN / NOT_ESTABLISHED:
 - complete private-repo native suite: NOT_RUN / environment limitation;
 - native CORE KD320 controlled formulation/custody: NOT_ESTABLISHED;
 - licensed curve independent custody: NOT_ESTABLISHED;
+- native KD320 independent numerical benchmark qualification: NOT_RUN / NOT_ESTABLISHED;
 - independent engineering qualification: deferred / NOT_ESTABLISHED;
 - Code/design authority: NOT_ESTABLISHED.
 
@@ -228,10 +259,12 @@ NOT_RUN / NOT_ESTABLISHED:
 - no native KD320 calculation from guessed semantics;
 - optional mean-stress fields remain audit-only;
 - user `Seq/N` provenance is explicit;
+- controlled licensed text is not copied into the open repository;
+- source custody and numerical benchmark qualification remain separate gates;
 - no component/class qualification from straight-pipe mechanics;
 - no workflow mutation;
 - no merge without explicit owner authorization.
 
 ## Handover in 60 Seconds
 
-PR531 provides a usable user/external KD-3 result pathway while native CORE KD320 remains fail-closed. Users supply externally calculated `Seq` and `N`; CORE binds them to governed cycles, optionally reproduces `Salt`, and derives Miner damage. Independent checking can be added later without changing the data model. UI/registry integration should be a separately authorized scope. Keep PR531 draft/unmerged until explicit owner merge authorization.
+PR531 provides a usable user/external KD-3 result pathway while native CORE KD320 remains fail-closed. `VR-B313-CH9-KD320-NATIVE-001` now defines the exact evidence package, qualification gates, benchmark matrix, oracle custody, change control, and sign-off needed to cross that boundary. Users may continue supplying externally calculated `Seq` and `N`; CORE binds them to governed cycles, optionally reproduces `Salt`, and derives Miner damage. Keep PR531 draft/unmerged until explicit owner merge authorization.
