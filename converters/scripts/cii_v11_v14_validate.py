@@ -8,6 +8,7 @@ record-count deltas independently established for the neutral-file generations.
 """
 from __future__ import annotations
 
+import re
 from typing import Mapping, Sequence
 
 import cii2019_section_rules as cii11
@@ -19,6 +20,21 @@ V14_AUX_ROWS.update({
     "SIF&TEES": 14,
     "REDUCERS": 2,
 })
+
+# The final four MISCEL_1 records are execution options.  They are not generic
+# all-REAL rows: CAESAR reads specific slots with I13.  The second record's
+# published prose/format has varied across documentation revisions, so only the
+# integer slots confirmed by both the paired native files and the stable option
+# meanings are enforced here.  G fields are intentionally not over-constrained.
+_MISCEL_EXEC_INTEGER_SLOTS = (
+    (1, 2, 3, 4, 6),
+    (1, 5, 6),
+    (1, 2, 3, 4, 6),
+    (1,),
+)
+_INT_TOKEN_RE = re.compile(r"[+-]?\d+")
+_FIELD_WIDTH = 13
+_LEADING_X = 2
 
 
 class CiiStructureError(ValueError):
@@ -55,9 +71,50 @@ def _raise_report_errors(report, phase: str) -> None:
     raise CiiStructureError(f"{phase} CII v11 structure validation failed: " + " | ".join(messages))
 
 
+def _fixed_field(line: str, slot: int, *, phase: str, row: int) -> str:
+    if line[:_LEADING_X].strip():
+        raise CiiStructureError(
+            f"{phase} CII MISCEL_1 execution row {row} violates the 2X fixed-record prefix."
+        )
+    start = _LEADING_X + (slot - 1) * _FIELD_WIDTH
+    end = start + _FIELD_WIDTH
+    if len(line) < end:
+        raise CiiStructureError(
+            f"{phase} CII MISCEL_1 execution row {row} is too short for slot {slot}."
+        )
+    return line[start:end]
+
+
+def _validate_miscel_execution_tail(
+    sections: Mapping[str, Sequence[str]], *, phase: str
+) -> None:
+    """Reject execution-option records whose I13 slots were rewritten as REALs.
+
+    The ordinary section-count validator cannot detect ``0`` becoming
+    ``0.000000`` because the physical row still has the expected width.  A
+    FORTRAN I13 reader can, and CAESAR relies on that mixed I/G record grammar.
+    """
+    rows = list(sections.get("MISCEL_1", []))
+    if len(rows) < 4:
+        raise CiiStructureError(
+            f"{phase} CII MISCEL_1 has {len(rows)} rows; execution-option tail requires four rows."
+        )
+    tail = rows[-4:]
+    for row_index, integer_slots in enumerate(_MISCEL_EXEC_INTEGER_SLOTS, 1):
+        line = tail[row_index - 1]
+        for slot in integer_slots:
+            token = _fixed_field(line, slot, phase=phase, row=row_index).strip()
+            if not token or _INT_TOKEN_RE.fullmatch(token) is None:
+                raise CiiStructureError(
+                    f"{phase} CII MISCEL_1 execution row {row_index} slot {slot} "
+                    f"must be an I13 integer field; found {token!r}."
+                )
+
+
 def validate_v11_text(text: str, *, phase: str) -> None:
     """Validate a v11/2019 file with the repository's independent section rules."""
     _raise_report_errors(cii11.validate_cii2019_sections(text), phase)
+    _validate_miscel_execution_tail(cii11.parse_section_map(text), phase=phase)
 
 
 def _require_v14_sections(
@@ -128,9 +185,11 @@ def validate_v14_text(text: str, *, phase: str) -> None:
         )
 
     # MISCEL_1 retained its CONTROL-driven minimum contract in the qualified
-    # paired profile; reuse the established lower-bound/RRMAT checks here.
+    # paired profile; reuse the established lower-bound/RRMAT checks here, then
+    # validate the fixed mixed-format execution tail independently.
     miscel_report = cii11.validate_miscel_1(sections, control, order)
     _raise_report_errors(miscel_report, f"{phase} v14/MISCEL_1")
+    _validate_miscel_execution_tail(sections, phase=phase)
 
     coords = list(sections.get("COORDS", []))
     if coords:
