@@ -34,6 +34,7 @@ files:
     - tabs/vibration-aiv-unified-canvas-editor-controller.js
     - tabs/vibration-aiv-unified-canvas-editor-view.js
     - tabs/vibration-aiv-unified-canvas-table-author.js
+    - tabs/vibration-aiv-unified-canvas-workflow.js
     - tabs/vibration-aiv-unified-canvas-editor.css
     - tests/vibration-aiv-engineering-revision.test.mjs
     - tests/vibration-aiv-mode-transition.test.mjs
@@ -46,9 +47,11 @@ files:
     - tests/vibration-aiv-unified-canvas-editor-state.test.mjs
     - tests/vibration-aiv-unified-canvas-editor-author.test.mjs
     - tests/vibration-aiv-unified-canvas-table-author.test.mjs
+    - tests/vibration-aiv-unified-canvas-user-workflow.test.mjs
     - ValidationRecords/AIV/PR528-local-chromium-evidence.json
     - ValidationRecords/AIV/PR528-single-integrated-canvas-chromium-evidence.json
     - ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json
+    - ValidationRecords/AIV/PR528-stage7-user-workflow-local-chromium-evidence.json
     - agents/PR528_workreport.md
     - agents/status/PR528.yaml
     - agents/claims/PR528.yaml
@@ -57,6 +60,11 @@ files:
 authority_domains:
   - AIV_UNIFIED_CANVAS_RUNTIME_OWNERSHIP
   - AIV_UNIFIED_CANVAS_EDITOR_MUTATION_SURFACE
+  - AIV_UNIFIED_CANVAS_INPUT_EDITING
+  - AIV_SCRATCH_NETWORK_AUTHORING
+  - AIV_FAST_RV_BRANCH_AUTHORING
+  - AIV_EDITOR_COMPLETENESS_GUIDANCE
+  - AIV_CANVAS_CURRENTNESS_PRESENTATION
   - AIV_INPUT_MODE_AUTHORITY_STATE
   - AIV_PRESENTATION_VS_ENGINEERING_REVISION_CUSTODY
   - AIV_NETWORK_PATH_PRESENTATION
@@ -78,17 +86,18 @@ exclusions:
   - WORKFLOW_FILES
 notes:
   - "Issue #526 qualification gate is satisfied by reviewer comment 5303402441."
-  - "Stages 1-5 establish explicit ownership/currentness, projection, graph/master currentness, one-canvas cutover and cache custody."
-  - "Stage 6 turns that same one-SVG surface into the AIV input editor; the editor mutation surface delegates to the existing per-mode engineering owner and does not become a third engineering authority."
-  - "Blank TABLE_DRIVEN startup always renders the unified editor, allowing first Source/Assessment creation without loading a sample."
-  - "TABLE_DRIVEN quick-create/edit/delete remains working-table owned; NETWORK_DRIVEN place/connect/edit/delete remains AivFlareNetwork owned."
-  - "All network engineering edits continue through datasetLoader.applyFlareNetwork transaction revision/regeneration/invalidation; presentation drag stays revision-neutral."
-  - "Physical segment length is explicit engineering input/pathEvidence only; SVG coordinates remain presentation-only."
-  - "PR #517 retains readiness/executable parity authority; PR528 consumes and does not rewrite it."
-  - "Fresh editor cache identity is 20260816-aiv-526-editor-1; superseded PF-01 and prior unified keys are rejected by the cache-chain regression while the current FIV cache key is preserved."
-  - "Stage-6 exact local editor execution is 8/8 PASS and local Chromium full-scale editor interaction evidence is 8/8 PASS in ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json."
+  - "Stages 1-6 establish explicit ownership/currentness, one-canvas cutover and the full-scale TABLE_DRIVEN/NETWORK_DRIVEN editor."
+  - "Stage 7 fixes the audited user-flow gap: blank canvas can create a clean NETWORK_DRIVEN flare graph without loading/tearing down the controlled mock."
+  - "New scratch graphs use AIV_FLARE_NETWORK_UI provenance and still commit through the existing datasetLoader engineering transaction."
+  - "Fast authoring adds sticky case/line context, collision-free IDs, RV/Subheader/Main-header/Assessment presets and an atomic RV-plus-explicit-branch helper."
+  - "New graph objects auto-select; Source completeness is guidance only and does not replace qualified readiness."
+  - "Canvas currentness renders existing readiness/screening lineage and does not alter PR #517 readiness/executable parity authority."
+  - "Physical segment length remains explicit engineering evidence/pathEvidence only; SVG coordinates remain presentation-only."
+  - "Fresh editor cache identity is 20260816-aiv-526-editor-2; editor-1 and earlier AIV keys are superseded while current FIV cache identity is preserved."
+  - "Stage-7 user-workflow reconstruction is 5/5 PASS and local Chromium replay is 8/8 PASS in ValidationRecords/AIV/PR528-stage7-user-workflow-local-chromium-evidence.json."
+  - "Updated unified controller/editor-controller/view remain below 290 physical lines; new workflow helper is 103 lines in compare."
   - "Local Chromium evidence is lower-level only; hosted/full-application Chromium, full native release, exact-current-main runtime and complete B1-B10 remain NOT_RUN."
-  - "User requested lowercase auto mode; formal AUTO MODE is not recorded because the delivery skill requires the exact literal token AUTO MODE."
+  - "Formal AUTO MODE is not recorded because the literal uppercase token was not supplied."
   - "No workflow files are claimed or authorized; merge authority remains Owner-only/not granted."
-last_verified_code_head: f5b57c84a22fdd005343ab122f5d799fc1f229cf
+last_verified_code_head: 50c1a38ba70c9c23cf2e8628c53d7b2fd477d5a8
 last_verified_main: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
