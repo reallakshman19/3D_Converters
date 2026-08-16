@@ -1,6 +1,7 @@
-const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-ver14-merge-1';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-1';
 const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-ver14-merge-1';
 const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260804-fbx-multifamily-release-1';
+const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260816-cii-v11-v14-1';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]);
@@ -24,9 +25,21 @@ function renderLegacyFallback(container, ctx, cause) {
       return null;
     });
 }
+async function installCiiV11V14Addon() {
+  try {
+    const module = await import(CII_V11_V14_ADDON);
+    if (typeof module?.installCiiV11V14Addon !== 'function') {
+      throw new Error('CAESAR v11/v14 addon installer export is missing.');
+    }
+    module.installCiiV11V14Addon();
+  } catch (error) {
+    console.warn('[ModelConvertersTab] CAESAR v11/v14 addon could not be installed; continuing without it.', error);
+  }
+}
 export function renderModelConvertersTab(container, ctx) {
   if (container?.dataset) container.dataset.modelConvertersShim = MODEL_CONVERTERS_SHIM_VERSION;
-  import(CANONICAL_MODULE)
+  installCiiV11V14Addon()
+    .then(() => import(CANONICAL_MODULE))
     .then((module) => callRenderer(module.renderModelConvertersTab, container, ctx))
     .catch((error) => {
       console.error('[ModelConvertersTab] canonical renderer failed; trying legacy fallback', error);
