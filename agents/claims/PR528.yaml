@@ -16,17 +16,25 @@ files:
     - tabs/vibration-aiv-qualification-view.js
     - tabs/vibration-aiv-input-view.js
     - tabs/vibration-aiv-workspace-loaders.js
+    - tabs/vibration-aiv-workspace-browser.js
+    - tabs/vibration-aiv-qualification.css
     - tabs/vibration-aiv-engineering-revision.js
     - tabs/vibration-aiv-mode-transition.js
     - tabs/vibration-aiv-network-transaction.js
     - tabs/vibration-aiv-master-currentness.js
     - tabs/vibration-aiv-master-db-controller.js
+    - tabs/vibration-aiv-canvas-selection.js
     - tabs/vibration-aiv-unified-canvas-projection.js
     - tabs/vibration-aiv-unified-canvas-view.js
     - tabs/vibration-aiv-unified-canvas-controller.js
     - tabs/vibration-aiv-unified-canvas-author.js
     - tabs/vibration-aiv-unified-canvas-author-view.js
     - tabs/vibration-aiv-unified-canvas-inspector.js
+    - tabs/vibration-aiv-unified-canvas-editor.js
+    - tabs/vibration-aiv-unified-canvas-editor-controller.js
+    - tabs/vibration-aiv-unified-canvas-editor-view.js
+    - tabs/vibration-aiv-unified-canvas-table-author.js
+    - tabs/vibration-aiv-unified-canvas-editor.css
     - tests/vibration-aiv-engineering-revision.test.mjs
     - tests/vibration-aiv-mode-transition.test.mjs
     - tests/vibration-aiv-network-transaction.test.mjs
@@ -35,7 +43,12 @@ files:
     - tests/vibration-aiv-unified-canvas-projection.test.mjs
     - tests/vibration-aiv-unified-canvas-cutover.test.mjs
     - tests/vibration-aiv-runtime-cache-chain.test.mjs
+    - tests/vibration-aiv-unified-canvas-editor-state.test.mjs
+    - tests/vibration-aiv-unified-canvas-editor-author.test.mjs
+    - tests/vibration-aiv-unified-canvas-table-author.test.mjs
     - ValidationRecords/AIV/PR528-local-chromium-evidence.json
+    - ValidationRecords/AIV/PR528-single-integrated-canvas-chromium-evidence.json
+    - ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json
     - agents/PR528_workreport.md
     - agents/status/PR528.yaml
     - agents/claims/PR528.yaml
@@ -43,6 +56,7 @@ files:
     - tabs/vibration-aiv-unified-canvas-
 authority_domains:
   - AIV_UNIFIED_CANVAS_RUNTIME_OWNERSHIP
+  - AIV_UNIFIED_CANVAS_EDITOR_MUTATION_SURFACE
   - AIV_INPUT_MODE_AUTHORITY_STATE
   - AIV_PRESENTATION_VS_ENGINEERING_REVISION_CUSTODY
   - AIV_NETWORK_PATH_PRESENTATION
@@ -64,13 +78,17 @@ exclusions:
   - WORKFLOW_FILES
 notes:
   - "Issue #526 qualification gate is satisfied by reviewer comment 5303402441."
-  - "Stages 1-5 are implemented at source/candidate level: ownership/currentness, projection, graph/master currentness, single-canvas cutover, cache custody."
-  - "NETWORK_DRIVEN graph and TABLE_DRIVEN tables are never silent dual engineering owners; detach is explicit."
-  - "SVG/pixel geometry remains presentation-only; physical distance comes from explicit engineering evidence."
+  - "Stages 1-5 establish explicit ownership/currentness, projection, graph/master currentness, one-canvas cutover and cache custody."
+  - "Stage 6 turns that same one-SVG surface into the AIV input editor; the editor mutation surface delegates to the existing per-mode engineering owner and does not become a third engineering authority."
+  - "Blank TABLE_DRIVEN startup always renders the unified editor, allowing first Source/Assessment creation without loading a sample."
+  - "TABLE_DRIVEN quick-create/edit/delete remains working-table owned; NETWORK_DRIVEN place/connect/edit/delete remains AivFlareNetwork owned."
+  - "All network engineering edits continue through datasetLoader.applyFlareNetwork transaction revision/regeneration/invalidation; presentation drag stays revision-neutral."
+  - "Physical segment length is explicit engineering input/pathEvidence only; SVG coordinates remain presentation-only."
   - "PR #517 retains readiness/executable parity authority; PR528 consumes and does not rewrite it."
-  - "Current main is f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac. Branch history is two commits behind; shared engineering-calculations-tab cache custody was reconciled to preserve current-main FIV key and PR528 AIV key."
-  - "Local Chromium 144 setContent harness renders controlled EI D2.3 and two-RV flare samples and passes 8/8 authority/currentness assertions; record is ValidationRecords/AIV/PR528-local-chromium-evidence.json."
-  - "Local Chromium harness evidence is lower-level only: managed URLBlocklist prevents full app navigation and hosted Actions browser jobs execute zero steps, so no hosted full-application PASS is claimed."
-  - "No workflow files are claimed or authorized."
-last_verified_code_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
+  - "Fresh editor cache identity is 20260816-aiv-526-editor-1; superseded PF-01 and prior unified keys are rejected by the cache-chain regression while the current FIV cache key is preserved."
+  - "Stage-6 exact local editor execution is 8/8 PASS and local Chromium full-scale editor interaction evidence is 8/8 PASS in ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json."
+  - "Local Chromium evidence is lower-level only; hosted/full-application Chromium, full native release, exact-current-main runtime and complete B1-B10 remain NOT_RUN."
+  - "User requested lowercase auto mode; formal AUTO MODE is not recorded because the delivery skill requires the exact literal token AUTO MODE."
+  - "No workflow files are claimed or authorized; merge authority remains Owner-only/not granted."
+last_verified_code_head: f5b57c84a22fdd005343ab122f5d799fc1f229cf
 last_verified_main: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
