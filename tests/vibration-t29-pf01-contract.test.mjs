@@ -14,6 +14,10 @@ const SOURCE_CONTRACT = JSON.parse(readFileSync(
   new URL('../ValidationRecords/VibrationMasters/t29-pf01-source-contract-v1.json', import.meta.url),
   'utf8',
 ));
+const PROGRESS = JSON.parse(readFileSync(
+  new URL('../ValidationRecords/VibrationMasters/t29-pf01-qualification-progress-v2.json', import.meta.url),
+  'utf8',
+));
 
 function close(actual, expected, tolerance = 1e-12) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
@@ -68,6 +72,20 @@ test('decision and boundary oracles remain unavailable instead of inheriting syn
   assert.equal(BENCHMARKS.promotionGate.boundaryOracleComplete, false);
   assert.equal(BENCHMARKS.promotionGate.candidateKernelAuthorized, false);
   assert.equal(BENCHMARKS.promotionGate.screeningAuthorityAuthorized, false);
+});
+
+test('qualification progress improves without crossing the source gate', () => {
+  assert.equal(PROGRESS.appendixA.total, 90);
+  assert.equal(PROGRESS.appendixA.requiredTotal, 92);
+  assert.equal(PROGRESS.appendixA.A1.score, 19);
+  assert.equal(PROGRESS.appendixA.A2.score, 15);
+  assert.equal(PROGRESS.appendixA.A3.score, 20);
+  assert.equal(PROGRESS.appendixA.A4.score, 17);
+  assert.equal(PROGRESS.appendixA.A5.score, 19);
+  assert.equal(PROGRESS.gateEvaluation.totalPass, false);
+  assert.equal(PROGRESS.gateEvaluation.A2Pass, false);
+  assert.equal(PROGRESS.gateEvaluation.controlledSourceExecutionPass, false);
+  assert.equal(PROGRESS.authority.candidateKernelAuthorized, false);
 });
 
 test('source contract and reconciliation package agree on fail-closed authority', () => {
