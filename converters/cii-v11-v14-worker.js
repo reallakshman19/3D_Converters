@@ -5,7 +5,13 @@
 import { loadPyodide } from '../vendor/pyodide/pyodide.mjs';
 
 const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
-const SCRIPT_FILES = Object.freeze(['cii_v11_v14.py', 'cii_v11_v14_format.py', 'cii_v11_v14_records.py']);
+const SCRIPT_FILES = Object.freeze([
+  'cii_v11_v14.py',
+  'cii_v11_v14_format.py',
+  'cii_v11_v14_records.py',
+  'cii_v11_v14_validate.py',
+  'cii2019_section_rules.py',
+]);
 const SCRIPT_PATH = '/scripts/cii_v11_v14.py';
 const WORK_ROOT = '/work/cii-v11-v14';
 
