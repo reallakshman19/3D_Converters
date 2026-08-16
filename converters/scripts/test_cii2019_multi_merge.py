@@ -130,6 +130,18 @@ def _fixture(*, with_hanger=False, unit_scale=1.0):
     return merge._serialize(sections)
 
 
+def _with_fixed_width_coords(text: str) -> str:
+    sections = rules.parse_section_map(text)
+    # Official CAESAR neutral-file format is (2X,I13,3F13.4).  These X/Y
+    # values deliberately fill their 13-character fields so there is no
+    # whitespace between them; str.split() therefore cannot parse this row.
+    sections["COORDS"] = [
+        _i([1]),
+        "  " + f"{10:13d}{12345678.0:13.4f}{-1234567.0:13.4f}{0.0:13.4f}",
+    ]
+    return merge._serialize(sections)
+
+
 class TestCii2019MultiMerge(unittest.TestCase):
     def test_offset_propagates_and_aux_pointers_rebase(self):
         output, summary = merge.merge_cii_texts(
@@ -147,6 +159,19 @@ class TestCii2019MultiMerge(unittest.TestCase):
         self.assertEqual([int(x) for x in second[12].split()], [2, 0, 0, 2, 0, 0])
         self.assertEqual([int(x) for x in second[13].split()], [0, 0, 0, 0, 2, 2])
         self.assertEqual(summary.unique_nodes, 4)
+
+    def test_coords_parse_fortran_fixed_fields_without_whitespace(self):
+        fixed = _with_fixed_width_coords(_fixture())
+        output, _ = merge.merge_cii_texts(
+            [fixed, fixed], offsets=[0, 5000], labels=["fixed-A", "fixed-B"]
+        )
+        sections = rules.parse_section_map(output)
+        self.assertEqual(int(sections["COORDS"][0].split()[0]), 2)
+        first_node, first_xyz = merge._coord_record(sections["COORDS"][1], "merged")
+        second_node, second_xyz = merge._coord_record(sections["COORDS"][2], "merged")
+        self.assertEqual((first_node, second_node), (10, 5010))
+        self.assertEqual(first_xyz, (12345678.0, -1234567.0, 0.0))
+        self.assertEqual(second_xyz, first_xyz)
 
     def test_node_collision_fails_closed(self):
         with self.assertRaisesRegex(merge.MergeError, "node collision"):
