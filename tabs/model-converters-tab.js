@@ -1,3 +1,5 @@
+const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-merge-dropdown-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-merge-dropdown-1';
 const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-dropdown-1';
 const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-ver14-merge-1';
 const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260804-fbx-multifamily-release-1';
