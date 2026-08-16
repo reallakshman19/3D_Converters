@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  applyAivUnifiedNetworkAuthorChange,
   createAivUnifiedNetworkNodeAt,
   createAivUnifiedNetworkSegmentBetween,
   deleteAivUnifiedNetworkSelection,
@@ -61,6 +62,38 @@ test('CONNECT_SEGMENT uses explicit engineering length and selected directed end
   assert.equal(segment.fromNodeId, 'J-102');
   assert.equal(segment.toNodeId, 'J-NEW');
   assert.deepEqual(segment.physicalLength, { value: 5.5, unit: 'm' });
+});
+
+test('engineering inspector change updates nested Source input without changing presentation', () => {
+  const base = createAivSmallFlareMockNetwork();
+  const sourceBefore = base.nodes.find((item) => item.canonicalId === 'RV-101');
+  const result = applyAivUnifiedNetworkAuthorChange(base, null, {
+    value: '8.25',
+    dataset: {
+      aivNetworkNodeId: 'RV-101',
+      aivNetworkNodePath: 'sourceInput.massFlow.value',
+      aivValueType: 'number',
+    },
+  });
+  const sourceAfter = result.network.nodes.find((item) => item.canonicalId === 'RV-101');
+  assert.equal(result.handled, true);
+  assert.equal(sourceAfter.sourceInput.massFlow.value, 8.25);
+  assert.deepEqual(sourceAfter.presentation, sourceBefore.presentation);
+});
+
+test('physical-segment inspector can change endpoints while retaining explicit length authority', () => {
+  const base = createAivSmallFlareMockNetwork();
+  const result = applyAivUnifiedNetworkAuthorChange(base, null, {
+    value: 'AIV-ASSESS-HDR-001',
+    dataset: {
+      aivNetworkSegmentId: 'SUBHEADER-4IN',
+      aivNetworkSegmentField: 'toNodeId',
+    },
+  });
+  const segment = result.network.segments.find((item) => item.segmentId === 'SUBHEADER-4IN');
+  assert.equal(result.handled, true);
+  assert.equal(segment.toNodeId, 'AIV-ASSESS-HDR-001');
+  assert.deepEqual(segment.physicalLength, { value: 12, unit: 'm' });
 });
 
 test('node deletion remains fail closed until connected physical segments are removed', () => {
