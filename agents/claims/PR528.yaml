@@ -35,6 +35,7 @@ files:
     - tests/vibration-aiv-unified-canvas-projection.test.mjs
     - tests/vibration-aiv-unified-canvas-cutover.test.mjs
     - tests/vibration-aiv-runtime-cache-chain.test.mjs
+    - ValidationRecords/AIV/PR528-local-chromium-evidence.json
     - agents/PR528_workreport.md
     - agents/status/PR528.yaml
     - agents/claims/PR528.yaml
@@ -68,7 +69,8 @@ notes:
   - "SVG/pixel geometry remains presentation-only; physical distance comes from explicit engineering evidence."
   - "PR #517 retains readiness/executable parity authority; PR528 consumes and does not rewrite it."
   - "Current main is f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac. Branch history is two commits behind; shared engineering-calculations-tab cache custody was reconciled to preserve current-main FIV key and PR528 AIV key."
-  - "Current AIV/production-freeze Actions attempts are infrastructure-blocked with zero executed steps; no CI/browser PASS is claimed."
+  - "Local Chromium 144 setContent harness renders controlled EI D2.3 and two-RV flare samples and passes 8/8 authority/currentness assertions; record is ValidationRecords/AIV/PR528-local-chromium-evidence.json."
+  - "Local Chromium harness evidence is lower-level only: managed URLBlocklist prevents full app navigation and hosted Actions browser jobs execute zero steps, so no hosted full-application PASS is claimed."
   - "No workflow files are claimed or authorized."
-last_verified_code_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+last_verified_code_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
 last_verified_main: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
