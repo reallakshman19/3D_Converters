@@ -11,6 +11,9 @@ const unifiedModules = [
   'tabs/vibration-aiv-unified-canvas-author.js',
   'tabs/vibration-aiv-unified-canvas-author-view.js',
   'tabs/vibration-aiv-unified-canvas-inspector.js',
+  'tabs/vibration-aiv-unified-canvas-editor.js',
+  'tabs/vibration-aiv-unified-canvas-editor-controller.js',
+  'tabs/vibration-aiv-unified-canvas-editor-view.js',
 ];
 
 test('production input workspace renders the unified view and no duplicate flare/canvas view', async () => {
@@ -32,21 +35,39 @@ test('qualification creates one unified controller and no legacy canvas/flare co
   assert.equal(qualification.includes('canvasController.destroy();'), true);
 });
 
-test('unified renderer owns exactly one SVG and authoring controls own none', async () => {
-  const [view, authorView] = await Promise.all([
+test('unified renderer owns one SVG while the visible editor adds no second SVG', async () => {
+  const [view, authorView, editorView] = await Promise.all([
     read('tabs/vibration-aiv-unified-canvas-view.js'),
     read('tabs/vibration-aiv-unified-canvas-author-view.js'),
+    read('tabs/vibration-aiv-unified-canvas-editor-view.js'),
   ]);
   assert.equal((view.match(/<svg\b/gu) ?? []).length, 1);
   assert.equal((authorView.match(/<svg\b/gu) ?? []).length, 0);
+  assert.equal((editorView.match(/<svg\b/gu) ?? []).length, 0);
   assert.equal(view.includes('data-aiv-unified-canvas-svg="true"'), true);
-  assert.equal(view.includes('renderAivUnifiedCanvasSelectedDetailHtml'), true);
-  assert.equal(view.includes('vibration-aiv-canvas-view.js'), false);
+  assert.equal(view.includes('data-aiv-canvas-segment'), true);
+  assert.equal(view.includes('AIV Network Canvas Editor'), true);
 });
 
-test('unified controller absorbs selection/detail/authoring parity and keeps NETWORK_DRIVEN relationship mode inspection-only', async () => {
+test('visible editor exposes graph and table mutation tools on the one-canvas surface', async () => {
+  const [authorView, editorView, controller] = await Promise.all([
+    read('tabs/vibration-aiv-unified-canvas-author-view.js'),
+    read('tabs/vibration-aiv-unified-canvas-editor-view.js'),
+    read('tabs/vibration-aiv-unified-canvas-controller.js'),
+  ]);
+  assert.equal(authorView.includes('data-aiv-canvas-editor-tool="PLACE_NODE"'), true);
+  assert.equal(authorView.includes('data-aiv-canvas-editor-tool="CONNECT_SEGMENT"'), true);
+  assert.equal(authorView.includes('data-aiv-canvas-editor-action="delete-selected"'), true);
+  assert.equal(authorView.includes('data-aiv-table-add="sources"'), true);
+  assert.equal(authorView.includes('data-aiv-table-add="assessments"'), true);
+  assert.equal(editorView.includes('data-aiv-network-node-path'), true);
+  assert.equal(editorView.includes('data-aiv-network-segment-field'), true);
+  assert.equal(editorView.includes('data-aiv-table-cell'), true);
+  assert.equal(controller.includes('createAivUnifiedCanvasEditorController'), true);
+});
+
+test('unified controller keeps graph drag presentation-only and NETWORK relationship mode inspection-only', async () => {
   const controller = await read('tabs/vibration-aiv-unified-canvas-controller.js');
-  assert.equal(controller.includes('isNetworkDriven(container)) return;'), true);
   assert.equal(controller.includes('moveAivFlareNetworkNodePresentation'), true);
   assert.equal(controller.includes('applyAivUnifiedNetworkAuthorAction'), true);
   assert.equal(controller.includes('applyAivUnifiedNetworkAuthorChange'), true);
@@ -54,7 +75,7 @@ test('unified controller absorbs selection/detail/authoring parity and keeps NET
   assert.equal(controller.includes('activateAivCanvasDetailTab'), true);
   assert.equal(controller.includes('moveAivCanvasDetailTab'), true);
   assert.equal(controller.includes('focusAivCanvasField'), true);
-  assert.equal(controller.includes("event.deltaY < 0 ? 1.2 : 1 / 1.2"), true);
+  assert.equal(controller.includes('relationship.mode !== AIV_CANVAS_MODE.RELATIONSHIPS || isNetworkDriven(container)'), true);
   assert.equal(controller.includes('createAivCanvasInteractionController'), false);
   assert.equal(controller.includes('createAivFlareNetworkAuthoringController'), false);
 });
@@ -67,7 +88,7 @@ test('new unified production modules stay below 300 physical lines', async () =>
   }
 });
 
-test('unified production modules add no acoustic equation or pixel-distance authority', async () => {
+test('unified editor modules add no acoustic equation or pixel-distance authority', async () => {
   const sources = await Promise.all(unifiedModules.map(read));
   for (const source of sources) {
     assert.equal(source.includes('Math.log('), false);
