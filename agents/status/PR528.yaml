@@ -4,22 +4,22 @@ pr_or_wip: PR528
 mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority"
 workstream: AIV_UNIFIED_NETWORK_CANVAS
 branch: agent/aiv-unified-network-canvas-526
-pr_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
+pr_head: 807c8e139b8cd18a5369d71da0559a792cf9b70f
 main_head_last_checked: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: IMPLEMENTATION_COMPLETE_LOCAL_CHROMIUM_PASS_FULL_ACCEPTANCE_BLOCKED
+agent_state: IMPLEMENTATION_COMPLETE_SINGLE_CANVAS_LOCAL_CHROMIUM_PASS_FULL_ACCEPTANCE_BLOCKED
 pr_recovery_state: RECOVERABLE
 handover_readiness: READY
 report_path: agents/PR528_workreport.md
-report_basis_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
+report_basis_head: 807c8e139b8cd18a5369d71da0559a792cf9b70f
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_SATISFIED
-grounding_epoch: AIV526-GE-010
-current_stage: LOCAL_CHROMIUM_HARNESS_PASS__FULL_HOSTED_ACCEPTANCE_OUTSTANDING
-last_completed_stage: LOCAL_CHROMIUM_CONTROLLED_EXAMPLES_AND_AUTHORITY_ASSERTIONS
+grounding_epoch: AIV526-GE-011
+current_stage: SINGLE_INTEGRATED_CANVAS_CHROMIUM_PASS__FULL_HOSTED_ACCEPTANCE_OUTSTANDING
+last_completed_stage: CORRECTED_SINGLE_CANVAS_CHROMIUM_SWITCH_ASSERTIONS
 qualification_comment: 5303402441
-blocker: "Hosted/full-application Chromium, full native/release suite and complete B1-B10 remain unavailable: managed Chromium URLBlocklist blocks navigation and Actions jobs execute zero steps. Local Chromium setContent harness is PASS 8/8 and must not be promoted to hosted full-app PASS."
+blocker: "Hosted/full-application Chromium, full native/release suite and complete B1-B10 remain unavailable: managed Chromium URLBlocklist blocks navigation and Actions jobs execute zero steps. Corrected local Chromium same-SVG harness is PASS 8/8 and must not be promoted to hosted full-app PASS."
 highest_risk: "Runtime proof on an exact current-main-integrated full application bundle is still required before promotion/merge."
 validation:
   focused_stage1: "PASS 9/9 exact reconstruction at Stage 1 checkpoint"
@@ -28,8 +28,11 @@ validation:
   master_currentness: "PASS 3/3 exact local reconstruction"
   single_canvas_cutover: "SOURCE_INSPECTION + permanent regression committed"
   cache_custody: "SOURCE_INSPECTION; fresh 20260815-aiv-526-unified-1 chain committed"
-  local_chromium_harness: "PASS 8/8 on Chromium 144.0.7559.96; ValidationRecords/AIV/PR528-local-chromium-evidence.json; PNG sha256 8eb75fb17567b4e9fcbf135112674e23df79f211a5789902695bfba15e0de017"
-  local_chromium_scenarios: "EI D2.3 TABLE_DRIVEN logical 0.8 m + controlled two-RV NETWORK_DRIVEN 38/41 m"
+  earlier_side_by_side_chromium_artifact: "SUPERSEDED_FOR_SINGLE_CANVAS_ACCEPTANCE; comparison image used two demo instances"
+  corrected_single_canvas_chromium: "PASS 8/8 on Chromium 144.0.7559.96; ValidationRecords/AIV/PR528-single-integrated-canvas-chromium-evidence.json"
+  corrected_single_canvas_dom: "workspaceCount=1; svgCount=1; same SVG object reused TABLE_DRIVEN -> NETWORK_DRIVEN -> TABLE_DRIVEN"
+  corrected_network_png_sha256: "9c5c454b56368832d7ae7c96875d9a44d39a0998a0b3bbb6fc447a56badb0620"
+  corrected_d23_same_canvas_png_sha256: "da0a7d83bc70004b2458103cf2abbf809c882c1fdd314fdb94242db40ca301b1"
   actions_aiv_31916357838: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
   actions_freeze_31916357854: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
   hosted_full_application_chromium: NOT_RUN_URLBLOCKLIST_AND_ACTIONS_INFRA
@@ -45,7 +48,7 @@ completed_capabilities:
   - "One production unified canvas view/controller source path"
   - "Integrated network authoring without a second SVG"
   - "Fresh AIV cache identity through active startup and changed leaves"
-  - "Local Chromium evidence renders D2.3 and two-RV flare samples with 8/8 authority/currentness assertions"
+  - "Corrected local Chromium proves one workspace/one SVG reused across D2.3 and two-RV flare projections"
 residual_risks:
   - "Branch history remains two commits behind current main; final validation must use an exact current-main-integrated candidate."
   - "Managed Chromium policy prevents local URL navigation, so current browser evidence uses page.setContent rather than the full app bundle."
@@ -55,5 +58,5 @@ dependencies:
   - "PR #517 active PF-02 readiness/executable parity claim; consume only"
   - "PR #506 broad AIV candidate overlap; salvage evidence only"
 coordination_state: COORDINATION_REQUIRED_BOUNDARIES_PRESERVED
-exact_next_action: "Integrate current main, then run full application/native AIV release and B1-B10/Chromium acceptance in a navigation-capable environment; preserve local Chromium 8/8 as lower-level evidence only; do not merge before owner authorization."
-last_updated: 2026-08-16T04:12:00+04:00
+exact_next_action: "Integrate current main, then run full application/native AIV release and B1-B10/Chromium acceptance in a navigation-capable environment; preserve corrected one-SVG 8/8 local Chromium evidence as lower-level evidence only; do not merge before owner authorization."
+last_updated: 2026-08-16T04:15:00+04:00
