@@ -18,6 +18,7 @@ function svg(container) { return container.querySelector('[data-aiv-unified-canv
 function editor(container) { return container.querySelector('[data-aiv-network-editor]'); }
 function isNetworkDriven(container) { return card(container)?.dataset.aivInputMode === AIV_INPUT_MODE.NETWORK_DRIVEN; }
 function canvasObject(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-segment],[data-aiv-canvas-relationship]') ?? null; }
+function editingControl(event) { return Boolean(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')); }
 function pointFromEvent(canvas, event) {
   const rect = canvas.getBoundingClientRect(); const box = canvas.viewBox.baseVal;
   return { x: (event.clientX - rect.left) * box.width / rect.width, y: (event.clientY - rect.top) * box.height / rect.height };
@@ -27,6 +28,7 @@ export function createAivUnifiedCanvasEditorController(container, callbacks = {}
   let state = createAivUnifiedCanvasEditorState();
   const getNetwork = callbacks.getNetwork ?? (() => null);
   const getSelection = callbacks.getSelection ?? (() => null);
+  const toCanvasPoint = callbacks.toCanvasPoint ?? ((event) => pointFromEvent(svg(container), event));
 
   function sync() {
     const status = container.querySelector('[data-aiv-canvas-editor-status]');
@@ -39,10 +41,7 @@ export function createAivUnifiedCanvasEditorController(container, callbacks = {}
   }
   function reset() { state = createAivUnifiedCanvasEditorState(); sync(); }
   function setTool(tool) { state = setAivUnifiedCanvasEditorTool(state, tool); sync(); }
-  function commit(network) {
-    callbacks.onNetworkChange?.(network);
-    reset();
-  }
+  function commit(network) { callbacks.onNetworkChange?.(network); reset(); }
   function deleteSelected() {
     if (!isNetworkDriven(container)) return false;
     try {
@@ -52,9 +51,9 @@ export function createAivUnifiedCanvasEditorController(container, callbacks = {}
     return true;
   }
   function placeNode(event) {
-    const canvas = svg(container); const author = editor(container);
-    if (!canvas || !author || canvasObject(event)) return false;
-    try { commit(createAivUnifiedNetworkNodeAt(getNetwork(), author, pointFromEvent(canvas, event))); }
+    const author = editor(container);
+    if (!svg(container) || !author || canvasObject(event)) return false;
+    try { commit(createAivUnifiedNetworkNodeAt(getNetwork(), author, toCanvasPoint(event))); }
     catch (error) { callbacks.onError?.(error); }
     return true;
   }
@@ -65,8 +64,9 @@ export function createAivUnifiedCanvasEditorController(container, callbacks = {}
       const advanced = advanceAivUnifiedCanvasSegmentConnection(state, text(node.dataset.aivNetworkCanonicalId));
       state = advanced.state; sync();
       if (advanced.completed) {
-        const author = editor(container);
-        commit(createAivUnifiedNetworkSegmentBetween(getNetwork(), author, advanced.completed.fromNodeId, advanced.completed.toNodeId));
+        commit(createAivUnifiedNetworkSegmentBetween(
+          getNetwork(), editor(container), advanced.completed.fromNodeId, advanced.completed.toNodeId,
+        ));
       }
     } catch (error) { callbacks.onError?.(error); reset(); }
     return true;
@@ -84,6 +84,7 @@ export function createAivUnifiedCanvasEditorController(container, callbacks = {}
   }
   function handleKeyDown(event) {
     if (event.key === 'Escape' && state.tool !== AIV_UNIFIED_CANVAS_EDITOR_TOOL.SELECT) { reset(); return true; }
+    if (editingControl(event)) return false;
     if (['Delete', 'Backspace'].includes(event.key) && isNetworkDriven(container)) return deleteSelected();
     return false;
   }
