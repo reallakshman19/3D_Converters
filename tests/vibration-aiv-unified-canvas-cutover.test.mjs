@@ -109,11 +109,15 @@ test('connector labels use stable segment-normal offsets and path-midpoint prese
 
 test('canvas toolbar and label modes are visually icon-only with accessible names', async () => {
   const view = await read('tabs/vibration-aiv-unified-canvas-view.js');
-  for (const label of ['Navigate', 'Zoom +', 'Zoom −', 'Reset view', 'Export canvas package', 'Labels', 'Normal', 'Process', 'Geometry', 'Results', 'Completeness']) {
-    assert.equal(view.includes(`aria-label="${label}"`), true, `missing aria-label for ${label}`);
-    assert.equal(view.includes(`title="${label}"`), true, `missing title for ${label}`);
-  }
   assert.equal(view.includes('data-aiv-canvas-icon-only="true"'), true);
+  assert.equal(view.includes('aria-label="${esc(label)}"'), true);
+  assert.equal(view.includes('title="${esc(label)}"'), true);
+  for (const sourceCall of [
+    "iconButton('Navigate'", "iconButton('Zoom +'", "iconButton('Zoom −'",
+    "iconButton('Reset view'", "iconButton('Export canvas package'",
+    "aria-label=\"Labels\"", "NORMAL: 'normal'", "PROCESS: 'process'",
+    "GEOMETRY: 'geometry'", "RESULTS: 'results'", "COMPLETENESS: 'completeness'",
+  ]) assert.equal(view.includes(sourceCall), true, `missing icon control source ${sourceCall}`);
   assert.equal(view.includes('>Navigate</button>'), false);
   assert.equal(view.includes('>Zoom +</button>'), false);
   assert.equal(view.includes('>Zoom −</button>'), false);
