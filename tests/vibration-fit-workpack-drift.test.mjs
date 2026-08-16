@@ -3,13 +3,19 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION as fit } from '../converters/engineering-calculations/adapters/vibration-fit.js';
 import { DEFAULT_ENGINEERING_CALCULATION_DEFINITIONS } from '../converters/engineering-calculations/default-registry.js';
-import { createEngineeringConsoleDraft } from '../tabs/engineering-calculation-console-model.js';
+import {
+  createEngineeringConsoleDraft,
+  isEngineeringCalculationExecutable,
+} from '../tabs/engineering-calculation-console-model.js';
+import { definitionState } from '../tabs/engineering-calculation-console-sections.js';
 import { renderEngineeringCalculationConsoleHtml } from '../tabs/engineering-calculation-console-view.js';
 import { renderVibrationFamilyLanding } from '../tabs/engineering-calculation-vibration-family.js';
 import { verifyEngineeringWorkpack } from '../scripts/verify-engineering-workpack.mjs';
 
 const definitions = DEFAULT_ENGINEERING_CALCULATION_DEFINITIONS;
 const vibrationDefinitions = definitions.filter((definition) => definition.family === 'VIB');
+const screeningDefinitionCount = vibrationDefinitions.filter((definition) => definitionState(definition) === 'SCREENING'
+  && isEngineeringCalculationExecutable(definition)).length;
 const families = [{ id: 'VIB', label: 'Vibration & Dynamic Screening', count: vibrationDefinitions.length }];
 
 function fitState() {
@@ -48,8 +54,9 @@ test('selected FIT console projects registered SCREENING state without BENCHMARK
 
 test('vibration family authority banner is derived from registered screening definitions', () => {
   const html = renderVibrationFamilyLanding(definitions);
+  assert.equal(screeningDefinitionCount > 0, true);
   assert.match(html, /registered SCREENING qualification/u);
-  assert.match(html, /2 mechanisms/u);
+  assert.match(html, new RegExp(`${screeningDefinitionCount} mechanisms`, 'u'));
   assert.doesNotMatch(html, /No mechanism on this page has screening or design authority/u);
   assert.match(html, /no screening result grants design authority or complete vibration integrity/u);
 });
