@@ -188,14 +188,6 @@ function fallbackTable(kind) {
   return { kind, header: [], rows: [], sourceName: null, sourceKind: 'WORKING_TABLE', dirty: false };
 }
 
-function hasCanvasWorkspaceData(state, tables) {
-  return Boolean(state.topologyInput
-    || state.flareNetwork?.nodes?.length
-    || tables.sources.rows.length
-    || tables.assessments.rows.length
-    || tables.relationships.rows.length);
-}
-
 export function renderAivInputWorkspaceHtml(state = {}) {
   const tables = state.tables ?? { sources: fallbackTable('sources'), assessments: fallbackTable('assessments'), relationships: fallbackTable('relationships') };
   const assumptions = assumptionMap(state);
@@ -203,7 +195,7 @@ export function renderAivInputWorkspaceHtml(state = {}) {
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
   const readOnly = state.inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN;
-  const canvas = hasCanvasWorkspaceData(state, tables) ? renderAivUnifiedCanvasWorkspaceHtml(canvasState) : '';
+  const canvas = renderAivUnifiedCanvasWorkspaceHtml(canvasState);
   const tableSummary = readOnly
     ? 'Generated Source / Assessment / Relationship records · read-only until explicit detach'
     : 'Advanced editable Source / Assessment / Relationship records · [M] master · [A] assumption';
