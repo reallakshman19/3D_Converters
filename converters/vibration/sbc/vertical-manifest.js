@@ -13,6 +13,47 @@ export const SBC_VERTICAL_ISSUES = Object.freeze({
 
 export const SBC_TYPE_IDS = Object.freeze(['TYPE_1', 'TYPE_2', 'TYPE_3', 'TYPE_4']);
 
+export const SBC_METHOD_STAGE_IDS = Object.freeze([
+  'VALIDATE_SBC_CONNECTION',
+  'RESOLVE_COHERENT_OPERATING_SCENARIO',
+  'RESOLVE_QUALIFIED_EI_MAIN_LINE_ASSESSMENT',
+  'CLASSIFY_OR_CONFIRM_SBC_TYPE',
+  'RESOLVE_QUALIFIED_TYPE_INPUTS_AND_MASTERS',
+  'EXECUTE_QUALIFIED_TYPE_KERNEL',
+  'ASSESS_SBC_LOF_REFERENCE_BAND',
+  'PRODUCE_REQUIRED_ACTIONS',
+  'RETURN_PROVENANCE_EVIDENCE_AUTHORITY',
+]);
+
+export const SBC_CONTROLLED_STRUCTURE_SEQUENCE = Object.freeze([
+  'METHOD_SPECIFICATION',
+  'SOURCE_TRACE_REGISTER',
+  'BENCHMARK_REGISTRY',
+  'TYPE_INPUT_CONTRACTS',
+  'APPLICABILITY_TYPE_CLASSIFICATION',
+  'QUALIFIED_MASTER_DEPENDENCIES',
+  'PURE_TYPE_KERNELS',
+]);
+
+export const SBC_CONTROLLED_ARTIFACTS = Object.freeze({
+  METHOD_SPECIFICATION: Object.freeze({
+    path: 'docs/vibration/SBC-Engineering-Method-Specification-v1.md',
+    status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
+  }),
+  SOURCE_TRACE_REGISTER: Object.freeze({
+    path: 'docs/vibration/SBC-source-trace-register-v1.md',
+    status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
+  }),
+  BENCHMARK_REGISTRY: Object.freeze({
+    path: 'Benchmarks/VibrationSBC/sbc-benchmark-registry-v1.json',
+    status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
+  }),
+  TYPE_INPUT_CONTRACTS: Object.freeze({ status: 'NOT_FROZEN' }),
+  APPLICABILITY_TYPE_CLASSIFICATION: Object.freeze({ status: 'NOT_FROZEN' }),
+  QUALIFIED_MASTER_DEPENDENCIES: Object.freeze({ status: 'NOT_FROZEN' }),
+  PURE_TYPE_KERNELS: Object.freeze({ status: 'NOT_QUALIFIED' }),
+});
+
 export const SBC_VERTICAL_LIFECYCLE = createEngineeringCapabilityLifecycle({
   state: 'RESERVED',
   issueNumbers: [SBC_VERTICAL_ISSUES.scaffold, SBC_VERTICAL_ISSUES.family],
@@ -24,9 +65,29 @@ export const SBC_VERTICAL_LIFECYCLE = createEngineeringCapabilityLifecycle({
 
 const COMMON_BLOCKERS = Object.freeze([
   'SBC_ENGINEERING_METHOD_SPECIFICATION_NOT_FROZEN',
+  'SBC_SOURCE_TRACE_REGISTER_NOT_FROZEN',
+  'SBC_BENCHMARK_REGISTRY_NOT_FROZEN',
+  'SBC_TYPE_INPUT_CONTRACTS_NOT_FROZEN',
+  'SBC_APPLICABILITY_CLASSIFICATION_NOT_FROZEN',
+  'SBC_QUALIFIED_MASTER_DEPENDENCIES_NOT_FROZEN',
+  'SBC_PURE_TYPE_KERNELS_NOT_QUALIFIED',
   'SBC_MAIN_LINE_ASSESSMENT_CONTRACT_NOT_QUALIFIED',
   'SBC_REQUIRED_ACTION_CONTRACT_NOT_QUALIFIED',
 ]);
+
+function typeArtifactRefs(typeId, exampleId) {
+  return Object.freeze({
+    methodSpecification: SBC_CONTROLLED_ARTIFACTS.METHOD_SPECIFICATION.path,
+    sourceTraceRegister: SBC_CONTROLLED_ARTIFACTS.SOURCE_TRACE_REGISTER.path,
+    benchmarkRegistry: SBC_CONTROLLED_ARTIFACTS.BENCHMARK_REGISTRY.path,
+    b1RegistryId: `SBC-B1-${typeId}-${exampleId}`,
+    b2RegistryId: `SBC-B2-${typeId}-INDEPENDENT`,
+    inputContractStatus: SBC_CONTROLLED_ARTIFACTS.TYPE_INPUT_CONTRACTS.status,
+    applicabilityClassificationStatus: SBC_CONTROLLED_ARTIFACTS.APPLICABILITY_TYPE_CLASSIFICATION.status,
+    qualifiedMasterDependenciesStatus: SBC_CONTROLLED_ARTIFACTS.QUALIFIED_MASTER_DEPENDENCIES.status,
+    pureTypeKernelStatus: SBC_CONTROLLED_ARTIFACTS.PURE_TYPE_KERNELS.status,
+  });
+}
 
 function typeSlot(typeId, exampleId, nextFile, targetFunction, options = {}) {
   return Object.freeze({
@@ -45,6 +106,7 @@ function typeSlot(typeId, exampleId, nextFile, targetFunction, options = {}) {
       independentB2: Object.freeze({ required: true, minimumFamilies: 1 }),
       branchBoundaryRegression: 'REQUIRED_ADDITIONAL_EVIDENCE',
     }),
+    controlledArtifacts: typeArtifactRefs(typeId, exampleId),
     requiredTraceNamespaces: Object.freeze([
       'SBC-APP-*', 'SBC-TYPE-*', 'SBC-EQ-*', 'SBC-TBL-*',
       'SBC-FIG-*', 'SBC-CONST-*', 'SBC-ASS-*', 'SBC-SRC-*', 'SBC-UNIT-*',
