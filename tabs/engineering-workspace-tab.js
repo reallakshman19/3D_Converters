@@ -2,7 +2,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'calculations',
     label: 'Calculations',
-    load: () => import('./engineering-calculations-tab.js?v=20260816-aiv-526-editor-1').then((module) => module.renderEngineeringCalculationsTab),
+    load: () => import('./engineering-calculations-tab.js?v=20260816-aiv-526-editor-2').then((module) => module.renderEngineeringCalculationsTab),
   },
   {
     id: 'b313-material-factors',
