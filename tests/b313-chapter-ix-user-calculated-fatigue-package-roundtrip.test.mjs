@@ -123,12 +123,14 @@ test('approved canonical evidence rejects non-independent per-cycle checker cust
   assert.ok(validation.errors.some((message) => message.includes('checker must differ from calculatedBy')));
 });
 
-test('authority package UI and evidence bridge carry the canonical row custody', () => {
+test('authority package UI and evidence bridge carry canonical custody and block partial restore', () => {
   const ui = fs.readFileSync(path.join(repo, 'engineering/hp-class-standardization/authority-package-ui.js'), 'utf8');
   const bridge = fs.readFileSync(path.join(repo, 'engineering/hp-class-standardization/user-calculated-fatigue-evidence-bridge.js'), 'utf8');
   assert.match(ui, /userCalculatedKd3Evidence/);
   assert.match(ui, /restoreCanonicalKd3Evidence/);
   assert.match(ui, /HpUserCalculatedKd3EvidenceBridge/);
+  assert.match(ui, /canonical\.expected !== canonical\.restored/);
+  assert.match(ui, /USER_CALCULATED_KD3 package restore incomplete/);
   assert.match(bridge, /userAlternatingStressIntensityMpa/);
   assert.match(bridge, /equivalentAlternatingStressMpa/);
   assert.match(bridge, /permissibleCycles/);
