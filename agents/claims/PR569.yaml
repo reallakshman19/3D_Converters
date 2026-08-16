@@ -1,0 +1,34 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: PR569
+issue: 568
+pull_request: 569
+branch: agent/engineering-workpack-framework-568
+workstream: ENGINEERING_WORKPACK_FRAMEWORK
+criticality: ENGINEERING_CRITICAL
+authority: WRITE_ALLOWED_AFTER_QUALIFICATION
+qualification: QUALIFIED_FOR_ENGINEERING_WORKPACK_FRAMEWORK
+qualification_comment: 5309114286
+claimed_paths:
+  - engineering/workpacks/framework/**
+  - engineering/workpacks/probes/vib-fit.mjs
+  - engineering/workpacks/VIB-FIT.json
+  - scripts/verify-engineering-workpack.mjs
+  - tests/engineering-workpack-framework.test.mjs
+  - tests/fixtures/engineering-workpack-mutation-probe.mjs
+  - agents/PR569_workreport.md
+  - agents/status/PR569.yaml
+  - agents/claims/PR569.yaml
+exclusions:
+  - converters/vibration/fit/** numerical equations or constants
+  - Benchmarks/VibrationFIT/** expected values or tolerances
+  - converters/vibration/aiv/**
+  - tabs/** UI/runtime/canvas changes
+  - .github/workflows/**
+  - Product Freeze state/evidence completion
+  - screening/design/code authority promotion
+coordination:
+  PR567: COORDINATION_REQUIRED_SHARED_VERIFIER_OVERLAP_REBASE_AFTER_PR569
+  issue566: AIV_DRIFT_REPAIR_NOT_ABSORBED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-16T23:07:00+04:00
