@@ -35,6 +35,11 @@ def _nums(line: str) -> list[float]:
     return parsed[0]
 
 
+def _fixed_13(line: str, slot: int) -> str:
+    start = 2 + slot * 13
+    return line[start:start + 13].strip()
+
+
 def _audit(source: int, target: int) -> mod.Audit:
     return mod.Audit(source_version=source, target_version=target, source_sha256="fixture")
 
@@ -141,6 +146,33 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
     def test_generated_v11_passes_independent_structure_gate(self) -> None:
         result = mod.convert_bytes(self.v14, 11)
         structure.validate_v11_text(result.data.decode("utf-8"), phase="test-generated")
+
+    def test_miscel_1_mixed_fortran_fields_are_not_float_coerced(self) -> None:
+        source = self.m14["MISCEL_1"]
+        self.assertGreaterEqual(len(source), 4)
+
+        # Reproduce the actual structural corruption: one G13.6 value causes the
+        # old generic REAL renderer to rewrite neighboring I13 integer fields.
+        generic = mod._generic_numeric_convert(source[-4], 11)
+        self.assertIn(".", _fixed_13(generic, 0))
+
+        converted = _section_map(mod.convert_bytes(self.v14, 11).data)["MISCEL_1"]
+        self.assertEqual(converted, source)
+
+        # Paired benchmark execution-option rows use mixed FORTRAN fields.  The
+        # integer slots must remain lexical integers, not 0.000000/2.00000.
+        integer_slots = (
+            (0, 1, 2, 3, 5),
+            (0, 4, 5),
+            (0, 1, 2, 3, 5),
+        )
+        for row, slots in zip(converted[-4:-1], integer_slots):
+            for slot in slots:
+                self.assertRegex(_fixed_13(row, slot), r"^[+-]?\d+$")
+        self.assertRegex(_fixed_13(converted[-1], 0), r"^[+-]?\d+$")
+
+        upgraded = _section_map(mod.convert_bytes(self.v11, 14).data)["MISCEL_1"]
+        self.assertEqual(upgraded, self.m11["MISCEL_1"])
 
     def test_v11_to_v14_matches_target_record_shape(self) -> None:
         result = mod.convert_bytes(self.v11, 14)
