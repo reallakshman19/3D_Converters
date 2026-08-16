@@ -3,7 +3,7 @@ import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 import { renderAivMasterDbHtml } from './vibration-aiv-master-db-view.js';
-import { renderAivUnifiedCanvasWorkspaceHtml } from './vibration-aiv-unified-canvas-view.js';
+import { renderAivUnifiedCanvasWorkspaceHtml } from './vibration-aiv-unified-canvas-view.js?v=20260816-aiv-526-editor-1';
 
 function esc(value) {
   return String(value ?? '')
