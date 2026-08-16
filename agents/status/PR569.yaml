@@ -4,21 +4,22 @@ pr_or_wip: PR569
 mission: "Issue #568 reusable fail-closed Engineering Work Pack framework"
 workstream: ENGINEERING_WORKPACK_FRAMEWORK
 branch: agent/engineering-workpack-framework-568
-pr_head: de2079979e173e919fbbf4dab1c9d5f3b0599199
+implementation_head: 1df5248d55b2ce975e077de12889aa4a99f3413f
+report_basis_head: b87cd2a3dc8285bdd8993133e1c1e31ed8bb75b7
 main_head_last_checked: ecf3b7c44826212710f24ff00f3c0e8847570725
 merge_base: ecf3b7c44826212710f24ff00f3c0e8847570725
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 execution_mode: AUTO
-auto_state: RUNNING
+auto_state: TAKEOVER_REQUIRED
 auto_authorization: "Owner instruction 2026-08-16T23:04+04:00: proceed in auto mode; skip workflow, only local check"
-agent_state: IMPLEMENTED_SOURCE_RECONCILING
-pr_recovery_state: ACTIVE
+agent_state: IMPLEMENTED_LOCAL_FRAMEWORK_VALIDATED_EXACT_FIT_EXECUTION_BLOCKED
+pr_recovery_state: TAKEOVER_REQUIRED
 handover_readiness: READY
 report_path: agents/PR569_workreport.md
 appendix_a_status: QUALIFIED_FOR_ENGINEERING_WORKPACK_FRAMEWORK
 qualification_comment: 5309114286
-current_stage: FINAL_SOURCE_DIFF_FALSIFIER_AUDIT
+current_stage: STOP_NATIVE_EXACT_HEAD_VALIDATION_ENVIRONMENT_BLOCKED
 protected_authority:
   - FIT_NUMERICAL_METHOD_UNCHANGED
   - FIT_SCREENING_AUTHORITY_AUTHORIZED_BOUNDED
@@ -30,21 +31,28 @@ protected_authority:
   - BENCHMARK_ORACLE_IDENTITY_UNCHANGED
 validation:
   pre_edit_blob_backups: PASS
-  changed_scope_reconciliation: PASS
+  changed_scope_reconciliation: PASS_25_PATHS_ALL_IN_SCOPE_OR_REQUIRED_BACKUPS_HANDOFF
   new_js_line_limit: PASS_UNDER_300
-  prepared_mjs_node_check: PASS_LOCAL_RECONSTRUCTION
-  vib_fit_json_parse: PASS_LOCAL_RECONSTRUCTION
+  reconstructed_mjs_node_check: PASS
   synthetic_second_consumer: PASS_LOCAL_RECONSTRUCTION
   unknown_check_type_fail_closed: PASS_LOCAL_RECONSTRUCTION
+  missing_probe_fail_closed: PASS_LOCAL_RECONSTRUCTION
+  duplicate_check_id_fail_closed: PASS_LOCAL_RECONSTRUCTION
+  unsupported_schema_fail_closed: PASS_LOCAL_RECONSTRUCTION
   mutation_probe_immutability: PASS_LOCAL_RECONSTRUCTION
+  repository_path_escape_fail_closed: PASS_LOCAL_RECONSTRUCTION
+  generic_core_mechanism_rule_scan: PASS_LOCAL_RECONSTRUCTION
+  legacy_release_count_scope: PASS_LOCAL_RECONSTRUCTION
+  fit_probe_syntax: PASS_LOCAL_RECONSTRUCTION
   pull_request_mergeable: PASS
-  exact_head_git_clone: NOT_RUN_ENVIRONMENT_BLOCKED_DNS_GITHUB
+  main_drift: PASS_NONE_AT_LAST_CHECK
+  exact_head_git_clone: FAIL_ENVIRONMENT_BLOCKED_DNS_GITHUB
   exact_head_fit_workpack: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
   exact_head_framework_test: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
   exact_head_fit_release: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
   workflows_actions: NOT_APPLICABLE_OWNER_DIRECTED_SKIP
-coordination_state: COORDINATION_REQUIRED_PR567_SHARED_VERIFIER
-highest_risk: "Exact repository-native FIT execution is unavailable; do not move PR out of draft or merge based on source/local reconstruction alone."
-exact_next_action: "Complete source/diff/falsifier audit, update durable evidence, then set AUTO_STATE=TAKEOVER_REQUIRED for native exact-head execution before review readiness."
+coordination_state: COORDINATION_REQUIRED_PR567_SHARED_VERIFIER_REBASE_AFTER_PR569
+highest_risk: "Exact repository-native FIT execution remains unavailable. Do not move PR out of draft or merge based on source/local reconstruction alone."
+exact_next_action: "Qualified takeover in a native-capable exact PR569 checkout: run FIT workpack, framework test, and FIT release suite locally; if all pass, re-ground main and PR567, update evidence, and request Owner review."
 merge_authority: OWNER_ONLY_NOT_GRANTED
-last_updated: 2026-08-16T23:08:00+04:00
+last_updated: 2026-08-16T23:15:00+04:00
