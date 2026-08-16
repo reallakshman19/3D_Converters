@@ -1,5 +1,5 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
-import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
+import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js?v=20260816-aiv-canvas-release-1';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 import { renderAivMasterDbHtml } from './vibration-aiv-master-db-view.js';
