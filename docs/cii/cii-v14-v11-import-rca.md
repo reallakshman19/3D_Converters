@@ -11,9 +11,9 @@ The reported symptoms were:
 1. generated Ver11 CII triggers a CAESAR irrecoverable import error;
 2. Ver14 → Ver11 conversion reports many SIF&TEES loss events and the resulting tee/SIF data appears lost.
 
-The symptoms were investigated independently and two concrete record-layout defects were found.
+The symptoms were investigated independently and multiple concrete format/semantic defects were found.
 
-## RCA-1 — SIF&TEES record was flattened across two independent tee slots
+## RCA-1 — SIF&TEES was treated as a flat row array instead of two semantic tee slots
 
 The previous adapter used:
 
@@ -24,7 +24,7 @@ Ver14 → Ver11 = keep record[0:10]
 Ver11 → Ver14 = append four zero rows
 ```
 
-That is structurally wrong.
+That is structurally and semantically wrong.
 
 CAESAR's neutral-file contract stores **two tee slots per SIF&TEES auxiliary**:
 
@@ -38,30 +38,47 @@ Ver14: tee #1 = 7 rows / 42 values
        total   = 14 rows
 ```
 
-Therefore the correct Ver14 → Ver11 projection is:
+The old `record[:10]` projection retained all seven Ver14 rows of tee #1 and only the first three rows of tee #2. Ver14-only tee #1 values were therefore written into the physical location where Ver11 expects tee #2 legacy data.
+
+The reverse conversion was also wrong: four extension rows were appended after the complete legacy record instead of being associated with the two independent tee slots.
+
+### RCA-1A — axial and torsional SIF fields also change positions
+
+The two generations do not have a field-for-field identity even inside their common data.
 
 ```text
-rows 1-5  of tee #1
-+
-rows 1-5  of tee #2
+Legacy/Ver11 item 15 = torsional SIF
+Legacy/Ver11 item 16 = axial SIF
 
-physical row indexes: [0:5] + [7:12]
+Ver14 item 15 = axial SIF
+Ver14 item 16 = torsional SIF
 ```
 
-The old `record[:10]` projection retained all seven rows of tee #1 and only the first three rows of tee #2. That displaced Ver14-only tee #1 extension values into the legacy tee #2 slot.
+A correct converter must therefore swap those two positions when crossing generations. Row slicing alone cannot preserve engineering meaning.
 
-The reverse conversion was also wrong: the four extension rows must be inserted as two rows after each five-row legacy tee slot, not appended after the complete ten-row record.
+Ver14 also introduces B31J/version-owned SIF data in fields for which there is no qualified legacy semantic slot, including the surface-node/geometry region. Those fields cannot be silently copied into spare or differently-owned Ver11 positions.
 
 ### Repair
 
-`cii_v11_v14_records._convert_sif_tees()` now treats each tee slot independently:
+SIF conversion is now owned by `cii_v11_v14_sif.py` and is field-semantic rather than row-semantic.
+
+For each of the two tee slots independently:
 
 ```text
-14 → 11: tee1[0:5] + tee2[0:5]
-11 → 14: tee1[0:5] + zero-extension(2) + tee2[0:5] + zero-extension(2)
+common fields 1-14  → direct
+Ver14 item 15 axial → Ver11 item 16 axial
+Ver14 item 16 torsion → Ver11 item 15 torsion
+common fields 17-18 → direct
+common fields 23-26 → direct
+unqualified/version-owned positions → zero in target; non-zero source fails closed unless explicit loss is allowed
 ```
 
-Ver14 items 31-42 are the extension region for each tee slot. Non-zero values remain an explicit lossy downgrade because Ver11 has no corresponding storage. The loss event now states that legacy items 1-30 for **both** tee slots were preserved.
+The reverse map applies the same engineering-meaning rule and refuses to guess if a legacy-only/ambiguous field is non-zero.
+
+This prevents both failure modes in the old implementation:
+
+1. tee #1 extension data can no longer displace tee #2;
+2. axial and torsional SIF values can no longer be silently exchanged.
 
 ## RCA-2 — ALLOWBLS row-count delta was not converted
 
@@ -101,9 +118,13 @@ This is deliberately independent of the converter's own row-transform functions 
 
 ## Browser custody
 
-The worker now loads the independent target validator and `cii2019_section_rules.py`.
+The worker now loads:
 
-The worker URL and the full Model Converters parent cache chain are advanced so deployed browsers cannot legally retain the pre-RCA SIF mapper.
+- `cii_v11_v14_sif.py`;
+- `cii_v11_v14_validate.py`;
+- `cii2019_section_rules.py`.
+
+The worker URL and the full Model Converters parent cache chain are advanced so deployed browsers cannot legally retain the pre-RCA converter.
 
 ## Qualification tests
 
@@ -111,20 +132,21 @@ The worker URL and the full Model Converters parent cache chain are advanced so 
 
 1. paired benchmark conversion;
 2. generated Ver11 independent structure validation;
-3. exact SIF downgrade row identity `[1..5, 8..12]`;
-4. exact SIF upgrade extension placement at rows 6-7 and 13-14;
-5. non-zero Ver14 SIF extension fail-closed behavior;
-6. ALLOWBLS 168 → 153 value preservation;
-7. ALLOWBLS non-zero extension loss gate;
-8. ALLOWBLS 153 → 168 extension placement;
-9. malformed source Ver14 SIF record rejection;
-10. existing reducer extension and restraint sentinel checks.
+3. two independent SIF/TEE slot mappings;
+4. explicit axial/torsional item 15/16 semantic swap in both directions;
+5. zeroing / fail-closed handling of unqualified Ver14 SIF/B31J fields;
+6. rejection of non-zero ambiguous legacy-only SIF fields on Ver11 → Ver14;
+7. ALLOWBLS 168 → 153 value preservation;
+8. ALLOWBLS non-zero extension loss gate;
+9. ALLOWBLS 153 → 168 extension placement;
+10. malformed source Ver14 SIF record rejection;
+11. existing reducer extension and restraint sentinel checks.
 
-The UI static test also proves the repaired worker and validator scripts are present in the live cache chain.
+The UI static test also proves the repaired worker and validator path is part of the live cache chain.
 
 ## Qualification boundary
 
-Repository-level fixed-record qualification and benchmark regression can establish that the generated neutral file has the expected target structure.
+Repository-level fixed-record qualification and benchmark regression can establish that the generated neutral file has the expected target structure and that the explicitly mapped SIF fields retain their qualified engineering meaning.
 
 The final external acceptance gate remains:
 
@@ -142,6 +164,6 @@ That CAESAR runtime round-trip is `NOT_RUN` in the repository environment and mu
 ## References used for the record-layout RCA
 
 - Hexagon CAESAR II Users Guide, Version 14 — Auxiliary Element Data (`SIF&TEES`, `ALLOWBLS`, `REDUCERS`).
-- Hexagon CAESAR II Users Guide, Version 12 — Auxiliary Element Data (legacy 10-row SIF&TEES and 26-row ALLOWBLS profile).
+- Hexagon CAESAR II Users Guide, Version 12 — Auxiliary Element Data (legacy SIF/TEE and ALLOWBLS profile).
 - Repository paired benchmark: `Benchmarks/v11-v14.zip`.
 - Repository target validator: `converters/scripts/cii2019_section_rules.py`.
