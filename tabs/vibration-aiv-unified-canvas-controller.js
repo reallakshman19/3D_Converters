@@ -31,7 +31,15 @@ import {
 import {
   aivCanvasLineLabelAnchor,
   aivCanvasPathLabelAnchor,
-} from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-ui-1';
+} from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-spatial-1';
+import {
+  aivCanvasClampLayoutPoint,
+  aivCanvasEventScenePoint,
+  aivCanvasFitForSvg,
+  aivCanvasTidyForDom,
+  aivCanvasWorkspace,
+  applyAivCanvasSpatialPresentation,
+} from './vibration-aiv-canvas-spatial-dom.js?v=20260816-aiv-canvas-spatial-1';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -77,17 +85,16 @@ function setLine(line, from, to) {
 }
 function pathSegments(owner, positionsByCanonical) {
   return [...owner.querySelectorAll('[data-aiv-path-from]')].map((line) => ({
-    from: positionsByCanonical.get(text(line.dataset.aivPathFrom)),
-    to: positionsByCanonical.get(text(line.dataset.aivPathTo)),
+    from: positionsByCanonical.get(text(line.dataset.aivPathFrom)), to: positionsByCanonical.get(text(line.dataset.aivPathTo)),
   })).filter((item) => item.from && item.to);
 }
 function setLabelPosition(owner, segments, options) {
   if (!owner || !segments?.length) return;
-  const anchor = segments.length === 1
-    ? aivCanvasLineLabelAnchor(segments[0].from, segments[0].to, options)
-    : aivCanvasPathLabelAnchor(segments, options);
+  const anchor = segments.length === 1 ? aivCanvasLineLabelAnchor(segments[0].from, segments[0].to, options) : aivCanvasPathLabelAnchor(segments, options);
   if (!anchor) return;
-  for (const group of owner.querySelectorAll('[data-aiv-canvas-label-content]')) group.setAttribute('transform', `translate(${anchor.x} ${anchor.y})`);
+  for (const group of owner.querySelectorAll('[data-aiv-canvas-label-content]')) {
+    const transform = `translate(${anchor.x} ${anchor.y})`; group.setAttribute('transform', transform); group.dataset.aivLabelBaseTransform = transform;
+  }
 }
 function redraw(container, layout) {
   const byKey = positions(layout); const byCanonical = canonicalPositions(container, layout);
@@ -97,8 +104,7 @@ function redraw(container, layout) {
   }
   for (const segment of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-network-segment]')) {
     const from = byCanonical.get(text(segment.dataset.aivNetworkFrom)); const to = byCanonical.get(text(segment.dataset.aivNetworkTo));
-    setLine(segment.querySelector('line'), from, to);
-    setLabelPosition(segment, [{ from, to }], { offset: 16, side: 1 });
+    setLine(segment.querySelector('line'), from, to); setLabelPosition(segment, [{ from, to }], { offset: 16, side: 1 });
   }
   for (const line of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-path-from]')) setLine(line, byCanonical.get(text(line.dataset.aivPathFrom)), byCanonical.get(text(line.dataset.aivPathTo)));
   for (const relation of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-relationship]')) {
@@ -106,8 +112,7 @@ function redraw(container, layout) {
     const from = logical ? byKey.get(text(relation.dataset.aivCanvasSourceNode)) : byCanonical.get(text(relation.dataset.aivSourceCanonicalId));
     const to = logical ? byKey.get(text(relation.dataset.aivCanvasAssessmentNode)) : byCanonical.get(text(relation.dataset.aivAssessmentCanonicalId));
     if (logical) setLine(relation.querySelector('line'), from, to);
-    const segments = logical ? [{ from, to }] : pathSegments(relation, byCanonical);
-    if (!segments.length && from && to) segments.push({ from, to });
+    const segments = logical ? [{ from, to }] : pathSegments(relation, byCanonical); if (!segments.length && from && to) segments.push({ from, to });
     setLabelPosition(relation, segments, { offset: 22, side: -1 });
   }
   scene(container)?.setAttribute('transform', `translate(${layout.viewport.x} ${layout.viewport.y}) scale(${layout.viewport.zoom})`);
@@ -123,8 +128,7 @@ function setModePresentation(container, mode) {
   }
 }
 function setLabelModePresentation(container, requested) {
-  const mode = normalizeAivCanvasLabelMode(requested); const value = card(container);
-  if (value) value.dataset.aivCanvasLabelDisplay = mode;
+  const mode = normalizeAivCanvasLabelMode(requested); const value = card(container); if (value) value.dataset.aivCanvasLabelDisplay = mode;
   for (const button of container.querySelectorAll('[data-aiv-canvas-label-mode]')) {
     const active = button.dataset.aivCanvasLabelMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
@@ -137,30 +141,38 @@ function updateDeleteControl(container, selection) {
 }
 export function createAivUnifiedCanvasController(container, callbacks = {}) {
   let layout = null; let selection = null; let gesture = null; let suppressClick = false;
-  let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE });
-  let labelMode = AIV_CANVAS_LABEL_MODE.NORMAL;
-  const getNetwork = callbacks.getNetwork ?? (() => null);
-  const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) });
-  let editorController = null;
+  let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE }); let labelMode = AIV_CANVAS_LABEL_MODE.NORMAL;
+  const getNetwork = callbacks.getNetwork ?? (() => null); const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) }); let editorController = null;
+  function paint() { if (!layout) return; redraw(container, layout); labelMode = setLabelModePresentation(container, labelMode); applyAivCanvasSpatialPresentation(container, layout, selection); }
   function select(next, origin = 'canvas') {
     selection = next;
-    if (layout && svg(container)) {
-      const revealed = revealAivCanvasSelection(container, svg(container), layout, selection, origin); layout = revealed.layout;
-      if (origin === 'table') redraw(container, layout);
-    } else applyAivCanvasSelection(container, selection);
+    if (layout && svg(container)) { const revealed = revealAivCanvasSelection(container, svg(container), layout, selection, origin); layout = revealed.layout; if (origin === 'table') redraw(container, layout); }
+    else applyAivCanvasSelection(container, selection);
+    if (layout) applyAivCanvasSpatialPresentation(container, layout, selection);
     updateDeleteControl(container, selection); callbacks.onSelectionChange?.(selection);
   }
   editorController = createAivUnifiedCanvasEditorController(container, {
-    getNetwork, getSelection: () => selection, onNetworkChange: callbacks.onNetworkChange,
-    onSelectionChange: (next) => select(next), onError: callbacks.onError,
+    getNetwork, getSelection: () => selection, onNetworkChange: callbacks.onNetworkChange, onSelectionChange: (next) => select(next), onError: callbacks.onError,
+    toCanvasPoint: (event) => layout && svg(container) ? aivCanvasEventScenePoint(svg(container), layout, event) : { x: 110, y: 100 },
   });
   function sync() {
     if (!svg(container)) { callbacks.onSelectionChange?.(selection); return; }
     layout = reconcileLayout(container, layout); redraw(container, layout); applyAivCanvasSelection(container, selection); filter.sync();
-    setModePresentation(container, relationship.mode); labelMode = setLabelModePresentation(container, labelMode);
+    setModePresentation(container, relationship.mode); labelMode = setLabelModePresentation(container, labelMode); applyAivCanvasSpatialPresentation(container, layout, selection);
     updateDeleteControl(container, selection); editorController.sync();
   }
-  function updateViewport(next) { layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); redraw(container, layout); }
+  function updateViewport(next) { layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); paint(); }
+  function fitNetwork() { const canvas = svg(container); if (layout && canvas) updateViewport(aivCanvasFitForSvg(layout, canvas)); }
+  function tidyNetwork() {
+    const canvas = svg(container); if (!layout || !canvas) return;
+    const tidy = aivCanvasTidyForDom(layout, container); layout = createAivCanvasLayout({ nodes: tidy.nodes, viewport: aivCanvasFitForSvg(tidy, canvas) }); paint();
+    if (!isNetworkDriven(container)) return;
+    try {
+      let network = getNetwork();
+      for (const node of layout.nodes) network = moveAivFlareNetworkNodePresentation(network, node.canonicalId, node.x, node.y);
+      callbacks.onPresentationChange?.(network);
+    } catch (error) { callbacks.onError?.(error); }
+  }
   function deleteSelectedRelationship() {
     if (isNetworkDriven(container)) return;
     const element = container.querySelector('[data-aiv-canvas-relationship].is-selected'); const identity = aivCanvasRelationshipIdentityFromElement(element);
@@ -169,24 +181,17 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   function authorAction(event) {
     const author = event.target.closest('[data-aiv-network-editor]'); if (!author) return false;
     try {
-      const before = getNetwork();
-      const result = applyAivUnifiedNetworkAuthorAction(before, author, event.target);
-      if (result.handled) {
-        callbacks.onNetworkChange?.(result.network);
-        const nextSelection = createdSelection(before, result.network);
-        if (nextSelection) select(nextSelection);
-      }
+      const before = getNetwork(); const result = applyAivUnifiedNetworkAuthorAction(before, author, event.target);
+      if (result.handled) { callbacks.onNetworkChange?.(result.network); const nextSelection = createdSelection(before, result.network); if (nextSelection) select(nextSelection); }
       return result.handled;
     } catch (error) { callbacks.onError?.(error); return true; }
   }
   function click(event) {
-    if (editorController.handleClick(event)) return;
-    if (authorAction(event)) return;
+    if (editorController.handleClick(event) || authorAction(event)) return;
     const labelRequest = event.target.closest('[data-aiv-canvas-label-mode]')?.dataset.aivCanvasLabelMode;
-    if (labelRequest) { labelMode = setLabelModePresentation(container, labelRequest); return; }
+    if (labelRequest) { labelMode = setLabelModePresentation(container, labelRequest); applyAivCanvasSpatialPresentation(container, layout, selection); return; }
     const detailTab = event.target.closest('[data-aiv-detail-tab]'); if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
-    const fieldKey = event.target.closest('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey;
-    if (fieldKey) { focusAivCanvasField(container, fieldKey); return; }
+    const fieldKey = event.target.closest('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey; if (fieldKey) { focusAivCanvasField(container, fieldKey); return; }
     const mode = event.target.closest('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
     if (mode) { relationship = setAivCanvasRelationshipMode(relationship, mode); setModePresentation(container, relationship.mode); return; }
     const command = event.target.closest('[data-aiv-canvas-action]')?.dataset.aivCanvasAction;
@@ -195,7 +200,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
       if (command === 'zoom-in') updateViewport({ ...layout.viewport, zoom: Math.min(3, layout.viewport.zoom * 1.2) });
       if (command === 'zoom-out') updateViewport({ ...layout.viewport, zoom: Math.max(0.35, layout.viewport.zoom / 1.2) });
       if (command === 'reset-view') updateViewport({ x: 0, y: 0, zoom: 1 });
-      return;
+      if (command === 'fit-network') fitNetwork(); if (command === 'auto-tidy') tidyNetwork(); return;
     }
     if (event.target.closest('[data-aiv-table-add],[data-aiv-table-delete]')) return;
     const row = event.target.closest('[data-aiv-table-row-kind]'); if (row) { select(aivCanvasSelectionFromElement(row), 'table'); return; }
@@ -219,7 +224,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     const node = event.target.closest('[data-aiv-canvas-node]'); const start = svgPoint(canvas, event);
     if (node) {
       const key = text(node.dataset.aivCanvasNode); const current = positions(layout).get(key); if (!current) return;
-      gesture = { kind: 'NODE', pointerId: event.pointerId, key, start, x: current.x, y: current.y, canonicalId: text(node.dataset.aivNetworkCanonicalId) || null, moved: false };
+      gesture = { kind: 'NODE', pointerId: event.pointerId, key, start, x: current.x, y: current.y, canonicalId: text(node.dataset.aivNetworkCanonicalId) || null, workspace: aivCanvasWorkspace(layout), moved: false };
     } else gesture = { kind: 'PAN', pointerId: event.pointerId, start, x: layout.viewport.x, y: layout.viewport.y, moved: false };
     canvas.setPointerCapture?.(event.pointerId); event.preventDefault?.();
   }
@@ -227,7 +232,10 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     const canvas = svg(container); if (!gesture || !canvas || gesture.pointerId !== event.pointerId) return;
     const point = svgPoint(canvas, event); const dx = point.x - gesture.start.x; const dy = point.y - gesture.start.y; gesture.moved ||= Math.abs(dx) + Math.abs(dy) > 2;
     if (gesture.kind === 'PAN') updateViewport({ ...layout.viewport, x: gesture.x + dx, y: gesture.y + dy });
-    else { layout = moveAivCanvasLayoutNode(layout, gesture.key, gesture.x + dx / layout.viewport.zoom, gesture.y + dy / layout.viewport.zoom); redraw(container, layout); }
+    else {
+      const target = aivCanvasClampLayoutPoint(layout, { x: gesture.x + dx / layout.viewport.zoom, y: gesture.y + dy / layout.viewport.zoom }, gesture.workspace);
+      layout = moveAivCanvasLayoutNode(layout, gesture.key, target.x, target.y); paint();
+    }
     event.preventDefault?.();
   }
   function pointerUp(event) {
