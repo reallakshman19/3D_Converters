@@ -3,7 +3,7 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260729-inputxml-live-release-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260816-cii-v11-v14-dropdown-release-3';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260816-cii-v11-v14-dropdown-release-4';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260729-fbx2-direct-pipe-1';
@@ -34,8 +34,8 @@ import { installXmlCiiRuntimeOverrideSync } from './xml-cii-runtime-override-syn
 import { installXmlCiiPostRunValidator } from './xml-cii-post-run-validator.js';
 import { installCiiVer11MergeAddon } from './cii-ver11-merge-addon.js?v=20260816-cii-ver11-merge-1';
 import { installCiiVer14MergeAddon } from './cii-ver14-merge-addon.js?v=20260816-cii-ver14-merge-1';
-import { installCiiV11V14DropdownIntegration } from './cii-v11-v14-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-3';
-import { installCiiMergeDropdownIntegration } from './cii-merge-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-3';
+import { installCiiV11V14DropdownIntegration } from './cii-v11-v14-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-4';
+import { installCiiMergeDropdownIntegration } from './cii-merge-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-4';
 
 const TRACE_PREFIX = '[BM_CII_CONVERTER_TRACE]';
 const INPUTXML_CII2019_LIVE_GUARD_VERSION = '20260627-inputxml-cii2019-live-guard-1';
