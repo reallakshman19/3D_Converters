@@ -5,9 +5,14 @@ import {
   validateHpPipingClassProject,
 } from '../converters/b313-chapter-ix/hp-piping-class-project.js';
 import { evaluateHpPipingClassProject } from '../converters/b313-chapter-ix/hp-piping-class-orchestrator.js';
+import {
+  createHpPipingClassGovernedBasisPackage,
+  loadHpPipingClassMasterStore,
+  validateHpPipingClassGovernedBasisCustody,
+} from './hp-piping-class-master-store-service.js';
 
 export const HP_PIPING_CLASS_WORKSPACE_STORAGE_KEY = 'format-converters.hpPipingClass.project.v2';
-export const HP_PIPING_CLASS_WORKSPACE_CONTROLLER_VERSION = 'hp-piping-class-workspace-controller/v1';
+export const HP_PIPING_CLASS_WORKSPACE_CONTROLLER_VERSION = 'hp-piping-class-workspace-controller/v2';
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -79,14 +84,37 @@ function invalidProjectResult(validation) {
   });
 }
 
+function masterNotLoadedResult() {
+  return Object.freeze({
+    ok: false,
+    code: 'MASTER_STORE_NOT_LOADED',
+    message: 'Canonical Chapter IX master store must be loaded before binding a governed basis.',
+    canUseForDesignAuthority: false,
+  });
+}
+
+function custodyBlockedResult(issues) {
+  return Object.freeze({
+    ok: false,
+    projectState: 'MASTER_STORE_CUSTODY_BLOCKED',
+    issues: Object.freeze(clone(issues)),
+    products: Object.freeze([]),
+    authority: Object.freeze({ ...HP_PIPING_CLASS_AUTHORITY_POLICY }),
+  });
+}
+
 export function createHpPipingClassWorkspaceController({
   initialProject = null,
   storage = globalThis.localStorage,
   evaluator = evaluateHpPipingClassProject,
+  masterLoader = loadHpPipingClassMasterStore,
+  basisPackageFactory = createHpPipingClassGovernedBasisPackage,
+  basisCustodyValidator = validateHpPipingClassGovernedBasisCustody,
 } = {}) {
   const stored = initialProject ? null : readStoredProject(storage);
   let project = createHpPipingClassProject(initialProject ?? stored ?? {});
   let calculation = null;
+  let masterRuntime = null;
   let revision = 0;
   const listeners = new Set();
 
@@ -96,6 +124,7 @@ export function createHpPipingClassWorkspaceController({
       project: clone(project),
       validation: clone(validateHpPipingClassProject(project)),
       calculation: clone(calculation),
+      masterRuntime: clone(masterRuntime),
       revision,
     });
   }
@@ -123,12 +152,91 @@ export function createHpPipingClassWorkspaceController({
     return replaceProject(draft, { ...options, reason: options.reason ?? 'PROJECT_EDITED' });
   }
 
+  async function loadMasterStore(options = {}) {
+    if (typeof masterLoader !== 'function') throw new TypeError('masterLoader must be a function.');
+    const result = await masterLoader(options);
+    masterRuntime = clone(result);
+    revision += 1;
+    emit(result?.ok ? 'MASTER_STORE_LOADED' : 'MASTER_STORE_BLOCKED');
+    return clone(masterRuntime);
+  }
+
+  function bindGovernedBasis(productIndex, selection = {}) {
+    const index = Number(productIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= project.products.length) {
+      return Object.freeze({
+        ok: false,
+        code: 'PRODUCT_INDEX_INVALID',
+        message: 'A valid project product index is required.',
+        canUseForDesignAuthority: false,
+      });
+    }
+    if (!masterRuntime?.ok || !masterRuntime.store) return masterNotLoadedResult();
+    const built = basisPackageFactory({
+      store: masterRuntime.store,
+      materialId: selection.materialId,
+      b313Edition: selection.b313Edition,
+      materialTemperatureC: selection.materialTemperatureC,
+      productId: selection.productId,
+    });
+    if (!built?.ok) return clone(built);
+    mutateProject((draft) => {
+      const product = draft.products[index];
+      product.productId = String(selection.productId ?? product.productId ?? '').trim();
+      product.calculationBasis = {
+        mode: 'GOVERNED_BASIS_PACKAGE',
+        basisPackage: clone(built.basisPackage),
+      };
+      product.wallState ??= { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' };
+    }, { reason: 'GOVERNED_BASIS_BOUND' });
+    return Object.freeze({
+      ok: true,
+      productIndex: index,
+      productId: String(selection.productId ?? '').trim(),
+      basisPackage: clone(built.basisPackage),
+      authority: clone(built.authority),
+      canUseForDesignAuthority: false,
+    });
+  }
+
+  function governedCustodyIssues() {
+    const governed = project.products
+      .map((product, index) => ({ product, index }))
+      .filter(({ product }) => product?.calculationBasis?.mode === 'GOVERNED_BASIS_PACKAGE');
+    if (!governed.length) return [];
+    if (!masterRuntime?.ok || !masterRuntime.store) {
+      return governed.map(({ index }) => ({
+        path: `products[${index}].calculationBasis.basisPackage`,
+        code: 'MASTER_STORE_NOT_LOADED',
+        message: 'Governed basis cannot execute until the canonical b313-ch9-master-store/v1 runtime store is loaded.',
+      }));
+    }
+    return governed.flatMap(({ product, index }) => {
+      const checked = basisCustodyValidator({
+        store: masterRuntime.store,
+        basisPackage: product.calculationBasis.basisPackage,
+      });
+      return checked?.ok ? [] : [{
+        path: `products[${index}].calculationBasis.basisPackage`,
+        code: checked?.code || 'GOVERNED_BASIS_CUSTODY_BLOCKED',
+        message: checked?.message || 'Governed basis failed canonical master-store custody validation.',
+      }];
+    });
+  }
+
   function calculate(options = {}) {
     const validation = validateHpPipingClassProject(project);
     if (!validation.ok) {
       calculation = invalidProjectResult(validation);
       revision += 1;
       emit('CALCULATION_BLOCKED_INVALID_PROJECT');
+      return calculation;
+    }
+    const custodyIssues = governedCustodyIssues();
+    if (custodyIssues.length) {
+      calculation = custodyBlockedResult(custodyIssues);
+      revision += 1;
+      emit('CALCULATION_BLOCKED_MASTER_STORE_CUSTODY');
       return calculation;
     }
     const evaluated = evaluator(project, {
@@ -159,6 +267,8 @@ export function createHpPipingClassWorkspaceController({
     getSnapshot: snapshot,
     replaceProject,
     mutateProject,
+    loadMasterStore,
+    bindGovernedBasis,
     calculate,
     subscribe,
     clearStoredProject,
