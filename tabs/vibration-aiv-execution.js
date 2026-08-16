@@ -3,6 +3,13 @@ import {
   resolveAivWorkingTablesWithAssumptions,
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
+import {
+  beginAivAsyncOperation,
+  cancelAivAsyncOperations,
+  finishAivAsyncOperation,
+  isAivAsyncOperationCurrent,
+  isAivLineageCurrent,
+} from './vibration-aiv-engineering-revision.js';
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 import { buildAivEngineeringScreeningRequest } from './vibration-aiv-screening-request.js';
@@ -38,8 +45,21 @@ function screeningPackageInput(state) {
   };
 }
 
+function commitReadiness(state, readinessEnvelope, assumptionResolution) {
+  state.assumptionResolution = assumptionResolution;
+  state.readinessEnvelope = Object.freeze({
+    ...readinessEnvelope,
+    assumptionResolution,
+  });
+  state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
+  state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
+}
+
 export function createAivExecutionActions({ state, render, downloadText }) {
   function clearReadiness() {
+    cancelAivAsyncOperations(state);
+    state.readinessState = null;
+    state.screeningState = null;
     state.readinessEnvelope = null;
     state.resultSet = null;
     state.screeningResult = null;
@@ -50,6 +70,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function checkReadiness() {
     if (state.busy || !state.topologyInput) return;
+    const operation = beginAivAsyncOperation(state, 'readiness');
     state.busy = true;
     state.error = null;
     state.screeningResult = null;
@@ -58,30 +79,28 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
         '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-6'
       );
-      if (state.destroyed) return;
+      if (!isAivAsyncOperationCurrent(state, 'readiness', operation)) return;
       const tables = ensureAssumableRows(state);
-      state.assumptionResolution = resolveAivWorkingTablesWithAssumptions(tables, state.assumptionProfile);
-      state.readinessEnvelope = buildAivReadinessFromTables({
+      const assumptionResolution = resolveAivWorkingTablesWithAssumptions(tables, state.assumptionProfile);
+      const readinessEnvelope = buildAivReadinessFromTables({
         topology: {
           format: topologyFormat(state, AIV_TOPOLOGY_INPUT_FORMAT),
           data: state.topologyInput.data,
           sourceFileName: state.topologyInput.sourceFileName,
         },
-        sourceCsv: serializeAivInputTable(state.assumptionResolution.tables.sources),
-        assessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.assessments),
-        sourceAssessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.relationships),
+        sourceCsv: serializeAivInputTable(assumptionResolution.tables.sources),
+        assessmentCsv: serializeAivInputTable(assumptionResolution.tables.assessments),
+        sourceAssessmentCsv: serializeAivInputTable(assumptionResolution.tables.relationships),
       });
-      state.readinessEnvelope = Object.freeze({
-        ...state.readinessEnvelope,
-        assumptionResolution: state.assumptionResolution,
-      });
-      state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
-      state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
+      if (!isAivAsyncOperationCurrent(state, 'readiness', operation)) return;
+      commitReadiness(state, readinessEnvelope, assumptionResolution);
+      finishAivAsyncOperation(state, 'readiness', operation, true);
     } catch (error) {
-      if (state.destroyed) return;
+      if (!isAivAsyncOperationCurrent(state, 'readiness', operation)) return;
       clearReadiness();
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
+      finishAivAsyncOperation(state, 'readiness', operation);
       state.busy = false;
       render();
     }
@@ -89,6 +108,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function runScreening() {
     if (state.busy || !isAivScreeningReady(state)) return;
+    const operation = beginAivAsyncOperation(state, 'screening');
     state.busy = true;
     state.error = null;
     render();
@@ -98,20 +118,23 @@ export function createAivExecutionActions({ state, render, downloadText }) {
         assumptionProfile: state.assumptionProfile,
       });
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
-      if (state.destroyed) return;
+      if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       const result = calculateEngineering(request);
       if (!result.ok) {
         const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ')
           || 'AIV screening calculation failed.';
         throw new Error(message);
       }
+      if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       state.screeningResult = result;
+      finishAivAsyncOperation(state, 'screening', operation, true);
     } catch (error) {
-      if (!state.destroyed) {
+      if (isAivAsyncOperationCurrent(state, 'screening', operation)) {
         state.screeningResult = null;
         state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       }
     } finally {
+      finishAivAsyncOperation(state, 'screening', operation);
       state.busy = false;
       render();
     }
@@ -131,8 +154,9 @@ export function createAivExecutionActions({ state, render, downloadText }) {
   }
 
   async function buildScreeningPackage() {
-    if (!state.screeningResult?.ok || !state.readinessEnvelope) return null;
+    if (!state.screeningResult?.ok || !state.readinessEnvelope || !isAivLineageCurrent(state, 'screening')) return null;
     const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-2');
+    if (!isAivLineageCurrent(state, 'screening')) return null;
     return buildAivScreeningExportPackage(screeningPackageInput(state));
   }
 
@@ -147,6 +171,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     if (!screeningPackage) return;
     try {
       const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-2');
+      if (!isAivLineageCurrent(state, 'screening')) return;
       const title = state.eitImport?.title || (state.flareNetworkActive
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
         : (state.topologyInput?.sourceFileName || 'AIV Screening Export'));

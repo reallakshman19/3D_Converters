@@ -10,5 +10,5 @@ export function applyAivFlareNetworkPresentationState(state, network) {
 export function loadAivSmallFlareMock(state, applyNetwork) {
   state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
   state.assumptionProfileModified = false;
-  applyNetwork(createAivSmallFlareMockNetwork());
+  applyNetwork(createAivSmallFlareMockNetwork(), { preserveRevision: true });
 }
