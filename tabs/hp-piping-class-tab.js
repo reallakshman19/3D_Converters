@@ -3,7 +3,7 @@ import {
   HP_PIPING_CLASS_PROJECT_VERSION,
   createHpPipingClassProject,
   validateHpPipingClassProject,
-} from '../converters/b313-chapter-ix/hp-piping-class.js';
+} from '../converters/b313-chapter-ix/hp-piping-class-project.js';
 
 const PANELS = Object.freeze([
   { id: 'overview', label: 'Overview' },
