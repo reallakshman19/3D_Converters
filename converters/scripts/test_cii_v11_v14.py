@@ -8,6 +8,7 @@ import unittest
 import zipfile
 
 import cii_v11_v14 as mod
+import cii_v11_v14_validate as structure
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BENCHMARK_ZIP = REPO_ROOT / "Benchmarks" / "v11-v14.zip"
@@ -32,6 +33,16 @@ def _nums(line: str) -> list[float]:
     if parsed is None:
         raise AssertionError(f"Not numeric: {line!r}")
     return parsed[0]
+
+
+def _audit(source: int, target: int) -> mod.Audit:
+    return mod.Audit(source_version=source, target_version=target, source_sha256="fixture")
+
+
+def _six_value_rows(values: list[float], version: int) -> list[str]:
+    if len(values) % 6:
+        raise AssertionError("fixture values must be divisible by 6")
+    return [mod._render_float_row(values[index:index + 6], version) for index in range(0, len(values), 6)]
 
 
 class CiiV11V14BenchmarkTests(unittest.TestCase):
@@ -84,6 +95,10 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         for actual, source in zip(got, expected):
             self.assertLessEqual(abs(actual - source), max(1e-6, abs(source) * 6e-6))
 
+    def test_generated_v11_passes_independent_structure_gate(self) -> None:
+        result = mod.convert_bytes(self.v14, 11)
+        structure.validate_v11_text(result.data.decode("utf-8"), phase="test-generated")
+
     def test_v11_to_v14_matches_target_record_shape(self) -> None:
         result = mod.convert_bytes(self.v11, 14)
         data = result.data
@@ -102,7 +117,9 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         self.assertEqual(converted["UNITS"], self.m14["UNITS"])
         sif = converted["SIF&TEES"]
         for base in range(0, len(sif), 14):
-            self.assertTrue(all(mod._row_is_all_zero(line) for line in sif[base + 10:base + 14]))
+            # Each tee has its own two-row v14 extension: rows 6-7 and 13-14.
+            for index in (5, 6, 12, 13):
+                self.assertTrue(mod._row_is_all_zero(sif[base + index]))
         reducers = converted["REDUCERS"]
         for base in range(0, len(reducers), 2):
             self.assertTrue(mod._row_is_all_zero(reducers[base + 1]))
@@ -117,15 +134,72 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         if abs(source11_first[0]) < 1e-9:
             self.assertAlmostEqual(_nums(to14[0])[2], 0.0)
 
+    def test_sif_downgrade_preserves_both_tee_slots(self) -> None:
+        rows = [mod._render_float_row([float(index)] * 6, 14) for index in range(1, 15)]
+        audit = _audit(14, 11)
+        converted = mod._convert_sif_tees(rows, 14, 11, True, audit)
+        self.assertEqual(len(converted), 10)
+        # Correct mapping is v14 rows 1-5 + 8-12.  Rows 6-7 and 13-14 are
+        # per-tee extension rows and must never displace tee #2 legacy data.
+        self.assertEqual([_nums(row)[0] for row in converted], [1, 2, 3, 4, 5, 8, 9, 10, 11, 12])
+        self.assertEqual(len(audit.loss_events), 1)
+        self.assertIn("items 31-42", audit.loss_events[0])
+
+    def test_sif_upgrade_inserts_extensions_after_each_tee(self) -> None:
+        rows = [mod._render_float_row([float(index)] * 6, 11) for index in range(1, 11)]
+        audit = _audit(11, 14)
+        converted = mod._convert_sif_tees(rows, 11, 14, False, audit)
+        self.assertEqual(len(converted), 14)
+        self.assertEqual([_nums(converted[index])[0] for index in range(5)], [1, 2, 3, 4, 5])
+        self.assertTrue(mod._row_is_all_zero(converted[5]))
+        self.assertTrue(mod._row_is_all_zero(converted[6]))
+        self.assertEqual([_nums(converted[index])[0] for index in range(7, 12)], [6, 7, 8, 9, 10])
+        self.assertTrue(mod._row_is_all_zero(converted[12]))
+        self.assertTrue(mod._row_is_all_zero(converted[13]))
+
     def test_nonzero_v14_sif_extension_fails_closed(self) -> None:
         sections = [mod.Section(s.name, list(s.lines)) for s in mod.parse_sections(self.v14)]
         sif = next(section for section in sections if section.name == "SIF&TEES")
-        sif.lines[10] = mod._render_float_row([1.0, 0, 0, 0, 0, 0], 14)
+        # Row 6 belongs to tee #1 items 31-36 and is genuinely v14-only.
+        sif.lines[5] = mod._render_float_row([1.0, 0, 0, 0, 0, 0], 14)
         bad = mod._serialize(sections, 14)
         with self.assertRaises(mod.CiiConversionError):
             mod.convert_bytes(bad, 11)
         lossy = mod.convert_bytes(bad, 11, allow_lossy=True)
         self.assertEqual(len(lossy.audit.loss_events), 1)
+
+    def test_allowables_28_to_26_preserves_first_153_values(self) -> None:
+        legacy_values = [float(index) for index in range(1, 154)]
+        source_values = legacy_values + [0.0] * 15
+        rows = _six_value_rows(source_values, 14)
+        audit = _audit(14, 11)
+        converted = mod._convert_allowables(rows, 14, 11, False, audit)
+        self.assertEqual(len(converted), 26)
+        flattened = [value for row in converted for value in _nums(row)]
+        self.assertEqual(flattened, legacy_values)
+        self.assertEqual(audit.loss_events, [])
+
+    def test_nonzero_v14_allowables_extension_requires_loss_opt_in(self) -> None:
+        values = [0.0] * 168
+        values[153] = 7.0  # Item 154: outside the 153-value v11 array.
+        rows = _six_value_rows(values, 14)
+        with self.assertRaises(mod.CiiConversionError):
+            mod._convert_allowables(rows, 14, 11, False, _audit(14, 11))
+        audit = _audit(14, 11)
+        converted = mod._convert_allowables(rows, 14, 11, True, audit)
+        self.assertEqual(len(converted), 26)
+        self.assertEqual(len(audit.loss_events), 1)
+        self.assertIn("154-168", audit.loss_events[0])
+
+    def test_v11_allowables_upgrade_places_extension_after_item_153(self) -> None:
+        values = [float(index) for index in range(1, 154)]
+        rows = [mod._render_float_row(values[index:index + 6], 11) for index in range(0, 153, 6)]
+        audit = _audit(11, 14)
+        converted = mod._convert_allowables(rows, 11, 14, False, audit)
+        self.assertEqual(len(converted), 28)
+        flattened = [value for row in converted for value in _nums(row)]
+        self.assertEqual(flattened[:153], values)
+        self.assertTrue(all(abs(value) < 1e-12 for value in flattened[153:]))
 
     def test_nonzero_v14_reducer_extension_fails_closed(self) -> None:
         sections = [mod.Section(s.name, list(s.lines)) for s in mod.parse_sections(self.v14)]
@@ -134,6 +208,16 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         bad = mod._serialize(sections, 14)
         with self.assertRaises(mod.CiiConversionError):
             mod.convert_bytes(bad, 11)
+
+    def test_source_v14_structure_gate_rejects_truncated_sif_record(self) -> None:
+        sections = [mod.Section(s.name, list(s.lines)) for s in mod.parse_sections(self.v14)]
+        sif = next(section for section in sections if section.name == "SIF&TEES")
+        if not sif.lines:
+            self.skipTest("paired benchmark has no SIF records")
+        sif.lines.pop()
+        malformed = mod._serialize(sections, 14)
+        with self.assertRaisesRegex(mod.CiiConversionError, r"SIF&TEES"):
+            mod.convert_bytes(malformed, 11, allow_lossy=True)
 
 
 if __name__ == "__main__":
