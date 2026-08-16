@@ -82,6 +82,8 @@ export const VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION = Object.
     description: 'SBC connection assessment slot reserved pending qualified EI Type 1–4 implementation.',
     limitations: Object.freeze([
       'No numerical SBC engineering kernel is registered for public execution.',
+      `Implementation scaffold: issue #${SBC_VERTICAL_ISSUES.scaffold}; family qualification gate: issue #${SBC_VERTICAL_ISSUES.family}.`,
+      `Type-3 evidence/source work remains separately governed by issue #${SBC_VERTICAL_ISSUES.type3Evidence}.`,
       'Type-3 candidate/source-reconciliation code remains non-authoritative evidence.',
     ]),
   }),

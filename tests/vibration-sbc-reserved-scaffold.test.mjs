@@ -21,6 +21,7 @@ import {
   renderBasis,
   renderInputForm,
 } from '../tabs/engineering-calculation-console-sections.js';
+import { renderVibrationFamilyLanding } from '../tabs/engineering-calculation-vibration-family.js';
 
 const B1 = Object.freeze({
   TYPE_1: 'EI_APPENDIX_D5',
@@ -101,6 +102,7 @@ test('reserved public definition is valid, visible, and fail-closed', () => {
   assert.equal(definition.authority.calculationState, 'BLOCKED');
   assert.deepEqual(definition.ui.executionModes, []);
   assert.match(definition.ui.blockedReason, /#563/u);
+  assert.equal(definition.applicability.limitations.some((item) => item.includes('#514')), true);
 
   const result = definition.calculate({ sbcType: 'TYPE_1', connectionId: 'SBC-C-001' });
   assert.equal(result.ok, false);
@@ -133,4 +135,15 @@ test('generic engineering console surfaces reserved lifecycle and issue guidance
   assert.match(basisHtml, /RESERVED/u);
   assert.match(basisHtml, /Method state/u);
   assert.match(basisHtml, /BLOCKED/u);
+});
+
+test('vibration family landing renders SBC as RESERVED with issue-linked guidance', () => {
+  const html = renderVibrationFamilyLanding([
+    VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION,
+  ]);
+  assert.match(html, /Small-Bore Connection Vibration/u);
+  assert.match(html, /RESERVED/u);
+  assert.match(html, /Issue #563/u);
+  assert.match(html, /issue #514/u);
+  assert.match(html, /View qualification basis/u);
 });
