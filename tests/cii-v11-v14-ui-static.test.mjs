@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -15,6 +15,7 @@ const shim = read('tabs/model-converters-tab.js');
 const legacyAdapter = read('tabs/model-converters/legacy-adapter.js');
 
 const releaseKey = '20260816-cii-v11-v14-dropdown-release-2';
+const registryQuery = 'v=20260617-basic-glb-3';
 
 // The app shell must force-load the current Model Converters shim rather than a
 // pre-converter cached URL.
@@ -51,5 +52,31 @@ assert.match(runner, /\.audit\.json/);
 assert.match(worker, /cii_v11_v14\.py/);
 assert.match(worker, /--audit-json/);
 assert.match(worker, /--allow-lossy/);
+
+// Runtime registry proof: import the exact module URL used by legacy-adapter,
+// install the addon, and verify the real data source that generates the
+// Converter <option> list contains exactly one enabled entry at the intended
+// position.
+const registryUrl = pathToFileURL(path.join(root, 'tabs/model-converters/converter-registry.js'));
+registryUrl.search = registryQuery;
+const addonUrl = pathToFileURL(path.join(root, 'tabs/model-converters/cii-v11-v14-addon.js'));
+addonUrl.search = 'v=runtime-dropdown-proof-1';
+
+const registryModule = await import(registryUrl.href);
+const addonModule = await import(addonUrl.href);
+assert.equal(addonModule.installCiiV11V14Addon(), true);
+
+const matches = registryModule.CONVERTERS.filter((entry) => entry?.id === 'cii_v11_v14');
+assert.equal(matches.length, 1, 'dropdown registry must contain exactly one cii_v11_v14 entry');
+assert.equal(matches[0].label, 'CAESAR Ver. 14 ↔ 11');
+assert.equal(matches[0].disabled, false);
+assert.equal(typeof matches[0].run, 'function');
+assert.equal(matches[0].inputs?.[0]?.accept, '.cii,.CII');
+
+const converterIndex = registryModule.CONVERTERS.findIndex((entry) => entry?.id === 'cii_v11_v14');
+const syntaxIndex = registryModule.CONVERTERS.findIndex((entry) => entry?.id === 'cii_syntax_check_2019');
+assert.ok(converterIndex >= 0 && syntaxIndex >= 0);
+assert.equal(converterIndex, syntaxIndex - 1, 'CAESAR v14 ↔ v11 must sit immediately before CII Syntax Check');
+assert.equal(registryModule.getConverterById('cii_v11_v14'), matches[0]);
 
 console.log('cii-v11-v14 dropdown runtime chain: PASS');
