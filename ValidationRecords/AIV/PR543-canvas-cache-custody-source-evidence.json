@@ -6,7 +6,7 @@
   "classification": "SOURCE_DIFF_AUDIT_NOT_HOSTED_FULL_APP",
   "rootCause": "The #534/#537 browser-visible parent import path retained the Stage-8 editor-3 URL identity, allowing a warm client to reuse the old unified canvas renderer after rebuild/deploy.",
   "sourceAudit": {
-    "productionFilesChanged": 13,
+    "productionFilesChanged": 14,
     "productionChanges": "IMPORT_OR_QUERY_STRING_IDENTITY_ONLY",
     "behaviorChangesDetected": false,
     "testFileChanged": "tests/vibration-aiv-runtime-cache-chain.test.mjs",
@@ -34,6 +34,8 @@
   "regressionGuard": {
     "requiresFreshParentReleaseIdentity": true,
     "forbidsEditor3ParentRoute": true,
+    "alignsExportPresentationIdentity": "20260816-aiv-canvas-spatial-1",
+    "forbidsSupersededExportPresentationIdentity": "20260816-aiv-canvas-ui-1",
     "requiresFitNetworkMarker": true,
     "requiresAutoTidyMarker": true,
     "requiresInspectorDockMarker": true,
