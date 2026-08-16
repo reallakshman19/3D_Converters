@@ -118,7 +118,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     state.familyLanding = null;
     state.selectedId = next.id;
     state.selectedFamily = next.family;
-    state.draft = createEngineeringConsoleDraft(next, context?.inputs ?? {});
+    state.draft = createEngineeringConsoleDraft(next, context?.calculationId === next.id ? context?.inputs ?? {} : {});
     state.editorErrors = [];
     invalidateEngineeringConsoleExecution(state);
     state.activeView = isEngineeringCalculationExecutable(next) ? 'results' : 'basis';
