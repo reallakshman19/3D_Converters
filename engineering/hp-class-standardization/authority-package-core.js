@@ -134,34 +134,47 @@
     const keys = new Set();
     items.forEach((item, index) => {
       const key = String(item?.key || '').trim();
+      const label = key || `item ${index + 1}`;
       if (!key) errors.push(`userCalculatedKd3Evidence item ${index + 1} has no key.`);
       else if (keys.has(key)) errors.push(`Duplicate userCalculatedKd3Evidence key ${key}.`);
       else keys.add(key);
+
       for (const field of ['userAlternatingStressIntensityMpa', 'equivalentAlternatingStressMpa', 'permissibleCycles']) {
         const value = item?.[field];
         if (value !== null && value !== undefined && !finite(value)) {
-          errors.push(`${key || `item ${index + 1}`} ${field} must be finite or null.`);
+          errors.push(`${label} ${field} must be finite or null.`);
         }
       }
+
+      const userSalt = item?.userAlternatingStressIntensityMpa;
+      const seq = item?.equivalentAlternatingStressMpa;
+      const N = item?.permissibleCycles;
+      if (finite(userSalt) && userSalt < 0) errors.push(`${label} userAlternatingStressIntensityMpa must be >= 0.`);
+      if (finite(seq) && seq < 0) errors.push(`${label} equivalentAlternatingStressMpa must be >= 0.`);
+      if (finite(N) && !(N > 0)) errors.push(`${label} permissibleCycles must be > 0 when supplied.`);
+      if (seq === 0 && N !== null && N !== undefined) errors.push(`${label} Seq=0 zero-damage custody requires N to be null/N/A.`);
+
       const basis = item?.calculationBasis;
       if (basis != null && (typeof basis !== 'object' || Array.isArray(basis))) {
-        errors.push(`${key || `item ${index + 1}`} calculationBasis must be an object.`);
+        errors.push(`${label} calculationBasis must be an object.`);
       }
+      const checkedBy = String(basis?.checkedBy || '').trim();
+      const checkedAt = String(basis?.checkedAt || '').trim();
+      if (Boolean(checkedBy) !== Boolean(checkedAt)) {
+        errors.push(`${label} checkedBy and checkedAt must be supplied together.`);
+      }
+      if (normalizedIdentity(checkedBy)
+        && normalizedIdentity(checkedBy) === normalizedIdentity(basis?.calculatedBy)) {
+        errors.push(`${label} checker must differ from calculatedBy.`);
+      }
+
       if (lifecycle === 'approved-record') {
-        const seq = item?.equivalentAlternatingStressMpa;
-        const N = item?.permissibleCycles;
-        if (!(finite(seq) && seq >= 0)) errors.push(`${key || `item ${index + 1}`} approved record requires finite Seq >= 0.`);
-        if (seq > 0 && !(finite(N) && N > 0)) errors.push(`${key || `item ${index + 1}`} positive Seq requires finite N > 0.`);
-        if (seq === 0 && N !== null && N !== undefined) errors.push(`${key || `item ${index + 1}`} zero-damage record requires N to be null/N/A.`);
+        if (!(finite(seq) && seq >= 0)) errors.push(`${label} approved record requires finite Seq >= 0.`);
+        if (seq > 0 && !(finite(N) && N > 0)) errors.push(`${label} positive Seq requires finite N > 0.`);
         for (const field of ['code', 'edition', 'methodRef', 'calculationRef', 'calculatedBy']) {
-          if (!String(basis?.[field] || '').trim()) errors.push(`${key || `item ${index + 1}`} approved record requires calculationBasis.${field}.`);
+          if (!String(basis?.[field] || '').trim()) errors.push(`${label} approved record requires calculationBasis.${field}.`);
         }
-        const checkedBy = String(basis?.checkedBy || '').trim();
-        const checkedAt = String(basis?.checkedAt || '').trim();
-        if (!checkedBy || !checkedAt) errors.push(`${key || `item ${index + 1}`} approved record requires checkedBy and checkedAt.`);
-        if (normalizedIdentity(checkedBy) && normalizedIdentity(checkedBy) === normalizedIdentity(basis?.calculatedBy)) {
-          errors.push(`${key || `item ${index + 1}`} checker must differ from calculatedBy.`);
-        }
+        if (!checkedBy || !checkedAt) errors.push(`${label} approved record requires checkedBy and checkedAt.`);
       }
     });
     return errors;
