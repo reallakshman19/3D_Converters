@@ -90,7 +90,7 @@ No curve threshold, table value, LOF score, multiplier, or equation is populated
 | `SBC-CONST-*` | constants | `UNPOPULATED` |
 | `SBC-ASS-*` | reference-band/action criteria | `UNPOPULATED` |
 | `SBC-SRC-*` | controlled source identities | `IDENTITIES_PINNED_REFERENCE_ONLY` |
-| `SBC-UNIT-*` | native-unit semantics/conversions | `UNPOPULATED` |
+| `SBC-UNIT-*` | native-unit/input semantics | `REFERENCE_SEMANTICS_POPULATED_PDF_REVIEW_PENDING` |
 
 ## Explicit input-contract boundary
 
