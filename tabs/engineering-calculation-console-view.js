@@ -27,6 +27,18 @@ function authorityPillKind(definition) {
   return isEngineeringCalculationExecutable(definition) ? 'ok' : 'bad';
 }
 
+function displayState(definition) {
+  return definitionState(definition) === 'PRODUCTION_AUTHORIZED' ? 'PRODUCTION' : definitionState(definition);
+}
+
+function qualificationReference(definition) {
+  if (!definition.qualificationIssue) return '';
+  if (definition.id === FIT_CALCULATION_ID && definitionState(definition) === 'PRODUCTION_AUTHORIZED') {
+    return pill(`Programme #${definition.qualificationIssue}`);
+  }
+  return pill(`#${definition.qualificationIssue}`, 'warn');
+}
+
 function isFitWorkspace(definition) {
   return definition.id === FIT_CALCULATION_ID && definition.ui?.productSurface === FIT_PRODUCT_SURFACE;
 }
@@ -39,7 +51,7 @@ function renderCatalog(definitions, families, state) {
   return families.filter((family) => family.count > 0).map((family) => {
     const rows = definitions.filter((definition) => definition.family === family.id);
     const calculators = state.selectedFamily === family.id ? `<div class="engineering-console-calc-list">${rows.map((definition) => {
-      return `<button class="engineering-console-calc-btn ${state.selectedId === definition.id ? 'is-active' : ''}" data-calc-id="${definition.id}"><span>${esc(definition.shortName || definition.name)}</span>${pill(definitionState(definition), authorityPillKind(definition))}</button>`;
+      return `<button class="engineering-console-calc-btn ${state.selectedId === definition.id ? 'is-active' : ''}" data-calc-id="${definition.id}"><span>${esc(definition.shortName || definition.name)}</span>${pill(displayState(definition), authorityPillKind(definition))}</button>`;
     }).join('')}</div>` : '';
     return `<div class="engineering-console-family"><button class="engineering-console-family-btn ${state.selectedFamily === family.id ? 'is-active' : ''}" data-family-id="${family.id}"><span>${esc(family.label)}</span><small>${rows.length}</small></button>${calculators}</div>`;
   }).join('');
@@ -55,7 +67,7 @@ function activeView(definition, state) {
 
 function renderConsoleActions(definition, state) {
   if (isFitWorkspace(definition)) {
-    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill('BENCHMARK ONLY', 'warn')}</div>`;
+    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill('PRODUCTION', 'ok')} ${pill('BOUNDED SCREENING', 'warn')}</div>`;
   }
   if (isAivQualificationWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill('BLOCKED', 'bad')}</div>`;
@@ -83,6 +95,6 @@ function renderFamilyLanding(definitions, families, state) {
 export function renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state }) {
   if (state.familyLanding === 'VIB') return renderFamilyLanding(definitions, families, state);
 
-  const issue = definition.qualificationIssue ? pill(`#${definition.qualificationIssue}`, 'warn') : '';
-  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div>${renderConsoleActions(definition,state)}</header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions,families,state)}</aside><main class="engineering-console-main"><section class="engineering-console-definition"><div><h3>${esc(definition.name)}</h3><div class="engineering-console-id">${esc(definition.id)}</div></div><div>${pill(definitionState(definition), authorityPillKind(definition))} ${issue}</div></section>${renderDefinitionBody(definition,state)}</main></div></div>`;
+  const reference = qualificationReference(definition);
+  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div>${renderConsoleActions(definition,state)}</header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions,families,state)}</aside><main class="engineering-console-main"><section class="engineering-console-definition"><div><h3>${esc(definition.name)}</h3><div class="engineering-console-id">${esc(definition.id)}</div></div><div>${pill(displayState(definition), authorityPillKind(definition))} ${reference}</div></section>${renderDefinitionBody(definition,state)}</main></div></div>`;
 }
