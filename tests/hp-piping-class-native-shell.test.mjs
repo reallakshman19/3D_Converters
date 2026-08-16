@@ -12,6 +12,8 @@ test('native HP shell consumes HpPipingClassProject/v2 instead of making legacy 
   assert.match(source, /HP_PIPING_CLASS_PROJECT_VERSION/);
   assert.match(source, /createHpPipingClassProject/);
   assert.match(source, /validateHpPipingClassProject/);
+  assert.match(source, /from '\.\.\/converters\/b313-chapter-ix\/hp-piping-class-project\.js'/);
+  assert.doesNotMatch(source, /from '\.\.\/converters\/b313-chapter-ix\/hp-piping-class\.js'/);
   assert.match(source, /data-hp-piping-class-native/);
   const rootTemplate = source.match(/container\.innerHTML = `([\s\S]*?)`;\n\n  const panelHost/);
   assert.ok(rootTemplate, 'root template not found');
