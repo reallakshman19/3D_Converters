@@ -118,6 +118,12 @@ test('FIT authority projection drift fails', async () => {
   await assert.rejects(verifyEngineeringWorkpackDefinition(workpack), /FIT-WP-004/u);
 });
 
+test('FIT code compliance cannot drift true in both work pack and adapter contract', async () => {
+  const workpack = clone(await fitWorkpack());
+  workpack.authority.codeCompliance = true;
+  await assert.rejects(verifyEngineeringWorkpackDefinition(workpack), /FIT-WP-006/u);
+});
+
 test('FIT QST-003 protection cannot be removed silently', async () => {
   const workpack = clone(await fitWorkpack());
   workpack.probes.qst003.expectedPublicErrorCode = 'NOT_THE_PUBLIC_ERROR';
