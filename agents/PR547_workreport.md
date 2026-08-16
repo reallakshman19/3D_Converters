@@ -10,14 +10,14 @@ SOURCE_ISSUE: #545
 PARENT_PROGRAMME: #450
 BASE: main@d2d02ed56ee1c94d89ddc4c63fa58f0ce97a84df
 BRANCH: agent/t29-pf01-controlled-source-reconciliation
-PR: #547 / DRAFT / OPEN / UNMERGED
-PR_HEAD_LAST_RECORDED: 06c578d318717cb19bca1de74bd814712c35ce78
+PR: #547 / DRAFT / OPEN / UNMERGED / MERGEABLE
+PR_HEAD_BEFORE_THIS_REFRESH: 99d7071a357adda81dc27bd27809ac5952e49096
 TAKEOVER_AUTHORITY: READ_ONLY
 CURRENT_STAGE: T29-PF-01 controlled source + decision-contract reconciliation
 CURRENT_BLOCKER: CONTROLLED_T29_DOCUMENT_EVIDENCE_NOT_YET_EXECUTED
 HIGHEST_RISK: implementing secondary/synthesized T2.9 equations or branch thresholds as EI authority
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-EXACT_NEXT_ACTION: materialize the pinned EI PDF in a capable runtime, execute reviewer-selected T2.9 source extraction/DocumentEvidence, reconcile exact FL rows and decision semantics, then rescore Appendix A before any numerical production mutation.
+EXACT_NEXT_ACTION: materialize the pinned EI PDF in a capable runtime, execute reviewer-selected T2.9 source extraction/DocumentEvidence, reconcile exact FL rows and decision semantics, then rescore Appendix A before numerical production mutation.
 ```
 
 ## Mission
@@ -28,24 +28,25 @@ PF-01 is qualification evidence only. It does not add a production numerical ker
 
 ## Live grounding and overlap
 
-Observed live base at work start:
+Live main was checked twice during this slice and remained:
 
 ```text
 d2d02ed56ee1c94d89ddc4c63fa58f0ce97a84df
 qual(hp): establish controlled KD320 semantic contract Q1 (#544)
 ```
 
-Branch allocation and first audit:
+Final net branch relation before this report refresh:
 
 ```text
-base relation = ahead-only / behind 0
-initial changed paths = 2 evidence/handover files
+ahead = 4
+behind = 0
+net changed paths = 2
 ```
 
 Active overlap classification:
 
 ```text
-#546 SBC AC1             SAFE for T2.9 domain; recheck shared VibrationMasters/release paths before edits
+#546 SBC AC1             SAFE for T2.9 domain; recheck shared VibrationMasters/release paths before future edits
 #539 FIT lifecycle       COORDINATION_REQUIRED for tabs/engineering-calculation-vibration-family.js
 #540 FIT authority       COORDINATION_REQUIRED for family/console authority presentation
 #517/#506 AIV            SAFE for T2.9 numerical domain; AIV authority/equations remain separate
@@ -53,7 +54,7 @@ Active overlap classification:
 #483 master framework    historical/open lineage; current main already exposes the governed framework used here
 ```
 
-No shared family UI or numerical production path is in the current PR diff.
+No shared family UI, workflow, master resolver or numerical production path is in the PR diff.
 
 ## Controlled source truth
 
@@ -78,9 +79,29 @@ extractionReceipt = null
 
 The merged Stage5C target set already routes this master through `DOCUMENT_EVIDENCE_TABLE`; no replacement source-extraction architecture is required.
 
-PR #470 remains the controlling environment precedent: the Git identity is observable, but this connector cannot materialize the private PDF binary. Do not infer exact PDF pages/values from historical hints or fixtures.
+## Source-materialization attempts in this slice
 
-## First PF-01 artifact
+Observed truth:
+
+1. GitHub connector can verify repository/commit/path/blob/size metadata.
+2. `GitHub.fetch` rejects the private PDF body because it is binary/non-UTF-8.
+3. Direct blob and contents API attempts through the connector fail for the same binary restriction.
+4. The local runtime has no `gh` executable, so the authenticated CLI fallback is unavailable here.
+5. No exact PDF page, page hash, section hash or source text was fabricated from historical hints, fixtures or secondary mirrors.
+
+Classification:
+
+```text
+controlledSourceGitIdentity = PASS
+controlledSourceBytesExecuted = false
+T2.9 page selection = UNVALIDATED
+T2.9 page/section hashes = UNVALIDATED
+DocumentEvidence extraction = NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+PR #470 remains the controlling infrastructure precedent for this environment condition.
+
+## PF-01 governed artifact
 
 Added:
 
@@ -89,15 +110,15 @@ ValidationRecords/VibrationMasters/t29-pf01-source-contract-v1.json
 schema = T29ControlledSourceContract.v1
 ```
 
-The artifact freezes:
+It freezes:
 
-- exact controlled-source identity and current extraction blocker;
-- current source-register state;
+- exact controlled-source identity and extraction blocker;
+- source-register `RECONCILIATION_REQUIRED` state;
 - merged #481 candidate rows and candidate-only authority;
-- explicit quarantine of conflicting Advanced_Analysis synthesis claims;
+- explicit quarantine of the conflicting Advanced_Analysis synthesis;
 - four first-class conflict records covering ball FL, butterfly FL, vapour-pressure factor/equation basis and full decision tree;
 - seventeen `T29-PRED-*` controlled predicates that remain pending;
-- fail-closed Pv custody rules;
+- fail-closed vapour-pressure custody rules;
 - implementation hard stops;
 - current Appendix-A score/disposition.
 
@@ -191,25 +212,11 @@ A2 >= 18
 review disposition = QUALIFIED_FOR_T29_CANDIDATE_IMPLEMENTATION
 ```
 
-### A2 controlled-source questions still open
-
-1. exact P1/P2 pressure locations;
-2. absolute/gauge pressure basis;
-3. flowing-temperature semantics;
-4. Pv semantics and permitted source;
-5. supported phase/device envelope;
-6. exact FL applicability/taxonomy;
-7. governing equations/constants;
-8. cavitation/flashing/no-cavitation definitions;
-9. exact equality direction at every boundary;
-10. whether incipient/severe subdivisions are actually EI-defined;
-11. exact T2.9 output/LOF/action semantics;
-12. specialist exclusions/escalation;
-13. separation from AIV and T2.8.
+A2 remains blocked on controlled source answers for pressure locations/basis, temperature/Pv semantics, phase/device envelope, FL taxonomy, governing equations/constants, exact cavitation/flashing/no-cavitation boundaries, output/LOF semantics, specialist exclusions and AIV/T2.8 separation.
 
 ## Independent validation matrix reserved
 
-Expected answers must be frozen from authoritative/reviewed evidence, never runtime output:
+Expected answers must be frozen independently of runtime output:
 
 ```text
 no cavitation
@@ -222,34 +229,38 @@ unknown valve
 invalid pressure basis
 invalid pressure ordering
 unit invariance
-single/batch parity if central adapter is later introduced
+single/batch parity if a central adapter is later introduced
 ```
 
 ## Validation ledger
 
 | Check | STATUS | Observation | Oracle |
 |---|---|---|---|
-| live main grounding | PASS | GitHub commit inspection | repository state |
-| active PR overlap | PASS | GitHub open-PR inspection | repository state |
-| branch diff before PR allocation | PASS | ahead 2 / behind 0; two intended files | repository state |
-| #481 candidate custody | PASS | source artifact inspection | repository evidence |
+| live main grounding | PASS | checked twice; base unchanged | repository state |
+| active PR overlap | PASS | current open-PR inspection | repository state |
+| final net branch diff before refresh | PASS | ahead 4 / behind 0; exactly two intended paths | repository state |
+| #481 candidate custody | PASS | candidate/provenance inspection | repository evidence |
 | source register T2.9 state | PASS | source-register inspection | repository evidence |
-| Stage5C T2.9 target exists | PASS | script inspection | repository evidence |
+| Stage5C T2.9 target exists | PASS | target script inspection | repository evidence |
 | PF-01 source-contract artifact | PASS_SOURCE | exact branch artifact committed | repository evidence |
-| controlled EI T2.9 DocumentEvidence | NOT_RUN / ENVIRONMENT_BLOCKED | binary unavailable to text connector | authoritative reference |
+| controlled PDF Git identity | PASS | repo/commit/path/blob/size reconciled | repository evidence |
+| connector binary materialization | NOT_RUN / ENVIRONMENT_BLOCKED | connector accepts UTF-8 only | execution environment |
+| local GitHub CLI fallback | NOT_RUN / ENVIRONMENT_BLOCKED | `gh` executable absent | execution environment |
+| controlled EI T2.9 DocumentEvidence | NOT_RUN / ENVIRONMENT_BLOCKED | exact bytes not materialized | authoritative reference |
 | exact T2.9 branch semantics | NOT_RUN | blocked on controlled evidence | authoritative reference |
 | numerical T2.9 implementation | NOT_APPLICABLE | prohibited by qualification gate | qualification gate |
+| current-head PR-triggered workflows | NOT_RUN | zero runs returned for `99d7071...` | GitHub state |
 
 ## Changed-file ledger
 
-Current intended PR content after handover promotion:
+Final intended net PR paths:
 
 ```text
 ValidationRecords/VibrationMasters/t29-pf01-source-contract-v1.json
 agents/PR547_workreport.md
 ```
 
-The pre-PR `agents/WIP-t29-pf01_workreport.md` is to be retired after this PR report is committed.
+The pre-PR `agents/WIP-t29-pf01_workreport.md` has been retired from the net diff.
 
 ## Hard stops
 
