@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260816-aiv-canvas-release-1');
+  const module = await import('./core/app.js?v=20260816-cii-v11-v14-dropdown-release-2');
   await module.init(startupMount());
 }
 
