@@ -1,9 +1,9 @@
 import { access, readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveRepositoryPath } from '../framework/path-utils.mjs';
 
 async function importFromRoot(root, path) {
-  return import(pathToFileURL(resolve(root, path)).href);
+  return import(pathToFileURL(resolveRepositoryPath(root, path)).href);
 }
 
 async function definitionFrom(context) {
@@ -76,14 +76,14 @@ export async function verifyQst003(context) {
 
 export async function verifyProductFreeze(context) {
   const freeze = context.workpack.productFreeze;
-  await access(resolve(context.root, freeze.protocolPath));
+  await access(resolveRepositoryPath(context.root, freeze.protocolPath));
   if (freeze.state !== 'FROZEN') {
     const ok = freeze.state === 'BLOCKED'
       && freeze.frozen === false
       && freeze.qualificationIndependent === true;
     return { ok, detail: 'Product Freeze remains BLOCKED and separate from method qualification' };
   }
-  const receipt = JSON.parse(await readFile(resolve(context.root, freeze.receiptPath), 'utf8'));
+  const receipt = JSON.parse(await readFile(resolveRepositoryPath(context.root, freeze.receiptPath), 'utf8'));
   const ok = freeze.frozen === true
     && freeze.qualificationIndependent === true
     && receipt.schema === freeze.requiredReceiptSchema
