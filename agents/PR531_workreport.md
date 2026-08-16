@@ -18,8 +18,8 @@ BRANCH: agent/hp-ch9-fatigue-foundation-r3
 BASE_MAIN: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 SOURCE_BASIS: reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr
 CURRENT_STAGE: FATIGUE FOUNDATION + USER_CALCULATED_KD3 INTAKE COMPLETE
-CURRENT_BLOCKER: native CORE KD320 formulation/custody is not qualified
-EXACT_NEXT_ACTION: preserve USER_CALCULATED_KD3 as the usable production-data intake; only implement native CORE KD320 after exact controlled formulation and source custody are established.
+CURRENT_BLOCKER: native CORE KD320 formulation/custody is not qualified; UI/registry expansion is outside the locked PR531 scope
+EXACT_NEXT_ACTION: preserve USER_CALCULATED_KD3 as the usable intake; only start a separate UI/registry or native-KD320 phase under its own authorized scope.
 ```
 
 ## Mission / Current Design
@@ -59,20 +59,20 @@ reason = CONTROLLED_KD320_FORMULATION_AND_CUSTODY_NOT_ESTABLISHED
 canUseForDesignAuthority = false
 ```
 
-The pinned production master still resolves structurally as `PRODUCTION_EVIDENCE_PENDING`. Existing evidence blockers remain conservative; no native production KD320 calculation is executed.
+The pinned production master still resolves structurally as `PRODUCTION_EVIDENCE_PENDING`. No native production KD320 calculation is executed.
 
 ## USER_CALCULATED_KD3 Contract
 
 For every governed transient cycle, the user supplies:
 
 ```text
-cycleId                 REQUIRED
-locationId              REQUIRED
-fromStateId             REQUIRED and must match governed spectrum
-toStateId               REQUIRED and must match governed spectrum
-Seq                     equivalentAlternatingStressMpa — REQUIRED
-N                       permissibleCycles — REQUIRED when Seq > 0
-calculationBasis.code   REQUIRED
+cycleId                  REQUIRED
+locationId               REQUIRED
+fromStateId              REQUIRED and must match governed spectrum
+toStateId                REQUIRED and must match governed spectrum
+Seq                      equivalentAlternatingStressMpa — REQUIRED
+N                        permissibleCycles — REQUIRED when Seq > 0
+calculationBasis.code    REQUIRED
 calculationBasis.edition REQUIRED
 calculationBasis.methodRef REQUIRED
 calculationBasis.calculationRef REQUIRED
@@ -82,11 +82,11 @@ calculationBasis.calculatedBy REQUIRED
 Optional evidence fields:
 
 ```text
-userAlternatingStressIntensityMpa  -> cross-checked against CORE Salt
-associatedMeanStressMpa            -> audit only
-beta                               -> audit only
-saPrimeMpa                         -> audit only
-checkedBy / checkedAt              -> may be added later
+userAlternatingStressIntensityMpa -> cross-checked against CORE Salt
+associatedMeanStressMpa           -> audit only
+beta                              -> audit only
+saPrimeMpa                        -> audit only
+checkedBy / checkedAt             -> may be added later
 ```
 
 CORE does not use `associatedMeanStressMpa`, `beta`, `saPrimeMpa`, or any yield-strength field to reconstruct `Seq`.
@@ -104,65 +104,50 @@ n authority    = GOVERNED_TRANSIENT_SPECTRUM
 Damage         = CORE_DERIVED
 ```
 
-Evidence state before independent checking:
+Before independent checking:
 
 ```text
 EXTERNAL_KD3_CALCULATED_NOT_CHECKED
 USER_CALCULATED_NOT_INDEPENDENTLY_CHECKED
 ```
 
-With distinct checker and timestamp:
+With distinct checker + timestamp:
 
 ```text
 EXTERNAL_KD3_CALCULATED_CHECKED_NOT_AUTHORIZED
 USER_CALCULATED_INDEPENDENTLY_CHECKED
 ```
 
-Even the checked state retains:
-
-```text
-canUseForDesignAuthority = false
-codeCompliance = false
-```
-
-Authority promotion remains a separate controlled engineering decision.
+Even the checked state retains `canUseForDesignAuthority=false` and `codeCompliance=false`.
 
 ## Salt Cross-Check Policy
 
-If the user provides `userAlternatingStressIntensityMpa`, CORE independently computes the straight-pipe pressure-cycle `Salt` and compares it using:
+If user `Salt` is supplied, CORE independently computes straight-pipe pressure-cycle `Salt` and compares using repository QA policy:
 
 ```text
-tolerance type  = RELATIVE
-tolerance value = 1e-4
+type = RELATIVE
+value = 1e-4
 ```
 
-This is repository QA comparison policy, not an ASME design tolerance. A mismatch fails closed with `USER_SALT_MISMATCH`. User `Salt` is optional; `Seq` and `N` can still be consumed with explicit provenance when it is omitted.
+This is not an ASME design tolerance. Mismatch fails closed as `USER_SALT_MISMATCH`. User `Salt` remains optional.
 
 ## User Authoring Artifacts
 
-Pure evaluator:
-
 ```text
 converters/b313-chapter-ix/user-calculated-fatigue.js
+scripts/verify-b313-ch9-user-calculated-fatigue.mjs
+engineering/hp-class-standardization/qualification/user-calculated-fatigue.template.json
 ```
 
-Candidate verifier:
+CLI:
 
 ```text
 node scripts/verify-b313-ch9-user-calculated-fatigue.mjs <candidate.json>
 ```
 
-Template:
-
-```text
-engineering/hp-class-standardization/qualification/user-calculated-fatigue.template.json
-```
-
-The template explicitly states that `Seq` and `N` come from the licensed/external calculation and that optional mean-stress fields are evidence only.
-
 ## Source Custody
 
-Pinned High-Pr sources remain unchanged from the original R3 receipt:
+Pinned High-Pr source blobs remain:
 
 ```text
 method_manifest.csv      a34af2063105db4dae59003ebe77704b95541e81
@@ -176,33 +161,22 @@ cycle_transition.csv     9393f7da50bc1575476af0c183834c3f6dea38e2
 
 ## Validation Receipt
 
-Original R3 branch validation remains:
+Original R3 validation remains intact:
 - pinned analytical/synthetic benchmarks PASS;
 - exact pinned synthetic master execution retained `U = 1.1200262680869295 / REFERENCE_FAIL` without weakening inputs;
 - production master audit remains fail-closed.
 
-Post-research correction validation:
+Post-research correction focused suite:
 
 ```text
-foundation + user-calculated focused tests = 22
-PASS = 22
-FAIL = 0
+22 tests
+22 PASS
+0 FAIL
 ```
 
-Covered:
-- native KD320 hard block;
-- external `Seq + N` intake;
-- governed cycle/state identity;
-- optional Salt cross-check;
-- Salt mismatch fail-closed;
-- mandatory calculation provenance;
-- independent checker collision rejection;
-- checked/not-checked evidence states;
-- exactly one external row per governed cycle;
-- zero-range/zero-damage external result;
-- file-based candidate verifier.
+Coverage includes native KD320 hard block, external `Seq + N`, state/cycle binding, optional Salt cross-check, mismatch rejection, mandatory provenance, checker collision rejection, checked/not-checked evidence states, zero damage, and file verifier.
 
-Exact tested Git blobs include:
+Exact tested Git blobs:
 
 ```text
 fatigue-equivalent.js               99ef93cc82ba447467bbe246a390727628954476
@@ -211,6 +185,18 @@ user-calculated-fatigue.js          07e173707a105556057f8ada81ea53f24386b144
 fatigue-foundation.test.mjs         b01f49ea3f6e2401be2b256d32b31c72eaf55647
 user-calculated-fatigue.test.mjs    a98769a49c7f68f8b4746b2953cabee15a2c1259
 ```
+
+## Final Reconciliation Receipt
+
+After the correction implementation:
+
+```text
+main = f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
+PR531 compare = 30 ahead / 0 behind
+changed files = 19
+```
+
+No `.github/workflows/*`, UI/runtime, package script, or central registry files are changed.
 
 ## Validation Truth
 
@@ -222,7 +208,8 @@ PASS:
 - synthetic master audit/execution;
 - native KD320 fail-closed behavior;
 - `USER_CALCULATED_KD3` focused suite 22/22;
-- exact branch-blob identity for tested changed files.
+- exact branch-blob identity for tested changed files;
+- final base reconciliation 0 behind.
 
 NOT_RUN / NOT_ESTABLISHED:
 - complete private-repo native suite: NOT_RUN / environment limitation;
@@ -247,4 +234,4 @@ NOT_RUN / NOT_ESTABLISHED:
 
 ## Handover in 60 Seconds
 
-PR531 now provides a usable user/external KD-3 result pathway while native CORE KD320 remains fail-closed. Users supply externally calculated `Seq` and `N`; CORE binds them to governed cycles, optionally reproduces `Salt`, and derives Miner damage. Independent checking can be added later without changing the data model. Keep PR531 draft/unmerged until explicit owner merge authorization.
+PR531 provides a usable user/external KD-3 result pathway while native CORE KD320 remains fail-closed. Users supply externally calculated `Seq` and `N`; CORE binds them to governed cycles, optionally reproduces `Salt`, and derives Miner damage. Independent checking can be added later without changing the data model. UI/registry integration should be a separately authorized scope. Keep PR531 draft/unmerged until explicit owner merge authorization.
