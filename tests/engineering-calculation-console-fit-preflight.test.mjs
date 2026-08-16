@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION as fit } from '../converters/engineering-calculations/adapters/vibration-fit.js';
 import { PENDING_ENGINEERING_CALCULATION_DEFINITIONS } from '../converters/engineering-calculations/pending-definitions.js';
+import { composeEngineeringQualification } from '../converters/engineering-calculations/qualification.js';
 import {
   canExecuteEngineeringCalculation,
   canResolveEngineeringCalculation,
@@ -12,6 +13,7 @@ import {
 import { renderEngineeringCalculationConsoleHtml } from '../tabs/engineering-calculation-console-view.js';
 
 const controllerSource = fs.readFileSync(new URL('../tabs/engineering-calculations-tab.js', import.meta.url), 'utf8');
+const fitAdapterSource = fs.readFileSync(new URL('../converters/engineering-calculations/adapters/vibration-fit.js', import.meta.url), 'utf8');
 const blockedVibrationDefinitions = PENDING_ENGINEERING_CALCULATION_DEFINITIONS.filter((row) => row.family === 'VIB');
 const definitions = [fit, ...blockedVibrationDefinitions].sort((a, b) => a.id.localeCompare(b.id));
 const families = [{ id: 'VIB', label: 'Vibration & Dynamic Screening', count: definitions.length }];
@@ -33,7 +35,7 @@ function buttonTag(html, action) {
   return match[0];
 }
 
-test('FIT is qualified for bounded screening and remains a table-workspace product surface', () => {
+test('FIT is production-authorized while retaining bounded screening authority', () => {
   assert.equal(isEngineeringCalculationExecutable(fit), true);
   assert.equal(canResolveEngineeringCalculation(fit), true);
   assert.equal(canExecuteEngineeringCalculation(fit, 'strict'), false);
@@ -41,11 +43,28 @@ test('FIT is qualified for bounded screening and remains a table-workspace produ
   assert.equal(canExecuteEngineeringCalculation(fit, 'screening'), true);
   assert.equal(fit.ui.productSurface, 'VIBRATION_INTEGRITY_TABLE_WORKSPACE');
   assert.equal(fit.ui.requiredQualificationMode, 'screening');
-  assert.equal(fit.authority.qualificationState, 'SCREENING');
+  assert.equal(fit.authority.qualificationState, 'PRODUCTION_AUTHORIZED');
+  assert.equal(fit.authority.engineeringAuthority, 'SCREENING');
+  assert.equal(fit.authority.screeningAuthority, 'AUTHORIZED_BOUNDED');
+  assert.equal(fit.authority.designAuthority, false);
   assert.equal(fit.authority.codeCompliance, false);
+  assert.match(fitAdapterSource, /method:\s*screening \? 'PRODUCTION_AUTHORIZED' : 'BENCHMARK_ONLY'/u);
+  assert.match(fitAdapterSource, /data:\s*screening \? 'SCREENING' : 'BENCHMARK_ONLY'/u);
 });
 
-test('existing VIB family landing renders all six registered mechanisms with registered authority states', () => {
+test('production method lifecycle cannot promote screening-qualified data to design authority', () => {
+  const qualification = composeEngineeringQualification({
+    method: 'PRODUCTION_AUTHORIZED',
+    data: 'SCREENING',
+    designAuthority: true,
+  });
+  assert.equal(qualification.method, 'PRODUCTION_AUTHORIZED');
+  assert.equal(qualification.data, 'SCREENING');
+  assert.equal(qualification.effective, 'SCREENING');
+  assert.equal(qualification.designAuthority, false);
+});
+
+test('VIB family landing renders FIT Production separately from bounded Screening authority', () => {
   assert.equal(definitions.length, 6);
   assert.equal(blockedVibrationDefinitions.length, 5);
   const state = { ...baseState(), selectedId: null, familyLanding: 'VIB' };
@@ -53,7 +72,12 @@ test('existing VIB family landing renders all six registered mechanisms with reg
   assert.match(html, /Vibration &amp; Dynamic Screening/u);
   assert.match(html, /6 mechanisms/u);
   assert.match(html, /Flow-Induced Vibration Screening/u);
-  assert.match(html, /SCREENING/u);
+  assert.match(html, />PRODUCTION</u);
+  assert.match(html, /Screening authority: BOUNDED/u);
+  assert.match(html, /Design authority: NO/u);
+  assert.match(html, /Programme #429/u);
+  assert.match(html, /219\.1 mm &lt; Dext &lt; 273 mm remains excluded and fail-closed/u);
+  assert.doesNotMatch(html, /No mechanism on this page has screening or design authority/u);
   assert.match(html, /Acoustic-Induced Vibration Screening/u);
   assert.match(html, /Cavitation \/ Flashing Screening/u);
   assert.match(html, /Small-Bore Connection Vibration Screening/u);
@@ -65,12 +89,15 @@ test('existing VIB family landing renders all six registered mechanisms with reg
   assert.match(html, /TABLE DATA ONLY/u);
 });
 
-test('selecting FIT renders the table workspace host instead of an inline calculator form', () => {
+test('selecting FIT renders a Production bounded-Screening table workspace, not an inline calculator', () => {
   const html = renderEngineeringCalculationConsoleHtml({
     definitions, families, definition: fit, state: baseState(fit),
   });
   assert.match(html, /TABLE WORKSPACE/u);
-  assert.match(html, /SCREENING/u);
+  assert.match(html, /PRODUCTION/u);
+  assert.match(html, /BOUNDED SCREENING/u);
+  assert.match(html, /Programme #429/u);
+  assert.doesNotMatch(html, /BENCHMARK ONLY/u);
   assert.match(html, /data-fit-workspace-host/u);
   assert.doesNotMatch(html, /data-action="calculate"/u);
   assert.doesNotMatch(html, /data-action="add-current-batch"/u);
