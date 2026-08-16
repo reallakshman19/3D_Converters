@@ -23,10 +23,9 @@ function contentBounds(nodes = [], padding = DEFAULT_WORKSPACE.padding) {
   return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 function expandedBounds(bounds, minWidth, minHeight) {
-  const cx = (bounds.left + bounds.right) / 2; const cy = (bounds.top + bounds.bottom) / 2;
-  const width = Math.max(minWidth, bounds.width); const height = Math.max(minHeight, bounds.height);
-  return Object.freeze({ left: cx - width / 2, top: cy - height / 2,
-    right: cx + width / 2, bottom: cy + height / 2, width, height });
+  const left = Math.min(0, bounds.left); const top = Math.min(0, bounds.top);
+  const right = Math.max(bounds.right, left + minWidth); const bottom = Math.max(bounds.bottom, top + minHeight);
+  return Object.freeze({ left, top, right, bottom, width: right - left, height: bottom - top });
 }
 
 export function aivCanvasWorkspaceBounds(nodes = [], options = {}) {
@@ -101,8 +100,7 @@ export function aivCanvasTidyLayout(layout = {}, edges = [], options = {}) {
   const positioned = [];
   for (const [level, group] of [...groups].sort((a, b) => a[0] - b[0])) {
     const x = left + (right - left) * Math.min(finalLevel, level) / finalLevel;
-    const count = group.length; const offset = Math.max(0, (count - 1) * rowGap / 2);
-    group.forEach((node, index) => positioned.push({ ...node, x, y: top - offset + index * rowGap }));
+    group.forEach((node, index) => positioned.push({ ...node, x, y: top + index * rowGap }));
   }
   const byKey = new Map(positioned.map((node) => [node.nodeKey, node]));
   return Object.freeze({ ...layout, nodes: Object.freeze((layout.nodes ?? []).map((node) => Object.freeze(byKey.get(node.nodeKey) ?? node))) });
