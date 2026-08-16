@@ -1,122 +1,148 @@
 # PR528 — AIV Unified Network Canvas Work Report
 
-# CURRENT RECOVERY STATE — READ FIRST
+## Current recovery state
 
 ```text
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: RECOVERABLE
 TAKEOVER_AUTHORITY: QUALIFIED
 EXECUTION_MODE: MANUAL
-FORMAL_AUTO_MODE: NOT_ACTIVE — user wrote lowercase "auto mode"; skill requires literal "AUTO MODE"
+FORMAL_AUTO_MODE: NOT_ACTIVE — literal token AUTO MODE was not supplied
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
 REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Issue #526
 PR_OR_WIP: PR528
 BRANCH: agent/aiv-unified-network-canvas-526
-CODE_HEAD_BASIS: f5b57c84a22fdd005343ab122f5d799fc1f229cf
+CODE/EVIDENCE_HEAD_BASIS: 50c1a38ba70c9c23cf2e8628c53d7b2fd477d5a8
 MAIN_HEAD_LAST_CHECKED: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 MERGE_BASE: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-GROUNDING_EPOCH: AIV526-GE-013
-CURRENT_STAGE: STAGE_6_FULL_SCALE_CANVAS_EDITOR_LOCAL_PASS
-LAST_COMPLETED_STAGE: EDITOR_IMPLEMENTATION + EDITOR_CACHE_CUSTODY + LOCAL_CHROMIUM_INTERACTION
-CURRENT_BLOCKER: none for source/local editor capability; promotion still requires exact-current-main integrated native/full-app Chromium/B1-B10 validation
-HIGHEST_RISK: promoting lower-level local Chromium evidence as full application acceptance
-EXACT_NEXT_ACTION: integrate current main, run permanent editor/cache tests + full AIV release/B1-B10/full-app Chromium, then review; do not merge without explicit Owner authorization
+COMPARE: diverged · ahead 138 · behind 2 at Stage-7 code/evidence checkpoint
+CURRENT_STAGE: STAGE_7_SCRATCH_NETWORK_AND_LATE_CHANGE_WORKFLOW_LOCAL_PASS
+CURRENT_BLOCKER: none for source/local Stage-7 capability; promotion still needs exact-current-main integrated native/full-app acceptance
+HIGHEST_RISK: treating lower-level local Chromium page.setContent evidence as full application acceptance
+EXACT_NEXT_ACTION: integrate current main, run permanent Stage-7/cache tests plus full AIV release/B1-B10/full-app Chromium; keep draft; do not merge without explicit Owner authorization
 ```
 
-## 1. Ground truth
+## 1. Ground truth and locked authority
 
-Issue #526 qualification is satisfied:
+Issue #526 qualification remains satisfied by reviewer comment `5303402441` containing exact marker `QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS`.
 
-- candidate Q1–Q5: issue comment `5303343598`;
-- reviewer marker: issue comment `5303402441` with exact `QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS`.
+PR #517 remains the PF-02 readiness ↔ executable parity owner. PR528 does **not** edit or absorb authority from:
 
-Current `main` remains `f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac`. The PR branch still descends from merge base `36f53018...`; final promotion must execute on an exact current-main-integrated candidate.
+- `converters/vibration/aiv/aiv-readiness.js`
+- `converters/vibration/aiv/aiv-calculator.js`
+- `converters/vibration/aiv/aiv-executable-contract.js`
+- AIV numerical equations
+- simultaneous-source semantics
+- Assessment result authority
+- design authority
 
-PR #517 remains the PF-02 readiness↔calculator parity owner. PR528 does **not** change `aiv-readiness.js`, `aiv-calculator.js`, `aiv-executable-contract.js`, AIV numerical equations, simultaneous-source semantics, Assessment result scope, or design authority. PR #506 remains salvage evidence only.
-
-## 2. Mission and locked authority
-
-One SVG must be the AIV input editor, topology view, Source→Assessment relationship view, provenance/readiness surface and registered-result surface.
+Permanent ownership boundary:
 
 ```text
 NETWORK_DRIVEN owner = AivFlareNetwork.v1
 TABLE_DRIVEN owner   = working AIV tables
 SVG x/y              = presentation only
-physical distance    = explicit segment engineering length / pathEvidence, or qualified explicit table relationship evidence
-numerical authority  = registered VIB.AIV.ACOUSTIC
+physical distance    = explicit segment/path engineering evidence
+numerical execution  = registered VIB.AIV.ACOUSTIC
 screening result     = ASSESSMENT
 line/case summary    = non-authoritative trace
 designAuthority      = false
 ```
 
-No silent dual ownership. NETWORK generated tables stay read-only until explicit detach. Presentation drag is revision-neutral. Engineering edits advance input currentness and invalidate readiness/results/export lineage through the existing transaction path.
+Generated tables stay read-only in NETWORK_DRIVEN until explicit detach. Presentation drag stays revision-neutral. Engineering mutations continue through the existing dataset-loader transaction and invalidate readiness/result lineage.
 
-## 3. Completed stages
+## 2. Stages 1–6 retained
 
-### Stages 1–5 — previously completed
+Stages 1–5 established input-mode ownership/currentness, stale async guards, generated-table detach, physical/logical/path projection, graph/master currentness, one production canvas/controller, and cache custody.
 
-- explicit TABLE_DRIVEN / NETWORK_DRIVEN ownership and monotonic input revision;
-- readiness/screening token+revision stale-completion guards and current export lineage;
-- generated-table read-only + explicit detach;
-- physical/logical/path unified projection with no pixel-derived distance;
-- graph/master transaction currentness;
-- one production unified canvas/controller source path;
-- integrated graph authoring without a second SVG;
-- corrected same-SVG mode-switch Chromium evidence;
-- cache custody for the one-canvas cutover.
+Stage 6 made the **same one SVG** a real input editor:
 
-### Stage 6 — full-scale AIV input editor
+- TABLE_DRIVEN Source/Assessment quick-create, relationship authoring, full table-backed inspector edit/delete.
+- NETWORK_DRIVEN node placement, two-node physical-pipe connection with explicit engineering length, Source/Assessment/segment inspector edits, select/move/delete.
+- connected-node deletion fails closed.
+- Delete/Backspace is safe while typing.
+- SVG position never becomes engineering distance.
+- blank projects always render the unified SVG.
 
-The prior defect was UX/runtime exposure, not missing graph mutation primitives: engineering mutation APIs existed but were buried beneath the SVG. Stage 6 makes them first-class canvas editing operations.
+Stage-6 evidence remains:
 
-#### Blank-start capability
+- pure editor reconstruction: **8/8 PASS**.
+- local Chromium full-scale editor interaction: **8/8 PASS**.
+- `ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json`.
 
-`renderAivInputWorkspaceHtml()` now renders `renderAivUnifiedCanvasWorkspaceHtml()` unconditionally. A new project starts with the unified editor visible even when Sources/Assessments/Relationships/topology are empty. Users no longer need to load a sample before they can author input.
+## 3. Stage 7 — user-flow fix after blank-to-late-change walkthrough
 
-#### TABLE_DRIVEN editing
+The user walkthrough exposed a material workflow defect: the blank SVG existed, but a user could not create an empty NETWORK_DRIVEN flare network. The only route was loading the controlled mock then destructively deleting its objects, retaining inappropriate mock identity/provenance.
 
-Working AIV tables remain sole engineering authority.
+### 3.1 True scratch-network start
 
-Visible editor dock now supports:
+New module:
 
-- quick-create Source with canonical ID, Operating Case and optional Source Device Type;
-- quick-create Assessment with canonical ID and optional Assessment Type;
-- immediate renderable identity so the new object appears on the same SVG;
-- click Source then Assessment in relationship mode to create Source→Assessment relationship using the existing table relationship contract;
-- selected Source/Assessment/Relationship exposes every working-table column in the `Engineering edit` inspector tab;
-- table-backed delete uses existing safeguard/row-delete handlers;
-- blank relationship-row fallback remains available for advanced input.
+`tabs/vibration-aiv-unified-canvas-workflow.js`
 
-#### NETWORK_DRIVEN editing
-
-`AivFlareNetwork.v1` remains sole engineering owner.
-
-Visible editor dock / one SVG now supports:
-
-- `Select / move`;
-- `Place node`: draft canonical ID/kind/case/line/tag/device/assessment type, then click empty canvas to place;
-- `Connect physical pipe`: draft segment ID/engineering length/unit/line, click first node then destination node;
-- selectable Source, Assessment, routing nodes and physical segments;
-- Source engineering inspector edits case/device/state/phase/mass flow/upstream & downstream pressure and basis/temperature/molecular weight/sonic state/low-noise-trim evidence;
-- Assessment inspector edits assessment type/material/duplex state/main OD/ID/wall/branch OD/wall;
-- physical-segment inspector edits From/To, line and explicit engineering length/unit;
-- delete selected node/segment, with existing node-delete fail-closed behavior while connected segments exist;
-- Delete/Backspace ignored while typing in input/select/textarea/contenteditable controls;
-- Escape cancels an active placement/connection tool;
-- panned/zoomed placement is transformed back into scene coordinates; SVG pixels never become distance input.
-
-Every graph engineering edit still delegates to the existing graph mutations, then `datasetLoader.applyFlareNetwork()` → fresh graph transaction revision → generated table/pathEvidence regeneration → readiness/result invalidation. Node dragging continues to use presentation-only mutation.
-
-#### Fresh editor cache identity
-
-Active AIV identity is now:
+`createAivUnifiedCanvasBlankNetwork()` creates a clean `AivFlareNetwork.v1` with:
 
 ```text
-20260816-aiv-526-editor-1
+networkId        = user supplied
+source           = AIV_FLARE_NETWORK_UI
+sourceRevision   = 1
+nodes            = []
+segments         = []
 ```
 
-It propagates through:
+The blank TABLE_DRIVEN canvas now exposes **New flare network** with Network ID plus optional default operating-case/line authoring context. Activating it uses the existing `onNetworkChange` / dataset-loader transaction and transitions to NETWORK_DRIVEN without loading or tearing down the controlled mock.
+
+### 3.2 Faster domain authoring
+
+NETWORK_DRIVEN now exposes **Fast flare authoring**:
+
+- sticky default operating case;
+- sticky default line;
+- collision-free suggested IDs;
+- `RV source` preset;
+- `Subheader junction` preset;
+- `Main-header junction` preset;
+- `Assessment` preset;
+- **Quick RV branch** action.
+
+`createAivUnifiedCanvasRvBranch()` creates the Source plus its explicit physical branch segment in one returned graph mutation. The result is still committed exactly once through the existing engineering transaction; the helper is not a new engineering authority.
+
+Subheader/main-header presets remain routing-junction conveniences, not a new topology schema or 3D design authority.
+
+### 3.3 Auto-selection and completeness guidance
+
+Newly created nodes/segments are selected automatically for:
+
+- direct click-to-place;
+- direct two-node connect;
+- fallback `Add auto-positioned`;
+- fallback `Connect selected IDs`;
+- Quick RV branch.
+
+Selected Sources show an **editor completeness** checklist for common authoring fields (flow, pressures, temperature, MW, state, sonic/trim evidence). The UI explicitly labels this as guidance only; the qualified readiness check remains authoritative.
+
+### 3.4 Local currentness feedback
+
+The unified canvas now consumes existing `currentAivInputRevision()` and `isAivLineageCurrent()` state. After an authoritative edit it shows:
+
+```text
+Engineering inputs changed · revision N
+Readiness: needs check/current
+screening/results: needs run/current
+```
+
+This does not duplicate or alter PR #517 readiness logic; it only renders currentness already owned by the existing revision/lineage contract.
+
+### 3.5 Cache custody
+
+Fresh Stage-7 AIV editor identity:
+
+```text
+20260816-aiv-526-editor-2
+```
+
+It is propagated through the active startup chain:
 
 ```text
 index.html
@@ -131,144 +157,140 @@ index.html
  -> tabs/vibration-aiv-unified-canvas-view.js
 ```
 
-Changed editor leaves are also pinned: author view, inspector, selection, author mutation module and editor controller. Superseded AIV keys `20260815-aiv-pf01-cache-1` and `20260815-aiv-526-unified-1` are rejected by the permanent cache-chain regression. The shared engineering entrypoint preserves FIV key `20260815-sbc-pf05-cache-1`.
+The unified controller pins the Stage-7 editor controller, and that controller pins `vibration-aiv-unified-canvas-workflow.js` with the same key. `20260816-aiv-526-editor-1` is now a superseded key in the cache regression. Current FIV key `20260815-sbc-pf05-cache-1` is preserved.
 
-## 4. Stage-6 changed/new modules
+## 4. Stage-7 scenario validation
 
-New production modules:
+Permanent regression:
 
-```text
-tabs/vibration-aiv-unified-canvas-editor.js
-tabs/vibration-aiv-unified-canvas-editor-controller.js
-tabs/vibration-aiv-unified-canvas-editor-view.js
-tabs/vibration-aiv-unified-canvas-table-author.js
-tabs/vibration-aiv-unified-canvas-editor.css
-```
+`tests/vibration-aiv-unified-canvas-user-workflow.test.mjs`
 
-Modified integration modules include:
+Lower-level executable reconstruction result:
 
 ```text
-tabs/vibration-aiv-unified-canvas-author.js
-tabs/vibration-aiv-unified-canvas-author-view.js
-tabs/vibration-aiv-unified-canvas-inspector.js
-tabs/vibration-aiv-unified-canvas-controller.js
-tabs/vibration-aiv-unified-canvas-view.js
-tabs/vibration-aiv-canvas-selection.js
-tabs/vibration-aiv-input-view.js
-tabs/vibration-aiv-qualification-tab.js
-tabs/vibration-aiv-qualification-view.js
-tabs/vibration-aiv-qualification.css
-tabs/vibration-aiv-workspace-browser.js
-startup/cache-chain files
+PASS clean blank-network UI provenance
+PASS collision-free suggested IDs
+PASS Quick RV branch creates Source + explicit segment
+PASS SUBHEADER-B correction 22 m -> 27 m + RV-104 branch resolves expected path
+PASS Source completeness guidance reports missing fields without claiming readiness authority
+TOTAL 5/5 PASS
 ```
 
-All new/expanded unified JS modules inspected at the Stage-6 checkpoint remain `<300` physical lines. No workflow file changed.
+The concrete scenario used for the late-change test is:
 
-## 5. Permanent regressions committed
+```text
+RV-101 -> Subheader A branch = 8 m
+RV-102 -> Subheader A branch = 10 m
+Subheader A -> Main          = 18 m
+RV-103 -> Subheader B branch = 7 m
+Subheader B -> Main          = 22 m, then corrected to 27 m
+Main -> Assessment           = 30 m
+RV-104 -> Subheader B branch = 9 m
+RV-104 resolved path         = 9 + 27 + 30 = 66 m
+```
+
+No SVG coordinate participates in that 66 m result.
+
+## 5. Stage-7 local Chromium evidence
+
+Durable record:
+
+`ValidationRecords/AIV/PR528-stage7-user-workflow-local-chromium-evidence.json`
+
+Playwright + system Chromium lower-level replay: **8/8 PASS**.
+
+Assertions:
+
+```text
+PASS blank exposes New flare network
+PASS blank still has exactly one canvas SVG
+PASS corrected header shows explicit 27 m engineering length
+PASS correction shows readiness/results stale currentness
+PASS RV-104 appears
+PASS RV-104 is auto-selected with guidance
+PASS RV-104 path is 66 m
+PASS qualified readiness remains authoritative
+```
+
+Artifact hashes:
+
+```text
+HTML   bc2fa925483f6a7cb4d9fc1ccb9c34c544cc63153bc22790a423840d77c444f4
+report ab9a4b64c60aac0a71a69df75cc3f1ebfe90da0a61603c9869663b8466c2a2da
+blank  28fc5d16d852d275836e38477f43a80fd6214f8d58df0fe8408cded904a1ac14
+3-RV   1e2d636ed59a0fe7895aaab0ca388eac90bf503d409ac7f8fea8e693bcf63f87
+27-m   20a0b11b0d2e03bd20bde0620506e6627c6c024b9abeb1946d70524b9b31e0ba
+RV-4   74bc3c0d78694b2ef34150f2293b49231c94cba51b343dfcf09ed802a11f2a7e
+```
+
+Classification remains **LOCAL_CHROMIUM_UI_EVIDENCE_NOT_HOSTED_FULL_APP**. Managed browser URL navigation is blocked; `page.setContent()` was used. No hosted/full-application acceptance claim is made.
+
+## 6. Source policy checks
+
+At the Stage-7 checkpoint, source inspection confirms:
+
+```text
+vibration-aiv-unified-canvas-controller.js        231 physical lines in compare
+vibration-aiv-unified-canvas-editor-controller.js 258 physical lines in compare
+vibration-aiv-unified-canvas-view.js              162 physical lines in compare
+vibration-aiv-unified-canvas-workflow.js          103 physical lines in compare
+```
+
+All remain under the `<300` unified-module boundary. No workflow files are changed or claimed.
+
+## 7. Permanent regressions / evidence now in scope
 
 ```text
 tests/vibration-aiv-unified-canvas-editor-state.test.mjs
 tests/vibration-aiv-unified-canvas-editor-author.test.mjs
 tests/vibration-aiv-unified-canvas-table-author.test.mjs
+tests/vibration-aiv-unified-canvas-user-workflow.test.mjs
 tests/vibration-aiv-unified-canvas-cutover.test.mjs
 tests/vibration-aiv-runtime-cache-chain.test.mjs
+ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json
+ValidationRecords/AIV/PR528-stage7-user-workflow-local-chromium-evidence.json
 ```
 
-The cutover regression pins one SVG, no second author/editor SVG, direct graph tools, TABLE quick-create, inspector edit paths, no legacy controller wiring, `<300` module policy and no UI acoustic/pixel-distance math.
+The cache regression now pins editor key `20260816-aiv-526-editor-2`, pins the workflow helper edge, rejects editor-1 and older AIV keys, and preserves the FIV cache key.
 
-The cache regression pins the editor cache chain, changed leaves, rejection of superseded AIV keys and preservation of the current FIV cache identity.
-
-## 6. Validation ledger
-
-### Executed pure editor checks
-
-Exact local reconstruction of committed editor/mutation modules:
+## 8. Not run / not claimed
 
 ```text
-editor tool state / two-click connection / self-loop rejection: 3/3 PASS
-graph place / connect / delete safeguards:                       3/3 PASS
-authoritative Source + segment edits:                            2/2 PASS
-TOTAL:                                                           8/8 PASS
+full native repository/AIV release suite   NOT_RUN_NO_PRIVATE_CHECKOUT
+hosted/full-application Chromium           NOT_RUN_INFRASTRUCTURE_BLOCKED
+exact current-main integrated runtime      NOT_RUN
+complete B1-B10                            NOT_RUN
 ```
 
-This is lower-level exact-module execution, not the full native repository suite.
+Hosted Actions historically produce zero executed product steps in this environment. They are infrastructure-blocked, not product PASS/FAIL evidence.
 
-### Local Chromium editor interaction
+## 9. Recovery and coordination
 
-Evidence: `ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json`.
-
-Chromium 144 + Playwright `page.setContent()` editor harness:
+Important pre-Stage-7 existing-file blobs:
 
 ```text
-PASS exactly one unified SVG exists
-PASS place-node adds J-NEW on the same SVG
-PASS two-click connect creates explicit 5.5 m physical segment
-PASS Source mass-flow engineering edit 7.4 -> 8.25 kg/s
-PASS explicit segment length engineering edit 5.5 -> 6.25 m
-PASS node delete fails closed while segment is connected
-PASS segment delete then node delete succeeds
-PASS same SVG DOM object survives entire edit sequence
-TOTAL: 8/8 PASS
+unified-canvas-editor-controller.js db8c0ac6e2d494872e8d14ca1fb9a982d5fa50fb
+unified-canvas-controller.js        4f6fc3301cc083c084efcec52a783270634f5f35
+unified-canvas-view.js              9761c4c66f7ee00407432e65b46fe5db3d7e1a7e
+runtime-cache-chain.test.mjs        a3dc7b3d5d8fa7d1eae5e795c7f1b91e419ee412
 ```
 
-PNG SHA-256: `91b8572ea0927079fb28ffc9440c7254a94a4c8b4e655b49f6749110b02cdb42`.
+`vibration-aiv-unified-canvas-workflow.js`, the user-workflow regression and Stage-7 evidence record are new and can be removed independently for Stage-7 rollback.
 
-Important classification: managed Chromium has `URLBlocklist=["*"]`, so this is a real Chromium DOM/interaction assertion pass via `setContent()`, **not** hosted/full-application navigation acceptance.
+Do not:
 
-### Prior one-canvas evidence retained
+- infer engineering distance from SVG geometry;
+- create dual graph/table authority;
+- modify PR #517 calculator/readiness authority;
+- rewrite frozen oracle values;
+- treat local Chromium as hosted acceptance;
+- edit workflows;
+- merge without explicit Owner authorization.
 
-- corrected same-SVG D2.3 ↔ two-RV mode-switch evidence: 8/8 lower-level Chromium PASS;
-- Stage 1 exact reconstruction 9/9 PASS;
-- unified projection 4/4 PASS;
-- graph transaction 2/2 PASS;
-- master currentness 3/3 PASS.
+## 10. Promotion state
 
-### Not run / not claimed
+The specific user-flow defect from the walkthrough is fixed at source/candidate level and has executable lower-level + visual Chromium evidence. PR #528 remains draft/open and is still **2 commits behind current main** at the Stage-7 code/evidence checkpoint.
 
-```text
-full native repository/AIV release suite          NOT_RUN_NO_PRIVATE_CHECKOUT
-hosted/full-application Chromium                  NOT_RUN_INFRASTRUCTURE_BLOCKED
-exact current-main integrated runtime             NOT_RUN
-complete B1-B10                                    NOT_RUN
-100/300/500 browser performance                   NOT_RUN
-```
-
-Current hosted AIV/production-freeze workflow attempts have historically failed before product steps (`steps=[]`); these are not classified as product test failures and no CI PASS is claimed.
-
-## 7. Coordination / forbidden assumptions
-
-- PR #517 owns AIV readiness↔executable parity. Do not absorb its calculator/readiness semantics.
-- PR #506 is salvage evidence only; do not replay it wholesale.
-- Do not infer physical distance from SVG geometry.
-- Do not make graph + generated tables simultaneous engineering owners.
-- Do not rewrite frozen oracle values to match candidate output.
-- Do not claim local Chromium harness as full-app browser acceptance.
-- Do not edit workflows.
-- Do not merge without explicit Owner authorization.
-
-## 8. Rollback / recovery
-
-Existing-file pre-edit blobs are retained in earlier PR528 checkpoints. Stage-6-specific important pre-edit blobs include:
-
-```text
-unified-canvas-author.js             9dc30d2dc5981e8c31de6a3a5babf56477b3ffd3
-unified-canvas-author-view.js        7c17d5d406ed3b0dbd680c4b8977c6328e51f56f
-unified-canvas-inspector.js          dfc8cd9fbd7a19e6c7d03bfce85f883303b5b039
-canvas-selection.js                  6b0c367293953407af96490bd48e9e0d2bc20e61
-unified-canvas-view.js               c93c7f6ede154830b6d3c429bffcd9c646e91f05
-unified-canvas-controller.js         e9d22b28ac46664391bd98dbabc1c3ac501e2b6f
-vibration-aiv-qualification.css      0cf11191006e4d4c9f223584e1d0a289a0a72299
-vibration-aiv-workspace-browser.js   f2ac29507e733ae51e61bc218968b645f768e91b
-```
-
-New Stage-6 modules/tests/evidence can be removed independently if the editor stage must be rolled back.
-
-## 9. Review / promotion state
-
-**Full-scale editor capability is implemented at source/candidate level and has local pure + Chromium interaction evidence.** PR #528 remains draft/open. Promotion is not complete until an exact-current-main integrated full application runs the permanent tests, release matrix, B1-B10 and Chromium acceptance.
+Promotion is incomplete until an exact-current-main integrated candidate passes the repository's full native, release, B1-B10 and full-application browser acceptance path.
 
 Merge authority remains `OWNER_ONLY / NOT_GRANTED`.
-
-# APPENDIX A
-
-`NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_QUALIFICATION_GATE_SATISFIED`.
