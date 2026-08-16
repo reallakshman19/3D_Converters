@@ -1,7 +1,8 @@
-const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-dropdown-release-2';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-v11-v14-dropdown-release-2';
-const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260816-cii-v11-v14-dropdown-release-2';
-const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260816-cii-v11-v14-dropdown-release-2';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-dropdown-release-3';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-v11-v14-dropdown-release-3';
+const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260816-cii-v11-v14-dropdown-release-3';
+const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260816-cii-v11-v14-dropdown-release-3';
+const CII_V11_V14_DROPDOWN_INTEGRATION = './model-converters/cii-v11-v14-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-3';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]);
@@ -16,9 +17,22 @@ function callRenderer(renderer, container, ctx) {
   if (typeof renderer !== 'function') throw new Error('Model Converters renderer export is missing.');
   return renderer(container, ctx);
 }
+async function installRenderedCiiV11V14Dropdown(container) {
+  const module = await import(CII_V11_V14_DROPDOWN_INTEGRATION);
+  if (typeof module?.installCiiV11V14DropdownIntegration !== 'function') {
+    throw new Error('CAESAR v11/v14 rendered dropdown integration export is missing.');
+  }
+  if (module.installCiiV11V14DropdownIntegration(container) !== true) {
+    throw new Error('CAESAR v11/v14 rendered dropdown integration did not install.');
+  }
+}
 function renderLegacyFallback(container, ctx, cause) {
   return import(LEGACY_MODULE)
-    .then((module) => callRenderer(module.renderLegacyModelConvertersTab, container, ctx))
+    .then(async (module) => {
+      const result = callRenderer(module.renderLegacyModelConvertersTab, container, ctx);
+      await installRenderedCiiV11V14Dropdown(container);
+      return result;
+    })
     .catch((fallbackError) => {
       console.error('[ModelConvertersTab] legacy fallback failed after canonical import failure', { cause, fallbackError });
       renderDiagnostic(container, 'Could not load Model Converters', cause, fallbackError);

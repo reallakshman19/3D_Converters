@@ -10,7 +10,7 @@ import { CONVERTERS as DROPDOWN_CONVERTERS } from './converter-registry.js?v=202
 import { run as runCiiV11V14 } from './converters/cii-v11-v14.js?v=20260816-cii-v11-v14-1';
 
 const CONVERTER_ID = 'cii_v11_v14';
-const VERSION = '20260816-cii-v11-v14-dropdown-release-2';
+const VERSION = '20260816-cii-v11-v14-dropdown-release-3';
 
 function definition() {
   return {
