@@ -7,6 +7,7 @@ const releaseKey = '20260816-aiv-canvas-release-1';
 const editorKey = '20260816-aiv-526-editor-3';
 const spatialKey = '20260816-aiv-canvas-spatial-1';
 const fieldsKey = '20260816-aiv-canvas-fields-1';
+const supersededCanvasUiKey = '20260816-aiv-canvas-ui-1';
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
 const paths = [
@@ -84,6 +85,9 @@ test('unchanged leaf generations retain their qualified cache identities', () =>
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-canvas-presentation.js?v=${spatialKey}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-canvas-spatial-dom.js?v=${spatialKey}`);
   requires('tabs/vibration-aiv-unified-canvas-inspector.js', `vibration-aiv-unified-canvas-editor-view.js?v=${fieldsKey}`);
+  requires('tabs/vibration-aiv-unified-canvas-editor-view.js', `vibration-aiv-canvas-field.js?v=${fieldsKey}`);
+  requires('tabs/vibration-aiv-canvas-export-controller.js', `vibration-aiv-canvas-presentation.js?v=${spatialKey}`);
+  forbids('tabs/vibration-aiv-canvas-export-controller.js', supersededCanvasUiKey);
 });
 
 test('warm Stage-8 browser cannot remain on an editor-3 parent route', () => {
