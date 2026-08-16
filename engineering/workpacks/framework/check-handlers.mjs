@@ -1,6 +1,6 @@
 import { access, readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveRepositoryPath } from './path-utils.mjs';
 import { executeDeclaredProbe } from './probe-runner.mjs';
 
 function valueAt(value, path) {
@@ -15,7 +15,7 @@ function fromWorkpack(workpack, path, label) {
 }
 
 async function importFromRoot(root, path) {
-  return import(pathToFileURL(resolve(root, path)).href);
+  return import(pathToFileURL(resolveRepositoryPath(root, path)).href);
 }
 
 async function moduleExport(context, moduleRef) {
@@ -55,7 +55,7 @@ async function jsonIdentitySet(context, config) {
   const sets = fromWorkpack(context.workpack, config.setsRef, 'setsRef');
   const failures = [];
   for (const expected of sets) {
-    const actual = JSON.parse(await readFile(resolve(context.root, expected.path), 'utf8'));
+    const actual = JSON.parse(await readFile(resolveRepositoryPath(context.root, expected.path), 'utf8'));
     if (actual.benchmarkSetId !== expected.benchmarkSetId) failures.push(`${expected.path}: id drift`);
     const ids = collectIds(actual);
     for (const id of expected.requiredCaseIds ?? []) if (!ids.has(id)) failures.push(`${expected.path}: missing ${id}`);
@@ -84,7 +84,7 @@ async function sourceRules(context, config) {
   const rules = fromWorkpack(context.workpack, config.rulesRef, 'rulesRef');
   const failures = [];
   for (const rule of rules) {
-    const source = await readFile(resolve(context.root, rule.path), 'utf8');
+    const source = await readFile(resolveRepositoryPath(context.root, rule.path), 'utf8');
     for (const text of rule.requiredStrings ?? []) if (!source.includes(text)) failures.push(`${rule.path}: missing ${text}`);
     for (const text of rule.forbiddenStrings ?? []) if (source.includes(text)) failures.push(`${rule.path}: forbidden ${text}`);
   }
@@ -95,7 +95,7 @@ async function documentClassification(context, config) {
   const rules = fromWorkpack(context.workpack, config.rulesRef, 'rulesRef');
   const failures = [];
   for (const rule of rules) {
-    const source = await readFile(resolve(context.root, rule.path), 'utf8');
+    const source = await readFile(resolveRepositoryPath(context.root, rule.path), 'utf8');
     const marker = `Artifact classification: **${rule.classification}**`;
     if (rule.classification && !source.includes(marker)) failures.push(`${rule.path}: missing ${marker}`);
     for (const text of rule.requiredStrings ?? []) if (!source.includes(text)) failures.push(`${rule.path}: missing ${text}`);
@@ -107,7 +107,7 @@ async function documentClassification(context, config) {
 async function fileExists(context, config) {
   const paths = config.pathsRef ? fromWorkpack(context.workpack, config.pathsRef, 'pathsRef') : config.paths ?? [];
   try {
-    await Promise.all(paths.map((path) => access(resolve(context.root, path))));
+    await Promise.all(paths.map((path) => access(resolveRepositoryPath(context.root, path))));
     return { ok: true, detail: `${paths.length} required files exist` };
   } catch (error) {
     return { ok: false, detail: `required file missing: ${error.message}` };
