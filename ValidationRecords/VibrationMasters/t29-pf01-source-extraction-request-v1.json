@@ -15,14 +15,26 @@
       "caseSensitive": false
     },
     {
-      "id": "T29-ANCHOR-CAVITATION",
-      "text": "cavitation",
+      "id": "T29-ANCHOR-BALL",
+      "text": "Ball",
       "expectedOccurrences": 1,
       "caseSensitive": false
     },
     {
-      "id": "T29-ANCHOR-FLASHING",
-      "text": "flashing",
+      "id": "T29-ANCHOR-BUTTERFLY",
+      "text": "Butterfly",
+      "expectedOccurrences": 1,
+      "caseSensitive": false
+    },
+    {
+      "id": "T29-ANCHOR-GLOBE",
+      "text": "Globe",
+      "expectedOccurrences": 1,
+      "caseSensitive": false
+    },
+    {
+      "id": "T29-ANCHOR-GATE",
+      "text": "Gate",
       "expectedOccurrences": 1,
       "caseSensitive": false
     }
