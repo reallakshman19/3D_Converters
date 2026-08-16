@@ -56,7 +56,7 @@ function modalMarkup() {
         </div>
 
         <div style="margin-top:13px;padding:10px 12px;border-left:3px solid #6b89ad;background:#121f2d;color:#9fb1c6;font-size:12px;line-height:1.45;">
-          Legacy SIF/TEE items 1–30 are retained independently for both tee slots. The opt-in loss switch applies only to fields with no legacy storage, such as Ver. 14 SIF/TEE items 31–42, reducer extension data, and ALLOWBLS items 154–168. Every conversion emits an audit JSON file.
+          Legacy SIF/TEE items 1–30 are retained independently for both tee slots by semantic mapping where a qualified legacy meaning exists; axial and torsional SIF positions are remapped rather than copied by row. Unqualified Ver. 14 B31J/version-owned fields are fail-closed unless explicit loss is selected. Reducer extensions and ALLOWBLS items 154–168 follow the same explicit-loss policy. Every conversion emits an audit JSON file.
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
@@ -225,10 +225,6 @@ export function installCiiV11V14DropdownIntegration(container) {
       return;
     }
 
-    // legacy-adapter.js rejects IDs missing from its frozen CONVERTER_ORDER.
-    // Intercept at target-capture phase, restore a valid legacy selection, and
-    // execute the already-registered converter definition without duplicating
-    // engineering conversion logic.
     event.preventDefault();
     event.stopImmediatePropagation();
 
