@@ -45,6 +45,49 @@ def _six_value_rows(values: list[float], version: int) -> list[str]:
     return [mod._render_float_row(values[index:index + 6], version) for index in range(0, len(values), 6)]
 
 
+def _flatten_rows(rows: list[str]) -> list[float]:
+    return [value for row in rows for value in _nums(row)]
+
+
+def _v14_common_tee(seed: float) -> list[float]:
+    values = [0.0] * 42
+    for field in list(range(1, 19)) + list(range(23, 27)):
+        values[field - 1] = seed + field
+    # Make the axial/torsional swap impossible to miss.
+    values[14] = seed + 1500.0  # Ver14 item 15 = axial SIF
+    values[15] = seed + 1600.0  # Ver14 item 16 = torsional SIF
+    return values
+
+
+def _expected_v11_from_v14(source: list[float]) -> list[float]:
+    target = [0.0] * 30
+    for first, last in ((1, 14), (17, 18), (23, 26)):
+        for field in range(first, last + 1):
+            target[field - 1] = source[field - 1]
+    target[14] = source[15]  # legacy item 15 torsion <- Ver14 item 16
+    target[15] = source[14]  # legacy item 16 axial   <- Ver14 item 15
+    return target
+
+
+def _v11_common_tee(seed: float) -> list[float]:
+    values = [0.0] * 30
+    for field in list(range(1, 19)) + list(range(23, 27)):
+        values[field - 1] = seed + field
+    values[14] = seed + 1500.0  # legacy item 15 = torsional SIF
+    values[15] = seed + 1600.0  # legacy item 16 = axial SIF
+    return values
+
+
+def _expected_v14_from_v11(source: list[float]) -> list[float]:
+    target = [0.0] * 42
+    for first, last in ((1, 14), (17, 18), (23, 26)):
+        for field in range(first, last + 1):
+            target[field - 1] = source[field - 1]
+    target[14] = source[15]  # Ver14 item 15 axial   <- legacy item 16
+    target[15] = source[14]  # Ver14 item 16 torsion <- legacy item 15
+    return target
+
+
 class CiiV11V14BenchmarkTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -117,9 +160,11 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         self.assertEqual(converted["UNITS"], self.m14["UNITS"])
         sif = converted["SIF&TEES"]
         for base in range(0, len(sif), 14):
-            # Each tee has its own two-row v14 extension: rows 6-7 and 13-14.
-            for index in (5, 6, 12, 13):
-                self.assertTrue(mod._row_is_all_zero(sif[base + index]))
+            # Ver14-only portions of each semantic tee slot are zero on upgrade.
+            tee1 = _flatten_rows(sif[base:base + 7])
+            tee2 = _flatten_rows(sif[base + 7:base + 14])
+            self.assertTrue(all(abs(value) < 1e-12 for value in tee1[26:]))
+            self.assertTrue(all(abs(value) < 1e-12 for value in tee2[26:]))
         reducers = converted["REDUCERS"]
         for base in range(0, len(reducers), 2):
             self.assertTrue(mod._row_is_all_zero(reducers[base + 1]))
@@ -134,39 +179,67 @@ class CiiV11V14BenchmarkTests(unittest.TestCase):
         if abs(source11_first[0]) < 1e-9:
             self.assertAlmostEqual(_nums(to14[0])[2], 0.0)
 
-    def test_sif_downgrade_preserves_both_tee_slots(self) -> None:
-        rows = [mod._render_float_row([float(index)] * 6, 14) for index in range(1, 15)]
+    def test_sif_downgrade_maps_both_tee_slots_by_semantics(self) -> None:
+        tee1 = _v14_common_tee(1000.0)
+        tee2 = _v14_common_tee(5000.0)
+        rows = _six_value_rows(tee1 + tee2, 14)
         audit = _audit(14, 11)
-        converted = mod._convert_sif_tees(rows, 14, 11, True, audit)
+        converted = mod._convert_sif_tees(rows, 14, 11, False, audit)
         self.assertEqual(len(converted), 10)
-        # Correct mapping is v14 rows 1-5 + 8-12.  Rows 6-7 and 13-14 are
-        # per-tee extension rows and must never displace tee #2 legacy data.
-        self.assertEqual([_nums(row)[0] for row in converted], [1, 2, 3, 4, 5, 8, 9, 10, 11, 12])
-        self.assertEqual(len(audit.loss_events), 1)
-        self.assertIn("items 31-42", audit.loss_events[0])
+        got = _flatten_rows(converted)
+        self.assertEqual(got[:30], _expected_v11_from_v14(tee1))
+        self.assertEqual(got[30:], _expected_v11_from_v14(tee2))
+        self.assertEqual(audit.loss_events, [])
 
-    def test_sif_upgrade_inserts_extensions_after_each_tee(self) -> None:
-        rows = [mod._render_float_row([float(index)] * 6, 11) for index in range(1, 11)]
-        audit = _audit(11, 14)
-        converted = mod._convert_sif_tees(rows, 11, 14, False, audit)
+    def test_sif_downgrade_swaps_axial_and_torsional_fields(self) -> None:
+        tee1 = _v14_common_tee(0.0)
+        tee2 = _v14_common_tee(100.0)
+        converted = mod._convert_sif_tees(_six_value_rows(tee1 + tee2, 14), 14, 11, False, _audit(14, 11))
+        first = _flatten_rows(converted[:5])
+        self.assertEqual(first[14], tee1[15])
+        self.assertEqual(first[15], tee1[14])
+
+    def test_sif_upgrade_maps_both_tee_slots_by_semantics(self) -> None:
+        tee1 = _v11_common_tee(1000.0)
+        tee2 = _v11_common_tee(5000.0)
+        rows = _six_value_rows(tee1 + tee2, 11)
+        converted = mod._convert_sif_tees(rows, 11, 14, False, _audit(11, 14))
         self.assertEqual(len(converted), 14)
-        self.assertEqual([_nums(converted[index])[0] for index in range(5)], [1, 2, 3, 4, 5])
-        self.assertTrue(mod._row_is_all_zero(converted[5]))
-        self.assertTrue(mod._row_is_all_zero(converted[6]))
-        self.assertEqual([_nums(converted[index])[0] for index in range(7, 12)], [6, 7, 8, 9, 10])
-        self.assertTrue(mod._row_is_all_zero(converted[12]))
-        self.assertTrue(mod._row_is_all_zero(converted[13]))
+        got = _flatten_rows(converted)
+        self.assertEqual(got[:42], _expected_v14_from_v11(tee1))
+        self.assertEqual(got[42:], _expected_v14_from_v11(tee2))
+
+    def test_sif_upgrade_rejects_ambiguous_legacy_only_fields(self) -> None:
+        tee1 = _v11_common_tee(0.0)
+        tee2 = _v11_common_tee(100.0)
+        tee1[18] = 9.0  # legacy item 19 has no qualified Ver14 semantic mapping
+        with self.assertRaisesRegex(mod.CiiConversionError, r"items 19"):
+            mod._convert_sif_tees(_six_value_rows(tee1 + tee2, 11), 11, 14, False, _audit(11, 14))
 
     def test_nonzero_v14_sif_extension_fails_closed(self) -> None:
         sections = [mod.Section(s.name, list(s.lines)) for s in mod.parse_sections(self.v14)]
         sif = next(section for section in sections if section.name == "SIF&TEES")
-        # Row 6 belongs to tee #1 items 31-36 and is genuinely v14-only.
+        # Row 6 contains Ver14 items 31-36 of tee #1.
         sif.lines[5] = mod._render_float_row([1.0, 0, 0, 0, 0, 0], 14)
         bad = mod._serialize(sections, 14)
         with self.assertRaises(mod.CiiConversionError):
             mod.convert_bytes(bad, 11)
         lossy = mod.convert_bytes(bad, 11, allow_lossy=True)
-        self.assertEqual(len(lossy.audit.loss_events), 1)
+        self.assertGreaterEqual(len(lossy.audit.loss_events), 1)
+        self.assertTrue(any("SIF&TEES" in event for event in lossy.audit.loss_events))
+
+    def test_nonzero_v14_surface_node_requires_loss_opt_in(self) -> None:
+        tee1 = _v14_common_tee(0.0)
+        tee2 = _v14_common_tee(100.0)
+        tee1[26] = 777.0  # Ver14 item 27 = B31J surface node
+        rows = _six_value_rows(tee1 + tee2, 14)
+        with self.assertRaisesRegex(mod.CiiConversionError, r"items 27"):
+            mod._convert_sif_tees(rows, 14, 11, False, _audit(14, 11))
+        audit = _audit(14, 11)
+        converted = mod._convert_sif_tees(rows, 14, 11, True, audit)
+        self.assertEqual(len(converted), 10)
+        self.assertEqual(len(audit.loss_events), 1)
+        self.assertIn("items 27", audit.loss_events[0])
 
     def test_allowables_28_to_26_preserves_first_153_values(self) -> None:
         legacy_values = [float(index) for index in range(1, 154)]
