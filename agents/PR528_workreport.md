@@ -12,15 +12,15 @@ REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Issue #526
 PR_OR_WIP: PR528
 BRANCH: agent/aiv-unified-network-canvas-526
-CODE_HEAD_OBSERVED: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+CODE_HEAD_OBSERVED: 41f28b46a3d98f2b247242f6ace7a4a6fa14f42d
 MAIN_HEAD_LAST_CHECKED: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 MERGE_BASE: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-GROUNDING_EPOCH: AIV526-GE-009
-CURRENT_STAGE: STAGE_5_COMPLETE__FULL_ACCEPTANCE_OUTSTANDING
-LAST_COMPLETED_STAGE: STAGE_5_CACHE_CUSTODY_AND_CURRENT_MAIN_OVERLAP_RECONCILIATION
-CURRENT_BLOCKER: Full native/release/Chromium/B1-B10 acceptance cannot be executed in this connector environment; current Actions jobs fail before any steps execute.
-HIGHEST_RISK: Runtime proof on an exact integrated candidate is still required before promotion/merge.
-EXACT_NEXT_ACTION: Run full native AIV release + B1-B10 + Chromium acceptance when a capable environment is available; keep PR draft and do not merge without Owner authorization.
+GROUNDING_EPOCH: AIV526-GE-010
+CURRENT_STAGE: LOCAL_CHROMIUM_HARNESS_PASS__FULL_HOSTED_ACCEPTANCE_OUTSTANDING
+LAST_COMPLETED_STAGE: LOCAL_CHROMIUM_CONTROLLED_EXAMPLES_AND_AUTHORITY_ASSERTIONS
+CURRENT_BLOCKER: Hosted/full-application Chromium, full native/release and complete B1-B10 acceptance remain unavailable; managed Chromium URLBlocklist blocks navigation and current Actions jobs execute zero steps.
+HIGHEST_RISK: Runtime proof on an exact current-main-integrated full application bundle is still required before promotion/merge.
+EXACT_NEXT_ACTION: Integrate current main, then run full application/native AIV release plus B1-B10/Chromium acceptance in a navigation-capable environment; preserve local Chromium 8/8 as lower-level evidence only.
 ```
 
 ## 1. Current truth
@@ -30,7 +30,7 @@ PR #528 is draft/open and mergeable. Issue #526 qualification is complete:
 - candidate Q1–Q5: issue comment `5303343598`;
 - reviewer marker: issue comment `5303402441` with exact `QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS`.
 
-Current `main` is `f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac`, two commits beyond the original merge base. Those commits are primarily unrelated B31.3/SBC work. The shared changed production seam `tabs/engineering-calculations-tab.js` was explicitly reconciled so PR528 preserves current-main FIV cache custody (`20260815-sbc-pf05-cache-1`) while retaining the AIV candidate key (`20260815-aiv-526-unified-1`). Branch history itself remains diverged/two commits behind main and therefore full validation must use an exact current-main-integrated candidate.
+Current `main` is `f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac`, two commits beyond the original merge base. Those commits are primarily unrelated B31.3/SBC work. The shared changed production seam `tabs/engineering-calculations-tab.js` was explicitly reconciled so PR528 preserves current-main FIV cache custody while retaining the AIV candidate key `20260815-aiv-526-unified-1`. Branch history itself remains diverged/two commits behind main and therefore final promotion validation must use an exact current-main-integrated candidate.
 
 PR #517 remains the active PF-02 readiness↔calculator parity owner. PR528 does not modify `aiv-readiness.js`, `aiv-calculator.js`, or `aiv-executable-contract.js`. PR #506 remains salvage evidence only.
 
@@ -102,31 +102,52 @@ Single-canvas source cutover:                     SOURCE_INSPECTION + regression
 New unified JS line cap:                          SOURCE_INSPECTION <300 each
 AIV cache chain:                                  SOURCE_INSPECTION + regression committed
 Current-main shared FIV/AIV cache seam:           SOURCE_INSPECTION reconciled
+Local Chromium controlled-canvas harness:         PASS 8/8 on Chromium 144.0.7559.96
 ```
 
-Current Actions at code head `3da55e52...`:
+Local Chromium evidence is recorded in `ValidationRecords/AIV/PR528-local-chromium-evidence.json`.
+
+The browser harness rendered both controlled examples requested for visual proof:
+
+- EI D2.3 in `TABLE_DRIVEN`: exactly one dashed logical Source→Assessment relationship, explicit 0.8 m distance, no invented physical segment, frozen registered numbers visible.
+- controlled two-RV flare sample in `NETWORK_DRIVEN`: explicit 6/9/12/20 m physical segments, exact 38 m and 41 m path overlays, generated-table read-only ownership and explicit-detach authority visible.
+
+In-page Chromium assertions passed 8/8:
+
+1. D2.3 has one logical relation and zero invented physical substrate.
+2. D2.3 explicit distance remains 0.8 m and frozen registered result values are visible.
+3. Flare sample has four physical segments with 6/9/12/20 m engineering lengths.
+4. Resolved path overlays retain 38 m and 41 m distances.
+5. Moving presentation coordinates does not change those engineering distances.
+6. NETWORK_DRIVEN generated table mutation fails closed with `AIV_GENERATED_TABLES_READ_ONLY`.
+7. Explicit detach switches to TABLE_DRIVEN and advances `inputRevision` once.
+8. An engineering edit invalidates a previously captured screening token/revision.
+
+Screenshot artifact SHA-256: `8eb75fb17567b4e9fcbf135112674e23df79f211a5789902695bfba15e0de017`.
+
+Important classification boundary: local Chromium used Playwright `page.setContent(...)` because the installed managed Chromium has `URLBlocklist=["*"]`; it is therefore a real Chromium DOM/render/assertion pass but **not** a hosted/full-application navigation pass.
+
+Current hosted Actions at the current evidence cycle:
 
 ```text
-31916306146  Vibration AIV Controlled Source Qualification  FAILURE / INFRASTRUCTURE_BLOCKED
-  job 95088487832 controlled-source-qualification
+31916357838  Vibration AIV Controlled Source Qualification  FAILURE / INFRASTRUCTURE_BLOCKED
+  job 95088630521 controlled-source-qualification
   executed steps: []
 
-31916306123  Vibration Production Freeze Validation          FAILURE / INFRASTRUCTURE_BLOCKED
-  job 95088487450 node-and-chromium
-  job payload reports no executable steps
-
-31916306114  FBX Live UI Cache Chain                          FAILURE (not AIV acceptance authority)
+31916357854  Vibration Production Freeze Validation          FAILURE / INFRASTRUCTURE_BLOCKED
+  job 95088630529 node-and-chromium
+  executed steps: []
 ```
 
-The AIV/production-freeze failures are not classified as product test failures because the jobs executed zero steps. No CI PASS is claimed.
+The failures are not classified as product failures because no job steps executed. No hosted CI/browser PASS is claimed.
 
 Explicitly `NOT_RUN / NOT_CLAIMED`:
 
 - full native repository/release suite;
-- real Chromium/full-product acceptance;
+- hosted/full-application Chromium navigation acceptance;
 - complete B1–B10 matrix;
 - 100/300/500 browser-performance observations;
-- exact current-main-integrated runtime acceptance.
+- exact current-main-integrated full application acceptance.
 
 ## 4. Locked authority boundaries
 
@@ -164,11 +185,11 @@ tabs/engineering-calculations-tab.js           c5316bc41fea63a71f8844ab17737c2f6
 tests/vibration-aiv-runtime-cache-chain.test.mjs 3c9bcfbae7fb32e3cae35283278245a44cd41342
 ```
 
-New PR528 modules/tests can be removed independently during rollback.
+New PR528 modules/tests/evidence records can be removed independently during rollback.
 
 ## 6. Review / promotion state
 
-Implementation stages 1–5 are complete at source/candidate level. Full qualification/promotion is **not complete** because native + Chromium + B1–B10 acceptance remains outstanding and the branch has not been executed as an exact current-main-integrated checkout.
+Implementation stages 1–5 are complete at source/candidate level. Local Chromium controlled-canvas evidence is PASS 8/8. Full qualification/promotion is **not complete** because native + hosted/full-application Chromium + complete B1–B10 acceptance remains outstanding and the branch has not been executed as an exact current-main-integrated checkout.
 
 PR #528 remains draft/open. Merge authority is `OWNER_ONLY / NOT_GRANTED`. **Do not merge.**
 
