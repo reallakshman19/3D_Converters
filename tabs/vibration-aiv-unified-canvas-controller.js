@@ -23,6 +23,7 @@ import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
 } from './vibration-aiv-unified-canvas-author.js';
+import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -32,7 +33,7 @@ function svg(container) { return container.querySelector('[data-aiv-unified-canv
 function scene(container) { return container.querySelector('[data-aiv-canvas-viewport]'); }
 function inputMode(container) { return card(container)?.dataset.aivInputMode ?? AIV_INPUT_MODE.TABLE_DRIVEN; }
 function isNetworkDriven(container) { return inputMode(container) === AIV_INPUT_MODE.NETWORK_DRIVEN; }
-function canvasTarget(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship]') ?? null; }
+function canvasTarget(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship],[data-aiv-canvas-segment]') ?? null; }
 
 function domNodes(container) {
   return [...container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-node]')].map((element, displayOrder) => ({
@@ -42,12 +43,9 @@ function domNodes(container) {
   }));
 }
 function reconcileLayout(container, previous) {
-  const incoming = domNodes(container);
-  const existing = new Map((previous?.nodes ?? []).map((node) => [node.nodeKey, node]));
-  return createAivCanvasLayout({
-    viewport: previous?.viewport,
-    nodes: incoming.map((node) => isNetworkDriven(container) ? node : ({ ...node, ...(existing.get(node.nodeKey) ?? {}) })),
-  });
+  const incoming = domNodes(container); const existing = new Map((previous?.nodes ?? []).map((node) => [node.nodeKey, node]));
+  return createAivCanvasLayout({ viewport: previous?.viewport,
+    nodes: incoming.map((node) => isNetworkDriven(container) ? node : ({ ...node, ...(existing.get(node.nodeKey) ?? {}) })) });
 }
 function positions(layout) { return new Map(layout.nodes.map((node) => [node.nodeKey, node])); }
 function canonicalPositions(container, layout) {
@@ -57,29 +55,23 @@ function canonicalPositions(container, layout) {
 }
 function setLine(line, from, to) {
   if (!line || !from || !to) return;
-  line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
-  line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+  line.setAttribute('x1', from.x); line.setAttribute('y1', from.y); line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
 }
 function redraw(container, layout) {
   const byKey = positions(layout); const byCanonical = canonicalPositions(container, layout);
   for (const element of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-node]')) {
     const point = byKey.get(text(element.dataset.aivCanvasNode)); if (!point) continue;
-    element.setAttribute('transform', `translate(${point.x} ${point.y})`);
-    element.dataset.aivCanvasX = point.x; element.dataset.aivCanvasY = point.y;
+    element.setAttribute('transform', `translate(${point.x} ${point.y})`); element.dataset.aivCanvasX = point.x; element.dataset.aivCanvasY = point.y;
   }
   for (const segment of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-network-segment]')) {
     const from = byCanonical.get(text(segment.dataset.aivNetworkFrom)); const to = byCanonical.get(text(segment.dataset.aivNetworkTo));
-    setLine(segment.querySelector('line'), from, to);
-    const label = segment.querySelector('text');
+    setLine(segment.querySelector('line'), from, to); const label = segment.querySelector('text');
     if (label && from && to) { label.setAttribute('x', (from.x + to.x) / 2); label.setAttribute('y', (from.y + to.y) / 2 - 7); }
   }
-  for (const line of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-path-from]')) {
-    setLine(line, byCanonical.get(text(line.dataset.aivPathFrom)), byCanonical.get(text(line.dataset.aivPathTo)));
-  }
+  for (const line of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-path-from]')) setLine(line, byCanonical.get(text(line.dataset.aivPathFrom)), byCanonical.get(text(line.dataset.aivPathTo)));
   for (const relation of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-logical-only]')) {
     const from = byKey.get(text(relation.dataset.aivCanvasSourceNode)); const to = byKey.get(text(relation.dataset.aivCanvasAssessmentNode));
-    setLine(relation.querySelector('line'), from, to);
-    const label = relation.querySelector('text');
+    setLine(relation.querySelector('line'), from, to); const label = relation.querySelector('text');
     if (label && from && to) { label.setAttribute('x', (from.x + to.x) / 2); label.setAttribute('y', (from.y + to.y) / 2 - 8); }
   }
   scene(container)?.setAttribute('transform', `translate(${layout.viewport.x} ${layout.viewport.y}) scale(${layout.viewport.zoom})`);
@@ -91,8 +83,7 @@ function svgPoint(svgElement, event) {
 function setModePresentation(container, mode) {
   const value = card(container); if (value) value.dataset.aivCanvasActiveMode = mode;
   for (const button of container.querySelectorAll('[data-aiv-canvas-mode]')) {
-    const active = button.dataset.aivCanvasMode === mode;
-    button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    const active = button.dataset.aivCanvasMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
 }
 function updateDeleteControl(container, selection) {
@@ -105,30 +96,29 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE });
   const getNetwork = callbacks.getNetwork ?? (() => null);
   const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) });
+  let editorController = null;
 
   function select(next, origin = 'canvas') {
     selection = next;
     if (layout && svg(container)) {
-      const revealed = revealAivCanvasSelection(container, svg(container), layout, selection, origin);
-      layout = revealed.layout;
+      const revealed = revealAivCanvasSelection(container, svg(container), layout, selection, origin); layout = revealed.layout;
       if (origin === 'table') redraw(container, layout);
     } else applyAivCanvasSelection(container, selection);
-    updateDeleteControl(container, selection);
-    callbacks.onSelectionChange?.(selection);
+    updateDeleteControl(container, selection); callbacks.onSelectionChange?.(selection);
   }
+  editorController = createAivUnifiedCanvasEditorController(container, {
+    getNetwork, getSelection: () => selection, onNetworkChange: callbacks.onNetworkChange,
+    onSelectionChange: (next) => select(next), onError: callbacks.onError,
+  });
   function sync() {
     if (!svg(container)) { callbacks.onSelectionChange?.(selection); return; }
-    layout = reconcileLayout(container, layout); redraw(container, layout);
-    applyAivCanvasSelection(container, selection); filter.sync();
-    setModePresentation(container, relationship.mode); updateDeleteControl(container, selection);
+    layout = reconcileLayout(container, layout); redraw(container, layout); applyAivCanvasSelection(container, selection); filter.sync();
+    setModePresentation(container, relationship.mode); updateDeleteControl(container, selection); editorController.sync();
   }
-  function updateViewport(next) {
-    layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); redraw(container, layout);
-  }
+  function updateViewport(next) { layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); redraw(container, layout); }
   function deleteSelectedRelationship() {
     if (isNetworkDriven(container)) return;
-    const element = container.querySelector('[data-aiv-canvas-relationship].is-selected');
-    const identity = aivCanvasRelationshipIdentityFromElement(element);
+    const element = container.querySelector('[data-aiv-canvas-relationship].is-selected'); const identity = aivCanvasRelationshipIdentityFromElement(element);
     if (identity && callbacks.onDeleteRelationship?.(identity)) select(null);
   }
   function authorAction(event) {
@@ -136,13 +126,13 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     try {
       const result = applyAivUnifiedNetworkAuthorAction(getNetwork(), editor, event.target);
       if (result.handled) callbacks.onNetworkChange?.(result.network);
-    } catch (error) { callbacks.onError?.(error); }
-    return true;
+      return result.handled;
+    } catch (error) { callbacks.onError?.(error); return true; }
   }
   function click(event) {
+    if (editorController.handleClick(event)) return;
     if (authorAction(event)) return;
-    const detailTab = event.target.closest('[data-aiv-detail-tab]');
-    if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
+    const detailTab = event.target.closest('[data-aiv-detail-tab]'); if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
     const fieldKey = event.target.closest('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey;
     if (fieldKey) { focusAivCanvasField(container, fieldKey); return; }
     const mode = event.target.closest('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
@@ -156,29 +146,24 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
       return;
     }
     if (event.target.closest('[data-aiv-table-add],[data-aiv-table-delete]')) return;
-    const row = event.target.closest('[data-aiv-table-row-kind]');
-    if (row) { select(aivCanvasSelectionFromElement(row), 'table'); return; }
+    const row = event.target.closest('[data-aiv-table-row-kind]'); if (row) { select(aivCanvasSelectionFromElement(row), 'table'); return; }
     if (suppressClick) { suppressClick = false; return; }
-    const element = canvasTarget(event); if (!element) return;
-    select(aivCanvasSelectionFromElement(element));
+    const element = canvasTarget(event); if (!element) return; select(aivCanvasSelectionFromElement(element));
     if (relationship.mode !== AIV_CANVAS_MODE.RELATIONSHIPS || isNetworkDriven(container)) return;
     const endpoint = aivCanvasRelationshipEndpoint(element); if (!endpoint) return;
     const advanced = advanceAivCanvasRelationshipState(relationship, endpoint); relationship = advanced.state;
     if (advanced.createRequest && callbacks.onCreateRelationship?.(advanced.createRequest)) {
       select({ selectionKey: `REL:${advanced.createRequest.sourceCanonicalId}:${advanced.createRequest.assessmentCanonicalId}:${advanced.createRequest.caseId}`, tableKind: 'relationships' });
-      relationship = setAivCanvasRelationshipMode(relationship, AIV_CANVAS_MODE.NAVIGATE);
-      setModePresentation(container, relationship.mode);
+      relationship = setAivCanvasRelationshipMode(relationship, AIV_CANVAS_MODE.NAVIGATE); setModePresentation(container, relationship.mode);
     }
   }
   function change(event) {
     const editor = event.target.closest('[data-aiv-network-editor]'); if (!editor) return;
-    try {
-      const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), editor, event.target);
-      if (result.handled) callbacks.onNetworkChange?.(result.network);
-    } catch (error) { callbacks.onError?.(error); }
+    try { const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), editor, event.target); if (result.handled) callbacks.onNetworkChange?.(result.network); }
+    catch (error) { callbacks.onError?.(error); }
   }
   function pointerDown(event) {
-    const canvas = svg(container); if (!canvas || !layout || event.button !== 0 || !event.target.closest('[data-aiv-unified-canvas-svg]')) return;
+    const canvas = svg(container); if (!canvas || !layout || editorController.isDirectEditActive() || event.button !== 0 || !event.target.closest('[data-aiv-unified-canvas-svg]')) return;
     const node = event.target.closest('[data-aiv-canvas-node]'); const start = svgPoint(canvas, event);
     if (node) {
       const key = text(node.dataset.aivCanvasNode); const current = positions(layout).get(key); if (!current) return;
@@ -188,16 +173,14 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   }
   function pointerMove(event) {
     const canvas = svg(container); if (!gesture || !canvas || gesture.pointerId !== event.pointerId) return;
-    const point = svgPoint(canvas, event); const dx = point.x - gesture.start.x; const dy = point.y - gesture.start.y;
-    gesture.moved ||= Math.abs(dx) + Math.abs(dy) > 2;
+    const point = svgPoint(canvas, event); const dx = point.x - gesture.start.x; const dy = point.y - gesture.start.y; gesture.moved ||= Math.abs(dx) + Math.abs(dy) > 2;
     if (gesture.kind === 'PAN') updateViewport({ ...layout.viewport, x: gesture.x + dx, y: gesture.y + dy });
     else { layout = moveAivCanvasLayoutNode(layout, gesture.key, gesture.x + dx / layout.viewport.zoom, gesture.y + dy / layout.viewport.zoom); redraw(container, layout); }
     event.preventDefault?.();
   }
   function pointerUp(event) {
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    const finished = gesture; gesture = null; suppressClick = finished.moved;
-    svg(container)?.releasePointerCapture?.(event.pointerId);
+    const finished = gesture; gesture = null; suppressClick = finished.moved; svg(container)?.releasePointerCapture?.(event.pointerId);
     if (finished.kind === 'NODE' && finished.moved && finished.canonicalId && isNetworkDriven(container)) {
       const point = positions(layout).get(finished.key);
       try { callbacks.onPresentationChange?.(moveAivFlareNetworkNodePresentation(getNetwork(), finished.canonicalId, point.x, point.y)); }
@@ -206,37 +189,27 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   }
   function wheel(event) {
     if (!event.target.closest('[data-aiv-unified-canvas-svg]') || !layout) return;
-    const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
-    updateViewport({ ...layout.viewport, zoom: Math.max(0.35, Math.min(3, layout.viewport.zoom * factor)) });
-    event.preventDefault();
+    const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2; updateViewport({ ...layout.viewport, zoom: Math.max(0.35, Math.min(3, layout.viewport.zoom * factor)) }); event.preventDefault();
   }
   function keyDown(event) {
+    if (editorController.handleKeyDown(event)) { event.preventDefault(); return; }
     if (event.key === 'Escape') { relationship = setAivCanvasRelationshipMode(relationship, AIV_CANVAS_MODE.NAVIGATE); setModePresentation(container, relationship.mode); return; }
-    const tab = event.target.closest('[data-aiv-detail-tab]');
-    if (tab && moveAivCanvasDetailTab(tab, event.key)) { event.preventDefault(); return; }
+    const tab = event.target.closest('[data-aiv-detail-tab]'); if (tab && moveAivCanvasDetailTab(tab, event.key)) { event.preventDefault(); return; }
     if (['Delete', 'Backspace'].includes(event.key) && !isNetworkDriven(container)) { deleteSelectedRelationship(); return; }
     if (!['Enter', ' '].includes(event.key)) return;
     if (tab) { activateAivCanvasDetailTab(tab, true); event.preventDefault(); return; }
-    const target = canvasTarget(event); if (!target) return;
-    select(aivCanvasSelectionFromElement(target));
+    const target = canvasTarget(event); if (!target) return; select(aivCanvasSelectionFromElement(target));
     if (relationship.mode === AIV_CANVAS_MODE.RELATIONSHIPS && !isNetworkDriven(container)) {
       const endpoint = aivCanvasRelationshipEndpoint(target);
-      if (endpoint) {
-        const advanced = advanceAivCanvasRelationshipState(relationship, endpoint); relationship = advanced.state;
-        if (advanced.createRequest && callbacks.onCreateRelationship?.(advanced.createRequest)) select({ selectionKey: `REL:${advanced.createRequest.sourceCanonicalId}:${advanced.createRequest.assessmentCanonicalId}:${advanced.createRequest.caseId}`, tableKind: 'relationships' });
-      }
+      if (endpoint) { const advanced = advanceAivCanvasRelationshipState(relationship, endpoint); relationship = advanced.state;
+        if (advanced.createRequest && callbacks.onCreateRelationship?.(advanced.createRequest)) select({ selectionKey: `REL:${advanced.createRequest.sourceCanonicalId}:${advanced.createRequest.assessmentCanonicalId}:${advanced.createRequest.caseId}`, tableKind: 'relationships' }); }
     }
     event.preventDefault();
   }
 
   const handlers = { click, change, pointerdown: pointerDown, pointermove: pointerMove, pointerup: pointerUp, pointercancel: pointerUp, wheel, keydown: keyDown };
   for (const [type, handler] of Object.entries(handlers)) container.addEventListener(type, handler, type === 'wheel' ? { passive: false } : undefined);
-  return Object.freeze({
-    sync, getLayout: () => layout,
-    destroy() {
-      filter.destroy();
-      for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler);
-      layout = null; gesture = null; selection = null;
-    },
+  return Object.freeze({ sync, getLayout: () => layout,
+    destroy() { filter.destroy(); editorController.destroy(); for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler); layout = null; gesture = null; selection = null; },
   });
 }
