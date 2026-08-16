@@ -164,11 +164,14 @@ async function checkProductFreeze(workpack) {
   const freeze = workpack.productFreeze;
   await access(resolve(ROOT, freeze.protocolPath));
   if (freeze.state !== 'FROZEN') {
-    const ok = freeze.frozen === false && freeze.qualificationIndependent === true;
-    return check('FIT-WP-012', ok, 'Product Freeze remains separate from method qualification');
+    const ok = freeze.state === 'BLOCKED'
+      && freeze.frozen === false
+      && freeze.qualificationIndependent === true;
+    return check('FIT-WP-012', ok, 'Product Freeze remains BLOCKED and separate from method qualification');
   }
   const receipt = await readJson(freeze.receiptPath);
-  const ok = freeze.qualificationIndependent === true
+  const ok = freeze.frozen === true
+    && freeze.qualificationIndependent === true
     && receipt.schema === freeze.requiredReceiptSchema
     && receipt.status === freeze.requiredReceiptStatus;
   return check('FIT-WP-012', ok, 'FROZEN requires the protocol-defined PASS receipt');
