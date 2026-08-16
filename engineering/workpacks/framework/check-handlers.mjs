@@ -73,10 +73,13 @@ async function moduleListContains(context, config) {
     ? fromWorkpack(context.workpack, config.requiredItemsRef, 'requiredItemsRef')
     : [];
   const missing = required.filter((item) => !values.includes(item));
+  const legacyReleaseMeta = config.requiredItemsRef === 'releaseManifest.requiredCriticalTests'
+    ? { listCount: values.length }
+    : null;
   return {
     ok: missing.length === 0,
     detail: missing.length ? `missing ${missing.join(', ')}` : `${values.length} controlled items include required paths`,
-    meta: { listCount: values.length },
+    meta: legacyReleaseMeta,
   };
 }
 
