@@ -37,11 +37,16 @@ async function installCiiV11V14Addon() {
 export function renderModelConvertersTab(container, ctx) {
   if (container?.dataset) container.dataset.modelConvertersShim = MODEL_CONVERTERS_SHIM_VERSION;
   installCiiV11V14Addon()
-    .then(() => import(CANONICAL_MODULE))
-    .then((module) => callRenderer(module.renderModelConvertersTab, container, ctx))
+    .then(() => import(CANONICAL_MODULE)
+      .then((module) => callRenderer(module.renderModelConvertersTab, container, ctx))
+      .catch((error) => {
+        console.error('[ModelConvertersTab] canonical renderer failed; trying legacy fallback', error);
+        return renderLegacyFallback(container, ctx, error);
+      }))
     .catch((error) => {
-      console.error('[ModelConvertersTab] canonical renderer failed; trying legacy fallback', error);
-      return renderLegacyFallback(container, ctx, error);
+      console.error('[ModelConvertersTab] required CAESAR v11/v14 dropdown registration failed', error);
+      renderDiagnostic(container, 'Could not load Model Converters', error, null);
+      return null;
     });
   return null;
 }
