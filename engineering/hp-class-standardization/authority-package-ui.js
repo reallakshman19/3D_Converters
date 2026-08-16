@@ -292,6 +292,9 @@
     runCalculator(doc);
     const legacy = restoreRowEvidence(doc, payload);
     const canonical = await restoreCanonicalKd3Evidence(doc, payload);
+    if (canonical.expected !== canonical.restored) {
+      throw new Error(`USER_CALCULATED_KD3 package restore incomplete: restored ${canonical.restored}/${canonical.expected}; missing ${canonical.missing.join(', ') || '(unknown keys)'}.`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 0));
     return { legacy, canonical };
   }
