@@ -1,5 +1,9 @@
+import './user-calculated-fatigue-evidence-bridge.js';
 import { calculateChapterIxPressureCycleStress } from '../../converters/b313-chapter-ix/cycle-stress.js';
-import { evaluateChapterIxUserCalculatedFatigueSpectrum } from '../../converters/b313-chapter-ix/user-calculated-fatigue.js';
+import {
+  USER_SALT_CROSSCHECK_RELATIVE_TOLERANCE,
+  evaluateChapterIxUserCalculatedFatigueSpectrum,
+} from '../../converters/b313-chapter-ix/user-calculated-fatigue.js';
 import {
   createUserCalculatedFatigueExchangePackage,
   parseUserCalculatedFatigueCsv,
@@ -139,6 +143,17 @@ function coreSalt(row) {
   return result.ok ? result.alternatingStressIntensityMpa : null;
 }
 
+function localSaltStatus(row, state, result) {
+  if (result?.saltCrossCheck?.status) return result.saltCrossCheck.status;
+  const userSalt = finiteNumber(state.userSalt);
+  if (userSalt === null) return 'NOT_PROVIDED';
+  const core = coreSalt(row);
+  if (core === null) return 'PENDING';
+  const scale = Math.max(Math.abs(core), Math.abs(userSalt), 1);
+  const relativeDifference = Math.abs(core - userSalt) / scale;
+  return relativeDifference <= USER_SALT_CROSSCHECK_RELATIVE_TOLERANCE ? 'MATCH' : 'MISMATCH';
+}
+
 function provenanceComplete(state) {
   return ['code', 'edition', 'methodRef', 'calculationRef', 'calculatedBy'].every((field) => text(state[field]));
 }
@@ -267,12 +282,12 @@ function rowHtml(row, evaluated) {
   const provenance = provenanceStatus(state);
   const deltaP = row.cycle.pA !== null && row.cycle.pB !== null ? Math.abs(row.cycle.pB - row.cycle.pA) : null;
   const zeroCandidate = salt === 0 && finiteNumber(state.seq) === 0;
-  const saltStatus = result?.saltCrossCheck?.status
-    ?? (finiteNumber(state.userSalt) === null ? 'NOT_PROVIDED' : 'PENDING');
+  const saltStatus = localSaltStatus(row, state, result);
   const usage = result?.usage;
   const stateLabel = result
     ? result.zeroDamage ? 'ZERO DAMAGE' : result.evidence.status === 'USER_CALCULATED_INDEPENDENTLY_CHECKED' ? 'CHECKED / NOT AUTHORIZED' : 'NOT CHECKED'
-    : rowReady(row) ? 'EVALUATION BLOCKED' : 'INPUT REQUIRED';
+    : saltStatus === 'MISMATCH' ? 'SALT MISMATCH'
+      : rowReady(row) ? 'EVALUATION BLOCKED' : 'INPUT REQUIRED';
   return `<tr data-user-kd3-key="${escapeHtml(row.key)}">
     <td>${fmt(row.wall, 2)}</td>
     <td class="text-left">${escapeHtml(row.cycle.name)}<br><small>${escapeHtml(row.cycle.cycleId)}</small></td>
@@ -286,7 +301,7 @@ function rowHtml(row, evaluated) {
     <td><input class="table-input user-kd3-N" type="number" min="1" step="any" value="${escapeHtml(state.N)}" placeholder="${zeroCandidate ? 'N/A' : 'external N'}" ${zeroCandidate ? 'disabled' : ''}></td>
     <td>${fmt(row.cycle.n, 0)}</td>
     <td>${Number.isFinite(usage) ? usage.toFixed(6) : zeroCandidate ? '0.000000' : '—'}</td>
-    <td><span class="badge ${result ? 'blocked' : 'warn'}">${escapeHtml(stateLabel)}</span></td>
+    <td><span class="badge ${result ? 'blocked' : saltStatus === 'MISMATCH' ? 'bad' : 'warn'}">${escapeHtml(stateLabel)}</span></td>
     <td class="text-left">
       <span class="badge ${provenance.css}">${escapeHtml(provenance.label)}</span>
       <details class="user-kd3-provenance"><summary>Provenance</summary>
@@ -296,7 +311,7 @@ function rowHtml(row, evaluated) {
         <label>Calculation ref<input class="user-kd3-calc-ref" value="${escapeHtml(state.calculationRef)}"></label>
         <label>Calculated by<input class="user-kd3-calculated-by" value="${escapeHtml(state.calculatedBy)}"></label>
         <label>Checked by<input class="user-kd3-checked-by" value="${escapeHtml(state.checkedBy)}"></label>
-        <label>Checked at<input class="user-kd3-checked-at" type="datetime-local" value="${escapeHtml(state.checkedAt)}"></label>
+        <label>Checked at<input class="user-kd3-checked-at" value="${escapeHtml(state.checkedAt)}" placeholder="ISO 8601 timestamp"></label>
       </details>
     </td>
   </tr>`;
