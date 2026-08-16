@@ -33,6 +33,51 @@ function count(regex, text) {
   return matches ? matches.length : 0;
 }
 
+function classifyReason(tokenCounts) {
+  if (tokenCounts.t292 > 0) return 'EXPLICIT_T2_9_2_IDENTIFIER';
+  if (tokenCounts.t291 > 0) return 'EXPLICIT_T2_9_1_IDENTIFIER';
+  if (tokenCounts.t29 > 0) return 'EXPLICIT_T2_9_IDENTIFIER';
+  if (tokenCounts.cavitation > 0 && tokenCounts.flashing > 0) return 'CAVITATION_FLASHING_PAIR';
+  return null;
+}
+
+export function scoreT29TextPage(pdfPageNumber, textInput) {
+  if (!Number.isInteger(pdfPageNumber) || pdfPageNumber < 1) {
+    throw new TypeError('T29_LOCATOR_PDF_PAGE_INVALID');
+  }
+  const text = String(textInput ?? '');
+  const tokenCounts = Object.fromEntries(TOKENS.map(([key, regex]) => [key, count(regex, text)]));
+  const selectionReason = classifyReason(tokenCounts);
+  const pairedMechanismTerms = tokenCounts.cavitation > 0 && tokenCounts.flashing > 0;
+  const score = (
+    tokenCounts.t292 * 100
+    + tokenCounts.t291 * 60
+    + tokenCounts.t29 * 30
+    + tokenCounts.cavitation * 4
+    + tokenCounts.flashing * 4
+    + tokenCounts.pressureRecovery * 5
+    + tokenCounts.recoveryFactor * 5
+    + (pairedMechanismTerms ? 20 : 0)
+  );
+  return {
+    pdfPageNumber,
+    textSha256: sha256(text),
+    utf8Bytes: Buffer.byteLength(text, 'utf8'),
+    lineCount: text === '' ? 0 : text.split('\n').length,
+    tokenCounts,
+    navigationCandidate: selectionReason !== null,
+    selectionReason,
+    score,
+  };
+}
+
+export function rankT29NavigationCandidates(pages) {
+  if (!Array.isArray(pages)) throw new TypeError('T29_LOCATOR_PAGES_REQUIRED');
+  return pages
+    .filter((page) => page?.navigationCandidate === true)
+    .sort((left, right) => right.score - left.score || left.pdfPageNumber - right.pdfPageNumber);
+}
+
 function parseArgs(argv) {
   const args = { input: null, out: null, register: 'docs/Masters/Vibration/source-register.json' };
   for (let index = 0; index < argv.length; index += 1) {
@@ -57,25 +102,8 @@ export function locateT29ControlledSource(pdfPath, registerPath) {
   const identity = assertExpectedControlledPdf(bytes, source);
   const extraction = extractPdfText(resolve(pdfPath));
 
-  const pages = extraction.pages.map(({ pdfPageNumber, text }) => {
-    const tokenCounts = Object.fromEntries(TOKENS.map(([key, regex]) => [key, count(regex, text)]));
-    const hit = tokenCounts.t29 > 0
-      || tokenCounts.t291 > 0
-      || tokenCounts.t292 > 0
-      || (tokenCounts.cavitation > 0 && tokenCounts.flashing > 0)
-      || tokenCounts.pressureRecovery > 0
-      || tokenCounts.recoveryFactor > 0;
-    return {
-      pdfPageNumber,
-      textSha256: sha256(text),
-      utf8Bytes: Buffer.byteLength(text, 'utf8'),
-      lineCount: text === '' ? 0 : text.split('\n').length,
-      tokenCounts,
-      navigationCandidate: hit,
-    };
-  });
-
-  const navigationCandidates = pages.filter((page) => page.navigationCandidate);
+  const pages = extraction.pages.map(({ pdfPageNumber, text }) => scoreT29TextPage(pdfPageNumber, text));
+  const navigationCandidates = rankT29NavigationCandidates(pages);
   if (navigationCandidates.length === 0) throw new Error('T29_CONTROLLED_SECTION_NOT_LOCATED');
 
   return {
@@ -89,6 +117,11 @@ export function locateT29ControlledSource(pdfPath, registerPath) {
       totalPdfPageCount: extraction.pages.length,
     },
     navigationCandidates,
+    rankingPolicy: {
+      candidateGate: 'EXPLICIT_T2_9_IDENTIFIER_OR_CAVITATION_FLASHING_PAIR',
+      genericPressureRecoveryAloneIsCandidate: false,
+      reviewerSelectionRequired: true,
+    },
     reviewerSelectionRequired: true,
     exactMethodSemanticsAuthorized: false,
     authority: {
