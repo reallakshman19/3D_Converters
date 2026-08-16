@@ -1,4 +1,6 @@
-const INTEGRATION_VERSION = '20260816-cii-merge-dropdown-1';
+import { installCiiMergeAutoOffset } from './cii-merge-auto-offset.js?v=20260816-cii-auto-offset-1';
+
+const INTEGRATION_VERSION = '20260816-cii-merge-dropdown-2';
 
 const TOOL_DEFS = Object.freeze([
   Object.freeze({
@@ -63,6 +65,10 @@ export function installCiiMergeDropdownIntegration(container) {
     : (firstNormalOption(select)?.value || '');
   select.dataset.ciiMergeFallbackValue = initialFallback;
   select.dataset.ciiMergeDropdownIntegration = INTEGRATION_VERSION;
+
+  // Auto-offset is deliberately attached to the dropdown-owned merge modals.
+  // It does not create another launcher/card or bypass the Python merge engines.
+  installCiiMergeAutoOffset();
 
   select.addEventListener('change', (event) => {
     const selected = select.options[select.selectedIndex];
