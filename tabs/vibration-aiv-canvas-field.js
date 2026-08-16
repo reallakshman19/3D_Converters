@@ -36,7 +36,8 @@ function activateEditPanel(element) {
 function revealElement(element) {
   if (!element) return;
   activateEditPanel(element);
-  for (const details of [...element.parentElement?.closest?.('details') ? [element.closest('details')] : []]) if (details) details.open = true;
+  const details = element.closest?.('details');
+  if (details) details.open = true;
 }
 function linkedCanvasText(container, key) {
   return [...container.querySelectorAll('[data-aiv-canvas-field-keys]')].filter((element) =>
