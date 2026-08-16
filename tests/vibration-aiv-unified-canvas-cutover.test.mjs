@@ -2,6 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+import {
+  aivCanvasLineLabelAnchor,
+  aivCanvasPathLabelAnchor,
+  renderAivCanvasControlIcon,
+} from '../tabs/vibration-aiv-canvas-presentation.js';
+
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const unifiedModules = [
@@ -16,6 +22,7 @@ const unifiedModules = [
   'tabs/vibration-aiv-unified-canvas-editor-view.js',
   'tabs/vibration-aiv-unified-canvas-table-author.js',
   'tabs/vibration-aiv-unified-canvas-labels.js',
+  'tabs/vibration-aiv-canvas-presentation.js',
 ];
 
 test('production input workspace renders the unified view and no duplicate flare/canvas view', async () => {
@@ -74,6 +81,45 @@ test('visible editor exposes graph, table and engineering label controls on the 
   assert.equal(qualification.includes('addAivUnifiedCanvasTableRow'), true);
   assert.equal((view.match(/data-aiv-canvas-label-mode=/gu) ?? []).length > 0, true);
   for (const mode of ['NORMAL', 'PROCESS', 'GEOMETRY', 'RESULTS', 'COMPLETENESS']) assert.equal(view.includes(mode), true);
+});
+
+test('connector labels use stable segment-normal offsets and path-midpoint presentation anchors', async () => {
+  const vertical = aivCanvasLineLabelAnchor({ x: 10, y: 0 }, { x: 10, y: 100 }, { offset: 16, side: 1 });
+  const reversed = aivCanvasLineLabelAnchor({ x: 10, y: 100 }, { x: 10, y: 0 }, { offset: 16, side: 1 });
+  assert.deepEqual(vertical, { x: -6, y: 50 });
+  assert.deepEqual(reversed, vertical, 'endpoint order must not flip the visual label side');
+  const diagonal = aivCanvasLineLabelAnchor({ x: 0, y: 0 }, { x: 100, y: 100 }, { offset: 18, side: 1 });
+  const delta = { x: diagonal.x - 50, y: diagonal.y - 50 };
+  assert.ok(Math.abs(delta.x * 100 + delta.y * 100) < 1e-9, 'label offset must be normal to the connector');
+  assert.ok(Math.abs(Math.hypot(delta.x, delta.y) - 18) < 1e-9);
+  const path = aivCanvasPathLabelAnchor([
+    { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } },
+    { from: { x: 100, y: 0 }, to: { x: 100, y: 200 } },
+  ], { offset: 20, side: -1 });
+  assert.deepEqual(path, { x: 120, y: 50 });
+  const [view, controller] = await Promise.all([
+    read('tabs/vibration-aiv-unified-canvas-view.js'),
+    read('tabs/vibration-aiv-unified-canvas-controller.js'),
+  ]);
+  assert.equal(view.includes('paint-order="stroke"'), true);
+  assert.equal(controller.includes('aivCanvasPathLabelAnchor'), true);
+  assert.equal(controller.includes('setLabelPosition(segment, from, to, -7)'), false);
+  assert.equal(controller.includes('setLabelPosition(relation, from, to, -18)'), false);
+});
+
+test('canvas toolbar and label modes are visually icon-only with accessible names', async () => {
+  const view = await read('tabs/vibration-aiv-unified-canvas-view.js');
+  for (const label of ['Navigate', 'Zoom +', 'Zoom −', 'Reset view', 'Export canvas package', 'Labels', 'Normal', 'Process', 'Geometry', 'Results', 'Completeness']) {
+    assert.equal(view.includes(`aria-label="${label}"`), true, `missing aria-label for ${label}`);
+    assert.equal(view.includes(`title="${label}"`), true, `missing title for ${label}`);
+  }
+  assert.equal(view.includes('data-aiv-canvas-icon-only="true"'), true);
+  assert.equal(view.includes('>Navigate</button>'), false);
+  assert.equal(view.includes('>Zoom +</button>'), false);
+  assert.equal(view.includes('>Zoom −</button>'), false);
+  assert.equal(view.includes('>Reset view</button>'), false);
+  assert.equal(view.includes('>Export canvas package</button>'), false);
+  assert.match(renderAivCanvasControlIcon('navigate'), /<svg/u);
 });
 
 test('unified controller keeps graph drag and label switching presentation-only', async () => {
