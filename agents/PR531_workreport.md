@@ -16,61 +16,153 @@ REPOSITORY: reallaksh19/3D_Converters
 PR: 531
 BRANCH: agent/hp-ch9-fatigue-foundation-r3
 BASE_MAIN: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
-PREDECESSOR: PR523 merged; PR530 static qualification open/draft
-SOURCE_TASK: owner instruction 2026-08-15 — independent check later; proceed coding in AUTO MODE
 SOURCE_BASIS: reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr
-CURRENT_STAGE: SOURCE-SUPPORTED FATIGUE FOUNDATION COMPLETE
-CURRENT_BLOCKER: production KD320 controlled parameter/custody evidence is not established
-EXACT_NEXT_ACTION: re-ground current main and PR531, inspect review/check state, preserve draft/unmerged status, and only continue production KD320 when controlled mean-stress semantics/custody are supplied or independently reconciled.
+CURRENT_STAGE: FATIGUE FOUNDATION + USER_CALCULATED_KD3 INTAKE COMPLETE
+CURRENT_BLOCKER: native CORE KD320 formulation/custody is not qualified
+EXACT_NEXT_ACTION: preserve USER_CALCULATED_KD3 as the usable production-data intake; only implement native CORE KD320 after exact controlled formulation and source custody are established.
 ```
 
-## Mission / Scope
+## Mission / Current Design
 
-Deliver the source-supported straight-pipe Chapter IX pressure-cycle fatigue mechanics while independent engineering checking is deferred. No Code/design-authority promotion is allowed.
+Deliver straight-pipe Chapter IX pressure-cycle fatigue mechanics without inventing licensed KD-3 semantics. Independent checking may occur later, but Code/design authority is never inferred.
 
 Implemented:
 - operating-state and transition custody;
 - KD-2 bore pressure stresses / Tresca intensity;
-- pressure-cycle DeltaSp and Salt;
+- pressure-cycle `DeltaSp` and `Salt`;
 - synthetic `DIRECT_SALT_EQUAL_SEQ` route;
-- explicit-parameter provisional mean-stress form;
-- log-log fatigue interpolation;
-- strict no extrapolation;
-- explicit zero-stress / zero-damage behavior;
+- log-log fatigue interpolation with strict no-extrapolation;
+- zero-stress / zero-damage handling;
 - Miner cumulative usage;
 - straight-pipe spectrum orchestrator;
 - method/route/curve/point/spectrum master resolver;
-- source directory audit CLI;
-- source-bound fatigue reference runner;
-- pinned independent Class B/D benchmark regressions.
+- pinned benchmark/source audit and reference runner;
+- `USER_CALCULATED_KD3` result ingestion;
+- optional user `Salt` cross-check against CORE;
+- external `Seq` and `N` custody;
+- calculator/checker provenance;
+- JSON candidate verifier and authoring template.
 
-Explicitly excluded:
-- design or Code authority;
-- inferred beta or mean-stress semantics;
-- component/B31J/FEA fatigue qualification;
-- CAESAR parity;
-- UI/runtime changes;
-- workflow changes.
+Removed after research review:
+- the provisional CORE arithmetic `Seq = Salt/(1-beta*sigmaMean/Sy)`;
+- `yieldStrengthMpa` as a claimed KD320 correction denominator;
+- hidden per-cycle mean-stress parameter execution in the spectrum path.
 
-## Live Grounding
+## Native KD320 Hard Boundary
 
-At PR allocation:
+`KD320_MEAN_STRESS_CORRECTION` now returns:
 
 ```text
-main = f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
-PR531 head before report allocation = 0354de5cb8c34aef726242db1b63ded61f72d138
-branch compare = 20 ahead / 0 behind
-changed files = 15, all additions
+KD320_CORE_ROUTE_NOT_QUALIFIED
+requiredInputMode = USER_CALCULATED_KD3
+reason = CONTROLLED_KD320_FORMULATION_AND_CUSTODY_NOT_ESTABLISHED
+canUseForDesignAuthority = false
 ```
 
-Open HP coordination search found PR530 only. PR530 explicitly excludes fatigue. PR531 therefore remains a separate coherent assignment.
+The pinned production master still resolves structurally as `PRODUCTION_EVIDENCE_PENDING`. Existing evidence blockers remain conservative; no native production KD320 calculation is executed.
+
+## USER_CALCULATED_KD3 Contract
+
+For every governed transient cycle, the user supplies:
+
+```text
+cycleId                 REQUIRED
+locationId              REQUIRED
+fromStateId             REQUIRED and must match governed spectrum
+toStateId               REQUIRED and must match governed spectrum
+Seq                     equivalentAlternatingStressMpa — REQUIRED
+N                       permissibleCycles — REQUIRED when Seq > 0
+calculationBasis.code   REQUIRED
+calculationBasis.edition REQUIRED
+calculationBasis.methodRef REQUIRED
+calculationBasis.calculationRef REQUIRED
+calculationBasis.calculatedBy REQUIRED
+```
+
+Optional evidence fields:
+
+```text
+userAlternatingStressIntensityMpa  -> cross-checked against CORE Salt
+associatedMeanStressMpa            -> audit only
+beta                               -> audit only
+saPrimeMpa                         -> audit only
+checkedBy / checkedAt              -> may be added later
+```
+
+CORE does not use `associatedMeanStressMpa`, `beta`, `saPrimeMpa`, or any yield-strength field to reconstruct `Seq`.
+
+## Authority Custody
+
+Per cycle:
+
+```text
+Salt authority = CORE_AND_USER_CROSSCHECKED
+                 or CORE_CALCULATED_USER_NOT_PROVIDED
+Seq authority  = USER_SUPPLIED
+N authority    = USER_SUPPLIED
+n authority    = GOVERNED_TRANSIENT_SPECTRUM
+Damage         = CORE_DERIVED
+```
+
+Evidence state before independent checking:
+
+```text
+EXTERNAL_KD3_CALCULATED_NOT_CHECKED
+USER_CALCULATED_NOT_INDEPENDENTLY_CHECKED
+```
+
+With distinct checker and timestamp:
+
+```text
+EXTERNAL_KD3_CALCULATED_CHECKED_NOT_AUTHORIZED
+USER_CALCULATED_INDEPENDENTLY_CHECKED
+```
+
+Even the checked state retains:
+
+```text
+canUseForDesignAuthority = false
+codeCompliance = false
+```
+
+Authority promotion remains a separate controlled engineering decision.
+
+## Salt Cross-Check Policy
+
+If the user provides `userAlternatingStressIntensityMpa`, CORE independently computes the straight-pipe pressure-cycle `Salt` and compares it using:
+
+```text
+tolerance type  = RELATIVE
+tolerance value = 1e-4
+```
+
+This is repository QA comparison policy, not an ASME design tolerance. A mismatch fails closed with `USER_SALT_MISMATCH`. User `Salt` is optional; `Seq` and `N` can still be consumed with explicit provenance when it is omitted.
+
+## User Authoring Artifacts
+
+Pure evaluator:
+
+```text
+converters/b313-chapter-ix/user-calculated-fatigue.js
+```
+
+Candidate verifier:
+
+```text
+node scripts/verify-b313-ch9-user-calculated-fatigue.mjs <candidate.json>
+```
+
+Template:
+
+```text
+engineering/hp-class-standardization/qualification/user-calculated-fatigue.template.json
+```
+
+The template explicitly states that `Seq` and `N` come from the licensed/external calculation and that optional mean-stress fields are evidence only.
 
 ## Source Custody
 
-Pinned source:
-`reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr`
-
-Relevant source files were reconstructed locally and verified by exact Git blob:
+Pinned High-Pr sources remain unchanged from the original R3 receipt:
 
 ```text
 method_manifest.csv      a34af2063105db4dae59003ebe77704b95541e81
@@ -82,139 +174,59 @@ operating_state.csv      812498264cb0de94907c34b0e076fb827a17ccdb
 cycle_transition.csv     9393f7da50bc1575476af0c183834c3f6dea38e2
 ```
 
-A compare from the pinned `Advanced_Analysis` commit to current source-repo main contained no `docs/High Pr/*` changes, so the pin remains the development basis.
+## Validation Receipt
 
-## Numerical Mechanics
+Original R3 branch validation remains:
+- pinned analytical/synthetic benchmarks PASS;
+- exact pinned synthetic master execution retained `U = 1.1200262680869295 / REFERENCE_FAIL` without weakening inputs;
+- production master audit remains fail-closed.
 
-Implemented from the pinned specification:
-
-```text
-Y = Do / Di
-Sp = 2 P Y^2/(Y^2-1)
-DeltaP = |PB-PA|
-DeltaSp = 2 DeltaP Y^2/(Y^2-1)
-Salt = DeltaSp/2
-Seq = Salt                                  [synthetic route]
-Seq = Salt/(1-beta*sigmaMean/Sy)            [explicit provisional inputs only]
-N = log-log interpolation within curve only
-U = sum(ni/Ni)
-```
-
-Every result path carries `canUseForDesignAuthority=false`.
-
-## Production KD320 Hard Boundary
-
-Exact production-master audit result:
+Post-research correction validation:
 
 ```text
-bundleState = PRODUCTION_EVIDENCE_PENDING
-route = ROUTE-KD3-2024
-curve = VIII3-KD3-CS-001
-KD320_CONTROLLED_MEAN_STRESS_PARAMETERS_PENDING
-LICENSED_CURVE_INDEPENDENT_CUSTODY_PENDING
-INDEPENDENT_ENGINEERING_CHECK_PENDING
-canUseForDesignAuthority = false
+foundation + user-calculated focused tests = 22
+PASS = 22
+FAIL = 0
 ```
 
-The pinned production route names the mean-stress correction route but does not bind a controlled beta or definitive mean-stress extraction parameter. PR531 does not infer either.
+Covered:
+- native KD320 hard block;
+- external `Seq + N` intake;
+- governed cycle/state identity;
+- optional Salt cross-check;
+- Salt mismatch fail-closed;
+- mandatory calculation provenance;
+- independent checker collision rejection;
+- checked/not-checked evidence states;
+- exactly one external row per governed cycle;
+- zero-range/zero-damage external result;
+- file-based candidate verifier.
 
-## Independent / Synthetic Benchmark Receipt
-
-Exact pinned benchmark values are used unchanged:
+Exact tested Git blobs include:
 
 ```text
-HP-AN-001  DeltaSp / Salt analytical benchmark
-HP-AN-004  zero pressure range -> zero fatigue damage
-HP-CRV-002 log-log interpolation
-HP-CRV-003 high-stress no-extrapolation block
-HP-CRV-004 low-stress no-extrapolation block
-HP-CRV-005 Miner U = 0.2
+fatigue-equivalent.js               99ef93cc82ba447467bbe246a390727628954476
+fatigue-spectrum.js                 f035dee53ccdcb09c2872bf2b1fcf4f9a79f31c8
+user-calculated-fatigue.js          07e173707a105556057f8ada81ea53f24386b144
+fatigue-foundation.test.mjs         b01f49ea3f6e2401be2b256d32b31c72eaf55647
+user-calculated-fatigue.test.mjs    a98769a49c7f68f8b4746b2953cabee15a2c1259
 ```
-
-Focused exact-branch suite:
-
-```text
-22 tests
-22 PASS
-0 FAIL
-```
-
-No oracle/tolerance was regenerated from implementation output.
-
-## Exact Pinned Synthetic Reference Execution
-
-Input:
-
-```text
-method   B313-CH9-SYNTH-TEST-R1
-spectrum SPEC-HP-BENCH-01
-Do       114.3 mm
-t_eff    8.80375 mm
-```
-
-Master audit:
-
-```text
-SYNTHETIC_REFERENCE_READY
-route = ROUTE-KD3-SYNTH
-curve = TEST-SYNTH-CURVE-001
-points = 3
-states = 7
-transitions = 5
-issues = []
-```
-
-Execution:
-
-```text
-TR-001 DeltaP=18  Salt=63.2994958105   N=45680.8405411  U=0.1094550788
-TR-002 DeltaP=18  Salt=63.2994958105   N=45680.8405411  U=0.1094550788
-TR-003 DeltaP=25  Salt=87.9159664035   N=15339.2066436  U=0.6519241987
-TR-004 DeltaP=35  Salt=123.0823529649  N=5016.21417344  U=0.2491919118
-TR-005 DeltaP=0   Salt=0               N=null           U=0
-cumulative U = 1.1200262680869295
-reference status = REFERENCE_FAIL
-```
-
-This is a **software reference execution**, not licensed/independently approved Code evidence. The fail is retained exactly; no input, curve, tolerance, or cycle count was weakened.
-
-## Changed-File Ledger
-
-```text
-agents/PR531_workreport.md
-converters/b313-chapter-ix/pressure-stress.js
-converters/b313-chapter-ix/cycle-stress.js
-converters/b313-chapter-ix/transient-spectrum.js
-converters/b313-chapter-ix/fatigue-equivalent.js
-converters/b313-chapter-ix/fatigue-curve.js
-converters/b313-chapter-ix/cumulative-damage.js
-converters/b313-chapter-ix/fatigue-spectrum.js
-converters/b313-chapter-ix/fatigue-master-resolver.js
-scripts/audit-b313-ch9-fatigue-masters.mjs
-scripts/run-b313-ch9-fatigue-reference.mjs
-tests/b313-chapter-ix-fatigue-foundation.test.mjs
-tests/b313-chapter-ix-fatigue-benchmarks.test.mjs
-tests/b313-chapter-ix-fatigue-master-resolver.test.mjs
-tests/b313-chapter-ix-fatigue-reference-runner.test.mjs
-```
-
-The pre-PR WIP report must be deleted after this file is created so the final diff retains one durable report identity.
 
 ## Validation Truth
 
 PASS:
 - live grounding / overlap classification;
 - exact pinned-source hash reconstruction;
-- source-supported formula trace;
-- exact branch focused suite 22/22;
-- pinned independent Class B/D benchmark regressions;
-- synthetic master-chain audit;
-- exact pinned synthetic reference execution;
-- production master fail-closed audit.
+- source-supported pressure-cycle mechanics;
+- pinned independent benchmark regressions;
+- synthetic master audit/execution;
+- native KD320 fail-closed behavior;
+- `USER_CALCULATED_KD3` focused suite 22/22;
+- exact branch-blob identity for tested changed files.
 
 NOT_RUN / NOT_ESTABLISHED:
 - complete private-repo native suite: NOT_RUN / environment limitation;
-- production KD320 controlled parameter custody: NOT_ESTABLISHED;
+- native CORE KD320 controlled formulation/custody: NOT_ESTABLISHED;
 - licensed curve independent custody: NOT_ESTABLISHED;
 - independent engineering qualification: deferred / NOT_ESTABLISHED;
 - Code/design authority: NOT_ESTABLISHED.
@@ -224,14 +236,15 @@ NOT_RUN / NOT_ESTABLISHED:
 - no authority promotion;
 - no hidden engineering defaults;
 - no fatigue-curve extrapolation;
-- zero stress range contributes exactly zero damage;
 - no tolerance weakening;
 - no oracle regeneration;
-- no production KD320 execution from guessed mean-stress semantics;
+- no native KD320 calculation from guessed semantics;
+- optional mean-stress fields remain audit-only;
+- user `Seq/N` provenance is explicit;
 - no component/class qualification from straight-pipe mechanics;
 - no workflow mutation;
 - no merge without explicit owner authorization.
 
 ## Handover in 60 Seconds
 
-PR531 contains a source-bound, benchmark-only straight-pipe fatigue foundation. Exact focused tests are 22/22 PASS. Exact pinned synthetic source execution produces U=1.1200262681 / REFERENCE_FAIL. Production KD320 remains fail-closed for three named evidence/custody blockers. Independent check was deferred by owner; it was not waived for authority. Keep PR531 draft/unmerged until explicit owner action.
+PR531 now provides a usable user/external KD-3 result pathway while native CORE KD320 remains fail-closed. Users supply externally calculated `Seq` and `N`; CORE binds them to governed cycles, optionally reproduces `Salt`, and derives Miner damage. Independent checking can be added later without changing the data model. Keep PR531 draft/unmerged until explicit owner merge authorization.
