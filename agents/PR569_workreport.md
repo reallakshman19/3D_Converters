@@ -6,53 +6,57 @@ Issue #568 only: transform the FIT-specific work-pack verifier into a reusable f
 
 ```text
 CRITICALITY = ENGINEERING_CRITICAL
-EXECUTION_MODE = AUTO (Owner instruction: proceed in auto mode)
-AUTO_STATE = RUNNING
+EXECUTION_MODE = AUTO
+AUTO_STATE = TAKEOVER_REQUIRED
 MERGE_AUTHORITY = OWNER_ONLY_NOT_GRANTED
 BRANCH = agent/engineering-workpack-framework-568
 PULL_REQUEST = 569
 BASE_MAIN = ecf3b7c44826212710f24ff00f3c0e8847570725
-CURRENT_HEAD = 565ba338df79ae48812c4b12d6d85318281e17e0
+IMPLEMENTATION_HEAD_BEFORE_FINAL_HANDOFF = 1df5248d55b2ce975e077de12889aa4a99f3413f
 ```
+
+Owner validation instruction:
+
+```text
+skip workflow
+only local check
+```
+
+No GitHub workflow/Actions status is used anywhere in this disposition.
 
 ## Current live truth
 
-- `main@ecf3b7c...` is merged PR #564 and contains the capability lifecycle convention.
-- PR #569 is draft, mergeable, based directly on current `main`.
-- Existing merged `scripts/verify-engineering-workpack.mjs` is generic by name but FIT-specific internally.
+- `main@ecf3b7c44826212710f24ff00f3c0e8847570725` is unchanged from branch creation and contains merged PR #564 lifecycle conventions.
+- PR #569 is draft and mergeable against current `main`.
+- Merged `scripts/verify-engineering-workpack.mjs` was generic by filename but FIT-specific internally.
 - `VIB-FIT.json` is the only merged work pack on `main`.
-- Draft PR #567 for #566 adds `VIB-AIV.json` plus an AIV-specific verifier and edits the shared verifier with a `VIB-AIV` branch.
-- #567 is `COORDINATION_REQUIRED`; PR569 does not absorb AIV drift repair. Intended order: framework first, then #567 rebase/replay.
+- Draft PR #567 is still open on the same base and advances AIV #566 with its own local validation, but it still owns a shared-verifier delegation that must be replayed/rebased after PR569.
+- PR569 does not absorb AIV drift repair, PF work, UI repair, numerical method changes, or authority promotion.
 
-## Scope lock
-
-In scope: generic loader/schema validation, generic declared-check dispatch, declared probe interface, FIT migration preserving `FIT-WP-001..012`, explicit unmapped legacy lifecycle representation, falsification tests, second-consumer framework proof.
-
-Forbidden: FIT/AIV equation or benchmark changes, applicability/QST-003 disposition changes, screening/design/code authority promotion, Product Freeze completion, SBC/T2.9 numerical implementation, UI/runtime/canvas redesign, dependency migration, workflow edits.
-
-Owner instruction for validation: **skip workflow; local checks only**. GitHub Actions/workflows are not used as evidence for PR569.
-
-## Architecture implemented
+## Implemented architecture
 
 ```text
 EngineeringWorkPack.v1 JSON
-  -> fail-closed schema/lifecycle/check declaration validation
-  -> deterministic generic check dispatch
-  -> explicitly declared narrow probe modules
-  -> immutable work-pack input to probes
-  -> machine-readable PASS/FAIL checks
+  -> fail-closed loader / schema gate
+  -> explicit lifecycle representation
+  -> ordered generic declared-check dispatch
+  -> repository-root path confinement
+  -> explicitly declared probe modules / exports
+  -> deeply frozen work-pack input
+  -> deterministic machine-readable PASS / FAIL result
 ```
 
-Generic core paths:
+Generic core:
 
 ```text
 engineering/workpacks/framework/workpack-loader.mjs
 engineering/workpacks/framework/check-handlers.mjs
+engineering/workpacks/framework/path-utils.mjs
 engineering/workpacks/framework/probe-runner.mjs
 scripts/verify-engineering-workpack.mjs
 ```
 
-FIT-only runtime meaning is isolated in:
+FIT-only runtime engineering semantics:
 
 ```text
 engineering/workpacks/probes/vib-fit.mjs
@@ -60,28 +64,49 @@ engineering/workpacks/probes/vib-fit.mjs
 
 The generic core contains no FIT/AIV/SBC/T2.9 engineering branch and no QST-003/D.2.3 engineering rule.
 
+## Generalization boundary
+
+Generic engine owns how declared checks execute:
+
+```text
+MODULE_EXPORT_EQUALS
+REGISTRY_CONTAINS
+JSON_IDENTITY_SET
+MODULE_LIST_CONTAINS
+SOURCE_RULES
+DOCUMENT_CLASSIFICATION
+FILE_EXISTS
+CUSTOM_DECLARED_PROBE
+```
+
+Unknown check types fail closed with `BLOCKED_UNSUPPORTED_CHECK_TYPE`. Missing work packs, malformed JSON/schema, duplicate check IDs, unsupported lifecycle states, missing/undeclared probes, invalid probe results and repository path escapes all fail closed.
+
+Mechanism meaning remains outside the core. FIT-specific bounded screening authority, design/code boundary, QST-003 and Product Freeze receipt semantics are declared through the FIT probe module.
+
 ## FIT semantic preservation
 
-Historical gate IDs and order remain:
+`VIB-FIT.json` preserves the historical gate IDs and execution order:
 
 ```text
 FIT-WP-001 identity
 FIT-WP-002 method revision
 FIT-WP-003 active registry membership
-FIT-WP-004 bounded screening authority + projections
+FIT-WP-004 bounded screening authority + authority projections
 FIT-WP-005 designAuthority=false
 FIT-WP-006 codeCompliance=false
-FIT-WP-007 QST-003 fail-closed
-FIT-WP-008 benchmark identity set
-FIT-WP-009 release manifest critical paths
-FIT-WP-010 UI projection drift
-FIT-WP-011 document classification drift
-FIT-WP-012 Product Freeze independence / receipt rule
+FIT-WP-007 QST-003 fail-closed public error
+FIT-WP-008 controlled benchmark identities / required vectors
+FIT-WP-009 controlled release-manifest critical paths
+FIT-WP-010 UI authority-projection drift
+FIT-WP-011 document classification/current-vs-historical drift
+FIT-WP-012 Product Freeze independence / PASS-receipt rule
 ```
 
-A review correction during implementation restored `FIT-WP-006` as a dedicated FIT probe so both the work pack and adapter cannot drift `codeCompliance=true` together and still pass.
+A source-audit correction during implementation restored `FIT-WP-006` as an explicit FIT probe so the work pack and adapter cannot both drift `codeCompliance=true` and still pass.
 
-## Protected state/authority invariants
+The legacy `releaseManifestCount` output is preserved only for `releaseManifest.requiredCriticalTests`; unrelated future generic list checks do not inherit that FIT-era compatibility field.
+
+## State / authority separation
 
 ```text
 capabilityLifecycle != registryState
@@ -106,39 +131,60 @@ Product Freeze        = BLOCKED / qualificationIndependent=true
 capabilityLifecycle   = UNMAPPED_LEGACY / inferred=false
 ```
 
-ACTIVE registry membership does not create a lifecycle state.
+ACTIVE registry membership does not infer capability lifecycle. The stale `PR #564 lifecycle implementation = DRAFT_NOT_ON_MAIN` annotation was corrected to `MERGED_LIFECYCLE_CONVENTION_NOT_MAPPED_TO_FIT` without retrofitting a FIT lifecycle state.
 
-## Hypothesis / falsifier
+## Scope exclusions preserved
 
-Hypothesis: a new mechanism can be added by supplying a work pack, generic checks and narrow declared probes without adding mechanism engineering branches to the shared verifier.
+No change to:
 
-Falsifier: if a second consumer requires `if FIT/AIV/...` logic or engineering-specific values/rules inside the generic loader/dispatcher, stop rather than call the abstraction generic.
+```text
+FIT equations/correlations/coefficients
+FIT benchmark expected values/tolerances
+FIT applicability boundaries
+QST-003 disposition
+AIV equations/assumptions/benchmarks/drift repair
+screening authority
+design authority
+code-compliance authority
+Product Freeze completion/state
+SBC or T2.9 numerical implementation
+UI/runtime/canvas behavior
+dependencies
+.github/workflows/*
+```
 
-## Validation truth
+## Local validation truth
 
-Local clone attempt:
+Native checkout attempt:
 
 ```text
 git clone --depth 1 --branch agent/engineering-workpack-framework-568 ...
--> FAIL / ENVIRONMENT_BLOCKED
--> Could not resolve host: github.com
+FAIL / ENVIRONMENT_BLOCKED
+fatal: Could not resolve host: github.com
 ```
 
-Available local reconstruction checks:
+Therefore repository-native exact-head suites are not claimed PASS.
+
+Exact PR569 framework source was reconstructed locally for the generic engine/probe seam and executed with Node 22.16.0. Results:
 
 ```text
-PASS     exact pre-edit blob backups committed before source mutation
-PASS     VIB-FIT.json parses in prepared local reconstruction
-PASS     node --check on prepared changed MJS
-PASS     every new MJS <300 physical lines
-PASS     synthetic second-consumer generic-engine smoke
-PASS     unknown check type fails closed
-PASS     declared mutation probe cannot change authority/lifecycle
-PASS     source/diff scope reconciliation against GitHub branch
-PASS     PR569 mergeable against current main
+PASS  node --check reconstructed framework MJS set
+PASS  new MJS modules remain <300 physical lines
+PASS  synthetic second consumer verifies without mechanism branch
+PASS  unknown generic check type fails closed
+PASS  missing declared probe fails closed
+PASS  duplicate check ID fails closed
+PASS  unsupported schema version fails closed
+PASS  declared probe cannot mutate work-pack authority/lifecycle
+PASS  repository path escape fails closed
+PASS  generic core scan contains no FIT/AIV/SBC/T2.9 engineering rule
+PASS  legacy releaseManifestCount is scoped only to releaseManifest.requiredCriticalTests
+PASS  FIT probe syntax in reconstruction
+PASS  PR scope/source reconciliation against GitHub branch
+PASS  PR569 mergeability against unchanged current main
 ```
 
-Repository-native exact-head execution remains truthfully:
+Still truthfully:
 
 ```text
 NOT_RUN / ENVIRONMENT_BLOCKED  npm run workpack:verify -- VIB-FIT
@@ -146,44 +192,78 @@ NOT_RUN / ENVIRONMENT_BLOCKED  node --test tests/engineering-workpack-framework.
 NOT_RUN / ENVIRONMENT_BLOCKED  npm run verify:vibration-fit-release
 ```
 
-No workflow/Actions result is consulted or claimed by Owner instruction.
+These remain the exact local/native gates required before moving PR569 out of draft. `NOT_RUN` is not represented as PASS.
+
+## Second-consumer proof
+
+The framework test defines `EWP-SECOND-CONSUMER` and verifies it through `verifyEngineeringWorkpackDefinition()` using generic declared checks only. No generic-core engineering branch is required. This establishes the framework seam without solving AIV #566 inside PR569.
+
+PR #567 remains the real AIV consumer candidate and must rebase/replay its AIV work pack on this framework after PR569 lands; its current `VIB-AIV` branch in the shared verifier is not the final architecture.
 
 ## Changed-file ledger
 
 ```text
-.backups/WIP-eng-workpack-568_scripts_verify-engineering-workpack_mjs.bak
+.backups/PR569_agents_PR569_workreport_md.bak
+.backups/PR569_agents_WIP-eng-workpack-568_workreport_md.bak
+.backups/PR569_agents_status_PR569_yaml.bak
+.backups/PR569_engineering_workpacks_VIB-FIT_json.bak
+.backups/PR569_engineering_workpacks_framework_check-handlers_mjs.bak
+.backups/PR569_engineering_workpacks_framework_check-handlers_path-hardened_mjs.bak
+.backups/PR569_engineering_workpacks_framework_probe-runner_mjs.bak
+.backups/PR569_engineering_workpacks_probes_vib-fit_mjs.bak
+.backups/PR569_scripts_verify-engineering-workpack_mjs.bak
+.backups/PR569_tests_engineering-workpack-framework_current_test_mjs.bak
+.backups/PR569_tests_engineering-workpack-framework_test_mjs.bak
 .backups/WIP-eng-workpack-568_engineering_workpacks_VIB-FIT_json.bak
-engineering/workpacks/framework/workpack-loader.mjs
+.backups/WIP-eng-workpack-568_scripts_verify-engineering-workpack_mjs.bak
+agents/PR569_workreport.md
+agents/claims/PR569.yaml
+agents/status/PR569.yaml
+engineering/workpacks/VIB-FIT.json
 engineering/workpacks/framework/check-handlers.mjs
+engineering/workpacks/framework/path-utils.mjs
 engineering/workpacks/framework/probe-runner.mjs
+engineering/workpacks/framework/workpack-loader.mjs
 engineering/workpacks/probes/vib-fit.mjs
 scripts/verify-engineering-workpack.mjs
-engineering/workpacks/VIB-FIT.json
 tests/engineering-workpack-framework.test.mjs
 tests/fixtures/engineering-workpack-mutation-probe.mjs
-agents/PR569_workreport.md
-agents/status/PR569.yaml
-agents/claims/PR569.yaml
 ```
+
+The WIP work report itself was retired after PR allocation; its exact bytes are retained in `.backups/PR569_agents_WIP-eng-workpack-568_workreport_md.bak`.
 
 ## Coordination
 
 ```text
 PR567 = COORDINATION_REQUIRED
-reason = exact shared-verifier architecture overlap
-required disposition = PR569 generic framework first; #567 rebase/replay without mechanism branch in generic core
+reason = shared verifier architecture overlap
+required merge order = PR569 framework first; PR567 rebase/replay second
 ```
 
-No numerical or authority overlap is absorbed from #566/#567.
+No numerical/authority scope from #566/#567 is absorbed.
 
 ## Highest risk
 
-Silent weakening of existing FIT protection while making the code appear generic. Semantic preservation, not refactoring aesthetics, is the acceptance criterion. Full exact-repository FIT execution is still required before merge readiness.
+Silent weakening of existing FIT protection while making the code appear generic. Source/falsification review found no intentional weakening, but full exact-repository FIT execution remains mandatory before review readiness.
 
-## AUTO hard-stop evaluation
+## AUTO disposition
 
-No approved-scope mutation changes vibration numerical authority, engineering master data, topology/geometry authority, result publication authority, units, screening authority, design authority, code compliance, or Product Freeze state. Automatic progression remains inside #568 scope.
+Implementation and available local checks are complete. Continuing cannot close the remaining validation gap because this environment cannot materialize the private repository checkout. Per repository AUTO rules:
+
+```text
+AUTO_STATE = TAKEOVER_REQUIRED
+PR_RECOVERY_STATE = TAKEOVER_REQUIRED
+TAKEOVER_AUTHORITY = READ_ONLY until re-grounded by the next qualified agent
+```
 
 ## EXACT_NEXT_ACTION
 
-Create PR569 status/claim records, perform final source/diff/falsifier audit, update PR/issue evidence with exact validation truth, then set `AUTO_STATE=TAKEOVER_REQUIRED` because repository-native execution is environment-blocked and merge readiness cannot be established here. Do not merge.
+In a native-capable checkout of the exact PR569 head:
+
+```bash
+npm run workpack:verify -- VIB-FIT
+node --test tests/engineering-workpack-framework.test.mjs
+npm run verify:vibration-fit-release
+```
+
+If and only if all three pass, re-ground current `main` and PR567, confirm no new overlap, update PR569 validation evidence, and request Owner review. Do not merge without explicit Owner authorization.
