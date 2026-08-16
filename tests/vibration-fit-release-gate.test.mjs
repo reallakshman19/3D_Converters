@@ -13,6 +13,7 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/engineering-calculation-console-static.test.mjs',
   'tests/vibration-fit-ei-worked-examples.test.mjs',
   'tests/vibration-fit-independent-benchmarks.test.mjs',
+  'tests/vibration-fit-workpack-drift.test.mjs',
   'tests/vibration-fit-central-api-qualification.test.mjs',
   'tests/vibration-fit-d4-product-path-validation.test.mjs',
   'tests/vibration-fit-data-blockers.test.mjs',
@@ -35,6 +36,7 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/vibration-integrity-input-runtime.test.mjs',
   'tests/vibration-integrity-editable-input-static.test.mjs',
   'tests/vibration-integrity-mechanism-matrix.test.mjs',
+  'tests/vibration-production-freeze-browser-contract.test.mjs',
   'tests/vibration-module-boundaries.test.mjs',
   'tests/vibration-user-engineering-data.test.mjs',
   'tests/vibration-mechanical-ei-worked-examples.test.mjs',
@@ -61,7 +63,8 @@ test('FIT/VIB release manifest keeps product-layer groups plus multi-mechanism v
 
 test('FIT/VIB release manifest has no duplicates and retains critical seams', () => {
   const tests = listVibrationFitReleaseTests();
-  assert.equal(tests.length, 53);
+  const projectedCount = VIBRATION_FIT_RELEASE_TEST_GROUPS.reduce((count, group) => count + group.tests.length, 0);
+  assert.equal(tests.length, projectedCount);
   assert.equal(new Set(tests).size, tests.length);
   for (const required of REQUIRED_TESTS) assert(tests.includes(required), `missing ${required}`);
 });
