@@ -1,14 +1,16 @@
 /**
- * Registers the CAESAR Ver. 14 <-> 11 neutral-file converter with all registry
- * module instances used by the current Model Converters shell.
+ * Registers CAESAR Ver. 14 <-> 11 exclusively in the registry instance consumed
+ * by legacy-adapter.js to build the 3D Model Converters > Converter dropdown.
+ *
+ * Do not register this converter into alternate registry module instances: that
+ * creates ambiguous ownership and can surface the same action outside the
+ * primary Converter selector.
  */
-import { CONVERTERS as LEGACY_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-3';
-import { CONVERTERS as SELECTOR_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-2';
-import { CONVERTERS as LIVE_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
+import { CONVERTERS as DROPDOWN_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-3';
 import { run as runCiiV11V14 } from './converters/cii-v11-v14.js?v=20260816-cii-v11-v14-1';
 
 const CONVERTER_ID = 'cii_v11_v14';
-const VERSION = '20260816-cii-v11-v14-1';
+const VERSION = '20260816-cii-v11-v14-dropdown-1';
 
 function definition() {
   return {
@@ -35,13 +37,14 @@ function definition() {
   };
 }
 
-function installInto(registry) {
+function installIntoDropdown(registry) {
   if (!Array.isArray(registry)) return false;
   const existing = registry.find((entry) => entry?.id === CONVERTER_ID);
   if (existing) {
     Object.assign(existing, definition());
     return true;
   }
+
   const item = definition();
   const anchor = registry.findIndex((entry) => entry?.id === 'cii_syntax_check_2019');
   if (anchor >= 0) registry.splice(anchor, 0, item);
@@ -50,10 +53,7 @@ function installInto(registry) {
 }
 
 export function installCiiV11V14Addon() {
-  const registries = new Set([LEGACY_CONVERTERS, SELECTOR_CONVERTERS, LIVE_CONVERTERS]);
-  let installed = false;
-  for (const registry of registries) installed = installInto(registry) || installed;
-  return installed;
+  return installIntoDropdown(DROPDOWN_CONVERTERS);
 }
 
 export const __CII_V11_V14_ADDON_VERSION__ = VERSION;
