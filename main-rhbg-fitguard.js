@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260815-aiv-526-unified-1');
+  const module = await import('./core/app.js?v=20260816-aiv-526-editor-1');
   await module.init(startupMount());
 }
 
