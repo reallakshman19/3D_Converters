@@ -17,6 +17,10 @@ function text(value) {
   return String(value ?? '').trim();
 }
 
+function normalizedIdentity(value) {
+  return text(value).toLocaleLowerCase();
+}
+
 function indexExternalResults(rows) {
   if (!Array.isArray(rows) || !rows.length) {
     return failure('USER_FATIGUE_RESULTS_REQUIRED', 'externalResults must contain at least one calculated fatigue result.');
@@ -43,7 +47,8 @@ function requireBasis(row, cycleId) {
       return failure('USER_FATIGUE_BASIS_REQUIRED', `${cycleId}.calculationBasis.${field} is required.`, { cycleId, field });
     }
   }
-  if (text(basis.checkedBy) && text(basis.checkedBy) === text(basis.calculatedBy)) {
+  if (normalizedIdentity(basis.checkedBy)
+      && normalizedIdentity(basis.checkedBy) === normalizedIdentity(basis.calculatedBy)) {
     return failure('USER_FATIGUE_CHECKER_NOT_INDEPENDENT', `${cycleId} checker must differ from calculatedBy.`, { cycleId });
   }
   if (Boolean(text(basis.checkedBy)) !== Boolean(text(basis.checkedAt))) {
