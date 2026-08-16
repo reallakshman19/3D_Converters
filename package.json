@@ -6,7 +6,7 @@
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
     "verify:hp-chapter-ix": "node --test tests/b313-chapter-ix-core.test.mjs tests/b313-chapter-ix-master-resolvers.test.mjs tests/b313-chapter-ix-master-storage.test.mjs tests/b313-chapter-ix-seed-migration-cli.test.mjs tests/b313-chapter-ix-legacy-evidence-intake.test.mjs tests/engineering-calculation-core.test.mjs",
-    "verify:hp-chapter-ix-fatigue": "node --test tests/b313-chapter-ix-fatigue-benchmarks.test.mjs tests/b313-chapter-ix-fatigue-foundation.test.mjs tests/b313-chapter-ix-fatigue-master-resolver.test.mjs tests/b313-chapter-ix-fatigue-reference-runner.test.mjs tests/b313-chapter-ix-user-calculated-fatigue.test.mjs tests/b313-chapter-ix-fatigue-ui-authority.test.mjs",
+    "verify:hp-chapter-ix-fatigue": "node --test tests/b313-chapter-ix-fatigue-benchmarks.test.mjs tests/b313-chapter-ix-fatigue-foundation.test.mjs tests/b313-chapter-ix-fatigue-master-resolver.test.mjs tests/b313-chapter-ix-fatigue-reference-runner.test.mjs tests/b313-chapter-ix-user-calculated-fatigue.test.mjs tests/b313-chapter-ix-fatigue-ui-authority.test.mjs tests/b313-chapter-ix-user-calculated-fatigue-product.test.mjs tests/b313-chapter-ix-user-calculated-fatigue-package-roundtrip.test.mjs",
     "migrate:hp-chapter-ix-masters": "node scripts/migrate-b313-ch9-seed-masters.mjs",
     "audit:hp-chapter-ix-evidence": "node scripts/audit-b313-ch9-legacy-evidence.mjs",
     "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",

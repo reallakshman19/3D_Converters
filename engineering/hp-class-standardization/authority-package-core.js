@@ -46,6 +46,10 @@
     return String(value ?? '').trim().toLocaleLowerCase();
   }
 
+  function finite(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+  }
+
   function sourceErrors(sources) {
     const errors = [];
     if (!sources || typeof sources !== 'object') return ['Source manifest is missing.'];
@@ -123,22 +127,83 @@
     return errors;
   }
 
-  function rowEvidenceErrors(rowEvidence) {
+  function canonicalKd3EvidenceErrors(items, lifecycle = 'draft') {
+    const errors = [];
+    if (items == null) return errors;
+    if (!Array.isArray(items)) return ['userCalculatedKd3Evidence must be an array.'];
+    const keys = new Set();
+    items.forEach((item, index) => {
+      const key = String(item?.key || '').trim();
+      const label = key || `item ${index + 1}`;
+      if (!key) errors.push(`userCalculatedKd3Evidence item ${index + 1} has no key.`);
+      else if (keys.has(key)) errors.push(`Duplicate userCalculatedKd3Evidence key ${key}.`);
+      else keys.add(key);
+
+      for (const field of ['userAlternatingStressIntensityMpa', 'equivalentAlternatingStressMpa', 'permissibleCycles']) {
+        const value = item?.[field];
+        if (value !== null && value !== undefined && !finite(value)) {
+          errors.push(`${label} ${field} must be finite or null.`);
+        }
+      }
+
+      const userSalt = item?.userAlternatingStressIntensityMpa;
+      const seq = item?.equivalentAlternatingStressMpa;
+      const N = item?.permissibleCycles;
+      if (finite(userSalt) && userSalt < 0) errors.push(`${label} userAlternatingStressIntensityMpa must be >= 0.`);
+      if (finite(seq) && seq < 0) errors.push(`${label} equivalentAlternatingStressMpa must be >= 0.`);
+      if (finite(N) && !(N > 0)) errors.push(`${label} permissibleCycles must be > 0 when supplied.`);
+      if (seq === 0 && N !== null && N !== undefined) errors.push(`${label} Seq=0 zero-damage custody requires N to be null/N/A.`);
+
+      const basis = item?.calculationBasis;
+      if (basis != null && (typeof basis !== 'object' || Array.isArray(basis))) {
+        errors.push(`${label} calculationBasis must be an object.`);
+      }
+      const checkedBy = String(basis?.checkedBy || '').trim();
+      const checkedAt = String(basis?.checkedAt || '').trim();
+      if (Boolean(checkedBy) !== Boolean(checkedAt)) {
+        errors.push(`${label} checkedBy and checkedAt must be supplied together.`);
+      }
+      if (normalizedIdentity(checkedBy)
+        && normalizedIdentity(checkedBy) === normalizedIdentity(basis?.calculatedBy)) {
+        errors.push(`${label} checker must differ from calculatedBy.`);
+      }
+
+      if (lifecycle === 'approved-record') {
+        if (!(finite(seq) && seq >= 0)) errors.push(`${label} approved record requires finite Seq >= 0.`);
+        if (seq > 0 && !(finite(N) && N > 0)) errors.push(`${label} positive Seq requires finite N > 0.`);
+        for (const field of ['code', 'edition', 'methodRef', 'calculationRef', 'calculatedBy']) {
+          if (!String(basis?.[field] || '').trim()) errors.push(`${label} approved record requires calculationBasis.${field}.`);
+        }
+        if (!checkedBy || !checkedAt) errors.push(`${label} approved record requires checkedBy and checkedAt.`);
+      }
+    });
+    return errors;
+  }
+
+  function canonicalEvidenceMap(items) {
+    return new Map((Array.isArray(items) ? items : []).map((item) => [String(item?.key || '').trim(), item]));
+  }
+
+  function rowEvidenceErrors(rowEvidence, canonicalEvidence = []) {
     const errors = [];
     if (rowEvidence == null) return errors;
     if (!Array.isArray(rowEvidence)) return ['rowEvidence must be an array.'];
     const keys = new Set();
+    const canonical = canonicalEvidenceMap(canonicalEvidence);
     rowEvidence.forEach((item, index) => {
       const key = String(item?.key || '').trim();
       if (!key) errors.push(`rowEvidence item ${index + 1} has no key.`);
       else if (keys.has(key)) errors.push(`Duplicate rowEvidence key ${key}.`);
       else keys.add(key);
       if (item?.approved) {
-        if (!(typeof item.seq === 'number' && Number.isFinite(item.seq) && item.seq > 0)) {
-          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite Seq > 0.`);
+        const canonicalItem = canonical.get(key);
+        const canonicalZeroDamage = canonicalItem?.equivalentAlternatingStressMpa === 0
+          && (canonicalItem?.permissibleCycles === null || canonicalItem?.permissibleCycles === undefined);
+        if (!canonicalZeroDamage && !(typeof item.seq === 'number' && Number.isFinite(item.seq) && item.seq > 0)) {
+          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite Seq > 0 unless canonical USER_CALCULATED_KD3 evidence records explicit zero damage.`);
         }
-        if (!(typeof item.ni === 'number' && Number.isFinite(item.ni) && item.ni > 0)) {
-          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite permissible cycle count N > 0.`);
+        if (!canonicalZeroDamage && !(typeof item.ni === 'number' && Number.isFinite(item.ni) && item.ni > 0)) {
+          errors.push(`Approved rowEvidence ${key || index + 1} requires a finite permissible cycle count N > 0 unless canonical USER_CALCULATED_KD3 evidence records explicit zero damage.`);
         }
         if (!String(item.source || '').trim()) {
           errors.push(`Approved rowEvidence ${key || index + 1} requires an external KD-3 calculation/source reference.`);
@@ -164,7 +229,8 @@
       errors.push(...authorityErrors(pkg.inputs.authority));
       errors.push(...cycleErrors(pkg.inputs.cycles));
     }
-    errors.push(...rowEvidenceErrors(pkg.rowEvidence));
+    errors.push(...canonicalKd3EvidenceErrors(pkg.userCalculatedKd3Evidence, pkg.metadata?.lifecycle));
+    errors.push(...rowEvidenceErrors(pkg.rowEvidence, pkg.userCalculatedKd3Evidence));
     return { ok: errors.length === 0, errors };
   }
 
@@ -178,6 +244,7 @@
         metadata: plainClone(pkg.metadata),
         inputs: plainClone(pkg.inputs),
         rowEvidence: plainClone(pkg.rowEvidence || []),
+        userCalculatedKd3Evidence: plainClone(pkg.userCalculatedKd3Evidence || []),
       },
     };
   }
@@ -193,7 +260,14 @@
     return { matched, missing };
   }
 
-  function createPackage({ metadata, inputs, rowEvidence = [], snapshot = {}, generatedAt } = {}) {
+  function createPackage({
+    metadata,
+    inputs,
+    rowEvidence = [],
+    userCalculatedKd3Evidence = [],
+    snapshot = {},
+    generatedAt,
+  } = {}) {
     return {
       schema: SCHEMA,
       generatedAt: generatedAt || new Date().toISOString(),
@@ -205,6 +279,7 @@
       metadata: plainClone(metadata || {}),
       inputs: plainClone(inputs || {}),
       rowEvidence: plainClone(rowEvidence || []),
+      userCalculatedKd3Evidence: plainClone(userCalculatedKd3Evidence || []),
       snapshot: plainClone(snapshot || {}),
       fatigueAuthority: plainClone(USER_FATIGUE_POLICY),
       authorityNote: 'Package lifecycle is document custody only. USER_CALCULATED_KD3 remains review-only; native CORE KD-3, Code compliance and design authority are not established.',
@@ -233,6 +308,7 @@
     matchRowEvidence,
     sourceErrors,
     authorityErrors,
+    canonicalKd3EvidenceErrors,
     rowKey,
     safeFilename,
   });
