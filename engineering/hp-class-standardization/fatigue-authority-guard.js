@@ -157,11 +157,32 @@
     }
   }
 
+  function loadCanonicalProductSurface() {
+    if (!document.querySelector('link[data-user-kd3-product-style="true"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'user-calculated-fatigue-product.css';
+      link.dataset.userKd3ProductStyle = 'true';
+      document.head.appendChild(link);
+    }
+    if (root.__hpUserKd3ProductLoadStarted) return;
+    root.__hpUserKd3ProductLoadStarted = true;
+    import('./user-calculated-fatigue-product.js').catch((error) => {
+      root.__hpUserKd3ProductLoadError = String(error?.message || error);
+      const box = document.getElementById('seqStatusBox');
+      if (box) {
+        box.className = 'notice error';
+        box.textContent = `USER_CALCULATED_KD3 product integration failed to load: ${root.__hpUserKd3ProductLoadError}`;
+      }
+    });
+  }
+
   function enforce() {
     installCalculationGuards();
     replaceSelectOptions();
     disableLegacyNativeInputs();
     enforceStatusText();
+    loadCanonicalProductSurface();
   }
 
   function observe() {
