@@ -8,7 +8,13 @@ export function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 }
 export function pretty(value) { try { return JSON.stringify(value ?? null, null, 2); } catch { return String(value); } }
-export function definitionState(definition) { return definition?.authority?.qualificationState ?? definition?.authority?.calculationState ?? 'CONCEPT'; }
+export function definitionState(definition) {
+  return definition?.ui?.lifecycleState
+    ?? definition?.lifecycle?.state
+    ?? definition?.authority?.qualificationState
+    ?? definition?.authority?.calculationState
+    ?? 'CONCEPT';
+}
 export function pill(text, kind='') { return `<span class="engineering-console-pill ${kind}">${esc(text)}</span>`; }
 function scalar(value) { return typeof value === 'object' && value !== null ? `<pre class="engineering-console-inline-json">${esc(pretty(value))}</pre>` : esc(value ?? '—'); }
 
@@ -22,9 +28,16 @@ function fieldControl(field, state) {
   return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}">`;
 }
 
+function blockedDefinitionMessage(definition) {
+  const lifecycle = definition?.ui?.lifecycleState ?? definition?.lifecycle?.state;
+  if (definition?.ui?.blockedReason) return definition.ui.blockedReason;
+  if (lifecycle) return `${lifecycle} — engineering execution is not available in the current capability lifecycle state.`;
+  return `No authorized numerical kernel is registered.${definition.qualificationIssue ? ` Qualification issue #${definition.qualificationIssue}.` : ''}`;
+}
+
 export function renderInputForm(definition, state) {
   if (!isEngineeringCalculationExecutable(definition)) {
-    return `<div class="engineering-console-banner bad"><strong>Execution blocked.</strong> No authorized numerical kernel is registered.${definition.qualificationIssue ? ` Qualification issue #${definition.qualificationIssue}.` : ''}</div>`;
+    return `<div class="engineering-console-banner bad"><strong>Execution blocked.</strong> ${esc(blockedDefinitionMessage(definition))}</div>`;
   }
   const authorityBanner = definition?.ui?.warning
     ? `<div class="engineering-console-banner warn"><strong>Authority restriction.</strong> ${esc(definition.ui.warning)}</div>`
@@ -53,7 +66,9 @@ export function renderChecks(result) {
 }
 
 export function renderBasis(definition, resolution) {
-  return `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Calculation ID</small><strong>${esc(definition.id)}</strong></div><div class="engineering-console-card"><small>Method revision</small><strong>${esc(definition.methodRevision)}</strong></div><div class="engineering-console-card"><small>Method state</small><strong>${esc(definitionState(definition))}</strong></div><div class="engineering-console-card"><small>Qualification issue</small><strong>${esc(definition.qualificationIssue ?? '—')}</strong></div></div><div class="engineering-console-card"><h3>Purpose</h3><p>${esc(definition.purpose || '')}</p></div><div class="engineering-console-card"><h3>Applicability</h3><p>${esc(definition.applicability?.description || 'Not declared.')}</p><ul>${(definition.applicability?.limitations||[]).map((item)=>`<li>${esc(item)}</li>`).join('')}</ul></div>${resolution ? `<div class="engineering-console-card"><h3>Latest resolved inputs</h3><pre class="engineering-console-json">${esc(pretty(resolution))}</pre></div>` : ''}`;
+  const lifecycle = definition?.ui?.lifecycleState ?? definition?.lifecycle?.state ?? '—';
+  const methodState = definition?.authority?.qualificationState ?? definition?.authority?.calculationState ?? 'CONCEPT';
+  return `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Calculation ID</small><strong>${esc(definition.id)}</strong></div><div class="engineering-console-card"><small>Method revision</small><strong>${esc(definition.methodRevision)}</strong></div><div class="engineering-console-card"><small>Lifecycle</small><strong>${esc(lifecycle)}</strong></div><div class="engineering-console-card"><small>Method state</small><strong>${esc(methodState)}</strong></div><div class="engineering-console-card"><small>Qualification issue</small><strong>${esc(definition.qualificationIssue ?? '—')}</strong></div></div><div class="engineering-console-card"><h3>Purpose</h3><p>${esc(definition.purpose || '')}</p></div><div class="engineering-console-card"><h3>Applicability</h3><p>${esc(definition.applicability?.description || 'Not declared.')}</p><ul>${(definition.applicability?.limitations||[]).map((item)=>`<li>${esc(item)}</li>`).join('')}</ul></div>${resolution ? `<div class="engineering-console-card"><h3>Latest resolved inputs</h3><pre class="engineering-console-json">${esc(pretty(resolution))}</pre></div>` : ''}`;
 }
 
 export function renderEvidence(result) {

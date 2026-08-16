@@ -3,6 +3,7 @@ import {
   createEngineeringCalculationError,
 } from './contracts.js';
 import { composeEngineeringQualification } from './qualification.js';
+import { VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION } from './adapters/vibration-sbc-reserved.js';
 
 const PENDING = Object.freeze([
   ['PIPE.EXTERNAL_PRESSURE.CHECK', 'PIPE', 'External Pressure Check', 428],
@@ -42,6 +43,9 @@ function blockedCalculation(id, issueNumber) {
 }
 
 export function createPendingEngineeringCalculationDefinition([id, family, name, issueNumber]) {
+  if (id === VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION.id) {
+    return VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION;
+  }
   return {
     contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
     id,
