@@ -234,6 +234,21 @@ def _convert_allowables(
     return out
 
 
+def _convert_miscel_1(lines: Sequence[str]) -> list[str]:
+    """Preserve MISCEL_1 fixed records without coercing mixed I13/G13.6 fields.
+
+    MISCEL_1 is not a homogeneous REAL array.  It contains material/nozzle data,
+    several mixed-format hanger records, and four execution-option records with
+    integer I13 fields interleaved with G13.6 fields.  Passing a mixed row through
+    the generic REAL renderer turns valid integer tokens such as ``0`` into
+    ``0.000000``.  A fixed-format reader expecting I13 can then reject an otherwise
+    correctly sized target file.  The documented v11/v14 physical field widths are
+    compatible, so retain this section's source columns exactly and let only the
+    enclosing target header/EOL change.
+    """
+    return list(lines)
+
+
 def _convert_section(
     section: Section, source: int, target: int, allow_lossy: bool, audit: Audit
 ) -> list[str]:
@@ -251,6 +266,8 @@ def _convert_section(
         return _convert_sif_tees(lines, source, target, allow_lossy, audit)
     if name == "REDUCERS":
         return _convert_reducers(lines, source, target, allow_lossy, audit)
+    if name == "MISCEL_1":
+        return _convert_miscel_1(lines)
     if name == "UNITS":
         return _convert_units(lines, target, audit)
     if name == "COORDS":
