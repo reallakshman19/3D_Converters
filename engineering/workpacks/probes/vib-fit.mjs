@@ -56,6 +56,13 @@ export async function verifyDesignAuthority(context) {
   return { ok, detail: 'designAuthority remains false in contract and screening result' };
 }
 
+export async function verifyCodeCompliance(context) {
+  const definition = await definitionFrom(context);
+  const ok = context.workpack.authority.codeCompliance === false
+    && definition.authority?.codeCompliance === false;
+  return { ok, detail: 'codeCompliance remains false' };
+}
+
 export async function verifyQst003(context) {
   const definition = await definitionFrom(context);
   const result = runProbe(definition, context.workpack.probes.qst003);
