@@ -3,8 +3,12 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
-const key = '20260816-aiv-526-editor-1';
-const supersededKeys = ['20260815-aiv-pf01-cache-1', '20260815-aiv-526-unified-1'];
+const key = '20260816-aiv-526-editor-2';
+const supersededKeys = [
+  '20260815-aiv-pf01-cache-1',
+  '20260815-aiv-526-unified-1',
+  '20260816-aiv-526-editor-1',
+];
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
 const paths = [
@@ -21,6 +25,8 @@ const paths = [
   'tabs/vibration-aiv-unified-canvas-view.js',
   'tabs/vibration-aiv-unified-canvas-author-view.js',
   'tabs/vibration-aiv-unified-canvas-inspector.js',
+  'tabs/vibration-aiv-unified-canvas-editor-controller.js',
+  'tabs/vibration-aiv-unified-canvas-workflow.js',
   'tabs/vibration-aiv-workspace-browser.js',
   'tabs/vibration-aiv-qualification.css',
 ];
@@ -52,6 +58,7 @@ test('changed unified editor leaves are cache-pinned from the fresh renderer/con
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-canvas-selection.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-unified-canvas-author.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-unified-canvas-editor-controller.js?v=${key}`);
+  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', `vibration-aiv-unified-canvas-workflow.js?v=${key}`);
   requires('tabs/vibration-aiv-workspace-browser.js', 'vibration-aiv-qualification.css?v=aiv-qualification-15');
   requires('tabs/vibration-aiv-qualification.css', 'vibration-aiv-unified-canvas-editor.css?v=1');
 });
@@ -65,6 +72,16 @@ test('active qualification source names one full editor controller and one unifi
   requires('tabs/vibration-aiv-unified-canvas-author-view.js', 'data-aiv-canvas-editor-tool="PLACE_NODE"');
   assert.equal(files['tabs/vibration-aiv-qualification-tab.js'].includes('createAivCanvasInteractionController'), false);
   assert.equal(files['tabs/vibration-aiv-qualification-tab.js'].includes('createAivFlareNetworkAuthoringController'), false);
+});
+
+test('stage7 scratch-network workflow is visible and preserves qualified authority wording', () => {
+  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', 'New flare network');
+  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', 'Add RV + branch');
+  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', 'Subheader junction');
+  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', 'qualified readiness check remains authoritative');
+  requires('tabs/vibration-aiv-unified-canvas-view.js', 'Engineering inputs changed');
+  requires('tabs/vibration-aiv-unified-canvas-view.js', 'isAivLineageCurrent');
+  requires('tabs/vibration-aiv-unified-canvas-workflow.js', "source: 'AIV_FLARE_NETWORK_UI'");
 });
 
 test('superseded AIV cache identities are absent from active editor startup path', () => {
