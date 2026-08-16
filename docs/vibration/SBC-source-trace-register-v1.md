@@ -126,3 +126,39 @@ The SBC main-line dependency must resolve a `QUALIFIED_EI_MAIN_LINE_ASSESSMENT` 
 ## Remaining population rule
 
 Before numerical implementation, populate and independently review the governing source rows for the complete Type-selection method, Type-specific input semantics/units, equations, tables, actions, and master dependencies. Unknowns remain unknown; no hidden default or inferred engineering rule is permitted.
+
+## Input/unit semantic reference rows — 2026-08-16 continuation
+
+The user-directed `Advanced_Analysis@16d1e58f728e72b04b761c02dce682aa189779f2/docs/EI data` re-ground was checked explicitly. The Appendix-D example transcription remains blob `c050cd90802c27241c510c6f0ac43bfaf7a89e9d`, and the P0 SBC transcription remains blob `5312c9e2cf86af9e940ba722fcbee64702aeccd3`; these are the same content blobs already pinned at `76eb4bd...`. The later commit is therefore an additional custody point, **not an independent engineering source**.
+
+The structured repository contains explicit Type 1–4 worked-example labels and applied flowchart references in D5–D8. P0 additionally contains Type-3 synthesis logic referencing T3-5/T3-6/T3-7/T3-9. This is richer than example labels alone, but it still does not authorize automatic four-way Type inference or close controlled-PDF reconciliation.
+
+Machine-readable reference rows are in `converters/vibration/sbc/input-semantics.js` with:
+
+```text
+status                            = REFERENCE_SEMANTICS_POPULATED_PDF_REVIEW_PENDING
+useAllowed                        = INPUT_SEMANTIC_REFERENCE_ONLY
+engineeringQualificationEstablished = false
+numericalMethodUseAllowed         = false
+engineeringDefaultAllowed        = false
+```
+
+| Trace ID | Contract field | Reference semantic | Source-native unit |
+|---|---|---|---|
+| `SBC-UNIT-001` | `geometry.minimumNominalDiameter` | minimum SBC nominal bore/diameter | `in_NB` |
+| `SBC-UNIT-002` | `geometry.overallBranchLength` | true parent-wall-to-valve-end branch length; D5 includes lagging depth | `mm` |
+| `SBC-UNIT-003` | `geometry.branchLegs` | retain Type-2 A/B leg lengths independently | `mm` |
+| `SBC-UNIT-004` | `geometry.firstSpan` | parent connection to first resting support | `mm` |
+| `SBC-UNIT-005` | `geometry.subsequentSpans` | retain subsequent spans and mass/no-mass context distinctly | `mm` |
+| `SBC-UNIT-006` | `geometry.endLegs` | retain Type-4 end-leg lengths independently | `mm` |
+| `SBC-UNIT-007` | `geometry.bridgeSpan` | overall Type-4 bridge span; D8 example sums its end legs, without freezing a general derivation rule | `mm` |
+| `SBC-UNIT-008` | `attachments.fittings` | explicit fitting/configuration category, no factor value | categorical |
+| `SBC-UNIT-009` | `attachments.valves` | explicit valve count/rating/category evidence, no default | categorical/count |
+| `SBC-UNIT-010` | `locationContext` | project location/support context, not a location score | categorical evidence |
+| `SBC-UNIT-011` | `supportTopology.firstSpanSupport` | first resting-support identity/location | categorical evidence |
+| `SBC-UNIT-012` | `topology.returnsToSameMainLine` | D6 same-main-line return confirmation | boolean evidence |
+| `SBC-UNIT-013` | `topology.bridgesDistinctMainLines` | D8 distinct-parent-lines confirmation | boolean evidence |
+
+These rows do **not** populate T3 table values, curve values, fitting factors, LOF scores, schedule substitutions, location scores, equations, or benchmark expected values. In particular, D5's worked-example schedule substitution is not converted into a software default. T3 curves remain `BLOCKED_SOURCE_DATA_CONFLICT` under #514.
+
+`SBC-UNIT-*` namespace state is now `REFERENCE_SEMANTICS_POPULATED_PDF_REVIEW_PENDING`. The complete method, automatic classification, numerical unit/conversion policy, and source qualification remain `NOT_FROZEN` until controlled-PDF reconciliation and independent review are available.
