@@ -1,4 +1,6 @@
 import { createEngineeringCapabilityLifecycle } from '../../engineering-calculations/lifecycle.js';
+import { SBC_TYPE_CLASSIFICATION_CONTRACT_STATUS } from './type-classification-contract.js';
+import { SBC_TYPE_INPUT_CONTRACT_STATUS } from './type-input-contracts.js';
 
 export const SBC_PUBLIC_CALCULATION_ID = 'VIB.SBC.SMALL_BORE';
 export const SBC_ASSESSMENT_UNIT_TYPE = 'SBC_CONNECTION';
@@ -43,13 +45,23 @@ export const SBC_CONTROLLED_ARTIFACTS = Object.freeze({
   SOURCE_TRACE_REGISTER: Object.freeze({
     path: 'docs/vibration/SBC-source-trace-register-v1.md',
     status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
+    populationStatus: 'REFERENCE_ROWS_POPULATED_NOT_ENGINEERING_QUALIFIED',
   }),
   BENCHMARK_REGISTRY: Object.freeze({
     path: 'Benchmarks/VibrationSBC/sbc-benchmark-registry-v1.json',
     status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
   }),
-  TYPE_INPUT_CONTRACTS: Object.freeze({ status: 'NOT_FROZEN' }),
-  APPLICABILITY_TYPE_CLASSIFICATION: Object.freeze({ status: 'NOT_FROZEN' }),
+  TYPE_INPUT_CONTRACTS: Object.freeze({
+    path: 'converters/vibration/sbc/type-input-contracts.js',
+    status: 'NOT_FROZEN',
+    structuralContractStatus: SBC_TYPE_INPUT_CONTRACT_STATUS,
+  }),
+  APPLICABILITY_TYPE_CLASSIFICATION: Object.freeze({
+    path: 'converters/vibration/sbc/type-classification-contract.js',
+    status: 'NOT_FROZEN',
+    confirmationContractStatus: SBC_TYPE_CLASSIFICATION_CONTRACT_STATUS,
+    automaticClassificationAllowed: false,
+  }),
   QUALIFIED_MASTER_DEPENDENCIES: Object.freeze({ status: 'NOT_FROZEN' }),
   PURE_TYPE_KERNELS: Object.freeze({ status: 'NOT_QUALIFIED' }),
 });
@@ -80,6 +92,8 @@ function typeArtifactRefs(typeId, exampleId) {
     methodSpecification: SBC_CONTROLLED_ARTIFACTS.METHOD_SPECIFICATION.path,
     sourceTraceRegister: SBC_CONTROLLED_ARTIFACTS.SOURCE_TRACE_REGISTER.path,
     benchmarkRegistry: SBC_CONTROLLED_ARTIFACTS.BENCHMARK_REGISTRY.path,
+    typeInputContract: SBC_CONTROLLED_ARTIFACTS.TYPE_INPUT_CONTRACTS.path,
+    typeClassificationContract: SBC_CONTROLLED_ARTIFACTS.APPLICABILITY_TYPE_CLASSIFICATION.path,
     b1RegistryId: `SBC-B1-${typeId}-${exampleId}`,
     b2RegistryId: `SBC-B2-${typeId}-INDEPENDENT`,
     inputContractStatus: SBC_CONTROLLED_ARTIFACTS.TYPE_INPUT_CONTRACTS.status,
