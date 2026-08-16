@@ -47,6 +47,15 @@ function mechanismCard(definition) {
   </article>`;
 }
 
+function authorityBanner(rows) {
+  const screening = rows.filter((definition) => definitionState(definition) === 'SCREENING'
+    && isEngineeringCalculationExecutable(definition));
+  if (screening.length === 0) {
+    return '<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No registered mechanism currently carries SCREENING qualification; evidence or benchmark capability does not imply screening authority.</div>';
+  }
+  return `<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> ${screening.length} mechanisms currently carry registered SCREENING qualification. Authority remains mechanism-specific; no screening result grants design authority or complete vibration integrity.</div>`;
+}
+
 export function renderVibrationFamilyLanding(definitions = []) {
   const rows = definitions.filter((definition) => definition.family === 'VIB');
   const blocked = rows.filter((definition) => !isEngineeringCalculationExecutable(definition)).length;
@@ -58,7 +67,7 @@ export function renderVibrationFamilyLanding(definitions = []) {
       </div>
       <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
-    <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No mechanism on this page has screening or design authority. Evidence/benchmark capability does not imply production qualification.</div>
+    ${authorityBanner(rows)}
     <div class="engineering-vibration-boundary"><strong>TABLE DATA ONLY</strong><span>Vibration consumes 3D EDIT table exports. No 3D viewer or canvas is embedded here.</span></div>
     <div class="engineering-vibration-grid">${rows.map(mechanismCard).join('')}</div>
   </section>`;

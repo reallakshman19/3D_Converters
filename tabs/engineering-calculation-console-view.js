@@ -55,7 +55,7 @@ function activeView(definition, state) {
 
 function renderConsoleActions(definition, state) {
   if (isFitWorkspace(definition)) {
-    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill('BENCHMARK ONLY', 'warn')}</div>`;
+    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
   }
   if (isAivQualificationWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill('BLOCKED', 'bad')}</div>`;
