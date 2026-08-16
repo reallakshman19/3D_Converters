@@ -11,6 +11,14 @@ const adapterSource = fs.readFileSync(
   new URL('../converters/engineering-calculations/adapters/vibration-fit.js', import.meta.url),
   'utf8',
 );
+const familySource = fs.readFileSync(
+  new URL('../tabs/engineering-calculation-vibration-family.js', import.meta.url),
+  'utf8',
+);
+const consoleSource = fs.readFileSync(
+  new URL('../tabs/engineering-calculation-console-view.js', import.meta.url),
+  'utf8',
+);
 
 test('FIT authority boundary is immutable screening-only metadata', () => {
   assert.equal(Object.isFrozen(FIT_AUTHORITY_BOUNDARY), true);
@@ -53,4 +61,12 @@ test('FIT adapter has no in-place design or code authority promotion path', () =
   assert.doesNotMatch(adapterSource, /codeCompliance:\s*true/u);
   assert.match(adapterSource, /checks:\s*\[\]/u);
   assert.match(adapterSource, /SEPARATE_QUALIFIED_ASSESSMENT_REQUIRED/u);
+});
+
+test('FIT UI distinguishes screening use from design and code compliance', () => {
+  assert.match(familySource, /Design use: SCREENING ONLY/u);
+  assert.match(familySource, /Code compliance: NOT A CODE CHECK/u);
+  assert.match(familySource, /FIT is a bounded screening method, not a design\/code check/u);
+  assert.match(consoleSource, /SCREENING USE ONLY/u);
+  assert.match(consoleSource, /NOT A CODE CHECK/u);
 });
