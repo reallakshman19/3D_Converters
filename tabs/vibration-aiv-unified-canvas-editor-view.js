@@ -1,4 +1,9 @@
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
+import {
+  aivCanvasFieldKey,
+  aivCanvasNetworkNodeFieldKey,
+  aivCanvasNetworkSegmentFieldKey,
+} from './vibration-aiv-canvas-field.js?v=20260816-aiv-canvas-fields-1';
 
 function esc(value) {
   return String(value ?? '')
@@ -9,20 +14,22 @@ function option(value, selected = '') {
   return `<option value="${esc(value)}"${String(value) === String(selected) ? ' selected' : ''}>${esc(value || '—')}</option>`;
 }
 function label(name, input) { return `<label><span>${esc(name)}</span>${input}</label>`; }
+function engineeringAttr(key) { return key ? ` data-aiv-engineering-field-key="${esc(key)}" data-aiv-canvas-inspector-field="true"` : ''; }
+function tableAttr(key) { return key ? ` data-aiv-field-key="${esc(key)}" data-aiv-canvas-inspector-field="true"` : ''; }
 function textInput(nodeId, field, current) {
-  return `<input data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-field="${esc(field)}" value="${esc(current ?? '')}">`;
+  const key = aivCanvasNetworkNodeFieldKey(nodeId, field);
+  return `<input data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-field="${esc(field)}"${engineeringAttr(key)} value="${esc(current ?? '')}">`;
 }
 function pathInput(nodeId, path, current, type = 'text') {
-  const valueType = type === 'number' ? ' data-aiv-value-type="number"' : '';
-  return `<input type="${type}"${type === 'number' ? ' step="any"' : ''} data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-path="${esc(path)}"${valueType} value="${esc(current ?? '')}">`;
+  const valueType = type === 'number' ? ' data-aiv-value-type="number"' : ''; const key = aivCanvasNetworkNodeFieldKey(nodeId, path);
+  return `<input type="${type}"${type === 'number' ? ' step="any"' : ''} data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-path="${esc(path)}"${engineeringAttr(key)}${valueType} value="${esc(current ?? '')}">`;
 }
 function pathSelect(nodeId, path, current, values) {
-  return `<select data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-path="${esc(path)}">${values.map((value) => option(value, current)).join('')}</select>`;
+  const key = aivCanvasNetworkNodeFieldKey(nodeId, path);
+  return `<select data-aiv-network-node-id="${esc(nodeId)}" data-aiv-network-node-path="${esc(path)}"${engineeringAttr(key)}>${values.map((value) => option(value, current)).join('')}</select>`;
 }
 function quantityFields(nodeId, prefix, quantity = {}, units = []) {
-  const unitControl = units.length
-    ? pathSelect(nodeId, `${prefix}.unit`, quantity?.unit ?? '', ['', ...units])
-    : pathInput(nodeId, `${prefix}.unit`, quantity?.unit ?? '');
+  const unitControl = units.length ? pathSelect(nodeId, `${prefix}.unit`, quantity?.unit ?? '', ['', ...units]) : pathInput(nodeId, `${prefix}.unit`, quantity?.unit ?? '');
   return `${label('Value', pathInput(nodeId, `${prefix}.value`, quantity?.value ?? '', 'number'))}${label('Unit', unitControl)}`;
 }
 function sourceEditor(node) {
@@ -67,27 +74,32 @@ function networkNodeEditor(node) {
     ${specific}<button type="button" class="engineering-console-btn danger" data-aiv-network-delete-node="${esc(node.canonicalId)}">Delete node</button>
   </div>`;
 }
+function segmentControl(segmentId, field, html) {
+  return html.replace(/^(<input|<select)/u, `$1${engineeringAttr(aivCanvasNetworkSegmentFieldKey(segmentId, field))}`);
+}
 function networkSegmentEditor(network, segment) {
   const nodeOptions = network.nodes.map((node) => option(node.canonicalId, segment.fromNodeId)).join('');
   const toOptions = network.nodes.map((node) => option(node.canonicalId, segment.toNodeId)).join('');
   return `<div class="aiv-network-editor aiv-canvas-engineering-editor" data-aiv-network-editor="true" data-aiv-network-segment-editor="true">
     <div class="aiv-canvas-engineering-grid">
       ${label('Segment ID', `<input value="${esc(segment.segmentId)}" readonly aria-readonly="true">`)}
-      ${label('From node', `<select data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="fromNodeId">${nodeOptions}</select>`)}
-      ${label('To node', `<select data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="toNodeId">${toOptions}</select>`)}
-      ${label('Line', `<input data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="line" value="${esc(segment.line ?? '')}">`)}
-      ${label('Engineering length', `<input type="number" step="any" data-aiv-network-segment-length="${esc(segment.segmentId)}" value="${esc(segment.physicalLength?.value ?? '')}">`)}
-      ${label('Length unit', `<select data-aiv-network-segment-unit="${esc(segment.segmentId)}">${option('m', segment.physicalLength?.unit)}${option('mm', segment.physicalLength?.unit)}</select>`)}
+      ${label('From node', segmentControl(segment.segmentId, 'fromNodeId', `<select data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="fromNodeId">${nodeOptions}</select>`))}
+      ${label('To node', segmentControl(segment.segmentId, 'toNodeId', `<select data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="toNodeId">${toOptions}</select>`))}
+      ${label('Line', segmentControl(segment.segmentId, 'line', `<input data-aiv-network-segment-id="${esc(segment.segmentId)}" data-aiv-network-segment-field="line" value="${esc(segment.line ?? '')}">`))}
+      ${label('Engineering length', segmentControl(segment.segmentId, 'physicalLength.value', `<input type="number" step="any" data-aiv-network-segment-length="${esc(segment.segmentId)}" value="${esc(segment.physicalLength?.value ?? '')}">`))}
+      ${label('Length unit', segmentControl(segment.segmentId, 'physicalLength.unit', `<select data-aiv-network-segment-unit="${esc(segment.segmentId)}">${option('m', segment.physicalLength?.unit)}${option('mm', segment.physicalLength?.unit)}</select>`))}
     </div><small>Distance authority is the explicit engineering length above. SVG geometry remains presentation-only.</small>
     <button type="button" class="engineering-console-btn danger" data-aiv-network-delete-segment="${esc(segment.segmentId)}">Delete segment</button>
   </div>`;
 }
 function tableEditor(state, item, kind) {
   const tableKind = kind === 'SOURCE' ? 'sources' : kind === 'ASSESSMENT' ? 'assessments' : 'relationships';
-  const table = state.tables?.[tableKind]; const rowIndex = Number(item.tableRowIndex);
-  const row = table?.rows?.[rowIndex];
+  const table = state.tables?.[tableKind]; const rowIndex = Number(item.tableRowIndex); const row = table?.rows?.[rowIndex];
   if (!table || !row || !Number.isInteger(rowIndex)) return '<small>No editable working-table row is available.</small>';
-  const fields = table.header.map((column, columnIndex) => label(column, `<input data-aiv-table-cell="${esc(tableKind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" value="${esc(row[columnIndex] ?? '')}">`)).join('');
+  const fields = table.header.map((column, columnIndex) => {
+    const key = aivCanvasFieldKey(tableKind, rowIndex, column);
+    return label(column, `<input data-aiv-table-cell="${esc(tableKind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}"${tableAttr(key)} value="${esc(row[columnIndex] ?? '')}">`);
+  }).join('');
   return `<div class="aiv-canvas-engineering-editor"><div class="aiv-canvas-engineering-grid">${fields}</div><button type="button" class="engineering-console-btn danger" data-aiv-table-delete="${esc(tableKind)}" data-aiv-edit-row="${rowIndex}">Delete ${esc(kind.toLowerCase())}</button></div>`;
 }
 
@@ -95,8 +107,7 @@ export function renderAivUnifiedCanvasEngineeringEditorHtml(state = {}, item = n
   if (!item) return '';
   if (state.inputMode !== AIV_INPUT_MODE.NETWORK_DRIVEN) return tableEditor(state, item, kind);
   if (String(item.selectionKey ?? '').startsWith('SEGMENT:')) {
-    const id = String(item.selectionKey).slice('SEGMENT:'.length);
-    const segment = state.flareNetwork?.segments?.find((entry) => entry.segmentId === id);
+    const id = String(item.selectionKey).slice('SEGMENT:'.length); const segment = state.flareNetwork?.segments?.find((entry) => entry.segmentId === id);
     return segment ? networkSegmentEditor(state.flareNetwork, segment) : '';
   }
   const node = state.flareNetwork?.nodes?.find((entry) => {
