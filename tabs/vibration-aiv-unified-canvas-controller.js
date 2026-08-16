@@ -18,12 +18,16 @@ import {
   aivCanvasSelectionFromElement,
   applyAivCanvasSelection,
   revealAivCanvasSelection,
-} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-2';
+} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-3';
 import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
-} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-2';
-import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-2';
+} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-3';
+import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-3';
+import {
+  AIV_CANVAS_LABEL_MODE,
+  normalizeAivCanvasLabelMode,
+} from './vibration-aiv-unified-canvas-labels.js?v=20260816-aiv-526-editor-3';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -68,6 +72,11 @@ function setLine(line, from, to) {
   if (!line || !from || !to) return;
   line.setAttribute('x1', from.x); line.setAttribute('y1', from.y); line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
 }
+function setLabelPosition(owner, from, to, yOffset) {
+  if (!owner || !from || !to) return;
+  const x = (from.x + to.x) / 2; const y = (from.y + to.y) / 2 + yOffset;
+  for (const group of owner.querySelectorAll('[data-aiv-canvas-label-content]')) group.setAttribute('transform', `translate(${x} ${y})`);
+}
 function redraw(container, layout) {
   const byKey = positions(layout); const byCanonical = canonicalPositions(container, layout);
   for (const element of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-node]')) {
@@ -76,14 +85,15 @@ function redraw(container, layout) {
   }
   for (const segment of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-network-segment]')) {
     const from = byCanonical.get(text(segment.dataset.aivNetworkFrom)); const to = byCanonical.get(text(segment.dataset.aivNetworkTo));
-    setLine(segment.querySelector('line'), from, to); const label = segment.querySelector('text');
-    if (label && from && to) { label.setAttribute('x', (from.x + to.x) / 2); label.setAttribute('y', (from.y + to.y) / 2 - 7); }
+    setLine(segment.querySelector('line'), from, to); setLabelPosition(segment, from, to, -7);
   }
   for (const line of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-path-from]')) setLine(line, byCanonical.get(text(line.dataset.aivPathFrom)), byCanonical.get(text(line.dataset.aivPathTo)));
-  for (const relation of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-logical-only]')) {
-    const from = byKey.get(text(relation.dataset.aivCanvasSourceNode)); const to = byKey.get(text(relation.dataset.aivCanvasAssessmentNode));
-    setLine(relation.querySelector('line'), from, to); const label = relation.querySelector('text');
-    if (label && from && to) { label.setAttribute('x', (from.x + to.x) / 2); label.setAttribute('y', (from.y + to.y) / 2 - 8); }
+  for (const relation of container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-relationship]')) {
+    const logical = relation.dataset.aivLogicalOnly === 'true';
+    const from = logical ? byKey.get(text(relation.dataset.aivCanvasSourceNode)) : byCanonical.get(text(relation.dataset.aivSourceCanonicalId));
+    const to = logical ? byKey.get(text(relation.dataset.aivCanvasAssessmentNode)) : byCanonical.get(text(relation.dataset.aivAssessmentCanonicalId));
+    if (logical) setLine(relation.querySelector('line'), from, to);
+    setLabelPosition(relation, from, to, -18);
   }
   scene(container)?.setAttribute('transform', `translate(${layout.viewport.x} ${layout.viewport.y}) scale(${layout.viewport.zoom})`);
 }
@@ -97,6 +107,15 @@ function setModePresentation(container, mode) {
     const active = button.dataset.aivCanvasMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
 }
+function setLabelModePresentation(container, requested) {
+  const mode = normalizeAivCanvasLabelMode(requested); const value = card(container);
+  if (value) value.dataset.aivCanvasLabelDisplay = mode;
+  for (const button of container.querySelectorAll('[data-aiv-canvas-label-mode]')) {
+    const active = button.dataset.aivCanvasLabelMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  }
+  for (const group of container.querySelectorAll('[data-aiv-canvas-label-content]')) group.style.display = group.dataset.aivLabelMode === mode ? '' : 'none';
+  return mode;
+}
 function updateDeleteControl(container, selection) {
   const button = container.querySelector('[data-aiv-canvas-action="delete-relationship"]');
   if (button) button.disabled = isNetworkDriven(container) || !String(selection?.selectionKey ?? '').startsWith('REL:');
@@ -105,6 +124,7 @@ function updateDeleteControl(container, selection) {
 export function createAivUnifiedCanvasController(container, callbacks = {}) {
   let layout = null; let selection = null; let gesture = null; let suppressClick = false;
   let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE });
+  let labelMode = AIV_CANVAS_LABEL_MODE.NORMAL;
   const getNetwork = callbacks.getNetwork ?? (() => null);
   const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) });
   let editorController = null;
@@ -124,7 +144,8 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   function sync() {
     if (!svg(container)) { callbacks.onSelectionChange?.(selection); return; }
     layout = reconcileLayout(container, layout); redraw(container, layout); applyAivCanvasSelection(container, selection); filter.sync();
-    setModePresentation(container, relationship.mode); updateDeleteControl(container, selection); editorController.sync();
+    setModePresentation(container, relationship.mode); labelMode = setLabelModePresentation(container, labelMode);
+    updateDeleteControl(container, selection); editorController.sync();
   }
   function updateViewport(next) { layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); redraw(container, layout); }
   function deleteSelectedRelationship() {
@@ -148,6 +169,8 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   function click(event) {
     if (editorController.handleClick(event)) return;
     if (authorAction(event)) return;
+    const labelRequest = event.target.closest('[data-aiv-canvas-label-mode]')?.dataset.aivCanvasLabelMode;
+    if (labelRequest) { labelMode = setLabelModePresentation(container, labelRequest); return; }
     const detailTab = event.target.closest('[data-aiv-detail-tab]'); if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
     const fieldKey = event.target.closest('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey;
     if (fieldKey) { focusAivCanvasField(container, fieldKey); return; }
