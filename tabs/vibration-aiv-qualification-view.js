@@ -10,7 +10,7 @@ import {
 } from '../converters/vibration/aiv/aiv-d23-pdf-revalidation.js';
 import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-independent-benchmark-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
-import { renderAivInputWorkspaceHtml } from './vibration-aiv-input-view.js?v=20260816-aiv-526-editor-3';
+import { renderAivInputWorkspaceHtml } from './vibration-aiv-input-view.js?v=20260816-aiv-canvas-release-1';
 import { renderAivPromotionReadinessHtml } from './vibration-aiv-promotion-view.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 import { renderAivResultShellsHtml } from './vibration-aiv-result-view.js';
