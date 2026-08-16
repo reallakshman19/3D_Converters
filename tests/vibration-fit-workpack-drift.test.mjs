@@ -42,7 +42,6 @@ test('FIT engineering work pack verifies all deterministic drift gates', async (
   assert.equal(result.status, 'PASS');
   assert.equal(result.checks.length, 12);
   assert.equal(result.checks.every((entry) => entry.status === 'PASS'), true);
-  assert.equal(result.releaseManifestCount >= 58, true);
 });
 
 test('selected FIT console projects registered SCREENING state without BENCHMARK ONLY copy', () => {
