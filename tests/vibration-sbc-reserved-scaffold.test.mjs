@@ -16,6 +16,11 @@ import {
   SBC_TYPE_IMPLEMENTATION_SLOTS,
   SBC_VERTICAL_LIFECYCLE,
 } from '../converters/vibration/sbc/vertical-manifest.js';
+import {
+  definitionState,
+  renderBasis,
+  renderInputForm,
+} from '../tabs/engineering-calculation-console-sections.js';
 
 const B1 = Object.freeze({
   TYPE_1: 'EI_APPENDIX_D5',
@@ -111,4 +116,21 @@ test('pending catalogue contains exactly one specialized SBC reserved definition
   assert.equal(rows.length, 1);
   assert.equal(rows[0], VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION);
   assert.equal(rows[0].qualificationIssue, 563);
+});
+
+test('generic engineering console surfaces reserved lifecycle and issue guidance', () => {
+  const definition = VIBRATION_SBC_RESERVED_ENGINEERING_CALCULATION_DEFINITION;
+  assert.equal(definitionState(definition), 'RESERVED');
+
+  const inputHtml = renderInputForm(definition, {});
+  assert.match(inputHtml, /Execution blocked\./u);
+  assert.match(inputHtml, /RESERVED/u);
+  assert.match(inputHtml, /#563/u);
+  assert.doesNotMatch(inputHtml, /RESERVED — RESERVED/u);
+
+  const basisHtml = renderBasis(definition, null);
+  assert.match(basisHtml, /Lifecycle/u);
+  assert.match(basisHtml, /RESERVED/u);
+  assert.match(basisHtml, /Method state/u);
+  assert.match(basisHtml, /BLOCKED/u);
 });
