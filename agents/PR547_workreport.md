@@ -171,46 +171,17 @@ path       = docs/EI data/P1_Valve_Transient_and_Cavitation.md
 blob       = f27764534a9bee88e3b4e2d1b12da046ccfced5d
 ```
 
-It claims, among other items:
+It claims sigma/Kc/FF equations, four cavitation regimes, LOFs and trim-specific FL values. These claims remain non-authoritative.
+
+Key frozen conflicts:
 
 ```text
-sigma index
-Kc = 0.80 * FL^2
-pressure-dependent FF relation
-four sigma/Kc decision regimes
-LOF values 1.0 / 1.0 / 0.5 / 0.2
-trim/orientation-specific FL values
-```
-
-These claims are not production authority.
-
-Key conflicts now frozen in `t29-pf01-reconciliation-matrix-v1.json`:
-
-```text
-Ball:
-  #481 candidate 0.60
-  synthesis full-bore 0.50 / V-notch 0.75
-
-Butterfly:
-  #481 candidate 0.62
-  synthesis 0.55 / 0.68 / 0.70 variants
-
-Globe:
-  #481 candidate 0.90
-  synthesis has one matching 0.90 variant plus different variants
-
-Gate:
-  #481 candidate 0.60
-  synthesis omits Gate
-
-Equation:
-  #481 candidate: FL^2 * (P1 - 0.96 Pv)
-  synthesis:      FL^2 * (P1 - FF Pv)
-                  FF = 0.96 - 0.28 sqrt(Pv/Pc)
-
-Decision tree:
-  #481 did not qualify one
-  synthesis supplies a four-regime sigma/Kc tree
+Ball       0.60 candidate vs 0.50/0.75 synthesis variants
+Butterfly  0.62 candidate vs 0.55/0.68/0.70 synthesis variants
+Globe      0.90 candidate vs one matching + other synthesis variants
+Gate       0.60 candidate vs synthesis omission
+Equation   0.96 Pv candidate relation vs pressure-dependent FF synthesis
+Branches   no qualified #481 tree vs synthesis four-regime sigma/Kc tree
 ```
 
 Required disposition:
@@ -219,42 +190,30 @@ Required disposition:
 CONTROLLED EI SOURCE DECIDES
 ```
 
-not nearest match, normalization, engineering preference, or benchmark fitting.
-
 ---
 
 ## PF-01 deliverables now on branch
 
-### 1. Source contract
-
 ```text
 ValidationRecords/VibrationMasters/t29-pf01-source-contract-v1.json
-```
-
-Freezes source identity, 17 pending controlled predicates, authority and hard stops.
-
-### 2. Controlled-source locator
-
-```text
-scripts/locate-vibration-t29-controlled-source.mjs
-```
-
-Uses the existing qualified generic PDF extractor primitives. It:
-
-- verifies exact Git blob and byte size;
-- extracts layout text via `pdftotext`;
-- locates T2.9 navigation candidates;
-- emits page hashes/counts only;
-- does not publish source text or engineering values;
-- requires reviewer selection.
-
-### 3. Provisional extraction request
-
-```text
 ValidationRecords/VibrationMasters/t29-pf01-source-extraction-request-v1.json
+ValidationRecords/VibrationMasters/t29-pf01-reconciliation-matrix-v1.json
+ValidationRecords/VibrationMasters/t29-pf01-benchmark-matrix-v1.json
+ValidationRecords/VibrationMasters/t29-pf01-qualification-progress-v2.json
+ValidationRecords/VibrationMasters/t29-pf01-candidate-contract-v1.json
+scripts/locate-vibration-t29-controlled-source.mjs
+tests/vibration-t29-pf01-contract.test.mjs
+tests/vibration-t29-controlled-source-ci.test.mjs
+agents/PR547_workreport.md
 ```
 
-Current hypothesis:
+### Source locator
+
+The locator verifies exact Git blob/size, uses existing `pdftotext` extraction primitives, identifies T2.9 navigation pages and emits hashes/counts only. It does not publish master values or source text.
+
+### Provisional reviewer request
+
+Current unexecuted navigation hypothesis:
 
 ```text
 printed page = 69
@@ -262,39 +221,25 @@ provisional PDF page = 77
 identifier = T2.9.2
 ```
 
-This is deliberately **UNEXECUTED / NON-AUTHORITATIVE**. A mismatch must fail rather than silently adjust.
+Wrong page/anchors must fail closed.
 
-### 4. Source reconciliation matrix
+### Reconciliation matrix
 
-```text
-ValidationRecords/VibrationMasters/t29-pf01-reconciliation-matrix-v1.json
-```
+Separates controlled evidence, #481 candidate evidence and `Advanced_Analysis` hypotheses. It records every value/equation/branch conflict individually.
 
-Separates controlled source, #481 candidate, synthesis hypotheses, and each unresolved conflict.
-
-### 5. Qualification benchmark matrix
-
-```text
-ValidationRecords/VibrationMasters/t29-pf01-benchmark-matrix-v1.json
-```
+### Benchmark matrix
 
 Frozen now:
 
 - four candidate FL lookup vectors;
 - unknown/blank valve fail-closed vectors;
-- independent Globe arithmetic replay;
-- Pa/bar unit-invariance pair;
-- required no-cavitation/cavitation/flashing/boundary slots.
+- Globe arithmetic replay;
+- Pa/bar unit invariance;
+- reserved no-cavitation/cavitation/flashing/equality/below/above vectors.
 
-The branch/regime/LOF expected fields intentionally remain `null` until controlled source evidence exists.
+Regime and LOF expected values remain `null` until controlled evidence exists.
 
-### 6. Qualification progress checkpoint
-
-```text
-ValidationRecords/VibrationMasters/t29-pf01-qualification-progress-v2.json
-```
-
-Current score:
+### Qualification progress
 
 ```text
 A1 source/production trace       19/20
@@ -305,7 +250,7 @@ A5 minimal implementation slice  19/20
 TOTAL                            90/100
 ```
 
-Gate requires:
+Required:
 
 ```text
 total >= 92/100
@@ -314,34 +259,30 @@ A1 >= 18
 A2 >= 18
 ```
 
-Current disposition:
+Disposition:
 
 ```text
 NOT_QUALIFIED_FOR_T29_CANDIDATE_IMPLEMENTATION
 ```
 
-A2 is intentionally below threshold because exact EI predicates/equalities are still unexecuted.
+A2 remains intentionally below gate because exact EI predicates/equalities are unexecuted.
 
-### 7. Candidate kernel contract
+### Candidate kernel contract
 
-```text
-ValidationRecords/VibrationMasters/t29-pf01-candidate-contract-v1.json
-```
-
-Freezes the future pure-kernel API without executable unverified physics:
+The future pure-kernel stages are frozen without executable unverified physics:
 
 ```text
 validateInput
-normalize pressure/unit evidence
-evaluate applicability
-resolve Pv evidence
-resolve FL
-calculate qualified intermediates
-evaluate qualified decision branches
-build candidate evidence
+normalizeUnitsAndPressureEvidence
+evaluateApplicability
+resolveVapourPressureEvidence
+resolveFL
+calculateQualifiedIntermediates
+evaluateQualifiedDecisionBranches
+buildCandidateEvidence
 ```
 
-Explicitly blocked intermediates:
+Blocked until controlled source:
 
 ```text
 sigma             BLOCKED_CONTROLLED_SOURCE
@@ -351,28 +292,19 @@ regime boundaries BLOCKED_CONTROLLED_SOURCE
 LOF               BLOCKED_CONTROLLED_SOURCE
 ```
 
-### 8. Permanent anti-drift tests
+### Anti-drift tests
 
-```text
-tests/vibration-t29-pf01-contract.test.mjs
-tests/vibration-t29-controlled-source-ci.test.mjs
-```
+The contract regression prevents synthesis rules, candidate master activation, branch-oracle fabrication, qualification self-promotion and authority leakage.
 
-The static contract regression prevents:
+The CI-only controlled-source test is skipped outside GitHub Actions. On a capable trusted runner it downloads the exact pinned public Common object, verifies the Git-object identity and byte size, runs the existing extractor and emits bounded review evidence.
 
-- synthesis rules becoming production authority;
-- candidate FL rows becoming active master data;
-- branch oracles being populated from synthesis;
-- qualification score silently crossing the gate;
-- Screening/design authority leakage.
-
-The CI-only source test is designed for an Actions-capable runner. It downloads the exact public pinned Common object, verifies Git-object identity and byte size, runs the existing extractor, logs bounded review lines and builds the hash-bound manifest.
+A temporary new workflow file was created during execution-route probing and then removed from the net diff because new PR workflows cannot run before default-branch trust and would widen PF-01 scope unnecessarily.
 
 ---
 
-## Current validation truth
+## Validation truth
 
-Executed/reconciled in this session:
+Reconciled/executed in this session:
 
 ```text
 repository grounding                PASS
@@ -400,32 +332,7 @@ No `NOT_RUN` item is represented as PASS.
 
 ---
 
-## Net PR scope
-
-Current net paths are ten files:
-
-```text
-ValidationRecords/VibrationMasters/t29-pf01-source-contract-v1.json
-ValidationRecords/VibrationMasters/t29-pf01-source-extraction-request-v1.json
-ValidationRecords/VibrationMasters/t29-pf01-reconciliation-matrix-v1.json
-ValidationRecords/VibrationMasters/t29-pf01-benchmark-matrix-v1.json
-ValidationRecords/VibrationMasters/t29-pf01-qualification-progress-v2.json
-ValidationRecords/VibrationMasters/t29-pf01-candidate-contract-v1.json
-scripts/locate-vibration-t29-controlled-source.mjs
-tests/vibration-t29-pf01-contract.test.mjs
-tests/vibration-t29-controlled-source-ci.test.mjs
-agents/PR547_workreport.md
-```
-
-A temporary new workflow file was tested as an execution route and then removed from the net diff because new PR workflows cannot execute before default-branch trust and would unnecessarily widen PF-01 scope.
-
-No family UI, active master resolver, T2.8, AIV, FIT, SBC, production calculator or authority code is changed.
-
----
-
 ## Remaining hard stops
-
-Numerical implementation remains prohibited while any of these are unresolved:
 
 ```text
 CONTROLLED_T29_DOCUMENT_EVIDENCE_NOT_EXECUTED
@@ -442,25 +349,22 @@ APPENDIX_A_BELOW_GATE
 
 ## Exact continuation
 
-In an Actions-capable or local environment with network + `pdftotext`:
-
 ```text
 exact pinned Common PDF
-  -> scripts/locate-vibration-t29-controlled-source.mjs
+  -> locate T2.9 pages
   -> confirm/update reviewer page selection
-  -> scripts/extract-vibration-master-source.mjs
-  -> hash-bound T2.9 evidence
-  -> human reconciliation of table/equations/Flowchart T2-9
-  -> populate branch and exact-boundary benchmark oracles
+  -> generic hash-bound source extraction
+  -> reconcile T2.9.2 table/equation/Flowchart T2-9
+  -> populate branch/boundary benchmark oracles
   -> rescore Appendix A
 ```
 
-Only if the gate reaches the required threshold:
+Only after:
 
 ```text
 QUALIFIED_FOR_T29_CANDIDATE_IMPLEMENTATION
 ```
 
-may the next PR implement the pure candidate numerical kernel.
+may a subsequent PR implement the pure candidate numerical kernel.
 
-Screening promotion remains a later, separate authority change.
+Screening promotion remains a later separate authority change.
