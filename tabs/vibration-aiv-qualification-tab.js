@@ -15,27 +15,27 @@ import {
 } from './vibration-aiv-input-model.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
-import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js?v=20260816-aiv-526-editor-2';
-import { createAivExecutionActions } from './vibration-aiv-execution.js?v=20260816-aiv-526-editor-2';
-import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js?v=20260816-aiv-526-editor-2';
-import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js?v=20260816-aiv-526-editor-2';
+import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js?v=20260816-aiv-526-editor-3';
+import { createAivExecutionActions } from './vibration-aiv-execution.js?v=20260816-aiv-526-editor-3';
+import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js?v=20260816-aiv-526-editor-3';
+import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js?v=20260816-aiv-526-editor-3';
 import {
   assertAivTableMutationAllowed,
   detachAivGeneratedTables,
   markAivTableDrivenInputChanged,
-} from './vibration-aiv-mode-transition.js?v=20260816-aiv-526-editor-2';
-import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260816-aiv-526-editor-2';
-import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260816-aiv-526-editor-2';
+} from './vibration-aiv-mode-transition.js?v=20260816-aiv-526-editor-3';
+import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260816-aiv-526-editor-3';
+import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260816-aiv-526-editor-3';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-526-editor-2';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-2';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-526-editor-3';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-3';
 import {
   addAivUnifiedCanvasTableRow,
   readAivUnifiedCanvasTableDraft,
   validateAivUnifiedCanvasTableDraft,
 } from './vibration-aiv-unified-canvas-table-author.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
-import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260816-aiv-526-editor-2';
+import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260816-aiv-526-editor-3';
 
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
