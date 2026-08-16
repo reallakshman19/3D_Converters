@@ -69,6 +69,20 @@ test('PF01 preserves the four-row candidate and explicit synthesis conflicts', (
   assert.equal(states.get('T29-REC-BRANCHES'), 'SYNTHESIS_ONLY_UNVERIFIED');
 });
 
+test('retained multimechanism benchmark explicitly provides no T2.9 branch oracle', () => {
+  assert.deepEqual(BENCHMARKS.workedExampleEvidence, {
+    benchmarkSetPath: 'Benchmarks/VibrationIntegrity/ei-aviff-multimechanism-worked-examples-v1.json',
+    benchmarkSetGitBlobSha1: 'sha1:cb945296ea86186afc1cbb45f50ee94c017adca4',
+    benchmarkSetAuthority: 'WORKED_EXAMPLE_VALIDATION_ONLY',
+    caseId: 'EI-NO-EXAMPLE-CAV-FLASH',
+    mechanism: 'CAVITATION_FLASHING',
+    mode: 'NO_RETAINED_EXAMPLE',
+    branchOracleAvailable: false,
+    decision: 'DO_NOT_INFER_T29_BRANCH_OR_LOF_FROM_MULTIMECHANISM_BENCHMARK_SET',
+  });
+  assert.equal(BENCHMARKS.promotionGate.workedExampleBranchOracleAvailable, false);
+});
+
 test('independent Globe arithmetic replay and unit-invariance pair stay frozen', () => {
   const pa = BENCHMARKS.arithmeticVectors.find((item) => item.id === 'T29-ARITH-001-GLOBE-PA');
   const bar = BENCHMARKS.arithmeticVectors.find((item) => item.id === 'T29-ARITH-002-GLOBE-BAR');
