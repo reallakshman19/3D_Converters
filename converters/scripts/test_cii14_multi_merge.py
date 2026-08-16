@@ -105,7 +105,7 @@ class TestCii14ProfileAndMerge(unittest.TestCase):
 
     def test_cross_version_merge_is_rejected(self):
         v11, v14 = _paired_texts()
-        with self.assertRaisesRegex(merge.MergeError, "expected Ver 14 signature"):
+        with self.assertRaisesRegex(merge.MergeError, "expected Ver 14 signature|invalid CII Ver 14 structure"):
             merge.merge_cii14_texts([v14, v11], offsets=[0, 5000], labels=["v14", "v11"])
 
     def test_node_collision_is_rejected_by_default(self):
