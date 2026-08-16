@@ -9,7 +9,6 @@ const SCRIPT_FILES = Object.freeze([
   'cii_v11_v14.py',
   'cii_v11_v14_format.py',
   'cii_v11_v14_records.py',
-  'cii_v11_v14_allowables.py',
   'cii_v11_v14_sif.py',
   'cii_v11_v14_validate.py',
   'cii2019_section_rules.py',
