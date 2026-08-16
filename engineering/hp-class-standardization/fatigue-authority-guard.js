@@ -9,52 +9,54 @@
     reason: 'CONTROLLED_KD320_FORMULATION_AND_CUSTODY_NOT_ESTABLISHED',
   });
 
-  function blockedSeqGate(authority, original) {
+  const NATIVE_SEQ_BLOCK = 'CORE KD-3 Seq is not qualified — supply externally calculated Seq and N';
+  const NATIVE_CURVE_BLOCK = 'CORE fatigue-curve Ni evaluation is not authorized — supply permissible cycles N externally';
+
+  function externalSeqGate(authority) {
     const mode = authority?.seqMode || 'manual';
-    if (mode !== 'manual') {
-      return {
-        ok: false,
-        label: 'CORE KD-3 Seq is not qualified — supply externally calculated Seq and N',
-        css: 'blocked',
-        mode,
-        saRef: NaN,
-        points: [],
-      };
+    if (mode === 'manual') {
+      return { ok: true, label: 'Manual licensed Seq', css: 'good', mode: 'manual', saRef: NaN, points: [] };
     }
-    return original(authority);
+    return { ok: false, label: NATIVE_SEQ_BLOCK, css: 'blocked', mode, saRef: NaN, points: [] };
   }
 
-  function blockedCurveGate(authority, original) {
+  function externalCurveGate(authority) {
     const mode = authority?.fatigueCurveMode || 'manual';
-    if (mode !== 'manual') {
-      return {
-        ok: false,
-        label: 'CORE fatigue-curve Ni evaluation is not authorized — supply permissible cycles N externally',
-        css: 'blocked',
-        points: [],
-      };
-    }
-    return original(authority);
+    if (mode === 'manual') return { ok: true, label: 'Manual Ni mode', css: 'good', points: [] };
+    return { ok: false, label: NATIVE_CURVE_BLOCK, css: 'blocked', points: [] };
+  }
+
+  function blockedAutomaticSeq() {
+    return {
+      ok: false,
+      seq: NaN,
+      pair: '',
+      basis: NATIVE_SEQ_BLOCK,
+      pairs: [],
+      saRef: NaN,
+      canUseForDesignAuthority: false,
+    };
+  }
+
+  function blockedCurveParser() {
+    return { ok: false, points: [], error: NATIVE_CURVE_BLOCK, canUseForDesignAuthority: false };
+  }
+
+  function blockedFatigueLife() {
+    return { ok: false, N: NaN, status: NATIVE_CURVE_BLOCK, canUseForDesignAuthority: false };
+  }
+
+  function blockedCurveStress() {
+    return { ok: false, Sa: NaN, status: NATIVE_SEQ_BLOCK, canUseForDesignAuthority: false };
   }
 
   function installCalculationGuards() {
-    if (typeof root.seqGate === 'function' && !root.seqGate.__userKd3Guarded) {
-      const original = root.seqGate;
-      const guarded = function guardedSeqGate(authority) {
-        return blockedSeqGate(authority, original);
-      };
-      guarded.__userKd3Guarded = true;
-      root.seqGate = guarded;
-    }
-
-    if (typeof root.curveGate === 'function' && !root.curveGate.__userKd3Guarded) {
-      const original = root.curveGate;
-      const guarded = function guardedCurveGate(authority) {
-        return blockedCurveGate(authority, original);
-      };
-      guarded.__userKd3Guarded = true;
-      root.curveGate = guarded;
-    }
+    root.seqGate = externalSeqGate;
+    root.curveGate = externalCurveGate;
+    root.calculateAutomaticSeq = blockedAutomaticSeq;
+    root.parseFatigueCurvePoints = blockedCurveParser;
+    root.interpolateFatigueLife = blockedFatigueLife;
+    root.interpolateCurveStressAtCycles = blockedCurveStress;
 
     if (typeof root.wallStatus === 'function' && !root.wallStatus.__userKd3Guarded) {
       const original = root.wallStatus;
@@ -96,13 +98,12 @@
     }
   }
 
-  function disableLegacyNativeInputs() {
+  function removeLegacyNativeInputs() {
     [
       'seqMeanBasis',
       'seqBeta',
       'seqReferenceCycles',
       'seqMeanTermLimit',
-      'fatigueCurveId',
       'fatigueCurveSourceRef',
       'fatigueCurveData',
       'fatigueInterpolation',
@@ -111,10 +112,9 @@
     ].forEach((id) => {
       const element = document.getElementById(id);
       if (!element) return;
-      element.disabled = true;
-      element.dataset.nativeKd3Blocked = 'true';
-      const label = element.closest('label');
-      if (label) label.hidden = true;
+      const label = element.closest?.('label');
+      if (label) label.remove();
+      else element.remove();
     });
   }
 
@@ -180,7 +180,7 @@
   function enforce() {
     installCalculationGuards();
     replaceSelectOptions();
-    disableLegacyNativeInputs();
+    removeLegacyNativeInputs();
     enforceStatusText();
     loadCanonicalProductSurface();
   }
@@ -204,7 +204,16 @@
     return observer;
   }
 
-  root.HpFatigueAuthorityGuard = Object.freeze({ POLICY, enforce });
+  root.HpFatigueAuthorityGuard = Object.freeze({
+    POLICY,
+    enforce,
+    runtimeHardBlocks: Object.freeze({
+      calculateAutomaticSeq: true,
+      parseFatigueCurvePoints: true,
+      interpolateFatigueLife: true,
+      interpolateCurveStressAtCycles: true,
+    }),
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
