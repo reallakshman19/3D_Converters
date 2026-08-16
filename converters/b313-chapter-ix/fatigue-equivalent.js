@@ -23,29 +23,16 @@ export function calculateChapterIxEquivalentAlternatingStress(input = {}) {
       formulation: 'HIGH_PR_DIRECT_SALT_EQUAL_SEQ_V1',
     };
   }
-  if (route !== 'KD320_MEAN_STRESS_CORRECTION') {
-    return failure('FATIGUE_ROUTE_UNSUPPORTED', `Unsupported seqRoute ${route || '(missing)'}.`);
+  if (route === 'KD320_MEAN_STRESS_CORRECTION') {
+    return failure(
+      'KD320_CORE_ROUTE_NOT_QUALIFIED',
+      'CORE does not calculate KD320 mean-stress correction in R3. Supply externally calculated Seq and permissible cycles through USER_CALCULATED_KD3.',
+      {
+        route,
+        requiredInputMode: 'USER_CALCULATED_KD3',
+        reason: 'CONTROLLED_KD320_FORMULATION_AND_CUSTODY_NOT_ESTABLISHED',
+      },
+    );
   }
-  for (const field of ['meanStressMpa', 'yieldStrengthMpa', 'beta']) {
-    if (!finite(input[field])) return failure('MEAN_STRESS_INPUT_REQUIRED', `${field} must be explicitly supplied.`, { field });
-  }
-  if (!(input.yieldStrengthMpa > 0)) return failure('INPUT_INVALID', 'yieldStrengthMpa must be > 0.');
-  if (input.beta < 0) return failure('INPUT_INVALID', 'beta cannot be negative.');
-  const denominator = 1 - input.beta * (input.meanStressMpa / input.yieldStrengthMpa);
-  if (!(denominator > 0)) {
-    return failure('MEAN_STRESS_CORRECTION_INVALID', 'Mean-stress correction denominator must remain > 0.', { denominator });
-  }
-  return {
-    ok: true,
-    canUseForDesignAuthority: false,
-    route,
-    alternatingStressIntensityMpa: alternating,
-    meanStressMpa: input.meanStressMpa,
-    yieldStrengthMpa: input.yieldStrengthMpa,
-    beta: input.beta,
-    correctionDenominator: denominator,
-    equivalentAlternatingStressMpa: alternating / denominator,
-    routeState: 'PROVISIONAL_EXPLICIT_PARAMETERS_NOT_AUTHORIZED',
-    formulation: 'HIGH_PR_SPEC_KD320_MEAN_STRESS_FORM_V1',
-  };
+  return failure('FATIGUE_ROUTE_UNSUPPORTED', `Unsupported seqRoute ${route || '(missing)'}.`);
 }
