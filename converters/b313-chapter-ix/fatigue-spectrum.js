@@ -24,11 +24,10 @@ function validateRoute(route) {
   return null;
 }
 
-function cycleEquivalent(cycleStress, route, parameters) {
+function cycleEquivalent(cycleStress, route) {
   return calculateChapterIxEquivalentAlternatingStress({
     alternatingStressIntensityMpa: cycleStress.alternatingStressIntensityMpa,
     seqRoute: route.seqRoute,
-    ...(parameters ?? {}),
   });
 }
 
@@ -51,7 +50,7 @@ export function evaluateChapterIxStraightPipeFatigueSpectrum(input = {}) {
       toPressureMpa: cycle.toState.pressureMpa,
     });
     if (!stress.ok) return failure(stress.code, stress.message, { stage: 'CYCLE_STRESS', cycleId: cycle.cycleId });
-    const equivalent = cycleEquivalent(stress, input.fatigueRoute, input.meanStressParametersByCycle?.[cycle.cycleId]);
+    const equivalent = cycleEquivalent(stress, input.fatigueRoute);
     if (!equivalent.ok) {
       return failure(equivalent.code, equivalent.message, {
         stage: 'EQUIVALENT_STRESS', cycleId: cycle.cycleId, ...(equivalent.details ?? {}),
