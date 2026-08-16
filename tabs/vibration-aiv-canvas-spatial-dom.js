@@ -36,13 +36,17 @@ function restoreBase(element, key) {
   const base = element.dataset[key]; if (base) element.setAttribute('transform', base); else element.removeAttribute('transform');
 }
 function appendShift(element, key, dx, dy) {
-  restoreBase(element, key); if (!dx && !dy) return;
-  const base = element.dataset[key] || ''; element.setAttribute('transform', `${base} translate(${dx} ${dy})`.trim());
+  restoreBase(element, key);
+  const base = element?.dataset?.aivLabelSemanticTransform || element?.dataset?.[key] || '';
+  if (!element) return;
+  if (!dx && !dy) { if (base) element.setAttribute('transform', base); return; }
+  element.setAttribute('transform', `${base} translate(${dx} ${dy})`.trim());
 }
 function bundle(owner, mode, selection) {
   const label = activeLabel(owner, mode); if (!label || label.style.visibility === 'hidden') return null;
   const title = owner.matches('[data-aiv-canvas-node]') ? owner.querySelector('.aiv-canvas-node-title') : null;
   restoreBase(label, 'aivLabelBaseTransform'); restoreBase(title, 'aivTitleBaseTransform');
+  if (label.dataset.aivLabelSemanticTransform) label.setAttribute('transform', label.dataset.aivLabelSemanticTransform);
   const value = union([rect(title), rect(label)]); if (!value || !(value.width > 0) || !(value.height > 0)) return null;
   return { id: ownerKey(owner), owner, label, title, rect: value, priority: ownerPriority(owner, selection) };
 }
@@ -60,6 +64,16 @@ function preserveSelectedTextSize(element, zoom, isSelected) {
     const base = Number(item.dataset.aivBaseFontSize) || 10;
     item.style.fontSize = isSelected && zoom < 0.65 ? `${base / Math.max(0.35, zoom)}px` : '';
   }
+}
+function selectedLabelTransform(owner, label, zoom, isSelected) {
+  if (!label) return;
+  restoreBase(label, 'aivLabelBaseTransform');
+  const base = label.dataset.aivLabelBaseTransform || '';
+  const preserve = isSelected && zoom < 0.65;
+  label.dataset.aivLabelSemanticTransform = preserve
+    ? `${base}${owner.matches('[data-aiv-canvas-node]') ? ' translate(0 30)' : ''} scale(${1 / Math.max(0.35, zoom)})`.trim()
+    : '';
+  if (label.dataset.aivLabelSemanticTransform) label.setAttribute('transform', label.dataset.aivLabelSemanticTransform);
 }
 function svgScale(canvas, layout) {
   const value = canvas?.getBoundingClientRect?.(); const box = canvas?.viewBox?.baseVal;
@@ -112,7 +126,7 @@ export function applyAivCanvasSemanticPresentation(container, layout, selection)
     if (title) title.style.visibility = level === AIV_CANVAS_SEMANTIC_LEVEL.OVERVIEW && !isSelected ? 'hidden' : '';
     preserveSelectedTextSize(title, zoom, isSelected);
     if (!label) continue;
-    preserveSelectedTextSize(label, zoom, isSelected);
+    selectedLabelTransform(owner, label, zoom, isSelected);
     label.style.visibility = level === AIV_CANVAS_SEMANTIC_LEVEL.OVERVIEW && !isSelected ? 'hidden' : '';
     const rows = [...label.querySelectorAll('text')]; rows.forEach((row) => { row.style.display = ''; });
     if (level === AIV_CANVAS_SEMANTIC_LEVEL.COMPACT && !isSelected) rows.slice(1).forEach((row) => { row.style.display = 'none'; });
