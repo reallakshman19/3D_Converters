@@ -17,10 +17,13 @@ from cii_v11_v14_format import (
     _render_float_row, _sha256, parse_sections,
 )
 from cii_v11_v14_records import (
-    _close_to, _convert_coords, _convert_elements, _convert_reducers,
-    _convert_restraints, _convert_sif_tees, _convert_units, _convert_version,
-    _row_is_all_zero, detect_version,
+    _close_to, _convert_allowables, _convert_coords, _convert_elements,
+    _convert_reducers, _convert_restraints, _convert_units,
+    _convert_version, _row_is_all_zero, detect_version,
 )
+from cii_v11_v14_sif import _convert_sif_tees
+from cii_v11_v14_validate import CiiStructureError, validate_text_for_version
+
 
 def _convert_section(
     section: Section, source: int, target: int, allow_lossy: bool, audit: Audit
@@ -33,6 +36,8 @@ def _convert_section(
         return _convert_elements(lines, target)
     if name == "RESTRANT":
         return _convert_restraints(lines, source, target)
+    if name == "ALLOWBLS":
+        return _convert_allowables(lines, source, target, allow_lossy, audit)
     if name == "SIF&TEES":
         return _convert_sif_tees(lines, source, target, allow_lossy, audit)
     if name == "REDUCERS":
@@ -41,8 +46,9 @@ def _convert_section(
         return _convert_units(lines, target, audit)
     if name == "COORDS":
         return _convert_coords(lines, target, audit)
-    # CONTROL integer rows, NODENAME strings, and all empty/auxiliary sections
-    # are retained; real-valued fixed rows are safely re-rendered when detected.
+    # CONTROL integer rows, NODENAME strings, and sections whose record shape is
+    # unchanged between the qualified profiles are retained; real-valued fixed
+    # rows are re-rendered only when their fixed-width shape is unambiguous.
     return [_generic_numeric_convert(line, target) for line in lines]
 
 
@@ -74,6 +80,17 @@ def _validate_section_envelope(sections: Sequence[Section], audit: Audit) -> Non
         )
 
 
+def _validate_structure(data: bytes, version: int, *, phase: str) -> None:
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise CiiConversionError(f"{phase} CII is not valid ASCII/UTF-8 text.") from exc
+    try:
+        validate_text_for_version(text, version, phase=phase)
+    except CiiStructureError as exc:
+        raise CiiConversionError(str(exc)) from exc
+
+
 def convert_bytes(data: bytes, target: int, *, allow_lossy: bool = False) -> ConversionResult:
     if target not in (11, 14):
         raise CiiConversionError("Target version must be 11 or 14.")
@@ -86,6 +103,11 @@ def convert_bytes(data: bytes, target: int, *, allow_lossy: bool = False) -> Con
         source_bytes=len(data),
     )
     _validate_section_envelope(sections, audit)
+
+    # Validate the source against an independent CONTROL-driven record envelope
+    # before any conversion.  This prevents a malformed source from becoming a
+    # superficially well-formed target through row truncation/reformatting.
+    _validate_structure(data, source, phase="source")
 
     if source == target:
         # A no-op conversion must be byte-preserving; this avoids needless
@@ -103,6 +125,12 @@ def convert_bytes(data: bytes, target: int, *, allow_lossy: bool = False) -> Con
             audit.changed_sections.append(section.name)
 
     output = _serialize(converted_sections, target)
+
+    # P0 import gate: do not hand a generated neutral file to the browser until
+    # the independent target-version section rules accept CONTROL counts, block
+    # widths, section order, MISCEL_1 minimum payload and UNITS envelope.
+    _validate_structure(output, target, phase="generated")
+
     audit.target_sha256 = _sha256(output)
     audit.target_bytes = len(output)
     return ConversionResult(data=output, audit=audit)
@@ -139,7 +167,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--allow-lossy", action="store_true",
-        help="Explicitly allow discarding non-zero v14-only SIF/REDUCERS extension rows when converting to v11",
+        help=(
+            "Explicitly allow discarding version-owned data with no qualified v11 semantic slot "
+            "(including Ver14 B31J SIF/TEE fields, reducer items 6-10, or ALLOWBLS items 154-168)."
+        ),
     )
     parser.add_argument("--audit-json", type=Path, default=None, help="Optional JSON audit report path")
     return parser

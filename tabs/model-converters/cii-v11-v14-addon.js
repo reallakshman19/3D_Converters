@@ -7,10 +7,10 @@
  * primary Converter selector.
  */
 import { CONVERTERS as DROPDOWN_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runCiiV11V14 } from './converters/cii-v11-v14.js?v=20260816-cii-v11-v14-1';
+import { run as runCiiV11V14 } from './converters/cii-v11-v14.js?v=20260816-cii-v11-v14-import-rca-1';
 
 const CONVERTER_ID = 'cii_v11_v14';
-const VERSION = '20260816-cii-v11-v14-dropdown-release-3';
+const VERSION = '20260816-cii-v11-v14-dropdown-release-4';
 
 function definition() {
   return {
@@ -24,13 +24,13 @@ function definition() {
     ],
     options: [
       { key: 'targetVersion', label: 'Target Version', type: 'select', options: ['Auto (opposite)', '11', '14'] },
-      { key: 'allowLossy', label: 'Allow lossy v14 → v11 downgrade', type: 'checkbox' },
+      { key: 'allowLossy', label: 'Allow loss of v14-only extension fields', type: 'checkbox' },
     ],
     defaults: {
       targetVersion: 'Auto (opposite)',
       allowLossy: false,
     },
-    description: 'Convert CAESAR II neutral files between v14 and v11 fixed-format dialects. Auto converts to the opposite detected version.',
+    description: 'Convert CAESAR II neutral files between v14 and v11 fixed-format dialects with target-structure validation. Legacy SIF/TEE items are preserved; v14-only extensions remain explicit opt-in losses.',
     workflow: null,
     run: runCiiV11V14,
     integrationVersion: VERSION,

@@ -2,7 +2,7 @@
  * UI runner for the CAESAR II neutral-file v11 <-> v14 adapter.
  * The engineering conversion stays in converters/scripts/cii_v11_v14.py.
  */
-const WORKER_URL = new URL('../../../converters/cii-v11-v14-worker.js', import.meta.url);
+const WORKER_URL = new URL('../../../converters/cii-v11-v14-worker.js?v=20260816-cii-v11-v14-import-rca-1', import.meta.url);
 let worker = null;
 let sequence = 0;
 const pending = new Map();
@@ -54,7 +54,7 @@ export async function run(context) {
   if (!primary?.bytes) throw new Error('CII v11/v14 input file is required.');
 
   const targetVersion = normalizedTarget(context?.options?.targetVersion);
-  context?.setStatus?.('Converting CAESAR neutral-file version...', 'running');
+  context?.setStatus?.('Converting and validating CAESAR neutral-file version...', 'running');
   const response = await runWorker({
     inputName: primary.name,
     inputBytes: primary.bytes,
@@ -70,13 +70,24 @@ export async function run(context) {
   const outputName = `${stem(primary.name)}_v${resolvedTarget}.cii`;
   const auditName = `${stem(primary.name)}_v${resolvedTarget}.audit.json`;
   const outputText = new TextDecoder('utf-8').decode(new Uint8Array(response.outputBytes));
+  const lossCount = Array.isArray(audit.loss_events) ? audit.loss_events.length : 0;
 
   context?.logger?.log?.(
     `CAESAR CII v${audit.source_version} -> v${audit.target_version}; `
     + `${audit.source_bytes} -> ${audit.target_bytes} bytes; `
-    + `loss events=${Array.isArray(audit.loss_events) ? audit.loss_events.length : 0}.`,
+    + `loss events=${lossCount}; target structure validation=PASS.`,
   );
-  context?.setStatus?.(`Converted CII v${audit.source_version} -> v${audit.target_version}.`, 'ok');
+  if (lossCount) {
+    context?.setStatus?.(
+      `Converted CII v${audit.source_version} -> v${audit.target_version} with ${lossCount} explicitly allowed v14-only loss event(s).`,
+      'warning',
+    );
+  } else {
+    context?.setStatus?.(
+      `Converted and structurally validated CII v${audit.source_version} -> v${audit.target_version}.`,
+      'ok',
+    );
+  }
 
   return {
     ok: true,
