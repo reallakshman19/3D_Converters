@@ -67,6 +67,15 @@ test('missing declared probe fails closed', async () => {
   );
 });
 
+test('declared paths cannot escape the repository root', async () => {
+  const workpack = {
+    ...secondConsumer([]),
+    sourceRules: [{ path: '../package.json', requiredStrings: [], forbiddenStrings: [] }],
+    checks: [{ id: 'SECOND-001', type: 'SOURCE_RULES', severity: 'ERROR', config: { rulesRef: 'sourceRules' } }],
+  };
+  await assert.rejects(verifyEngineeringWorkpackDefinition(workpack), /REPOSITORY_PATH_ESCAPE:\.\.\/package\.json/u);
+});
+
 test('malformed, duplicate and unsupported-schema work packs fail closed', () => {
   assert.throws(() => validateEngineeringWorkpack({}), /UNSUPPORTED_SCHEMA_VERSION/u);
   assert.throws(() => validateEngineeringWorkpack({
@@ -149,6 +158,7 @@ test('generic core contains no mechanism-specific engineering names or rules', a
     '../scripts/verify-engineering-workpack.mjs',
     '../engineering/workpacks/framework/workpack-loader.mjs',
     '../engineering/workpacks/framework/check-handlers.mjs',
+    '../engineering/workpacks/framework/path-utils.mjs',
     '../engineering/workpacks/framework/probe-runner.mjs',
   ];
   const forbiddenRule = /QST-003|D\.2\.3|T2\.9|if\s*\([^)]*(?:FIT|AIV|SBC)/u;
