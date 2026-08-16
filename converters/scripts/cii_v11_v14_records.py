@@ -15,6 +15,20 @@ from cii_v11_v14_format import (
     _render_float_row,
 )
 
+# Neutral-file SIF storage is per tee slot, not one flat 10/14-row packet.
+# v11: two tee slots x 30 values = 2 x 5 rows.
+# v14: two tee slots x 42 values = 2 x 7 rows.
+SIF_TEE_ROWS_V11 = 5
+SIF_TEE_ROWS_V14 = 7
+SIF_TEES_PER_RECORD = 2
+
+# ALLOWBLS expanded from 153 values / 26 rows to 168 values / 28 rows.
+ALLOWABLE_ROWS_V11 = 26
+ALLOWABLE_ROWS_V14 = 28
+ALLOWABLE_VALUES_V11 = 153
+ALLOWABLE_VALUES_V14 = 168
+
+
 def detect_version(sections: Sequence[Section]) -> int:
     version = next((s for s in sections if s.name == "VERSION"), None)
     if version is None or not version.lines:
@@ -34,8 +48,8 @@ def _convert_version(lines: Sequence[str], target: int) -> list[str]:
     converted = [_VERSION_LINE[target]]
     for index, line in enumerate(lines[1:], 1):
         # The final VERSION payload row is version-owned in the qualified pair:
-        # v14 carries the neutral-interface generator banner, while v11 leaves
-        # the row blank.  Do not leak the v14 banner into a v11 file.
+        # v14 carries the neutral-interface generator banner, while the paired
+        # legacy profile leaves the row blank.  Do not leak a v14 banner into v11.
         if len(lines) == 61 and index == 60:
             text = V14_VERSION_GENERATOR if target == 14 else ""
         else:
@@ -164,9 +178,21 @@ def _row_is_all_zero(line: str) -> bool:
     return parsed is not None and bool(parsed[0]) and all(abs(value) < 1e-12 for value in parsed[0])
 
 
+def _loss_or_raise(message: str, allow_lossy: bool, audit: Audit) -> None:
+    if not allow_lossy:
+        raise CiiConversionError(message + " Re-run with --allow-lossy to discard only the unsupported extension data explicitly.")
+    audit.loss_events.append(message)
+
+
 def _convert_sif_tees(
     lines: Sequence[str], source: int, target: int, allow_lossy: bool, audit: Audit
 ) -> list[str]:
+    """Convert two independent tee slots without crossing their record boundary.
+
+    v11 stores 30 values (5 rows) per tee slot.  v14 stores those same leading
+    30 values plus 12 B31J-era extension values (2 rows), for 42 values / 7 rows
+    per tee slot.  A full auxiliary record always contains two tee slots.
+    """
     if not lines:
         return []
     source_rows = SIF_ROWS_V11 if source == 11 else SIF_ROWS_V14
@@ -174,24 +200,124 @@ def _convert_sif_tees(
         raise CiiConversionError(
             f"SIF&TEES payload has {len(lines)} rows; expected a multiple of {source_rows} for v{source}."
         )
+
     out: list[str] = []
     for record_index, base in enumerate(range(0, len(lines), source_rows), 1):
         record = list(lines[base:base + source_rows])
+
         if source == 14 and target == 11:
-            extras = record[SIF_ROWS_V11:SIF_ROWS_V14]
+            tee1 = record[0:SIF_TEE_ROWS_V14]
+            tee2 = record[SIF_TEE_ROWS_V14:SIF_TEE_ROWS_V14 * 2]
+            extras = tee1[SIF_TEE_ROWS_V11:] + tee2[SIF_TEE_ROWS_V11:]
             if not all(_row_is_all_zero(line) for line in extras):
-                message = (
-                    f"SIF&TEES record {record_index} contains non-zero v14-only rows; "
-                    "v11 has no storage for them."
+                _loss_or_raise(
+                    (
+                        f"SIF&TEES record {record_index} contains non-zero v14-only "
+                        "items 31-42 in one or both tee slots; legacy items 1-30 for "
+                        "both tee slots are preserved, but v11 has no storage for the extension."
+                    ),
+                    allow_lossy,
+                    audit,
                 )
-                if not allow_lossy:
-                    raise CiiConversionError(message + " Re-run with --allow-lossy to discard them explicitly.")
-                audit.loss_events.append(message)
-            record = record[:SIF_ROWS_V11]
+            # Critical ordering: tee-1 legacy rows, then tee-2 legacy rows.
+            # Taking record[:10] would mix tee-1 extension rows into tee-2 data.
+            record = tee1[:SIF_TEE_ROWS_V11] + tee2[:SIF_TEE_ROWS_V11]
+
         elif source == 11 and target == 14:
+            tee1 = record[0:SIF_TEE_ROWS_V11]
+            tee2 = record[SIF_TEE_ROWS_V11:SIF_TEE_ROWS_V11 * 2]
             zero = _render_float_row([0.0] * 6, 14)
-            record.extend([zero] * (SIF_ROWS_V14 - SIF_ROWS_V11))
+            extension = [zero] * (SIF_TEE_ROWS_V14 - SIF_TEE_ROWS_V11)
+            # Extensions belong after each independent tee slot, not at EOF.
+            record = tee1 + extension + tee2 + extension
+
         out.extend(_generic_numeric_convert(line, target) for line in record)
+    return out
+
+
+def _parse_numeric_rows(rows: Sequence[str], section: str, record_index: int) -> list[list[float]]:
+    parsed_rows: list[list[float]] = []
+    for row_index, line in enumerate(rows, 1):
+        parsed = _extract_numbers(line)
+        if parsed is None or not parsed[0]:
+            raise CiiConversionError(
+                f"Malformed {section} record {record_index}, row {row_index}: expected numeric fixed record."
+            )
+        parsed_rows.append(list(parsed[0]))
+    return parsed_rows
+
+
+def _convert_allowables(
+    lines: Sequence[str], source: int, target: int, allow_lossy: bool, audit: Audit
+) -> list[str]:
+    """Map ALLOWBLS 153-value legacy records to/from the 168-value v14 records."""
+    if not lines:
+        return []
+    source_rows = ALLOWABLE_ROWS_V11 if source == 11 else ALLOWABLE_ROWS_V14
+    if len(lines) % source_rows:
+        raise CiiConversionError(
+            f"ALLOWBLS payload has {len(lines)} rows; expected a multiple of {source_rows} for v{source}."
+        )
+
+    out: list[str] = []
+    for record_index, base in enumerate(range(0, len(lines), source_rows), 1):
+        rows = list(lines[base:base + source_rows])
+        parsed_rows = _parse_numeric_rows(rows, "ALLOWBLS", record_index)
+
+        if source == 14 and target == 11:
+            if any(len(values) != 6 for values in parsed_rows):
+                raise CiiConversionError(
+                    f"ALLOWBLS v14 record {record_index} must contain 6 values on each of 28 rows."
+                )
+            values = [value for row in parsed_rows for value in row]
+            if len(values) != ALLOWABLE_VALUES_V14:
+                raise CiiConversionError(
+                    f"ALLOWBLS v14 record {record_index} has {len(values)} values; expected {ALLOWABLE_VALUES_V14}."
+                )
+            legacy = values[:ALLOWABLE_VALUES_V11]
+            extension = values[ALLOWABLE_VALUES_V11:]
+            if any(abs(value) >= 1e-12 for value in extension):
+                _loss_or_raise(
+                    (
+                        f"ALLOWBLS record {record_index} contains non-zero v14-only items "
+                        f"154-{ALLOWABLE_VALUES_V14}; v11 preserves items 1-{ALLOWABLE_VALUES_V11} only."
+                    ),
+                    allow_lossy,
+                    audit,
+                )
+            for offset in range(0, ALLOWABLE_VALUES_V11, 6):
+                out.append(_render_float_row(legacy[offset:offset + 6], 11))
+            continue
+
+        if source == 11 and target == 14:
+            # Legacy records contain 25 full rows plus a final row whose first
+            # three fields are items 151-153.  Some writers pad the remaining
+            # fields with zeros; accept zero padding but never reinterpret it.
+            if any(len(values) != 6 for values in parsed_rows[:-1]):
+                raise CiiConversionError(
+                    f"ALLOWBLS v11 record {record_index} rows 1-25 must contain 6 values each."
+                )
+            last = parsed_rows[-1]
+            if len(last) < 3:
+                raise CiiConversionError(
+                    f"ALLOWBLS v11 record {record_index} final row must contain at least items 151-153."
+                )
+            if any(abs(value) >= 1e-12 for value in last[3:]):
+                raise CiiConversionError(
+                    f"ALLOWBLS v11 record {record_index} has non-zero padding beyond item 153; conversion is ambiguous."
+                )
+            legacy = [value for row in parsed_rows[:-1] for value in row] + last[:3]
+            if len(legacy) != ALLOWABLE_VALUES_V11:
+                raise CiiConversionError(
+                    f"ALLOWBLS v11 record {record_index} has {len(legacy)} legacy values; expected {ALLOWABLE_VALUES_V11}."
+                )
+            values = legacy + [0.0] * (ALLOWABLE_VALUES_V14 - ALLOWABLE_VALUES_V11)
+            for offset in range(0, ALLOWABLE_VALUES_V14, 6):
+                out.append(_render_float_row(values[offset:offset + 6], 14))
+            continue
+
+        out.extend(_generic_numeric_convert(line, target) for line in rows)
+
     return out
 
 
@@ -210,13 +336,14 @@ def _convert_reducers(
             first, extra = lines[base:base + 2]
             if target == 11:
                 if not _row_is_all_zero(extra):
-                    message = (
-                        f"REDUCERS record {record_index} contains a non-zero v14-only row; "
-                        "v11 has no storage for it."
+                    _loss_or_raise(
+                        (
+                            f"REDUCERS record {record_index} contains a non-zero v14-only row; "
+                            "v11 has no storage for reducer extension items 6-10."
+                        ),
+                        allow_lossy,
+                        audit,
                     )
-                    if not allow_lossy:
-                        raise CiiConversionError(message + " Re-run with --allow-lossy to discard it explicitly.")
-                    audit.loss_events.append(message)
                 out.append(_generic_numeric_convert(first, 11))
             else:
                 out.extend([first, extra])
@@ -288,4 +415,3 @@ def _convert_coords(lines: Sequence[str], target: int, audit: Audit) -> list[str
             f"COORDS target formatting quantized coordinate values; maximum absolute formatting delta={max_delta:.9g}."
         )
     return out
-
