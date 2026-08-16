@@ -15,22 +15,27 @@ import {
 } from './vibration-aiv-input-model.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
-import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js?v=20260815-aiv-526-unified-1';
-import { createAivExecutionActions } from './vibration-aiv-execution.js?v=20260815-aiv-526-unified-1';
-import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js?v=20260815-aiv-526-unified-1';
-import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js?v=20260815-aiv-526-unified-1';
+import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js?v=20260816-aiv-526-editor-1';
+import { createAivExecutionActions } from './vibration-aiv-execution.js?v=20260816-aiv-526-editor-1';
+import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js?v=20260816-aiv-526-editor-1';
+import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js?v=20260816-aiv-526-editor-1';
 import {
   assertAivTableMutationAllowed,
   detachAivGeneratedTables,
   markAivTableDrivenInputChanged,
-} from './vibration-aiv-mode-transition.js?v=20260815-aiv-526-unified-1';
-import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260815-aiv-526-unified-1';
-import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260815-aiv-526-unified-1';
+} from './vibration-aiv-mode-transition.js?v=20260816-aiv-526-editor-1';
+import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260816-aiv-526-editor-1';
+import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260816-aiv-526-editor-1';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260815-aiv-526-unified-1';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260815-aiv-526-unified-1';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-526-editor-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-1';
+import {
+  addAivUnifiedCanvasTableRow,
+  readAivUnifiedCanvasTableDraft,
+  validateAivUnifiedCanvasTableDraft,
+} from './vibration-aiv-unified-canvas-table-author.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
-import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260815-aiv-526-unified-1';
+import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260816-aiv-526-editor-1';
 
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
@@ -168,7 +173,26 @@ export function renderAivQualificationWorkspace(container) {
     }
   }
 
+  function createTableCanvasItem(action) {
+    const kind = action === 'add-source' ? 'sources' : action === 'add-assessment' ? 'assessments' : null;
+    if (!kind || !tableMutationAllowed()) return Boolean(kind);
+    try {
+      const values = readAivUnifiedCanvasTableDraft(container, kind);
+      validateAivUnifiedCanvasTableDraft(kind, values);
+      state.selectedCanvasKey = kind === 'sources'
+        ? `SOURCE:${values['Source Canonical ID']}:${values['Operating Case']}`
+        : `ASSESSMENT:${values['Assessment Canonical ID']}`;
+      applyTableMutation(kind, addAivUnifiedCanvasTableRow(state.tables[kind], values), true);
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+    }
+    return true;
+  }
+
   function handleTableClick(event) {
+    const canvasAction = event.target.closest('[data-aiv-canvas-table-action]')?.dataset.aivCanvasTableAction;
+    if (canvasAction && createTableCanvasItem(canvasAction)) return true;
     const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
     if (addKind) {
       if (!tableMutationAllowed()) return true;
