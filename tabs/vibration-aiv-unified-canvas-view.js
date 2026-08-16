@@ -7,7 +7,12 @@ import {
   isAivLineageCurrent,
 } from './vibration-aiv-engineering-revision.js';
 import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-3';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-3';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-fields-1';
+import {
+  buildAivCanvasNodeFieldLinks,
+  buildAivCanvasRelationshipFieldLinks,
+  buildAivCanvasSegmentFieldLinks,
+} from './vibration-aiv-canvas-field-link.js?v=20260816-aiv-canvas-fields-1';
 import {
   AIV_CANVAS_LABEL_MODE,
   AIV_CANVAS_LABEL_MODES,
@@ -82,27 +87,41 @@ function canonicalPositionMap(nodes, layout) {
   const layoutByKey = positionMap(layout);
   return new Map(nodes.map((node) => [node.canonicalId, layoutByKey.get(node.nodeKey)]));
 }
-function modeTextGroup(mode, lines, x = 0, y = 45, step = 9, className = 'aiv-canvas-node-subtitle', halo = false) {
+function linkAttrs(link) {
+  if (!link?.primaryFieldKey) return ' pointer-events="none"';
+  return ` data-aiv-canvas-field-key="${esc(link.primaryFieldKey)}" data-aiv-canvas-field-keys="${esc(link.fieldKeys.join('|'))}" tabindex="0" role="button" aria-label="Edit ${esc(link.label)}" style="cursor:pointer;pointer-events:auto"`;
+}
+function modeTextGroup(mode, lines, links = [], x = 0, y = 45, step = 9, className = 'aiv-canvas-node-subtitle', halo = false) {
   const display = mode === AIV_CANVAS_LABEL_MODE.NORMAL ? '' : ' style="display:none"';
   const haloAttrs = halo ? ' paint-order="stroke" stroke="#08111f" stroke-width="4" stroke-linejoin="round"' : '';
-  const textRows = lines.map((line, index) => `<text class="${className}" x="0" y="${index * step}" text-anchor="middle"${haloAttrs}>${esc(line)}</text>`).join('');
-  return `<g data-aiv-canvas-label-content="true" data-aiv-label-mode="${mode}" transform="translate(${x} ${y})" pointer-events="none"${display}>${textRows}</g>`;
+  const textRows = lines.map((line, index) => `<text class="${className}" x="0" y="${index * step}" text-anchor="middle"${haloAttrs}${linkAttrs(links[index])}>${esc(line)}</text>`).join('');
+  return `<g data-aiv-canvas-label-content="true" data-aiv-label-mode="${mode}" transform="translate(${x} ${y})"${display}>${textRows}</g>`;
 }
-function allModeLabels(builder, x = 0, y = 45, step = 9, className, halo = false) {
-  return AIV_CANVAS_LABEL_MODES.map((mode) => modeTextGroup(mode, builder(mode), x, y, step, className, halo)).join('');
+function allModeLabels(builder, linkBuilder, x = 0, y = 45, step = 9, className, halo = false) {
+  return AIV_CANVAS_LABEL_MODES.map((mode) => {
+    const lines = builder(mode); const links = linkBuilder?.(mode, lines) ?? [];
+    return modeTextGroup(mode, lines, links, x, y, step, className, halo);
+  }).join('');
 }
-function nodeHtml(node, position, screeningCurrent) {
+function nodeHtml(node, position, screeningCurrent, inputMode) {
   const cases = node.caseIds ?? (node.caseId ? [node.caseId] : []);
-  const labels = allModeLabels((mode) => buildAivCanvasNodeLabelLines(node, mode, { screeningCurrent }));
+  const labels = allModeLabels(
+    (mode) => buildAivCanvasNodeLabelLines(node, mode, { screeningCurrent }),
+    (mode, lines) => buildAivCanvasNodeFieldLinks(node, mode, lines, { inputMode }),
+  );
   return `<g class="aiv-canvas-node is-${esc(text(node.nodeKind).toLowerCase())}" transform="translate(${position.x} ${position.y})" data-aiv-canvas-node="${esc(node.nodeKey)}" data-aiv-selection-key="${esc(node.selectionKey ?? node.nodeKey)}" data-aiv-canvas-node-kind="${esc(node.nodeKind)}" data-aiv-canvas-canonical-id="${esc(node.canonicalId)}" data-aiv-canvas-case-id="${esc(node.caseId ?? '')}" data-aiv-network-canonical-id="${esc(node.canonicalId)}" data-aiv-canvas-x="${position.x}" data-aiv-canvas-y="${position.y}"${filterAttrs(cases, node.line)} tabindex="0" role="button" aria-selected="false">
     ${renderAivCanvasNodeGlyph({ ...node, iconType: iconType(node) })}${renderAivCanvasStatusGlyphs(node.statusGlyphs)}
     <text class="aiv-canvas-node-title" x="0" y="36" text-anchor="middle">${esc(node.tag || node.canonicalId)}</text>${labels}
   </g>`;
 }
-function physicalSegmentHtml(segment, positions) {
+function physicalSegmentHtml(segment, positions, inputMode) {
   const from = positions.get(segment.fromNodeId); const to = positions.get(segment.toNodeId); if (!from || !to) return '';
   const key = `SEGMENT:${segment.segmentId}`; const anchor = aivCanvasLineLabelAnchor(from, to, { offset: 16, side: 1 });
-  const labels = allModeLabels((mode) => buildAivCanvasSegmentLabelLines(segment, mode), anchor.x, anchor.y, 10, 'aiv-canvas-segment-label', true);
+  const labels = allModeLabels(
+    (mode) => buildAivCanvasSegmentLabelLines(segment, mode),
+    (mode, lines) => buildAivCanvasSegmentFieldLinks(segment, mode, lines, { inputMode }),
+    anchor.x, anchor.y, 10, 'aiv-canvas-segment-label', true,
+  );
   return `<g class="aiv-network-segment${segment.engineeringLength ? '' : ' is-unresolved'}" data-aiv-network-segment="${esc(segment.segmentId)}" data-aiv-canvas-segment="${esc(key)}" data-aiv-selection-key="${esc(key)}" data-aiv-network-from="${esc(segment.fromNodeId)}" data-aiv-network-to="${esc(segment.toNodeId)}"${filterAttrs([], segment.line)} tabindex="0" role="button" aria-selected="false">
     <line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}"></line>${labels}
   </g>`;
@@ -111,16 +130,20 @@ function relationshipAttrs(item) {
   const source = sourceKey(item.sourceCanonicalId, item.caseId); const assessment = `ASSESSMENT:${item.assessmentCanonicalId}`;
   return ` data-aiv-canvas-relationship="${esc(item.selectionKey)}" data-aiv-selection-key="${esc(item.selectionKey)}" data-aiv-canvas-source-node="${esc(source)}" data-aiv-canvas-assessment-node="${esc(assessment)}" data-aiv-source-canonical-id="${esc(item.sourceCanonicalId)}" data-aiv-assessment-canonical-id="${esc(item.assessmentCanonicalId)}" data-aiv-case-id="${esc(item.caseId)}"${filterAttrs([item.caseId], item.line)} tabindex="0" role="button" aria-selected="false"`;
 }
-function relationshipLabels(item, segments, screeningCurrent) {
+function relationshipLabels(item, segments, screeningCurrent, inputMode) {
   const anchor = aivCanvasPathLabelAnchor(segments, { offset: 22, side: -1 }); if (!anchor) return '';
-  return allModeLabels((mode) => buildAivCanvasRelationshipLabelLines(item, mode, { screeningCurrent }), anchor.x, anchor.y, 10, 'aiv-canvas-relationship-label', true);
+  return allModeLabels(
+    (mode) => buildAivCanvasRelationshipLabelLines(item, mode, { screeningCurrent }),
+    (mode, lines) => buildAivCanvasRelationshipFieldLinks(item, mode, lines, { inputMode }),
+    anchor.x, anchor.y, 10, 'aiv-canvas-relationship-label', true,
+  );
 }
-function logicalRelationshipHtml(item, layout, screeningCurrent) {
+function logicalRelationshipHtml(item, layout, screeningCurrent, inputMode) {
   const positions = positionMap(layout); const from = positions.get(sourceKey(item.sourceCanonicalId, item.caseId)); const to = positions.get(`ASSESSMENT:${item.assessmentCanonicalId}`);
   if (!from || !to) return '';
-  return `<g class="aiv-canvas-relationship is-logical"${relationshipAttrs(item)} data-aiv-logical-only="true"><line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke-dasharray="8 6"></line>${relationshipLabels(item, [{ from, to }], screeningCurrent)}</g>`;
+  return `<g class="aiv-canvas-relationship is-logical"${relationshipAttrs(item)} data-aiv-logical-only="true"><line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke-dasharray="8 6"></line>${relationshipLabels(item, [{ from, to }], screeningCurrent, inputMode)}</g>`;
 }
-function pathRelationshipHtml(item, segmentMap, positions, screeningCurrent) {
+function pathRelationshipHtml(item, segmentMap, positions, screeningCurrent, inputMode) {
   const labelSegments = [];
   const lines = item.segmentIds.map((id) => segmentMap.get(id)).filter(Boolean).map((segment) => {
     const from = positions.get(segment.fromNodeId); const to = positions.get(segment.toNodeId); if (!from || !to) return '';
@@ -128,12 +151,12 @@ function pathRelationshipHtml(item, segmentMap, positions, screeningCurrent) {
     return `<line data-aiv-path-segment-id="${esc(segment.segmentId)}" data-aiv-path-from="${esc(segment.fromNodeId)}" data-aiv-path-to="${esc(segment.toNodeId)}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}"></line>`;
   }).join('');
   const from = positions.get(item.sourceCanonicalId); const to = positions.get(item.assessmentCanonicalId); if (!labelSegments.length && from && to) labelSegments.push({ from, to });
-  return `<g class="aiv-canvas-relationship is-path-overlay is-${esc(text(item.pathStatus).toLowerCase())}"${relationshipAttrs(item)} data-aiv-path-status="${esc(item.pathStatus)}" data-aiv-path-distance-m="${esc(item.pathDistanceM ?? '')}">${lines}${relationshipLabels(item, labelSegments, screeningCurrent)}</g>`;
+  return `<g class="aiv-canvas-relationship is-path-overlay is-${esc(text(item.pathStatus).toLowerCase())}"${relationshipAttrs(item)} data-aiv-path-status="${esc(item.pathStatus)}" data-aiv-path-distance-m="${esc(item.pathDistanceM ?? '')}">${lines}${relationshipLabels(item, labelSegments, screeningCurrent, inputMode)}</g>`;
 }
 function relationshipsHtml(value, layout, physicalNodes, screeningCurrent) {
-  if (value.inputMode !== AIV_INPUT_MODE.NETWORK_DRIVEN) return value.relationships.map((item) => logicalRelationshipHtml(item, layout, screeningCurrent)).join('');
+  if (value.inputMode !== AIV_INPUT_MODE.NETWORK_DRIVEN) return value.relationships.map((item) => logicalRelationshipHtml(item, layout, screeningCurrent, value.inputMode)).join('');
   const positions = canonicalPositionMap(physicalNodes, layout); const segmentMap = new Map(value.physicalSegments.map((segment) => [segment.segmentId, segment]));
-  return value.relationships.map((item) => pathRelationshipHtml(item, segmentMap, positions, screeningCurrent)).join('');
+  return value.relationships.map((item) => pathRelationshipHtml(item, segmentMap, positions, screeningCurrent, value.inputMode)).join('');
 }
 function summaryHtml(value) {
   if (!value.lineCaseSummaries.length) return '';
@@ -161,20 +184,23 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const value = projection(state); const networkDriven = value.inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN; const screeningCurrent = isAivLineageCurrent(state, 'screening');
   const physicalNodes = networkDriven ? mergedPhysicalNodes(value) : []; const layout = layoutFor(value); const layoutPositions = positionMap(layout);
   const nodes = networkDriven ? physicalNodes : value.entityNodes; const canonicalPositions = networkDriven ? canonicalPositionMap(physicalNodes, layout) : new Map();
-  const physicalSegments = networkDriven ? value.physicalSegments.map((item) => physicalSegmentHtml(item, canonicalPositions)).join('') : '';
-  const nodeMarkup = nodes.map((node) => nodeHtml(node, layoutPositions.get(node.nodeKey ?? nodeKey(node)), screeningCurrent)).join('');
+  const physicalSegments = networkDriven ? value.physicalSegments.map((item) => physicalSegmentHtml(item, canonicalPositions, value.inputMode)).join('') : '';
+  const nodeMarkup = nodes.map((node) => nodeHtml(node, layoutPositions.get(node.nodeKey ?? nodeKey(node)), screeningCurrent, value.inputMode)).join('');
   const relationshipMarkup = relationshipsHtml(value, layout, physicalNodes, screeningCurrent);
   const modeLabel = networkDriven ? 'NETWORK_DRIVEN · graph authority' : 'TABLE_DRIVEN · table authority'; const relationshipLabel = networkDriven ? 'Inspect paths' : 'Relationships';
-  return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}" data-aiv-canvas-label-display="NORMAL" data-aiv-canvas-semantic-level="DETAILED">
+  return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}" data-aiv-canvas-label-display="NORMAL" data-aiv-canvas-semantic-level="DETAILED" data-aiv-last-committed-field="${esc(state.lastCommittedAivFieldKey ?? '')}">
     <div class="aivq-section-head"><div><h4>AIV Network Canvas Editor</h4><p>One SVG is the AIV input editor, topology view, relationship view and registered-result surface.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">${esc(modeLabel)}</span><span class="aiv-canvas-badge authority">SVG x/y = presentation only</span><span class="aiv-canvas-badge authority">registered results</span></div></div>
     ${currentnessHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
-    <div class="aiv-canvas-frame" style="position:relative">
-      <div class="aiv-canvas-head-actions" aria-label="Canvas navigation controls" style="position:absolute;z-index:6;top:8px;right:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${iconButton('Navigate', 'navigate', 'data-aiv-canvas-mode="NAVIGATE"', { active: true, pressed: true })}${iconButton(relationshipLabel, 'relationships', 'data-aiv-canvas-mode="RELATIONSHIPS"', { pressed: false })}${iconButton('Zoom +', 'zoomIn', 'data-aiv-canvas-action="zoom-in"')}${iconButton('Zoom −', 'zoomOut', 'data-aiv-canvas-action="zoom-out"')}${iconButton('Reset view', 'reset', 'data-aiv-canvas-action="reset-view"')}${iconButton('Fit network', 'fit', 'data-aiv-canvas-action="fit-network"')}${iconButton('Auto tidy', 'tidy', 'data-aiv-canvas-action="auto-tidy"')}${iconButton('Export canvas package', 'export', 'data-aiv-canvas-export="screening"', { disabled: true })}</div>
-      <div class="aiv-canvas-head-actions" aria-label="Canvas engineering labels" style="position:absolute;z-index:6;left:8px;bottom:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${labelLegendIcon()}${labelModeButtons()}</div>
-      <svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true"><rect data-aiv-canvas-workspace-boundary="true" x="0" y="0" width="1200" height="760" rx="18" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="8 8" opacity=".55" pointer-events="none"></rect>${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg>
+    <div data-aiv-canvas-workbench="true" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+      <div class="aiv-canvas-frame" style="position:relative;flex:3 1 620px;min-width:min(100%,520px)">
+        <div class="aiv-canvas-head-actions" aria-label="Canvas navigation controls" style="position:absolute;z-index:6;top:8px;right:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${iconButton('Navigate', 'navigate', 'data-aiv-canvas-mode="NAVIGATE"', { active: true, pressed: true })}${iconButton(relationshipLabel, 'relationships', 'data-aiv-canvas-mode="RELATIONSHIPS"', { pressed: false })}${iconButton('Zoom +', 'zoomIn', 'data-aiv-canvas-action="zoom-in"')}${iconButton('Zoom −', 'zoomOut', 'data-aiv-canvas-action="zoom-out"')}${iconButton('Reset view', 'reset', 'data-aiv-canvas-action="reset-view"')}${iconButton('Fit network', 'fit', 'data-aiv-canvas-action="fit-network"')}${iconButton('Auto tidy', 'tidy', 'data-aiv-canvas-action="auto-tidy"')}${iconButton('Export canvas package', 'export', 'data-aiv-canvas-export="screening"', { disabled: true })}</div>
+        <div class="aiv-canvas-head-actions" aria-label="Canvas engineering labels" style="position:absolute;z-index:6;left:8px;bottom:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${labelLegendIcon()}${labelModeButtons()}</div>
+        <svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true"><rect data-aiv-canvas-workspace-boundary="true" x="0" y="0" width="1200" height="760" rx="18" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="8 8" opacity=".55" pointer-events="none"></rect>${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg>
+      </div>
+      <aside data-aiv-canvas-inspector-dock="true" aria-label="Selected AIV item details" style="flex:1 1 320px;min-width:min(100%,300px);max-height:620px;overflow:auto"><div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div></aside>
     </div>
-    <div class="aivq-readiness-note"><strong>Label authority:</strong> Process/Geometry/Completeness labels project authoritative inputs below the canvas; Results shows registered results only. Fit, tidy, label collision and semantic zoom are presentation-only and never infer engineering distance from SVG geometry.</div>
-    ${summaryHtml(value)}<div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div>
+    <div class="aivq-readiness-note"><strong>Field integration:</strong> linked Process/Geometry input labels open the exact authoritative inspector/table field. NETWORK_DRIVEN links graph-owned fields; TABLE_DRIVEN links working-table fields. Results remain registered output only.</div>
+    ${summaryHtml(value)}
   </section>`;
 }
