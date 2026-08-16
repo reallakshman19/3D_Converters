@@ -3,11 +3,12 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
-const key = '20260816-aiv-526-editor-2';
+const key = '20260816-aiv-526-editor-3';
 const supersededKeys = [
   '20260815-aiv-pf01-cache-1',
   '20260815-aiv-526-unified-1',
   '20260816-aiv-526-editor-1',
+  '20260816-aiv-526-editor-2',
 ];
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
@@ -27,6 +28,7 @@ const paths = [
   'tabs/vibration-aiv-unified-canvas-inspector.js',
   'tabs/vibration-aiv-unified-canvas-editor-controller.js',
   'tabs/vibration-aiv-unified-canvas-workflow.js',
+  'tabs/vibration-aiv-unified-canvas-labels.js',
   'tabs/vibration-aiv-workspace-browser.js',
   'tabs/vibration-aiv-qualification.css',
 ];
@@ -55,10 +57,11 @@ test('fresh AIV editor cache identity reaches the one-canvas qualification entry
 test('changed unified editor leaves are cache-pinned from the fresh renderer/controller', () => {
   requires('tabs/vibration-aiv-unified-canvas-view.js', `vibration-aiv-unified-canvas-author-view.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-view.js', `vibration-aiv-unified-canvas-inspector.js?v=${key}`);
+  requires('tabs/vibration-aiv-unified-canvas-view.js', `vibration-aiv-unified-canvas-labels.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-canvas-selection.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-unified-canvas-author.js?v=${key}`);
   requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-unified-canvas-editor-controller.js?v=${key}`);
-  requires('tabs/vibration-aiv-unified-canvas-editor-controller.js', `vibration-aiv-unified-canvas-workflow.js?v=${key}`);
+  requires('tabs/vibration-aiv-unified-canvas-controller.js', `vibration-aiv-unified-canvas-labels.js?v=${key}`);
   requires('tabs/vibration-aiv-workspace-browser.js', 'vibration-aiv-qualification.css?v=aiv-qualification-15');
   requires('tabs/vibration-aiv-qualification.css', 'vibration-aiv-unified-canvas-editor.css?v=1');
 });
@@ -82,6 +85,20 @@ test('stage7 scratch-network workflow is visible and preserves qualified authori
   requires('tabs/vibration-aiv-unified-canvas-view.js', 'Engineering inputs changed');
   requires('tabs/vibration-aiv-unified-canvas-view.js', 'isAivLineageCurrent');
   requires('tabs/vibration-aiv-unified-canvas-workflow.js', "source: 'AIV_FLARE_NETWORK_UI'");
+});
+
+test('stage8 canvas labels expose five presentation-only engineering views', () => {
+  for (const mode of ['NORMAL', 'PROCESS', 'GEOMETRY', 'RESULTS', 'COMPLETENESS']) {
+    requires('tabs/vibration-aiv-unified-canvas-labels.js', `${mode}: '${mode}'`);
+    requires('tabs/vibration-aiv-unified-canvas-view.js', 'data-aiv-canvas-label-mode');
+  }
+  requires('tabs/vibration-aiv-unified-canvas-labels.js', 'Mass Flow');
+  requires('tabs/vibration-aiv-unified-canvas-labels.js', 'Main Outside Diameter');
+  requires('tabs/vibration-aiv-unified-canvas-labels.js', 'Results stale · rerun screening');
+  requires('tabs/vibration-aiv-unified-canvas-controller.js', 'setLabelModePresentation');
+  requires('tabs/vibration-aiv-unified-canvas-view.js', 'Labels never infer engineering distance from SVG geometry');
+  assert.equal(files['tabs/vibration-aiv-unified-canvas-labels.js'].includes('Math.log'), false);
+  assert.equal(files['tabs/vibration-aiv-unified-canvas-labels.js'].includes('Math.log10'), false);
 });
 
 test('superseded AIV cache identities are absent from active editor startup path', () => {
