@@ -1,5 +1,5 @@
-import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveRepositoryPath } from './path-utils.mjs';
 
 function fail(detail) {
   return Object.freeze({ ok: false, detail });
@@ -18,7 +18,7 @@ export async function executeDeclaredProbe(context, config = {}) {
   }
   let module;
   try {
-    module = await import(pathToFileURL(resolve(context.root, declaration.path)).href);
+    module = await import(pathToFileURL(resolveRepositoryPath(context.root, declaration.path)).href);
   } catch (error) {
     return fail(`PROBE_IMPORT_FAILED:${name}:${error.message}`);
   }
