@@ -1,7 +1,7 @@
 import { buildAivCanvasScreeningExportPackage } from '../converters/vibration/aiv/aiv-canvas-export.js';
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { buildAivScreeningExportPackage } from '../converters/vibration/aiv/aiv-screening-export.js';
-import { renderAivCanvasControlIcon } from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-ui-1';
+import { renderAivCanvasControlIcon } from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-spatial-1';
 
 function text(value) { return String(value ?? '').trim(); }
 function filterSnapshot(container) {
