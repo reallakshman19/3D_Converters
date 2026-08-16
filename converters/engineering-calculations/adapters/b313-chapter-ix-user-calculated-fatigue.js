@@ -9,6 +9,7 @@ export const B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID = 'PIPE.B313.CH9.FATIGUE
 
 const QUALIFICATION_REASONS = Object.freeze([
   'USER_CALCULATED_KD3_EXTERNAL_AUTHORITY',
+  'CALLER_SUPPLIED_EXTERNAL_DATA_NOT_GOVERNED_BY_REGISTRY',
   'CORE_NATIVE_KD320_NOT_QUALIFIED',
   'CORE_DERIVES_PRESSURE_CYCLE_SALT_AND_MINER_USAGE_ONLY',
   'CODE_COMPLIANCE_NOT_ESTABLISHED',
@@ -18,10 +19,14 @@ const QUALIFICATION_REASONS = Object.freeze([
 function qualification() {
   return composeEngineeringQualification({
     method: 'IMPLEMENTED',
-    data: 'PROJECT_APPROVED',
+    data: 'DRAFT',
     designAuthority: false,
     reasons: QUALIFICATION_REASONS,
   });
+}
+
+function normalizedIdentity(value) {
+  return String(value ?? '').trim().toLocaleLowerCase();
 }
 
 function domainFailure(result) {
@@ -42,6 +47,37 @@ function domainFailure(result) {
     },
     evidence: { domainResult: result },
   };
+}
+
+function integrationCustodyFailure(code, message, details = {}) {
+  return {
+    ok: false,
+    errors: [createEngineeringCalculationError(code, message, details)],
+    qualification: qualification(),
+    provenance: {
+      engineeringAuthority: 'EXTERNAL_KD3_REVIEW_ONLY',
+      calculationMode: 'USER_CALCULATED_KD3',
+      codeCompliance: false,
+      canUseForDesignAuthority: false,
+    },
+    evidence: {},
+  };
+}
+
+function validateIntegrationCustody(externalResults) {
+  if (!Array.isArray(externalResults)) return null;
+  for (const row of externalResults) {
+    const calculatedBy = normalizedIdentity(row?.calculationBasis?.calculatedBy);
+    const checkedBy = normalizedIdentity(row?.calculationBasis?.checkedBy);
+    if (calculatedBy && checkedBy && calculatedBy === checkedBy) {
+      return integrationCustodyFailure(
+        'USER_FATIGUE_CHECKER_NOT_INDEPENDENT',
+        `${row?.cycleId || '(unknown cycle)'} checker must differ from calculatedBy after identity normalization.`,
+        { cycleId: row?.cycleId ?? null },
+      );
+    }
+  }
+  return null;
 }
 
 function cycleOutput(row) {
@@ -94,6 +130,9 @@ function checks(result) {
 }
 
 function calculate(input) {
+  const custodyFailure = validateIntegrationCustody(input.externalResults);
+  if (custodyFailure) return custodyFailure;
+
   const result = evaluateChapterIxUserCalculatedFatigueSpectrum({
     outsideDiameterMm: input.outsideDiameter,
     effectiveWallMm: input.effectiveWall,
@@ -145,6 +184,7 @@ function calculate(input) {
       limitations: [
         'Straight-pipe pressure-cycle Salt reproduction only.',
         'Equivalent alternating stress Seq and permissible cycles N must originate from the controlled external/licensed KD-3 calculation.',
+        'Caller-supplied external KD-3 data are not promoted to governed/project-approved master data by this adapter.',
         'Repository Salt comparison tolerance is QA-only and is not an ASME acceptance tolerance.',
         'No native KD320 mean-stress correction is executed.',
         'No routed-system, local discontinuity, component FEA, or non-pressure stress-state qualification is established by this adapter.',
@@ -155,6 +195,7 @@ function calculate(input) {
       calculationMode: result.calculationMode,
       calculationState: result.calculationState,
       engineeringAuthority: 'EXTERNAL_KD3_REVIEW_ONLY',
+      externalDataQualification: 'DRAFT',
       codeCompliance: false,
       canUseForDesignAuthority: false,
       independentCheckComplete: result.independentCheckComplete,
@@ -177,10 +218,11 @@ export const B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ENGINEERING_CALCULATION_DEF
     codeCompliance: false,
   },
   applicability: {
-    description: 'Straight-pipe pressure-cycle fatigue intake with caller-supplied external KD-3 Seq/N evidence.',
+    description: 'Uniform straight-pipe pressure-cycle fatigue intake with caller-supplied external KD-3 Seq/N evidence.',
     limitations: [
       'Native CORE KD320 is not qualified.',
       'External Seq and N remain user/external calculation authority.',
+      'Caller-supplied external data are not automatically project-approved or governed master data.',
       'Design authority and Code compliance are not established.',
     ],
   },
