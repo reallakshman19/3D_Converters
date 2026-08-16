@@ -1,5 +1,5 @@
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
-import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
+import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js?v=20260816-aiv-canvas-release-1';
 import {
   renderAivCanvasAssessmentResultHtml,
   renderAivCanvasRelationshipResultHtml,

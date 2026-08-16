@@ -4,7 +4,7 @@ import {
   aivCanvasFieldKey,
   aivCanvasNetworkNodeFieldKey,
   aivCanvasNetworkSegmentFieldKey,
-} from './vibration-aiv-canvas-field.js';
+} from './vibration-aiv-canvas-field.js?v=20260816-aiv-canvas-release-1';
 
 function text(value) { return String(value ?? '').trim(); }
 function link(keys, label) {

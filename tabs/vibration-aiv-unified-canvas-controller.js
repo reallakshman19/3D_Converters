@@ -18,7 +18,7 @@ import {
   aivCanvasSelectionFromElement,
   applyAivCanvasSelection,
   revealAivCanvasSelection,
-} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-3';
+} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-canvas-release-1';
 import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
