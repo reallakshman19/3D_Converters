@@ -73,7 +73,10 @@ export function centerAivCanvasLayoutOnElement(svg, layoutInput, canvasElement) 
 
 export function revealAivCanvasSelection(container, svg, layout, selection, origin) {
   const applied = applyAivCanvasSelection(container, selection);
-  if (origin === 'canvas') applied.tableRow?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  const disclosure = applied.tableRow?.closest?.('[data-aiv-disclosure-key="working-data-tables"]');
+  if (origin === 'canvas' && applied.tableRow && (!disclosure || disclosure.open)) {
+    applied.tableRow.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }
   const nextLayout = origin === 'table' && applied.canvasElement
     ? centerAivCanvasLayoutOnElement(svg, layout, applied.canvasElement)
     : createAivCanvasLayout(layout);
