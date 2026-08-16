@@ -3,6 +3,8 @@ name: CAESAR v11-v14 Dropdown Qualification
 on:
   pull_request:
     paths:
+      - 'index.html'
+      - 'main-rhbg-fitguard.js'
       - 'core/app.js'
       - 'tabs/model-converters-tab.js'
       - 'tabs/model-converters/cii-v11-v14-addon.js'
@@ -33,13 +35,14 @@ jobs:
 
       - name: Check browser module syntax
         run: |
+          node --check main-rhbg-fitguard.js
           node --check core/app.js
           node --check tabs/model-converters-tab.js
           node --check tabs/model-converters/cii-v11-v14-addon.js
           node --check tabs/model-converters/converters/cii-v11-v14.js
           node --check converters/cii-v11-v14-worker.js
 
-      - name: Prove Converter dropdown runtime registry
+      - name: Prove full startup chain and Converter dropdown registry
         run: node tests/cii-v11-v14-ui-static.test.mjs
 
       - name: Compile CAESAR adapter Python sources
