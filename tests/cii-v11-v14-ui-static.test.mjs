@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
+const indexHtml = read('index.html');
+const startup = read('main-rhbg-fitguard.js');
 const app = read('core/app.js');
 const addon = read('tabs/model-converters/cii-v11-v14-addon.js');
 const runner = read('tabs/model-converters/converters/cii-v11-v14.js');
@@ -17,8 +19,11 @@ const legacyAdapter = read('tabs/model-converters/legacy-adapter.js');
 const releaseKey = '20260816-cii-v11-v14-dropdown-release-2';
 const registryQuery = 'v=20260617-basic-glb-3';
 
-// The app shell must force-load the current Model Converters shim rather than a
-// pre-converter cached URL.
+// Full browser cache-custody chain. Every parent URL must advance or a browser
+// can legally keep executing an older child module even when the repository file
+// changed.
+assert.match(indexHtml, new RegExp(`main-rhbg-fitguard\\.js\\?v=${releaseKey}`));
+assert.match(startup, new RegExp(`core/app\\.js\\?v=${releaseKey}`));
 assert.match(app, new RegExp(`model-converters-tab\\.js\\?v=${releaseKey}`));
 assert.match(app, new RegExp(`__MODEL_CONVERTERS_CACHE_KEY__ = '${releaseKey}'`));
 
@@ -29,6 +34,7 @@ assert.equal((shim.match(/const CANONICAL_MODULE/g) || []).length, 1);
 assert.match(shim, new RegExp(`cii-v11-v14-addon\\.js\\?v=${releaseKey}`));
 assert.match(shim, /installCiiV11V14Addon/);
 assert.match(shim, /dropdown addon did not register the converter/);
+assert.match(shim, /required CAESAR v11\/v14 dropdown registration failed/);
 
 // Dropdown ownership: addon and legacy renderer must import the exact same
 // registry module URL so the mutation is visible before <option> rendering.
