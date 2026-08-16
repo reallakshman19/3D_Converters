@@ -18,12 +18,12 @@ import {
   aivCanvasSelectionFromElement,
   applyAivCanvasSelection,
   revealAivCanvasSelection,
-} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-1';
+} from './vibration-aiv-canvas-selection.js?v=20260816-aiv-526-editor-2';
 import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
-} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-1';
-import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-1';
+} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-2';
+import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-2';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -35,6 +35,16 @@ function inputMode(container) { return card(container)?.dataset.aivInputMode ?? 
 function isNetworkDriven(container) { return inputMode(container) === AIV_INPUT_MODE.NETWORK_DRIVEN; }
 function canvasTarget(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship],[data-aiv-canvas-segment]') ?? null; }
 function editingControl(event) { return Boolean(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')); }
+function createdSelection(before, after) {
+  const nodeIds = new Set((before?.nodes ?? []).map((item) => item.canonicalId));
+  const node = after?.nodes?.find((item) => !nodeIds.has(item.canonicalId));
+  if (node?.kind === 'SOURCE') return { selectionKey: `SOURCE:${node.canonicalId}:${node.sourceInput?.caseId ?? ''}` };
+  if (node?.kind === 'ASSESSMENT') return { selectionKey: `ASSESSMENT:${node.canonicalId}` };
+  if (node) return { selectionKey: `NETWORK_NODE:${node.canonicalId}` };
+  const segmentIds = new Set((before?.segments ?? []).map((item) => item.segmentId));
+  const segment = after?.segments?.find((item) => !segmentIds.has(item.segmentId));
+  return segment ? { selectionKey: `SEGMENT:${segment.segmentId}` } : null;
+}
 
 function domNodes(container) {
   return [...container.querySelectorAll('[data-aiv-unified-canvas-svg] [data-aiv-canvas-node]')].map((element, displayOrder) => ({
@@ -123,10 +133,15 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     if (identity && callbacks.onDeleteRelationship?.(identity)) select(null);
   }
   function authorAction(event) {
-    const editor = event.target.closest('[data-aiv-network-editor]'); if (!editor) return false;
+    const author = event.target.closest('[data-aiv-network-editor]'); if (!author) return false;
     try {
-      const result = applyAivUnifiedNetworkAuthorAction(getNetwork(), editor, event.target);
-      if (result.handled) callbacks.onNetworkChange?.(result.network);
+      const before = getNetwork();
+      const result = applyAivUnifiedNetworkAuthorAction(before, author, event.target);
+      if (result.handled) {
+        callbacks.onNetworkChange?.(result.network);
+        const nextSelection = createdSelection(before, result.network);
+        if (nextSelection) select(nextSelection);
+      }
       return result.handled;
     } catch (error) { callbacks.onError?.(error); return true; }
   }
@@ -159,8 +174,8 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     }
   }
   function change(event) {
-    const editor = event.target.closest('[data-aiv-network-editor]'); if (!editor) return;
-    try { const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), editor, event.target); if (result.handled) callbacks.onNetworkChange?.(result.network); }
+    const author = event.target.closest('[data-aiv-network-editor]'); if (!author) return;
+    try { const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), author, event.target); if (result.handled) callbacks.onNetworkChange?.(result.network); }
     catch (error) { callbacks.onError?.(error); }
   }
   function pointerDown(event) {
