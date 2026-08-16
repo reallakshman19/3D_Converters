@@ -123,6 +123,42 @@ test('approved canonical evidence rejects non-independent per-cycle checker cust
   assert.ok(validation.errors.some((message) => message.includes('checker must differ from calculatedBy')));
 });
 
+test('draft/review canonical evidence rejects negative values instead of transporting invalid fatigue data', () => {
+  const pkg = basePackage({
+    canonical: [{
+      key: '13.4900-C1',
+      userAlternatingStressIntensityMpa: -1,
+      equivalentAlternatingStressMpa: -2,
+      permissibleCycles: 0,
+      calculationBasis: { ...basis(), checkedBy: '', checkedAt: '' },
+    }],
+    rowEvidence: [{ key: '13.4900-C1', seq: null, ni: null, source: '', approved: false }],
+    lifecycle: 'for-review',
+  });
+  const validation = Core.validatePackage(pkg);
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((message) => message.includes('userAlternatingStressIntensityMpa must be >= 0')));
+  assert.ok(validation.errors.some((message) => message.includes('equivalentAlternatingStressMpa must be >= 0')));
+  assert.ok(validation.errors.some((message) => message.includes('permissibleCycles must be > 0 when supplied')));
+});
+
+test('draft/review canonical evidence rejects unpaired checker custody', () => {
+  const pkg = basePackage({
+    canonical: [{
+      key: '13.4900-C1',
+      userAlternatingStressIntensityMpa: null,
+      equivalentAlternatingStressMpa: 95,
+      permissibleCycles: 20000,
+      calculationBasis: { ...basis(), checkedAt: '' },
+    }],
+    rowEvidence: [{ key: '13.4900-C1', seq: 95, ni: 20000, source: 'EXT-KD3-001', approved: false }],
+    lifecycle: 'for-review',
+  });
+  const validation = Core.validatePackage(pkg);
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((message) => message.includes('checkedBy and checkedAt must be supplied together')));
+});
+
 test('authority package UI and evidence bridge carry canonical custody and block partial restore', () => {
   const ui = fs.readFileSync(path.join(repo, 'engineering/hp-class-standardization/authority-package-ui.js'), 'utf8');
   const bridge = fs.readFileSync(path.join(repo, 'engineering/hp-class-standardization/user-calculated-fatigue-evidence-bridge.js'), 'utf8');
