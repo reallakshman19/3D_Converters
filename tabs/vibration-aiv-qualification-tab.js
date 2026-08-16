@@ -27,8 +27,8 @@ import {
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260816-aiv-526-editor-3';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260816-aiv-526-editor-3';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-526-editor-3';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-3';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-canvas-fields-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-fields-1';
 import {
   addAivUnifiedCanvasTableRow,
   readAivUnifiedCanvasTableDraft,
@@ -47,6 +47,7 @@ export function renderAivQualificationWorkspace(container) {
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
     onSelectionChange: updateCanvasSelectionDetail,
+    onFieldCommit: (fieldKey) => { state.lastCommittedAivFieldKey = fieldKey || null; },
     onError: (error) => { state.error = String(error?.message || error); render(); },
   });
   const canvasExportController = createAivCanvasExportController(container, {
@@ -249,6 +250,7 @@ export function renderAivQualificationWorkspace(container) {
     const kind = event.target.dataset.aivTableCell;
     if (!kind) return false;
     if (!tableMutationAllowed()) return true;
+    state.lastCommittedAivFieldKey = event.target.dataset.aivFieldKey ?? state.lastCommittedAivFieldKey ?? null;
     const rowIndex = Number(event.target.dataset.aivEditRow);
     const columnIndex = Number(event.target.dataset.aivEditColumn);
     const baseTable = masterDbController.prepareUserEdit(kind, rowIndex, columnIndex);
