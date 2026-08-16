@@ -14,6 +14,7 @@ const unifiedModules = [
   'tabs/vibration-aiv-unified-canvas-editor.js',
   'tabs/vibration-aiv-unified-canvas-editor-controller.js',
   'tabs/vibration-aiv-unified-canvas-editor-view.js',
+  'tabs/vibration-aiv-unified-canvas-table-author.js',
 ];
 
 test('production input workspace renders the unified view and no duplicate flare/canvas view', async () => {
@@ -50,20 +51,22 @@ test('unified renderer owns one SVG while the visible editor adds no second SVG'
 });
 
 test('visible editor exposes graph and table mutation tools on the one-canvas surface', async () => {
-  const [authorView, editorView, controller] = await Promise.all([
+  const [authorView, editorView, controller, qualification] = await Promise.all([
     read('tabs/vibration-aiv-unified-canvas-author-view.js'),
     read('tabs/vibration-aiv-unified-canvas-editor-view.js'),
     read('tabs/vibration-aiv-unified-canvas-controller.js'),
+    read('tabs/vibration-aiv-qualification-tab.js'),
   ]);
   assert.equal(authorView.includes('data-aiv-canvas-editor-tool="PLACE_NODE"'), true);
   assert.equal(authorView.includes('data-aiv-canvas-editor-tool="CONNECT_SEGMENT"'), true);
   assert.equal(authorView.includes('data-aiv-canvas-editor-action="delete-selected"'), true);
-  assert.equal(authorView.includes('data-aiv-table-add="sources"'), true);
-  assert.equal(authorView.includes('data-aiv-table-add="assessments"'), true);
+  assert.equal(authorView.includes('data-aiv-canvas-table-action="add-source"'), true);
+  assert.equal(authorView.includes('data-aiv-canvas-table-action="add-assessment"'), true);
   assert.equal(editorView.includes('data-aiv-network-node-path'), true);
   assert.equal(editorView.includes('data-aiv-network-segment-field'), true);
   assert.equal(editorView.includes('data-aiv-table-cell'), true);
   assert.equal(controller.includes('createAivUnifiedCanvasEditorController'), true);
+  assert.equal(qualification.includes('addAivUnifiedCanvasTableRow'), true);
 });
 
 test('unified controller keeps graph drag presentation-only and NETWORK relationship mode inspection-only', async () => {
