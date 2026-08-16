@@ -10,7 +10,7 @@ import { CONVERTERS as DROPDOWN_CONVERTERS } from './converter-registry.js?v=202
 import { run as runCiiV11V14 } from './converters/cii-v11-v14.js?v=20260816-cii-v11-v14-1';
 
 const CONVERTER_ID = 'cii_v11_v14';
-const VERSION = '20260816-cii-v11-v14-dropdown-1';
+const VERSION = '20260816-cii-v11-v14-dropdown-release-2';
 
 function definition() {
   return {
@@ -49,7 +49,7 @@ function installIntoDropdown(registry) {
   const anchor = registry.findIndex((entry) => entry?.id === 'cii_syntax_check_2019');
   if (anchor >= 0) registry.splice(anchor, 0, item);
   else registry.push(item);
-  return true;
+  return registry.some((entry) => entry?.id === CONVERTER_ID);
 }
 
 export function installCiiV11V14Addon() {
