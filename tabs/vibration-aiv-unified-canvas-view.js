@@ -79,8 +79,8 @@ function canonicalPositionMap(nodes, layout) {
 }
 function modeTextGroup(mode, lines, x = 0, y = 45, step = 9, className = 'aiv-canvas-node-subtitle') {
   const display = mode === AIV_CANVAS_LABEL_MODE.NORMAL ? '' : ' style="display:none"';
-  const textRows = lines.map((line, index) => `<text class="${className}" x="${x}" y="${y + index * step}" text-anchor="middle">${esc(line)}</text>`).join('');
-  return `<g data-aiv-canvas-label-content="true" data-aiv-label-mode="${mode}"${display}>${textRows}</g>`;
+  const textRows = lines.map((line, index) => `<text class="${className}" x="0" y="${index * step}" text-anchor="middle">${esc(line)}</text>`).join('');
+  return `<g data-aiv-canvas-label-content="true" data-aiv-label-mode="${mode}" transform="translate(${x} ${y})"${display}>${textRows}</g>`;
 }
 function allModeLabels(builder, x = 0, y = 45, step = 9, className) {
   return AIV_CANVAS_LABEL_MODES.map((mode) => modeTextGroup(mode, builder(mode), x, y, step, className)).join('');
