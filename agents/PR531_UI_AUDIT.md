@@ -20,7 +20,11 @@ tabs/hp-piping-class-tab.js
   -> app.js + fatigue-authority-guard.js + ui.js
 ```
 
-The audit was performed independently from the PR description. Findings were validated against the actual runtime path and the PR531 `USER_CALCULATED_KD3` contract.
+The audit was performed independently from the PR description. Findings were validated against the actual source/runtime path and the PR531 `USER_CALCULATED_KD3` contract.
+
+### Audit evidence boundary
+
+This is a **source/runtime-path and engineering-authority UI audit**. The current chat does not expose a controllable browser/runtime for screenshot capture, so a screenshot-based visual-polish, responsive-layout, keyboard-navigation and accessibility audit is `NOT_RUN`. No claim of full visual or WCAG validation is made here.
 
 ## Authority baseline
 
@@ -182,6 +186,20 @@ The live HP class workflow is explicitly a straight-pipe pressure-cycle prequali
 
 **Disposition:** ACCEPTED PR531 SCOPE; do not broaden this PR.
 
+### P1-06 — Outer package shell used production/approval language without an explicit authority qualifier
+
+**Confirmed.**
+
+The outer live path called the transport artifact a `Controlled production package` and exposed an `Approved record` lifecycle. Although this did not change calculation arithmetic, it could be read as stronger engineering authority than PR531 permits.
+
+**Fix:**
+
+- renamed the user-facing shell to `Controlled review package` / `Evidence Package`;
+- changed the lifecycle label to `Checked / approved document record — no design authority` while retaining the schema value for compatibility;
+- added a visible authority warning that package lifecycle is document/review custody only and does not establish ASME Code compliance, CORE KD-3 qualification or design authority.
+
+**Disposition:** FIXED.
+
 ### P2-01 — Optional user Salt cross-check is not surfaced in the legacy calculator UI
 
 The PR531 external evaluator supports optional user `Salt` and fails closed on mismatch against the CORE straight-pipe pressure-cycle Salt. The current calculator matrix does not expose this field or comparison state.
@@ -198,8 +216,10 @@ PR531 supports per-cycle calculation basis including code, edition, method refer
 
 ```text
 engineering/hp-class-standardization/authority-package-core.js
+engineering/hp-class-standardization/authority-package.html
 engineering/hp-class-standardization/index.html
 engineering/hp-class-standardization/fatigue-authority-guard.js
+package.json
 tests/b313-chapter-ix-fatigue-ui-authority.test.mjs
 agents/PR531_UI_AUDIT.md
 ```
@@ -218,6 +238,23 @@ approved row evidence requires Seq/N/source
 live UI exposes disabled native CORE KD-3 choices
 class-release wording cannot survive the runtime authority guard
 ```
+
+Consolidated command:
+
+```text
+npm run verify:hp-chapter-ix-fatigue
+```
+
+### Validation truth
+
+The pre-UI-correction fatigue foundation had a retained `22 PASS / 0 FAIL` focused receipt. The newly added UI/package authority regression suite has **not** been executed by hosted CI on the current head because GitHub created no workflow run for it.
+
+```text
+POST_AUDIT_HOSTED_TEST_STATUS = NOT_RUN
+GITHUB_ACTIONS_RUN_FOR_CURRENT_HEAD = NONE
+```
+
+Do not treat the earlier 22-test receipt as execution evidence for the new UI corrections.
 
 ## Remaining release position
 
