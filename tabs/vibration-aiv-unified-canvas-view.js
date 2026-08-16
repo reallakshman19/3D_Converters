@@ -7,12 +7,12 @@ import {
   isAivLineageCurrent,
 } from './vibration-aiv-engineering-revision.js';
 import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-3';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-fields-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-release-1';
 import {
   buildAivCanvasNodeFieldLinks,
   buildAivCanvasRelationshipFieldLinks,
   buildAivCanvasSegmentFieldLinks,
-} from './vibration-aiv-canvas-field-link.js?v=20260816-aiv-canvas-fields-1';
+} from './vibration-aiv-canvas-field-link.js?v=20260816-aiv-canvas-release-1';
 import {
   AIV_CANVAS_LABEL_MODE,
   AIV_CANVAS_LABEL_MODES,
