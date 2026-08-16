@@ -64,16 +64,33 @@ function runProbe(definition, probe, mode = 'screening') {
   return definition.calculate(probe.input, { options: { qualificationMode: mode } });
 }
 
-function checkScreeningAuthority(workpack, definition) {
+async function authorityProjectionFailures(workpack) {
+  const failures = [];
+  for (const rule of workpack.authorityProjectionModules ?? []) {
+    const module = await importFromRoot(rule.path);
+    const projection = module[rule.exportName]?.[rule.authorityProperty];
+    for (const field of rule.fields) {
+      if (projection?.[field] !== workpack.authority[field]) failures.push(`${rule.path}:${field}`);
+    }
+  }
+  return failures;
+}
+
+async function checkScreeningAuthority(workpack, definition) {
   const result = runProbe(definition, workpack.probes.screening);
   const expected = workpack.authority;
+  const projectionFailures = await authorityProjectionFailures(workpack);
   const ok = result.ok === true
     && definition.authority?.calculationState === expected.calculationState
     && definition.authority?.qualificationState === expected.qualificationState
     && result.qualification?.effective === expected.qualificationState
     && result.provenance?.engineeringAuthority === expected.engineeringAuthority
-    && result.assessment?.screeningAuthority === expected.screeningAuthority;
-  return { result, gate: check('FIT-WP-004', ok, 'bounded screening authority matches work pack') };
+    && result.assessment?.screeningAuthority === expected.screeningAuthority
+    && projectionFailures.length === 0;
+  const detail = projectionFailures.length
+    ? `authority projection drift: ${projectionFailures.join(', ')}`
+    : 'bounded screening authority and machine projections match work pack';
+  return { result, gate: check('FIT-WP-004', ok, detail) };
 }
 
 function checkDesignAuthority(workpack, screeningResult) {
@@ -168,7 +185,7 @@ export async function verifyEngineeringWorkpack(workpackId = 'VIB-FIT') {
   const { workpack } = await loadWorkpack(workpackId);
   const { definition, activeDefinitions } = await runtimeContext(workpack);
   const checks = [...checkIdentity(workpack, definition), checkRegistry(workpack, activeDefinitions)];
-  const screening = checkScreeningAuthority(workpack, definition);
+  const screening = await checkScreeningAuthority(workpack, definition);
   checks.push(screening.gate);
   checks.push(checkDesignAuthority(workpack, screening.result));
   checks.push(checkCodeCompliance(workpack, definition));
