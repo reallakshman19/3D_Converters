@@ -1,0 +1,176 @@
+{
+  "schema": "VibrationSbcType3Ac1LocalCheck.v1",
+  "workPack": "SBC Type-3 Production Freeze & Authority Convergence",
+  "phase": "SBC-AC1",
+  "repository": "reallaksh19/3D_Converters",
+  "branch": "agent/sbc-ac1-production-freeze-source-reconciliation",
+  "headAfterHarnessEnvironmentHardening": "4c7130e06df4965c52d98bc2e68961eacb00a8d6",
+  "validationMode": "LOCAL_RECONSTRUCTED_EXACT_BLOBS_NOT_FULL_PRIVATE_CHECKOUT",
+  "environment": {
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "git": "2.47.3",
+    "systemChromium": "Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie)",
+    "repoDeclaredNodePlaywright": false,
+    "localPlaywrightDriver": "playwright-core from Python Playwright 1.57.0 installation",
+    "localChromiumExecutable": "/usr/bin/chromium",
+    "ghCli": "NOT_INSTALLED",
+    "privateCheckout": {
+      "status": "NOT_RUN",
+      "reason": "ENVIRONMENT_BLOCKED",
+      "detail": "git clone failed with Could not resolve host: github.com"
+    },
+    "localhostNavigation": {
+      "status": "NOT_RUN",
+      "reason": "ENVIRONMENT_BLOCKED",
+      "detail": "Real Chromium navigation to http://127.0.0.1:4173/ is blocked by runtime policy with net::ERR_BLOCKED_BY_ADMINISTRATOR"
+    }
+  },
+  "exactBlobCustody": {
+    "freezeValidator": "3c43a4ca614e50524ac28886f3a1b80427455087",
+    "browserFixture": "3fe6e803a5bdfe2a34b0ead72d2180ff8a56d990",
+    "sourceReconciliation": "54b48f985ff99d503896222594886e1b80c7c57a",
+    "type3CombinationKernel": "2c1212e67c8403e9dc55fe64a6f55a012cb57a33",
+    "type3CurveQuarantine": "6b21ca138805c778d4ac15bac63a24782e48583f"
+  },
+  "checks": [
+    {
+      "id": "AC1-LOCAL-01",
+      "name": "Changed JavaScript syntax and reconciliation JSON parse",
+      "status": "PASS",
+      "detail": "node --check passed for the freeze validator, browser fixture, Type-3 combination kernel, master canonical/validate/registry modules and SBC T3 candidate master; python json.tool parsed the reconciliation record."
+    },
+    {
+      "id": "AC1-LOCAL-02",
+      "name": "Frozen D7 arithmetic through production Type-3 combination kernel",
+      "status": "PASS",
+      "observed": {
+        "firstGeometry": 0.7,
+        "firstModifier": 0.7,
+        "subsequentGeometry": 0.6,
+        "subsequentModifier": 0.6,
+        "overallModifier": 0.7,
+        "mainlineAdjusted": 1.42,
+        "finalSbcLof": 0.7
+      }
+    },
+    {
+      "id": "AC1-LOCAL-03",
+      "name": "Missing D fail-closed",
+      "status": "PASS",
+      "observed": {
+        "resultStatus": "NOT_READY",
+        "term": "LOFGEOM(D)",
+        "problemStatus": "INPUT_REQUIRED",
+        "reason": "NON_NEGATIVE_NUMBER_REQUIRED"
+      }
+    },
+    {
+      "id": "AC1-LOCAL-04",
+      "name": "No-mass qualified special case",
+      "status": "PASS",
+      "observed": {
+        "autoC": 0
+      }
+    },
+    {
+      "id": "AC1-LOCAL-05",
+      "name": "T3 master quarantine and authority boundary",
+      "status": "PASS",
+      "observed": {
+        "status": "BLOCKED_SOURCE_DATA_CONFLICT",
+        "runtimeCurveActivation": false,
+        "masterPublicationAuthorized": false,
+        "engineeringAuthority": "NONE",
+        "screeningAuthority": "NOT_AUTHORIZED",
+        "designAuthority": false,
+        "masterDataAuthority": false,
+        "failingProbes": [
+          { "figure": "T3-1", "expected": 0.2, "supplied": 0.4 },
+          { "figure": "T3-3", "expected": 0.6, "supplied": 0.7 },
+          { "figure": "T3-4", "expected": 0.2, "supplied": 0.3 }
+        ]
+      }
+    },
+    {
+      "id": "AC1-LOCAL-06",
+      "name": "Candidate non-curve master values",
+      "status": "PASS",
+      "observed": {
+        "weldoletFittingSpanFactor": 0.7,
+        "firstSpanLimitAt1_5inM": 1.3,
+        "candidateScreeningAuthority": "NOT_AUTHORIZED"
+      }
+    },
+    {
+      "id": "AC1-LOCAL-07",
+      "name": "Source reconciliation parity against kernel and quarantine",
+      "status": "PASS",
+      "detail": "Pinned Advanced_Analysis commit/blob identities, frozen D7 values, authority flags and all three failing curve probes agree with the executable kernel/quarantine state."
+    },
+    {
+      "id": "AC1-LOCAL-08",
+      "name": "Freeze receipt source contract",
+      "status": "PASS",
+      "detail": "Validator source contains exact served SHA/build requirements, cache identity, actual browser-version capture, 1280/1440 viewports, candidate/NONE/NOT_AUTHORIZED authority, blocked curve state and optional audited Chromium executable identity."
+    },
+    {
+      "id": "AC1-LOCAL-09",
+      "name": "Missing Playwright fail-closed receipt classification",
+      "status": "PASS",
+      "detail": "Guarded dynamic import emits VibrationSbcType3ProductionFreezeReceipt.v1 with status NOT_RUN, reason ENVIRONMENT_BLOCKED and phase PLAYWRIGHT_IMPORT instead of crashing before receipt creation."
+    },
+    {
+      "id": "AC1-LOCAL-10",
+      "name": "Real local Chromium launch through Playwright driver",
+      "status": "PASS",
+      "observed": {
+        "browserProduct": "chromium",
+        "browserVersion": "144.0.7559.96",
+        "executablePath": "/usr/bin/chromium"
+      }
+    },
+    {
+      "id": "AC1-LOCAL-11",
+      "name": "Environment-blocked served-app navigation classification",
+      "status": "PASS",
+      "observed": {
+        "receiptSchema": "VibrationSbcType3ProductionFreezeReceipt.v1",
+        "receiptStatus": "NOT_RUN",
+        "reason": "ENVIRONMENT_BLOCKED",
+        "phase": "SERVED_APP_NAVIGATION",
+        "browserVersion": "144.0.7559.96",
+        "navigationError": "net::ERR_BLOCKED_BY_ADMINISTRATOR"
+      }
+    },
+    {
+      "id": "AC1-LOCAL-12",
+      "name": "Full served-app Chromium Production Freeze",
+      "status": "NOT_RUN",
+      "reason": "ENVIRONMENT_BLOCKED",
+      "detail": "The private repository cannot be materialized locally because outbound GitHub DNS is blocked, and localhost browser navigation is blocked by runtime administrator policy. Real Chromium launches successfully, but the official exact-head served user journey cannot execute in this environment."
+    }
+  ],
+  "officialProductionFreezeReceipt": {
+    "status": "NOT_RUN",
+    "reason": "ENVIRONMENT_BLOCKED",
+    "phase": "SERVED_APP_NAVIGATION",
+    "realChromiumLaunchObserved": true,
+    "browserVersionObserved": "144.0.7559.96",
+    "minimalHarnessClassificationReceiptIsNotProductionFreezeEvidence": true
+  },
+  "authorityBoundary": {
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false,
+    "codeCompliance": false,
+    "masterDataAuthority": false,
+    "runtimeCurveActivation": false,
+    "curvePublication": "BLOCKED_SOURCE_DATA_CONFLICT"
+  },
+  "gateDecision": {
+    "freezeState": "NOT_FROZEN",
+    "authorityConvergencePromotion": "STOPPED",
+    "screeningPromotion": "FORBIDDEN"
+  }
+}

@@ -10,7 +10,24 @@ import {
 } from '../tabs/vibration-integrity-input-model.js';
 
 export const SBC_CACHE_KEY = '20260815-sbc-pf05-cache-1';
-export const D7_SOURCE = 'EI D7 manual exact curve read · Common@fb549185 · Examples blob 3e2517d0';
+export const EI_SOURCE_PACKAGE = Object.freeze({
+  repository: 'reallaksh19/Advanced_Analysis',
+  commit: '76eb4bd075ce2e8e2442d02b2798df7be491fb4b',
+  directory: 'docs/EI data',
+  sbcMaster: Object.freeze({
+    path: 'docs/EI data/P0_SBC_Master_Data.md',
+    blob: '5312c9e2cf86af9e940ba722fcbee64702aeccd3',
+  }),
+  workedExamples: Object.freeze({
+    path: 'docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md',
+    blob: 'c050cd90802c27241c510c6f0ac43bfaf7a89e9d',
+  }),
+  completeMasterRegister: Object.freeze({
+    path: 'docs/EI data/EI_AVIFF_Complete_Master_Register.md',
+    blob: '51bca43473be8018d4ce48fb440ee4d7bd0abc82',
+  }),
+});
+export const D7_SOURCE = 'EI D7 manual exact curve read · Advanced_Analysis@76eb4bd075ce2e8e2442d02b2798df7be491fb4b · worked examples blob c050cd90802c27241c510c6f0ac43bfaf7a89e9d';
 export const D7 = Object.freeze({
   c: 0.68, d: 0.20, e: 0.70, f: 0.60, g: 0.20,
   firstLocationLof: 1.00, multiplier: 1.42, lof: 0.70,

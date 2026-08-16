@@ -1,0 +1,106 @@
+{
+  "schema": "VibrationSbcType3SourceReconciliation.v1",
+  "workPack": "SBC Type-3 Production Freeze & Authority Convergence",
+  "qualification": {
+    "state": "QUALIFIED_FOR_SBC_AUTHORITY_CONVERGENCE",
+    "issue": 514,
+    "qualificationCommentId": 5306277327,
+    "qualificationDoesNotGrantMergeAuthority": true,
+    "qualificationDoesNotGrantScreeningAuthority": true
+  },
+  "executionBase": {
+    "repository": "reallaksh19/3D_Converters",
+    "mainShaAtWorkStart": "d2293410679935f935fd0a8cdc0bd668f92cd492",
+    "priorWorkPackBaseline": "19cf1f0a6f3f0f88ca983ced3b2606041adeab4c"
+  },
+  "controlledEiSourcePackage": {
+    "repository": "reallaksh19/Advanced_Analysis",
+    "commit": "76eb4bd075ce2e8e2442d02b2798df7be491fb4b",
+    "directory": "docs/EI data",
+    "sbcMaster": {
+      "path": "docs/EI data/P0_SBC_Master_Data.md",
+      "blob": "5312c9e2cf86af9e940ba722fcbee64702aeccd3",
+      "role": "SOURCE_EVIDENCE_AND_DIGITIZED_MASTER_CANDIDATE"
+    },
+    "workedExamples": {
+      "path": "docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md",
+      "blob": "c050cd90802c27241c510c6f0ac43bfaf7a89e9d",
+      "role": "INDEPENDENT_VALIDATION_ORACLE"
+    },
+    "completeMasterRegister": {
+      "path": "docs/EI data/EI_AVIFF_Complete_Master_Register.md",
+      "blob": "51bca43473be8018d4ce48fb440ee4d7bd0abc82",
+      "role": "CONSOLIDATED_SOURCE_REGISTER"
+    }
+  },
+  "importantIdentityFinding": {
+    "statement": "The P0 SBC master-data blob at the supplied Advanced_Analysis commit is the same blob already implicated by the current 3D_Converters SBC curve quarantine. Updating only the source commit reference cannot resolve the numerical conflict.",
+    "p0Blob": "5312c9e2cf86af9e940ba722fcbee64702aeccd3"
+  },
+  "frozenD7Oracle": {
+    "C": 0.68,
+    "D": 0.2,
+    "E": 0.7,
+    "F": 0.6,
+    "G": 0.2,
+    "LOFLOC": 1.0,
+    "firstGeometry": 0.7,
+    "firstModifier": 0.7,
+    "subsequentGeometry": 0.6,
+    "subsequentModifier": 0.6,
+    "overallModifier": 0.7,
+    "mainlineMultiplier": 1.42,
+    "mainlineAdjusted": 1.42,
+    "finalSbcLof": 0.7,
+    "usage": "VALIDATION_EVIDENCE_NOT_CALIBRATION_INPUT"
+  },
+  "reconciliationFindings": [
+    {
+      "id": "T3-1-D7-PROBE",
+      "figure": "T3-1",
+      "coordinate": { "x": 1.5, "xUnit": "in", "y": 1.2857142857142858, "yUnit": "m" },
+      "workedExampleExpectedLof": 0.2,
+      "digitizedPackageObservedLof": 0.4,
+      "state": "BLOCKED_SOURCE_DATA_CONFLICT"
+    },
+    {
+      "id": "T3-3-D7-PROBE",
+      "figure": "T3-3",
+      "coordinate": { "x": 1.5, "xUnit": "in", "y": 2.3, "yUnit": "m" },
+      "workedExampleExpectedLof": 0.6,
+      "digitizedPackageObservedLof": 0.7,
+      "state": "BLOCKED_SOURCE_DATA_CONFLICT"
+    },
+    {
+      "id": "T3-4-D7-PROBE",
+      "figure": "T3-4",
+      "coordinate": { "x": 1.5, "xUnit": "in", "y": 1.4, "yUnit": "m" },
+      "workedExampleExpectedLof": 0.2,
+      "digitizedPackageObservedLof": 0.3,
+      "state": "BLOCKED_SOURCE_DATA_CONFLICT"
+    },
+    {
+      "id": "TYPE3-SYNTHESIS-TRANSCRIPTION",
+      "statement": "The P0 generic synthesis summary contains wording/formulation inconsistent with the worked-example sequence. The production kernel remains frozen to the worked-example-compatible max/min sequence and must not be rewritten from the generic summary.",
+      "state": "SOURCE_RECONCILIATION_REQUIRED"
+    }
+  ],
+  "authorityBoundary": {
+    "calculationUse": "CANDIDATE_ASSESSMENT",
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false,
+    "codeCompliance": false,
+    "masterDataAuthority": false,
+    "curvePublication": "BLOCKED_SOURCE_DATA_CONFLICT",
+    "runtimeCurveActivation": false,
+    "manualCurveEvidenceRole": "PROJECT_OR_USER_EXACT_COORDINATE_EVIDENCE_ONLY"
+  },
+  "workPackRule": {
+    "doNotPromoteToScreening": true,
+    "doNotActivateOrReconstructCurves": true,
+    "doNotUseD7ToCalibrateCurves": true,
+    "browserFreezeMustPassBeforeAuthorityConvergencePromotion": true,
+    "fitOverlapFileBlockedWhilePr539OrPr540Unresolved": "tabs/engineering-calculation-vibration-family.js"
+  }
+}
