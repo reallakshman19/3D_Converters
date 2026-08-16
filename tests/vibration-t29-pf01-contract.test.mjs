@@ -74,6 +74,6 @@ test('source contract and reconciliation package agree on fail-closed authority'
   assert.equal(SOURCE_CONTRACT.authority.engineeringAuthority, 'NONE');
   assert.equal(SOURCE_CONTRACT.authority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(SOURCE_CONTRACT.authority.designAuthority, false);
-  assert.equal(SOURCE_CONTRACT.qualification.disposition,
+  assert.equal(SOURCE_CONTRACT.qualification.appendixA.disposition,
     'NOT_QUALIFIED_FOR_T29_NUMERICAL_MUTATION');
 });
