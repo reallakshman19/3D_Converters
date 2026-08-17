@@ -58,7 +58,7 @@ function renderConsoleActions(definition, state) {
     return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
   }
   if (isAivQualificationWorkspace(definition)) {
-    return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill('BLOCKED', 'bad')}</div>`;
+    return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
   }
   return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${state.qualificationMode === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label></div>`;
 }
