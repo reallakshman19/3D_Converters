@@ -299,7 +299,7 @@ PASS     no merge to main performed during reconciliation
 NOT_RUN  native exact-checkout focused Node tests — connector-only private checkout unavailable
 NOT_RUN  full repository-native VIB/FIT/AIV suites
 NOT_RUN  browser
-PENDING  exact rebuilt-head PR Actions/reviews/mergeability — re-ground after feature ref move
+PENDING  exact rebuilt-head PR Actions/reviews/mergeability — superseded by post-ref receipt below
 ```
 
 Source/static evidence is not promoted to native execution PASS.
@@ -318,3 +318,28 @@ This reconciliation is not merge authorization. PR #584 remains draft and unmerg
 #429 remains in M5 after this slice. This PR does not authorize M6.
 
 Still-separate M5 obligations include controlled geometry consistency/tolerance authority, explicit standard/normal-to-actual process resolution, and broader coherent OperatingScenario semantics. The first two remain explicitly blocked by #586/#588; OperatingScenario identity/coherence is the next non-overlapping M5 slice after #584 lands.
+
+## Post-ref exact-head re-ground — 2026-08-17
+
+The feature ref was moved only after reconstruction and authority-gate equality checks. Exact state observed immediately after the move:
+
+```text
+base main                    = a43765008863fa93cccb7186bfea3af24bde562f
+PR head before this receipt = 72a43a65366094c4fc23902df143b100073dccbe
+PR state                     = OPEN
+PR draft                     = true
+PR merged                    = false
+PR mergeable                 = true
+review submissions           = 0
+review threads               = 0
+combined commit statuses     = 0 returned
+Actions workflow-run query   = UNAVAILABLE_TO_INTEGRATION (403)
+native focused Node tests    = NOT_RUN
+full native VIB/FIT/AIV      = NOT_RUN
+browser                      = NOT_RUN
+merge authority              = OWNER_ONLY / NOT_GRANTED_FOR_PR_584
+```
+
+The empty combined-status result is not promoted to an Actions PASS. Exact-head Actions remain **NOT_VERIFIED** because the workflow-runs endpoint was inaccessible to the integration. This receipt supersedes the `PENDING` line above for reviews/threads/mergeability.
+
+PR #590 became empty after the true current-main reconstruction (`0 commits / 0 changed files` relative to the rebuilt feature branch); GitHub subsequently reports it closed/merged by ancestry with `merge_commit_sha` equal to current main. No new synchronization commit was introduced into either branch, and no merge to `main` occurred.
