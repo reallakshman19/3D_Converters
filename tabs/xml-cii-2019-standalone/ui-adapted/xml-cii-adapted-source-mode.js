@@ -2,7 +2,7 @@ import { createElement } from './xml-cii-adapted-dom.js';
 import { renderSourceControls } from './xml-cii-adapted-controls.js';
 import { detectXmlCiiWorkflowSourceKind, workflowSourceKindLabel } from '../xml-cii-workflow-source-detect.js';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
-
+import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
 
 export function renderStandaloneSourceModePanel(card, state) {
   renderSourceControls(card, state);
@@ -72,27 +72,33 @@ export function renderValidityDiagnostics(card, state) {
     return;
   }
 
-  try {
-    const doc = new DOMParser().parseFromString(state.sourceText, 'application/xml');
-    const parserError = doc.querySelector('parsererror');
-    if (parserError) {
-      const errDiv = createElement('div', '⚠ Invalid XML format detected.', 'xml-cii-invalid');
-      const errPre = createElement('pre');
-      errPre.textContent = parserError.textContent;
-      diagBox.append(errDiv, errPre);
-    } else {
-      const root = doc.documentElement;
-      const detectedKind = detectXmlCiiWorkflowSourceKind(state.sourceText, 'xml');
-      
-      const successDiv = createElement('div', '✓ Source loaded and successfully parsed as valid XML.', 'xml-cii-valid');
-      diagBox.appendChild(successDiv);
-      diagBox.appendChild(createElement('div', `Root Element: <${root.nodeName}>`, 'xml-cii-file-summary'));
-      
-      const actualKind = state.sourceKind === 'auto' ? detectedKind : state.sourceKind;
-      checkXmlDocumentStructure(diagBox, root, actualKind);
-    }
-  } catch (err) {
-    diagBox.appendChild(createElement('div', `Error executing validation check: ${err.message}`, 'xml-cii-invalid'));
+  const sourceContext = getSourceDocumentContext(state.sourceText);
+  if (sourceContext.error) {
+    diagBox.appendChild(createElement('div', `Error executing validation check: ${sourceContext.error.message}`, 'xml-cii-invalid'));
+    card.appendChild(diagBox);
+    return;
+  }
+  const doc = sourceContext.document;
+  if (!doc) {
+    diagBox.appendChild(createElement('div', 'Error executing validation check: no XML document was produced.', 'xml-cii-invalid'));
+    card.appendChild(diagBox);
+    return;
+  }
+
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    const errDiv = createElement('div', '⚠ Invalid XML format detected.', 'xml-cii-invalid');
+    const errPre = createElement('pre');
+    errPre.textContent = parserError.textContent;
+    diagBox.append(errDiv, errPre);
+  } else {
+    const root = doc.documentElement;
+    const detectedKind = detectXmlCiiWorkflowSourceKind(state.sourceText, 'xml');
+    const successDiv = createElement('div', '✓ Source loaded and successfully parsed as valid XML.', 'xml-cii-valid');
+    diagBox.appendChild(successDiv);
+    diagBox.appendChild(createElement('div', `Root Element: <${root.nodeName}>`, 'xml-cii-file-summary'));
+    const actualKind = state.sourceKind === 'auto' ? detectedKind : state.sourceKind;
+    checkXmlDocumentStructure(diagBox, root, actualKind);
   }
   card.appendChild(diagBox);
 }
