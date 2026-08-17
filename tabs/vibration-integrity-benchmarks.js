@@ -19,14 +19,6 @@ export const VIBRATION_FIT_UI_BENCHMARK_SOURCE = Object.freeze({
   edition: '2nd Edition, January 2008',
   technicalModule: 'T2.2 Flow Induced Turbulence',
   tolerancePolicyId: 'FIT-EI-PUBLISHED-RECONCILIATION-V1',
-  m5BasisAdoption: Object.freeze({
-    authority: 'BENCHMARK_ONLY', projectAuthority: false,
-    wallBasis: 'NOMINAL',
-    spanDeterminationMethod: 'EI_WORKED_EXAMPLE_PUBLISHED_SPAN',
-    supportEffectivenessConfirmed: true,
-    processBasis: 'ACTUAL',
-    operatingScenarioCoherent: true,
-  }),
 });
 
 const CASES = Object.freeze([
@@ -148,11 +140,11 @@ function operatingRows(caseData, identity) {
   ]];
 }
 
-function enrichmentRow(caseData, identity, property, value, valueType, unit = '', caseId = '') {
+function enrichmentRow(caseData, identity, property, value, valueType, unit = '') {
   return [
     identity.canonicalId,
     identity.line,
-    caseId,
+    '',
     property,
     value,
     valueType,
@@ -167,22 +159,12 @@ function enrichmentRow(caseData, identity, property, value, valueType, unit = ''
 
 function enrichmentRows(caseData, identity) {
   const input = caseData.input;
-  const basis = VIBRATION_FIT_UI_BENCHMARK_SOURCE.m5BasisAdoption;
   const rows = [
     enrichmentRow(caseData, identity, 'FIT_ASSESSMENT_POINT', true, 'BOOLEAN'),
     enrichmentRow(caseData, identity, 'OUTSIDE_DIAMETER', input.od, 'NUMBER', 'm'),
     enrichmentRow(caseData, identity, 'WALL_THICKNESS', input.wt, 'NUMBER', 'm'),
     enrichmentRow(caseData, identity, 'MAX_UNSUPPORTED_SPAN', input.span, 'NUMBER', 'm'),
-    enrichmentRow(caseData, identity, 'WALL_BASIS', basis.wallBasis, 'STRING'),
-    enrichmentRow(caseData, identity, 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', input.span, 'NUMBER', 'm'),
-    enrichmentRow(caseData, identity, 'SPAN_DETERMINATION_METHOD', basis.spanDeterminationMethod, 'STRING'),
-    enrichmentRow(caseData, identity, 'SUPPORT_EFFECTIVENESS_CONFIRMED', basis.supportEffectivenessConfirmed, 'BOOLEAN'),
-    enrichmentRow(caseData, identity, 'FIT_DENSITY_BASIS', basis.processBasis, 'STRING', '', identity.caseId),
-    enrichmentRow(caseData, identity, 'FIT_OPERATING_SCENARIO_COHERENT', basis.operatingScenarioCoherent, 'BOOLEAN', '', identity.caseId),
   ];
-  if (input.velocity !== undefined) {
-    rows.push(enrichmentRow(caseData, identity, 'FIT_VELOCITY_BASIS', basis.processBasis, 'STRING', '', identity.caseId));
-  }
   if (input.id !== undefined) {
     rows.push(enrichmentRow(caseData, identity, 'INSIDE_DIAMETER', input.id, 'NUMBER', 'm'));
   }
