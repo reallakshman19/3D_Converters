@@ -1,5 +1,7 @@
 import {
-  FIT_FACILITY_PROCESS_BASES,
+  FIT_FACILITY_PROCESS_REFERENCE_BASES,
+  FIT_FACILITY_SPAN_DETERMINATION_METHODS,
+  FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES,
   FIT_FACILITY_WALL_BASES,
 } from '../facility/fit-plan-contract.js';
 import {
@@ -32,7 +34,7 @@ export const VIBRATION_FIT_DATA_BLOCKER_FIELDS = Object.freeze({
   MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS: Object.freeze({ property: 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', type: 'NUMBER', scope: 'GLOBAL' }),
   WALL_BASIS: Object.freeze({ property: 'WALL_BASIS', type: 'STRING', scope: 'GLOBAL' }),
   SPAN_DETERMINATION_METHOD: Object.freeze({ property: 'SPAN_DETERMINATION_METHOD', type: 'STRING', scope: 'GLOBAL' }),
-  SUPPORT_EFFECTIVENESS_CONFIRMED: Object.freeze({ property: 'SUPPORT_EFFECTIVENESS_CONFIRMED', type: 'BOOLEAN', scope: 'GLOBAL' }),
+  SUPPORT_EVIDENCE_STATUS: Object.freeze({ property: 'SUPPORT_EVIDENCE_STATUS', type: 'STRING', scope: 'GLOBAL' }),
   NATURAL_FREQUENCY: Object.freeze({ property: 'NATURAL_FREQUENCY', type: 'NUMBER', scope: 'CASE_OR_GLOBAL' }),
   PHASE: Object.freeze({ property: 'FIT_PHASE', type: 'STRING', scope: 'CASE', operatingField: 'phase' }),
   MASS_FLOW: Object.freeze({ property: 'FIT_MASS_FLOW', type: 'NUMBER', scope: 'CASE', operatingField: 'massFlow' }),
@@ -93,20 +95,26 @@ function validateScope(row, definition, rowNumber) {
   );
 }
 
+function assertEnum(field, value, allowed, rowNumber) {
+  if (!allowed.includes(value)) throw blockerError(
+    'FIT_DATA_BLOCKER_VALUE_INVALID', `${field} must be one of ${allowed.join(', ')}.`, { row: rowNumber },
+  );
+}
+
 function validateEnum(row, rowNumber) {
   if (row.value === null) return;
-  if (row.field === 'PHASE' && !PHASES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `PHASE must be one of ${PHASES.join(', ')}.`, { row: rowNumber },
-  );
-  if (row.field === 'MULTIPHASE_RESOLUTION_MODE' && !MODES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `MULTIPHASE_RESOLUTION_MODE must be one of ${MODES.join(', ')}.`, { row: rowNumber },
-  );
-  if (row.field === 'WALL_BASIS' && !FIT_FACILITY_WALL_BASES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `WALL_BASIS must be one of ${FIT_FACILITY_WALL_BASES.join(', ')}.`, { row: rowNumber },
-  );
-  if (PROCESS_BASIS_FIELDS.includes(row.field) && !FIT_FACILITY_PROCESS_BASES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `${row.field} must be one of ${FIT_FACILITY_PROCESS_BASES.join(', ')}.`, { row: rowNumber },
-  );
+  if (row.field === 'PHASE') assertEnum(row.field, row.value, PHASES, rowNumber);
+  if (row.field === 'MULTIPHASE_RESOLUTION_MODE') assertEnum(row.field, row.value, MODES, rowNumber);
+  if (row.field === 'WALL_BASIS') assertEnum(row.field, row.value, FIT_FACILITY_WALL_BASES, rowNumber);
+  if (row.field === 'SPAN_DETERMINATION_METHOD') {
+    assertEnum(row.field, row.value, FIT_FACILITY_SPAN_DETERMINATION_METHODS, rowNumber);
+  }
+  if (row.field === 'SUPPORT_EVIDENCE_STATUS') {
+    assertEnum(row.field, row.value, FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES, rowNumber);
+  }
+  if (PROCESS_BASIS_FIELDS.includes(row.field)) {
+    assertEnum(row.field, row.value, FIT_FACILITY_PROCESS_REFERENCE_BASES, rowNumber);
+  }
 }
 
 function validateUnit(definition, status, value, unit, field, rowNumber) {
