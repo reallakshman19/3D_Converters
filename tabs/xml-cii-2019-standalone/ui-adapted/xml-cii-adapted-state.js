@@ -245,8 +245,22 @@ export function updateMasterLastLoadedPath(state, masterKey, path) {
   return { ...state, masterLastLoadedPaths: nextPaths };
 }
 
+function synchronizedMasterContext(masterContext, supportConfigJson) {
+  if (!masterContext) return masterContext;
+  try {
+    const parsed = withStandaloneMaterialCodeDefaults(JSON.parse(String(supportConfigJson || '{}')) || {});
+    return { ...masterContext, config: parsed };
+  } catch {
+    return masterContext;
+  }
+}
+
 export function updateWorkflowState(state, patch = {}) {
-  return { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
+  const next = { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
+  if (Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson') && next.masterContext) {
+    next.masterContext = synchronizedMasterContext(next.masterContext, next.supportConfigJson);
+  }
+  return next;
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
