@@ -1,0 +1,30 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: PR599
+pull_request: 599
+branch: agent/xml-cii-standalone-perf-batch-c2b-lazy-preview-search
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: READ_ONLY_TAKEOVER_REQUIRED
+qualification: NOT_COMPLETED_FOR_NATIVE_REPLAY
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js
+  - tests/xml-cii-standalone-preview-search-lazy.test.mjs
+  - agents/PR599_workreport.md
+  - agents/status/PR599.yaml
+  - agents/claims/PR599.yaml
+exclusions:
+  - APPLIED mapping/master authority changes
+  - persistent search indexes
+  - workers
+  - support/GAP resolver semantics
+  - CII writer/runtime ownership
+  - .github/workflows/**
+coordination:
+  PR595: HARD_PREDECESSOR
+  PR596: HARD_PREDECESSOR
+  PR598: HARD_PREDECESSOR
+  PR600: DESCENDANT
+review_disposition: SALVAGE_PARTIAL_NATIVE_REPLAY_REQUIRED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T03:09:00+04:00
