@@ -145,12 +145,18 @@ export function persistChangedMaster(key, context) {
   const normalized = context?.[def.contextRowsKey] || [];
   const rawRows = context?.rawRows?.[key] || [];
   const meta = context?.sourceMetadata?.[key] || {};
+  const sourceCustody = {
+    source: meta.source || null,
+    fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
+    appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
+  };
   let writes = 0;
   // Backward-compatible Batch-A custody: only the changed master's authoritative
-  // source/rows are touched. Cheap derived indexes are never persisted.
+  // rows and compact source/mapping metadata are touched. Cheap derived indexes
+  // are never persisted.
   writes += storageSetIfChanged(`xml-cii-master-${key}`, normalized);
   writes += storageSetIfChanged(`xml-cii-master-raw-${key}`, rawRows);
-  writes += storageSetIfChanged(`xml-cii-master-source-${key}`, meta.source || null);
+  writes += storageSetIfChanged(`xml-cii-master-source-${key}`, sourceCustody);
   writes += storageSetIfChanged(`xml-cii-master-sheetnames-${key}`, context?.sheetNames?.[key] || []);
   writes += storageSetIfChanged(`xml-cii-master-activesheet-${key}`, context?.activeSheet?.[key] || '');
   writes += storageSetIfChanged(`xml-cii-master-workbook-${key}`, context?.workbookData?.[key] || {});
