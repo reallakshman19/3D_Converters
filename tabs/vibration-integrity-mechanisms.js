@@ -218,6 +218,29 @@ function facilityCoverage(assessments, context) {
   return { identificationBundle, ...result };
 }
 
+function identificationScopeMatchesRow(record, row) {
+  return record?.scope?.line === row.line
+    && (record?.scope?.caseId ?? null) === (row.caseId ?? null)
+    && record?.scope?.canonicalId === row.canonicalId;
+}
+
+function scopedIdentificationsForRow(row, values) {
+  if (!Array.isArray(values)) throw new TypeError('mechanismIdentifications must be an array when provided.');
+  const mismatch = values.find((record) => !identificationScopeMatchesRow(record, row));
+  if (mismatch) {
+    throw new Error(`MECHANISM_IDENTIFICATION_SCOPE_MISMATCH:${mismatch.mechanismId ?? 'UNKNOWN'}`);
+  }
+  return values;
+}
+
+function coverageContextForRow(row, context) {
+  if (context.mechanismIdentifications != null) {
+    return { ...context, mechanismIdentifications: scopedIdentificationsForRow(row, context.mechanismIdentifications) };
+  }
+  if (row?.mechanismIdentifications == null) return context;
+  return { ...context, mechanismIdentifications: scopedIdentificationsForRow(row, row.mechanismIdentifications) };
+}
+
 export function buildVibrationMechanismMatrixRow(row, context = {}) {
   const assessments = VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => (
     buildVibrationMechanismAssessment(row, mechanism.id, context)
@@ -234,7 +257,7 @@ export function buildVibrationMechanismMatrixRow(row, context = {}) {
   const retainedCandidateGoverning = governingAssessment(assessments, {
     currentOnly: false, accept: isCandidateAssessment,
   });
-  const coverageState = facilityCoverage(assessments, context);
+  const coverageState = facilityCoverage(assessments, coverageContextForRow(row, context));
   return Object.freeze({
     row,
     assessments: Object.freeze(assessments),
