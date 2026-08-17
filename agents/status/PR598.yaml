@@ -1,0 +1,35 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR598
+mission: "Remove O(N) supportConfigJson parsing from Preview search-row preparation"
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-standalone-perf-batch-c2-preview-search
+report_basis_head: 154f8376f9c689ac6d4cc876a99cb8494536a5d0
+main_head_last_checked: 00a3296f4b860ab1acb49ed690a4122122394d56
+work_intent: SALVAGE_AND_REPLAY
+criticality: ENGINEERING_CRITICAL
+execution_mode: AUTO
+auto_state: TAKEOVER_REQUIRED
+agent_state: POLICY_COMPLIANCE_BLOCKED
+pr_recovery_state: SALVAGE_PARTIAL
+takeover_authority: READ_ONLY
+handover_readiness: READY_FOR_NATIVE_REPLAY
+report_path: agents/PR598_workreport.md
+appendix_a_status: NOT_COMPLETED_FOR_NATIVE_REPLAY
+protected_authority:
+  - APPLIED_MASTER_ROWS_REMAIN_PREVIEW_AUTHORITY
+  - RAW_ROWS_FALLBACK_ONLY
+  - SUPPORT_GAP_SEMANTICS_UNCHANGED
+  - CII_WRITER_RUNTIME_UNCHANGED
+  - INPUTXML_TO_CII2019_IMMUTABLE_CORE_UNCHANGED
+validation:
+  source_defect_isolation: PASS_INSPECTION_ONLY
+  ten_thousand_row_test: NOT_RUN_NO_NATIVE_PRIVATE_CHECKOUT
+  browser_preview_search: NOT_RUN
+  github_actions: NOT_APPLICABLE_UNAUTHORIZED_WORKFLOWS_REMOVED
+  mandatory_pre_edit_backup: NOT_RUN_POLICY_NONCOMPLIANT
+coordination_state: "Depends on PR595->PR596 replay; PR599/600 descendants; PR589 semantic coordination; PR597 SAFE exact-file"
+highest_risk: "Search preparation could use stale/raw/draft mapping if custody is wrong; runtime equivalence and mandatory existing-file backups are missing."
+exact_next_action: "After qualified PR595/596 replay, native checkout + Appendix A; backup each existing C2 file before edit; replay O(1) mapping lookup; run 10k-row count/equivalence + browser search; supersede PR598."
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T03:06:00+04:00
