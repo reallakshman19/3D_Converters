@@ -12,12 +12,15 @@ const METRIC_NAMES = Object.freeze([
   'workspacePartialRenderCount',
   'previewSearchBuildCount',
   'previewSearchRowsPrepared',
+  'sourceParseCount',
+  'sourceParseCacheHitCount',
   'masterArrayBufferMs',
   'masterXlsxReadMs',
   'masterSheetToJsonMs',
   'masterNormalizeMs',
   'masterPersistMs',
   'previewSearchBuildMs',
+  'sourceParseMs',
 ]);
 
 function emptyMetrics() {
