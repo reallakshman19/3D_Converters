@@ -1,5 +1,13 @@
 import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
+  addVibrationIdentificationAuthoringRow,
+  createVibrationIdentificationAuthoringTable,
+  deleteVibrationIdentificationAuthoringRow,
+  resolveVibrationIdentificationEvidenceForScope,
+  updateVibrationIdentificationAuthoringCell,
+} from './vibration-integrity-identification-model.js';
+import { renderVibrationIdentificationAuthoring } from './vibration-integrity-identification-view.js';
+import {
   createMechanicalFacilityUiState,
   handleMechanicalFacilityChange,
   handleMechanicalFacilityClick,
@@ -62,6 +70,15 @@ function userDataPage(state) {
   </div>`;
 }
 
+function identificationPage(state) {
+  return `<div class="vi-root">
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Explicit, provenance-bearing mechanism-identification evidence bound to exact facility scopes.</p></div><div class="vi-authority"><strong>EXPLICIT IDENTIFICATION EVIDENCE</strong><span>NOT SOURCE / SCREENING / DESIGN AUTHORITY</span></div></header>
+    ${workspaceTabs('identification')}
+    ${state.error ? `<div class="vi-banner bad"><strong>Unable to update mechanism identification evidence.</strong><span>${esc(state.error)}</span></div>` : ''}
+    ${renderVibrationIdentificationAuthoring(state)}
+  </div>`;
+}
+
 function mechanicalPage(state) {
   return `<div class="vi-root">
     <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Facility-scoped Mechanical Excitation assessment using the governed EI AVIFF T2.3 candidate master.</p></div><div class="vi-authority"><strong>CANDIDATE MASTER</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
@@ -86,14 +103,40 @@ export function createVibrationUserDataUiState() {
     ...createSbcType3UiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
+    mechanismIdentificationAuthoring: createVibrationIdentificationAuthoringTable(),
+  };
+}
+
+function rowWithIdentificationEvidence(state, row) {
+  const evidence = resolveVibrationIdentificationEvidenceForScope(
+    state.mechanismIdentificationAuthoring,
+    { line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId },
+  );
+  return Object.freeze({
+    ...row,
+    mechanismIdentifications: evidence.status === 'READY' ? evidence.records : Object.freeze([]),
+    mechanismIdentificationEvidenceStatus: evidence.status,
+    mechanismIdentificationEvidenceErrors: evidence.errors,
+  });
+}
+
+function screeningRenderState(state) {
+  if (!state.workspace?.rows) return state;
+  return {
+    ...state,
+    workspace: {
+      ...state.workspace,
+      rows: Object.freeze(state.workspace.rows.map((row) => rowWithIdentificationEvidence(state, row))),
+    },
   };
 }
 
 export function renderVibrationIntegrityWithUserData(state) {
+  if (state.workspaceTab === 'identification') return identificationPage(state);
   if (state.workspaceTab === 'user-data') return userDataPage(state);
   if (state.workspaceTab === 'mechanical') return mechanicalPage(state);
   if (state.workspaceTab === 'activity') return activityPage(state);
-  return injectWorkspaceTabs(renderVibrationIntegrityHtml(state), workspaceTabs('screening'));
+  return injectWorkspaceTabs(renderVibrationIntegrityHtml(screeningRenderState(state)), workspaceTabs('screening'));
 }
 
 function updateTable(state, table, render, audit, details = {}) {
@@ -103,6 +146,13 @@ function updateTable(state, table, render, audit, details = {}) {
   state.sbcType3Result = null;
   state.error = null;
   audit?.('USER_DATA_CHANGED', details, state.sbcType3ScopeId || null);
+  render();
+}
+
+function updateIdentificationTable(state, table, render, audit, details = {}) {
+  state.mechanismIdentificationAuthoring = table;
+  state.error = null;
+  audit?.('MECHANISM_IDENTIFICATION_CHANGED', details, null);
   render();
 }
 
@@ -137,9 +187,30 @@ function evaluateType3(state, render, audit) {
   render();
 }
 
+function handleIdentificationClick(state, event, render, audit) {
+  if (event.target.closest('[data-vi-identification-add]')) {
+    updateIdentificationTable(
+      state,
+      addVibrationIdentificationAuthoringRow(state.mechanismIdentificationAuthoring),
+      render, audit, { action: 'ROW_ADDED' },
+    );
+    return true;
+  }
+  const deleteButton = event.target.closest('[data-vi-identification-delete]');
+  if (!deleteButton) return false;
+  const row = Number(deleteButton.dataset.viIdentificationDelete);
+  updateIdentificationTable(
+    state,
+    deleteVibrationIdentificationAuthoringRow(state.mechanismIdentificationAuthoring, row),
+    render, audit, { action: 'ROW_DELETED', row },
+  );
+  return true;
+}
+
 export function handleVibrationUserDataClick(state, event, render, audit) {
   if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
   if (handleSbcType3Click(state, event, render, audit)) return true;
+  if (handleIdentificationClick(state, event, render, audit)) return true;
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
   if (tab) {
     const known = VIBRATION_INTEGRITY_UI_CONTRACT.workspaceTabs.some((item) => item.id === tab);
@@ -177,6 +248,18 @@ export function handleVibrationUserDataClick(state, event, render, audit) {
 export function handleVibrationUserDataChange(state, event, render, audit) {
   if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
   if (handleSbcType3Change(state, event, render, audit)) return true;
+  const identificationField = event.target.dataset.viIdentificationCell;
+  if (identificationField) {
+    const row = Number(event.target.dataset.viIdentificationRow);
+    updateIdentificationTable(
+      state,
+      updateVibrationIdentificationAuthoringCell(
+        state.mechanismIdentificationAuthoring, row, identificationField, event.target.value,
+      ),
+      render, audit, { action: 'CELL_CHANGED', row, field: identificationField },
+    );
+    return true;
+  }
   const columnKey = event.target.dataset.viUserDataCell;
   if (!columnKey) return false;
   updateTable(state, updateVibrationUserEngineeringDataCell(
