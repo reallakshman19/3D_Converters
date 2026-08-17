@@ -14,8 +14,8 @@ function basisRows(canonicalId, span, caseIds, velocityCases = []) {
   return [
     { canonicalId, property: P.WALL_BASIS, value: 'NOMINAL', source: 'M5-MIGRATION' },
     { canonicalId, property: P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS, value: span, unit: 'm', source: 'FIELD-VERIFY' },
-    { canonicalId, property: P.SPAN_DETERMINATION_METHOD, value: 'FIELD_VERIFIED_EFFECTIVE_SUPPORTS', source: 'FIELD-VERIFY' },
-    { canonicalId, property: P.SUPPORT_EFFECTIVENESS_CONFIRMED, value: true, source: 'FIELD-VERIFY' },
+    { canonicalId, property: P.SPAN_DETERMINATION_METHOD, value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'FIELD-VERIFY' },
+    { canonicalId, property: P.SUPPORT_EVIDENCE_STATUS, value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'FIELD-VERIFY' },
     ...caseIds.flatMap((caseId) => [
       { canonicalId, caseId, property: P.DENSITY_BASIS, value: 'ACTUAL', source: 'HMB-BASIS' },
       { canonicalId, caseId, property: P.OPERATING_SCENARIO_COHERENT, value: true, source: 'HMB-BASIS' },
@@ -125,7 +125,7 @@ test('gas request preserves units and makes velocity override selection explicit
   assert.equal(normal.request.inputUnits.gasDynamicViscosity, 'cP');
   assert.equal(normal.sourceTrace.operatingCase.flowSelection, 'VELOCITY_OVERRIDE');
   assert.equal(normal.sourceTrace.operatingCase.alternateMassFlowPresent, true);
-  assert.equal(normal.engineeringBasis.process.velocityBasis, 'ACTUAL');
+  assert.equal(normal.engineeringBasis.process.velocityReferenceBasis, 'ACTUAL');
 });
 
 test('mass-flow gas request and case-specific natural frequency preserve source selection', () => {
