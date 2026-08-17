@@ -1,0 +1,39 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR600
+mission: "Cache Source Mode DOM parse by exact authoritative source basis without new session/runtime authority"
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-standalone-perf-batch-c3-source-parse-cache
+report_basis_head: cba0e0717a223db3df7d7499d62d27082e149d1f
+main_head_last_checked: 00a3296f4b860ab1acb49ed690a4122122394d56
+work_intent: SALVAGE_AND_REPLAY
+criticality: ENGINEERING_CRITICAL
+execution_mode: AUTO
+auto_state: TAKEOVER_REQUIRED
+agent_state: POLICY_COMPLIANCE_BLOCKED
+pr_recovery_state: SALVAGE_PARTIAL
+takeover_authority: READ_ONLY
+handover_readiness: READY_FOR_NATIVE_REPLAY
+report_path: agents/PR600_workreport.md
+appendix_a_status: NOT_COMPLETED_FOR_NATIVE_REPLAY
+protected_authority:
+  - SOURCE_TEXT_REMAINS_AUTHORITATIVE
+  - PARSED_DOCUMENT_DERIVED_DISPOSABLE_ONLY
+  - NO_PERSISTED_PARSE_CACHE
+  - NO_RUNTIME_WRITER_SWITCH
+  - SUPPORT_GAP_SEMANTICS_UNCHANGED
+  - INPUTXML_TO_CII2019_IMMUTABLE_CORE_UNCHANGED
+validation:
+  source_duplicate_parse_trace: PASS_INSPECTION_ONLY
+  source_parse_cache_tests: NOT_RUN_NO_NATIVE_PRIVATE_CHECKOUT
+  consumer_integration_test: NOT_RUN
+  browser_source_mode: NOT_RUN
+  source_parse_timing: NOT_RUN
+  github_actions: NOT_APPLICABLE_UNAUTHORIZED_WORKFLOWS_REMOVED
+  mandatory_pre_edit_backup: NOT_RUN_POLICY_NONCOMPLIANT
+worker_admission: NOT_ADMITTED_NO_MEASURED_CPU_STALL
+coordination_state: "Depends on PR595->596->598->599 replay; PR597 SAFE exact-file; PR589 semantic lower-stack coordination"
+highest_risk: "Parsed XML could be stale if basis invalidation is wrong; browser/runtime evidence and mandatory existing-file backups are missing."
+exact_next_action: "Native checkout: replay/qualify predecessor stack with backups, qualify C3 Appendix A, backup all existing C3 files before edit, replay exact-source cache, run cache/integration/browser tests and collect sourceParseMs; open worker work pack only if measurements justify it."
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T03:12:00+04:00
