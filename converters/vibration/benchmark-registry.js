@@ -147,27 +147,37 @@ function validateBranchCoverage(item) {
   if (item.executionRequirement === 'EXECUTABLE' && item.branchCoverage.evidenceRefs.length === 0) throw new Error(`BRANCH_COVERAGE_EVIDENCE_REQUIRED:${item.mechanismId}`);
   for (const ref of item.branchCoverage.evidenceRefs) validateRef(ref, item.mechanismId);
 }
+function validateExecutionState(item, capabilityIds) {
+  if (!EXECUTION_REQUIREMENTS.includes(item.executionRequirement)) throw new Error(`UNKNOWN_BENCHMARK_EXECUTION_REQUIREMENT:${item.mechanismId}`);
+  if (item.executionRequirement === 'EXECUTABLE') {
+    if (!item.capabilityId) throw new Error(`EXECUTABLE_CAPABILITY_ID_REQUIRED:${item.mechanismId}`);
+    if (item.benchmarkStatus !== 'FROZEN_CUSTODY') throw new Error(`EXECUTABLE_BENCHMARK_STATUS_INVALID:${item.mechanismId}`);
+    if (capabilityIds.has(item.capabilityId)) throw new Error(`DUPLICATE_BENCHMARK_CAPABILITY_ID:${item.capabilityId}`);
+    capabilityIds.add(item.capabilityId);
+  } else {
+    if (item.capabilityId != null) throw new Error(`NON_EXECUTABLE_CAPABILITY_ID_FORBIDDEN:${item.mechanismId}`);
+    if (item.benchmarkStatus !== 'BENCHMARK_REQUIREMENT_PENDING') throw new Error(`NON_EXECUTABLE_BENCHMARK_STATUS_INVALID:${item.mechanismId}`);
+  }
+}
 export function validateVibrationBenchmarkRegistry(registry = VIBRATION_BENCHMARK_REGISTRY) {
   if (registry?.schema !== VIBRATION_BENCHMARK_REGISTRY_SCHEMA) throw new Error('VIBRATION_BENCHMARK_REGISTRY_SCHEMA_INVALID');
+  if (registry.revision !== VIBRATION_BENCHMARK_REGISTRY_REVISION) throw new Error('VIBRATION_BENCHMARK_REGISTRY_REVISION_INVALID');
   if (registry.mechanismRegistryRevision !== VIBRATION_MECHANISM_REGISTRY.revision
       || registry.mechanismRegistryFingerprint !== VIBRATION_MECHANISM_REGISTRY.fingerprint) throw new Error('VIBRATION_MECHANISM_REGISTRY_BINDING_MISMATCH');
   if (!Array.isArray(registry.mechanisms)) throw new TypeError('benchmark registry mechanisms must be an array.');
   const numericalField = forbiddenNumericalField(registry);
   if (numericalField) throw new Error(`NUMERICAL_ORACLE_FIELD_FORBIDDEN:${numericalField}`);
-  const mechanismIds = new Set();
+  const mechanismIds = new Set(); const capabilityIds = new Set();
   for (const item of registry.mechanisms) {
     if (!VIBRATION_MECHANISM_IDS.includes(item.mechanismId)) throw new Error(`UNKNOWN_VIBRATION_MECHANISM:${item.mechanismId}`);
     if (mechanismIds.has(item.mechanismId)) throw new Error(`DUPLICATE_BENCHMARK_MECHANISM_ID:${item.mechanismId}`);
-    mechanismIds.add(item.mechanismId);
-    if (!EXECUTION_REQUIREMENTS.includes(item.executionRequirement)) throw new Error(`UNKNOWN_BENCHMARK_EXECUTION_REQUIREMENT:${item.mechanismId}`);
-    if (item.executionRequirement === 'EXECUTABLE' && !item.capabilityId) throw new Error(`EXECUTABLE_CAPABILITY_ID_REQUIRED:${item.mechanismId}`);
-    if (item.executionRequirement === 'NOT_EXECUTABLE' && item.capabilityId != null) throw new Error(`NON_EXECUTABLE_CAPABILITY_ID_FORBIDDEN:${item.mechanismId}`);
-    validateBranchCoverage(item);
+    mechanismIds.add(item.mechanismId); validateExecutionState(item, capabilityIds); validateBranchCoverage(item);
     const familyIds = new Set();
     for (const benchmarkFamily of item.families ?? []) validateFamily(benchmarkFamily, item.mechanismId, familyIds);
   }
   if (VIBRATION_MECHANISM_IDS.some((id) => !mechanismIds.has(id)) || mechanismIds.size !== VIBRATION_MECHANISM_IDS.length) throw new Error('BENCHMARK_MECHANISM_UNIVERSE_MISMATCH');
   if (JSON.stringify(registry.authority) !== JSON.stringify(REGISTRY_AUTHORITY)) throw new Error('BENCHMARK_REGISTRY_AUTHORITY_INVALID');
+  if (registry.fingerprint !== vibrationBenchmarkRegistryFingerprint(registry.mechanisms)) throw new Error('VIBRATION_BENCHMARK_REGISTRY_FINGERPRINT_MISMATCH');
   return true;
 }
 
@@ -205,6 +215,6 @@ export function evaluateVibrationBenchmarkRegistry({ registry = VIBRATION_BENCHM
   if (unmappedActiveCapabilityIds.length) reasons.push('ACTIVE_VIB_CAPABILITY_UNMAPPED');
   if (mechanisms.some((item) => item.executable && item.state !== 'READY')) reasons.push('EXECUTABLE_MECHANISM_BENCHMARK_BLOCKED');
   return deepFreeze({ schema: VIBRATION_BENCHMARK_COMPLIANCE_SCHEMA, registryRevision: registry.revision,
-    registryFingerprint: vibrationBenchmarkRegistryFingerprint(registry.mechanisms), state: reasons.length ? 'BLOCKED' : 'READY',
+    registryFingerprint: registry.fingerprint, state: reasons.length ? 'BLOCKED' : 'READY',
     mechanisms, unmappedActiveCapabilityIds, reasons, authority: REGISTRY_AUTHORITY });
 }
