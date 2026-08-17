@@ -98,7 +98,7 @@ export function saveMasterContextToLocalStorage(context) {
       materialMapRows: null,
       weightMasterRows: null,
       rawRows: { lineList: null, pipingClass: null, materialMap: null, weight: null },
-      workbookData: { lineList: null, materialMap: null, weight: null },
+      workbookData: { lineList: null, pipingClass: null, materialMap: null, weight: null },
       previewRows: null,
       // pipingClassIndex holds a self-referential Map (see piping-class-resolver.js's `map.byClass
       // = map`) and is rebuilt on load anyway — it must not be JSON.stringify'd.
@@ -112,6 +112,7 @@ export function saveMasterContextToLocalStorage(context) {
 
 function restorePersistentMasters() {
   const lineRows = getStoredMaster('lineList') || [];
+  const pipingClassRows = getStoredMaster('pipingClass') || [];
   const materialMapRows = getStoredMaster('materialMap') || [];
   const storedWeightRows = getStoredMaster('weight') || [];
   // Valve weights ship embedded in the app — use them whenever nothing was
@@ -133,13 +134,9 @@ function restorePersistentMasters() {
   }
 
   if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
+  if (pipingClassRows.length) config.pipingClass = { ...(config.pipingClass || {}), masterRows: pipingClassRows };
   if (materialMapRows.length) config.material = { ...(config.material || {}), mapRows: materialMapRows };
   if (weightMasterRows.length) config.weight = { ...(config.weight || {}), masterRows: weightMasterRows };
-
-  // Piping class rows have no dedicated LocalStorage key and are stripped from
-  // the saved context, so their count must reflect what was actually restored
-  // (usually 0) — never a stale count from a previous session.
-  const pipingClassRows = Array.isArray(config.pipingClass?.masterRows) ? config.pipingClass.masterRows : [];
 
   return {
     lineRows, pipingClassRows, materialMapRows, weightMasterRows, diagnostics: [], config,
@@ -147,27 +144,31 @@ function restorePersistentMasters() {
     previewRows: savedContext?.previewRows || { lineList: lineRows.slice(0, 150), pipingClass: pipingClassRows.slice(0, 150), materialMap: materialMapRows.slice(0, 150), weight: weightMasterRows.slice(0, 150) },
     sourceMetadata: {
       lineList: { key: 'lineList', source: lineRows.length ? getStoredJson('xml-cii-master-source-lineList', 'LocalStorage') : 'not-loaded', sourceType: lineRows.length ? 'manual' : 'empty', status: lineRows.length ? 'loaded' : 'empty', rowCount: lineRows.length },
-      pipingClass: { key: 'pipingClass', source: pipingClassRows.length ? 'Saved config' : 'not-loaded', sourceType: pipingClassRows.length ? 'manual' : 'empty', status: pipingClassRows.length ? 'loaded' : 'empty', rowCount: pipingClassRows.length },
+      pipingClass: { key: 'pipingClass', source: pipingClassRows.length ? getStoredJson('xml-cii-master-source-pipingClass', 'LocalStorage') : 'not-loaded', sourceType: pipingClassRows.length ? 'manual' : 'empty', status: pipingClassRows.length ? 'loaded' : 'empty', rowCount: pipingClassRows.length },
       materialMap: { key: 'materialMap', source: materialMapRows.length ? getStoredJson('xml-cii-master-source-materialMap', 'LocalStorage') : 'not-loaded', sourceType: materialMapRows.length ? 'manual' : 'empty', status: materialMapRows.length ? 'loaded' : 'empty', rowCount: materialMapRows.length },
       weight: { key: 'weight', source: usingDefaultWeights ? 'Embedded default' : getStoredJson('xml-cii-master-source-weight', 'LocalStorage'), sourceType: usingDefaultWeights ? 'default' : 'manual', status: 'loaded', rowCount: weightMasterRows.length }
     },
     rawRows: {
       lineList: getStoredJson('xml-cii-master-raw-lineList', []),
+      pipingClass: getStoredJson('xml-cii-master-raw-pipingClass', []),
       materialMap: getStoredJson('xml-cii-master-raw-materialMap', []),
       weight: getStoredJson('xml-cii-master-raw-weight', [])
     },
     sheetNames: {
       lineList: getStoredJson('xml-cii-master-sheetnames-lineList', []),
+      pipingClass: getStoredJson('xml-cii-master-sheetnames-pipingClass', []),
       materialMap: getStoredJson('xml-cii-master-sheetnames-materialMap', []),
       weight: getStoredJson('xml-cii-master-sheetnames-weight', [])
     },
     activeSheet: {
       lineList: getStoredJson('xml-cii-master-activesheet-lineList', ''),
+      pipingClass: getStoredJson('xml-cii-master-activesheet-pipingClass', ''),
       materialMap: getStoredJson('xml-cii-master-activesheet-materialMap', ''),
       weight: getStoredJson('xml-cii-master-activesheet-weight', '')
     },
     workbookData: {
       lineList: getStoredJson('xml-cii-master-workbook-lineList', {}),
+      pipingClass: getStoredJson('xml-cii-master-workbook-pipingClass', {}),
       materialMap: getStoredJson('xml-cii-master-workbook-materialMap', {}),
       weight: getStoredJson('xml-cii-master-workbook-weight', {})
     }
@@ -428,11 +429,10 @@ export function xmlCiiEnrichedConfigFromState(state) {
   const weightMasterRows = (state.masterContext?.weightMasterRows?.length ? state.masterContext.weightMasterRows : null)
     || (getStoredMaster('weight')?.length ? getStoredMaster('weight') : null)
     || DEFAULT_WEIGHT_MASTER_ROWS;
-  // Piping class rows are stored in config.pipingClass.masterRows (not a separate LS key)
-  // but if masterContext has them in-memory, use those (fresher, not yet persisted)
+  const storedPipingClassRows = getStoredMaster('pipingClass') || [];
   const pipingClassRows = state.masterContext?.pipingClassRows?.length
     ? state.masterContext.pipingClassRows
-    : (config.pipingClass?.masterRows || []);
+    : (storedPipingClassRows.length ? storedPipingClassRows : (config.pipingClass?.masterRows || []));
 
   if (lineRows.length) {
     if (!config.linelist) config.linelist = {};
