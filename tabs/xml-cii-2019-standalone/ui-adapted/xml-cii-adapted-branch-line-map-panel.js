@@ -3,6 +3,8 @@
  * Provides inline autocomplete editing, auto-suggest, and pattern rule apply.
  */
 
+import { detectBranchLinePattern } from './xml-cii-adapted-branch-line-pattern-detect.js';
+
 function _esc(val) {
   return String(val ?? '')
     .replaceAll('&', '&amp;')
@@ -57,16 +59,18 @@ function _createControlsHtml() {
 function _createPatternCardHtml() {
   return `
     <div style="margin-top:14px;padding:12px 16px;background:rgba(15,23,42,0.6);border:1px dashed rgba(148,163,184,0.25);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:5px;">
         <span style="font-size:12px;font-weight:600;color:#e2e8f0;">⚡ Bulk Pattern Rules (Unmapped Only)</span>
-        <span style="font-size:11px;color:#94a3b8;">Apply a regular expression transformation only when the result is an exact loaded Line List key.</span>
+        <span style="font-size:11px;color:#94a3b8;">Auto Detect may propose a transformation; Apply Pattern still maps only exact loaded Line List keys.</span>
+        <button type="button" class="bulk-auto-detect-pattern-btn" style="margin-top:3px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:650;cursor:pointer;box-shadow:0 2px 6px rgba(109,40,217,0.28);">⚡ Auto Detect Pattern</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <input type="text" class="bulk-pattern-regex" placeholder="Regex (e.g. ^/GLRD-(\\d+).*$)" style="width:190px;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:12px;font-family:monospace;">
+        <input type="text" class="bulk-pattern-regex" placeholder="Regex (e.g. ^/GLRD-(\\d+).*$)" style="width:240px;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:12px;font-family:monospace;">
         <span style="color:#94a3b8;font-weight:bold;">→</span>
         <input type="text" class="bulk-pattern-replace" placeholder="Replace (e.g. GLRD-$1)" style="width:150px;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:12px;font-family:monospace;">
         <button type="button" class="bulk-apply-pattern-btn" style="background:#4338ca;color:#f8fafc;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">Apply Pattern</button>
       </div>
+      <div class="bulk-pattern-detect-result" style="display:none;width:100%;margin-top:2px;padding:9px 11px;background:rgba(2,6,23,0.55);border:1px solid rgba(148,163,184,0.18);border-radius:6px;font-size:11px;color:#cbd5e1;"></div>
     </div>`;
 }
 
@@ -168,6 +172,86 @@ function _bindExplicitOverrideControls(container) {
 
 function _loadedLineKeySet(lineListKeys) {
   return new Set((Array.isArray(lineListKeys) ? lineListKeys : []).map(_text).filter(Boolean));
+}
+
+function _unmappedBranchNames(container) {
+  return [...container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]')]
+    .filter((tr) => !tr.querySelector('.bulk-line-input')?.value?.trim())
+    .map((tr) => tr.getAttribute('data-branch') || '')
+    .map(_text)
+    .filter(Boolean);
+}
+
+function _confidenceColor(confidence) {
+  if (confidence === 'HIGH') return '#34d399';
+  if (confidence === 'MEDIUM') return '#fbbf24';
+  if (confidence === 'LOW') return '#fb923c';
+  return '#f87171';
+}
+
+function _showPatternDetectionResult(container, html) {
+  const resultEl = container.querySelector('.bulk-pattern-detect-result');
+  if (!resultEl) return;
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = html;
+}
+
+function _bindAutoDetectPattern(container, lineListKeys) {
+  const button = container.querySelector('.bulk-auto-detect-pattern-btn');
+  button?.addEventListener('click', () => {
+    const branches = _unmappedBranchNames(container);
+    if (!branches.length) {
+      _showPatternDetectionResult(container, '<span style="color:#94a3b8;">No genuinely unmapped branch is available for pattern detection.</span>');
+      return;
+    }
+    if (!Array.isArray(lineListKeys) || !lineListKeys.length) {
+      _showPatternDetectionResult(container, '<span style="color:#fbbf24;">No loaded Line List keys are available. Pattern detection did not run.</span>');
+      return;
+    }
+
+    const result = detectBranchLinePattern(branches, lineListKeys, { exampleLimit: 4 });
+    if (result.status === 'ambiguous') {
+      const alternatives = (result.candidates || []).map((candidate) => (
+        `<div style="margin-top:4px;"><code style="color:#c4b5fd;">${_esc(candidate.expression)}</code> → <code>${_esc(candidate.replacement)}</code>`
+        + ` · exact ${candidate.evaluation.exactMatchCount}/${candidate.evaluation.testedCount}</div>`
+      )).join('');
+      _showPatternDetectionResult(container,
+        `<strong style="color:#fbbf24;">⚠ Ambiguous pattern evidence — no proposal was loaded.</strong>`
+        + '<div style="margin-top:3px;color:#94a3b8;">Multiple equally supported patterns produce different exact Line List keys. Review manually.</div>'
+        + alternatives);
+      return;
+    }
+
+    if (result.status !== 'detected' || !result.best) {
+      _showPatternDetectionResult(container,
+        '<strong style="color:#94a3b8;">No safe exact-key pattern detected.</strong>'
+        + '<div style="margin-top:3px;">Fuzzy discovery did not find a transformation whose results are exact loaded Line List keys. Existing mappings are unchanged.</div>');
+      return;
+    }
+
+    const best = result.best;
+    const regexInput = container.querySelector('.bulk-pattern-regex');
+    const replaceInput = container.querySelector('.bulk-pattern-replace');
+    if (regexInput) regexInput.value = best.expression;
+    if (replaceInput) replaceInput.value = best.replacement;
+
+    const examples = (best.examples || []).map((row) => (
+      `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:3px;">`
+      + `<code style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cbd5e1;" title="${_esc(row.branchName)}">${_esc(row.branchName)}</code>`
+      + `<code style="color:#86efac;">→ ${_esc(row.key)}</code></div>`
+    )).join('');
+    const confidenceColor = _confidenceColor(best.confidence);
+    const evaluation = best.evaluation;
+    _showPatternDetectionResult(container,
+      `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">`
+      + `<strong style="color:${confidenceColor};">Detected · ${_esc(best.confidence)} confidence</strong>`
+      + `<span>Exact: <strong>${evaluation.exactMatchCount}/${evaluation.testedCount}</strong></span>`
+      + `<span>Distinct keys: <strong>${evaluation.distinctKeyCount}</strong></span>`
+      + `<span>Rejected: <strong>${evaluation.rejectedCount}</strong></span>`
+      + '</div>'
+      + `<div style="margin-top:4px;color:#94a3b8;">Proposal only — no branch mapping changed. Press <strong>Apply Pattern</strong> to apply exact loaded keys; non-exact results remain unmapped.</div>`
+      + examples);
+  });
 }
 
 function _bindPatternApply(container, lineListKeys) {
@@ -348,6 +432,7 @@ export function renderBranchLineMapPanel(container, { branchRows = [], lineListK
   _bindHeaderToggle(header, body, chevron, hint);
   _bindSearchFilters(container);
   _bindExplicitOverrideControls(container);
+  _bindAutoDetectPattern(container, lineListKeys);
   _bindPatternApply(container, lineListKeys);
   _bindAutoSuggest(container, lineListKeys);
   _bindSaveAction(container, config, onSaveConfig, onRebuildPreview);
