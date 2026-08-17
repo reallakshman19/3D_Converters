@@ -1,5 +1,6 @@
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260815-sbc-pf05-cache-1';
+import { evaluateEiMainLineAggregation } from '../converters/vibration/ei-mainline-aggregation.js';
 import { evaluateVibrationCoverageAndCompleteness } from '../converters/vibration/mechanisms/coverage.js';
 import { createVibrationMechanismIdentificationBundle } from '../converters/vibration/mechanisms/identification-producer.js';
 import {
@@ -206,16 +207,17 @@ function facilityCoverage(assessments, context) {
   const identificationBundle = createVibrationMechanismIdentificationBundle({
     identifications: context.mechanismIdentifications ?? [],
   });
+  const assessmentSets = coverageAssessmentSets(
+    assessments,
+    identificationBundle,
+    context.coverageAssessmentSets ?? [],
+  );
   const result = evaluateVibrationCoverageAndCompleteness({
     identifications: identificationBundle.identifications,
     knownMechanismIds: identificationBundle.expectedMechanismIds,
-    assessmentSets: coverageAssessmentSets(
-      assessments,
-      identificationBundle,
-      context.coverageAssessmentSets ?? [],
-    ),
+    assessmentSets,
   });
-  return { identificationBundle, ...result };
+  return { identificationBundle, assessmentSets, ...result };
 }
 
 function identificationScopeMatchesRow(record, row) {
@@ -258,6 +260,11 @@ export function buildVibrationMechanismMatrixRow(row, context = {}) {
     currentOnly: false, accept: isCandidateAssessment,
   });
   const coverageState = facilityCoverage(assessments, coverageContextForRow(row, context));
+  const eiMainLineAggregation = evaluateEiMainLineAggregation({
+    scope: rowScope(row),
+    identifications: coverageState.identificationBundle.identifications,
+    assessmentSets: coverageState.assessmentSets,
+  });
   return Object.freeze({
     row,
     assessments: Object.freeze(assessments),
@@ -271,6 +278,7 @@ export function buildVibrationMechanismMatrixRow(row, context = {}) {
     requiredAssessmentSet: coverageState.requiredAssessmentSet,
     mechanismCoverage: coverageState.coverage,
     assessmentCompleteness: coverageState.completeness,
+    eiMainLineAggregation,
     fullScreeningGoverningEstablished: false,
   });
 }
