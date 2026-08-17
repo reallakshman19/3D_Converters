@@ -14,6 +14,8 @@ import {
   VIBRATION_TABLE_EXCHANGE_SCHEMA,
 } from '../converters/vibration/exchange/schema.js';
 
+const P = FIT_FACILITY_ENRICHMENT_PROPERTIES;
+
 function exchange({ completeExchange = true } = {}) {
   return Object.freeze({
     schema: VIBRATION_TABLE_EXCHANGE_SCHEMA,
@@ -46,19 +48,31 @@ function operatingCases() {
   }];
 }
 
+function basisRows() {
+  return [
+    { canonicalId: 'CANON-001', property: P.WALL_BASIS, value: 'NOMINAL', source: 'M5' },
+    { canonicalId: 'CANON-001', property: P.SPAN_DETERMINATION_METHOD, value: 'FIELD_VERIFIED_EFFECTIVE_SUPPORTS', source: 'M5' },
+    { canonicalId: 'CANON-001', property: P.SUPPORT_EFFECTIVENESS_CONFIRMED, value: true, source: 'M5' },
+    { canonicalId: 'CANON-001', caseId: 'NORMAL', property: P.DENSITY_BASIS, value: 'ACTUAL', source: 'M5' },
+    { canonicalId: 'CANON-001', caseId: 'NORMAL', property: P.OPERATING_SCENARIO_COHERENT, value: true, source: 'M5' },
+  ];
+}
+
 function enrichment({ includeSpan = true, includeAssessmentPoint = true } = {}) {
   return [
     ...(includeAssessmentPoint ? [{
-      canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT,
+      canonicalId: 'CANON-001', property: P.ASSESSMENT_POINT,
       value: true, source: 'VIB-REVIEW', status: 'VERIFIED',
     }] : []),
-    { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
-    { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS, value: 7.11, unit: 'mm', source: 'PIPE-DATA' },
-    { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.INSIDE_DIAMETER, value: 154.1, unit: 'mm', source: 'PIPE-DATA' },
+    { canonicalId: 'CANON-001', property: P.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
+    { canonicalId: 'CANON-001', property: P.WALL_THICKNESS, value: 7.11, unit: 'mm', source: 'PIPE-DATA' },
+    { canonicalId: 'CANON-001', property: P.INSIDE_DIAMETER, value: 154.1, unit: 'mm', source: 'PIPE-DATA' },
+    { canonicalId: 'CANON-001', property: P.MAX_UNSUPPORTED_SPAN, value: 6.4, unit: 'm', source: 'LEGACY-SPAN' },
     ...(includeSpan ? [{
-      canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.MAX_UNSUPPORTED_SPAN,
+      canonicalId: 'CANON-001', property: P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS,
       value: 6.4, unit: 'm', source: 'FIELD-VERIFY', status: 'VERIFIED',
     }] : []),
+    ...basisRows(),
   ];
 }
 
@@ -94,10 +108,11 @@ test('one-call workflow equals the direct lower-level composition', () => {
   assert(Object.isFrozen(workflow));
 });
 
-test('missing span remains NOT_ASSESSED through the complete workflow with no numerical substitution', () => {
+test('missing effective-support span remains NOT_ASSESSED with no numerical substitution', () => {
   const workflow = runVibrationFacilityFitBenchmark(input({ includeSpan: false }));
   assert.equal(workflow.plan.items[0].status, 'NOT_READY');
   assert.equal(workflow.plan.items[0].request, null);
+  assert(workflow.plan.items[0].missing.includes('maximumSpanBetweenEffectiveSupports'));
   assert.equal(workflow.result.rows[0].status, 'NOT_ASSESSED_DATA_INCOMPLETE');
   assert.equal(workflow.result.rows[0].centralResult, null);
   assert.equal(workflow.result.centralBatchSummary.total, 0);
