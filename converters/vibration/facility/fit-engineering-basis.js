@@ -1,6 +1,8 @@
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
-  FIT_FACILITY_PROCESS_BASES,
+  FIT_FACILITY_PROCESS_REFERENCE_BASES,
+  FIT_FACILITY_SPAN_DETERMINATION_METHODS,
+  FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES,
   FIT_FACILITY_WALL_BASES,
 } from './fit-plan-contract.js';
 import {
@@ -9,7 +11,12 @@ import {
 } from './fit-plan-context.js';
 
 export const FIT_FACILITY_ENGINEERING_BASIS_SCHEMA = 'FitFacilityEngineeringBasis.v1';
-export { FIT_FACILITY_PROCESS_BASES, FIT_FACILITY_WALL_BASES } from './fit-plan-contract.js';
+export {
+  FIT_FACILITY_PROCESS_REFERENCE_BASES,
+  FIT_FACILITY_SPAN_DETERMINATION_METHODS,
+  FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES,
+  FIT_FACILITY_WALL_BASES,
+} from './fit-plan-contract.js';
 
 const BASIS_AUTHORITY = Object.freeze({
   authority: 'ENGINEERING_BASIS_CUSTODY_ONLY',
@@ -45,18 +52,6 @@ function textValue(row, field, missing, invalid, allowed = null) {
   return value;
 }
 
-function methodValue(row, missing, invalid) {
-  if (!row) {
-    missing.push('spanDeterminationMethod');
-    return null;
-  }
-  if (typeof row.value !== 'string' || !row.value.trim()) {
-    invalid.push('spanDeterminationMethod');
-    return null;
-  }
-  return row.value.trim();
-}
-
 function confirmedValue(row, field, missing, invalid, reasons, reason) {
   if (!row) {
     missing.push(field);
@@ -83,8 +78,8 @@ function quantityValue(row, field, missing, invalid) {
   return Object.freeze({ value: row.value, unit: row.unit });
 }
 
-function actualBasis(row, field, missing, invalid, reasons) {
-  const value = textValue(row, field, missing, invalid, FIT_FACILITY_PROCESS_BASES);
+function actualReferenceBasis(row, field, missing, invalid, reasons) {
+  const value = textValue(row, field, missing, invalid, FIT_FACILITY_PROCESS_REFERENCE_BASES);
   if (value && value !== 'ACTUAL') {
     invalid.push(field);
     reasons.push(`PROCESS_BASIS_CONVERSION_REQUIRED:${field}`);
@@ -104,19 +99,48 @@ function processBasisRows(index, canonicalId, caseId) {
 
 function processBasis(process, rows, missing, invalid, reasons) {
   const result = {
-    densityBasis: null, velocityBasis: null,
-    gasDensityBasis: null, liquidDensityBasis: null,
+    densityReferenceBasis: null, velocityReferenceBasis: null,
+    gasDensityReferenceBasis: null, liquidDensityReferenceBasis: null,
   };
   if (process.phase === 'MULTIPHASE' && process.mode === 'COMPONENT_DERIVED') {
-    result.gasDensityBasis = actualBasis(rows.gasDensityBasis, 'gasDensityBasis', missing, invalid, reasons);
-    result.liquidDensityBasis = actualBasis(rows.liquidDensityBasis, 'liquidDensityBasis', missing, invalid, reasons);
+    result.gasDensityReferenceBasis = actualReferenceBasis(
+      rows.gasDensityBasis, 'gasDensityReferenceBasis', missing, invalid, reasons,
+    );
+    result.liquidDensityReferenceBasis = actualReferenceBasis(
+      rows.liquidDensityBasis, 'liquidDensityReferenceBasis', missing, invalid, reasons,
+    );
     return result;
   }
-  result.densityBasis = actualBasis(rows.densityBasis, 'densityBasis', missing, invalid, reasons);
+  result.densityReferenceBasis = actualReferenceBasis(
+    rows.densityBasis, 'densityReferenceBasis', missing, invalid, reasons,
+  );
   if (process.resolved?.velocity?.value) {
-    result.velocityBasis = actualBasis(rows.velocityBasis, 'velocityBasis', missing, invalid, reasons);
+    result.velocityReferenceBasis = actualReferenceBasis(
+      rows.velocityBasis, 'velocityReferenceBasis', missing, invalid, reasons,
+    );
   }
   return result;
+}
+
+function supportMethodMatches(status, method) {
+  if (status === 'METHOD_ACCEPTED_PROJECT_STANDARD') return method === 'PROJECT_PIPING_STANDARD';
+  return ['LINE_WALK_EFFECTIVE_SUPPORTS', 'ISOMETRIC_EFFECTIVE_SUPPORTS'].includes(method);
+}
+
+function supportEvidence(rows, missing, invalid, reasons) {
+  const method = textValue(
+    rows.spanDeterminationMethod, 'spanDeterminationMethod', missing, invalid,
+    FIT_FACILITY_SPAN_DETERMINATION_METHODS,
+  );
+  const status = textValue(
+    rows.supportEvidenceStatus, 'supportEvidenceStatus', missing, invalid,
+    FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES,
+  );
+  if (method && status && !supportMethodMatches(status, method)) {
+    invalid.push('supportEvidenceStatus');
+    reasons.push('SUPPORT_EVIDENCE_METHOD_MISMATCH');
+  }
+  return { spanDeterminationMethod: method, evidenceStatus: status };
 }
 
 function traces(rows) {
@@ -125,13 +149,7 @@ function traces(rows) {
   ));
 }
 
-export function resolveFitFacilityEngineeringBasis({
-  index,
-  canonicalId,
-  line,
-  caseId,
-  process,
-} = {}) {
+export function resolveFitFacilityEngineeringBasis({ index, canonicalId, line, caseId, process } = {}) {
   const missing = [];
   const invalid = [];
   const reasons = [];
@@ -140,25 +158,18 @@ export function resolveFitFacilityEngineeringBasis({
     wallBasis: basisRow(index, canonicalId, p.WALL_BASIS),
     maximumSpanBetweenEffectiveSupports: basisRow(index, canonicalId, p.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS),
     spanDeterminationMethod: basisRow(index, canonicalId, p.SPAN_DETERMINATION_METHOD),
-    supportEffectivenessConfirmed: basisRow(index, canonicalId, p.SUPPORT_EFFECTIVENESS_CONFIRMED),
+    supportEvidenceStatus: basisRow(index, canonicalId, p.SUPPORT_EVIDENCE_STATUS),
     ...processBasisRows(index, canonicalId, caseId),
     operatingScenarioCoherent: basisRow(index, canonicalId, p.OPERATING_SCENARIO_COHERENT, caseId),
   };
   const wallBasis = textValue(rows.wallBasis, 'wallBasis', missing, invalid, FIT_FACILITY_WALL_BASES);
   const span = quantityValue(
-    rows.maximumSpanBetweenEffectiveSupports,
-    'maximumSpanBetweenEffectiveSupports', missing, invalid,
+    rows.maximumSpanBetweenEffectiveSupports, 'maximumSpanBetweenEffectiveSupports', missing, invalid,
   );
-  const method = methodValue(rows.spanDeterminationMethod, missing, invalid);
-  const supportConfirmed = confirmedValue(
-    rows.supportEffectivenessConfirmed,
-    'supportEffectivenessConfirmed', missing, invalid, reasons,
-    'SUPPORT_EFFECTIVENESS_NOT_CONFIRMED',
-  );
+  const support = supportEvidence(rows, missing, invalid, reasons);
   const resolvedProcess = processBasis(process, rows, missing, invalid, reasons);
   const scenarioCoherent = confirmedValue(
-    rows.operatingScenarioCoherent,
-    'operatingScenarioCoherent', missing, invalid, reasons,
+    rows.operatingScenarioCoherent, 'operatingScenarioCoherent', missing, invalid, reasons,
     'OPERATING_SCENARIO_NOT_COHERENT',
   );
   const uniqueMissing = [...new Set(missing)].sort();
@@ -168,11 +179,7 @@ export function resolveFitFacilityEngineeringBasis({
     status: uniqueMissing.length || uniqueInvalid.length ? 'NOT_READY' : 'READY',
     scope: { line, caseId: caseId ?? null, canonicalId },
     geometry: { wallBasis },
-    support: {
-      maximumSpanBetweenEffectiveSupports: span,
-      spanDeterminationMethod: method,
-      supportEffectivenessConfirmed: supportConfirmed,
-    },
+    support: { maximumSpanBetweenEffectiveSupports: span, ...support },
     process: resolvedProcess,
     scenario: { coherent: scenarioCoherent },
     missing: uniqueMissing,
