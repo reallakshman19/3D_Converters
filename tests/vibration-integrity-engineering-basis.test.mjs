@@ -42,7 +42,7 @@ function fixture() {
       enrichment('CID-1', '', 'FIT_ASSESSMENT_POINT', 'true', 'BOOLEAN', ''),
       enrichment('CID-1', '', 'OUTSIDE_DIAMETER', '0.1683'),
       enrichment('CID-1', '', 'WALL_THICKNESS', '0.00711'),
-      enrichment('CID-1', '', 'MAX_UNSUPPORTED_SPAN', '6.4'),
+      enrichment('CID-1', '', 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', '6.4'),
       enrichment('CID-1', '', 'NATURAL_FREQUENCY', '2.2', 'NUMBER', 'Hz'),
       enrichment('CID-1', 'CASE-B', 'NATURAL_FREQUENCY', '2.8', 'NUMBER', 'Hz'),
     ]),
@@ -76,13 +76,15 @@ test('joined projection mirrors topology-line assessment-point operating-case jo
   ]);
 });
 
-test('case-specific natural frequency overrides global while shared geometry stays global', () => {
+test('case-specific natural frequency overrides global while shared M5 geometry stays global', () => {
   const [caseA, caseB] = buildVibrationEngineeringBasisProjection(fixture()).rows;
   assert.equal(caseA.fit.naturalFrequency.value, '2.2');
   assert.equal(caseA.fit.naturalFrequency.sourceSelection, 'GLOBAL');
   assert.equal(caseB.fit.naturalFrequency.value, '2.8');
   assert.equal(caseB.fit.naturalFrequency.sourceSelection, 'CASE_SPECIFIC');
   assert.equal(caseB.fit.outsideDiameter.value, '0.1683');
+  assert.equal(caseB.fit.span.value, '6.4');
+  assert.equal(caseB.fit.span.label, 'Effective-support span');
 });
 
 test('projected editors expose exact backing refs and stable source anchors', () => {
@@ -133,6 +135,7 @@ test('Engineering Basis exposes adopted FIT method, errata disposition and proje
   assert.match(html, /REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2/u);
   assert.match(html, /PROJECT_SPECIFIC_CONFIRMATION_REQUIRED/u);
   assert.match(html, /benchmark\/reference status is not screening or design authority/iu);
+  assert.match(html, /Effective-support span/u);
 });
 
 test('UI keeps Engineering Basis primary with separate Source Data and Data Blockers tabs', () => {
