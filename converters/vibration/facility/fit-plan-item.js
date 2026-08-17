@@ -8,6 +8,7 @@ import {
   fitFacilityEnrichmentTrace,
   fitFacilityOperatingCaseTrace,
 } from './fit-plan-context.js';
+import { resolveFitFacilityEngineeringBasis } from './fit-engineering-basis.js';
 import {
   appendFitFacilityProcessRequest,
   resolveFitFacilityProcessEvidence,
@@ -65,19 +66,20 @@ function requestFromEvidence({
   outsideDiameter,
   wallThickness,
   insideDiameter,
-  maximumUnsupportedSpan,
+  engineeringBasis,
   naturalFrequency,
   qualificationMode,
 }) {
+  const span = engineeringBasis.support.maximumSpanBetweenEffectiveSupports;
   const inputs = {
     outsideDiameter: outsideDiameter.value,
     wallThickness: wallThickness.value,
-    maximumUnsupportedSpan: maximumUnsupportedSpan.value,
+    maximumUnsupportedSpan: span.value,
   };
   const inputUnits = {
     outsideDiameter: outsideDiameter.unit,
     wallThickness: wallThickness.unit,
-    maximumUnsupportedSpan: maximumUnsupportedSpan.unit,
+    maximumUnsupportedSpan: span.unit,
   };
   appendFitFacilityProcessRequest(process, inputs, inputUnits);
   if (insideDiameter) {
@@ -96,7 +98,7 @@ function requestFromEvidence({
   };
 }
 
-function geometryTrace(index, canonicalId, naturalFrequencyResolution) {
+function geometryTrace(index, canonicalId, naturalFrequencyResolution, engineeringBasis) {
   const property = FIT_FACILITY_ENRICHMENT_PROPERTIES;
   return {
     outsideDiameter: fitFacilityEnrichmentTrace(
@@ -108,7 +110,8 @@ function geometryTrace(index, canonicalId, naturalFrequencyResolution) {
     insideDiameter: fitFacilityEnrichmentTrace(
       fitFacilityEnrichmentRow(index, canonicalId, property.INSIDE_DIAMETER),
     ),
-    maximumUnsupportedSpan: fitFacilityEnrichmentTrace(
+    maximumSpanBetweenEffectiveSupports: engineeringBasis.trace.maximumSpanBetweenEffectiveSupports,
+    legacyMaximumUnsupportedSpan: fitFacilityEnrichmentTrace(
       fitFacilityEnrichmentRow(index, canonicalId, property.MAX_UNSUPPORTED_SPAN),
     ),
     naturalFrequency: fitFacilityEnrichmentTrace(
@@ -131,6 +134,7 @@ export function buildFitFacilityNoCaseItem(point) {
       point.line ? 'LINE_HAS_NO_OPERATING_CASES' : 'ASSESSMENT_POINT_HAS_NO_LINE',
     ]),
     request: null,
+    engineeringBasis: null,
     sourceTrace: Object.freeze({ assessmentPoint: fitFacilityEnrichmentTrace(point.marker) }),
   };
 }
@@ -153,10 +157,6 @@ export function buildFitFacilityPlanItem(
     fitFacilityEnrichmentRow(index, point.canonicalId, property.WALL_THICKNESS),
     'wallThickness', missing, invalid,
   );
-  const maximumUnsupportedSpan = quantityEvidence(
-    fitFacilityEnrichmentRow(index, point.canonicalId, property.MAX_UNSUPPORTED_SPAN),
-    'maximumUnsupportedSpan', missing, invalid,
-  );
   const insideDiameter = optionalQuantityEvidence(
     fitFacilityEnrichmentRow(index, point.canonicalId, property.INSIDE_DIAMETER),
     'insideDiameter', invalid,
@@ -167,6 +167,15 @@ export function buildFitFacilityPlanItem(
   );
   missing.push(...process.missing);
   invalid.push(...process.invalid);
+  const engineeringBasis = resolveFitFacilityEngineeringBasis({
+    index,
+    canonicalId: point.canonicalId,
+    line: point.line,
+    caseId: operatingCase.caseId,
+    process,
+  });
+  missing.push(...engineeringBasis.missing);
+  invalid.push(...engineeringBasis.invalid);
   const uniqueMissing = [...new Set(missing)].sort();
   const uniqueInvalid = [...new Set(invalid)].sort();
   const ready = uniqueMissing.length === 0 && uniqueInvalid.length === 0;
@@ -180,22 +189,24 @@ export function buildFitFacilityPlanItem(
     missing: Object.freeze(uniqueMissing),
     invalid: Object.freeze(uniqueInvalid),
     reasons: Object.freeze(ready
-      ? ['EXPLICIT_FIT_ASSESSMENT_POINT', 'REQUIRED_INPUT_EVIDENCE_AVAILABLE']
-      : ['FIT_REQUEST_INPUT_INCOMPLETE']),
+      ? ['EXPLICIT_FIT_ASSESSMENT_POINT', 'REQUIRED_INPUT_EVIDENCE_AVAILABLE', 'EXPLICIT_ENGINEERING_BASIS_AVAILABLE']
+      : ['FIT_REQUEST_INPUT_INCOMPLETE', ...engineeringBasis.reasons]),
     request: ready ? requestFromEvidence({
       process,
       outsideDiameter,
       wallThickness,
       insideDiameter,
-      maximumUnsupportedSpan,
+      engineeringBasis,
       naturalFrequency: naturalFrequency.row,
       qualificationMode,
     }) : null,
+    engineeringBasis,
     sourceTrace: Object.freeze({
       assessmentPoint: fitFacilityEnrichmentTrace(point.marker),
       operatingCase: fitFacilityOperatingCaseTrace(operatingCase),
       process: process.trace,
-      geometry: geometryTrace(index, point.canonicalId, naturalFrequency),
+      engineeringBasis: engineeringBasis.trace,
+      geometry: geometryTrace(index, point.canonicalId, naturalFrequency, engineeringBasis),
     }),
   };
 }

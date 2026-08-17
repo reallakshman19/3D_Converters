@@ -35,7 +35,7 @@ function state() {
         ['CAN-1','L-100','','FIT_ASSESSMENT_POINT','true','boolean','','EI-D2','R1','EN-0'],
         ['CAN-1','L-100','','OUTSIDE_DIAMETER','168.275','number','mm','EI-D2','R1','EN-1'],
         ['CAN-1','L-100','','WALL_THICKNESS','7.112','number','mm','EI-D2','R1','EN-2'],
-        ['CAN-1','L-100','','MAX_UNSUPPORTED_SPAN','7','number','m','EI-D2','R1','EN-3'],
+        ['CAN-1','L-100','','MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS','7','number','m','EI-D2','R1','EN-3'],
         ['CAN-1','L-100','NORMAL','NATURAL_FREQUENCY','2.2','number','Hz','EI-D2','R1','EN-4'],
       ], ['EN-ROW-0','EN-ROW-1','EN-ROW-2','EN-ROW-3','EN-ROW-4']),
     },
@@ -77,6 +77,7 @@ test('FIT working trace resolves exact Stage-3 backing cell pointers and anchors
   assert.equal(trace.density.unitRef.header, 'Density Unit');
   assert.equal(trace.outsideDiameter.valueRef.rowId, 'EN-ROW-1');
   assert.equal(trace.outsideDiameter.sourceAnchorId, 'vi-source-enrichment-EN-ROW-1-4');
+  assert.equal(trace.maximumUnsupportedSpan.valueRef.rowId, 'EN-ROW-3');
   assert.equal(trace.naturalFrequency.valueRef.rowId, 'EN-ROW-4');
 });
 

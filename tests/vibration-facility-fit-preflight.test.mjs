@@ -38,12 +38,24 @@ function operatingCases() {
   ];
 }
 
+function basis(canonicalId, span) {
+  return [
+    { canonicalId, property: 'WALL_BASIS', value: 'NOMINAL', source: 'M5' },
+    { canonicalId, property: 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', value: span, unit: 'm', source: 'M5' },
+    { canonicalId, property: 'SPAN_DETERMINATION_METHOD', value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'M5' },
+    { canonicalId, property: 'SUPPORT_EVIDENCE_STATUS', value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'M5' },
+    { canonicalId, caseId: 'NORMAL', property: 'FIT_DENSITY_BASIS', value: 'ACTUAL', source: 'M5' },
+    { canonicalId, caseId: 'NORMAL', property: 'FIT_OPERATING_SCENARIO_COHERENT', value: true, source: 'M5' },
+  ];
+}
+
 function enrichment() {
   return [
     { canonicalId: 'CAN-1', property: 'FIT_ASSESSMENT_POINT', value: true, source: 'VIB-REVIEW' },
     { canonicalId: 'CAN-1', property: 'OUTSIDE_DIAMETER', value: 168.3, unit: 'mm', source: 'LINE-LIST' },
     { canonicalId: 'CAN-1', property: 'WALL_THICKNESS', value: 7.11, unit: 'mm', source: 'LINE-LIST' },
-    { canonicalId: 'CAN-1', property: 'MAX_UNSUPPORTED_SPAN', value: 4, unit: 'm', source: 'SUPPORT-REVIEW' },
+    { canonicalId: 'CAN-1', property: 'MAX_UNSUPPORTED_SPAN', value: 4, unit: 'm', source: 'LEGACY-SPAN' },
+    ...basis('CAN-1', 4),
     { canonicalId: 'CAN-2', property: 'FIT_ASSESSMENT_POINT', value: true, source: 'VIB-REVIEW' },
     { canonicalId: 'CAN-2', property: 'OUTSIDE_DIAMETER', value: 273, unit: 'mm', source: 'LINE-LIST' },
     { canonicalId: 'CAN-2', property: 'WALL_THICKNESS', value: 9.27, unit: 'mm', source: 'LINE-LIST' },
@@ -71,7 +83,7 @@ test('preflight stops at dataset and plan while reporting READY/NOT_READY rows',
   assert.deepEqual(ready.missing, []);
   assert.equal(notReady.status, 'NOT_READY');
   assert.equal(notReady.requestPrepared, false);
-  assert(notReady.missing.includes('maximumUnsupportedSpan'));
+  assert(notReady.missing.includes('maximumSpanBetweenEffectiveSupports'));
   assert.equal(Object.hasOwn(ready, 'standardLof'), false);
   assert.equal(Object.hasOwn(result, 'result'), false);
   assert.equal(Object.hasOwn(result, 'register'), false);

@@ -8,6 +8,24 @@ import {
 } from '../converters/vibration/facility/index.js';
 import { VIBRATION_INTEGRITY_DATASET_SCHEMA } from '../converters/vibration/dataset/schema.js';
 
+const P = FIT_FACILITY_ENRICHMENT_PROPERTIES;
+
+function basisRows(canonicalId, span, caseIds, velocityCases = []) {
+  return [
+    { canonicalId, property: P.WALL_BASIS, value: 'NOMINAL', source: 'M5-MIGRATION' },
+    { canonicalId, property: P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS, value: span, unit: 'm', source: 'FIELD-VERIFY' },
+    { canonicalId, property: P.SPAN_DETERMINATION_METHOD, value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'FIELD-VERIFY' },
+    { canonicalId, property: P.SUPPORT_EVIDENCE_STATUS, value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'FIELD-VERIFY' },
+    ...caseIds.flatMap((caseId) => [
+      { canonicalId, caseId, property: P.DENSITY_BASIS, value: 'ACTUAL', source: 'HMB-BASIS' },
+      { canonicalId, caseId, property: P.OPERATING_SCENARIO_COHERENT, value: true, source: 'HMB-BASIS' },
+      ...(velocityCases.includes(caseId) ? [
+        { canonicalId, caseId, property: P.VELOCITY_BASIS, value: 'ACTUAL', source: 'HMB-BASIS' },
+      ] : []),
+    ]),
+  ];
+}
+
 function dataset(overrides = {}) {
   return {
     schema: VIBRATION_INTEGRITY_DATASET_SCHEMA,
@@ -48,25 +66,28 @@ function dataset(overrides = {}) {
       },
     ],
     enrichment: overrides.enrichment ?? [
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS, value: 7.11, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.INSIDE_DIAMETER, value: 154.1, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.MAX_UNSUPPORTED_SPAN, value: 6.4, unit: 'm', source: 'FIELD-VERIFY' },
-      { canonicalId: 'CANON-001', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.NATURAL_FREQUENCY, value: 2.5, unit: 'Hz', source: 'MODAL-BASE' },
-      { canonicalId: 'CANON-001', caseId: 'DESIGN', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.NATURAL_FREQUENCY, value: 2.2, unit: 'Hz', source: 'MODAL-DESIGN' },
+      { canonicalId: 'CANON-001', property: P.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
+      { canonicalId: 'CANON-001', property: P.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-001', property: P.WALL_THICKNESS, value: 7.11, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-001', property: P.INSIDE_DIAMETER, value: 154.1, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-001', property: P.MAX_UNSUPPORTED_SPAN, value: 6.4, unit: 'm', source: 'LEGACY-SPAN' },
+      ...basisRows('CANON-001', 6.4, ['NORMAL', 'DESIGN'], ['NORMAL']),
+      { canonicalId: 'CANON-001', property: P.NATURAL_FREQUENCY, value: 2.5, unit: 'Hz', source: 'MODAL-BASE' },
+      { canonicalId: 'CANON-001', caseId: 'DESIGN', property: P.NATURAL_FREQUENCY, value: 2.2, unit: 'Hz', source: 'MODAL-DESIGN' },
 
-      { canonicalId: 'CANON-002', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-002', property: P.OUTSIDE_DIAMETER, value: 168.3, unit: 'mm', source: 'PIPE-DATA' },
 
-      { canonicalId: 'CANON-003', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
-      { canonicalId: 'CANON-003', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER, value: 273, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-003', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS, value: 9.271, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-003', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.MAX_UNSUPPORTED_SPAN, value: 18, unit: 'm', source: 'FIELD-VERIFY' },
+      { canonicalId: 'CANON-003', property: P.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
+      { canonicalId: 'CANON-003', property: P.OUTSIDE_DIAMETER, value: 273, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-003', property: P.WALL_THICKNESS, value: 9.271, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-003', property: P.MAX_UNSUPPORTED_SPAN, value: 18, unit: 'm', source: 'LEGACY-SPAN' },
+      ...basisRows('CANON-003', 18, ['NORMAL']),
 
-      { canonicalId: 'CANON-005', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
-      { canonicalId: 'CANON-005', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER, value: 508, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-005', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS, value: 9.525, unit: 'mm', source: 'PIPE-DATA' },
-      { canonicalId: 'CANON-005', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.MAX_UNSUPPORTED_SPAN, value: 5, unit: 'm', source: 'FIELD-VERIFY' },
+      { canonicalId: 'CANON-005', property: P.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
+      { canonicalId: 'CANON-005', property: P.OUTSIDE_DIAMETER, value: 508, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-005', property: P.WALL_THICKNESS, value: 9.525, unit: 'mm', source: 'PIPE-DATA' },
+      { canonicalId: 'CANON-005', property: P.MAX_UNSUPPORTED_SPAN, value: 5, unit: 'm', source: 'LEGACY-SPAN' },
+      ...basisRows('CANON-005', 5, ['NORMAL'], ['NORMAL']),
     ],
   };
 }
@@ -90,8 +111,7 @@ test('planner creates benchmark central requests only for explicitly marked asse
 });
 
 test('gas request preserves units and makes velocity override selection explicit', () => {
-  const plan = buildVibrationFacilityFitPlan(dataset());
-  const normal = item(plan, 'CANON-001', 'NORMAL');
+  const normal = item(buildVibrationFacilityFitPlan(dataset()), 'CANON-001', 'NORMAL');
   assert.equal(normal.status, 'READY', JSON.stringify(normal));
   assert.equal(normal.request.calculationId, VIBRATION_FACILITY_FIT_CALCULATION_ID);
   assert.equal(normal.request.options.qualificationMode, 'benchmark');
@@ -105,6 +125,7 @@ test('gas request preserves units and makes velocity override selection explicit
   assert.equal(normal.request.inputUnits.gasDynamicViscosity, 'cP');
   assert.equal(normal.sourceTrace.operatingCase.flowSelection, 'VELOCITY_OVERRIDE');
   assert.equal(normal.sourceTrace.operatingCase.alternateMassFlowPresent, true);
+  assert.equal(normal.engineeringBasis.process.velocityReferenceBasis, 'ACTUAL');
 });
 
 test('mass-flow gas request and case-specific natural frequency preserve source selection', () => {
@@ -138,19 +159,19 @@ test('liquid and aggregate multiphase requests use explicit process shape withou
   assert.equal(Object.hasOwn(multiphase.request.inputs, 'liquidMassFlow'), false);
 });
 
-test('missing geometry or gas viscosity yields NOT_READY with no request object', () => {
+test('missing effective-support span or gas viscosity yields NOT_READY with no request object', () => {
   const base = dataset();
   const withoutSpan = {
     ...base,
     enrichment: base.enrichment.filter((row) => !(
       row.canonicalId === 'CANON-001'
-      && row.property === FIT_FACILITY_ENRICHMENT_PROPERTIES.MAX_UNSUPPORTED_SPAN
+      && row.property === P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS
     )),
   };
   const spanItem = item(buildVibrationFacilityFitPlan(withoutSpan), 'CANON-001', 'NORMAL');
   assert.equal(spanItem.status, 'NOT_READY');
   assert.equal(spanItem.request, null);
-  assert(spanItem.missing.includes('maximumUnsupportedSpan'));
+  assert(spanItem.missing.includes('maximumSpanBetweenEffectiveSupports'));
 
   const withoutViscosity = {
     ...base,
@@ -169,7 +190,7 @@ test('invalid enrichment quantity evidence is fail-closed rather than ignored', 
   const invalid = {
     ...base,
     enrichment: base.enrichment.map((row) => row.canonicalId === 'CANON-003'
-      && row.property === FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS
+      && row.property === P.WALL_THICKNESS
       ? { ...row, unit: undefined }
       : row),
   };
@@ -185,7 +206,7 @@ test('assessment point without line or operating cases remains visible as NOT_RE
     ...base,
     enrichment: [
       ...base.enrichment,
-      { canonicalId: 'CANON-004', property: FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
+      { canonicalId: 'CANON-004', property: P.ASSESSMENT_POINT, value: true, source: 'VIB-REVIEW' },
     ],
   };
   const plan = buildVibrationFacilityFitPlan(enriched);
@@ -201,7 +222,7 @@ test('no assessment point produces an empty plan with explicit warning', () => {
   const base = dataset();
   const noPoints = {
     ...base,
-    enrichment: base.enrichment.filter((row) => row.property !== FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT),
+    enrichment: base.enrichment.filter((row) => row.property !== P.ASSESSMENT_POINT),
   };
   const plan = buildVibrationFacilityFitPlan(noPoints);
   assert.equal(plan.counts.assessmentPoints, 0);
@@ -214,10 +235,7 @@ test('planner does not derive OD or wall thickness from upstream DN/schedule', (
   const missingGeometry = {
     ...base,
     enrichment: base.enrichment.filter((row) => row.canonicalId !== 'CANON-003'
-      || ![
-        FIT_FACILITY_ENRICHMENT_PROPERTIES.OUTSIDE_DIAMETER,
-        FIT_FACILITY_ENRICHMENT_PROPERTIES.WALL_THICKNESS,
-      ].includes(row.property)),
+      || ![P.OUTSIDE_DIAMETER, P.WALL_THICKNESS].includes(row.property)),
   };
   const result = item(buildVibrationFacilityFitPlan(missingGeometry), 'CANON-003', 'NORMAL');
   assert.equal(result.status, 'NOT_READY');

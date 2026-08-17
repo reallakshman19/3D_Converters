@@ -43,7 +43,16 @@ function enrichmentCsv({ outsideDiameter = 168.3 } = {}) {
     'CANON-001,L-100,,FIT_ASSESSMENT_POINT,true,BOOLEAN,,SOURCE,,,,',
     `CANON-001,L-100,,OUTSIDE_DIAMETER,${outsideDiameter},NUMBER,mm,SOURCE,,,,`,
     'CANON-001,L-100,,WALL_THICKNESS,7.11,NUMBER,mm,SOURCE,,,,',
-    'CANON-001,L-100,,MAX_UNSUPPORTED_SPAN,4,NUMBER,m,SOURCE,,,,',
+    'CANON-001,L-100,,MAX_UNSUPPORTED_SPAN,4,NUMBER,m,LEGACY-SPAN,,,,',
+    'CANON-001,L-100,,WALL_BASIS,NOMINAL,STRING,,M5,,,,',
+    'CANON-001,L-100,,MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS,4,NUMBER,m,M5,,,,',
+    'CANON-001,L-100,,SPAN_DETERMINATION_METHOD,LINE_WALK_EFFECTIVE_SUPPORTS,STRING,,M5,,,,',
+    'CANON-001,L-100,,SUPPORT_EVIDENCE_STATUS,EFFECTIVE_SUPPORTS_CONFIRMED,STRING,,M5,,,,',
+    'CANON-001,L-100,NORMAL,FIT_DENSITY_BASIS,ACTUAL,STRING,,M5,,,,',
+    'CANON-001,L-100,NORMAL,FIT_VELOCITY_BASIS,ACTUAL,STRING,,M5,,,,',
+    'CANON-001,L-100,NORMAL,FIT_GAS_DENSITY_BASIS,ACTUAL,STRING,,M5,,,,',
+    'CANON-001,L-100,NORMAL,FIT_LIQUID_DENSITY_BASIS,ACTUAL,STRING,,M5,,,,',
+    'CANON-001,L-100,NORMAL,FIT_OPERATING_SCENARIO_COHERENT,true,BOOLEAN,,M5,,,,',
   ].join('\n');
 }
 
@@ -77,6 +86,20 @@ test('ACTIVE blocker requires an explicit value and numeric unit', () => {
     ])),
     (error) => error.code === 'FIT_DATA_BLOCKER_UNIT_REQUIRED',
   );
+});
+
+test('M5 wall/process/support blocker vocab is fail-closed', () => {
+  for (const row of [
+    'CANON-001,,,WALL_BASIS,SCHEDULE,,USER-INPUT,,B-1,ACTIVE,eng-a,',
+    'CANON-001,L-100,NORMAL,DENSITY_BASIS,DESIGN,,USER-INPUT,,B-2,ACTIVE,eng-a,',
+    'CANON-001,,,SPAN_DETERMINATION_METHOD,FIELD_GUESS,,USER-INPUT,,B-3,ACTIVE,eng-a,',
+    'CANON-001,,,SUPPORT_EVIDENCE_STATUS,CONFIRMED,,USER-INPUT,,B-4,ACTIVE,eng-a,',
+  ]) {
+    assert.throws(
+      () => parseVibrationFitDataBlockerCsv(blockerCsv([row])),
+      (error) => error.code === 'FIT_DATA_BLOCKER_VALUE_INVALID',
+    );
+  }
 });
 
 test('ACTIVE blocker rows fill missing process data without overwriting source tables', () => {

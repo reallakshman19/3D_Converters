@@ -1,4 +1,10 @@
 import {
+  FIT_FACILITY_PROCESS_REFERENCE_BASES,
+  FIT_FACILITY_SPAN_DETERMINATION_METHODS,
+  FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES,
+  FIT_FACILITY_WALL_BASES,
+} from '../facility/fit-plan-contract.js';
+import {
   assertExactVibrationCsvHeader,
   nonBlankVibrationCsvRows,
   parseStrictVibrationCsvRows,
@@ -15,6 +21,9 @@ export const VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER = Object.freeze([
 const STATUSES = Object.freeze(['ACTIVE', 'HOLD', 'RESOLVED']);
 const PHASES = Object.freeze(['LIQUID', 'GAS', 'MULTIPHASE']);
 const MODES = Object.freeze(['AGGREGATE_EFFECTIVE', 'COMPONENT_DERIVED']);
+const PROCESS_BASIS_FIELDS = Object.freeze([
+  'DENSITY_BASIS', 'VELOCITY_BASIS', 'GAS_DENSITY_BASIS', 'LIQUID_DENSITY_BASIS',
+]);
 
 export const VIBRATION_FIT_DATA_BLOCKER_FIELDS = Object.freeze({
   ASSESSMENT_POINT: Object.freeze({ property: 'FIT_ASSESSMENT_POINT', type: 'BOOLEAN', scope: 'GLOBAL' }),
@@ -22,17 +31,26 @@ export const VIBRATION_FIT_DATA_BLOCKER_FIELDS = Object.freeze({
   WALL_THICKNESS: Object.freeze({ property: 'WALL_THICKNESS', type: 'NUMBER', scope: 'GLOBAL' }),
   INSIDE_DIAMETER: Object.freeze({ property: 'INSIDE_DIAMETER', type: 'NUMBER', scope: 'GLOBAL' }),
   MAX_UNSUPPORTED_SPAN: Object.freeze({ property: 'MAX_UNSUPPORTED_SPAN', type: 'NUMBER', scope: 'GLOBAL' }),
+  MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS: Object.freeze({ property: 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', type: 'NUMBER', scope: 'GLOBAL' }),
+  WALL_BASIS: Object.freeze({ property: 'WALL_BASIS', type: 'STRING', scope: 'GLOBAL' }),
+  SPAN_DETERMINATION_METHOD: Object.freeze({ property: 'SPAN_DETERMINATION_METHOD', type: 'STRING', scope: 'GLOBAL' }),
+  SUPPORT_EVIDENCE_STATUS: Object.freeze({ property: 'SUPPORT_EVIDENCE_STATUS', type: 'STRING', scope: 'GLOBAL' }),
   NATURAL_FREQUENCY: Object.freeze({ property: 'NATURAL_FREQUENCY', type: 'NUMBER', scope: 'CASE_OR_GLOBAL' }),
   PHASE: Object.freeze({ property: 'FIT_PHASE', type: 'STRING', scope: 'CASE', operatingField: 'phase' }),
   MASS_FLOW: Object.freeze({ property: 'FIT_MASS_FLOW', type: 'NUMBER', scope: 'CASE', operatingField: 'massFlow' }),
   DENSITY: Object.freeze({ property: 'FIT_DENSITY', type: 'NUMBER', scope: 'CASE', operatingField: 'density' }),
+  DENSITY_BASIS: Object.freeze({ property: 'FIT_DENSITY_BASIS', type: 'STRING', scope: 'CASE' }),
   DYNAMIC_VISCOSITY: Object.freeze({ property: 'FIT_DYNAMIC_VISCOSITY', type: 'NUMBER', scope: 'CASE', operatingField: 'dynamicViscosity' }),
   VELOCITY: Object.freeze({ property: 'FIT_VELOCITY', type: 'NUMBER', scope: 'CASE', operatingField: 'velocity' }),
+  VELOCITY_BASIS: Object.freeze({ property: 'FIT_VELOCITY_BASIS', type: 'STRING', scope: 'CASE' }),
   MULTIPHASE_RESOLUTION_MODE: Object.freeze({ property: 'FIT_MULTIPHASE_RESOLUTION_MODE', type: 'STRING', scope: 'CASE' }),
   GAS_MASS_FLOW: Object.freeze({ property: 'FIT_GAS_MASS_FLOW', type: 'NUMBER', scope: 'CASE' }),
   GAS_DENSITY: Object.freeze({ property: 'FIT_GAS_DENSITY', type: 'NUMBER', scope: 'CASE' }),
+  GAS_DENSITY_BASIS: Object.freeze({ property: 'FIT_GAS_DENSITY_BASIS', type: 'STRING', scope: 'CASE' }),
   LIQUID_MASS_FLOW: Object.freeze({ property: 'FIT_LIQUID_MASS_FLOW', type: 'NUMBER', scope: 'CASE' }),
   LIQUID_DENSITY: Object.freeze({ property: 'FIT_LIQUID_DENSITY', type: 'NUMBER', scope: 'CASE' }),
+  LIQUID_DENSITY_BASIS: Object.freeze({ property: 'FIT_LIQUID_DENSITY_BASIS', type: 'STRING', scope: 'CASE' }),
+  OPERATING_SCENARIO_COHERENT: Object.freeze({ property: 'FIT_OPERATING_SCENARIO_COHERENT', type: 'BOOLEAN', scope: 'CASE' }),
 });
 
 function text(value) {
@@ -77,14 +95,26 @@ function validateScope(row, definition, rowNumber) {
   );
 }
 
+function assertEnum(field, value, allowed, rowNumber) {
+  if (!allowed.includes(value)) throw blockerError(
+    'FIT_DATA_BLOCKER_VALUE_INVALID', `${field} must be one of ${allowed.join(', ')}.`, { row: rowNumber },
+  );
+}
+
 function validateEnum(row, rowNumber) {
   if (row.value === null) return;
-  if (row.field === 'PHASE' && !PHASES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `PHASE must be one of ${PHASES.join(', ')}.`, { row: rowNumber },
-  );
-  if (row.field === 'MULTIPHASE_RESOLUTION_MODE' && !MODES.includes(row.value)) throw blockerError(
-    'FIT_DATA_BLOCKER_VALUE_INVALID', `MULTIPHASE_RESOLUTION_MODE must be one of ${MODES.join(', ')}.`, { row: rowNumber },
-  );
+  if (row.field === 'PHASE') assertEnum(row.field, row.value, PHASES, rowNumber);
+  if (row.field === 'MULTIPHASE_RESOLUTION_MODE') assertEnum(row.field, row.value, MODES, rowNumber);
+  if (row.field === 'WALL_BASIS') assertEnum(row.field, row.value, FIT_FACILITY_WALL_BASES, rowNumber);
+  if (row.field === 'SPAN_DETERMINATION_METHOD') {
+    assertEnum(row.field, row.value, FIT_FACILITY_SPAN_DETERMINATION_METHODS, rowNumber);
+  }
+  if (row.field === 'SUPPORT_EVIDENCE_STATUS') {
+    assertEnum(row.field, row.value, FIT_FACILITY_SUPPORT_EVIDENCE_STATUSES, rowNumber);
+  }
+  if (PROCESS_BASIS_FIELDS.includes(row.field)) {
+    assertEnum(row.field, row.value, FIT_FACILITY_PROCESS_REFERENCE_BASES, rowNumber);
+  }
 }
 
 function validateUnit(definition, status, value, unit, field, rowNumber) {
