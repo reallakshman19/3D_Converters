@@ -6,20 +6,21 @@ Bounded M5 slice #583:
 
 > Bind FIT `wallBasis=NOMINAL` readiness to exact certified Catalogue Evidence custody for the same Canonical ID without using DN/schedule as numerical geometry and without inventing a geometry consistency tolerance.
 
-## Repository state at implementation freeze
+## Repository / PR identity
 
 ```text
-base main           = fd7f303dbce054a63f10f8c6b8e234e6d09462ef
-implementation head = 11579c2d5510e0597840f10c434ed6c77211ca89
-branch              = agent/vib-geom-custody-583-nominal-catalogue
-issue               = #583
-PR                  = #584
-Appendix A comment  = 5314137872
-score               = 98/100
-qualification       = QUALIFIED_FOR_VIB_NOMINAL_GEOMETRY_CUSTODY_M5
+base main                    = fd7f303dbce054a63f10f8c6b8e234e6d09462ef
+branch                       = agent/vib-geom-custody-583-nominal-catalogue
+issue                        = #583
+PR                           = #584
+Appendix A comment           = 5314137872
+score                        = 98/100
+qualification                = QUALIFIED_FOR_VIB_NOMINAL_GEOMETRY_CUSTODY_M5
+primary implementation head  = 11579c2d5510e0597840f10c434ed6c77211ca89
+purity-hardening head         = 5128de06558231afde7fe25499c94aa272af0697
 ```
 
-This report is intentionally committed after the implementation freeze; the final PR head is therefore the commit containing this report, not the implementation-head SHA above.
+This report is committed after implementation/hardening checkpoints, so the final PR head is the later commit containing this report and related audit-only backup custody.
 
 ## Delivered production behavior
 
@@ -105,7 +106,7 @@ Flow:
 
 ```text
 complete exchange
- -> deep-frozen dataset element/catalogue custody
+ -> isolated deep-frozen dataset element/catalogue custody copies
  -> per-point exact custody receipt
  -> FitFacilityEngineeringBasis.v1 geometry gate
  -> READY only if NOMINAL custody is valid
@@ -130,7 +131,7 @@ sourceTrace.geometry.catalogueCustody
 
 ## Test-first evidence
 
-Primary falsifier was committed before production repair:
+Primary nominal-custody falsifier was committed before production repair:
 
 ```text
 1156b8231e9775e2bef8fe82b071fcc7c0ce794a
@@ -139,9 +140,10 @@ Primary falsifier was committed before production repair:
 Focused tests:
 
 ```text
-tests/vibration-facility-fit-geometry-custody.test.mjs        173 lines
-tests/vibration-facility-fit-geometry-custody-trace.test.mjs   84 lines
-tests/vibration-facility-fit-geometry-custody-scope.test.mjs   45 lines
+tests/vibration-facility-fit-geometry-custody.test.mjs         173 lines
+tests/vibration-facility-fit-geometry-custody-trace.test.mjs    84 lines
+tests/vibration-facility-fit-geometry-custody-scope.test.mjs    45 lines
+tests/vibration-facility-fit-geometry-custody-purity.test.mjs   53 lines
 ```
 
 Coverage:
@@ -158,7 +160,37 @@ G08 non-NOMINAL basis acquires no catalogue authority
 G09 exact catalogue record/source trace is exposed without authority promotion
 G10 catalogue/DN/schedule fields never enter numerical FIT request
 extra foreign/whitespace Canonical IDs cannot satisfy exact scope
+extra dataset freezing does not freeze caller-owned exchange custody objects
 ```
+
+## Continuation hardening — caller-object purity
+
+A live continuation review identified an unintended side effect introduced by the new dataset custody retention:
+
+```text
+pre-hardening behavior:
+  elements: [...exchange.elements]
+  catalogueEvidence: [...exchange.catalogueEvidence]
+  exchangeAuthority: exchange.authority
+
+then deepFreezeVibrationDataset(...)
+```
+
+The arrays were copied but their objects were not. Recursive dataset freezing could therefore freeze caller-owned `Elements`, `Catalogue Evidence.sourceReference`, and exchange-authority objects.
+
+The protective regression was committed before the repair:
+
+```text
+baf32a7fc6d34ff73b9d1b5446ef56aa6026a90c
+```
+
+Repair:
+
+```text
+5128de06558231afde7fe25499c94aa272af0697
+```
+
+`assembleVibrationIntegrityDataset()` now recursively clones only retained exchange custody values before freezing the dataset. This changes no FIT inputs, equations, applicability, catalogue authority semantics, or readiness criteria; it restores caller-object purity while preserving immutable dataset custody.
 
 ## Existing fixture migration
 
@@ -173,11 +205,13 @@ tests/vibration-facility-fit-tabular-workflow.test.mjs
 tests/vibration-fit-data-blockers.test.mjs
 ```
 
-Their numerical expectations remain unchanged. Dedicated #583 tests own the new positive NOMINAL authority seam.
+Their numerical expectations remain unchanged. Dedicated #583 tests own the positive NOMINAL authority seam.
 
 ## Backup custody
 
-Exact Git blob/tree reuse was used because this connector-only runtime cannot run `node utils/backup.js`:
+Connector-only backup custody is explicit; no claim is made that `node utils/backup.js` ran.
+
+Earlier exact Git blob/tree checkpoints:
 
 ```text
 509a8640acbb48ec89de0730a6a6bab6ae53726e  pre-production production-file blobs
@@ -185,7 +219,12 @@ Exact Git blob/tree reuse was used because this connector-only runtime cannot ru
 9b967deff21550c5cf9a060f8d074e30c79829d7  post-create resolver blob before hardening
 ```
 
-A second-round backup operation was initially rejected by the connector; no overwrite followed that failure. The later resolver retry succeeded before the hardening edit. Do not describe any of these as native backup-CLI execution.
+Continuation backup commits:
+
+```text
+18b94a76c1858824724666c994afcac2eedf0799  exact pre-purity-repair assemble.js copy
+a633cca9837e77fa9c8eb3724de164352a9773e5  exact pre-report-refresh PR584 workreport copy
+```
 
 ## Protected scope
 
@@ -205,23 +244,25 @@ PR #546 technical work
 T2.9 numerical/source work
 ```
 
-## Validation truth at implementation head
+## Validation truth at post-hardening implementation head
 
 ```text
 PASS     main/base exact and branch behind 0
 PASS     Appendix A 98/100 before production mutation
-PASS     protective regression committed before production repair
-PASS     PR mergeability recomputed to true after transient creation state
-PASS     review submissions = 0
-PASS     review threads = 0
+PASS     primary custody regression committed before primary repair
+PASS     purity regression committed before purity repair
+PASS     PR mergeable = true at 5128de06558231afde7fe25499c94aa272af0697
+PASS     review submissions = 0 at post-hardening re-ground
+PASS     review threads = 0 at post-hardening re-ground
 PASS     fit-geometry-custody.js = 175 physical lines (<300)
 PASS     focused custody tests each <300 physical lines
 PASS     compare ledger contains no workflow/#546/T2.9 numerical-source/FIT benchmark-oracle changes
-PASS     DN/schedule/catalogue excluded from request.inputs by machine test source
+PASS     DN/schedule/catalogue excluded from request.inputs by machine-test source
+PASS     retained custody is cloned before dataset deep-freeze by source inspection
 NOT_RUN  native exact-checkout focused Node tests — connector-only private checkout unavailable
 NOT_RUN  full repository-native VIB/FIT/AIV suites
 NOT_RUN  browser
-NOT_RUN  exact implementation-head PR Actions — no pull-request workflow run returned for 11579c2d5510e0597840f10c434ed6c77211ca89
+NOT_RUN  exact post-hardening-head PR Actions — no pull-request workflow run returned for 5128de06558231afde7fe25499c94aa272af0697
 ```
 
 Source/static evidence is not promoted to native execution PASS.
@@ -230,7 +271,7 @@ Source/static evidence is not promoted to native execution PASS.
 
 ```text
 DRAFT = true
-MERGEABLE = true at implementation-head re-ground
+MERGEABLE = true at post-hardening re-ground
 MERGE_AUTHORITY = OWNER_ONLY / NOT_GRANTED_FOR_THIS NEW PR
 ```
 
@@ -240,4 +281,4 @@ The prior Owner authorization applied to #582 only. This PR must remain draft an
 
 #429 remains in M5 after this slice. This PR does not authorize M6.
 
-Still-separate M5 obligations include controlled geometry consistency/tolerance authority (if introduced), explicit standard/normal-to-actual process resolution, and broader coherent-scenario semantics. None are implemented here.
+Still-separate M5 obligations include controlled geometry consistency/tolerance authority (if introduced), explicit standard/normal-to-actual process resolution, and broader coherent-scenario semantics. None are implemented here, and no dependent production branch should assume #584 has landed while it remains unmerged.
