@@ -29,6 +29,8 @@ async function fitWorkpack() {
 test('generic engine preserves FIT check order and historical gate IDs', async () => {
   const result = await verifyEngineeringWorkpack('VIB-FIT');
   assert.equal(result.status, 'PASS');
+  assert.equal(Number.isInteger(result.releaseManifestCount), true);
+  assert.equal(result.releaseManifestCount > 0, true);
   assert.deepEqual(result.checks.map((entry) => entry.id), [
     'FIT-WP-001', 'FIT-WP-002', 'FIT-WP-003', 'FIT-WP-004',
     'FIT-WP-005', 'FIT-WP-006', 'FIT-WP-007', 'FIT-WP-008',
@@ -44,6 +46,7 @@ test('a second consumer verifies without mechanism logic in the generic engine',
   };
   const result = await verifyEngineeringWorkpackDefinition(workpack);
   assert.equal(result.status, 'PASS');
+  assert.equal('releaseManifestCount' in result, false);
 });
 
 test('unknown check type fails closed', async () => {
@@ -153,7 +156,7 @@ test('FIT Product Freeze cannot be declared FROZEN without protocol receipt', as
   await assert.rejects(verifyEngineeringWorkpackDefinition(workpack), /FIT-WP-012/u);
 });
 
-test('generic core contains no mechanism-specific engineering names or rules', async () => {
+test('generic core contains no mechanism-specific engineering names or consumer-field coupling', async () => {
   const paths = [
     '../scripts/verify-engineering-workpack.mjs',
     '../engineering/workpacks/framework/workpack-loader.mjs',
@@ -161,7 +164,7 @@ test('generic core contains no mechanism-specific engineering names or rules', a
     '../engineering/workpacks/framework/path-utils.mjs',
     '../engineering/workpacks/framework/probe-runner.mjs',
   ];
-  const forbiddenRule = /QST-003|D\.2\.3|T2\.9|if\s*\([^)]*(?:FIT|AIV|SBC)/u;
+  const forbiddenRule = /QST-003|D\.2\.3|T2\.9|releaseManifest\.requiredCriticalTests|if\s*\([^)]*(?:FIT|AIV|SBC)/u;
   for (const path of paths) {
     const source = await readFile(new URL(path, import.meta.url), 'utf8');
     assert.doesNotMatch(source, forbiddenRule, path);
