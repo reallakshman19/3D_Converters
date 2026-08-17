@@ -17,6 +17,10 @@ import {
 import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-independent-benchmark-evidence.js';
 
 function cloneRegistry() { return structuredClone(VIBRATION_BENCHMARK_REGISTRY); }
+function reseal(registry) {
+  registry.fingerprint = vibrationBenchmarkRegistryFingerprint(registry.mechanisms);
+  return registry;
+}
 function activeVibIds(extra = []) {
   return [...ACTIVE_ENGINEERING_CALCULATION_DEFINITIONS.map((definition) => definition.id)
     .filter((id) => id.startsWith('VIB.')), ...extra];
@@ -27,7 +31,7 @@ function family(registry, mechanismId, familyId) {
 }
 function parseJson(path) { return JSON.parse(fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')); }
 
-test('VIB-BREG-001/002: registry uses governed mechanism universe with deterministic truth-sensitive identity', () => {
+test('VIB-BREG-001/002: registry uses governed universe and self-verifying truth-sensitive identity', () => {
   assert.equal(VIBRATION_BENCHMARK_REGISTRY.schema, VIBRATION_BENCHMARK_REGISTRY_SCHEMA);
   assert.equal(VIBRATION_BENCHMARK_REGISTRY.mechanismRegistryRevision, VIBRATION_MECHANISM_REGISTRY.revision);
   assert.equal(VIBRATION_BENCHMARK_REGISTRY.mechanismRegistryFingerprint, VIBRATION_MECHANISM_REGISTRY.fingerprint);
@@ -37,6 +41,7 @@ test('VIB-BREG-001/002: registry uses governed mechanism universe with determini
   const changed = cloneRegistry();
   family(changed, 'fit', 'FIT-INDEPENDENT-HAND-V1').independenceBasis = 'CHANGED';
   assert.notEqual(vibrationBenchmarkRegistryFingerprint(changed.mechanisms), fingerprint);
+  assert.throws(() => validateVibrationBenchmarkRegistry(changed), /VIBRATION_BENCHMARK_REGISTRY_FINGERPRINT_MISMATCH/u);
 });
 
 test('VIB-BREG-003: current active VIB capabilities map exactly and are READY', () => {
@@ -60,30 +65,24 @@ test('VIB-BREG-004: an active VIB capability without family custody blocks M3', 
 test('VIB-BREG-005/006/007: executable mechanisms require two countable families including B1 and B2', () => {
   const missingB2 = cloneRegistry();
   entry(missingB2, 'aiv').families = entry(missingB2, 'aiv').families.filter((item) => item.evidenceClass !== 'B2');
-  const noB2 = evaluateVibrationBenchmarkRegistry({ registry: missingB2, activeCapabilityIds: activeVibIds() });
+  const noB2 = evaluateVibrationBenchmarkRegistry({ registry: reseal(missingB2), activeCapabilityIds: activeVibIds() });
   const aivNoB2 = noB2.mechanisms.find((item) => item.mechanismId === 'aiv');
   assert.equal(aivNoB2.state, 'BLOCKED');
   assert.ok(aivNoB2.reasons.includes('B2_INDEPENDENT_FAMILY_MISSING'));
-
   const missingB1 = cloneRegistry();
   entry(missingB1, 'aiv').families = entry(missingB1, 'aiv').families.filter((item) => item.evidenceClass !== 'B1');
-  const noB1 = evaluateVibrationBenchmarkRegistry({ registry: missingB1, activeCapabilityIds: activeVibIds() });
+  const noB1 = evaluateVibrationBenchmarkRegistry({ registry: reseal(missingB1), activeCapabilityIds: activeVibIds() });
   assert.ok(noB1.mechanisms.find((item) => item.mechanismId === 'aiv').reasons.includes('B1_CONTROLLED_FAMILY_MISSING'));
 });
 
 test('VIB-BREG-005B: material branch coverage is a separate M3 gate', () => {
   const branchGap = cloneRegistry();
   entry(branchGap, 'aiv').branchCoverage.state = 'PENDING';
-  const result = evaluateVibrationBenchmarkRegistry({ registry: branchGap, activeCapabilityIds: activeVibIds() });
+  const result = evaluateVibrationBenchmarkRegistry({ registry: reseal(branchGap), activeCapabilityIds: activeVibIds() });
   const aiv = result.mechanisms.find((item) => item.mechanismId === 'aiv');
   assert.equal(aiv.state, 'BLOCKED');
   assert.equal(aiv.branchCoverageReady, false);
   assert.ok(aiv.reasons.includes('MATERIAL_BRANCH_COVERAGE_NOT_FROZEN'));
-  for (const mechanismId of ['fit', 'aiv']) {
-    for (const ref of entry(VIBRATION_BENCHMARK_REGISTRY, mechanismId).branchCoverage.evidenceRefs) {
-      assert.equal(fs.existsSync(new URL(`../${ref.path}`, import.meta.url)), true, ref.path);
-    }
-  }
 });
 
 test('VIB-BREG-008/011: B3/B4 cannot count and unknown classes fail closed', () => {
@@ -104,19 +103,22 @@ test('VIB-BREG-009: duplicate engineering examples cannot inflate independent-fa
   const duplicateExample = cloneRegistry();
   const aiv = entry(duplicateExample, 'aiv');
   aiv.families[1].engineeringExampleId = aiv.families[0].engineeringExampleId;
-  const result = evaluateVibrationBenchmarkRegistry({ registry: duplicateExample, activeCapabilityIds: activeVibIds() });
+  const result = evaluateVibrationBenchmarkRegistry({ registry: reseal(duplicateExample), activeCapabilityIds: activeVibIds() });
   const compliance = result.mechanisms.find((item) => item.mechanismId === 'aiv');
   assert.equal(compliance.state, 'BLOCKED');
   assert.ok(compliance.reasons.includes('DUPLICATE_COUNTABLE_ENGINEERING_EXAMPLE'));
 });
 
-test('VIB-BREG-010: duplicate mechanism and family identities fail closed', () => {
+test('VIB-BREG-010/016: duplicate identities and false non-executable readiness fail closed', () => {
   const duplicateMechanism = cloneRegistry();
   duplicateMechanism.mechanisms.push(structuredClone(duplicateMechanism.mechanisms[0]));
   assert.throws(() => validateVibrationBenchmarkRegistry(duplicateMechanism), /DUPLICATE_BENCHMARK_MECHANISM_ID/u);
   const duplicateFamily = cloneRegistry();
   entry(duplicateFamily, 'fit').families.push(structuredClone(entry(duplicateFamily, 'fit').families[0]));
   assert.throws(() => validateVibrationBenchmarkRegistry(duplicateFamily), /DUPLICATE_BENCHMARK_FAMILY_ID/u);
+  const falseReady = cloneRegistry();
+  entry(falseReady, 'mechanicalExcitation').benchmarkStatus = 'FROZEN_CUSTODY';
+  assert.throws(() => validateVibrationBenchmarkRegistry(falseReady), /NON_EXECUTABLE_BENCHMARK_STATUS_INVALID/u);
 });
 
 test('VIB-BREG-012: FIT D2/D4 and independent-hand custody reference exact frozen sets', () => {
@@ -136,12 +138,11 @@ test('VIB-BREG-013: AIV D2.3 and independent analytical vector custody remain ex
   const b2 = family(VIBRATION_BENCHMARK_REGISTRY, 'aiv', 'AIV-INDEPENDENT-ANALYTICAL-V1');
   const d23 = fs.readFileSync(new URL('../docs/vibration/AIV-D2.3-Working-Table-Benchmark-v1.md', import.meta.url), 'utf8');
   assert.match(d23, /locator D\.2\.3 High Frequency Acoustic Excitation/u);
-  assert.equal(b1.evidenceClass, 'B1');
-  assert.equal(b2.evidenceClass, 'B2');
+  assert.equal(b1.evidenceClass, 'B1'); assert.equal(b2.evidenceClass, 'B2');
   assert.deepEqual(new Set(b2.caseIds), new Set(AIV_INDEPENDENT_BENCHMARKS.map((item) => item.benchmarkId)));
 });
 
-test('VIB-BREG-014/015: registry rejects numerical oracle fields and production-runtime oracle sources', () => {
+test('VIB-BREG-014/015: numerical oracle fields and production-runtime oracle sources are forbidden', () => {
   const numerical = cloneRegistry();
   family(numerical, 'fit', 'FIT-EI-D2').expected = { lof: 0.1 };
   assert.throws(() => validateVibrationBenchmarkRegistry(numerical), /NUMERICAL_ORACLE_FIELD_FORBIDDEN/u);
@@ -152,7 +153,13 @@ test('VIB-BREG-014/015: registry rejects numerical oracle fields and production-
   assert.throws(() => validateVibrationBenchmarkRegistry(productionOracle), /PRODUCTION_ORACLE_SOURCE_FORBIDDEN/u);
 });
 
-test('VIB-BREG-016/017/019: non-executable mechanisms stay pending and registry grants no authority or aggregation', () => {
+test('VIB-BREG-017/018/019/020: custody refs exist; registry grants no authority, values or aggregation', () => {
+  for (const mechanism of VIBRATION_BENCHMARK_REGISTRY.mechanisms) {
+    for (const benchmarkFamily of mechanism.families) {
+      for (const ref of benchmarkFamily.artifactRefs) assert.equal(fs.existsSync(new URL(`../${ref.path}`, import.meta.url)), true, ref.path);
+    }
+    for (const ref of mechanism.branchCoverage.evidenceRefs) assert.equal(fs.existsSync(new URL(`../${ref.path}`, import.meta.url)), true, ref.path);
+  }
   const result = evaluateVibrationBenchmarkRegistry({ activeCapabilityIds: activeVibIds() });
   for (const item of result.mechanisms.filter((value) => !value.executable)) assert.equal(item.state, 'NOT_REQUIRED');
   assert.deepEqual(VIBRATION_BENCHMARK_REGISTRY.authority, {
