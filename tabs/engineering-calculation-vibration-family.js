@@ -68,7 +68,7 @@ export function renderVibrationFamilyLanding(definitions = []) {
       <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
     ${authorityBanner(rows)}
-    <div class="engineering-vibration-boundary"><strong>TABLE DATA ONLY</strong><span>Vibration consumes 3D EDIT table exports. No 3D viewer or canvas is embedded here.</span></div>
+    <div class="engineering-vibration-boundary"><strong>ENGINEERING AUTHORITY BOUNDARY</strong><span>TABLES / explicit engineering contracts = engineering facts. SVG / pixel geometry = presentation only. Governed AIV canvas/navigation/relationship authoring may exist, but presentation geometry never creates engineering physical distance or numerical authority.</span></div>
     <div class="engineering-vibration-grid">${rows.map(mechanismCard).join('')}</div>
   </section>`;
 }
