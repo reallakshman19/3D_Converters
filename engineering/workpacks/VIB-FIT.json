@@ -4,6 +4,12 @@
   "capabilityId": "VIB.FIV.FLOW_TURBULENCE",
   "ownerIssue": 443,
   "familyIssue": 429,
+  "capabilityLifecycle": {
+    "state": "UNMAPPED_LEGACY",
+    "inferred": false,
+    "mappingStatus": "EXPLICITLY_UNMAPPED",
+    "note": "Merged capability lifecycle conventions are not retrofitted to FIT without a separately governed crosswalk."
+  },
   "adapter": {
     "path": "converters/engineering-calculations/adapters/vibration-fit.js",
     "exportName": "VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION"
@@ -90,6 +96,18 @@
       "expectedPublicErrorCode": "INPUT_OUTSIDE_APPLICABILITY"
     }
   },
+  "probeModules": {
+    "fit": {
+      "path": "engineering/workpacks/probes/vib-fit.mjs",
+      "exports": [
+        "verifyScreeningAuthority",
+        "verifyDesignAuthority",
+        "verifyCodeCompliance",
+        "verifyQst003",
+        "verifyProductFreeze"
+      ]
+    }
+  },
   "benchmarkSets": [
     {
       "path": "Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json",
@@ -173,7 +191,90 @@
     { "artifact": "51-file release-suite statements in qualification-era records", "classification": "HISTORICAL_QUALIFICATION_OBSERVATION_NOT_COUNT_ORACLE" },
     { "artifact": "PR #539", "classification": "DESIGN_PATCH_PROPOSAL_NOT_BASELINE" },
     { "artifact": "PR #540", "classification": "DESIGN_PATCH_PROPOSAL_NOT_BASELINE" },
-    { "artifact": "PR #564 lifecycle implementation", "classification": "DRAFT_NOT_ON_MAIN" }
+    { "artifact": "PR #564 lifecycle implementation", "classification": "MERGED_LIFECYCLE_CONVENTION_NOT_MAPPED_TO_FIT" }
+  ],
+  "checks": [
+    {
+      "id": "FIT-WP-001",
+      "type": "MODULE_EXPORT_EQUALS",
+      "severity": "ERROR",
+      "config": { "moduleRef": "adapter", "property": "id", "expectedRef": "capabilityId" }
+    },
+    {
+      "id": "FIT-WP-002",
+      "type": "MODULE_EXPORT_EQUALS",
+      "severity": "ERROR",
+      "config": { "moduleRef": "adapter", "property": "methodRevision", "expectedRef": "methodRevision" }
+    },
+    {
+      "id": "FIT-WP-003",
+      "type": "REGISTRY_CONTAINS",
+      "severity": "ERROR",
+      "config": {
+        "moduleRef": "registry",
+        "idRef": "capabilityId",
+        "stateRef": "registry.state",
+        "requiredState": "ACTIVE"
+      }
+    },
+    {
+      "id": "FIT-WP-004",
+      "type": "CUSTOM_DECLARED_PROBE",
+      "severity": "ERROR",
+      "config": { "probeModule": "fit", "exportName": "verifyScreeningAuthority" }
+    },
+    {
+      "id": "FIT-WP-005",
+      "type": "CUSTOM_DECLARED_PROBE",
+      "severity": "ERROR",
+      "config": { "probeModule": "fit", "exportName": "verifyDesignAuthority" }
+    },
+    {
+      "id": "FIT-WP-006",
+      "type": "CUSTOM_DECLARED_PROBE",
+      "severity": "ERROR",
+      "config": { "probeModule": "fit", "exportName": "verifyCodeCompliance" }
+    },
+    {
+      "id": "FIT-WP-007",
+      "type": "CUSTOM_DECLARED_PROBE",
+      "severity": "ERROR",
+      "config": { "probeModule": "fit", "exportName": "verifyQst003" }
+    },
+    {
+      "id": "FIT-WP-008",
+      "type": "JSON_IDENTITY_SET",
+      "severity": "ERROR",
+      "config": { "setsRef": "benchmarkSets" }
+    },
+    {
+      "id": "FIT-WP-009",
+      "type": "MODULE_LIST_CONTAINS",
+      "severity": "ERROR",
+      "config": {
+        "moduleRef": "releaseManifest",
+        "requiredItemsRef": "releaseManifest.requiredCriticalTests",
+        "captureListCount": true
+      }
+    },
+    {
+      "id": "FIT-WP-010",
+      "type": "SOURCE_RULES",
+      "severity": "ERROR",
+      "config": { "rulesRef": "uiProjectionRules" }
+    },
+    {
+      "id": "FIT-WP-011",
+      "type": "DOCUMENT_CLASSIFICATION",
+      "severity": "ERROR",
+      "config": { "rulesRef": "documentRules" }
+    },
+    {
+      "id": "FIT-WP-012",
+      "type": "CUSTOM_DECLARED_PROBE",
+      "severity": "ERROR",
+      "config": { "probeModule": "fit", "exportName": "verifyProductFreeze" }
+    }
   ],
   "requiredQualificationCommands": [
     "npm run workpack:verify -- VIB-FIT",
