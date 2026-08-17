@@ -7,7 +7,7 @@ import {
   xmlCiiRenderPreviewPhase,
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
-import { installPreviewB313WallUpdateController } from './xml-cii-adapted-preview-b313-wall-update.js';
+import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js';
 import {
   saveMasterContextToLocalStorage,
   xmlCiiEnrichedConfigFromState,
@@ -83,7 +83,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   try {
     await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
-    installPreviewB313WallUpdateController({ host, config, xmlText, options });
+    installPreviewB313WallUpdateAuditController({ host, config, xmlText, options });
   } catch (error) {
     console.error('Failed to build standalone preview table:', error);
     host.innerHTML = `<div class="xml-cii-phase-help" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">⚠ Build failed: ${esc(error?.message || error)}</div>`;
