@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
   buildVibrationFacilityFitPlan,
+  runVibrationFacilityFitBenchmarkFromTables,
 } from '../converters/vibration/facility/index.js';
 import {
   FIT_FACILITY_PROCESS_BASES,
@@ -10,6 +11,8 @@ import {
 } from '../converters/vibration/facility/fit-engineering-basis.js';
 import { VIBRATION_INTEGRITY_DATASET_SCHEMA } from '../converters/vibration/dataset/schema.js';
 import { VIBRATION_FIT_DATA_BLOCKER_FIELDS } from '../converters/vibration/tabular/fit-data-blockers.js';
+import { buildVibrationFitUiBenchmarkCase } from '../tabs/vibration-integrity-benchmarks.js';
+import { serializeVibrationIntegrityInputTable } from '../tabs/vibration-integrity-input-model.js';
 
 const P = FIT_FACILITY_ENRICHMENT_PROPERTIES;
 
@@ -62,6 +65,20 @@ function item(input) {
 
 function completeLiquid() {
   return dataset({ enrichment: basisEnrichment() });
+}
+
+function benchmarkTableInput(id) {
+  const benchmark = buildVibrationFitUiBenchmarkCase(id);
+  return {
+    topology: {
+      format: 'CSV_ELEMENTS_ONLY',
+      data: serializeVibrationIntegrityInputTable(benchmark.tables.topology),
+      sourceFileName: `${benchmark.id}.csv`,
+    },
+    operatingCaseCsv: serializeVibrationIntegrityInputTable(benchmark.tables.operating),
+    enrichmentCsv: serializeVibrationIntegrityInputTable(benchmark.tables.enrichment),
+    dataBlockerCsv: '',
+  };
 }
 
 test('M5 vocab is closed to the #429 wall and process basis values', () => {
@@ -179,4 +196,21 @@ test('existing blocker vocabulary exposes an explicit correction path for every 
   ]) {
     assert(VIBRATION_FIT_DATA_BLOCKER_FIELDS[field], `missing blocker field ${field}`);
   }
+});
+
+test('controlled FIT benchmark facility path stays blocked until M5 basis is source-reconciled', () => {
+  const envelope = runVibrationFacilityFitBenchmarkFromTables(
+    benchmarkTableInput('EI-D4-FIT-PRODUCED-WATER-10IN'),
+    { allowLimitedExchange: true },
+  );
+  const planItem = envelope.workflow.plan.items[0];
+  assert.equal(planItem.status, 'NOT_READY');
+  assert.equal(planItem.request, null);
+  for (const field of [
+    'wallBasis', 'maximumSpanBetweenEffectiveSupports', 'spanDeterminationMethod',
+    'supportEffectivenessConfirmed', 'densityBasis', 'velocityBasis', 'operatingScenarioCoherent',
+  ]) {
+    assert(planItem.missing.includes(field), `expected benchmark source-basis blocker ${field}`);
+  }
+  assert.equal(envelope.workflow.result.rows[0].status, 'NOT_ASSESSED_DATA_INCOMPLETE');
 });
