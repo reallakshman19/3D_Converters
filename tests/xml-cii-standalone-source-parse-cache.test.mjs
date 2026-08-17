@@ -15,7 +15,7 @@ class FakeDOMParser {
 
   parseFromString(sourceText, mediaType) {
     FakeDOMParser.calls.push([sourceText, mediaType]);
-    return Object.freeze({ sourceText, mediaType, marker: `doc:${sourceText.length}` });
+    return Object.freeze({ sourceText, mediaType, marker: `doc:${sourceText.length}:${FakeDOMParser.calls.length}` });
   }
 }
 
@@ -47,7 +47,7 @@ test('two consumers of the same authoritative source parse once and share one de
 
   assert.equal(validity, preview);
   assert.equal(validity.sourceText, source);
-  assert.equal(validity.document.marker, `doc:${source.length}`);
+  assert.match(validity.document.marker, /^doc:/);
   assert.equal(validity.error, null);
   assert.equal(FakeDOMParser.calls.length, 1);
 
@@ -74,6 +74,19 @@ test('revisiting the same source reuses the cache but an exact source change inv
   const metrics = snapshotXmlCiiPerfMetrics();
   assert.equal(metrics.sourceParseCount, 2);
   assert.equal(metrics.sourceParseCacheHitCount, 2);
+}));
+
+test('clearing source evicts the previous parsed document before identical text is reloaded', () => withFakeParser(() => {
+  const source = '<ROOT><Branch NAME="A"/></ROOT>';
+  const first = getSourceDocumentContext(source);
+  const empty = getSourceDocumentContext('');
+  const reloaded = getSourceDocumentContext(source);
+
+  assert.equal(empty.document, null);
+  assert.notEqual(reloaded, first);
+  assert.notEqual(reloaded.document, first.document);
+  assert.equal(FakeDOMParser.calls.length, 2);
+  assert.equal(snapshotXmlCiiPerfMetrics().sourceParseCount, 2);
 }));
 
 test('empty source produces no DOM parse and is not promoted to an authoritative cache entry', () => withFakeParser(() => {
