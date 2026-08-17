@@ -1,5 +1,6 @@
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260815-sbc-pf05-cache-1';
+import { evaluateVibrationCoverageAndCompleteness } from '../converters/vibration/mechanisms/coverage.js';
 import {
   buildFitVibrationMechanismAssessmentSet,
   buildMechanicalVibrationMechanismAssessmentSet,
@@ -188,6 +189,29 @@ function governingAssessment(assessments, { currentOnly, accept }) {
   ));
 }
 
+function coverageAssessmentSets(assessments, coverage) {
+  const expected = coverage?.expectedMechanismIds;
+  if (!Array.isArray(expected) || expected.length === 0) return [];
+  if (coverage.assessmentSets != null && !Array.isArray(coverage.assessmentSets)) {
+    throw new TypeError('coverage.assessmentSets must be an array when provided.');
+  }
+  const expectedSet = new Set(expected);
+  const matrixSets = assessments
+    .map((assessment) => assessment.contractSet)
+    .filter((set) => set.cardinality.count > 0 && expectedSet.has(set.mechanismId));
+  return [...matrixSets, ...(coverage.assessmentSets ?? [])];
+}
+
+function facilityCoverage(assessments, context) {
+  const config = context.coverage ?? null;
+  if (!config) return evaluateVibrationCoverageAndCompleteness({ identifications: [], assessmentSets: [] });
+  return evaluateVibrationCoverageAndCompleteness({
+    identifications: config.identifications ?? [],
+    knownMechanismIds: config.expectedMechanismIds,
+    assessmentSets: coverageAssessmentSets(assessments, config),
+  });
+}
+
 export function buildVibrationMechanismMatrixRow(row, context = {}) {
   const assessments = VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => (
     buildVibrationMechanismAssessment(row, mechanism.id, context)
@@ -204,6 +228,7 @@ export function buildVibrationMechanismMatrixRow(row, context = {}) {
   const retainedCandidateGoverning = governingAssessment(assessments, {
     currentOnly: false, accept: isCandidateAssessment,
   });
+  const coverageState = facilityCoverage(assessments, context);
   return Object.freeze({
     row,
     assessments: Object.freeze(assessments),
@@ -213,6 +238,9 @@ export function buildVibrationMechanismMatrixRow(row, context = {}) {
     retainedCandidateGoverning,
     implementedGoverning: screeningGoverning,
     retainedImplementedGoverning: retainedScreeningGoverning,
+    requiredAssessmentSet: coverageState.requiredAssessmentSet,
+    mechanismCoverage: coverageState.coverage,
+    assessmentCompleteness: coverageState.completeness,
     fullScreeningGoverningEstablished: false,
   });
 }

@@ -4,6 +4,10 @@ import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/fa
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js';
 import { SBC_TYPE3_BLOCKERS } from '../converters/vibration/sbc/type3-user-data.js';
 import {
+  createVibrationMechanismAssessmentItem,
+  createVibrationMechanismAssessmentSet,
+} from '../converters/vibration/mechanisms/contracts.js';
+import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismAssessment,
   buildVibrationMechanismMatrixRow,
@@ -15,6 +19,27 @@ function row() {
     standardLof: 0.34, governingReferenceLof: 0.34,
     referenceBand: 'LOF_0_3_TO_LT_0_5', qualificationState: 'SCREENING',
   };
+}
+
+function scope(target = row()) {
+  return { line: target.line, caseId: target.caseId, canonicalId: target.canonicalId };
+}
+
+function identification(mechanismId, assessmentUnitType, target = row()) {
+  return {
+    mechanismId, scope: scope(target), assessmentUnitType, disposition: 'REQUIRED',
+    evidence: { sourceId: `T1-EXPLICIT-${mechanismId}` }, reason: 'Independent facility coverage fixture',
+  };
+}
+
+function screeningAssessmentSet(mechanismId, childKey, target = row()) {
+  const item = createVibrationMechanismAssessmentItem({
+    mechanismId, scope: scope(target), childKey,
+    implementationState: 'IMPLEMENTED_SCREENING', assessmentState: 'CALCULATED',
+    resultState: 'CURRENT_RESULT', readiness: {}, result: { calculated: true },
+    qualification: { effective: 'SCREENING' }, evidence: { fixture: true },
+  });
+  return createVibrationMechanismAssessmentSet({ mechanismId, scope: scope(target), items: [item] });
 }
 
 function userRow(scopeId, blockerId, value) {
@@ -77,10 +102,7 @@ test('catalogue exposes FIT screening plus Mechanical/SBC candidates without pro
       'valveTransients','cavitationFlashing','thermowells','smallBoreConnections',
     ],
   );
-  assert.equal(
-    VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length,
-    3,
-  );
+  assert.equal(VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length, 3);
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'SCREENING');
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS[1].implementationState, 'CANDIDATE_MASTER');
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS.at(-1).implementationState, 'CANDIDATE_USER_INPUT');
@@ -108,6 +130,71 @@ test('FIT screening survives generic contracts while Mechanical/SBC without data
   assert.deepEqual(aiv.contractSet.cardinality, { count: 0, kind: 'ZERO' });
 });
 
+test('matrix is INCOMPLETE by default when no governed identification bundle exists', () => {
+  const matrix = buildVibrationMechanismMatrixRow(row(), { resultState: 'CURRENT_RESULT' });
+  assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
+  assert.ok(matrix.assessmentCompleteness.reasons.includes('IDENTIFICATION_EVIDENCE_MISSING'));
+  assert.equal(matrix.fullScreeningGoverningEstablished, false);
+});
+
+test('governed FIT-only coverage can be COMPLETE without creating a family aggregate', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'CURRENT_RESULT',
+    coverage: {
+      expectedMechanismIds: ['fit'],
+      identifications: [identification('fit', 'MAIN_LINE_SECTION', target)],
+    },
+  });
+  assert.equal(matrix.assessmentCompleteness.state, 'COMPLETE');
+  assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
+  assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
+  assert.equal(matrix.fullScreeningGoverningEstablished, false);
+});
+
+test('external qualified AIV evidence can satisfy coverage without trusting stale static AIV label', () => {
+  const target = row();
+  const aivSet = screeningAssessmentSet('aiv', 'source-assessment-pair-1', target);
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    coverage: {
+      expectedMechanismIds: ['aiv'],
+      identifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
+      assessmentSets: [aivSet],
+    },
+  });
+  const staticAiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
+  assert.equal(staticAiv.assessmentState, 'NOT_IMPLEMENTED');
+  assert.equal(matrix.assessmentCompleteness.state, 'COMPLETE');
+  assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
+  assert.equal(matrix.fullScreeningGoverningEstablished, false);
+});
+
+test('partial expected mechanism identification remains INCOMPLETE even with valid AIV evidence', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    coverage: {
+      expectedMechanismIds: ['fit', 'aiv'],
+      identifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
+      assessmentSets: [screeningAssessmentSet('aiv', 'source-assessment-pair-1', target)],
+    },
+  });
+  assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
+  assert.deepEqual(matrix.assessmentCompleteness.missingIdentificationMechanismIds, ['fit']);
+});
+
+test('Mechanical candidate cannot satisfy a required Screening coverage contract', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'CURRENT_RESULT', ...mechanicalContext(target),
+    coverage: {
+      expectedMechanismIds: ['mechanicalExcitation'],
+      identifications: [identification('mechanicalExcitation', 'MAIN_LINE_SECTION', target)],
+    },
+  });
+  assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
+  assert.equal(matrix.mechanismCoverage.required[0].reason, 'CANDIDATE_OR_UNQUALIFIED_RESULT');
+});
+
 test('master-backed Mechanical candidate participates only in candidate governing', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
@@ -128,9 +215,7 @@ test('master-backed Mechanical candidate participates only in candidate governin
 test('higher SBC candidate can govern candidate tier but cannot replace FIT screening', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    resultState: 'CURRENT_RESULT',
-    userEngineeringDataRows: sbcRows(target),
-    ...mechanicalContext(target),
+    resultState: 'CURRENT_RESULT', userEngineeringDataRows: sbcRows(target), ...mechanicalContext(target),
   });
   assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
   assert.equal(matrix.screeningGoverning.lof, 0.34);

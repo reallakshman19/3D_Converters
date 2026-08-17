@@ -13,6 +13,22 @@ export {
 } from './contracts.js';
 
 export {
+  VIBRATION_MECHANISM_IDENTIFICATION_SCHEMA,
+  VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA,
+  VIBRATION_MECHANISM_COVERAGE_SCHEMA,
+  VIBRATION_ASSESSMENT_COMPLETENESS_SCHEMA,
+  VIBRATION_IDENTIFICATION_DISPOSITIONS,
+  VIBRATION_ASSESSMENT_UNIT_TYPES,
+  VIBRATION_REQUIRED_QUALIFICATIONS,
+  VIBRATION_COMPLETENESS_STATES,
+  createVibrationMechanismIdentification,
+  createRequiredVibrationAssessmentSet,
+  evaluateVibrationMechanismCoverage,
+  evaluateVibrationAssessmentCompleteness,
+  evaluateVibrationCoverageAndCompleteness,
+} from './coverage.js';
+
+export {
   FIT_VIBRATION_MECHANISM_ID,
   FIT_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
   buildFitMechanismBenchmarkComparison,

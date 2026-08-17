@@ -88,12 +88,20 @@ function summaryCards(workspace) {
 
 function filters(state) {
   const sourceRows = state.envelope?.workflow?.register?.rows ?? [];
+  const sortFields = [
+    ['line', 'Line'],
+    ['caseId', 'Case'],
+    ['canonicalId', 'Canonical ID'],
+    ['status', 'FIT status'],
+    ['completenessStatus', 'FIT row state'],
+    ['referenceBand', 'FIT reference band'],
+  ];
   return `<div class="vi-filterbar">
     <label>Line<select data-vi-filter="line"><option value="">All lines</option>${unique(sourceRows, 'line').map((value) => option(value, state.filters.line)).join('')}</select></label>
-    <label>Completeness<select data-vi-filter="completeness"><option value="">All states</option>${unique(sourceRows, 'completenessStatus').map((value) => option(value, state.filters.completeness)).join('')}</select></label>
+    <label>FIT row state<select data-vi-filter="completeness"><option value="">All states</option>${unique(sourceRows, 'completenessStatus').map((value) => option(value, state.filters.completeness)).join('')}</select></label>
     <label>FIT reference band<select data-vi-filter="band"><option value="">All bands</option>${unique(sourceRows, 'referenceBand').map((value) => option(value, state.filters.band)).join('')}</select></label>
     <label>Review candidate<select data-vi-filter="candidate">${option('', state.filters.candidate, 'All')}${option('true', state.filters.candidate, 'Yes')}${option('false', state.filters.candidate, 'No')}</select></label>
-    <label>Sort<select data-vi-sort="field">${['line','caseId','canonicalId','status','completenessStatus','referenceBand'].map((value) => option(value, state.sort.field, value)).join('')}</select></label>
+    <label>Sort<select data-vi-sort="field">${sortFields.map(([value, label]) => option(value, state.sort.field, label)).join('')}</select></label>
     <label>Direction<select data-vi-sort="direction">${option('asc', state.sort.direction, 'Ascending')}${option('desc', state.sort.direction, 'Descending')}</select></label>
   </div>`;
 }
@@ -168,8 +176,19 @@ function governingCell(assessment, suffix = '') {
     : '<span class="vi-empty">—</span>';
 }
 
+function assessmentCompletenessCell(completeness) {
+  const state = completeness?.state ?? 'INCOMPLETE';
+  const reasons = Array.isArray(completeness?.reasons) && completeness.reasons.length
+    ? completeness.reasons
+    : ['IDENTIFICATION_EVIDENCE_MISSING'];
+  const detail = reasons.length
+    ? `<small class="vi-mono">${esc(reasons.join('; '))}</small>`
+    : '';
+  return `<strong>${esc(state)}</strong>${detail}`;
+}
+
 function tableRows(workspace, state) {
-  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 9;
+  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 10;
   if (!workspace?.rows?.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
@@ -187,6 +206,7 @@ function tableRows(workspace, state) {
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
       <td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
       <td>${cell(row.completenessStatus)}</td>
+      <td>${assessmentCompletenessCell(matrix.assessmentCompleteness)}</td>
       ${matrix.assessments.map(mechanismCell).map((value) => `<td>${value}</td>`).join('')}
       <td>${governingCell(matrix.screeningGoverning)}</td>
       <td>${governingCell(matrix.candidateGoverning, ' · CANDIDATE')}</td>
@@ -209,10 +229,10 @@ function workspaceTable(state) {
   return `<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>FIT is qualified for bounded screening. Mechanical T2.3 and SBC Type-3 are separately identified non-authorizing candidates.</p></div></div>
     ${resultCurrencyBanner(state)}
-    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Screening governing uses authorized screening mechanisms only. Mechanical/SBC candidate values are displayed separately and cannot replace FIT screening. Design authority remains false and full multi-mechanism screening is not established.</span></div>
+    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Screening governing uses authorized screening mechanisms only. Mechanical/SBC candidate values are displayed separately and cannot replace FIT screening. Assessment completeness remains INCOMPLETE until governed mechanism-identification evidence is supplied. Design authority remains false and full multi-mechanism screening is not established.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Screening governing</th><th>Candidate governing</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>FIT row state</th><th>Assessment completeness</th>${mechanismHeaders()}<th>Screening governing</th><th>Candidate governing</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
     </tr></thead><tbody>${tableRows(state.workspace, state)}</tbody></table></div>
   </section>`;
 }
