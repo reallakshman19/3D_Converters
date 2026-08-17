@@ -8,6 +8,7 @@ const ui = fs.readFileSync(uiPath, 'utf8');
 const composer = fs.readFileSync(path.join(root, 'converters/xml-cii2019-core/b313-preview-wall-update.js'), 'utf8');
 const provenance = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-provenance.js'), 'utf8');
 const activation = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'), 'utf8');
+const auditController = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js'), 'utf8');
 
 assert(ui.includes("B313_PREVIEW_ACTION_LABEL = 'Update wall thickness as per B31.3 Sec II'"));
 assert(ui.includes('resolvePreviewB313MaterialFromRow'));
@@ -42,8 +43,14 @@ assert(!composer.includes('P*D /'), 'Composer must call the B31.3 API rather tha
 
 assert(provenance.includes("source === 'b313-sec-ii'"));
 assert(provenance.includes('__b313WallEvidence'));
-assert(activation.includes('installPreviewB313WallUpdateController'));
+assert(activation.includes('installPreviewB313WallUpdateAuditController'));
 assert(activation.includes('b313WallUpdateReport'));
 assert(activation.includes('onSaveConfigPreservePreview'));
+assert(auditController.includes('selectPreviewB313AuditRows'));
+assert(auditController.includes('derivePreviewB313AuditSummary'));
+assert(auditController.includes('renderPreviewB313WallAuditHtml'));
+assert(auditController.includes('event.stopImmediatePropagation()'));
+assert(auditController.includes('BENCHMARK_ONLY factors'));
+assert(auditController.includes('Audit counters were recomputed from row evidence'));
 
-console.log('XML/CII Preview B31.3 material-factor action static wiring checks passed.');
+console.log('XML/CII Preview B31.3 material-factor action and stable audit wiring checks passed.');
