@@ -51,8 +51,8 @@ function operatingCases() {
 function basisRows() {
   return [
     { canonicalId: 'CANON-001', property: P.WALL_BASIS, value: 'NOMINAL', source: 'M5' },
-    { canonicalId: 'CANON-001', property: P.SPAN_DETERMINATION_METHOD, value: 'FIELD_VERIFIED_EFFECTIVE_SUPPORTS', source: 'M5' },
-    { canonicalId: 'CANON-001', property: P.SUPPORT_EFFECTIVENESS_CONFIRMED, value: true, source: 'M5' },
+    { canonicalId: 'CANON-001', property: P.SPAN_DETERMINATION_METHOD, value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'M5' },
+    { canonicalId: 'CANON-001', property: P.SUPPORT_EVIDENCE_STATUS, value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'M5' },
     { canonicalId: 'CANON-001', caseId: 'NORMAL', property: P.DENSITY_BASIS, value: 'ACTUAL', source: 'M5' },
     { canonicalId: 'CANON-001', caseId: 'NORMAL', property: P.OPERATING_SCENARIO_COHERENT, value: true, source: 'M5' },
   ];
