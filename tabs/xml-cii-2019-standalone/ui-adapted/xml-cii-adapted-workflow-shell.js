@@ -7,6 +7,7 @@ import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=2
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260708-v8';
 import { syncMasterDraftDom } from './xml-cii-adapted-master-dom-sync.js?v=20260818-perf-c1';
 import { classifyXmlCiiRenderScope, XML_CII_RENDER_MASTER_KEYS } from './xml-cii-adapted-render-scope.js?v=20260818-perf-c1';
+import { renderXmlCiiPerfEvidencePanel, syncXmlCiiPerfEvidencePanel } from './xml-cii-adapted-perf-evidence.js?v=20260818-perf-c1';
 import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
@@ -49,6 +50,7 @@ export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
       const synced = syncMasterDraftDom(container, nextState, nextState.masterContext?.config || {}, scope.masterKey);
       if (synced.updated) {
         perfCount('workspacePartialRenderCount');
+        syncXmlCiiPerfEvidencePanel(container);
         renderedState = nextState;
         return;
       }
@@ -181,6 +183,7 @@ export function renderHeader(root, state) {
     ...createDiagnosticsBadges(state)
   );
   title.appendChild(statusRow);
+  renderXmlCiiPerfEvidencePanel(title);
   header.append(title);
   root.appendChild(header);
 }
