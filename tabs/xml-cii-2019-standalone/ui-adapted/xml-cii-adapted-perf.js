@@ -8,6 +8,8 @@ const METRIC_NAMES = Object.freeze([
   'masterMappingApplyCount',
   'masterPartialDomUpdateCount',
   'masterRequestedFullRenderCount',
+  'workspaceFullRenderCount',
+  'workspacePartialRenderCount',
   'masterArrayBufferMs',
   'masterXlsxReadMs',
   'masterSheetToJsonMs',
