@@ -134,7 +134,7 @@ export function renderVibrationEngineeringBasis(state) {
     <div class="vi-table-wrap vi-basis-table-wrap"><table class="vi-table vi-basis-table">
       <thead>
         <tr><th colspan="3">Identity</th><th colspan="8">Shared process basis</th><th colspan="5">FIT basis · current mechanism</th><th>Provenance</th></tr>
-        <tr><th>Line</th><th>Case</th><th>Canonical ID</th><th>Phase</th><th>Mass flow</th><th>Density</th><th>Pressure</th><th>Pressure ref.</th><th>Temperature</th><th>Viscosity</th><th>Velocity</th><th>OD</th><th>WT</th><th>ID</th><th>Max span</th><th>Natural f</th><th>Operating source</th></tr>
+        <tr><th>Line</th><th>Case</th><th>Canonical ID</th><th>Phase</th><th>Mass flow</th><th>Density</th><th>Pressure</th><th>Pressure ref.</th><th>Temperature</th><th>Viscosity</th><th>Velocity</th><th>OD</th><th>WT</th><th>ID</th><th>Effective-support span</th><th>Natural f</th><th>Operating source</th></tr>
       </thead><tbody>${rows}</tbody>
     </table></div>
   </section>`;
