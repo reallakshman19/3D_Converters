@@ -1,0 +1,35 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: PR595
+pull_request: 595
+branch: agent/xml-cii-standalone-perf-batch-a
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: READ_ONLY_TAKEOVER_REQUIRED
+qualification: NOT_COMPLETED_FOR_NATIVE_REPLAY
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+  - tests/xml-cii-standalone-config-cache-custody.test.mjs
+  - tests/xml-cii-standalone-master-perf.test.mjs
+  - tests/xml-cii-standalone-support-gap-equivalence.test.mjs
+  - agents/PR595_workreport.md
+  - agents/status/PR595.yaml
+  - agents/claims/PR595.yaml
+exclusions:
+  - converters/scripts/inputxml_to_cii2019.py
+  - converters/xml-cii2019-core/support-mapping.js engineering semantics
+  - converters/xml-cii2019-core/support-mapping-config.js engineering semantics
+  - CII writer/runtime authority
+  - .github/workflows/**
+  - Batch B indexes or workers
+coordination:
+  PR597: SAFE_EXACT_FILE
+  PR589: COORDINATION_REQUIRED_SUPPORT_GAP_SEMANTICS
+  PR596: DEPENDS_ON_PR595_REPLAY
+review_disposition: SALVAGE_PARTIAL_NATIVE_REPLAY_REQUIRED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T02:58:00+04:00
