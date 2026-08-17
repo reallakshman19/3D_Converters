@@ -6,6 +6,7 @@ const METRIC_NAMES = Object.freeze([
   'masterRowsNormalized',
   'masterMappingDraftChanges',
   'masterMappingApplyCount',
+  'masterPartialDomUpdateCount',
   'masterRequestedFullRenderCount',
   'masterArrayBufferMs',
   'masterXlsxReadMs',
