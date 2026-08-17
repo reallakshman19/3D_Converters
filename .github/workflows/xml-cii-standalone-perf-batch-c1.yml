@@ -7,8 +7,10 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dom-sync.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js'
       - 'tests/xml-cii-standalone-render-scope.test.mjs'
       - 'tests/xml-cii-standalone-master-dom-sync.test.mjs'
+      - 'tests/xml-cii-standalone-perf-evidence.test.mjs'
       - '.github/workflows/xml-cii-standalone-perf-batch-c1.yml'
   workflow_dispatch:
 
@@ -29,14 +31,19 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dom-sync.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js
           node --check tests/xml-cii-standalone-render-scope.test.mjs
           node --check tests/xml-cii-standalone-master-dom-sync.test.mjs
+          node --check tests/xml-cii-standalone-perf-evidence.test.mjs
 
       - name: Qualify fail-closed render-scope classification
         run: node --test tests/xml-cii-standalone-render-scope.test.mjs
 
       - name: Qualify master-local draft DOM sync
         run: node --test tests/xml-cii-standalone-master-dom-sync.test.mjs
+
+      - name: Qualify aggregate performance evidence
+        run: node --test tests/xml-cii-standalone-perf-evidence.test.mjs
 
       - name: Re-run Batch A authority gates
         run: |
