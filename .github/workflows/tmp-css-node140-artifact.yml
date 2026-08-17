@@ -1,0 +1,83 @@
+name: TEMP CSS Node140 benchmark artifact
+
+on:
+  push:
+    branches:
+      - agent/tmp-css-node140-artifact
+
+jobs:
+  export-node140:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify and extract benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_blob="$(git hash-object Benchmarks/css/css3_managed_stage.zip)"
+          test "$actual_blob" = "86da3f48cb53b7cb7f3520072edcf0d3ed0d1806"
+          unzip -p Benchmarks/css/css3_managed_stage.zip css3_managed_stage.json > css3_managed_stage.json
+          cp Benchmarks/css/SYS-0010.xml SYS-0010.xml
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+
+          data = json.loads(Path('css3_managed_stage.json').read_text(encoding='utf-8'))
+          target = 'SL-1847103'
+          target_point = (854513.44, 3934222.04, 6100.0)
+          matches = []
+          nearby = []
+
+          def pos(attrs):
+              p = attrs.get('POS') if isinstance(attrs, dict) else None
+              if isinstance(p, dict):
+                  try:
+                      return (float(p['x']), float(p['y']), float(p['z']))
+                  except Exception:
+                      return None
+              return None
+
+          def walk(value, path='$'):
+              if isinstance(value, dict):
+                  text = json.dumps(value, ensure_ascii=False)
+                  attrs = value.get('attributes') if isinstance(value.get('attributes'), dict) else {}
+                  if target in text:
+                      matches.append({'path': path, 'record': value})
+                  p = pos(attrs)
+                  if p:
+                      d = math.dist(p, target_point)
+                      if d <= 25.0:
+                          nearby.append({'path': path, 'distanceMm': d, 'record': value})
+                  for k, v in value.items():
+                      walk(v, f'{path}.{k}')
+              elif isinstance(value, list):
+                  for i, v in enumerate(value):
+                      walk(v, f'{path}[{i}]')
+
+          walk(data)
+          result = {
+              'target': target,
+              'targetPointStagedMm': target_point,
+              'matches': matches,
+              'nearbyWithin25mm': sorted(nearby, key=lambda x: x['distanceMm']),
+          }
+          Path('node140_evidence.json').write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
+          print('NODE140_MATCH_COUNT', len(matches))
+          print('NODE140_NEARBY_COUNT', len(nearby))
+          print(Path('node140_evidence.json').read_text(encoding='utf-8'))
+          PY
+          sha256sum css3_managed_stage.json SYS-0010.xml node140_evidence.json > benchmark_sha256.txt
+          wc -c css3_managed_stage.json SYS-0010.xml node140_evidence.json
+
+      - name: Upload exact benchmark materialization
+        uses: actions/upload-artifact@v4
+        with:
+          name: css-node140-benchmark-materialized
+          path: |
+            css3_managed_stage.json
+            SYS-0010.xml
+            node140_evidence.json
+            benchmark_sha256.txt
+          if-no-files-found: error
+          retention-days: 1
