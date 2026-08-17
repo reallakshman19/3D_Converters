@@ -2,6 +2,10 @@ export const VIBRATION_FACILITY_FIT_PLAN_SCHEMA = 'VibrationFacilityFitPlan.v1';
 export const VIBRATION_FACILITY_FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 
 export const FIT_FACILITY_QUALIFICATION_MODES = Object.freeze(['benchmark', 'screening']);
+export const FIT_FACILITY_WALL_BASES = Object.freeze([
+  'NOMINAL', 'MIN_SPEC', 'AS_BUILT', 'MEASURED_CURRENT',
+]);
+export const FIT_FACILITY_PROCESS_BASES = Object.freeze(['ACTUAL', 'STANDARD', 'NORMAL']);
 
 export function normalizeFitFacilityQualificationMode(value = 'benchmark') {
   const mode = String(value ?? 'benchmark').trim().toLowerCase();
