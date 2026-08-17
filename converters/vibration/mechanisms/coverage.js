@@ -157,11 +157,14 @@ export function createRequiredVibrationAssessmentSet(input = {}) {
   const inputs = input.identifications ?? [];
   if (!Array.isArray(inputs)) throw new TypeError('identifications must be an array.');
   if (inputs.length === 0) {
+    const known = input.knownMechanismIds == null
+      ? []
+      : [...knownMechanismSet(input.knownMechanismIds)].sort();
     return deepFreeze({
       schema: VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA,
       setId: JSON.stringify(['IDENTIFICATION_EVIDENCE_MISSING']),
       identificationState: 'MISSING',
-      knownMechanismIds: [],
+      knownMechanismIds: known,
       required: [],
       notApplicable: [],
       unresolved: [],
