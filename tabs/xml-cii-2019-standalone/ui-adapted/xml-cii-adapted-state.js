@@ -81,7 +81,6 @@ export function findSmartMatchingMapping(filename, savedKeys) {
 export function saveMasterContextToLocalStorage(context) {
   if (!context || typeof localStorage === 'undefined') return;
   try {
-    // Strip all large arrays — they are persisted under their own dedicated keys
     const strippedConfig = context.config ? (() => {
       const c = { ...context.config };
       if (c.linelist) c.linelist = { ...c.linelist, masterRows: null };
@@ -100,8 +99,6 @@ export function saveMasterContextToLocalStorage(context) {
       rawRows: { lineList: null, pipingClass: null, materialMap: null, weight: null },
       workbookData: { lineList: null, pipingClass: null, materialMap: null, weight: null },
       previewRows: null,
-      // pipingClassIndex holds a self-referential Map (see piping-class-resolver.js's `map.byClass
-      // = map`) and is rebuilt on load anyway — it must not be JSON.stringify'd.
       pipingClassIndex: null,
     };
     localStorage.setItem('xml-cii-import-masters-v1', JSON.stringify(cleaned));
@@ -110,13 +107,45 @@ export function saveMasterContextToLocalStorage(context) {
   }
 }
 
+function getStoredMasterSourceCustody(key) {
+  const stored = getStoredJson(`xml-cii-master-source-${key}`, null);
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+    const revision = Number(stored.appliedRevision);
+    return {
+      source: String(stored.source || ''),
+      fieldMap: stored.fieldMap && typeof stored.fieldMap === 'object' && !Array.isArray(stored.fieldMap) ? { ...stored.fieldMap } : null,
+      appliedRevision: Number.isInteger(revision) && revision >= 0 ? revision : null,
+    };
+  }
+  return { source: stored == null ? '' : String(stored), fieldMap: null, appliedRevision: null };
+}
+
+function withRestoredMasterSection(config, configKey, rowsProperty, rows, custody) {
+  if (!rows.length) return config;
+  config[configKey] = {
+    ...(config[configKey] || {}),
+    ...(custody?.fieldMap ? { fieldMap: { ...custody.fieldMap } } : {}),
+    [rowsProperty]: rows,
+  };
+  return config;
+}
+
+function restoredAppliedRevision(custody, rows) {
+  if (Number.isInteger(custody?.appliedRevision) && custody.appliedRevision >= 0) return custody.appliedRevision;
+  return rows.length ? 1 : 0;
+}
+
 function restorePersistentMasters() {
   const lineRows = getStoredMaster('lineList') || [];
   const pipingClassRows = getStoredMaster('pipingClass') || [];
   const materialMapRows = getStoredMaster('materialMap') || [];
   const storedWeightRows = getStoredMaster('weight') || [];
-  // Valve weights ship embedded in the app — use them whenever nothing was
-  // uploaded or restored, so the Weight tabs are never blocked by default.
+  const sourceCustody = {
+    lineList: getStoredMasterSourceCustody('lineList'),
+    pipingClass: getStoredMasterSourceCustody('pipingClass'),
+    materialMap: getStoredMasterSourceCustody('materialMap'),
+    weight: getStoredMasterSourceCustody('weight'),
+  };
   const usingDefaultWeights = !storedWeightRows.length;
   const weightMasterRows = usingDefaultWeights ? DEFAULT_WEIGHT_MASTER_ROWS.map((row) => ({ ...row })) : storedWeightRows;
 
@@ -133,20 +162,27 @@ function restorePersistentMasters() {
     config = withStandaloneMaterialCodeDefaults(JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}'));
   }
 
-  if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
-  if (pipingClassRows.length) config.pipingClass = { ...(config.pipingClass || {}), masterRows: pipingClassRows };
-  if (materialMapRows.length) config.material = { ...(config.material || {}), mapRows: materialMapRows };
-  if (weightMasterRows.length) config.weight = { ...(config.weight || {}), masterRows: weightMasterRows };
+  withRestoredMasterSection(config, 'linelist', 'masterRows', lineRows, sourceCustody.lineList);
+  withRestoredMasterSection(config, 'pipingClass', 'masterRows', pipingClassRows, sourceCustody.pipingClass);
+  withRestoredMasterSection(config, 'material', 'mapRows', materialMapRows, sourceCustody.materialMap);
+  withRestoredMasterSection(config, 'weight', 'masterRows', weightMasterRows, usingDefaultWeights ? null : sourceCustody.weight);
 
   return {
     lineRows, pipingClassRows, materialMapRows, weightMasterRows, diagnostics: [], config,
+    appliedMappingRevision: {
+      lineList: restoredAppliedRevision(sourceCustody.lineList, lineRows),
+      pipingClass: restoredAppliedRevision(sourceCustody.pipingClass, pipingClassRows),
+      materialMap: restoredAppliedRevision(sourceCustody.materialMap, materialMapRows),
+      weight: usingDefaultWeights ? (weightMasterRows.length ? 1 : 0) : restoredAppliedRevision(sourceCustody.weight, weightMasterRows),
+    },
+    mappingDrafts: {},
     rowCounts: { lineList: lineRows.length, pipingClass: pipingClassRows.length, materialMap: materialMapRows.length, weight: weightMasterRows.length },
     previewRows: savedContext?.previewRows || { lineList: lineRows.slice(0, 150), pipingClass: pipingClassRows.slice(0, 150), materialMap: materialMapRows.slice(0, 150), weight: weightMasterRows.slice(0, 150) },
     sourceMetadata: {
-      lineList: { key: 'lineList', source: lineRows.length ? getStoredJson('xml-cii-master-source-lineList', 'LocalStorage') : 'not-loaded', sourceType: lineRows.length ? 'manual' : 'empty', status: lineRows.length ? 'loaded' : 'empty', rowCount: lineRows.length },
-      pipingClass: { key: 'pipingClass', source: pipingClassRows.length ? getStoredJson('xml-cii-master-source-pipingClass', 'LocalStorage') : 'not-loaded', sourceType: pipingClassRows.length ? 'manual' : 'empty', status: pipingClassRows.length ? 'loaded' : 'empty', rowCount: pipingClassRows.length },
-      materialMap: { key: 'materialMap', source: materialMapRows.length ? getStoredJson('xml-cii-master-source-materialMap', 'LocalStorage') : 'not-loaded', sourceType: materialMapRows.length ? 'manual' : 'empty', status: materialMapRows.length ? 'loaded' : 'empty', rowCount: materialMapRows.length },
-      weight: { key: 'weight', source: usingDefaultWeights ? 'Embedded default' : getStoredJson('xml-cii-master-source-weight', 'LocalStorage'), sourceType: usingDefaultWeights ? 'default' : 'manual', status: 'loaded', rowCount: weightMasterRows.length }
+      lineList: { key: 'lineList', source: lineRows.length ? (sourceCustody.lineList.source || 'LocalStorage') : 'not-loaded', sourceType: lineRows.length ? 'manual' : 'empty', status: lineRows.length ? 'loaded' : 'empty', rowCount: lineRows.length },
+      pipingClass: { key: 'pipingClass', source: pipingClassRows.length ? (sourceCustody.pipingClass.source || 'LocalStorage') : 'not-loaded', sourceType: pipingClassRows.length ? 'manual' : 'empty', status: pipingClassRows.length ? 'loaded' : 'empty', rowCount: pipingClassRows.length },
+      materialMap: { key: 'materialMap', source: materialMapRows.length ? (sourceCustody.materialMap.source || 'LocalStorage') : 'not-loaded', sourceType: materialMapRows.length ? 'manual' : 'empty', status: materialMapRows.length ? 'loaded' : 'empty', rowCount: materialMapRows.length },
+      weight: { key: 'weight', source: usingDefaultWeights ? 'Embedded default' : (sourceCustody.weight.source || 'LocalStorage'), sourceType: usingDefaultWeights ? 'default' : 'manual', status: 'loaded', rowCount: weightMasterRows.length }
     },
     rawRows: {
       lineList: getStoredJson('xml-cii-master-raw-lineList', []),
@@ -228,19 +264,13 @@ export function updateMasterLastLoadedPath(state, masterKey, path) {
   const current = state.masterLastLoadedPaths?.[masterKey] || '';
   const currentNorm = current.replace(/\\/g, '/');
   const pathNorm = path.replace(/\\/g, '/');
-  
   if (currentNorm.includes('/') && !pathNorm.includes('/')) {
     const filename = currentNorm.split('/').pop();
-    if (filename.toLowerCase() === pathNorm.toLowerCase()) {
-      return state;
-    }
+    if (filename.toLowerCase() === pathNorm.toLowerCase()) return state;
   }
-
   const nextPaths = { ...(state.masterLastLoadedPaths || {}), [masterKey]: path };
   if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem('xml-cii-master-last-loaded-paths', JSON.stringify(nextPaths));
-    } catch {}
+    try { localStorage.setItem('xml-cii-master-last-loaded-paths', JSON.stringify(nextPaths)); } catch {}
   }
   return { ...state, masterLastLoadedPaths: nextPaths };
 }
@@ -316,10 +346,8 @@ export function updateRegexTesterConfig(state, field, value) {
     currentConfig.formats = [{ ...defaultFormat }, { ...defaultFormat }];
     currentConfig.activeFormatIndex = 0;
   }
-  if (field === 'regex-active-format-index') {
-    return updateAndPersistRegexConfig(state, { ...currentConfig, activeFormatIndex: Number(value || 0) });
-  }
-  const formats = currentConfig.formats.map(f => ({ ...f }));
+  if (field === 'regex-active-format-index') return updateAndPersistRegexConfig(state, { ...currentConfig, activeFormatIndex: Number(value || 0) });
+  const formats = currentConfig.formats.map((f) => ({ ...f }));
   const idx = currentConfig.activeFormatIndex ?? 0;
   const activeF = { ...formats[idx] };
   if (field === 'regex-token-delimiter') {
@@ -352,22 +380,18 @@ export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
 export function updateResolverJsonTraceConfig(state, value) {
   try {
     const config = JSON.parse(String(value || '{}'));
-    if (typeof localStorage !== 'undefined') {
-      try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
-    }
+    if (typeof localStorage !== 'undefined') { try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {} }
     return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+  } catch {
+    return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' });
   }
-  catch { return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' }); }
 }
 
 export function patchResolverJsonTraceConfig(state, patch = {}) {
   const config = { ...(state.resolverJsonTraceConfig || {}), ...patch };
-  if (typeof localStorage !== 'undefined') {
-    try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
-  }
+  if (typeof localStorage !== 'undefined') { try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {} }
   return updateWorkflowState(state, { resolverJsonTraceConfig: config });
 }
-
 
 export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
   return updateWorkflowState(state, { resolverJsonTraceResult, resolverJsonTraceJsonResult: resolverJsonTraceResult, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.', supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson, result: null });
