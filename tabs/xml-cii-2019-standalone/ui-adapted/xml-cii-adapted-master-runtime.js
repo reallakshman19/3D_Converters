@@ -17,8 +17,11 @@ export function readSupportConfigOnce(state) {
 export function ensureMasterRuntime(context = {}) {
   const applied = { ...(context.appliedMappingRevision || {}) };
   const drafts = { ...(context.mappingDrafts || {}) };
-  for (const key of Object.keys(MASTER_DEF_MAP)) {
-    if (!Number.isInteger(applied[key]) || applied[key] < 1) applied[key] = 1;
+  for (const [key, def] of Object.entries(MASTER_DEF_MAP)) {
+    if (!Number.isInteger(applied[key]) || applied[key] < 0) {
+      const committedRows = context?.[def.contextRowsKey];
+      applied[key] = Array.isArray(committedRows) && committedRows.length ? 1 : 0;
+    }
   }
   return {
     ...context,
@@ -79,7 +82,7 @@ export function masterMappingStatus(context, config, key) {
   return {
     revision,
     dirty: !!draft?.dirty,
-    basisAppliedRevision: draft?.basisAppliedRevision || revision,
+    basisAppliedRevision: draft?.basisAppliedRevision ?? revision,
     fieldMap: effectiveDraftFieldMap(runtime, config, key),
   };
 }
@@ -95,7 +98,7 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
     [def.rowsProperty]: normalizedRows,
   };
   const nextRows = { [def.contextRowsKey]: normalizedRows };
-  const nextRevision = Number(runtime.appliedMappingRevision[key] || 1) + 1;
+  const nextRevision = Number(runtime.appliedMappingRevision[key] || 0) + 1;
   const drafts = { ...runtime.mappingDrafts };
   delete drafts[key];
   const next = {
