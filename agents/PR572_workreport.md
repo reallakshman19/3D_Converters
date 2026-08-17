@@ -7,7 +7,8 @@ PR = #572
 ISSUE = #570
 BRANCH = agent/vib-coverage-570-completeness-contract
 BASE_MAIN = 24080a49647c7802ff8ab496ccd37421b8d53b68
-IMPLEMENTATION_HEAD_BEFORE_PR_REPORT = 6aa4ca8b95db0f03b8f22fa388458cd3c5c48e62
+IMPLEMENTATION_HEAD = cf4f0f60ef889da9c0de3a05cf9a642e0bcf454b
+BRANCH_HEAD_BEFORE_THIS_REPORT_UPDATE = 985c7f73f333ec2ef8c8b9903dc196a6a24e2c0a
 TAKEOVER_QUALIFICATION = QUALIFIED_FOR_VIB_COVERAGE_IMPLEMENTATION
 APPENDIX_A_COMMENT = 5311508175
 APPENDIX_A_SCORE = 94/100
@@ -17,7 +18,7 @@ MERGE_AUTHORITY = OWNER_ONLY_NOT_GRANTED
 
 ## Mission
 
-Deliver the first fail-closed #570 slice only:
+Implement only:
 
 ```text
 MechanismIdentification
@@ -26,40 +27,58 @@ MechanismIdentification
         -> AssessmentCompleteness
 ```
 
-so a valid partial mechanism result is never sufficient evidence for a complete vibration assessment.
+so a partial mechanism result or a partial mechanism-identification set can never masquerade as a complete vibration assessment.
 
-EI main-line LOF aggregation is deliberately not part of this PR.
+EI main-line LOF aggregation remains out of scope.
 
-## Current implementation
+## Current contract
 
-### Identification contract
+### Identification
 
-`VibrationMechanismIdentification.v1` requires explicit evidence and one disposition:
+`VibrationMechanismIdentification.v1` requires explicit evidence plus:
 
 ```text
-REQUIRED
-NOT_APPLICABLE
-UNRESOLVED
+REQUIRED | NOT_APPLICABLE | UNRESOLVED
 ```
 
-`NOT_APPLICABLE` is explicit evidence, never inferred from an absent/zero assessment. This PR does not implement automatic EI T1 mechanism-selection logic.
+No automatic EI T1 applicability rules are introduced.
 
-### Required-assessment contract
+`knownMechanismIds` is treated as the expected mechanism universe for this evaluation. Every expected mechanism must have at least one explicit identification record before identification state may be resolved. Missing categories are machine-visible:
 
-`RequiredAssessmentSet.v1` derives deterministic assessment identities from the existing mechanism assessment-set identity contract. It fails closed on:
+```text
+missingIdentificationMechanismIds[]
+MISSING_MECHANISM_IDENTIFICATION:<mechanismId>
+```
+
+Therefore this is impossible:
+
+```text
+expected = FIT + Mechanical
+identification supplied = FIT only
+FIT current Screening result exists
+=> COMPLETE
+```
+
+The result is `INCOMPLETE` until Mechanical is explicitly `REQUIRED`, `NOT_APPLICABLE`, or `UNRESOLVED`.
+
+### Required assessment
+
+`RequiredAssessmentSet.v1` fails closed on:
 
 ```text
 unknown mechanism ID
-duplicate identification
-contradictory identification
-malformed identification evidence
+duplicate expected mechanism ID
+duplicate identification identity
+contradictory identification disposition
+duplicate required assessment identity
+malformed / schema-labelled forged identification evidence
 ```
 
-No identification evidence is represented as `identificationState=MISSING` and can never produce complete status.
+All identification objects are normalized through the contract factory even if they already carry the expected schema string.
 
-### Coverage contract
+### Mechanism coverage
 
-`MechanismCoverage.v1` distinguishes:
+Coverage distinguishes:
 
 ```text
 MISSING_ASSESSMENT_SET
@@ -76,9 +95,11 @@ CANDIDATE_OR_UNQUALIFIED_RESULT
 CURRENT_REQUIRED_AUTHORITY_EVIDENCE
 ```
 
-### Completeness contract
+Assessment sets are rechecked for deterministic set identity, cardinality/item consistency, item schema, mechanism identity and scope identity before they may satisfy coverage.
 
-`AssessmentCompleteness.v1` exposes:
+### Family completeness
+
+`AssessmentCompleteness.v1` exposes only:
 
 ```text
 COMPLETE
@@ -86,7 +107,7 @@ INCOMPLETE
 NOT_APPLICABLE
 ```
 
-plus required/complete/incomplete/N/A/unresolved counts, missing required assessment IDs and reasons.
+plus required/complete/incomplete/N/A/unresolved/missing-identification counts, missing identification mechanism IDs, missing required assessment IDs and reasons.
 
 ## Authority invariants
 
@@ -98,9 +119,7 @@ CURRENT_RESULT != COMPLETE_FAMILY_ASSESSMENT
 SCREENING != DESIGN
 ```
 
-Default required qualification for `REQUIRED` identification is `SCREENING`.
-
-A Screening requirement is satisfied only by current mechanism assessment items with:
+Default required qualification is `SCREENING`. Such a requirement needs current items with:
 
 ```text
 implementationState = IMPLEMENTED_SCREENING
@@ -109,29 +128,15 @@ resultState = CURRENT_RESULT
 qualification.effective = SCREENING
 ```
 
-Candidate-only Mechanical/SBC-style evidence therefore remains incomplete under a Screening requirement.
+Candidate-only evidence cannot satisfy a Screening requirement. An explicit weaker `CURRENT_RESULT` coverage requirement may accept current candidate evidence but does not promote engineering/screening/design authority.
 
-An explicit weaker `CURRENT_RESULT` requirement may accept current candidate evidence. That is a coverage requirement only and does not promote engineering/screening/design authority.
+## Defects found and repaired during implementation
 
-## Critical defect found and repaired during implementation
-
-Initial edge behavior retained an empty internal known-mechanism list when identification records were absent. Existing assessment sets could therefore cause an unknown-mechanism exception instead of the required deterministic `INCOMPLETE` result.
-
-Repair:
-
-```text
-no identification + known mechanism registry + existing current results
--> identificationState=MISSING
--> INCOMPLETE / IDENTIFICATION_EVIDENCE_MISSING
-```
-
-Permanent regression added in:
-
-```text
-tests/vibration-mechanism-coverage-missing-identification.test.mjs
-```
-
-A subsequent post-PR check found the edge fix had pushed the new JS file over the repository `<300 physical lines` limit. Formatting only was tightened after exact backup; line 300 is now absent.
+1. **Missing identification + existing result edge:** existing current results could previously encounter an empty known-ID map instead of deterministic `INCOMPLETE`. Fixed; current results cannot replace missing identification evidence.
+2. **New-JS line limit:** an intermediate edge fix temporarily pushed `coverage.js` above the repository `<300 physical lines` rule. Formatting was tightened after exact backup; current source has no physical line 300.
+3. **Partial identification universe:** a subset of expected mechanisms could previously resolve `COMPLETE`. Fixed by binding completeness to the expected mechanism universe and exposing missing identification categories.
+4. **Schema-string trust:** a forged object carrying `VibrationMechanismIdentification.v1` could bypass factory validation. Fixed by unconditional normalization.
+5. **Malformed assessment-set trust:** forged set identity/cardinality/item scope can no longer satisfy coverage.
 
 ## Changed-file ledger
 
@@ -156,102 +161,81 @@ agents/WIP-vib-coverage-570_workreport.md
 agents/PR572_workreport.md
 ```
 
-Exact connector backup custody:
+Connector backup custody is under:
 
 ```text
-.backups/connector-20260817-vib-coverage-570/converters/vibration/mechanisms/index.js
-.backups/connector-20260817-vib-coverage-570/converters/vibration/mechanisms/coverage.js
-.backups/connector-20260817-vib-coverage-570/converters/vibration/mechanisms/coverage-after-edge.js
+.backups/connector-20260817-vib-coverage-570/
 ```
 
-No path under `.github/workflows/`, numerical mechanism kernels, benchmark expected data, AIV Product Freeze, T2.9 numerical/source implementation, or PR #546 technical scope is changed.
+and includes exact pre-edit copies of `index.js`, each materially edited coverage-contract state, the primary coverage test before hardening, and this PR report before synchronization.
 
-## Existing-file custody
-
-`index.js` was copied exactly to connector backup before edit.
-
-`coverage.js` was a new PR file. Before each subsequent edit after creation, its then-current content was copied to the connector backup area because the repository backup CLI is unavailable in this connector-only environment.
+No `.github/workflows/*`, numerical mechanism kernel, benchmark expected data, Product Freeze artifact, T2.9 numerical/source file, or PR #546 technical file is changed.
 
 ## Validation ledger
 
 ```text
-STATUS  OBSERVATION                                                     ORACLE
-PASS    main remains 24080a49647c7802ff8ab496ccd37421b8d53b68         live GitHub main ref
-PASS    branch merge base is exact current main                         GitHub compare
-PASS    Appendix A 94/100 completed before mutation                     #570 comment 5311508175
-PASS    exact branch coverage.js has no physical line 300               GitHub file line probe
-PASS    public mechanism index exports coverage contract                branch source inspection
-PASS    reconstructed Node syntax for coverage/index/focused tests      Node v22.16.0 behavioral seam
-PASS    reconstructed focused behavioral suite                          16/16
-NOT_RUN full native private-repository VIB/FIT/AIV suites               no authenticated private checkout in runtime
-NOT_RUN browser                                                          not required for pure contract slice
+STATUS  OBSERVATION                                                       ORACLE
+PASS    base/merge-base = main@24080a49647c7802ff8ab496ccd37421b8d53b68 live GitHub refs
+PASS    Appendix A = 94/100 before mutation                               #570 comment 5311508175
+PASS    current coverage.js has no physical line 300                      GitHub line probe
+PASS    current primary coverage test has no physical line 300            GitHub line probe
+PASS    mechanism index exports coverage contract                          branch source inspection
+PASS    reconstructed Node syntax                                          Node v22.16.0 behavioral seam
+PASS    reconstructed hardened behavioral suite                            19/19
+NOT_RUN full native private-repository VIB/FIT/AIV suites                  private checkout unavailable
+NOT_RUN hosted final-head workflow as product validation                   inspected run had runner_id=0 / steps=[]
+NOT_RUN browser                                                            not required for pure contract slice
 ```
 
-### Validation classification
+The 19/19 result is supporting executable evidence from a reconstructed behavioral seam using the current mechanism assessment contracts; it is not represented as a full exact-checkout repository pass.
 
-The 16/16 execution used a locally reconstructed behavioral seam based on the current repository `VibrationMechanismAssessmentItem/Set` contract and this PR's coverage behavior. It is supporting executable evidence, not a claim that an exact full private checkout was executed.
+Hosted Actions failure inspected on PR #572 had:
 
-No `NOT_RUN` item is represented as PASS.
+```text
+runner_id = 0
+steps = []
+```
+
+and is therefore `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product FAIL and not PASS.
 
 ## Falsification coverage
 
-Permanent focused source tests exercise:
+Permanent focused tests now include:
 
 ```text
 no identification evidence -> INCOMPLETE
-current mechanism result cannot substitute for identification
-required missing -> INCOMPLETE
-required NOT_IMPLEMENTED -> INCOMPLETE
-required stale -> INCOMPLETE
+current result cannot replace identification
+partial expected mechanism universe -> INCOMPLETE
+required missing / NOT_IMPLEMENTED / stale -> INCOMPLETE
 candidate-only under Screening requirement -> INCOMPLETE
 explicit N/A distinct from missing
 unresolved identification -> INCOMPLETE
-all required current Screening -> COMPLETE
-all explicit N/A -> NOT_APPLICABLE
+all expected required current Screening -> COMPLETE
+all expected mechanisms explicit N/A -> NOT_APPLICABLE
 zero assessment cardinality != N/A
-duplicate identification -> hard fail
-contradictory identification -> hard fail
-unknown mechanism -> hard fail
-deterministic identity reacts to governing truth changes
-coverage core does not contain mechanism numerical rules
+duplicate/contradictory identification -> hard fail
+unknown/duplicate expected mechanism -> hard fail
+identification-universe change changes deterministic identity
+forged schema-labelled identification -> hard fail
+malformed assessment set -> hard fail
+coverage core contains no mechanism numerical rules
 ```
 
-## Active overlap / coordination
+## Active overlap / protected scope
 
 ```text
-PR #539/#540 = SAFE for this PR; FIT authority/UI proposal scope only
-PR #546      = STRICT NON-ABSORPTION BOUNDARY; no Type-3 source/freeze technical work performed
+PR #539/#540 = SAFE; FIT authority/UI proposal scope only
+PR #546      = STRICT NON-ABSORPTION; no SBC Type-3 technical work performed
 #513         = no AIV Product Freeze work absorbed
 #545         = no T2.9 numerical/source work absorbed
 ```
 
-## Protected non-goals
+Do not add EI aggregation, a universal vibration score, automatic T1 rules, numerical method changes, benchmark/tolerance changes, authority promotion, Product Freeze changes, runtime/writer/canvas ownership changes, workflow edits, or PR #546 technical changes to this PR.
 
-Do not add to this PR:
+## Highest residual risk
 
-```text
-EI main-line LOF aggregation
-universal vibration score
-T1 automatic applicability rules
-FIT/AIV/Mechanical/SBC numerical changes
-benchmark/tolerance changes
-screening/design/code authority promotion
-Product Freeze changes
-runtime/writer/canvas ownership changes
-workflow changes
-PR #546 technical changes
-```
-
-## Highest risk
-
-The main residual architectural risk is choosing the authoritative provider of `knownMechanismIds` and explicit identification evidence when this pure contract is integrated into facility orchestration. This PR intentionally does not solve that by inventing a static UI catalogue or T1 rules. The next integration must bind those inputs to governed machine evidence and remain fail closed if that evidence is unavailable.
-
-## Current hypothesis / falsifier
-
-Hypothesis: this pure layer can be integrated without changing numerical mechanism kernels or result authority.
-
-Falsifier: any facility integration that can produce `COMPLETE` without explicit identification evidence, or that satisfies a Screening requirement using candidate/stale/zero-cardinality evidence, must fail review.
+Facility integration must obtain the expected mechanism universe and identification records from governed machine evidence. Static UI catalogue text must not become the authority source. Until that upstream binding exists, absence or partial identification must remain fail closed.
 
 ## EXACT_NEXT_ACTION
 
-Review PR #572 final diff and hosted check state. On a native private checkout, run the two focused coverage tests and relevant existing vibration mechanism regressions. If exact-head execution is unavailable, retain `NOT_RUN`; do not weaken the contract. Do not begin EI aggregation in this PR and do not merge without explicit Owner authorization.
+Review PR #572 final diff and final-head check state. On a native private checkout, run both focused coverage tests plus existing vibration mechanism regressions. Retain `NOT_RUN` for anything not actually executed. Do not begin EI aggregation here and do not merge without explicit Owner authorization.
