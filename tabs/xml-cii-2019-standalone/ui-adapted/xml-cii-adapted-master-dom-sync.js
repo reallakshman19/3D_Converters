@@ -28,6 +28,16 @@ function syncStatusStyle(node, dirty) {
   node.style.background = dirty ? 'rgba(245,158,11,.08)' : 'rgba(16,185,129,.06)';
 }
 
+function masterCard(container, masterKey) {
+  return container.querySelector?.(`[data-master="${masterKey}"]`) || null;
+}
+
+function mappingHealthNode(container, masterKey) {
+  return container.querySelector?.(`[data-master-mapping-health="${masterKey}"]`)
+    || masterCard(container, masterKey)?.querySelector?.('.xml-cii-master-column-mapping .xml-cii-phase-help')
+    || null;
+}
+
 export function syncMasterDraftDom(container, state, config, masterKey) {
   if (!container || !masterKey) return { updated: false, reason: 'missing-target' };
   const context = state?.masterContext || {};
@@ -43,7 +53,7 @@ export function syncMasterDraftDom(container, state, config, masterKey) {
     touched += 1;
   }
 
-  const healthNode = container.querySelector?.(`[data-master-mapping-health="${masterKey}"]`);
+  const healthNode = mappingHealthNode(container, masterKey);
   if (healthNode) {
     healthNode.textContent = masterMappingHealthText(masterKey, fieldMap);
     touched += 1;
@@ -63,6 +73,12 @@ export function syncMasterDraftDom(container, state, config, masterKey) {
     if (!button) continue;
     button.disabled = !status.dirty;
     if (button.style) button.style.cursor = status.dirty ? 'pointer' : 'not-allowed';
+    touched += 1;
+  }
+
+  const writeBackNode = container.querySelector?.('.xml-cii-master-actions .xml-cii-phase-help');
+  if (writeBackNode && state?.importMastersWriteBackStatus != null) {
+    writeBackNode.textContent = String(state.importMastersWriteBackStatus || '');
     touched += 1;
   }
 
