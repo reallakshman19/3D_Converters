@@ -15,6 +15,8 @@ const COUNTER_ROWS = Object.freeze([
   ['Master local DOM updates', 'masterPartialDomUpdateCount'],
   ['Preview search builds', 'previewSearchBuildCount'],
   ['Preview search rows prepared', 'previewSearchRowsPrepared'],
+  ['Source document parses', 'sourceParseCount'],
+  ['Source parse cache hits', 'sourceParseCacheHitCount'],
 ]);
 
 const TIMING_ROWS = Object.freeze([
@@ -24,6 +26,7 @@ const TIMING_ROWS = Object.freeze([
   ['Normalize', 'masterNormalizeMs'],
   ['Persist', 'masterPersistMs'],
   ['Preview search build', 'previewSearchBuildMs'],
+  ['Source document parse', 'sourceParseMs'],
 ]);
 
 function numberText(value) {
