@@ -111,6 +111,7 @@ function geometryTrace(index, canonicalId, naturalFrequencyResolution, engineeri
       fitFacilityEnrichmentRow(index, canonicalId, property.INSIDE_DIAMETER),
     ),
     maximumSpanBetweenEffectiveSupports: engineeringBasis.trace.maximumSpanBetweenEffectiveSupports,
+    catalogueCustody: engineeringBasis.trace.geometryCustody,
     legacyMaximumUnsupportedSpan: fitFacilityEnrichmentTrace(
       fitFacilityEnrichmentRow(index, canonicalId, property.MAX_UNSUPPORTED_SPAN),
     ),
@@ -173,6 +174,7 @@ export function buildFitFacilityPlanItem(
     line: point.line,
     caseId: operatingCase.caseId,
     process,
+    geometryCustody: point.geometryCustody,
   });
   missing.push(...engineeringBasis.missing);
   invalid.push(...engineeringBasis.invalid);
