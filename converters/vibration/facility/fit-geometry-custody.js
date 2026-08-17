@@ -31,8 +31,8 @@ function duplicateError(kind, canonicalId) {
 function uniqueIndex(rows, kind) {
   const result = new Map();
   for (const row of rows ?? []) {
-    const canonicalId = String(row?.canonicalId ?? '').trim();
-    if (!canonicalId) continue;
+    const canonicalId = typeof row?.canonicalId === 'string' ? row.canonicalId : '';
+    if (!canonicalId.trim()) continue;
     if (result.has(canonicalId)) throw duplicateError(kind, canonicalId);
     result.set(canonicalId, row);
   }
@@ -151,18 +151,19 @@ export function resolveFitFacilityGeometryCustody({ wallBasis, custody } = {}) {
     return unavailable(wallBasis, custody);
   }
   const invalid = invalidCatalogueFields(evidence);
-  const elementAuthority = custody.element.catalogueAuthority;
-  if (nonBlankText(elementAuthority) && elementAuthority.trim() !== evidence.authority?.trim()) {
+  const elementAuthority = nonBlankText(custody.element.catalogueAuthority)
+    ? custody.element.catalogueAuthority.trim() : null;
+  const evidenceAuthority = nonBlankText(evidence.authority) ? evidence.authority.trim() : null;
+  if (elementAuthority && evidenceAuthority && elementAuthority !== evidenceAuthority) {
     invalid.push('catalogueEvidence.authority');
   }
-  const mismatch = invalid.includes('catalogueEvidence.authority')
-    && nonBlankText(elementAuthority) && nonBlankText(evidence.authority);
+  const mismatch = Boolean(elementAuthority && evidenceAuthority && elementAuthority !== evidenceAuthority);
   return deepFreeze({
     schema: FIT_FACILITY_GEOMETRY_CUSTODY_SCHEMA,
     state: invalid.length ? 'NOT_READY' : 'READY',
     wallBasis,
     geometrySource: invalid.length ? null : 'VIBRATION_TABLE_EXCHANGE_CATALOGUE_EVIDENCE',
-    catalogueAuthority: invalid.length ? null : evidence.authority.trim(),
+    catalogueAuthority: invalid.length ? null : evidenceAuthority,
     catalogueRecordId: invalid.length ? null : evidence.recordId.trim(),
     nominalDescriptor: nominalDescriptor(custody.element),
     missing: [],
