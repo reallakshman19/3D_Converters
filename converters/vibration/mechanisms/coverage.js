@@ -24,10 +24,7 @@ export const VIBRATION_ASSESSMENT_UNIT_TYPES = Object.freeze([
   'SPECIALIST_SYSTEM',
 ]);
 
-export const VIBRATION_REQUIRED_QUALIFICATIONS = Object.freeze([
-  'CURRENT_RESULT',
-  'SCREENING',
-]);
+export const VIBRATION_REQUIRED_QUALIFICATIONS = Object.freeze(['CURRENT_RESULT', 'SCREENING']);
 
 export const VIBRATION_COMPLETENESS_STATES = Object.freeze([
   'COMPLETE',
@@ -157,9 +154,7 @@ export function createRequiredVibrationAssessmentSet(input = {}) {
   const inputs = input.identifications ?? [];
   if (!Array.isArray(inputs)) throw new TypeError('identifications must be an array.');
   if (inputs.length === 0) {
-    const known = input.knownMechanismIds == null
-      ? []
-      : [...knownMechanismSet(input.knownMechanismIds)].sort();
+    const known = input.knownMechanismIds == null ? [] : [...knownMechanismSet(input.knownMechanismIds)].sort();
     return deepFreeze({
       schema: VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA,
       setId: JSON.stringify(['IDENTIFICATION_EVIDENCE_MISSING']),
