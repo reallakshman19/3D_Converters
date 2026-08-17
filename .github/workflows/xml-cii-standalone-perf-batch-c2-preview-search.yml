@@ -1,0 +1,52 @@
+name: XML CII Standalone Performance Batch C2 Preview Search Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js'
+      - 'tests/xml-cii-standalone-preview-search-perf.test.mjs'
+      - '.github/workflows/xml-cii-standalone-perf-batch-c2-preview-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check C2 browser module syntax
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js
+          node --check tests/xml-cii-standalone-preview-search-perf.test.mjs
+
+      - name: Prove preview-search config lookup is O(1) per build
+        run: node --test tests/xml-cii-standalone-preview-search-perf.test.mjs
+
+      - name: Re-run Batch C1 render and evidence gates
+        run: |
+          node --test tests/xml-cii-standalone-render-scope.test.mjs
+          node --test tests/xml-cii-standalone-master-dom-sync.test.mjs
+          node --test tests/xml-cii-standalone-perf-evidence.test.mjs
+
+      - name: Re-run Batch A authority gates
+        run: |
+          node --test tests/xml-cii-standalone-master-perf.test.mjs
+          node --test tests/xml-cii-standalone-config-cache-custody.test.mjs
+          node --test tests/xml-cii-standalone-support-gap-equivalence.test.mjs
+
+      - name: Protect immutable InputXML CII core
+        shell: bash
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep -Fx 'converters/scripts/inputxml_to_cii2019.py'; then
+            echo 'ERROR: immutable inputxml_to_cii2019.py is present in Batch C2 diff.' >&2
+            exit 1
+          fi
