@@ -7,60 +7,80 @@ PR = #572
 ISSUE = #570
 BRANCH = agent/vib-coverage-570-completeness-contract
 BASE_MAIN = 24080a49647c7802ff8ab496ccd37421b8d53b68
-LATEST_ENGINEERING_CHANGE = c69cedf4f0266be3a6e0655697d9966318d08cb3
-TAKEOVER_QUALIFICATION = QUALIFIED_FOR_VIB_COVERAGE_IMPLEMENTATION
+LATEST_ENGINEERING_CHANGE = 402512b75556cac640fc56bf4de7392380acaa3c
+HEAD_BEFORE_REPORT_SYNC = 07e7f36e88fe8180e97483092c1d68549edefc35
 APPENDIX_A_COMMENT = 5311508175
 APPENDIX_A_SCORE = 94/100
+TAKEOVER_QUALIFICATION = QUALIFIED_FOR_VIB_COVERAGE_IMPLEMENTATION
 PR_STATE = DRAFT_OPEN
 MERGE_AUTHORITY = OWNER_ONLY_NOT_GRANTED
 ```
 
 ## Mission
 
-Implement the #570 coverage/completeness slice without introducing EI aggregation:
+Implement the bounded #570 truth layer:
 
 ```text
 MechanismIdentification
         -> RequiredAssessmentSet
         -> MechanismCoverage
         -> AssessmentCompleteness
-        -> facility matrix projection
+        -> facility mechanism-matrix projection
+        -> truthful UI projection
 ```
 
-A partial numerical result, partial identification list, candidate-only result, stale result, or static UI implementation label must not masquerade as complete vibration coverage.
+A valid partial mechanism result, partial identification list, stale result, candidate-only result, FIT row state, or static UI catalogue label must never masquerade as a complete vibration assessment.
 
-## Current contract
+**EI main-line LOF aggregation is not implemented in this PR.**
 
-`VibrationMechanismIdentification.v1` requires explicit evidence and:
+## Core invariant
+
+```text
+FIT ROW CALCULATED
+!= mechanism identified
+!= identification universe complete
+!= required assessment complete
+!= family AssessmentCompleteness.COMPLETE
+!= EI main-line aggregate established
+```
+
+## Pure coverage contract
+
+`converters/vibration/mechanisms/coverage.js` adds:
+
+```text
+VibrationMechanismIdentification.v1
+RequiredAssessmentSet.v1
+MechanismCoverage.v1
+AssessmentCompleteness.v1
+```
+
+Identification disposition:
 
 ```text
 REQUIRED | NOT_APPLICABLE | UNRESOLVED
 ```
 
-No automatic EI T1 rules are introduced.
+Completeness state:
 
-`knownMechanismIds` is the caller-supplied expected mechanism universe for the evaluation. Every expected mechanism must have explicit identification before the identification set is resolved. Missing categories remain machine-visible:
+```text
+COMPLETE | INCOMPLETE | NOT_APPLICABLE
+```
+
+`knownMechanismIds` is the explicit expected mechanism universe for an evaluation. Every expected mechanism must have explicit identification evidence before identification can resolve. Missing categories are exposed as:
 
 ```text
 missingIdentificationMechanismIds[]
 MISSING_MECHANISM_IDENTIFICATION:<mechanismId>
 ```
 
-`RequiredAssessmentSet.v1` fails closed on unknown/duplicate expected IDs, duplicate or contradictory identification, duplicate required-assessment identity, and malformed identification evidence. Schema-labelled objects are revalidated through the factory.
+The contract fails closed on unknown/duplicate expected IDs, duplicate or contradictory identification, duplicate required-assessment identity, malformed/schema-forged identification evidence, malformed assessment-set identity/cardinality/item scope, missing/zero assessment sets, stale/unrun/failed evidence and insufficient qualification.
 
-`MechanismCoverage.v1` distinguishes missing, zero-cardinality, not-implemented, stale, failed/review-required, unresolved applicability, unrun/ready, candidate/unqualified and current required-authority evidence. Assessment sets are rechecked for deterministic identity, cardinality/item consistency, item schema, mechanism identity and scope identity.
+Default required qualification is `SCREENING`. A Screening requirement is satisfied only by current `IMPLEMENTED_SCREENING` / `qualification.effective=SCREENING` evidence. Candidate Mechanical/SBC evidence cannot satisfy it simply because a numerical result exists.
 
-`AssessmentCompleteness.v1` exposes only:
+## Facility matrix projection
 
-```text
-COMPLETE | INCOMPLETE | NOT_APPLICABLE
-```
-
-plus required/complete/incomplete/N/A/unresolved/missing-identification counts and reasons.
-
-## Facility matrix integration
-
-`tabs/vibration-integrity-mechanisms.js` now projects:
+`tabs/vibration-integrity-mechanisms.js` now returns:
 
 ```text
 requiredAssessmentSet
@@ -68,45 +88,75 @@ mechanismCoverage
 assessmentCompleteness
 ```
 
-from an explicit optional `context.coverage` bundle:
+from an optional explicit `context.coverage` bundle:
 
 ```text
 expectedMechanismIds
 identifications
-assessmentSets[]   // optional additional qualified mechanism sets
+assessmentSets[]  // optional additional qualified mechanism sets
 ```
 
-Important boundaries:
+Safety boundaries:
 
-1. No coverage bundle -> deterministic `INCOMPLETE`; current FIT/other results cannot substitute for identification evidence.
-2. The static `VIBRATION_INTEGRITY_MECHANISMS` catalogue is **not** used as the expected mechanism universe.
-3. Zero-cardinality static/unavailable sets are not promoted into coverage evidence.
-4. Existing non-zero FIT/Mechanical/SBC assessment sets may participate only when their mechanism ID is explicitly expected.
-5. Additional externally qualified assessment sets allow mechanisms such as current AIV to participate without trusting the stale static AIV `NOT_IMPLEMENTED` catalogue label.
-6. Duplicate/malformed additional evidence still fails in the pure coverage contract.
-7. Existing `screeningGoverning`, `candidateGoverning`, retained governing fields and `fullScreeningGoverningEstablished=false` remain unchanged. **No EI main-line aggregate is created.**
+1. no coverage bundle -> deterministic `INCOMPLETE`;
+2. static `VIBRATION_INTEGRITY_MECHANISMS` catalogue is not identification authority;
+3. zero-cardinality static/unavailable sets are not positive coverage evidence;
+4. FIT/Mechanical/SBC sets participate only when explicitly expected;
+5. independently supplied qualified sets can represent mechanisms such as current AIV without trusting stale catalogue implementation text;
+6. `screeningGoverning`, `candidateGoverning`, retained governing fields and `fullScreeningGoverningEstablished=false` remain unchanged;
+7. no universal vibration score or EI main-line aggregate is created.
 
-## Authority invariants
+## UI truthfulness repair
+
+The existing facility FIT register already exposes `row.completenessStatus`, but its source contract proves it means only:
 
 ```text
-REQUIRED != IMPLEMENTED
-IMPLEMENTED != QUALIFIED
-QUALIFIED != CURRENT_RESULT
-CURRENT_RESULT != COMPLETE_FAMILY_ASSESSMENT
-SCREENING != DESIGN
-COVERAGE COMPLETE != EI MAIN-LINE AGGREGATE ESTABLISHED
+CALCULATED
+DATA_INCOMPLETE
+CALCULATION_FAILED
+UNKNOWN
 ```
 
-Default required qualification is `SCREENING`, requiring current `IMPLEMENTED_SCREENING` / `qualification.effective=SCREENING` evidence. Candidate Mechanical/SBC evidence cannot satisfy it. An explicit weaker `CURRENT_RESULT` coverage requirement may accept a current candidate result but does not promote authority.
+for the **FIT facility row**.
 
-## Defects found and repaired
+It is not cross-mechanism assessment completeness.
 
-1. Current results could not safely coexist with absent identification evidence; fixed to deterministic `INCOMPLETE`.
-2. Intermediate `coverage.js` exceeded the `<300` new-JS limit; tightened after exact backup.
-3. Partial identification universe could resolve `COMPLETE`; fixed by explicit expected universe + missing-category reasons.
-4. Schema-string trust could bypass identification validation; fixed by unconditional normalization.
-5. Malformed assessment-set identity/cardinality/item scope could satisfy coverage; now rejected.
-6. Facility integration could have been tempted to use the stale static catalogue as mechanism authority; instead the matrix consumes an explicit coverage bundle and can accept independent AIV assessment-set evidence.
+`tabs/vibration-integrity-view.js` now makes that distinction explicit:
+
+```text
+old visible heading/filter: Completeness
+new visible heading/filter: FIT row state
+new separate column:        Assessment completeness
+```
+
+The new family column is populated from:
+
+```text
+matrix.assessmentCompleteness
+```
+
+not `row.completenessStatus`.
+
+The live tab currently has no governed mechanism-identification bundle in state. The view therefore does not invent one and does not consume static UI catalogue data as authority. Until a governed upstream provider exists, the visible family column remains fail-closed:
+
+```text
+INCOMPLETE
+IDENTIFICATION_EVIDENCE_MISSING
+```
+
+The authority banner also states that assessment completeness remains incomplete until governed mechanism-identification evidence is supplied.
+
+## Defects found and repaired during self-review
+
+1. current results could interfere with absent-identification handling;
+2. an intermediate new JS state exceeded the repository `<300 physical lines` rule;
+3. a partial identification universe could resolve `COMPLETE`;
+4. schema-labelled forged identification could bypass normalization;
+5. malformed assessment-set identity/cardinality/item scope could be trusted;
+6. facility integration could have used the stale static mechanism catalogue as authority;
+7. the visible generic `Completeness` column could make FIT `CALCULATED` look like complete vibration coverage.
+
+All seven paths are now fail-closed or explicitly separated.
 
 ## Changed-file ledger
 
@@ -116,6 +166,7 @@ Production / projection:
 converters/vibration/mechanisms/coverage.js
 converters/vibration/mechanisms/index.js
 tabs/vibration-integrity-mechanisms.js
+tabs/vibration-integrity-view.js
 ```
 
 Tests:
@@ -124,6 +175,7 @@ Tests:
 tests/vibration-mechanism-coverage.test.mjs
 tests/vibration-mechanism-coverage-missing-identification.test.mjs
 tests/vibration-integrity-mechanism-matrix.test.mjs
+tests/vibration-integrity-assessment-completeness-view.test.mjs
 ```
 
 Handoff:
@@ -133,13 +185,19 @@ agents/WIP-vib-coverage-570_workreport.md
 agents/PR572_workreport.md
 ```
 
-Exact pre-edit copies are retained under `.backups/connector-20260817-vib-coverage-570/`, including `index.js`, coverage-contract states, mechanism-matrix source/test, primary coverage test and report states.
+Exact pre-edit custody is retained under:
 
-No numerical mechanism kernel, benchmark expected data/tolerance, Product Freeze artifact, `.github/workflows/*`, T2.9 technical file, or PR #546 technical SBC Type-3 file is changed.
+```text
+.backups/connector-20260817-vib-coverage-570/
+```
+
+including the mechanism index, coverage-contract states, matrix source/test, view source, static tab test and prior PR572 report states.
+
+No `.github/workflows/*`, mechanism numerical kernel, benchmark expected value/tolerance, Product Freeze artifact, T2.9 technical file, or PR #546 Type-3 source/freeze technical file is changed.
 
 ## Falsification coverage
 
-Pure coverage tests include:
+Pure contract tests include:
 
 ```text
 no identification -> INCOMPLETE
@@ -152,61 +210,72 @@ unresolved identification -> INCOMPLETE
 all expected required current Screening -> COMPLETE
 all expected explicit N/A -> NOT_APPLICABLE
 zero cardinality != N/A
-unknown/duplicate/contradictory IDs -> hard fail
-universe changes deterministic identity
-forged schema-labelled identification -> hard fail
+unknown/duplicate/contradictory identities -> hard fail
+forged identification -> hard fail
 malformed assessment set -> hard fail
-no mechanism numerical rules in coverage core
 ```
 
-Facility matrix regressions added to source prove the intended contract:
+Facility matrix regression source includes:
 
 ```text
 no governed coverage bundle -> INCOMPLETE
-FIT-only explicit required coverage may be COMPLETE while family aggregate remains unestablished
-external qualified AIV set may satisfy coverage despite stale static AIV catalogue label
-partial FIT+AIV identification remains INCOMPLETE
+FIT-only explicit coverage can be COMPLETE while family aggregate remains unestablished
+external qualified AIV set can satisfy coverage despite stale static AIV catalogue text
+partial FIT+AIV identification -> INCOMPLETE
 Mechanical candidate cannot satisfy required Screening coverage
+```
+
+UI truthfulness regression includes:
+
+```text
+FIT register completenessStatus is FIT-row projection only
+visible FIT column says FIT row state
+separate visible Assessment completeness column exists
+family column uses matrix.assessmentCompleteness
+old generic Completeness heading/filter is forbidden
+no state.coverage authority injection exists in the view
 ```
 
 ## Validation ledger
 
 ```text
 STATUS   OBSERVATION                                                        ORACLE
-PASS     base/merge-base = main@24080a49647c7802ff8ab496ccd37421b8d53b68  live GitHub refs
 PASS     Appendix A 94/100 completed before mutation                        #570 comment 5311508175
-PASS     coverage.js has no physical line 300                               exact branch line probe
-PASS     mechanism matrix source has no physical line 300                   exact branch line probe
-PASS     primary coverage test has no physical line 300                     exact branch line probe
-PASS     mechanism matrix test has no physical line 300                     exact branch line probe
-PASS     public mechanism index exports coverage contract                   source inspection
-PASS     reconstructed pure coverage behavioral suite                       19/19, Node v22.16.0
-PASS     final diff inspection preserves existing governing fields          PR patch inspection
-NOT_RUN  native exact-checkout mechanism-matrix test suite                  private checkout unavailable
+PASS     pure coverage reconstructed behavioral suite                       19/19, Node v22.16.0
+PASS     UI truthfulness reconstructed source suite                          2/2, Node
+PASS     modified vibration-integrity-view.js syntax                        node --check
+PASS     new UI truthfulness test < 300 physical lines                      35 lines
+PASS     coverage.js / mechanism-matrix new-JS constraints preserved        exact branch probes
+PASS     existing governing LOF fields remain separate from completeness    source inspection
+NOT_RUN  native exact-checkout mechanism-matrix tests                       private checkout unavailable
+NOT_RUN  native exact-checkout UI/static suite                              private checkout unavailable
 NOT_RUN  full repository-native VIB/FIT/AIV suites                          private checkout unavailable
-NOT_RUN  hosted Actions as product validation                               zero-step runner/budget pattern
-NOT_RUN  browser                                                            no UI rendering change in this slice
+NOT_RUN  browser                                                            not executed here
 ```
 
-The 19/19 execution is supporting executable evidence from a reconstructed pure contract seam, not a full exact-checkout repository pass. The newly added matrix integration tests have **not** been executed in a native checkout in this environment and are recorded `NOT_RUN`.
-
-Hosted Actions previously inspected on #572 showed `runner_id=0` and `steps=[]`; any final-head run must be inspected separately and classified by execution evidence rather than its display label.
+No `NOT_RUN` item is represented as PASS.
 
 ## Active overlap / protected scope
 
 ```text
-PR #539/#540 = SAFE; changed files are FIT adapter + engineering console/family UI, not this matrix path
-PR #546      = STRICT NON-ABSORPTION; no Type-3 source/freeze technical work
-#513         = no AIV Product Freeze work
-#545         = no T2.9 numerical/source work
+PR #539/#540 = SAFE; their FIT adapter + engineering console/family UI paths do not overlap this Vibration Integrity view/matrix slice
+PR #546      = STRICT NON-ABSORPTION; no Type-3 source/freeze technical work performed
+#513         = no AIV Product Freeze work absorbed
+#545         = no T2.9 numerical/source work absorbed
 ```
 
-Do not add EI aggregation, universal vibration scoring, automatic T1 rules, numerical method changes, benchmark/tolerance changes, authority promotion, Product Freeze changes, runtime/writer/canvas ownership changes, workflow edits, or PR #546 technical work.
+Do not add EI aggregation, a universal vibration score, automatic T1 applicability rules, numerical method changes, benchmark/tolerance changes, authority promotion, Product Freeze changes, runtime/writer/canvas ownership changes, workflow edits, or PR #546 technical changes to this PR.
 
-## Highest residual risk
+## Remaining dependency
 
-The authoritative producer of the facility `context.coverage` bundle does not exist yet. The matrix is intentionally fail-closed until a governed T1/identification workflow supplies the expected mechanism universe and records. Static UI catalogue content must not be substituted for that producer.
+The authoritative producer of the facility coverage bundle does not exist yet. A later governed T1/identification workflow must supply the expected mechanism universe and explicit identification records. Until then:
+
+```text
+Assessment completeness = INCOMPLETE
+```
+
+Static UI catalogue text must not be substituted for that producer.
 
 ## EXACT_NEXT_ACTION
 
-On a native private checkout, run `tests/vibration-mechanism-coverage*.test.mjs`, `tests/vibration-integrity-mechanism-matrix.test.mjs`, and relevant existing FIT/Mechanical/SBC mechanism regressions. If unavailable, retain `NOT_RUN`. Inspect final-head Actions jobs for actual steps. Keep PR #572 draft and unmerged until Owner authorizes merge; do not begin EI main-line aggregation in this PR.
+On a native private checkout, execute the focused coverage, mechanism-matrix and UI truthfulness tests plus relevant existing vibration regressions. Retain `NOT_RUN` for anything not actually executed. Do not begin EI main-line aggregation in this PR and do not merge without explicit Owner authorization.
