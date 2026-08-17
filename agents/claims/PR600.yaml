@@ -1,0 +1,39 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: PR600
+pull_request: 600
+branch: agent/xml-cii-standalone-perf-batch-c3-source-parse-cache
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: READ_ONLY_TAKEOVER_REQUIRED
+qualification: NOT_COMPLETED_FOR_NATIVE_REPLAY
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-derived-context.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-mode.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-preview.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js
+  - tests/xml-cii-standalone-source-parse-cache.test.mjs
+  - tests/xml-cii-standalone-source-parse-cache-integration.test.mjs
+  - agents/PR600_workreport.md
+  - agents/status/PR600.yaml
+  - agents/claims/PR600.yaml
+exclusions:
+  - authoritative source ownership changes
+  - Regex Tester/branch scope/conversion-engine parser migration
+  - persisted parse cache or hash-based runtime invalidation
+  - worker/runtime ownership switch
+  - support/GAP semantics
+  - CII writer semantics
+  - .github/workflows/**
+coordination:
+  PR595: HARD_PREDECESSOR
+  PR596: HARD_PREDECESSOR
+  PR598: HARD_PREDECESSOR
+  PR599: HARD_PREDECESSOR
+  PR597: SAFE_EXACT_FILE_AT_LAST_CHECK
+  PR589: COORDINATION_REQUIRED_LOWER_STACK_SUPPORT_GAP
+review_disposition: SALVAGE_PARTIAL_NATIVE_REPLAY_REQUIRED
+worker_admission: NOT_ADMITTED_NO_MEASURED_CPU_STALL
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T03:12:00+04:00
