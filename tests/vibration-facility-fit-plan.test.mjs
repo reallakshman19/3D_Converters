@@ -12,7 +12,7 @@ const P = FIT_FACILITY_ENRICHMENT_PROPERTIES;
 
 function basisRows(canonicalId, span, caseIds, velocityCases = []) {
   return [
-    { canonicalId, property: P.WALL_BASIS, value: 'NOMINAL', source: 'M5-MIGRATION' },
+    { canonicalId, property: P.WALL_BASIS, value: 'AS_BUILT', source: 'M5-MIGRATION' },
     { canonicalId, property: P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS, value: span, unit: 'm', source: 'FIELD-VERIFY' },
     { canonicalId, property: P.SPAN_DETERMINATION_METHOD, value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'FIELD-VERIFY' },
     { canonicalId, property: P.SUPPORT_EVIDENCE_STATUS, value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'FIELD-VERIFY' },
