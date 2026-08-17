@@ -46,7 +46,18 @@ function assertInputParity(uiCase, controlledCase) {
   assert.equal(enrichment.get('OUTSIDE_DIAMETER').value, source.outsideDiameterM);
   assert.equal(enrichment.get('WALL_THICKNESS').value, source.wallThicknessM);
   assert.equal(enrichment.get('MAX_UNSUPPORTED_SPAN').value, source.maximumUnsupportedSpanM);
+  assert.equal(enrichment.get('MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS').value, source.maximumUnsupportedSpanM);
   assert.equal(enrichment.get('INSIDE_DIAMETER')?.value, source.insideDiameterM);
+  assert.equal(enrichment.get('WALL_BASIS').value, 'NOMINAL');
+  assert.equal(enrichment.get('SPAN_DETERMINATION_METHOD').value, 'EI_WORKED_EXAMPLE_PUBLISHED_SPAN');
+  assert.equal(enrichment.get('SUPPORT_EFFECTIVENESS_CONFIRMED').value, true);
+  assert.equal(enrichment.get('FIT_DENSITY_BASIS').value, 'ACTUAL');
+  assert.equal(enrichment.get('FIT_OPERATING_SCENARIO_COHERENT').value, true);
+  if (source.fluidVelocityMS !== undefined) {
+    assert.equal(enrichment.get('FIT_VELOCITY_BASIS').value, 'ACTUAL');
+  } else {
+    assert.equal(enrichment.has('FIT_VELOCITY_BASIS'), false);
+  }
 }
 
 test('UI benchmark catalogue exactly covers the controlled ten EI worked cases', () => {
@@ -74,6 +85,17 @@ test('UI benchmark source pins the owner worked-example qualification authority'
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationPath, 'Energy-Institute-AVIFF---Worked-Examples.doc.docx');
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationPolicy, 'WORKED_EXAMPLE_BENCHMARK_SUFFICIENT');
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.independentVibrationEngineerReviewRequired, false);
+});
+
+test('benchmark-only M5 adoption metadata is explicit and non-project-authorizing', () => {
+  const basis = VIBRATION_FIT_UI_BENCHMARK_SOURCE.m5BasisAdoption;
+  assert.equal(basis.authority, 'BENCHMARK_ONLY');
+  assert.equal(basis.projectAuthority, false);
+  assert.equal(basis.wallBasis, 'NOMINAL');
+  assert.equal(basis.spanDeterminationMethod, 'EI_WORKED_EXAMPLE_PUBLISHED_SPAN');
+  assert.equal(basis.supportEffectivenessConfirmed, true);
+  assert.equal(basis.processBasis, 'ACTUAL');
+  assert.equal(basis.operatingScenarioCoherent, true);
 });
 
 test('active FIT method and dossier metadata use the controlled method and qualification pins', () => {
