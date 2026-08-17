@@ -1,0 +1,31 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: PR598
+pull_request: 598
+branch: agent/xml-cii-standalone-perf-batch-c2-preview-search
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: READ_ONLY_TAKEOVER_REQUIRED
+qualification: NOT_COMPLETED_FOR_NATIVE_REPLAY
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf-evidence.js
+  - tests/xml-cii-standalone-preview-search-perf.test.mjs
+  - agents/PR598_workreport.md
+  - agents/status/PR598.yaml
+  - agents/claims/PR598.yaml
+exclusions:
+  - raw/draft mapping authority promotion
+  - support/GAP resolver semantics
+  - CII writer/runtime ownership
+  - .github/workflows/**
+  - persistent search indexes or workers
+coordination:
+  PR595: HARD_PREDECESSOR
+  PR596: HARD_PREDECESSOR
+  PR599: DESCENDANT
+  PR600: DESCENDANT
+review_disposition: SALVAGE_PARTIAL_NATIVE_REPLAY_REQUIRED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T03:06:00+04:00
