@@ -67,19 +67,16 @@ async function moduleListContains(context, config) {
   const spec = fromWorkpack(context.workpack, config.moduleRef, 'moduleRef');
   const module = await importFromRoot(context.root, spec.path);
   const exported = module[spec.exportName];
-  const values = typeof exported === 'function' ? exported() : exported;
+  const values = typeof exported === 'function' ? await exported() : exported;
   if (!Array.isArray(values)) return { ok: false, detail: `${spec.path}:${spec.exportName} is not a list` };
   const required = config.requiredItemsRef
     ? fromWorkpack(context.workpack, config.requiredItemsRef, 'requiredItemsRef')
     : [];
   const missing = required.filter((item) => !values.includes(item));
-  const legacyReleaseMeta = config.requiredItemsRef === 'releaseManifest.requiredCriticalTests'
-    ? { listCount: values.length }
-    : null;
   return {
     ok: missing.length === 0,
     detail: missing.length ? `missing ${missing.join(', ')}` : `${values.length} controlled items include required paths`,
-    meta: legacyReleaseMeta,
+    meta: config.captureListCount === true ? { listCount: values.length } : null,
   };
 }
 
