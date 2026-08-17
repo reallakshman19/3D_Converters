@@ -2,6 +2,10 @@ import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
   fitFacilityPlanError,
 } from './fit-plan-contract.js';
+import {
+  buildFitFacilityGeometryCustodyIndex,
+  fitFacilityGeometryCustodyRecord,
+} from './fit-geometry-custody.js';
 
 function lineByCanonicalId(dataset) {
   const result = new Map();
@@ -36,7 +40,7 @@ export function fitFacilityEnrichmentRow(index, canonicalId, property, caseId = 
   return index.get(`${canonicalId}\u0000${caseId ?? ''}\u0000${property}`) ?? null;
 }
 
-function assessmentPoints(lineMap, index) {
+function assessmentPoints(lineMap, index, geometryIndex) {
   const points = [];
   for (const canonicalId of lineMap.keys()) {
     const marker = fitFacilityEnrichmentRow(
@@ -45,7 +49,12 @@ function assessmentPoints(lineMap, index) {
       FIT_FACILITY_ENRICHMENT_PROPERTIES.ASSESSMENT_POINT,
     );
     if (!marker || marker.value !== true) continue;
-    points.push({ canonicalId, line: lineMap.get(canonicalId), marker });
+    points.push({
+      canonicalId,
+      line: lineMap.get(canonicalId),
+      marker,
+      geometryCustody: fitFacilityGeometryCustodyRecord(geometryIndex, canonicalId),
+    });
   }
   return points.sort((a, b) => String(a.line ?? '').localeCompare(String(b.line ?? ''))
     || a.canonicalId.localeCompare(b.canonicalId));
@@ -90,9 +99,10 @@ export function fitFacilityEnrichmentTrace(row, selection = 'GLOBAL') {
 export function buildFitFacilityPlanContext(dataset) {
   const lineMap = lineByCanonicalId(dataset);
   const index = enrichmentIndex(dataset);
+  const geometryIndex = buildFitFacilityGeometryCustodyIndex(dataset);
   return {
     index,
-    points: assessmentPoints(lineMap, index),
+    points: assessmentPoints(lineMap, index, geometryIndex),
     casesByLine: casesByLine(dataset),
   };
 }
