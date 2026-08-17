@@ -1,18 +1,19 @@
 import { normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
 import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
+import { perfAddMs, perfCount, perfNow } from './xml-cii-adapted-perf.js';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
   return out || fallback;
 }
 
-function mappedFieldMap(masterKey, state) {
-  let config = {};
-  try {
-    config = JSON.parse(state.supportConfigJson || '{}');
-  } catch {}
+export function previewSearchFieldMap(masterKey, state) {
   const configKey = MASTER_FIELDS[masterKey]?.configKey;
-  return config[configKey]?.fieldMap || {};
+  const committedConfig = state?.masterContext?.config;
+  if (committedConfig && typeof committedConfig === 'object') return committedConfig?.[configKey]?.fieldMap || {};
+  let config = {};
+  try { config = JSON.parse(state?.supportConfigJson || '{}'); } catch {}
+  return config?.[configKey]?.fieldMap || {};
 }
 
 function readMappedValue(row, keys) {
@@ -23,9 +24,8 @@ function readMappedValue(row, keys) {
   return '';
 }
 
-function normalizePreviewSearchRow(row, masterKey, state, index) {
+function normalizePreviewSearchRow(row, masterKey, fieldMap, index) {
   if (masterKey !== 'lineList') return row;
-  const fieldMap = mappedFieldMap(masterKey, state);
   const normalized = row?.lineNoKey || row?.lineNo || row?.lineKey || row?.lineSeqNo
     ? row : normalizeLineListRow(row, fieldMap, index);
   const raw = normalized?._raw || row;
@@ -38,12 +38,16 @@ function normalizePreviewSearchRow(row, masterKey, state, index) {
 }
 
 export function buildPreviewSearchRows(master, state) {
-  const rows = Array.isArray(master.rows)
-    ? master.rows.map((row, index) => normalizePreviewSearchRow(row, master.key, state, index)) : [];
-  const rawRows = Array.isArray(state.masterContext?.rawRows?.[master.key])
-    ? state.masterContext.rawRows[master.key] : [];
-  const normalizedRawRows = rawRows.map((row, index) => normalizePreviewSearchRow(row, master.key, state, index));
-  return rows.length ? rows : normalizedRawRows;
+  const started = perfNow();
+  const fieldMap = previewSearchFieldMap(master?.key, state);
+  const sourceRows = Array.isArray(master?.rows) && master.rows.length
+    ? master.rows
+    : (Array.isArray(state?.masterContext?.rawRows?.[master?.key]) ? state.masterContext.rawRows[master.key] : []);
+  const rows = sourceRows.map((row, index) => normalizePreviewSearchRow(row, master?.key, fieldMap, index));
+  perfCount('previewSearchBuildCount');
+  perfCount('previewSearchRowsPrepared', rows.length);
+  perfAddMs('previewSearchBuildMs', perfNow() - started);
+  return rows;
 }
 
 export function previewSearchText(row) {
