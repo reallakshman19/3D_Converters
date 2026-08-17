@@ -144,6 +144,11 @@ test('explicit apply advances authority once and persists only the changed maste
       'xml-cii-master-workbook-lineList',
     ],
   );
+  assert.deepEqual(JSON.parse(storage.map.get('xml-cii-master-source-lineList')), {
+    source: 'line-list.xlsx',
+    fieldMap: { lineKey: 'LINE' },
+    appliedRevision: 2,
+  });
   assert.equal(storage.setCalls.some(([key]) => key.includes('pipingClass')), false);
   assert.equal(storage.setCalls.some(([key]) => key.includes('materialMap')), false);
   assert.equal(storage.setCalls.some(([key]) => key.endsWith('-weight')), false);
@@ -163,7 +168,7 @@ test('measured full-render counter records exactly the requested render count', 
   assert.equal(snapshotXmlCiiPerfMetrics().masterRequestedFullRenderCount, 2);
 }));
 
-test('restart restores dedicated rows and workbook custody for all four masters', () => withPerfAndStorage((storage) => {
+test('restart restores dedicated rows, workbook custody, applied mapping and revision for all four masters', () => withPerfAndStorage((storage) => {
   const fixtures = {
     lineList: [{ LINE_KEY: 'L-100' }],
     pipingClass: [{ CLASS: 'P-100', OD: 114.3 }],
@@ -175,11 +180,29 @@ test('restart restores dedicated rows and workbook custody for all four masters'
   for (const [key, rows] of Object.entries(fixtures)) {
     setJson(storage, `xml-cii-master-${key}`, rows);
     setJson(storage, `xml-cii-master-raw-${key}`, [{ RAW: key }]);
-    setJson(storage, `xml-cii-master-source-${key}`, `${key}.xlsx`);
     setJson(storage, `xml-cii-master-sheetnames-${key}`, ['Data']);
     setJson(storage, `xml-cii-master-activesheet-${key}`, 'Data');
     setJson(storage, `xml-cii-master-workbook-${key}`, { Data: [{ RAW: key }] });
   }
+
+  // One legacy string-only source proves backward compatibility. The other three
+  // use Batch-A compact source custody carrying the applied mapping and revision.
+  setJson(storage, 'xml-cii-master-source-lineList', 'lineList.xlsx');
+  setJson(storage, 'xml-cii-master-source-pipingClass', {
+    source: 'pipingClass.xlsx',
+    fieldMap: { class: 'CLASS', od: 'OD' },
+    appliedRevision: 7,
+  });
+  setJson(storage, 'xml-cii-master-source-materialMap', {
+    source: 'materialMap.xlsx',
+    fieldMap: { material: 'MATERIAL', code: 'CODE' },
+    appliedRevision: 4,
+  });
+  setJson(storage, 'xml-cii-master-source-weight', {
+    source: 'weight.xlsx',
+    fieldMap: { type: 'TYPE', weight: 'WEIGHT' },
+    appliedRevision: 5,
+  });
 
   const state = createXmlCiiAdaptedWorkflowState();
   const context = state.masterContext;
@@ -188,7 +211,11 @@ test('restart restores dedicated rows and workbook custody for all four masters'
   assert.deepEqual(context.materialMapRows, fixtures.materialMap);
   assert.deepEqual(context.weightMasterRows, fixtures.weight);
   assert.deepEqual(context.config.pipingClass.masterRows, fixtures.pipingClass);
+  assert.deepEqual(context.config.pipingClass.fieldMap, { class: 'CLASS', od: 'OD' });
+  assert.deepEqual(context.config.material.fieldMap, { material: 'MATERIAL', code: 'CODE' });
+  assert.deepEqual(context.config.weight.fieldMap, { type: 'TYPE', weight: 'WEIGHT' });
   assert.deepEqual(context.rowCounts, { lineList: 1, pipingClass: 1, materialMap: 1, weight: 1 });
+  assert.deepEqual(context.appliedMappingRevision, { lineList: 1, pipingClass: 7, materialMap: 4, weight: 5 });
 
   for (const key of Object.keys(fixtures)) {
     assert.equal(context.sourceMetadata[key].source, `${key}.xlsx`);
