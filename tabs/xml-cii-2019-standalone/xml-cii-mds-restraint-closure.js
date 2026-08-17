@@ -5,6 +5,7 @@ import {
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
+import { applySupportPositionMatchPolicy } from './xml-cii-support-position-match-policy.js';
 
 const CARRIER_TYPES = new Set(['ANCI', 'ATTA']);
 const GOVERNED_KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
@@ -157,10 +158,6 @@ function existingRestraintsByType(node) {
   return result;
 }
 
-function existingTypes(node) {
-  return new Set(existingRestraintsByType(node).keys());
-}
-
 function setChildText(document, parent, name, value) {
   let child = firstChild(parent, name);
   if (!child) {
@@ -239,7 +236,25 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     return { xmlText: source, changed: false, stats, diagnostics: [{ type: 'mds-position-restraint-closure-skipped', reason: 'DOM unavailable' }] };
   }
 
-  const rawLedger = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
+  const positionMatch = applySupportPositionMatchPolicy(config);
+  diagnostics.push({ type: 'mds-support-position-match-policy', ...positionMatch.policy });
+  if (!positionMatch.policy.valid) {
+    return {
+      xmlText: source,
+      changed: false,
+      stats,
+      diagnostics: [
+        ...diagnostics,
+        {
+          type: 'mds-position-restraint-closure-skipped',
+          reason: positionMatch.policy.reason || 'unsupported support position match policy',
+        },
+      ],
+      supportPositionMatch: positionMatch.policy,
+    };
+  }
+
+  const rawLedger = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, positionMatch.config);
   const traceConfig = {
     captureFields: ['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP'],
   };
@@ -247,7 +262,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
   const byIndex = new Map((ledger.records || []).map((record) => [Number(record.xmlIndex), record]));
   const document = new DOMParser().parseFromString(source, 'application/xml');
   if (parserFailed(document)) {
-    return { xmlText: source, changed: false, stats, diagnostics: [{ type: 'mds-position-restraint-closure-skipped', reason: 'XML parse failed' }] };
+    return { xmlText: source, changed: false, stats, diagnostics: [...diagnostics, { type: 'mds-position-restraint-closure-skipped', reason: 'XML parse failed' }], supportPositionMatch: positionMatch.policy };
   }
 
   let xmlIndex = 0;
@@ -353,5 +368,6 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     stats,
     diagnostics,
     ledger: ledger.records || [],
+    supportPositionMatch: positionMatch.policy,
   };
 }
