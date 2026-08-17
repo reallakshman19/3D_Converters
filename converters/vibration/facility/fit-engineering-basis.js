@@ -1,5 +1,7 @@
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
+  FIT_FACILITY_PROCESS_BASES,
+  FIT_FACILITY_WALL_BASES,
 } from './fit-plan-contract.js';
 import {
   fitFacilityEnrichmentRow,
@@ -7,10 +9,7 @@ import {
 } from './fit-plan-context.js';
 
 export const FIT_FACILITY_ENGINEERING_BASIS_SCHEMA = 'FitFacilityEngineeringBasis.v1';
-export const FIT_FACILITY_WALL_BASES = Object.freeze([
-  'NOMINAL', 'MIN_SPEC', 'AS_BUILT', 'MEASURED_CURRENT',
-]);
-export const FIT_FACILITY_PROCESS_BASES = Object.freeze(['ACTUAL', 'STANDARD', 'NORMAL']);
+export { FIT_FACILITY_PROCESS_BASES, FIT_FACILITY_WALL_BASES } from './fit-plan-contract.js';
 
 const BASIS_AUTHORITY = Object.freeze({
   authority: 'ENGINEERING_BASIS_CUSTODY_ONLY',
