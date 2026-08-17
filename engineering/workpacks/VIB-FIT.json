@@ -251,7 +251,11 @@
       "id": "FIT-WP-009",
       "type": "MODULE_LIST_CONTAINS",
       "severity": "ERROR",
-      "config": { "moduleRef": "releaseManifest", "requiredItemsRef": "releaseManifest.requiredCriticalTests" }
+      "config": {
+        "moduleRef": "releaseManifest",
+        "requiredItemsRef": "releaseManifest.requiredCriticalTests",
+        "captureListCount": true
+      }
     },
     {
       "id": "FIT-WP-010",
