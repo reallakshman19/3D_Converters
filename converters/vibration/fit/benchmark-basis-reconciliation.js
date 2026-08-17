@@ -43,6 +43,19 @@ export const FIT_BENCHMARK_BASIS_SOURCE_REFS = Object.freeze({
 
 const SOURCE_AUTHORITY = 'CORROBORATED_PENDING_HIGHER_SOURCE';
 const UNRESOLVED = 'UNRESOLVED_SOURCE_AUTHORITY';
+const EXPECTED_IDS = Object.freeze([
+  'EI-D2-FIT-STREAM-4-SUPPLY-COOLER-14IN',
+  'EI-D2-FIT-STREAM-5-SUCTION-SCRUBBER-14IN',
+  'EI-D2-FIT-STREAM-6-COMPRESSOR-SUCTION-14IN',
+  'EI-D2-FIT-STREAM-7-COMPRESSOR-DISCHARGE-8IN',
+  'EI-D2-FIT-RECYCLE-DISCHARGE-8IN',
+  'EI-D2-FIT-RECYCLE-SUCTION-6IN',
+  'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
+  'EI-D2-FIT-RELIEF-DOWNSTREAM-6IN',
+  'EI-D4-FIT-SEPARATOR-INLET-20IN',
+  'EI-D4-FIT-PRODUCED-WATER-10IN',
+]);
+const FORBIDDEN_KEYS = Object.freeze(['expected', 'tolerance', 'standardLof', 'standardFv', 'outputs']);
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -113,7 +126,54 @@ const RECONCILIATION_AUTHORITY = deepFreeze({
   productionExecutionAllowed: false,
 });
 
+function reconciliationError(code, message) {
+  const error = new Error(message);
+  error.name = 'FitBenchmarkBasisReconciliationError';
+  error.code = code;
+  return error;
+}
+
+function assertNoOracleKeys(value, path = 'registry') {
+  if (!value || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    if (FORBIDDEN_KEYS.includes(key)) throw reconciliationError(
+      'FIT_BENCHMARK_BASIS_ORACLE_FIELD_FORBIDDEN', `${path}.${key} is not source-basis custody.`,
+    );
+    assertNoOracleKeys(child, `${path}.${key}`);
+  }
+}
+
+function validSupport(entry) {
+  const support = entry.support;
+  if (support.evidenceStatus === 'METHOD_ACCEPTED_PROJECT_STANDARD') {
+    return support.spanDeterminationMethod === 'PROJECT_PIPING_STANDARD';
+  }
+  return support.evidenceStatus === 'EFFECTIVE_SUPPORTS_CONFIRMED'
+    && support.spanDeterminationMethod === 'LINE_WALK_EFFECTIVE_SUPPORTS';
+}
+
+export function validateFitBenchmarkBasisReconciliation() {
+  const ids = FIT_BENCHMARK_BASIS_RECONCILIATION.map((entry) => entry.id);
+  if (new Set(ids).size !== ids.length) throw reconciliationError(
+    'FIT_BENCHMARK_BASIS_DUPLICATE_ID', 'Benchmark basis reconciliation contains a duplicate id.',
+  );
+  if (ids.length !== EXPECTED_IDS.length || EXPECTED_IDS.some((id) => !ids.includes(id))) {
+    throw reconciliationError('FIT_BENCHMARK_BASIS_UNIVERSE_MISMATCH', 'Benchmark basis reconciliation must cover the controlled ten-case FIT universe exactly.');
+  }
+  for (const entry of FIT_BENCHMARK_BASIS_RECONCILIATION) {
+    if (entry.schema !== FIT_BENCHMARK_BASIS_RECONCILIATION_SCHEMA || !validSupport(entry)) {
+      throw reconciliationError('FIT_BENCHMARK_BASIS_ENTRY_INVALID', `Invalid source-basis entry ${entry.id}.`);
+    }
+    if (!['UNRESOLVED_SOURCE_AUTHORITY', 'RECONCILED_HIGHER_SOURCE'].includes(entry.reconciliationState)) {
+      throw reconciliationError('FIT_BENCHMARK_BASIS_STATE_INVALID', `Invalid reconciliation state for ${entry.id}.`);
+    }
+  }
+  assertNoOracleKeys(FIT_BENCHMARK_BASIS_RECONCILIATION);
+  return true;
+}
+
 export function evaluateFitBenchmarkBasisReconciliation() {
+  validateFitBenchmarkBasisReconciliation();
   const unresolved = FIT_BENCHMARK_BASIS_RECONCILIATION
     .filter((entry) => entry.reconciliationState !== 'RECONCILED_HIGHER_SOURCE')
     .map((entry) => entry.id);
