@@ -42,7 +42,7 @@ function baseEnrichment() {
 
 function basisEnrichment(caseId = 'NORMAL', options = {}) {
   return [
-    row(P.WALL_BASIS, 'NOMINAL'),
+    row(P.WALL_BASIS, 'AS_BUILT'),
     row(P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS, 6.1, { unit: 'm' }),
     row(P.SPAN_DETERMINATION_METHOD, options.spanMethod ?? 'LINE_WALK_EFFECTIVE_SUPPORTS'),
     row(P.SUPPORT_EVIDENCE_STATUS, options.supportStatus ?? 'EFFECTIVE_SUPPORTS_CONFIRMED'),
@@ -97,7 +97,7 @@ test('M5 vocab distinguishes wall, process reference condition, support status a
 
 test('legacy span and legacy support boolean cannot establish M5 support custody', () => {
   const result = item(dataset({ enrichment: [
-    row(P.WALL_BASIS, 'NOMINAL'),
+    row(P.WALL_BASIS, 'AS_BUILT'),
     row(P.MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS, 6.1, { unit: 'm' }),
     row(P.SPAN_DETERMINATION_METHOD, 'LINE_WALK_EFFECTIVE_SUPPORTS'),
     row('SUPPORT_EFFECTIVENESS_CONFIRMED', true),

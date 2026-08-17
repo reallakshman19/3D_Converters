@@ -32,6 +32,14 @@ function buildLines(exchange, operatingCases) {
   }));
 }
 
+function cloneCustodyValue(value) {
+  if (Array.isArray(value)) return value.map(cloneCustodyValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [key, cloneCustodyValue(child)]),
+  );
+}
+
 function datasetWarnings(exchange, lines, unassignedElementCanonicalIds) {
   const warnings = [];
   if (exchange.completeExchange !== true) {
@@ -79,9 +87,12 @@ export function assembleVibrationIntegrityDataset(input = {}, options = {}) {
     engineeringAuthority: 'NONE',
     screeningAuthorized: false,
     exchangeSchema: exchange.schema,
+    exchangeComplete: exchange.completeExchange === true,
     exchangeIntegrityStatus: exchange.integrityStatus,
-    exchangeAuthority: exchange.authority,
+    exchangeAuthority: cloneCustodyValue(exchange.authority),
     sourceFileName: exchange.sourceFileName ?? null,
+    elements: cloneCustodyValue(exchange.elements),
+    catalogueEvidence: cloneCustodyValue(exchange.catalogueEvidence ?? []),
     lines: lineRows,
     unassignedElementCanonicalIds,
     operatingCases,

@@ -40,7 +40,7 @@ function operatingCases() {
 
 function basis(canonicalId, span) {
   return [
-    { canonicalId, property: 'WALL_BASIS', value: 'NOMINAL', source: 'M5' },
+    { canonicalId, property: 'WALL_BASIS', value: 'AS_BUILT', source: 'M5' },
     { canonicalId, property: 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS', value: span, unit: 'm', source: 'M5' },
     { canonicalId, property: 'SPAN_DETERMINATION_METHOD', value: 'LINE_WALK_EFFECTIVE_SUPPORTS', source: 'M5' },
     { canonicalId, property: 'SUPPORT_EVIDENCE_STATUS', value: 'EFFECTIVE_SUPPORTS_CONFIRMED', source: 'M5' },

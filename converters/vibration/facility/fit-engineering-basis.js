@@ -9,6 +9,7 @@ import {
   fitFacilityEnrichmentRow,
   fitFacilityEnrichmentTrace,
 } from './fit-plan-context.js';
+import { resolveFitFacilityGeometryCustody } from './fit-geometry-custody.js';
 
 export const FIT_FACILITY_ENGINEERING_BASIS_SCHEMA = 'FitFacilityEngineeringBasis.v1';
 export {
@@ -143,13 +144,21 @@ function supportEvidence(rows, missing, invalid, reasons) {
   return { spanDeterminationMethod: method, evidenceStatus: status };
 }
 
-function traces(rows) {
-  return Object.freeze(Object.fromEntries(
-    Object.entries(rows).map(([key, row]) => [key, fitFacilityEnrichmentTrace(row, row?.caseId ? 'CASE_SPECIFIC' : 'GLOBAL')]),
-  ));
+function traces(rows, geometryCustody) {
+  return Object.freeze({
+    ...Object.fromEntries(
+      Object.entries(rows).map(([key, row]) => [
+        key,
+        fitFacilityEnrichmentTrace(row, row?.caseId ? 'CASE_SPECIFIC' : 'GLOBAL'),
+      ]),
+    ),
+    geometryCustody: geometryCustody.trace,
+  });
 }
 
-export function resolveFitFacilityEngineeringBasis({ index, canonicalId, line, caseId, process } = {}) {
+export function resolveFitFacilityEngineeringBasis({
+  index, canonicalId, line, caseId, process, geometryCustody,
+} = {}) {
   const missing = [];
   const invalid = [];
   const reasons = [];
@@ -163,6 +172,10 @@ export function resolveFitFacilityEngineeringBasis({ index, canonicalId, line, c
     operatingScenarioCoherent: basisRow(index, canonicalId, p.OPERATING_SCENARIO_COHERENT, caseId),
   };
   const wallBasis = textValue(rows.wallBasis, 'wallBasis', missing, invalid, FIT_FACILITY_WALL_BASES);
+  const geometry = resolveFitFacilityGeometryCustody({ wallBasis, custody: geometryCustody });
+  missing.push(...geometry.missing);
+  invalid.push(...geometry.invalid);
+  reasons.push(...geometry.reasons);
   const span = quantityValue(
     rows.maximumSpanBetweenEffectiveSupports, 'maximumSpanBetweenEffectiveSupports', missing, invalid,
   );
@@ -178,14 +191,20 @@ export function resolveFitFacilityEngineeringBasis({ index, canonicalId, line, c
     schema: FIT_FACILITY_ENGINEERING_BASIS_SCHEMA,
     status: uniqueMissing.length || uniqueInvalid.length ? 'NOT_READY' : 'READY',
     scope: { line, caseId: caseId ?? null, canonicalId },
-    geometry: { wallBasis },
+    geometry: {
+      wallBasis,
+      geometrySource: geometry.geometrySource,
+      catalogueAuthority: geometry.catalogueAuthority,
+      catalogueRecordId: geometry.catalogueRecordId,
+      nominalDescriptor: geometry.nominalDescriptor,
+    },
     support: { maximumSpanBetweenEffectiveSupports: span, ...support },
     process: resolvedProcess,
     scenario: { coherent: scenarioCoherent },
     missing: uniqueMissing,
     invalid: uniqueInvalid,
     reasons: [...new Set(reasons)],
-    trace: traces(rows),
+    trace: traces(rows, geometry),
     authority: BASIS_AUTHORITY,
   });
 }
