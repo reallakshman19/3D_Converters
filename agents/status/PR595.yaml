@@ -1,0 +1,35 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR595
+mission: "XML-to-CII Standalone Performance Batch A: remove redundant master/config work without changing engineering authority"
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-standalone-perf-batch-a
+report_basis_head: b93bc176d8a6e5c46fc26cd576fed9747f7260f3
+main_head_last_checked: 00a3296f4b860ab1acb49ed690a4122122394d56
+work_intent: SALVAGE_AND_REPLAY
+criticality: ENGINEERING_CRITICAL
+execution_mode: AUTO
+auto_state: TAKEOVER_REQUIRED
+agent_state: POLICY_COMPLIANCE_BLOCKED
+pr_recovery_state: SALVAGE_PARTIAL
+takeover_authority: READ_ONLY
+handover_readiness: READY_FOR_NATIVE_REPLAY
+report_path: agents/PR595_workreport.md
+appendix_a_status: NOT_COMPLETED_FOR_NATIVE_REPLAY
+protected_authority:
+  - INPUTXML_TO_CII2019_IMMUTABLE_CORE_UNCHANGED
+  - SUPPORT_RESOLVER_SEMANTICS_UNCHANGED
+  - SUPPORT_GAP_SEMANTICS_UNCHANGED
+  - CII_WRITER_AUTHORITY_UNCHANGED
+  - DRAFT_MAPPING_NON_AUTHORITATIVE
+validation:
+  source_diff_review: PASS_INSPECTION_ONLY
+  focused_node_tests: NOT_RUN_NO_NATIVE_PRIVATE_CHECKOUT
+  browser_acceptance: NOT_RUN
+  github_actions: NOT_APPLICABLE_UNAUTHORIZED_WORKFLOW_REMOVED
+  mandatory_pre_edit_backup: NOT_RUN_POLICY_NONCOMPLIANT
+coordination_state: "PR597 SAFE exact-file; PR589 COORDINATION_REQUIRED semantic support-gap dependency; Batch C stack depends on PR595"
+highest_risk: "Existing-file edits were made without the mandatory pre-edit native backup command; runtime equivalence tests are NOT_RUN."
+exact_next_action: "Native checkout: re-ground main/open PRs, qualify Appendix A, backup every existing file with utils/backup.js before edit, replay Batch A on a fresh branch, run focused + release/browser equivalence tests, supersede PR595."
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T02:58:00+04:00
