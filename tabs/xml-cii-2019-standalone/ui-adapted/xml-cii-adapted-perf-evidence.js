@@ -13,6 +13,8 @@ const COUNTER_ROWS = Object.freeze([
   ['Actual workspace full renders', 'workspaceFullRenderCount'],
   ['Workspace partial renders', 'workspacePartialRenderCount'],
   ['Master local DOM updates', 'masterPartialDomUpdateCount'],
+  ['Preview search builds', 'previewSearchBuildCount'],
+  ['Preview search rows prepared', 'previewSearchRowsPrepared'],
 ]);
 
 const TIMING_ROWS = Object.freeze([
@@ -21,6 +23,7 @@ const TIMING_ROWS = Object.freeze([
   ['Sheet to JSON', 'masterSheetToJsonMs'],
   ['Normalize', 'masterNormalizeMs'],
   ['Persist', 'masterPersistMs'],
+  ['Preview search build', 'previewSearchBuildMs'],
 ]);
 
 function numberText(value) {
