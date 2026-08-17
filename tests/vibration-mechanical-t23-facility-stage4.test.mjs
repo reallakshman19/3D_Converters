@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   MECHANICAL_T23_SOURCE_OPTIONS,
@@ -6,6 +9,35 @@ import {
   inspectMechanicalFacilityCandidate,
   mechanicalFacilityScopeId,
 } from '../converters/vibration/mechanical/facility.js';
+
+const NODE140_BENCHMARK_COMMIT = '432c87e022674822cc4ddaf2faddeffd68fe883e';
+const NODE140_BENCHMARK_FILES = [
+  ['Benchmarks/css/SYS-0010.xml', '1c6e2d817c9488839d1743da46927e8e104fa824'],
+  ['Benchmarks/css/css3_managed_stage.zip', '86da3f48cb53b7cb7f3520072edcf0d3ed0d1806'],
+];
+
+function exportExactNode140BenchmarkArtifact() {
+  const outDir = 'artifacts/vibration-production-freeze/node140-exact-benchmark';
+  mkdirSync(outDir, { recursive: true });
+  execFileSync('git', ['fetch', '--depth=1', 'origin', NODE140_BENCHMARK_COMMIT], { stdio: 'inherit' });
+  const provenance = [`commit=${NODE140_BENCHMARK_COMMIT}`];
+  const sums = [];
+  for (const [repoPath, expectedBlob] of NODE140_BENCHMARK_FILES) {
+    const bytes = execFileSync('git', ['show', `${NODE140_BENCHMARK_COMMIT}:${repoPath}`], { maxBuffer: 4 * 1024 * 1024 });
+    const actualBlob = execFileSync('git', ['hash-object', '--stdin'], { input: bytes, encoding: 'utf8' }).trim();
+    assert.equal(actualBlob, expectedBlob, `${repoPath} immutable blob`);
+    const name = repoPath.split('/').at(-1);
+    writeFileSync(`${outDir}/${name}`, bytes);
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    sums.push(`${sha256}  ${name}`);
+    provenance.push(`${name}.git_blob=${actualBlob}`);
+    provenance.push(`${name}.sha256=${sha256}`);
+  }
+  writeFileSync(`${outDir}/SHA256SUMS`, `${sums.join('\n')}\n`);
+  writeFileSync(`${outDir}/PROVENANCE.txt`, `${provenance.join('\n')}\n`);
+}
+
+exportExactNode140BenchmarkArtifact();
 
 function row(overrides = {}) {
   return {
