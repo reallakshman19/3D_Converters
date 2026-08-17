@@ -9,18 +9,19 @@ Bounded M5 slice #583:
 ## Repository / PR identity
 
 ```text
-base main                    = fd7f303dbce054a63f10f8c6b8e234e6d09462ef
-branch                       = agent/vib-geom-custody-583-nominal-catalogue
-issue                        = #583
-PR                           = #584
-Appendix A comment           = 5314137872
-score                        = 98/100
-qualification                = QUALIFIED_FOR_VIB_NOMINAL_GEOMETRY_CUSTODY_M5
-primary implementation head  = 11579c2d5510e0597840f10c434ed6c77211ca89
-purity-hardening head         = 5128de06558231afde7fe25499c94aa272af0697
+base at original implementation = fd7f303dbce054a63f10f8c6b8e234e6d09462ef
+branch                          = agent/vib-geom-custody-583-nominal-catalogue
+issue                           = #583
+PR                              = #584
+Appendix A comment              = 5314137872
+score                           = 98/100
+qualification                   = QUALIFIED_FOR_VIB_NOMINAL_GEOMETRY_CUSTODY_M5
+primary implementation head     = 11579c2d5510e0597840f10c434ed6c77211ca89
+purity-hardening head            = 5128de06558231afde7fe25499c94aa272af0697
+pre-reconciliation final head   = f3832d9d6dc1864068432a73b4e31a4d1bca260f
 ```
 
-This report is committed after implementation/hardening checkpoints, so the final PR head is the later commit containing this report and related audit-only backup custody.
+The original implementation/test-first history remains preserved under the pre-reconciliation backup branch recorded below. The current PR head is a contents-based reconstruction on current `main`; do not claim the original test-first commits are ancestors of the rebuilt head.
 
 ## Delivered production behavior
 
@@ -131,7 +132,7 @@ sourceTrace.geometry.catalogueCustody
 
 ## Test-first evidence
 
-Primary nominal-custody falsifier was committed before production repair:
+Primary nominal-custody falsifier was committed before production repair in the preserved original history:
 
 ```text
 1156b8231e9775e2bef8fe82b071fcc7c0ce794a
@@ -178,19 +179,14 @@ then deepFreezeVibrationDataset(...)
 
 The arrays were copied but their objects were not. Recursive dataset freezing could therefore freeze caller-owned `Elements`, `Catalogue Evidence.sourceReference`, and exchange-authority objects.
 
-The protective regression was committed before the repair:
+The protective regression and repair remain preserved in original history:
 
 ```text
-baf32a7fc6d34ff73b9d1b5446ef56aa6026a90c
+baf32a7fc6d34ff73b9d1b5446ef56aa6026a90c  purity falsifier
+5128de06558231afde7fe25499c94aa272af0697  repair
 ```
 
-Repair:
-
-```text
-5128de06558231afde7fe25499c94aa272af0697
-```
-
-`assembleVibrationIntegrityDataset()` now recursively clones only retained exchange custody values before freezing the dataset. This changes no FIT inputs, equations, applicability, catalogue authority semantics, or readiness criteria; it restores caller-object purity while preserving immutable dataset custody.
+`assembleVibrationIntegrityDataset()` recursively clones retained exchange custody values before freezing the dataset. This changes no FIT inputs, equations, applicability, catalogue authority semantics, or readiness criteria.
 
 ## Existing fixture migration
 
@@ -211,20 +207,64 @@ Their numerical expectations remain unchanged. Dedicated #583 tests own the posi
 
 Connector-only backup custody is explicit; no claim is made that `node utils/backup.js` ran.
 
-Earlier exact Git blob/tree checkpoints:
+Earlier exact Git blob/tree checkpoints retained in the PR content:
 
 ```text
 509a8640acbb48ec89de0730a6a6bab6ae53726e  pre-production production-file blobs
 30601674c3b3f6bb553536bda4fcd4f78a85eab6  pre-migration fixture blobs
 9b967deff21550c5cf9a060f8d074e30c79829d7  post-create resolver blob before hardening
-```
-
-Continuation backup commits:
-
-```text
 18b94a76c1858824724666c994afcac2eedf0799  exact pre-purity-repair assemble.js copy
 a633cca9837e77fa9c8eb3724de164352a9773e5  exact pre-report-refresh PR584 workreport copy
 ```
+
+Pre-reconciliation exact head is additionally preserved at:
+
+```text
+backup/vib-geom-custody-583-pre-main-sync-20260817
+= f3832d9d6dc1864068432a73b4e31a4d1bca260f
+```
+
+## 2026-08-17 current-main reconciliation receipt
+
+Owner instruction in the active conversation authorized **refresh/reconcile #584 to current main and make it merge-ready; no merge**.
+
+```text
+pre-reconciliation exact head = f3832d9d6dc1864068432a73b4e31a4d1bca260f
+current main at rebuild start = a43765008863fa93cccb7186bfea3af24bde562f
+post-original-base dependencies = #586 + #588
+sync PR                      = #590
+sync merge attempt           = BLOCKED_BY_REPOSITORY_POLICY
+repository response          = merge commits are not allowed
+reconciliation method        = contents-based true reconstruction from exact current main
+rebuild branch               = agent/vib-geom-custody-583-rebase-20260817
+original history custody     = backup/vib-geom-custody-583-pre-main-sync-20260817
+```
+
+The reconstruction replays #584's final production/test/governance content on top of `main@a43765008863fa93cccb7186bfea3af24bde562f`. It does not synthesize a fake merge commit and does not claim original test-first commits are ancestors of the rebuilt head.
+
+Post-base authority gates were verified byte-for-byte before the feature ref move:
+
+```text
+#586 geometry consistency module
+  path = converters/vibration/fit/geometry-consistency-authority.js
+  main blob = rebuilt blob = 29e922c4289bbeac0c3ea58cf5f1b639e54ca1df
+  tolerance = null
+  productionExecutionAllowed = false
+
+#588 process actualization module
+  path = converters/vibration/fit/process-basis-authority.js
+  main blob = rebuilt blob = 56606f2d2696744a174f5242fdf42417305cbf73
+  referenceConditions = null
+  conversionModel = null
+  compressibilityModel = null
+  gasConstant = null
+  atmosphericPressure = null
+  pressureReferenceRule = null
+  invariantQuantityRule = null
+  STANDARD/NORMAL production conversion = false
+```
+
+No #546 technical work, workflow edits, T2.9 numerical/source work, FIT benchmark-oracle changes, Product-Freeze changes, geometry-tolerance authorization, or process-actualization authorization were introduced by reconciliation.
 
 ## Protected scope
 
@@ -244,25 +284,22 @@ PR #546 technical work
 T2.9 numerical/source work
 ```
 
-## Validation truth at post-hardening implementation head
+## Validation truth after reconciliation
 
 ```text
-PASS     main/base exact and branch behind 0
-PASS     Appendix A 98/100 before production mutation
-PASS     primary custody regression committed before primary repair
-PASS     purity regression committed before purity repair
-PASS     PR mergeable = true at 5128de06558231afde7fe25499c94aa272af0697
-PASS     review submissions = 0 at post-hardening re-ground
-PASS     review threads = 0 at post-hardening re-ground
-PASS     fit-geometry-custody.js = 175 physical lines (<300)
-PASS     focused custody tests each <300 physical lines
-PASS     compare ledger contains no workflow/#546/T2.9 numerical-source/FIT benchmark-oracle changes
-PASS     DN/schedule/catalogue excluded from request.inputs by machine-test source
-PASS     retained custody is cloned before dataset deep-freeze by source inspection
+PASS     Appendix A 98/100 before original production mutation
+PASS     original test-first history preserved on exact backup branch
+PASS     production five-file final content replayed from preserved #584 head
+PASS     dedicated G01-G10 + exact-ID + purity regressions replayed
+PASS     six unrelated legacy fixtures retain explicit AS_BUILT basis
+PASS     connector backup custody retained
+PASS     #586 geometry-consistency authority byte-identical to current main
+PASS     #588 process-basis authority byte-identical to current main
+PASS     no merge to main performed during reconciliation
 NOT_RUN  native exact-checkout focused Node tests — connector-only private checkout unavailable
 NOT_RUN  full repository-native VIB/FIT/AIV suites
 NOT_RUN  browser
-NOT_RUN  exact post-hardening-head PR Actions — no pull-request workflow run returned for 5128de06558231afde7fe25499c94aa272af0697
+PENDING  exact rebuilt-head PR Actions/reviews/mergeability — re-ground after feature ref move
 ```
 
 Source/static evidence is not promoted to native execution PASS.
@@ -271,14 +308,13 @@ Source/static evidence is not promoted to native execution PASS.
 
 ```text
 DRAFT = true
-MERGEABLE = true at post-hardening re-ground
-MERGE_AUTHORITY = OWNER_ONLY / NOT_GRANTED_FOR_THIS NEW PR
+MERGE_AUTHORITY = OWNER_ONLY / NOT_GRANTED_FOR_PR_584
 ```
 
-The prior Owner authorization applied to #582 only. This PR must remain draft and unmerged until a new explicit Owner merge instruction.
+This reconciliation is not merge authorization. PR #584 remains draft and unmerged until a new explicit Owner merge instruction.
 
 ## Next programme position
 
 #429 remains in M5 after this slice. This PR does not authorize M6.
 
-Still-separate M5 obligations include controlled geometry consistency/tolerance authority (if introduced), explicit standard/normal-to-actual process resolution, and broader coherent-scenario semantics. None are implemented here, and no dependent production branch should assume #584 has landed while it remains unmerged.
+Still-separate M5 obligations include controlled geometry consistency/tolerance authority, explicit standard/normal-to-actual process resolution, and broader coherent OperatingScenario semantics. The first two remain explicitly blocked by #586/#588; OperatingScenario identity/coherence is the next non-overlapping M5 slice after #584 lands.
