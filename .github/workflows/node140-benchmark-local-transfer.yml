@@ -1,12 +1,11 @@
 name: Node140 benchmark local transfer
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - agent/xml-cii-node140-gap-benchmark-rca
     paths:
       - '.github/workflows/node140-benchmark-local-transfer.yml'
-      - 'Benchmarks/css/SYS-0010.xml'
-      - 'Benchmarks/css/css3_managed_stage.zip'
   workflow_dispatch:
 
 permissions:
@@ -34,10 +33,7 @@ jobs:
           mkdir -p ../node140-benchmark
           cp Benchmarks/css/SYS-0010.xml ../node140-benchmark/
           cp Benchmarks/css/css3_managed_stage.zip ../node140-benchmark/
-          printf '%s  %s\n' \
-            "$(sha256sum Benchmarks/css/SYS-0010.xml | awk '{print $1}')" SYS-0010.xml \
-            "$(sha256sum Benchmarks/css/css3_managed_stage.zip | awk '{print $1}')" css3_managed_stage.zip \
-            > ../node140-benchmark/SHA256SUMS
+          sha256sum Benchmarks/css/SYS-0010.xml Benchmarks/css/css3_managed_stage.zip > ../node140-benchmark/SHA256SUMS
           printf 'commit=432c87e022674822cc4ddaf2faddeffd68fe883e\nxml_blob=1c6e2d817c9488839d1743da46927e8e104fa824\nzip_blob=86da3f48cb53b7cb7f3520072edcf0d3ed0d1806\n' > ../node140-benchmark/PROVENANCE.txt
 
       - name: Upload exact benchmark
