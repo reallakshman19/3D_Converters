@@ -99,10 +99,30 @@ function tableBody(columns, rows) {
   return body;
 }
 
+export function createLazyPreviewSearchRows(master, state) {
+  let prepared = null;
+  return {
+    isPrepared: () => prepared !== null,
+    rows: () => {
+      if (prepared === null) prepared = buildPreviewSearchRows(master, state);
+      return prepared;
+    },
+  };
+}
+
+function replacePreviewRows(tbodyEl, columns, items) {
+  tbodyEl.innerHTML = '';
+  for (const item of items.slice(0, 150)) {
+    const tr = createElement('tr');
+    for (const col of columns) tr.appendChild(createElement('td', text(item?.[col])));
+    tbodyEl.appendChild(tr);
+  }
+}
+
 function appendPreview(parent, master, state, config) {
   const masterKey = master.key;
   const rows = master.previewRows || [];
-  const allRows = buildPreviewSearchRows(master, state);
+  const lazySearchRows = createLazyPreviewSearchRows(master, state);
   const wrap = createElement('div', '', 'xml-cii-master-preview');
   wrap.appendChild(createElement('h4', 'Preview'));
   if (!rows.length) {
@@ -128,13 +148,12 @@ function appendPreview(parent, master, state, config) {
 
   searchInput.addEventListener('input', () => {
     const q = searchInput.value.toLowerCase().trim();
-    const filtered = q ? allRows.filter((row) => previewSearchText(row).includes(q)) : allRows;
-    tbodyEl.innerHTML = '';
-    for (const item of filtered.slice(0, 150)) {
-      const tr = createElement('tr');
-      for (const col of columns) tr.appendChild(createElement('td', text(item?.[col])));
-      tbodyEl.appendChild(tr);
+    if (!q) {
+      replacePreviewRows(tbodyEl, columns, rows);
+      return;
     }
+    const filtered = lazySearchRows.rows().filter((row) => previewSearchText(row).includes(q));
+    replacePreviewRows(tbodyEl, columns, filtered);
   });
 
   parent.appendChild(wrap);
