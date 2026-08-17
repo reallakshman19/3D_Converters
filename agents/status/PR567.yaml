@@ -36,9 +36,10 @@ validation:
   full_framework_test: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
   full_aiv_screening_release: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
   full_aiv_canvas_release: NOT_RUN_ENVIRONMENT_BLOCKED_NO_PRIVATE_CHECKOUT
-  workflows_actions: NOT_APPLICABLE_OWNER_DIRECTED_LOCAL_ONLY
+  workflow_aiv_controlled_source_run_31986272597: NOT_RUN_INFRASTRUCTURE_ZERO_STEP
+  workflow_production_freeze_run_31986272598: NOT_RUN_INFRASTRUCTURE_ZERO_STEP
 coordination_state: PR569_DEPENDENCY_MERGED_PR517_AND_PR506_NOT_ABSORBED
-highest_risk: "Full private-checkout FIT/framework/AIV release suites remain NOT_RUN; local replay proves the 20 AIV work-pack gates through the merged generic architecture only."
-exact_next_action: "Inspect final replay diff against main, mark PR567 ready, then merge at exact replay head under Owner authorization."
+highest_risk: "Full private-checkout FIT/framework/AIV release suites remain NOT_RUN; workflow failure labels on the replay head executed zero steps and are NOT_RUN, not product FAIL."
+exact_next_action: "Inspect final replay diff/review threads and mergeability; mark PR567 ready and merge at exact final head under Owner authorization."
 merge_authority: OWNER_EXPLICITLY_GRANTED_2026-08-17
-last_updated: 2026-08-17T05:56:00+04:00
+last_updated: 2026-08-17T06:00:00+04:00

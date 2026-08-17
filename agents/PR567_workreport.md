@@ -15,7 +15,7 @@ merge authority       OWNER_EXPLICITLY_GRANTED_2026-08-17
 
 ## Current truth
 
-PR567 was originally built before the reusable work-pack framework. Review identified one architectural blocker: the old branch added a `VIB-AIV` special case to `scripts/verify-engineering-workpack.mjs`, which directly contradicted #569's generic-engine invariant. PR569 was reviewed, fixed and merged first. PR567 is now replayed on that exact main and no longer edits the shared verifier or carries a standalone AIV verifier.
+Review found that the original #567 architecture added a `VIB-AIV` special case to the shared verifier, contradicting the generic framework required by #568/#569. PR569 was reviewed, fixed and merged first. PR567 is now replayed on that exact main and no longer edits `scripts/verify-engineering-workpack.mjs` or carries `scripts/verify-aiv-engineering-workpack.mjs`.
 
 Current AIV authority remains unchanged:
 
@@ -41,15 +41,15 @@ EngineeringWorkPack.v1 VIB-AIV
 
 AIV capability lifecycle is explicitly `UNMAPPED_LEGACY / inferred=false`; active registry membership does not infer lifecycle state.
 
-The AIV-specific probe owns only mechanism semantics that cannot safely live in the generic core: assessment screening scope, line/case non-authority, visible assumption custody, bounded configured D.2.3 dependency classification, independent analytical benchmark custody, Product Freeze #513 ownership and active-overlap classification.
+The AIV probe owns only mechanism semantics that cannot safely live in the generic core: assessment screening scope, line/case non-authority, visible assumption custody, bounded configured D.2.3 dependency classification, independent analytical benchmark custody, Product Freeze #513 ownership and active-overlap classification.
 
 ## Review fixes
 
-1. Removed the old shared-verifier mechanism branch from the final PR by replaying on merged #569.
-2. Removed the old standalone `scripts/verify-aiv-engineering-workpack.mjs` from the final PR.
+1. Removed the old shared-verifier mechanism branch by replaying on merged #569.
+2. Removed the standalone AIV verifier from the final PR.
 3. Added `engineering/workpacks/probes/vib-aiv.mjs` as the declared mechanism seam.
-4. Added `checks[]` and explicit `UNMAPPED_LEGACY` lifecycle to `VIB-AIV.json`.
-5. Preserved the two surgical UI drift repairs and historical artifact classification.
+4. Added ordered `checks[]` and explicit legacy-lifecycle state to `VIB-AIV.json`.
+5. Preserved the two surgical UI projection repairs and historical artifact classification.
 
 ## Protected invariants
 
@@ -66,7 +66,7 @@ The AIV-specific probe owns only mechanism semantics that cannot safely live in 
 
 ## Validation truth
 
-Local exact-architecture reconstruction after #569 merge:
+Post-#569 local exact-architecture reconstruction:
 
 ```text
 PASS  node --check engineering/workpacks/probes/vib-aiv.mjs
@@ -74,7 +74,7 @@ PASS  generic workpack integration VIB-AIV: 20 / 20 deterministic gates
 PASS  new probe remains <300 physical lines
 ```
 
-Prior exact-source #567 local harness before replay had also executed:
+Earlier exact-source #567 local harness before replay also executed:
 
 ```text
 PASS  AIV drift regression 4 / 4 after narrowing its initial over-broad BLOCKED regex
@@ -91,7 +91,14 @@ npm run verify:aiv-screening-release
 npm run verify:aiv-canvas-release
 ```
 
-No NOT_RUN item is represented as PASS. GitHub workflow/Actions evidence is not used because the Owner previously directed local-only validation.
+The replay head generated two GitHub workflow records labelled failure. Both jobs contain `steps=[]`:
+
+```text
+run 31986272597  Vibration AIV Controlled Source Qualification  NOT_RUN / INFRASTRUCTURE_ZERO_STEP
+run 31986272598  Vibration Production Freeze Validation        NOT_RUN / INFRASTRUCTURE_ZERO_STEP
+```
+
+These are not executed product failures and are not represented as PASS. No workflow result is used to manufacture qualification evidence.
 
 ## Final changed-file intent
 
@@ -123,8 +130,8 @@ PR #569 is merged and consumed as infrastructure. PR #517 PF-02 and PR #506 salv
 
 ## Highest risk
 
-The full private-checkout FIT/framework/AIV release suites remain unavailable in this environment. The replay itself is locally proven through the merged generic work-pack seam, but that narrower PASS is not a substitute for those NOT_RUN suites.
+The full private-checkout FIT/framework/AIV release suites remain unavailable in this environment. The replay is locally proven through the merged generic Work Pack seam, but that narrower PASS is not a substitute for those NOT_RUN suites. GitHub's current workflow failure labels are also zero-step NOT_RUN evidence, not engineering FAIL.
 
 ## EXACT_NEXT_ACTION
 
-Inspect the final PR567 replay diff against `main@7e217bc2f2ab07208e504d76487a3902aacbe4f6`. If it contains only the declared final paths and remains mergeable, mark ready and merge at the exact replay head under the Owner's explicit 2026-08-17 authorization.
+Inspect final PR567 diff, unresolved review threads and mergeability. If only declared final paths remain and the PR is mergeable, mark ready and merge at the exact final head under the Owner's explicit 2026-08-17 authorization.
