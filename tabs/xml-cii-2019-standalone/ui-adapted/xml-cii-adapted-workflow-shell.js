@@ -5,6 +5,11 @@ import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=202
 import { renderOutputPanel } from './xml-cii-adapted-output-panel.js?v=20260708-v8';
 import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260802-smart-ui-v1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260708-v8';
+import { syncMasterDraftDom } from './xml-cii-adapted-master-dom-sync.js?v=20260818-perf-c1';
+import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
+
+const MASTER_KEYS = Object.freeze(['lineList', 'pipingClass', 'materialMap', 'weight']);
+const DRAFT_ONLY_TOP_LEVEL_KEYS = new Set(['masterContext', 'importMastersWriteBackStatus']);
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -12,32 +17,109 @@ export function createStateRef(initialState) {
   return { current: initialState || activeWorkflowState };
 }
 
+function sameTopLevelOutsideDraft(previous, next) {
+  const keys = new Set([...Object.keys(previous || {}), ...Object.keys(next || {})]);
+  for (const key of keys) {
+    if (DRAFT_ONLY_TOP_LEVEL_KEYS.has(key)) continue;
+    if (previous?.[key] !== next?.[key]) return false;
+  }
+  return true;
+}
+
+function sameMasterRows(previous, next) {
+  for (const key of ['lineRows', 'pipingClassRows', 'materialMapRows', 'weightMasterRows']) {
+    if (previous?.[key] !== next?.[key]) return false;
+  }
+  for (const key of MASTER_KEYS) {
+    if (previous?.rawRows?.[key] !== next?.rawRows?.[key]) return false;
+    if (Number(previous?.appliedMappingRevision?.[key] || 0) !== Number(next?.appliedMappingRevision?.[key] || 0)) return false;
+  }
+  return true;
+}
+
+function sameMasterAuthority(previous, next) {
+  if (!previous || !next) return false;
+  if (previous.config !== next.config) return false;
+  if (!sameMasterRows(previous, next)) return false;
+  for (const key of ['sourceMetadata', 'rowCounts', 'previewRows', 'sheetNames', 'activeSheet', 'workbookData', 'diagnostics', 'diagnosticsByMaster']) {
+    if (previous?.[key] !== next?.[key]) return false;
+  }
+  return true;
+}
+
+function draftFingerprint(value) {
+  if (!value) return '';
+  return JSON.stringify({
+    fieldMap: value.fieldMap || {},
+    dirty: value.dirty === true,
+    basisAppliedRevision: Number(value.basisAppliedRevision || 0),
+  });
+}
+
+function changedDraftKeys(previous, next) {
+  const previousDrafts = previous?.masterContext?.mappingDrafts || {};
+  const nextDrafts = next?.masterContext?.mappingDrafts || {};
+  return MASTER_KEYS.filter((key) => draftFingerprint(previousDrafts[key]) !== draftFingerprint(nextDrafts[key]));
+}
+
+export function classifyXmlCiiRenderScope(previous, next) {
+  if (!previous || !next) return { kind: 'full', reason: 'initial-render' };
+  if (!sameTopLevelOutsideDraft(previous, next)) return { kind: 'full', reason: 'top-level-authority-change' };
+  if (!sameMasterAuthority(previous.masterContext, next.masterContext)) return { kind: 'full', reason: 'master-authority-change' };
+
+  const changed = changedDraftKeys(previous, next);
+  if (changed.length !== 1) return { kind: 'full', reason: changed.length ? 'multi-draft-change' : 'no-draft-change' };
+  const masterKey = changed[0];
+  if (next.activePhaseId !== 'source' || next.activeSubTabId !== masterKey) {
+    return { kind: 'full', reason: 'draft-target-not-visible' };
+  }
+  return { kind: 'master-draft', masterKey };
+}
+
+function captureScrollStates(container) {
+  const scrollStates = [];
+  container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
+    const cls = '.' + Array.from(el.classList).join('.');
+    scrollStates.push({ selector: cls, index: idx, top: el.scrollTop, left: el.scrollLeft });
+  });
+  return scrollStates;
+}
+
+function restoreScrollStates(container, scrollStates) {
+  for (const pos of scrollStates) {
+    try {
+      const els = container.querySelectorAll(pos.selector);
+      const el = els[pos.index] || els[0];
+      if (el) {
+        el.scrollTop = pos.top;
+        el.scrollLeft = pos.left;
+      }
+    } catch {}
+  }
+}
+
 export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   const stateRef = createStateRef(initialState);
+  let renderedState = null;
   const render = () => {
-    activeWorkflowState = stateRef.current;
-    
-    // Save scroll positions of scrollable panels
-    const scrollStates = [];
-    container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
-      // Create a specific class-based selector string
-      const cls = '.' + Array.from(el.classList).join('.');
-      scrollStates.push({ selector: cls, index: idx, top: el.scrollTop, left: el.scrollLeft });
-    });
-    
+    const nextState = stateRef.current;
+    activeWorkflowState = nextState;
+    const scope = classifyXmlCiiRenderScope(renderedState, nextState);
+
+    if (scope.kind === 'master-draft') {
+      const synced = syncMasterDraftDom(container, nextState, nextState.masterContext?.config || {}, scope.masterKey);
+      if (synced.updated) {
+        perfCount('workspacePartialRenderCount');
+        renderedState = nextState;
+        return;
+      }
+    }
+
+    const scrollStates = captureScrollStates(container);
+    perfCount('workspaceFullRenderCount');
     renderAdaptedWorkflow(container, stateRef, render);
-    
-    // Restore scroll positions after DOM update
-    scrollStates.forEach((pos) => {
-      try {
-        const els = container.querySelectorAll(pos.selector);
-        const el = els[pos.index] || els[0];
-        if (el) {
-          el.scrollTop = pos.top;
-          el.scrollLeft = pos.left;
-        }
-      } catch (err) {}
-    });
+    renderedState = stateRef.current;
+    restoreScrollStates(container, scrollStates);
   };
   render();
   return () => clearElement(container);
@@ -47,13 +129,13 @@ export function renderAdaptedWorkflow(container, stateRef, render) {
   clearElement(container);
   const root = createElement('section', '', 'xml-cii-standalone-root xml-cii-adapted-workflow-shell');
   renderHeader(root, stateRef.current);
-  
+
   const workspace = createElement('div', '', 'model-converters-root xml-cii-workspace-layout');
-  
+
   const left = createElement('div', '', 'model-converters-left xml-cii-left-panel');
   renderPhaseRail(left, stateRef.current);
   workspace.appendChild(left);
-  
+
   const main = createElement('div', '', 'xml-cii-main-workspace');
   if (main.style) {
     main.style.minWidth = '0';
@@ -61,9 +143,9 @@ export function renderAdaptedWorkflow(container, stateRef, render) {
   }
   renderActivePhase(main, stateRef, render);
   workspace.appendChild(main);
-  
+
   root.appendChild(workspace);
-  
+
   container.appendChild(root);
   bindAdaptedWorkflowEvents(container, stateRef, render);
 }
@@ -95,7 +177,7 @@ function createSourceBadge(state) {
 function createMastersBadge(state) {
   let loadedCount = 0;
   if (state.masterContext && state.masterContext.rowCounts) {
-    for (const key of ['lineList', 'pipingClass', 'materialMap', 'weight']) {
+    for (const key of MASTER_KEYS) {
       if (Number(state.masterContext.rowCounts[key] || 0) > 0) loadedCount++;
     }
   }
@@ -113,8 +195,6 @@ function createReadinessBadge(state) {
 }
 
 function createDiagnosticsBadges(state) {
-  // Count across every diagnostics source the shell knows about, not just the
-  // preview audit: run failures and readiness warnings must show here too.
   let errors = 0;
   let warnings = 0;
   let anySource = false;
@@ -135,10 +215,7 @@ function createDiagnosticsBadges(state) {
     const runWarnings = state.result.diagnostics?.warnings;
     if (Array.isArray(runWarnings)) warnings += runWarnings.length;
   }
-  if (!anySource) {
-    // No report built yet — do not claim a clean "0 Errors / 0 Warnings".
-    return [createBadge('Diagnostics: not built', '#94a3b8', 'rgba(148,163,184,.45)')];
-  }
+  if (!anySource) return [createBadge('Diagnostics: not built', '#94a3b8', 'rgba(148,163,184,.45)')];
   const errBadge = createBadge(`${errors} Errors`, errors ? '#fca5a5' : '#8be28b', errors ? '#ef4444' : '#2f855a');
   const warnBadge = createBadge(`${warnings} Warnings`, warnings ? '#fde047' : '#8be28b', warnings ? '#fbbf24' : '#2f855a');
   return [errBadge, warnBadge];
@@ -180,10 +257,10 @@ export function renderPhaseButton(phase, state) {
   const button = createElement('button', '', 'model-converters-workflow-phase xml-cii-phase-pill');
   button.type = 'button';
   button.dataset.phase = phase.id;
-  
+
   const detectedKind = detectXmlCiiWorkflowSourceKind(state.sourceText, 'xml');
   const actualKind = state.sourceKind === 'auto' ? detectedKind : state.sourceKind;
-  
+
   if (phase.id === 'json-trace' && actualKind === 'inputxml') {
     button.disabled = true;
     button.title = 'JSON Trace resolver is only available for XML mode.';
@@ -193,7 +270,7 @@ export function renderPhaseButton(phase, state) {
   } else {
     button.classList.toggle('is-active', state.activePhaseId === phase.id);
   }
-  
+
   button.append(
     createElement('span', phase.label, 'xml-cii-phase-label'),
     createElement('small', phase.summary, 'xml-cii-phase-summary'),
