@@ -11,6 +11,7 @@ on:
       - 'converters/xml-cii2019-core/support-mapping.js'
       - 'converters/xml-cii2019-core/support-mapping-config.js'
       - 'tests/xml-cii-standalone-master-perf.test.mjs'
+      - 'tests/xml-cii-standalone-config-cache-custody.test.mjs'
       - 'tests/xml-cii-standalone-support-gap-equivalence.test.mjs'
       - '.github/workflows/xml-cii-standalone-perf-batch-a.yml'
   workflow_dispatch:
@@ -34,10 +35,14 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-perf.js
           node --check tests/xml-cii-standalone-master-perf.test.mjs
+          node --check tests/xml-cii-standalone-config-cache-custody.test.mjs
           node --check tests/xml-cii-standalone-support-gap-equivalence.test.mjs
 
       - name: Qualify master runtime operation counts and restart custody
         run: node --test tests/xml-cii-standalone-master-perf.test.mjs
+
+      - name: Guard cached support-config authority synchronization
+        run: node --test tests/xml-cii-standalone-config-cache-custody.test.mjs
 
       - name: Prove support and GAP semantic equivalence
         run: node --test tests/xml-cii-standalone-support-gap-equivalence.test.mjs
