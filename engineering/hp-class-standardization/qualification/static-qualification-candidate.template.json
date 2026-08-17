@@ -1,0 +1,168 @@
+{
+  "_instructions": [
+    "Replace every REPLACE_* token and null numerical value with controlled evidence.",
+    "Do not derive Class-E expected values from the calculation implementation under test.",
+    "Every selected master row requires distinct preparedBy/checkedBy custody and checkedAt.",
+    "R1 qualification accepts RELATIVE benchmark tolerance only, with value <= 0.0001.",
+    "The candidate can reach EVIDENCE_COMPLETE_NOT_AUTHORIZED only; authority promotion is a separate owner/engineering decision."
+  ],
+  "candidateVersion": "b313-ch9-static-qualification-candidate/v1",
+  "method": {
+    "methodId": "B313-CH9-PF-2024-R1",
+    "methodRevision": "REPLACE_METHOD_REVISION",
+    "b313Edition": "2024"
+  },
+  "basisPackage": {
+    "packageVersion": "b313-ch9-basis-package/v1",
+    "query": {
+      "materialId": "REPLACE_MATERIAL_ID",
+      "b313Edition": "2024",
+      "materialTemperatureC": null,
+      "productId": "REPLACE_PRODUCT_ID"
+    },
+    "masters": {
+      "sources": [
+        {
+          "sourceId": "REPLACE_B313_METHOD_SOURCE_ID",
+          "role": "B313_CHAPTER_IX",
+          "standard": "ASME B31.3",
+          "edition": "2024",
+          "documentHash": "sha256:REPLACE_64_HEX",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "controlledSourceVerified": true,
+          "status": "INDEPENDENTLY_CHECKED",
+          "verifiedBy": "REPLACE_VERIFIER",
+          "independentCheckBy": "REPLACE_INDEPENDENT_CHECKER",
+          "verifiedAt": "REPLACE_ISO_TIMESTAMP",
+          "independentCheckedAt": "REPLACE_ISO_TIMESTAMP"
+        },
+        {
+          "sourceId": "REPLACE_ALLOWABLE_SOURCE_ID",
+          "role": "B313_ALLOWABLE_STRESS",
+          "standard": "ASME B31.3",
+          "edition": "2024",
+          "documentHash": "sha256:REPLACE_64_HEX",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "verifiedBy": "REPLACE_VERIFIER",
+          "independentCheckBy": "REPLACE_INDEPENDENT_CHECKER",
+          "verifiedAt": "REPLACE_ISO_TIMESTAMP",
+          "independentCheckedAt": "REPLACE_ISO_TIMESTAMP"
+        },
+        {
+          "sourceId": "REPLACE_DIMENSION_SOURCE_ID",
+          "role": "PIPE_DIMENSION",
+          "standard": "REPLACE_DIMENSION_STANDARD",
+          "edition": "REPLACE_DIMENSION_EDITION",
+          "documentHash": "sha256:REPLACE_64_HEX",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "verifiedBy": "REPLACE_VERIFIER",
+          "independentCheckBy": "REPLACE_INDEPENDENT_CHECKER",
+          "verifiedAt": "REPLACE_ISO_TIMESTAMP",
+          "independentCheckedAt": "REPLACE_ISO_TIMESTAMP"
+        },
+        {
+          "sourceId": "REPLACE_TOLERANCE_SOURCE_ID",
+          "role": "PRODUCT_TOLERANCE",
+          "standard": "REPLACE_PRODUCT_TOLERANCE_STANDARD",
+          "edition": "REPLACE_PRODUCT_TOLERANCE_EDITION",
+          "documentHash": "sha256:REPLACE_64_HEX",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "verifiedBy": "REPLACE_VERIFIER",
+          "independentCheckBy": "REPLACE_INDEPENDENT_CHECKER",
+          "verifiedAt": "REPLACE_ISO_TIMESTAMP",
+          "independentCheckedAt": "REPLACE_ISO_TIMESTAMP"
+        }
+      ],
+      "materialAllowable": [
+        {
+          "materialId": "REPLACE_MATERIAL_ID",
+          "b313Edition": "2024",
+          "temperatureC": null,
+          "allowableStressMpa": null,
+          "sourceId": "REPLACE_ALLOWABLE_SOURCE_ID",
+          "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
+          "interpolationPolicy": "LINEAR_NO_EXTRAPOLATION",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
+        }
+      ],
+      "pipeProduct": [
+        {
+          "productId": "REPLACE_PRODUCT_ID",
+          "materialId": "REPLACE_MATERIAL_ID",
+          "dimensionId": "REPLACE_DIMENSION_ID",
+          "productSpec": "REPLACE_PRODUCT_SPEC",
+          "manufacturingProcess": "REPLACE_MANUFACTURING_PROCESS",
+          "toleranceRuleId": "REPLACE_TOLERANCE_RULE_ID",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
+        }
+      ],
+      "pipeDimension": [
+        {
+          "dimensionId": "REPLACE_DIMENSION_ID",
+          "nps": "REPLACE_NPS",
+          "schedule": "REPLACE_SCHEDULE",
+          "odMm": null,
+          "nominalWallMm": null,
+          "dimensionStandard": "REPLACE_DIMENSION_STANDARD",
+          "dimensionEdition": "REPLACE_DIMENSION_EDITION",
+          "sourceId": "REPLACE_DIMENSION_SOURCE_ID",
+          "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
+        }
+      ],
+      "manufacturingTolerance": [
+        {
+          "toleranceRuleId": "REPLACE_TOLERANCE_RULE_ID",
+          "productSpec": "REPLACE_PRODUCT_SPEC",
+          "manufacturingProcess": "REPLACE_MANUFACTURING_PROCESS",
+          "minusTolerancePct": null,
+          "toleranceStandard": "REPLACE_PRODUCT_TOLERANCE_STANDARD",
+          "toleranceEdition": "REPLACE_PRODUCT_TOLERANCE_EDITION",
+          "sourceId": "REPLACE_TOLERANCE_SOURCE_ID",
+          "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
+        }
+      ]
+    }
+  },
+  "benchmark": {
+    "benchmarkId": "REPLACE_CLASS_E_BENCHMARK_ID",
+    "methodId": "B313-CH9-PF-2024-R1",
+    "oracleClass": "CLASS_E_CODE_LICENSED",
+    "sourceId": "REPLACE_B313_METHOD_SOURCE_ID",
+    "independent": true,
+    "status": "INDEPENDENTLY_CHECKED",
+    "producedBy": "REPLACE_BENCHMARK_PRODUCER",
+    "reviewedBy": "REPLACE_INDEPENDENT_REVIEWER",
+    "input": {
+      "designPressureMpa": null,
+      "internalAllowanceMm": null,
+      "externalAllowanceMm": null
+    },
+    "expected": {
+      "pressureDesignThicknessMm": null,
+      "requiredMinimumThicknessMm": null,
+      "requiredNominalThicknessMm": null,
+      "minimumAsManufacturedThicknessMm": null,
+      "effectiveNetWallMm": null,
+      "pressureRatingMpa": null,
+      "staticPass": null
+    },
+    "tolerance": {
+      "type": "RELATIVE",
+      "value": null
+    }
+  }
+}
