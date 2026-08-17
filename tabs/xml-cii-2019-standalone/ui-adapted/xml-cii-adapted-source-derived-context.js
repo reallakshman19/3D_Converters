@@ -19,7 +19,10 @@ function parseSourceDocument(sourceText) {
 
 export function getSourceDocumentContext(sourceText) {
   const source = String(sourceText ?? '');
-  if (!source) return Object.freeze({ sourceText: '', document: null, error: null });
+  if (!source) {
+    resetSourceDocumentContextCache();
+    return Object.freeze({ sourceText: '', document: null, error: null });
+  }
   if (cachedContext && cachedSourceText === source) {
     perfCount('sourceParseCacheHitCount');
     return cachedContext;
