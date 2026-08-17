@@ -23,7 +23,7 @@ const FIT_PROPERTY = Object.freeze({
   outsideDiameter: 'OUTSIDE_DIAMETER',
   wallThickness: 'WALL_THICKNESS',
   insideDiameter: 'INSIDE_DIAMETER',
-  span: 'MAX_UNSUPPORTED_SPAN',
+  span: 'MAXIMUM_SPAN_BETWEEN_EFFECTIVE_SUPPORTS',
   naturalFrequency: 'NATURAL_FREQUENCY',
 });
 
@@ -139,7 +139,7 @@ function fitFields(table, index, canonicalId, caseId) {
     outsideDiameter: enrichmentQuantity(table, index, canonicalId, FIT_PROPERTY.outsideDiameter, 'outsideDiameter', 'OD'),
     wallThickness: enrichmentQuantity(table, index, canonicalId, FIT_PROPERTY.wallThickness, 'wallThickness', 'WT'),
     insideDiameter: enrichmentQuantity(table, index, canonicalId, FIT_PROPERTY.insideDiameter, 'insideDiameter', 'ID'),
-    span: enrichmentQuantity(table, index, canonicalId, FIT_PROPERTY.span, 'span', 'Max span'),
+    span: enrichmentQuantity(table, index, canonicalId, FIT_PROPERTY.span, 'span', 'Effective-support span'),
     naturalFrequency: quantityField(
       'naturalFrequency', 'Natural frequency', table, frequency.rowIndex,
       ENRICHMENT.value, ENRICHMENT.unit, { sourceSelection: frequency.selection },
