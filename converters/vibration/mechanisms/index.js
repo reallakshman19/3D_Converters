@@ -29,6 +29,19 @@ export {
 } from './coverage.js';
 
 export {
+  VIBRATION_MECHANISM_REGISTRY_SCHEMA,
+  VIBRATION_MECHANISM_REGISTRY_REVISION,
+  VIBRATION_MECHANISM_IDS,
+  VIBRATION_MECHANISM_REGISTRY,
+  vibrationMechanismRegistryFingerprint,
+} from './registry.js';
+
+export {
+  VIBRATION_MECHANISM_IDENTIFICATION_BUNDLE_SCHEMA,
+  createVibrationMechanismIdentificationBundle,
+} from './identification-producer.js';
+
+export {
   FIT_VIBRATION_MECHANISM_ID,
   FIT_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
   buildFitMechanismBenchmarkComparison,

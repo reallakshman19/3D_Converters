@@ -7,6 +7,7 @@ import {
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,
 } from '../converters/vibration/mechanisms/contracts.js';
+import { VIBRATION_MECHANISM_IDS } from '../converters/vibration/mechanisms/registry.js';
 import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismAssessment,
@@ -93,14 +94,10 @@ function mechanicalContext(targetRow = row(), candidate = mechanicalCandidate(ta
   };
 }
 
-test('catalogue exposes FIT screening plus Mechanical/SBC candidates without promoting other mechanisms', () => {
+test('catalogue mirrors governed registry while retaining separate implementation projections', () => {
   assert.deepEqual(
     VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => mechanism.id),
-    [
-      'fit','mechanicalExcitation','reciprocatingPulsation','rotatingStall',
-      'deadlegPulsation','corrugationPulsation','slugFlow','aiv',
-      'valveTransients','cavitationFlashing','thermowells','smallBoreConnections',
-    ],
+    VIBRATION_MECHANISM_IDS,
   );
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length, 3);
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'SCREENING');
@@ -130,66 +127,60 @@ test('FIT screening survives generic contracts while Mechanical/SBC without data
   assert.deepEqual(aiv.contractSet.cardinality, { count: 0, kind: 'ZERO' });
 });
 
-test('matrix is INCOMPLETE by default when no governed identification bundle exists', () => {
+test('matrix is INCOMPLETE by default against the full governed mechanism universe', () => {
   const matrix = buildVibrationMechanismMatrixRow(row(), { resultState: 'CURRENT_RESULT' });
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.ok(matrix.assessmentCompleteness.reasons.includes('IDENTIFICATION_EVIDENCE_MISSING'));
+  assert.deepEqual(matrix.mechanismIdentificationBundle.expectedMechanismIds, VIBRATION_MECHANISM_IDS);
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('governed FIT-only coverage can be COMPLETE without creating a family aggregate', () => {
+test('caller-defined partial coverage universe is rejected by production orchestration', () => {
+  assert.throws(
+    () => buildVibrationMechanismMatrixRow(row(), {
+      coverage: {
+        expectedMechanismIds: ['fit'],
+        identifications: [identification('fit', 'MAIN_LINE_SECTION')],
+      },
+    }),
+    /CALLER_DEFINED_COVERAGE_CONFIG_FORBIDDEN/u,
+  );
+});
+
+test('FIT-only explicit identification cannot redefine family completeness universe', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
     resultState: 'CURRENT_RESULT',
-    coverage: {
-      expectedMechanismIds: ['fit'],
-      identifications: [identification('fit', 'MAIN_LINE_SECTION', target)],
-    },
+    mechanismIdentifications: [identification('fit', 'MAIN_LINE_SECTION', target)],
   });
-  assert.equal(matrix.assessmentCompleteness.state, 'COMPLETE');
+  assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
+  assert.ok(matrix.assessmentCompleteness.missingIdentificationMechanismIds.includes('aiv'));
+  assert.ok(matrix.assessmentCompleteness.missingIdentificationMechanismIds.includes('mechanicalExcitation'));
   assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('external qualified AIV evidence can satisfy coverage without trusting stale static AIV label', () => {
+test('external qualified AIV evidence can cover AIV without trusting stale static AIV label', () => {
   const target = row();
   const aivSet = screeningAssessmentSet('aiv', 'source-assessment-pair-1', target);
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    coverage: {
-      expectedMechanismIds: ['aiv'],
-      identifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
-      assessmentSets: [aivSet],
-    },
+    mechanismIdentifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
+    coverageAssessmentSets: [aivSet],
   });
   const staticAiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
   assert.equal(staticAiv.assessmentState, 'NOT_IMPLEMENTED');
-  assert.equal(matrix.assessmentCompleteness.state, 'COMPLETE');
-  assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
-  assert.equal(matrix.fullScreeningGoverningEstablished, false);
-});
-
-test('partial expected mechanism identification remains INCOMPLETE even with valid AIV evidence', () => {
-  const target = row();
-  const matrix = buildVibrationMechanismMatrixRow(target, {
-    coverage: {
-      expectedMechanismIds: ['fit', 'aiv'],
-      identifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
-      assessmentSets: [screeningAssessmentSet('aiv', 'source-assessment-pair-1', target)],
-    },
-  });
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
-  assert.deepEqual(matrix.assessmentCompleteness.missingIdentificationMechanismIds, ['fit']);
+  assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
+  assert.ok(matrix.assessmentCompleteness.missingIdentificationMechanismIds.includes('fit'));
+  assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
 test('Mechanical candidate cannot satisfy a required Screening coverage contract', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
     resultState: 'CURRENT_RESULT', ...mechanicalContext(target),
-    coverage: {
-      expectedMechanismIds: ['mechanicalExcitation'],
-      identifications: [identification('mechanicalExcitation', 'MAIN_LINE_SECTION', target)],
-    },
+    mechanismIdentifications: [identification('mechanicalExcitation', 'MAIN_LINE_SECTION', target)],
   });
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.equal(matrix.mechanismCoverage.required[0].reason, 'CANDIDATE_OR_UNQUALIFIED_RESULT');
