@@ -3,37 +3,46 @@ state: IMPLEMENTING
 criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
-report_basis_head: aa1790592757d6b6bd2fc02faf0d144038e451ad
-live_main_at_stage6_start: eef94949961970171d1366f5b6a9d421b3cc0d9f
-mission: Generic EIT/project/source/roadmap integration, fail-closed mechanism reduction/EI aggregation, FIT natural-frequency custody, field measurement evidence custody, and persistence-only measurement evidence in .vibproj.
+report_basis_head: c417070c5733f11ff41d78a8da8b2c11bf0b6523
+live_main_at_stage7_recovery: eef94949961970171d1366f5b6a9d421b3cc0d9f
+mission: Generic EIT/project/source/roadmap integration, fail-closed mechanism reduction/EI aggregation, FIT natural-frequency custody, field measurement evidence custody/persistence, and measurement-driven resizable right-roadmap presentation.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
-  stage6_project_path_ownership: PASS_PR615_OWNED_AND_ABSENT_ON_MAIN
-  stage6_test_first_commit: PASS
-  stage6_persistence_reconstruction: PASS_7_OF_7
-  stage6_legacy_authority_guard: PASS
-  stage6_current_results_guard: PASS
-  stage6_schema_blob: ed123f469ed5b83a138aa37e2bcd236d282ea0ef
-  stage6_project_measurement_blob: df3d70f18eb50026800546b8ec9c87e29d3fded3
-  stage6_from_eit_blob: ef0b4e4fe26a0363d9e96e083250c62db3e3c10c
-  stage6_test_blob: 3fd60902ea42f4d23cfd14da0508ec61371ffae2
-  repository_native_stage6: NOT_RUN_ENVIRONMENT_BLOCKED
-  complete_project_eit_suite: NOT_RUN
+  stage7_scope_ownership: PASS_PR615_PROJECT_ROADMAP_PANEL_PATHS_ONLY
+  stage7_test_first: PASS
+  stage7_selected_line_basic_measurement: PASS_DATA_ONLY
+  stage7_selected_line_specialist_measurement: PASS_DATA_ONLY
+  stage7_other_line_isolation: PASS
+  stage7_sticky_state_defect: FOUND_AND_RESOLVED
+  stage7_explicit_vs_derived_state_separation: PASS
+  stage7_specialist_measurement_phase: PASS_VERIFY_PRESENTATION_ONLY
+  stage7_width_policy: PASS_MIN_260_DEFAULT_320_MAX_520
+  stage7_pointer_resize_source: PASS_LEFT_EDGE_CLAMPED_PRESENTATION_CODE
+  stage7_keyboard_resize_source: PASS_ARROW_HOME_END_PRESENTATION_CODE
+  stage7_right_collapse_source: PASS_44PX_JUSTIFY_SELF_END
+  stage7_responsive_resize_disable_source: PASS_MAX1180
+  stage7_focused_reconstruction: PASS_10_OF_10
+  stage7_exact_modified_blob_parity: PASS
+  stage7_size_guard_controller: PASS_269_LINES
+  stage7_browser_interaction: NOT_RUN
+  repository_native_stage7: NOT_RUN_ENVIRONMENT_BLOCKED
   full_vibration_release_suites: NOT_RUN
-  browser: NOT_RUN
   independent_engineering_review: NOT_RUN
 coordination:
   shared_tab_overlap: PR506_NO_FURTHER_PR615_SHARED_TAB_EDIT
   mechanism_workspaces: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
   mechanism_coverage: OWNED_BY_PR571
   fit_adapter_console: PR539_PR540_EXACT_FILES_AVOIDED
-stage6_invariants:
-  - VIBPROJ_PERSISTENCE_NE_MEASUREMENT_ENGINEERING_AUTHORITY
-  - MEASUREMENT_SESSION_LINE_MUST_EXIST_IN_PROJECT
-  - LEGACY_NONEMPTY_MEASUREMENTS_ARRAY_REJECTED
-  - MEASUREMENT_AUTHORITY_PROMOTION_REJECTED
-  - OLD_V1_WITHOUT_MEASUREMENT_EVIDENCE_REMAINS_LOADABLE
-  - PERSISTED_CURRENT_RESULTS_REMAIN_REJECTED
+stage7_invariants:
+  - MEASUREMENT_EVIDENCE_NE_SCREENING_RESULT
+  - ROADMAP_DATA_STATE_NE_ASSESSMENT_COMPLETE
+  - SELECTED_LINE_ONLY_MEASUREMENT_PRESENTATION
+  - EXPLICIT_MECHANISM_STATE_SEPARATE_FROM_PROJECT_DERIVED_EVIDENCE
+  - ROADMAP_RESIZE_NE_ENGINEERING_STATE
+  - COLLAPSE_RESIZE_PRESENTATION_ONLY
+  - RIGHT_RAIL_WIDTH_CLAMP_260_320_520
+  - NO_SHARED_TAB_MUTATION
+  - NO_MECHANISM_WORKSPACE_MUTATION
   - NO_SIGNAL_PROCESSING_MATH
-exact_next_action: Keep PR615 draft/unmerged. Re-ground final live main/head/reviews/status/workflows after Stage-6 recovery commits; select any next stage only from live unblocked gaps. Reconcile main and run native qualification before merge.
+exact_next_action: Keep PR615 draft/unmerged. Refresh current main, final PR head, relation, reviews, statuses and workflows after recovery/PR metadata commits. Browser pointer/keyboard acceptance and repository-native qualification remain required before merge qualification.
