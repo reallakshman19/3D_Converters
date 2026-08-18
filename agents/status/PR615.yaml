@@ -4,23 +4,25 @@ criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
 base_main_sha: 1d9340248b11569f7c7c4f02ac429c7d8c66ff81
-mission: Generic multi-module EIT project persistence, typed engineering source identity, and non-binding Phase x Scope x Specialty right-side roadmap.
+mission: Generic multi-module EIT project persistence, typed engineering source identity, non-binding Phase x Scope x Specialty roadmap, and fail-closed mechanism-level reduction before EI main-line aggregation.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
-  live_grounding: PASS
-  branch_relation_stage2_start: AHEAD_8_BEHIND_0
-  reviews: ZERO
-  review_threads: ZERO
-  commit_statuses: ZERO_RETURNED
-  pr_workflow_runs: ZERO_RETURNED
+  live_grounding_stage3: PASS
+  stage3_target_overlap: SAFE_NEW_RESULT_REDUCER_PATHS_AND_NO_OPEN_EI_AGGREGATION_CLAIM
   shared_tab_overlap: COORDINATION_CONFLICT_PR506_NO_FURTHER_PR615_EDIT
   mechanism_workspace_stack: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
   backup_utility_stage1: PASS_EXACT_BLOB_64196d6e
+  stage3_existing_file_custody: PASS_EXACT_CONNECTOR_SOURCE_BACKUPS_NOT_NATIVE_CLI
   reconstructed_stage1: PASS_25_OF_25_ON_PRE_STAGE2_BYTES
   source_identity_primary_reference: PASS_EI_2E_PUBLICATION_AND_T1_T13_TAXONOMY
   reconstructed_stage2_source_identity: PASS_10_OF_10
+  reconstructed_stage3_reducer_result: PASS_8_OF_8
+  reconstructed_stage3_aggregator: PASS_4_OF_4
+  stage3_size_guard: PASS_ALL_RELEVANT_JS_BELOW_300_LINES
   repository_native_current_head: NOT_RUN_ENVIRONMENT_BLOCKED
-  controlled_real_eit: NOT_RUN_NATIVE_CHECKOUT_BLOCKED
+  matrix_consumer_current_head: NOT_RUN
+  full_vibration_release_suites: NOT_RUN
   browser: NOT_RUN
-exact_next_action: Re-ground claims, then implement MechanismNumericResult.v1 and MechanismLineResult.v1 reducer seam only if intended result/aggregation paths are unclaimed; do not touch PR479/506/508 mechanism workspace files.
+  independent_engineering_review: NOT_RUN
+exact_next_action: Re-ground active claims and controlled source evidence. Qualify one mechanism-specific multi-item reducer only if the governing method supports it; otherwise keep MANY fail-closed and proceed to the next unblocked engineering custody correction such as FIT span/process/multiphase/frequency custody.
