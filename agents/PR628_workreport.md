@@ -19,126 +19,130 @@ SOURCE_TASK: Owner-directed XML→CII (2019) Standalone source-level performance
 PR_OR_WIP: PR628
 BRANCH: agent/xml-cii-bore-wall-index-20260818
 PR_URL: https://github.com/reallaksh19/3D_Converters/pull/628
-PR_HEAD_OBSERVED: 33891dd393b908dc32c2d18d75ca8d859a845c67
-REPORT_BASIS_HEAD: 33891dd393b908dc32c2d18d75ca8d859a845c67
+PR_HEAD_OBSERVED: 24377670067e0ada1ec7b0f6632a1c03b6fb23cf
+REPORT_BASIS_HEAD: 24377670067e0ada1ec7b0f6632a1c03b6fb23cf
 MAIN_HEAD_LAST_CHECKED: bca7fc9390c018753d09161052b0bf2fd54e33ce
 MERGE_BASE: bca7fc9390c018753d09161052b0bf2fd54e33ce
-REPORT_SYNC: CURRENT_AT_PR_ALLOCATION
+REPORT_SYNC: CURRENT_FOR_CODE_HEAD; SELF-METADATA UPDATE MAY ADVANCE PR HEAD ONLY
 APPENDIX_A_STATUS: NOT_REQUIRED_NEW_WORK_ITEM
-GROUNDING_EPOCH: GE-003
+GROUNDING_EPOCH: GE-004
 CURRENT_TAKEOVER: NONE
 
-CURRENT_STAGE: CI_REVIEW
-LAST_COMPLETED_STAGE: DRAFT_PR_PUBLISH
+CURRENT_STAGE: DRAFT_REVIEW_WAITING_FOR_EXTERNAL_EVIDENCE
+LAST_COMPLETED_STAGE: PR_HEAD_RECONCILIATION
 CURRENT_BLOCKER: NONE
-HIGHEST_RISK: Native repository real-core execution remains to be observed from PR checks; local focused lookup equivalence passed on exact branch bytes.
-LAST_DURABLE_CHECKPOINT: Draft PR #628 created with 8 expected changed files; production/test blobs previously validated exactly.
-EXACT_NEXT_ACTION: Complete PR-numbered custody migration, fetch exact new PR head, inspect checks/reviews/threads, and reconcile any actionable failures without merging.
+HIGHEST_RISK: Repository-native real-core execution is still not observed; no PR workflow/status/review evidence exists yet.
+LAST_DURABLE_CHECKPOINT: PR #628 code head 2437767… is based on current main with behind_by=0, all 11 changed files are within declared production/qualification/custody scope, and no checks/reviews/threads are present.
+EXACT_NEXT_ACTION: Keep PR draft. When checks or review evidence appears, reconcile actionable findings at the then-current head. Do not merge without Owner authorization.
 ```
 
 ## 2. Handover in 60 Seconds
 
-PR #628 changes the hidden Preview Bore/Wall preparation from branch-multiplied scans to two once-per-Preview indexes:
+PR #628 implements the first confirmed P0 performance slice from the XML→CII Standalone audit. Preview Bore/Wall now prepares StagedJson wall evidence and exact Piping-Class wall matches once per Preview call, then performs indexed lookups inside the branch loop.
 
-- `Map<canonicalBranch, wallEvidence[]>` built from StagedJson once;
-- exact `class|DN` wall result map built from Piping Class rows once.
+Authority is unchanged: direct DTXR wall wins, exact class/DN wall remains fallback before weaker DTXR schedule evidence, the `96620|250` benchmark correction remains higher authority than master rows, node bore correction remains active, and invalid StagedJson remains fail-soft.
 
-`applyPreviewBoreWallAuthority()` builds both indexes before iterating `branchRows`, then reuses them. Existing DTXR resolver and authority order are untouched.
+The PR is open and **draft**. It has no observed PR workflow runs, commit statuses, submitted reviews, or review threads at the checked code head. This is recorded as `NOT_OBSERVED`, not PASS/FAIL.
 
-No Weight Match changes are included. The earlier junior “global top five” correctness claim was falsified before production mutation: current main already slices five candidates per issue.
+No Weight Match code is changed. The earlier junior “global top five” correctness claim was falsified on exact main bytes before any production change: current main already applies the top-five slice per issue.
 
 ## 3. Repository Ground Truth
 
-Grounding `GE-003` at draft allocation:
+Grounding `GE-004`:
 
-- PR: #628, open and draft;
-- base: `main` at `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
-- allocated head before PR-numbered metadata commits: `33891dd393b908dc32c2d18d75ca8d859a845c67`;
-- branch was `behind_by: 0` immediately pre-PR;
-- initial changed-file count: 8, all expected;
-- open #616 owns Preview-search only and is not touched;
+- PR #628: open, draft, not merged;
+- base/main/merge-base: `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
+- checked PR head: `24377670067e0ada1ec7b0f6632a1c03b6fb23cf`;
+- compare against main: `ahead`, `behind_by: 0`;
+- changed files at checked head: 11, all expected (2 production, 1 focused test, 2 exact backups, PR/WIP custody records);
+- no `.github/workflows/` changes;
+- #616 remains isolated to Preview-search and is untouched;
 - no active PR was found claiming the two Bore/Wall production files;
-- no workflow files changed.
+- GitHub PR field `mergeable: false` is not treated as a conflict verdict because there is no base drift, failed check, or conflict evidence from compare; mergeability remains unresolved/non-authoritative here.
 
 Pre-edit source blobs preserved by required backups:
 
-- Bore/Wall authority `8955e316b36c1769746759aeeb43e34926d47ecb`;
-- wall evidence `04ff82f24dfa9e7a112c17228d1fe24de0b32a55`.
+- Bore/Wall authority: `8955e316b36c1769746759aeeb43e34926d47ecb`;
+- wall evidence: `04ff82f24dfa9e7a112c17228d1fe24de0b32a55`.
 
-Validated modified blobs before PR metadata migration:
+Validated modified code/test blobs before PR metadata commits:
 
-- wall evidence `1de4824a50955bfdeaaca94532970c30055a6b90`;
-- Bore/Wall authority `a7f666f5f4389fdf8fa0681296ebe603461fda57`;
-- focused test `739fccec5360e3626e4065838333230f60fad6d9`.
+- wall evidence: `1de4824a50955bfdeaaca94532970c30055a6b90`;
+- Bore/Wall authority: `a7f666f5f4389fdf8fa0681296ebe603461fda57`;
+- focused test: `739fccec5360e3626e4065838333230f60fad6d9`.
 
 ## 4. Mission / Scope / Acceptance
 
-Mission: eliminate per-branch whole-StagedJson and whole-Piping-Class preparation in Preview Bore/Wall without changing engineering authority or published facts.
+Mission: remove per-branch whole-StagedJson and whole-Piping-Class preparation in Preview Bore/Wall without changing engineering authority or published facts.
 
-In scope:
+Production scope:
 
 - `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-wall-evidence.js`;
-- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js`;
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js`.
+
+Qualification/custody scope:
+
 - `tests/xml-cii-preview-bore-wall-index.test.mjs`;
-- exact pre-edit backups and agent custody records.
+- exact pre-edit backups;
+- `agents/PR628_*` plus superseded WIP records.
 
-Out of scope: #616 search file, Preview cache/orchestration, core DTXR resolver/ledger, Material/Weight authority, support/GAP, writer/runtime, Python, topology, formulas, units, workers, workflows.
+Explicit exclusions: #616 search file; Preview cache/orchestration; core DTXR resolver/ledger; Material/Weight authority; support/GAP; writer/runtime; Python; topology; formulas; units; workers; workflows.
 
-Acceptance status:
+Acceptance:
 
-1. StagedJson parse/walk once per Bore/Wall application — PASS focused.
-2. Piping Class wall rows scanned once per application — PASS focused.
-3. First exact master row semantics preserved — PASS focused.
-4. `96620|250` correction remains authoritative — PASS focused.
-5. canonical `/B<n>` grouping and evidence order unchanged — PASS independent reference.
-6. direct DTXR wall remains above class fallback — PASS focused integration.
-7. invalid staged JSON remains fail-soft — PASS.
-8. node bore correction remains active — PASS focused integration.
-9. repository-native real-core execution — PENDING/NOT_YET_OBSERVED.
+1. StagedJson parse/walk once per Bore/Wall application — **PASS focused**.
+2. Piping Class wall scan once per application — **PASS focused**.
+3. first exact master row behavior retained — **PASS independent reference**.
+4. `96620|250` correction precedence retained — **PASS**.
+5. canonical `/B<n>` grouping/evidence order retained — **PASS independent reference**.
+6. direct DTXR wall above class fallback — **PASS focused integration**.
+7. invalid StagedJson fail-soft — **PASS**.
+8. node bore correction active — **PASS focused integration**.
+9. repository-native real-core execution — **NOT_OBSERVED**.
 
 ## 5. Implementation State
 
 | Work item | State | Notes |
 |---|---|---|
-| staged branch evidence index | COMPLETE | parse/walk once, ordered evidence buckets |
-| exact class/DN wall index | COMPLETE | correction seeded first; first-row/null semantics preserved |
-| Bore/Wall consumer | COMPLETE | two indexes built once before branch loop |
-| focused regression | COMPLETE | structural complexity + independent legacy equivalence |
-| mandatory backups | COMPLETE | exact pre-edit bytes |
+| staged branch evidence index | COMPLETE | one parse/walk; ordered canonical-branch buckets |
+| exact class/DN wall index | COMPLETE | correction-first; first-row/null behavior preserved |
+| Bore/Wall consumer | COMPLETE | indexes built once before branch map loop |
+| focused regression | COMPLETE | independent lookup reference + structural scan-count checks |
+| backups | COMPLETE | exact pre-edit source bytes |
 | draft PR | COMPLETE | #628 |
-| CI/review reconciliation | IN_PROGRESS | inspect exact final PR head after metadata migration |
+| PR checks/reviews | NOT_OBSERVED | no runs/statuses/reviews/threads at checked head |
 
 ## 6. Engineering Item Register
 
-| ID | Type | Severity | Priority | Status | Summary |
-|---|---|---|---|---|---|
-| IMP-001 | performance | high | P0 | IMPLEMENTED | StagedJson parse/walk removed from per-branch loop. |
-| IMP-002 | performance | high | P0 | IMPLEMENTED | exact class-wall master scan removed from per-branch loop. |
-| RISK-001 | authority | high | P0 | QUALIFIED_FOCUSED | traversal/row/correction/authority ordering covered. |
-| RISK-002 | validation | medium | P1 | OPEN | repository-native real-core test evidence pending PR checks. |
-| DEC-001 | authority | high | P0 | ACTIVE | lookup preparation only; no resolver/engineering-value changes. |
+| ID | Type | Priority | Status | Summary |
+|---|---|---|---|---|
+| IMP-001 | performance | P0 | IMPLEMENTED | staged parse/walk removed from branch loop |
+| IMP-002 | performance | P0 | IMPLEMENTED | Piping-Class exact-wall scan removed from branch loop |
+| RISK-001 | authority | P0 | QUALIFIED_FOCUSED | ordering/correction/first-row behavior covered |
+| RISK-002 | validation | P1 | OPEN | native real-core execution not yet observed |
+| DEC-001 | authority | P0 | ACTIVE | lookup preparation only; no authority-value changes |
 
-## 7. Technical Diagnosis / Change
+## 7. Technical Change
 
 Before:
 
 ```text
-B branches × (parse/walk S staged components + scan P class rows)
+B × (parse/walk S staged components + scan P class rows)
 ≈ O(B×S + B×P)
 ```
 
 After:
 
 ```text
-parse/walk S once + scan P once + B map lookups
+parse/walk S once + scan P once + B indexed lookups
 ≈ O(S + P + B)
 ```
 
-The compatibility wrapper functions remain available for other callers. The production Bore/Wall authority consumes the indexes directly.
+The existing compatibility helpers remain callable. The production authority now consumes the prepared indexes directly.
 
-A deliberate detail in the class index preserves legacy `.find()` behavior: the first class/DN key is stored even if its wall result is `null`, so a later valid duplicate cannot silently become authoritative. Benchmark corrections are inserted before master rows and cannot be overwritten.
+A deliberate first-row invariant is encoded in `buildExactClassWallIndex()`: the first class/DN key is inserted even when its wall result is `null`, so a later duplicate valid row cannot replace an earlier invalid first match. This reproduces the prior `.find()` followed by validation. Benchmark corrections seed the map before master rows and cannot be overwritten.
 
-## 8. Authority and Invariants
+## 8. Authority and Negative Assurance
 
 Authority remains:
 
@@ -151,47 +155,52 @@ staged/XML wall evidence
 → Preview publication
 ```
 
-Negative assurance: no engineering values, unit conversions, schedule values, correction constants, DTXR parsing policy, Material/Weight authority, support/GAP rules, writer/runtime logic, Python logic, topology, or workflow configuration changed.
+No engineering values, unit conversion, schedule values, correction constants, DTXR parsing policy, Material/Weight authority, support/GAP rules, writer/runtime logic, Python logic, topology, or workflow configuration changed.
 
 ## 9. Validation
 
 ```text
-VAL-001 PASS — repository backup policy
-Exact pre-edit reconstructed hashes matched GitHub source blobs. `node utils/backup.js save` was executed before source edits; exact backups are committed.
+VAL-001 PASS — backup policy
+Exact pre-edit reconstructions matched GitHub source blobs; repository `node utils/backup.js save` was executed before source edits; exact backups are committed.
 
 VAL-002 PASS — syntax
-node --check on both modified production modules and the focused test passed on exact modified bytes.
+node --check passed for both modified production modules and the focused test on exact modified bytes.
 
-VAL-003 PASS — independent lookup equivalence / structural performance invariant
+VAL-003 PASS — independent lookup equivalence / structural complexity
 node tests/xml-cii-preview-bore-wall-index.test.mjs
 Output: XML CII Preview Bore/Wall indexed preparation checks passed.
-Observed: one JSON parse followed by 100 branch lookups; zero master row reads after index construction; independent legacy staged evidence equivalence; first-row/null duplicate behavior; correction precedence; NPS mapping; invalid JSON; no-match behavior.
+Observed: 1 JSON parse followed by 100 branch lookups; 0 Piping-Class master row reads after index build; independent legacy staged evidence order; invalid JSON; first-row/null duplicate behavior; correction precedence; NPS mapping; no-match behavior.
 
 VAL-004 PASS_WITH_LIMITATION — focused authority integration
-Direct staged wall still outranks class wall; class wall remains fallback; node bore corrections remain. Local reconstruction used minimal stubs only at imported DTXR resolver/ledger boundaries so modified modules could execute without a checkout.
+Direct staged wall remains above class wall, exact class remains fallback, and node bore correction remains. The local reconstruction used minimal stubs only at imported DTXR resolver/ledger boundaries so the target modules could execute without a checkout. Independent staged/class lookup equivalence did not depend on those stubs.
 
-VAL-005 NOT_RUN / ENVIRONMENT_BLOCKED — native repository suite
-Direct clone failed: `Could not resolve host: github.com`. This is not a product PASS/FAIL. PR checks are required repository-native evidence.
+VAL-005 NOT_RUN / ENVIRONMENT_BLOCKED — native local repository suite
+Direct clone failed `Could not resolve host: github.com`; this is not a product PASS/FAIL.
+
+VAL-006 NOT_OBSERVED — PR workflow/check evidence
+At code head 2437767…: `fetch_commit_workflow_runs` returned none; combined status list returned none.
+
+VAL-007 NOT_OBSERVED — review evidence
+At code head 2437767…: no submitted reviews and no review threads.
 ```
 
 ## 10. Changed-File Ledger
 
-Production:
+11 files at checked head:
 
-- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-wall-evidence.js`;
-- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js`.
+- 2 modified production Bore/Wall modules;
+- 1 new focused test;
+- 2 new exact backups;
+- `agents/PR628_workreport.md`, `agents/status/PR628.yaml`, `agents/claims/PR628.yaml`;
+- superseded WIP workreport/status/claim.
 
-Qualification/custody:
-
-- `tests/xml-cii-preview-bore-wall-index.test.mjs`;
-- two exact `.backups/*.bak` files;
-- WIP records being superseded by `agents/PR628_*` records.
-
-No `.github/workflows/` change.
+No unexpected or workflow files are present.
 
 ## 11. Review / CI State
 
-At allocation PR #628 is draft/open. Initial `mergeable: false` is not interpreted as a semantic failure because the PR had just been created and GitHub mergeability/check computation may not have completed. Exact final-head checks/reviews must be fetched after metadata migration.
+PR #628 remains draft. No checks/status contexts, PR-triggered workflow runs, reviews, or review threads were observed at the checked code head. Therefore repository-native validation is **not yet available**, rather than green or red.
+
+The branch is not behind main. Do not infer conflict from the PR `mergeable: false` boolean alone; no corroborating conflict evidence has been observed.
 
 ## 12. Repository Coordination / Overlap
 
@@ -199,8 +208,10 @@ At allocation PR #628 is draft/open. Initial `mergeable: false` is not interpret
 MASTER_INDEX_CHECKED: absent on main
 STATUS_RECORD: agents/status/PR628.yaml
 CLAIM_RECORD: agents/claims/PR628.yaml
-FILE_OVERLAP: none observed at GE-003
-AUTHORITY_OVERLAP: no active owner for these exact Bore/Wall files
+WIP_STATUS: SUPERSEDED_BY_PR628
+WIP_CLAIM: RELEASED
+FILE_OVERLAP: none observed
+AUTHORITY_OVERLAP: no active owner of exact Bore/Wall production files
 DEPENDENCY_OVERLAP: independent of #616; #614 may consume performance evidence later
 COORDINATION_STATE: SAFE
 ```
@@ -208,14 +219,14 @@ COORDINATION_STATE: SAFE
 ## 13. Continuation State
 
 ```text
-Start here: exact PR #628 head after metadata migration
-Do not redo: implementation, focused local equivalence, mandatory backup
-Do not change: DTXR resolver, authority order, correction values
-Validation still required: PR-head check runs/status and review/thread reconciliation
-Highest-risk remaining item: repository-native real-core execution
-Exact next action: inspect PR head, checks, changed files, reviews; fix only actionable failures within claimed scope
+Start here: PR #628 current head/check state
+Do not redo: implementation, exact backups, focused equivalence qualification
+Do not change: DTXR resolver, wall authority order, benchmark correction, engineering values
+Validation still required: repository-native check/review evidence when available
+Highest-risk remaining item: real-core native execution has not been observed
+Exact next action: keep draft; reconcile future actionable CI/review findings; merge only on explicit Owner authorization
 ```
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
-`NOT_REQUIRED_NEW_WORK_ITEM`. Owner authorized this new engineering-critical implementation. A future takeover requires repository-specific qualification before production mutation.
+`NOT_REQUIRED_NEW_WORK_ITEM`. Owner authorized this implementation. Future engineering-critical takeover requires repository-specific qualification before mutation.
