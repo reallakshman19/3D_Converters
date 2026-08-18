@@ -7,6 +7,7 @@ paths:
   - converters/vibration/project/**
   - converters/vibration/source/**
   - converters/vibration/roadmap/**
+  - converters/vibration/measurement/**
   - converters/vibration/mechanisms/result-contracts.js
   - converters/vibration/mechanisms/reducers.js
   - converters/vibration/ei-mainline-aggregation.js
@@ -25,9 +26,11 @@ paths:
   - tests/vibration-mechanism-line-result.test.mjs
   - tests/vibration-ei-mainline-aggregation.test.mjs
   - tests/vibration-facility-fit-frequency-custody.test.mjs
+  - tests/vibration-measurement-contract.test.mjs
   - agents/PR615_stage2_source_identity.md
   - agents/PR615_stage3_mechanism_reduction.md
   - agents/PR615_stage4_fit_frequency_custody.md
+  - agents/PR615_stage5_measurement_custody.md
   - .backups/connector-20260818-pr615-stage3/**
   - .backups/connector-20260818-pr615-stage4/**
 authority_domains:
@@ -40,10 +43,14 @@ authority_domains:
   - MECHANISM_RESULT_REDUCTION_CUSTODY
   - EI_MAINLINE_AGGREGATION_V2
   - FIT_NATURAL_FREQUENCY_PROVENANCE_CUSTODY
+  - FIELD_MEASUREMENT_EVIDENCE_CUSTODY
 exclusions:
   - engineering equations or coefficients
   - FIT method or applicability numerical mutation
   - natural-frequency source-method inference
+  - signal-processing algorithms or numerical methods
+  - measurement-to-LOF or measurement-to-screening promotion
+  - automatic root-cause conclusion
   - mechanism applicability authority
   - unqualified multi-item mechanism reduction rules
   - benchmark oracle values or tolerances
@@ -78,3 +85,10 @@ stage4_invariants:
   - CASE_SPECIFIC_FREQUENCY_PRECEDENCE_FAILS_CLOSED
   - NO_MEASURED_FEA_ANALYTICAL_VENDOR_CLASS_INFERENCE
   - FREQUENCY_CUSTODY_AUTHORITY_ONLY
+stage5_invariants:
+  - MEASUREMENT_EVIDENCE_NE_SCREENING_RESULT
+  - MEASUREMENT_EVIDENCE_NE_ROOT_CAUSE_CONCLUSION
+  - RAW_ACQUISITION_REFERENCE_IMMUTABLE_AND_SHA256_PINNED
+  - DERIVED_PRODUCT_REQUIRES_EXACT_SESSION_CHANNEL_RAW_HASH_SET_AND_PROCESSING_RECIPE_VERSION
+  - NO_SIGNAL_PROCESSING_MATH_IN_CUSTODY_CONTRACT
+  - MEASUREMENT_CUSTODY_AUTHORITY_ONLY
