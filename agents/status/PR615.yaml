@@ -3,40 +3,34 @@ state: IMPLEMENTING
 criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
-stage4_start_main_sha: 22b7b57fed3e78534da41342fc3240c8d27369c3
-stage4_pre_head: 8900bb955aba680c21eaeee553dd07aeddff71be
-stage4_pre_reconciliation_head: da5e25f8bdb3516104bbdcd67245a86ac3bbff44
-stage4_recovery_report_head: 9af44380da9aa89e63b4e4b66901b4327bbf98a5
-live_main_at_stage4_reconciliation: eef94949961970171d1366f5b6a9d421b3cc0d9f
-branch_relation_at_stage4_reconciliation: AHEAD_47_BEHIND_8_DIVERGED_BEFORE_RECOVERY_RECORD_COMMITS
+live_main_at_stage5_reconciliation: eef94949961970171d1366f5b6a9d421b3cc0d9f
+stage5_pre_recovery_head: ca5313a0953b0158c08a4c103fa9caa6727736a5
+branch_relation_at_stage5_reconciliation: AHEAD_54_BEHIND_8_DIVERGED
 main_drift: NON_OVERLAPPING_XML_CII_PREVIEW_AND_BROWSER_TIMING_ONLY_NO_REBASE_AT_HANDOVER
-mission: Generic multi-module EIT project persistence, typed source custody, non-binding roadmap, fail-closed mechanism reduction/EI aggregation, and FIT natural-frequency provenance custody.
+mission: Generic EIT/project/source/roadmap integration, fail-closed mechanism reduction and EI aggregation, FIT natural-frequency provenance custody, and field measurement evidence custody.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
-  stage4_live_grounding: PASS
-  stage4_scope_reconciliation: PASS_M5_GEOMETRY_SUPPORT_PROCESS_SCENARIO_ALREADY_LANDED_582_584_586_588
-  stage4_exact_claim_search: SAFE_NO_OPEN_EXACT_FREQUENCY_OR_FACILITY_FILE_CLAIM
-  stage4_test_first_commit: PASS_TEST_COMMITTED_BEFORE_PRODUCTION_REPAIR
-  stage4_existing_file_custody: PASS_EXACT_CONNECTOR_SOURCE_BACKUPS_NOT_NATIVE_CLI
-  stage4_frequency_direct: PASS_8_OF_8
-  stage4_plan_item_integration_harness: PASS_4_OF_4
-  stage4_protected_fit_method_blob: PASS_2965155fe1d4d9081b91d1ff1113d7fb50ddbfd8
-  stage4_protected_fit_applicability_blob: PASS_1bb9e1627948af74a00b964ea9048a77adc2c871
-  stage4_protected_fit_calculate_blob: PASS_2a92e6efedefffe4ab66ab000f0c3e648c9e5e86
-  stage4_size_guard: PASS_LINE_300_EMPTY_FOR_ALL_STAGE4_JS_AND_TEST
-  blocker_csv_provenance_path: PASS_EXISTING_SOURCE_REVISION_RECORD_STATUS_REVIEWER_COLUMNS
-  benchmark_compatibility: PASS_CURRENT_EI_UI_BENCHMARKS_DO_NOT_SUPPLY_NATURAL_FREQUENCY
+  stage5_scope_reconciliation: PASS_MECHANISM_WORKSPACES_STILL_OWNED_BY_PR479_PR506_PR508_AND_COVERAGE_BY_PR571
+  stage5_exact_claim_search: PASS_NO_OPEN_MEASUREMENT_SESSION_OR_MEASUREMENT_CONTRACT_PR
+  stage5_test_first_commit: PASS_TEST_COMMITTED_BEFORE_CONTRACT_IMPLEMENTATION
+  stage5_contract_blob_parity: PASS_2497300cae02f0df13155e200c9d2358a62e4d86
+  stage5_test_blob_parity: PASS_d0da28b82fa281ed6a220bb2450b83c8934a69a4
+  stage5_node_check_contract: PASS
+  stage5_node_check_test: PASS
+  stage5_focused_exact_bytes: PASS_10_OF_10
+  stage5_size_guard_contract: PASS_270_LINES
+  stage5_size_guard_test: PASS_228_LINES
+  stage5_signal_processing_math: NONE_BY_SCOPE
+  stage5_screening_promotion: REJECTED_BY_CONTRACT
+  stage5_root_cause_promotion: REJECTED_BY_CONTRACT
   reconstructed_stage1: PASS_25_OF_25_ON_PRE_STAGE2_BYTES
   reconstructed_stage2_source_identity: PASS_10_OF_10
   reconstructed_stage3_reducer_result: PASS_8_OF_8
   reconstructed_stage3_aggregator: PASS_4_OF_4
-  final_main_drift_classification: PASS_NON_OVERLAPPING_8_COMMITS
-  final_reviews: ZERO
-  final_review_threads: ZERO
-  final_commit_statuses: ZERO_RETURNED_NOT_PASS
-  final_pr_workflow_runs: ZERO_RETURNED_NOT_PASS
-  repository_native_stage4: NOT_RUN_ENVIRONMENT_BLOCKED
+  stage4_frequency_direct: PASS_8_OF_8
+  stage4_plan_item_integration_harness: PASS_4_OF_4
+  repository_native_complete_checkout_stage5: NOT_RUN_ENVIRONMENT_BLOCKED
   existing_full_m5_suite: NOT_RUN
   full_vibration_release_suites: NOT_RUN
   browser: NOT_RUN
@@ -44,11 +38,12 @@ validation:
 coordination:
   shared_tab_overlap: PR506_NO_FURTHER_PR615_SHARED_TAB_EDIT
   mechanism_workspaces: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
+  mechanism_coverage: OWNED_BY_PR571
   fit_adapter_console: PR539_PR540_EXACT_FILES_AVOIDED
-stage4_invariants:
-  - SUPPLIED_NATURAL_FREQUENCY_NE_CUSTODIED_NATURAL_FREQUENCY
-  - UNCUSTODIED_FREQUENCY_NEVER_ENTERS_REQUEST_INPUTS
-  - ABSENT_FREQUENCY_DOES_NOT_BLOCK_STANDARD_FIT
-  - INCOMPLETE_CASE_FREQUENCY_DOES_NOT_FALL_BACK_TO_GLOBAL
-  - FREQUENCY_CUSTODY_DOES_NOT_CREATE_NUMERICAL_OR_DESIGN_AUTHORITY
-exact_next_action: Keep PR615 draft/unmerged. Before any merge attempt reconcile current main and rerun repository-native qualification plus independent engineering review. Select any next implementation only from live unblocked gaps; do not invent multi-item reducers or frequency source-method taxonomy.
+stage5_invariants:
+  - MEASUREMENT_EVIDENCE_NE_SCREENING_RESULT
+  - MEASUREMENT_EVIDENCE_NE_ROOT_CAUSE_CONCLUSION
+  - RAW_ACQUISITION_REFERENCE_IMMUTABLE_AND_SHA256_PINNED
+  - DERIVED_PRODUCT_REQUIRES_EXACT_SESSION_CHANNEL_RAW_HASH_AND_PROCESSING_RECIPE_VERSION
+  - MEASUREMENT_CUSTODY_DOES_NOT_CREATE_SCREENING_DESIGN_OR_RCA_AUTHORITY
+exact_next_action: Keep PR615 draft/unmerged. Re-ground project-schema ownership and, only if unblocked, add a persistence-only bridge for validated VibrationMeasurementEvidencePackage.v1 in .vibproj. Do not implement signal-processing math or measurement-to-screening promotion.
