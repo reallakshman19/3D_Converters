@@ -4,30 +4,22 @@ pr_or_wip: WIP-XMLCII-WEIGHT-TOP5-20260818
 mission: Replace full per-issue Weight candidate sort/allocation with stable bounded top-five selection.
 workstream: XML_CII_STANDALONE_PERFORMANCE
 branch: agent/xml-cii-weight-match-top5-20260818
-implementation_head: 160f37e643cc2bc7cd6e5bdab55d21a7625ad6c3
-main_head_last_checked: 3a26d25902ef8d6f304422cba507f2500dfa61a1
-merge_base: 3a26d25902ef8d6f304422cba507f2500dfa61a1
-base_drift: NONE_ZERO_BEHIND
 criticality: ENGINEERING_CRITICAL
-agent_state: ACTIVE
-pr_recovery_state: HEALTHY
+agent_state: TERMINAL_SUPERSEDED
+pr_recovery_state: SUPERSEDED_BY_PR633
 handover_readiness: READY
 report_path: agents/WIP-XMLCII-WEIGHT-TOP5-20260818_workreport.md
-appendix_a_status: NOT_REQUIRED_NEW_WORK_ITEM
-current_stage: PR_ALLOCATION_READY
+current_stage: SUPERSEDED_BY_PR633
 blocker: NONE
+superseded_by: PR633
 validation:
   source_trace: PASS
-  exact_file_overlap: PASS_NONE_FOUND
   mandatory_backup: PASS_EXACT_BLOB_PRE_EDIT
   syntax: PASS
   focused_legacy_equivalence: PASS_LOCAL_IMPLEMENTATION_COUPLED
   scale_sort_bound: PASS_MAX_SORTED_ROWS_5_AT_100_X_10000
   exact_byte_custody: PASS
   repository_native_browser: NOT_RUN_ENVIRONMENT_BLOCKED
-complexity:
-  before: O_ISSUES_X_MASTER_LOG_MASTER_PLUS_FULL_SCORED_ROW_ARRAY
-  after: O_ISSUES_X_MASTER_WITH_BOUNDED_TOP5_RETENTION
-merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_NEW_PR
-exact_next_action: Open fresh draft PR, migrate custody to PR-numbered records, inspect exact final head/checks/reviews/threads, keep unmerged pending new owner authorization.
-last_updated: 2026-08-18T19:56:00+04:00
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR633
+exact_next_action: Continue from agents/PR633_workreport.md and agents/status/PR633.yaml.
+last_updated: 2026-08-18T20:00:00+04:00
