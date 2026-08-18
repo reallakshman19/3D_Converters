@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { xmlCiiParentRunParityBranchRows } from '../tabs/model-converters/converters/xmltocii2019_helper/xml-cii-parent-run-parity-weight-scope.js';
 
 function configured(rowCount = 1000) {
@@ -72,6 +73,13 @@ function configured(rowCount = 1000) {
     sourceXmlText: '', config: {}, stagedJsonText: '',
   });
   assert.deepEqual(rows, []);
+}
+
+{
+  const source = readFileSync(new URL('../tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js', import.meta.url), 'utf8');
+  assert.match(source, /xmlCiiParentRunParityBranchRows/);
+  assert.match(source, /preview:\s*xmlCiiDryRunPreview/);
+  assert.doesNotMatch(source, /xmlCiiDryRunPreview\(sourceXmlText, enriched\.config, stagedJsonText\)\.branchRows/);
 }
 
 console.log('XML CII parent Run-parity Weight scan suppression checks passed.');
