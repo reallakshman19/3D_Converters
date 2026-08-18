@@ -86,7 +86,7 @@ function emptyWeightAuthority(nodeRow, rating) {
   return { ...nodeRow, rating, valveHint: '', weightMatch: null, weightCandidates: [], rejectedWeightCandidates: [] };
 }
 
-function rerankNodeRows(nodeRows, branchRows, config) {
+export function rerankPreviewNodeRows(nodeRows, branchRows, config) {
   const byBranch = new Map(branchRows.map((row) => [row.branchName, row]));
   return (nodeRows || []).map((nodeRow) => {
     const branch = byBranch.get(nodeRow.branchName);
@@ -152,5 +152,5 @@ export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonTe
       ratingNeedsReview: !authority.rating,
     };
   });
-  return { ...(result || {}), branchRows: ratedRows, nodeRows: rerankNodeRows(result?.nodeRows || [], ratedRows, config) };
+  return { ...(result || {}), branchRows: ratedRows, nodeRows: rerankPreviewNodeRows(result?.nodeRows || [], ratedRows, config) };
 }

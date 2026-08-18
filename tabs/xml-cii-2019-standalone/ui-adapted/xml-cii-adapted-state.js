@@ -8,6 +8,7 @@ import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-elem
 import { createDefaultTraceTableConfig } from '../xml-cii-table-trace-config.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
+import { advanceDependencyRevisionState, initializeDependencyRevisionState } from './xml-cii-adapted-dependency-revisions.js';
 
 const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
   { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT' },
@@ -247,7 +248,7 @@ function getStoredMasterLastLoadedPaths() {
 export function createXmlCiiAdaptedWorkflowState() {
   const mContext = restorePersistentMasters();
   const configJson = mContext ? JSON.stringify(mContext.config, null, 2) : defaultXmlCii2019SupportConfigJson();
-  return {
+  const state = {
     activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
     supportConfigJson: configJson,
     regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
@@ -261,6 +262,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     masterContext: mContext, importMastersLoading: false, importMastersWriteBackStatus: mContext ? 'Restored master rows from LocalStorage.' : '', options: createDefaultWorkflowOptions(), running: false, result: null,
     masterLastLoadedPaths: getStoredMasterLastLoadedPaths(),
   };
+  return { ...state, ...initializeDependencyRevisionState(state, mContext?.config || {}) };
 }
 
 export function updateMasterLastLoadedPath(state, masterKey, path) {
@@ -284,22 +286,25 @@ export function updateMasterLastLoadedPath(state, masterKey, path) {
   return { ...state, masterLastLoadedPaths: nextPaths };
 }
 
-function synchronizedMasterContext(masterContext, supportConfigJson) {
-  if (!masterContext) return masterContext;
+function parseSupportConfigForState(supportConfigJson) {
   try {
-    const parsed = withStandaloneMaterialCodeDefaults(JSON.parse(String(supportConfigJson || '{}')) || {});
-    return { ...masterContext, config: parsed };
+    return withStandaloneMaterialCodeDefaults(JSON.parse(String(supportConfigJson || '{}')) || {});
   } catch {
-    return masterContext;
+    return null;
   }
+}
+
+function synchronizedMasterContext(masterContext, parsedConfig) {
+  return masterContext && parsedConfig ? { ...masterContext, config: parsedConfig } : masterContext;
 }
 
 export function updateWorkflowState(state, patch = {}) {
   const next = { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
-  if (Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson') && next.masterContext) {
-    next.masterContext = synchronizedMasterContext(next.masterContext, next.supportConfigJson);
-  }
-  return next;
+  const configChanged = Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson');
+  const parsedConfig = configChanged ? parseSupportConfigForState(next.supportConfigJson) : null;
+  if (configChanged && next.masterContext) next.masterContext = synchronizedMasterContext(next.masterContext, parsedConfig);
+  const revisionConfig = parsedConfig || next.masterContext?.config || state.masterContext?.config || {};
+  return { ...next, ...advanceDependencyRevisionState(state, next, revisionConfig) };
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }

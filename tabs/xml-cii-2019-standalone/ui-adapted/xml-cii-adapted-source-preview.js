@@ -1,5 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js';
+import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
 
 export function renderStandaloneSourcePreviewPanel(card, state) {
   if (!state.sourceText) {
@@ -8,14 +9,19 @@ export function renderStandaloneSourcePreviewPanel(card, state) {
   }
   const detected = detectXmlCiiWorkflowSourceKind(state.sourceText, state.sourceKind);
   const actual = state.sourceKind === 'auto' ? detected : state.sourceKind;
-  try {
-    const doc = new DOMParser().parseFromString(state.sourceText, 'application/xml');
-    if (renderParserError(card, doc)) return;
-    if (actual === 'xml') renderXmlPreview(card, doc);
-    else renderInputXmlPreview(card, doc);
-  } catch (err) {
-    card.appendChild(createElement('div', `Error parsing source: ${err.message}`, 'xml-cii-invalid'));
+  const sourceContext = getSourceDocumentContext(state.sourceText);
+  if (sourceContext.error) {
+    card.appendChild(createElement('div', `Error parsing source: ${sourceContext.error.message}`, 'xml-cii-invalid'));
+    return;
   }
+  const doc = sourceContext.document;
+  if (!doc) {
+    card.appendChild(createElement('div', 'Error parsing source: no XML document was produced.', 'xml-cii-invalid'));
+    return;
+  }
+  if (renderParserError(card, doc)) return;
+  if (actual === 'xml') renderXmlPreview(card, doc);
+  else renderInputXmlPreview(card, doc);
 }
 
 function renderParserError(card, doc) {
