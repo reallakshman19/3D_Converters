@@ -1,0 +1,20 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+work_id: PR614
+pull_request: 614
+branch: agent/xml-cii-c8-scale-qualification-20260818
+base_main: e93cf16b9670a9876135a659b4f26506857b2c36
+workstream: XML_CII_STANDALONE_PERFORMANCE
+stage: C8_SCALE_QUALIFICATION
+criticality: STANDARD_VALIDATION_ONLY
+state: QUALIFIED_DRAFT_PENDING_OWNER_MERGE_AUTHORITY
+production_behavior_change: NONE
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR614
+worker_admission: NOT_ADMITTED
+validation:
+  scale_ladder: PASS_6_OF_6
+  scales: 10000_50000_100000
+  max_dom_rows: 60
+  remote_blob_parity: PASS
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+exact_next_action: Leave PR614 unmerged pending explicit owner authority; C5 material-only integration is blocked by PR613 exact-file claim.
