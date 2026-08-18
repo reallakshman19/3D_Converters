@@ -2,14 +2,14 @@ work_id: WIP-AIV-CANVAS-HARDEN-20260818
 branch: agent/vibration-aiv-canvas-hardening-20260818
 base_branch: main
 base_sha: b2aaa2ebea54bf568f340c62b2bb767d2ce061ae
-agent_state: ACTIVE
-current_stage: IMPLEMENT_PHASE_1
+agent_state: INACTIVE
+current_stage: MIGRATED_TO_PR642
 execution_mode: AUTO
-auto_state: RUNNING
+auto_state: MIGRATED
 criticality: ENGINEERING_CRITICAL
-mutation_authority: WRITE_ALLOWED
+mutation_authority: RELEASED_TO_PR642
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
-coordination_state: SAFE_PENDING_RECHECK
+coordination_state: SAFE
 blockers: []
 protected_authority:
   aiv_numerical_kernel: NO_CHANGE
@@ -17,4 +17,4 @@ protected_authority:
   line_case_screening_authority: NOT_AUTHORIZED
   generic_ei_mainline_aiv: BLOCKED
   design_authority: false
-exact_next_action: implement fail-closed disconnected relationship generation and guarded atomic RV branch deletion
+exact_next_action: recover from PR642 artifacts
