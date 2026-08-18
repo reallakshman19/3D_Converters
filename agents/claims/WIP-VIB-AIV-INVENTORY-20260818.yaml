@@ -1,0 +1,40 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-AIV-INVENTORY-20260818
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/aiv/aiv-inventory-completeness.js
+    - converters/vibration/aiv/aiv-line-aggregation.js
+    - converters/vibration/aiv/aiv-calculator.js
+    - converters/engineering-calculations/adapters/vibration-aiv.js
+    - tabs/vibration-aiv-state.js
+    - tabs/vibration-aiv-engineering-revision.js
+    - tabs/vibration-aiv-screening-request.js
+    - tabs/vibration-aiv-execution.js
+    - tabs/vibration-aiv-inventory-completeness-view.js
+    - tabs/vibration-aiv-qualification-view.js
+    - tabs/vibration-aiv-qualification-tab.js
+    - tests/vibration-aiv-inventory-completeness.test.mjs
+    - tests/vibration-aiv-screening-runtime-bridge.test.mjs
+    - agents/WIP-VIB-AIV-INVENTORY-20260818_workreport.md
+    - agents/status/WIP-VIB-AIV-INVENTORY-20260818.yaml
+    - agents/claims/WIP-VIB-AIV-INVENTORY-20260818.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_AIV_WELDED_DISCONTINUITY_INVENTORY_EVIDENCE
+  - VIBRATION_AIV_COMPLETENESS_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - AIV T2-6 equations coefficients attenuation PWL fatigue or LOF math
+  - AIV Stage-9 greatest-discontinuity reduction rule
+  - line/case screening authority promotion
+  - generic vibration mechanism reducer
+  - EI cross-mechanism main-line aggregation
+  - PR631 D2.3 benchmark oracle custody
+  - T1 mechanism identification
+  - design authority
+  - workflow files
+last_verified_head: db4920173980ab60f05fa63a1ea139aa43a2de1a
+coordination_state: STACKED_ON_PR631_SAFE_FOLLOW_ON
+merge_authority: OWNER_ONLY_NOT_GRANTED
