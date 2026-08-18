@@ -3,7 +3,7 @@ state: IMPLEMENTING
 criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
-report_basis_head: c417070c5733f11ff41d78a8da8b2c11bf0b6523
+report_basis_head: e25120da92795441e9f1441e0f3cfb2b77fc9866
 live_main_at_stage7_recovery: eef94949961970171d1366f5b6a9d421b3cc0d9f
 mission: Generic EIT/project/source/roadmap integration, fail-closed mechanism reduction/EI aggregation, FIT natural-frequency custody, field measurement evidence custody/persistence, and measurement-driven resizable right-roadmap presentation.
 overlap: COORDINATION_REQUIRED
@@ -45,4 +45,4 @@ stage7_invariants:
   - NO_SHARED_TAB_MUTATION
   - NO_MECHANISM_WORKSPACE_MUTATION
   - NO_SIGNAL_PROCESSING_MATH
-exact_next_action: Keep PR615 draft/unmerged. Refresh current main, final PR head, relation, reviews, statuses and workflows after recovery/PR metadata commits. Browser pointer/keyboard acceptance and repository-native qualification remain required before merge qualification.
+exact_next_action: Keep PR615 draft/unmerged. Refresh final live main/head/relation/reviews/status/workflows after this recovery commit and PR metadata update. Browser pointer/keyboard acceptance and repository-native qualification remain required before merge qualification.
