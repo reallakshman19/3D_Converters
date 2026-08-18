@@ -1,0 +1,32 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: WIP-XMLCII-C4B-20260818
+branch: agent/xml-cii-c4b-config-routing-20260818
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: WRITE_ALLOWED_C4B_ROUTING_AFTER_BACKUP_GATE
+qualification: APPENDIX_A_98_OF_100
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-config.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-bend-radius-toggle.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js
+  - tests/xml-cii-standalone-config-save-routing.test.mjs
+  - agents/WIP-XMLCII-C4B-20260818_workreport.md
+  - agents/status/WIP-XMLCII-C4B-20260818.yaml
+  - agents/claims/WIP-XMLCII-C4B-20260818.yaml
+exclusions:
+  - .github/workflows/**
+  - revision math changes
+  - config business rules
+  - workers
+  - persisted indexes/caches
+  - support/GAP semantics
+  - CII writer/runtime
+coordination:
+  PR607: HARD_STACK_BASE
+  PR605: SEMANTIC_COORDINATION_ONLY_NO_EXACT_FILE_OVERLAP
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T07:19:00+04:00
