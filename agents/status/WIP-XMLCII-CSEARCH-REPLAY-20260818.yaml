@@ -1,0 +1,30 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-CSEARCH-REPLAY-20260818
+mission: Replay PR616 lazy Preview-search preparation cleanly onto current main with mandatory backup-command compliance.
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-preview-search-lazy-replay-20260818
+main_head_last_checked: d9d14d13b089c968c989544ddbdf023063b43e67
+merge_base: d9d14d13b089c968c989544ddbdf023063b43e67
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-XMLCII-CSEARCH-REPLAY-20260818_workreport.md
+appendix_a_status: OWNER_AUTHORIZED_REPLAY_OF_PR616
+current_stage: BASELINE
+blocker: NONE
+predecessor:
+  pr: 616
+  live_state: OPEN_DRAFT_STALE
+  production_blob: aeaf20b55ea13e370696db665e03a926cc7d485a
+  test_blob: da1234503f0bce4ac0a90a2cee52396e2beba44f
+  protocol_gap: MANDATORY_BACKUP_COMMAND_NOT_RUN_ON_HISTORICAL_BRANCH
+validation:
+  source_no_drift: PASS
+  mandatory_backup: NOT_RUN
+  focused_100k: NOT_RUN
+  repository_native_browser: NOT_RUN_ENVIRONMENT_BLOCKED
+merge_authority: OWNER_AUTO_MODE_GRANTED
+exact_next_action: Execute mandatory backup on current-main production bytes, persist backup before mutation, replay exact PR616 implementation/test blobs and requalify.
+last_updated: 2026-08-18T20:39:00+04:00
