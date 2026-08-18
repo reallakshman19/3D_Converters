@@ -10,6 +10,9 @@ paths:
   - converters/vibration/mechanisms/result-contracts.js
   - converters/vibration/mechanisms/reducers.js
   - converters/vibration/ei-mainline-aggregation.js
+  - converters/vibration/facility/fit-frequency-custody.js
+  - converters/vibration/facility/fit-engineering-basis.js
+  - converters/vibration/facility/fit-plan-item.js
   - tabs/vibration-roadmap-panel.js
   - tabs/vibration-roadmap-controller.js
   - tabs/vibration-roadmap-panel.css
@@ -21,8 +24,12 @@ paths:
   - tests/vibration-roadmap-*.test.mjs
   - tests/vibration-mechanism-line-result.test.mjs
   - tests/vibration-ei-mainline-aggregation.test.mjs
+  - tests/vibration-facility-fit-frequency-custody.test.mjs
+  - agents/PR615_stage2_source_identity.md
   - agents/PR615_stage3_mechanism_reduction.md
+  - agents/PR615_stage4_fit_frequency_custody.md
   - .backups/connector-20260818-pr615-stage3/**
+  - .backups/connector-20260818-pr615-stage4/**
 authority_domains:
   - EIT_COMPATIBILITY_IMPORT_NORMALIZATION
   - VIBRATION_PROJECT_PERSISTENCE
@@ -32,30 +39,41 @@ authority_domains:
   - PROJECT_UI_IMPORT_OPEN_SAVE
   - MECHANISM_RESULT_REDUCTION_CUSTODY
   - EI_MAINLINE_AGGREGATION_V2
+  - FIT_NATURAL_FREQUENCY_PROVENANCE_CUSTODY
 exclusions:
-  - engineering equations
+  - engineering equations or coefficients
+  - FIT method or applicability numerical mutation
+  - natural-frequency source-method inference
   - mechanism applicability authority
   - unqualified multi-item mechanism reduction rules
   - benchmark oracle values or tolerances
   - persisted current-result authority
-  - existing AIV/FIT/SBC numerical production files
-  - active FIT/AIV/SBC mechanism workspace files
+  - active AIV/FIT/SBC mechanism workspace files
   - generic multi-module EIT export authority
+  - process reference actualization inference
+  - geometry DN/schedule inference
   - design or code authority promotion
   - Product Freeze promotion
   - workflow files
 coordination:
-  PR571: mechanism coverage and identification; contracts.js and coverage files untouched; PR571 explicitly excludes EI aggregation
-  PR539_PR540: FIT adapter/family/view; exact files avoided
+  PR571: mechanism coverage and identification; coverage/contracts files untouched
+  PR539_PR540: FIT adapter/family/console authority presentation; exact files avoided
   PR479: owns tabs/vibration-integrity-tab.js; mechanism workspace integration blocked
-  PR506: owns tabs/engineering-calculations-tab.js and AIV workspace/runtime; historical PR615 shared-tab overlap acknowledged and no further PR615 edit permitted without reconciliation
-  PR517: AIV Production Freeze evidence only
-  PR508: owns tabs/vibration-integrity-mechanisms.js and SBC facility/view paths; mechanism workspace integration blocked
-  PR546: SBC freeze/source evidence paths untouched
-  PR560: FIV roadmap doc untouched
+  PR506: owns tabs/engineering-calculations-tab.js and AIV workspace/runtime; historical shared-tab overlap acknowledged and no further PR615 shared-tab edit permitted
+  PR508: owns tabs/vibration-integrity-mechanisms.js and SBC facility/view paths
+  PR546: SBC freeze/source paths untouched
+  PR560: roadmap documentation branch untouched
+  PR582_PR584_PR586_PR588: merged M5 basis/geometry/process authorities reused, not duplicated
 stage3_invariants:
   - ASSESSMENT_UNIT_LOF_NE_MECHANISM_LINE_LOF
   - ONE_MECHANISM_MAX_ONE_EI_CONTRIBUTOR
   - ZERO_ASSESSMENT_UNITS_INCOMPLETE
   - MANY_ASSESSMENT_UNITS_INCOMPLETE_UNLESS_MECHANISM_SPECIFIC_REDUCER_QUALIFIED
   - NO_UNIVERSAL_MULTI_ITEM_MAX_REDUCER
+stage4_invariants:
+  - SUPPLIED_NATURAL_FREQUENCY_NE_CUSTODIED_NATURAL_FREQUENCY
+  - UNCUSTODIED_FREQUENCY_NEVER_ENTERS_REQUEST_INPUTS
+  - ABSENT_FREQUENCY_DOES_NOT_BLOCK_STANDARD_FIT
+  - CASE_SPECIFIC_FREQUENCY_PRECEDENCE_FAILS_CLOSED
+  - NO_MEASURED_FEA_ANALYTICAL_VENDOR_CLASS_INFERENCE
+  - FREQUENCY_CUSTODY_AUTHORITY_ONLY
