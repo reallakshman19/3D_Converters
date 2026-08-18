@@ -1,0 +1,17 @@
+id: WIP-XMLCII-CSEARCH-20260818
+state: active
+classification: STANDARD
+coordination: SAFE
+base_commit: e93cf16b9670a9876135a659b4f26506857b2c36
+branch: agent/xml-cii-c-search-prep-20260818
+claimed_paths:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js
+authority:
+  engineering_core: unchanged
+  preview_search_presentation: owned
+  merge: OWNER_ONLY_NOT_GRANTED
+notes:
+  - Clean replay of salvage design evidence from PR598 and PR599.
+  - No exact-file overlap with open production PR611 or PR613.
+  - Preserve complete logical virtualization; no 150-row truncation.
