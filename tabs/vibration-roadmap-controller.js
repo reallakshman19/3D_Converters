@@ -69,6 +69,7 @@ function customEvent(container, name, detail) {
 
 export function createVibrationRoadmapController(container, { initialState = {}, downloadText = defaultDownloadText } = {}) {
   let displayState = normalizedDisplayState(initialState);
+  let explicitMechanismStates = initialState.mechanismStates ?? {};
   let currentProject = initialState.project ?? null;
   let selectedLineId = initialState.context?.lineId ?? null;
   let collapsed = initialState.collapsed === true;
@@ -79,12 +80,16 @@ export function createVibrationRoadmapController(container, { initialState = {},
   let projectMessageKind = 'info';
   const resizeWindow = container.ownerDocument?.defaultView ?? null;
 
-  function syncProjectState() {
+  function syncProjectState(contextOverlay = displayState.context) {
     if (!currentProject) return;
-    displayState = buildVibrationRoadmapStateFromProject(currentProject, {
+    const projectState = buildVibrationRoadmapStateFromProject(currentProject, {
       lineId: selectedLineId,
-      mechanismStates: displayState.mechanismStates,
+      mechanismStates: explicitMechanismStates,
     });
+    displayState = {
+      ...projectState,
+      context: Object.freeze({ ...(contextOverlay ?? {}), ...projectState.context }),
+    };
     selectedLineId = displayState.context.lineId;
   }
 
@@ -167,7 +172,15 @@ export function createVibrationRoadmapController(container, { initialState = {},
 
   function onRoadmapState(event) {
     if (!event.detail || typeof event.detail !== 'object') return;
-    displayState = mergeDisplayState(displayState, event.detail);
+    if (event.detail.mechanismStates !== undefined) explicitMechanismStates = event.detail.mechanismStates ?? {};
+    if (currentProject) {
+      const contextOverlay = event.detail.context === undefined
+        ? displayState.context
+        : { ...displayState.context, ...event.detail.context };
+      syncProjectState(contextOverlay);
+    } else {
+      displayState = mergeDisplayState(displayState, { ...event.detail, mechanismStates: explicitMechanismStates });
+    }
     if (lastRender) render(lastRender);
   }
 
@@ -228,6 +241,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
     event.preventDefault?.();
   }
 
+  if (currentProject) syncProjectState();
   container.addEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapState);
   container.addEventListener('click', onClick);
   container.addEventListener('change', onChange);
