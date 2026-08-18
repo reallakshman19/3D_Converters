@@ -19,10 +19,12 @@ authority_domains:
   - VIBRATION_PROJECT_PERSISTENCE
   - ROADMAP_PRESENTATION_PROJECTION
   - ROADMAP_UI_MOUNT
+  - PROJECT_UI_IMPORT_OPEN_SAVE
 exclusions:
   - engineering equations
   - mechanism applicability authority
   - mainline aggregation authority
+  - persisted current-result authority
   - existing AIV/FIT/SBC numerical production files
   - generic multi-module EIT export authority
   - workflow files

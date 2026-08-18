@@ -4,14 +4,15 @@ criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
 base_main_sha: 1d9340248b11569f7c7c4f02ac429c7d8c66ff81
-mission: Generic multi-module EIT project core plus non-binding Phase x Scope x Specialty right-side roadmap.
+mission: Generic multi-module EIT project persistence plus non-binding Phase x Scope x Specialty right-side roadmap.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
   live_grounding: PASS
   overlap_shared_tab: PASS_NO_OPEN_PR_CLAIM
   backup_utility: PASS_EXACT_BLOB_64196d6e
-  reconstructed_node: PASS_21_OF_21
+  reconstructed_node: PASS_25_OF_25
   repository_native: NOT_RUN_ENVIRONMENT_BLOCKED
+  controlled_real_eit: NOT_RUN_NATIVE_CHECKOUT_BLOCKED
   browser: NOT_RUN
-exact_next_action: Add UI project Open/Save and generic EIT import, then run controlled-file and served-browser acceptance.
+exact_next_action: Qualify real controlled EIT and browser project controls when native surface is available; then wire vibration-project-changed to one mechanism workspace at a time.
