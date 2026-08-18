@@ -1,35 +1,7 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-MECH-T23-20260818
-claim_state: ACTIVE
-files:
-  exact:
-    - converters/vibration/mechanical/t23-method.js
-    - converters/vibration/mechanical/facility.js
-    - converters/vibration/mechanisms/mechanical.js
-    - converters/vibration/source/registry.js
-    - tabs/vibration-integrity-mechanical-view.js
-    - tabs/vibration-integrity-mechanisms.js
-    - tests/vibration-mechanical-t23-method.test.mjs
-    - tests/vibration-mechanical-t23-facility-stage4.test.mjs
-    - tests/vibration-integrity-mechanism-matrix.test.mjs
-    - tests/vibration-method-source.test.mjs
-    - agents/WIP-VIB-MECH-T23-20260818_workreport.md
-    - agents/status/WIP-VIB-MECH-T23-20260818.yaml
-    - agents/claims/WIP-VIB-MECH-T23-20260818.yaml
-  prefixes: []
-authority_domains:
-  - VIBRATION_MECHANICAL_T23_DIRECT_BASELINE_SOURCE
-  - VIBRATION_MECHANICAL_T23_SCREENING_AUTHORITY
-claim_modes:
-  - EXCLUSIVE
-exclusions:
-  - shared-support adjacent-line transfer calculation
-  - detailed dynamic-analysis reduced LOF branch
-  - automatic T1 applicability
-  - generic EI main-line aggregation policy changes
-  - AIV FIT SBC numerical changes
-  - design authority
-  - workflow files
-coordination_state: COORDINATION_REQUIRED_WITH_PR626_ON_TABS_VIBRATION_INTEGRITY_MECHANISMS_ONLY
-coordination_note: PR626 owns capability-source-of-truth refactoring on the same orchestration file; this Mechanical screening-state delta must be preserved when PR626 is rebased/reconciled. No AIV behavior from PR626 is duplicated here.
+claim_state: RELEASED
+superseded_by: PR635
+branch: agent/vibration-mechanical-t23-screening-qualification-20260818
+coordination_state: MIGRATED_TO_PR635
 merge_authority: OWNER_ONLY_NOT_GRANTED
