@@ -380,15 +380,25 @@ export function _processDataText(config, keys, fieldKey) {
   return '';
 }
 
-export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
-  if (typeof DOMParser === 'undefined') return { branchRows: [], nodeRows: [] };
-  let document;
-  try {
-    document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
-    if (document.getElementsByTagName('parsererror').length) return { branchRows: [], nodeRows: [] };
-  } catch {
-    return { branchRows: [], nodeRows: [] };
+function previewWorkingDocument(xmlText, sourceDocument = null) {
+  if (sourceDocument && typeof sourceDocument.cloneNode === 'function') {
+    try {
+      const document = sourceDocument.cloneNode(true);
+      return document.getElementsByTagName('parsererror').length ? null : document;
+    } catch {}
   }
+  if (typeof DOMParser === 'undefined') return null;
+  try {
+    const document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
+    return document.getElementsByTagName('parsererror').length ? null : document;
+  } catch {
+    return null;
+  }
+}
+
+export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {}) {
+  const document = previewWorkingDocument(xmlText, runtime.sourceDocument);
+  if (!document) return { branchRows: [], nodeRows: [] };
 
   // Node Block Invariant Cleanup Sync (Parity with xml-cii-node-block-cleanup.js)
   const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
