@@ -1,0 +1,23 @@
+work_id: WIP-AIV-CANVAS-HARDEN-20260818
+claim_state: ACTIVE
+branch: agent/vibration-aiv-canvas-hardening-20260818
+scope: AIV unified canvas engineering/UI hardening
+phase_1_exact_files:
+  - converters/vibration/aiv/aiv-flare-network-table-generator.js
+  - tabs/vibration-aiv-unified-canvas-workflow.js
+  - tabs/vibration-aiv-unified-canvas-editor-controller.js
+  - tabs/vibration-aiv-unified-canvas-author.js
+  - tests/vibration-aiv-unified-canvas-user-workflow.test.mjs
+  - tests/vibration-aiv-unified-canvas-editor-author.test.mjs
+path_prefixes:
+  - converters/vibration/aiv/
+  - tabs/vibration-aiv-
+  - tests/vibration-aiv-
+exclusions:
+  - AIV numerical equations/constants
+  - AIV Stage-9 reduction rule
+  - AIV line/case authority promotion
+  - generic EI main-line governing aggregation
+  - design authority
+  - workflow files
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
