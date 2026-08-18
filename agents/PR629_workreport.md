@@ -14,16 +14,16 @@ BRANCH: agent/vibration-aiv-assessment-integration-20260818
 STACK_BASE_PR: 626
 STACK_BASE_BRANCH: agent/vibration-capability-consistency-20260818
 STACK_BASE_HEAD: afa6a9dfcb533abb312f30baba4ef5d8d039067f
-PR_HEAD_AT_ALLOCATION: db85a8cce2f1c9c0dc271fa9a0a36a59a866848b
+PR_HEAD_LAST_RECONCILED: f5e56edc2fa3f6c2cd63a9bc4cf934a73f893cfd
 REPORT_BASIS_HEAD: 8c4f2d0383c596bb5b8126e20cfce62233c38747
 MAIN_HEAD_LAST_CHECKED: bca7fc9390c018753d09161052b0bf2fd54e33ce
-CURRENT_STAGE: VALIDATE_RECONCILE
+CURRENT_STAGE: DRAFT_HANDOVER
 CURRENT_BLOCKER: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
 HIGHEST_RISK: assessment-level AIV LOF must never become an unqualified mechanism-line or EI-main-line governing result
-EXACT_NEXT_ACTION: reconcile post-migration PR files/checks/reviews; keep PR draft and stacked on #626
+EXACT_NEXT_ACTION: execute repository-native adapter/matrix/capability tests and browser AIV-to-Integrity journey in a capable checkout; keep draft and stacked on #626
 ```
 
-## Current Engineering State
+## Handover in 60 Seconds
 
 PR629 integrates the registered AIV screening result into Vibration Integrity only at its qualified **assessment scope**. Exact identity is required: `(line, caseId, assessmentCanonicalId)` must match the Integrity row `(line, caseId, canonicalId)`.
 
@@ -45,12 +45,44 @@ PR629 is stacked on PR626 and is not a standalone main-branch merge candidate. P
 
 - `converters/vibration/mechanisms/aiv.js`: validates registered screening envelope and exact assessment result authority/currency; maps to generic mechanism contract while withholding line governing LOF.
 - `tabs/vibration-aiv-screening-session.js`: session-current, non-persistent AIV evidence bridge; no line aggregation authority.
-- `tabs/vibration-aiv-execution.js`: publishes session evidence after successful current screening and clears it on readiness/input invalidation/failure.
+- `tabs/vibration-aiv-execution.js`: publishes session evidence after successful current screening and clears it on readiness/input invalidation/failure. Publication occurs before lineage commit so a publish-contract error fails closed rather than leaving partially committed session state.
 - `converters/vibration/mechanisms/capability.js`: AIV now `SCREENING_ASSESSMENT_SCOPE` / `INTEGRATED_ASSESSMENT_SCOPE`.
-- `tabs/vibration-integrity-mechanisms.js`: consumes exact assessment evidence, displays assessment LOF, and explicitly excludes AIV from `screeningGoverning` using `governingEligible=false`.
-- Focused adapter/session/capability/matrix regressions added/updated.
+- `tabs/vibration-integrity-mechanisms.js`: consumes exact assessment evidence, displays assessment LOF, explicitly labels `AIV assess.`, and excludes AIV from `screeningGoverning` using `governingEligible=false`.
+- Focused adapter/session/capability/matrix regressions added or updated.
 
-No AIV numerical kernel, EI line reducer/policy, FIT/Mechanical/SBC numeric behavior, T1 identification, or design authority changes are included.
+No AIV numerical kernel, EI line reducer/policy, FIT/Mechanical/SBC numeric behavior, T1 identification, project persistence, or design authority changes are included.
+
+## Authority / Negative Assurance
+
+1. Only successful registered `VIB.AIV.ACOUSTIC` assessment-scope screening results are accepted.
+2. Result container must state `screeningAuthority=AUTHORIZED`, `lineCaseSummaryAuthoritativeForScreening=false`, `designAuthority=false`.
+3. Each AIV result must be `AivAssessmentResult.v1`, `SCREENING_CALCULATED`, finite non-negative LOF, `qualificationState=SCREENING`, `engineeringAuthority=SCREENING`, `screeningAuthority=AUTHORIZED`, `designAuthority=false`.
+4. Exact line/case/canonical identity is mandatory; no fuzzy or line-only matching.
+5. Assessment numeric evidence is stored as `assessmentLof`; `governingLof` is deliberately null and `aggregationEligible=false`.
+6. Matrix `screeningGoverning` requires `governingEligible !== false`, so the AIV assessment LOF cannot replace FIT or another qualified line result.
+7. Generic line reduction therefore remains fail-closed until a separately qualified AIV line reducer exists.
+8. The adapter never reads `lineCaseSummaries`; configured line/case values cannot enter PR629's result path.
+9. Session evidence is in-memory only, and AIV dataset/readiness/input mutation paths clear it.
+
+## Repository Reconciliation
+
+At the last exact-head reconciliation before this report-only sync:
+
+```text
+PR629                       OPEN / DRAFT / mergeable / unmerged
+base                        agent/vibration-capability-consistency-20260818
+base SHA                    afa6a9dfcb533abb312f30baba4ef5d8d039067f
+head checked                f5e56edc2fa3f6c2cd63a9bc4cf934a73f893cfd
+relation                    ahead 23 / behind 0
+changed files               16 / 16 intended / 0 unexplained
+engineering + test files    10
+recovery metadata files     6
+review threads              0
+combined commit statuses    0 returned -> NOT_RUN
+PR-triggered workflow runs  0 returned -> NOT_RUN
+```
+
+All branch commits after `REPORT_BASIS_HEAD=8c4f2d...` are recovery/status/claim metadata only. This report sync does not change engineering behavior.
 
 ## Validation Ledger
 
@@ -64,10 +96,12 @@ PASS  AIV input/readiness mutation paths clear session evidence
 PASS  exact-source reconstructed session test: 2/2
 PASS  exact-source AIV adapter node --check
 PASS  new module physical lines: 154 + 50, both <300
+PASS  changed-file and stack-base reconciliation: 16/16 explained; behind 0
 NOT_RUN repository-native adapter test
 NOT_RUN repository-native matrix test
 NOT_RUN repository-native capability test
 NOT_RUN browser AIV -> Integrity journey
+NOT_RUN hosted CI/workflow execution: zero statuses/runs observed
 ```
 
 Reconstructed execution is supporting evidence only, not a repository-native PASS.
@@ -91,7 +125,35 @@ tests/vibration-mechanism-capability.test.mjs       911e603ff56fa1b788996dbd869d
 
 These blobs are rollback evidence, not backup-command PASS.
 
-## Scope Exclusions / Invariants
+## Changed-File Ledger
+
+Engineering/test paths:
+
+```text
+converters/vibration/mechanisms/aiv.js
+converters/vibration/mechanisms/capability.js
+converters/vibration/mechanisms/index.js
+tabs/vibration-aiv-execution.js
+tabs/vibration-aiv-screening-session.js
+tabs/vibration-integrity-mechanisms.js
+tests/vibration-aiv-integrity-assessment-adapter.test.mjs
+tests/vibration-aiv-screening-session.test.mjs
+tests/vibration-integrity-mechanism-matrix.test.mjs
+tests/vibration-mechanism-capability.test.mjs
+```
+
+Recovery metadata:
+
+```text
+agents/PR629_workreport.md
+agents/WIP-VIB-AIV-INTEGRATION-20260818_workreport.md
+agents/status/PR629.yaml
+agents/status/WIP-VIB-AIV-INTEGRATION-20260818.yaml
+agents/claims/PR629.yaml
+agents/claims/WIP-VIB-AIV-INTEGRATION-20260818.yaml
+```
+
+## Scope Exclusions / Merge Boundary
 
 - no equations, coefficients, assumptions, attenuation, source PWL or fatigue formula changes;
 - no AIV Stage-9 line aggregation qualification;
@@ -101,15 +163,8 @@ These blobs are rollback evidence, not backup-command PASS.
 - no project-load restoration of current-result authority;
 - no design authority;
 - no workflow files;
+- PR629 must remain stacked on #626 until #626 lands or PR629 is replayed/rebased;
 - no merge without explicit Owner authorization.
-
-## Continuation
-
-```text
-Implementation/test basis: 8c4f2d0383c596bb5b8126e20cfce62233c38747
-PR allocation head: db85a8cce2f1c9c0dc271fa9a0a36a59a866848b
-Next: migrate status/claim, release WIP claim, reconcile exact post-migration head/files/checks/reviews.
-```
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
