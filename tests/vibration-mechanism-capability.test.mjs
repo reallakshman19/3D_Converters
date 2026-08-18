@@ -36,13 +36,13 @@ test('FIT remains integrated while calculator qualification is projected from th
   assert.equal(capability.governingEligibilitySource, 'RUNTIME_ASSESSMENT_ONLY');
 });
 
-test('integrated candidate mechanisms do not invent central calculation availability', () => {
+test('integrated Mechanical screening and SBC candidate do not invent central calculation availability', () => {
   const mechanical = resolveVibrationMechanismCapability('mechanicalExcitation');
   const sbc = resolveVibrationMechanismCapability('smallBoreConnections');
   assert.equal(mechanical.calculationId, null);
   assert.equal(mechanical.calculationAvailable, false);
   assert.equal(mechanical.assessmentIntegrationState, 'INTEGRATED');
-  assert.equal(mechanical.integrityImplementationState, 'CANDIDATE_MASTER');
+  assert.equal(mechanical.integrityImplementationState, 'SCREENING');
   assert.equal(sbc.calculationId, null);
   assert.equal(sbc.calculationAvailable, false);
   assert.equal(sbc.assessmentIntegrationState, 'INTEGRATED');
