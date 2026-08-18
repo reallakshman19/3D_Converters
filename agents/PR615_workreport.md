@@ -1,24 +1,31 @@
 # PR #615 Work Report — Current Recovery Authority
 
-## Recovery Header
+## Recovery header
 
-- WORK_INTENT: IMPLEMENT
-- REPOSITORY_STATE: EXISTING_PR
-- MUTATION_AUTHORITY: WRITE_ALLOWED by current Owner instruction
-- CRITICALITY: ENGINEERING_CRITICAL
-- EXECUTION_MODE: MANUAL
-- BASE_BRANCH: `main`
-- LIVE_MAIN_AT_FINAL_STAGE3_RECONCILIATION: `22b7b57fed3e78534da41342fc3240c8d27369c3`
-- BRANCH: `agent/vibration-eit-roadmap-20260818`
-- PR: #615
-- REPORT_BASIS_HEAD: `477dd1b51f5eeeb6e35a501f3b1844d9e767e051`
-- PRE_STATUS_STAGE3_HEAD: `dcaaa2dbfdd1da559e11f2fff827d122f7bc7902`
-- BRANCH_RELATION_AT_PRE_STATUS_HEAD: ahead 33 / behind 4
-- MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
+```text
+WORK_INTENT       IMPLEMENT
+REPOSITORY_STATE  EXISTING_PR
+MUTATION_AUTHORITY WRITE_ALLOWED by current Owner instruction
+CRITICALITY       ENGINEERING_CRITICAL
+EXECUTION_MODE    MANUAL
+BASE_BRANCH       main
+BRANCH            agent/vibration-eit-roadmap-20260818
+PR                #615
+MERGE_AUTHORITY   OWNER_ONLY / NOT_GRANTED
+PR_STATE          DRAFT / UNMERGED
+```
 
-## Handover in 60 Seconds
+Detailed stage evidence is retained in:
 
-PR615 now contains this governed stack:
+```text
+agents/PR615_stage2_source_identity.md
+agents/PR615_stage3_mechanism_reduction.md
+agents/PR615_stage4_fit_frequency_custody.md
+```
+
+## Handover in 60 seconds
+
+PR615 now implements this governed stack:
 
 ```text
 EnergyInstituteEit.v5 compatibility import
@@ -28,60 +35,53 @@ EnergyInstituteEit.v5 compatibility import
   -> MechanismNumericResult.v1
   -> MechanismLineResult.v1
   -> EiMainLineAggregation.v2
+
+FIT facility data
+  -> FitFacilityEngineeringBasis.v2
+  -> FitFacilityNaturalFrequencyCustody.v1
+  -> FIT request only when supplied fn is custodied
 ```
 
-Stage 3 fixed the common aggregation defect: assessment-unit LOFs no longer enter the EI cross-mechanism maximum directly. Each required mechanism must first produce one qualified `MechanismLineResult.v1`.
-
-Permanent invariant:
+Authority remains deliberately separated:
 
 ```text
-ASSESSMENT_UNIT_LOF != MECHANISM_LINE_LOF
-one mechanism -> at most one EI main-line contributor
+EIT import            compatibility/history only
+.vibproj              persistence only
+source registry       source identity only
+roadmap               navigation/presentation only
+frequency custody     provenance custody only
+mechanism reducers    reduction custody only
+EI main-line result   governed screening aggregate only
 ```
 
-## Final Main Drift Reconciliation
+No project/UI/source/custody layer creates design/code authority.
 
-`main` advanced during Stage 3 from `1d934024...` to `22b7b57f...` by four commits.
-
-The complete drift comparison contains XML→CII Preview/config/test and associated backup/recovery files only. No vibration, mechanism-result, roadmap, project, source-custody, or EI aggregation path overlaps PR615.
-
-Classification:
-
-```text
-NON_OVERLAPPING_BASE_DRIFT
-```
-
-PR615 was deliberately not rebased at this handover; importing unrelated XML work into the engineering-critical stack provides no Stage-3 validation benefit. Reconcile/rebase the four commits before any merge attempt.
-
-## Coordination / Active Claims
-
-- PR #571 owns mechanism coverage/identification contracts and explicitly excludes EI aggregation.
-- no open PR was found for `ei-mainline-aggregation.js` at Stage-3 start.
-- no open PR was found for `MechanismLineResult` other than PR615.
-- PR #479 owns `tabs/vibration-integrity-tab.js`.
-- PR #506 owns `tabs/engineering-calculations-tab.js` plus AIV workspace/runtime.
-- PR #508 owns `tabs/vibration-integrity-mechanisms.js` and SBC facility/view paths.
-
-Stage 3 did not edit through those mechanism-workspace claims and did not modify `converters/vibration/mechanisms/contracts.js`.
-
-## Stage 1 — EIT / Project / Roadmap
+## Stage 1 — multi-module EIT / project / roadmap
 
 Implemented:
 
 - generic `EnergyInstituteEit.v5` import for `fit/fip/mex/aiv/sbc/thw/tra/caf`;
-- declaration/result/detail preservation independent of legacy module token;
-- malformed/unknown compatibility payload retention;
+- declaration/result/detail presence retained independently;
+- populated legacy module data retained even if module token is absent;
+- malformed/unknown compatibility payloads retained visibly;
 - imported numerical values remain `HISTORICAL_REVIEW_REQUIRED`;
-- persistence-only `VibrationIntegrityProject.v1` and `.vibproj`;
-- transactional `.eit -> project` load;
-- deterministic project Open/Save and line selection;
-- persisted current-result authority rejected in V1;
-- non-binding Phase × Scope × Specialty right-side roadmap;
-- project/roadmap events remain orchestration/presentation only.
+- `VibrationIntegrityProject.v1` / `.vibproj` is persistence-only;
+- project load is transactional;
+- persisted current-result authority is rejected in V1;
+- right-side Phase × Scope × Specialty roadmap;
+- Import `.eit`, Open `.vibproj`, Save `.vibproj`, line selection;
+- roadmap clicks reuse existing calculation routing;
+- missing module is never converted to NOT_APPLICABLE by the UI.
 
-## Stage 2 — Source Custody
+Historical Stage-1 reconstructed gate:
 
-Added `EngineeringMethodSource.v1` and vibration source registry with separate:
+```text
+PASS 25/25 on corresponding pre-Stage2 surface
+```
+
+## Stage 2 — typed engineering source custody
+
+Added `EngineeringMethodSource.v1` with separate:
 
 ```text
 technicalModule
@@ -94,134 +94,193 @@ printedPage
 pdfPage
 ```
 
-EI 2nd-edition publication/T1-T13 module identity is retained separately from repository-only T2 subsection labels. Repository labels remain `RECONCILIATION_REQUIRED`; dotted section IDs are not silently promoted to flowchart IDs. Thermowell EI T4 vs current ASME identity remains `CONFLICTED`.
+Current repository T2 subsection labels remain `RECONCILIATION_REQUIRED`; dotted section IDs are not silently treated as hyphenated flowchart IDs.
 
-Roadmap source state is visible but cannot determine applicability, result, completeness, screening authority, or design authority.
+Thermowell EI T4 vs current ASME PTC 19.3 identity remains explicit `CONFLICTED` evidence.
 
-## Stage 3 — Mechanism-Level Reduction
+Roadmap source state is visible but cannot change applicability, LOF, completeness, screening or design authority.
 
-### `MechanismNumericResult.v1`
-
-`converters/vibration/mechanisms/result-contracts.js`
-
-Aggregation eligibility requires:
+Stage-2 focused execution:
 
 ```text
-IMPLEMENTED_SCREENING
-qualification.effective = SCREENING
-assessmentState = CALCULATED
-resultState = CURRENT_RESULT
-finite governingLof >= 0
+PASS 10/10
 ```
 
-Observed stale/candidate/invalid LOF remains auditable but cannot contribute.
+## Stage 3 — mechanism-level result reduction
 
-### `MechanismLineResult.v1`
+Corrected pre-existing direct child-LOF aggregation.
 
-One result per mechanism + exact line/case/canonical scope. `CURRENT_RESULT` requires a valid numeric LOF, aggregation eligibility, and no blocking reduction reason. `INCOMPLETE` cannot carry a governing LOF.
+Permanent invariant:
 
-### Reducer custody
+```text
+ASSESSMENT_UNIT_LOF != MECHANISM_LINE_LOF
+one mechanism -> at most one EI main-line contributor
+```
 
-`converters/vibration/mechanisms/reducers.js`
+Added:
 
-`VibrationMechanismReducerRegistry.v1` currently allows:
+```text
+MechanismNumericResult.v1
+MechanismLineResult.v1
+VibrationMechanismReducerRegistry.v1
+```
+
+Current reducer policy:
 
 ```text
 ONE  -> IDENTITY_SINGLE_ASSESSMENT_UNIT / STRUCTURAL_IDENTITY_ONLY
 ZERO -> INCOMPLETE
-MANY -> INCOMPLETE
+MANY -> INCOMPLETE until mechanism-specific method rule is qualified
 ```
 
-All multi-item rules are intentionally `null`:
+There is no universal child-level max reducer.
+
+`EiMainLineAggregation` is now:
 
 ```text
-universalMultiItemReducer = false
-multiItemReductionQualified = false
+EiMainLineAggregation.v2
+EiMainLineAggregationPolicy.v2
+revision = EI-AVIFF2-MAINLINE-2026-08-18
+aggregationRule = MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF
 ```
 
-No AIV/deadleg/etc. max rule has been inferred.
+Policy identity includes reducer-registry custody. Caller-supplied line results/reducers are rejected.
 
-### `EiMainLineAggregation.v2`
-
-`converters/vibration/ei-mainline-aggregation.js`
+Primary Stage-3 falsifier:
 
 ```text
-schema            = EiMainLineAggregation.v2
-policy schema     = EiMainLineAggregationPolicy.v2
-policy revision   = EI-AVIFF2-MAINLINE-2026-08-18
-aggregation rule  = MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF
+AIV pairs [0.21, 0.63, 0.47]
+without qualified pair->line reducer
+-> MechanismLineResult INCOMPLETE
+-> EI main-line INCOMPLETE
+-> eiMainLineLof = null
 ```
 
-Reducer-registry revision/fingerprint is part of policy identity.
-
-Flow:
+Stage-3 reconstructed focused evidence:
 
 ```text
-T1 identification / coverage / completeness
-  -> benchmark readiness
-  -> governed assessment set
-  -> MechanismLineResult.v1
-  -> one qualified contributor per mechanism
-  -> EI cross-mechanism maximum
+result/reducer cases      PASS 8/8
+aggregation harness       PASS 4/4
 ```
 
-Caller-supplied `mechanismLineResults`, reducer registries, and reducer overrides are forbidden in this slice.
+## Stage 4 — FIT natural-frequency custody
 
-Audit output includes mechanism line results and reduction provenance.
+### Re-grounded M5 scope
 
-## Primary Falsifier
+Do not duplicate already-landed M5 work:
 
-Old behavior:
+- #582 explicit wall/span/support/process/scenario basis;
+- #584 nominal geometry catalogue custody;
+- #586 blocked geometry-consistency authority;
+- #588 blocked STANDARD/NORMAL -> ACTUAL process conversion authority.
+
+The remaining concrete request-boundary gap was natural-frequency provenance.
+
+### Defect
+
+Pre-Stage4 facility planning could pass an optional `NATURAL_FREQUENCY` to FIT with only:
 
 ```text
-AIV assessment pairs [0.21, 0.63, 0.47]
-  -> three EI contributors
-  -> COMPLETE / 0.63
+finite value
+non-empty unit
 ```
 
-Required Stage-3 behavior without a qualified AIV multi-item rule:
+although the enrichment model already exposes source/revision/record/status/reviewer metadata.
+
+### Correction
+
+Added:
 
 ```text
-MechanismLineResult.state = INCOMPLETE
-governingLof              = null
-EI state                   = INCOMPLETE
-eiMainLineLof              = null
-contributors               = []
-reason = MECHANISM_LINE_REDUCTION:aiv:MULTI_ITEM_REDUCTION_UNQUALIFIED:aiv
+FitFacilityNaturalFrequencyCustody.v1
 ```
 
-Single-item FIT/AIV remain identity-reducible; the cross-mechanism maximum is unchanged after qualified mechanism-level results exist.
-
-## Authority / Negative Assurance
-
-Stage 3 does not change:
-
-- EI equations, coefficients, or thresholds;
-- T1 applicability;
-- benchmark oracle values/tolerances;
-- FIT/AIV/SBC numerical calculators;
-- active mechanism workspace files;
-- `mechanisms/contracts.js`;
-- design/code authority;
-- Product Freeze;
-- generic multi-module `.eit` export;
-- workflow files.
-
-Authority:
+States:
 
 ```text
-project                    = PERSISTENCE_ONLY
-roadmap                    = VISUAL_NAVIGATION_GUIDANCE_ONLY
-source registry            = SOURCE_IDENTITY_ONLY
-mechanism reducer          = REDUCTION_CUSTODY_ONLY
-EI aggregate promotion     = false
-designAuthority            = false
-codeCompliance             = false
-fullVibrationAssessment    = false
-productFreezeImplied       = false
+NOT_PROVIDED
+CUSTODIED
+INCOMPLETE
 ```
 
-## Backup Custody
+A supplied frequency is request-eligible only with:
+
+```text
+value finite and >0
+unit non-empty
+source non-empty
+sourceRevision non-empty
+recordId non-empty
+status non-empty
+```
+
+`reviewer` is optional and retained when present.
+
+No source-method taxonomy is inferred. Stage 4 does not label a frequency MEASURED/FEA/ANALYTICAL/VENDOR unless the source data itself contains such identity.
+
+Case-specific evidence has precedence. An incomplete case row fails closed and cannot fall back to a complete global row.
+
+No frequency row remains valid for the standard FIT request.
+
+### Production wiring
+
+`FitFacilityEngineeringBasis` revision-bumped:
+
+```text
+v1 -> v2
+```
+
+It now owns frequency readiness and trace.
+
+`fit-plan-item.js` no longer has an independent frequency resolver. Request construction consumes only:
+
+```text
+engineeringBasis.frequency.resolved
+```
+
+Uncustodied frequency therefore cannot reach `request.inputs.naturalFrequency`.
+
+The existing blocker CSV already exposes Source Revision / Record ID / Status / Reviewer, so no new tabular schema is required.
+
+### Stage-4 validation
+
+Exact custody module / controlled dependency execution:
+
+```text
+node --check fit-frequency-custody.js PASS
+custody cases                         PASS 8/8
+```
+
+Controlled plan-item integration harness:
+
+```text
+node --check fit-engineering-basis.js PASS
+node --check fit-plan-item.js         PASS
+no fn standard request                PASS
+incomplete fn blocks                  PASS
+case fn passed unchanged              PASS
+bad case shadows global               PASS
+TOTAL                                 PASS 4/4
+```
+
+Protected numerical blobs verified unchanged:
+
+```text
+fit/method.js
+2965155fe1d4d9081b91d1ff1113d7fb50ddbfd8
+
+fit/applicability.js
+1bb9e1627948af74a00b964ea9048a77adc2c871
+
+fit/calculate.js
+2a92e6efedefffe4ab66ab000f0c3e648c9e5e86
+```
+
+Therefore equations, coefficients and `1 < fn <= 3 Hz` remain untouched.
+
+Stage-4 relevant JS/test files remain below 300 physical lines by GitHub line-300 probes.
+
+## Backup custody
 
 Historical Stage-1 shared-tab backup:
 
@@ -229,118 +288,77 @@ Historical Stage-1 shared-tab backup:
 .backups/1_tabs_engineering_calculations_tab_js.bak
 ```
 
-Stage-3 exact connector-source pre-edit custody:
+Stage-3 exact connector-source backups:
 
 ```text
 .backups/connector-20260818-pr615-stage3/converters/vibration/ei-mainline-aggregation.js
 .backups/connector-20260818-pr615-stage3/tests/vibration-ei-mainline-aggregation.test.mjs
 ```
 
-Native backup CLI is not claimed for Stage 3 because no native checkout/network was available.
-
-## Validation Ledger
-
-Historical Stage 1:
+Stage-4 exact connector-source backups:
 
 ```text
-PASS 25/25 on its corresponding pre-Stage2 reconstructed surface
+.backups/connector-20260818-pr615-stage4/converters/vibration/facility/fit-engineering-basis.js
+.backups/connector-20260818-pr615-stage4/converters/vibration/facility/fit-plan-item.js
 ```
 
-Stage 2:
+Native backup CLI is not claimed for connector-only stages.
+
+## Coordination
+
+Active neighboring ownership remains:
+
+- #479 FIT top-level workspace;
+- #506 shared Engineering Calculations tab + AIV workspace/runtime;
+- #508 mechanism-matrix/SBC view paths;
+- #571 coverage/identification;
+- #539/#540 FIT adapter/family/console authority presentation.
+
+Stage 4 found no exact active claim for `fit-engineering-basis.js`, `fit-plan-item.js`, or natural-frequency custody.
+
+The historical Stage-1 shared-tab overlap with #506 remains acknowledged; no further PR615 edit to that shared tab is allowed without reconciliation.
+
+## Permanent negative assurance
+
+PR615 does not authorize:
 
 ```text
-PASS 10/10 source-identity focused gate
+new engineering equations or coefficients
+automatic T1 applicability
+unqualified multi-item reducers
+benchmark oracle/tolerance changes
+persisted current-result promotion
+roadmap/project authority promotion
+natural-frequency source-method inference
+STANDARD/NORMAL process actualization inference
+DN/schedule geometry inference
+generic multi-module EIT export authority
+design/code authority
+Product Freeze
+workflow changes
 ```
 
-Stage 3 reducer/result:
+## Validation truth still NOT_RUN
 
 ```text
-node --check result-contracts.js     PASS
-node --check reducers.js             PASS
-focused result/reducer cases         PASS 8/8
+repository-native current-head focused Stage-4 test NOT_RUN
+existing complete M5 engineering-basis suite          NOT_RUN
+repository-native M4/matrix current-head suite        NOT_RUN
+full Vibration/FIT/AIV/SBC release suites             NOT_RUN
+served browser acceptance                             NOT_RUN
+independent engineering review                        NOT_RUN
 ```
 
-Stage 3 aggregation controlled-dependency harness:
+No missing hosted status/workflow is treated as PASS.
 
-```text
-FIT one-item identity                 PASS
-FIT + AIV one-item max                PASS
-AIV MANY fail-closed                  PASS
-caller line-result override rejected  PASS
-TOTAL                                 PASS 4/4
-```
+## Current risks / debt
 
-Evidence:
-
-```text
-STATUS      PASS
-OBSERVATION LOCAL_EXECUTION / reconstructed focused surfaces
-ORACLE      IMPLEMENTATION_COUPLED with explicit independent falsifier expectations
-```
-
-Source/size inspection:
-
-- current aggregator uses `lineResult.governingLof`, not a direct item contributor loop;
-- aggregator `<295` physical lines;
-- result contracts `<300`;
-- reducers `<300`;
-- Stage-3 focused test `<300`.
-
-Final hosted state at pre-status head:
-
-```text
-reviews             0
-review threads      0
-commit statuses     0 returned -> NOT PASS
-PR workflow runs    0 returned -> NOT PASS
-```
-
-Still `NOT_RUN`:
-
-- repository-native current-head M4 test;
-- matrix current-head consumer;
-- full Vibration/FIT/AIV/SBC suites;
-- served browser;
-- independent engineering review.
-
-## Stage-3 Changed Files
-
-New:
-
-- `agents/PR615_stage3_mechanism_reduction.md`
-- `converters/vibration/mechanisms/result-contracts.js`
-- `converters/vibration/mechanisms/reducers.js`
-- `tests/vibration-mechanism-line-result.test.mjs`
-- `.backups/connector-20260818-pr615-stage3/converters/vibration/ei-mainline-aggregation.js`
-- `.backups/connector-20260818-pr615-stage3/tests/vibration-ei-mainline-aggregation.test.mjs`
-
-Modified:
-
-- `converters/vibration/ei-mainline-aggregation.js`
-- `tests/vibration-ei-mainline-aggregation.test.mjs`
-- `agents/PR615_workreport.md`
-- `agents/status/PR615.yaml`
-- `agents/claims/PR615.yaml`
-
-## Decisions / Risks / Debt
-
-- DEC-615-09: assessment-unit LOF cannot directly become EI aggregate input.
-- DEC-615-10: single-item identity is allowed because no cross-unit engineering reduction occurs.
-- DEC-615-11: no universal multi-item reducer; MANY remains fail-closed until method-qualified.
-- DEC-615-12: EI policy fingerprint includes reducer custody.
-- RISK-615-01: repository-native current-head M4/matrix regression not run.
-- RISK-615-02: AIV/deadleg multi-item semantics unresolved; guessing is prohibited.
-- RISK-615-03: PR506 shared-tab overlap from Stage 1 remains.
-- RISK-615-04: branch is behind four non-overlapping XML→CII commits; reconcile before merge.
-- DEBT-615-01: mechanism workspace project-context consumption remains blocked by active claims.
-- DEBT-615-02: mechanism-specific multi-item reducer qualification outstanding.
-- DEBT-615-03: FIT span/support/process/multiphase/frequency custody outstanding.
-- DEBT-615-04: generic multi-module `.eit` export deferred.
-
-## Appendix A
-
-`NOT_REQUIRED_FOR_CONTINUATION` — same active agent and same PR. Any future takeover must re-ground and pass the Engineering PR Delivery qualification gate.
+- branch base drift must be re-grounded before merge;
+- AIV/deadleg multi-item reducer semantics remain unresolved and must not be guessed;
+- mechanism workspaces still do not consume project context because of active claims;
+- generic multi-module `.eit` export remains deferred pending AIV round-trip ownership reconciliation;
+- facility UI should eventually expose frequency provenance state more visibly, but UI ownership must be reconciled first.
 
 ## EXACT_NEXT_ACTION
 
-Re-ground main/claims/source evidence. Do not invent AIV/deadleg multi-item rules. If controlled method evidence explicitly defines a mechanism-specific reduction, qualify one mechanism in isolation. Otherwise keep `MANY` fail-closed and proceed to the next unblocked engineering custody stack, preferably FIT span/support/process/multiphase/frequency evidence. Reconcile the four unrelated `main` commits before any merge attempt. Keep PR615 draft/unmerged unless the Owner explicitly authorizes merge.
+Re-ground live `main`, PR head/base relation, changed paths, reviews/threads/status/workflows; synchronize `agents/status/PR615.yaml`, `agents/claims/PR615.yaml`, and PR description. Keep PR615 draft/unmerged. The next implementation stack must be selected from current live gaps/claims rather than extending Stage 4 by inference.
