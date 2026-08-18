@@ -1,4 +1,4 @@
-import { readSourceField } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
+import { readSourceField, sourceSchemaEnabled } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
 
 export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'DTXR_POS', enabled: true },
@@ -129,9 +129,17 @@ function uniqueValues(values) {
   return [...new Set(values.map(text).filter(Boolean))];
 }
 
-function supportKindsFromMembers(members = []) {
+function supportKindsFromMembers(members = [], config = {}) {
   const kinds = [];
+  const strict = sourceSchemaEnabled(config);
   for (const member of members) {
+    if (strict) {
+      // In an explicit source profile, JsonTrace must not invent another
+      // support-code grammar. Only a canonical supportKind field is accepted.
+      const kind = text(member?.semanticFields?.supportKind).toUpperCase();
+      if (['GUIDE', 'LINESTOP', 'LIMIT', 'REST', 'ANCHOR', 'SPRING'].includes(kind)) kinds.push(kind === 'LIMIT' ? 'LINESTOP' : kind);
+      continue;
+    }
     const code = text(member?.semanticFields?.supportType
       || member?.semanticFields?.supportKind
       || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
@@ -168,10 +176,11 @@ export function decorateJsonTraceLedger(ledgerResult = {}, config = {}) {
       return {
         ...record,
         positionMembers,
+        cmpSupGap: gaps.length === 1 ? gaps[0] : '',
         cmpSupGaps: gaps,
         derivedSupportTypes: uniqueValues([
           ...(Array.isArray(record.derivedSupportTypes) ? record.derivedSupportTypes : []),
-          ...supportKindsFromMembers(positionMembers),
+          ...supportKindsFromMembers(positionMembers, config),
         ]),
       };
     })
