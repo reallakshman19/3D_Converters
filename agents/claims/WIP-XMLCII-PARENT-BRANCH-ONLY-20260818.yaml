@@ -10,7 +10,7 @@ files:
     - tabs/model-converters/converters/xmltocii2019_helper/preview-renderer.js
     - tabs/model-converters/converters/xmltocii2019_helper/xml-cii-parent-run-parity-weight-scope.js
     - tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js
-    - tests/xml-cii-parent-run-parity-branch-only.test.mjs
+    - tests/xml-cii-parent-run-parity-weight-scan.test.mjs
     - agents/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818_workreport.md
     - agents/status/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818.yaml
     - agents/claims/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818.yaml
@@ -33,4 +33,4 @@ coordination:
   C5_C5M: ADAPTED_PREVIEW_FILES_EXCLUDED
 coordination_state: SAFE_SUCCESSOR_TO_MERGED_PR630
 last_verified_head: 765d15e87def22291792ddb533df9ea532fb3f67
-last_updated: 2026-08-18T20:09:00+04:00
+last_updated: 2026-08-18T20:11:00+04:00
