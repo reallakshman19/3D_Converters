@@ -6,17 +6,18 @@ workstream: VIBRATION_AIV_LINE_AGGREGATION_QUALIFICATION
 branch: agent/vibration-aiv-line-aggregation-qualification-20260818
 stack_base_pr: 629
 stack_base_head: cb7827f0183052ec3e2afca1a43e41935ab19cbd
-main_head_last_checked: 1d5930638e6f9714a2c29af328fe15a4e6b8b7f6
+main_head_last_checked: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: ACTIVE
-pr_recovery_state: HEALTHY
+agent_state: INACTIVE
+pr_recovery_state: MIGRATED_TO_PR631
 handover_readiness: READY
-report_path: agents/WIP-VIB-AIV-LINE-AGG-20260818_workreport.md
+report_path: agents/PR631_workreport.md
 report_head: 59337fb0202165b014f327db2f26700c6f53d1f4
-current_stage: VALIDATE_RECONCILE
-blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
-highest_risk: Incomplete welded-discontinuity inventory could underpredict the line LOF; line screening authority remains blocked.
-exact_next_action: Reconcile exact diff against PR629 and live main, allocate a stacked draft PR, migrate recovery identity, and inspect hosted checks/reviews.
-coordination_state: STACKED_ON_PR629_SAFE_FOLLOW_ON
+current_stage: CLOSED_WIP_IDENTITY
+blocker: NONE
+highest_risk: Tracked under PR631.
+exact_next_action: Continue only under PR631 recovery authority.
+coordination_state: MIGRATED_TO_PR631
+successor_pr: 631
 merge_authority: OWNER_ONLY_NOT_GRANTED
