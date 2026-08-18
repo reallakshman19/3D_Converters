@@ -72,6 +72,26 @@ function normalizeFieldList(value, fallback = []) {
         : fallback;
   return [...new Set((raw || []).map(text).filter(Boolean))];
 }
+function hasEvidenceValue(value) {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  return true;
+}
+function stableEvidenceValue(value) {
+  if (value === undefined) return 'undefined';
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return `[${value.map(stableEvidenceValue).join(',')}]`;
+  if (typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableEvidenceValue(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(typeof value === 'string' ? value.trim() : value);
+}
+function displayEvidenceValue(value) {
+  if (value && typeof value === 'object') return stableEvidenceValue(value);
+  return text(value);
+}
 
 export function sourceSchemaEnabled(config = {}) {
   return safeObject(config.sourceSchema).enabled === true;
@@ -120,9 +140,6 @@ export function validateSourceSchemaConfig(config = {}) {
     errors.push('sourceSchema.fieldConflictPolicy must be REJECT or FIRST_CONFIGURED.');
   }
 
-  // Explicit-profile rule: omitted roles are disabled. Warn on any relationship
-  // role that has no explicit field mapping so the profile cannot silently rely
-  // on LEGACY_FIELDS.
   const relationshipRoles = [
     ...normalizeFieldList(relationships.identityRoles, ['objectName', 'supportTag']),
     ...normalizeFieldList(relationships.groupRoles, ['supportGroupRef']),
@@ -217,7 +234,7 @@ function attributeObject(value) {
 function caseInsensitiveEntry(source, alias) {
   const wanted = text(alias).toUpperCase();
   for (const [key, value] of Object.entries(safeObject(source))) {
-    if (text(key).toUpperCase() === wanted && text(value)) return { key, value };
+    if (text(key).toUpperCase() === wanted && hasEvidenceValue(value)) return { key, value };
   }
   return null;
 }
@@ -239,7 +256,12 @@ export function sourceFieldEvidence(value, role, config = {}) {
       matches.push({ alias, field: hit.key, value: hit.value, scope });
     }
   }
-  const distinctValues = [...new Set(matches.map((match) => text(match.value)).filter(Boolean))];
+  const byValue = new Map();
+  for (const match of matches) {
+    const key = stableEvidenceValue(match.value);
+    if (!byValue.has(key)) byValue.set(key, displayEvidenceValue(match.value));
+  }
+  const distinctValues = [...byValue.values()];
   return { role, matches, distinctValues, conflict: distinctValues.length > 1, selected: matches[0] || null };
 }
 
@@ -526,7 +548,7 @@ export function canonicalizeStagedAttributes(attrs = {}, config = {}, rawObject 
   const source = { ...safeObject(rawObject), attributes: out };
   for (const [role, canonical] of Object.entries(CANONICAL_LEGACY_FIELD)) {
     const value = readSourceField(source, role, config);
-    if (text(value) && !text(out[canonical])) out[canonical] = value;
+    if (hasEvidenceValue(value) && !hasEvidenceValue(out[canonical])) out[canonical] = value;
   }
   const position = readSourcePosition(source, config);
   if (position?.point) {
