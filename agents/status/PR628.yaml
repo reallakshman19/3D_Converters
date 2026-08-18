@@ -1,0 +1,32 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR628
+mission: Index Preview Bore/Wall staged evidence and exact Piping Class walls once per Preview without authority change.
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-bore-wall-index-20260818
+pr_url: https://github.com/reallaksh19/3D_Converters/pull/628
+pr_head: d682fa2f14a885f751c7389b760a238906ac21f8
+main_head_last_checked: bca7fc9390c018753d09161052b0bf2fd54e33ce
+merge_base: bca7fc9390c018753d09161052b0bf2fd54e33ce
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR628_workreport.md
+appendix_a_status: NOT_REQUIRED_NEW_WORK_ITEM
+grounding_epoch: GE-003
+current_stage: CI_REVIEW
+blocker: NONE
+highest_risk: Repository-native real-core execution remains pending PR check evidence.
+dependencies:
+  - INDEPENDENT_OF_PR616_PREVIEW_SEARCH
+  - NO_HARD_DEPENDENCY
+validation_summary:
+  syntax: PASS
+  focused_index_equivalence: PASS
+  structural_complexity_invariant: PASS
+  focused_integration: PASS_WITH_STUBBED_IMPORT_BOUNDARY
+  native_repository_suite: PENDING_PR_CHECKS
+exact_next_action: Finish PR-numbered claim/WIP release, then inspect exact final PR head checks/reviews/changed files.
+last_updated: 2026-08-18T18:29:00+04:00
