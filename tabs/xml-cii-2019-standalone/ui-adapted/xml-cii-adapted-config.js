@@ -1,6 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
-import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS, RESTRAINT_TYPE_MUTATION_INFO, normalizeRestraintTypeMutationRows } from '../../../converters/xml-cii2019-core/restraint-type-mutation.js';
 import { isXmlMaskEnabled, setXmlMaskEnabled } from '../xml-cii-workflow-source-detect.js';
 
@@ -335,7 +335,8 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     const val = validateSupportConfigJson(configText);
     if (!val.ok) { alert(`Invalid configuration JSON: ${val.error}`); return; }
     const fullConfigJson = JSON.stringify(configObj, null, 2);
-    stateRef.current = { ...stateRef.current, supportConfigJson: fullConfigJson, masterContext: { ...(stateRef.current.masterContext || {}), config: configObj } };
+    const masterContext = { ...(stateRef.current.masterContext || {}), config: configObj };
+    stateRef.current = updateWorkflowState(stateRef.current, { supportConfigJson: fullConfigJson, masterContext });
     saveMasterContextToLocalStorage(stateRef.current.masterContext);
     render();
     if (typeof showToast === 'function') showToast('Configuration saved successfully!');
