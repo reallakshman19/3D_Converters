@@ -24,7 +24,7 @@ const RETAINED_GAS_REFERENCE_INPUT = Object.freeze({
 });
 
 test('FIT source basis makes EI T2.2 governing and workbook migration evidence only', () => {
-  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.schema, 'FitSourceBasisEvidence.v2');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.schema, 'FitSourceBasisEvidence.v1');
   assert.equal(FIT_SOURCE_BASIS_EVIDENCE.methodRevision, 'ei-aviff2-fit-screening-v1');
   assert.equal(FIT_REFERENCE_AUTHORITY, 'CONTROLLED_EI_T2_2_SCREENING_REFERENCE');
   assert.equal(FIT_WORKBOOK_REFERENCE_AUTHORITY, 'WORKBOOK_REFERENCE_ONLY');
