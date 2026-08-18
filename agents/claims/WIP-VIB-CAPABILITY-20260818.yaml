@@ -1,27 +1,12 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-CAPABILITY-20260818
-claim_state: ACTIVE
+claim_state: RELEASED_MIGRATED_TO_PR626
 files:
-  exact:
-    - converters/vibration/mechanisms/capability.js
-    - tabs/vibration-integrity-mechanisms.js
-    - tests/vibration-mechanism-capability.test.mjs
-    - agents/WIP-VIB-CAPABILITY-20260818_workreport.md
-    - agents/status/WIP-VIB-CAPABILITY-20260818.yaml
-    - agents/claims/WIP-VIB-CAPABILITY-20260818.yaml
+  exact: []
   prefixes: []
-authority_domains:
-  - VIBRATION_CAPABILITY_PROJECTION
-  - VIBRATION_CALCULATOR_AVAILABILITY_PROJECTION
+authority_domains: []
 claim_modes:
-  - EXCLUSIVE
-exclusions:
-  - vibration equations or coefficients
-  - AIV assessment or line aggregation implementation
-  - screening or design authority promotion
-  - mechanism applicability authority
-  - EI main-line governing changes
-  - FIT Mechanical SBC numerical behavior
-  - workflow files
-last_verified_head: 4de6cce6c3f00aea6ca845316e5a1355eb1d55ec
-coordination_state: SAFE_TO_PROCEED_WITH_STALE_OVERLAP_RECORDED
+  - OBSERVE_ONLY
+superseded_by: PR626
+last_verified_head: c7b8442621ed1e1b67c4abe507a29fc44390fb50
+coordination_state: MIGRATED
