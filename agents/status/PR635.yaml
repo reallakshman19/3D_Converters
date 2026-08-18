@@ -1,0 +1,21 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR635
+mission: Qualify EI T2.3 direct machinery baseline LOF for bounded screening.
+workstream: VIBRATION_MECHANICAL_T23_SCREENING
+branch: agent/vibration-mechanical-t23-screening-qualification-20260818
+base: main
+base_head: 765d15e87def22291792ddb533df9ea532fb3f67
+implementation_basis_head: ede48e6ca73556ea2c609ae45a81081dd5b283a8
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+execution_mode: AUTO
+auto_state: RUNNING
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR635_workreport.md
+current_stage: HANDOVER
+blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+coordination_state: COORDINATION_REQUIRED_WITH_PR626_ON_MECHANISM_ORCHESTRATION
+merge_authority: OWNER_ONLY_NOT_GRANTED
