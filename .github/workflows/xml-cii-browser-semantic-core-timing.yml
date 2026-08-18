@@ -1,6 +1,17 @@
 name: XML CII Browser Semantic Core Timing
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/xml-cii-browser-semantic-core-timing.yml'
+      - 'tests/browser/xml-cii-semantic-core-timing.html'
+      - 'scripts/run-xml-cii-browser-semantic-timing.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-derived-context.js'
+      - 'converters/xml-cii2019-core/**'
+      - 'Benchmarks/css/SYS-0010.xml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -14,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   chromium-timing:
@@ -23,6 +34,8 @@ jobs:
     steps:
       - name: Checkout candidate
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && 'main' || github.event.pull_request.head.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -50,3 +63,12 @@ jobs:
           path: ValidationRecords/xml-cii-browser-semantic-core-timing.json
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Persist timing evidence on main
+        if: github.event_name == 'push' && success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ValidationRecords/xml-cii-browser-semantic-core-timing.json
+          git commit -m 'test(xml-cii): record Chromium semantic-core timing' || exit 0
+          git push origin HEAD:main
