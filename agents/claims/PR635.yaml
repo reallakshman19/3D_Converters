@@ -1,0 +1,33 @@
+schema: AgentClaim.v1
+pr_or_wip: PR635
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/mechanical/t23-method.js
+    - converters/vibration/mechanical/facility.js
+    - converters/vibration/mechanisms/mechanical.js
+    - converters/vibration/source/registry.js
+    - tabs/vibration-integrity-mechanical-view.js
+    - tabs/vibration-integrity-mechanisms.js
+    - tests/vibration-mechanical-t23-method.test.mjs
+    - tests/vibration-mechanical-t23-facility-stage4.test.mjs
+    - tests/vibration-integrity-mechanism-matrix.test.mjs
+    - tests/vibration-method-source.test.mjs
+    - agents/PR635_workreport.md
+    - agents/status/PR635.yaml
+    - agents/claims/PR635.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_MECHANICAL_T23_DIRECT_BASELINE_SOURCE
+  - VIBRATION_MECHANICAL_T23_SCREENING_AUTHORITY
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - shared-support adjacent-line transfer
+  - post-dynamic-analysis reduced LOF
+  - automatic T1 applicability
+  - generic EI main-line benchmark-registry promotion
+  - design authority
+  - workflow files
+coordination_state: COORDINATION_REQUIRED_WITH_PR626_ON_TABS_VIBRATION_INTEGRITY_MECHANISMS_ONLY
+merge_authority: OWNER_ONLY_NOT_GRANTED
