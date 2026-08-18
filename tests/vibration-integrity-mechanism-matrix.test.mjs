@@ -94,15 +94,30 @@ function mechanicalContext(targetRow = row(), candidate = mechanicalCandidate(ta
   };
 }
 
-test('catalogue mirrors governed registry while retaining separate implementation projections', () => {
+test('catalogue mirrors governed registry while separating calculator availability from matrix integration', () => {
   assert.deepEqual(
     VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => mechanism.id),
     VIBRATION_MECHANISM_IDS,
   );
-  assert.equal(VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length, 3);
-  assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'SCREENING');
-  assert.equal(VIBRATION_INTEGRITY_MECHANISMS[1].implementationState, 'CANDIDATE_MASTER');
-  assert.equal(VIBRATION_INTEGRITY_MECHANISMS.at(-1).implementationState, 'CANDIDATE_USER_INPUT');
+  assert.equal(VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length, 4);
+  const fit = VIBRATION_INTEGRITY_MECHANISMS.find((item) => item.id === 'fit');
+  const mechanical = VIBRATION_INTEGRITY_MECHANISMS.find((item) => item.id === 'mechanicalExcitation');
+  const aiv = VIBRATION_INTEGRITY_MECHANISMS.find((item) => item.id === 'aiv');
+  const sbc = VIBRATION_INTEGRITY_MECHANISMS.find((item) => item.id === 'smallBoreConnections');
+  assert.equal(fit.implementationState, 'SCREENING');
+  assert.equal(fit.capability.assessmentIntegrationState, 'INTEGRATED');
+  assert.equal(fit.capability.calculationAvailable, true);
+  assert.equal(mechanical.implementationState, 'CANDIDATE_MASTER');
+  assert.equal(mechanical.capability.assessmentIntegrationState, 'INTEGRATED');
+  assert.equal(aiv.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
+  assert.equal(aiv.capability.calculationId, 'VIB.AIV.ACOUSTIC');
+  assert.equal(aiv.capability.calculationAvailable, true);
+  assert.equal(aiv.capability.calculationState, 'IMPLEMENTED');
+  assert.equal(aiv.capability.qualificationState, 'SCREENING');
+  assert.equal(aiv.capability.assessmentIntegrationState, 'NOT_INTEGRATED');
+  assert.equal(aiv.capability.governingEligibilitySource, 'RUNTIME_ASSESSMENT_ONLY');
+  assert.equal(sbc.implementationState, 'CANDIDATE_USER_INPUT');
+  assert.equal(sbc.capability.assessmentIntegrationState, 'INTEGRATED');
 });
 
 test('FIT screening survives generic contracts while Mechanical/SBC without data remain input-required', () => {
@@ -124,6 +139,7 @@ test('FIT screening survives generic contracts while Mechanical/SBC without data
   assert.equal(sbc.assessmentState, 'APPLICABILITY_UNKNOWN');
   assert.equal(sbc.implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
   assert.equal(aiv.assessmentState, 'NOT_IMPLEMENTED');
+  assert.equal(aiv.mechanism.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
   assert.deepEqual(aiv.contractSet.cardinality, { count: 0, kind: 'ZERO' });
 });
 
@@ -161,7 +177,7 @@ test('FIT-only explicit identification cannot redefine family completeness unive
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('external qualified AIV evidence can cover AIV without trusting stale static AIV label', () => {
+test('external qualified AIV evidence can cover AIV without trusting catalogue integration state', () => {
   const target = row();
   const aivSet = screeningAssessmentSet('aiv', 'source-assessment-pair-1', target);
   const matrix = buildVibrationMechanismMatrixRow(target, {
@@ -169,6 +185,8 @@ test('external qualified AIV evidence can cover AIV without trusting stale stati
     coverageAssessmentSets: [aivSet],
   });
   const staticAiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
+  assert.equal(staticAiv.mechanism.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
+  assert.equal(staticAiv.mechanism.capability.assessmentIntegrationState, 'NOT_INTEGRATED');
   assert.equal(staticAiv.assessmentState, 'NOT_IMPLEMENTED');
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');

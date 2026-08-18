@@ -1,6 +1,7 @@
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260815-sbc-pf05-cache-1';
 import { evaluateEiMainLineAggregation } from '../converters/vibration/ei-mainline-aggregation.js';
+import { resolveVibrationMechanismCapability } from '../converters/vibration/mechanisms/capability.js';
 import { evaluateVibrationCoverageAndCompleteness } from '../converters/vibration/mechanisms/coverage.js';
 import { createVibrationMechanismIdentificationBundle } from '../converters/vibration/mechanisms/identification-producer.js';
 import {
@@ -10,57 +11,70 @@ import {
   createVibrationMechanismAssessmentSet,
 } from '../converters/vibration/mechanisms/index.js?v=20260815-sbc-pf05-cache-1';
 
-export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
-  Object.freeze({
+const VIBRATION_INTEGRITY_MECHANISM_CATALOGUE = [
+  {
     id: 'fit', label: 'FIT', title: 'Flow-induced turbulence',
-    sourceSection: 'EI AVIFF T2.2', implementationState: 'SCREENING',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.2',
+  },
+  {
     id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation',
-    sourceSection: 'EI AVIFF T2.3', implementationState: 'CANDIDATE_MASTER',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.3',
+  },
+  {
     id: 'reciprocatingPulsation', label: 'Recip / PD',
     title: 'Pulsation from reciprocating / positive-displacement items',
-    sourceSection: 'EI AVIFF T2.4', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.4',
+  },
+  {
     id: 'rotatingStall', label: 'Rotating stall', title: 'Pulsation from rotating stall',
-    sourceSection: 'EI AVIFF T2.5', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.5',
+  },
+  {
     id: 'deadlegPulsation', label: 'Deadlegs', title: 'Flow-induced pulsation from deadlegs',
-    sourceSection: 'EI AVIFF worked-example section', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF worked-example section',
+  },
+  {
     id: 'corrugationPulsation', label: 'Corrugations', title: 'Pulsation from corrugated pipes',
-    sourceSection: 'EI Subsea AVIFF E4.3', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI Subsea AVIFF E4.3',
+  },
+  {
     id: 'slugFlow', label: 'Slug', title: 'Slug flow',
-    sourceSection: 'EI AVIFF specialist assessment', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF specialist assessment',
+  },
+  {
     id: 'aiv', label: 'AIV', title: 'High-frequency acoustic-induced vibration',
-    sourceSection: 'EI AVIFF T2.7', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.7',
+  },
+  {
     id: 'valveTransients', label: 'Transients', title: 'Valve transients',
-    sourceSection: 'EI AVIFF T2.8', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.8',
+  },
+  {
     id: 'cavitationFlashing', label: 'Cav / flash', title: 'Cavitation and flashing',
-    sourceSection: 'EI AVIFF T2.9', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'EI AVIFF T2.9',
+  },
+  {
     id: 'thermowells', label: 'Thermowells', title: 'Thermowells',
-    sourceSection: 'ASME PTC 19.3 TW-2016', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
+    sourceSection: 'ASME PTC 19.3 TW-2016',
+  },
+  {
     id: 'smallBoreConnections', label: 'SBC', title: 'Small-bore connections',
-    sourceSection: 'EI AVIFF T3', implementationState: 'CANDIDATE_USER_INPUT',
-  }),
-]);
+    sourceSection: 'EI AVIFF T3',
+  },
+];
+
+function catalogueMechanism(definition) {
+  const capability = resolveVibrationMechanismCapability(definition.id);
+  return Object.freeze({
+    ...definition,
+    implementationState: capability.integrityImplementationState,
+    capability,
+  });
+}
+
+export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze(
+  VIBRATION_INTEGRITY_MECHANISM_CATALOGUE.map(catalogueMechanism),
+);
 
 const MECHANISM_BY_ID = new Map(
   VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => [mechanism.id, mechanism]),
