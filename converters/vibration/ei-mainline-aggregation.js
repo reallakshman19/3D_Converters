@@ -1,11 +1,15 @@
 import { ACTIVE_ENGINEERING_CALCULATION_DEFINITIONS } from '../engineering-calculations/default-registry.js';
 import { evaluateVibrationBenchmarkRegistry } from './benchmark-registry.js';
 import { evaluateVibrationCoverageAndCompleteness } from './mechanisms/coverage.js';
+import {
+  VIBRATION_MECHANISM_REDUCER_REGISTRY,
+  reduceVibrationMechanismAssessmentSetToLineResult,
+} from './mechanisms/reducers.js';
 import { VIBRATION_MECHANISM_IDS, VIBRATION_MECHANISM_REGISTRY } from './mechanisms/registry.js';
 
-export const EI_MAIN_LINE_AGGREGATION_SCHEMA = 'EiMainLineAggregation.v1';
-export const EI_MAIN_LINE_AGGREGATION_POLICY_SCHEMA = 'EiMainLineAggregationPolicy.v1';
-export const EI_MAIN_LINE_AGGREGATION_POLICY_REVISION = 'EI-AVIFF2-MAINLINE-2026-08-17';
+export const EI_MAIN_LINE_AGGREGATION_SCHEMA = 'EiMainLineAggregation.v2';
+export const EI_MAIN_LINE_AGGREGATION_POLICY_SCHEMA = 'EiMainLineAggregationPolicy.v2';
+export const EI_MAIN_LINE_AGGREGATION_POLICY_REVISION = 'EI-AVIFF2-MAINLINE-2026-08-18';
 
 export const EI_MAIN_LINE_MECHANISM_IDS = Object.freeze([
   'fit',
@@ -28,6 +32,7 @@ const EXCLUDED_MECHANISMS = Object.freeze([
 const AGGREGATION_AUTHORITY = Object.freeze({
   authorityPromotion: false,
   contributorQualificationRequired: 'SCREENING',
+  mechanismLineResultRequired: true,
   designAuthority: false,
   codeCompliance: false,
   fullVibrationAssessmentComplete: false,
@@ -70,6 +75,8 @@ function policyShape(policy = {}) {
     EI_MAIN_LINE_AGGREGATION_POLICY_REVISION,
     VIBRATION_MECHANISM_REGISTRY.revision,
     VIBRATION_MECHANISM_REGISTRY.fingerprint,
+    VIBRATION_MECHANISM_REDUCER_REGISTRY.revision,
+    VIBRATION_MECHANISM_REDUCER_REGISTRY.fingerprint,
     policy.includedMechanismIds ?? EI_MAIN_LINE_MECHANISM_IDS,
     (policy.excludedMechanisms ?? EXCLUDED_MECHANISMS).map((item) => [item.mechanismId, item.reason]),
     policy.sourceAuthority ?? POLICY_SOURCE,
@@ -94,10 +101,12 @@ export const EI_MAIN_LINE_AGGREGATION_POLICY = deepFreeze({
   revision: EI_MAIN_LINE_AGGREGATION_POLICY_REVISION,
   mechanismRegistryRevision: VIBRATION_MECHANISM_REGISTRY.revision,
   mechanismRegistryFingerprint: VIBRATION_MECHANISM_REGISTRY.fingerprint,
+  reducerRegistryRevision: VIBRATION_MECHANISM_REDUCER_REGISTRY.revision,
+  reducerRegistryFingerprint: VIBRATION_MECHANISM_REDUCER_REGISTRY.fingerprint,
   includedMechanismIds: EI_MAIN_LINE_MECHANISM_IDS,
   excludedMechanisms: EXCLUDED_MECHANISMS,
   sourceAuthority: POLICY_SOURCE,
-  aggregationRule: 'MAX_APPLICABLE_QUALIFIED_EI_MAINLINE_GOVERNING_LOF',
+  aggregationRule: 'MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF',
   conservativeSubstitutionSupported: false,
   fingerprint: eiMainLineAggregationPolicyFingerprint(),
   authority: AGGREGATION_AUTHORITY,
@@ -106,6 +115,7 @@ export const EI_MAIN_LINE_AGGREGATION_POLICY = deepFreeze({
 const POLICY_OVERRIDE_KEYS = Object.freeze([
   'mainLineMechanismIds', 'includedMechanismIds', 'excludedMechanismIds', 'policy',
   'benchmarkCompliance', 'benchmarkRegistry', 'activeCapabilityIds',
+  'mechanismLineResults', 'mechanismReducers', 'reducerRegistry',
 ]);
 
 function rejectPolicyOverrides(input) {
@@ -161,44 +171,47 @@ function setMap(sets) {
   return new Map(sets.map((set) => [set.setId, set]));
 }
 
-function contributorReason(item, mechanismId) {
-  if (item.implementationState !== 'IMPLEMENTED_SCREENING' || item.qualification?.effective !== 'SCREENING') {
-    return `SCREENING_QUALIFICATION_REQUIRED:${mechanismId}:${item.itemId}`;
-  }
-  if (item.assessmentState !== 'CALCULATED' || item.resultState !== 'CURRENT_RESULT') {
-    return `CURRENT_SCREENING_RESULT_REQUIRED:${mechanismId}:${item.itemId}`;
-  }
-  const lof = item.result?.governingLof;
-  if (typeof lof !== 'number' || !Number.isFinite(lof) || lof < 0) {
-    return `VALID_GOVERNING_LOF_REQUIRED:${mechanismId}:${item.itemId}`;
-  }
-  return null;
-}
-
-function collectContributors(coverageState, sets, benchmarks) {
+function collectMechanismLineContributors(coverageState, sets, benchmarks) {
   const reasons = [];
   const contributors = [];
+  const mechanismLineResults = [];
   const coverageByMechanism = new Map(coverageState.coverage.required.map((item) => [item.mechanismId, item]));
   const setsById = setMap(sets);
   const benchmarkByMechanism = new Map(benchmarks.mechanisms.map((item) => [item.mechanismId, item]));
+
   for (const mechanismId of EI_MAIN_LINE_MECHANISM_IDS) {
     const requirement = coverageByMechanism.get(mechanismId);
     if (!requirement) continue;
+    const set = setsById.get(requirement.assessmentId);
+    if (!set) {
+      reasons.push(`ASSESSMENT_SET_REQUIRED_FOR_REDUCTION:${mechanismId}:${requirement.assessmentId}`);
+      continue;
+    }
+
+    const lineResult = reduceVibrationMechanismAssessmentSetToLineResult(set);
+    mechanismLineResults.push(lineResult);
     if (benchmarkByMechanism.get(mechanismId)?.state !== 'READY') {
       reasons.push(`BENCHMARK_NOT_READY:${mechanismId}`);
       continue;
     }
-    const set = setsById.get(requirement.assessmentId);
-    for (const item of set?.items ?? []) {
-      const reason = contributorReason(item, mechanismId);
-      if (reason) reasons.push(reason);
-      else contributors.push(deepFreeze({
-        mechanismId, assessmentId: requirement.assessmentId, itemId: item.itemId,
-        childKey: item.child?.key ?? null, lof: item.result.governingLof,
-      }));
+    if (lineResult.state !== 'CURRENT_RESULT' || lineResult.aggregationEligible !== true) {
+      const reductionReasons = lineResult.reasons.length
+        ? lineResult.reasons
+        : ['QUALIFIED_MECHANISM_LINE_RESULT_REQUIRED'];
+      reasons.push(...reductionReasons.map((reason) => `MECHANISM_LINE_REDUCTION:${mechanismId}:${reason}`));
+      continue;
     }
+
+    contributors.push(deepFreeze({
+      mechanismId,
+      assessmentId: requirement.assessmentId,
+      lineResultId: lineResult.lineResultId,
+      sourceItemIds: lineResult.sourceItemIds,
+      reduction: lineResult.reduction,
+      lof: lineResult.governingLof,
+    }));
   }
-  return { contributors, reasons };
+  return { contributors, mechanismLineResults, reasons };
 }
 
 function governingContributor(contributors) {
@@ -206,7 +219,10 @@ function governingContributor(contributors) {
   return contributors.reduce((governing, item) => (item.lof > governing.lof ? item : governing));
 }
 
-function output({ scope, state, coverageState, benchmarks, contributors = [], reasons = [] }) {
+function output({
+  scope, state, coverageState, benchmarks,
+  contributors = [], mechanismLineResults = [], reasons = [],
+}) {
   const governing = state === 'COMPLETE' ? governingContributor(contributors) : null;
   return deepFreeze({
     schema: EI_MAIN_LINE_AGGREGATION_SCHEMA,
@@ -217,6 +233,7 @@ function output({ scope, state, coverageState, benchmarks, contributors = [], re
     eiMainLineLof: governing?.lof ?? null,
     governingContributor: governing,
     contributors: state === 'COMPLETE' ? contributors : [],
+    mechanismLineResults,
     requiredAssessmentSet: coverageState.requiredAssessmentSet,
     mainLineCoverage: coverageState.coverage,
     mainLineCompleteness: coverageState.completeness,
@@ -239,6 +256,7 @@ export function evaluateEiMainLineAggregation(input = {}) {
     assessmentSets: evidence.assessmentSets,
   });
   const benchmarks = benchmarkCompliance();
+
   if (benchmarks.state !== 'READY') {
     return output({ scope, state: 'INCOMPLETE', coverageState, benchmarks,
       reasons: ['VIB_BENCHMARK_REGISTRY_BLOCKED', ...completenessReasons(coverageState.completeness)] });
@@ -250,10 +268,20 @@ export function evaluateEiMainLineAggregation(input = {}) {
     return output({ scope, state: 'INCOMPLETE', coverageState, benchmarks,
       reasons: completenessReasons(coverageState.completeness) });
   }
-  const collected = collectContributors(coverageState, evidence.assessmentSets, benchmarks);
+
+  const collected = collectMechanismLineContributors(coverageState, evidence.assessmentSets, benchmarks);
   if (collected.reasons.length || collected.contributors.length === 0) {
-    const reasons = collected.contributors.length === 0 ? [...collected.reasons, 'NO_QUALIFIED_MAINLINE_LOF_CONTRIBUTOR'] : collected.reasons;
-    return output({ scope, state: 'INCOMPLETE', coverageState, benchmarks, reasons });
+    const reasons = collected.contributors.length === 0
+      ? [...collected.reasons, 'NO_QUALIFIED_MAINLINE_MECHANISM_CONTRIBUTOR']
+      : collected.reasons;
+    return output({
+      scope, state: 'INCOMPLETE', coverageState, benchmarks,
+      mechanismLineResults: collected.mechanismLineResults, reasons,
+    });
   }
-  return output({ scope, state: 'COMPLETE', coverageState, benchmarks, contributors: collected.contributors });
+  return output({
+    scope, state: 'COMPLETE', coverageState, benchmarks,
+    contributors: collected.contributors,
+    mechanismLineResults: collected.mechanismLineResults,
+  });
 }

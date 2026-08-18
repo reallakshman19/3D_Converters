@@ -15,18 +15,32 @@ import {
   parseEngineeringBatchEditor,
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
+import { createVibrationRoadmapController } from './vibration-roadmap-controller.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
 const VIBRATION_FAMILY_ID = 'VIB';
 
-function ensureStylesheet() {
-  if (document.querySelector('link[data-engineering-console-style="true"]')) return;
+function ensureLinkedStylesheet(selector, href, datasetKey) {
+  if (document.querySelector(selector)) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/engineering-calculations.css?v=engineering-console-1';
-  link.dataset.engineeringConsoleStyle = 'true';
+  link.href = href;
+  link.dataset[datasetKey] = 'true';
   document.head.appendChild(link);
+}
+
+function ensureStylesheet() {
+  ensureLinkedStylesheet(
+    'link[data-engineering-console-style="true"]',
+    './tabs/engineering-calculations.css?v=engineering-console-1',
+    'engineeringConsoleStyle',
+  );
+  ensureLinkedStylesheet(
+    'link[data-vibration-roadmap-style="true"]',
+    './tabs/vibration-roadmap-panel.css?v=vibration-roadmap-1',
+    'vibrationRoadmapStyle',
+  );
 }
 
 function initialDefinition(definitions, context) {
@@ -66,6 +80,9 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     editorErrors: [], validation: null, resolution: null, result: null,
     batchText: '[]', batchResult: null, batchError: null,
   };
+  const roadmapController = createVibrationRoadmapController(container, {
+    initialState: context?.vibrationRoadmap ?? {},
+  });
 
   function cleanupProduct() {
     productToken += 1;
@@ -110,6 +127,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   function render() {
     cleanupProduct();
     container.innerHTML = renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state });
+    roadmapController.render({ definition, state });
     mountProductSurface();
   }
 
@@ -270,6 +288,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   return () => {
     destroyed = true;
     cleanupProduct();
+    roadmapController.destroy();
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
