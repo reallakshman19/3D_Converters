@@ -1,0 +1,28 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-MATERIAL-INDEX-20260818
+mission: Preindex Preview Material Line List lookup and memoize repeated pure Material Map resolution.
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-material-authority-index-20260818
+main_head_last_checked: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
+merge_base: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-XMLCII-MATERIAL-INDEX-20260818_workreport.md
+appendix_a_status: NOT_REQUIRED_NEW_WORK_ITEM
+current_stage: BASELINE
+blocker: NONE
+highest_risk: Preserve earliest matching Line List row including blank-first semantics and all Material override/conflict authority.
+dependencies:
+  - COORDINATED_WITH_C5M_NO_EXACT_FILE_OVERLAP
+  - INDEPENDENT_OF_PR628_BORE_WALL
+  - INDEPENDENT_OF_PR616_PREVIEW_SEARCH
+validation:
+  source_trace: PASS
+  mandatory_backup: NOT_RUN
+  focused_equivalence: NOT_RUN
+  repository_native: NOT_RUN_ENVIRONMENT_BLOCKED
+exact_next_action: Run mandatory exact pre-edit backup, then implement indexed lookup with independent legacy equivalence regression.
+last_updated: 2026-08-18T19:14:00+04:00
