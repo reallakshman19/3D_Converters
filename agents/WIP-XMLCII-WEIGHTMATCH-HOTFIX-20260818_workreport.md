@@ -1,4 +1,4 @@
-# WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818 — Legacy Weight Match correctness hotfix
+# WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818 — Falsified legacy Weight Match correctness hypothesis
 
 # CURRENT RECOVERY STATE — READ FIRST
 
@@ -6,238 +6,170 @@
 
 ```text
 HANDOVER_READINESS: READY
-PR_RECOVERY_STATE: HEALTHY
-TAKEOVER_AUTHORITY: WRITE_ALLOWED
+PR_RECOVERY_STATE: TERMINAL
+TAKEOVER_AUTHORITY: REVOKED
 
 EXECUTION_MODE: MANUAL
-AUTO_STATE: NOT_ACTIVE
+AUTO_STATE: COMPLETE
 SCOPE_AUTHORITY: LOCKED_TO_APPROVED_MISSION
 PHASE_PROGRESSION: MANUAL
 MERGE_AUTHORITY: OWNER_ONLY
-AUTO_STOP_REASON: NOT_APPLICABLE
+AUTO_STOP_REASON: HYPOTHESIS_FALSIFIED_BEFORE_PRODUCTION_EDIT
 
 REPOSITORY: reallaksh19/3D_Converters
-SOURCE_TASK: Owner-directed XML→CII (2019) Standalone performance audit remediation; first coherent slice is the correctness-critical legacy Weight Match defect.
+SOURCE_TASK: Owner-directed XML→CII (2019) Standalone performance remediation.
 PR_OR_WIP: WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818
 BRANCH: agent/xml-cii-weight-match-hotfix-20260818
 
-PR_HEAD_OBSERVED: bca7fc9390c018753d09161052b0bf2fd54e33ce (pre-WIP metadata baseline)
+PR_HEAD_OBSERVED: 7d717a432d161f5a6c30ecdb8d4cf9de569a103e (metadata-only checkpoint before falsifier)
 REPORT_BASIS_HEAD: bca7fc9390c018753d09161052b0bf2fd54e33ce
 MAIN_HEAD_LAST_CHECKED: bca7fc9390c018753d09161052b0bf2fd54e33ce
 MERGE_BASE: bca7fc9390c018753d09161052b0bf2fd54e33ce
 REPORT_SYNC: CURRENT
 
 APPENDIX_A_STATUS: NOT_REQUIRED_NEW_WORK_ITEM
-GROUNDING_EPOCH: GE-001
+GROUNDING_EPOCH: GE-002
 CURRENT_TAKEOVER: NONE
 
-CURRENT_STAGE: PLAN
-LAST_COMPLETED_STAGE: COORDINATION CHECK
+CURRENT_STAGE: CLOSURE
+LAST_COMPLETED_STAGE: BASELINE_FALSIFIER
 CURRENT_BLOCKER: NONE
-HIGHEST_RISK: Candidate-cardinality repair must not change scoring, candidate order on equal scores, override selection, or finalized weight semantics.
-LAST_DURABLE_CHECKPOINT: WIP branch grounded on main@bca7fc9 with exact-file/authority overlap classified SAFE.
+HIGHEST_RISK: Do not reintroduce the false claim that current main has a global five-candidates-across-all-issues correctness defect.
+LAST_DURABLE_CHECKPOINT: Exact main blob reconstructed and executable two-issue falsifier passed unchanged.
 
-EXACT_NEXT_ACTION: Commit the mandatory exact pre-edit backup, then add a focused multi-issue regression that fails current global-top-five behavior before applying the minimal production fix.
+EXACT_NEXT_ACTION: Release this claim and start a fresh WIP from current main for the confirmed Bore/Wall staged-json indexing hotspot.
 ```
 
 ## 2. Handover in 60 Seconds
 
 ### What is now true
-Current `main` is `bca7fc9390c018753d09161052b0bf2fd54e33ce`. `tabs/xml-cii-2019-standalone/xml-cii-weight-match.js` creates all issue×master candidates, globally sorts them, then applies one global `.slice(0, 5)`. Build/Finalize Weight Match still call this module.
+The junior/audit claim that `xml-cii-weight-match.js` applies one global top-five across all issues is **false on current `main`**. The exact source blob is `3312ea78d6fdfde8ea82130b4ed30597ca40b2d1`. Its `.sort(...).slice(0, 5)` is inside the `flatMap` callback, so each issue already receives up to five candidates.
 
-### What is currently being worked on
-A surgical hotfix so each weight issue receives its own top five candidates while preserving existing scoring and finalization behavior.
+### What was proven
+A reconstructed source file hashed byte-identically to the GitHub blob. A two-issue Node regression expected five candidates for each issue, stable tie order, default selection for both issues, and an explicit override on the second issue. It **passed on unmodified main bytes**.
 
-### What remains unfinished
-Focused regression, production patch, exact-head validation, PR creation, WIP→PR custody migration, and CI/review reconciliation.
+### What remains true as performance debt
+The legacy matcher still maps/sorts the full Weight Master separately for each issue, so CPU/object churn remains approximately per-issue `M` candidate construction plus `M log M` sorting. That is a performance concern, but not the claimed correctness defect and not a reason to patch this WIP ahead of the larger confirmed Preview hotspots.
 
-### What has been proven
-Source inspection proves the global-top-five defect and live event routing. Current open XML→CII PRs do not edit the target production file.
-
-### What has NOT been proven / NOT_RUN
-Full repository checkout/test execution and browser acceptance are NOT_RUN. Direct clone is environment-blocked by `Could not resolve host: github.com`.
-
-### What must not be assumed
-This hotfix does not consolidate the two weight authorities, build a WeightMasterIndex, change weight scoring semantics, or qualify any new engineering master data.
-
-### Highest-risk remaining item
-Preserving stable candidate ordering and override/finalized selection while changing candidate cardinality.
+### What changed in production
+Nothing. No production/test/backup file was committed to this branch. Only WIP recovery metadata exists.
 
 ### Exact next action
-Persist the mandatory pre-edit backup and focused regression, execute reconstructed Node validation, then patch production minimally.
+Begin a new non-stacked WIP from `main@bca7fc9` for Bore/Wall staged-json indexing.
 
 ## 3. Repository Ground Truth
 
-Grounding epoch `GE-001`, verified 2026-08-18 against live GitHub:
+`GE-002` reuses the live grounding from `GE-001`: default `main`, main/merge-base `bca7fc9390c018753d09161052b0bf2fd54e33ce`, no PR allocated, target-file overlap previously classified SAFE. The WIP branch contains recovery metadata only.
 
-- repository/default branch: `reallaksh19/3D_Converters`, `main`;
-- live main SHA / merge base: `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
-- branch: `agent/xml-cii-weight-match-hotfix-20260818` created directly from that SHA;
-- PR: not allocated yet;
-- open XML→CII performance/semantic PRs reviewed for overlap: #616, #614, #605, #599, #598, #597, #589, #417, #412;
-- exact target-file overlap: none observed;
-- #616 owns only Preview-search preparation and must not be duplicated here;
-- #614 is validation-only for Batch-C scale and does not own the legacy matcher;
-- #605/#589 own support-gap paths, not weight candidate selection;
-- #417 explicitly excludes weight work;
-- live main advanced to #624 before this WIP and no subsequent main commit was observed during grounding.
+## 4. Mission / Scope / Acceptance — Final Disposition
 
-## 4. Mission / Scope / Acceptance
+Original mission hypothesis: repair a global top-five correctness defect in the legacy matcher.
 
-Mission: correct the production-connected legacy Weight Match global-top-five defect with the smallest reviewable patch and bounded memory behavior.
+Disposition: **ABANDON / FALSE POSITIVE**. The required baseline failure did not reproduce; therefore production mutation is prohibited by the delivery protocol and anti-gaming rules.
 
-Approved scope:
-
-- `tabs/xml-cii-2019-standalone/xml-cii-weight-match.js`;
-- one focused regression under `tests/`;
-- mandatory pre-edit backup;
-- WIP/PR recovery metadata.
-
-Explicit non-goals:
-
-- no `rankXmlCiiWeightCandidates()` authority migration in this PR;
-- no WeightMasterIndex;
-- no Bore/Wall, Material, Preview cache, Run parity, workbook, branch-scope, Pyodide, worker, support/GAP, writer, formula, unit, topology, or workflow changes;
-- no #616 production-file edits;
-- no merge without explicit Owner authorization.
-
-Acceptance criteria:
-
-1. two or more independent issues each retain up to five ranked candidates;
-2. candidate ranking per issue preserves the existing scoring formula and stable master-row order for ties;
-3. finalized default selection remains the highest-ranked candidate for that issue;
-4. explicit candidate override still wins when present in that issue's retained candidate set;
-5. a single-issue input remains behaviorally equivalent except for internal allocation strategy;
-6. production candidate output is bounded to `issueCount × 5` rows rather than the full Cartesian product;
-7. focused executable regression passes on the exact patched bytes.
+Follow-on performance debt is intentionally not smuggled into this terminated work item. It may be addressed later as a separately grounded performance PR or by removing the legacy authority in favor of the shared ranker.
 
 ## 5. Current Implementation State
 
 | Work item | Implementation | Integration | Validation | Location | Remaining |
 |---|---|---|---|---|---|
-| Global-top-five repair | NOT_STARTED | production path already live | NOT_RUN | `xml-cii-weight-match.js` | patch after failing regression |
-| Focused regression | NOT_STARTED | standalone Node test | NOT_RUN | `tests/` | create and execute |
-| Mandatory backup | LOCAL_PREPARED_NOT_COMMITTED | N/A | exact pre-edit blob hash verified locally | `.backups/` | commit before production edit |
+| Claimed correctness repair | NOT_IMPLEMENTED_BY_DESIGN | N/A | hypothesis falsified | `xml-cii-weight-match.js` | none |
+| Local falsifier | diagnostic only, not committed | N/A | PASS on exact main bytes | reconstructed test | none |
+| Mandatory backup | command executed locally against exact pre-edit blob, not committed because no edit followed | N/A | backup Git hash matched source blob | local `.backups/` | none |
 
-## 6. Active Engineering Item Register
+## 6. Engineering Item Register
 
-| ID | Type | Severity | Priority | Status | Summary | Evidence | Current PR? |
-|---|---|---|---|---|---|---|---|
-| ISS-001 | correctness | high | P0 | OPEN | Global `.slice(0, 5)` retains five candidates overall rather than per issue. | live main source inspection | yes |
-| IMP-001 | performance | high | P0 | OPEN | Current code constructs/sorts the issue×master Cartesian candidate set. | live main source inspection | yes |
-| RISK-001 | invariant | high | P0 | OPEN | Repair could accidentally change score/tie/override semantics. | authority trace | yes |
-| DEC-001 | authority | high | P0 | ACTIVE | This PR changes candidate cardinality/allocation only; scoring/master authority remains unchanged. | scope decision | yes |
-| DEBT-001 | follow-on | medium | P1 | DEFERRED | Two weight authorities remain; shared ranker consolidation and indexing are follow-on work. | source audit | no |
+| ID | Type | Severity | Priority | Status | Summary | Evidence |
+|---|---|---|---|---|---|---|
+| ISS-001 | correctness | high | P0 | **CLOSED_FALSE_POSITIVE** | Claimed global top-five across all issues. | exact executable falsifier passed on unmodified main |
+| IMP-001 | performance | medium/high | P1 | DEFERRED | Full Weight Master is still constructed/scored/sorted per issue. | source inspection |
+| DEC-001 | integrity | high | P0 | CLOSED | No production change after falsifier disproved defect. | validation result |
 
-## 7. Current Technical Diagnosis
+## 7. Technical Diagnosis
 
 ```text
-Observed symptom: Later weight issues can receive no candidates even when valid master rows exist.
-Current hypothesis: One global sort/slice truncates all issue candidate rows to five total.
-Supporting evidence: buildWeightCandidateRows() flatMaps all issue×candidate rows, sorts globally, then slices once.
-Alternative hypotheses: finalizeRows() filtering/override logic could be dropping rows independently.
-Already ruled out: UI event reachability; Build and Finalize Weight Match both call the legacy module.
-Falsifier: A two-issue fixture where both issues receive five candidates on unmodified main would falsify ISS-001.
-Next isolating experiment: Execute such a fixture against exact main bytes; expect candidate rows only for the first/highest-scoring issue under current code.
+Observed claim: later issues can receive no candidate because one global `.slice(0, 5)` truncates all issues.
+Actual parse/behavior: `.sort(...).slice(0, 5)` is part of the callback expression passed to `flatMap`.
+Prediction from actual code: two independent issues each return five candidates.
+Falsifier execution: exact main bytes returned ten total candidates, five per issue, and both finalized successfully.
+Conclusion: correctness claim falsified; only per-issue full-master performance debt remains.
 ```
 
 ## 8. Authority and Invariants
 
-Authority trace:
-
-```text
-Weight Master rows
--> legacy candidate normalization
--> unchanged 25/25/25/25 scoring
--> per-issue candidate selection
--> optional user override
--> finalizedMatches in support config
--> downstream UI/config consumer
-```
-
-Protected invariants:
-
-- Weight Master input values/units remain unchanged;
-- bore/rating/length/component-type scoring values and tolerances remain unchanged;
-- stable master-row ordering remains tie-break behavior;
-- user override remains selection authority when it identifies a retained candidate;
-- no engineering authority is promoted;
-- no Preview/shared-ranker semantics are changed.
+No authority boundary was changed. Weight Master rows, score formula/tolerances, candidate ordering, override selection, finalized config, Preview/shared weight authority, support/GAP behavior, writer/runtime, units, topology, and Python conversion remain byte-for-byte untouched by this WIP.
 
 ## 9. Current Validation
 
 ```text
 ID: VAL-001
 Status: PASS
-Observation: SOURCE_INSPECTION
-Oracle: NONE
-Tested HEAD: main@bca7fc9390c018753d09161052b0bf2fd54e33ce
-Command/evidence: GitHub exact source blob 3312ea78d6fdfde8ea82130b4ed30597ca40b2d1
-Expected: identify a global rather than per-issue top-five boundary
-Actual: `.flatMap(...).sort(...).slice(0, 5)` confirmed
-Limitations: source inspection only
-Origin: PREEXISTING
+Observation: LOCAL_EXECUTION
+Oracle: INDEPENDENT_REPRODUCTION
+Tested HEAD/Basis: exact source blob 3312ea78d6fdfde8ea82130b4ed30597ca40b2d1 from main@bca7fc9
+Command/evidence: node tests/xml-cii-legacy-weight-match-per-issue.test.mjs in reconstructed minimal tree; source file git-hash-object matched GitHub blob before execution
+Expected under junior hypothesis: 5 total candidates, later issue starved
+Expected under actual-parentheses interpretation: 10 total, 5 per issue
+Actual: PASS; 10 total, A-1..A-5 and B-1..B-5, both finalized, B-3 override honored
+Limitations: reconstructed minimal tree rather than native checkout; module is self-contained and exact source blob identity was verified
+Origin: PREEXISTING CLAIM FALSIFIED
 
 ID: VAL-002
 Status: NOT_RUN
 Observation: NOT_OBSERVED
 Oracle: IMPLEMENTATION_COUPLED
 Tested HEAD: N/A
-Command/evidence: repository-native Node suite
-Expected: focused regression passes after patch
-Actual: NOT_RUN; local clone blocked by DNS
-Limitations: exact checkout unavailable
+Command/evidence: native repository checkout/full suite
+Expected: N/A because no patch exists
+Actual: NOT_RUN; clone failed `Could not resolve host: github.com`
+Limitations: environment DNS/network
 Origin: UNKNOWN_ORIGIN
 ```
 
-Negative assurance: no score constants/tolerances, weight values, unit interpretation, support/GAP behavior, writer/runtime, Preview authority, or Python conversion behavior is intentionally changed.
-
 ## 10. Changed-File Ledger
 
-No branch implementation files exist yet beyond recovery metadata. Intended production/test scope is exactly the target matcher, one new focused regression, one exact backup, and WIP/PR metadata.
+Branch changes are recovery metadata only:
+
+- `agents/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818_workreport.md`;
+- `agents/status/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml`;
+- `agents/claims/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml`.
+
+No production/test/backup path was committed.
 
 ## 11. Review / CI State
 
-No PR allocated yet. No review threads/checks apply yet.
+No PR was created because there is no usable production change. CI/review are NOT_APPLICABLE for this terminated WIP.
 
 ## 12. Repository Coordination / Overlap
 
 ```text
 MASTER_INDEX_CHECKED: not present on main
-STATUS_RECORD: agents/status/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml
-CLAIM_RECORD: agents/claims/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml
-LAST_OVERLAP_CHECK: GE-001 / 2026-08-18
-FILE_OVERLAP: none observed on target production file
-AUTHORITY_OVERLAP: related XML→CII work exists, but active PRs do not own legacy Weight Match candidate selection
-DEPENDENCY_OVERLAP: #616 is independent Preview-search work; #614 is validation-only; no hard dependency
-COORDINATION_STATE: SAFE
+STATUS_RECORD: terminal
+CLAIM_RECORD: released
+LAST_OVERLAP_CHECK: GE-002
+FILE_OVERLAP: none materialized
+AUTHORITY_OVERLAP: none materialized
+DEPENDENCY_OVERLAP: none
+COORDINATION_STATE: SAFE_TO_CLOSE
 ```
 
 ## 13. Continuation State
 
 ```text
-Start here: buildWeightCandidateRows()
-Exact file/function/component: tabs/xml-cii-2019-standalone/xml-cii-weight-match.js
-Current value/path under investigation: global `.slice(0, 5)` after issue×master flatMap
-Do not redo: source reachability and global-top-five diagnosis
-Do not change: scoring constants/tolerances, shared Preview weight authority, weight master values
-Validation still required: failing-before/passing-after multi-issue regression; single-issue/override invariants
-Highest-risk remaining item: stable candidate and override semantics
-Exact next action: commit exact pre-edit backup + focused regression, run baseline failure, then minimally repair per-issue selection
+Start here: new WIP, not this branch
+Do not redo: global-top-five correctness repair
+Do not change based on this WIP: legacy weight scoring/cardinality semantics
+Validation still required: none for this terminated hypothesis
+Highest-risk remaining item: confirmed Bore/Wall per-branch staged parse/walk
+Exact next action: ground Bore/Wall indexing from current main and active PR claims
 ```
-
-## 14. Takeover / Custody Chain
-
-`GE-001`: new work item grounded directly from live `main@bca7fc9`; no predecessor implementation is being taken over. Existing audit conclusions were revalidated against current source before mutation.
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
-`NOT_REQUIRED_NEW_WORK_ITEM`: this is not a takeover of an existing engineering-critical implementation. Owner explicitly granted write authority by directing implementation. Any future takeover of this WIP/PR must complete repository-specific Appendix A before engineering-critical production mutation.
+`NOT_REQUIRED`: no production implementation exists to take over. Any future engineering-critical implementation WIP must establish its own authorization/custody.
 
 # HISTORICAL RECORD — NOT CURRENT AUTHORITY
 
-## Stage Execution Log
-
-- BOOTSTRAP: loaded Common engineering-pr-delivery protocol and repository `AGENTS.md` / `.agents/AGENTS.md`.
-- COORDINATION CHECK: grounded main/open PRs and classified target-file work `SAFE`.
-- PLAN: bounded first PR to the correctness-critical legacy matcher only.
+- `GE-001`: initial source inspection misread callback parentheses and recorded the junior correctness claim as likely true.
+- Mandatory backup utility was reconstructed byte-identically (`utils/backup.js` blob `cd0c7554…`); `node utils/backup.js save ...` succeeded against the exact source blob before any contemplated edit.
+- `GE-002`: executable falsifier corrected the diagnosis before production mutation. This supersedes the initial claim.
