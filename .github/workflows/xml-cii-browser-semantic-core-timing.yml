@@ -1,4 +1,5 @@
 name: XML CII Browser Semantic Core Timing
+# Post-merge retrigger: workflow now exists on default main before this push.
 
 on:
   push:
