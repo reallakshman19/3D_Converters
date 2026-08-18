@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   normalizeSupportIdentity,
   readSourceField,
+  readSourcePosition,
+  sourceFieldEvidence,
   sourceRelationshipEvidence,
   sourceSupportIdentities,
   validateSourceSchemaConfig,
@@ -97,6 +99,33 @@ test('relationship root conflict rejects all group authority', () => {
   assert.equal(relation.conflict, true);
   assert.equal(relation.rejected, true);
   assert.deepEqual(relation.roots, []);
+});
+
+test('object-valued position aliases are compared structurally and conflicting coordinates fail closed', () => {
+  const config = profile({ fields: { position: ['POS', 'POSI'] } });
+  const value = {
+    attributes: {
+      POS: { x: 100, y: 200, z: 300 },
+      POSI: { x: 100, y: 200, z: 400 },
+    },
+  };
+  const evidence = sourceFieldEvidence(value, 'position', config);
+  assert.equal(evidence.conflict, true);
+  assert.equal(evidence.distinctValues.length, 2);
+  assert.equal(readSourcePosition(value, config), null);
+});
+
+test('equivalent object-valued aliases with different property order do not create a false conflict', () => {
+  const config = profile({ fields: { position: ['POS', 'POSI'] } });
+  const value = {
+    attributes: {
+      POS: { x: 100, y: 200, z: 300 },
+      POSI: { z: 300, x: 100, y: 200 },
+    },
+  };
+  const evidence = sourceFieldEvidence(value, 'position', config);
+  assert.equal(evidence.conflict, false);
+  assert.deepEqual(readSourcePosition(value, config)?.rawPoint, { x: 100, y: 200, z: 300 });
 });
 
 test('invalid explicit grammar fails qualification rather than widening defaults', () => {
