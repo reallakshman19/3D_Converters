@@ -1,0 +1,37 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818
+claim_state: ACTIVE
+branch: agent/xml-cii-weight-match-hotfix-20260818
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+files:
+  exact:
+    - tabs/xml-cii-2019-standalone/xml-cii-weight-match.js
+    - tests/xml-cii-legacy-weight-match-per-issue.test.mjs
+    - .backups/1_tabs_xml_cii_2019_standalone_xml_cii_weight_match_js.bak
+  prefixes:
+    - agents/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818_workreport.md
+    - agents/status/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml
+    - agents/claims/WIP-XMLCII-WEIGHTMATCH-HOTFIX-20260818.yaml
+authority_domains:
+  - XML_CII_LEGACY_WEIGHT_MATCH_CANDIDATE_SELECTION
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js
+  - converters/xml-cii2019-core/weight-valve-hints.js
+  - .github/workflows/**
+  - support/GAP semantics
+  - CII writer/runtime
+  - formulas/units/topology
+  - workers
+coordination:
+  PR616: NO_EXACT_FILE_OVERLAP_PREVIEW_SEARCH_OWNED_EXTERNALLY
+  PR614: VALIDATION_ONLY_NO_EXACT_FILE_OVERLAP
+  PR605: SUPPORT_GAP_NO_EXACT_FILE_OVERLAP
+  PR589: SUPPORT_GAP_NO_EXACT_FILE_OVERLAP
+  PR417: EXPLICIT_WEIGHT_EXCLUSION
+coordination_state: SAFE
+last_verified_head: bca7fc9390c018753d09161052b0bf2fd54e33ce
+last_updated: 2026-08-18T18:06:00+04:00
