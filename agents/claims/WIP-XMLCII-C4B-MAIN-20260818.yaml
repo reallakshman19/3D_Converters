@@ -1,0 +1,18 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+claim_id: WIP-XMLCII-C4B-MAIN-20260818
+branch: agent/xml-cii-c4b-config-routing-main-20260818
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+authority: WRITE_ALLOWED_ROUTING_ONLY
+qualification: APPENDIX_A_99_OF_100
+claimed_scope:
+  - seven active state-routing production files
+  - two focused regression tests
+exclusions:
+  - .github/workflows/**
+  - CII writer/runtime
+  - support/GAP interpretation
+  - Node-140 restraint closure
+  - workers
+merge_authority: OWNER_GRANTED_2026-08-18
