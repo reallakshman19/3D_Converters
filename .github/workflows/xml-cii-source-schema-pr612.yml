@@ -26,14 +26,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run and persist source-schema authority tests
+      - name: Run and persist source-schema qualification
         shell: bash
         run: |
           set +e
           mkdir -p ValidationRecords
-          node --test \
-            tests/xml-cii-source-schema-authority-guards.test.mjs \
-            tests/xml-cii-source-schema-relationship.test.mjs \
+          node --test tests/xml-cii-source-schema-*.test.mjs \
             > ValidationRecords/pr612-source-schema-run.log 2>&1
           rc=$?
           printf '\nEXIT_CODE=%s\nHEAD=%s\n' "$rc" "$(git rev-parse HEAD)" >> ValidationRecords/pr612-source-schema-run.log
