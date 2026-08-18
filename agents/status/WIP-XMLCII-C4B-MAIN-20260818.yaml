@@ -1,0 +1,17 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+id: WIP-XMLCII-C4B-MAIN-20260818
+branch: agent/xml-cii-c4b-config-routing-main-20260818
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+main_basis: e93cf16b9670a9876135a659b4f26506857b2c36
+state: QUALIFIED_LOCAL_READY_TO_PUBLISH
+appendix_a: 99/100
+validation:
+  c4_dependency_suite: 10/10_PASS
+  c4b_routing_mode_a_suite: 6/6_PASS
+  syntax: PASS
+  browser: NOT_RUN
+backups: [1, 2, 3, 4, 5, 6, 7]
+workers: NOT_ADMITTED
+merge_authority: OWNER_GRANTED_2026-08-18
