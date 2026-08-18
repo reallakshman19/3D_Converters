@@ -6,7 +6,7 @@ import { composeEngineeringQualification } from '../qualification.js';
 import {
   FIT_METHOD_SOURCE_BASIS,
   FIT_MULTIPHASE_RESOLUTION_MODES,
-  FIT_REFERENCE_AUTHORITY,
+  FIT_WORKBOOK_REFERENCE_AUTHORITY,
   FIT_WORKBOOK_SOURCE,
   assessFit,
   buildFitCorrelationTrace,
@@ -189,7 +189,7 @@ function calculate(input, runtime = {}) {
     applicability: { applicable: true, limitations: result.applicability.limitations },
     provenance: {
       domainApi: 'calculateFit',
-      engineeringAuthority: mode === 'screening' ? 'SCREENING' : FIT_REFERENCE_AUTHORITY,
+      engineeringAuthority: mode === 'screening' ? 'SCREENING' : FIT_WORKBOOK_REFERENCE_AUTHORITY,
       methodSource: FIT_METHOD_SOURCE_BASIS.source,
       methodSourceBasis: FIT_METHOD_SOURCE_BASIS,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
