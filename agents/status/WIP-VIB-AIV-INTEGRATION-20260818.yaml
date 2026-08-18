@@ -1,21 +1,14 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-VIB-AIV-INTEGRATION-20260818
-mission: Integrate qualified assessment-level AIV screening evidence into Vibration Integrity without line-level governing promotion.
+mission: Migrated to PR629.
 workstream: VIBRATION_AIV_ASSESSMENT_INTEGRATION
 branch: agent/vibration-aiv-assessment-integration-20260818
-stack_base_pr: 626
-stack_base_head: afa6a9dfcb533abb312f30baba4ef5d8d039067f
-main_head_last_checked: bca7fc9390c018753d09161052b0bf2fd54e33ce
-work_intent: IMPLEMENT
-criticality: ENGINEERING_CRITICAL
-agent_state: ACTIVE
-pr_recovery_state: HEALTHY
+agent_state: RELEASED_TO_PR629
+pr_recovery_state: SUPERSEDED_BY_PR629
 handover_readiness: READY
-report_path: agents/WIP-VIB-AIV-INTEGRATION-20260818_workreport.md
-report_head: afa6a9dfcb533abb312f30baba4ef5d8d039067f
-current_stage: PLAN
+report_path: agents/PR629_workreport.md
+current_stage: MIGRATED
 blocker: NONE
-highest_risk: Assessment-level AIV LOF must never become an unqualified line-level governing result.
-exact_next_action: Add fail-closed AIV assessment adapter and session-current evidence bridge.
+exact_next_action: Use PR629 status/claim/workreport as current authority.
 merge_authority: OWNER_ONLY_NOT_GRANTED
