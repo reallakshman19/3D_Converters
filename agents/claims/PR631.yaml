@@ -41,6 +41,6 @@ exclusions:
   - T1 mechanism identification rules
   - design authority
   - workflow files
-last_verified_head: 755913416002658046bd05c7bb104726388128f5
-coordination_state: STACKED_ON_PR629_SAFE_FOLLOW_ON
+last_verified_head: 9ffa8917b3611083bc81fa5a0473a08c56082929
+coordination_state: HANDOVER_READY_STACKED_ON_PR629
 merge_authority: OWNER_ONLY_NOT_GRANTED
