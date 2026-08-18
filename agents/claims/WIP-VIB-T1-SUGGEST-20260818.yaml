@@ -1,28 +1,7 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-T1-SUGGEST-20260818
-claim_state: ACTIVE
-files:
-  exact:
-    - converters/vibration/mechanisms/identification-suggestions.js
-    - tabs/vibration-integrity-identification-view.js
-    - tests/vibration-identification-suggestions.test.mjs
-    - tests/vibration-identification-suggestions-ui.test.mjs
-    - docs/vibration/T1-Mechanism-Suggestion-Facts-v1.md
-    - agents/WIP-VIB-T1-SUGGEST-20260818_workreport.md
-    - agents/status/WIP-VIB-T1-SUGGEST-20260818.yaml
-    - agents/claims/WIP-VIB-T1-SUGGEST-20260818.yaml
-  prefixes: []
-authority_domains:
-  - VIBRATION_T1_SUGGESTION_ONLY
-claim_modes:
-  - EXCLUSIVE
-exclusions:
-  - automatic applicability
-  - automatic dispositions
-  - identification authoring model mutations
-  - coverage/completeness rule changes
-  - numerical screening calculations
-  - design authority
-  - workflow files
-coordination_state: SAFE_NO_ACTIVE_EXACT_T1_SUGGESTION_CLAIM_FOUND
+claim_state: RELEASED
+superseded_by: PR638
+branch: agent/vibration-t1-suggestions-20260818
+coordination_state: MIGRATED_TO_PR638
 merge_authority: OWNER_ONLY_NOT_GRANTED
