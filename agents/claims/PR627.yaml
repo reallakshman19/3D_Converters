@@ -1,0 +1,30 @@
+schema: AgentClaim.v1
+pr_or_wip: PR627
+claim_state: ACTIVE
+files:
+  exact:
+    - tabs/vibration-integrity-completeness-presentation.js
+    - tabs/vibration-integrity-view.js
+    - tests/vibration-integrity-completeness-presentation.test.mjs
+    - tests/vibration-integrity-assessment-completeness-view.test.mjs
+    - tests/vibration-integrity-tab-static.test.mjs
+    - agents/PR627_workreport.md
+    - agents/status/PR627.yaml
+    - agents/claims/PR627.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_RESULT_PRESENTATION_HIERARCHY
+  - VIBRATION_COMPLETENESS_PRESENTATION
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - vibration equations coefficients tolerances or units
+  - mechanism identification authority
+  - coverage/completeness calculation semantics
+  - screening/candidate governing calculation
+  - EI main-line aggregation
+  - design or screening authority promotion
+  - workflow files
+last_verified_head: a0d58bf9f7ea4ab60273d31e75156337c505b13d
+coordination_state: SAFE_TO_PROCEED_WITH_HISTORICAL_OVERLAP_RECORDED
+merge_authority: OWNER_ONLY_NOT_GRANTED
