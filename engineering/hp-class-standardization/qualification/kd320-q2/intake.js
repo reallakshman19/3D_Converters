@@ -169,17 +169,23 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
   if (!receiptMap) blockers.push('SOURCE_RECEIPTS_DUPLICATE_OR_INVALID');
   if (receiptMap && (receiptMap.size !== RECEIPT_IDS.length
     || !RECEIPT_IDS.every((id) => receiptMap.has(id)))) blockers.push('SOURCE_RECEIPT_SET_MISMATCH');
-  const receiptsComplete = Boolean(receiptMap)
-    && receiptMap.size === RECEIPT_IDS.length
-    && RECEIPT_IDS.every((id) => receiptMap.has(id) && receiptReady(receiptMap.get(id), blockers));
+  const receiptChecks = receiptMap && receiptMap.size === RECEIPT_IDS.length
+    && RECEIPT_IDS.every((id) => receiptMap.has(id))
+    ? RECEIPT_IDS.map((id) => receiptReady(receiptMap.get(id), blockers))
+    : [];
+  const receiptsComplete = receiptChecks.length === RECEIPT_IDS.length
+    && receiptChecks.every(Boolean);
 
   const semanticMap = uniqueBy(candidate.semanticItems, 'semanticId');
   if (!semanticMap) blockers.push('SEMANTIC_ITEMS_DUPLICATE_OR_INVALID');
   if (semanticMap && (semanticMap.size !== SEMANTIC_IDS.length
     || !SEMANTIC_IDS.every((id) => semanticMap.has(id)))) blockers.push('SEMANTIC_ITEM_SET_MISMATCH');
-  const semanticsComplete = Boolean(semanticMap)
-    && semanticMap.size === SEMANTIC_IDS.length
-    && SEMANTIC_IDS.every((id) => semanticMap.has(id) && semanticReady(semanticMap.get(id), blockers));
+  const semanticChecks = semanticMap && semanticMap.size === SEMANTIC_IDS.length
+    && SEMANTIC_IDS.every((id) => semanticMap.has(id))
+    ? SEMANTIC_IDS.map((id) => semanticReady(semanticMap.get(id), blockers))
+    : [];
+  const semanticsComplete = semanticChecks.length === SEMANTIC_IDS.length
+    && semanticChecks.every(Boolean);
 
   const q1Complete = receiptsComplete && semanticsComplete;
   const projectReady = q1Complete ? projectOracleReady(candidate.projectOracle, blockers) : false;
