@@ -1,6 +1,7 @@
 import { parseXmlCiiEnrichmentConfig } from '../../../../converters/xml-cii2019-core/config.js';
 import { enrichXmlForCii2019 as enrichXmlForCii2019Base } from './enrichment-core.js?v=20260620-rating-override-1';
 import { xmlCiiDryRunPreview } from './preview-renderer.js?v=20260626-process-xml-fallback-1';
+import { xmlCiiParentRunParityBranchRows } from './xml-cii-parent-run-parity-weight-scope.js?v=20260818-run-parity-weight-scan-1';
 
 const RENUMBERABLE_NEGATIVE_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
 const INLINE_LENGTH_COMPONENT_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
@@ -486,7 +487,12 @@ function applyPreviewRunParity(enriched, sourceXmlText, stagedJsonText, options 
   if (document.getElementsByTagName('parsererror').length) return enriched;
   if (shouldDropGasketNodes(enriched.config, options)) dropGasketNodesFromDocument(document, enriched.stats, enriched.diagnostics, 'post-base-pre-parity');
 
-  const rows = xmlCiiDryRunPreview(sourceXmlText, enriched.config, stagedJsonText).branchRows || [];
+  const rows = xmlCiiParentRunParityBranchRows({
+    preview: xmlCiiDryRunPreview,
+    sourceXmlText,
+    config: enriched.config,
+    stagedJsonText,
+  });
   if (!rows.length) {
     annotateInlineElementLengths(document, enriched);
     applyDtxrPosSifZero(document, enriched);
