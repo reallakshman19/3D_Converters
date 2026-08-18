@@ -2,7 +2,7 @@ import { listEnergyInstituteEitModules } from '../eit/module-registry.js';
 import { resolveVibrationRoadmapSourceBinding } from '../source/registry.js';
 
 export const VIBRATION_ROADMAP_REGISTRY_SCHEMA = 'VibrationRoadmapRegistry.v1';
-export const VIBRATION_ROADMAP_REGISTRY_REVISION = 'VIB-ROADMAP-GUIDE-2026-08-18-SOURCE-ID-1';
+export const VIBRATION_ROADMAP_REGISTRY_REVISION = 'VIB-ROADMAP-GUIDE-2026-08-18-MEASUREMENT-1';
 
 const PHASES = [
   { id: 'IDENTIFY', label: 'Identify' }, { id: 'SCREEN', label: 'Screen' },
@@ -15,7 +15,7 @@ const GUIDANCE_NODES = [
   { id: 'visual-piping', label: 'Visual Assessment — Piping', phase: 'VERIFY', scope: 'CROSS_SCOPE', specialty: 'FIELD_DYNAMICS', target: null },
   { id: 'visual-tubing', label: 'Visual Assessment — Tubing', phase: 'VERIFY', scope: 'CROSS_SCOPE', specialty: 'FIELD_DYNAMICS', target: null },
   { id: 'basic-measurement', label: 'Basic Vibration Measurement', phase: 'VERIFY', scope: 'CROSS_SCOPE', specialty: 'FIELD_DYNAMICS', target: null },
-  { id: 'specialist-measurement', label: 'Specialist Measurement', phase: 'DIAGNOSE', scope: 'CROSS_SCOPE', specialty: 'FIELD_DYNAMICS', target: null },
+  { id: 'specialist-measurement', label: 'Specialist Measurement', phase: 'VERIFY', scope: 'CROSS_SCOPE', specialty: 'FIELD_DYNAMICS', target: null },
   { id: 'predictive-analysis', label: 'Predictive Analysis / RCA', phase: 'DIAGNOSE', scope: 'CROSS_SCOPE', specialty: 'PREDICTIVE_RCA', target: null },
   { id: 'mainline-mitigation', label: 'Main-Line Corrective Action', phase: 'MITIGATE', scope: 'MAINLINE', specialty: 'MITIGATION', target: null },
   { id: 'branch-mitigation', label: 'SBC Corrective Action', phase: 'MITIGATE', scope: 'BRANCH_ATTACHMENT', specialty: 'MITIGATION', target: null },
