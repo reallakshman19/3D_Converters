@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { createAivAssumptionProfile } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { serializeAivInputTable } from '../tabs/vibration-aiv-input-model.js';
@@ -36,7 +37,8 @@ test('AUTO product path executes all 10 stages and preserves result scopes', () 
   assert.equal(result.lineCaseSummaries[0].schema, 'AivLineCaseSummary.v1');
   assert.equal(result.assessmentResults[0].resultScope, 'ASSESSMENT');
   assert.equal(result.lineCaseSummaries[0].resultScope, 'LINE_CASE_SUMMARY');
-  assert.notEqual(result.assessmentResults[0].lof, result.lineCaseSummaries[0].lof);
+  assert.equal(result.lineCaseSummaries[0].valuesAreNotInterchangeable, true);
+  assert.equal(result.lineCaseSummaries[0].authoritativeForScreening, false);
   assert.equal(result.universalClassificationProduced, false);
 });
 
@@ -57,7 +59,7 @@ test('D.2.3 AUTO stage 8 reproduces the published assessment chain', () => {
   assert.equal(assessment.lof, 0.29);
 });
 
-test('FLM1 and line-scope assumptions remain user configurable', () => {
+test('FLM1 remains configurable while the worked-example line reference cannot drive Stage 9', () => {
   const profile = createAivAssumptionProfile({
     benchmark: {
       flm1Mode: 'RECALCULATED',
@@ -67,19 +69,23 @@ test('FLM1 and line-scope assumptions remain user configurable', () => {
   const result = parsedBenchmark(profile);
   assert.equal(result.assessmentResults[0].t26Intermediates.FLM1, 1.2109758194311824);
   assert.equal(result.assessmentResults[0].lof, 0.29);
-  assert.equal(result.lineCaseSummaries[0].lof, 1.55);
-  assert.equal(result.lineCaseSummaries[0].aggregationBasis, 'CONFIGURED_LINE_SCOPE_REFERENCE');
+  assert.equal(result.lineCaseSummaries[0].lof, 0.29);
+  assert.equal(result.lineCaseSummaries[0].aggregationBasis, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(result.lineCaseSummaries[0].assessmentInventoryCompleteness, 'UNVERIFIED');
 });
 
-test('stepwise D.2.3 product-path validation passes every declared check', () => {
+test('stepwise D.2.3 product-path validation preserves the 1.48 line reference as oracle-only evidence', () => {
   const receipt = runAivD23ProductPathValidation();
   assert.equal(receipt.schema, 'AivProductPathBenchmarkParityReceipt.v1');
   assert.equal(receipt.status, 'PASS');
-  assert.deepEqual(receipt.counts, { checks: 22, passed: 22, failed: 0 });
+  assert.deepEqual(receipt.counts, { checks: 25, passed: 25, failed: 0 });
   assert.equal(receipt.completeKernelStageCount, 10);
   assert.equal(receipt.resultContractsValidated, true);
   assert.equal(receipt.sourceAssessmentLineScopesValidated, true);
-  assert.equal(receipt.assumptions.humanEvidenceRequired, false);
+  assert.equal(receipt.resultSnapshot.reliefLineCandidateLof, 0.29);
+  assert.equal(receipt.benchmarkReferences.workedExampleReliefLineLof, 1.48);
+  assert.equal(receipt.assumptions.lineLofDerivedFromAssessmentResults, true);
+  assert.equal(receipt.assumptions.workedExampleLineLofRuntimeInput, false);
   assert.equal(receipt.authorityTransitionApplied, false);
   assert.equal(receipt.screeningAuthority, 'NOT_AUTHORIZED');
 });
