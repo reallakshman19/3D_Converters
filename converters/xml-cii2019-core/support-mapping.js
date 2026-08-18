@@ -37,18 +37,18 @@ function xmlText(parent, localName) {
   return text(child?.textContent);
 }
 
-function coordinateTolerance(config = {}) {
+function coordinateTolerances(config = {}) {
   const alignment = resolveCoordinateAlignment(config);
-  const tolerance = alignment.explicit
-    ? alignment.matchToleranceMm
-    : finite(config.coordinateTolerance, alignment.matchToleranceMm || 1);
-  return Math.max(finite(tolerance, 1), 0.000001);
+  const values = [finite(config.coordinateTolerance, 1)];
+  if (alignment.explicit) values.push(finite(alignment.matchToleranceMm, 1));
+  return [...new Set(values.filter((value) => Number.isFinite(value) && value > 0))];
 }
 
-function coordinateKey(point, config = {}) {
-  if (!point) return '';
-  const tolerance = coordinateTolerance(config);
-  return [point.x, point.y, point.z].map((value) => Math.round(value / tolerance)).join('|');
+function coordinateKeys(point, config = {}) {
+  if (!point) return [];
+  return coordinateTolerances(config).map((tolerance) => (
+    [point.x, point.y, point.z].map((value) => Math.round(value / tolerance)).join('|')
+  ));
 }
 
 function uniqueItems(items = []) {
@@ -100,8 +100,7 @@ function indexSupportItems(items, config = {}) {
       if (root) add(byBaseTag, root, related);
     }
     for (const root of item.relationshipRoots || []) add(byBaseTag, root, related);
-    const key = coordinateKey(item.point, config);
-    if (key) add(byCoord, key, related);
+    for (const key of coordinateKeys(item.point, config)) add(byCoord, key, related);
   }
 
   for (const [key, bucket] of [...byCoord.entries()]) {
@@ -198,6 +197,7 @@ export function buildStagedSupportIndex(stagedJsonText, config = {}, diagnostics
     coordinateKeys: indexes.byCoord.size,
     psTagKeys: indexes.byTag.size,
     relationshipKeys: indexes.byRelationship.size,
+    coordinateTolerancesMm: coordinateTolerances(config),
     sourceSchema: true,
   });
   return { ...indexes, items, count: items.length };
