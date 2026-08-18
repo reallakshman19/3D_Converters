@@ -11,6 +11,7 @@ import {
 import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-independent-benchmark-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
 import { renderAivInputWorkspaceHtml } from './vibration-aiv-input-view.js?v=20260816-aiv-canvas-release-1';
+import { renderAivInventoryCompletenessHtml } from './vibration-aiv-inventory-completeness-view.js';
 import { renderAivPromotionReadinessHtml } from './vibration-aiv-promotion-view.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 import { renderAivResultShellsHtml } from './vibration-aiv-result-view.js';
@@ -60,17 +61,18 @@ function evidenceHtml(state) {
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 benchmark targets</h4><p>Pinned published-reference values; FLM1 published/recalculated behavior is configurable and traceable.</p></div></div><div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Source PWL</th><th>Point PWL</th><th>Final LOF</th><th>Evidence</th><th>Configuration</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div></section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>Independent analytical vectors</h4><p>Sonic SFF=6 and simultaneous-source vectors are machine-qualified branches.</p></div></div><div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Purpose</th><th>Expected</th><th>Trace</th><th>Use</th></tr></thead><tbody>${independentBenchmarkRows()}</tbody></table></div></section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV trace register</h4><p>Trace gaps become explicit assumptions/benchmark comparisons rather than hidden release gates.</p></div></div><div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence</th><th>State</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div></section>
-    <section class="aivq-card"><h4>Permanent authority boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>No 3D/CAD geometry authority is created here; Flare-network graph authoring governs connectivity and explicit segment lengths only, while SVG layout remains presentation-only.</li><li>No pixel-derived distance or click-to-calculate flow.</li><li>No AIV equations are implemented in UI code.</li><li>Missing values use visible user-configurable assumptions and explicit user values override them.</li><li>Assessment LOF is the qualified screening result scope; configured line/case LOF and imported legacy <code>.eit</code> LOFs are non-authoritative.</li><li><code>designAuthority=false</code>.</li></ul></section>
+    <section class="aivq-card"><h4>Permanent authority boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>No 3D/CAD geometry authority is created here; Flare-network graph authoring governs connectivity and explicit segment lengths only, while SVG layout remains presentation-only.</li><li>No pixel-derived distance or click-to-calculate flow.</li><li>No AIV equations are implemented in UI code.</li><li>Missing values use visible user-configurable assumptions and explicit user values override them.</li><li>Assessment LOF is the qualified screening result scope; derived line/case candidates remain non-authoritative even when inventory completeness evidence verifies.</li><li><code>designAuthority=false</code>.</li></ul></section>
   </div></details>`;
 }
 
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
-    <header class="aivq-header aivq-hero"><div><span class="aivq-eyebrow">EI AVIFF · screening workbench</span><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>SCREENING QUALIFIED</strong><span>Authority scope: Assessment LOF only</span><span>Line/Case: trace only · Design authority: false</span></div></header>
-    <section class="aivq-card aivq-banner is-qualified"><strong>Machine-qualified AIV screening · bounded release envelope</strong><span>The registered 10-stage kernel owns numerical execution. This release authorizes assessment-level screening within the configured readiness/applicability and Stage-8 screening model/assumption envelope; it is not design approval. Configured line/case LOF and imported legacy <code>.eit</code> results remain trace evidence only.</span></section>
+    <header class="aivq-header aivq-hero"><div><span class="aivq-eyebrow">EI AVIFF · screening workbench</span><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>SCREENING QUALIFIED</strong><span>Authority scope: Assessment LOF only</span><span>Line/Case: derived candidate · Design authority: false</span></div></header>
+    <section class="aivq-card aivq-banner is-qualified"><strong>Machine-qualified AIV screening · bounded release envelope</strong><span>The registered 10-stage kernel owns numerical execution. This release authorizes assessment-level screening within the configured readiness/applicability and Stage-8 screening model/assumption envelope; inventory completeness evidence is separately auditable and does not promote line/case screening authority.</span></section>
     <main class="aivq-primary-stack">
       ${renderAivInputWorkspaceHtml(state)}
       ${renderAivReadinessPanelHtml(state)}
+      ${renderAivInventoryCompletenessHtml(state)}
       ${renderAivResultShellsHtml(state)}
     </main>
     ${evidenceHtml(state)}
