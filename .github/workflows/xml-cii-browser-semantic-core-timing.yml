@@ -1,0 +1,74 @@
+name: XML CII Browser Semantic Core Timing
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/xml-cii-browser-semantic-core-timing.yml'
+      - 'tests/browser/xml-cii-semantic-core-timing.html'
+      - 'scripts/run-xml-cii-browser-semantic-timing.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-derived-context.js'
+      - 'converters/xml-cii2019-core/**'
+      - 'Benchmarks/css/SYS-0010.xml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/xml-cii-browser-semantic-core-timing.yml'
+      - 'tests/browser/xml-cii-semantic-core-timing.html'
+      - 'scripts/run-xml-cii-browser-semantic-timing.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-derived-context.js'
+      - 'converters/xml-cii2019-core/**'
+      - 'Benchmarks/css/SYS-0010.xml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  chromium-timing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && 'main' || github.event.pull_request.head.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml-cii-perf-http.log 2>&1 &
+          echo $! > /tmp/xml-cii-perf-http.pid
+
+      - name: Run real browser timing
+        run: node scripts/run-xml-cii-browser-semantic-timing.mjs
+
+      - name: Upload timing record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-cii-browser-semantic-core-timing
+          path: ValidationRecords/xml-cii-browser-semantic-core-timing.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Persist timing evidence on main
+        if: github.event_name == 'push' && success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ValidationRecords/xml-cii-browser-semantic-core-timing.json
+          git commit -m 'test(xml-cii): record Chromium semantic-core timing' || exit 0
+          git push origin HEAD:main
