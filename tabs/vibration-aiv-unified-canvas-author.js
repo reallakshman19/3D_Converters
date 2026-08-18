@@ -104,6 +104,24 @@ function updateSegment(network, editor, target) {
   return setAivFlareNetworkSegmentLength(network, segmentId, length ? Number(length) : null, unit);
 }
 
+function deleteSourceWithSingleBranch(network, node) {
+  const connected = network.segments.filter((segment) => (
+    segment.fromNodeId === node.canonicalId || segment.toNodeId === node.canonicalId
+  ));
+  if (connected.length !== 1 || connected[0].fromNodeId !== node.canonicalId) {
+    return deleteAivFlareNetworkNode(network, node.canonicalId);
+  }
+  const withoutBranch = deleteAivFlareNetworkSegment(network, connected[0].segmentId);
+  return deleteAivFlareNetworkNode(withoutBranch, node.canonicalId);
+}
+
+function deleteNodeById(network, nodeId) {
+  const node = network.nodes.find((item) => item.canonicalId === text(nodeId));
+  if (!node) throw new RangeError(`Unknown AIV flare-network node ${text(nodeId)}.`);
+  if (node.kind === 'SOURCE') return deleteSourceWithSingleBranch(network, node);
+  return deleteAivFlareNetworkNode(network, node.canonicalId);
+}
+
 export function createAivUnifiedNetworkNodeAt(network, editor, position) {
   return createNode(editor, network, position);
 }
@@ -117,7 +135,9 @@ export function deleteAivUnifiedNetworkSelection(network, selectionKey) {
   if (key.startsWith('SEGMENT:')) return deleteAivFlareNetworkSegment(network, key.slice('SEGMENT:'.length));
   const node = network.nodes.find((item) => nodeSelectionKey(item) === key);
   if (!node) throw new RangeError('Select a network node or physical segment before deleting.');
-  return deleteAivFlareNetworkNode(network, node.canonicalId);
+  return node.kind === 'SOURCE'
+    ? deleteSourceWithSingleBranch(network, node)
+    : deleteAivFlareNetworkNode(network, node.canonicalId);
 }
 
 export function applyAivUnifiedNetworkAuthorAction(network, editor, target) {
@@ -127,7 +147,7 @@ export function applyAivUnifiedNetworkAuthorAction(network, editor, target) {
   const segmentId = target?.closest?.('[data-aiv-network-delete-segment]')?.dataset.aivNetworkDeleteSegment;
   if (segmentId) return Object.freeze({ handled: true, network: deleteAivFlareNetworkSegment(network, segmentId) });
   const nodeId = target?.closest?.('[data-aiv-network-delete-node]')?.dataset.aivNetworkDeleteNode;
-  if (nodeId) return Object.freeze({ handled: true, network: deleteAivFlareNetworkNode(network, nodeId) });
+  if (nodeId) return Object.freeze({ handled: true, network: deleteNodeById(network, nodeId) });
   return Object.freeze({ handled: false, network });
 }
 
