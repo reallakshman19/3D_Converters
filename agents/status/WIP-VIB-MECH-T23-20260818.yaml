@@ -14,9 +14,9 @@ agent_state: ACTIVE
 pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/WIP-VIB-MECH-T23-20260818_workreport.md
-current_stage: BASELINE
-blocker: NONE
-highest_risk: Accidental authority expansion beyond the nine direct EI T2.3 Table T2-3 baseline machinery cases.
-exact_next_action: Add controlled method record and independent parity tests, then promote only the direct-baseline path.
-coordination_state: SAFE_NO_ACTIVE_EXACT_MECHANICAL_CLAIM_FOUND
+current_stage: VALIDATE_RECONCILE
+blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+highest_risk: The local screening tier must not be misread as shared-support or post-dynamic-analysis authority, and generic EI main-line aggregation retains its separate benchmark-registry gate.
+exact_next_action: Reconcile exact diff/base drift, record validation truth and PR626 overlap, then allocate draft PR.
+coordination_state: COORDINATION_REQUIRED_WITH_PR626_ON_MECHANISM_ORCHESTRATION
 merge_authority: OWNER_ONLY_NOT_GRANTED
