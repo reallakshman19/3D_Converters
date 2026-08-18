@@ -1,25 +1,24 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-VIB-CAPABILITY-20260818
-mission: Remove duplicated vibration capability-state truth without changing numerical or governing authority.
+mission: Historical pre-PR identity for vibration capability projection; migrated to PR626.
 workstream: VIBRATION_CAPABILITY_PROJECTION
 branch: agent/vibration-capability-consistency-20260818
-pr_head: 710dc0b5eb6f729b5d79951b246cc412fe76cbff
+pr_head: c7b8442621ed1e1b67c4abe507a29fc44390fb50
 main_head_last_checked: bca7fc9390c018753d09161052b0bf2fd54e33ce
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: ACTIVE
-pr_recovery_state: HEALTHY
+agent_state: MIGRATED_TO_PR626
+pr_recovery_state: TERMINAL
 handover_readiness: READY
-report_path: agents/WIP-VIB-CAPABILITY-20260818_workreport.md
-report_head: bca7fc9390c018753d09161052b0bf2fd54e33ce
+report_path: agents/PR626_workreport.md
+report_head: c7b8442621ed1e1b67c4abe507a29fc44390fb50
 appendix_a_status: NOT_REQUIRED_NEW_OWNER_DIRECTED_WORK
-grounding_epoch: GE-001
-current_stage: PLAN
+grounding_epoch: GE-002
+current_stage: MIGRATED
 blocker: NONE
-highest_risk: Capability projection must not imply AIV line-level or governing screening authority.
+highest_risk: See PR626 current recovery authority.
 dependencies:
-  - main@a639719abda2619f2c507a210ea50560f14c6174 merged PR615 EIT/registry architecture
-  - current main mechanism coverage architecture
-exact_next_action: Add pure capability resolver and minimally integrate it into the Vibration Integrity catalogue.
-last_updated: 2026-08-18T13:41:19Z
+  - PR626
+exact_next_action: Use agents/PR626_workreport.md; do not resume this WIP identity.
+last_updated: 2026-08-18T13:54:00Z
