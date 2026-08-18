@@ -1,4 +1,4 @@
-export const FIT_SOURCE_BASIS_EVIDENCE_SCHEMA = 'FitSourceBasisEvidence.v2';
+export const FIT_SOURCE_BASIS_EVIDENCE_SCHEMA = 'FitSourceBasisEvidence.v1';
 
 export const FIT_SOURCE_BASIS_EVIDENCE = Object.freeze({
   schema: FIT_SOURCE_BASIS_EVIDENCE_SCHEMA,
