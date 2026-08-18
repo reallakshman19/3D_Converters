@@ -3,6 +3,7 @@ import { createElement } from './xml-cii-adapted-dom.js';
 import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
+import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 
@@ -32,17 +33,8 @@ function appendDiagnostics(parent, diagnostics) {
   parent.appendChild(details);
 }
 
-function configFor(state) {
-  try { return JSON.parse(state.supportConfigJson || '{}') || {}; } catch { return {}; }
-}
-
-function fieldMapFor(masterKey, state) {
-  const configKey = MASTER_FIELDS[masterKey]?.configKey;
-  return configFor(state)[configKey]?.fieldMap || {};
-}
-
-function getHeaderLabel(header, masterKey, state) {
-  const fieldMap = fieldMapFor(masterKey, state);
+function getHeaderLabel(header, masterKey, config, context) {
+  const fieldMap = appliedFieldMap(context, config, masterKey);
   const fieldDef = MASTER_FIELDS[masterKey]?.fields.find((field) => field.name === header);
   if (fieldDef) return fieldMap[header] ? `${fieldDef.label} [${fieldMap[header]}]` : fieldDef.label;
   if (header === 'lineKey') return 'Line Key';
@@ -50,14 +42,16 @@ function getHeaderLabel(header, masterKey, state) {
   return header;
 }
 
-function previewColumns(rows, masterKey, state) {
+function previewColumns(rows, masterKey, config, context) {
   const fieldsDef = MASTER_FIELDS[masterKey]?.fields || [];
   const fieldNames = fieldsDef.map((field) => field.name);
   const standardExtra = masterKey === 'lineList' ? ['lineKey'] : [];
   const sortedKeys = [];
   for (const name of [...standardExtra, ...fieldNames]) if (!sortedKeys.includes(name)) sortedKeys.push(name);
 
-  const mappedRawHeaders = Object.values(fieldMapFor(masterKey, state)).filter(Boolean);
+  // Preview is governed by the applied mapping only. A draft mapping is not a
+  // calculation or preview authority until the engineer explicitly applies it.
+  const mappedRawHeaders = Object.values(appliedFieldMap(context, config, masterKey)).filter(Boolean);
   const extraKeys = [];
   for (const row of rows) {
     for (const key of Object.keys(row || {})) {
@@ -69,9 +63,7 @@ function previewColumns(rows, masterKey, state) {
         && !standardExtra.includes(key)
         && !mappedRawHeaders.includes(key)
         && key !== 'densitySource'
-      ) {
-        extraKeys.push(key);
-      }
+      ) extraKeys.push(key);
     }
   }
   for (const key of extraKeys) if (!sortedKeys.includes(key) && sortedKeys.length < 30) sortedKeys.push(key);
@@ -79,20 +71,18 @@ function previewColumns(rows, masterKey, state) {
   return sortedKeys;
 }
 
-function tableHead(columns, masterKey, state) {
+function tableHead(columns, masterKey, config, context) {
   const thead = createElement('thead');
   const row = createElement('tr');
   for (const col of columns) {
-    const labelText = getHeaderLabel(col, masterKey, state);
+    const labelText = getHeaderLabel(col, masterKey, config, context);
     const th = createElement('th');
     if (col === 'density' && masterKey === 'lineList') {
       const span = createElement('span', labelText);
       const infoIcon = style(createElement('span', ' ℹ️', 'xml-cii-density-info-icon'), { cursor: 'pointer', color: '#60a5fa', marginLeft: '4px' });
-      infoIcon.title = "Density Resolution Logic:\n1. Manual Process Override density (if set)\n2. If Phase is MIXED: Mixed Density -> Liquid Density\n3. If Phase is GAS: Gas Density\n4. If Phase is LIQUID: Liquid Density\n5. Fallback: Density -> Mixed Density -> Gas Density -> Liquid Density";
+      infoIcon.title = 'Density Resolution Logic:\n1. Manual Process Override density (if set)\n2. If Phase is MIXED: Mixed Density -> Liquid Density\n3. If Phase is GAS: Gas Density\n4. If Phase is LIQUID: Liquid Density\n5. Fallback: Density -> Mixed Density -> Gas Density -> Liquid Density';
       th.append(span, infoIcon);
-    } else {
-      th.textContent = labelText;
-    }
+    } else th.textContent = labelText;
     row.appendChild(th);
   }
   thead.appendChild(row);
@@ -109,7 +99,7 @@ function tableBody(columns, rows) {
   return body;
 }
 
-function appendPreview(parent, master, state) {
+function appendPreview(parent, master, state, config) {
   const masterKey = master.key;
   const rows = master.previewRows || [];
   const allRows = buildPreviewSearchRows(master, state);
@@ -126,9 +116,9 @@ function appendPreview(parent, master, state) {
   searchInput.placeholder = '🔍 Search preview data...';
   wrap.appendChild(searchInput);
 
-  const columns = previewColumns(rows, masterKey, state);
+  const columns = previewColumns(rows, masterKey, config, state.masterContext);
   const tableEl = createElement('table', '', 'xml-cii-master-preview-table');
-  tableEl.append(tableHead(columns, masterKey, state));
+  tableEl.append(tableHead(columns, masterKey, config, state.masterContext));
   const tbodyEl = tableBody(columns, rows);
   tableEl.appendChild(tbodyEl);
 
@@ -196,7 +186,35 @@ function renderMappingHealth(masterKey, fields, fieldMap) {
   return row;
 }
 
-function renderColumnMapping(master, state) {
+function renderMappingCustody(masterKey, status) {
+  const box = style(createElement('div', '', 'xml-cii-mapping-custody'), {
+    margin: '6px 0 12px 0', padding: '8px 10px', borderRadius: '6px',
+    border: status.dirty ? '1px solid rgba(245,158,11,.5)' : '1px solid rgba(16,185,129,.35)',
+    background: status.dirty ? 'rgba(245,158,11,.08)' : 'rgba(16,185,129,.06)', fontSize: '0.82rem',
+  });
+  box.dataset.masterMappingStatus = masterKey;
+  if (status.dirty) {
+    box.textContent = `Mapping status: MODIFIED — NOT APPLIED. Current calculation basis: Applied mapping revision ${status.revision}. Preview uses applied mapping revision ${status.revision}.`;
+  } else {
+    box.textContent = `Mapping status: APPLIED. Revision: ${status.revision}. Preview uses applied mapping revision ${status.revision}.`;
+  }
+  return box;
+}
+
+function mappingButton(label, action, masterKey, enabled, positive = false) {
+  const button = style(createElement('button', label), {
+    margin: '0', padding: '6px 12px', fontSize: '0.85rem', borderRadius: '6px',
+    border: `1px solid ${positive ? 'rgba(16,185,129,.45)' : 'rgba(145,160,180,.25)'}`,
+    background: positive ? 'rgba(16,185,129,.22)' : 'rgba(30,41,59,.5)', color: 'inherit', cursor: enabled ? 'pointer' : 'not-allowed',
+  });
+  button.type = 'button';
+  button.dataset.action = action;
+  button.dataset.masterKey = masterKey;
+  button.disabled = !enabled;
+  return button;
+}
+
+function renderColumnMapping(master, state, config) {
   const masterKey = master.key;
   const fields = MASTER_FIELDS[masterKey]?.fields || [];
   const rawRows = state.masterContext?.rawRows?.[masterKey] || [];
@@ -205,31 +223,27 @@ function renderColumnMapping(master, state) {
   const headers = [];
   for (const k of Object.keys(rawRows[0] || {})) if (k !== '_rowIndex' && !headers.includes(k)) headers.push(k);
   const previewMap = buildColumnPreviewMap(rawRows, headers);
-  const fieldMap = fieldMapFor(masterKey, state);
+  const fieldMap = effectiveDraftFieldMap(state.masterContext, config, masterKey);
+  const mappingStatus = masterMappingStatus(state.masterContext, config, masterKey);
 
   const wrap = createElement('div', '', 'xml-cii-master-column-mapping');
   const h4 = style(createElement('h4', 'Dynamic Field Mapping'), { display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 0 8px 0' });
   const infoIcon = style(createElement('span', 'ⓘ', 'xml-cii-fuzzy-info-icon'), { cursor: 'help', fontSize: '1rem', color: '#3b82f6', fontWeight: 'bold', display: 'inline-block', lineHeight: '1' });
   infoIcon.title = masterKey === 'lineList'
-    ? `Standalone Line List Auto Mapping:\n1. Reuses the XML->CII Import Master line-list detector.\n2. Preserves valid existing mappings.\n3. Rejects unsafe matches such as construction class as piping class.\n4. Applies density/process-value safeguards.\n5. Falls back to dynamic fuzzy field mapping for standalone fields such as From/To.`
-    : `Fuzzy Logic Auto-Mapping Logic:\n1. Exact/Fuzzy Header Pass.\n2. Label-row content pass.\n3. Data type value fallback.\n4. Dynamic mapped fields remain editable.`;
+    ? 'Standalone Line List Auto Mapping:\n1. Reuses the XML->CII Import Master line-list detector.\n2. Preserves valid existing mappings.\n3. Rejects unsafe matches such as construction class as piping class.\n4. Applies density/process-value safeguards.\n5. Falls back to dynamic fuzzy field mapping for standalone fields such as From/To.'
+    : 'Fuzzy Logic Auto-Mapping Logic:\n1. Exact/Fuzzy Header Pass.\n2. Label-row content pass.\n3. Data type value fallback.\n4. Dynamic mapped fields remain editable.';
   h4.appendChild(infoIcon);
   wrap.appendChild(h4);
   wrap.appendChild(renderMappingHealth(masterKey, fields, fieldMap));
+  wrap.appendChild(renderMappingCustody(masterKey, mappingStatus));
 
   const ctrl = style(createElement('div'), { display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' });
+  const autoBtn = mappingButton('🧠 Auto Map Fields', 'auto-map-master-fields', masterKey, true);
+  const saveBtn = mappingButton('💾 Save Applied Mapping', 'save-master-mapping', masterKey, true);
+  const applyBtn = mappingButton('Apply Mapping', 'apply-master-mapping', masterKey, mappingStatus.dirty, true);
+  const discardBtn = mappingButton('Discard Draft', 'discard-master-mapping', masterKey, mappingStatus.dirty);
 
-  const autoBtn = style(createElement('button', '🧠 Auto Map Fields'), { margin: '0', padding: '6px 12px', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid rgba(59,130,246,.45)', background: 'rgba(37,99,235,.22)', color: '#93c5fd', cursor: 'pointer' });
-  autoBtn.type = 'button';
-  autoBtn.dataset.action = 'auto-map-master-fields';
-  autoBtn.dataset.masterKey = masterKey;
-
-  const saveBtn = style(createElement('button', '💾 Save Current Mapping'), { margin: '0', padding: '6px 12px', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid rgba(145,160,180,.25)', background: 'rgba(16,185,129,.25)', color: '#10b981', cursor: 'pointer' });
-  saveBtn.type = 'button';
-  saveBtn.dataset.action = 'save-master-mapping';
-  saveBtn.dataset.masterKey = masterKey;
-
-  const savedLabel = style(createElement('label', 'Apply Saved:'), { display: 'flex', gap: '6px', alignItems: 'center', margin: '0', fontSize: '0.85rem' });
+  const savedLabel = style(createElement('label', 'Stage Saved:'), { display: 'flex', gap: '6px', alignItems: 'center', margin: '0', fontSize: '0.85rem' });
   const savedSelect = style(createElement('select'), { padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(145,160,180,.25)', background: 'rgba(2,6,23,.75)', color: 'inherit' });
   savedSelect.dataset.action = 'apply-saved-mapping';
   savedSelect.dataset.masterKey = masterKey;
@@ -247,7 +261,7 @@ function renderColumnMapping(master, state) {
     savedSelect.appendChild(opt);
   }
   savedLabel.appendChild(savedSelect);
-  ctrl.append(autoBtn, saveBtn, savedLabel);
+  ctrl.append(autoBtn, saveBtn, savedLabel, discardBtn, applyBtn);
   wrap.appendChild(ctrl);
 
   const grid = createElement('div', '', 'xml-cii-mapping-grid');
@@ -278,7 +292,7 @@ function renderColumnMapping(master, state) {
   return wrap;
 }
 
-function renderMasterCard(master, state) {
+function renderMasterCard(master, state, config) {
   const card = createElement('section', '', 'xml-cii-master-card');
   card.dataset.master = master.key;
   card.appendChild(createElement('h3', master.label));
@@ -338,13 +352,16 @@ function renderMasterCard(master, state) {
   appendMetric(metrics, 'Rows', master.rowCount);
   card.appendChild(metrics);
 
-  card.appendChild(renderColumnMapping(master, state));
-  appendPreview(card, master, state);
+  card.appendChild(renderColumnMapping(master, state, config));
+  appendPreview(card, master, state, config);
   appendDiagnostics(card, master.diagnostics || []);
   return card;
 }
 
 export function renderStandaloneImportMastersPanel(card, state, targetMasterKey = null) {
+  // One parse at the panel boundary. Helpers receive this immutable derived
+  // value instead of reparsing supportConfigJson throughout the render tree.
+  const config = state.masterContext?.config || readSupportConfigOnce(state);
   const masters = state.masterContext ? summarizeStandaloneImportMasters(state.masterContext) : emptySummary();
 
   if (targetMasterKey) {
@@ -362,7 +379,7 @@ export function renderStandaloneImportMastersPanel(card, state, targetMasterKey 
       clear.style.marginLeft = '8px';
       actions.append(load, clear, createElement('span', state.importMastersWriteBackStatus || '', 'xml-cii-phase-help'));
       card.appendChild(actions);
-      card.appendChild(renderMasterCard(master, state));
+      card.appendChild(renderMasterCard(master, state, config));
     }
     return;
   }
@@ -381,6 +398,6 @@ export function renderStandaloneImportMastersPanel(card, state, targetMasterKey 
   card.appendChild(actions);
 
   const grid = createElement('div', '', 'xml-cii-master-card-grid');
-  for (const master of masters) grid.appendChild(renderMasterCard(master, state));
+  for (const master of masters) grid.appendChild(renderMasterCard(master, state, config));
   card.appendChild(grid);
 }
