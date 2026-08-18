@@ -1,4 +1,16 @@
-export const FIT_REFERENCE_AUTHORITY = 'WORKBOOK_REFERENCE_ONLY';
+import { FIT_SOURCE_BASIS_EVIDENCE } from './source-basis-evidence.js';
+
+export const FIT_REFERENCE_AUTHORITY = 'CONTROLLED_EI_T2_2_SCREENING_REFERENCE';
+export const FIT_WORKBOOK_REFERENCE_AUTHORITY = 'WORKBOOK_REFERENCE_ONLY';
+export const FIT_METHOD_SOURCE = FIT_SOURCE_BASIS_EVIDENCE.method.source;
+export const FIT_METHOD_SOURCE_BASIS = Object.freeze({
+  schema: FIT_SOURCE_BASIS_EVIDENCE.schema,
+  methodRevision: FIT_SOURCE_BASIS_EVIDENCE.methodRevision,
+  technicalModule: FIT_SOURCE_BASIS_EVIDENCE.method.technicalModule,
+  source: FIT_METHOD_SOURCE,
+  officialErrata: FIT_SOURCE_BASIS_EVIDENCE.officialErrata,
+  authority: FIT_SOURCE_BASIS_EVIDENCE.authority,
+});
 
 export const FIT_WORKBOOK_SOURCE = Object.freeze({
   repository: 'reallaksh19/CRF-4-1',
@@ -7,6 +19,8 @@ export const FIT_WORKBOOK_SOURCE = Object.freeze({
   gitBlob: 'd7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e',
   sheet: 'Flow Induced Turbulence',
   methodBasis: 'EI_PROCESS_PIPEWORK_2008_T2_2_PLUS_PROJECT_GUIDANCE',
+  authority: FIT_WORKBOOK_REFERENCE_AUTHORITY,
+  role: 'MIGRATION_PARITY_EVIDENCE_ONLY',
 });
 
 export const FIT_PHASES = Object.freeze(['LIQUID', 'GAS', 'MULTIPHASE']);

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   FIT_REFERENCE_AUTHORITY,
+  FIT_WORKBOOK_REFERENCE_AUTHORITY,
+  FIT_WORKBOOK_SOURCE,
   assessFit,
   calculateFit,
   evaluateFitApplicability,
@@ -166,13 +168,17 @@ test('velocity override does not bypass density or multiphase mixture-data requi
   }
 });
 
-test('reference calculation is deterministic and never emits design or screening authority', () => {
+test('workbook parity vectors remain deterministic while domain authority is the controlled EI screening reference', () => {
   const first = calculateFit(example3);
   const second = calculateFit(example3);
   assert.deepEqual(first, second);
-  assert.equal(first.qualification.method, 'BENCHMARK_ONLY');
+  assert.equal(first.qualification.method, 'SCREENING');
+  assert.equal(first.qualification.data, 'SCREENING');
   assert.equal(first.qualification.designAuthority, false);
-  assert(first.qualification.reasons.includes('WORKBOOK_REFERENCE_ONLY'));
+  assert(first.qualification.reasons.includes('CONTROLLED_EI_WORKED_EXAMPLE_PRODUCT_PATH_QUALIFICATION'));
+  assert.equal(first.authority, FIT_REFERENCE_AUTHORITY);
+  assert.equal(first.provenance.workbookReference.authority, FIT_WORKBOOK_REFERENCE_AUTHORITY);
+  assert.equal(FIT_WORKBOOK_SOURCE.role, 'MIGRATION_PARITY_EVIDENCE_ONLY');
   const assessment = assessFit(first);
   assert.equal(assessment.authority, FIT_REFERENCE_AUTHORITY);
   assert.equal(Object.hasOwn(assessment, 'pass'), false);
