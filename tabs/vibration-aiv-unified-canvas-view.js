@@ -6,7 +6,7 @@ import {
   currentAivInputRevision,
   isAivLineageCurrent,
 } from './vibration-aiv-engineering-revision.js';
-import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-3';
+import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260818-aiv-canvas-hardening-1';
 import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-release-1';
 import {
   buildAivCanvasNodeFieldLinks,
@@ -151,7 +151,8 @@ function pathRelationshipHtml(item, segmentMap, positions, screeningCurrent, inp
     return `<line data-aiv-path-segment-id="${esc(segment.segmentId)}" data-aiv-path-from="${esc(segment.fromNodeId)}" data-aiv-path-to="${esc(segment.toNodeId)}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}"></line>`;
   }).join('');
   const from = positions.get(item.sourceCanonicalId); const to = positions.get(item.assessmentCanonicalId); if (!labelSegments.length && from && to) labelSegments.push({ from, to });
-  return `<g class="aiv-canvas-relationship is-path-overlay is-${esc(text(item.pathStatus).toLowerCase())}"${relationshipAttrs(item)} data-aiv-path-status="${esc(item.pathStatus)}" data-aiv-path-distance-m="${esc(item.pathDistanceM ?? '')}">${lines}${relationshipLabels(item, labelSegments, screeningCurrent, inputMode)}</g>`;
+  const inactive = item.applicabilityDisposition === 'NOT_APPLICABLE' ? ' is-inactive' : '';
+  return `<g class="aiv-canvas-relationship is-path-overlay is-${esc(text(item.pathStatus).toLowerCase())}${inactive}"${relationshipAttrs(item)} data-aiv-path-status="${esc(item.pathStatus)}" data-aiv-path-distance-m="${esc(item.pathDistanceM ?? '')}">${lines}${relationshipLabels(item, labelSegments, screeningCurrent, inputMode)}</g>`;
 }
 function relationshipsHtml(value, layout, physicalNodes, screeningCurrent) {
   if (value.inputMode !== AIV_INPUT_MODE.NETWORK_DRIVEN) return value.relationships.map((item) => logicalRelationshipHtml(item, layout, screeningCurrent, value.inputMode)).join('');
@@ -167,6 +168,10 @@ function currentnessHtml(state) {
   const readinessCurrent = isAivLineageCurrent(state, 'readiness'); const screeningCurrent = isAivLineageCurrent(state, 'screening');
   if (readinessCurrent && screeningCurrent) return `<div class="aivq-banner is-qualified" data-aiv-canvas-currentness="current"><strong>Engineering revision ${revision} · current.</strong><span>Readiness and registered screening results match the active inputs.</span></div>`;
   return `<div class="aivq-banner is-warning" data-aiv-canvas-currentness="stale"><strong>Engineering inputs changed · revision ${revision}.</strong><span>Readiness: ${readinessCurrent ? 'current' : 'needs check'} · screening/results: ${screeningCurrent ? 'current' : 'needs run'}. Run the missing checks before relying on or exporting results.</span></div>`;
+}
+function actionErrorHtml(state) {
+  if (!text(state.canvasActionError)) return '';
+  return `<div class="aivq-banner is-warning" data-aiv-canvas-action-error="true" role="alert"><strong>Canvas edit not applied.</strong><span>${esc(state.canvasActionError)}</span></div>`;
 }
 function iconButton(label, icon, attrs, { active = false, pressed = null, disabled = false } = {}) {
   const pressedAttr = pressed === null ? '' : ` aria-pressed="${pressed ? 'true' : 'false'}"`;
@@ -190,7 +195,7 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const modeLabel = networkDriven ? 'NETWORK_DRIVEN · graph authority' : 'TABLE_DRIVEN · table authority'; const relationshipLabel = networkDriven ? 'Inspect paths' : 'Relationships';
   return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}" data-aiv-canvas-label-display="NORMAL" data-aiv-canvas-semantic-level="DETAILED" data-aiv-last-committed-field="${esc(state.lastCommittedAivFieldKey ?? '')}">
     <div class="aivq-section-head"><div><h4>AIV Network Canvas Editor</h4><p>One SVG is the AIV input editor, topology view, relationship view and registered-result surface.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">${esc(modeLabel)}</span><span class="aiv-canvas-badge authority">SVG x/y = presentation only</span><span class="aiv-canvas-badge authority">registered results</span></div></div>
-    ${currentnessHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
+    ${currentnessHtml(state)}${actionErrorHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
     <div data-aiv-canvas-workbench="true" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
       <div class="aiv-canvas-frame" style="position:relative;flex:3 1 620px;min-width:min(100%,520px)">
@@ -198,7 +203,7 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
         <div class="aiv-canvas-head-actions" aria-label="Canvas engineering labels" style="position:absolute;z-index:6;left:8px;bottom:8px;padding:4px;border:1px solid #334155;border-radius:8px;background:rgba(8,17,31,.9)">${labelLegendIcon()}${labelModeButtons()}</div>
         <svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true"><rect data-aiv-canvas-workspace-boundary="true" x="0" y="0" width="1200" height="760" rx="18" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="8 8" opacity=".55" pointer-events="none"></rect>${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg>
       </div>
-      <aside data-aiv-canvas-inspector-dock="true" aria-label="Selected AIV item details" style="flex:1 1 320px;min-width:min(100%,300px);max-height:620px;overflow:auto"><div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div></aside>
+      <aside data-aiv-canvas-inspector-dock="true" data-aiv-scroll-key="aiv-canvas-inspector" aria-label="Selected AIV item details" style="flex:1 1 320px;min-width:min(100%,300px);max-height:620px;overflow:auto"><div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div></aside>
     </div>
     <div class="aivq-readiness-note"><strong>Field integration:</strong> linked Process/Geometry input labels open the exact authoritative inspector/table field. NETWORK_DRIVEN links graph-owned fields; TABLE_DRIVEN links working-table fields. Results remain registered output only.</div>
     ${summaryHtml(value)}
