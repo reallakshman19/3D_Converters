@@ -94,7 +94,37 @@ function mechanicalContext(targetRow = row(), candidate = mechanicalCandidate(ta
   };
 }
 
-test('catalogue mirrors governed registry while separating calculator availability from matrix integration', () => {
+function aivScreeningResult(target = row(), lof = 0.42) {
+  return {
+    ok: true,
+    calculationId: 'VIB.AIV.ACOUSTIC',
+    outputs: {
+      screeningResultScope: 'ASSESSMENT',
+      assessmentResults: [{
+        schema: 'AivAssessmentResult.v1', resultScope: 'ASSESSMENT',
+        calculationId: 'VIB.AIV.ACOUSTIC', status: 'SCREENING_CALCULATED',
+        assessmentCanonicalId: target.canonicalId, assessmentType: 'WELDED_DISCONTINUITY',
+        line: target.line, caseId: target.caseId,
+        contributingSourceCanonicalIds: ['RV-101'], lof,
+        authority: {
+          calculationState: 'IMPLEMENTED', qualificationState: 'SCREENING',
+          engineeringAuthority: 'SCREENING', productionEquationAuthorized: true,
+          screeningAuthority: 'AUTHORIZED', designAuthority: false,
+        },
+      }],
+      lineCaseSummaries: [{
+        schema: 'AivLineCaseSummary.v1', line: target.line, caseId: target.caseId,
+        lof: 0.91, aggregationBasis: 'CONFIGURED_LINE_SCOPE_REFERENCE', authoritativeForScreening: false,
+      }],
+    },
+    assessment: {
+      resultScope: 'ASSESSMENT_SCREENING', screeningAuthority: 'AUTHORIZED',
+      lineCaseSummaryAuthoritativeForScreening: false, designAuthority: false,
+    },
+  };
+}
+
+test('catalogue mirrors governed registry while separating assessment integration from line governing', () => {
   assert.deepEqual(
     VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => mechanism.id),
     VIBRATION_MECHANISM_IDS,
@@ -109,23 +139,23 @@ test('catalogue mirrors governed registry while separating calculator availabili
   assert.equal(fit.capability.calculationAvailable, true);
   assert.equal(mechanical.implementationState, 'CANDIDATE_MASTER');
   assert.equal(mechanical.capability.assessmentIntegrationState, 'INTEGRATED');
-  assert.equal(aiv.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
+  assert.equal(aiv.implementationState, 'SCREENING_ASSESSMENT_SCOPE');
   assert.equal(aiv.capability.calculationId, 'VIB.AIV.ACOUSTIC');
   assert.equal(aiv.capability.calculationAvailable, true);
   assert.equal(aiv.capability.calculationState, 'IMPLEMENTED');
   assert.equal(aiv.capability.qualificationState, 'SCREENING');
-  assert.equal(aiv.capability.assessmentIntegrationState, 'NOT_INTEGRATED');
+  assert.equal(aiv.capability.assessmentIntegrationState, 'INTEGRATED_ASSESSMENT_SCOPE');
   assert.equal(aiv.capability.governingEligibilitySource, 'RUNTIME_ASSESSMENT_ONLY');
   assert.equal(sbc.implementationState, 'CANDIDATE_USER_INPUT');
   assert.equal(sbc.capability.assessmentIntegrationState, 'INTEGRATED');
 });
 
-test('FIT screening survives generic contracts while Mechanical/SBC without data remain input-required', () => {
+test('FIT screening survives generic contracts while other integrated mechanisms remain fail-closed without evidence', () => {
   const target = row();
   const fit = buildVibrationMechanismAssessment(target, 'fit', { resultState: 'CURRENT_RESULT' });
   const mechanical = buildVibrationMechanismAssessment(target, 'mechanicalExcitation');
   const sbc = buildVibrationMechanismAssessment(target, 'smallBoreConnections');
-  const aiv = buildVibrationMechanismAssessment(target, 'aiv');
+  const aiv = buildVibrationMechanismAssessment(target, 'aiv', { aivScreeningSession: null });
   assert.equal(fit.calculated, true);
   assert.equal(fit.assessmentState, 'CALCULATED_SCREENING');
   assert.equal(fit.implementationState, 'IMPLEMENTED_SCREENING');
@@ -138,13 +168,15 @@ test('FIT screening survives generic contracts while Mechanical/SBC without data
   assert.equal(sbc.calculated, false);
   assert.equal(sbc.assessmentState, 'APPLICABILITY_UNKNOWN');
   assert.equal(sbc.implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
-  assert.equal(aiv.assessmentState, 'NOT_IMPLEMENTED');
-  assert.equal(aiv.mechanism.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
+  assert.equal(aiv.assessmentState, 'NOT_EVALUATED');
+  assert.equal(aiv.implementationState, 'IMPLEMENTED_SCREENING');
+  assert.equal(aiv.mechanism.implementationState, 'SCREENING_ASSESSMENT_SCOPE');
+  assert.equal(aiv.governingEligible, false);
   assert.deepEqual(aiv.contractSet.cardinality, { count: 0, kind: 'ZERO' });
 });
 
 test('matrix is INCOMPLETE by default against the full governed mechanism universe', () => {
-  const matrix = buildVibrationMechanismMatrixRow(row(), { resultState: 'CURRENT_RESULT' });
+  const matrix = buildVibrationMechanismMatrixRow(row(), { resultState: 'CURRENT_RESULT', aivScreeningSession: null });
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.ok(matrix.assessmentCompleteness.reasons.includes('IDENTIFICATION_EVIDENCE_MISSING'));
   assert.deepEqual(matrix.mechanismIdentificationBundle.expectedMechanismIds, VIBRATION_MECHANISM_IDS);
@@ -166,7 +198,7 @@ test('caller-defined partial coverage universe is rejected by production orchest
 test('FIT-only explicit identification cannot redefine family completeness universe', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    resultState: 'CURRENT_RESULT',
+    resultState: 'CURRENT_RESULT', aivScreeningSession: null,
     mechanismIdentifications: [identification('fit', 'MAIN_LINE_SECTION', target)],
   });
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
@@ -177,17 +209,44 @@ test('FIT-only explicit identification cannot redefine family completeness unive
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('external qualified AIV evidence can cover AIV without trusting catalogue integration state', () => {
+test('current exact AIV assessment evidence satisfies AIV coverage but cannot govern the line', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'CURRENT_RESULT',
+    aivScreeningResult: aivScreeningResult(target, 0.42),
+    aivResultState: 'CURRENT_RESULT',
+    mechanismIdentifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
+  });
+  const aiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
+  assert.equal(aiv.mechanism.implementationState, 'SCREENING_ASSESSMENT_SCOPE');
+  assert.equal(aiv.mechanism.capability.assessmentIntegrationState, 'INTEGRATED_ASSESSMENT_SCOPE');
+  assert.equal(aiv.assessmentState, 'CALCULATED_SCREENING');
+  assert.equal(aiv.resultScope, 'ASSESSMENT');
+  assert.equal(aiv.calculated, true);
+  assert.equal(aiv.lof, 0.42);
+  assert.equal(aiv.qualificationState, 'SCREENING');
+  assert.equal(aiv.governingEligible, false);
+  assert.equal(aiv.contractSet.items[0].result.governingLof, null);
+  assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
+  assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
+  assert.equal(matrix.screeningGoverning.lof, 0.34);
+  assert.ok(matrix.assessmentCompleteness.missingIdentificationMechanismIds.includes('fit'));
+  assert.equal(matrix.fullScreeningGoverningEstablished, false);
+});
+
+test('external qualified AIV coverage evidence remains supported without creating static AIV line authority', () => {
   const target = row();
   const aivSet = screeningAssessmentSet('aiv', 'source-assessment-pair-1', target);
   const matrix = buildVibrationMechanismMatrixRow(target, {
+    aivScreeningSession: null,
     mechanismIdentifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
     coverageAssessmentSets: [aivSet],
   });
   const staticAiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
-  assert.equal(staticAiv.mechanism.implementationState, 'IMPLEMENTED_NOT_INTEGRATED');
-  assert.equal(staticAiv.mechanism.capability.assessmentIntegrationState, 'NOT_INTEGRATED');
-  assert.equal(staticAiv.assessmentState, 'NOT_IMPLEMENTED');
+  assert.equal(staticAiv.mechanism.implementationState, 'SCREENING_ASSESSMENT_SCOPE');
+  assert.equal(staticAiv.mechanism.capability.assessmentIntegrationState, 'INTEGRATED_ASSESSMENT_SCOPE');
+  assert.equal(staticAiv.assessmentState, 'NOT_EVALUATED');
+  assert.equal(staticAiv.governingEligible, false);
   assert.equal(matrix.assessmentCompleteness.state, 'INCOMPLETE');
   assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
   assert.ok(matrix.assessmentCompleteness.missingIdentificationMechanismIds.includes('fit'));
