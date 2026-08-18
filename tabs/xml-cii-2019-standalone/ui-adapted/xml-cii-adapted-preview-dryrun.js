@@ -6,6 +6,7 @@ import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-mat
 import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js';
 import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.js';
 import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
+import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
@@ -122,7 +123,9 @@ export function buildStrictLineAuthorityCorePreview(
     ? runtime.branchFragments
     : browserBranchFragments;
   const sourceDocument = runtime.sourceDocument || null;
-  const coreResult = build(xmlText, config, stagedJsonText, { sourceDocument }) || {};
+  const preparedLineList = preparePreviewLineListCoreConfig(sourceDocument, config);
+  const coreConfig = preparedLineList?.config || config;
+  const coreResult = build(xmlText, coreConfig, stagedJsonText, { sourceDocument }) || {};
   const branchRows = Array.isArray(coreResult.branchRows)
     ? coreResult.branchRows.map((row) => ({ ...row }))
     : [];
