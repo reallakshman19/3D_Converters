@@ -5,7 +5,7 @@ mission: "C4 explicit revision-keyed dependency custody"
 workstream: XML_CII_STANDALONE_PERFORMANCE
 branch: agent/xml-cii-c4-dependency-revisions-20260818
 stack_base_pr: 603
-report_basis_head: 79c9a21e1375291e660f70edcf84f232b06b2eae
+report_basis_head: cc37039591583a05273e15a09d7f221bd056a815
 criticality: ENGINEERING_CRITICAL
 pr_recovery_state: RECOVERABLE
 takeover_authority: WRITE_ALLOWED
@@ -14,7 +14,7 @@ report_path: agents/PR604_workreport.md
 appendix_a_status: CURRENT_98_OF_100
 worker_admission: NOT_ADMITTED_NO_REAL_TIMING_EVIDENCE
 validation:
-  focused_revision_tests: PASS_8_OF_8_LOCAL_IMPLEMENTATION_COUPLED
+  focused_revision_tests: PASS_10_OF_10_LOCAL_IMPLEMENTATION_COUPLED
   changed_file_reconciliation: PASS_REMOTE_7_EXPECTED_PATHS
   mergeability: PASS_REMOTE_TRUE
   browser_computation_invalidation: NOT_RUN
@@ -26,4 +26,4 @@ protected_authority:
 highest_risk: "Revision ledger over/under-invalidating future C5 computations."
 exact_next_action: "Keep PR604 draft; ground C5 actual computation graph before declaring dependency sets."
 merge_authority: OWNER_ONLY_NOT_GRANTED
-last_updated: 2026-08-18T06:38:00+04:00
+last_updated: 2026-08-18T06:45:00+04:00
