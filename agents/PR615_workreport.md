@@ -12,6 +12,8 @@ BRANCH             agent/vibration-eit-roadmap-20260818
 PR                 #615
 PR_STATE           DRAFT / UNMERGED
 MERGE_AUTHORITY    OWNER_ONLY / NOT_GRANTED
+REPORT_BASIS_HEAD  aa1790592757d6b6bd2fc02faf0d144038e451ad
+REPORT_BASIS_MAIN  eef94949961970171d1366f5b6a9d421b3cc0d9f
 ```
 
 Detailed stage records:
@@ -21,13 +23,17 @@ agents/PR615_stage2_source_identity.md
 agents/PR615_stage3_mechanism_reduction.md
 agents/PR615_stage4_fit_frequency_custody.md
 agents/PR615_stage5_measurement_custody.md
+agents/PR615_stage6_measurement_persistence.md
 ```
 
-## Current governed stack
+## Handover in 60 Seconds
+
+PR615 now owns this governed stack:
 
 ```text
 EnergyInstituteEit.v5 compatibility import
   -> VibrationIntegrityProject.v1 (.vibproj)
+       -> validated VibrationMeasurementEvidencePackage.v1 persistence
   -> EngineeringMethodSource.v1
   -> non-binding VibrationRoadmapProjection.v1
   -> MechanismNumericResult.v1
@@ -37,7 +43,6 @@ EnergyInstituteEit.v5 compatibility import
 FIT facility data
   -> FitFacilityEngineeringBasis.v2
   -> FitFacilityNaturalFrequencyCustody.v1
-  -> FIT request only when supplied fn is custodied
 
 Field evidence
   -> VibrationMeasurementSession.v1
@@ -45,132 +50,54 @@ Field evidence
   -> VibrationMeasurementEvidencePackage.v1
 ```
 
-Authority remains separated:
+Authority is deliberately separated:
 
 ```text
-project / .vibproj       persistence only
-roadmap                   navigation only
-source registry           source identity only
-measurement session       field evidence only
-signal product            derived evidence only
-frequency custody         provenance only
-mechanism reducer         reduction custody only
-EI main-line result       governed screening aggregate only
+.eit import / .vibproj        compatibility + persistence only
+roadmap                       navigation only
+source registry               source identity only
+measurement session/product   evidence only
+frequency custody             provenance only
+mechanism reducer             reduction custody only
+EI main-line aggregate        governed screening aggregate only
 ```
 
-No persistence, UI, source, measurement, or custody layer creates design/code/root-cause authority.
+No persistence/UI/source/measurement/custody layer creates design, code, or root-cause authority.
 
-## Stage 1 — EIT / project / roadmap
+## Stage summaries
 
-Implemented generic multi-module `.eit` compatibility import, deterministic persistence-only `.vibproj`, transactional project loading, non-binding Phase × Scope × Specialty roadmap, and project Open/Save/import controls.
+### Stage 1 — EIT / project / roadmap
 
-Persisted current-result authority remains rejected in V1.
+Generic multi-module `.eit` compatibility import; deterministic `.vibproj`; transactional load; non-binding Phase × Scope × Specialty right roadmap; import/open/save/line selection. Imported values remain historical/review-required. Persisted current-result authority is rejected.
 
-Historical reconstructed gate:
+Historical reconstructed evidence: `25/25 PASS` on the corresponding Stage-1 surface.
 
-```text
-PASS 25/25 on corresponding pre-Stage2 surface
-```
+### Stage 2 — method/source identity
 
-## Stage 2 — typed engineering source identity
+`EngineeringMethodSource.v1`; distinct technical-module/section/flowchart/equation/table/figure/page locators. Ambiguous T2 labels remain reconciliation-required. Thermowell EI-T4 vs current ASME identity remains explicit conflict evidence.
 
-Added `EngineeringMethodSource.v1` with separate technical-module, section, flowchart, equation/table/figure and page locators.
+Focused evidence: `10/10 PASS`.
 
-Repository T2 subsection labels remain `RECONCILIATION_REQUIRED`; thermowell EI T4 vs current ASME PTC identity remains explicit `CONFLICTED` evidence.
-
-Focused gate:
-
-```text
-PASS 10/10
-```
-
-## Stage 3 — mechanism-level reduction
-
-Permanent invariant:
+### Stage 3 — mechanism reduction
 
 ```text
 ASSESSMENT_UNIT_LOF != MECHANISM_LINE_LOF
 one mechanism -> at most one EI main-line contributor
 ```
 
-Reducer policy:
+`ONE -> structural identity`, `ZERO -> INCOMPLETE`, `MANY -> INCOMPLETE` until a mechanism-specific reducer is qualified. No universal child max reducer. `EiMainLineAggregation.v2` consumes mechanism-line results only.
 
-```text
-ONE  -> structural identity only
-ZERO -> INCOMPLETE
-MANY -> INCOMPLETE until a mechanism-specific rule is qualified
-```
+Focused evidence: reducer/result `8/8 PASS`; aggregation harness `4/4 PASS`.
 
-No universal child max reducer exists.
+### Stage 4 — FIT natural-frequency custody
 
-`EiMainLineAggregation.v2` consumes qualified mechanism-line results only.
+Reused landed #582/#584/#586/#588 M5 basis work rather than duplicating it. Added `FitFacilityNaturalFrequencyCustody.v1`. A supplied frequency requires finite positive value, unit, source, source revision, record ID and status. Case-specific incomplete evidence cannot fall back to global. Absence remains valid for standard FIT.
 
-Focused evidence:
+Protected FIT numerical blobs remain unchanged. Focused evidence: `8/8 + 4/4 PASS`.
 
-```text
-result/reducer cases  PASS 8/8
-aggregation harness   PASS 4/4
-```
+### Stage 5 — field measurement evidence custody
 
-## Stage 4 — FIT natural-frequency provenance custody
-
-Re-grounding established that #582/#584/#586/#588 already own the landed M5 wall/span/support/process/scenario/geometry/process-actualization boundaries, so they were not duplicated.
-
-Stage 4 added `FitFacilityNaturalFrequencyCustody.v1`.
-
-A supplied frequency is request eligible only when it has finite positive value, unit, source, source revision, record ID and status. Reviewer is optional. Case-specific evidence has precedence and incomplete case evidence cannot fall back to global evidence.
-
-Absence of natural frequency remains valid for standard FIT.
-
-Protected numerical modules remain unchanged:
-
-```text
-fit/method.js         2965155fe1d4d9081b91d1ff1113d7fb50ddbfd8
-fit/applicability.js  1bb9e1627948af74a00b964ea9048a77adc2c871
-fit/calculate.js      2a92e6efedefffe4ab66ab000f0c3e648c9e5e86
-```
-
-Focused evidence:
-
-```text
-frequency custody             PASS 8/8
-plan-item integration         PASS 4/4
-```
-
-## Stage 5 — field measurement evidence custody
-
-### Re-grounded scope
-
-Open neighboring drafts still own the mechanism workspaces:
-
-```text
-#479 FIT workspace
-#506 AIV workspace/shared Engineering Calculations tab
-#508 SBC facility/workspace
-#571 mechanism coverage/identification
-```
-
-No open PR claimed `MeasurementSession` or the new measurement contract path. Stage 5 is therefore new-file only.
-
-### Source architecture retained
-
-Repository research defines:
-
-```text
-MeasurementSession
-  -> OperatingCaseSnapshot
-  -> InstrumentConfiguration
-  -> Channel
-       -> Sensor
-       -> Location / orientation
-       -> Calibration
-       -> RawTimeSeries
-  -> SignalProduct
-```
-
-and requires immutable raw data plus `processingRecipeId`/version for derived signal products.
-
-### New contracts
+Added:
 
 ```text
 VibrationMeasurementSession.v1
@@ -178,128 +105,107 @@ VibrationSignalProduct.v1
 VibrationMeasurementEvidencePackage.v1
 ```
 
-Permanent invariants:
+Raw acquisition references are immutable/hash-pinned. Derived evidence binds exact session/channel/raw hashes plus processing recipe/version. Package validation rejects dangling references, raw-hash mismatch, duplicate IDs and screening/design/RCA promotion. No signal-processing math exists in this stage.
+
+Exact Stage-5 contract/test blob evidence retained in `agents/PR615_stage5_measurement_custody.md`. Focused exact-byte execution: `10/10 PASS`.
+
+### Stage 6 — measurement evidence persistence
+
+Added `converters/vibration/project/measurement.js` and project persistence validation.
+
+New `.vibproj` behavior:
 
 ```text
-MEASUREMENT_EVIDENCE != SCREENING_RESULT
-MEASUREMENT_EVIDENCE != ROOT_CAUSE_CONCLUSION
-RAW_DATA_REFERENCE = IMMUTABLE + SHA256_PINNED
-DERIVED_PRODUCT -> EXACT SESSION + CHANNELS + RAW_HASH_SET + PROCESSING_RECIPE/VERSION
+validated measurementEvidence package -> save/open preserved
+measurement session lineId -> must exist in project
+legacy non-empty measurements[] -> rejected
+measurement/root-cause authority promotion -> rejected
+old V1 project without measurementEvidence -> still loadable
+source project -> not mutated by attachment
+persisted currentResults -> still rejected
 ```
 
-`VibrationMeasurementSession.v1` requires exact line/case and operating-case snapshot identity/hash, instrument-configuration provenance, unique channels, explicit quantity/unit, sensor identity, physical subject/location, orientation/reference frame, calibration valid at acquisition, positive sample rate/duration, immutable raw artifact hash and non-authorizing evidence authority.
+New EIT-derived projects start with an empty validated measurement package and explicitly record that measurement evidence is not current engineering authority and has no RCA authority.
 
-`VibrationSignalProduct.v1` supports the evidence-type vocabulary:
+Focused controlled reconstruction:
 
 ```text
-OVERALL RMS PEAK PEAK_TO_PEAK FFT PSD ORDER_SPECTRUM
-PHASE COHERENCE ODS MODAL_RESULT
+Stage-6 persistence cases        PASS 7/7
+Stage-1 authority/current guards PASS 2/2
 ```
 
-This is a type registry only. Stage 5 contains no FFT/PSD/filter/integration/order/coherence/ODS/modal mathematics.
-
-Each signal product requires exact session/channel references, exact raw-data hash set, processing recipe ID/version/provenance and hash-pinned output artifact.
-
-`VibrationMeasurementEvidencePackage.v1` enforces session/product uniqueness and referential integrity. A product cannot reference an unknown channel or a raw hash set different from its referenced channels.
-
-### Stage-5 validation
-
-Exact committed blob parity:
+Committed implementation blobs:
 
 ```text
-contracts.js  Git blob 2497300cae02f0df13155e200c9d2358a62e4d86
-local hash               2497300cae02f0df13155e200c9d2358a62e4d86
-
-test.mjs      Git blob d0da28b82fa281ed6a220bb2450b83c8934a69a4
-local hash               d0da28b82fa281ed6a220bb2450b83c8934a69a4
+project/schema.js                    ed123f469ed5b83a138aa37e2bcd236d282ea0ef
+project/measurement.js               df3d70f18eb50026800546b8ec9c87e29d3fded3
+project/from-eit.js                  ef0b4e4fe26a0363d9e96e083250c62db3e3c10c
+Stage-6 focused test                 3fd60902ea42f4d23cfd14da0508ec61371ffae2
 ```
 
-Executed on those exact bytes:
+The Stage-6 execution used a controlled reconstructed dependency surface with the exact Stage-5 measurement-contract blob; repository-native complete-checkout execution remains `NOT_RUN`.
+
+## Coordination
+
+Known neighboring active ownership remains:
 
 ```text
-node --check contracts.js                         PASS
-node --check vibration-measurement-contract.test  PASS
-node --test vibration-measurement-contract.test   PASS 10/10
+#479 FIT workspace
+#506 shared Engineering Calculations tab + AIV runtime
+#508 SBC facility/workspace
+#571 mechanism coverage/identification
+#539/#540 FIT adapter/family/console presentation
 ```
 
-Falsifiers cover missing scenario snapshot hash, invalid calibration, mutable/unhashed raw evidence, missing processing recipe version, unknown channel, raw-hash mismatch, authority promotion and duplicate identities.
+PR615 will not further edit the shared Engineering Calculations tab without reconciliation with #506.
 
-Physical line counts:
+`converters/vibration/project/**` and `converters/vibration/measurement/**` are PR615-owned. Stage 6 touches no mechanism workspace.
 
-```text
-contracts.js  270
-focused test  228
-```
+## Permanent negative assurance
 
-Both satisfy the repository `<300` line guard.
-
-### Stage-5 authority boundary
-
-```text
-engineering calculation authority = NONE
-screening authority               = NOT_AUTHORIZED
-design authority                  = false
-root-cause authority              = false
-signal-processing qualification   = NOT_ESTABLISHED
-```
-
-## Coordination / negative assurance
-
-PR615 still does not authorize:
+PR615 does not authorize:
 
 ```text
 new engineering equations or coefficients
 automatic T1 applicability
 unqualified multi-item reducers
-measurement-to-LOF substitution
+measurement-to-LOF or measurement-to-screening substitution
 signal-processing algorithms
-automatic RCA conclusion
+automatic RCA conclusions
+persisted measurement evidence as current engineering authority
 natural-frequency source-method inference
 DN/schedule geometry inference
 STANDARD/NORMAL process actualization inference
 persisted current-result promotion
-generic multi-module EIT export authority
+generic multi-module .eit export authority
 design/code authority
 Product Freeze
 workflow changes
 ```
 
-The historical Stage-1 shared-tab overlap with #506 remains acknowledged; no further PR615 edit to that shared tab is allowed without reconciliation.
-
 ## Validation truth still NOT_RUN
 
 ```text
-repository-native complete-checkout Stage-5 suite   NOT_RUN
-existing full M5 suite                              NOT_RUN
-repository-native M4/matrix suite                   NOT_RUN
-full Vibration/FIT/AIV/SBC release suites           NOT_RUN
-served browser acceptance                           NOT_RUN
-independent engineering review                      NOT_RUN
+repository-native Stage-6 project/measurement test
+complete project/EIT test suite
+existing full M5 suite
+repository-native M4/matrix suite
+full Vibration/FIT/AIV/SBC release suites
+served browser acceptance
+independent engineering review
 ```
 
-The focused Stage-5 test was executed on exact committed bytes in an isolated reconstructed surface; that is not represented as a complete-checkout release gate.
-
-## Stage-5 pre-recovery reconciliation
-
-```text
-MAIN      eef94949961970171d1366f5b6a9d421b3cc0d9f
-PR HEAD   ca5313a0953b0158c08a4c103fa9caa6727736a5
-RELATION  ahead 54 / behind 8 / diverged
-```
-
-The eight behind commits remain non-overlapping XML->CII Preview/config/browser-timing work. No vibration measurement/project/source/roadmap/FIT-facility/mechanism-result path overlaps that drift.
-
-Do not merge on the unreconciled base. Reconcile current `main` immediately before merge qualification, then rerun repository-native validation and independent engineering review.
+No absent hosted status/workflow is treated as PASS.
 
 ## Current risks / debt
 
+- branch remains behind unrelated main commits and must be reconciled before merge qualification;
 - mechanism-workspace project-context propagation remains blocked by #479/#506/#508;
-- coverage integration remains separately owned by #571;
-- AIV/deadleg MANY reduction remains intentionally unresolved;
-- Stage-5 measurement contracts are not yet persisted in `.vibproj` and have no UI/import adapters;
-- no signal-processing method has been qualified;
+- coverage integration remains owned by #571;
+- AIV/deadleg MANY reduction remains unresolved and must not be guessed;
+- Stage-6 persistence has no measurement import UI or signal-processing runtime;
 - generic multi-module `.eit` export remains deferred.
 
 ## EXACT_NEXT_ACTION
 
-Keep PR615 draft/unmerged. Re-ground current project-schema ownership and, if still unblocked, add a narrow persistence-only bridge so validated `VibrationMeasurementEvidencePackage.v1` can be stored/reloaded in `.vibproj` without creating current engineering, screening, design, or RCA authority. Do not implement signal-processing math or measurement-to-screening promotion in that bridge.
+Keep PR615 draft/unmerged. Re-ground final live main/head/reviews/checks after recovery commits. The next implementation stage must be selected from live unblocked gaps. Do not add signal-processing math, measurement-to-screening promotion, or unqualified multi-item reducers. Before any merge attempt: reconcile current main, run repository-native qualification in a complete checkout, then perform independent engineering review.
