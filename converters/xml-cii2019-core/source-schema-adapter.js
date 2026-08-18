@@ -68,7 +68,7 @@ function normalizeFieldList(value, fallback) {
 }
 
 export function resolveSourceSchema(config = {}) {
-  const supplied = safeObject(config?.sourceSchema);
+  const supplied = safeObject(config.sourceSchema);
   const suppliedFields = safeObject(supplied.fields);
   const fields = {};
   for (const [role, defaults] of Object.entries(DEFAULT_FIELDS)) {
@@ -88,9 +88,8 @@ export function resolveSourceSchema(config = {}) {
 }
 
 function caseInsensitiveValue(source, aliases = []) {
-  const object = safeObject(source);
   const wanted = new Set(aliases.map((value) => text(value).toUpperCase()));
-  for (const [key, value] of Object.entries(object)) {
+  for (const [key, value] of Object.entries(safeObject(source))) {
     if (wanted.has(text(key).toUpperCase()) && text(value)) return value;
   }
   return '';
@@ -102,20 +101,17 @@ function attributeObject(value) {
 }
 
 export function readSourceField(value, role, config = {}) {
-  const schema = resolveSourceSchema(config);
-  const aliases = schema.fields[role] || [];
+  const aliases = resolveSourceSchema(config).fields[role] || [];
   const raw = safeObject(value);
   const attrs = attributeObject(value);
   return caseInsensitiveValue(attrs, aliases) || caseInsensitiveValue(raw, aliases) || '';
 }
 
 export function sourceFieldName(value, role, config = {}) {
-  const schema = resolveSourceSchema(config);
-  const aliases = schema.fields[role] || [];
+  const aliases = resolveSourceSchema(config).fields[role] || [];
   const raw = safeObject(value);
   const attrs = attributeObject(value);
-  const sources = [attrs, raw];
-  for (const source of sources) {
+  for (const source of [attrs, raw]) {
     for (const [key, fieldValue] of Object.entries(source)) {
       if (!text(fieldValue)) continue;
       if (aliases.some((alias) => text(alias).toUpperCase() === text(key).toUpperCase())) return key;
@@ -137,11 +133,8 @@ function supportIdentityRegex(config = {}) {
 }
 
 export function normalizeSupportIdentity(value, config = {}) {
-  const source = text(value).toUpperCase();
-  if (!source) return '';
-  const match = supportIdentityRegex(config).exec(source);
-  if (!match) return '';
-  return `${match[1].toUpperCase()}-${match[2]}`;
+  const match = supportIdentityRegex(config).exec(text(value).toUpperCase());
+  return match ? `${match[1].toUpperCase()}-${match[2]}` : '';
 }
 
 export function supportIdentityVariants(value, config = {}) {
@@ -161,15 +154,22 @@ export function supportIdentityRoot(value, config = {}) {
   return variants.length ? variants[variants.length - 1] : '';
 }
 
-export function sourceSupportIdentities(value, config = {}) {
-  const roles = ['objectName', 'directLink', 'supportGroupRef', 'parentRef', 'previousRef', 'nextRef', 'supportTag'];
+function identitiesFromRoles(value, roles, config = {}) {
   const out = [];
   for (const role of roles) {
-    const raw = readSourceField(value, role, config);
-    for (const variant of supportIdentityVariants(raw, config)) {
+    for (const variant of supportIdentityVariants(readSourceField(value, role, config), config)) {
       if (!out.includes(variant)) out.push(variant);
     }
   }
+  return out;
+}
+
+/**
+ * Identity-bearing evidence only. Topology fields (OWNER/PREV/NEXT) are
+ * deliberately excluded so adjacency cannot masquerade as support identity.
+ */
+export function sourceSupportIdentities(value, config = {}) {
+  const out = identitiesFromRoles(value, ['objectName', 'directLink', 'supportGroupRef', 'supportTag'], config);
   const raw = safeObject(value);
   for (const candidate of [raw.name, raw.component?.name, raw.componentName]) {
     for (const variant of supportIdentityVariants(candidate, config)) {
@@ -179,10 +179,15 @@ export function sourceSupportIdentities(value, config = {}) {
   return out;
 }
 
+/** Topological/adjacency evidence; never used as direct support identity. */
+export function sourceTopologyIdentities(value, config = {}) {
+  return identitiesFromRoles(value, ['parentRef', 'previousRef', 'nextRef'], config);
+}
+
+/** Strong relationship roots used to assemble one support group. */
 export function sourceRelationshipRoots(value, config = {}) {
-  const strongRoles = ['supportGroupRef', 'directLink', 'objectName'];
   const out = [];
-  for (const role of strongRoles) {
+  for (const role of ['supportGroupRef', 'directLink', 'objectName']) {
     const root = supportIdentityRoot(readSourceField(value, role, config), config);
     if (root && !out.includes(root)) out.push(root);
   }
@@ -219,9 +224,7 @@ export function ownerBranchVariants(value) {
 export function parseSourcePoint(point) {
   if (point === undefined || point === null || point === '') return null;
   if (Array.isArray(point) && point.length >= 3) {
-    const x = Number(point[0]);
-    const y = Number(point[1]);
-    const z = Number(point[2]);
+    const [x, y, z] = point.slice(0, 3).map(Number);
     return [x, y, z].every(Number.isFinite) ? { x, y, z } : null;
   }
   if (typeof point === 'object') {
@@ -251,7 +254,7 @@ export function parseSourcePoint(point) {
 }
 
 export function resolveCoordinateAlignment(config = {}) {
-  const explicit = safeObject(config?.coordinateAlignment);
+  const explicit = safeObject(config.coordinateAlignment);
   if (Object.keys(explicit).length) {
     const mode = text(explicit.mode || 'NONE').toUpperCase();
     const rawOffset = safeObject(explicit.manualOffsetMm || explicit.offsetMm || explicit.offset);
@@ -270,7 +273,7 @@ export function resolveCoordinateAlignment(config = {}) {
     };
   }
 
-  const legacy = safeObject(config?.dtxrPositionOffset);
+  const legacy = safeObject(config.dtxrPositionOffset);
   return {
     explicit: false,
     mode: legacy.enabled === true ? 'MANUAL' : 'NONE',
@@ -289,7 +292,7 @@ export function resolveCoordinateAlignment(config = {}) {
 export function shouldAutoCalibrateCoordinates(config = {}) {
   const alignment = resolveCoordinateAlignment(config);
   if (alignment.explicit) return alignment.mode === 'AUTO';
-  const legacy = safeObject(config?.dtxrPositionOffset);
+  const legacy = safeObject(config.dtxrPositionOffset);
   return legacy.enabled !== false && legacy.autoCalibrate !== false;
 }
 
@@ -323,7 +326,13 @@ export function readSourcePosition(value, config = {}) {
     };
   }
   const fallback = parseSourcePoint(raw.position || raw.point || '');
-  return fallback ? { field: 'position', rawValue: raw.position || raw.point, rawPoint: fallback, point: fallback, alignment: resolveCoordinateAlignment(config) } : null;
+  return fallback ? {
+    field: 'position',
+    rawValue: raw.position || raw.point,
+    rawPoint: fallback,
+    point: fallback,
+    alignment: resolveCoordinateAlignment(config),
+  } : null;
 }
 
 export function canonicalizeStagedAttributes(attrs = {}, config = {}, rawObject = {}) {
@@ -371,6 +380,7 @@ export function walkStagedSource(stagedJson, config = {}) {
       position: readSourcePosition({ ...value, attributes: rawAttrs }, config),
     };
     record.supportIdentities = sourceSupportIdentities({ ...value, attributes: attrs, component: value }, config);
+    record.topologyIdentities = sourceTopologyIdentities({ ...value, attributes: attrs, component: value }, config);
     record.relationshipRoots = sourceRelationshipRoots({ ...value, attributes: attrs, component: value }, config);
     out.push(record);
     if (hasChildren) value.children.forEach((child, index) => walk(child, branch, `${path}.children[${index}]`));
