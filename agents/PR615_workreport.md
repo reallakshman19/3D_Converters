@@ -351,9 +351,34 @@ independent engineering review                        NOT_RUN
 
 No missing hosted status/workflow is treated as PASS.
 
+## Final Stage-4 live reconciliation
+
+At the Stage-4 pre-reconciliation head:
+
+```text
+PR HEAD  da5e25f8bdb3516104bbdcd67245a86ac3bbff44
+MAIN     eef94949961970171d1366f5b6a9d421b3cc0d9f
+RELATION ahead 47 / behind 8 / diverged
+REVIEWS  0
+THREADS  0
+STATUSES 0 returned -> NOT PASS
+WORKFLOWS 0 PR-triggered runs returned -> NOT PASS
+```
+
+The eight behind commits are non-overlapping with the vibration stack. They consist of XML->CII Preview/config work plus browser-timing harness/evidence files. No FIT facility, vibration source, project, roadmap, mechanism result/reducer, or EI aggregation file overlaps that drift.
+
+Classification:
+
+```text
+NON_OVERLAPPING_BASE_DRIFT
+NO_REBASE_AT_HANDOVER
+```
+
+Do not merge on this unreconciled base. Rebase/reconcile the eight commits immediately before an eventual merge qualification, then rerun repository-native validation in a complete checkout.
+
 ## Current risks / debt
 
-- branch base drift must be re-grounded before merge;
+- branch is behind eight non-overlapping `main` commits and requires merge-time reconciliation;
 - AIV/deadleg multi-item reducer semantics remain unresolved and must not be guessed;
 - mechanism workspaces still do not consume project context because of active claims;
 - generic multi-module `.eit` export remains deferred pending AIV round-trip ownership reconciliation;
@@ -361,4 +386,4 @@ No missing hosted status/workflow is treated as PASS.
 
 ## EXACT_NEXT_ACTION
 
-Re-ground live `main`, PR head/base relation, changed paths, reviews/threads/status/workflows; synchronize `agents/status/PR615.yaml`, `agents/claims/PR615.yaml`, and PR description. Keep PR615 draft/unmerged. The next implementation stack must be selected from current live gaps/claims rather than extending Stage 4 by inference.
+Keep PR615 draft/unmerged. Re-ground current live gaps and active claims before another implementation slice. Do not invent a multi-item reducer or a natural-frequency source-method classification. Before any merge attempt: reconcile current `main`, run the repository-native Stage-4/M5 and M4/vibration qualification suites in a complete checkout, then perform independent engineering review.
