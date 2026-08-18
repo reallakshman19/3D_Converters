@@ -4,6 +4,7 @@ import {
 } from '../contracts.js';
 import { composeEngineeringQualification } from '../qualification.js';
 import {
+  FIT_METHOD_SOURCE_BASIS,
   FIT_MULTIPHASE_RESOLUTION_MODES,
   FIT_REFERENCE_AUTHORITY,
   FIT_WORKBOOK_SOURCE,
@@ -162,7 +163,11 @@ function calculate(input, runtime = {}) {
       errors: result.errors.map(engineeringError),
       qualification: currentQualification,
       applicability: { applicable: false, limitations: result.applicability?.limitations ?? [] },
-      provenance: { sourceWorkbook: FIT_WORKBOOK_SOURCE },
+      provenance: {
+        methodSource: FIT_METHOD_SOURCE_BASIS.source,
+        methodSourceBasis: FIT_METHOD_SOURCE_BASIS,
+        sourceWorkbook: FIT_WORKBOOK_SOURCE,
+      },
     };
   }
   if (mode === 'screening' && result.screeningCandidate?.screeningAuthorized !== true) {
@@ -185,6 +190,8 @@ function calculate(input, runtime = {}) {
     provenance: {
       domainApi: 'calculateFit',
       engineeringAuthority: mode === 'screening' ? 'SCREENING' : FIT_REFERENCE_AUTHORITY,
+      methodSource: FIT_METHOD_SOURCE_BASIS.source,
+      methodSourceBasis: FIT_METHOD_SOURCE_BASIS,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       inputResolution: result.evidence.inputResolution,
       qualificationCoverageId: result.qualificationCoverage.coverageId,
@@ -197,6 +204,7 @@ function calculate(input, runtime = {}) {
       inputResolution: result.evidence.inputResolution,
       qualificationCoverage: result.qualificationCoverage,
       screeningCandidate: result.screeningCandidate,
+      methodSource: FIT_METHOD_SOURCE_BASIS.source,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
