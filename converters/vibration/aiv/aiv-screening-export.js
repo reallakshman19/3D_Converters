@@ -40,10 +40,13 @@ export function buildAivScreeningExportPackage({
   flareNetwork = null,
   generatedInputSet = null,
   eitImportEvidence = null,
+  inventoryCompletenessAttestations = [],
+  engineeringInputRevision = null,
 } = {}) {
   if (result?.schema !== 'AivCalculatorResult.v1' || result.qualificationMode !== 'screening') {
     throw new TypeError('AIV screening export requires an AivCalculatorResult.v1 screening result.');
   }
+  const inventoryVerified = result.lineCaseAssessmentInventoryCompleteness === 'VERIFIED_COMPLETE';
   return deepFreeze({
     schema: AIV_SCREENING_EXPORT_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
@@ -62,6 +65,13 @@ export function buildAivScreeningExportPackage({
       assumptionCount: assumptionResolution?.assumptionCount ?? 0,
     },
     flareNetworkEvidence: networkEvidence(flareNetwork, generatedInputSet),
+    inventoryCompletenessEvidence: {
+      engineeringInputRevision: Number.isSafeInteger(Number(engineeringInputRevision)) ? Number(engineeringInputRevision) : null,
+      attestations: Array.isArray(inventoryCompletenessAttestations) ? inventoryCompletenessAttestations : [],
+      resultState: result.lineCaseAssessmentInventoryCompleteness ?? 'UNVERIFIED',
+      screeningAuthorityPromotionApplied: false,
+      designAuthority: false,
+    },
     eitImportEvidence: eitImportEvidence ?? null,
     releaseEvidence: releaseReceipt ? {
       schema: releaseReceipt.schema ?? null,
@@ -80,9 +90,12 @@ export function buildAivScreeningExportPackage({
       lineCaseSummaryAuthoritativeForScreening: result.lineCaseSummaryAuthoritativeForScreening === true,
       lineCaseScreeningAuthorityBlocker: result.lineCaseSummaryAuthoritativeForScreening === true
         ? null
-        : 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
+        : inventoryVerified
+          ? 'AIV_LINE_CASE_SCREENING_AUTHORITY_NOT_PROMOTED'
+          : 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
       importedEitResultsAuthoritativeForCurrentScreening: false,
       humanEvidenceRequired: false,
+      inventoryCompletenessHumanEvidenceRequired: true,
     },
     screeningAuthority: result.authority.screeningAuthority,
     designAuthority: false,
