@@ -1,7 +1,7 @@
 import { createEngineeringMethodSource } from './method-source-record.js';
 
 export const VIBRATION_SOURCE_REGISTRY_SCHEMA = 'VibrationEngineeringSourceRegistry.v1';
-export const VIBRATION_SOURCE_REGISTRY_REVISION = 'VIB-SOURCE-ID-2026-08-18';
+export const VIBRATION_SOURCE_REGISTRY_REVISION = 'VIB-SOURCE-ID-2026-08-18-MECHANICAL-T23';
 
 const EI_PUBLICATION = Object.freeze({
   publisher: 'Energy Institute',
@@ -36,9 +36,10 @@ const SOURCES = [
     notes: ['Section label retained from current repository; exact controlled flowchart identity is unresolved.'],
   }),
   eiSource('EI_AVIFF_2008:T2:MECHANICAL', {
-    mechanismId: 'mechanicalExcitation', technicalModule: 'T2', sectionId: 'T2.3',
-    status: 'RECONCILIATION_REQUIRED', locatorBasis: 'REPOSITORY_LABEL',
-    notes: ['Section label retained from current repository; exact controlled flowchart identity is unresolved.'],
+    mechanismId: 'mechanicalExcitation', technicalModule: 'T2', sectionId: 'T2.3', tableId: 'T2-3',
+    printedPage: 54, pdfPage: 62,
+    status: 'CONTROLLED', locatorBasis: 'CONTROLLED_SOURCE',
+    notes: ['Direct machinery baseline screening is bounded to Table T2-3. Shared-support transfer and post-dynamic-analysis reduction remain separately unqualified.'],
   }),
   eiSource('EI_AVIFF_2008:T2:RECIP_PD', {
     mechanismId: 'reciprocatingPulsation', technicalModule: 'T2', sectionId: 'T2.4',
@@ -90,7 +91,7 @@ function binding(input) {
 
 const MECHANISM_BINDINGS = Object.freeze({
   fit: binding({ bindingId: 'mechanism:fit', status: 'RECONCILIATION_REQUIRED', sourceIds: ['EI_AVIFF_2008:T2:FIT'] }),
-  mechanicalExcitation: binding({ bindingId: 'mechanism:mechanicalExcitation', status: 'RECONCILIATION_REQUIRED', sourceIds: ['EI_AVIFF_2008:T2:MECHANICAL'] }),
+  mechanicalExcitation: binding({ bindingId: 'mechanism:mechanicalExcitation', status: 'RESOLVED', sourceIds: ['EI_AVIFF_2008:T2:MECHANICAL'] }),
   reciprocatingPulsation: binding({ bindingId: 'mechanism:reciprocatingPulsation', status: 'RECONCILIATION_REQUIRED', sourceIds: ['EI_AVIFF_2008:T2:RECIP_PD'] }),
   rotatingStall: binding({ bindingId: 'mechanism:rotatingStall', status: 'RECONCILIATION_REQUIRED', sourceIds: ['EI_AVIFF_2008:T2:ROTATING_STALL'] }),
   deadlegPulsation: binding({ bindingId: 'mechanism:deadlegPulsation', status: 'RECONCILIATION_REQUIRED', sourceIds: ['EI_AVIFF_2008:T2:DEADLEG'] }),
@@ -123,7 +124,7 @@ const NODE_BINDINGS = Object.freeze({
 });
 
 function sourceLabel(record) {
-  const typed = [record.sectionId, record.flowchartId].filter(Boolean).join(' · ');
+  const typed = [record.sectionId, record.flowchartId, record.tableId].filter(Boolean).join(' · ');
   return typed || record.technicalModule || record.caption || record.sourceId;
 }
 

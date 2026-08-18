@@ -130,7 +130,7 @@ function mechanicalAssessment(row, mechanism, context) {
   });
   const assessment = contractAssessment(mechanism, contractSet);
   if (assessment.assessmentState !== 'CALCULATED') return assessment;
-  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
+  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_SCREENING' });
 }
 
 function sbcAssessment(row, mechanism, context) {

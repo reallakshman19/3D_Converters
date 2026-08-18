@@ -1,15 +1,8 @@
-import { evaluateEiAviffMechanicalBaselineCandidate } from '../masters/ei-aviff-appendix-b-evaluator.js';
 import {
-  EI_MECHANICAL_EXCITATION_ROWS,
-  EI_SHARED_SUPPORT_TRANSFER_RULE,
-} from '../masters/ei-aviff-appendix-b-data.js';
-
-const AUTHORITY = Object.freeze({
-  engineeringAuthority: 'NONE',
-  screeningAuthority: 'NOT_AUTHORIZED',
-  designAuthority: false,
-  masterDataAuthority: false,
-});
+  MECHANICAL_T23_DIRECT_BASELINE_ROWS,
+  MECHANICAL_T23_SHARED_SUPPORT_RULE,
+  evaluateMechanicalT23DirectBaseline,
+} from './t23-method.js';
 
 const LABELS = Object.freeze({
   RECIP_PD_COMPRESSOR_OR_PUMP: 'Reciprocating / PD compressor or pump',
@@ -60,20 +53,22 @@ export function mechanicalFacilityScope(row = {}) {
 }
 
 export const MECHANICAL_T23_SOURCE_OPTIONS = deepFreeze([
-  ...EI_MECHANICAL_EXCITATION_ROWS.map((row) => ({
+  ...MECHANICAL_T23_DIRECT_BASELINE_ROWS.map((row) => ({
     sourceKey: row.sourceKey,
     label: LABELS[row.sourceKey] ?? row.sourceKey,
     baselineLof: row.baselineLof,
     qualificationGate: row.qualificationGate,
     directBaselineAvailable: true,
+    screeningAuthorized: true,
   })),
   {
-    sourceKey: EI_SHARED_SUPPORT_TRANSFER_RULE.sourceKey,
-    label: LABELS[EI_SHARED_SUPPORT_TRANSFER_RULE.sourceKey],
+    sourceKey: MECHANICAL_T23_SHARED_SUPPORT_RULE.sourceKey,
+    label: LABELS[MECHANICAL_T23_SHARED_SUPPORT_RULE.sourceKey],
     baselineLof: null,
-    qualificationGate: EI_SHARED_SUPPORT_TRANSFER_RULE.qualificationGate,
+    qualificationGate: 'ADJACENT_LINE_LOF_REQUIRED',
     directBaselineAvailable: false,
-    reason: 'Requires explicit adjacent-line LOF; not a fixed T2.3 baseline.',
+    screeningAuthorized: false,
+    reason: 'Requires explicit adjacent-line LOF; not part of qualified direct T2.3 baseline screening.',
   },
 ]);
 
@@ -83,44 +78,43 @@ function normalizeSourceKeys(sourceKeys) {
     value, 'MECHANICAL_T23_SOURCE_KEY_INVALID',
   )))];
   if (!keys.length) throw new TypeError('MECHANICAL_T23_SOURCE_SELECTION_REQUIRED');
-  const known = new Set(MECHANICAL_T23_SOURCE_OPTIONS.map((item) => item.sourceKey));
-  const unknown = keys.find((key) => !known.has(key));
-  if (unknown) throw new Error(`MECHANICAL_T23_SOURCE_UNKNOWN:${unknown}`);
-  if (keys.includes(EI_SHARED_SUPPORT_TRANSFER_RULE.sourceKey)) {
-    throw new Error('MECHANICAL_T23_SHARED_SUPPORT_REQUIRES_ADJACENT_LOF');
-  }
   return keys;
 }
 
 export async function evaluateMechanicalFacilityCandidate(row, sourceKeys) {
   const scope = mechanicalFacilityScope(row);
-  const normalizedSourceKeys = normalizeSourceKeys(sourceKeys);
-  const evaluated = await evaluateEiAviffMechanicalBaselineCandidate(normalizedSourceKeys);
+  const evaluated = evaluateMechanicalT23DirectBaseline(normalizeSourceKeys(sourceKeys));
   return deepFreeze({
-    schema: 'MechanicalFacilityCandidate.v1',
-    status: 'CALCULATED_MASTER_CANDIDATE',
+    schema: 'MechanicalFacilityScreeningResult.v1',
+    status: 'CALCULATED_SCREENING',
     scope,
-    sourceKeys: normalizedSourceKeys,
+    sourceKeys: evaluated.sourceKeys,
     governingLof: evaluated.governingLof,
     governingSourceKey: evaluated.governingSourceKey,
     rows: evaluated.rows,
     provenance: evaluated.provenance,
-    usagePolicy: evaluated.usagePolicy,
-    authority: AUTHORITY,
+    methodId: evaluated.methodId,
+    methodRevision: evaluated.methodRevision,
+    authority: evaluated.authority,
   });
 }
 
 export function inspectMechanicalFacilityCandidate(row, candidate = null) {
   const scope = mechanicalFacilityScope(row);
   if (!candidate) return deepFreeze({ ok: false, status: 'NOT_EVALUATED', scope, candidate: null });
-  if (candidate.schema !== 'MechanicalFacilityCandidate.v1') {
-    return deepFreeze({ ok: false, status: 'INVALID_CANDIDATE_SCHEMA', scope, candidate: null });
+  if (candidate.schema !== 'MechanicalFacilityScreeningResult.v1') {
+    return deepFreeze({ ok: false, status: 'INVALID_SCREENING_RESULT_SCHEMA', scope, candidate: null });
   }
   if (candidate.scope?.scopeId !== scope.scopeId) {
     return deepFreeze({ ok: false, status: 'FACILITY_SCOPE_MISMATCH', scope, candidate: null });
   }
   if (!Number.isFinite(Number(candidate.governingLof))) {
-    return deepFreeze({ ok: false, status: 'INVALID_CANDIDATE_LOF', scope, candidate: null });
+    return deepFreeze({ ok: false, status: 'INVALID_SCREENING_LOF', scope, candidate: null });
   }
-  return deepFreeze({ ok: true, status: 'CURRENT_CANDIDATE', scope, candidate });
+  if (candidate.authority?.screeningAuthority !== 'AUTHORIZED'
+      || candidate.authority?.authorityScope !== 'DIRECT_TABLE_T2_3_BASELINE_ONLY'
+      || candidate.authority?.designAuthority !== false) {
+    return deepFreeze({ ok: false, status: 'SCREENING_AUTHORITY_INVALID', scope, candidate: null });
+  }
+  return deepFreeze({ ok: true, status: 'CURRENT_SCREENING', scope, candidate });
 }
