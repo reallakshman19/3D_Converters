@@ -1,17 +1,21 @@
 import * as core from './dtxr-resolver-core.js';
+import { sourceAuthorityPolicy, sourceSchemaEnabled } from './source-schema-adapter.js';
 
 export * from './dtxr-resolver-core.js';
 
-function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidence, stagedType = '') {
+function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidence, stagedType = '', config = {}) {
   if (!evidence?.effectiveDtxr) return null;
+  const enabled = sourceSchemaEnabled(config);
   return {
     canonicalText: evidence.effectiveDtxr,
     value: evidence.effectiveDtxr,
     ...evidence,
-    teeDesc: evidence.teeDesc || '',
-    cmpSupGap: evidence.cmpSupGap || '',
-    cmpSupGaps: Array.isArray(evidence.cmpSupGaps) ? evidence.cmpSupGaps : (evidence.cmpSupGap ? [evidence.cmpSupGap] : []),
-    supportTags: core.xmlNodeSupportTags(xmlNode),
+    teeDesc: enabled ? (evidence.teeDesc || '') : '',
+    cmpSupGap: enabled ? (evidence.cmpSupGap || '') : '',
+    cmpSupGaps: enabled
+      ? (Array.isArray(evidence.cmpSupGaps) ? evidence.cmpSupGaps : (evidence.cmpSupGap ? [evidence.cmpSupGap] : []))
+      : [],
+    supportTags: core.xmlNodeSupportTags(xmlNode, config),
     source,
     matchedBy,
     matchedKey,
@@ -19,19 +23,19 @@ function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidenc
     componentRefNo: core.getXmlNodeProperty(xmlNode, 'ComponentRefNo'),
     confidence,
     suppressed: false,
-    suppressionReason: '',
-    candidates: evidence.candidates || [],
+    suppressionReason: evidence.suppressionReason || '',
+    candidates: enabled ? (evidence.candidates || []) : [],
   };
 }
 
-function explicitXmlEvidence(xmlNode) {
+function explicitXmlEvidence(xmlNode, config = {}) {
   const evidence = core.selectEffectiveDtxrEvidence(
     core.getXmlNodeProperty(xmlNode, 'DTXR_POS') || core.getXmlNodeProperty(xmlNode, 'DtxrPos'),
     core.getXmlNodeProperty(xmlNode, 'DTXR_PS') || core.getXmlNodeProperty(xmlNode, 'DtxrPs'),
   );
   const source = evidence.effectiveSource === 'DTXR_POS' ? 'xml-dtxr-pos' : 'xml-dtxr-ps-fallback';
   const nodeNumber = core.getXmlNodeProperty(xmlNode, 'NodeNumber');
-  return resultShape(xmlNode, evidence, source, source, `NodeNumber:${nodeNumber}`, 0.75);
+  return resultShape(xmlNode, evidence, source, source, `NodeNumber:${nodeNumber}`, 0.75, '', config);
 }
 
 function parsePoint(value) {
@@ -39,9 +43,11 @@ function parsePoint(value) {
   return values.length >= 3 ? { x: values[0], y: values[1], z: values[2] } : null;
 }
 
-function itemPoint(item) {
+function itemPoint(item, config = {}) {
   if (item?.coord && [item.coord.x, item.coord.y, item.coord.z].every(Number.isFinite)) return item.coord;
-  if (item?.point && [item.point.x, item.point.y, item.point.z].every(Number.isFinite)) return item.point;
+  if (sourceSchemaEnabled(config)) {
+    return item?.point && [item.point.x, item.point.y, item.point.z].every(Number.isFinite) ? item.point : null;
+  }
   const attrs = item?.attrs || {};
   for (const key of ['SUPPORTCOORD', 'POS', 'POSI', 'BPOS', 'APOS', 'LPOS', 'CPOS', 'HPOS', 'TPOS']) {
     const point = parsePoint(attrs[key]);
@@ -51,30 +57,38 @@ function itemPoint(item) {
 }
 
 function branchlessCoordinateEvidence(args) {
+  const enabled = sourceSchemaEnabled(args.config || {});
+  if (enabled) {
+    const policy = sourceAuthorityPolicy(args.config || {});
+    if (policy.coordinateAuthority !== 'FALLBACK' || policy.coordinateOnlyFallback !== true) return null;
+  }
+
   const target = parsePoint(core.getXmlNodeProperty(args.xmlNode, 'Position'));
   const stagedIndex = args.context?.stagedIndex || args.context;
   if (!target || !Array.isArray(stagedIndex?.items)) return null;
-  const tolerance = Number(args.config?.coordinateAlignment?.matchToleranceMm
-    ?? args.config?.dtxrCoordinateToleranceMm
-    ?? args.config?.coordinateToleranceMm
-    ?? args.config?.coordinateTolerance
-    ?? 6);
+  const tolerance = Number(enabled
+    ? args.config?.coordinateAlignment?.matchToleranceMm
+    : (args.config?.dtxrCoordinateToleranceMm ?? args.config?.coordinateToleranceMm ?? args.config?.coordinateTolerance ?? 6));
   const limit = Number.isFinite(tolerance) && tolerance >= 0 ? tolerance : 6;
   const matches = stagedIndex.items
-    .map((item) => ({ item, point: itemPoint(item) }))
+    .map((item) => ({ item, point: itemPoint(item, args.config || {}) }))
     .filter((entry) => entry.point && core.euclideanDistance(target, entry.point) <= limit)
     .sort((left, right) => core.euclideanDistance(target, left.point) - core.euclideanDistance(target, right.point));
   if (!matches.length) return null;
 
   const dtxrPos = [...new Set(matches.map(({ item }) => String(item?.dtxr || item?.attrs?.DTXR_POS || '').trim()).filter(Boolean))].join('+');
   const dtxrPs = matches.map(({ item }) => String(item?.dtxrPs || item?.attrs?.DTXR_PS || '').trim()).find(Boolean) || '';
-  const gaps = [...new Set(matches.map(({ item }) => String(item?.cmpSupGap || item?.attrs?.CMPSUPGAP || '').trim()).filter(Boolean))];
-  const evidence = {
-    ...core.selectEffectiveDtxrEvidence(dtxrPos, dtxrPs),
-    cmpSupGap: gaps[0] || '',
-    cmpSupGaps: gaps,
-    candidates: matches.map(({ item }) => item),
-  };
+  let evidence = core.selectEffectiveDtxrEvidence(dtxrPos, dtxrPs);
+  if (enabled) {
+    const gaps = [...new Set(matches.map(({ item }) => String(item?.cmpSupGap || '').trim()).filter(Boolean))];
+    evidence = {
+      ...evidence,
+      cmpSupGap: gaps.length === 1 ? gaps[0] : '',
+      cmpSupGaps: gaps,
+      suppressionReason: gaps.length > 1 ? 'member-specific-gap-set' : '',
+      candidates: matches.map(({ item }) => item),
+    };
+  }
   const nearest = matches[0];
   const distance = core.euclideanDistance(target, nearest.point);
   return resultShape(
@@ -85,30 +99,26 @@ function branchlessCoordinateEvidence(args) {
     `${distance.toFixed(3)} mm`,
     0.65,
     String(nearest.item?.type || ''),
+    args.config || {},
   );
 }
 
 /**
- * Public DTXR resolver boundary.
- *
- * Support/restraint precedence is:
- * explicit XML DTXR_POS → relationship-aware core resolver → branchless
- * staged coordinate evidence → explicit XML DTXR_PS fallback.
+ * Public DTXR resolver boundary. Legacy precedence is preserved unless an
+ * explicit sourceSchema profile is enabled. Under that profile, branchless
+ * coordinate evidence is disabled unless the profile explicitly authorizes
+ * coordinate fallback.
  */
 export function resolveDtxrForXmlNode(args = {}) {
   const purpose = args?.purpose || 'component-description';
   const trustExisting = args?.trustExistingXmlDtxr !== false;
-  if (purpose !== 'support-restraint' || !trustExisting) {
-    return core.resolveDtxrForXmlNode(args);
-  }
+  if (purpose !== 'support-restraint' || !trustExisting) return core.resolveDtxrForXmlNode(args);
 
-  const explicit = explicitXmlEvidence(args.xmlNode);
+  const explicit = explicitXmlEvidence(args.xmlNode, args.config || {});
   if (explicit?.dtxrPos) return explicit;
 
   const resolved = core.resolveDtxrForXmlNode(args);
-  if (resolved && (resolved.canonicalText || resolved.effectiveDtxr || resolved.dtxrPos || resolved.dtxrPs)) {
-    return resolved;
-  }
+  if (resolved && (resolved.canonicalText || resolved.effectiveDtxr || resolved.dtxrPos || resolved.dtxrPs)) return resolved;
 
   const coordinate = branchlessCoordinateEvidence(args);
   if (coordinate) return coordinate;
