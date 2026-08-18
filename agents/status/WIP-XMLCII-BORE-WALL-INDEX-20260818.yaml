@@ -1,0 +1,25 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-BORE-WALL-INDEX-20260818
+mission: Index Preview Bore/Wall staged evidence and exact Piping Class walls once per Preview without authority change.
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-bore-wall-index-20260818
+pr_head: bca7fc9390c018753d09161052b0bf2fd54e33ce
+main_head_last_checked: bca7fc9390c018753d09161052b0bf2fd54e33ce
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-XMLCII-BORE-WALL-INDEX-20260818_workreport.md
+report_head: bca7fc9390c018753d09161052b0bf2fd54e33ce
+appendix_a_status: NOT_REQUIRED_NEW_WORK_ITEM
+grounding_epoch: GE-001
+current_stage: BASELINE
+blocker: NONE
+highest_risk: Preserve staged evidence order, canonical branch grouping, first exact class row, correction precedence, and DTXR/class authority.
+dependencies:
+  - INDEPENDENT_OF_PR616_PREVIEW_SEARCH
+  - NO_HARD_DEPENDENCY
+exact_next_action: Back up both existing Bore/Wall modules, add equivalence regression, then wire once-per-Preview indexes.
+last_updated: 2026-08-18T18:11:00+04:00
