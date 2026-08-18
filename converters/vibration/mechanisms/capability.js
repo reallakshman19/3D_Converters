@@ -11,7 +11,7 @@ const MATRIX_INTEGRATION = Object.freeze({
   }),
   mechanicalExcitation: Object.freeze({
     assessmentIntegrationState: 'INTEGRATED',
-    integrityImplementationState: 'CANDIDATE_MASTER',
+    integrityImplementationState: 'SCREENING',
   }),
   aiv: Object.freeze({
     assessmentIntegrationState: 'INTEGRATED_ASSESSMENT_SCOPE',
