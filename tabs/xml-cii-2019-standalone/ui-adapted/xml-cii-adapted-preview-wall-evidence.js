@@ -149,27 +149,47 @@ function walkStaged(value, branchName, out) {
   }
 }
 
-export function collectStagedBranchWallEvidence(stagedJsonText, branchName) {
+function stagedEvidence(entry) {
+  const { value, attrs, type } = entry;
+  if (type === 'BRANCH') return null;
+  const dtxr = attr(attrs, ['DTXR_POS', 'DTXR', 'DESC', 'DESCRIPTION'])
+    || value.name;
+  return componentEvidence(
+    type, attr(attrs, ['REF', 'NAME']), stagedBoreMm(attrs),
+    dtxr, 'staged-json',
+  );
+}
+
+export function buildStagedBranchWallEvidenceIndex(stagedJsonText) {
   let parsed;
   try {
     parsed = typeof stagedJsonText === 'string'
       ? JSON.parse(stagedJsonText) : stagedJsonText;
   } catch {
-    return [];
+    return new Map();
   }
   const items = [];
   walkStaged(parsed, '', items);
+  const index = new Map();
+  for (const entry of items) {
+    const root = canonicalBranch(entry.branchName);
+    const evidence = root ? stagedEvidence(entry) : null;
+    if (!evidence) continue;
+    if (!index.has(root)) index.set(root, []);
+    index.get(root).push(evidence);
+  }
+  return index;
+}
+
+export function stagedBranchWallEvidenceFromIndex(index, branchName) {
   const root = canonicalBranch(branchName);
-  return items.flatMap(({ value, attrs, type, branchName: owner }) => {
-    if (!root || canonicalBranch(owner) !== root || type === 'BRANCH') return [];
-    const dtxr = attr(attrs, ['DTXR_POS', 'DTXR', 'DESC', 'DESCRIPTION'])
-      || value.name;
-    const item = componentEvidence(
-      type, attr(attrs, ['REF', 'NAME']), stagedBoreMm(attrs),
-      dtxr, 'staged-json',
-    );
-    return item ? [item] : [];
-  });
+  return root && index instanceof Map ? (index.get(root) || []) : [];
+}
+
+export function collectStagedBranchWallEvidence(stagedJsonText, branchName) {
+  return stagedBranchWallEvidenceFromIndex(
+    buildStagedBranchWallEvidenceIndex(stagedJsonText), branchName,
+  );
 }
 
 function readRow(row, keys) {
@@ -188,27 +208,50 @@ function rowBoreMm(row, config) {
   return Number.isFinite(mapped) && mapped > 0 ? mapped : null;
 }
 
-export function findExactClassWall(config, pipingClass, boreMm) {
-  const correction = CLASS_WALL_CORRECTIONS[`${norm(pipingClass)}|${Number(boreMm)}`];
-  if (correction) return correction;
-  const rows = Array.isArray(config?.pipingClass?.masterRows)
-    ? config.pipingClass.masterRows : [];
-  const match = rows.find((row) => (
-    norm(readRow(row, ['Piping Class', 'pipingClass', 'PIPING_CLASS']))
-      === norm(pipingClass)
-    && rowBoreMm(row, config) === Number(boreMm)
-  ));
+function classWallKey(pipingClass, boreMm) {
+  const pipingClassKey = norm(pipingClass);
+  const bore = Number(boreMm);
+  return pipingClassKey && Number.isFinite(bore)
+    ? `${pipingClassKey}|${bore}` : '';
+}
+
+function classWallFromRow(row) {
   const wall = Number(readRow(
-    match,
-    ['Wall thickness', 'Wall Thickness', 'wallThickness', 'THK', 'Thickness'],
+    row, ['Wall thickness', 'Wall Thickness', 'wallThickness', 'THK', 'Thickness'],
   ));
-  if (!match || !Number.isFinite(wall) || wall <= 0) return null;
+  if (!Number.isFinite(wall) || wall <= 0) return null;
   return {
     wallThicknessMm: wall,
-    schedule: text(readRow(match, ['SCH', 'Schedule', 'schedule'])),
+    schedule: text(readRow(row, ['SCH', 'Schedule', 'schedule'])),
     source: 'piping-class-master',
-    matchedRow: match,
+    matchedRow: row,
   };
+}
+
+export function buildExactClassWallIndex(config = {}) {
+  const index = new Map(Object.entries(CLASS_WALL_CORRECTIONS));
+  const rows = Array.isArray(config?.pipingClass?.masterRows)
+    ? config.pipingClass.masterRows : [];
+  for (const row of rows) {
+    const key = classWallKey(
+      readRow(row, ['Piping Class', 'pipingClass', 'PIPING_CLASS']),
+      rowBoreMm(row, config),
+    );
+    if (!key || index.has(key)) continue;
+    index.set(key, classWallFromRow(row));
+  }
+  return index;
+}
+
+export function exactClassWallFromIndex(index, pipingClass, boreMm) {
+  const key = classWallKey(pipingClass, boreMm);
+  return key && index instanceof Map ? (index.get(key) || null) : null;
+}
+
+export function findExactClassWall(config, pipingClass, boreMm) {
+  return exactClassWallFromIndex(
+    buildExactClassWallIndex(config), pipingClass, boreMm,
+  );
 }
 
 export function resolveBranchWallEvidence(
