@@ -1,0 +1,30 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-PARENT-BRANCH-ONLY-20260818
+mission: Add opt-in branch-only parent Preview execution and remove discarded node-row work from Run parity.
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-parent-branch-only-20260818
+main_head_last_checked: 765d15e87def22291792ddb533df9ea532fb3f67
+merge_base: 765d15e87def22291792ddb533df9ea532fb3f67
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818_workreport.md
+appendix_a_status: STALE_MERGED_PREDECESSOR_RECONCILED
+current_stage: BASELINE
+blocker: NONE
+predecessor:
+  pr: 630
+  live_state: MERGED
+  merge_commit: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
+  metadata_state: STALE_ACTIVE_TO_BE_SUPERSEDED
+validation:
+  source_trace: PASS
+  mandatory_backups: NOT_RUN
+  focused_branch_equivalence: NOT_RUN
+  node_work_suppression: NOT_RUN
+  repository_native_browser: NOT_RUN_ENVIRONMENT_BLOCKED
+merge_authority: OWNER_AUTO_MODE_GRANTED
+exact_next_action: Back up all three existing production targets, implement opt-in branchRowsOnly mode and helper migration, then run focused equivalence and suppression tests.
+last_updated: 2026-08-18T20:09:00+04:00
