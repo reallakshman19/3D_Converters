@@ -6,6 +6,7 @@ import {
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { createAivAssumptionAcceptanceController } from './vibration-aiv-assumption-acceptance-controller.js';
+import { createAivInventoryCompletenessController } from './vibration-aiv-inventory-completeness-controller.js';
 import {
   addAivInputRow,
   addAivRelationshipInputRow,
@@ -56,6 +57,7 @@ export function renderAivQualificationWorkspace(container) {
   });
   const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
   const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
+  const inventoryCompletenessController = createAivInventoryCompletenessController({ state, render, container });
   const masterDbController = createAivMasterDbController({
     state,
     render,
@@ -230,6 +232,7 @@ export function renderAivQualificationWorkspace(container) {
       return;
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
+    if (inventoryCompletenessController.handleAction(action, event.target)) return;
     if (assumptionAcceptanceController.handleAction(action)) return;
     if (action === 'detach-generated-tables') detachGeneratedTables();
     if (action === 'apply-master-data') masterDbController.apply();

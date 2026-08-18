@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { serializeAivInputTable } from '../tabs/vibration-aiv-input-model.js';
@@ -41,6 +42,7 @@ export function runAivD23ProductPathValidation() {
   const recycle = result.sourceResults.find((item) => item.sourceCanonicalId === 'AIV-D23-RECYCLE-SOURCE');
   const assessment = result.assessmentResults.find((item) => item.assessmentCanonicalId === 'AIV-D23-WELDOLET-01');
   const line = result.lineCaseSummaries.find((item) => item.line === 'D2.3 Relief line');
+  const workedExampleLineReference = Number(AIV_DEFAULT_ASSUMPTION_PROFILE.benchmark.workedExampleReliefLineLof);
   const t26 = assessment.t26Intermediates;
   const point = assessment.sourceContributionsAtPoint[0];
   const checks = [
@@ -62,10 +64,13 @@ export function runAivD23ProductPathValidation() {
     numericCheck('16', 'N after FLM2', 1.95e9, t26.NAfterFLM2, 5e6, 'ASSESSMENT'),
     numericCheck('17', 'Loss factor Lf', 0.31, t26.Lf, 0.01, 'ASSESSMENT'),
     numericCheck('18', 'First-discontinuity LOF', 0.29, assessment.lof, 0.01, 'ASSESSMENT'),
-    exactCheck('19', 'Line result kept separate from first-discontinuity result', true, line.valuesAreNotInterchangeable, 'LINE_CASE_SUMMARY'),
-    numericCheck('20', 'Configured worked-example relief-line LOF', 1.48, line.lof, 1e-9, 'LINE_CASE_SUMMARY'),
-    exactCheck('21', 'All 10 stages executed', 10, result.implementedStageCount, 'METHOD'),
-    exactCheck('22', 'No universal operating classification emitted', false, result.universalClassificationProduced, 'METHOD'),
+    exactCheck('19', 'Line result scope remains separate from assessment result scope', true, line.valuesAreNotInterchangeable, 'LINE_CASE_SUMMARY'),
+    numericCheck('20', 'Derived line candidate from available discontinuity inventory', 0.29, line.lof, 1e-12, 'LINE_CASE_SUMMARY'),
+    exactCheck('21', 'Line reduction uses EI T2.7 greatest-discontinuity rule', AIV_LINE_AGGREGATION_RULE_ID, line.aggregationBasis, 'LINE_CASE_SUMMARY'),
+    exactCheck('22', 'Derived line candidate remains non-authoritative for screening', false, line.authoritativeForScreening, 'LINE_CASE_SUMMARY'),
+    numericCheck('23', 'Frozen full worked-example relief-line reference remains 1.48', 1.48, workedExampleLineReference, 1e-12, 'BENCHMARK_REFERENCE'),
+    exactCheck('24', 'All 10 stages executed', 10, result.implementedStageCount, 'METHOD'),
+    exactCheck('25', 'No universal operating classification emitted', false, result.universalClassificationProduced, 'METHOD'),
   ];
   const failed = checks.filter((item) => item.status === 'FAIL');
   return deepFreeze({
@@ -80,7 +85,8 @@ export function runAivD23ProductPathValidation() {
       && result.lineCaseSummaries.every((item) => item.schema === 'AivLineCaseSummary.v1'),
     sourceAssessmentLineScopesValidated: assessment.resultScope === 'ASSESSMENT'
       && line.resultScope === 'LINE_CASE_SUMMARY'
-      && assessment.lof !== line.lof,
+      && line.aggregationBasis === AIV_LINE_AGGREGATION_RULE_ID
+      && line.authoritativeForScreening === false,
     counts: { checks: checks.length, passed: checks.length - failed.length, failed: failed.length },
     checks,
     resultSnapshot: {
@@ -91,19 +97,26 @@ export function runAivD23ProductPathValidation() {
       firstDiscontinuityPointPwlDb: assessment.combinedPointPwlDb,
       t26,
       firstDiscontinuityLof: assessment.lof,
-      reliefLineLof: line.lof,
+      reliefLineCandidateLof: line.lof,
+      reliefLineCandidateAuthority: line.authoritativeForScreening,
+      assessmentInventoryCompleteness: line.assessmentInventoryCompleteness,
+    },
+    benchmarkReferences: {
+      workedExampleReliefLineLof: workedExampleLineReference,
+      role: 'BENCHMARK_ORACLE_ONLY',
     },
     assumptions: {
       profileSchema: AIV_DEFAULT_ASSUMPTION_PROFILE.schema,
       configuredStage8Intermediates: ['A', 'S', 'B'],
-      configuredLineScopeResult: 'benchmark.workedExampleReliefLineLof',
-      lineLofDerivedFromFirstDiscontinuity: false,
+      lineLofDerivedFromAssessmentResults: true,
+      workedExampleLineLofRuntimeInput: false,
       humanEvidenceRequired: false,
     },
     authorityTransitionApplied: false,
-    calculationState: 'BLOCKED',
-    qualificationState: 'BLOCKED',
+    calculationState: 'IMPLEMENTED',
+    qualificationState: 'QUALIFIED_REDUCTION_RULE',
     screeningAuthority: 'NOT_AUTHORIZED',
+    screeningAuthorityBlocker: 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
     designAuthority: false,
   });
 }

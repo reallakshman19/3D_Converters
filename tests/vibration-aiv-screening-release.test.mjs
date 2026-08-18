@@ -11,6 +11,7 @@ import {
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { calculateAivBatch } from '../converters/vibration/aiv/aiv-batch.js';
 import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import { buildAivReadiness } from '../converters/vibration/aiv/aiv-readiness.js';
 import { buildAivScreeningExportPackage } from '../converters/vibration/aiv/aiv-screening-export.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
@@ -90,7 +91,7 @@ test('AIV is registered as assessment-level SCREENING and removed from pending d
   assert.equal(PENDING_ENGINEERING_CALCULATION_DEFINITIONS.some((item) => item.id === 'VIB.AIV.ACOUSTIC'), false);
 });
 
-test('central screening kernel reproduces D.2.3 assessment result while line summary stays non-authoritative', () => {
+test('central screening kernel reproduces D.2.3 assessment result while line candidate stays non-authoritative', () => {
   const input = parsedD23();
   const result = calculateAiv({
     sources: input.sources,
@@ -105,8 +106,12 @@ test('central screening kernel reproduces D.2.3 assessment result while line sum
   assert.equal(result.authority.screeningAuthority, 'AUTHORIZED');
   assert.equal(result.authority.designAuthority, false);
   assert.equal(result.assessmentResults[0].lof, 0.29);
-  assert.equal(result.lineCaseSummaries[0].lof, 1.48);
+  assert.equal(result.lineCaseSummaries[0].lof, 0.29);
+  assert.equal(result.lineCaseSummaries[0].aggregationBasis, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(result.lineCaseSummaries[0].aggregationRuleQualification, 'QUALIFIED_FOR_DERIVATION');
+  assert.equal(result.lineCaseSummaries[0].assessmentInventoryCompleteness, 'UNVERIFIED');
   assert.equal(result.lineCaseSummaries[0].authoritativeForScreening, false);
+  assert.equal(result.lineCaseSummaries[0].authority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(result.lineCaseSummaryAuthoritativeForScreening, false);
   assert.equal(result.universalClassificationProduced, false);
 });
@@ -157,7 +162,7 @@ test('blank project rows resolve visible assumptions and explicit values overrid
   assert.notEqual(overridden.sourceResults[0].rawSourcePwlDb, assumed.sourceResults[0].rawSourcePwlDb);
 });
 
-test('screening export carries inputs assumptions trace and never design authority', () => {
+test('screening export carries inputs assumptions trace and never line/design authority', () => {
   const input = parsedD23();
   const result = calculateAiv({ sources: input.sources, assessments: input.assessments, relationships: input.relationships, exchange: input.topology, assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE, qualificationMode: 'screening' });
   const payload = buildAivScreeningExportPackage({
@@ -171,7 +176,11 @@ test('screening export carries inputs assumptions trace and never design authori
   assert.equal(payload.schema, 'AivScreeningExportPackage.v1');
   assert.equal(payload.resultScope, 'ASSESSMENT_SCREENING');
   assert.equal(payload.provenance.completeKernelStageCount, 10);
+  assert.equal(payload.provenance.lineCaseAggregationRuleId, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(payload.provenance.lineCaseAggregationRuleQualification, 'QUALIFIED_FOR_DERIVATION');
+  assert.equal(payload.provenance.lineCaseAssessmentInventoryCompleteness, 'UNVERIFIED');
   assert.equal(payload.provenance.lineCaseSummaryAuthoritativeForScreening, false);
+  assert.equal(payload.provenance.lineCaseScreeningAuthorityBlocker, 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN');
   assert.equal(payload.screeningAuthority, 'AUTHORIZED');
   assert.equal(payload.designAuthority, false);
 });
@@ -205,5 +214,7 @@ test('workspace routes screening through isolated Engineering Calculation API br
   assert.doesNotMatch(`${controller}\n${execution}`, /Math\.log10|Math\.tanh|470711\.5155|126\.1/u);
   assert.match(readinessView, /data-aiv-action="run-screening"/u);
   assert.match(resultView, /Assessment Screening Results/u);
+  assert.match(resultView, /Derived line candidate LOF/u);
   assert.match(resultView, /NON-AUTHORITATIVE/u);
+  assert.doesNotMatch(resultView, /Configured line LOF/u);
 });

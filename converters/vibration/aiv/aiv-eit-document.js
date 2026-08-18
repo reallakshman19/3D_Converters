@@ -48,8 +48,12 @@ function lineRecord(assessmentResult, index, refs) {
     modules: 'aiv', aiv: String(lof), pwl: pwls.length ? String(Math.max(...pwls)) : '',
     aiv_data: JSON.stringify(details), maxLof: String(lof), aivAuthorityScope: 'ASSESSMENT',
     aivAssessmentCanonicalId: assessmentResult.assessmentCanonicalId,
-    aivConfiguredLineCaseTraceLof: trace?.lof ?? importedLine?.aivConfiguredLineCaseTraceLof ?? null,
-    aivConfiguredLineCaseTraceAuthoritative: false,
+    aivLineCaseCandidateLof: trace?.lof ?? null,
+    aivLineCaseCandidateAggregationBasis: trace?.aggregationBasis ?? null,
+    aivLineCaseCandidateInventoryCompleteness: trace?.assessmentInventoryCompleteness ?? null,
+    aivLineCaseCandidateAuthoritative: trace?.authoritativeForScreening === true,
+    aivLegacyConfiguredLineCaseTraceLof: importedLine?.aivConfiguredLineCaseTraceLof ?? null,
+    aivLegacyConfiguredLineCaseTraceAuthoritative: false,
   };
 }
 

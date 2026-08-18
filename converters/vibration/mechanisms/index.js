@@ -42,6 +42,12 @@ export {
 } from './identification-producer.js';
 
 export {
+  AIV_VIBRATION_MECHANISM_ID,
+  AIV_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
+  buildAivVibrationMechanismAssessmentSet,
+} from './aiv.js';
+
+export {
   FIT_VIBRATION_MECHANISM_ID,
   FIT_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
   buildFitMechanismBenchmarkComparison,

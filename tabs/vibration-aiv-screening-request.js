@@ -79,7 +79,45 @@ function assertJoinIntegrity(sources, assessments, relationships) {
   }
 }
 
-export function buildAivEngineeringScreeningRequest({ readinessEnvelope, assumptionProfile } = {}) {
+function inventoryEvidence(value, engineeringInputRevision) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw screeningRequestError(
+      'AIV_SCREENING_REQUEST_INVENTORY_EVIDENCE_INVALID',
+      'AIV welded-discontinuity inventory completeness evidence must be an array.',
+    );
+  }
+  if (value.length && (!Number.isSafeInteger(Number(engineeringInputRevision)) || Number(engineeringInputRevision) < 0)) {
+    throw screeningRequestError(
+      'AIV_SCREENING_REQUEST_ENGINEERING_REVISION_REQUIRED',
+      'Inventory completeness evidence requires the exact current engineering input revision.',
+    );
+  }
+  for (const [index, item] of value.entries()) {
+    if (item?.schema !== 'AivWeldedDiscontinuityInventoryAttestation.v1') {
+      throw screeningRequestError(
+        'AIV_SCREENING_REQUEST_INVENTORY_EVIDENCE_INVALID',
+        `Inventory completeness evidence ${index + 1} has an invalid schema.`,
+        { index },
+      );
+    }
+    if (Number(item.engineeringInputRevision) !== Number(engineeringInputRevision)) {
+      throw screeningRequestError(
+        'AIV_SCREENING_REQUEST_INVENTORY_EVIDENCE_STALE',
+        `Inventory completeness evidence ${index + 1} does not match the current engineering input revision.`,
+        { index, evidenceRevision: item.engineeringInputRevision, engineeringInputRevision },
+      );
+    }
+  }
+  return value;
+}
+
+export function buildAivEngineeringScreeningRequest({
+  readinessEnvelope,
+  assumptionProfile,
+  inventoryCompletenessAttestations = [],
+  engineeringInputRevision = null,
+} = {}) {
   assertReadiness(readinessEnvelope);
   const sources = assertRecords(readinessEnvelope.sources, 'Sources', ['sourceCanonicalId', 'caseId']);
   const assessments = assertRecords(readinessEnvelope.assessments, 'Assessments', ['assessmentCanonicalId']);
@@ -93,6 +131,7 @@ export function buildAivEngineeringScreeningRequest({ readinessEnvelope, assumpt
     );
   }
   assertJoinIntegrity(sources, assessments, relationships);
+  const attestations = inventoryEvidence(inventoryCompletenessAttestations, engineeringInputRevision);
   return Object.freeze({
     calculationId: 'VIB.AIV.ACOUSTIC',
     inputs: Object.freeze({
@@ -101,6 +140,8 @@ export function buildAivEngineeringScreeningRequest({ readinessEnvelope, assumpt
       relationships,
       topology: readinessEnvelope.exchange,
       assumptionProfile,
+      inventoryCompletenessAttestations: attestations,
+      engineeringInputRevision: Number.isSafeInteger(Number(engineeringInputRevision)) ? Number(engineeringInputRevision) : null,
     }),
     options: Object.freeze({ qualificationMode: 'screening', includeEvidence: true }),
   });

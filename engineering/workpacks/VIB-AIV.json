@@ -26,13 +26,40 @@
     "path": "converters/vibration/aiv/aiv-assumption-profile.js",
     "exportName": "AIV_DEFAULT_ASSUMPTION_PROFILE"
   },
-  "methodRevision": "ei-aviff2-aiv-auto-screening-v1",
+  "lineAggregation": {
+    "path": "converters/vibration/aiv/aiv-line-aggregation.js",
+    "exportName": "AIV_LINE_AGGREGATION_RULE",
+    "ruleId": "EI_AVIFF_T2_7_GREATEST_DISCONTINUITY_LOCATION_LOF",
+    "methodRevision": "ei-aviff2-aiv-line-reduction-v1",
+    "reductionRuleQualification": "QUALIFIED_FOR_DERIVATION",
+    "assessmentInventoryCompleteness": "EVIDENCE_DEPENDENT",
+    "screeningAuthority": "NOT_AUTHORIZED"
+  },
+  "inventoryCompleteness": {
+    "path": "converters/vibration/aiv/aiv-inventory-completeness.js",
+    "attestationSchema": "AivWeldedDiscontinuityInventoryAttestation.v1",
+    "verificationSchema": "AivWeldedDiscontinuityInventoryVerification.v1",
+    "requiredExtent": "ALL_RELEVANT_WELDED_DISCONTINUITIES_DOWNSTREAM_TO_FIRST_MAJOR_VESSEL",
+    "terminalBoundaryRole": "FIRST_MAJOR_VESSEL",
+    "topologySchema": "AivFlareNetworkTopologyExchange.v1",
+    "terminalBoundaryType": "BOUNDARY",
+    "engineeringInputRevisionRequired": true,
+    "humanAttestationRequired": true,
+    "uniqueDirectedSourceToBoundaryPathRequired": true,
+    "offPageWithinExtentAllowed": false,
+    "exactAssessmentSetRequired": true,
+    "screeningAuthorityPromotionApplied": false,
+    "designAuthority": false
+  },
+  "methodRevision": "ei-aviff2-aiv-auto-screening-v3",
   "authority": {
     "calculationState": "IMPLEMENTED",
     "qualificationState": "SCREENING",
     "engineeringAuthority": "SCREENING",
     "screeningAuthority": "AUTHORIZED",
     "screeningResultScope": "ASSESSMENT",
+    "lineCaseAggregationRuleQualification": "QUALIFIED_FOR_DERIVATION",
+    "lineCaseAssessmentInventoryCompleteness": "EVIDENCE_DEPENDENT",
     "lineCaseSummaryAuthoritativeForScreening": false,
     "designAuthority": false,
     "codeCompliance": false,
@@ -40,7 +67,7 @@
   },
   "boundedMethod": {
     "stage8Model": "CONFIGURED_D23_INTERMEDIATES",
-    "scopeRule": "SCREENING authority is bounded to the currently qualified implementation and does not imply unrestricted AIV applicability.",
+    "scopeRule": "SCREENING authority is bounded to the currently qualified assessment implementation. Stage-9 reduction is qualified for derivation; exact-revision human attestation plus machine topology checks may establish inventory completeness evidence, but this method revision does not promote line/case screening authority.",
     "dependencies": [
       { "path": "benchmark.publishedA", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "retained T2-6 configured evidence" },
       { "path": "benchmark.publishedS", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "retained T2-6 configured evidence" },
@@ -50,7 +77,7 @@
       { "path": "benchmark.flm2", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; production FLM2 is calculated from combined point PWL" },
       { "path": "benchmark.lossFactor", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; production Lf is calculated" },
       { "path": "benchmark.d23FirstDiscontinuityLof", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "comparison expected value only" },
-      { "path": "benchmark.workedExampleReliefLineLof", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "configured LINE_CASE_SUMMARY reference; non-authoritative" }
+      { "path": "benchmark.workedExampleReliefLineLof", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "frozen D.2.3 full-line benchmark reference; not a runtime line-result input" }
     ]
   },
   "assumptionCustody": {
@@ -81,7 +108,7 @@
     "aiv": {
       "path": "engineering/workpacks/probes/vib-aiv.mjs",
       "exports": [
-        "verifyAuthorityState", "verifyScreeningScope", "verifyLineCaseSummaryBoundary", "verifyDesignAuthority",
+        "verifyAuthorityState", "verifyScreeningScope", "verifyLineCaseSummaryBoundary", "verifyLineAggregationQualification", "verifyInventoryCompletenessEvidenceBoundary", "verifyDesignAuthority",
         "verifyAssumptionProvenance", "verifyAssumptionAuthorityBoundary", "verifyBoundedMethodCustody",
         "verifyIndependentBenchmarks", "verifyBenchmarkIndependence", "verifyProductFreezeOwnership", "verifyOverlapClassification"
       ]
@@ -99,8 +126,8 @@
   }],
   "resultScopeProjectionRules": [{
     "path": "tabs/vibration-aiv-result-view.js",
-    "requiredStrings": ["Assessment Screening Results", "NON-AUTHORITATIVE"],
-    "forbiddenStrings": []
+    "requiredStrings": ["Assessment Screening Results", "NON-AUTHORITATIVE", "Derived line candidate LOF"],
+    "forbiddenStrings": ["Configured line LOF"]
   }],
   "canvasAuthorityRules": [{
     "path": "tests/vibration-aiv-unified-canvas-cutover.test.mjs",
@@ -145,9 +172,11 @@
     { "id": "AIV-WP-017", "type": "SOURCE_RULES", "severity": "ERROR", "config": { "rulesRef": "resultScopeProjectionRules" } },
     { "id": "AIV-WP-018", "type": "SOURCE_RULES", "severity": "ERROR", "config": { "rulesRef": "canvasAuthorityRules" } },
     { "id": "AIV-WP-019", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyProductFreezeOwnership" } },
-    { "id": "AIV-WP-020", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyOverlapClassification" } }
+    { "id": "AIV-WP-020", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyOverlapClassification" } },
+    { "id": "AIV-WP-021", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyLineAggregationQualification" } },
+    { "id": "AIV-WP-022", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyInventoryCompletenessEvidenceBoundary" } }
   ],
   "requiredQualificationCommands": ["npm run workpack:verify -- VIB-AIV", "node --test tests/vibration-aiv-workpack-drift.test.mjs", "npm run workpack:verify -- VIB-FIT", "node --test tests/engineering-workpack-framework.test.mjs", "npm run verify:aiv-screening-release", "npm run verify:aiv-canvas-release"],
-  "protectedInvariants": ["screeningAuthority=AUTHORIZED only for ASSESSMENT result scope", "line/case summary remains non-authoritative", "designAuthority=false", "codeCompliance=false", "assumption presence does not create screening authority", "configured D.2.3 dependencies do not imply unrestricted AIV authority", "independent benchmark expected values are not generated by production", "SVG/pixel geometry never creates engineering physical distance", "full vibration integrity is not established by AIV alone", "Product Freeze cannot be inferred from method qualification"],
-  "forbiddenPaths": ["converters/vibration/aiv numerical equations", "AIV equation coefficients or empirical constants", "AIV benchmark expected values or tolerances", "AIV assumption numerical defaults or policy", "AIV screening applicability expansion", "AIV readiness/PF-02 execution behavior", "AIV canvas runtime ownership or physical-distance semantics", ".github/workflows/*"]
+  "protectedInvariants": ["screeningAuthority=AUTHORIZED only for ASSESSMENT result scope", "line/case reduction rule may be qualified for derivation while line/case screening authority remains false", "inventory completeness is evidence-dependent and requires exact-revision human attestation plus machine topology verification", "verified inventory completeness does not itself promote line/case screening authority", "benchmark.workedExampleReliefLineLof is oracle-only and not a runtime line-result input", "designAuthority=false", "codeCompliance=false", "assumption presence does not create screening authority", "configured D.2.3 dependencies do not imply unrestricted AIV authority", "independent benchmark expected values are not generated by production", "SVG/pixel geometry never creates engineering physical distance", "full vibration integrity is not established by AIV alone", "Product Freeze cannot be inferred from method qualification"],
+  "forbiddenPaths": ["converters/vibration/aiv T2-6 numerical equations", "AIV equation coefficients or empirical constants", "AIV benchmark expected values or tolerances", "AIV assumption numerical defaults or policy", "AIV screening applicability expansion", "AIV readiness/PF-02 execution behavior", "AIV canvas runtime ownership or physical-distance semantics", ".github/workflows/*"]
 }

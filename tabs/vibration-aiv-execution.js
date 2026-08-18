@@ -13,6 +13,10 @@ import {
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 import { buildAivEngineeringScreeningRequest } from './vibration-aiv-screening-request.js';
+import {
+  clearCurrentAivScreeningSession,
+  publishCurrentAivScreeningSession,
+} from './vibration-aiv-screening-session.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureAssumableRows(state) {
@@ -42,6 +46,8 @@ function screeningPackageInput(state) {
     flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
     generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
     eitImportEvidence: state.eitImport?.evidence ?? null,
+    inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
+    engineeringInputRevision: state.inputRevision,
   };
 }
 
@@ -58,6 +64,7 @@ function commitReadiness(state, readinessEnvelope, assumptionResolution) {
 export function createAivExecutionActions({ state, render, downloadText }) {
   function clearReadiness() {
     cancelAivAsyncOperations(state);
+    clearCurrentAivScreeningSession();
     state.readinessState = null;
     state.screeningState = null;
     state.readinessEnvelope = null;
@@ -74,6 +81,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.busy = true;
     state.error = null;
     state.screeningResult = null;
+    clearCurrentAivScreeningSession();
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
@@ -99,11 +107,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       if (!isAivAsyncOperationCurrent(state, 'readiness', operation)) return;
       clearReadiness();
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    } finally {
-      finishAivAsyncOperation(state, 'readiness', operation);
-      state.busy = false;
-      render();
-    }
+    } finally { finishAivAsyncOperation(state, 'readiness', operation); state.busy = false; render(); }
   }
 
   async function runScreening() {
@@ -116,6 +120,8 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       const request = buildAivEngineeringScreeningRequest({
         readinessEnvelope: state.readinessEnvelope,
         assumptionProfile: state.assumptionProfile,
+        inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
+        engineeringInputRevision: state.inputRevision,
       });
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
@@ -127,10 +133,12 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       }
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       state.screeningResult = result;
+      publishCurrentAivScreeningSession(result, { inputRevision: state.inputRevision });
       finishAivAsyncOperation(state, 'screening', operation, true);
     } catch (error) {
       if (isAivAsyncOperationCurrent(state, 'screening', operation)) {
         state.screeningResult = null;
+        clearCurrentAivScreeningSession();
         state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       }
     } finally {

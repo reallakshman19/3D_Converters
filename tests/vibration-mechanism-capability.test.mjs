@@ -13,7 +13,7 @@ test('capability projection covers the governed mechanism universe in registry o
   assert.ok(capabilities.every((item) => item.schema === VIBRATION_MECHANISM_CAPABILITY_SCHEMA));
 });
 
-test('AIV calculator availability is distinct from Vibration Integrity matrix integration', () => {
+test('AIV is integrated at assessment scope while line governing remains runtime-controlled', () => {
   const capability = resolveVibrationMechanismCapability('aiv');
   assert.equal(capability.eitModuleCode, 'aiv');
   assert.equal(capability.calculationId, 'VIB.AIV.ACOUSTIC');
@@ -21,8 +21,8 @@ test('AIV calculator availability is distinct from Vibration Integrity matrix in
   assert.equal(capability.calculationAvailable, true);
   assert.equal(capability.calculationState, 'IMPLEMENTED');
   assert.equal(capability.qualificationState, 'SCREENING');
-  assert.equal(capability.assessmentIntegrationState, 'NOT_INTEGRATED');
-  assert.equal(capability.integrityImplementationState, 'IMPLEMENTED_NOT_INTEGRATED');
+  assert.equal(capability.assessmentIntegrationState, 'INTEGRATED_ASSESSMENT_SCOPE');
+  assert.equal(capability.integrityImplementationState, 'SCREENING_ASSESSMENT_SCOPE');
   assert.equal(capability.governingEligibilitySource, 'RUNTIME_ASSESSMENT_ONLY');
 });
 
@@ -36,7 +36,7 @@ test('FIT remains integrated while calculator qualification is projected from th
   assert.equal(capability.governingEligibilitySource, 'RUNTIME_ASSESSMENT_ONLY');
 });
 
-test('integrated Mechanical screening and SBC candidate do not invent central calculation availability', () => {
+test('Mechanical screening and SBC candidate remain integrated without inventing central calculation availability', () => {
   const mechanical = resolveVibrationMechanismCapability('mechanicalExcitation');
   const sbc = resolveVibrationMechanismCapability('smallBoreConnections');
   assert.equal(mechanical.calculationId, null);
@@ -59,8 +59,5 @@ test('known mechanisms with no available calculation or integration fail closed'
 });
 
 test('unknown mechanism identifiers are rejected instead of projected optimistically', () => {
-  assert.throws(
-    () => resolveVibrationMechanismCapability('not-a-mechanism'),
-    /UNKNOWN_VIBRATION_MECHANISM:not-a-mechanism/u,
-  );
+  assert.throws(() => resolveVibrationMechanismCapability('not-a-mechanism'), /UNKNOWN_VIBRATION_MECHANISM:not-a-mechanism/u);
 });

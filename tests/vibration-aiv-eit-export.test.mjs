@@ -4,6 +4,7 @@ import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-
 import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import { buildAivEitExport, serializeAivEitExport } from '../converters/vibration/aiv/aiv-eit-export.js';
 import { parseAivEitImport } from '../converters/vibration/aiv/aiv-eit-import.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import {
   aivEitLengthMm,
   aivEitMolecularWeightGPerMol,
@@ -62,7 +63,15 @@ function fixture() {
         { sourceCanonicalId: 'RV-102', pointPwlDb: 141.86623261319917 },
       ], lof: 0.29,
     }],
-    lineCaseSummaries: [{ caseId: 'RELIEF-COMBINED', assessmentCanonicalIds: ['AIV-ASSESS-HDR-001'], lof: 1.48, authoritativeForScreening: false }],
+    lineCaseSummaries: [{
+      caseId: 'RELIEF-COMBINED',
+      assessmentCanonicalIds: ['AIV-ASSESS-HDR-001'],
+      lof: 0.29,
+      controllingAssessmentCanonicalId: 'AIV-ASSESS-HDR-001',
+      aggregationBasis: AIV_LINE_AGGREGATION_RULE_ID,
+      assessmentInventoryCompleteness: 'UNVERIFIED',
+      authoritativeForScreening: false,
+    }],
   };
   return {
     schema: 'AivScreeningExportPackage.v1', result,
@@ -94,7 +103,7 @@ function mockScreeningPackage() {
   };
 }
 
-test('exports v5 .eit with assessment LOF authoritative and line trace non-authoritative', () => {
+test('exports v5 .eit with assessment LOF authoritative and derived line candidate explicitly non-authoritative', () => {
   const built = buildAivEitExport({ screeningPackage: fixture(), title: 'Small Flare' });
   assert.equal(built.schema, 'EnergyInstituteEit.v5');
   assert.equal(built.document.options.version, 5);
@@ -102,8 +111,12 @@ test('exports v5 .eit with assessment LOF authoritative and line trace non-autho
   const line = built.document.lines[0];
   assert.equal(line.aiv, '0.29');
   assert.equal(line.maxLof, '0.29');
-  assert.equal(line.aivConfiguredLineCaseTraceLof, 1.48);
-  assert.equal(line.aivConfiguredLineCaseTraceAuthoritative, false);
+  assert.equal(line.aivLineCaseCandidateLof, 0.29);
+  assert.equal(line.aivLineCaseCandidateAggregationBasis, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(line.aivLineCaseCandidateInventoryCompleteness, 'UNVERIFIED');
+  assert.equal(line.aivLineCaseCandidateAuthoritative, false);
+  assert.equal(line.aivLegacyConfiguredLineCaseTraceLof, null);
+  assert.equal(line.aivLegacyConfiguredLineCaseTraceAuthoritative, false);
   assert.equal(line.pwl, '160');
   assert.equal(line.aiv_data.includes('1.48'), false);
 });
@@ -155,6 +168,8 @@ test('controlled mock flare serializes through the production EIT writer with pa
   assert.equal(document.lines.length, 1);
   assert.equal(document.lines[0].aiv, '0.29');
   assert.equal(document.lines[0].maxLof, '0.29');
+  assert.equal(document.lines[0].aivLineCaseCandidateLof, 0.29);
+  assert.equal(document.lines[0].aivLineCaseCandidateAuthoritative, false);
   const data = JSON.parse(document.lines[0].aiv_data);
   assert.deepEqual(data.map((item) => item.sourceCanonicalId), ['RV-101', 'RV-102']);
   assert.deepEqual(data.map((item) => item.distance), [38, 41]);
