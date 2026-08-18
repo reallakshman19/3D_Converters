@@ -3,9 +3,14 @@ import test from 'node:test';
 
 import {
   normalizeSupportIdentity,
+  readSourceField,
   readSourcePosition,
+  sourceAuthorityPolicy,
+  sourceRelationshipEvidence,
+  sourceSchemaEnabled,
   sourceSupportIdentities,
   sourceTopologyIdentities,
+  validateSourceSchemaConfig,
 } from '../converters/xml-cii2019-core/source-schema-adapter.js';
 import {
   buildStagedSupportIndex,
@@ -14,12 +19,16 @@ import {
 import {
   buildStagedDtxrIndex,
   buildStagedDtxrPositionIndex,
+  xmlCiiCalibrateDtxrPositionIndex,
 } from '../converters/xml-cii2019-core/dtxr-resolver-core.js';
 
 const config = {
   coordinateTolerance: 1,
   useRestraintTypeBasedOnJson: true,
   sourceSchema: {
+    enabled: true,
+    profileId: 'TEST_MDS_STRICT_V1',
+    fieldConflictPolicy: 'REJECT',
     fields: {
       objectName: ['OBJ_NAME'],
       objectType: ['OBJ_TYPE'],
@@ -36,8 +45,22 @@ const config = {
     },
     identity: {
       supportPrefixes: ['PS', 'SL'],
-      allowOptionalHyphen: true,
-      allowHierarchicalSuffix: true,
+      hyphenPolicy: 'OPTIONAL',
+      maxHierarchyDepth: 2,
+      hierarchyMatch: 'EXACT_ONLY',
+      matchBoundary: 'FULL_TOKEN',
+    },
+    relationships: {
+      identityRoles: ['objectName', 'supportTag'],
+      groupRoles: ['supportGroupRef'],
+      linkRoles: ['directLink'],
+      expandIdentityToGroup: true,
+      objectNameIsGroupAuthority: false,
+      conflictPolicy: 'REJECT',
+    },
+    coordinates: {
+      authority: 'CORROBORATION_ONLY',
+      coordinateOnlyFallback: false,
     },
   },
   coordinateAlignment: {
@@ -102,12 +125,24 @@ const staged = JSON.stringify({
   ],
 });
 
-test('support identity grammar accepts SL, PS without hyphen, and arbitrary suffix depth', () => {
-  assert.equal(normalizeSupportIdentity('/SL-1847103.2.1', config), 'SL-1847103.2.1');
-  assert.equal(normalizeSupportIdentity('PS03568.2', config), 'PS-03568.2');
+test('new source-schema authority is opt-in and incomplete explicit grammar is rejected', () => {
+  assert.equal(sourceSchemaEnabled({}), false);
+  assert.equal(normalizeSupportIdentity('PS03568.2', {}), '');
+  const invalid = validateSourceSchemaConfig({ sourceSchema: { enabled: true, identity: { supportPrefixes: ['SL'] } } });
+  assert.equal(invalid.valid, false);
+  assert.ok(invalid.errors.some((message) => message.includes('hyphenPolicy')));
 });
 
-test('configured source position applies the manual Z offset only through the configured field', () => {
+test('configured identity grammar accepts only explicitly-authorized forms and exact hierarchy', () => {
+  assert.equal(normalizeSupportIdentity('/SL-1847103.2.1', config), 'SL-1847103.2.1');
+  assert.equal(normalizeSupportIdentity('PS03568.2', config), 'PS-03568.2');
+  assert.equal(normalizeSupportIdentity('XSL-1847103.2.1', config), '');
+  assert.equal(normalizeSupportIdentity('/SL-1847103.2.1.9', config), '');
+  const identities = sourceSupportIdentities({ attributes: { OBJ_NAME: '/SL-1847103.2.1' } }, config);
+  assert.deepEqual(identities, ['SL-1847103.2.1']);
+});
+
+test('configured source position applies manual Z offset only through the configured field', () => {
   const resolved = readSourcePosition({ attributes: { XYZ: coordinate } }, config);
   assert.deepEqual(resolved.rawPoint, coordinate);
   assert.deepEqual(resolved.point, { ...coordinate, z: 106100 });
@@ -115,7 +150,7 @@ test('configured source position applies the manual Z offset only through the co
   assert.equal(resolved.alignment.matchToleranceMm, 6);
 });
 
-test('explicit support links/group identity expand a tag hit to the complete support assembly', () => {
+test('explicit support group/link expands an exact identity only when profile authorizes expansion', () => {
   const diagnostics = [];
   const index = buildStagedSupportIndex(staged, config, diagnostics);
   assert.equal(index.count, 3);
@@ -140,7 +175,37 @@ test('explicit support links/group identity expand a tag hit to the complete sup
   assert.equal(stopEntry.cmpSupGap, 'GAP=35mm');
 });
 
-test('DTXR indexes use the same field adapter and coordinate alignment', () => {
+test('same exact identity does not expand if expandIdentityToGroup is disabled', () => {
+  const strict = structuredClone(config);
+  strict.sourceSchema.relationships.expandIdentityToGroup = false;
+  const index = buildStagedSupportIndex(staged, strict, []);
+  const hits = index.byTag.get('SL-1847103.2.1') || [];
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].primaryKind, 'REST');
+});
+
+test('conflicting supportGroupRef and directLink roots are rejected instead of bridged', () => {
+  const value = {
+    attributes: {
+      OBJ_NAME: '/SL-1847103.2.1',
+      SUPPORT_GROUP: 'SL-1847103 (REF)',
+      LINK_TO: '/SL-999999.1.1',
+    },
+  };
+  const relationship = sourceRelationshipEvidence(value, config);
+  assert.equal(relationship.conflict, true);
+  assert.equal(relationship.rejected, true);
+  assert.deepEqual(relationship.roots, []);
+});
+
+test('conflicting aliases fail closed instead of depending on JSON property order', () => {
+  const conflicted = structuredClone(config);
+  conflicted.sourceSchema.fields.supportType = ['SUPPORT_CODE', 'ALT_SUPPORT_CODE'];
+  const value = { attributes: { ALT_SUPPORT_CODE: 'ST501', SUPPORT_CODE: 'GT500' } };
+  assert.equal(readSourceField(value, 'supportType', conflicted), '');
+});
+
+test('DTXR indexes use same strict field adapter and keep member-owned gaps plural', () => {
   const index = buildStagedDtxrIndex(staged, config);
   const relationHits = index.byPsTag.get('SL-1847103.2.1') || [];
   assert.equal(relationHits.length, 3);
@@ -163,13 +228,42 @@ test('support identity excludes topology while topology remains separately trace
     },
   };
   const identities = sourceSupportIdentities(value, config);
-  assert.ok(identities.includes('SL-1844032.1.3'));
-  assert.ok(identities.includes('SL-1844032'));
-  assert.ok(identities.includes('SL-1844032.1.1'));
-  assert.equal(identities.includes('PS-01716.3'), false);
-  assert.equal(identities.includes('SL-999999.1'), false);
+  assert.deepEqual(identities, ['SL-1844032.1.3']);
 
   const topology = sourceTopologyIdentities(value, config);
   assert.ok(topology.includes('PS-01716.3'));
   assert.ok(topology.includes('SL-999999.1'));
+});
+
+test('coordinate-only authority is disabled by default in explicit profile', () => {
+  const policy = sourceAuthorityPolicy(config);
+  assert.equal(policy.coordinateAuthority, 'CORROBORATION_ONLY');
+  assert.equal(policy.coordinateOnlyFallback, false);
+});
+
+test('one physical support family cannot satisfy three-sample AUTO calibration', () => {
+  const autoConfig = structuredClone(config);
+  autoConfig.coordinateAlignment = {
+    mode: 'AUTO',
+    applyToFields: ['XYZ'],
+    matchToleranceMm: 6,
+    calibrationToleranceMm: 1,
+    minimumCalibrationSamples: 3,
+    scope: 'GLOBAL',
+  };
+  const positionIndex = buildStagedDtxrPositionIndex(staged, autoConfig);
+  const document = {
+    getElementsByTagName(name) {
+      if (name !== 'Node') return [];
+      return [{
+        NodeNumber: '140',
+        NodeName: 'SL-1847103.2.1',
+        ComponentRefNo: '=1006649732/144940',
+        Position: '854513.44 3934222.04 106100',
+      }];
+    },
+  };
+  const calibrated = xmlCiiCalibrateDtxrPositionIndex(positionIndex, document, autoConfig);
+  assert.equal(calibrated.inferredOffset, undefined);
+  assert.equal(calibrated.calibrationRejected, 'INSUFFICIENT_INDEPENDENT_SUPPORT_GROUPS');
 });
