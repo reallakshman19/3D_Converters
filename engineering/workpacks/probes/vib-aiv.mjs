@@ -16,6 +16,11 @@ async function profileFrom(context) {
   return module[context.workpack.assumptionProfile.exportName];
 }
 
+async function lineAggregationRuleFrom(context) {
+  const module = await importFromRoot(context, context.workpack.lineAggregation.path);
+  return module[context.workpack.lineAggregation.exportName];
+}
+
 async function benchmarksFrom(context) {
   const spec = context.workpack.benchmarks.independentEvidence;
   const module = await importFromRoot(context, spec.path);
@@ -49,11 +54,25 @@ export async function verifyScreeningScope(context) {
 }
 
 export async function verifyLineCaseSummaryBoundary(context) {
-  const source = await sourceFrom(context, context.workpack.calculator.path);
+  const calculator = await sourceFrom(context, context.workpack.calculator.path);
+  const reducer = await sourceFrom(context, context.workpack.lineAggregation.path);
   const ok = context.workpack.authority.lineCaseSummaryAuthoritativeForScreening === false
-    && source.includes('authoritativeForScreening: false')
-    && source.includes("resultScope: 'LINE_CASE_SUMMARY'");
-  return { ok, detail: 'line/case summary remains non-authoritative for screening' };
+    && calculator.includes('lineCaseSummaryAuthoritativeForScreening: false')
+    && reducer.includes('authoritativeForScreening: false')
+    && reducer.includes("assessmentInventoryCompleteness: 'UNVERIFIED'");
+  return { ok, detail: 'line/case reduction is derived but remains non-authoritative while inventory completeness is unverified' };
+}
+
+export async function verifyLineAggregationQualification(context) {
+  const rule = await lineAggregationRuleFrom(context);
+  const expected = context.workpack.lineAggregation;
+  const ok = rule?.ruleId === expected.ruleId
+    && rule?.methodRevision === expected.methodRevision
+    && rule?.qualification?.reductionRule === expected.reductionRuleQualification
+    && rule?.qualification?.assessmentInventoryCompletenessRequiredForScreening === true
+    && rule?.qualification?.screeningAuthority === 'NOT_AUTHORIZED_WITHOUT_COMPLETE_ASSESSMENT_INVENTORY'
+    && rule?.qualification?.designAuthority === false;
+  return { ok, detail: 'EI T2.7 greatest-discontinuity reduction rule is qualified separately from line screening authority' };
 }
 
 export async function verifyDesignAuthority(context) {
@@ -84,11 +103,15 @@ export async function verifyAssumptionAuthorityBoundary(context) {
 export async function verifyBoundedMethodCustody(context) {
   const profile = await profileFrom(context);
   const source = await sourceFrom(context, context.workpack.calculator.path);
+  const lineReference = context.workpack.boundedMethod.dependencies
+    .find((item) => item.path === 'benchmark.workedExampleReliefLineLof');
   const ok = profile?.benchmark?.stage8Model === 'CONFIGURED_D23_INTERMEDIATES'
     && source.includes('AIV stage 8 supports CONFIGURED_D23_INTERMEDIATES only.')
     && context.workpack.boundedMethod.dependencies
-      .every((item) => item.classification !== 'UNRESTRICTED_PROJECT_AUTHORITY');
-  return { ok, detail: 'configured D.2.3 dependencies remain explicitly bounded' };
+      .every((item) => item.classification !== 'UNRESTRICTED_PROJECT_AUTHORITY')
+    && lineReference?.classification === 'BENCHMARK_ORACLE_ONLY'
+    && /not a runtime line-result input/iu.test(lineReference?.runtimeRole ?? '');
+  return { ok, detail: 'configured D.2.3 dependencies remain explicitly bounded and the 1.48 line reference is oracle-only' };
 }
 
 export async function verifyIndependentBenchmarks(context) {
