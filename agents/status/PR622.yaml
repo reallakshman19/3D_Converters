@@ -1,0 +1,33 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+work_id: PR622
+branch: agent/hp-kd320-q2-admission-intake
+base_pr: 619
+base_branch: agent/hp-kd320-high-pr-reconciliation
+base_sha: e32ab20c44b2f1b60e2a117fb05c2d87023637de
+implementation_head: 41505a04d8d03237d91ffb5d4d5d898a6fcbb6fd
+main_at_final_reground: 095ad19421e61bce69acb195ae707eead7cb9e1e
+workstream: HP_KD320_QUALIFICATION
+stage: Q2_CONTROLLED_EVIDENCE_ORACLE_ADMISSION
+criticality: ENGINEERING_CRITICAL
+state: HARD_BOUNDARY_REACHED
+coordination: STACKED_DEPENDENCY_PR619_NO_EXACT_FILE_OVERLAP
+appendix_a: 99/100
+execution_mode: AUTO
+auto_state: HARD_BOUNDARY_REACHED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+validation:
+  technical_blob_identity: PASS
+  syntax: PASS
+  focused_q2_candidate: PASS_9_OF_9
+  template_default_state: PASS_Q1_CONTROLLED_EVIDENCE_PENDING
+  template_require_ready: PASS_EXIT_2
+  full_repository_suite: NOT_RUN
+  full_q1_verification: NOT_RUN
+  real_controlled_candidate: NOT_AVAILABLE_NOT_RUN
+authority:
+  native_core_kd320: false
+  code_compliance: false
+  design_authority: false
+  production_kernel_allowed: false
+exact_next_action: Populate and independently check a real controlled Q2 candidate; do not implement native KD320 arithmetic until Q2_ORACLE_ADMISSION_READY is established.
