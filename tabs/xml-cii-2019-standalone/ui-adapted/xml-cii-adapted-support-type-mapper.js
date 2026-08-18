@@ -3,7 +3,7 @@ import {
   bindUnifiedSupportMappingTable,
   renderUnifiedSupportMappingTable
 } from '../../model-converters/converters/xmltocii2019_helper/support-mapping-table.js';
-import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { createDefaultSupportTypeMapperConfig } from '../xml-cii-support-type-mapper.js';
 
 const KINDS = ['REST', 'GUIDE', 'LINESTOP', 'ANCHOR'];
@@ -144,12 +144,11 @@ function renderRestraintTypeCodeTable(card, stateRef, render) {
     const masterContext = current.masterContext
       ? { ...current.masterContext, config: nextConfig }
       : current.masterContext;
-    stateRef.current = {
-      ...current,
+    stateRef.current = updateWorkflowState(current, {
       supportConfigJson: nextJson,
       masterContext,
-    };
-    if (masterContext) saveMasterContextToLocalStorage(masterContext);
+    });
+    if (stateRef.current.masterContext) saveMasterContextToLocalStorage(stateRef.current.masterContext);
     if (typeof render === 'function') render();
   };
 
