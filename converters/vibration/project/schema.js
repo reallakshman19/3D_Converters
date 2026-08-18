@@ -44,7 +44,7 @@ function assertAuthority(project) {
   if (!safe) {
     throw projectError(
       'VIBRATION_PROJECT_AUTHORITY_INVALID',
-      'Project persistence metadata cannot grant engineering, screening, design, measurement-result, or root-cause authority.',
+      'Project persistence metadata cannot grant engineering, screening, or design authority; measurement evidence and root-cause authority are also non-authorizing.',
     );
   }
 }
