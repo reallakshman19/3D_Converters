@@ -44,7 +44,7 @@ const VIBRATION_INTEGRITY_MECHANISM_CATALOGUE = [
     sourceSection: 'EI AVIFF specialist assessment',
   },
   {
-    id: 'aiv', label: 'AIV', title: 'High-frequency acoustic-induced vibration',
+    id: 'aiv', label: 'AIV assess.', title: 'High-frequency acoustic-induced vibration · assessment-scope screening; line governing not qualified',
     sourceSection: 'EI AVIFF T2.7',
   },
   {
@@ -136,7 +136,8 @@ function mechanicalAssessment(row, mechanism, context) {
 }
 
 function aivSessionContext(context) {
-  const session = context.aivScreeningSession ?? getCurrentAivScreeningSession();
+  const hasExplicitSession = Object.prototype.hasOwnProperty.call(context, 'aivScreeningSession');
+  const session = hasExplicitSession ? context.aivScreeningSession : getCurrentAivScreeningSession();
   return {
     screeningResult: context.aivScreeningResult ?? session?.screeningResult ?? null,
     resultState: context.aivResultState ?? session?.resultState ?? 'UNRUN',
