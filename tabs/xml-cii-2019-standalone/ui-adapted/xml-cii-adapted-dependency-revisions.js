@@ -31,6 +31,26 @@ export function branchLineMapSignature(config) {
   return JSON.stringify(stableObject(map && typeof map === 'object' && !Array.isArray(map) ? map : {}));
 }
 
+function withoutIndependentMasterDomains(config) {
+  const source = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+  const next = { ...source };
+  for (const [section, rowKey] of [['linelist', 'masterRows'], ['pipingClass', 'masterRows'], ['material', 'mapRows'], ['weight', 'masterRows']]) {
+    const value = source[section];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const cleaned = { ...value };
+    delete cleaned[rowKey];
+    delete cleaned.fieldMap;
+    if (section === 'linelist') delete cleaned.branchLineKeyMap;
+    if (Object.keys(cleaned).length) next[section] = cleaned;
+    else delete next[section];
+  }
+  return next;
+}
+
+export function supportConfigSignature(config) {
+  return JSON.stringify(stableObject(withoutIndependentMasterDomains(config)));
+}
+
 function initialMasterRevision(state, masterKey) {
   const def = MASTER_BASIS[masterKey];
   const context = state?.masterContext;
@@ -42,14 +62,14 @@ function initialMasterRevision(state, masterKey) {
 export function initializeDependencyRevisionState(state, parsedConfig = state?.masterContext?.config || {}) {
   const revisions = {
     sourceModelRevision: String(state?.sourceText || '') ? 1 : 0,
-    supportConfigRevision: String(state?.supportConfigJson || '') ? 1 : 0,
+    supportConfigRevision: supportConfigSignature(parsedConfig) === '{}' ? 0 : 1,
     branchLineMapRevision: branchLineMapSignature(parsedConfig) === '{}' ? 0 : 1,
   };
   for (const [key, def] of Object.entries(MASTER_BASIS)) revisions[def.revisionKey] = initialMasterRevision(state, key);
   return {
     dependencyRevisions: Object.freeze(revisions),
     dependencyRevisionBasis: Object.freeze({
-      supportConfigJson: String(state?.supportConfigJson || ''),
+      supportConfigSignature: supportConfigSignature(parsedConfig),
       branchLineMapSignature: branchLineMapSignature(parsedConfig),
     }),
   };
@@ -67,12 +87,12 @@ function masterAuthorityChanged(previous, next, masterKey) {
 export function advanceDependencyRevisionState(previous, next, parsedConfig = next?.masterContext?.config || {}) {
   const prior = previous?.dependencyRevisions || initializeDependencyRevisionState(previous).dependencyRevisions;
   const priorBasis = previous?.dependencyRevisionBasis || initializeDependencyRevisionState(previous).dependencyRevisionBasis;
-  const nextSupportConfig = String(next?.supportConfigJson || '');
+  const nextSupportSignature = supportConfigSignature(parsedConfig);
   const nextBranchSignature = branchLineMapSignature(parsedConfig);
   const revisions = {
     ...prior,
     sourceModelRevision: integerRevision(prior.sourceModelRevision) + (String(previous?.sourceText || '') !== String(next?.sourceText || '') ? 1 : 0),
-    supportConfigRevision: integerRevision(prior.supportConfigRevision) + (priorBasis.supportConfigJson !== nextSupportConfig ? 1 : 0),
+    supportConfigRevision: integerRevision(prior.supportConfigRevision) + (priorBasis.supportConfigSignature !== nextSupportSignature ? 1 : 0),
     branchLineMapRevision: integerRevision(prior.branchLineMapRevision) + (priorBasis.branchLineMapSignature !== nextBranchSignature ? 1 : 0),
   };
   for (const [key, def] of Object.entries(MASTER_BASIS)) {
@@ -80,7 +100,7 @@ export function advanceDependencyRevisionState(previous, next, parsedConfig = ne
   }
   return {
     dependencyRevisions: Object.freeze(revisions),
-    dependencyRevisionBasis: Object.freeze({ supportConfigJson: nextSupportConfig, branchLineMapSignature: nextBranchSignature }),
+    dependencyRevisionBasis: Object.freeze({ supportConfigSignature: nextSupportSignature, branchLineMapSignature: nextBranchSignature }),
   };
 }
 
