@@ -21,6 +21,10 @@ async function lineAggregationRuleFrom(context) {
   return module[context.workpack.lineAggregation.exportName];
 }
 
+async function inventoryCompletenessFrom(context) {
+  return importFromRoot(context, context.workpack.inventoryCompleteness.path);
+}
+
 async function benchmarksFrom(context) {
   const spec = context.workpack.benchmarks.independentEvidence;
   const module = await importFromRoot(context, spec.path);
@@ -59,8 +63,9 @@ export async function verifyLineCaseSummaryBoundary(context) {
   const ok = context.workpack.authority.lineCaseSummaryAuthoritativeForScreening === false
     && calculator.includes('lineCaseSummaryAuthoritativeForScreening: false')
     && reducer.includes('authoritativeForScreening: false')
-    && reducer.includes("assessmentInventoryCompleteness: 'UNVERIFIED'");
-  return { ok, detail: 'line/case reduction is derived but remains non-authoritative while inventory completeness is unverified' };
+    && reducer.includes("assessmentInventoryCompleteness: inventoryVerified ? 'VERIFIED_COMPLETE' : 'UNVERIFIED'")
+    && reducer.includes("? 'AIV_LINE_CASE_SCREENING_AUTHORITY_NOT_PROMOTED'");
+  return { ok, detail: 'line/case candidate may carry verified inventory evidence while screening authority remains false' };
 }
 
 export async function verifyLineAggregationQualification(context) {
@@ -72,7 +77,31 @@ export async function verifyLineAggregationQualification(context) {
     && rule?.qualification?.assessmentInventoryCompletenessRequiredForScreening === true
     && rule?.qualification?.screeningAuthority === 'NOT_AUTHORIZED_WITHOUT_COMPLETE_ASSESSMENT_INVENTORY'
     && rule?.qualification?.designAuthority === false;
-  return { ok, detail: 'EI T2.7 greatest-discontinuity reduction rule is qualified separately from line screening authority' };
+  return { ok, detail: 'EI T2.7 greatest-discontinuity reduction rule remains qualified separately from line screening authority' };
+}
+
+export async function verifyInventoryCompletenessEvidenceBoundary(context) {
+  const module = await inventoryCompletenessFrom(context);
+  const source = await sourceFrom(context, context.workpack.inventoryCompleteness.path);
+  const expected = context.workpack.inventoryCompleteness;
+  const ok = module?.AIV_INVENTORY_ATTESTATION_SCHEMA === expected.attestationSchema
+    && module?.AIV_INVENTORY_VERIFICATION_SCHEMA === expected.verificationSchema
+    && module?.AIV_INVENTORY_REQUIRED_EXTENT === expected.requiredExtent
+    && module?.AIV_INVENTORY_TERMINAL_ROLE === expected.terminalBoundaryRole
+    && expected.engineeringInputRevisionRequired === true
+    && expected.humanAttestationRequired === true
+    && expected.uniqueDirectedSourceToBoundaryPathRequired === true
+    && expected.offPageWithinExtentAllowed === false
+    && expected.exactAssessmentSetRequired === true
+    && expected.screeningAuthorityPromotionApplied === false
+    && expected.designAuthority === false
+    && source.includes('ENGINEERING_INPUT_REVISION_STALE')
+    && source.includes('SOURCE_TO_BOUNDARY_AMBIGUOUS')
+    && source.includes('OFF_PAGE_BOUNDARY_IN_SCOPE')
+    && source.includes('TOPOLOGY_ASSESSMENT_SET_MISMATCH')
+    && source.includes('screeningAuthorityPromotionApplied: false')
+    && source.includes('lineCaseAuthoritativeForScreening: false');
+  return { ok, detail: 'inventory completeness requires exact-revision human evidence plus fail-closed machine topology checks and does not promote line authority' };
 }
 
 export async function verifyDesignAuthority(context) {
