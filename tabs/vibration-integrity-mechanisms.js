@@ -11,6 +11,7 @@ import {
   buildSbcVibrationMechanismAssessmentSet,
   createVibrationMechanismAssessmentSet,
 } from '../converters/vibration/mechanisms/index.js?v=20260818-aiv-integrity-1';
+import { getCurrentAivScreeningSession } from './vibration-aiv-screening-session.js';
 
 const VIBRATION_INTEGRITY_MECHANISM_CATALOGUE = [
   {
@@ -134,11 +135,20 @@ function mechanicalAssessment(row, mechanism, context) {
   return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
 }
 
+function aivSessionContext(context) {
+  const session = context.aivScreeningSession ?? getCurrentAivScreeningSession();
+  return {
+    screeningResult: context.aivScreeningResult ?? session?.screeningResult ?? null,
+    resultState: context.aivResultState ?? session?.resultState ?? 'UNRUN',
+  };
+}
+
 function aivAssessment(row, mechanism, context) {
+  const sessionContext = aivSessionContext(context);
   const contractSet = buildAivVibrationMechanismAssessmentSet({
     row,
-    screeningResult: context.aivScreeningResult ?? null,
-    resultState: context.aivResultState ?? 'UNRUN',
+    screeningResult: sessionContext.screeningResult,
+    resultState: sessionContext.resultState,
   });
   if (contractSet.cardinality.count === 0) {
     return Object.freeze({
