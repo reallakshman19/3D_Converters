@@ -6,16 +6,21 @@ files:
     - converters/vibration/aiv/aiv-inventory-completeness.js
     - converters/vibration/aiv/aiv-line-aggregation.js
     - converters/vibration/aiv/aiv-calculator.js
+    - converters/vibration/aiv/aiv-screening-export.js
     - converters/engineering-calculations/adapters/vibration-aiv.js
+    - engineering/workpacks/VIB-AIV.json
+    - engineering/workpacks/probes/vib-aiv.mjs
     - tabs/vibration-aiv-state.js
     - tabs/vibration-aiv-engineering-revision.js
     - tabs/vibration-aiv-screening-request.js
     - tabs/vibration-aiv-execution.js
+    - tabs/vibration-aiv-inventory-completeness-controller.js
     - tabs/vibration-aiv-inventory-completeness-view.js
     - tabs/vibration-aiv-qualification-view.js
     - tabs/vibration-aiv-qualification-tab.js
     - tests/vibration-aiv-inventory-completeness.test.mjs
     - tests/vibration-aiv-screening-runtime-bridge.test.mjs
+    - tests/vibration-aiv-workpack-drift.test.mjs
     - agents/WIP-VIB-AIV-INVENTORY-20260818_workreport.md
     - agents/status/WIP-VIB-AIV-INVENTORY-20260818.yaml
     - agents/claims/WIP-VIB-AIV-INVENTORY-20260818.yaml
