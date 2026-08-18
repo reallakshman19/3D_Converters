@@ -2,12 +2,12 @@ work_id: WIP-AIV-CANVAS-EVIDENCE-20260818
 branch: agent/vibration-aiv-canvas-evidence-hardening-20260818
 base_pr: 643
 base_sha: afe72d5cc4859bf4d76e95c83563e86d4169b902
-agent_state: ACTIVE
-current_stage: INSPECT_PHASE_3
+agent_state: INACTIVE
+current_stage: MIGRATED_TO_PR644
 execution_mode: AUTO
-auto_state: RUNNING
+auto_state: MIGRATED
 criticality: ENGINEERING_CRITICAL
-mutation_authority: WRITE_ALLOWED
+mutation_authority: RELEASED_TO_PR644
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
 coordination_state: STACKED_ON_PR643
 blockers: []
@@ -17,4 +17,4 @@ protected_authority:
   line_case_screening_authority: NOT_AUTHORIZED
   generic_ei_mainline_aiv: BLOCKED
   design_authority: false
-exact_next_action: inspect export/projection/inspector/completeness contracts and implement evidence hardening
+exact_next_action: recover from PR644 artifacts
