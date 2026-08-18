@@ -12,7 +12,7 @@ BRANCH             agent/vibration-eit-roadmap-20260818
 PR                 #615
 PR_STATE           DRAFT / UNMERGED
 MERGE_AUTHORITY    OWNER_ONLY / NOT_GRANTED
-REPORT_BASIS_HEAD  c417070c5733f11ff41d78a8da8b2c11bf0b6523
+REPORT_BASIS_HEAD  a9615c355264c00bebc914bf986328054d29b9a3
 REPORT_BASIS_MAIN  eef94949961970171d1366f5b6a9d421b3cc0d9f
 ```
 
@@ -132,10 +132,10 @@ selected-line derived SignalProduct(s)
 Right-rail desktop policy:
 
 ```text
-MIN      260 px
-DEFAULT  320 px
-MAX      520 px
-COLLAPSED 44 px
+MIN        260 px
+DEFAULT    320 px
+MAX        520 px
+COLLAPSED   44 px
 ```
 
 The left edge is the resize separator. Pointer drag left widens; drag right narrows. Keyboard support:
@@ -147,7 +147,7 @@ Home         260 px
 End          520 px
 ```
 
-Collapsed state is a 44 px tab with `justify-self:end`, i.e. it collapses toward/pins to the right. At `<=1180px`, the roadmap becomes a stacked row and the desktop resize separator is hidden.
+Collapsed state is a 44 px tab with `justify-self:end`, so it collapses toward/pins to the right. At `<=1180px`, the roadmap becomes a stacked row and the desktop resize separator is hidden.
 
 During validation a real defect was detected and repaired: initial controller logic recycled project-derived measurement DATA as the next rebuild's mechanism input, allowing Line-1 evidence to become sticky after selecting Line 2. The controller now retains `explicitMechanismStates` separately from project-derived state.
 
@@ -245,4 +245,4 @@ No absent hosted status/workflow is treated as PASS.
 
 ## EXACT_NEXT_ACTION
 
-Keep PR615 draft/unmerged. Refresh live main, final PR head, ahead/behind relation, reviews, statuses and PR-triggered workflows after these recovery commits. Before any merge attempt: reconcile current main, execute repository-native qualification in a complete checkout, perform served-browser acceptance for the right rail, and obtain independent engineering review. Do not merge without explicit Owner authorization.
+Keep PR615 draft/unmerged. Refresh live main, final PR head, ahead/behind relation, reviews, statuses and PR-triggered workflows after this recovery commit. Before any merge attempt: reconcile current main, execute repository-native qualification in a complete checkout, perform served-browser acceptance for the right rail, and obtain independent engineering review. Do not merge without explicit Owner authorization.
