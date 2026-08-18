@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 function parseConfig(state) {
   try {
@@ -10,12 +10,11 @@ function parseConfig(state) {
 
 function persist(stateRef, config, render) {
   const masterContext = { ...(stateRef.current.masterContext || {}), config };
-  stateRef.current = {
-    ...stateRef.current,
+  stateRef.current = updateWorkflowState(stateRef.current, {
     supportConfigJson: JSON.stringify(config, null, 2),
     masterContext,
-  };
-  saveMasterContextToLocalStorage(masterContext);
+  });
+  saveMasterContextToLocalStorage(stateRef.current.masterContext);
   if (typeof render === 'function') render();
 }
 

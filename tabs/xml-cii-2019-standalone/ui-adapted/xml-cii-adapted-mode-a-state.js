@@ -5,6 +5,7 @@ import {
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-2';
+import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-consolidated-1';
 
 const MODE_A_SOURCE_CACHE_KEYS = Object.freeze([
   'xml-cii-wm-cache-v1',
@@ -24,19 +25,30 @@ function stripMarker(state) {
   return rest;
 }
 
+function routeModeADependencyState(previous, replacement) {
+  if (!replacement || typeof replacement !== 'object') return replacement;
+  const routed = updateWorkflowState(previous, replacement);
+  return {
+    ...replacement,
+    dependencyRevisions: routed.dependencyRevisions,
+    dependencyRevisionBasis: routed.dependencyRevisionBasis,
+  };
+}
+
 export function createXmlCiiModeAStateRef(baseRef) {
   return {
     get current() {
-      const normalized = normalizeModeABatchState(baseRef.current);
-      if (normalized !== baseRef.current) baseRef.current = normalized;
+      const previous = baseRef.current;
+      const normalized = normalizeModeABatchState(previous);
+      if (normalized !== previous) baseRef.current = routeModeADependencyState(previous, normalized);
       return baseRef.current;
     },
     set current(next) {
-      if (next?.__modeAReplace === true) {
-        baseRef.current = stripMarker(next);
-        return;
-      }
-      baseRef.current = syncActiveModeASource(next);
+      const previous = baseRef.current;
+      const replacement = next?.__modeAReplace === true
+        ? stripMarker(next)
+        : syncActiveModeASource(next);
+      baseRef.current = routeModeADependencyState(previous, replacement);
     },
   };
 }

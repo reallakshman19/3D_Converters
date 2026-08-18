@@ -124,11 +124,15 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
       config.overrides = { ...(config.overrides || {}) };
       config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
       if (stateRef?.current) {
-        stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
-        if (stateRef.current.masterContext) {
-          stateRef.current.masterContext.config = config;
-          saveMasterContextToLocalStorage(stateRef.current.masterContext);
-        }
+        const current = stateRef.current;
+        const masterContext = current.masterContext
+          ? { ...current.masterContext, config }
+          : current.masterContext;
+        const routed = updateWorkflowState(current, {
+          supportConfigJson: JSON.stringify(config, null, 2),
+        });
+        stateRef.current = { ...routed, masterContext };
+        if (masterContext) saveMasterContextToLocalStorage(masterContext);
       }
     }
     const currentWeights = {};
@@ -216,11 +220,15 @@ async function reviewRigidWeights(stateRef, config) {
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
       config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...result.weightsByKey } };
-      stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
-      if (stateRef.current.masterContext) {
-        stateRef.current.masterContext.config = config;
-        saveMasterContextToLocalStorage(stateRef.current.masterContext);
-      }
+      const current = stateRef.current;
+      const masterContext = current.masterContext
+        ? { ...current.masterContext, config }
+        : current.masterContext;
+      const routed = updateWorkflowState(current, {
+        supportConfigJson: JSON.stringify(config, null, 2),
+      });
+      stateRef.current = { ...routed, masterContext };
+      if (masterContext) saveMasterContextToLocalStorage(masterContext);
     }
     return true;
   } catch (error) {

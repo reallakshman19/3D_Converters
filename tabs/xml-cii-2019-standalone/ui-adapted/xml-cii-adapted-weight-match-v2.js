@@ -1,6 +1,7 @@
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import {
   saveMasterContextToLocalStorage,
+  updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js';
@@ -36,13 +37,11 @@ function ensureWeightRows(config, masterContext) {
 }
 
 function persistConfig(stateRef, config) {
-  const context = stateRef.current.masterContext || {};
-  context.config = config;
-  stateRef.current = {
-    ...stateRef.current,
+  const masterContext = { ...(stateRef.current.masterContext || {}), config };
+  stateRef.current = updateWorkflowState(stateRef.current, {
     supportConfigJson: JSON.stringify(config, null, 2),
-    masterContext: { ...context, config },
-  };
+    masterContext,
+  });
   saveMasterContextToLocalStorage(stateRef.current.masterContext);
 }
 
