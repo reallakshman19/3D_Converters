@@ -15,6 +15,8 @@ import {
 import {
   parseSourcePoint,
   resolveCoordinateAlignment,
+  sourceAuthorityPolicy,
+  sourceSchemaEnabled,
 } from '../../../../converters/xml-cii2019-core/source-schema-adapter.js';
 
 export * from './enrichment-core-legacy.js';
@@ -55,9 +57,7 @@ function uniqueMatches(items = []) {
 }
 
 function configuredTolerance(config = {}) {
-  const alignment = resolveCoordinateAlignment(config);
-  if (alignment.explicit) return Math.max(Number(alignment.matchToleranceMm) || 0, 0);
-  return Math.max(Number(config.coordinateTolerance) || 1, 0);
+  return Math.max(Number(resolveCoordinateAlignment(config).matchToleranceMm) || 0, 0);
 }
 
 function tagMatchesForNode(node, supportIndex, config) {
@@ -75,34 +75,29 @@ function coordinateMatchesForNode(node, supportIndex, toleranceMm) {
   )));
 }
 
-function sameRelationshipFamily(candidate, taggedMatches) {
-  const candidateRoots = new Set(candidate?.relationshipRoots || []);
-  if (!candidateRoots.size) return false;
-  return taggedMatches.some((tagged) => (
-    (tagged?.relationshipRoots || []).some((root) => candidateRoots.has(root))
-  ));
-}
-
 function resolveSupportMatches(node, supportIndex, config) {
+  const policy = sourceAuthorityPolicy(config);
   const tagged = tagMatchesForNode(node, supportIndex, config);
   const coordinate = coordinateMatchesForNode(node, supportIndex, configuredTolerance(config));
 
-  // Explicit source identity/group/link evidence is authoritative. Geometry may
-  // add only members from the same already-identified relationship family.
+  // Relationship/identity lookup is authoritative. The support index has
+  // already performed any explicitly-authorized assembly expansion. Geometry
+  // is retained as corroborating evidence only and never adds family members.
   if (tagged.matches.length) {
-    const compatibleGeometry = coordinate.filter((candidate) => sameRelationshipFamily(candidate, tagged.matches));
     return {
       tags: tagged.tags,
       method: 'support-relationship',
-      matches: uniqueMatches([...tagged.matches, ...compatibleGeometry]),
+      matches: tagged.matches,
       coordinateMatches: coordinate,
     };
   }
 
+  const allowCoordinateFallback = policy.coordinateAuthority === 'FALLBACK'
+    && policy.coordinateOnlyFallback === true;
   return {
     tags: tagged.tags,
-    method: coordinate.length ? 'coordinate-fallback' : 'unmatched',
-    matches: coordinate,
+    method: allowCoordinateFallback && coordinate.length ? 'coordinate-fallback' : 'unmatched',
+    matches: allowCoordinateFallback ? coordinate : [],
     coordinateMatches: coordinate,
   };
 }
@@ -113,7 +108,14 @@ function calibratedSupportIndex(stagedJsonText, document, config, diagnostics) {
 
   let positionIndex = buildStagedDtxrPositionIndex(stagedJsonText, config);
   positionIndex = xmlCiiCalibrateDtxrPositionIndex(positionIndex, document, config);
-  if (!positionIndex?.inferredOffset) return supportIndex;
+  if (!positionIndex?.inferredOffset) {
+    if (positionIndex?.calibrationRejected) diagnostics.push({
+      type: 'source-schema-support-closure-calibration-rejected',
+      reason: positionIndex.calibrationRejected,
+      status: 'not-applied',
+    });
+    return supportIndex;
+  }
 
   supportIndex = calibrateStagedSupportIndexCoordinates(supportIndex, positionIndex.inferredOffset, config);
   diagnostics.push({
@@ -122,6 +124,8 @@ function calibratedSupportIndex(stagedJsonText, document, config, diagnostics) {
     yOffset: positionIndex.inferredOffset.y,
     zOffset: positionIndex.inferredOffset.z,
     samples: positionIndex.calibration?.samples || 0,
+    uniqueSupportGroups: positionIndex.calibration?.uniqueSupportGroups || 0,
+    uniqueXmlNodes: positionIndex.calibration?.uniqueXmlNodes || 0,
     uniqueTags: positionIndex.calibration?.uniqueTags || 0,
   });
   return supportIndex;
@@ -139,6 +143,8 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return enriched;
 
   const config = enriched.config || parseXmlCiiEnrichmentConfig(options.supportConfigJson || '{}');
+  if (!sourceSchemaEnabled(config)) return enriched;
+  const policy = sourceAuthorityPolicy(config);
   const document = new DOMParser().parseFromString(enriched.xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return enriched;
 
@@ -152,7 +158,8 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
   for (const node of [...document.getElementsByTagName('Node')]) {
     const resolved = resolveSupportMatches(node, supportIndex, config);
     const relationshipEligible = resolved.tags.length > 0;
-    if (!relationshipEligible && !coordinateFallbackEligible(node)) continue;
+    const coordinateEligible = policy.coordinateOnlyFallback === true && coordinateFallbackEligible(node);
+    if (!relationshipEligible && !coordinateEligible) continue;
     if (!resolved.matches.length) continue;
 
     const entries = dedupeXmlCiiRestraintEntries(
@@ -178,6 +185,9 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
       sourcePaths: [...new Set(resolved.matches.map((match) => match._path).filter(Boolean))],
       restraintTypes: entries.map((entry) => entry.type).join('+'),
       gaps: entries.map((entry) => `${entry.type}:${entry.gap ?? ''}`).join('|'),
+      coordinateCandidateCount: resolved.coordinateMatches.length,
+      coordinateAuthority: policy.coordinateAuthority,
+      profileId: policy.profileId,
       status: 'applied',
     });
   }
@@ -196,11 +206,10 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
 }
 
 /**
- * Public enrichment boundary. The established enrichment engine runs first;
- * this closure then re-resolves support-tagged/ATTA/ANCI restraint nodes using
- * the configurable source schema and explicit relationship graph. Coordinates
- * are validation/fallback only and coordinate-only recovery is gated to known
- * support-bearing node shapes.
+ * Public enrichment boundary. Legacy behavior is untouched unless
+ * sourceSchema.enabled=true. Under an explicit source profile, relationship
+ * identity is authoritative and coordinates are corroboration-only unless the
+ * profile explicitly enables coordinate fallback.
  */
 export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = {}) {
   const enriched = await legacy.enrichXmlForCii2019(xmlTextVal, stagedJsonText, options);
