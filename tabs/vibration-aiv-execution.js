@@ -13,6 +13,7 @@ import {
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 import { buildAivEngineeringScreeningRequest } from './vibration-aiv-screening-request.js';
+import { buildAivScreeningPackageInputFromState } from './vibration-aiv-screening-package-state.js';
 import {
   clearCurrentAivScreeningSession,
   publishCurrentAivScreeningSession,
@@ -32,23 +33,6 @@ function topologyFormat(state, formats) {
   if (state.topologyInput.format === 'FLARE_NETWORK') return formats.FLARE_NETWORK;
   if (state.topologyInput.format === 'PARSED_EXCHANGE') return formats.PARSED_EXCHANGE;
   return formats.XLSX;
-}
-
-function screeningPackageInput(state) {
-  return {
-    result: state.screeningResult.evidence.domainResult,
-    sources: state.readinessEnvelope.sources,
-    assessments: state.readinessEnvelope.assessments,
-    relationships: state.readinessEnvelope.sourceAssessments,
-    topology: state.readinessEnvelope.exchange,
-    assumptionProfile: state.assumptionProfile,
-    assumptionResolution: state.assumptionResolution,
-    flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
-    generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
-    eitImportEvidence: state.eitImport?.evidence ?? null,
-    inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
-    engineeringInputRevision: state.inputRevision,
-  };
 }
 
 function commitReadiness(state, readinessEnvelope, assumptionResolution) {
@@ -162,10 +146,11 @@ export function createAivExecutionActions({ state, render, downloadText }) {
   }
 
   async function buildScreeningPackage() {
-    if (!state.screeningResult?.ok || !state.readinessEnvelope || !isAivLineageCurrent(state, 'screening')) return null;
+    const input = buildAivScreeningPackageInputFromState(state);
+    if (!input) return null;
     const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-2');
     if (!isAivLineageCurrent(state, 'screening')) return null;
-    return buildAivScreeningExportPackage(screeningPackageInput(state));
+    return buildAivScreeningExportPackage(input);
   }
 
   async function exportScreeningResult() {
