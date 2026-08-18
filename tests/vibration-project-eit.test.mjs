@@ -63,3 +63,15 @@ test('project produces line-scoped roadmap state without engineering promotion',
   assert.equal(node(projection, 'aiv').status, 'AVAILABLE');
   assert.equal(projection.authority.engineeringAuthority, 'NONE');
 });
+
+test('project file cannot forge engineering or screening authority', () => {
+  const project = JSON.parse(serializeVibrationIntegrityProject(buildVibrationIntegrityProjectFromEit(importedFixture())));
+  project.authority.screeningAuthorized = true;
+  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /cannot grant engineering, screening, or design authority/);
+});
+
+test('V1 project rejects unqualified current-result payloads on load', () => {
+  const project = JSON.parse(serializeVibrationIntegrityProject(buildVibrationIntegrityProjectFromEit(importedFixture())));
+  project.currentResults.push({ result: 'unqualified' });
+  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /does not yet accept current-result authority records/);
+});

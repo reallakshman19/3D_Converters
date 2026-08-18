@@ -31,6 +31,17 @@ function uniqueIds(rows, field, code) {
   return new Set(values);
 }
 
+function assertAuthority(project) {
+  const authority = requiredObject(project.authority, 'project.authority');
+  const safe = authority.containerAuthority === VIBRATION_INTEGRITY_PROJECT_AUTHORITY
+    && authority.importedResultsAreCurrentEngineeringAuthority === false
+    && authority.screeningAuthorized === false
+    && authority.designAuthority === false;
+  if (!safe) {
+    throw projectError('VIBRATION_PROJECT_AUTHORITY_INVALID', 'Project persistence metadata cannot grant engineering, screening, or design authority.');
+  }
+}
+
 export function assertVibrationIntegrityProject(value) {
   const project = requiredObject(value, 'project');
   if (project.schema !== VIBRATION_INTEGRITY_PROJECT_SCHEMA) {
@@ -40,7 +51,11 @@ export function assertVibrationIntegrityProject(value) {
   const subjects = requiredObject(project.subjects, 'project.subjects');
   const lines = requiredArray(subjects.lines, 'project.subjects.lines');
   const mechanisms = requiredArray(project.mechanismImports, 'project.mechanismImports');
-  requiredArray(project.currentResults, 'project.currentResults');
+  const currentResults = requiredArray(project.currentResults, 'project.currentResults');
+  if (currentResults.length) {
+    throw projectError('VIBRATION_PROJECT_CURRENT_RESULT_CONTRACT_UNQUALIFIED', 'V1 project persistence does not yet accept current-result authority records; rerun registered calculations after load.');
+  }
+  assertAuthority(project);
   const lineIds = uniqueIds(lines, 'lineId', 'VIBRATION_PROJECT_LINE_ID_INVALID');
   uniqueIds(mechanisms, 'recordId', 'VIBRATION_PROJECT_MECHANISM_RECORD_ID_INVALID');
   for (const record of mechanisms) {

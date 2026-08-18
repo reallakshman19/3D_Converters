@@ -5,6 +5,8 @@ import {
   createVibrationProjectError,
 } from './schema.js';
 
+export const VIBRATION_INTEGRITY_PROJECT_FILE_EXTENSION = '.vibproj';
+
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (!value || typeof value !== 'object') return value;

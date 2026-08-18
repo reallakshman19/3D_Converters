@@ -9,12 +9,8 @@ function esc(value) {
 }
 
 function targetAttributes(node) {
-  if (node.target?.type === 'CALCULATION' && node.target.calculationId) {
-    return ` data-calc-id="${esc(node.target.calculationId)}"`;
-  }
-  if (node.target?.type === 'WORKSPACE' && node.target.workspaceId) {
-    return ` data-vibration-workspace-id="${esc(node.target.workspaceId)}"`;
-  }
+  if (node.target?.type === 'CALCULATION' && node.target.calculationId) return ` data-calc-id="${esc(node.target.calculationId)}"`;
+  if (node.target?.type === 'WORKSPACE' && node.target.workspaceId) return ` data-vibration-workspace-id="${esc(node.target.workspaceId)}"`;
   return '';
 }
 
@@ -28,8 +24,7 @@ function renderNode(node, activeCalculationId) {
 
 function scopeGroups(nodes) {
   const order = ['MAINLINE', 'BRANCH_ATTACHMENT', 'CROSS_BOUNDARY', 'CROSS_SCOPE'];
-  return order.map((scope) => ({ scope, nodes: nodes.filter((node) => node.scope === scope) }))
-    .filter((group) => group.nodes.length);
+  return order.map((scope) => ({ scope, nodes: nodes.filter((node) => node.scope === scope) })).filter((group) => group.nodes.length);
 }
 
 function scopeLabel(scope) {
@@ -41,13 +36,19 @@ function renderPhase(phase, activeCalculationId) {
   return `<section class="vibration-roadmap-phase" data-roadmap-phase="${esc(phase.id)}"><h3>${esc(phase.label)}</h3>${body}</section>`;
 }
 
+function projectTools(context) {
+  const lines = context?.projectLines ?? [];
+  const title = context?.projectTitle || 'No project loaded';
+  const linePicker = lines.length ? `<label>Line<select data-roadmap-line-select>${lines.map((line) => `<option value="${esc(line.lineId)}" ${line.lineId === context.lineId ? 'selected' : ''}>${esc(line.label)}</option>`).join('')}</select></label>` : '';
+  const message = context?.projectMessage ? `<div class="vibration-roadmap-message" data-kind="${esc(context.projectMessageKind ?? 'info')}">${esc(context.projectMessage)}</div>` : '';
+  return `<section class="vibration-roadmap-project"><div class="vibration-roadmap-project-title"><strong>${esc(title)}</strong><small>Project persistence only · imported results require registered rerun</small></div><div class="vibration-roadmap-project-actions"><button type="button" data-roadmap-action="import-eit">Import EI .eit</button><button type="button" data-roadmap-action="open-project">Open project</button><button type="button" data-roadmap-action="save-project" ${context?.projectId ? '' : 'disabled'}>Save project</button><input type="file" accept=".eit,application/json" data-roadmap-eit-file hidden><input type="file" accept=".vibproj,application/json" data-roadmap-project-file hidden></div>${linePicker}${message}</section>`;
+}
+
 export function renderVibrationRoadmapPanel(projection, { collapsed = false } = {}) {
-  if (projection?.schema !== 'VibrationRoadmapProjection.v1') {
-    throw new TypeError('Vibration roadmap panel requires VibrationRoadmapProjection.v1.');
-  }
+  if (projection?.schema !== 'VibrationRoadmapProjection.v1') throw new TypeError('Vibration roadmap panel requires VibrationRoadmapProjection.v1.');
   const activeCalculationId = projection.context?.calculationId ?? null;
   const collapsedClass = collapsed ? ' is-collapsed' : '';
-  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel><header><div><strong>Vibration Roadmap</strong><small>Guidance only · not an applicability or completion gate</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projection.phases.map((phase) => renderPhase(phase, activeCalculationId)).join('')}</div></aside>`;
+  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel><header><div><strong>Vibration Roadmap</strong><small>Guidance only · not an applicability or completion gate</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projectTools(projection.context)}${projection.phases.map((phase) => renderPhase(phase, activeCalculationId)).join('')}</div></aside>`;
 }
 
 export function mountVibrationRoadmapPanel(host, projection, options = {}) {
