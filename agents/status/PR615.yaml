@@ -3,34 +3,42 @@ state: IMPLEMENTING
 criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
-base_main_sha_at_final_stage3_reconciliation: 22b7b57fed3e78534da41342fc3240c8d27369c3
-stage3_pre_status_head: dcaaa2dbfdd1da559e11f2fff827d122f7bc7902
-branch_relation_at_pre_status_head: AHEAD_33_BEHIND_4
-main_drift: NON_OVERLAPPING_XML_CII_PREVIEW_ONLY_4_COMMITS_NO_REBASE_AT_HANDOVER
-mission: Generic multi-module EIT project persistence, typed engineering source identity, non-binding Phase x Scope x Specialty roadmap, and fail-closed mechanism-level reduction before EI main-line aggregation.
+stage4_start_main_sha: 22b7b57fed3e78534da41342fc3240c8d27369c3
+stage4_pre_head: 8900bb955aba680c21eaeee553dd07aeddff71be
+mission: Generic multi-module EIT project persistence, typed source custody, non-binding roadmap, fail-closed mechanism reduction/EI aggregation, and FIT natural-frequency provenance custody.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
-  live_grounding_stage3: PASS
-  final_main_drift_classification: PASS_NON_OVERLAPPING_XML_CII_ONLY
-  stage3_target_overlap: SAFE_NEW_RESULT_REDUCER_PATHS_AND_NO_OPEN_EI_AGGREGATION_CLAIM
-  shared_tab_overlap: COORDINATION_CONFLICT_PR506_NO_FURTHER_PR615_EDIT
-  mechanism_workspace_stack: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
-  backup_utility_stage1: PASS_EXACT_BLOB_64196d6e
-  stage3_existing_file_custody: PASS_EXACT_CONNECTOR_SOURCE_BACKUPS_NOT_NATIVE_CLI
+  stage4_live_grounding: PASS
+  stage4_scope_reconciliation: PASS_M5_GEOMETRY_SUPPORT_PROCESS_SCENARIO_ALREADY_LANDED_582_584_586_588
+  stage4_exact_claim_search: SAFE_NO_OPEN_EXACT_FREQUENCY_OR_FACILITY_FILE_CLAIM
+  stage4_test_first_commit: PASS_TEST_COMMITTED_BEFORE_PRODUCTION_REPAIR
+  stage4_existing_file_custody: PASS_EXACT_CONNECTOR_SOURCE_BACKUPS_NOT_NATIVE_CLI
+  stage4_frequency_direct: PASS_8_OF_8
+  stage4_plan_item_integration_harness: PASS_4_OF_4
+  stage4_protected_fit_method_blob: PASS_2965155fe1d4d9081b91d1ff1113d7fb50ddbfd8
+  stage4_protected_fit_applicability_blob: PASS_1bb9e1627948af74a00b964ea9048a77adc2c871
+  stage4_protected_fit_calculate_blob: PASS_2a92e6efedefffe4ab66ab000f0c3e648c9e5e86
+  stage4_size_guard: PASS_LINE_300_EMPTY_FOR_ALL_STAGE4_JS_AND_TEST
+  blocker_csv_provenance_path: PASS_EXISTING_SOURCE_REVISION_RECORD_STATUS_REVIEWER_COLUMNS
+  benchmark_compatibility: PASS_CURRENT_EI_UI_BENCHMARKS_DO_NOT_SUPPLY_NATURAL_FREQUENCY
   reconstructed_stage1: PASS_25_OF_25_ON_PRE_STAGE2_BYTES
-  source_identity_primary_reference: PASS_EI_2E_PUBLICATION_AND_T1_T13_TAXONOMY
   reconstructed_stage2_source_identity: PASS_10_OF_10
   reconstructed_stage3_reducer_result: PASS_8_OF_8
   reconstructed_stage3_aggregator: PASS_4_OF_4
-  stage3_size_guard: PASS_ALL_RELEVANT_JS_BELOW_300_LINES
-  final_reviews: ZERO
-  final_review_threads: ZERO
-  final_commit_statuses: ZERO_RETURNED_NOT_PASS
-  final_pr_workflow_runs: ZERO_RETURNED_NOT_PASS
-  repository_native_current_head: NOT_RUN_ENVIRONMENT_BLOCKED
-  matrix_consumer_current_head: NOT_RUN
+  repository_native_stage4: NOT_RUN_ENVIRONMENT_BLOCKED
+  existing_full_m5_suite: NOT_RUN
   full_vibration_release_suites: NOT_RUN
   browser: NOT_RUN
   independent_engineering_review: NOT_RUN
-exact_next_action: Re-ground active claims and controlled source evidence. Qualify one mechanism-specific multi-item reducer only if the governing method supports it; otherwise keep MANY fail-closed and proceed to the next unblocked engineering custody correction such as FIT span/process/multiphase/frequency custody. Reconcile the four unrelated main commits before any merge attempt.
+coordination:
+  shared_tab_overlap: PR506_NO_FURTHER_PR615_SHARED_TAB_EDIT
+  mechanism_workspaces: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
+  fit_adapter_console: PR539_PR540_EXACT_FILES_AVOIDED
+stage4_invariants:
+  - SUPPLIED_NATURAL_FREQUENCY_NE_CUSTODIED_NATURAL_FREQUENCY
+  - UNCUSTODIED_FREQUENCY_NEVER_ENTERS_REQUEST_INPUTS
+  - ABSENT_FREQUENCY_DOES_NOT_BLOCK_STANDARD_FIT
+  - INCOMPLETE_CASE_FREQUENCY_DOES_NOT_FALL_BACK_TO_GLOBAL
+  - FREQUENCY_CUSTODY_DOES_NOT_CREATE_NUMERICAL_OR_DESIGN_AUTHORITY
+exact_next_action: Re-ground live main and final PR head/base relation/reviews/checks after Stage4 records, update PR description, and keep draft/unmerged. Select any next implementation only from current unblocked gaps; do not invent multi-item reducers or frequency source-method taxonomy.
