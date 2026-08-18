@@ -37,40 +37,16 @@ function optionalQuantityEvidence(row, field, invalid) {
   return row;
 }
 
-function resolveNaturalFrequency(index, canonicalId, caseId, invalid) {
-  const caseSpecific = fitFacilityEnrichmentRow(
-    index,
-    canonicalId,
-    FIT_FACILITY_ENRICHMENT_PROPERTIES.NATURAL_FREQUENCY,
-    caseId,
-  );
-  if (caseSpecific) {
-    return {
-      row: optionalQuantityEvidence(caseSpecific, 'naturalFrequency', invalid),
-      selection: 'CASE_SPECIFIC',
-    };
-  }
-  const global = fitFacilityEnrichmentRow(
-    index,
-    canonicalId,
-    FIT_FACILITY_ENRICHMENT_PROPERTIES.NATURAL_FREQUENCY,
-  );
-  return {
-    row: optionalQuantityEvidence(global, 'naturalFrequency', invalid),
-    selection: global ? 'GLOBAL' : 'NOT_PRESENT',
-  };
-}
-
 function requestFromEvidence({
   process,
   outsideDiameter,
   wallThickness,
   insideDiameter,
   engineeringBasis,
-  naturalFrequency,
   qualificationMode,
 }) {
   const span = engineeringBasis.support.maximumSpanBetweenEffectiveSupports;
+  const naturalFrequency = engineeringBasis.frequency.resolved;
   const inputs = {
     outsideDiameter: outsideDiameter.value,
     wallThickness: wallThickness.value,
@@ -98,7 +74,7 @@ function requestFromEvidence({
   };
 }
 
-function geometryTrace(index, canonicalId, naturalFrequencyResolution, engineeringBasis) {
+function geometryTrace(index, canonicalId, engineeringBasis) {
   const property = FIT_FACILITY_ENRICHMENT_PROPERTIES;
   return {
     outsideDiameter: fitFacilityEnrichmentTrace(
@@ -115,10 +91,7 @@ function geometryTrace(index, canonicalId, naturalFrequencyResolution, engineeri
     legacyMaximumUnsupportedSpan: fitFacilityEnrichmentTrace(
       fitFacilityEnrichmentRow(index, canonicalId, property.MAX_UNSUPPORTED_SPAN),
     ),
-    naturalFrequency: fitFacilityEnrichmentTrace(
-      naturalFrequencyResolution.row,
-      naturalFrequencyResolution.selection,
-    ),
+    naturalFrequency: engineeringBasis.trace.frequencyCustody,
   };
 }
 
@@ -162,7 +135,6 @@ export function buildFitFacilityPlanItem(
     fitFacilityEnrichmentRow(index, point.canonicalId, property.INSIDE_DIAMETER),
     'insideDiameter', invalid,
   );
-  const naturalFrequency = resolveNaturalFrequency(index, point.canonicalId, operatingCase.caseId, invalid);
   const process = resolveFitFacilityProcessEvidence(
     operatingCase, index, point.canonicalId, operatingCase.caseId,
   );
@@ -199,7 +171,6 @@ export function buildFitFacilityPlanItem(
       wallThickness,
       insideDiameter,
       engineeringBasis,
-      naturalFrequency: naturalFrequency.row,
       qualificationMode,
     }) : null,
     engineeringBasis,
@@ -208,7 +179,8 @@ export function buildFitFacilityPlanItem(
       operatingCase: fitFacilityOperatingCaseTrace(operatingCase),
       process: process.trace,
       engineeringBasis: engineeringBasis.trace,
-      geometry: geometryTrace(index, point.canonicalId, naturalFrequency, engineeringBasis),
+      frequency: engineeringBasis.trace.frequencyCustody,
+      geometry: geometryTrace(index, point.canonicalId, engineeringBasis),
     }),
   };
 }

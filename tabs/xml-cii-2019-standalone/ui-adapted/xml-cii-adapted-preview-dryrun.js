@@ -5,6 +5,8 @@ import { applyPreviewBoreWallAuthority } from './xml-cii-adapted-preview-bore-wa
 import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-material-authority.js';
 import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js';
 import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.js';
+import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
+import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
@@ -45,11 +47,15 @@ function strictLineListConfig(config = {}) {
   };
 }
 
-function browserBranchFragments(xmlText) {
-  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return [];
+function browserBranchFragments(xmlText, sourceDocument = null) {
+  if (typeof XMLSerializer === 'undefined') return [];
   try {
-    const document = new DOMParser().parseFromString(String(xmlText ?? ''), 'application/xml');
-    if (document.getElementsByTagName('parsererror').length) return [];
+    const document = sourceDocument || (
+      typeof DOMParser === 'undefined'
+        ? null
+        : new DOMParser().parseFromString(String(xmlText ?? ''), 'application/xml')
+    );
+    if (!document || document.getElementsByTagName('parsererror').length) return [];
     const serializer = new XMLSerializer();
     return [...document.getElementsByTagName('Branch')].map((branch, index) => ({
       index,
@@ -116,7 +122,10 @@ export function buildStrictLineAuthorityCorePreview(
   const fragmentBuilder = typeof runtime.branchFragments === 'function'
     ? runtime.branchFragments
     : browserBranchFragments;
-  const coreResult = build(xmlText, config, stagedJsonText) || {};
+  const sourceDocument = runtime.sourceDocument || null;
+  const preparedLineList = preparePreviewLineListCoreConfig(sourceDocument, config);
+  const coreConfig = preparedLineList?.config || config;
+  const coreResult = build(xmlText, coreConfig, stagedJsonText, { sourceDocument }) || {};
   const branchRows = Array.isArray(coreResult.branchRows)
     ? coreResult.branchRows.map((row) => ({ ...row }))
     : [];
@@ -128,7 +137,7 @@ export function buildStrictLineAuthorityCorePreview(
     .filter((index) => index >= 0);
   if (!automaticIndexes.length) return { ...coreResult, branchRows, nodeRows };
 
-  const fragments = fragmentBuilder(xmlText) || [];
+  const fragments = fragmentBuilder(xmlText, sourceDocument) || [];
   const strictConfig = strictLineListConfig(config);
   for (const index of automaticIndexes) {
     const original = branchRows[index];
@@ -181,15 +190,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 }
 
 function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
-  const coreResult = buildStrictLineAuthorityCorePreview(xmlText, config, stagedJsonText);
+  const sourceDocument = getSourceDocumentContext(xmlText).document;
+  const coreResult = buildStrictLineAuthorityCorePreview(
+    xmlText, config, stagedJsonText, { sourceDocument },
+  );
   const wallResult = applyPreviewBoreWallAuthority({
-    xmlText,
-    config,
-    stagedJsonText,
-    result: coreResult,
+    xmlText, config, stagedJsonText, result: coreResult, sourceDocument,
   });
   const materialResult = applyPreviewMaterialCodeAuthority({ config, result: wallResult });
-  return applyPreviewRatingAuthority({ xmlText, config, stagedJsonText, result: materialResult });
+  return applyPreviewRatingAuthority({
+    xmlText, config, stagedJsonText, result: materialResult, sourceDocument,
+  });
 }
 
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
@@ -199,5 +210,9 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
     config,
     fullBuild: () => buildFullDryRunPreview(xmlText, config, stagedJsonText),
     rerankWeight: rerankPreviewNodeRows,
+    reapplyMaterial: (previousResult, nextConfig) => applyPreviewMaterialCodeAuthority({
+      config: nextConfig,
+      result: previousResult,
+    }),
   }).result;
 }

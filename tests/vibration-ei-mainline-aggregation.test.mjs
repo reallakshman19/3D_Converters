@@ -81,6 +81,7 @@ test('VIB-M4-001/002: policy freezes the governed #429 T2 set with deterministic
   assert.deepEqual(EI_MAIN_LINE_MECHANISM_IDS, MAIN_LINE_IDS);
   assert.ok(EI_MAIN_LINE_MECHANISM_IDS.every((id) => VIBRATION_MECHANISM_IDS.includes(id)));
   assert.equal(EI_MAIN_LINE_AGGREGATION_POLICY.fingerprint, eiMainLineAggregationPolicyFingerprint());
+  assert.equal(EI_MAIN_LINE_AGGREGATION_POLICY.aggregationRule, 'MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF');
   const changed = structuredClone(EI_MAIN_LINE_AGGREGATION_POLICY);
   changed.includedMechanismIds = changed.includedMechanismIds.slice(1);
   assert.notEqual(eiMainLineAggregationPolicyFingerprint(changed), EI_MAIN_LINE_AGGREGATION_POLICY.fingerprint);
@@ -89,7 +90,7 @@ test('VIB-M4-001/002: policy freezes the governed #429 T2 set with deterministic
   ]);
 });
 
-test('VIB-M4-003/004: caller cannot redefine the universe and missing T2 identification blocks a numeric LOF', () => {
+test('VIB-M4-003/004: caller cannot redefine policy/result authority and missing T2 identification blocks a numeric LOF', () => {
   assert.throws(
     () => evaluate({
       ids: [identification('fit', 'REQUIRED')],
@@ -97,6 +98,10 @@ test('VIB-M4-003/004: caller cannot redefine the universe and missing T2 identif
       extra: { mainLineMechanismIds: ['fit'] },
     }),
     /CALLER_MAINLINE_POLICY_OVERRIDE_FORBIDDEN/u,
+  );
+  assert.throws(
+    () => evaluate({ extra: { mechanismLineResults: [] } }),
+    /CALLER_MAINLINE_POLICY_OVERRIDE_FORBIDDEN:mechanismLineResults/u,
   );
   const result = evaluate({ ids: [identification('fit', 'REQUIRED')], sets: [assessmentSet('fit', 0.34)] });
   assert.equal(result.state, 'INCOMPLETE');
@@ -116,7 +121,7 @@ test('VIB-M4-005/006: unresolved is incomplete; all explicit N/A is NOT_APPLICAB
   assert.deepEqual(notApplicable.contributors, []);
 });
 
-test('VIB-M4-007/008: only complete qualified current contributors form the deterministic maximum', () => {
+test('VIB-M4-007/008: only qualified mechanism line results form the deterministic maximum', () => {
   const fitOnly = evaluate({
     ids: identifications({ required: ['fit'] }),
     sets: [assessmentSet('fit', 0.34)],
@@ -124,6 +129,9 @@ test('VIB-M4-007/008: only complete qualified current contributors form the dete
   assert.equal(fitOnly.state, 'COMPLETE');
   assert.equal(fitOnly.eiMainLineLof, 0.34);
   assert.equal(fitOnly.governingContributor.mechanismId, 'fit');
+  assert.equal(fitOnly.contributors.length, 1);
+  assert.deepEqual(fitOnly.contributors[0].sourceItemIds.length, 1);
+  assert.equal(fitOnly.mechanismLineResults[0].state, 'CURRENT_RESULT');
 
   const fitAndAiv = evaluate({
     ids: identifications({ required: ['fit', 'aiv'] }),
@@ -132,6 +140,8 @@ test('VIB-M4-007/008: only complete qualified current contributors form the dete
   assert.equal(fitAndAiv.state, 'COMPLETE');
   assert.equal(fitAndAiv.eiMainLineLof, 0.52);
   assert.equal(fitAndAiv.governingContributor.mechanismId, 'aiv');
+  assert.equal(fitAndAiv.contributors.length, 2);
+  assert.ok(fitAndAiv.contributors.every((item) => item.reduction.ruleId === 'IDENTITY_SINGLE_ASSESSMENT_UNIT'));
 });
 
 test('VIB-M4-009/010/011: stale, candidate and M3-pending mechanisms cannot contribute', () => {
@@ -141,6 +151,7 @@ test('VIB-M4-009/010/011: stale, candidate and M3-pending mechanisms cannot cont
   });
   assert.equal(stale.state, 'INCOMPLETE');
   assert.equal(stale.eiMainLineLof, null);
+  assert.equal(stale.mechanismLineResults[0].state, 'INCOMPLETE');
 
   const candidate = evaluate({
     ids: identifications({ required: ['mechanicalExcitation'] }),
@@ -159,7 +170,7 @@ test('VIB-M4-009/010/011: stale, candidate and M3-pending mechanisms cannot cont
   assert.ok(forgedScreening.reasons.includes('BENCHMARK_NOT_READY:mechanicalExcitation'));
 });
 
-test('VIB-M4-012/013: invalid LOFs fail closed and MANY qualified items contribute individually', () => {
+test('VIB-M4-012/013: invalid LOFs fail closed and MANY requires a qualified mechanism reducer', () => {
   for (const invalid of [undefined, Number.NaN, Number.POSITIVE_INFINITY, -0.1]) {
     const result = evaluate({
       ids: identifications({ required: ['fit'] }), sets: [assessmentSet('fit', invalid)],
@@ -172,9 +183,13 @@ test('VIB-M4-012/013: invalid LOFs fail closed and MANY qualified items contribu
     ids: identifications({ required: ['aiv'] }),
     sets: [assessmentSet('aiv', [0.21, 0.63, 0.47])],
   });
-  assert.equal(many.state, 'COMPLETE');
-  assert.equal(many.eiMainLineLof, 0.63);
-  assert.deepEqual(many.contributors.map((item) => item.lof), [0.21, 0.63, 0.47]);
+  assert.equal(many.state, 'INCOMPLETE');
+  assert.equal(many.eiMainLineLof, null);
+  assert.deepEqual(many.contributors, []);
+  assert.equal(many.mechanismLineResults.length, 1);
+  assert.equal(many.mechanismLineResults[0].state, 'INCOMPLETE');
+  assert.equal(many.mechanismLineResults[0].reduction.inputCardinality, 'MANY');
+  assert.ok(many.reasons.includes('MECHANISM_LINE_REDUCTION:aiv:MULTI_ITEM_REDUCTION_UNQUALIFIED:aiv'));
 });
 
 test('VIB-M4-014/015/016: excluded mechanism values cannot change EI main-line aggregation', () => {
@@ -217,6 +232,7 @@ test('VIB-M4-019/020/021: matrix exposes M4 separately without widening family/a
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
   assert.deepEqual(matrix.eiMainLineAggregation.authority, {
     authorityPromotion: false, contributorQualificationRequired: 'SCREENING',
+    mechanismLineResultRequired: true,
     designAuthority: false, codeCompliance: false,
     fullVibrationAssessmentComplete: false, productFreezeImplied: false,
   });

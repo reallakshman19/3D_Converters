@@ -30,11 +30,49 @@ for (const file of [
   const exportName = file.includes('bore-wall')
     ? 'applyPreviewBoreWallAuthority'
     : (file.includes('material') ? 'applyPreviewMaterialCodeAuthority' : 'applyPreviewRatingAuthority');
-  await writeFile(join(moduleDir, file), `export function ${exportName}({ result }) { return result; }\n`, 'utf8');
+  const extra = file.includes('rating')
+    ? 'export function rerankPreviewNodeRows(rows) { return rows; }\n'
+    : '';
+  await writeFile(join(moduleDir, file), `export function ${exportName}({ result }) { return result; }\n${extra}`, 'utf8');
 }
+await writeFile(join(moduleDir, 'xml-cii-adapted-preview-incremental.js'), `
+export function buildIncrementalPreview({ fullBuild }) { return { result: fullBuild() }; }
+`, 'utf8');
+await writeFile(join(moduleDir, 'xml-cii-adapted-source-derived-context.js'), `
+export function getSourceDocumentContext() { return { document: null }; }
+`, 'utf8');
+await writeFile(join(moduleDir, 'xml-cii-adapted-preview-line-index.js'), `
+export function preparePreviewLineListCoreConfig(sourceDocument, config) {
+  if (!sourceDocument?.__lineIndexTest) return { config, indexed: false };
+  return { config: { ...config, linelist: { ...(config.linelist || {}), masterRows: ['INDEXED_VIEW'] } }, indexed: true };
+}
+`, 'utf8');
 
 const strict = await import(pathToFileURL(join(tempRoot, sourcePath)).href);
 after(() => rm(tempRoot, { recursive: true, force: true }));
+
+test('first core build receives prepared lookup view while strict rebuild remains fail-closed', () => {
+  const calls = [];
+  const sourceDocument = { __lineIndexTest: true };
+  strict.buildStrictLineAuthorityCorePreview('<Plant/>', {
+    linelist: { masterRows: [{ lineKey: 'FULL_MASTER' }] },
+  }, '', {
+    sourceDocument,
+    buildCorePreview: (_xmlText, config) => {
+      calls.push(config.linelist.masterRows);
+      if (calls.length === 1) {
+        return {
+          branchRows: [{ branchName: '/X/B1', lineKeyMethod: 'similar-linekey' }],
+          nodeRows: [],
+        };
+      }
+      return { branchRows: [{ branchName: '/X/B1', lineKeyMethod: 'none' }], nodeRows: [] };
+    },
+    branchFragments: () => [{ xmlText: '<Root><Branch/></Root>' }],
+  });
+  assert.deepEqual(calls[0], ['INDEXED_VIEW']);
+  assert.deepEqual(calls[1], []);
+});
 
 test('automatic similar-linekey and similar-lineseq methods are rejected', () => {
   assert.equal(strict.isAutomaticLineNumberMatchMethod('similar-linekey'), true);

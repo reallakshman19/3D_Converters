@@ -9,9 +9,10 @@ import {
   fitFacilityEnrichmentRow,
   fitFacilityEnrichmentTrace,
 } from './fit-plan-context.js';
+import { resolveFitFacilityNaturalFrequencyCustody } from './fit-frequency-custody.js';
 import { resolveFitFacilityGeometryCustody } from './fit-geometry-custody.js';
 
-export const FIT_FACILITY_ENGINEERING_BASIS_SCHEMA = 'FitFacilityEngineeringBasis.v1';
+export const FIT_FACILITY_ENGINEERING_BASIS_SCHEMA = 'FitFacilityEngineeringBasis.v2';
 export {
   FIT_FACILITY_PROCESS_REFERENCE_BASES,
   FIT_FACILITY_SPAN_DETERMINATION_METHODS,
@@ -144,7 +145,7 @@ function supportEvidence(rows, missing, invalid, reasons) {
   return { spanDeterminationMethod: method, evidenceStatus: status };
 }
 
-function traces(rows, geometryCustody) {
+function traces(rows, geometryCustody, frequencyCustody) {
   return Object.freeze({
     ...Object.fromEntries(
       Object.entries(rows).map(([key, row]) => [
@@ -153,6 +154,7 @@ function traces(rows, geometryCustody) {
       ]),
     ),
     geometryCustody: geometryCustody.trace,
+    frequencyCustody: frequencyCustody.trace,
   });
 }
 
@@ -185,6 +187,10 @@ export function resolveFitFacilityEngineeringBasis({
     rows.operatingScenarioCoherent, 'operatingScenarioCoherent', missing, invalid, reasons,
     'OPERATING_SCENARIO_NOT_COHERENT',
   );
+  const frequency = resolveFitFacilityNaturalFrequencyCustody({ index, canonicalId, caseId });
+  missing.push(...frequency.missing);
+  invalid.push(...frequency.invalid);
+  reasons.push(...frequency.reasons);
   const uniqueMissing = [...new Set(missing)].sort();
   const uniqueInvalid = [...new Set(invalid)].sort();
   return deepFreeze({
@@ -200,11 +206,12 @@ export function resolveFitFacilityEngineeringBasis({
     },
     support: { maximumSpanBetweenEffectiveSupports: span, ...support },
     process: resolvedProcess,
+    frequency,
     scenario: { coherent: scenarioCoherent },
     missing: uniqueMissing,
     invalid: uniqueInvalid,
     reasons: [...new Set(reasons)],
-    trace: traces(rows, geometry),
+    trace: traces(rows, geometry, frequency),
     authority: BASIS_AUTHORITY,
   });
 }

@@ -112,16 +112,26 @@ export function rerankPreviewNodeRows(nodeRows, branchRows, config) {
   });
 }
 
-export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonText = '', result } = {}) {
-  const branchRows = Array.isArray(result?.branchRows) ? result.branchRows : [];
-  if (!branchRows.length || typeof DOMParser === 'undefined') return result || { branchRows: [], nodeRows: [] };
-  let document;
-  try {
-    document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
-    if (document.getElementsByTagName('parsererror').length) return result;
-  } catch {
-    return result;
+function ratingSourceDocument(xmlText, sourceDocument = null) {
+  if (sourceDocument) {
+    return sourceDocument.getElementsByTagName('parsererror').length ? null : sourceDocument;
   }
+  if (typeof DOMParser === 'undefined') return null;
+  try {
+    const document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
+    return document.getElementsByTagName('parsererror').length ? null : document;
+  } catch {
+    return null;
+  }
+}
+
+export function applyPreviewRatingAuthority({
+  xmlText, config = {}, stagedJsonText = '', result, sourceDocument = null,
+} = {}) {
+  const branchRows = Array.isArray(result?.branchRows) ? result.branchRows : [];
+  if (!branchRows.length) return result || { branchRows: [], nodeRows: [] };
+  const document = ratingSourceDocument(xmlText, sourceDocument);
+  if (!document) return result;
   const branches = [...document.getElementsByTagName('Branch')];
   const stagedIndex = buildStagedDtxrIndex(stagedJsonText || '', config);
   const pipingClassIndex = buildPipingClassIndex(config?.pipingClass?.masterRows || []);
