@@ -5,6 +5,7 @@ import {
 } from '../converters/vibration/aiv/aiv-flare-network-mutations.js';
 
 const RV_BRANCH_TARGET_KINDS = new Set(['JUNCTION', 'CONNECTION']);
+const RV_BRANCH_Y_OFFSETS = Object.freeze([0, 90, -90, 180, -180, 270, -270]);
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -49,6 +50,24 @@ function defaultPosition(network) {
   return { x: 110 + (index % 4) * 220, y: 100 + Math.floor(index / 4) * 130 };
 }
 
+function occupied(network, point, clearance = 70) {
+  return (network?.nodes ?? []).some((node) => (
+    Math.hypot(Number(node.presentation?.x) - point.x, Number(node.presentation?.y) - point.y) < clearance
+  ));
+}
+
+export function aivUnifiedCanvasRvBranchPosition(network, target) {
+  const x = Number(target?.presentation?.x) - 180;
+  const y = Number(target?.presentation?.y);
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    for (const offset of RV_BRANCH_Y_OFFSETS) {
+      const candidate = { x, y: y + offset };
+      if (!occupied(network, candidate)) return candidate;
+    }
+  }
+  return defaultPosition(network);
+}
+
 function requireRvBranchTarget(network, targetNodeId) {
   if (!targetNodeId) throw new TypeError('Quick RV branch requires a target junction or header node.');
   const target = network?.nodes?.find((node) => node.canonicalId === targetNodeId);
@@ -76,7 +95,7 @@ export function createAivUnifiedCanvasRvBranch(network, input = {}) {
     tag: canonicalId,
     line,
     sourceInput: { caseId, sourceDeviceType: 'RELIEF_VALVE' },
-    presentation: input.presentation ?? defaultPosition(network),
+    presentation: input.presentation ?? aivUnifiedCanvasRvBranchPosition(network, target),
   });
   return addAivFlareNetworkSegment(withNode, {
     segmentId,
