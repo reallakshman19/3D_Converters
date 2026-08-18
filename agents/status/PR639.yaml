@@ -17,5 +17,8 @@ handover_readiness: READY
 report_path: agents/PR639_workreport.md
 current_stage: HANDOVER
 blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+hosted_statuses: NOT_RUN_ZERO_RETURNED
+hosted_workflow_runs: NOT_RUN_ZERO_RETURNED
+review_threads: 0
 coordination_state: SAFE_GLOBAL_SOURCE_REGISTRY_EXCLUDED_DUE_PR635
 merge_authority: OWNER_ONLY_NOT_GRANTED
