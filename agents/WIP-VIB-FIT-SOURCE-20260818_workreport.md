@@ -11,57 +11,109 @@ REPOSITORY: reallaksh19/3D_Converters
 BRANCH: agent/vibration-fit-source-authority-20260818
 BASE: main
 BASE_HEAD: d9d14d13b089c968c989544ddbdf023063b43e67
-CURRENT_STAGE: IMPLEMENT
-CURRENT_BLOCKER: NONE
-HIGHEST_RISK: changing FIT numerical behavior while correcting provenance, or re-promoting authority already governed by the existing FIT qualification specification
-EXACT_NEXT_ACTION: align runtime provenance with the existing controlled EI T2.2 source basis while preserving every numerical formula, coefficient, applicability limit, tolerance and benchmark expected value
+CURRENT_STAGE: VALIDATE_RECONCILE
+CURRENT_BLOCKER: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+HIGHEST_RISK: changing FIT numerical behavior while correcting provenance, or confusing method-source authority with benchmark execution authority
+EXACT_NEXT_ACTION: allocate draft PR after exact base/file reconciliation; preserve all FIT numerical and applicability behavior
 ```
 
 ## Mission
 
-Correct FIT runtime/source provenance drift. The repository's governed FIT engineering specification already states that EI AVIFF 2nd Edition T2.2 is the governing method source and that the retained CRF-4-1 workbook is migration/parity evidence only. Runtime `calculateFit()` still publishes the workbook as its primary `provenance.source` and exposes `FIT_REFERENCE_AUTHORITY = WORKBOOK_REFERENCE_ONLY` as the result authority string.
+Correct FIT runtime/source provenance drift. The governed FIT specification already states that EI AVIFF 2nd Edition T2.2 is the governing method source and the retained CRF-4-1 workbook is migration/parity evidence only. This slice aligns runtime/result metadata to that existing qualification; it does not create new screening authority.
 
-This slice aligns code metadata to the already-qualified specification. It does not create new screening authority and does not alter the numerical kernel.
-
-## Existing governed source basis
-
-`docs/vibration/FIT-Engineering-Method-Specification-v1.md` controls method revision `ei-aviff2-fit-screening-v1` and records:
+## Controlled source chain now carried by runtime
 
 ```text
-Governing method: Energy Institute AVIFF 2nd Edition / T2.2 Flow Induced Turbulence
-Method repository: reallaksh19/Common
-Method PDF blob: 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
-Worked-example PDF blob: 3e2517d0df527a051084fc02e69cb7afa31f8d47
-Workbook role: migration/parity evidence only
-Screening authority: AUTHORIZED_BOUNDED
-designAuthority: false
+1. Governing method source
+   reallaksh19/Common @ fb549185b9b27edc2379734240320a85c5bef9f6
+   EI - AVIFF Guidelines 2nd Edition.pdf
+   blob 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
+   locator T2.2 Flow Induced Turbulence
+
+2. Governed implementation specification
+   docs/vibration/FIT-Engineering-Method-Specification-v1.md
+
+3. Published benchmark source
+   EI - AVIFF Guidelines 2nd Edition_Examples.pdf
+   blob 3e2517d0df527a051084fc02e69cb7afa31f8d47
+   Appendix D / D2 + D4
+
+4. Owner qualification anchor
+   Energy-Institute-AVIFF---Worked-Examples.doc.docx
+   blob ceee15ed5f7f320045d5f3979024e2e8664613f2
+
+5. Retained workbook
+   CRF-4-1 / FIT.xlsm
+   role MIGRATION_PARITY_EVIDENCE_ONLY
 ```
 
-`converters/vibration/fit/source-basis-evidence.js` independently records the same authority boundary and that official EI errata pages 61/68 are not applicable to FIT T2.2.
+Official EI errata custody remains explicit as `REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2`; no FIT correction is invented from the AIV/valve-transient errata pages.
 
-## Scope
+## Runtime semantics
 
-- make controlled EI method source identity explicit in runtime FIT metadata;
-- classify workbook reference explicitly as migration/parity corroboration;
-- make `calculateFit()` / Engineering Calculation adapter publish method source first and workbook separately;
-- align stale workbook-centric tests to the already-governed screening qualification;
-- add regression proving numerical functions/constants were not edited by this slice.
+- `FIT_REFERENCE_AUTHORITY = CONTROLLED_EI_T2_2_SCREENING_REFERENCE` for the domain method/result.
+- `FIT_WORKBOOK_REFERENCE_AUTHORITY = WORKBOOK_REFERENCE_ONLY` for retained workbook evidence.
+- `calculateFit().provenance.source` is now the governed EI source.
+- `calculateFit().provenance.workbookReference` is the retained migration/parity source.
+- Engineering Calculation screening mode carries `engineeringAuthority=SCREENING`.
+- Engineering Calculation benchmark mode uses the same EI method source but carries `engineeringAuthority=WORKBOOK_REFERENCE_ONLY`, `screeningAuthority=NOT_AUTHORIZED`.
+- `designAuthority=false` remains unchanged.
+
+## Numerical non-change evidence
+
+Exact compare against main currently shows production changes limited to metadata/provenance:
+
+```text
+method.js                            +15 / -1
+calculate.js                         +4 / -1
+index.js                             +3 / -0
+vibration-fit adapter                +11 / -3
+source-basis-evidence.js             +46 / -0
+```
+
+No correlation coefficient, span equation, FVF rule, LOF arithmetic, natural-frequency bound, diameter bound, multiphase resolver or benchmark expected value was intentionally changed. Dedicated regressions retain the existing representative gas and D4 numerical values.
+
+## Test changes
+
+- Added `vibration-fit-source-authority.test.mjs` for source precedence, errata custody, equation IDs and representative numerical invariance.
+- Added `vibration-fit-engineering-source-authority.test.mjs` proving screening/benchmark share the same method source and same numeric D4 output while retaining different execution authority.
+- Updated `vibration-fit-workbook-reference.test.mjs` only to remove the stale expectation that raw `calculateFit()` is benchmark-only; its existing numerical expected values are unchanged.
+
+## Known pre-existing test drift
+
+`tests/engineering-calculation-core.test.mjs` on current main still describes the FIT definition as the old benchmark-only workbook reference even though the current production adapter is already `ei-aviff2-fit-screening-v1 / SCREENING`. That file is not expanded into this focused provenance PR; its stale central-catalog assertions remain separate existing test debt.
+
+## Validation truth
+
+```text
+existing governed FIT specification             PASS / SOURCE_INSPECTION
+source-basis EI/workbook role agreement         PASS / SOURCE_INSPECTION
+runtime method-source precedence                PASS / SOURCE_INSPECTION
+benchmark execution remains non-authorizing     PASS / SOURCE_INSPECTION
+errata non-applicability retained               PASS / SOURCE_INSPECTION
+numerical source diff isolation                 PASS / COMPARE_INSPECTION
+representative numeric expected values unchanged PASS / TEST_ORACLE_INSPECTION
+branch relation                                  PASS / ahead 15 / behind 0
+repository-native FIT tests                      NOT_RUN
+repository-native Engineering API tests          NOT_RUN
+checkout attempt                                 NOT_RUN / ENVIRONMENT_BLOCKED / DNS
+browser FIT result/export journey                NOT_RUN
+```
 
 ## Exclusions
 
-- no FIT equations or correlations;
-- no coefficient/constants edits;
-- no diameter/span/frequency applicability edits;
+- no FIT equations/correlations or coefficients;
+- no diameter/span/frequency applicability changes;
 - no multiphase resolver changes;
-- no benchmark expected values or tolerances;
+- no benchmark expected values/tolerances;
 - no screening/design authority promotion;
-- no global vibration source-registry edit (PR635 currently owns that file);
+- no global vibration source-registry edit (PR635 owns that file);
 - no workflow changes;
 - no merge.
 
 ## Backup truth
 
-Native `node utils/backup.js save ...` is `NOT_RUN / ENVIRONMENT_BLOCKED` in this connector-only environment. Pre-edit main blobs are recorded before mutation:
+Native `node utils/backup.js save ...` is `NOT_RUN / ENVIRONMENT_BLOCKED`. Pre-edit main blobs:
 
 ```text
 converters/vibration/fit/method.js                              2965155fe1d4d9081b91d1ff1113d7fb50ddbfd8
