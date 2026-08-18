@@ -12,9 +12,11 @@ files:
     - tabs/vibration-aiv-result-view.js
     - engineering/workpacks/VIB-AIV.json
     - engineering/workpacks/probes/vib-aiv.mjs
+    - scripts/run-aiv-d23-product-path-validation.mjs
     - tests/vibration-aiv-line-aggregation.test.mjs
     - tests/vibration-aiv-screening-runtime-bridge.test.mjs
     - tests/vibration-aiv-post-discontinuity-evidence-gate.test.mjs
+    - tests/vibration-aiv-auto-product-path.test.mjs
     - agents/WIP-VIB-AIV-LINE-AGG-20260818_workreport.md
     - agents/status/WIP-VIB-AIV-LINE-AGG-20260818.yaml
     - agents/claims/WIP-VIB-AIV-LINE-AGG-20260818.yaml
