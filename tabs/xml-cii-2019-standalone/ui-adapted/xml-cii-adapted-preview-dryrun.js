@@ -3,7 +3,8 @@ export * from './xml-cii-adapted-preview-dryrun-core.js';
 import { xmlCiiDryRunPreview as buildCorePreview } from './xml-cii-adapted-preview-dryrun-core.js';
 import { applyPreviewBoreWallAuthority } from './xml-cii-adapted-preview-bore-wall-authority.js';
 import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-material-authority.js';
-import { applyPreviewRatingAuthority } from './xml-cii-adapted-preview-rating-authority.js';
+import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js';
+import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.js';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
@@ -179,7 +180,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     .catch((error) => console.error('Failed to install XML→CII effective-class shard hydrator:', error));
 }
 
-export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
+function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
   const coreResult = buildStrictLineAuthorityCorePreview(xmlText, config, stagedJsonText);
   const wallResult = applyPreviewBoreWallAuthority({
     xmlText,
@@ -187,14 +188,16 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
     stagedJsonText,
     result: coreResult,
   });
-  const materialResult = applyPreviewMaterialCodeAuthority({
-    config,
-    result: wallResult,
-  });
-  return applyPreviewRatingAuthority({
+  const materialResult = applyPreviewMaterialCodeAuthority({ config, result: wallResult });
+  return applyPreviewRatingAuthority({ xmlText, config, stagedJsonText, result: materialResult });
+}
+
+export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
+  return buildIncrementalPreview({
     xmlText,
-    config,
     stagedJsonText,
-    result: materialResult,
-  });
+    config,
+    fullBuild: () => buildFullDryRunPreview(xmlText, config, stagedJsonText),
+    rerankWeight: rerankPreviewNodeRows,
+  }).result;
 }
