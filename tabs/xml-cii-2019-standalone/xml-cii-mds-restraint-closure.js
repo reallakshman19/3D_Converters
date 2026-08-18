@@ -3,7 +3,10 @@ import {
   restraintEntriesFromSupportKind,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
-import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
+import {
+  buildStandaloneDtxrResolutionLedger,
+  standaloneDtxrBranchRelationship,
+} from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
 
 const CARRIER_TYPES = new Set(['ANCI', 'ATTA']);
@@ -52,10 +55,16 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
+function mdsSupportCode(member) {
+  const captured = safeObject(member?.capturedFields);
+  const attrs = memberAttributes(member);
+  return text(captured.MDSSUPPTYPE || attrs.MDSSUPPTYPE).toUpperCase();
+}
+
 function supportKindFromMember(member) {
   const captured = safeObject(member?.capturedFields);
   const attrs = memberAttributes(member);
-  const code = text(captured.MDSSUPPTYPE || attrs.MDSSUPPTYPE).toUpperCase();
+  const code = mdsSupportCode(member);
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
   if (code === 'PIPE-REST' || code.startsWith('AT')) return 'REST';
@@ -85,6 +94,81 @@ function evidenceByKind(record) {
   return result;
 }
 
+function planDistanceMm(left, right) {
+  if (!left || !right) return Number.POSITIVE_INFINITY;
+  return Math.hypot(Number(left.x) - Number(right.x), Number(left.y) - Number(right.y));
+}
+
+function hasPipeRestReference(record) {
+  return (Array.isArray(record?.positionMembers) ? record.positionMembers : [])
+    .some((member) => mdsSupportCode(member) === 'PIPE-REST');
+}
+
+function compoundMdsKinds(group) {
+  let hasAt = false;
+  const kinds = new Set();
+  for (const member of Array.isArray(group?.entries) ? group.entries : []) {
+    const code = mdsSupportCode(member);
+    if (code.startsWith('AT')) hasAt = true;
+    const kind = supportKindFromMember(member);
+    if (kind === 'GUIDE' || kind === 'LINESTOP') kinds.add(kind);
+  }
+  return { hasAt, kinds };
+}
+
+function planCompanionCandidates(record, groups, toleranceMm) {
+  if (!record?.matchedPosition || !hasPipeRestReference(record)) return [];
+  const candidates = [];
+  for (const group of Array.isArray(groups) ? groups : []) {
+    if (!group || group.id === record.groupId || !group.anchor) continue;
+    const relationship = standaloneDtxrBranchRelationship(record.xmlBranch, group.branch?.full || group.branch?.original || '');
+    if (!relationship.compatible) continue;
+    const planDistance = planDistanceMm(record.matchedPosition, group.anchor);
+    if (planDistance > toleranceMm) continue;
+    const verticalOffsetMm = Math.abs(Number(record.matchedPosition.z) - Number(group.anchor.z));
+    if (!Number.isFinite(verticalOffsetMm) || verticalOffsetMm <= toleranceMm) continue;
+    const signature = compoundMdsKinds(group);
+    if (!signature.hasAt || !signature.kinds.size) continue;
+    candidates.push({ group, relationship, planDistanceMm: planDistance, verticalOffsetMm, kinds: [...signature.kinds] });
+  }
+  candidates.sort((left, right) => right.relationship.score - left.relationship.score
+    || left.planDistanceMm - right.planDistanceMm
+    || left.verticalOffsetMm - right.verticalOffsetMm
+    || text(left.group.id).localeCompare(text(right.group.id)));
+  return candidates;
+}
+
+/**
+ * Recover only missing GUIDE/LINESTOP evidence from a vertically displaced MDS
+ * compound support whose plan coordinate is the same as an already resolved
+ * PIPE-REST reference. Exact 3D evidence always wins. Ambiguous same-plan
+ * compounds fail closed rather than borrowing a restraint from another level.
+ */
+export function resolveMdsPlanCompanion(record, groups, toleranceMm = 6) {
+  const candidates = planCompanionCandidates(record, groups, toleranceMm);
+  if (!candidates.length) return { status: 'NONE', candidate: null, candidates };
+  const bestScore = candidates[0].relationship.score;
+  const equallyScoped = candidates.filter((candidate) => candidate.relationship.score === bestScore);
+  if (equallyScoped.length !== 1) return { status: 'AMBIGUOUS', candidate: null, candidates };
+  return { status: 'RESOLVED', candidate: equallyScoped[0], candidates };
+}
+
+function governedEvidence(record, ledger, toleranceMm) {
+  const evidence = evidenceByKind(record);
+  if (!evidence.has('REST') || (evidence.has('GUIDE') && evidence.has('LINESTOP'))) {
+    return { evidence, companion: { status: 'NOT_REQUIRED', candidate: null, candidates: [] } };
+  }
+  const companion = resolveMdsPlanCompanion(record, ledger?.groups || [], toleranceMm);
+  if (companion.status !== 'RESOLVED') return { evidence, companion };
+  for (const member of companion.candidate.group.entries || []) {
+    const kind = supportKindFromMember(member);
+    if ((kind === 'GUIDE' || kind === 'LINESTOP') && !evidence.has(kind)) {
+      evidence.set(kind, memberAttributes(member));
+    }
+  }
+  return { evidence, companion };
+}
+
 function existingTypes(node) {
   return new Set(childrenByName(node, 'Restraint')
     .map((restraint) => normalizeXmlType(childText(restraint, 'Type')))
@@ -106,7 +190,7 @@ function appendGeneratedEntries(document, node, entries, config) {
   return generated.length;
 }
 
-function nodeDiagnostic(node, record, kinds, entries) {
+function nodeDiagnostic(node, record, kinds, entries, companion) {
   return {
     type: 'mds-position-restraints-materialized',
     nodeNumber: childText(node, 'NodeNumber'),
@@ -116,7 +200,13 @@ function nodeDiagnostic(node, record, kinds, entries) {
     matchType: record?.matchType || '',
     supportKinds: kinds,
     restraintTypes: entries.map((entry) => normalizeXmlType(entry?.type || entry)),
-    message: 'Missing governed restraints were appended from the matched DTXR_POS position-group MDSSUPPTYPE evidence.',
+    planCompanionStatus: companion?.status || '',
+    planCompanionGroupId: companion?.candidate?.group?.id || '',
+    planCompanionDistanceMm: companion?.candidate?.planDistanceMm ?? null,
+    planCompanionVerticalOffsetMm: companion?.candidate?.verticalOffsetMm ?? null,
+    message: companion?.status === 'RESOLVED'
+      ? 'Missing governed restraints were appended from the unique same-plan MDS compound companion of the resolved PIPE-REST reference.'
+      : 'Missing governed restraints were appended from the matched DTXR_POS position-group MDSSUPPTYPE evidence.',
   };
 }
 
@@ -127,6 +217,8 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     mdsRestRestraintsAdded: 0,
     mdsGuideRestraintsAdded: 0,
     mdsLineStopRestraintsAdded: 0,
+    mdsPlanCompanionGroupsUsed: 0,
+    mdsPlanCompanionAmbiguities: 0,
   };
   const diagnostics = [];
   const supportMapping = migrateSupportMappingConfig(config);
@@ -157,7 +249,18 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (!CARRIER_TYPES.has(componentType)) continue;
       const record = byIndex.get(xmlIndex);
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record);
+      const resolved = governedEvidence(record, ledger, Number(record.coordinateToleranceMm) || 6);
+      const evidence = resolved.evidence;
+      if (resolved.companion.status === 'AMBIGUOUS') {
+        stats.mdsPlanCompanionAmbiguities += 1;
+        diagnostics.push({
+          type: 'mds-plan-companion-ambiguous',
+          nodeNumber: childText(node, 'NodeNumber'),
+          nodeName: childText(node, 'NodeName'),
+          candidateGroupIds: resolved.companion.candidates.map((candidate) => candidate.group.id),
+          message: 'Same-plan MDS companion evidence was not applied because more than one equally scoped compound group matched.',
+        });
+      }
       if (!evidence.size) continue;
 
       const present = existingTypes(node);
@@ -182,7 +285,10 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (kinds.includes('REST')) stats.mdsRestRestraintsAdded += 1;
       if (kinds.includes('GUIDE')) stats.mdsGuideRestraintsAdded += 1;
       if (kinds.includes('LINESTOP')) stats.mdsLineStopRestraintsAdded += 1;
-      diagnostics.push(nodeDiagnostic(node, record, kinds, entries));
+      if (resolved.companion.status === 'RESOLVED' && kinds.some((kind) => kind === 'GUIDE' || kind === 'LINESTOP')) {
+        stats.mdsPlanCompanionGroupsUsed += 1;
+      }
+      diagnostics.push(nodeDiagnostic(node, record, kinds, entries, resolved.companion));
     }
   }
 
