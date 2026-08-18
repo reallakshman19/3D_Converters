@@ -1,5 +1,5 @@
 name: XML CII Browser Semantic Core Timing
-# Self-report both successful timing and infrastructure/test failure outcomes.
+# PR-trigger validation after workflow is established on default main.
 
 on:
   push:
