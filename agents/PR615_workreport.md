@@ -11,7 +11,7 @@
 - BASE_MAIN_SHA_AT_CURRENT_REGROUND: `1d9340248b11569f7c7c4f02ac429c7d8c66ff81`
 - BRANCH: `agent/vibration-eit-roadmap-20260818`
 - PR: #615
-- REPORT_BASIS_HEAD: `da4472e1577b2f1f7d7ef14011ebc5ed445e0796`
+- REPORT_BASIS_HEAD: `109fd6fe3a4d0d9c734ef7b6eb18e00d2e18089a`
 - MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
 
 ## Handover in 60 Seconds
@@ -310,7 +310,9 @@ Modified:
 
 - `converters/vibration/ei-mainline-aggregation.js`
 - `tests/vibration-ei-mainline-aggregation.test.mjs`
-- PR615 recovery/status/claim metadata
+- `agents/PR615_workreport.md`
+- `agents/status/PR615.yaml`
+- `agents/claims/PR615.yaml`
 
 Prior Stage-1/2 files remain as previously recorded.
 
