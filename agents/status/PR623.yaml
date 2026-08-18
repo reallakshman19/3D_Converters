@@ -1,0 +1,29 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+work_id: PR623
+branch: agent/hp-kd320-published-oracle-prefill
+base_pr: 622
+base_sha: ea3ca3281ee9f41beba664b99263ca1dbcc48756
+technical_head: 19cdb08b873d62a3ca4d6d6fe5f20e5d320205b2
+workstream: HP_KD320_QUALIFICATION
+stage: Q2_PUBLISHED_NUMERICAL_ORACLE_PREFILL
+criticality: ENGINEERING_CRITICAL
+state: HARD_BOUNDARY_REACHED
+coordination: STACKED_DEPENDENCY_PR622_NO_EXISTING_FILE_OVERLAP
+execution_mode: AUTO
+auto_state: HARD_BOUNDARY_REACHED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+validation:
+  syntax: PASS
+  focused_published_prefill: PASS_5_OF_5
+  candidate_byte_level_reexecution: NOT_CLAIMED_SEMANTIC_RECONSTRUCTION_USED
+  source_pdf_sha256: PENDING
+  controlled_2025_reconciliation: PENDING
+  independent_oracle_admission: PENDING
+authority:
+  q2_oracle_admission_ready: false
+  native_core_kd320: false
+  code_compliance: false
+  design_authority: false
+  production_kernel_allowed: false
+exact_next_action: Retain selected paper source bytes/SHA-256, reconcile against controlled VIII-3 2025, and admit only through PR622 Q2 verification.
