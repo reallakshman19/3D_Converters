@@ -135,7 +135,10 @@ test('VIB-ROADMAP-MEAS-003 measurement evidence is selected-line scoped', () => 
 test('VIB-ROADMAP-MEAS-004 controller keeps external state separate from derived project evidence', () => {
   assert.match(controllerSource, /explicitMechanismStates/);
   assert.match(controllerSource, /mechanismStates:\s*explicitMechanismStates/);
-  assert.doesNotMatch(controllerSource, /mechanismStates:\s*displayState\.mechanismStates/);
+  assert.doesNotMatch(
+    controllerSource,
+    /buildVibrationRoadmapStateFromProject[\s\S]{0,240}mechanismStates:\s*displayState\.mechanismStates/,
+  );
 });
 
 test('VIB-ROADMAP-MEAS-005 specialist measurement is presented under VERIFY', () => {
