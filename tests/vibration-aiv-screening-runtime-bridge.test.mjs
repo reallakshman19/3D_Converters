@@ -97,3 +97,21 @@ test('screening bridge fails closed on a null relationship record instead of der
       && /Source→Assessment record 1/u.test(error.message),
   );
 });
+
+test('screening bridge rejects stale inventory completeness evidence before calculation', () => {
+  const { envelope } = controlledMockReadiness();
+  const stale = Object.freeze({
+    schema: 'AivWeldedDiscontinuityInventoryAttestation.v1',
+    engineeringInputRevision: 4,
+  });
+  assert.throws(
+    () => buildAivEngineeringScreeningRequest({
+      readinessEnvelope: envelope,
+      assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+      inventoryCompletenessAttestations: [stale],
+      engineeringInputRevision: 5,
+    }),
+    (error) => error?.code === 'AIV_SCREENING_REQUEST_INVENTORY_EVIDENCE_STALE'
+      && /current engineering input revision/u.test(error.message),
+  );
+});
