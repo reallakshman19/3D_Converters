@@ -25,6 +25,7 @@ exclusions:
   - EI main-line aggregation
   - design or screening authority promotion
   - workflow files
-last_verified_head: a0d58bf9f7ea4ab60273d31e75156337c505b13d
+implementation_basis_head: 4a78a69536514b4c576263d558062287a7408bfb
+last_live_pr_head_observed: b9f34013c06e5ab6129e8755a89262f1accc36ee
 coordination_state: SAFE_TO_PROCEED_WITH_HISTORICAL_OVERLAP_RECORDED
 merge_authority: OWNER_ONLY_NOT_GRANTED
