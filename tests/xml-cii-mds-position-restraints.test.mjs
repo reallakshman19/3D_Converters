@@ -124,8 +124,8 @@ const STAGED = JSON.stringify([{
     children: [
       { type: 'REST', name: 'REST', attributes: { DTXR: 'REST', SPRE: '/MDS-Ancillaries/ANCI/PIPE-REST-80mm', MDSSUPPTYPE: 'PIPE-REST', NAME: '/SL-1847009.2.1' } },
       { type: '/MDS-Ancillaries/ANCI/AT503-80mm', attributes: { MDSSUPPTYPE: 'AT503', NAME: '/SL-1847009.1.1' } },
-      { type: '/MDS-Ancillaries/ANCI/GT500-80mm', attributes: { MDSSUPPTYPE: 'GT500', NAME: '/SL-1847009.1.2' } },
-      { type: '/MDS-Ancillaries/ANCI/ST501-80mm', attributes: { MDSSUPPTYPE: 'ST501', NAME: '/SL-1847009.1.3' } },
+      { type: '/MDS-Ancillaries/ANCI/GT500-80mm', attributes: { MDSSUPPTYPE: 'GT500', NAME: '/SL-1847009.1.2', CMPSUPGAP: 'GAP=10mm' } },
+      { type: '/MDS-Ancillaries/ANCI/ST501-80mm', attributes: { MDSSUPPTYPE: 'ST501', NAME: '/SL-1847009.1.3', CMPSUPGAP: 'GAP=35mm' } },
     ],
   }],
 }]);
@@ -137,20 +137,78 @@ const CONFIG = {
   resolverJsonTrace: { coordinateTolerance: 6 },
 };
 
-function restraintTypes(xmlText) {
+function restraints(xmlText) {
   const document = parseXml(xmlText);
-  return document.getElementsByTagName('Restraint')
-    .map((restraint) => restraint.children.find((child) => child.nodeName === 'Type')?.textContent || '');
+  return document.getElementsByTagName('Restraint').map((restraint) => Object.fromEntries(
+    restraint.children.map((child) => [child.nodeName, child.textContent]),
+  ));
 }
 
-test('Node 280 position group materializes +Y, GUI, and LIM without overwriting +Y', () => {
+function restraintTypes(xmlText) {
+  return restraints(xmlText).map((restraint) => restraint.Type || '');
+}
+
+test('Node 280 exact position group materializes +Y, GUI, and LIM without overwriting +Y', () => {
   const result = closeGovernedMdsPositionRestraintsXml(XML, STAGED, CONFIG);
   assert.equal(result.changed, true);
   assert.deepEqual(restraintTypes(result.xmlText), ['+Y', 'GUI', 'LIM']);
   assert.equal(result.stats.mdsGuideRestraintsAdded, 1);
   assert.equal(result.stats.mdsLineStopRestraintsAdded, 1);
   assert.equal(result.stats.mdsRestRestraintsAdded, 0);
+  assert.equal(result.stats.mdsPlanCompanionGroupsUsed, 0);
+  assert.equal(restraints(result.xmlText).find((row) => row.Type === 'GUI')?.Gap, '10');
+  assert.equal(restraints(result.xmlText).find((row) => row.Type === 'LIM')?.Gap, '35');
   assert.match(result.xmlText, /<Stiffness>1751270031350<\/Stiffness>/);
+});
+
+test('vertically displaced AT/GT/ST compound at the same plan coordinate supplies missing gaps to a PIPE-REST reference', () => {
+  const pipePoint = '854513.44 3934222.04 106100.00';
+  const basePoint = '854513.44 3934222.04 101100.00';
+  const xml = `<?xml version="1.0"?><CAESARII><Branch><Branchname>${BRANCH_ROOT}/B1</Branchname><Node><NodeNumber>140</NodeNumber><NodeName>SL-1847103.2.1</NodeName><ComponentType>ANCI</ComponentType><Position>${pipePoint}</Position><Restraint><Type>+Y</Type><Stiffness>1751270031350</Stiffness><Gap>0</Gap><Friction>0.3</Friction></Restraint></Node></Branch></CAESARII>`;
+  const staged = JSON.stringify([{
+    type: 'BRANCH', name: BRANCH_ROOT, children: [
+      { type: 'SUPPORT', attributes: { POS: { x: 854513.44, y: 3934222.04, z: 106100 }, DTXR: 'REST', MDSSUPPTYPE: 'PIPE-REST', NAME: '/SL-1847103.2.1' } },
+      { type: 'DTXR_POS', attributes: { POSI: basePoint }, children: [
+        { type: 'SUPPORT', attributes: { DTXR: 'REST', MDSSUPPTYPE: 'AT503', NAME: '/PS03568.1' } },
+        { type: 'SUPPORT', attributes: { MDSSUPPTYPE: 'ST501', NAME: '/PS03568.2', CMPSUPGAP: 'GAP=35mm' } },
+        { type: 'SUPPORT', attributes: { MDSSUPPTYPE: 'GT500', NAME: '/PS03568.3', CMPSUPGAP: 'GAP=10mm' } },
+      ] },
+    ],
+  }]);
+
+  const result = closeGovernedMdsPositionRestraintsXml(xml, staged, CONFIG);
+  assert.equal(result.changed, true);
+  assert.deepEqual(restraintTypes(result.xmlText), ['+Y', 'GUI', 'LIM']);
+  assert.equal(restraints(result.xmlText).find((row) => row.Type === 'GUI')?.Gap, '10');
+  assert.equal(restraints(result.xmlText).find((row) => row.Type === 'LIM')?.Gap, '35');
+  assert.equal(result.stats.mdsPlanCompanionGroupsUsed, 1);
+  assert.equal(result.stats.mdsPlanCompanionAmbiguities, 0);
+  assert.ok(result.diagnostics.some((row) => row.planCompanionVerticalOffsetMm === 5000));
+});
+
+test('same-plan companion matching fails closed when two equally scoped compounds are present', () => {
+  const pipePoint = '854513.44 3934222.04 106100.00';
+  const xml = `<?xml version="1.0"?><CAESARII><Branch><Branchname>${BRANCH_ROOT}/B1</Branchname><Node><NodeNumber>140</NodeNumber><NodeName>SL-1847103.2.1</NodeName><ComponentType>ANCI</ComponentType><Position>${pipePoint}</Position><Restraint><Type>+Y</Type><Stiffness>1751270031350</Stiffness><Gap>0</Gap><Friction>0.3</Friction></Restraint></Node></Branch></CAESARII>`;
+  const compound = (z, prefix, gap) => ({
+    type: 'DTXR_POS', attributes: { POS: { x: 854513.44, y: 3934222.04, z } }, children: [
+      { type: 'SUPPORT', attributes: { MDSSUPPTYPE: 'AT503', NAME: `/${prefix}.1` } },
+      { type: 'SUPPORT', attributes: { MDSSUPPTYPE: 'ST501', NAME: `/${prefix}.2`, CMPSUPGAP: `GAP=${gap}mm` } },
+    ],
+  });
+  const staged = JSON.stringify([{
+    type: 'BRANCH', name: BRANCH_ROOT, children: [
+      { type: 'SUPPORT', attributes: { POS: { x: 854513.44, y: 3934222.04, z: 106100 }, DTXR: 'REST', MDSSUPPTYPE: 'PIPE-REST', NAME: '/SL-1847103.2.1' } },
+      compound(101100, 'PS03568', 35),
+      compound(102100, 'PS09999', 20),
+    ],
+  }]);
+
+  const result = closeGovernedMdsPositionRestraintsXml(xml, staged, CONFIG);
+  assert.equal(result.changed, false);
+  assert.deepEqual(restraintTypes(result.xmlText), ['+Y']);
+  assert.equal(result.stats.mdsPlanCompanionGroupsUsed, 0);
+  assert.equal(result.stats.mdsPlanCompanionAmbiguities, 1);
+  assert.ok(result.diagnostics.some((row) => row.type === 'mds-plan-companion-ambiguous'));
 });
 
 test('MDS position restraint closure is idempotent', () => {
