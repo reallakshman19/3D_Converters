@@ -1,4 +1,4 @@
-# PR #615 Work Report — EIT Project, Source Custody, Dynamic Roadmap, Mechanism Reduction
+# PR #615 Work Report — Current Recovery Authority
 
 ## Recovery Header
 
@@ -8,104 +8,103 @@
 - CRITICALITY: ENGINEERING_CRITICAL
 - EXECUTION_MODE: MANUAL
 - BASE_BRANCH: `main`
-- BASE_MAIN_SHA_AT_CURRENT_REGROUND: `1d9340248b11569f7c7c4f02ac429c7d8c66ff81`
+- LIVE_MAIN_AT_FINAL_STAGE3_RECONCILIATION: `22b7b57fed3e78534da41342fc3240c8d27369c3`
 - BRANCH: `agent/vibration-eit-roadmap-20260818`
 - PR: #615
-- REPORT_BASIS_HEAD: `109fd6fe3a4d0d9c734ef7b6eb18e00d2e18089a`
+- REPORT_BASIS_HEAD: `477dd1b51f5eeeb6e35a501f3b1844d9e767e051`
+- PRE_STATUS_STAGE3_HEAD: `dcaaa2dbfdd1da559e11f2fff827d122f7bc7902`
+- BRANCH_RELATION_AT_PRE_STATUS_HEAD: ahead 33 / behind 4
 - MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
 
 ## Handover in 60 Seconds
 
-PR615 now contains five connected layers:
+PR615 now contains this governed stack:
 
 ```text
 EnergyInstituteEit.v5 compatibility import
   -> VibrationIntegrityProject.v1 (.vibproj)
   -> EngineeringMethodSource.v1
   -> VibrationRoadmapProjection.v1 / right-side navigator
-  -> MechanismNumericResult.v1 / MechanismLineResult.v1
+  -> MechanismNumericResult.v1
+  -> MechanismLineResult.v1
   -> EiMainLineAggregation.v2
 ```
 
-Authority boundaries remain separated:
+Stage 3 fixed the common aggregation defect: assessment-unit LOFs no longer enter the EI cross-mechanism maximum directly. Each required mechanism must first produce one qualified `MechanismLineResult.v1`.
 
-- `.eit` import = compatibility/history, not current result authority;
-- `.vibproj` = persistence only;
-- source registry = source identity/locator custody only;
-- roadmap = visual navigation only;
-- mechanism reducer = reduction custody only;
-- EI aggregation = governed main-line aggregation only, no design/code/Product Freeze authority.
-
-The Stage-3 correction removes direct assessment-item LOFs from EI cross-mechanism aggregation. One mechanism can now supply at most one qualified `MechanismLineResult.v1` contributor.
-
-## Live Ground Truth / Coordination
-
-Stage-3 start:
+Permanent invariant:
 
 ```text
-main                 1d9340248b11569f7c7c4f02ac429c7d8c66ff81
-PR615 pre-stage head 9fc31bd2a61c259264bf4bd87ce14dfe5fee66e1
+ASSESSMENT_UNIT_LOF != MECHANISM_LINE_LOF
+one mechanism -> at most one EI main-line contributor
 ```
 
-Coordination:
+## Final Main Drift Reconciliation
 
-- PR #571 owns coverage/identification contracts and explicitly excludes EI aggregation.
-- no open PR was found for `ei-mainline-aggregation.js`.
+`main` advanced during Stage 3 from `1d934024...` to `22b7b57f...` by four commits.
+
+The complete drift comparison contains XML→CII Preview/config/test and associated backup/recovery files only. No vibration, mechanism-result, roadmap, project, source-custody, or EI aggregation path overlaps PR615.
+
+Classification:
+
+```text
+NON_OVERLAPPING_BASE_DRIFT
+```
+
+PR615 was deliberately not rebased at this handover; importing unrelated XML work into the engineering-critical stack provides no Stage-3 validation benefit. Reconcile/rebase the four commits before any merge attempt.
+
+## Coordination / Active Claims
+
+- PR #571 owns mechanism coverage/identification contracts and explicitly excludes EI aggregation.
+- no open PR was found for `ei-mainline-aggregation.js` at Stage-3 start.
 - no open PR was found for `MechanismLineResult` other than PR615.
 - PR #479 owns `tabs/vibration-integrity-tab.js`.
-- PR #506 owns `tabs/engineering-calculations-tab.js`, AIV workspace/runtime.
+- PR #506 owns `tabs/engineering-calculations-tab.js` plus AIV workspace/runtime.
 - PR #508 owns `tabs/vibration-integrity-mechanisms.js` and SBC facility/view paths.
 
-Stage 3 therefore avoided all active mechanism-workspace claims and did not edit `mechanisms/contracts.js`.
+Stage 3 did not edit through those mechanism-workspace claims and did not modify `converters/vibration/mechanisms/contracts.js`.
 
 ## Stage 1 — EIT / Project / Roadmap
 
 Implemented:
 
 - generic `EnergyInstituteEit.v5` import for `fit/fip/mex/aiv/sbc/thw/tra/caf`;
-- declaration/result/detail preservation independent of `lines[].modules`;
-- malformed/unknown payload retention;
+- declaration/result/detail preservation independent of legacy module token;
+- malformed/unknown compatibility payload retention;
 - imported numerical values remain `HISTORICAL_REVIEW_REQUIRED`;
-- `VibrationIntegrityProject.v1` with transactional `.eit -> project` load;
-- `.vibproj` deterministic Open/Save;
-- persisted current-result authority is rejected in V1;
-- right-side Phase × Scope × Specialty roadmap;
-- project line selection;
-- roadmap/project events remain non-authoritative orchestration channels.
+- persistence-only `VibrationIntegrityProject.v1` and `.vibproj`;
+- transactional `.eit -> project` load;
+- deterministic project Open/Save and line selection;
+- persisted current-result authority rejected in V1;
+- non-binding Phase × Scope × Specialty right-side roadmap;
+- project/roadmap events remain orchestration/presentation only.
 
-## Stage 2 — Source Identity
+## Stage 2 — Source Custody
 
-Added:
-
-- `EngineeringMethodSource.v1`;
-- typed `technicalModule / sectionId / flowchartId / equationId / tableId / figureId / printedPage / pdfPage`;
-- EI 2nd-edition publication identity and T1-T13 technical-module custody;
-- current repository T2 subsection labels remain `RECONCILIATION_REQUIRED`;
-- thermowell EI-T4 vs `ASME PTC 19.3 TW-2016` remains `CONFLICTED`;
-- roadmap source states visible but non-binding.
-
-No dotted `T2.x` section is silently converted into a `T2-x` flowchart identity.
-
-## Stage 3 — Mechanism Result Reduction
-
-### Defect
-
-Pre-Stage3 `ei-mainline-aggregation.js` looped over every required assessment-set item and directly promoted each `item.result.governingLof` to an EI contributor.
-
-That made this possible without a mechanism reducer:
+Added `EngineeringMethodSource.v1` and vibration source registry with separate:
 
 ```text
-AIV pair LOF[] -> global EI max()
+technicalModule
+sectionId
+flowchartId
+equationId
+tableId
+figureId
+printedPage
+pdfPage
 ```
 
-### New contracts
+EI 2nd-edition publication/T1-T13 module identity is retained separately from repository-only T2 subsection labels. Repository labels remain `RECONCILIATION_REQUIRED`; dotted section IDs are not silently promoted to flowchart IDs. Thermowell EI T4 vs current ASME identity remains `CONFLICTED`.
+
+Roadmap source state is visible but cannot determine applicability, result, completeness, screening authority, or design authority.
+
+## Stage 3 — Mechanism-Level Reduction
+
+### `MechanismNumericResult.v1`
 
 `converters/vibration/mechanisms/result-contracts.js`
 
-- `MechanismNumericResult.v1`
-- `MechanismLineResult.v1`
-
-`MechanismNumericResult.v1` retains observed LOF and source states but requires all of the following for aggregation eligibility:
+Aggregation eligibility requires:
 
 ```text
 IMPLEMENTED_SCREENING
@@ -115,151 +114,153 @@ resultState = CURRENT_RESULT
 finite governingLof >= 0
 ```
 
-Stale/candidate/invalid values remain auditable but are ineligible.
+Observed stale/candidate/invalid LOF remains auditable but cannot contribute.
 
-`MechanismLineResult.v1` can carry a numeric governing LOF only when `state=CURRENT_RESULT`, `aggregationEligible=true`, and no blocking reduction reason exists.
+### `MechanismLineResult.v1`
 
-### Reducer registry
+One result per mechanism + exact line/case/canonical scope. `CURRENT_RESULT` requires a valid numeric LOF, aggregation eligibility, and no blocking reduction reason. `INCOMPLETE` cannot carry a governing LOF.
+
+### Reducer custody
 
 `converters/vibration/mechanisms/reducers.js`
 
-`VibrationMechanismReducerRegistry.v1` explicitly registers the known mechanism universe.
-
-Current V1 policy:
+`VibrationMechanismReducerRegistry.v1` currently allows:
 
 ```text
 ONE  -> IDENTITY_SINGLE_ASSESSMENT_UNIT / STRUCTURAL_IDENTITY_ONLY
 ZERO -> INCOMPLETE
-MANY -> INCOMPLETE / no qualified multi-item rule
+MANY -> INCOMPLETE
 ```
 
-All current `multiItemRule` values are `null`.
-
-Permanent invariant:
+All multi-item rules are intentionally `null`:
 
 ```text
-ASSESSMENT_UNIT_LOF != MECHANISM_LINE_LOF
+universalMultiItemReducer = false
+multiItemReductionQualified = false
 ```
 
-### EI aggregation v2
+No AIV/deadleg/etc. max rule has been inferred.
+
+### `EiMainLineAggregation.v2`
 
 `converters/vibration/ei-mainline-aggregation.js`
 
-Now:
-
 ```text
-EiMainLineAggregation.v2
-EiMainLineAggregationPolicy.v2
-revision = EI-AVIFF2-MAINLINE-2026-08-18
-aggregationRule = MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF
+schema            = EiMainLineAggregation.v2
+policy schema     = EiMainLineAggregationPolicy.v2
+policy revision   = EI-AVIFF2-MAINLINE-2026-08-18
+aggregation rule  = MAX_APPLICABLE_QUALIFIED_MECHANISM_LINE_LOF
 ```
 
-Reducer-registry revision/fingerprint is included in the policy fingerprint.
+Reducer-registry revision/fingerprint is part of policy identity.
 
 Flow:
 
 ```text
-T1 / coverage / completeness
-  -> M3 benchmark readiness
-  -> assessment set
+T1 identification / coverage / completeness
+  -> benchmark readiness
+  -> governed assessment set
   -> MechanismLineResult.v1
-  -> one contributor per required mechanism
-  -> governed EI cross-mechanism maximum
+  -> one qualified contributor per mechanism
+  -> EI cross-mechanism maximum
 ```
 
-Caller-provided `mechanismLineResults`, reducer registries, and reducer overrides are rejected to avoid a second authority store.
+Caller-supplied `mechanismLineResults`, reducer registries, and reducer overrides are forbidden in this slice.
 
-Output contains `mechanismLineResults` for auditability.
+Audit output includes mechanism line results and reduction provenance.
 
-### Main changed falsifier
+## Primary Falsifier
 
-Old regression:
+Old behavior:
 
 ```text
-AIV [0.21, 0.63, 0.47] -> COMPLETE / 0.63
+AIV assessment pairs [0.21, 0.63, 0.47]
+  -> three EI contributors
+  -> COMPLETE / 0.63
 ```
 
-New required behavior without a qualified AIV multi-item reducer:
+Required Stage-3 behavior without a qualified AIV multi-item rule:
 
 ```text
-state         = INCOMPLETE
-eiMainLineLof = null
-contributors  = []
-reason        = MECHANISM_LINE_REDUCTION:aiv:MULTI_ITEM_REDUCTION_UNQUALIFIED:aiv
+MechanismLineResult.state = INCOMPLETE
+governingLof              = null
+EI state                   = INCOMPLETE
+eiMainLineLof              = null
+contributors               = []
+reason = MECHANISM_LINE_REDUCTION:aiv:MULTI_ITEM_REDUCTION_UNQUALIFIED:aiv
 ```
 
-One-item FIT and one-item AIV still pass by identity; cross-mechanism max still applies after mechanism-level reduction.
+Single-item FIT/AIV remain identity-reducible; the cross-mechanism maximum is unchanged after qualified mechanism-level results exist.
 
-## Authority Boundary / Negative Assurance
+## Authority / Negative Assurance
 
-Stage 3 does **not** change:
+Stage 3 does not change:
 
-- EI equations/correlations/coefficients;
-- T1 applicability logic;
-- benchmark values or tolerances;
+- EI equations, coefficients, or thresholds;
+- T1 applicability;
+- benchmark oracle values/tolerances;
 - FIT/AIV/SBC numerical calculators;
 - active mechanism workspace files;
-- `converters/vibration/mechanisms/contracts.js`;
+- `mechanisms/contracts.js`;
 - design/code authority;
 - Product Freeze;
 - generic multi-module `.eit` export;
 - workflow files.
 
-Authority remains:
+Authority:
 
 ```text
-mechanism reducer authority = REDUCTION_CUSTODY_ONLY
-EI aggregate authority       = no promotion / Screening contributors only
-designAuthority              = false
-codeCompliance               = false
-fullVibrationAssessment      = false
-productFreezeImplied         = false
+project                    = PERSISTENCE_ONLY
+roadmap                    = VISUAL_NAVIGATION_GUIDANCE_ONLY
+source registry            = SOURCE_IDENTITY_ONLY
+mechanism reducer          = REDUCTION_CUSTODY_ONLY
+EI aggregate promotion     = false
+designAuthority            = false
+codeCompliance             = false
+fullVibrationAssessment    = false
+productFreezeImplied       = false
 ```
 
-## Backup Evidence
+## Backup Custody
 
-Historical Stage-1 shared-tab pre-edit blob:
+Historical Stage-1 shared-tab backup:
 
 ```text
 .backups/1_tabs_engineering_calculations_tab_js.bak
 ```
 
-Stage-3 exact pre-edit connector-source custody:
+Stage-3 exact connector-source pre-edit custody:
 
 ```text
 .backups/connector-20260818-pr615-stage3/converters/vibration/ei-mainline-aggregation.js
 .backups/connector-20260818-pr615-stage3/tests/vibration-ei-mainline-aggregation.test.mjs
 ```
 
-Native backup CLI was not claimed for Stage 3 because no native checkout/network is available.
+Native backup CLI is not claimed for Stage 3 because no native checkout/network was available.
 
 ## Validation Ledger
 
-### Historical Stage-1 gate
+Historical Stage 1:
 
 ```text
-PASS 25/25 on corresponding pre-Stage2 reconstructed surface
+PASS 25/25 on its corresponding pre-Stage2 reconstructed surface
 ```
 
-### Stage-2 source-identity gate
+Stage 2:
 
 ```text
-PASS 10/10 on reconstructed exact source/roadmap/panel surface
+PASS 10/10 source-identity focused gate
 ```
 
-### Stage-3 reducer contract gate
+Stage 3 reducer/result:
 
 ```text
-node --check result-contracts.js                  PASS
-node --check reducers.js                         PASS
-focused reducer/result harness                   PASS 8/8
+node --check result-contracts.js     PASS
+node --check reducers.js             PASS
+focused result/reducer cases         PASS 8/8
 ```
 
-Falsifiers include single identity, stale, candidate, invalid LOF, AIV MANY, ZERO, no universal multi reducer, malformed/mismatched evidence.
-
-### Stage-3 aggregator harness
-
-Controlled dependency harness using the Stage-3 reducer/result code:
+Stage 3 aggregation controlled-dependency harness:
 
 ```text
 FIT one-item identity                 PASS
@@ -269,34 +270,40 @@ caller line-result override rejected  PASS
 TOTAL                                 PASS 4/4
 ```
 
-Evidence classification:
+Evidence:
 
 ```text
 STATUS      PASS
 OBSERVATION LOCAL_EXECUTION / reconstructed focused surfaces
-ORACLE      IMPLEMENTATION_COUPLED with independent falsifier expectations
+ORACLE      IMPLEMENTATION_COUPLED with explicit independent falsifier expectations
 ```
 
-Source inspection confirms current aggregation collects `lineResult.governingLof`; it no longer contains the direct per-item contributor loop.
+Source/size inspection:
 
-Size checks:
-
+- current aggregator uses `lineResult.governingLof`, not a direct item contributor loop;
 - aggregator `<295` physical lines;
 - result contracts `<300`;
 - reducers `<300`;
-- focused Stage-3 test `<300`.
+- Stage-3 focused test `<300`.
 
-### Truthful remaining gates
+Final hosted state at pre-status head:
 
-- repository-native current-head M4 regression: `NOT_RUN / ENVIRONMENT_BLOCKED`;
-- matrix consumer current-head execution: `NOT_RUN`;
-- full vibration/FIT/AIV/SBC suites: `NOT_RUN`;
-- served browser: `NOT_RUN`;
-- independent engineering review: `NOT_RUN`.
+```text
+reviews             0
+review threads      0
+commit statuses     0 returned -> NOT PASS
+PR workflow runs    0 returned -> NOT PASS
+```
 
-No missing status/workflow is treated as PASS.
+Still `NOT_RUN`:
 
-## Changed-File Ledger — Stage 3
+- repository-native current-head M4 test;
+- matrix current-head consumer;
+- full Vibration/FIT/AIV/SBC suites;
+- served browser;
+- independent engineering review.
+
+## Stage-3 Changed Files
 
 New:
 
@@ -304,7 +311,8 @@ New:
 - `converters/vibration/mechanisms/result-contracts.js`
 - `converters/vibration/mechanisms/reducers.js`
 - `tests/vibration-mechanism-line-result.test.mjs`
-- Stage-3 backup files listed above
+- `.backups/connector-20260818-pr615-stage3/converters/vibration/ei-mainline-aggregation.js`
+- `.backups/connector-20260818-pr615-stage3/tests/vibration-ei-mainline-aggregation.test.mjs`
 
 Modified:
 
@@ -314,26 +322,25 @@ Modified:
 - `agents/status/PR615.yaml`
 - `agents/claims/PR615.yaml`
 
-Prior Stage-1/2 files remain as previously recorded.
-
 ## Decisions / Risks / Debt
 
 - DEC-615-09: assessment-unit LOF cannot directly become EI aggregate input.
-- DEC-615-10: single-item identity is permitted because it is not a cross-unit engineering reduction.
-- DEC-615-11: no universal multi-item reducer; MANY fails closed until mechanism-specific method evidence is qualified.
+- DEC-615-10: single-item identity is allowed because no cross-unit engineering reduction occurs.
+- DEC-615-11: no universal multi-item reducer; MANY remains fail-closed until method-qualified.
 - DEC-615-12: EI policy fingerprint includes reducer custody.
-- RISK-615-01: repository-native current-head M4/matrix regression remains unexecuted.
-- RISK-615-02: AIV/deadleg actual multi-item reduction semantics remain unresolved and must not be guessed.
-- RISK-615-03: PR506 shared-tab overlap from Stage 1 remains; no further shared-tab mutation permitted without reconciliation.
-- DEBT-615-01: mechanism workspaces still do not consume project context due active claims.
-- DEBT-615-02: controlled multi-item reducer qualification is outstanding.
-- DEBT-615-03: FIT span/process/multiphase/frequency custody remains outstanding.
-- DEBT-615-04: generic multi-module `.eit` export remains deferred.
+- RISK-615-01: repository-native current-head M4/matrix regression not run.
+- RISK-615-02: AIV/deadleg multi-item semantics unresolved; guessing is prohibited.
+- RISK-615-03: PR506 shared-tab overlap from Stage 1 remains.
+- RISK-615-04: branch is behind four non-overlapping XML→CII commits; reconcile before merge.
+- DEBT-615-01: mechanism workspace project-context consumption remains blocked by active claims.
+- DEBT-615-02: mechanism-specific multi-item reducer qualification outstanding.
+- DEBT-615-03: FIT span/support/process/multiphase/frequency custody outstanding.
+- DEBT-615-04: generic multi-module `.eit` export deferred.
 
 ## Appendix A
 
-`NOT_REQUIRED_FOR_CONTINUATION` — same active agent and same PR, not a takeover. Any future takeover must re-ground and satisfy the Engineering PR Delivery qualification gate.
+`NOT_REQUIRED_FOR_CONTINUATION` — same active agent and same PR. Any future takeover must re-ground and pass the Engineering PR Delivery qualification gate.
 
 ## EXACT_NEXT_ACTION
 
-Re-ground active claims and source evidence. Do **not** invent AIV/deadleg multi-item reduction. If controlled source evidence is sufficient, qualify one mechanism-specific reducer in isolation. Otherwise proceed to the next unblocked common engineering correction, preferably FIT physical/process custody, while leaving unresolved multi-item mechanisms fail closed. Keep PR615 draft/unmerged unless the Owner explicitly authorizes merge.
+Re-ground main/claims/source evidence. Do not invent AIV/deadleg multi-item rules. If controlled method evidence explicitly defines a mechanism-specific reduction, qualify one mechanism in isolation. Otherwise keep `MANY` fail-closed and proceed to the next unblocked engineering custody stack, preferably FIT span/support/process/multiphase/frequency evidence. Reconcile the four unrelated `main` commits before any merge attempt. Keep PR615 draft/unmerged unless the Owner explicitly authorizes merge.
