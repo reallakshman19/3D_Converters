@@ -1,0 +1,22 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR634
+mission: Establish verifiable AIV welded-discontinuity inventory completeness evidence without promoting line screening authority.
+workstream: VIBRATION_AIV_INVENTORY_COMPLETENESS
+branch: agent/vibration-aiv-inventory-completeness-20260818
+stack_base_pr: 631
+stack_base_head: db4920173980ab60f05fa63a1ea139aa43a2de1a
+main_head_last_checked: 3a26d25902ef8d6f304422cba507f2500dfa61a1
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR634_workreport.md
+report_head: 540599b04ab184f40179791d94d898dd1cc3a948
+current_stage: VALIDATE_RECONCILE
+blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+highest_risk: Topology membership alone cannot prove omitted physical welded discontinuities do not exist; exact-revision human attestation remains mandatory.
+exact_next_action: Reconcile exact PR head/files/checks/reviews and keep PR634 draft.
+coordination_state: STACKED_ON_PR631_SAFE_FOLLOW_ON
+merge_authority: OWNER_ONLY_NOT_GRANTED
