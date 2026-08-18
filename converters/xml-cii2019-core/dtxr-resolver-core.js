@@ -8,7 +8,9 @@ import {
   readSourceField,
   resolveCoordinateAlignment,
   shouldAutoCalibrateCoordinates,
-  sourceRelationshipRoots,
+  sourceAuthorityPolicy,
+  sourceRelationshipEvidence,
+  sourceSchemaEnabled,
   sourceSupportIdentities,
   supportIdentityRoot,
   supportIdentityVariants,
@@ -47,6 +49,18 @@ function addOwner(map, owner, item) {
   }
 }
 
+function uniqueItems(items = []) {
+  const out = [];
+  const seen = new Set();
+  for (const item of items) {
+    const key = item?._path || item;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 function xmlChildrenByName(parent, localName) {
   return [...(parent?.childNodes || [])].filter((child) => child.nodeType === 1 && String(child.localName || child.nodeName).replace(/^.*:/, '') === localName);
 }
@@ -56,10 +70,12 @@ function xmlText(parent, localName) {
 }
 
 export function normalizeSupportTag(value, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.normalizeSupportTag(value);
   return normalizeSupportIdentity(value, config);
 }
 
 export function xmlNodeSupportTags(node, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.xmlNodeSupportTags(node);
   const parts = [];
   if (typeof node?.getElementsByTagName === 'function') {
     parts.push(xmlText(node, 'NodeName'), xmlText(node, 'ComponentRefNo'));
@@ -77,6 +93,7 @@ export function xmlNodeSupportTags(node, config = {}) {
 function relationshipGroups(items = []) {
   const map = new Map();
   for (const item of items) {
+    if (item.relationshipConflict) continue;
     for (const root of item.relationshipRoots || []) {
       const bucket = map.get(root) || [];
       bucket.push(item);
@@ -86,20 +103,17 @@ function relationshipGroups(items = []) {
   return map;
 }
 
-function relatedItems(item, groups) {
+function relatedItems(item, groups, config = {}) {
+  const policy = sourceAuthorityPolicy(config);
+  if (!policy.expandIdentityToGroup || item?.relationshipConflict) return [item];
   const out = [];
   for (const root of item.relationshipRoots || []) out.push(...(groups.get(root) || []));
-  const source = out.length ? out : [item];
-  const seen = new Set();
-  return source.filter((candidate) => {
-    const key = candidate._path || candidate;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return uniqueItems(out.length ? out : [item]);
 }
 
 export function buildStagedDtxrIndex(stagedJson, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.buildStagedDtxrIndex(stagedJson, config);
+
   const byComponentRefNo = new Map();
   const byPsTag = new Map();
   const byPsBaseTag = new Map();
@@ -109,17 +123,20 @@ export function buildStagedDtxrIndex(stagedJson, config = {}) {
   const byOwnerBranch = new Map();
   const ownerItems = [];
   const items = [];
+  const alignment = resolveCoordinateAlignment(config);
 
   for (const record of walkStagedSource(stagedJson, config)) {
     const attrs = canonicalizeStagedAttributes(record.attrs, config, record.component);
-    const dtxrPos = text(readSourceField({ ...record.component, attributes: attrs }, 'dtxrPosition', config));
-    const dtxrPs = text(readSourceField({ ...record.component, attributes: attrs }, 'dtxrPs', config));
-    const dtxr = dtxrPos || text(readSourceField({ ...record.component, attributes: attrs }, 'dtxr', config)) || text(record.component?.name);
-    const cmpSupGap = text(readSourceField({ ...record.component, attributes: attrs }, 'supportGap', config));
+    const sourceValue = { ...record.component, attributes: attrs, component: record.component };
+    const dtxrPos = text(readSourceField(sourceValue, 'dtxrPosition', config));
+    const dtxrPs = text(readSourceField(sourceValue, 'dtxrPs', config));
+    const dtxr = dtxrPos || text(readSourceField(sourceValue, 'dtxr', config));
+    const cmpSupGap = text(readSourceField(sourceValue, 'supportGap', config));
     if (!dtxr && !dtxrPs && !cmpSupGap) continue;
 
     const position = record.position;
-    const owner = text(readSourceField({ ...record.component, attributes: attrs }, 'parentRef', config) || record.branchName);
+    const owner = text(readSourceField(sourceValue, 'parentRef', config) || record.branchName);
+    const relationship = sourceRelationshipEvidence(sourceValue, config);
     const indexed = {
       raw: record,
       attrs,
@@ -132,34 +149,38 @@ export function buildStagedDtxrIndex(stagedJson, config = {}) {
       coord: position?.point || null,
       rawPoint: position?.rawPoint || null,
       positionField: position?.field || '',
-      type: text(readSourceField({ ...record.component, attributes: attrs }, 'objectType', config) || record.type).toUpperCase(),
+      type: text(readSourceField(sourceValue, 'objectType', config) || record.type).toUpperCase(),
       component: record.component,
       _path: record._path || '',
       _jsonSeq: items.length,
-      supportTags: sourceSupportIdentities({ ...record.component, attributes: attrs, component: record.component }, config),
-      relationshipRoots: sourceRelationshipRoots({ ...record.component, attributes: attrs, component: record.component }, config),
+      supportTags: relationship.rejected ? [] : sourceSupportIdentities(sourceValue, config),
+      relationshipRoots: relationship.roots,
+      relationshipEvidence: relationship.roleRoots,
+      relationshipConflict: relationship.rejected,
     };
     items.push(indexed);
   }
 
   const groups = relationshipGroups(items);
   for (const item of items) {
-    const related = relatedItems(item, groups);
-    const refs = [
-      readSourceField({ ...item.component, attributes: item.attrs }, 'componentRef', config),
-      readSourceField({ ...item.component, attributes: item.attrs }, 'objectName', config),
-    ];
-    for (const ref of refs) for (const candidate of related) addMap(byComponentRefNo, ref, candidate);
+    const identityCandidates = relatedItems(item, groups, config);
+    const sourceValue = { ...item.component, attributes: item.attrs };
 
-    for (const tag of item.supportTags || []) {
-      for (const candidate of related) addMap(byPsTag, tag, candidate);
-      const root = supportIdentityRoot(tag, config);
-      if (root) for (const candidate of related) addMap(byPsBaseTag, root, candidate);
+    // ComponentRefNo and objectName are exact-object indexes. They never expand
+    // to an assembly; assembly expansion is reserved for qualified support-ID hits.
+    for (const ref of [readSourceField(sourceValue, 'componentRef', config), readSourceField(sourceValue, 'objectName', config)]) {
+      if (ref) addMap(byComponentRefNo, ref, item);
     }
 
-    const nodeNo = text(readSourceField({ ...item.component, attributes: item.attrs }, 'nodeNumber', config));
+    for (const tag of item.supportTags || []) {
+      for (const candidate of identityCandidates) addMap(byPsTag, tag, candidate);
+      const root = supportIdentityRoot(tag, config);
+      if (root) for (const candidate of identityCandidates) addMap(byPsBaseTag, root, candidate);
+    }
+
+    const nodeNo = text(readSourceField(sourceValue, 'nodeNumber', config));
     if (nodeNo && !byNodeNumber.has(nodeNo)) byNodeNumber.set(nodeNo, item);
-    const nodeName = text(readSourceField({ ...item.component, attributes: item.attrs }, 'nodeName', config));
+    const nodeName = text(readSourceField(sourceValue, 'nodeName', config));
     if (nodeName && !byNodeName.has(canonKey(nodeName))) byNodeName.set(canonKey(nodeName), item);
 
     if (item.ownerNorm && item.dtxrPs) {
@@ -167,10 +188,10 @@ export function buildStagedDtxrIndex(stagedJson, config = {}) {
       addOwner(byOwnerBranch, item.owner, item);
     }
 
-    const key = coordinateKey(item.coord, config.coordinatePrecision ?? 1);
+    const key = coordinateKey(item.coord, alignment.matchToleranceMm || 1);
     if (key) {
       const bucket = byCoordKey.get(key) || [];
-      for (const candidate of related) if (!bucket.some((entry) => entry._path === candidate._path)) bucket.push(candidate);
+      if (!bucket.some((entry) => entry._path === item._path)) bucket.push(item);
       byCoordKey.set(key, bucket);
     }
   }
@@ -182,6 +203,7 @@ export function buildStagedDtxrIndex(stagedJson, config = {}) {
 }
 
 export function buildDtxrContext(stagedJsonText, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.buildDtxrContext(stagedJsonText, config);
   const stagedIndex = buildStagedDtxrIndex(stagedJsonText, config);
   return { stagedIndex, ...stagedIndex };
 }
@@ -201,7 +223,9 @@ function relationshipDtxrResult(xmlNode, stagedIndex, config = {}) {
       value: evidence.effectiveDtxr,
       ...evidence,
       teeDesc: '',
-      cmpSupGap: gaps[0] || '',
+      // A generic GAP is only authoritative when the relationship family has
+      // exactly one distinct GAP. Multiple member-owned gaps remain plural.
+      cmpSupGap: gaps.length === 1 ? gaps[0] : '',
       cmpSupGaps: gaps,
       supportTags: tags,
       source: 'staged-support-relationship',
@@ -211,7 +235,7 @@ function relationshipDtxrResult(xmlNode, stagedIndex, config = {}) {
       componentRefNo: legacy.getXmlNodeProperty(xmlNode, 'ComponentRefNo'),
       confidence: 1,
       suppressed: false,
-      suppressionReason: '',
+      suppressionReason: gaps.length > 1 ? 'member-specific-gap-set' : '',
       candidates: matches,
       relationshipRoots: [...new Set(matches.flatMap((item) => item.relationshipRoots || []))],
     };
@@ -220,6 +244,7 @@ function relationshipDtxrResult(xmlNode, stagedIndex, config = {}) {
 }
 
 export function resolveDtxrForXmlNode(args = {}) {
+  if (!sourceSchemaEnabled(args.config || {})) return legacy.resolveDtxrForXmlNode(args);
   if ((args.purpose || 'component-description') === 'support-restraint') {
     const stagedIndex = args.context?.stagedIndex || args.context;
     const linked = relationshipDtxrResult(args.xmlNode, stagedIndex, args.config || {});
@@ -229,6 +254,7 @@ export function resolveDtxrForXmlNode(args = {}) {
 }
 
 export function xmlCiiDtxrPositionOffset(config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.xmlCiiDtxrPositionOffset(config);
   const alignment = resolveCoordinateAlignment(config);
   return {
     enabled: alignment.mode === 'MANUAL',
@@ -240,6 +266,7 @@ export function xmlCiiDtxrPositionOffset(config = {}) {
 }
 
 export function xmlCiiApplyDtxrPositionOffset(point, config = {}, fieldName = 'POSI') {
+  if (!sourceSchemaEnabled(config)) return legacy.xmlCiiApplyDtxrPositionOffset(point, config, fieldName);
   const parsed = parseSourcePoint(point);
   if (!parsed) return null;
   const option = xmlCiiDtxrPositionOffset(config);
@@ -252,33 +279,25 @@ export function xmlCiiApplyDtxrPositionOffset(point, config = {}, fieldName = 'P
   };
 }
 
-function hasExplicitConfiguredPosition(config = {}) {
-  const fields = config?.sourceSchema?.fields;
-  return !!(fields && Object.prototype.hasOwnProperty.call(fields, 'position'));
-}
-
 function dtxrPositionForRecord(record, config = {}) {
-  if (hasExplicitConfiguredPosition(config)) return record.position || null;
-  const rawPoint = parseSourcePoint(record?.rawAttrs?.POSI);
-  if (!rawPoint) return null;
-  return {
-    field: 'POSI',
-    rawPoint,
-    point: xmlCiiApplyDtxrPositionOffset(rawPoint, config, 'POSI'),
-  };
+  return record.position || null;
 }
 
 export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.buildStagedDtxrPositionIndex(stagedJsonText, config);
+
   const entries = [];
   const byTag = new Map();
   for (const record of walkStagedSource(stagedJsonText, config)) {
     const attrs = canonicalizeStagedAttributes(record.attrs, config, record.component);
-    const dtxrPos = text(readSourceField({ ...record.component, attributes: attrs }, 'dtxrPosition', config));
-    const dtxrPs = text(readSourceField({ ...record.component, attributes: attrs }, 'dtxrPs', config));
-    const dtxr = dtxrPos || text(readSourceField({ ...record.component, attributes: attrs }, 'dtxr', config));
-    const cmpSupGap = text(readSourceField({ ...record.component, attributes: attrs }, 'supportGap', config));
+    const sourceValue = { ...record.component, attributes: attrs, component: record.component };
+    const dtxrPos = text(readSourceField(sourceValue, 'dtxrPosition', config));
+    const dtxrPs = text(readSourceField(sourceValue, 'dtxrPs', config));
+    const dtxr = dtxrPos || text(readSourceField(sourceValue, 'dtxr', config));
+    const cmpSupGap = text(readSourceField(sourceValue, 'supportGap', config));
     const position = dtxrPositionForRecord(record, config);
     if ((!dtxr && !cmpSupGap) || !position?.point) continue;
+    const relationship = sourceRelationshipEvidence(sourceValue, config);
     const indexed = {
       ...record,
       attrs,
@@ -286,12 +305,14 @@ export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
       dtxrPos,
       dtxrPs,
       cmpSupGap,
-      name: text(readSourceField({ ...record.component, attributes: attrs }, 'objectName', config)),
+      name: text(readSourceField(sourceValue, 'objectName', config)),
       point: position.point,
       rawPoint: position.rawPoint,
       positionField: position.field,
-      supportTags: sourceSupportIdentities({ ...record.component, attributes: attrs, component: record.component }, config),
-      relationshipRoots: sourceRelationshipRoots({ ...record.component, attributes: attrs, component: record.component }, config),
+      supportTags: relationship.rejected ? [] : sourceSupportIdentities(sourceValue, config),
+      relationshipRoots: relationship.roots,
+      relationshipEvidence: relationship.roleRoots,
+      relationshipConflict: relationship.rejected,
       _path: record._path || '',
     };
     entries.push(indexed);
@@ -299,66 +320,101 @@ export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
 
   const groups = relationshipGroups(entries);
   for (const entry of entries) {
-    const related = relatedItems(entry, groups);
+    const identityCandidates = relatedItems(entry, groups, config);
     for (const tag of entry.supportTags || []) {
       const key = normalizeSupportIdentity(tag, config);
       if (!key) continue;
       const bucket = byTag.get(key) || [];
-      for (const candidate of related) if (!bucket.some((item) => item._path === candidate._path)) bucket.push(candidate);
+      for (const candidate of identityCandidates) if (!bucket.some((item) => item._path === candidate._path)) bucket.push(candidate);
       byTag.set(key, bucket);
     }
   }
   return { entries, byTag, count: entries.length, byRelationship: groups };
 }
 
+function representativeRawPoint(matches = [], tolerance = 1) {
+  const points = matches.map((entry) => entry?.rawPoint).filter(Boolean);
+  if (!points.length) return null;
+  const first = points[0];
+  if (points.some((point) => Math.hypot(point.x - first.x, point.y - first.y, point.z - first.z) > tolerance)) return null;
+  return {
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+    z: points.reduce((sum, point) => sum + point.z, 0) / points.length,
+  };
+}
+
+function xmlNodeCalibrationId(node, fallbackIndex) {
+  return text(legacy.getXmlNodeProperty(node, 'NodeNumber'))
+    || text(legacy.getXmlNodeProperty(node, 'NodeName'))
+    || `NODE-${fallbackIndex}`;
+}
+
 export function xmlCiiCalibrateDtxrPositionIndex(dtxrPositionIndex, document, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.xmlCiiCalibrateDtxrPositionIndex(dtxrPositionIndex, document, config);
   if (!shouldAutoCalibrateCoordinates(config) || !document || !dtxrPositionIndex?.byTag) return dtxrPositionIndex;
   const alignment = resolveCoordinateAlignment(config);
+  if (alignment.scope !== 'GLOBAL') {
+    return { ...dtxrPositionIndex, calibrationRejected: `UNSUPPORTED_SCOPE:${alignment.scope}` };
+  }
   const precision = Math.max(alignment.calibrationToleranceMm || 1, 0.001);
-  const minSamples = Math.max(alignment.minimumCalibrationSamples || 2, 1);
-  const groups = new Map();
-  const nodes = typeof document.getElementsByTagName === 'function'
-    ? [...document.getElementsByTagName('Node')]
-    : [];
+  const minSamples = Math.max(alignment.minimumCalibrationSamples || 3, 1);
+  const clusters = new Map();
+  const nodes = typeof document.getElementsByTagName === 'function' ? [...document.getElementsByTagName('Node')] : [];
 
-  for (const node of nodes) {
+  nodes.forEach((node, nodeIndex) => {
     const target = parseSourcePoint(legacy.getXmlNodeProperty(node, 'Position'));
-    if (!target) continue;
-    for (const tag of xmlNodeSupportTags(node, config)) {
+    if (!target) return;
+    const nodeId = xmlNodeCalibrationId(node, nodeIndex);
+    const tags = xmlNodeSupportTags(node, config);
+    for (const tag of tags) {
       const matches = dtxrPositionIndex.byTag.get(normalizeSupportIdentity(tag, config)) || [];
+      if (!matches.length) continue;
+      const grouped = new Map();
       for (const entry of matches) {
-        if (!entry?.rawPoint) continue;
-        const offset = {
-          x: target.x - entry.rawPoint.x,
-          y: target.y - entry.rawPoint.y,
-          z: target.z - entry.rawPoint.z,
+        if (!entry?.rawPoint || entry.relationshipConflict) continue;
+        const root = entry.relationshipRoots?.[0] || normalizeSupportIdentity(tag, config);
+        const bucket = grouped.get(root) || [];
+        bucket.push(entry);
+        grouped.set(root, bucket);
+      }
+      for (const [root, rootMatches] of grouped.entries()) {
+        const rawPoint = representativeRawPoint(rootMatches, precision);
+        if (!rawPoint) continue;
+        const sampleKey = `${nodeId}|${root}`;
+        const offset = { x: target.x - rawPoint.x, y: target.y - rawPoint.y, z: target.z - rawPoint.z };
+        const clusterKey = [offset.x, offset.y, offset.z].map((value) => Math.round(value / precision)).join('|');
+        const cluster = clusters.get(clusterKey) || {
+          samples: new Map(), x: 0, y: 0, z: 0, roots: new Set(), nodes: new Set(), tags: new Set(),
         };
-        const key = [offset.x, offset.y, offset.z].map((value) => Math.round(value / precision)).join('|');
-        const group = groups.get(key) || { count: 0, x: 0, y: 0, z: 0, tags: new Set() };
-        group.count += 1;
-        group.x += offset.x;
-        group.y += offset.y;
-        group.z += offset.z;
-        group.tags.add(tag);
-        groups.set(key, group);
+        if (cluster.samples.has(sampleKey)) continue;
+        cluster.samples.set(sampleKey, offset);
+        cluster.x += offset.x;
+        cluster.y += offset.y;
+        cluster.z += offset.z;
+        cluster.roots.add(root);
+        cluster.nodes.add(nodeId);
+        cluster.tags.add(tag);
+        clusters.set(clusterKey, cluster);
       }
     }
-  }
+  });
 
-  let best = null;
-  for (const [key, group] of groups.entries()) {
-    if (group.count < minSamples) continue;
-    if (!best || group.count > best.group.count || (group.count === best.group.count && group.tags.size > best.group.tags.size)) {
-      best = { key, group };
+  const qualified = [...clusters.entries()]
+    .filter(([, cluster]) => cluster.roots.size >= minSamples && cluster.nodes.size >= minSamples)
+    .sort((a, b) => b[1].roots.size - a[1].roots.size || b[1].nodes.size - a[1].nodes.size || b[1].samples.size - a[1].samples.size);
+  if (!qualified.length) return { ...dtxrPositionIndex, calibrationRejected: 'INSUFFICIENT_INDEPENDENT_SUPPORT_GROUPS' };
+  if (qualified.length > 1) {
+    const first = qualified[0][1];
+    const second = qualified[1][1];
+    if (first.roots.size === second.roots.size && first.nodes.size === second.nodes.size) {
+      return { ...dtxrPositionIndex, calibrationRejected: 'AMBIGUOUS_OFFSET_CLUSTERS' };
     }
   }
-  if (!best) return dtxrPositionIndex;
 
-  const offset = {
-    x: best.group.x / best.group.count,
-    y: best.group.y / best.group.count,
-    z: best.group.z / best.group.count,
-  };
+  const [bestKey, best] = qualified[0];
+  const count = best.samples.size;
+  const offset = { x: best.x / count, y: best.y / count, z: best.z / count };
   const entries = (dtxrPositionIndex.entries || []).map((entry) => ({
     ...entry,
     point: entry.rawPoint ? {
@@ -368,16 +424,20 @@ export function xmlCiiCalibrateDtxrPositionIndex(dtxrPositionIndex, document, co
     } : entry.point,
     inferredOffset: offset,
   }));
+
   const byTag = new Map();
+  const groups = relationshipGroups(entries);
   for (const entry of entries) {
+    const identityCandidates = relatedItems(entry, groups, config);
     for (const tag of entry.supportTags || []) {
       const key = normalizeSupportIdentity(tag, config);
       if (!key) continue;
       const bucket = byTag.get(key) || [];
-      if (!bucket.some((candidate) => candidate._path === entry._path)) bucket.push(entry);
+      for (const candidate of identityCandidates) if (!bucket.some((item) => item._path === candidate._path)) bucket.push(candidate);
       byTag.set(key, bucket);
     }
   }
+
   return {
     ...dtxrPositionIndex,
     entries,
@@ -386,16 +446,19 @@ export function xmlCiiCalibrateDtxrPositionIndex(dtxrPositionIndex, document, co
     inferredOffset: offset,
     calibration: {
       ...offset,
-      samples: best.group.count,
-      uniqueTags: best.group.tags.size,
+      samples: count,
+      uniqueSupportGroups: best.roots.size,
+      uniqueXmlNodes: best.nodes.size,
+      uniqueTags: best.tags.size,
       precision,
-      key: best.key,
-      source: 'source-schema-auto-calibration',
+      key: bestKey,
+      source: 'source-schema-auto-calibration-independent-groups',
     },
   };
 }
 
 export function xmlCiiDtxrPosForNode(node, dtxrPositionIndex, config = {}) {
+  if (!sourceSchemaEnabled(config)) return legacy.xmlCiiDtxrPosForNode(node, dtxrPositionIndex, config);
   const alignment = resolveCoordinateAlignment(config);
   const compatible = {
     ...config,
