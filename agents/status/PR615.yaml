@@ -3,12 +3,16 @@ state: IMPLEMENTING
 criticality: ENGINEERING_CRITICAL
 branch: agent/vibration-eit-roadmap-20260818
 base_branch: main
-base_main_sha: 1d9340248b11569f7c7c4f02ac429c7d8c66ff81
+base_main_sha_at_final_stage3_reconciliation: 22b7b57fed3e78534da41342fc3240c8d27369c3
+stage3_pre_status_head: dcaaa2dbfdd1da559e11f2fff827d122f7bc7902
+branch_relation_at_pre_status_head: AHEAD_33_BEHIND_4
+main_drift: NON_OVERLAPPING_XML_CII_PREVIEW_ONLY_4_COMMITS_NO_REBASE_AT_HANDOVER
 mission: Generic multi-module EIT project persistence, typed engineering source identity, non-binding Phase x Scope x Specialty roadmap, and fail-closed mechanism-level reduction before EI main-line aggregation.
 overlap: COORDINATION_REQUIRED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 validation:
   live_grounding_stage3: PASS
+  final_main_drift_classification: PASS_NON_OVERLAPPING_XML_CII_ONLY
   stage3_target_overlap: SAFE_NEW_RESULT_REDUCER_PATHS_AND_NO_OPEN_EI_AGGREGATION_CLAIM
   shared_tab_overlap: COORDINATION_CONFLICT_PR506_NO_FURTHER_PR615_EDIT
   mechanism_workspace_stack: BLOCKED_BY_ACTIVE_CLAIMS_PR479_PR506_PR508
@@ -20,9 +24,13 @@ validation:
   reconstructed_stage3_reducer_result: PASS_8_OF_8
   reconstructed_stage3_aggregator: PASS_4_OF_4
   stage3_size_guard: PASS_ALL_RELEVANT_JS_BELOW_300_LINES
+  final_reviews: ZERO
+  final_review_threads: ZERO
+  final_commit_statuses: ZERO_RETURNED_NOT_PASS
+  final_pr_workflow_runs: ZERO_RETURNED_NOT_PASS
   repository_native_current_head: NOT_RUN_ENVIRONMENT_BLOCKED
   matrix_consumer_current_head: NOT_RUN
   full_vibration_release_suites: NOT_RUN
   browser: NOT_RUN
   independent_engineering_review: NOT_RUN
-exact_next_action: Re-ground active claims and controlled source evidence. Qualify one mechanism-specific multi-item reducer only if the governing method supports it; otherwise keep MANY fail-closed and proceed to the next unblocked engineering custody correction such as FIT span/process/multiphase/frequency custody.
+exact_next_action: Re-ground active claims and controlled source evidence. Qualify one mechanism-specific multi-item reducer only if the governing method supports it; otherwise keep MANY fail-closed and proceed to the next unblocked engineering custody correction such as FIT span/process/multiphase/frequency custody. Reconcile the four unrelated main commits before any merge attempt.
