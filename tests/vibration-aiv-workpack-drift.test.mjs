@@ -35,7 +35,7 @@ test('shared work-pack entrypoint verifies all deterministic AIV drift gates', a
   const result = await verifyEngineeringWorkpack('VIB-AIV');
   assert.equal(result.workpackId, 'VIB-AIV');
   assert.equal(result.status, 'PASS');
-  assert.equal(result.checks.length, 20);
+  assert.equal(result.checks.length, 21);
   assert.equal(result.checks.every((entry) => entry.status === 'PASS'), true);
 });
 
@@ -65,4 +65,5 @@ test('AIV machine truth remains bounded screening rather than design or universa
   assert.equal(aiv.authority.codeCompliance, false);
   assert.equal(aiv.applicability.limitations.some((item) => /assessment-level screening authority only/iu.test(item)), true);
   assert.equal(aiv.applicability.limitations.some((item) => /no design authority/iu.test(item)), true);
+  assert.equal(aiv.applicability.limitations.some((item) => /inventory completeness is proven/iu.test(item)), true);
 });
