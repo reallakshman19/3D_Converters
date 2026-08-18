@@ -1,0 +1,35 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-AIV-INTEGRATION-20260818
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/mechanisms/aiv.js
+    - converters/vibration/mechanisms/index.js
+    - converters/vibration/mechanisms/capability.js
+    - tabs/vibration-aiv-screening-session.js
+    - tabs/vibration-aiv-execution.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/vibration-integrity-view.js
+    - tabs/vibration-integrity-mechanisms.js
+    - tests/vibration-aiv-integrity-assessment-adapter.test.mjs
+    - tests/vibration-integrity-mechanism-matrix.test.mjs
+    - tests/vibration-mechanism-capability.test.mjs
+    - agents/WIP-VIB-AIV-INTEGRATION-20260818_workreport.md
+    - agents/status/WIP-VIB-AIV-INTEGRATION-20260818.yaml
+    - agents/claims/WIP-VIB-AIV-INTEGRATION-20260818.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_AIV_ASSESSMENT_SCOPE_INTEGRATION
+  - VIBRATION_SESSION_CURRENT_SCREENING_EVIDENCE
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - AIV numerical kernel equations assumptions or coefficients
+  - AIV line-case aggregation authority
+  - EI main-line reducer or policy changes
+  - design authority
+  - T1 mechanism identification rules
+  - workflow files
+last_verified_head: afa6a9dfcb533abb312f30baba4ef5d8d039067f
+coordination_state: STACKED_ON_PR626_EXPLICIT
+merge_authority: OWNER_ONLY_NOT_GRANTED
