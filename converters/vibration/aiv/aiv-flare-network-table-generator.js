@@ -90,6 +90,7 @@ function relationshipRow(network, sourceNode, assessmentNode, path) {
     RESOLVED: 'AUTO_GENERATED_FROM_FLARE_NETWORK',
     AMBIGUOUS_PATH: 'AUTO_PATH_AMBIGUOUS',
     UNRESOLVED_LENGTH: 'AUTO_DISTANCE_UNRESOLVED',
+    DISCONNECTED: 'AUTO_PATH_DISCONNECTED',
   })[path.status] ?? 'AUTO_UNRESOLVED';
   return rowFor(AIV_SOURCE_ASSESSMENT_CSV_HEADER, {
     'Source Canonical ID': sourceNode.canonicalId,
@@ -135,7 +136,6 @@ export function generateAivInputTablesFromFlareNetwork(networkInput) {
   for (const source of sources) {
     for (const assessment of assessments) {
       const path = resolveAivFlareNetworkPath(network, source.canonicalId, assessment.canonicalId);
-      if (path.status === 'DISCONNECTED') continue;
       relationshipRows.push(relationshipRow(network, source, assessment, path));
       pathEvidence.push({
         sourceCanonicalId: source.canonicalId,
@@ -167,6 +167,7 @@ export function generateAivInputTablesFromFlareNetwork(networkInput) {
       svgPixelsAuthoritativeForDistance: false,
       generatedDistanceRequiresUniqueDirectedPath: true,
       generatedDistanceRequiresExplicitSegmentLengths: true,
+      disconnectedSourceRelationshipsRetained: true,
       assumptionsApplyAfterGeneration: true,
     },
   });
