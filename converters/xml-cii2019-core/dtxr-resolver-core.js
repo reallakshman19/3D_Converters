@@ -252,6 +252,22 @@ export function xmlCiiApplyDtxrPositionOffset(point, config = {}, fieldName = 'P
   };
 }
 
+function hasExplicitConfiguredPosition(config = {}) {
+  const fields = config?.sourceSchema?.fields;
+  return !!(fields && Object.prototype.hasOwnProperty.call(fields, 'position'));
+}
+
+function dtxrPositionForRecord(record, config = {}) {
+  if (hasExplicitConfiguredPosition(config)) return record.position || null;
+  const rawPoint = parseSourcePoint(record?.rawAttrs?.POSI);
+  if (!rawPoint) return null;
+  return {
+    field: 'POSI',
+    rawPoint,
+    point: xmlCiiApplyDtxrPositionOffset(rawPoint, config, 'POSI'),
+  };
+}
+
 export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
   const entries = [];
   const byTag = new Map();
@@ -261,7 +277,8 @@ export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
     const dtxrPs = text(readSourceField({ ...record.component, attributes: attrs }, 'dtxrPs', config));
     const dtxr = dtxrPos || text(readSourceField({ ...record.component, attributes: attrs }, 'dtxr', config));
     const cmpSupGap = text(readSourceField({ ...record.component, attributes: attrs }, 'supportGap', config));
-    if ((!dtxr && !cmpSupGap) || !record.position?.point) continue;
+    const position = dtxrPositionForRecord(record, config);
+    if ((!dtxr && !cmpSupGap) || !position?.point) continue;
     const indexed = {
       ...record,
       attrs,
@@ -270,9 +287,9 @@ export function buildStagedDtxrPositionIndex(stagedJsonText, config = {}) {
       dtxrPs,
       cmpSupGap,
       name: text(readSourceField({ ...record.component, attributes: attrs }, 'objectName', config)),
-      point: record.position.point,
-      rawPoint: record.position.rawPoint,
-      positionField: record.position.field,
+      point: position.point,
+      rawPoint: position.rawPoint,
+      positionField: position.field,
       supportTags: sourceSupportIdentities({ ...record.component, attributes: attrs, component: record.component }, config),
       relationshipRoots: sourceRelationshipRoots({ ...record.component, attributes: attrs, component: record.component }, config),
       _path: record._path || '',
