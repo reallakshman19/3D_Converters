@@ -70,7 +70,7 @@ const exactRestFromReportedStagedJson = {
     NAME: '/SL-1847103.2.1',
     TYPE: 'ANCI',
     OWNER: '/SL-1847103.2/B1',
-    PREV-NAME: 'PS01264.1',
+    'PREV-NAME': 'PS01264.1',
     POS: { x: 854513.44, y: 3934222.04, z: 6100 },
     POSI: 'E 854513.44mm N 3934222.04mm U 6100mm',
     COMPRE: '=1006649732/143989',
