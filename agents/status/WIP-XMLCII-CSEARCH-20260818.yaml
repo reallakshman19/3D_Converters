@@ -1,0 +1,17 @@
+id: WIP-XMLCII-CSEARCH-20260818
+state: implementing
+base_commit: e93cf16b9670a9876135a659b4f26506857b2c36
+branch: agent/xml-cii-c-search-prep-20260818
+coordination: SAFE
+production_files_planned: 2
+backups_required: 2
+backups_completed: 0
+validation:
+  syntax: NOT_RUN
+  focused_100k: NOT_RUN
+  equivalence: NOT_RUN
+  browser: NOT_RUN
+  actions: NOT_RUN
+worker_admission: NOT_ADMITTED
+merge_authority: NOT_GRANTED
+next_action: verify exact main bytes locally and execute mandatory pre-edit backups
