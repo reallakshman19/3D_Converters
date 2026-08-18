@@ -1,0 +1,24 @@
+name: Temporary Node 140 diagnostic
+
+on:
+  pull_request:
+    paths:
+      - 'tests/xml-cii-sys0010-node140-ledger.test.mjs'
+      - 'Benchmarks/css/SYS-0010.xml'
+      - 'Benchmarks/css/css3_managed_stage.zip'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - '.github/workflows/tmp-node140-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  node140:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run pinned Node 140 ledger regression
+        run: node --test tests/xml-cii-sys0010-node140-ledger.test.mjs
