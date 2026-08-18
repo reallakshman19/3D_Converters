@@ -16,6 +16,8 @@ REPORT_BASIS_HEAD  4921ca566ef2db224b44a0695a3d3a3a54c8fbe7
 REPORT_BASIS_MAIN  eef94949961970171d1366f5b6a9d421b3cc0d9f
 ```
 
+`REPORT_BASIS_HEAD` is intentionally the pre-report recovery basis, not this file's containing commit.
+
 Detailed stage records:
 
 ```text
@@ -115,7 +117,7 @@ Focused controlled reconstruction: `7/7 PASS` plus retained Stage-1 authority/cu
 
 ### Stage 7 — measurement-driven VERIFY roadmap + adjustable right rail
 
-Project roadmap state now derives evidence-presence state only for the selected project line:
+Project roadmap state derives evidence-presence state only for the selected project line:
 
 ```text
 selected-line MeasurementSession(s)
@@ -245,4 +247,4 @@ No absent hosted status/workflow is treated as PASS.
 
 ## EXACT_NEXT_ACTION
 
-Keep PR615 draft/unmerged. Refresh live main, final PR head, ahead/behind relation, reviews, statuses and PR-triggered workflows after this recovery commit. Before any merge attempt: reconcile current main, execute repository-native qualification in a complete checkout, perform served-browser acceptance for the right rail, and obtain independent engineering review. Do not merge without explicit Owner authorization.
+Keep PR615 draft/unmerged. Final live reconciliation must quote the branch head after all recovery commits; do not try to make the report self-reference its containing commit. Before any merge attempt: reconcile current main, execute repository-native qualification in a complete checkout, perform served-browser acceptance for the right rail, and obtain independent engineering review. Do not merge without explicit Owner authorization.
