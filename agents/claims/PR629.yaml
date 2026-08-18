@@ -1,0 +1,35 @@
+schema: AgentClaim.v1
+pr_or_wip: PR629
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/mechanisms/aiv.js
+    - converters/vibration/mechanisms/capability.js
+    - converters/vibration/mechanisms/index.js
+    - tabs/vibration-aiv-execution.js
+    - tabs/vibration-aiv-screening-session.js
+    - tabs/vibration-integrity-mechanisms.js
+    - tests/vibration-aiv-integrity-assessment-adapter.test.mjs
+    - tests/vibration-aiv-screening-session.test.mjs
+    - tests/vibration-integrity-mechanism-matrix.test.mjs
+    - tests/vibration-mechanism-capability.test.mjs
+    - agents/PR629_workreport.md
+    - agents/status/PR629.yaml
+    - agents/claims/PR629.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_AIV_ASSESSMENT_SCOPE_INTEGRATION
+  - VIBRATION_SESSION_CURRENT_SCREENING_EVIDENCE
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - AIV numerical kernel equations assumptions or coefficients
+  - AIV line-case aggregation authority
+  - EI main-line reducer or policy changes
+  - design authority
+  - T1 mechanism identification rules
+  - tabs/vibration-integrity-view.js
+  - workflow files
+last_verified_head: 8c4f2d0383c596bb5b8126e20cfce62233c38747
+coordination_state: STACKED_ON_PR626_EXPLICIT
+merge_authority: OWNER_ONLY_NOT_GRANTED
