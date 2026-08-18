@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import {
   createAivFlareNetwork,
   moveAivFlareNetworkNodePresentation,
@@ -148,7 +149,9 @@ test('D.2.3 drawn flare network auto-generates tables and reproduces registered 
   assert.ok(Math.abs(contribution.attenuationDb - 0.3116883116883117) < 1e-12);
   assert.ok(Math.abs(contribution.pointPwlDb - 164.3734876408508) < 1e-12);
   assert.equal(assessment.lof, 0.29);
-  assert.equal(result.lineCaseSummaries[0].lof, 1.48);
+  assert.equal(result.lineCaseSummaries[0].lof, 0.29);
+  assert.equal(result.lineCaseSummaries[0].aggregationBasis, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(result.lineCaseSummaries[0].assessmentInventoryCompleteness, 'UNVERIFIED');
   assert.equal(result.lineCaseSummaries[0].authoritativeForScreening, false);
 });
 
