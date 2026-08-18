@@ -46,6 +46,8 @@ function screeningPackageInput(state) {
     flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
     generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
     eitImportEvidence: state.eitImport?.evidence ?? null,
+    inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
+    engineeringInputRevision: state.inputRevision,
   };
 }
 
@@ -118,6 +120,8 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       const request = buildAivEngineeringScreeningRequest({
         readinessEnvelope: state.readinessEnvelope,
         assumptionProfile: state.assumptionProfile,
+        inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
+        engineeringInputRevision: state.inputRevision,
       });
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
