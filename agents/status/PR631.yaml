@@ -14,9 +14,9 @@ pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/PR631_workreport.md
 report_head: 59337fb0202165b014f327db2f26700c6f53d1f4
-current_stage: VALIDATE_RECONCILE
+current_stage: HANDOVER_READY
 blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
 highest_risk: Incomplete welded-discontinuity inventory could underpredict the line LOF; line screening authority remains blocked.
-exact_next_action: Reconcile exact PR head/files/checks/reviews and keep PR631 draft.
+exact_next_action: Keep PR631 draft; run repository-native/workpack/browser validation when available or proceed with a separate inventory-completeness evidence slice.
 coordination_state: STACKED_ON_PR629_SAFE_FOLLOW_ON
 merge_authority: OWNER_ONLY_NOT_GRANTED
