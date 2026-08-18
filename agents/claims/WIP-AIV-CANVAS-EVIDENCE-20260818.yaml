@@ -1,16 +1,6 @@
 work_id: WIP-AIV-CANVAS-EVIDENCE-20260818
-claim_state: ACTIVE
+claim_state: RELEASED
+released_to: PR644
 branch: agent/vibration-aiv-canvas-evidence-hardening-20260818
 scope: AIV canvas evidence/export/currency hardening stacked on PR643
-path_prefixes:
-  - tabs/vibration-aiv-
-  - converters/vibration/aiv/aiv-canvas-
-  - tests/vibration-aiv-canvas-
-  - tests/vibration-aiv-unified-canvas-
-exclusions:
-  - AIV numerical equations/constants
-  - Stage-9 reduction rule
-  - line/case authority promotion
-  - generic EI main-line governing aggregation
-  - workflow files
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
