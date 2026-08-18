@@ -1,0 +1,19 @@
+pr: 643
+branch: agent/vibration-aiv-canvas-interaction-hardening-20260818
+base_pr: 642
+base_sha: 26d6c6800300a9fecf50c88664469070a3f67562
+agent_state: ACTIVE
+current_stage: HANDOVER_READY
+execution_mode: AUTO
+auto_state: PHASE_2_HANDOVER
+criticality: ENGINEERING_CRITICAL
+mutation_authority: WRITE_ALLOWED
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
+blockers:
+  - REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+  - BROWSER_EXECUTION_UNAVAILABLE
+protected_authority:
+  aiv_line_case_screening_authority: NOT_AUTHORIZED
+  generic_ei_mainline_aiv: BLOCKED
+  design_authority: false
+next_action: continue Phase 3 on a separate stacked branch; keep PR643 draft
