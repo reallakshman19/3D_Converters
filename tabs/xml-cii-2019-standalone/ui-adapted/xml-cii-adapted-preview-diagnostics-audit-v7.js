@@ -10,6 +10,7 @@ import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js';
 import {
   saveMasterContextToLocalStorage,
+  updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
 
@@ -48,11 +49,10 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     if (stateRef && stateRef.current !== undefined) {
       const context = stateRef.current.masterContext || {};
       context.config = newCfg;
-      stateRef.current = {
-        ...stateRef.current,
+      const routed = updateWorkflowState(stateRef.current, {
         supportConfigJson: nextJson,
-        masterContext: { ...context, config: newCfg },
-      };
+      });
+      stateRef.current = { ...routed, masterContext: { ...context, config: newCfg } };
       saveMasterContextToLocalStorage(stateRef.current.masterContext);
     }
   };
