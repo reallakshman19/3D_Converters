@@ -86,6 +86,13 @@ function parseXml(xmlText) {
   }
 }
 
+function sourceDocumentOrParse(xmlText, sourceDocument = null) {
+  if (sourceDocument) {
+    return sourceDocument.getElementsByTagName('parsererror').length ? null : sourceDocument;
+  }
+  return parseXml(xmlText);
+}
+
 function branchMap(document) {
   return new Map([...document.getElementsByTagName('Branch')]
     .map((branch) => [childText(branch, 'Branchname'), branch]));
@@ -120,10 +127,10 @@ function correctNodeRows(nodeRows, document) {
 }
 
 export function applyPreviewBoreWallAuthority({
-  xmlText, stagedJsonText, config = {}, result,
+  xmlText, stagedJsonText, config = {}, result, sourceDocument = null,
 }) {
   if (!result || !Array.isArray(result.branchRows)) return result;
-  const document = parseXml(xmlText);
+  const document = sourceDocumentOrParse(xmlText, sourceDocument);
   if (!document) return result;
   const branches = branchMap(document);
   const branchRows = result.branchRows.map((row) => correctedRow(
