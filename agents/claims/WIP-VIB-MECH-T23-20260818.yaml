@@ -1,0 +1,30 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-MECH-T23-20260818
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/mechanical/t23-method.js
+    - converters/vibration/mechanical/facility.js
+    - converters/vibration/mechanisms/mechanical.js
+    - converters/vibration/source/registry.js
+    - tests/vibration-mechanical-t23-method.test.mjs
+    - tests/vibration-mechanical-t23-facility-stage4.test.mjs
+    - agents/WIP-VIB-MECH-T23-20260818_workreport.md
+    - agents/status/WIP-VIB-MECH-T23-20260818.yaml
+    - agents/claims/WIP-VIB-MECH-T23-20260818.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_MECHANICAL_T23_DIRECT_BASELINE_SOURCE
+  - VIBRATION_MECHANICAL_T23_SCREENING_AUTHORITY
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - shared-support adjacent-line transfer calculation
+  - detailed dynamic-analysis reduced LOF branch
+  - automatic T1 applicability
+  - generic EI main-line aggregation
+  - AIV FIT SBC
+  - design authority
+  - workflow files
+coordination_state: SAFE_NO_ACTIVE_EXACT_MECHANICAL_CLAIM_FOUND
+merge_authority: OWNER_ONLY_NOT_GRANTED
