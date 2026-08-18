@@ -13,9 +13,11 @@ PR_URL: https://github.com/reallaksh19/3D_Converters/pull/633
 BRANCH: agent/xml-cii-weight-match-top5-20260818
 PR_ALLOCATION_HEAD: 3d597246be612cab7d47253e150713862c73dca8
 IMPLEMENTATION_HEAD: 160f37e643cc2bc7cd6e5bdab55d21a7625ad6c3
+CHECKED_METADATA_HEAD: c2644d06955aa9ad6c1a0a000414d3205f762cdb
 MAIN_HEAD_LAST_CHECKED: 3a26d25902ef8d6f304422cba507f2500dfa61a1
 MERGE_BASE: 3a26d25902ef8d6f304422cba507f2500dfa61a1
-CURRENT_STAGE: CI_REVIEW
+BASE_DRIFT: NONE / ZERO_BEHIND
+CURRENT_STAGE: DRAFT_REVIEW
 CURRENT_BLOCKER: NONE
 ```
 
@@ -53,10 +55,23 @@ No adapted Preview/C5/C5M files, shared Weight ranker, support/GAP, writer/runti
 - PASS / EXACT_BYTE_CUSTODY — production `b909e7557d291b7a7c61a11ee38736763c03d3e8`; test `93f109fb3ee55864adcd64bf32bcebbc586b49b7`.
 - NOT_RUN / ENVIRONMENT_BLOCKED — complete repository-native/browser suite.
 
+## Exact GitHub gate at `c2644d06...`
+
+- draft/open/mergeable: true/true/true;
+- branch behind main: 0;
+- changed files: 9, all scoped and explained;
+- `.github/workflows/*` changes: none;
+- PR-triggered workflow runs: 0 returned / NOT_OBSERVED;
+- commit status contexts: 0 returned / NOT_OBSERVED;
+- reviews: 0;
+- review threads: 0.
+
+Absence of GitHub contexts is not represented as passing CI.
+
 ## Coordination
 
 No open PR/claim exact-file overlap was found for `tabs/xml-cii-2019-standalone/xml-cii-weight-match.js`. #616 and C5/C5M adapted Preview scopes are explicitly excluded.
 
 ## Delivery
 
-Draft only. The owner instruction that merged #632/#628 authorized continuing performance work, not merging this newly created PR. Keep PR633 unmerged pending a new explicit owner instruction.
+Draft and unmerged. WIP claim/status are released/superseded by PR633. Keep PR633 unmerged pending a new explicit owner instruction.
