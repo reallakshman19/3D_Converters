@@ -1,0 +1,32 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-CSEARCH-REPLAY-20260818
+claim_state: ACTIVE_OWNER_AUTHORIZED_REPLAY
+branch: agent/xml-cii-preview-search-lazy-replay-20260818
+workstream: XML_CII_STANDALONE_PERFORMANCE
+criticality: ENGINEERING_CRITICAL
+files:
+  exact:
+    - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js
+    - tests/xml-cii-preview-search-lazy-preparation.test.mjs
+    - agents/WIP-XMLCII-CSEARCH-REPLAY-20260818_workreport.md
+    - agents/status/WIP-XMLCII-CSEARCH-REPLAY-20260818.yaml
+    - agents/claims/WIP-XMLCII-CSEARCH-REPLAY-20260818.yaml
+  prefixes: []
+authority_domains:
+  - XML_CII_PREVIEW_SEARCH_LAZY_PREPARATION
+claim_modes:
+  - EXCLUSIVE_SUCCESSOR_REPLAY
+predecessor_coordination:
+  PR616: OPEN_STALE_TO_BE_SUPERSEDED_AFTER_SUCCESSOR_ALLOCATION
+exclusions:
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-incremental.js
+  - support/GAP semantics
+  - CII writer/runtime
+  - Python conversion
+  - .github/workflows/**
+coordination_state: OWNER_AUTHORIZED_CLEAN_REPLAY_NO_MAIN_FILE_DRIFT
+last_verified_main: d9d14d13b089c968c989544ddbdf023063b43e67
+last_updated: 2026-08-18T20:39:00+04:00
