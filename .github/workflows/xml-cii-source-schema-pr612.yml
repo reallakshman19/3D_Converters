@@ -1,0 +1,28 @@
+name: XML CII Source Schema PR612 Qualification
+
+on:
+  push:
+    branches:
+      - agent/xml-cii-source-schema-links
+    paths:
+      - 'converters/xml-cii2019-core/**'
+      - 'tabs/model-converters/converters/xmltocii2019_helper/**'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-source-schema-*.test.mjs'
+      - '.github/workflows/xml-cii-source-schema-pr612.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run source-schema authority tests
+        run: node --test tests/xml-cii-source-schema-authority-guards.test.mjs tests/xml-cii-source-schema-relationship.test.mjs
