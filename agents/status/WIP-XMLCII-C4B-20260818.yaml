@@ -1,0 +1,30 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-XMLCII-C4B-20260818
+mission: "Route six active authoritative supportConfigJson saves through updateWorkflowState"
+workstream: XML_CII_STANDALONE_PERFORMANCE
+branch: agent/xml-cii-c4b-config-routing-20260818
+stack_base_pr: 607
+stack_base_sha: f7fb087179c4b80275b3afdb0f361a11255d3996
+criticality: ENGINEERING_CRITICAL
+pr_recovery_state: RECOVERABLE
+takeover_authority: WRITE_ALLOWED_AFTER_BACKUP_GATE
+handover_readiness: READY
+report_path: agents/WIP-XMLCII-C4B-20260818_workreport.md
+appendix_a_status: CURRENT_98_OF_100
+worker_admission: NOT_ADMITTED_NO_REAL_TIMING_EVIDENCE
+production_mutation: BLOCKED_PENDING_EXACT_PRE_EDIT_BACKUPS
+validation:
+  active_save_surface_trace: PASS_SOURCE_INSPECTION
+  mandatory_pre_edit_backups: NOT_RUN_TARGET_BYTES_NOT_MATERIALIZED
+  c4b_routing_tests: NOT_RUN
+  browser_acceptance: NOT_RUN
+protected_authority:
+  - CONFIG_BYTES_UNCHANGED
+  - REVISION_MATH_UNCHANGED
+  - SUPPORT_GAP_SEMANTICS_UNCHANGED
+  - CII_WRITER_RUNTIME_UNCHANGED
+highest_risk: "An active authoritative config save remains outside updateWorkflowState or routing changes existing save semantics."
+exact_next_action: "Materialize and hash-verify six PR607 targets, run backups, then edit and test routing."
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-08-18T07:18:00+04:00
