@@ -6,7 +6,7 @@
 PR = 604
 BRANCH = agent/xml-cii-c4-dependency-revisions-20260818
 STACK_BASE = PR603 / agent/xml-cii-c2-virtual-preview-20260818
-REPORT_BASIS_HEAD = 79c9a21e1375291e660f70edcf84f232b06b2eae
+REPORT_BASIS_HEAD = cc37039591583a05273e15a09d7f221bd056a815
 MAIN_LAST_CHECKED = 00a3296f4b860ab1acb49ed690a4122122394d56
 CRITICALITY = ENGINEERING_CRITICAL
 PR_RECOVERY_STATE = RECOVERABLE
@@ -36,7 +36,7 @@ Public revision keys:
 
 - source: exact `sourceText`;
 - master authority: normalized APPLIED row identity + Batch-A APPLIED mapping revision;
-- support config: `supportConfigJson`;
+- general support/process/override config: canonical `supportConfigJson` signature excluding independently versioned master rows/field maps and Branch→Line map;
 - Branch→Line map: `config.linelist.branchLineKeyMap`.
 
 DRAFT mapping state is explicitly excluded from revision authority.
@@ -59,19 +59,22 @@ Published state blob exactly matches local tested blob:
 
 `ad1f8120247129780dceac64ade1c7af39354f34`
 
-Published dependency module:
+Published dependency module after C5-trace correction:
 
-`5b4e0ff12e93bc8ad473659140b8cbcae19b8032`
+`465a007d3d7a6e63a79258f25a9a9ba4284a2f4c`
+
+Correction custody: dependency module backup #8; exact remote dependency-test baseline backup #10. A scratch non-exact test restoration was rejected and never published.
 
 ## Validation ledger
 
 ```text
-focused revision suite                      PASS 8/8 / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED
+focused revision suite                      PASS 10/10 / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED
 DRAFT-only edit => zero revisions           PASS
 source edit => source only                   PASS
-branch-map edit => support+branch            PASS
+branch-map edit => branch only               PASS
 unrelated support config => support only     PASS
-Weight authority => weight only              PASS
+Weight authority/config embedding => weight only; support unchanged PASS
+master rows/field maps excluded from support signature PASS
 Line List Apply => line-list only            PASS
 selected source+line+branch key vs Weight    PASS / unchanged
 state integration static check               PASS
@@ -95,7 +98,7 @@ No engineering result/formula, support/GAP semantics, CII writer/runtime, source
 
 Hypothesis: explicit revisions can later scope recomputation without changing current result semantics.
 
-Falsifier: draft changes bump revisions, unrelated Weight changes source/line/branch revisions, Branch→Line changes fail to bump branch revision, or revision metadata becomes persistent engineering authority.
+Falsifier: draft changes bump revisions, Weight/master embedding bumps support/source/line/branch revisions, Branch→Line changes fail to bump branch revision, or revision metadata becomes persistent engineering authority.
 
 ## EXACT_NEXT_ACTION
 
