@@ -1,4 +1,4 @@
-const DEFAULT_FIELDS = Object.freeze({
+const LEGACY_FIELDS = Object.freeze({
   objectName: ['NAME', 'NodeName'],
   objectType: ['TYPE', 'ComponentType', 'COMPONENTTYPE'],
   directLink: ['MDSLINKREF'],
@@ -52,17 +52,17 @@ const FIELD_CONFLICT_POLICIES = new Set(['REJECT', 'FIRST_CONFIGURED']);
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
-
+function safeObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
 function finite(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
-
-function safeObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+function upperEnum(value, fallback = '') {
+  return text(value || fallback).toUpperCase();
 }
-
-function normalizeFieldList(value, fallback) {
+function normalizeFieldList(value, fallback = []) {
   const raw = Array.isArray(value)
     ? value
     : Array.isArray(value?.aliases)
@@ -73,20 +73,17 @@ function normalizeFieldList(value, fallback) {
   return [...new Set((raw || []).map(text).filter(Boolean))];
 }
 
-function upperEnum(value, fallback = '') {
-  return text(value || fallback).toUpperCase();
-}
-
 export function sourceSchemaEnabled(config = {}) {
   return safeObject(config.sourceSchema).enabled === true;
 }
 
 export function validateSourceSchemaConfig(config = {}) {
   if (!sourceSchemaEnabled(config)) return { valid: true, errors: [], warnings: [] };
-  const sourceSchema = safeObject(config.sourceSchema);
-  const identity = safeObject(sourceSchema.identity);
-  const relationships = safeObject(sourceSchema.relationships);
-  const coordinates = safeObject(sourceSchema.coordinates);
+  const schema = safeObject(config.sourceSchema);
+  const identity = safeObject(schema.identity);
+  const relationships = safeObject(schema.relationships);
+  const coordinates = safeObject(schema.coordinates);
+  const fields = safeObject(schema.fields);
   const errors = [];
   const warnings = [];
 
@@ -94,30 +91,24 @@ export function validateSourceSchemaConfig(config = {}) {
     ? identity.supportPrefixes.map((value) => text(value).toUpperCase()).filter(Boolean)
     : [];
   if (!prefixes.length) errors.push('sourceSchema.identity.supportPrefixes must be an explicit non-empty array.');
-
-  const hyphenPolicy = upperEnum(identity.hyphenPolicy);
-  if (!IDENTITY_HYPHEN_POLICIES.has(hyphenPolicy)) {
+  if (!IDENTITY_HYPHEN_POLICIES.has(upperEnum(identity.hyphenPolicy))) {
     errors.push('sourceSchema.identity.hyphenPolicy must be REQUIRED, OPTIONAL, or FORBIDDEN.');
   }
-
-  const maxHierarchyDepth = Number(identity.maxHierarchyDepth);
-  if (!Number.isInteger(maxHierarchyDepth) || maxHierarchyDepth < 0 || maxHierarchyDepth > 12) {
+  const maxDepth = Number(identity.maxHierarchyDepth);
+  if (!Number.isInteger(maxDepth) || maxDepth < 0 || maxDepth > 12) {
     errors.push('sourceSchema.identity.maxHierarchyDepth must be an integer from 0 to 12.');
   }
-
-  const hierarchyMatch = upperEnum(identity.hierarchyMatch);
-  if (!HIERARCHY_MATCH_POLICIES.has(hierarchyMatch)) {
+  if (!HIERARCHY_MATCH_POLICIES.has(upperEnum(identity.hierarchyMatch))) {
     errors.push('sourceSchema.identity.hierarchyMatch must be EXACT_ONLY, PARENT, or ROOT.');
   }
-
-  const matchBoundary = upperEnum(identity.matchBoundary, 'FULL_TOKEN');
-  if (matchBoundary !== 'FULL_TOKEN') errors.push('sourceSchema.identity.matchBoundary currently supports only FULL_TOKEN.');
+  if (upperEnum(identity.matchBoundary, 'FULL_TOKEN') !== 'FULL_TOKEN') {
+    errors.push('sourceSchema.identity.matchBoundary currently supports only FULL_TOKEN.');
+  }
 
   const conflictPolicy = upperEnum(relationships.conflictPolicy, 'REJECT');
   if (!RELATIONSHIP_CONFLICT_POLICIES.has(conflictPolicy)) {
     errors.push('sourceSchema.relationships.conflictPolicy must be REJECT or GROUP_REF_WINS.');
   }
-
   const coordinateAuthority = upperEnum(coordinates.authority, 'CORROBORATION_ONLY');
   if (!COORDINATE_AUTHORITY_POLICIES.has(coordinateAuthority)) {
     errors.push('sourceSchema.coordinates.authority must be CORROBORATION_ONLY or FALLBACK.');
@@ -125,13 +116,27 @@ export function validateSourceSchemaConfig(config = {}) {
   if (coordinates.coordinateOnlyFallback === true && coordinateAuthority !== 'FALLBACK') {
     errors.push('coordinateOnlyFallback=true requires sourceSchema.coordinates.authority=FALLBACK.');
   }
-
-  const fieldConflictPolicy = upperEnum(sourceSchema.fieldConflictPolicy, 'REJECT');
-  if (!FIELD_CONFLICT_POLICIES.has(fieldConflictPolicy)) {
+  if (!FIELD_CONFLICT_POLICIES.has(upperEnum(schema.fieldConflictPolicy, 'REJECT'))) {
     errors.push('sourceSchema.fieldConflictPolicy must be REJECT or FIRST_CONFIGURED.');
   }
 
-  if (!text(sourceSchema.profileId)) warnings.push('sourceSchema.profileId is blank; provenance will not identify the source policy profile.');
+  // Explicit-profile rule: omitted roles are disabled. Warn on any relationship
+  // role that has no explicit field mapping so the profile cannot silently rely
+  // on LEGACY_FIELDS.
+  const relationshipRoles = [
+    ...normalizeFieldList(relationships.identityRoles, ['objectName', 'supportTag']),
+    ...normalizeFieldList(relationships.groupRoles, ['supportGroupRef']),
+    ...normalizeFieldList(relationships.linkRoles, ['directLink']),
+  ];
+  for (const role of [...new Set(relationshipRoles)]) {
+    if (!Object.prototype.hasOwnProperty.call(fields, role)) {
+      warnings.push(`sourceSchema.fields.${role} is omitted; semantic role ${role} is disabled.`);
+    }
+  }
+  if (!Object.prototype.hasOwnProperty.call(fields, 'position')) {
+    warnings.push('sourceSchema.fields.position is omitted; coordinate corroboration/fallback is disabled.');
+  }
+  if (!text(schema.profileId)) warnings.push('sourceSchema.profileId is blank; provenance will not identify the source policy profile.');
   return { valid: errors.length === 0, errors, warnings };
 }
 
@@ -147,11 +152,14 @@ export function resolveSourceSchema(config = {}) {
   if (enabled) assertValidSourceSchema(config);
   const suppliedFields = safeObject(supplied.fields);
   const fields = {};
-  for (const [role, defaults] of Object.entries(DEFAULT_FIELDS)) {
-    fields[role] = normalizeFieldList(
-      Object.prototype.hasOwnProperty.call(suppliedFields, role) ? suppliedFields[role] : undefined,
-      defaults,
-    );
+  for (const [role, legacyAliases] of Object.entries(LEGACY_FIELDS)) {
+    if (enabled) {
+      fields[role] = Object.prototype.hasOwnProperty.call(suppliedFields, role)
+        ? normalizeFieldList(suppliedFields[role], [])
+        : [];
+    } else {
+      fields[role] = normalizeFieldList(suppliedFields[role], legacyAliases);
+    }
   }
 
   if (!enabled) {
@@ -161,24 +169,14 @@ export function resolveSourceSchema(config = {}) {
       fields,
       fieldConflictPolicy: 'FIRST_CONFIGURED',
       identity: {
-        supportPrefixes: ['PS'],
-        hyphenPolicy: 'REQUIRED',
-        maxHierarchyDepth: 1,
-        hierarchyMatch: 'PARENT',
-        matchBoundary: 'FULL_TOKEN',
+        supportPrefixes: ['PS'], hyphenPolicy: 'REQUIRED', maxHierarchyDepth: 1,
+        hierarchyMatch: 'PARENT', matchBoundary: 'FULL_TOKEN',
       },
       relationships: {
-        identityRoles: ['objectName', 'supportTag'],
-        groupRoles: ['supportGroupRef'],
-        linkRoles: ['directLink'],
-        expandIdentityToGroup: false,
-        objectNameIsGroupAuthority: false,
-        conflictPolicy: 'REJECT',
+        identityRoles: ['objectName', 'supportTag'], groupRoles: ['supportGroupRef'], linkRoles: ['directLink'],
+        expandIdentityToGroup: false, objectNameIsGroupAuthority: false, conflictPolicy: 'REJECT',
       },
-      coordinates: {
-        authority: 'CORROBORATION_ONLY',
-        coordinateOnlyFallback: false,
-      },
+      coordinates: { authority: 'CORROBORATION_ONLY', coordinateOnlyFallback: false },
     };
   }
 
@@ -216,7 +214,6 @@ function attributeObject(value) {
   const raw = safeObject(value);
   return safeObject(raw.attributes || raw.ATTRIBUTES || raw.rawAttributes || raw.attrs || raw);
 }
-
 function caseInsensitiveEntry(source, alias) {
   const wanted = text(alias).toUpperCase();
   for (const [key, value] of Object.entries(safeObject(source))) {
@@ -231,25 +228,19 @@ export function sourceFieldEvidence(value, role, config = {}) {
   const raw = safeObject(value);
   const attrs = attributeObject(value);
   const matches = [];
-  const seenLocations = new Set();
+  const seen = new Set();
   for (const alias of aliases) {
     for (const [scope, source] of [['attributes', attrs], ['object', raw]]) {
       const hit = caseInsensitiveEntry(source, alias);
       if (!hit) continue;
       const location = `${scope}:${text(hit.key).toUpperCase()}`;
-      if (seenLocations.has(location)) continue;
-      seenLocations.add(location);
+      if (seen.has(location)) continue;
+      seen.add(location);
       matches.push({ alias, field: hit.key, value: hit.value, scope });
     }
   }
   const distinctValues = [...new Set(matches.map((match) => text(match.value)).filter(Boolean))];
-  return {
-    role,
-    matches,
-    distinctValues,
-    conflict: distinctValues.length > 1,
-    selected: matches[0] || null,
-  };
+  return { role, matches, distinctValues, conflict: distinctValues.length > 1, selected: matches[0] || null };
 }
 
 export function readSourceField(value, role, config = {}) {
@@ -258,19 +249,15 @@ export function readSourceField(value, role, config = {}) {
   if (evidence.conflict && schema.fieldConflictPolicy === 'REJECT') return '';
   return evidence.selected?.value || '';
 }
-
 export function sourceFieldName(value, role, config = {}) {
-  const evidence = sourceFieldEvidence(value, role, config);
-  return evidence.selected?.field || '';
+  return sourceFieldEvidence(value, role, config).selected?.field || '';
 }
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
 function supportIdentityRegex(config = {}) {
-  const schema = resolveSourceSchema(config);
-  const identity = schema.identity;
+  const identity = resolveSourceSchema(config).identity;
   const prefix = identity.supportPrefixes.map(escapeRegex).join('|');
   if (!prefix) return null;
   const separator = identity.hyphenPolicy === 'OPTIONAL' ? '-?'
@@ -286,15 +273,14 @@ export function normalizeSupportIdentity(value, config = {}) {
   const match = regex.exec(text(value).toUpperCase());
   return match ? `${match[1].toUpperCase()}-${match[2]}` : '';
 }
-
 export function supportIdentityVariants(value, config = {}) {
   const normalized = normalizeSupportIdentity(value, config);
   if (!normalized) return [];
-  const schema = resolveSourceSchema(config);
-  if (schema.identity.hierarchyMatch === 'EXACT_ONLY') return [normalized];
+  const policy = resolveSourceSchema(config).identity.hierarchyMatch;
+  if (policy === 'EXACT_ONLY') return [normalized];
   const [root, ...suffix] = normalized.split('.');
   if (!suffix.length) return [normalized];
-  if (schema.identity.hierarchyMatch === 'PARENT') {
+  if (policy === 'PARENT') {
     const parent = [root, ...suffix.slice(0, -1)].join('.');
     return parent && parent !== normalized ? [normalized, parent] : [normalized];
   }
@@ -305,7 +291,6 @@ export function supportIdentityVariants(value, config = {}) {
   }
   return out;
 }
-
 export function supportIdentityRoot(value, config = {}) {
   const normalized = normalizeSupportIdentity(value, config);
   return normalized ? normalized.split('.')[0] : '';
@@ -320,20 +305,16 @@ function identitiesFromRoles(value, roles, config = {}) {
   }
   return out;
 }
-
 export function sourceSupportIdentities(value, config = {}) {
   const schema = resolveSourceSchema(config);
   if (schema.enabled) return identitiesFromRoles(value, schema.relationships.identityRoles, config);
   const out = identitiesFromRoles(value, ['objectName', 'directLink', 'supportGroupRef', 'supportTag'], config);
   const raw = safeObject(value);
   for (const candidate of [raw.name, raw.component?.name, raw.componentName]) {
-    for (const variant of supportIdentityVariants(candidate, config)) {
-      if (!out.includes(variant)) out.push(variant);
-    }
+    for (const variant of supportIdentityVariants(candidate, config)) if (!out.includes(variant)) out.push(variant);
   }
   return out;
 }
-
 export function sourceTopologyIdentities(value, config = {}) {
   return identitiesFromRoles(value, ['parentRef', 'previousRef', 'nextRef'], config);
 }
@@ -360,11 +341,9 @@ export function sourceRelationshipEvidence(value, config = {}) {
   }
   return { roleRoots, uniqueRoots, roots, conflict, rejected: conflict && roots.length === 0 };
 }
-
 export function sourceRelationshipRoots(value, config = {}) {
   return sourceRelationshipEvidence(value, config).roots;
 }
-
 export function sourceAuthorityPolicy(config = {}) {
   const schema = resolveSourceSchema(config);
   return {
@@ -390,7 +369,6 @@ export function normalizeOwnerBranchName(value) {
     .replace(/^\/*/, '/')
     .toUpperCase();
 }
-
 export function ownerBranchVariants(value) {
   const full = normalizeOwnerBranchName(value);
   const variants = new Set();
@@ -442,14 +420,9 @@ export function resolveCoordinateAlignment(config = {}) {
   if (sourceSchemaEnabled(config)) {
     if (!Object.keys(explicit).length) {
       return {
-        explicit: true,
-        mode: 'NONE',
-        offsetMm: { x: 0, y: 0, z: 0 },
-        applyToFields: [],
-        matchToleranceMm: Math.max(finite(config.coordinateTolerance, 1), 0),
-        calibrationToleranceMm: 1,
-        minimumCalibrationSamples: 3,
-        scope: 'GLOBAL',
+        explicit: true, mode: 'NONE', offsetMm: { x: 0, y: 0, z: 0 }, applyToFields: [],
+        matchToleranceMm: Math.max(finite(config.coordinateTolerance, 1), 0), calibrationToleranceMm: 1,
+        minimumCalibrationSamples: 3, scope: 'GLOBAL',
       };
     }
     const mode = upperEnum(explicit.mode, 'NONE');
@@ -484,7 +457,7 @@ export function resolveCoordinateAlignment(config = {}) {
       },
       applyToFields: normalizeFieldList(explicit.applyToFields, ['POSI']).map((value) => value.toUpperCase()),
       matchToleranceMm: Math.max(finite(explicit.matchToleranceMm ?? explicit.tolerance, finite(config.coordinateTolerance, 1)), 0),
-      calibrationToleranceMm: Math.max(finite(explicit.calibrationToleranceMm, 1), 0),
+      calibrationToleranceMm: Math.max(finite(explicit.calibrationToleranceMm, 1), 0.001),
       minimumCalibrationSamples: Math.max(1, Math.round(finite(explicit.minimumCalibrationSamples, 3))),
       scope: upperEnum(explicit.scope, 'GLOBAL'),
     };
@@ -494,11 +467,7 @@ export function resolveCoordinateAlignment(config = {}) {
   return {
     explicit: false,
     mode: legacy.enabled === true ? 'MANUAL' : 'NONE',
-    offsetMm: {
-      x: finite(legacy.xOffset, 0),
-      y: finite(legacy.yOffset, 0),
-      z: finite(legacy.zOffset, 0),
-    },
+    offsetMm: { x: finite(legacy.xOffset, 0), y: finite(legacy.yOffset, 0), z: finite(legacy.zOffset, 0) },
     applyToFields: ['POSI'],
     matchToleranceMm: Math.max(finite(legacy.tolerance, finite(config.coordinateTolerance, 1)), 0),
     calibrationToleranceMm: Math.max(finite(legacy.autoCalibratePrecision, 1), 0.001),
@@ -509,12 +478,10 @@ export function resolveCoordinateAlignment(config = {}) {
 
 export function shouldAutoCalibrateCoordinates(config = {}) {
   const alignment = resolveCoordinateAlignment(config);
-  if (sourceSchemaEnabled(config)) return alignment.mode === 'AUTO';
-  if (alignment.explicit) return alignment.mode === 'AUTO';
+  if (sourceSchemaEnabled(config) || alignment.explicit) return alignment.mode === 'AUTO';
   const legacy = safeObject(config.dtxrPositionOffset);
   return legacy.enabled !== false && legacy.autoCalibrate !== false;
 }
-
 export function applyCoordinateAlignment(point, fieldName, config = {}) {
   if (!point) return null;
   const alignment = resolveCoordinateAlignment(config);
@@ -530,29 +497,26 @@ export function applyCoordinateAlignment(point, fieldName, config = {}) {
 
 export function readSourcePosition(value, config = {}) {
   const schema = resolveSourceSchema(config);
-  const attrs = attributeObject(value);
-  const raw = safeObject(value);
-  for (const alias of schema.fields.position || []) {
-    const attrHit = caseInsensitiveEntry(attrs, alias);
-    const rawHit = caseInsensitiveEntry(raw, alias);
-    const rawValue = attrHit?.value || rawHit?.value;
-    const rawPoint = parseSourcePoint(rawValue);
-    if (!rawPoint) continue;
-    return {
-      field: attrHit?.field || rawHit?.field || alias,
-      rawValue,
-      rawPoint,
-      point: applyCoordinateAlignment(rawPoint, attrHit?.field || rawHit?.field || alias, config),
-      alignment: resolveCoordinateAlignment(config),
-    };
+  const positionEvidence = sourceFieldEvidence(value, 'position', config);
+  if (positionEvidence.conflict && schema.fieldConflictPolicy === 'REJECT') return null;
+  const selected = positionEvidence.selected;
+  if (selected) {
+    const rawPoint = parseSourcePoint(selected.value);
+    if (rawPoint) {
+      return {
+        field: selected.field,
+        rawValue: selected.value,
+        rawPoint,
+        point: applyCoordinateAlignment(rawPoint, selected.field, config),
+        alignment: resolveCoordinateAlignment(config),
+      };
+    }
   }
   if (schema.enabled) return null;
+  const raw = safeObject(value);
   const fallback = parseSourcePoint(raw.position || raw.point || '');
   return fallback ? {
-    field: 'position',
-    rawValue: raw.position || raw.point,
-    rawPoint: fallback,
-    point: fallback,
+    field: 'position', rawValue: raw.position || raw.point, rawPoint: fallback, point: fallback,
     alignment: resolveCoordinateAlignment(config),
   } : null;
 }
@@ -616,26 +580,16 @@ export function sourceSchemaDefaults() {
   return {
     enabled: false,
     profileId: '',
-    fields: Object.fromEntries(Object.entries(DEFAULT_FIELDS).map(([key, value]) => [key, [...value]])),
+    fields: {},
     fieldConflictPolicy: 'REJECT',
     identity: {
-      supportPrefixes: [],
-      hyphenPolicy: 'REQUIRED',
-      maxHierarchyDepth: 1,
-      hierarchyMatch: 'EXACT_ONLY',
-      matchBoundary: 'FULL_TOKEN',
+      supportPrefixes: [], hyphenPolicy: 'REQUIRED', maxHierarchyDepth: 1,
+      hierarchyMatch: 'EXACT_ONLY', matchBoundary: 'FULL_TOKEN',
     },
     relationships: {
-      identityRoles: ['objectName', 'supportTag'],
-      groupRoles: ['supportGroupRef'],
-      linkRoles: ['directLink'],
-      expandIdentityToGroup: false,
-      objectNameIsGroupAuthority: false,
-      conflictPolicy: 'REJECT',
+      identityRoles: ['objectName', 'supportTag'], groupRoles: ['supportGroupRef'], linkRoles: ['directLink'],
+      expandIdentityToGroup: false, objectNameIsGroupAuthority: false, conflictPolicy: 'REJECT',
     },
-    coordinates: {
-      authority: 'CORROBORATION_ONLY',
-      coordinateOnlyFallback: false,
-    },
+    coordinates: { authority: 'CORROBORATION_ONLY', coordinateOnlyFallback: false },
   };
 }
