@@ -129,9 +129,8 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       }
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       state.screeningResult = result;
-      if (finishAivAsyncOperation(state, 'screening', operation, true)) {
-        publishCurrentAivScreeningSession(result, { inputRevision: state.inputRevision });
-      }
+      publishCurrentAivScreeningSession(result, { inputRevision: state.inputRevision });
+      finishAivAsyncOperation(state, 'screening', operation, true);
     } catch (error) {
       if (isAivAsyncOperationCurrent(state, 'screening', operation)) {
         state.screeningResult = null;
@@ -181,7 +180,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
         : (state.topologyInput?.sourceFileName || 'AIV Screening Export'));
       const text = serializeAivEitExport({ screeningPackage, title });
-      downloadText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
+      downloadAivText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
