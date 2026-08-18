@@ -21,6 +21,7 @@ paths:
   - scripts/inspect-vibration-eit-roadmap.mjs
   - tests/vibration-eit-generic.test.mjs
   - tests/vibration-project-eit.test.mjs
+  - tests/vibration-project-measurement-persistence.test.mjs
   - tests/vibration-method-source.test.mjs
   - tests/vibration-roadmap-*.test.mjs
   - tests/vibration-mechanism-line-result.test.mjs
@@ -31,11 +32,11 @@ paths:
   - agents/PR615_stage3_mechanism_reduction.md
   - agents/PR615_stage4_fit_frequency_custody.md
   - agents/PR615_stage5_measurement_custody.md
-  - .backups/connector-20260818-pr615-stage3/**
-  - .backups/connector-20260818-pr615-stage4/**
+  - agents/PR615_stage6_measurement_persistence.md
 authority_domains:
   - EIT_COMPATIBILITY_IMPORT_NORMALIZATION
   - VIBRATION_PROJECT_PERSISTENCE
+  - VIBRATION_PROJECT_MEASUREMENT_EVIDENCE_PERSISTENCE
   - SOURCE_IDENTITY_LOCATOR_CUSTODY
   - ROADMAP_PRESENTATION_PROJECTION
   - ROADMAP_UI_MOUNT
@@ -50,6 +51,7 @@ exclusions:
   - natural-frequency source-method inference
   - signal-processing algorithms or numerical methods
   - measurement-to-LOF or measurement-to-screening promotion
+  - persisted measurement evidence as current engineering authority
   - automatic root-cause conclusion
   - mechanism applicability authority
   - unqualified multi-item mechanism reduction rules
@@ -65,30 +67,16 @@ exclusions:
 coordination:
   PR571: mechanism coverage and identification; coverage/contracts files untouched
   PR539_PR540: FIT adapter/family/console authority presentation; exact files avoided
-  PR479: owns tabs/vibration-integrity-tab.js; mechanism workspace integration blocked
-  PR506: owns tabs/engineering-calculations-tab.js and AIV workspace/runtime; historical shared-tab overlap acknowledged and no further PR615 shared-tab edit permitted
-  PR508: owns tabs/vibration-integrity-mechanisms.js and SBC facility/view paths
-  PR546: SBC freeze/source paths untouched
-  PR560: roadmap documentation branch untouched
+  PR479: FIT workspace integration blocked
+  PR506: shared Engineering Calculations tab and AIV runtime; historical overlap acknowledged, no further shared-tab edit permitted
+  PR508: SBC facility/workspace paths avoided
   PR582_PR584_PR586_PR588: merged M5 basis/geometry/process authorities reused, not duplicated
-  live_main_eef94949: eight behind commits classified non-overlapping XML_CII/browser-timing work; reconcile before merge
-stage3_invariants:
-  - ASSESSMENT_UNIT_LOF_NE_MECHANISM_LINE_LOF
-  - ONE_MECHANISM_MAX_ONE_EI_CONTRIBUTOR
-  - ZERO_ASSESSMENT_UNITS_INCOMPLETE
-  - MANY_ASSESSMENT_UNITS_INCOMPLETE_UNLESS_MECHANISM_SPECIFIC_REDUCER_QUALIFIED
-  - NO_UNIVERSAL_MULTI_ITEM_MAX_REDUCER
-stage4_invariants:
-  - SUPPLIED_NATURAL_FREQUENCY_NE_CUSTODIED_NATURAL_FREQUENCY
-  - UNCUSTODIED_FREQUENCY_NEVER_ENTERS_REQUEST_INPUTS
-  - ABSENT_FREQUENCY_DOES_NOT_BLOCK_STANDARD_FIT
-  - CASE_SPECIFIC_FREQUENCY_PRECEDENCE_FAILS_CLOSED
-  - NO_MEASURED_FEA_ANALYTICAL_VENDOR_CLASS_INFERENCE
-  - FREQUENCY_CUSTODY_AUTHORITY_ONLY
-stage5_invariants:
+stage6_invariants:
+  - VIBPROJ_PERSISTENCE_NE_MEASUREMENT_ENGINEERING_AUTHORITY
   - MEASUREMENT_EVIDENCE_NE_SCREENING_RESULT
   - MEASUREMENT_EVIDENCE_NE_ROOT_CAUSE_CONCLUSION
-  - RAW_ACQUISITION_REFERENCE_IMMUTABLE_AND_SHA256_PINNED
-  - DERIVED_PRODUCT_REQUIRES_EXACT_SESSION_CHANNEL_RAW_HASH_SET_AND_PROCESSING_RECIPE_VERSION
-  - NO_SIGNAL_PROCESSING_MATH_IN_CUSTODY_CONTRACT
-  - MEASUREMENT_CUSTODY_AUTHORITY_ONLY
+  - MEASUREMENT_SESSION_LINE_MUST_EXIST_IN_PROJECT
+  - LEGACY_NONEMPTY_MEASUREMENTS_ARRAY_REJECTED
+  - OLD_V1_WITHOUT_MEASUREMENT_EVIDENCE_REMAINS_LOADABLE
+  - PERSISTED_CURRENT_RESULTS_REMAIN_REJECTED
+  - NO_SIGNAL_PROCESSING_MATH
