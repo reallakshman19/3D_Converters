@@ -1,22 +1,14 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-VIB-MECH-T23-20260818
-mission: Qualify EI T2.3 direct machinery baseline LOF for bounded screening without authorizing shared-support or post-dynamic-analysis reductions.
 workstream: VIBRATION_MECHANICAL_T23_SCREENING
 branch: agent/vibration-mechanical-t23-screening-qualification-20260818
-base: main
-base_head: 765d15e87def22291792ddb533df9ea532fb3f67
-work_intent: IMPLEMENT
-criticality: ENGINEERING_CRITICAL
-execution_mode: AUTO
-auto_state: RUNNING
-agent_state: ACTIVE
-pr_recovery_state: HEALTHY
+agent_state: CLOSED
+auto_state: MIGRATED
+pr_recovery_state: SUPERSEDED_BY_PR635
 handover_readiness: READY
-report_path: agents/WIP-VIB-MECH-T23-20260818_workreport.md
-current_stage: VALIDATE_RECONCILE
+report_path: agents/PR635_workreport.md
+current_stage: HANDOVER
 blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
-highest_risk: The local screening tier must not be misread as shared-support or post-dynamic-analysis authority, and generic EI main-line aggregation retains its separate benchmark-registry gate.
-exact_next_action: Reconcile exact diff/base drift, record validation truth and PR626 overlap, then allocate draft PR.
-coordination_state: COORDINATION_REQUIRED_WITH_PR626_ON_MECHANISM_ORCHESTRATION
+coordination_state: MIGRATED_TO_PR635
 merge_authority: OWNER_ONLY_NOT_GRANTED
