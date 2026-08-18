@@ -71,7 +71,10 @@ function coordinateMatchesForNode(node, supportIndex, toleranceMm) {
   const point = parseSourcePoint(childText(node, 'Position'));
   if (!point) return [];
   return uniqueMatches((supportIndex.items || []).filter((candidate) => (
-    candidate?.point && distanceMm(point, candidate.point) <= toleranceMm
+    !candidate?.relationshipConflict
+    && !(candidate?.semanticConflicts?.length)
+    && candidate?.point
+    && distanceMm(point, candidate.point) <= toleranceMm
   )));
 }
 
