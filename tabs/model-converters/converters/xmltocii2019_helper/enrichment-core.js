@@ -127,6 +127,13 @@ function calibratedSupportIndex(stagedJsonText, document, config, diagnostics) {
   return supportIndex;
 }
 
+function coordinateFallbackEligible(node) {
+  const componentType = childText(node, 'ComponentType').toUpperCase();
+  return componentType === 'ATTA'
+    || componentType === 'ANCI'
+    || childrenByName(node, 'Restraint').length > 0;
+}
+
 function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {}) {
   if (!enriched?.xmlText || !text(stagedJsonText)) return enriched;
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return enriched;
@@ -143,8 +150,9 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
   let appliedEntries = 0;
 
   for (const node of [...document.getElementsByTagName('Node')]) {
-    if (childText(node, 'ComponentType').toUpperCase() !== 'ATTA') continue;
     const resolved = resolveSupportMatches(node, supportIndex, config);
+    const relationshipEligible = resolved.tags.length > 0;
+    if (!relationshipEligible && !coordinateFallbackEligible(node)) continue;
     if (!resolved.matches.length) continue;
 
     const entries = dedupeXmlCiiRestraintEntries(
@@ -162,6 +170,7 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
       type: 'source-schema-support-closure',
       nodeNumber: childText(node, 'NodeNumber'),
       nodeName: childText(node, 'NodeName'),
+      componentType: childText(node, 'ComponentType'),
       method: resolved.method,
       matchedBy: resolved.method,
       tags: resolved.tags,
@@ -188,10 +197,10 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
 
 /**
  * Public enrichment boundary. The established enrichment engine runs first;
- * this closure then re-resolves ATTA restraints using the configurable source
- * schema and explicit relationship graph. This removes the legacy local
- * PS-only tag parser from engineering authority without changing the existing
- * enrichment API or non-support behavior.
+ * this closure then re-resolves support-tagged/ATTA/ANCI restraint nodes using
+ * the configurable source schema and explicit relationship graph. Coordinates
+ * are validation/fallback only and coordinate-only recovery is gated to known
+ * support-bearing node shapes.
  */
 export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = {}) {
   const enriched = await legacy.enrichXmlForCii2019(xmlTextVal, stagedJsonText, options);
