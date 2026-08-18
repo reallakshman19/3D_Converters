@@ -15,113 +15,145 @@ SOURCE_TASK: owner instruction 2026-08-18 — next slice PR-B completeness-first
 PR_OR_WIP: WIP-VIB-COMPLETENESS-20260818
 BRANCH: agent/vibration-completeness-first-20260818
 PR_HEAD_OBSERVED: NOT_ALLOCATED
-REPORT_BASIS_HEAD: bca7fc9390c018753d09161052b0bf2fd54e33ce
+REPORT_BASIS_HEAD: 4a78a69536514b4c576263d558062287a7408bfb
 MAIN_HEAD_LAST_CHECKED: bca7fc9390c018753d09161052b0bf2fd54e33ce
 MERGE_BASE: bca7fc9390c018753d09161052b0bf2fd54e33ce
 REPORT_SYNC: CURRENT
 APPENDIX_A_STATUS: NOT_REQUIRED_NEW_OWNER_DIRECTED_WORK
 GROUNDING_EPOCH: GE-001
-CURRENT_STAGE: PLAN
-CURRENT_BLOCKER: NONE
-HIGHEST_RISK: UI hierarchy could make a partial screening LOF look like a complete EI family assessment
-EXACT_NEXT_ACTION: add pure completeness presentation model, then minimally wire it into the Vibration Integrity view
+CURRENT_STAGE: VALIDATE_RECONCILE
+CURRENT_BLOCKER: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+HIGHEST_RISK: presentation must never promote partial screening evidence into family-complete engineering authority
+EXACT_NEXT_ACTION: allocate draft PR, migrate recovery records, inspect exact-head checks/reviews, keep draft
 ```
 
 ## Handover in 60 Seconds
 
-Current main already calculates `AssessmentCompleteness.v1` per facility row. The defect is presentation hierarchy: FIT row state and numeric screening results are prominent while family completeness is secondary. This PR-B will make completeness the primary visible result and label numeric screening output as partial evidence whenever family completeness is not `COMPLETE`.
+PR-B implementation is complete on the WIP branch. Existing backend `AssessmentCompleteness.v1` remains untouched. The view now presents completeness first, labels current screening output as **partial screening evidence** when family completeness is `INCOMPLETE`, keeps candidate output explicitly non-screening, and adds a visible-row coverage summary.
 
-No numerical calculation, mechanism identification, qualification, aggregation, or design authority changes are authorized. PR #626 is intentionally independent and not a dependency.
+No numerical calculation, mechanism identification, coverage evaluation, qualification, aggregation, or authority logic changed. PR #626 remains independent and is not a dependency.
 
 ## Repository Ground Truth
 
 ```text
-GE-001 verified_at: 2026-08-18T14:07Z
-main: bca7fc9390c018753d09161052b0bf2fd54e33ce
-branch: agent/vibration-completeness-first-20260818
-PR: not allocated
+GE-001 main/merge base: bca7fc9390c018753d09161052b0bf2fd54e33ce
+implementation/test basis: 4a78a69536514b4c576263d558062287a7408bfb
+branch relation: ahead 8 / behind 0
+changed files: 8 intended / 0 unexplained
 MASTER_INDEX: absent on main
-PR626: OPEN/DRAFT; capability projection only; no exact target-view overlap
-PR571: OPEN/DRAFT old branch; completeness contracts are already on current main
-open-vibration search: no identified live PR owning tabs/vibration-integrity-view.js
+PR626: OPEN/DRAFT independent capability projection
+PR571: OPEN/DRAFT historical; completeness contracts already landed on main
 coordination: SAFE_TO_PROCEED_WITH_HISTORICAL_OVERLAP_RECORDED
 ```
 
 ## Mission / Scope / Acceptance
 
-Mission: make EI assessment completeness the primary result hierarchy in Vibration Integrity without changing calculation semantics.
+Delivered:
+- pure `VibrationCompletenessPresentation.v1` model derived only from existing completeness fields;
+- visible-row EI completeness summary;
+- `EI assessment status` moved before `FIT row state`;
+- old `Screening governing` publication replaced by `Current screening evidence`;
+- incomplete family state labels a valid screening LOF `Partial screening evidence · EI assessment incomplete`;
+- candidate cell labels `Candidate evidence · not screening authority`;
+- header changed from generic `SCREENING` to `EI ASSESSMENT / COMPLETENESS FIRST`;
+- focused presenter, source-hierarchy, and rendered-workspace regressions added/updated.
 
-Approved scope:
-- pure presentation model derived only from existing `AssessmentCompleteness.v1` fields;
-- top-of-register assessment coverage summary;
-- row-level `EI assessment status` before FIT row state;
-- current screening LOF labelled as partial evidence while completeness is incomplete;
-- candidate result remains explicitly candidate evidence;
-- focused regression.
-
-Non-goals:
-- no equations, coefficients, tolerances, units, master data, applicability, T1 rules, or reducers;
-- no changes to `screeningGoverning` computation;
-- no changes to `eiMainLineAggregation`;
-- no mechanism authority promotion;
+Explicit non-goals preserved:
+- no equations, coefficients, tolerances, units, masters, applicability, T1 rules, reducers, or mechanism calculation changes;
+- no changes to `screeningGoverning`, `candidateGoverning`, `AssessmentCompleteness.v1`, or `eiMainLineAggregation` semantics;
+- no design/screening authority promotion;
 - no workflow files;
 - no merge.
 
-Acceptance:
-1. `EI ASSESSMENT INCOMPLETE` is visibly primary when backend completeness is incomplete.
-2. A valid FIT screening result remains visible but is labelled partial/non-family-complete.
-3. `COMPLETE` backend state can render a governing screening label without inventing new authority.
-4. FIT row state remains available but is visually/structurally subordinate.
-5. no PASS/SAFE/design wording is introduced.
+Acceptance disposition:
+1. incomplete backend state is visibly primary — IMPLEMENTED.
+2. valid FIT screening remains visible but partial when family incomplete — IMPLEMENTED.
+3. complete backend coverage can be shown as complete without using completeness itself to invent governing/design authority — IMPLEMENTED.
+4. FIT row state remains available but structurally subordinate — IMPLEMENTED.
+5. no universal score, design approval, or candidate-to-screening promotion introduced — PRESERVED.
 
-## Current Technical Diagnosis
+## Technical Diagnosis / Authority
 
 ```text
-Observed symptom: table header/order presents FIT row state before family assessment completeness; screening cell is titled Screening governing even when family completeness is INCOMPLETE.
 Root cause: UI publication hierarchy predates landed completeness contracts.
-Fix boundary: presentation projection only.
-Falsifier: any PR-B change alters matrix assessment values, coverage evaluation, governing reducer, qualification, or source engineering state.
-Next isolating experiment: pure presenter tests against COMPLETE, INCOMPLETE, and NOT_APPLICABLE fixtures.
-```
-
-## Authority and Invariants
-
-```text
+Fix boundary: presentation only.
 AssessmentCompleteness.v1 -> sole completeness input
-screeningGoverning        -> existing current authorized-screening mechanism result, unchanged
-candidateGoverning        -> existing candidate result, unchanged
-presentation model        -> labels/counts only; engineeringAuthority NONE
+screeningGoverning        -> existing backend evidence, unchanged
+candidateGoverning        -> existing backend candidate evidence, unchanged
+presentation model        -> labels/counts only; engineering authority NONE
 ```
 
-Protected invariants:
-- partial result != complete family assessment;
-- incomplete family state does not erase valid screening evidence;
-- presentation never upgrades candidate to screening;
-- presentation never turns reference bands into PASS/FAIL;
-- design authority remains false;
-- current backend fail-closed identification semantics remain unchanged.
+Falsifier inspection: changed-file list contains no coverage/mechanism/aggregation/numerical module. `tabs/vibration-integrity-view.js` continues to call `buildVibrationMechanismMatrixRow(row, context)` and only reads `matrix.assessmentCompleteness`, `matrix.screeningGoverning`, and `matrix.candidateGoverning`.
 
 ## Validation Ledger
 
 ```text
-VAL-001 PASS / SOURCE_INSPECTION / IMPLEMENTATION_COUPLED
-main@bca7fc9 tabs/vibration-integrity-view.js: FIT row state precedes Assessment completeness; header says Screening governing.
+VAL-001 PASS
+Observation: SOURCE_INSPECTION
+Oracle: IMPLEMENTATION_COUPLED
+Basis: main@bca7fc9
+Actual: pre-change view placed FIT row state before family completeness and published `Screening governing`.
+Origin: PREEXISTING
 
-VAL-002 PASS / SOURCE_INSPECTION / IMPLEMENTATION_COUPLED
-main@bca7fc9 tests/vibration-integrity-assessment-completeness-view.test.mjs proves completeness data is already present and fail-closed.
+VAL-002 PASS
+Observation: LOCAL_EXECUTION (controlled reconstructed source surface)
+Oracle: IMPLEMENTATION_COUPLED
+Tested basis: exact committed presenter + focused test source through e3e339264d924f8bf50448a412e4600f27244f48
+Command: node --test tests/vibration-integrity-completeness-presentation.test.mjs
+Actual: 6/6 PASS
+Limitations: not repository-native full checkout; presenter/test only
+Origin: INTRODUCED_BY_PR
 
-VAL-003 NOT_RUN / NOT_OBSERVED
-Focused presentation tests pending implementation.
+VAL-003 PASS
+Observation: SOURCE_INSPECTION
+Oracle: IMPLEMENTATION_COUPLED
+Tested basis: 4a78a69536514b4c576263d558062287a7408bfb
+Actual: 8 intended files only; no backend calculation/coverage/aggregation file changed; branch behind 0.
+Origin: INTRODUCED_BY_PR
+
+VAL-004 PASS
+Observation: SOURCE_INSPECTION
+Oracle: IMPLEMENTATION_COUPLED
+Tested basis: 4a78a69536514b4c576263d558062287a7408bfb
+Actual: view header/order/labels are completeness-first; current screening/candidate values are still sourced from existing matrix fields.
+Origin: INTRODUCED_BY_PR
+
+VAL-005 NOT_RUN
+Observation: NOT_OBSERVED
+Oracle: IMPLEMENTATION_COUPLED
+Command: node tests/vibration-integrity-assessment-completeness-view.test.mjs
+Limitations: repository-native checkout unavailable
+
+VAL-006 NOT_RUN
+Observation: NOT_OBSERVED
+Oracle: IMPLEMENTATION_COUPLED
+Command: node tests/vibration-integrity-tab-static.test.mjs
+Limitations: repository-native checkout unavailable
+
+VAL-007 NOT_RUN
+Observation: NOT_OBSERVED
+Oracle: NONE
+Command: browser acceptance
+Limitations: not executed
 ```
 
 ## Changed-File Ledger
 
-No production/test changes yet. Planned existing-file rollback blobs:
+| File | Purpose | Sensitive? | Validation |
+|---|---|---:|---|
+| `tabs/vibration-integrity-completeness-presentation.js` | pure presentation projection | yes | focused 6/6 reconstructed PASS |
+| `tabs/vibration-integrity-view.js` | completeness-first production hierarchy | yes | source inspection; repo-native NOT_RUN |
+| `tests/vibration-integrity-completeness-presentation.test.mjs` | focused presenter oracle | no | reconstructed 6/6 PASS |
+| `tests/vibration-integrity-assessment-completeness-view.test.mjs` | source hierarchy regression | no | NOT_RUN |
+| `tests/vibration-integrity-tab-static.test.mjs` | rendered-workspace regression | no | NOT_RUN |
+| WIP report/status/claim | recovery coordination | no | n/a |
+
+Pre-edit immutable rollback blobs:
 - `tabs/vibration-integrity-view.js` = `4f8cdf5d593341fe5c7c7557f1f6b8ced1d8b673`
 - `tests/vibration-integrity-assessment-completeness-view.test.mjs` = `e31f768793e94aae3ffc2d96991c432b7405fd6f`
 - `tests/vibration-integrity-tab-static.test.mjs` = `8c623dbb7df57fadcdc4ef1feedde4e9d7d57a98`
 
-Native `node utils/backup.js save ...`: NOT_RUN / ENVIRONMENT_BLOCKED in connector-only environment. Immutable Git blobs above are rollback evidence, not backup PASS.
+Native `node utils/backup.js save ...`: NOT_RUN / ENVIRONMENT_BLOCKED. Immutable Git blobs are rollback evidence only, not backup PASS.
 
 ## Coordination / Continuation
 
@@ -129,9 +161,8 @@ Native `node utils/backup.js save ...`: NOT_RUN / ENVIRONMENT_BLOCKED in connect
 STATUS_RECORD: agents/status/WIP-VIB-COMPLETENESS-20260818.yaml
 CLAIM_RECORD: agents/claims/WIP-VIB-COMPLETENESS-20260818.yaml
 COORDINATION_STATE: SAFE_TO_PROCEED_WITH_HISTORICAL_OVERLAP_RECORDED
-Start here: new pure completeness presentation model
-Do not change: mechanisms/coverage.js, mechanisms matrix calculation, EI aggregation, numerical kernels
-Validation required: focused presenter regression, completeness-view regression, static render regression, source consumer audit
+Do not change: coverage.js, mechanism matrix calculation, EI aggregation, numerical kernels
+Exact next action: open draft PR from this branch, migrate WIP records to PR number, inspect exact-head hosted/review state
 ```
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
