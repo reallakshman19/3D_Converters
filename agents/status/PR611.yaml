@@ -16,10 +16,15 @@ validation:
   native_backup_gate: PASS_4_OF_4
   syntax: PASS_4_OF_4
   focused_routing_regression: PASS_5_OF_5
-  remote_blob_parity: PASS_4_OF_4
-  pre_pr_changed_file_reconciliation: PASS_EXPECTED_ONLY
-  existing_full_c4_suite: NOT_RUN
+  existing_c4_revision_suite: PASS_9_OF_9
+  combined_dependency_validation: PASS_14_OF_14
+  remote_blob_parity: PASS_5_OF_5_INCLUDING_NEW_TEST
+  final_changed_file_reconciliation: PASS_12_EXPECTED_PATHS_BEHIND_0
   browser_lifecycle: NOT_RUN
   broader_release_qualification: NOT_RUN
-  reviews_checks: PENDING_FINAL_INSPECTION
-exact_next_action: Remove WIP bootstrap records, reconcile final diff, inspect reviews/checks/mergeability, leave unmerged pending explicit owner authorization.
+  github_workflow_runs: NOT_RUN_NONE_PRESENT
+  github_commit_status_checks: NOT_RUN_NONE_PRESENT
+  reviews: NONE
+  unresolved_review_threads: NONE
+  mergeable: TRUE
+exact_next_action: Leave PR611 unmerged pending explicit owner authorization. After merge, broaden C5 invalidation using the now-routed C4 dependency revisions; browser lifecycle qualification remains a separate evidence gap.
