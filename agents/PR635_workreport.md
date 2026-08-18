@@ -7,7 +7,7 @@ HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: HEALTHY
 TAKEOVER_AUTHORITY: WRITE_ALLOWED_FOR_OWNER_DIRECTED_ASSIGNMENT
 EXECUTION_MODE: AUTO
-AUTO_STATE: RUNNING
+AUTO_STATE: COMPLETE_PHASE
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 REPOSITORY: reallaksh19/3D_Converters
 PR: 635
@@ -15,10 +15,13 @@ BRANCH: agent/vibration-mechanical-t23-screening-qualification-20260818
 BASE: main
 BASE_HEAD: 765d15e87def22291792ddb533df9ea532fb3f67
 IMPLEMENTATION_BASIS_HEAD: ede48e6ca73556ea2c609ae45a81081dd5b283a8
+RECONCILED_HEAD: 91eed87f50757d13b0210afd70be40b30fc1402a
+BASE_RELATION: ahead 22 / behind 0
+CHANGED_FILES: 16 / 16 explained / 0 unexplained
 CURRENT_STAGE: HANDOVER
 CURRENT_BLOCKER: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
 HIGHEST_RISK: preserve authority boundary to direct Table T2-3 baselines only and reconcile the Mechanical projection with PR626 before either overlapping PR is merged
-EXACT_NEXT_ACTION: inspect exact PR head/status/workflows/reviews, leave draft, then continue AUTO to independent T1 suggestion slice
+EXACT_NEXT_ACTION: leave PR635 draft; preserve Mechanical SCREENING during PR626 reconciliation
 ```
 
 ## Qualified scope
@@ -51,8 +54,12 @@ exact facility scope fail-closed                   PASS
 matrix screening/candidate separation              PASS / SOURCE_INSPECTION
 reconstructed exact-method node --check            PASS
 reconstructed focused method execution             PASS
+stack/file reconciliation                          PASS / 16 of 16 / behind 0
 repository-native Mechanical/matrix/source tests   NOT_RUN
 browser Mechanical journey                         NOT_RUN
+current-head combined statuses                     0 returned -> NOT_RUN, not PASS
+current-head PR workflow runs                      0 returned -> NOT_RUN, not PASS
+current review threads                             0
 ```
 
 Native backup execution remains `NOT_RUN / ENVIRONMENT_BLOCKED`; exact pre-edit blobs are retained in the predecessor WIP report. Draft only; no merge authority.
