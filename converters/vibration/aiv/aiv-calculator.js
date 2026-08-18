@@ -8,6 +8,10 @@ import {
   calculateAivKernelCandidateSource,
   combineAivKernelCandidatePointContributions,
 } from './aiv-kernel-candidate.js';
+import {
+  AIV_LINE_AGGREGATION_RULE,
+  aggregateAivAssessmentResultsToLineCases,
+} from './aiv-line-aggregation.js';
 
 export const AIV_CALCULATOR_SCHEMA = 'AivCalculatorResult.v1';
 export const AIV_CALCULATOR_STAGE_ORDER = Object.freeze([
@@ -191,30 +195,10 @@ export function calculateAiv({
   if (assumptionProfile.benchmark.lineAggregationMode !== 'SEPARATE_RESULT_SCOPES') {
     throw new RangeError('AIV stage 9 currently supports SEPARATE_RESULT_SCOPES only.');
   }
-  const lineGroups = new Map();
-  for (const result of assessmentResults) {
-    const key = JSON.stringify([result.line, result.caseId]);
-    if (!lineGroups.has(key)) lineGroups.set(key, []);
-    lineGroups.get(key).push(result);
-  }
-  const configuredLineLof = profileNumber(assumptionProfile, 'workedExampleReliefLineLof');
-  const lineCaseSummaries = [...lineGroups.values()].map((rows) => ({
-    schema: 'AivLineCaseSummary.v1',
-    resultScope: 'LINE_CASE_SUMMARY',
-    calculationId: 'VIB.AIV.ACOUSTIC',
-    status: qualificationMode === 'screening' ? 'SCREENING_CONFIGURED_SUMMARY' : 'BENCHMARK_CALCULATED',
-    line: rows[0].line,
-    caseId: rows[0].caseId,
-    lof: configuredLineLof,
-    assessmentCount: rows.length,
-    assessmentCanonicalIds: rows.map((item) => item.assessmentCanonicalId),
-    sourceCanonicalIds: [...new Set(rows.flatMap((item) => item.contributingSourceCanonicalIds))],
-    maxAssessmentLof: Math.max(...rows.map((item) => item.lof)),
-    aggregationBasis: 'CONFIGURED_LINE_SCOPE_REFERENCE',
-    valuesAreNotInterchangeable: true,
-    authoritativeForScreening: false,
-    authority,
-  }));
+  const lineCaseSummaries = aggregateAivAssessmentResultsToLineCases(
+    assessmentResults,
+    { qualificationMode },
+  );
   const sourceResults = sourceCandidates.map((item) => ({
     schema: 'AivSourceResult.v1',
     resultScope: 'SOURCE',
@@ -240,6 +224,9 @@ export function calculateAiv({
     assessmentResults,
     lineCaseSummaries,
     screeningResultScope: 'ASSESSMENT',
+    lineCaseAggregationRuleId: AIV_LINE_AGGREGATION_RULE.ruleId,
+    lineCaseAggregationRuleQualification: AIV_LINE_AGGREGATION_RULE.qualification.reductionRule,
+    lineCaseAssessmentInventoryCompleteness: 'UNVERIFIED',
     lineCaseSummaryAuthoritativeForScreening: false,
     universalClassificationProduced: false,
     assumptionProfile,
