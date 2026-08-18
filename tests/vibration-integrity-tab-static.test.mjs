@@ -104,10 +104,15 @@ function preflightState() {
   };
 }
 
-test('Vibration Integrity renders bounded screening workspace with explicit design boundary', () => {
+test('Vibration Integrity renders completeness-first bounded screening workspace with explicit design boundary', () => {
   const html = renderVibrationIntegrityHtml(state());
   assert.match(html, /Vibration Integrity/u);
-  assert.match(html, /SCREENING/u);
+  assert.match(html, /EI ASSESSMENT INCOMPLETE/u);
+  assert.match(html, /Completeness is the primary assessment result/u);
+  assert.match(html, /Current screening evidence/u);
+  assert.match(html, /Partial screening evidence · EI assessment incomplete/u);
+  assert.match(html, /FIT row state/u);
+  assert.doesNotMatch(html, /Screening governing/u);
   assert.match(html, /DESIGN AUTHORITY FALSE/u);
   assert.match(html, /3D EDIT table export/u);
   assert.match(html, /DECLARED_NOT_REVERIFIED/u);
