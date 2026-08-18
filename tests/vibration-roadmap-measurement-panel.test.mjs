@@ -18,6 +18,7 @@ import {
 import { renderVibrationRoadmapPanel } from '../tabs/vibration-roadmap-panel.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const controllerSource = fs.readFileSync(path.join(ROOT, 'tabs/vibration-roadmap-controller.js'), 'utf8');
 const RAW = `sha256:${'1'.repeat(64)}`;
 const PRODUCT = `sha256:${'2'.repeat(64)}`;
 const SNAPSHOT = `sha256:${'3'.repeat(64)}`;
@@ -131,7 +132,13 @@ test('VIB-ROADMAP-MEAS-003 measurement evidence is selected-line scoped', () => 
   assert.equal(node(projection, 'specialist-measurement').status, 'AVAILABLE');
 });
 
-test('VIB-ROADMAP-MEAS-004 specialist measurement is presented under VERIFY', () => {
+test('VIB-ROADMAP-MEAS-004 controller keeps external state separate from derived project evidence', () => {
+  assert.match(controllerSource, /explicitMechanismStates/);
+  assert.match(controllerSource, /mechanismStates:\s*explicitMechanismStates/);
+  assert.doesNotMatch(controllerSource, /mechanismStates:\s*displayState\.mechanismStates/);
+});
+
+test('VIB-ROADMAP-MEAS-005 specialist measurement is presented under VERIFY', () => {
   const projection = buildVibrationRoadmapProjection();
   const verify = projection.phases.find((phase) => phase.id === 'VERIFY');
   assert.ok(verify.nodes.some((item) => item.id === 'basic-measurement'));
