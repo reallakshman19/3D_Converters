@@ -8,7 +8,7 @@ import {
 } from './contracts.js';
 
 export const MECHANICAL_VIBRATION_MECHANISM_ID = 'mechanicalExcitation';
-export const MECHANICAL_VIBRATION_MECHANISM_IMPLEMENTATION_STATE = 'IMPLEMENTED_CANDIDATE_MASTER';
+export const MECHANICAL_VIBRATION_MECHANISM_IMPLEMENTATION_STATE = 'IMPLEMENTED_SCREENING';
 
 function scopeFromRow(row = {}) {
   return {
@@ -35,7 +35,7 @@ function readiness(sourceKeys, inspected, notApplicable) {
   }
   if (inspected.status === 'NOT_EVALUATED') {
     return {
-      missing: ['MECHANICAL_T23_CANDIDATE_EVALUATION'],
+      missing: ['MECHANICAL_T23_SCREENING_EVALUATION'],
       invalid: [],
       reasons: ['MECHANICAL_T23_EVALUATION_REQUIRED'],
     };
@@ -65,25 +65,26 @@ function resultValue(inspected, notApplicable) {
   if (!inspected.ok) {
     return { calculated: false, governingLof: null, status: inspected.status, governingSourceKey: null };
   }
-  const candidate = inspected.candidate;
+  const screening = inspected.candidate;
   return {
     calculated: true,
-    governingLof: candidate.governingLof,
-    status: candidate.status,
-    governingSourceKey: candidate.governingSourceKey,
-    sourceRows: candidate.rows,
+    governingLof: screening.governingLof,
+    status: screening.status,
+    governingSourceKey: screening.governingSourceKey,
+    sourceRows: screening.rows,
+    governingEligible: true,
   };
 }
 
 function traceValue(sourceKeys, inspected, notApplicable) {
   return {
     equationIds: [],
-    ruleIds: ['EI-AVIFF-T2.3-MAX-BASELINE-LOF'],
+    ruleIds: ['EI-AVIFF-T2.3-TABLE-T2-3-DIRECT-BASELINE-MAX'],
     correlationIds: [],
     inputTrace: {
       status: sourceKeys.length || notApplicable ? 'SOURCE_AND_NORMALIZED_ONLY' : 'UNAVAILABLE',
       normalizedInputs: { sourceKeys, notApplicable },
-      sourceTrace: inspected.ok ? inspected.candidate.rows : null,
+      sourceTrace: inspected.ok ? inspected.candidate.provenance : null,
     },
   };
 }
@@ -95,8 +96,11 @@ function evidenceValue(inspected, notApplicable) {
   return {
     facilityScope: inspected.scope,
     provenance: inspected.candidate.provenance,
-    usagePolicy: inspected.candidate.usagePolicy,
     authority: inspected.candidate.authority,
+    excludedBranches: [
+      'SHARED_SUPPORT_ADJACENT_LINE_TRANSFER',
+      'POST_DYNAMIC_ANALYSIS_REDUCED_LOF',
+    ],
   };
 }
 
@@ -108,27 +112,28 @@ export function buildMechanicalVibrationMechanismAssessmentItem(options = {}) {
   const inspected = inspectMechanicalFacilityCandidate(row, cachedCandidate);
   return createVibrationMechanismAssessmentItem({
     mechanismId: MECHANICAL_VIBRATION_MECHANISM_ID,
-    scope: scopeFromRow(row), childKey: 't2.3-baseline', childOrdinal: 0,
+    scope: scopeFromRow(row), childKey: 't2.3-direct-baseline', childOrdinal: 0,
     implementationState: MECHANICAL_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
     assessmentState: assessmentState(sourceKeys, inspected, notApplicable),
     resultState: resultState(inspected, requestedResultState, notApplicable),
     applicability: {
       status: notApplicable ? 'NOT_APPLICABLE_USER_CONFIRMED'
-        : sourceKeys.length ? 'USER_SELECTED_EQUIPMENT_SOURCES' : 'UNKNOWN',
+        : sourceKeys.length ? 'USER_SELECTED_CONNECTED_OR_ADJACENT_EQUIPMENT' : 'UNKNOWN',
       facilityScopeId: facilityScope.scopeId, sourceKeys,
     },
     readiness: readiness(sourceKeys, inspected, notApplicable),
     request: {
       methodId: 'VIB.MECHANICAL.T2_3.BASELINE', facilityScopeId: facilityScope.scopeId,
-      evidenceClass: 'EI_METHOD_MASTER_CANDIDATE_PLUS_PROJECT_APPLICABILITY',
+      evidenceClass: 'CONTROLLED_EI_T2_3_TABLE_T2_3_DIRECT_BASELINE',
     },
     execution: inspected.ok && !notApplicable
-      ? { status: 'CALCULATED_MASTER_CANDIDATE', screeningAuthorized: false } : null,
+      ? { status: 'CALCULATED_SCREENING', screeningAuthorized: true } : null,
     result: resultValue(inspected, notApplicable),
     trace: traceValue(sourceKeys, inspected, notApplicable),
     qualification: {
-      effective: 'CANDIDATE_MASTER', engineeringAuthority: 'NONE',
-      screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false, masterDataAuthority: false,
+      effective: 'SCREENING', engineeringAuthority: 'SCREENING',
+      screeningAuthority: 'AUTHORIZED', designAuthority: false, masterDataAuthority: false,
+      authorityScope: 'DIRECT_TABLE_T2_3_BASELINE_ONLY',
     },
     evidence: evidenceValue(inspected, notApplicable),
   });
