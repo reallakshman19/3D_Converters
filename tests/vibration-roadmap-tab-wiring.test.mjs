@@ -16,7 +16,8 @@ test('roadmap uses existing calculation click seam rather than a second router',
   assert.match(source, /event\.target\.closest\('\[data-calc-id\]'\)/);
   assert.doesNotMatch(source, /roadmap.*calculateEngineering\(/i);
 });
-test('roadmap stylesheet is separately loaded and provides a desktop third column', () => {
+test('roadmap stylesheet is separately loaded and provides an adjustable desktop third column', () => {
   assert.match(source, /vibration-roadmap-panel\.css/);
-  assert.match(css, /engineering-console-layout\.has-vibration-roadmap\{grid-template-columns:[^}]*1fr[^}]*330px/);
+  assert.match(css, /engineering-console-layout\.has-vibration-roadmap\{grid-template-columns:[^}]*1fr[^}]*--vibration-roadmap-width/);
+  assert.match(css, /vibration-roadmap-collapsed[^}]*44px/);
 });
