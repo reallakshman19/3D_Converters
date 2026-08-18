@@ -10,6 +10,7 @@ files:
     - converters/engineering-calculations/adapters/vibration-fit.js
     - tests/vibration-fit-workbook-reference.test.mjs
     - tests/vibration-fit-source-authority.test.mjs
+    - tests/vibration-fit-engineering-source-authority.test.mjs
     - agents/WIP-VIB-FIT-SOURCE-20260818_workreport.md
     - agents/status/WIP-VIB-FIT-SOURCE-20260818.yaml
     - agents/claims/WIP-VIB-FIT-SOURCE-20260818.yaml
