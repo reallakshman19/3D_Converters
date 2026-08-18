@@ -13,6 +13,10 @@ const MATRIX_INTEGRATION = Object.freeze({
     assessmentIntegrationState: 'INTEGRATED',
     integrityImplementationState: 'CANDIDATE_MASTER',
   }),
+  aiv: Object.freeze({
+    assessmentIntegrationState: 'INTEGRATED_ASSESSMENT_SCOPE',
+    integrityImplementationState: 'SCREENING_ASSESSMENT_SCOPE',
+  }),
   smallBoreConnections: Object.freeze({
     assessmentIntegrationState: 'INTEGRATED',
     integrityImplementationState: 'CANDIDATE_USER_INPUT',
