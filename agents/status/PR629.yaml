@@ -1,0 +1,21 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR629
+mission: Integrate qualified assessment-level AIV screening evidence into Vibration Integrity without line-level governing promotion.
+workstream: VIBRATION_AIV_ASSESSMENT_INTEGRATION
+branch: agent/vibration-aiv-assessment-integration-20260818
+stack_base_pr: 626
+stack_base_head: afa6a9dfcb533abb312f30baba4ef5d8d039067f
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR629_workreport.md
+report_head: 8c4f2d0383c596bb5b8126e20cfce62233c38747
+current_stage: VALIDATE_RECONCILE
+blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+highest_risk: Assessment-level AIV LOF must never become an unqualified line-level governing result.
+exact_next_action: Reconcile exact PR629 files, hosted checks, workflow runs, reviews, and stack-base drift; keep draft.
+coordination_state: STACKED_ON_PR626_EXPLICIT
+merge_authority: OWNER_ONLY_NOT_GRANTED
