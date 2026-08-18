@@ -11,60 +11,106 @@ MERGE_AUTHORITY: OWNER_ONLY
 REPOSITORY: reallaksh19/3D_Converters
 PR_OR_WIP: WIP-XMLCII-MATERIAL-INDEX-20260818
 BRANCH: agent/xml-cii-material-authority-index-20260818
+IMPLEMENTATION_HEAD: b7306c1acdbd1960725841776f3d7699656b3751
 MAIN_HEAD_LAST_CHECKED: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
 MERGE_BASE: e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e
-CURRENT_STAGE: BASELINE
+BASE_DRIFT: NONE / 0 BEHIND
+CURRENT_STAGE: PR_ALLOCATION_READY
 CURRENT_BLOCKER: NONE
-HIGHEST_RISK: Indexing must preserve first matching Line List source-row semantics, including a first matching row whose material is blank, and must not change material-code authority/conflict behavior.
-EXACT_NEXT_ACTION: Create mandatory pre-edit backup, encode independent legacy-vs-indexed lookup cases, then apply one-file indexed lookup/memoization patch.
+HIGHEST_RISK: Full repository/browser execution with real dependencies remains NOT_RUN; focused local reconstruction proves lookup/caching invariants but is implementation-coupled.
+EXACT_NEXT_ACTION: Open a draft PR, migrate custody to PR-numbered records, then inspect exact final head/checks/reviews/threads. Do not merge without new owner authorization.
 ```
 
 ## Mission
 
 Remove repeated full Line List normalization/scans from `applyPreviewMaterialCodeAuthority()` and avoid repeated pure Material Map fuzzy resolution for identical material strings during one apply pass.
 
-## Ground truth
+## Ground truth and coordination
 
-- current main is `e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e`, the squash merge of PR #630;
-- target source: `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js`;
-- target blob: `fa13b47a2fdb28922ef86c73716c9ca9c6a85e14`;
-- current `processLineListMaterial()` loops all `config.linelist.masterRows`, normalizes each row, and returns the first source row matching any alias for each branch;
-- `resolveXmlCiiMaterialCodeFromMap()` is also recomputed for every branch even when process material text repeats.
+- base/main: `e3fa32bf3e6d919d9ed3e3e17aa32fae2beea14e` (PR #630 squash merge);
+- pre-edit Material authority blob: `fa13b47a2fdb28922ef86c73716c9ca9c6a85e14`;
+- modified exact blob: `a8a83aba58f4bb5a96452d2191f657d251970247`;
+- focused test blob: `3eef61caaab5b4bf12c24772707bccdc14d8688d`;
+- compare to main at implementation reconciliation: 5 commits ahead / 0 behind before this metadata update;
+- no exact-file overlap with PR #628 or PR #616;
+- C5M owns `xml-cii-adapted-preview-incremental.js`, not this Material authority file. Authority overlap is `COORDINATION_REQUIRED_BOUNDED` and the C5M file remains untouched.
 
-## Scope
+## Implementation
 
-In scope:
-- one Material authority production module;
-- one focused regression;
-- exact pre-edit backup;
-- WIP/PR custody metadata.
+`buildPreviewMaterialLineListIndex(config)` now traverses/normalizes Line List master rows once and records the first source row for each canonical alias, including a blank material value. A row with multiple target aliases selects the candidate with the smallest source index so legacy source-order semantics are preserved.
 
-Out of scope:
-- `xml-cii-adapted-preview-incremental.js` claimed by C5M;
-- adapted Preview dryrun/core/rating/bore-wall;
-- shared fuzzy resolver semantics;
-- master data contents;
-- support/GAP, writer/runtime, Python, topology, workflows, workers.
+`resolvePreviewMaterialCodeAuthority(row, config, context)` remains backward compatible for two-argument callers. When an apply-scoped context is supplied, Line List lookup is O(1) per alias rather than a fresh full scan.
 
-## Coordination
+`applyPreviewMaterialCodeAuthority()` creates an ephemeral context with the Line List index and a `Map` for pure Material Map resolver results. The cache key is exact process-material text and exists only for one apply call. Override/pinned-conflict/fallback decisions are still executed independently per row.
 
-- PR #628 Bore/Wall: no exact-file overlap;
-- PR #616 Preview Search: no exact-file overlap;
-- C5M WIP claims only `xml-cii-adapted-preview-incremental.js` plus its test/metadata. Authority overlap is coordinated because this indexed Material authority can later benefit that path, but this WIP does not edit C5M files.
-- classification: `COORDINATION_REQUIRED_BOUNDED`, no exact-file collision.
+## Complexity boundary
 
-## Semantic invariants / falsifier
+Before:
 
-The indexed Line List lookup must select the same earliest source row as legacy scanning across all target aliases. If that first matching row has blank material, indexed lookup must return blank rather than falling through to a later row. Direct `processMaterial`/`lineListMaterial` remains higher priority.
+```text
+B branch rows × L Line List rows (normalize + compare)
++ B branch rows × M Material Map rows for repeated process material
+≈ O(B×L + B×M)
+```
 
-Material-map memoization is per apply call only and keyed by exact process-material text. It may reuse only the pure resolver result under the same material rows and fuzzy config. Overrides/conflict decisions remain per-row.
+After:
 
-Falsifier: any legacy/indexed mismatch in source-row selection, blank-first behavior, material code/source/conflict/review fields, or any mutation/persistence of cached authority.
+```text
+L Line List rows once + B alias lookups
++ U unique process materials × M Material Map rows
+≈ O(L + B + U×M), where U <= B
+```
 
-## Validation state
+No claim is made that all Material authority work is O(1); piping-class fallback and per-row override/conflict decisions remain unchanged.
 
-- source trace: PASS / SOURCE_INSPECTION;
-- open-PR exact-file overlap: PASS / NONE FOUND;
-- mandatory backup: NOT_RUN;
-- focused regression: NOT_RUN;
-- repository-native/browser suite: NOT_RUN / ENVIRONMENT_BLOCKED.
+## Semantic invariants / negative assurance
+
+Preserved:
+- direct `processMaterial` / `lineListMaterial` priority;
+- first matching Line List source-row behavior, including first-match blank material;
+- source order across `lineKey` and `lineKeyProposed` aliases;
+- exact Material Map resolver, thresholds, ambiguity rules, candidate ordering and confidence;
+- material-scoped override behavior and conflict diagnostics;
+- piping-class fallback and review flags;
+- no persistent cache or authoritative state mutation.
+
+No master values, formulas, units, support/GAP, topology, writer/runtime, Python, workers, workflows, dryrun/core/rating/Bore-Wall or shared fuzzy resolver code changed.
+
+## Mandatory backup
+
+Before production edit, exact main bytes were reconstructed and verified with Git blob SHA. The repository command
+
+```text
+node utils/backup.js save tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js "P0/P1 Preview Material indexing: pre-edit main@e3fa32b authority module"
+```
+
+created backup #1. The committed backup reuses exact Git blob `fa13b47a2fdb28922ef86c73716c9ca9c6a85e14`.
+
+## Validation
+
+`VAL-001 PASS / SOURCE_INSPECTION` — current code path and first-match semantics traced from live main.
+
+`VAL-002 PASS / LOCAL_EXECUTION / POLICY` — mandatory pre-edit backup executed; backup blob equals pre-edit source blob.
+
+`VAL-003 PASS / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED` — syntax checks and `tests/xml-cii-preview-material-authority-index.test.mjs` passed on exact modified bytes. Result: `XML CII Preview Material authority indexing checks passed.`
+
+Focused cases prove:
+- first matching blank Line List row remains authoritative over a later matching material row;
+- earliest source row wins across `lineKey` and `lineKeyProposed` aliases;
+- 10,000 Line List rows are numerically read exactly once while resolving 100 branch rows;
+- repeated identical process material scans a 250-row Material Map no more than the one-row baseline within a single apply pass;
+- cached pure resolver output does not cache final per-row authority: manual/override source remains per-row;
+- exact material mapping still resolves expected `MAT1` in the controlled case.
+
+`VAL-004 PASS / EXACT_BYTE_CUSTODY` — remote production and test blobs match the locally executed Git hashes exactly.
+
+`VAL-005 NOT_RUN / ENVIRONMENT_BLOCKED` — complete repository/native dependency suite and real browser Preview equivalence; local reconstruction uses minimal explicit dependency stubs only for focused execution.
+
+## Changed-file ledger before PR allocation
+
+- exact backup of Material authority module;
+- this WIP report/status/claim;
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js`;
+- `tests/xml-cii-preview-material-authority-index.test.mjs`.
+
+No workflow file is changed.
