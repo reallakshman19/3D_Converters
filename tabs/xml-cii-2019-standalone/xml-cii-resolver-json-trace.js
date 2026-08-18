@@ -16,6 +16,8 @@ export function createDefaultResolverJsonTraceConfig() {
     posAliases: ['DTXR_POS', 'POSI', 'POS', 'APOS', 'LPOS', 'BPOS', 'HPOS', 'TPOS', 'SPOS', 'EPOS', 'SUPPORTCOORD'],
     captureFields: DEFAULT_JSON_TRACE_CAPTURE_FIELDS.map((field) => ({ ...field })),
     coordinateTolerance: 6.0,
+    sourceSchema: {},
+    coordinateAlignment: {},
   };
 }
 
@@ -42,12 +44,17 @@ function configFrom(input = {}) {
     captureFields: normalizeJsonTraceCaptureFields(source.captureFields),
     coordinateTolerance: Number(source.coordinateTolerance ?? defaults.coordinateTolerance) || defaults.coordinateTolerance,
     dtxrPositionOffset: safeObject(source.dtxrPositionOffset || parsed.dtxrPositionOffset),
+    sourceSchema: safeObject(source.sourceSchema || parsed.sourceSchema),
+    coordinateAlignment: safeObject(source.coordinateAlignment || parsed.coordinateAlignment),
   };
 }
 
 function writeSupportConfig(supportConfigJson, jsonConfig) {
   const config = parseSupportConfig(supportConfigJson);
-  config.jsonTrace = { ...config.jsonTrace, ...jsonConfig };
+  const { sourceSchema, coordinateAlignment, ...traceConfig } = jsonConfig;
+  config.jsonTrace = { ...config.jsonTrace, ...traceConfig };
+  if (Object.keys(safeObject(sourceSchema)).length) config.sourceSchema = sourceSchema;
+  if (Object.keys(safeObject(coordinateAlignment)).length) config.coordinateAlignment = coordinateAlignment;
   return JSON.stringify(config, null, 2);
 }
 
@@ -95,10 +102,18 @@ function matchedByForRecord(record) {
   return [];
 }
 
+function unique(values) {
+  return [...new Set((values || []).map(text).filter(Boolean))];
+}
+
 function factFromLedgerRecord(record, node, jsonConfig) {
   const members = Array.isArray(record.positionMembers) ? record.positionMembers : [];
   const firstMember = members[0] || {};
   const matched = record.status.startsWith('RESOLVED_');
+  const gapMembers = members.filter((member) => text(member.cmpSupGap));
+  const gaps = unique(gapMembers.map((member) => member.cmpSupGap));
+  const groupRefs = unique(members.map((member) => member.semanticFields?.supportGroupRef));
+  const directLinks = unique(members.map((member) => member.semanticFields?.directLink));
   return {
     ...node,
     xmlIndex: record.xmlIndex,
@@ -114,7 +129,11 @@ function factFromLedgerRecord(record, node, jsonConfig) {
     stagedBore: firstMember.bore || '',
     dtxrPosValue: record.dtxrPosValue || '',
     dtxrPsValue: record.dtxrPsValue || '',
-    cmpSupGap: members.find((member) => member.cmpSupGap)?.cmpSupGap || '',
+    cmpSupGap: gaps.length === 1 ? gaps[0] : '',
+    cmpSupGaps: gaps,
+    gapSourcePaths: unique(gapMembers.map((member) => member.path || member.sourcePath)),
+    supportGroupRefs: groupRefs,
+    directLinks,
     jsonNodeNosDtxrPos: record.dtxrPosNodeNumbers || [],
     jsonNodeNosDtxrPs: record.dtxrPsNodeNumbers || [],
     jsonNodeNoDtxrPos: (record.dtxrPosNodeNumbers || []).join('|'),
@@ -133,6 +152,7 @@ function factFromLedgerRecord(record, node, jsonConfig) {
     sourcePaths: record.sourcePaths || [],
     positionMembers: members,
     capturedFields: firstMember.capturedFields || {},
+    semanticFields: firstMember.semanticFields || {},
     jsonTraceConfig: jsonConfig,
     ledgerRecord: record,
     raw: firstMember,
@@ -151,6 +171,7 @@ function positionIndexFromLedger(ledgerResult) {
         dtxrPs: entry.dtxrPs || '',
         cmpSupGap: entry.cmpSupGap || '',
         capturedFields: entry.capturedFields || {},
+        semanticFields: entry.semanticFields || {},
         point: entry.point || null,
         nodeKey: entry.jsonNodeNo || '',
         psKey: entry.tags?.[0] || '',
@@ -191,6 +212,8 @@ export function runStandaloneResolverJsonTrace(input = {}) {
   const supportConfig = parseSupportConfig(input.supportConfigJson);
   const ledgerConfig = {
     ...supportConfig,
+    sourceSchema: jsonConfig.sourceSchema,
+    coordinateAlignment: jsonConfig.coordinateAlignment,
     resolverJsonTrace: { ...safeObject(supportConfig.resolverJsonTrace), ...jsonConfig },
     jsonTrace: { ...safeObject(supportConfig.jsonTrace), ...jsonConfig },
     dtxrPositionOffset: jsonConfig.dtxrPositionOffset,

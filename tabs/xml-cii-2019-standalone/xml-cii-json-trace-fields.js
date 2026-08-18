@@ -1,3 +1,5 @@
+import { readSourceField, sourceSchemaEnabled } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
+
 export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'DTXR_POS', enabled: true },
   { name: 'DTXR_PS', enabled: true },
@@ -7,6 +9,10 @@ export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'MDSSUPPTYPE', enabled: true },
   { name: 'NAME', enabled: true },
   { name: 'CMPSUPGAP', enabled: true },
+  { name: 'MDSLINKREF', enabled: true },
+  { name: 'CMPSUPREFN', enabled: true },
+  { name: 'PREV-NAME', enabled: true },
+  { name: 'OWNER', enabled: true },
 ]);
 
 const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'SPRE', 'SPREF', 'DTXR_PS', 'DTXR_POS']);
@@ -73,7 +79,8 @@ export function formatConfiguredJsonTraceMember(member = {}, config = {}) {
   const fields = configuredJsonTraceFieldNames(config);
   const primaryName = PRIMARY_FIELD_ORDER.find((name) => fields.includes(name) && text(captured[name]));
   const descriptor = text(primaryName ? captured[primaryName] : '') || fallbackDescriptor(member);
-  const name = fields.includes('NAME') ? text(captured.NAME || member.name) : '';
+  const semanticName = text(member.semanticFields?.objectName || member.name);
+  const name = fields.includes('NAME') ? text(captured.NAME || semanticName) : semanticName;
   let output = descriptor;
   if (name && !output.toUpperCase().includes('NAME=')) output += `(NAME=${name})`;
   const extras = [];
@@ -87,10 +94,29 @@ export function formatConfiguredJsonTraceMember(member = {}, config = {}) {
   return [output, ...extras].filter(Boolean).join(',');
 }
 
+function semanticFields(rawValue, config = {}) {
+  const roles = [
+    'objectName', 'objectType', 'directLink', 'supportGroupRef', 'parentRef',
+    'previousRef', 'nextRef', 'componentRef', 'supportType', 'supportFunction',
+    'supportKind', 'supportGap', 'dtxrPosition', 'dtxrPs', 'dtxr', 'bore',
+  ];
+  const out = {};
+  for (const role of roles) {
+    const value = text(readSourceField(rawValue, role, config));
+    if (value) out[role] = value;
+  }
+  return out;
+}
+
 export function decorateJsonTraceMember(member = {}, config = {}) {
+  const raw = member.raw || member;
+  const semantic = semanticFields(raw, config);
   return {
     ...member,
-    capturedFields: captureConfiguredJsonTraceFields(member.raw || member, config),
+    name: text(member.name || semantic.objectName),
+    cmpSupGap: text(member.cmpSupGap || semantic.supportGap),
+    capturedFields: captureConfiguredJsonTraceFields(raw, config),
+    semanticFields: semantic,
   };
 }
 
@@ -103,12 +129,23 @@ function uniqueValues(values) {
   return [...new Set(values.map(text).filter(Boolean))];
 }
 
-function supportKindsFromCapturedMembers(members = []) {
+function supportKindsFromMembers(members = [], config = {}) {
   const kinds = [];
+  const strict = sourceSchemaEnabled(config);
   for (const member of members) {
-    const code = text(member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
-    if (code.startsWith('GT')) kinds.push('GUIDE');
-    if (code.startsWith('ST')) kinds.push('LINESTOP');
+    if (strict) {
+      // In an explicit source profile, JsonTrace must not invent another
+      // support-code grammar. Only a canonical supportKind field is accepted.
+      const kind = text(member?.semanticFields?.supportKind).toUpperCase();
+      if (['GUIDE', 'LINESTOP', 'LIMIT', 'REST', 'ANCHOR', 'SPRING'].includes(kind)) kinds.push(kind === 'LIMIT' ? 'LINESTOP' : kind);
+      continue;
+    }
+    const code = text(member?.semanticFields?.supportType
+      || member?.semanticFields?.supportKind
+      || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
+    if (code.startsWith('GT') || code === 'GUIDE') kinds.push('GUIDE');
+    if (code.startsWith('ST') || code === 'LINESTOP' || code === 'LIMIT') kinds.push('LINESTOP');
+    if (code === 'REST' || code.includes('PIPE-REST')) kinds.push('REST');
   }
   return uniqueValues(kinds);
 }
@@ -135,12 +172,15 @@ export function decorateJsonTraceLedger(ledgerResult = {}, config = {}) {
         ? record.positionMembers.map((member) => byPath.get(memberIdentity(member))
           || decorateJsonTraceMember(member, config))
         : [];
+      const gaps = uniqueValues(positionMembers.map((member) => member.cmpSupGap));
       return {
         ...record,
         positionMembers,
+        cmpSupGap: gaps.length === 1 ? gaps[0] : '',
+        cmpSupGaps: gaps,
         derivedSupportTypes: uniqueValues([
           ...(Array.isArray(record.derivedSupportTypes) ? record.derivedSupportTypes : []),
-          ...supportKindsFromCapturedMembers(positionMembers),
+          ...supportKindsFromMembers(positionMembers, config),
         ]),
       };
     })
