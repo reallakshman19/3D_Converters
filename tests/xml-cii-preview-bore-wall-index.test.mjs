@@ -52,7 +52,13 @@ function legacyStagedEvidence(staged, branchName) {
     if (!root || canonicalBranch(owner) !== root || type === 'BRANCH') return [];
     const dtxr = attr(attrs, ['DTXR_POS', 'DTXR', 'DESC', 'DESCRIPTION']) || value.name;
     if (!text(dtxr)) return [];
-    return [{ componentType: type, componentRefNo: attr(attrs, ['REF', 'NAME']), boreMm: legacyStagedBore(attrs), dtxr: text(dtxr), source: 'staged-json' }];
+    return [{
+      componentType: type,
+      componentRefNo: attr(attrs, ['REF', 'NAME']),
+      boreMm: legacyStagedBore(attrs),
+      dtxr: text(dtxr),
+      source: 'staged-json',
+    }];
   });
 }
 
@@ -121,8 +127,14 @@ for (const [cls, bore] of [['CLASSA', 100], ['CLASSB', 80], ['96620', 250], ['NP
 }
 
 function leaf(name, value) { return { nodeType: 1, localName: name, nodeName: name, textContent: String(value), childNodes: [] }; }
-function element(name, fields = {}) { return { nodeType: 1, localName: name, nodeName: name, childNodes: Object.entries(fields).map(([key, value]) => leaf(key, value)), textContent: '' }; }
-function branch(name, nodeFields = {}) { return { nodeType: 1, localName: 'Branch', nodeName: 'Branch', childNodes: [leaf('Branchname', name), element('Node', nodeFields)], textContent: '' }; }
+function element(name, fields = {}) {
+  const childNodes = Object.entries(fields).map(([key, value]) => leaf(key, value));
+  return { nodeType: 1, localName: name, nodeName: name, childNodes, textContent: '' };
+}
+function branch(name, nodeFields = {}) {
+  const node = element('Node', nodeFields);
+  return { nodeType: 1, localName: 'Branch', nodeName: 'Branch', childNodes: [leaf('Branchname', name), node], textContent: '' };
+}
 const branches = [
   branch('LINE-A/B1', { NodeNumber: 10, ComponentRefNo: '=A1', Endpoint: 2, ComponentType: 'PIPE', OutsideDiameter: 114.3 }),
   branch('LINE-C/B1', { NodeNumber: 20, ComponentRefNo: '=C1', Endpoint: 2, ComponentType: 'PIPE', OutsideDiameter: 88.9 }),
