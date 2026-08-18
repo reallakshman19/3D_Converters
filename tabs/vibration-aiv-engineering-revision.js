@@ -70,6 +70,9 @@ export function markAivEngineeringInputChanged(state, options = {}) {
   cancelAivAsyncOperations(state);
   state.readinessState = null;
   state.screeningState = null;
+  if (Array.isArray(state.inventoryCompletenessAttestations)) {
+    state.inventoryCompletenessAttestations = [];
+  }
   return state.inputRevision;
 }
 

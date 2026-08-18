@@ -8,6 +8,7 @@ import {
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { AIV_LINE_AGGREGATION_RULE_ID } from '../converters/vibration/aiv/aiv-line-aggregation.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { buildLoadedAivD23Benchmark } from '../tabs/vibration-aiv-benchmarks.js';
@@ -19,7 +20,7 @@ const D23 = Object.freeze({
   reliefRawSourcePwlDb: 164.6851759525391,
   reliefPointPwlDb: 164.3734876408508,
   assessmentLof: 0.29,
-  lineLof: 1.48,
+  lineCandidateLof: 0.29,
 });
 
 function parsedD23() {
@@ -75,7 +76,9 @@ test('controlled EI D.2.3 single Engineering API, batch API and canvas projectio
   assertNear(assessmentNode.resultSummary.combinedPointPwlDb, D23.reliefPointPwlDb);
   assertNear(assessmentNode.resultSummary.lof, assessmentResult.lof);
   assert.equal(assessmentNode.resultSummary.lof, D23.assessmentLof);
-  assert.equal(single.outputs.lineCaseSummaries[0].lof, D23.lineLof);
+  assert.equal(single.outputs.lineCaseSummaries[0].lof, D23.lineCandidateLof);
+  assert.equal(single.outputs.lineCaseSummaries[0].aggregationBasis, AIV_LINE_AGGREGATION_RULE_ID);
+  assert.equal(single.outputs.lineCaseSummaries[0].assessmentInventoryCompleteness, 'UNVERIFIED');
   assert.equal(single.outputs.lineCaseSummaries[0].authoritativeForScreening, false);
 });
 

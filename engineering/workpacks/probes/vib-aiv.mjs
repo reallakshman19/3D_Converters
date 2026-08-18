@@ -16,6 +16,15 @@ async function profileFrom(context) {
   return module[context.workpack.assumptionProfile.exportName];
 }
 
+async function lineAggregationRuleFrom(context) {
+  const module = await importFromRoot(context, context.workpack.lineAggregation.path);
+  return module[context.workpack.lineAggregation.exportName];
+}
+
+async function inventoryCompletenessFrom(context) {
+  return importFromRoot(context, context.workpack.inventoryCompleteness.path);
+}
+
 async function benchmarksFrom(context) {
   const spec = context.workpack.benchmarks.independentEvidence;
   const module = await importFromRoot(context, spec.path);
@@ -49,11 +58,50 @@ export async function verifyScreeningScope(context) {
 }
 
 export async function verifyLineCaseSummaryBoundary(context) {
-  const source = await sourceFrom(context, context.workpack.calculator.path);
+  const calculator = await sourceFrom(context, context.workpack.calculator.path);
+  const reducer = await sourceFrom(context, context.workpack.lineAggregation.path);
   const ok = context.workpack.authority.lineCaseSummaryAuthoritativeForScreening === false
-    && source.includes('authoritativeForScreening: false')
-    && source.includes("resultScope: 'LINE_CASE_SUMMARY'");
-  return { ok, detail: 'line/case summary remains non-authoritative for screening' };
+    && calculator.includes('lineCaseSummaryAuthoritativeForScreening: false')
+    && reducer.includes('authoritativeForScreening: false')
+    && reducer.includes("assessmentInventoryCompleteness: inventoryVerified ? 'VERIFIED_COMPLETE' : 'UNVERIFIED'")
+    && reducer.includes("? 'AIV_LINE_CASE_SCREENING_AUTHORITY_NOT_PROMOTED'");
+  return { ok, detail: 'line/case candidate may carry verified inventory evidence while screening authority remains false' };
+}
+
+export async function verifyLineAggregationQualification(context) {
+  const rule = await lineAggregationRuleFrom(context);
+  const expected = context.workpack.lineAggregation;
+  const ok = rule?.ruleId === expected.ruleId
+    && rule?.methodRevision === expected.methodRevision
+    && rule?.qualification?.reductionRule === expected.reductionRuleQualification
+    && rule?.qualification?.assessmentInventoryCompletenessRequiredForScreening === true
+    && rule?.qualification?.screeningAuthority === 'NOT_AUTHORIZED_WITHOUT_COMPLETE_ASSESSMENT_INVENTORY'
+    && rule?.qualification?.designAuthority === false;
+  return { ok, detail: 'EI T2.7 greatest-discontinuity reduction rule remains qualified separately from line screening authority' };
+}
+
+export async function verifyInventoryCompletenessEvidenceBoundary(context) {
+  const module = await inventoryCompletenessFrom(context);
+  const source = await sourceFrom(context, context.workpack.inventoryCompleteness.path);
+  const expected = context.workpack.inventoryCompleteness;
+  const ok = module?.AIV_INVENTORY_ATTESTATION_SCHEMA === expected.attestationSchema
+    && module?.AIV_INVENTORY_VERIFICATION_SCHEMA === expected.verificationSchema
+    && module?.AIV_INVENTORY_REQUIRED_EXTENT === expected.requiredExtent
+    && module?.AIV_INVENTORY_TERMINAL_ROLE === expected.terminalBoundaryRole
+    && expected.engineeringInputRevisionRequired === true
+    && expected.humanAttestationRequired === true
+    && expected.uniqueDirectedSourceToBoundaryPathRequired === true
+    && expected.offPageWithinExtentAllowed === false
+    && expected.exactAssessmentSetRequired === true
+    && expected.screeningAuthorityPromotionApplied === false
+    && expected.designAuthority === false
+    && source.includes('ENGINEERING_INPUT_REVISION_STALE')
+    && source.includes('SOURCE_TO_BOUNDARY_AMBIGUOUS')
+    && source.includes('OFF_PAGE_BOUNDARY_IN_SCOPE')
+    && source.includes('TOPOLOGY_ASSESSMENT_SET_MISMATCH')
+    && source.includes('screeningAuthorityPromotionApplied: false')
+    && source.includes('lineCaseAuthoritativeForScreening: false');
+  return { ok, detail: 'inventory completeness requires exact-revision human evidence plus fail-closed machine topology checks and does not promote line authority' };
 }
 
 export async function verifyDesignAuthority(context) {
@@ -84,11 +132,15 @@ export async function verifyAssumptionAuthorityBoundary(context) {
 export async function verifyBoundedMethodCustody(context) {
   const profile = await profileFrom(context);
   const source = await sourceFrom(context, context.workpack.calculator.path);
+  const lineReference = context.workpack.boundedMethod.dependencies
+    .find((item) => item.path === 'benchmark.workedExampleReliefLineLof');
   const ok = profile?.benchmark?.stage8Model === 'CONFIGURED_D23_INTERMEDIATES'
     && source.includes('AIV stage 8 supports CONFIGURED_D23_INTERMEDIATES only.')
     && context.workpack.boundedMethod.dependencies
-      .every((item) => item.classification !== 'UNRESTRICTED_PROJECT_AUTHORITY');
-  return { ok, detail: 'configured D.2.3 dependencies remain explicitly bounded' };
+      .every((item) => item.classification !== 'UNRESTRICTED_PROJECT_AUTHORITY')
+    && lineReference?.classification === 'BENCHMARK_ORACLE_ONLY'
+    && /not a runtime line-result input/iu.test(lineReference?.runtimeRole ?? '');
+  return { ok, detail: 'configured D.2.3 dependencies remain explicitly bounded and the 1.48 line reference is oracle-only' };
 }
 
 export async function verifyIndependentBenchmarks(context) {
