@@ -8,8 +8,9 @@ function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidenc
     canonicalText: evidence.effectiveDtxr,
     value: evidence.effectiveDtxr,
     ...evidence,
-    teeDesc: '',
-    cmpSupGap: '',
+    teeDesc: evidence.teeDesc || '',
+    cmpSupGap: evidence.cmpSupGap || '',
+    cmpSupGaps: Array.isArray(evidence.cmpSupGaps) ? evidence.cmpSupGaps : (evidence.cmpSupGap ? [evidence.cmpSupGap] : []),
     supportTags: core.xmlNodeSupportTags(xmlNode),
     source,
     matchedBy,
@@ -19,7 +20,7 @@ function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidenc
     confidence,
     suppressed: false,
     suppressionReason: '',
-    candidates: [],
+    candidates: evidence.candidates || [],
   };
 }
 
@@ -40,6 +41,7 @@ function parsePoint(value) {
 
 function itemPoint(item) {
   if (item?.coord && [item.coord.x, item.coord.y, item.coord.z].every(Number.isFinite)) return item.coord;
+  if (item?.point && [item.point.x, item.point.y, item.point.z].every(Number.isFinite)) return item.point;
   const attrs = item?.attrs || {};
   for (const key of ['SUPPORTCOORD', 'POS', 'POSI', 'BPOS', 'APOS', 'LPOS', 'CPOS', 'HPOS', 'TPOS']) {
     const point = parsePoint(attrs[key]);
@@ -52,7 +54,11 @@ function branchlessCoordinateEvidence(args) {
   const target = parsePoint(core.getXmlNodeProperty(args.xmlNode, 'Position'));
   const stagedIndex = args.context?.stagedIndex || args.context;
   if (!target || !Array.isArray(stagedIndex?.items)) return null;
-  const tolerance = Number(args.config?.dtxrCoordinateToleranceMm ?? args.config?.coordinateToleranceMm ?? args.config?.coordinateTolerance ?? 6);
+  const tolerance = Number(args.config?.coordinateAlignment?.matchToleranceMm
+    ?? args.config?.dtxrCoordinateToleranceMm
+    ?? args.config?.coordinateToleranceMm
+    ?? args.config?.coordinateTolerance
+    ?? 6);
   const limit = Number.isFinite(tolerance) && tolerance >= 0 ? tolerance : 6;
   const matches = stagedIndex.items
     .map((item) => ({ item, point: itemPoint(item) }))
@@ -62,7 +68,13 @@ function branchlessCoordinateEvidence(args) {
 
   const dtxrPos = [...new Set(matches.map(({ item }) => String(item?.dtxr || item?.attrs?.DTXR_POS || '').trim()).filter(Boolean))].join('+');
   const dtxrPs = matches.map(({ item }) => String(item?.dtxrPs || item?.attrs?.DTXR_PS || '').trim()).find(Boolean) || '';
-  const evidence = core.selectEffectiveDtxrEvidence(dtxrPos, dtxrPs);
+  const gaps = [...new Set(matches.map(({ item }) => String(item?.cmpSupGap || item?.attrs?.CMPSUPGAP || '').trim()).filter(Boolean))];
+  const evidence = {
+    ...core.selectEffectiveDtxrEvidence(dtxrPos, dtxrPs),
+    cmpSupGap: gaps[0] || '',
+    cmpSupGaps: gaps,
+    candidates: matches.map(({ item }) => item),
+  };
   const nearest = matches[0];
   const distance = core.euclideanDistance(target, nearest.point);
   return resultShape(
@@ -80,8 +92,8 @@ function branchlessCoordinateEvidence(args) {
  * Public DTXR resolver boundary.
  *
  * Support/restraint precedence is:
- * explicit XML DTXR_POS → core branch-aware resolver → branchless staged
- * coordinate evidence → explicit XML DTXR_PS fallback.
+ * explicit XML DTXR_POS → relationship-aware core resolver → branchless
+ * staged coordinate evidence → explicit XML DTXR_PS fallback.
  */
 export function resolveDtxrForXmlNode(args = {}) {
   const purpose = args?.purpose || 'component-description';
