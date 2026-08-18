@@ -6,16 +6,17 @@ workstream: VIBRATION_AIV_INVENTORY_COMPLETENESS
 branch: agent/vibration-aiv-inventory-completeness-20260818
 stack_base_pr: 631
 stack_base_head: db4920173980ab60f05fa63a1ea139aa43a2de1a
+main_head_last_checked: 3a26d25902ef8d6f304422cba507f2500dfa61a1
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
 pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/WIP-VIB-AIV-INVENTORY-20260818_workreport.md
-report_head: db4920173980ab60f05fa63a1ea139aa43a2de1a
-current_stage: PLAN
-blocker: NONE
-highest_risk: Topology membership alone cannot prove omitted physical welded discontinuities do not exist.
-exact_next_action: Add attestation contract, topology verifier, stale-input invalidation, and Stage-9 completeness custody without authority promotion.
+report_head: bf39305686129f17c6bab63d97fbff31200eadd0
+current_stage: VALIDATE_RECONCILE
+blocker: REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
+highest_risk: Topology membership alone cannot prove omitted physical welded discontinuities do not exist; exact-revision human attestation remains mandatory.
+exact_next_action: Allocate stacked draft PR, migrate recovery identity, reconcile exact head/checks/reviews, and keep line/case screening authority false.
 coordination_state: STACKED_ON_PR631_SAFE_FOLLOW_ON
 merge_authority: OWNER_ONLY_NOT_GRANTED
