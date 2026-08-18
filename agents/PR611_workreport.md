@@ -106,21 +106,26 @@ Evidence / governance:
 - `agents/status/PR611.yaml`;
 - `agents/claims/PR611.yaml`.
 
-WIP records are temporary bootstrap history and should be removed after PR-numbered records are committed.
+Temporary WIP report/status/claim records were removed after PR-numbered records were committed.
 
 ## Validation ledger
 
 ```text
-pre-edit exact source blob verification       PASS (4/4 source blobs + native backup utility blob)
+pre-edit exact source blob verification       PASS (4/4 source blobs + exact backup utility blob)
 repository-native backup execution            PASS (4/4)
 node --check modified modules                 PASS (4/4)
 focused C4b routing/revision regression        PASS (5/5)
-remote production blob parity                 PASS (4/4; matches locally tested blobs)
-pre-PR changed-file reconciliation            PASS (12 expected paths, behind_by=0)
-existing full C4 test file standalone run      NOT_RUN
+existing C4 dependency revision suite          PASS (9/9; exact test blob 4ee96da1e37ccd154a76240d30d94c626ded9565)
+combined dependency validation                 PASS (14/14; 0 fail, 0 skipped)
+remote production + new-test blob parity       PASS (5/5)
+final changed-file reconciliation              PASS (12 expected paths; branch behind main by 0 at inspection)
 browser active-save lifecycle                  NOT_RUN
 broader release/private-repo qualification     NOT_RUN
-PR reviews/checks                               PENDING FINAL INSPECTION
+GitHub workflow runs                           NOT_RUN (none present at inspected head)
+GitHub commit-status checks                    NOT_RUN (none present at inspected head)
+reviews                                        NONE at inspected head
+unresolved review threads                      NONE at inspected head
+mergeability                                   TRUE at inspected head
 ```
 
 Focused regression proves:
@@ -131,7 +136,7 @@ Focused regression proves:
 - Branch→Line map change advances only `branchLineMapRevision`;
 - master-row/field-map-only changes remain excluded from general support revision.
 
-No NOT_RUN item is represented as PASS.
+The pre-existing C4 dependency-revision suite independently preserves the earlier revision-domain contracts. No NOT_RUN item is represented as PASS.
 
 ## Appendix A — repository-specific qualification
 
@@ -141,7 +146,7 @@ A2 Failure Isolation — 19/20. Failure is transition custody bypass, not signat
 
 A3 Authority / Invariant — 20/20. General support signature excludes independent masters and Branch→Line map; no support/GAP or writer authority touched.
 
-A4 Independent Validation — 19/20. Static active-surface routing assertions plus independent revision-domain behavior tests; browser explicitly NOT_RUN.
+A4 Independent Validation — 19/20. Static active-surface routing assertions plus existing and new independent revision-domain behavior tests; browser explicitly NOT_RUN.
 
 A5 Minimal Patch — 19/20. Four surgical callback changes plus one focused test; no worker/cache/workflow/core changes.
 
@@ -155,4 +160,4 @@ Total: 96/100; minimum 19/20.
 
 ## EXACT_NEXT_ACTION
 
-Finish PR611 repository-side inspection: remove WIP bootstrap records after PR-numbered records exist, reconcile final changed-file list, inspect reviews/checks/head mergeability, and leave the qualified PR unmerged pending explicit owner merge authorization. After merge, broader C5 invalidation may safely rely on C4 revisions for these active config-save surfaces.
+Leave PR611 draft and unmerged pending explicit owner merge authorization for this new-stage PR. If merge is authorized, first re-read live `main`, PR head, mergeability, reviews and checks, then use the repository-supported merge method with an expected-head guard. After merge, proceed to broader C5 invalidation using the now-routed C4 dependency revisions. Browser active-save lifecycle qualification remains a separate evidence gap; workers remain NOT_ADMITTED.
