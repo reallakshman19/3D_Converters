@@ -1,3 +1,5 @@
+import { verifyAivInventoryCompletenessForLineCase } from './aiv-inventory-completeness.js';
+
 export const AIV_LINE_AGGREGATION_RULE_ID = 'EI_AVIFF_T2_7_GREATEST_DISCONTINUITY_LOCATION_LOF';
 export const AIV_LINE_CASE_SUMMARY_SCHEMA = 'AivLineCaseSummary.v1';
 
@@ -82,10 +84,20 @@ function uniqueSorted(values) {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
-function lineCaseSummary(results, qualificationMode) {
+function lineCaseSummary(results, qualificationMode, context) {
   const controlling = controllingAssessment(results);
   const assessmentIds = uniqueSorted(results.map((item) => item.assessmentCanonicalId));
   const sourceIds = uniqueSorted(results.flatMap((item) => item.contributingSourceCanonicalIds ?? []));
+  const inventoryVerification = verifyAivInventoryCompletenessForLineCase({
+    attestations: context.inventoryCompletenessAttestations,
+    topology: context.topology,
+    line: controlling.line,
+    caseId: controlling.caseId,
+    sourceCanonicalIds: sourceIds,
+    assessmentCanonicalIds: assessmentIds,
+    currentInputRevision: context.engineeringInputRevision,
+  });
+  const inventoryVerified = inventoryVerification.verifiedComplete === true;
   return deepFreeze({
     schema: AIV_LINE_CASE_SUMMARY_SCHEMA,
     resultScope: 'LINE_CASE_SUMMARY',
@@ -102,11 +114,14 @@ function lineCaseSummary(results, qualificationMode) {
     controllingSourceCanonicalIds: uniqueSorted(controlling.contributingSourceCanonicalIds ?? []),
     aggregationBasis: AIV_LINE_AGGREGATION_RULE_ID,
     aggregationRuleQualification: AIV_LINE_AGGREGATION_RULE.qualification.reductionRule,
-    assessmentInventoryCompleteness: 'UNVERIFIED',
-    assessmentInventoryRequiredExtent: 'ALL_RELEVANT_WELDED_DISCONTINUITIES_DOWNSTREAM_TO_FIRST_MAJOR_VESSEL',
+    assessmentInventoryCompleteness: inventoryVerified ? 'VERIFIED_COMPLETE' : 'UNVERIFIED',
+    assessmentInventoryRequiredExtent: inventoryVerification.requiredExtent,
+    assessmentInventoryVerification: inventoryVerification,
     valuesAreNotInterchangeable: true,
     authoritativeForScreening: false,
-    screeningAuthorityBlocker: 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
+    screeningAuthorityBlocker: inventoryVerified
+      ? 'AIV_LINE_CASE_SCREENING_AUTHORITY_NOT_PROMOTED'
+      : 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
     authority: {
       calculationState: 'IMPLEMENTED',
       qualificationState: 'QUALIFIED_REDUCTION_RULE',
@@ -120,15 +135,25 @@ function lineCaseSummary(results, qualificationMode) {
       methodRevision: AIV_LINE_AGGREGATION_RULE.methodRevision,
       source: AIV_LINE_AGGREGATION_RULE.source,
       inputAssessmentResultIds: assessmentIds,
+      inventoryVerificationSchema: inventoryVerification.schema,
+      inventoryEvidenceVerified: inventoryVerified,
     },
   });
 }
 
-export function aggregateAivAssessmentResultsToLineCases(assessmentResults = [], { qualificationMode = 'benchmark' } = {}) {
+export function aggregateAivAssessmentResultsToLineCases(assessmentResults = [], {
+  qualificationMode = 'benchmark',
+  topology = null,
+  inventoryCompletenessAttestations = [],
+  engineeringInputRevision = null,
+} = {}) {
   if (!['benchmark', 'screening'].includes(qualificationMode)) {
     throw new RangeError('AIV line aggregation qualificationMode must be benchmark or screening.');
   }
   if (!Array.isArray(assessmentResults)) throw new TypeError('AIV line aggregation assessmentResults must be an array.');
+  if (!Array.isArray(inventoryCompletenessAttestations)) {
+    throw new TypeError('AIV line aggregation inventoryCompletenessAttestations must be an array.');
+  }
   const groups = new Map();
   for (const input of assessmentResults) {
     const result = assertAssessmentResult(input, qualificationMode);
@@ -136,7 +161,8 @@ export function aggregateAivAssessmentResultsToLineCases(assessmentResults = [],
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(result);
   }
+  const context = { topology, inventoryCompletenessAttestations, engineeringInputRevision };
   return deepFreeze([...groups.values()]
-    .map((results) => lineCaseSummary(results, qualificationMode))
+    .map((results) => lineCaseSummary(results, qualificationMode, context))
     .sort((left, right) => left.line.localeCompare(right.line) || left.caseId.localeCompare(right.caseId)));
 }
