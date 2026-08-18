@@ -1,4 +1,5 @@
 import {
+  FIT_METHOD_SOURCE_BASIS,
   FIT_REFERENCE_AUTHORITY,
   FIT_WORKBOOK_SOURCE,
   fitAdvancedCorrelation,
@@ -180,7 +181,9 @@ export function calculateFit(input = {}) {
       ]),
     }),
     provenance: Object.freeze({
-      source: FIT_WORKBOOK_SOURCE,
+      source: FIT_METHOD_SOURCE_BASIS.source,
+      methodSourceBasis: FIT_METHOD_SOURCE_BASIS,
+      workbookReference: FIT_WORKBOOK_SOURCE,
       qualificationCoverageId: qualificationCoverage.coverageId,
       screeningCandidateScopeId: screeningCandidate.scopeId,
       qualificationBasis: qualificationCoverage.qualificationBasis ?? null,
