@@ -5,11 +5,12 @@ import { resolveVibrationMechanismCapability } from '../converters/vibration/mec
 import { evaluateVibrationCoverageAndCompleteness } from '../converters/vibration/mechanisms/coverage.js';
 import { createVibrationMechanismIdentificationBundle } from '../converters/vibration/mechanisms/identification-producer.js';
 import {
+  buildAivVibrationMechanismAssessmentSet,
   buildFitVibrationMechanismAssessmentSet,
   buildMechanicalVibrationMechanismAssessmentSet,
   buildSbcVibrationMechanismAssessmentSet,
   createVibrationMechanismAssessmentSet,
-} from '../converters/vibration/mechanisms/index.js?v=20260815-sbc-pf05-cache-1';
+} from '../converters/vibration/mechanisms/index.js?v=20260818-aiv-integrity-1';
 
 const VIBRATION_INTEGRITY_MECHANISM_CATALOGUE = [
   {
@@ -133,6 +134,50 @@ function mechanicalAssessment(row, mechanism, context) {
   return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
 }
 
+function aivAssessment(row, mechanism, context) {
+  const contractSet = buildAivVibrationMechanismAssessmentSet({
+    row,
+    screeningResult: context.aivScreeningResult ?? null,
+    resultState: context.aivResultState ?? 'UNRUN',
+  });
+  if (contractSet.cardinality.count === 0) {
+    return Object.freeze({
+      mechanism,
+      contractSet,
+      itemId: null,
+      assessmentState: 'NOT_EVALUATED',
+      calculated: false,
+      lof: null,
+      referenceBand: null,
+      qualificationState: null,
+      implementationState: 'IMPLEMENTED_SCREENING',
+      resultState: 'UNRUN',
+      resultScope: 'ASSESSMENT',
+      governingEligible: false,
+      facilityScopeId: null,
+      readiness: Object.freeze({ missing: [], invalid: [], reasons: ['AIV_CURRENT_ASSESSMENT_RESULT_NOT_AVAILABLE'] }),
+    });
+  }
+  const item = contractSet.items[0];
+  return Object.freeze({
+    mechanism,
+    contractSet,
+    itemId: item.itemId,
+    assessmentState: 'CALCULATED_SCREENING',
+    calculated: true,
+    lof: item.result.assessmentLof,
+    referenceBand: null,
+    qualificationState: item.qualification?.effective ?? null,
+    implementationState: item.implementationState,
+    resultState: item.resultState,
+    resultScope: 'ASSESSMENT',
+    governingEligible: false,
+    facilityScopeId: null,
+    readiness: item.readiness,
+    evidence: item.evidence,
+  });
+}
+
 function sbcAssessment(row, mechanism, context) {
   const scopeId = sbcFacilityScopeId(row);
   const precomputedCandidate = context.sbcCandidateResultsByScope?.[scopeId] ?? null;
@@ -176,13 +221,15 @@ export function buildVibrationMechanismAssessment(row, mechanismId, context = {}
   if (!mechanism) throw new Error(`Unknown vibration mechanism: ${mechanismId}`);
   if (mechanism.id === 'fit') return fitAssessment(row, mechanism, context);
   if (mechanism.id === 'mechanicalExcitation') return mechanicalAssessment(row, mechanism, context);
+  if (mechanism.id === 'aiv') return aivAssessment(row, mechanism, context);
   if (mechanism.id === 'smallBoreConnections') return sbcAssessment(row, mechanism, context);
   return unavailableAssessment(row, mechanism);
 }
 
 function isScreeningAssessment(assessment) {
   return assessment.implementationState === 'IMPLEMENTED_SCREENING'
-    && assessment.qualificationState === 'SCREENING';
+    && assessment.qualificationState === 'SCREENING'
+    && assessment.governingEligible !== false;
 }
 
 function isCandidateAssessment(assessment) {
