@@ -4,6 +4,7 @@ import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
+import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 
@@ -89,54 +90,89 @@ function tableHead(columns, masterKey, config, context) {
   return thead;
 }
 
-function tableBody(columns, rows) {
-  const body = createElement('tbody');
-  for (const item of rows) {
+function virtualSpacerRow(columns, heightPx) {
+  const tr = createElement('tr', '', 'xml-cii-virtual-spacer-row');
+  const td = createElement('td');
+  td.colSpan = Math.max(1, columns.length);
+  if (td.style) Object.assign(td.style, { height: `${heightPx}px`, padding: '0', border: '0', lineHeight: '0' });
+  tr.appendChild(td);
+  return tr;
+}
+
+function replaceVirtualPreviewRows(tbody, columns, rows, indexes, scrollTop) {
+  const count = logicalRowCount(rows, indexes);
+  const window = virtualRowWindow(count, scrollTop);
+  tbody.innerHTML = '';
+  if (window.topSpacerPx > 0) tbody.appendChild(virtualSpacerRow(columns, window.topSpacerPx));
+  for (const item of virtualRowItems(rows, indexes, window)) {
     const tr = createElement('tr');
-    for (const col of columns) tr.appendChild(createElement('td', text(item?.[col])));
-    body.appendChild(tr);
+    tr.dataset.sourceRowIndex = String(item.sourceIndex);
+    for (const col of columns) tr.appendChild(createElement('td', text(item.row?.[col])));
+    tbody.appendChild(tr);
   }
-  return body;
+  if (window.bottomSpacerPx > 0) tbody.appendChild(virtualSpacerRow(columns, window.bottomSpacerPx));
+  tbody.dataset.virtualStart = String(window.start);
+  tbody.dataset.virtualEnd = String(window.end);
+  tbody.dataset.virtualTotal = String(count);
+  return window;
 }
 
 function appendPreview(parent, master, state, config) {
   const masterKey = master.key;
-  const rows = master.previewRows || [];
+  const schemaRows = master.previewRows || [];
   const allRows = buildPreviewSearchRows(master, state);
   const wrap = createElement('div', '', 'xml-cii-master-preview');
   wrap.appendChild(createElement('h4', 'Preview'));
-  if (!rows.length) {
+  if (!allRows.length) {
     wrap.appendChild(createElement('div', 'No rows loaded.', 'xml-cii-phase-help'));
     parent.appendChild(wrap);
     return;
   }
 
-  const searchInput = style(createElement('input'), { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
+  const searchInput = style(createElement('input'), { width: '100%', padding: '8px 12px', marginBottom: '8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
   searchInput.type = 'text';
   searchInput.placeholder = '🔍 Search preview data...';
   wrap.appendChild(searchInput);
 
-  const columns = previewColumns(rows, masterKey, config, state.masterContext);
+  const countText = createElement('div', '', 'xml-cii-phase-help');
+  countText.dataset.previewVirtualCount = masterKey;
+  countText.style.marginBottom = '8px';
+  wrap.appendChild(countText);
+
+  const columns = previewColumns(schemaRows.length ? schemaRows : allRows.slice(0, 150), masterKey, config, state.masterContext);
   const tableEl = createElement('table', '', 'xml-cii-master-preview-table');
   tableEl.append(tableHead(columns, masterKey, config, state.masterContext));
-  const tbodyEl = tableBody(columns, rows);
+  const tbodyEl = createElement('tbody');
   tableEl.appendChild(tbodyEl);
 
   const scrollContainer = style(createElement('div'), { maxHeight: '350px', overflowY: 'auto', border: '1px solid rgba(148, 163, 184, 0.12)', borderRadius: '6px' });
   scrollContainer.appendChild(tableEl);
   wrap.appendChild(scrollContainer);
 
-  searchInput.addEventListener('input', () => {
-    const q = searchInput.value.toLowerCase().trim();
-    const filtered = q ? allRows.filter((row) => previewSearchText(row).includes(q)) : allRows;
-    tbodyEl.innerHTML = '';
-    for (const item of filtered.slice(0, 150)) {
-      const tr = createElement('tr');
-      for (const col of columns) tr.appendChild(createElement('td', text(item?.[col])));
-      tbodyEl.appendChild(tr);
-    }
-  });
+  let indexes = null;
+  let scheduled = false;
+  const renderWindow = () => {
+    scheduled = false;
+    const window = replaceVirtualPreviewRows(tbodyEl, columns, allRows, indexes, scrollContainer.scrollTop);
+    const total = logicalRowCount(allRows, indexes);
+    countText.textContent = total
+      ? `Rows ${window.start + 1}-${window.end} of ${total.toLocaleString('en-US')} (virtualized)`
+      : 'No matching rows.';
+  };
+  const scheduleWindow = () => {
+    if (scheduled) return;
+    scheduled = true;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(renderWindow);
+    else renderWindow();
+  };
 
+  searchInput.addEventListener('input', () => {
+    indexes = buildMatchingRowIndexes(allRows, searchInput.value, previewSearchText);
+    scrollContainer.scrollTop = 0;
+    renderWindow();
+  });
+  scrollContainer.addEventListener('scroll', scheduleWindow);
+  renderWindow();
   parent.appendChild(wrap);
 }
 

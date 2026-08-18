@@ -5,6 +5,10 @@ import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=202
 import { renderOutputPanel } from './xml-cii-adapted-output-panel.js?v=20260708-v8';
 import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260802-smart-ui-v1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260708-v8';
+import { syncMasterDraftDom } from './xml-cii-adapted-master-dom-sync.js?v=20260818-perf-c1';
+import { classifyXmlCiiRenderScope } from './xml-cii-adapted-render-scope.js?v=20260818-perf-c1';
+import { renderXmlCiiPerfEvidencePanel, syncXmlCiiPerfEvidencePanel } from './xml-cii-adapted-perf-evidence.js?v=20260818-perf-c1';
+import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -12,32 +16,51 @@ export function createStateRef(initialState) {
   return { current: initialState || activeWorkflowState };
 }
 
+function captureScrollStates(container) {
+  const scrollStates = [];
+  container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
+    const cls = '.' + Array.from(el.classList).join('.');
+    scrollStates.push({ selector: cls, index: idx, top: el.scrollTop, left: el.scrollLeft });
+  });
+  return scrollStates;
+}
+
+function restoreScrollStates(container, scrollStates) {
+  for (const pos of scrollStates) {
+    try {
+      const els = container.querySelectorAll(pos.selector);
+      const el = els[pos.index] || els[0];
+      if (el) {
+        el.scrollTop = pos.top;
+        el.scrollLeft = pos.left;
+      }
+    } catch {}
+  }
+}
+
 export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   const stateRef = createStateRef(initialState);
+  let renderedState = null;
   const render = () => {
-    activeWorkflowState = stateRef.current;
-    
-    // Save scroll positions of scrollable panels
-    const scrollStates = [];
-    container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
-      // Create a specific class-based selector string
-      const cls = '.' + Array.from(el.classList).join('.');
-      scrollStates.push({ selector: cls, index: idx, top: el.scrollTop, left: el.scrollLeft });
-    });
-    
+    const nextState = stateRef.current;
+    activeWorkflowState = nextState;
+    const scope = classifyXmlCiiRenderScope(renderedState, nextState);
+
+    if (scope.kind === 'master-draft') {
+      const synced = syncMasterDraftDom(container, nextState, nextState.masterContext?.config || {}, scope.masterKey);
+      if (synced.updated) {
+        perfCount('workspacePartialRenderCount');
+        syncXmlCiiPerfEvidencePanel(container);
+        renderedState = nextState;
+        return;
+      }
+    }
+
+    const scrollStates = captureScrollStates(container);
+    perfCount('workspaceFullRenderCount');
     renderAdaptedWorkflow(container, stateRef, render);
-    
-    // Restore scroll positions after DOM update
-    scrollStates.forEach((pos) => {
-      try {
-        const els = container.querySelectorAll(pos.selector);
-        const el = els[pos.index] || els[0];
-        if (el) {
-          el.scrollTop = pos.top;
-          el.scrollLeft = pos.left;
-        }
-      } catch (err) {}
-    });
+    renderedState = stateRef.current;
+    restoreScrollStates(container, scrollStates);
   };
   render();
   return () => clearElement(container);
@@ -165,6 +188,7 @@ export function renderHeader(root, state) {
     ...createDiagnosticsBadges(state)
   );
   title.appendChild(statusRow);
+  renderXmlCiiPerfEvidencePanel(title);
   header.append(title);
   root.appendChild(header);
 }

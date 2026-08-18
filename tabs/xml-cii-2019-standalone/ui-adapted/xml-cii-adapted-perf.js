@@ -6,12 +6,18 @@ const METRIC_NAMES = Object.freeze([
   'masterRowsNormalized',
   'masterMappingDraftChanges',
   'masterMappingApplyCount',
+  'masterPartialDomUpdateCount',
   'masterRequestedFullRenderCount',
+  'workspaceFullRenderCount',
+  'workspacePartialRenderCount',
+  'sourceParseCount',
+  'sourceParseCacheHitCount',
   'masterArrayBufferMs',
   'masterXlsxReadMs',
   'masterSheetToJsonMs',
   'masterNormalizeMs',
   'masterPersistMs',
+  'sourceParseMs',
 ]);
 
 function emptyMetrics() {
