@@ -16,19 +16,19 @@ REPOSITORY: reallaksh19/3D_Converters
 PR_OR_WIP: PR630
 PR_URL: https://github.com/reallaksh19/3D_Converters/pull/630
 BRANCH: agent/xml-cii-run-parity-weight-scan-20260818
-PR_HEAD_OBSERVED: b545b858cb53985ed6d1a81d5bec3d6c91f8ce43
-REPORT_BASIS_HEAD: b545b858cb53985ed6d1a81d5bec3d6c91f8ce43
+PR_HEAD_LAST_VALIDATED: 253907664283793cb384a34adce137b0fad27358
+REPORT_BASIS: CODE_HEAD_2539076_PLUS_METADATA_ONLY_RECONCILIATION
 MAIN_HEAD_LAST_CHECKED: 1d5930638e6f9714a2c29af328fe15a4e6b8b7f6
 MERGE_BASE: bca7fc9390c018753d09161052b0bf2fd54e33ce
 BASE_DRIFT: SAFE_TO_CONTINUE / ONE_UNRELATED_HIGH_PR_QUALIFICATION_COMMIT
-REPORT_SYNC: CURRENT_AT_PR_ALLOCATION
+REPORT_SYNC: CURRENT
 APPENDIX_A_STATUS: NOT_REQUIRED_NEW_WORK_ITEM
-GROUNDING_EPOCH: GE-003
-CURRENT_STAGE: CI_REVIEW
-CURRENT_BLOCKER: NONE
+GROUNDING_EPOCH: GE-004
+CURRENT_STAGE: DRAFT_REVIEW
+CURRENT_BLOCKER: FULL_REPOSITORY_BROWSER_EQUIVALENCE_NOT_RUN
 HIGHEST_RISK: Complete-repository/browser branch-row equivalence is still NOT_RUN; exact-byte deterministic suppression/restoration tests pass.
-LAST_DURABLE_CHECKPOINT: Draft PR #630 allocated from the bounded 7-file WIP diff.
-EXACT_NEXT_ACTION: Complete PR-numbered status/claim migration, release WIP claim, inspect exact final PR head, changed files, checks, reviews and threads; do not merge.
+LAST_DURABLE_CHECKPOINT: PR #630 head 2539076 was draft/open/mergeable with declared scope, zero reviews/threads, zero commit statuses and zero PR-triggered workflow runs observed.
+EXACT_NEXT_ACTION: Await independent review/CI or continue the performance roadmap in a separate work item; do not widen or merge PR630 without owner authorization.
 ```
 
 ## Handover
@@ -41,12 +41,12 @@ This does not yet create a true branch-only Preview; node traversal remains.
 
 ## Ground truth / scope
 
-- PR: #630, draft/open;
-- PR base at allocation: current `main@1d5930638e6f9714a2c29af328fe15a4e6b8b7f6`;
+- PR: #630, draft/open, mergeable at GE-004;
+- PR base: `main@1d5930638e6f9714a2c29af328fe15a4e6b8b7f6`;
 - original merge base: `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
-- target source did not change across that one-commit main drift;
-- PR allocation head: `b545b858cb53985ed6d1a81d5bec3d6c91f8ce43`;
-- changed files at allocation: 7, all declared;
+- target source did not change across the one-commit main drift;
+- code + migrated-custody head validated: `253907664283793cb384a34adce137b0fad27358`;
+- final changed-file inventory is confined to the two production modules, focused test, exact backup, and PR/WIP custody records;
 - no exact-file overlap with #628 or #616;
 - stale C5W claim overlap is authority-level only; adapted dryrun/rating/incremental and shared Weight ranker remain excluded.
 
@@ -98,8 +98,10 @@ No engineering values, formulas, unit conversions, master data, Weight scoring t
 
 `VAL-005 NOT_RUN / ENVIRONMENT_BLOCKED` — full repository/browser real parent Preview branch-row before/after equivalence.
 
-`VAL-006 PENDING` — PR-head checks/reviews after metadata migration.
+`VAL-006 NOT_RUN / GITHUB_STATE` — on checked PR head `2539076`, GitHub returned zero PR-triggered workflow runs and zero commit status contexts. This is not a CI PASS.
+
+`VAL-007 PASS / GITHUB_STATE / NONE` — PR was open, draft and mergeable; review submissions = 0 and review threads = 0 at GE-004.
 
 ## Continuation
 
-Keep PR draft. Do not widen into WeightMasterIndex, C5W incremental Preview, adapted Preview refactoring, or committed Preview snapshot. After PR-numbered metadata commits, inspect the exact final head and GitHub state. Merge only on a new explicit owner instruction.
+Keep PR draft. Do not widen into WeightMasterIndex, C5W incremental Preview, adapted Preview refactoring, or committed Preview snapshot. The next roadmap slice should be a new WIP/PR after fresh coordination grounding. Merge only on a new explicit owner instruction.
