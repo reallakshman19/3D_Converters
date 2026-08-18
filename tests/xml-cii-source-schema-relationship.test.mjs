@@ -5,6 +5,7 @@ import {
   normalizeSupportIdentity,
   readSourcePosition,
   sourceSupportIdentities,
+  sourceTopologyIdentities,
 } from '../converters/xml-cii2019-core/source-schema-adapter.js';
 import {
   buildStagedSupportIndex,
@@ -111,6 +112,7 @@ test('configured source position applies the manual Z offset only through the co
   assert.deepEqual(resolved.rawPoint, coordinate);
   assert.deepEqual(resolved.point, { ...coordinate, z: 106100 });
   assert.equal(resolved.field, 'XYZ');
+  assert.equal(resolved.alignment.matchToleranceMm, 6);
 });
 
 test('explicit support links/group identity expand a tag hit to the complete support assembly', () => {
@@ -122,7 +124,7 @@ test('explicit support links/group identity expand a tag hit to the complete sup
   assert.equal(byExactName.length, 3);
   assert.deepEqual(new Set(byExactName.map((item) => item.primaryKind)), new Set(['REST', 'GUIDE', 'LINESTOP']));
 
-  const coordKey = [854513.44, 3934222.04, 106100].map((value) => Math.round(value)).join('|');
+  const coordKey = [854513.44, 3934222.04, 106100].map((value) => Math.round(value / 6)).join('|');
   const byCoordinate = index.byCoord.get(coordKey) || [];
   assert.equal(byCoordinate.length, 3);
 
@@ -150,18 +152,24 @@ test('DTXR indexes use the same field adapter and coordinate alignment', () => {
   assert.ok(positionIndex.entries.some((entry) => entry.cmpSupGap === 'GAP=35mm'));
 });
 
-test('source support identities include explicit group and link evidence', () => {
+test('support identity excludes topology while topology remains separately traceable', () => {
   const value = {
     attributes: {
       OBJ_NAME: '/SL-1844032.1.3',
       SUPPORT_GROUP: 'SL-1844032 (REF)',
       LINK_TO: '/SL-1844032.1.1',
       PREVIOUS: 'PS01716.3',
+      PARENT: '/SL-999999.1',
     },
   };
   const identities = sourceSupportIdentities(value, config);
   assert.ok(identities.includes('SL-1844032.1.3'));
   assert.ok(identities.includes('SL-1844032'));
   assert.ok(identities.includes('SL-1844032.1.1'));
-  assert.ok(identities.includes('PS-01716.3'));
+  assert.equal(identities.includes('PS-01716.3'), false);
+  assert.equal(identities.includes('SL-999999.1'), false);
+
+  const topology = sourceTopologyIdentities(value, config);
+  assert.ok(topology.includes('PS-01716.3'));
+  assert.ok(topology.includes('SL-999999.1'));
 });
