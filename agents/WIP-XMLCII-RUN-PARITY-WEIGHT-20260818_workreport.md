@@ -16,86 +16,125 @@ REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Owner-directed XML→CII (2019) Standalone source-level performance remediation.
 PR_OR_WIP: WIP-XMLCII-RUN-PARITY-WEIGHT-20260818
 BRANCH: agent/xml-cii-run-parity-weight-scan-20260818
-PR_HEAD_OBSERVED: bca7fc9390c018753d09161052b0bf2fd54e33ce
-REPORT_BASIS_HEAD: bca7fc9390c018753d09161052b0bf2fd54e33ce
-MAIN_HEAD_LAST_CHECKED: bca7fc9390c018753d09161052b0bf2fd54e33ce
+PR_HEAD_OBSERVED: 5b7149b23374f33f817c2ce6420ba85b4beadbfd
+REPORT_BASIS_HEAD: 5b7149b23374f33f817c2ce6420ba85b4beadbfd
+MAIN_HEAD_LAST_CHECKED: 1d5930638e6f9714a2c29af328fe15a4e6b8b7f6
 MERGE_BASE: bca7fc9390c018753d09161052b0bf2fd54e33ce
+BASE_DRIFT: SAFE_TO_CONTINUE / ONE_UNRELATED_HIGH_PR_QUALIFICATION_COMMIT
 REPORT_SYNC: CURRENT
 APPENDIX_A_STATUS: NOT_REQUIRED_NEW_WORK_ITEM
-GROUNDING_EPOCH: GE-001
-CURRENT_STAGE: BASELINE
+GROUNDING_EPOCH: GE-002
+CURRENT_STAGE: VALIDATE
 CURRENT_BLOCKER: NONE
-HIGHEST_RISK: Any parity optimization must preserve parent branch/process facts, config mutation behavior, and all Weight authority used later by standalone adapted Preview.
-LAST_DURABLE_CHECKPOINT: Branch created from live main after XML→CII open-PR and active-claim inspection.
-EXACT_NEXT_ACTION: Back up enrichment-run-parity.js, encode a fail-closed regression proving parent parity hides only Weight master rows from its discarded node ranking, then apply the surgical call-boundary change.
+HIGHEST_RISK: Real parent Preview branch-row equivalence with full repository dependencies remains unexecuted locally; code-level dependency trace and fail-closed helper invariants are qualified.
+LAST_DURABLE_CHECKPOINT: Surgical integration complete; exact remote production blob matches locally syntax-checked/tested blob ef13ef3f08c310741cdce95f237b4318ccd040cd.
+EXACT_NEXT_ACTION: Recheck active PR overlap, update compact status, run pre-PR changed-file gate, then publish draft PR without merging.
 ```
 
-## Handover in 60 Seconds
+## 1. Handover in 60 Seconds
 
-The parent Model Converters Run-parity stage calls `xmlCiiDryRunPreview(sourceXmlText, enriched.config, stagedJsonText)` and consumes only `.branchRows`. That Preview still walks eligible nodes and calls the shared Weight ranker, whose master scan is discarded. Standalone Run later executes adapted Preview and consumes node/weight rows, so the parent weight-master scoring is duplicate work.
+The parent Model Converters Run-parity stage needs only `branchRows` from `xmlCiiDryRunPreview()`. The parent Preview still walks eligible nodes and calls `rankXmlCiiWeightCandidates`, causing a full Weight Master scan for node rankings that this caller discards. Standalone Run later executes the adapted Preview and consumes real node/Weight rows, so this earlier parent scoring pass is redundant.
 
-This WIP will suppress only `config.weight.masterRows` during the synchronous parent parity Preview call, restore the exact array identity in `finally`, and keep the same config object so existing branch resolver mutations/provenance remain intact. No Weight ranking semantics or final standalone weight authority may change.
+Implementation adds `xmlCiiParentRunParityBranchRows()`. During only the synchronous parent Preview call it temporarily replaces `config.weight.masterRows` with `[]`, passes the same config object and all other Weight settings unchanged, returns only `branchRows`, and restores the exact original master-row array in `finally`.
 
-## Repository ground truth
+This is narrower than a true branch-only Preview mode: node traversal and other node-side work still occur. Only Weight Master scoring is removed from this discarded pass.
 
-- live `main`: `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
-- target source blob `tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js`: `b7a9a541a6dfbbfe1d566b5ea251d9ca11081437`;
-- `agents/MASTER_INDEX.md`: absent on main;
-- PR #628 remains separate Bore/Wall work;
+## 2. Repository ground truth / coordination
+
+- original merge base: `bca7fc9390c018753d09161052b0bf2fd54e33ce`;
+- live main now: `1d5930638e6f9714a2c29af328fe15a4e6b8b7f6`;
+- drift commit is High-Pr qualification work; exact target blob on live main remains `b7a9a541a6dfbbfe1d566b5ea251d9ca11081437`;
+- classification: `SAFE_TO_CONTINUE`, no rebase/conflict guess required;
+- `agents/MASTER_INDEX.md`: absent;
+- PR #628 is separate Bore/Wall work;
 - PR #616 owns Preview-search only;
 - stale active C5W claim owns adapted Preview dryrun/rating/incremental files, not this parent parity file;
-- coordination classification: `COORDINATION_REQUIRED` by Weight authority domain, with no exact-file collision. This WIP must not edit C5W files or ranking logic.
+- broader Weight authority overlap is acknowledged as `COORDINATION_REQUIRED_BOUNDED`; C5W exact files and the shared Weight ranker are excluded.
 
-## Mission / scope / acceptance
+## 3. Scope / files
 
-Mission: remove the full Weight-Master scan from the parent Run-parity Preview call whose `nodeRows` are discarded.
+Production:
+- `tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js` — one import plus replacement of the direct `.branchRows` call;
+- `tabs/model-converters/converters/xmltocii2019_helper/xml-cii-parent-run-parity-weight-scope.js` — 24-line new helper.
 
-In scope:
-- `tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js`;
-- focused regression;
-- mandatory exact pre-edit backup;
-- WIP/PR custody metadata.
+Qualification/custody:
+- `tests/xml-cii-parent-run-parity-weight-scan.test.mjs`;
+- exact pre-edit backup `.backups/1_tabs_model_converters_converters_xmltocii2019_helper_enrichment_run_parity_js.bak`;
+- WIP report/status/claim.
 
-Out of scope: adapted Preview, Weight ranker/model semantics, overrides, writer/runtime switch, Python, support/GAP, Material/Rating/Line authority, workers, workflows, snapshot custody.
+Out of scope: adapted Preview, Weight ranking/model semantics, Weight overrides, writer/runtime, Python, support/GAP, Line/Piping/Material/Rating authority, workers, workflows, committed Preview snapshot.
 
-Acceptance:
-1. parent parity passes an empty `weight.masterRows` only while executing its synchronous dry-run Preview;
-2. all other Weight configuration remains visible to Preview;
-3. original master-row array identity is restored after success and throw;
-4. same config object is used so branch resolver mutations are not lost;
-5. caller still consumes only branchRows and publication output is unchanged for an equivalent stubbed Preview;
-6. no change to standalone adapted Preview weight ranking.
+## 4. Technical change
 
-## Technical diagnosis / falsifier
+Before parent parity:
 
-Observed source: `applyPreviewRunParity()` reads only `.branchRows`, while parent `xmlCiiDryRunPreview()` ranks eligible nodes using `rankXmlCiiWeightCandidates(..., config, ...)` before returning.
+```text
+parent Preview branch computation
++ for each eligible node: rank against Weight Master
+-> caller discards nodeRows
+```
 
-Hypothesis: Weight master rows are not a branch-row dependency in the parent Preview; temporarily hiding only that array removes the discarded O(nodes × masterRows) scan without changing branch facts.
+After:
 
-Falsifier: any branch-row difference when only `weight.masterRows` is hidden, loss of config mutations, failure to restore the master array on exceptions, or any downstream standalone Weight change.
+```text
+save exact config.weight.masterRows reference
+config.weight.masterRows = []
+try parent Preview using same config object
+finally restore exact reference
+consume branchRows
+```
 
-## Authority / negative assurance
+The expected eliminated work in this stage is the Weight-ranking master-row examination, approximately `O(eligibleNodes × weightMasterRows)` plus candidate allocations/sorts. It does not claim elimination of node traversal itself.
 
-Protected authority: branch/process facts remain produced by the same parent Preview resolver; Weight Master remains authoritative for the later standalone adapted Preview/Weight Match path. This PR only removes a discarded computation from an earlier parity stage.
+## 5. Authority / invariants
 
-No formulas, engineering values, units, master contents, support/GAP rules, topology, Python solver/converter logic, writer semantics, or output parity gate are changed.
+Protected:
+1. same parent Preview resolver produces branch/process rows;
+2. same `enriched.config` object is passed, so synchronous resolver mutations/provenance remain visible;
+3. `weight.npsToDn`, bore token/regex/inch conversion and every non-`masterRows` Weight option remain visible;
+4. exact original `masterRows` array identity is restored after success and exception;
+5. standalone adapted Preview/Weight Match still receives the original config/master rows later;
+6. no parity verification or publication gate is removed.
 
-## Validation state
+Falsifier: any branch-row dependency on Weight Master rows, lost config mutation, failed restoration, or any final standalone Weight result change.
 
-- source trace: PASS / SOURCE_INSPECTION / NONE;
-- exact main target blob: PASS / SOURCE_INSPECTION / NONE;
-- native full checkout: NOT_RUN / ENVIRONMENT_BLOCKED from current execution environment;
-- focused regression: NOT_RUN;
-- repository-native suite/CI: NOT_RUN.
+## 6. Validation evidence
 
-## Changed-file ledger
+`VAL-001 PASS / SOURCE_INSPECTION / NONE` — current parent parity consumes only `.branchRows`; parent Preview source shows node Weight ranking after branch-row construction and before return.
 
-At initialization: this WIP report only. Planned source/test/backup/status/claim paths are declared above.
+`VAL-002 PASS / LOCAL_EXECUTION / NONE` — mandatory backup. Reconstructed target hash before edit was `b7a9a541a6dfbbfe1d566b5ea251d9ca11081437`, matching live main. `node utils/backup.js save ...` produced backup #1; backup Git blob is the same `b7a9a541...`. A local reconstruction-only CommonJS/module-mode conflict was corrected before source mutation and did not affect repository bytes.
 
-## Review / coordination
+`VAL-003 PASS / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED` — syntax and helper regression:
 
-No PR allocated. No exact production-file claim collision found. Broader Weight-authority overlap with stale C5W is acknowledged and bounded by explicit exclusions.
+```text
+node --input-type=module --check < enrichment-run-parity.js
+node --check xml-cii-parent-run-parity-weight-scope.js
+node --check tests/xml-cii-parent-run-parity-weight-scan.test.mjs
+node tests/xml-cii-parent-run-parity-weight-scan.test.mjs
+```
 
-## Continuation
+Result: `XML CII parent Run-parity Weight scan suppression checks passed.`
 
-Start at `applyPreviewRunParity()` in `enrichment-run-parity.js`. Do not touch adapted Preview or Weight ranker. First create the mandatory pre-edit backup and regression, then make one call-boundary change.
+The 100,000-row deterministic case observes zero Weight Master rows inside the parent callback, verifies all other Weight config, preserves exact config identity and Preview-side mutation, and restores exact master-array identity. Exception restoration, empty-master behavior, branchRows-only return, and source integration are also asserted.
+
+`VAL-004 PASS / EXACT_BYTE_CUSTODY / NONE` — remote production blob after update is `ef13ef3f08c310741cdce95f237b4318ccd040cd`, equal to the locally executed modified blob. Helper blob is `c3a6f88db3032aa661adec0493534e720a875e3c`; test blob is `8196deb5bf00129ca807b924229dbd6d108c18cd`.
+
+`VAL-005 NOT_RUN / ENVIRONMENT_BLOCKED` — complete repository/browser parent Preview branch-row before/after equivalence. Direct repository checkout remains unavailable from this execution environment; this must not be stated as PASS.
+
+`VAL-006 NOT_RUN` — repository-native CI/checks, pending draft PR allocation.
+
+## 7. Negative assurance
+
+No engineering values, formulas, unit conversions, master data, Weight ranking thresholds/candidate semantics, overrides, support/GAP semantics, topology, writer/runtime logic, Python conversion, workflow configuration, or output parity gate changed. The new helper does not persist or cache authority.
+
+## 8. Base drift / changed-file gate
+
+At GE-002 live main is one unrelated commit ahead. Target source is byte-identical to the merge-base version, so work is safe to continue without rebasing. Current compare reports only the declared backup, WIP metadata, two production files, and focused test.
+
+## 9. Review / CI
+
+No PR allocated yet. No CI/review state exists for this WIP. Draft publication is the next stage; merge authority remains owner-only.
+
+## 10. Continuation
+
+Do not widen this PR into WeightMasterIndex, adapted Preview, C5W incremental behavior, or committed Preview snapshot work. Recheck exact-file/authority overlap, publish draft, migrate WIP custody to PR-numbered records, inspect exact PR head/checks/reviews, and leave draft.
