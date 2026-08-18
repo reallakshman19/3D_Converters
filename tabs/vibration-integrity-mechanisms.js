@@ -17,7 +17,7 @@ export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
   }),
   Object.freeze({
     id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation',
-    sourceSection: 'EI AVIFF T2.3', implementationState: 'CANDIDATE_MASTER',
+    sourceSection: 'EI AVIFF T2.3', implementationState: 'SCREENING',
   }),
   Object.freeze({
     id: 'reciprocatingPulsation', label: 'Recip / PD',
@@ -116,7 +116,7 @@ function mechanicalAssessment(row, mechanism, context) {
   });
   const assessment = contractAssessment(mechanism, contractSet);
   if (assessment.assessmentState !== 'CALCULATED') return assessment;
-  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
+  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_SCREENING' });
 }
 
 function sbcAssessment(row, mechanism, context) {
