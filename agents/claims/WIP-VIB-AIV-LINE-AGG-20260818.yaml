@@ -17,6 +17,7 @@ files:
     - tests/vibration-aiv-screening-runtime-bridge.test.mjs
     - tests/vibration-aiv-post-discontinuity-evidence-gate.test.mjs
     - tests/vibration-aiv-auto-product-path.test.mjs
+    - tests/vibration-aiv-eit-export.test.mjs
     - agents/WIP-VIB-AIV-LINE-AGG-20260818_workreport.md
     - agents/status/WIP-VIB-AIV-LINE-AGG-20260818.yaml
     - agents/claims/WIP-VIB-AIV-LINE-AGG-20260818.yaml
