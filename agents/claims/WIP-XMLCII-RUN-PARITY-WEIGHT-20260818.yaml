@@ -1,32 +1,16 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-XMLCII-RUN-PARITY-WEIGHT-20260818
-claim_state: ACTIVE
+claim_state: RELEASED_TO_PR630
 branch: agent/xml-cii-run-parity-weight-scan-20260818
 workstream: XML_CII_STANDALONE_PERFORMANCE
 criticality: ENGINEERING_CRITICAL
-files:
-  exact:
-    - tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js
-    - tests/xml-cii-parent-run-parity-weight-scan.test.mjs
-    - agents/WIP-XMLCII-RUN-PARITY-WEIGHT-20260818_workreport.md
-    - agents/status/WIP-XMLCII-RUN-PARITY-WEIGHT-20260818.yaml
-    - agents/claims/WIP-XMLCII-RUN-PARITY-WEIGHT-20260818.yaml
-  prefixes: []
 authority_domains:
   - XML_CII_PARENT_RUN_PARITY_DISCARDED_WEIGHT_COMPUTATION
 claim_modes:
-  - EXCLUSIVE
-exclusions:
-  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js
-  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js
-  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-incremental.js
-  - converters/xml-cii2019-core/weight-valve-hints.js
-  - .github/workflows/**
-coordination:
-  WIP_C5W: COORDINATED_AUTHORITY_NO_EXACT_FILE_OVERLAP
-  PR628: INDEPENDENT_BORE_WALL
-  PR616: INDEPENDENT_PREVIEW_SEARCH
-coordination_state: COORDINATION_REQUIRED_BOUNDED
-last_verified_head: bca7fc9390c018753d09161052b0bf2fd54e33ce
-last_updated: 2026-08-18T18:43:00+04:00
+  - RELEASED
+successor: PR630
+successor_claim: agents/claims/PR630.yaml
+coordination_state: SUPERSEDED_BY_PR_CUSTODY
+last_verified_head: a06e59e1b92607365182085fd9418d01e8939b22
+last_updated: 2026-08-18T19:04:00+04:00
