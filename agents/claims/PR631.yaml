@@ -1,0 +1,46 @@
+schema: AgentClaim.v1
+pr_or_wip: PR631
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/aiv/aiv-line-aggregation.js
+    - converters/vibration/aiv/aiv-calculator.js
+    - converters/vibration/aiv/aiv-post-discontinuity-evidence-gate.js
+    - converters/vibration/aiv/aiv-screening-export.js
+    - converters/vibration/aiv/aiv-eit-document.js
+    - converters/engineering-calculations/adapters/vibration-aiv.js
+    - tabs/vibration-aiv-result-view.js
+    - engineering/workpacks/VIB-AIV.json
+    - engineering/workpacks/probes/vib-aiv.mjs
+    - scripts/run-aiv-d23-product-path-validation.mjs
+    - tests/vibration-aiv-line-aggregation.test.mjs
+    - tests/vibration-aiv-screening-runtime-bridge.test.mjs
+    - tests/vibration-aiv-post-discontinuity-evidence-gate.test.mjs
+    - tests/vibration-aiv-auto-product-path.test.mjs
+    - tests/vibration-aiv-eit-export.test.mjs
+    - tests/vibration-aiv-workpack-drift.test.mjs
+    - tests/vibration-aiv-screening-release.test.mjs
+    - tests/vibration-aiv-flare-network.test.mjs
+    - tests/vibration-aiv-canvas-integration.test.mjs
+    - agents/PR631_workreport.md
+    - agents/status/PR631.yaml
+    - agents/claims/PR631.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_AIV_LINE_CASE_REDUCTION_METHOD
+  - VIBRATION_AIV_STAGE9_RESULT_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+exclusions:
+  - AIV T2-6 equations coefficients assumptions attenuation or fatigue formulas
+  - AIV benchmark expected values or tolerances
+  - generic vibration mechanism reducer
+  - EI cross-mechanism main-line aggregation policy
+  - PR629 assessment-scope integration and session bridge
+  - tabs/vibration-integrity-view.js
+  - T1 mechanism identification rules
+  - design authority
+  - workflow files
+last_verified_head: 755913416002658046bd05c7bb104726388128f5
+coordination_state: STACKED_ON_PR629_SAFE_FOLLOW_ON
+merge_authority: OWNER_ONLY_NOT_GRANTED
