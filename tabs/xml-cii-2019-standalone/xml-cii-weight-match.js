@@ -107,20 +107,40 @@ function scoreCandidate(issue, candidate) {
   return { boreScore, ratingScore, lengthScore, componentTypeScore, totalScore: boreScore + ratingScore + lengthScore + componentTypeScore };
 }
 
+function topWeightCandidatesForIssue(issue, candidates, limit = 5) {
+  const top = [];
+  for (const candidate of candidates) {
+    const score = scoreCandidate(issue, candidate);
+    let insertAt = -1;
+    for (let index = 0; index < top.length; index += 1) {
+      if (score.totalScore > top[index].totalScore) {
+        insertAt = index;
+        break;
+      }
+    }
+    if (insertAt < 0 && top.length >= limit) continue;
+    const row = {
+      issueId: issue.issueId,
+      candidateId: candidate.candidateId,
+      componentType: candidate.componentType,
+      bore: candidate.bore,
+      rating: candidate.rating,
+      length: candidate.length,
+      candidateWeight: candidate.candidateWeight,
+      ...score,
+      issue,
+      raw: candidate.raw,
+    };
+    if (insertAt < 0) top.push(row);
+    else top.splice(insertAt, 0, row);
+    if (top.length > limit) top.pop();
+  }
+  return top;
+}
+
 export function buildWeightCandidateRows(input = {}) {
   const candidates = masterRows(input).map(weightCandidate).filter((row) => row.candidateWeight !== null && row.candidateWeight > 0);
-  return identifyWeightIssues(input).flatMap((issue) => candidates.map((candidate) => ({
-    issueId: issue.issueId,
-    candidateId: candidate.candidateId,
-    componentType: candidate.componentType,
-    bore: candidate.bore,
-    rating: candidate.rating,
-    length: candidate.length,
-    candidateWeight: candidate.candidateWeight,
-    ...scoreCandidate(issue, candidate),
-    issue,
-    raw: candidate.raw,
-  })).sort((a, b) => b.totalScore - a.totalScore).slice(0, 5));
+  return identifyWeightIssues(input).flatMap((issue) => topWeightCandidatesForIssue(issue, candidates));
 }
 
 function overrides(input = {}) {
