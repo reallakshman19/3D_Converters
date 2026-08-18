@@ -74,32 +74,43 @@ function lineKeyAliases(value) {
   ].filter(Boolean))];
 }
 
-function processLineListMaterial(row, config) {
-  const direct = text(row?.processMaterial || row?.lineListMaterial);
-  if (direct) return direct;
+function lineListMaterialValue(raw, normalized) {
+  return text(
+    normalized.material
+    || raw?.material
+    || raw?.Material
+    || raw?.MATERIAL
+    || raw?.MOC
+    || raw?.['Material Name']
+    || raw?.Material_Name,
+  );
+}
+
+export function buildPreviewMaterialLineListIndex(config = {}) {
   const rows = Array.isArray(config?.linelist?.masterRows) ? config.linelist.masterRows : [];
   const fieldMap = config?.linelist?.fieldMap || {};
-  const wanted = new Set([
-    ...lineKeyAliases(row?.lineKey),
-    ...lineKeyAliases(row?.lineKeyProposed),
-  ]);
-  if (!wanted.size) return '';
-  for (let index = 0; index < rows.length; index += 1) {
-    const raw = rows[index];
-    const normalized = normalizeLineListRow(raw, fieldMap, index);
+  const index = new Map();
+  rows.forEach((raw, sourceIndex) => {
+    const normalized = normalizeLineListRow(raw, fieldMap, sourceIndex);
     const key = computeLineNoKey(raw, fieldMap) || normalized.lineKey;
-    if (!lineKeyAliases(key).some((alias) => wanted.has(alias))) continue;
-    return text(
-      normalized.material
-      || raw?.material
-      || raw?.Material
-      || raw?.MATERIAL
-      || raw?.MOC
-      || raw?.['Material Name']
-      || raw?.Material_Name,
-    );
+    const record = { sourceIndex, material: lineListMaterialValue(raw, normalized) };
+    for (const alias of lineKeyAliases(key)) if (!index.has(alias)) index.set(alias, record);
+  });
+  return index;
+}
+
+function processLineListMaterial(row, config, context = {}) {
+  const direct = text(row?.processMaterial || row?.lineListMaterial);
+  if (direct) return direct;
+  const aliases = [...lineKeyAliases(row?.lineKey), ...lineKeyAliases(row?.lineKeyProposed)];
+  if (!aliases.length) return '';
+  const index = context.lineListIndex || buildPreviewMaterialLineListIndex(config);
+  let match = null;
+  for (const alias of aliases) {
+    const candidate = index.get(alias);
+    if (candidate && (!match || candidate.sourceIndex < match.sourceIndex)) match = candidate;
   }
-  return '';
+  return match?.material || '';
 }
 
 function manualMaterial(row) {
@@ -167,8 +178,16 @@ function unresolvedMaterialResult({ material, resolved, override }) {
   };
 }
 
-export function resolvePreviewMaterialCodeAuthority(row, config = {}) {
-  const processMaterial = manualMaterial(row) || processLineListMaterial(row, config) || nonClassMaterial(row);
+function resolveMaterialMap(processMaterial, materialRows, fuzzyConfig, cache) {
+  if (!cache) return resolveXmlCiiMaterialCodeFromMap(processMaterial, materialRows, fuzzyConfig);
+  if (!cache.has(processMaterial)) {
+    cache.set(processMaterial, resolveXmlCiiMaterialCodeFromMap(processMaterial, materialRows, fuzzyConfig));
+  }
+  return cache.get(processMaterial);
+}
+
+export function resolvePreviewMaterialCodeAuthority(row, config = {}, context = {}) {
+  const processMaterial = manualMaterial(row) || processLineListMaterial(row, config, context) || nonClassMaterial(row);
   const materialRows = Array.isArray(config?.material?.mapRows) && config.material.mapRows.length
     ? config.material.mapRows
     : DEFAULT_MATERIAL_MAP_ROWS;
@@ -176,7 +195,7 @@ export function resolvePreviewMaterialCodeAuthority(row, config = {}) {
   const override = overrideRecord(config, { ...row, material: processMaterial || row?.material });
 
   if (processMaterial) {
-    const resolved = resolveXmlCiiMaterialCodeFromMap(processMaterial, materialRows, fuzzyConfig);
+    const resolved = resolveMaterialMap(processMaterial, materialRows, fuzzyConfig, context.materialResolutionCache);
     const strongThreshold = Number.isFinite(Number(fuzzyConfig.overrideConflictThreshold))
       ? Number(fuzzyConfig.overrideConflictThreshold)
       : 0.92;
@@ -259,11 +278,15 @@ export function resolvePreviewMaterialCodeAuthority(row, config = {}) {
 export function applyPreviewMaterialCodeAuthority({ config = {}, result } = {}) {
   const branchRows = Array.isArray(result?.branchRows) ? result.branchRows : [];
   if (!branchRows.length) return result || { branchRows: [], nodeRows: [] };
+  const context = {
+    lineListIndex: buildPreviewMaterialLineListIndex(config),
+    materialResolutionCache: new Map(),
+  };
   return {
     ...(result || {}),
     branchRows: branchRows.map((row) => ({
       ...row,
-      ...resolvePreviewMaterialCodeAuthority(row, config),
+      ...resolvePreviewMaterialCodeAuthority(row, config, context),
     })),
   };
 }
