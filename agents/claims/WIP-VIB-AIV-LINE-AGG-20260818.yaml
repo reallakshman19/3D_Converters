@@ -18,6 +18,10 @@ files:
     - tests/vibration-aiv-post-discontinuity-evidence-gate.test.mjs
     - tests/vibration-aiv-auto-product-path.test.mjs
     - tests/vibration-aiv-eit-export.test.mjs
+    - tests/vibration-aiv-workpack-drift.test.mjs
+    - tests/vibration-aiv-screening-release.test.mjs
+    - tests/vibration-aiv-flare-network.test.mjs
+    - tests/vibration-aiv-canvas-integration.test.mjs
     - agents/WIP-VIB-AIV-LINE-AGG-20260818_workreport.md
     - agents/status/WIP-VIB-AIV-LINE-AGG-20260818.yaml
     - agents/claims/WIP-VIB-AIV-LINE-AGG-20260818.yaml
