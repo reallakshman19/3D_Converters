@@ -133,6 +133,13 @@ function resultAuthority(qualificationMode) {
   });
 }
 
+function inventoryState(summaries) {
+  if (!summaries.length) return 'UNVERIFIED';
+  const verified = summaries.filter((item) => item.assessmentInventoryCompleteness === 'VERIFIED_COMPLETE').length;
+  if (verified === summaries.length) return 'VERIFIED_COMPLETE';
+  return verified > 0 ? 'PARTIAL' : 'UNVERIFIED';
+}
+
 export function calculateAiv({
   sources = [],
   assessments = [],
@@ -140,6 +147,8 @@ export function calculateAiv({
   exchange = null,
   assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE,
   qualificationMode = 'benchmark',
+  inventoryCompletenessAttestations = [],
+  engineeringInputRevision = null,
 } = {}) {
   if (!['benchmark', 'screening'].includes(qualificationMode)) {
     throw new RangeError('AIV qualificationMode must be benchmark or screening.');
@@ -149,6 +158,7 @@ export function calculateAiv({
   if (!Array.isArray(sources) || !sources.length) throw new TypeError('AIV calculator requires at least one source.');
   if (!Array.isArray(assessments) || !assessments.length) throw new TypeError('AIV calculator requires at least one assessment.');
   if (!Array.isArray(relationships) || !relationships.length) throw new TypeError('AIV calculator requires at least one source-to-assessment relationship.');
+  if (!Array.isArray(inventoryCompletenessAttestations)) throw new TypeError('AIV inventory completeness attestations must be an array.');
   const authority = resultAuthority(qualificationMode);
   const sourceCandidates = sources.map(calculateAivKernelCandidateSource);
   const sourceMap = new Map(sourceCandidates.map((item) => [`${item.sourceCanonicalId}\u0000${item.caseId}`, item]));
@@ -197,7 +207,12 @@ export function calculateAiv({
   }
   const lineCaseSummaries = aggregateAivAssessmentResultsToLineCases(
     assessmentResults,
-    { qualificationMode },
+    {
+      qualificationMode,
+      topology: exchange,
+      inventoryCompletenessAttestations,
+      engineeringInputRevision,
+    },
   );
   const sourceResults = sourceCandidates.map((item) => ({
     schema: 'AivSourceResult.v1',
@@ -226,9 +241,10 @@ export function calculateAiv({
     screeningResultScope: 'ASSESSMENT',
     lineCaseAggregationRuleId: AIV_LINE_AGGREGATION_RULE.ruleId,
     lineCaseAggregationRuleQualification: AIV_LINE_AGGREGATION_RULE.qualification.reductionRule,
-    lineCaseAssessmentInventoryCompleteness: 'UNVERIFIED',
+    lineCaseAssessmentInventoryCompleteness: inventoryState(lineCaseSummaries),
     lineCaseSummaryAuthoritativeForScreening: false,
     universalClassificationProduced: false,
+    engineeringInputRevision: Number.isSafeInteger(Number(engineeringInputRevision)) ? Number(engineeringInputRevision) : null,
     assumptionProfile,
     profileValidation,
     authority,
