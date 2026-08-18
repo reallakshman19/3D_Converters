@@ -111,6 +111,7 @@ function factFromLedgerRecord(record, node, jsonConfig) {
   const firstMember = members[0] || {};
   const matched = record.status.startsWith('RESOLVED_');
   const gapMembers = members.filter((member) => text(member.cmpSupGap));
+  const gaps = unique(gapMembers.map((member) => member.cmpSupGap));
   const groupRefs = unique(members.map((member) => member.semanticFields?.supportGroupRef));
   const directLinks = unique(members.map((member) => member.semanticFields?.directLink));
   return {
@@ -128,8 +129,8 @@ function factFromLedgerRecord(record, node, jsonConfig) {
     stagedBore: firstMember.bore || '',
     dtxrPosValue: record.dtxrPosValue || '',
     dtxrPsValue: record.dtxrPsValue || '',
-    cmpSupGap: gapMembers[0]?.cmpSupGap || '',
-    cmpSupGaps: unique(gapMembers.map((member) => member.cmpSupGap)),
+    cmpSupGap: gaps.length === 1 ? gaps[0] : '',
+    cmpSupGaps: gaps,
     gapSourcePaths: unique(gapMembers.map((member) => member.path || member.sourcePath)),
     supportGroupRefs: groupRefs,
     directLinks,
