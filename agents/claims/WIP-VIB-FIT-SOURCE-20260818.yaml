@@ -1,31 +1,7 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-FIT-SOURCE-20260818
-claim_state: ACTIVE
-files:
-  exact:
-    - converters/vibration/fit/method.js
-    - converters/vibration/fit/source-basis-evidence.js
-    - converters/vibration/fit/calculate.js
-    - converters/vibration/fit/index.js
-    - converters/engineering-calculations/adapters/vibration-fit.js
-    - tests/vibration-fit-workbook-reference.test.mjs
-    - tests/vibration-fit-source-authority.test.mjs
-    - tests/vibration-fit-engineering-source-authority.test.mjs
-    - agents/WIP-VIB-FIT-SOURCE-20260818_workreport.md
-    - agents/status/WIP-VIB-FIT-SOURCE-20260818.yaml
-    - agents/claims/WIP-VIB-FIT-SOURCE-20260818.yaml
-  prefixes: []
-authority_domains:
-  - VIBRATION_FIT_SOURCE_PROVENANCE
-  - VIBRATION_FIT_RUNTIME_AUTHORITY_LABELING
-claim_modes:
-  - EXCLUSIVE
-exclusions:
-  - FIT numerical equations correlations coefficients constants
-  - FIT applicability limits and multiphase resolution
-  - benchmark expected values tolerances
-  - screening or design authority promotion
-  - converters/vibration/source/registry.js
-  - workflow files
-coordination_state: SAFE_GLOBAL_SOURCE_REGISTRY_EXCLUDED_DUE_PR635
+claim_state: RELEASED
+superseded_by: PR639
+branch: agent/vibration-fit-source-authority-20260818
+coordination_state: MIGRATED_TO_PR639
 merge_authority: OWNER_ONLY_NOT_GRANTED
