@@ -39,7 +39,10 @@ function xmlText(parent, localName) {
 
 function coordinateTolerance(config = {}) {
   const alignment = resolveCoordinateAlignment(config);
-  return Math.max(finite(config.coordinateTolerance, alignment.matchToleranceMm || 1), 0.000001);
+  const tolerance = alignment.explicit
+    ? alignment.matchToleranceMm
+    : finite(config.coordinateTolerance, alignment.matchToleranceMm || 1);
+  return Math.max(finite(tolerance, 1), 0.000001);
 }
 
 function coordinateKey(point, config = {}) {
