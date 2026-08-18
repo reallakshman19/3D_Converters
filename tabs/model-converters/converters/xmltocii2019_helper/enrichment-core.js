@@ -24,25 +24,40 @@ export * from './enrichment-core-legacy.js';
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
+function safeObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+function parseRawSupportConfig(rawJson) {
+  try {
+    const parsed = JSON.parse(text(rawJson) || '{}');
+    return safeObject(parsed);
+  } catch {
+    return {};
+  }
+}
+function legacyPassOptions(options = {}) {
+  const raw = parseRawSupportConfig(options.supportConfigJson);
+  raw.supportMapping = {
+    ...safeObject(raw.supportMapping),
+    useJsonForRestraints: false,
+  };
+  return { ...options, supportConfigJson: JSON.stringify(raw) };
+}
 
 function localName(node) {
   return text(node?.localName || node?.nodeName).replace(/^.*:/, '');
 }
-
 function childrenByName(parent, name) {
   return [...(parent?.childNodes || [])]
     .filter((node) => node.nodeType === 1 && localName(node) === name);
 }
-
 function childText(parent, name) {
   return text(childrenByName(parent, name)[0]?.textContent);
 }
-
 function distanceMm(left, right) {
   if (!left || !right) return Number.POSITIVE_INFINITY;
   return Math.hypot(left.x - right.x, left.y - right.y, left.z - right.z);
 }
-
 function uniqueMatches(items = []) {
   const out = [];
   const seen = new Set();
@@ -55,18 +70,15 @@ function uniqueMatches(items = []) {
   }
   return out;
 }
-
 function configuredTolerance(config = {}) {
   return Math.max(Number(resolveCoordinateAlignment(config).matchToleranceMm) || 0, 0);
 }
-
 function tagMatchesForNode(node, supportIndex, config) {
   const tags = xmlNodeSupportTags(node, config);
   const hits = [];
   for (const tag of tags) hits.push(...(supportIndex.byTag.get(tag) || []));
   return { tags, matches: uniqueMatches(hits) };
 }
-
 function coordinateMatchesForNode(node, supportIndex, toleranceMm) {
   const point = parseSourcePoint(childText(node, 'Position'));
   if (!point) return [];
@@ -83,9 +95,6 @@ function resolveSupportMatches(node, supportIndex, config) {
   const tagged = tagMatchesForNode(node, supportIndex, config);
   const coordinate = coordinateMatchesForNode(node, supportIndex, configuredTolerance(config));
 
-  // Relationship/identity lookup is authoritative. The support index has
-  // already performed any explicitly-authorized assembly expansion. Geometry
-  // is retained as corroborating evidence only and never adds family members.
   if (tagged.matches.length) {
     return {
       tags: tagged.tags,
@@ -209,12 +218,32 @@ function applySourceSchemaSupportClosure(enriched, stagedJsonText, options = {})
 }
 
 /**
- * Public enrichment boundary. Legacy behavior is untouched unless
- * sourceSchema.enabled=true. Under an explicit source profile, relationship
- * identity is authoritative and coordinates are corroboration-only unless the
- * profile explicitly enables coordinate fallback.
+ * Public enrichment boundary.
+ *
+ * Legacy mode is byte-compatible: no special pass is introduced.
+ * Explicit source-schema mode runs the established non-support enrichment with
+ * StagedJson restraint authority disabled, then restores the requested support
+ * policy and applies restraints only through this strict closure. This prevents
+ * the legacy coordinate-first loop from bypassing CORROBORATION_ONLY policy.
  */
 export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = {}) {
-  const enriched = await legacy.enrichXmlForCii2019(xmlTextVal, stagedJsonText, options);
+  const requestedConfig = parseXmlCiiEnrichmentConfig(options.supportConfigJson || '{}');
+  if (!sourceSchemaEnabled(requestedConfig)) {
+    return legacy.enrichXmlForCii2019(xmlTextVal, stagedJsonText, options);
+  }
+
+  const enriched = await legacy.enrichXmlForCii2019(xmlTextVal, stagedJsonText, legacyPassOptions(options));
+  enriched.config = {
+    ...(enriched.config || {}),
+    sourceSchema: requestedConfig.sourceSchema,
+    coordinateAlignment: requestedConfig.coordinateAlignment,
+    supportMapping: requestedConfig.supportMapping,
+  };
+  enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
+  enriched.diagnostics.push({
+    type: 'source-schema-legacy-restraint-pass-suppressed',
+    profileId: sourceAuthorityPolicy(enriched.config).profileId,
+    status: 'strict-closure-authoritative',
+  });
   return applySourceSchemaSupportClosure(enriched, stagedJsonText, options);
 }
