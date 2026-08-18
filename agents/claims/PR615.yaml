@@ -4,6 +4,7 @@ criticality: ENGINEERING_CRITICAL
 claim_state: ACTIVE
 paths:
   - converters/vibration/eit/**
+  - converters/vibration/project/**
   - converters/vibration/roadmap/**
   - tabs/vibration-roadmap-panel.js
   - tabs/vibration-roadmap-controller.js
@@ -11,9 +12,11 @@ paths:
   - tabs/engineering-calculations-tab.js
   - scripts/inspect-vibration-eit-roadmap.mjs
   - tests/vibration-eit-generic.test.mjs
+  - tests/vibration-project-eit.test.mjs
   - tests/vibration-roadmap-*.test.mjs
 authority_domains:
   - EIT_COMPATIBILITY_IMPORT_NORMALIZATION
+  - VIBRATION_PROJECT_PERSISTENCE
   - ROADMAP_PRESENTATION_PROJECTION
   - ROADMAP_UI_MOUNT
 exclusions:
@@ -21,6 +24,7 @@ exclusions:
   - mechanism applicability authority
   - mainline aggregation authority
   - existing AIV/FIT/SBC numerical production files
+  - generic multi-module EIT export authority
   - workflow files
 coordination:
   PR571: mechanism coverage; no coverage files edited
