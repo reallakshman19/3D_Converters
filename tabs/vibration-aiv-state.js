@@ -23,6 +23,7 @@ export function createInitialAivQualificationState() {
     assumptionProfileModified: false,
     assumptionResolution: null,
     assumptionAcceptance: null,
+    inventoryCompletenessAttestations: [],
     readinessEnvelope: null,
     resultSet: null,
     screeningResult: null,
