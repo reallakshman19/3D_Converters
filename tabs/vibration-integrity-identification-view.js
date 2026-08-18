@@ -3,6 +3,7 @@ import {
   VIBRATION_IDENTIFICATION_DISPOSITIONS,
   VIBRATION_REQUIRED_QUALIFICATIONS,
 } from '../converters/vibration/mechanisms/coverage.js';
+import { collectVibrationT1Suggestions } from '../converters/vibration/mechanisms/identification-suggestions.js';
 import { VIBRATION_MECHANISM_IDS } from '../converters/vibration/mechanisms/registry.js';
 import {
   vibrationIdentificationAuthoringRowState,
@@ -68,9 +69,42 @@ function summary(table) {
   )).join('')}</div>`;
 }
 
+function suggestionData(state) {
+  const scopes = (state.workspace?.rows ?? []).map((row) => ({
+    line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId,
+  }));
+  const enrichment = state.envelope?.workflow?.dataset?.enrichment ?? [];
+  return collectVibrationT1Suggestions({ scopes, enrichment });
+}
+
+function suggestionRows(suggestions) {
+  if (!suggestions.length) {
+    return '<tr><td colspan="7" class="vi-table-empty">No verified T1 suggestion facts are present for current facility scopes.</td></tr>';
+  }
+  return suggestions.map((item) => `<tr>
+    <td><strong>${esc(item.mechanismId)}</strong></td>
+    <td>${esc(item.scope.line)}</td><td>${esc(item.scope.caseId ?? '—')}</td><td>${esc(item.scope.canonicalId)}</td>
+    <td>${esc(item.triggerFact.label)}<small class="vi-mono">${esc(item.triggerFact.property)} = true · VERIFIED</small></td>
+    <td>${esc(item.suggestedAssessmentUnitType)}</td>
+    <td><strong>PENDING ENGINEER REVIEW</strong><small>${esc(item.triggerFact.source || 'Project source')} · ${esc(item.ruleId)}</small></td>
+  </tr>`).join('');
+}
+
+function suggestionSection(state) {
+  const suggestions = suggestionData(state);
+  return `<section class="vi-card">
+    <div class="vi-section-head"><div><h3>T1 mechanism suggestions</h3>
+      <p>Exact verified project facts can highlight likely mechanism reviews. Suggestions are context assistance only; use Add identification row to record the engineer/reviewer disposition.</p></div></div>
+    <div class="vi-banner warn"><strong>Suggestions are not applicability evidence.</strong><span>No suggestion is passed to the identification producer, no disposition is inferred, and no completeness requirement can be satisfied until explicit identification evidence is authored and valid.</span></div>
+    <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
+      <th>Suggested mechanism</th><th>Line</th><th>Case</th><th>Canonical ID</th><th>Verified trigger fact</th><th>Suggested unit</th><th>State</th>
+    </tr></thead><tbody>${suggestionRows(suggestions)}</tbody></table></div>
+  </section>`;
+}
+
 export function renderVibrationIdentificationAuthoring(state) {
   const table = state.mechanismIdentificationAuthoring;
-  return `<section class="vi-card vi-workspace-card">
+  return `${suggestionSection(state)}<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div>
       <h3>Mechanism identification evidence</h3>
       <p>Author explicit project/source evidence for one exact line/case/canonical scope. The registry supplies mechanism names only; this workspace never selects applicability, assessment unit, disposition, or authority for you.</p>
