@@ -1,5 +1,5 @@
 import * as core from './dtxr-resolver-core.js';
-import { sourceAuthorityPolicy, sourceSchemaEnabled } from './source-schema-adapter.js';
+import { sourceAuthorityPolicy, sourceFieldEvidence, sourceSchemaEnabled } from './source-schema-adapter.js';
 
 export * from './dtxr-resolver-core.js';
 
@@ -44,10 +44,16 @@ function parsePoint(value) {
 }
 
 function itemPoint(item, config = {}) {
-  if (item?.coord && [item.coord.x, item.coord.y, item.coord.z].every(Number.isFinite)) return item.coord;
   if (sourceSchemaEnabled(config)) {
-    return item?.point && [item.point.x, item.point.y, item.point.z].every(Number.isFinite) ? item.point : null;
+    if (item?.relationshipConflict) return null;
+    const sourceValue = { ...(item?.component || {}), attributes: item?.attrs || {} };
+    const positionEvidence = sourceFieldEvidence(sourceValue, 'position', config);
+    if (positionEvidence.conflict) return null;
+    if (item?.point && [item.point.x, item.point.y, item.point.z].every(Number.isFinite)) return item.point;
+    if (item?.coord && [item.coord.x, item.coord.y, item.coord.z].every(Number.isFinite)) return item.coord;
+    return null;
   }
+  if (item?.coord && [item.coord.x, item.coord.y, item.coord.z].every(Number.isFinite)) return item.coord;
   const attrs = item?.attrs || {};
   for (const key of ['SUPPORTCOORD', 'POS', 'POSI', 'BPOS', 'APOS', 'LPOS', 'CPOS', 'HPOS', 'TPOS']) {
     const point = parsePoint(attrs[key]);
@@ -107,7 +113,7 @@ function branchlessCoordinateEvidence(args) {
  * Public DTXR resolver boundary. Legacy precedence is preserved unless an
  * explicit sourceSchema profile is enabled. Under that profile, branchless
  * coordinate evidence is disabled unless the profile explicitly authorizes
- * coordinate fallback.
+ * coordinate fallback, and conflicted source evidence is never fallback input.
  */
 export function resolveDtxrForXmlNode(args = {}) {
   const purpose = args?.purpose || 'component-description';
