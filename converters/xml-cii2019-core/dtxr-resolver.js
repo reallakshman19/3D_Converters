@@ -6,15 +6,19 @@ export * from './dtxr-resolver-core.js';
 function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidence, stagedType = '', config = {}) {
   if (!evidence?.effectiveDtxr) return null;
   const enabled = sourceSchemaEnabled(config);
+  const extended = enabled ? {
+    teeDesc: evidence.teeDesc || '',
+    cmpSupGap: evidence.cmpSupGap || '',
+    cmpSupGaps: Array.isArray(evidence.cmpSupGaps) ? evidence.cmpSupGaps : (evidence.cmpSupGap ? [evidence.cmpSupGap] : []),
+  } : {
+    teeDesc: '',
+    cmpSupGap: '',
+  };
   return {
     canonicalText: evidence.effectiveDtxr,
     value: evidence.effectiveDtxr,
     ...evidence,
-    teeDesc: enabled ? (evidence.teeDesc || '') : '',
-    cmpSupGap: enabled ? (evidence.cmpSupGap || '') : '',
-    cmpSupGaps: enabled
-      ? (Array.isArray(evidence.cmpSupGaps) ? evidence.cmpSupGaps : (evidence.cmpSupGap ? [evidence.cmpSupGap] : []))
-      : [],
+    ...extended,
     supportTags: core.xmlNodeSupportTags(xmlNode, config),
     source,
     matchedBy,
@@ -23,7 +27,7 @@ function resultShape(xmlNode, evidence, source, matchedBy, matchedKey, confidenc
     componentRefNo: core.getXmlNodeProperty(xmlNode, 'ComponentRefNo'),
     confidence,
     suppressed: false,
-    suppressionReason: evidence.suppressionReason || '',
+    suppressionReason: enabled ? (evidence.suppressionReason || '') : '',
     candidates: enabled ? (evidence.candidates || []) : [],
   };
 }
