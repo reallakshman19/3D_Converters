@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
   buildVibrationFacilityFitPlan,
-} from '../converters/vibration/facility/index.js';
+} from '../converters/vibration/facility/fit-plan.js';
 import {
   FIT_FACILITY_NATURAL_FREQUENCY_CUSTODY_SCHEMA,
   resolveFitFacilityNaturalFrequencyCustody,
