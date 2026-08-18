@@ -4,6 +4,8 @@ import {
   addAivFlareNetworkSegment,
 } from '../converters/vibration/aiv/aiv-flare-network-mutations.js';
 
+const RV_BRANCH_TARGET_KINDS = new Set(['JUNCTION', 'CONNECTION']);
+
 function text(value) { return String(value ?? '').trim(); }
 
 export function aivUnifiedCanvasNextId(network, prefix) {
@@ -25,6 +27,10 @@ export function aivUnifiedCanvasNodeSelectionKey(node) {
   return `NETWORK_NODE:${node.canonicalId}`;
 }
 
+export function isAivUnifiedCanvasRvBranchTarget(node) {
+  return Boolean(node && RV_BRANCH_TARGET_KINDS.has(node.kind));
+}
+
 export function createAivUnifiedCanvasBlankNetwork(input = {}) {
   const networkId = text(input.networkId);
   if (!networkId) throw new TypeError('New AIV flare network requires a Network ID.');
@@ -43,16 +49,26 @@ function defaultPosition(network) {
   return { x: 110 + (index % 4) * 220, y: 100 + Math.floor(index / 4) * 130 };
 }
 
+function requireRvBranchTarget(network, targetNodeId) {
+  if (!targetNodeId) throw new TypeError('Quick RV branch requires a target junction or header node.');
+  const target = network?.nodes?.find((node) => node.canonicalId === targetNodeId);
+  if (!target) throw new RangeError(`Quick RV branch target ${targetNodeId} does not exist.`);
+  if (!isAivUnifiedCanvasRvBranchTarget(target)) {
+    throw new RangeError(`Quick RV branch target ${targetNodeId} must be a JUNCTION or CONNECTION node.`);
+  }
+  return target;
+}
+
 export function createAivUnifiedCanvasRvBranch(network, input = {}) {
   const canonicalId = text(input.canonicalId) || aivUnifiedCanvasNextId(network, 'RV');
   const caseId = text(input.caseId);
   const targetNodeId = text(input.targetNodeId);
+  const target = requireRvBranchTarget(network, targetNodeId);
   const segmentId = text(input.segmentId) || `${canonicalId}-BRANCH`;
-  const line = text(input.line) || null;
+  const line = text(input.line) || text(target.line) || null;
   const length = Number(input.length);
   const unit = text(input.unit) || 'm';
   if (!caseId) throw new TypeError(`AIV flare-network Source ${canonicalId} requires an operating case.`);
-  if (!targetNodeId) throw new TypeError('Quick RV branch requires a target junction or header node.');
   if (!(length > 0) || !Number.isFinite(length)) throw new RangeError('Quick RV branch requires a positive engineering length.');
   const withNode = addAivFlareNetworkNode(network, {
     canonicalId,
