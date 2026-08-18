@@ -64,6 +64,7 @@ coordination:
   PR546: SBC freeze/source paths untouched
   PR560: roadmap documentation branch untouched
   PR582_PR584_PR586_PR588: merged M5 basis/geometry/process authorities reused, not duplicated
+  live_main_eef94949: eight behind commits classified non-overlapping XML_CII/browser-timing work; reconcile before merge
 stage3_invariants:
   - ASSESSMENT_UNIT_LOF_NE_MECHANISM_LINE_LOF
   - ONE_MECHANISM_MAX_ONE_EI_CONTRIBUTOR
