@@ -2,6 +2,7 @@ name: Temporary Node 140 diagnostic
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'tests/xml-cii-sys0010-node140-ledger.test.mjs'
       - 'Benchmarks/css/SYS-0010.xml'
