@@ -1,3 +1,5 @@
+import { assertVibrationMeasurementEvidencePackage } from '../measurement/contracts.js';
+
 export const VIBRATION_INTEGRITY_PROJECT_SCHEMA = 'VibrationIntegrityProject.v1';
 export const VIBRATION_INTEGRITY_PROJECT_AUTHORITY = 'PERSISTENCE_CONTAINER_ONLY';
 
@@ -36,16 +38,46 @@ function assertAuthority(project) {
   const safe = authority.containerAuthority === VIBRATION_INTEGRITY_PROJECT_AUTHORITY
     && authority.importedResultsAreCurrentEngineeringAuthority === false
     && authority.screeningAuthorized === false
-    && authority.designAuthority === false;
+    && authority.designAuthority === false
+    && authority.rootCauseAuthority !== true
+    && authority.measurementEvidenceIsCurrentEngineeringAuthority !== true;
   if (!safe) {
-    throw projectError('VIBRATION_PROJECT_AUTHORITY_INVALID', 'Project persistence metadata cannot grant engineering, screening, or design authority.');
+    throw projectError(
+      'VIBRATION_PROJECT_AUTHORITY_INVALID',
+      'Project persistence metadata cannot grant engineering, screening, design, measurement-result, or root-cause authority.',
+    );
+  }
+}
+
+function assertMeasurementEvidence(project, lineIds) {
+  const legacyMeasurements = requiredArray(project.measurements ?? [], 'project.measurements');
+  if (legacyMeasurements.length) {
+    throw projectError(
+      'VIBRATION_PROJECT_LEGACY_MEASUREMENTS_UNQUALIFIED',
+      'Non-empty legacy measurements are not accepted; use validated project.measurementEvidence.',
+    );
+  }
+  if (project.measurementEvidence == null) return;
+  assertVibrationMeasurementEvidencePackage(project.measurementEvidence);
+  for (const session of project.measurementEvidence.sessions) {
+    if (!lineIds.has(String(session.scope.lineId ?? ''))) {
+      throw projectError(
+        'VIBRATION_PROJECT_MEASUREMENT_DANGLING_LINE',
+        'Measurement session references an unknown project line.',
+        { sessionId: session.sessionId ?? null, lineId: session.scope?.lineId ?? null },
+      );
+    }
   }
 }
 
 export function assertVibrationIntegrityProject(value) {
   const project = requiredObject(value, 'project');
   if (project.schema !== VIBRATION_INTEGRITY_PROJECT_SCHEMA) {
-    throw projectError('VIBRATION_PROJECT_SCHEMA_MISMATCH', `Project must use ${VIBRATION_INTEGRITY_PROJECT_SCHEMA}.`, { actual: project.schema ?? null });
+    throw projectError(
+      'VIBRATION_PROJECT_SCHEMA_MISMATCH',
+      `Project must use ${VIBRATION_INTEGRITY_PROJECT_SCHEMA}.`,
+      { actual: project.schema ?? null },
+    );
   }
   requiredObject(project.project, 'project.project');
   const subjects = requiredObject(project.subjects, 'project.subjects');
@@ -53,16 +85,24 @@ export function assertVibrationIntegrityProject(value) {
   const mechanisms = requiredArray(project.mechanismImports, 'project.mechanismImports');
   const currentResults = requiredArray(project.currentResults, 'project.currentResults');
   if (currentResults.length) {
-    throw projectError('VIBRATION_PROJECT_CURRENT_RESULT_CONTRACT_UNQUALIFIED', 'V1 project persistence does not yet accept current-result authority records; rerun registered calculations after load.');
+    throw projectError(
+      'VIBRATION_PROJECT_CURRENT_RESULT_CONTRACT_UNQUALIFIED',
+      'V1 project persistence does not yet accept current-result authority records; rerun registered calculations after load.',
+    );
   }
   assertAuthority(project);
   const lineIds = uniqueIds(lines, 'lineId', 'VIBRATION_PROJECT_LINE_ID_INVALID');
   uniqueIds(mechanisms, 'recordId', 'VIBRATION_PROJECT_MECHANISM_RECORD_ID_INVALID');
   for (const record of mechanisms) {
     if (!lineIds.has(String(record.lineId ?? ''))) {
-      throw projectError('VIBRATION_PROJECT_DANGLING_LINE_REFERENCE', 'Mechanism import references an unknown line.', { recordId: record.recordId ?? null, lineId: record.lineId ?? null });
+      throw projectError(
+        'VIBRATION_PROJECT_DANGLING_LINE_REFERENCE',
+        'Mechanism import references an unknown line.',
+        { recordId: record.recordId ?? null, lineId: record.lineId ?? null },
+      );
     }
   }
+  assertMeasurementEvidence(project, lineIds);
   return project;
 }
 
