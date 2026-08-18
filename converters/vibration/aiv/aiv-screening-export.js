@@ -74,7 +74,13 @@ export function buildAivScreeningExportPackage({
       stageOrder: result.stageOrder,
       completeKernelStageCount: result.implementedStageCount,
       sourceTrace: result.sourceResults.map((row) => row.trace ?? null),
-      lineCaseSummaryAuthoritativeForScreening: false,
+      lineCaseAggregationRuleId: result.lineCaseAggregationRuleId ?? null,
+      lineCaseAggregationRuleQualification: result.lineCaseAggregationRuleQualification ?? null,
+      lineCaseAssessmentInventoryCompleteness: result.lineCaseAssessmentInventoryCompleteness ?? 'UNVERIFIED',
+      lineCaseSummaryAuthoritativeForScreening: result.lineCaseSummaryAuthoritativeForScreening === true,
+      lineCaseScreeningAuthorityBlocker: result.lineCaseSummaryAuthoritativeForScreening === true
+        ? null
+        : 'AIV_WELDED_DISCONTINUITY_INVENTORY_COMPLETENESS_UNPROVEN',
       importedEitResultsAuthoritativeForCurrentScreening: false,
       humanEvidenceRequired: false,
     },
