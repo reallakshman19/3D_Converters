@@ -180,7 +180,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
         : (state.topologyInput?.sourceFileName || 'AIV Screening Export'));
       const text = serializeAivEitExport({ screeningPackage, title });
-      downloadAivText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
+      downloadText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
