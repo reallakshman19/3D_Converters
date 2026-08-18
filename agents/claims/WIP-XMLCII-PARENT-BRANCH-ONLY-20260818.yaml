@@ -1,36 +1,16 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-XMLCII-PARENT-BRANCH-ONLY-20260818
-claim_state: ACTIVE
+claim_state: RELEASED_SUPERSEDED_BY_PR636
 branch: agent/xml-cii-parent-branch-only-20260818
 workstream: XML_CII_STANDALONE_PERFORMANCE
 criticality: ENGINEERING_CRITICAL
-files:
-  exact:
-    - tabs/model-converters/converters/xmltocii2019_helper/preview-renderer.js
-    - tabs/model-converters/converters/xmltocii2019_helper/xml-cii-parent-run-parity-weight-scope.js
-    - tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js
-    - tests/xml-cii-parent-run-parity-weight-scan.test.mjs
-    - agents/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818_workreport.md
-    - agents/status/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818.yaml
-    - agents/claims/WIP-XMLCII-PARENT-BRANCH-ONLY-20260818.yaml
-  prefixes: []
-authority_domains:
-  - XML_CII_PARENT_RUN_PARITY_EXECUTION_GRANULARITY
-claim_modes:
-  - EXCLUSIVE
+successor:
+  pr: 636
+  claim_path: agents/claims/PR636.yaml
+  report_path: agents/PR636_workreport.md
 predecessor_coordination:
-  PR630: MERGED_STALE_ACTIVE_METADATA_SUPERSEDED_BY_SUCCESSOR
-exclusions:
-  - tabs/xml-cii-2019-standalone/ui-adapted/**
-  - converters/xml-cii2019-core/weight-valve-hints.js
-  - support/GAP semantics
-  - CII writer/runtime
-  - Python conversion
-  - .github/workflows/**
-coordination:
-  PR616: NO_EXACT_FILE_OVERLAP
-  C5_C5M: ADAPTED_PREVIEW_FILES_EXCLUDED
-coordination_state: SAFE_SUCCESSOR_TO_MERGED_PR630
-last_verified_head: 765d15e87def22291792ddb533df9ea532fb3f67
-last_updated: 2026-08-18T20:11:00+04:00
+  PR630: MERGED_STALE_ACTIVE_METADATA_SUPERSEDED
+release_reason: PR custody allocated after validated implementation; exact production/test authority migrated to PR636.
+last_verified_main: 765d15e87def22291792ddb533df9ea532fb3f67
+last_updated: 2026-08-18T20:34:00+04:00
