@@ -25,8 +25,15 @@ test('EI technical modules T1 through T13 are distinct controlled source records
   assert.ok(listVibrationEngineeringSources().length >= 13);
 });
 
-test('mechanism subsection labels remain reconciliation-required rather than controlled', () => {
-  for (const mechanismId of ['fit', 'mechanicalExcitation', 'reciprocatingPulsation', 'aiv', 'valveTransients', 'cavitationFlashing']) {
+test('Mechanical T2.3 source is resolved to controlled Table T2-3 while unresolved mechanisms stay fail-closed', () => {
+  const mechanical = resolveVibrationRoadmapSourceBinding({ mechanismId: 'mechanicalExcitation' });
+  assert.equal(mechanical.status, 'RESOLVED');
+  assert.equal(mechanical.sources[0].locatorBasis, 'CONTROLLED_SOURCE');
+  assert.equal(mechanical.sources[0].sectionId, 'T2.3');
+  assert.equal(mechanical.sources[0].tableId, 'T2-3');
+  assert.equal(mechanical.sources[0].printedPage, 54);
+
+  for (const mechanismId of ['fit', 'reciprocatingPulsation', 'aiv', 'valveTransients', 'cavitationFlashing']) {
     const binding = resolveVibrationRoadmapSourceBinding({ mechanismId });
     assert.equal(binding.status, 'RECONCILIATION_REQUIRED');
     assert.equal(binding.sources[0].locatorBasis, 'REPOSITORY_LABEL');
