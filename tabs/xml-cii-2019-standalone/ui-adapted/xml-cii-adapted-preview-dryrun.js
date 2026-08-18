@@ -207,5 +207,9 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
     config,
     fullBuild: () => buildFullDryRunPreview(xmlText, config, stagedJsonText),
     rerankWeight: rerankPreviewNodeRows,
+    reapplyMaterial: (previousResult, nextConfig) => applyPreviewMaterialCodeAuthority({
+      config: nextConfig,
+      result: previousResult,
+    }),
   }).result;
 }
