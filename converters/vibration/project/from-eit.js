@@ -1,4 +1,5 @@
 import { ENERGY_INSTITUTE_EIT_IMPORT_SCHEMA } from '../eit/contract.js';
+import { createEmptyVibrationMeasurementEvidencePackage } from './measurement.js';
 import {
   VIBRATION_INTEGRITY_PROJECT_AUTHORITY,
   VIBRATION_INTEGRITY_PROJECT_SCHEMA,
@@ -73,12 +74,15 @@ export function buildVibrationIntegrityProjectFromEit(eitImport, options = {}) {
     unknownCompatibilityModules: unknownModuleImports(eitImport),
     currentResults: [],
     measurements: [],
+    measurementEvidence: createEmptyVibrationMeasurementEvidencePackage(),
     actions: [],
     authority: {
       containerAuthority: VIBRATION_INTEGRITY_PROJECT_AUTHORITY,
       importedResultsAreCurrentEngineeringAuthority: false,
+      measurementEvidenceIsCurrentEngineeringAuthority: false,
       screeningAuthorized: false,
       designAuthority: false,
+      rootCauseAuthority: false,
     },
   };
   assertVibrationIntegrityProject(project);
