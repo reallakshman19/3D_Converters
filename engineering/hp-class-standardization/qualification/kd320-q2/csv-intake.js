@@ -42,7 +42,7 @@ const PUBLISHED_HEADERS = Object.freeze([
 function text(value) { return String(value ?? '').trim(); }
 function identity(value) { return text(value).toLowerCase(); }
 function list(value) { return text(value).split(';').map((item) => item.trim()).filter(Boolean); }
-function number(value) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null; }
+function number(value) { const raw = text(value); if (!raw) return null; const parsed = Number(raw); return Number.isFinite(parsed) ? parsed : null; }
 function issue(row, code, field, message) { return { row, code, field, message }; }
 
 function parseDelimited(source) {
@@ -57,6 +57,7 @@ function parseDelimited(source) {
     else if (!quoted && ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
     else cell += ch;
   }
+  if (quoted) throw new Error('CSV_QUOTE_UNTERMINATED');
   if (cell.length || row.length) { row.push(cell); rows.push(row); }
   return rows.filter((values) => values.some((value) => text(value)));
 }
@@ -64,7 +65,7 @@ function parseDelimited(source) {
 function parseCsvObjects(source) {
   const rows = parseDelimited(source);
   if (!rows.length) return { headers: [], records: [] };
-  const headers = rows[0].map((value) => text(value));
+  const headers = rows[0].map((value, index) => index === 0 ? text(value).replace(/^\uFEFF/, '') : text(value));
   const records = rows.slice(1).map((values) => Object.fromEntries(
     headers.map((header, index) => [header, values[index] ?? ''])));
   return { headers, records };
@@ -264,7 +265,9 @@ function blocked(rowNumber, issues) {
 export function previewKd320EvidenceCsv(source, mode) {
   const required = mode === KD320_CSV_MODES.PROJECT ? PROJECT_HEADERS : mode === KD320_CSV_MODES.PUBLISHED ? PUBLISHED_HEADERS : null;
   if (!required) return { ok: false, mode, fileIssues: [issue(0, 'CSV_MODE_INVALID', 'mode', 'Unsupported CSV mode.')], rows: [] };
-  const parsed = parseCsvObjects(source);
+  let parsed;
+  try { parsed = parseCsvObjects(source); }
+  catch (error) { return { ok: false, mode, fileIssues: [issue(0, 'CSV_PARSE_INVALID', 'file', String(error?.message || error))], rows: [] }; }
   const headerCheck = validateHeaders(parsed.headers, required);
   const fileIssues = [];
   if (headerCheck.missing.length) fileIssues.push(issue(0, 'CSV_HEADERS_MISSING', 'header', `Missing: ${headerCheck.missing.join(', ')}`));
