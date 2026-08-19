@@ -9,6 +9,7 @@ import {
   vibrationIdentificationAuthoringRowState,
   vibrationIdentificationAuthoringSummary,
 } from './vibration-integrity-identification-model.js';
+import { buildVibrationIdentificationMatrix } from './vibration-integrity-identification-matrix.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -69,6 +70,61 @@ function summary(table) {
   )).join('')}</div>`;
 }
 
+function matrixSummary(matrix) {
+  const counts = matrix.summary;
+  const cards = [
+    ['Scopes', counts.scopes], ['Mechanisms / scope', counts.mechanismsPerScope],
+    ['Evidence ready', counts.evidenceReady], ['Missing review', counts.missingReview],
+    ['Incomplete / invalid', counts.incompleteEvidence + counts.invalidEvidence + counts.duplicateOrConflicted],
+  ];
+  return `<div class="vi-summary">${cards.map(([label, value]) => (
+    `<div class="vi-metric"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`
+  )).join('')}</div>`;
+}
+
+function matrixEvidenceDetail(cell) {
+  if (!cell.authoredRows.length) return '<small>No explicit T1 evidence authored for this exact scope.</small>';
+  return cell.authoredRows.map((row) => {
+    const errors = row.errors?.length ? ` · ${row.errors.join('; ')}` : '';
+    const source = row.sourceId ? ` · ${row.sourceId}` : '';
+    return `<small class="vi-mono">${esc(row.rowId ?? 'row')} · ${esc(row.authoringState)}${esc(source)}${esc(errors)}</small>`;
+  }).join('');
+}
+
+function matrixRows(scopeEntry) {
+  return scopeEntry.mechanisms.map((cell) => `<tr>
+    <td><strong>${esc(cell.mechanismId)}</strong></td>
+    <td><strong>${esc(cell.state)}</strong>${matrixEvidenceDetail(cell)}</td>
+    <td>${esc(cell.disposition ?? '—')}</td>
+    <td>${esc(cell.requiredQualification ?? '—')}</td>
+  </tr>`).join('');
+}
+
+function matrixScopes(matrix) {
+  if (!matrix.scopes.length) {
+    return '<div class="vi-banner warn"><strong>No valid facility scopes.</strong><span>Load or author workspace rows with line and canonical ID before T1 review coverage can be projected.</span></div>';
+  }
+  return matrix.scopes.map((entry) => `<div class="vi-table-wrap">
+    <table class="vi-table"><thead><tr><th colspan="4">${esc(entry.scope.line)} · ${esc(entry.scope.caseId ?? 'No case')} · ${esc(entry.scope.canonicalId)}</th></tr>
+      <tr><th>Mechanism</th><th>Review evidence state</th><th>Explicit disposition</th><th>Required qualification</th></tr>
+    </thead><tbody>${matrixRows(entry)}</tbody></table>
+  </div>`).join('');
+}
+
+function matrixSection(state) {
+  const table = state.mechanismIdentificationAuthoring;
+  const matrix = buildVibrationIdentificationMatrix({
+    workspaceRows: state.workspace?.rows ?? [],
+    authoredRows: table?.rows ?? [],
+  });
+  return `<section class="vi-card">
+    <div class="vi-section-head"><div><h3>T1 mechanism review matrix</h3>
+      <p>Every current facility scope is projected against the complete known mechanism registry so missing engineering review is visible instead of being mistaken for not-applicable.</p></div></div>
+    <div class="vi-banner warn"><strong>Coverage presentation only.</strong><span>MISSING_REVIEW means no explicit identification evidence exists for that mechanism and exact scope. This matrix never infers applicability, creates a disposition, or satisfies assessment completeness.</span></div>
+    ${matrixSummary(matrix)}${matrixScopes(matrix)}
+  </section>`;
+}
+
 function suggestionData(state) {
   const scopes = (state.workspace?.rows ?? []).map((row) => ({
     line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId,
@@ -104,7 +160,7 @@ function suggestionSection(state) {
 
 export function renderVibrationIdentificationAuthoring(state) {
   const table = state.mechanismIdentificationAuthoring;
-  return `${suggestionSection(state)}<section class="vi-card vi-workspace-card">
+  return `${matrixSection(state)}${suggestionSection(state)}<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div>
       <h3>Mechanism identification evidence</h3>
       <p>Author explicit project/source evidence for one exact line/case/canonical scope. The registry supplies mechanism names only; this workspace never selects applicability, assessment unit, disposition, or authority for you.</p>
