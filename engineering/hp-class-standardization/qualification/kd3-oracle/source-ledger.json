@@ -29,10 +29,25 @@
       "fatigueCurveOracle": false
     },
     {
+      "sourceId": "SRC-B313-2024-CONTROLLED",
+      "sourceType": "LICENSED_RESTRICTED_CONTROLLED",
+      "publisher": "ASME",
+      "title": "B31.3 2024 controlled project copy",
+      "receiptRef": "Q1-SRC-B313-2024",
+      "storageClass": "SECURE_STORE",
+      "licenseClass": "LICENSED_RESTRICTED",
+      "status": "PENDING_SECURE_HASH_AND_LOCATOR_RECONCILIATION",
+      "admissibility": "REQUIRED_FOR_B313_CH9_INVOCATION_AND_APPLICABILITY",
+      "formulaOracle": false,
+      "fatigueCurveOracle": false,
+      "publicRepositoryContentAllowed": false
+    },
+    {
       "sourceId": "SRC-VIII3-2025-CONTROLLED",
       "sourceType": "LICENSED_RESTRICTED_CONTROLLED",
       "publisher": "ASME",
       "title": "BPVC VIII.3 2025 controlled project copy",
+      "receiptRef": "Q1-SRC-VIII3-2025",
       "storageClass": "SECURE_STORE",
       "licenseClass": "LICENSED_RESTRICTED",
       "status": "PENDING_SECURE_HASH_AND_LOCATOR_RECONCILIATION",
