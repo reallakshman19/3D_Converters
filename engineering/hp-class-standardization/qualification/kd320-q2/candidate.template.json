@@ -2,6 +2,8 @@
   "_instructions": [
     "Keep licensed ASME source text outside the public repository. Use secure-storage references and exact locators; approved public paraphrases are optional.",
     "Fill both controlled source receipts and all 14 Q1 semantic items. Extractor/verifier and independent checker identities must be distinct after trim/case normalization.",
+    "Q2 must not infer formal Q1 completion from receipts and semantics alone. Populate q1ExitAttestation only after the controlled Q1 evidence ledger has E01-E08 and G0-G1 PASS and a distinct independent checker has attested the exact receipt hashes and semantic bindings.",
+    "Use kd320-q1/formal-exit-attestation.template.json for the redacted public-safe Q1 exit record. Do not place licensed Code text in this candidate.",
     "Both QF022 and QF023 must explicitly cite KD320-SEM-002 through KD320-SEM-013 so the numerical chain retains method-semantic custody.",
     "QF023 must cite both controlled Q1 receipts. QF022 must cite Q1-SRC-VIII3-2025 after direct 2025 sourcing or controlled edition reconciliation.",
     "projectOracle is the independently checked project-style KD-3 case (KD3-QF-023) and must retain Salt -> associated mean stress -> correction parameters -> Seq -> N.",
@@ -62,6 +64,7 @@
     {"semanticId":"KD320-SEM-013","status":"PENDING_CONTROLLED_SOURCE","controlledSourceRef":"Q1-SRC-VIII3-2025","exactSourceLocator":null,"controlledSemanticRef":null,"units":null,"signConvention":null,"selectionRule":null,"interpolationRule":null,"applicabilityRule":null,"extractedBy":null,"extractedAt":null,"independentCheckBy":null,"independentCheckedAt":null},
     {"semanticId":"KD320-SEM-014","status":"PENDING_CONTROLLED_SOURCE","controlledSourceRef":"Q1-SRC-VIII3-2025","exactSourceLocator":null,"controlledSemanticRef":null,"units":null,"signConvention":null,"selectionRule":null,"interpolationRule":null,"applicabilityRule":null,"extractedBy":null,"extractedAt":null,"independentCheckBy":null,"independentCheckedAt":null}
   ],
+  "q1ExitAttestation": null,
   "projectOracle": {
     "benchmarkId": "KD3-QF-023",
     "calculationRef": null,
