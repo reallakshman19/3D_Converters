@@ -148,6 +148,8 @@ export function updateVibrationPulsationDecisionEvidenceRef(store, recordId, fie
 
 export function recordVibrationPulsationDecisionReview(store, recordId, reviewerName, reviewRecordRef) {
   return replaceRecord(store, recordId, (record) => {
+    const projection = buildVibrationPulsationDecisionEvidenceProjection(record);
+    if (!projection.projectEvidenceComplete) throw new Error('PULSATION_DECISION_PROJECT_EVIDENCE_INCOMPLETE');
     const reviewer = text(reviewerName);
     const reviewRef = text(reviewRecordRef);
     if (!reviewer || !reviewRef) throw new Error('PULSATION_DECISION_REVIEWER_AND_RECORD_REQUIRED');
