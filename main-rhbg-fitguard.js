@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260819-vib-pulsation-transient-workbench-1');
+  const module = await import('./core/app.js?v=20260819-vib-t24-t25-evidence-1');
   await module.init(startupMount());
 }
 
