@@ -10,7 +10,7 @@ import {
 } from './vibration-integrity-pulsation-decision-evidence-model.js?v=20260819-vib-t24-t25-evidence-1';
 import {
   addVibrationDynamicWorkItem,
-  createVibrationDynamicWorkItemUiState,
+  createVibrationDynamicWorkItemUiState as createDynamicWorkItemUiState,
   deleteVibrationDynamicWorkItem,
   evaluateVibrationDynamicWorkItem,
   updateVibrationDynamicWorkItemEvidence,
@@ -18,7 +18,12 @@ import {
   updateVibrationDynamicWorkItemValue,
 } from './vibration-integrity-pulsation-transient-model.js?v=20260819-vib-pulsation-transient-workbench-1';
 
-export { createVibrationDynamicWorkItemUiState, createVibrationPulsationDecisionEvidenceUiState };
+export function createVibrationDynamicWorkItemUiState() {
+  return {
+    ...createDynamicWorkItemUiState(),
+    ...createVibrationPulsationDecisionEvidenceUiState(),
+  };
+}
 
 function updateDynamic(state, nextStore, render, audit, action, details = {}, scopeId = null) {
   state.vibrationDynamicWorkItems = nextStore;
