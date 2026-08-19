@@ -232,9 +232,9 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
   });
   blockers.push(...q1Exit.blockers);
   const q1Complete = receiptsComplete && semanticsComplete && q1Exit.ready;
-  const projectReady = candidate.projectOracle
+  const projectReady = (candidate.projectOracle || q1Complete)
     ? projectOracleReady(candidate.projectOracle, blockers) : false;
-  const primaryReady = candidate.publishedOracle
+  const primaryReady = (candidate.publishedOracle || q1Complete)
     ? publishedOracleReady(candidate.publishedOracle, blockers) : false;
 
   let state = 'Q1_CONTROLLED_EVIDENCE_PENDING';
