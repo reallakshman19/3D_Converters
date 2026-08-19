@@ -7,6 +7,7 @@
 - BRANCH: `agent/vibration-verification-kernel-20260819`
 - BASE / MERGE BASE: `main@12f9601b7fe9441f7cf7750da5892c09e5ebab7a`
 - RE_GROUNDED_HEAD: `958737f98e47a5015ded81000f0ef0b5e739c273`
+- LAST_FULL_PR_STATE_OBSERVED_HEAD: `1daa75d3984422a2a665de0a2577488b731a7120`
 - CRITICALITY: ENGINEERING_CRITICAL
 - PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
@@ -110,10 +111,28 @@ independent numerical verification                NOT_APPLICABLE / no numerical 
 
 The 16/16 execution used the exact frozen product/test bytes with narrow reconstructions for pre-existing dependencies. It is supporting evidence, not repository-native suite PASS.
 
+## Last full PR-state reconciliation
+
+Observed at `1daa75d3984422a2a665de0a2577488b731a7120` after the #660 re-ground:
+
+```text
+base / merge base           12f9601b7fe9441f7cf7750da5892c09e5ebab7a
+ahead / behind              3 / 0
+changed files               12 intended / 0 unexplained
+mergeable                   true
+state / draft               open / true
+reviews                     0
+review threads              0
+commit status entries       0 -> NOT_RUN
+PR-triggered workflow runs  0 -> NOT_RUN
+```
+
+Later report/status synchronization commits are recovery-only; product/test blobs remain frozen above.
+
 ## Logical continuation / stop
 
 PR661, PR662 and PR664 are independent foundation PRs. Do not duplicate or stack them into a premature Project-v2/Verify-workspace branch while unmerged.
 
 ## EXACT_NEXT_ACTION
 
-Refresh exact post-report head/main relation and hosted review/status/workflow truth. Then STOP at Owner gate. Do not merge. Repository-native focused + existing measurement/project regressions remain required before a later merge decision.
+STOP at Owner gate. Do not merge. Repository-native focused + existing measurement/project regressions remain required before a later merge decision.
