@@ -1,0 +1,65 @@
+{
+  "schema": "AivProductionFreezeValidation.v1",
+  "sliceId": "PF-02",
+  "issueId": 513,
+  "productionShaBefore": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "candidateShaAfter": null,
+  "browserWorkflowStatus": "NOT_RUN_ENVIRONMENT_BLOCKED",
+  "browserWorkflow": [
+    "Open exact-current-main application in Chromium",
+    "Navigate Engineering Calculations -> Vibration -> VIB.AIV.ACOUSTIC",
+    "Load controlled D.2.3 dataset",
+    "For each PF-02 negative domain edit the authoritative table field through the product UI",
+    "Run Check Readiness and record NOT_READY or METHOD_GAP with field/row/identity context",
+    "Verify Run Screening cannot become enabled for blocked engineering state",
+    "Restore valid data and prove READY_FOR_QUALIFICATION can execute screening",
+    "Separately exercise the registered calculateEngineering API with equivalent invalid canonical inputs and prove it rejects the same executable contract"
+  ],
+  "sourceInspection": {
+    "classification": "SOURCE_INSPECTION_NOT_LIVE_REPRODUCTION",
+    "uiGate": {
+      "path": "tabs/vibration-aiv-screening-gate.js",
+      "blob": "dcde1fadd5b54f17d07e63da4705680dbcf152d4",
+      "finding": "Run Screening requires readiness counts with readyForQualification > 0, notReady=0, methodGap=0, plus current assumption acceptance."
+    },
+    "requestBuilder": {
+      "path": "tabs/vibration-aiv-screening-request.js",
+      "blob": "fd6588f8567fa977d72e75912678201663027cee",
+      "finding": "Workspace request construction requires AivReadinessTableEnvelope.v2 and fails if readiness has NOT_READY or METHOD_GAP blockers."
+    },
+    "registeredAdapter": {
+      "path": "converters/engineering-calculations/adapters/vibration-aiv.js",
+      "blob": "81b6774dc24456ac5c89d983a26593ee34d20ba5",
+      "finding": "validateInput checks only non-empty tables/topology and assumption-profile validity; it does not invoke AIV readiness or verify readiness-equivalent engineering domains."
+    },
+    "currentCalculator": {
+      "path": "converters/vibration/aiv/aiv-calculator.js",
+      "blob": "08f1664f1be6a104fe421655e96a46ca66c6a80c",
+      "finding": "screening mode validates profile/table existence then executes source/relationship calculations without buildAivReadiness or an executable-contract assertion."
+    },
+    "registeredEngine": {
+      "path": "converters/engineering-calculations/engine.js",
+      "blob": "7b37f45cd22789e565ce8c4b1c31d01a263f9c74",
+      "finding": "calculateEngineering resolves inputs, runs adapter custom validation, then calls the adapter calculate implementation. The shared engine has an existing hook sufficient for AIV-specific fail-closed validation; no shared-engine change is currently justified."
+    }
+  },
+  "pr506CandidateEvidence": {
+    "classification": "SALVAGE_SUPPORT_NOT_PRODUCT_AUTHORITY",
+    "head": "b846cbfb765cbc01734154ad837b12d040fe0bf7",
+    "executableContractBlob": "a6de9d2c6bda73370fa5d9889503de4757b95701",
+    "calculatorBlob": "f9785783a155371d7174dfc3ebe326e577abddb6",
+    "finding": "Candidate adds a dedicated executable contract and internal screening readiness scope. It is broader than automatically acceptable and must be replayed only after PF-02 live/current-main reproduction identifies the minimum necessary behavior."
+  },
+  "preFixDisposition": "LIVE_DEFECT_REPRODUCTION_NOT_RUN_SOURCE_PARITY_GAP_IDENTIFIED",
+  "productionFilesChanged": [],
+  "repositoryTestsChanged": [],
+  "frozenExpectedValuesChanged": false,
+  "fullBrowserPassClaimed": false,
+  "knownEnvironmentBlockers": [
+    "Managed Chromium URLBlocklist=['*'] blocks application navigation.",
+    "Current-main Pages run 31881892198 and controlled retry executed no product steps.",
+    "No native private repository checkout is available in this execution environment."
+  ],
+  "exactNextAction": "Obtain exact-current-main real-app Chromium access; execute the PF-02 UI positive/negative matrix and direct registered-API parity experiment. If current main reproduces a bypass, apply only the smallest contract-unification fix and permanent regressions; otherwise record NOT_REPRODUCIBLE_ON_CURRENT_MAIN.",
+  "nextSliceAuthorized": false
+}

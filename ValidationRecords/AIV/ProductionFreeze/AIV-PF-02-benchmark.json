@@ -1,0 +1,44 @@
+{
+  "schema": "AivProductionFreezeBenchmarkLedger.v1",
+  "sliceId": "PF-02",
+  "issueId": 513,
+  "baseSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "testedHead": null,
+  "results": [
+    {"benchmarkId":"B1","status":"NOT_RUN","reason":"PF-02 pre-fix real-application Chromium reproduction is not yet available; no implementation patch exists."},
+    {"benchmarkId":"B2","status":"NOT_RUN","reason":"No PF-02 implementation candidate has been committed."},
+    {"benchmarkId":"B3","status":"NOT_RUN","reason":"No PF-02 implementation candidate has been committed."},
+    {"benchmarkId":"B4","status":"NOT_RUN","reason":"No PF-02 implementation candidate has been committed."},
+    {"benchmarkId":"B5","status":"NOT_RUN","reason":"No PF-02 implementation candidate has been committed."},
+    {"benchmarkId":"B6","status":"NOT_RUN","reason":"No PF-02 implementation candidate has been committed."},
+    {"benchmarkId":"B7","status":"NOT_RUN","reason":"PF-02 owns readiness/calculator parity; execute after live reproduction and minimal fix."},
+    {"benchmarkId":"B8","status":"NOT_RUN","reason":"Later grouping semantics remain frozen and must not regress."},
+    {"benchmarkId":"B9","status":"NOT_RUN","reason":"Master provenance custody remains frozen and must not regress."},
+    {"benchmarkId":"B10","status":"NOT_RUN","reason":"Assumption custody remains frozen and must not regress."},
+    {"benchmarkId":"B11","status":"NOT_RUN","reason":"Round-trip custody remains frozen and must not regress."},
+    {"benchmarkId":"B12","status":"NOT_RUN","reason":"Async custody remains frozen and must not regress."},
+    {"benchmarkId":"B13","status":"NOT_RUN","reason":"Degraded-canvas behavior remains frozen and must not regress."},
+    {"benchmarkId":"B14","status":"NOT_RUN","reason":"Real-browser performance observations unavailable in current environment."}
+  ],
+  "pf02RequiredParityMatrix": [
+    {"domain":"pressure ordering","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"absolute pressure positivity","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"temperature domain","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"unsupported units","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"gauge reference evidence","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"sonic state unresolved/invalid","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"trim state/reduction/provenance","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"required assessment geometry","uiExpected":"NOT_READY_OR_METHOD_GAP","registeredApiExpected":"REJECT"},
+    {"domain":"physical distance evidence","uiExpected":"NOT_READY","registeredApiExpected":"REJECT"},
+    {"domain":"unsupported assessment method envelope","uiExpected":"METHOD_GAP","registeredApiExpected":"REJECT"},
+    {"domain":"valid controlled D2.3","uiExpected":"READY_FOR_QUALIFICATION_AND_EXECUTABLE","registeredApiExpected":"EXECUTE_WITH_ASSESSMENT_SCREENING_AUTHORITY"}
+  ],
+  "frozenOracles": [
+    {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"unit":"dB","absoluteTolerance":1e-10},
+    {"id":"D23_RELIEF_POINT_PWL","expected":164.3734876408508,"unit":"dB","absoluteTolerance":1e-10},
+    {"id":"MULTI_SOURCE_EQUAL","expected":163.0102999566398,"unit":"dB","absoluteTolerance":1e-9},
+    {"id":"MULTI_SOURCE_ASYM","expected":160.41392685158226,"unit":"dB","absoluteTolerance":1e-9}
+  ],
+  "oracleRule": "Expected values/tolerances are immutable during PF-02. A parity fix that changes a frozen engineering result stops the slice as BLOCKED_BENCHMARK_REGRESSION.",
+  "disposition": "PF02_BASELINE_ONLY_ALL_EXECUTION_NOT_RUN"
+}
