@@ -8,7 +8,7 @@
 - BASE: `main@12f9601b7fe9441f7cf7750da5892c09e5ebab7a`
 - PREDECESSOR: PR660 merged by squash at the base SHA.
 - CRITICALITY: ENGINEERING_CRITICAL
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - BACKUP: `backup/hp-kd320-q2-semantic-custody-pre-edit-20260819`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR663
 - PRODUCTION_KERNEL_CHANGED: NO
@@ -63,7 +63,7 @@ Production remains `USER_CALCULATED_KD3`.
 
 No KD320 formula, fatigue-curve point, licensed ASME text, Q1 receipt promotion, controlled semantic content, product UI, workflow file, or production numerical kernel is added.
 
-## Changed-file ledger
+## Changed-file ledger — 14 intended files
 
 Qualification contract/docs:
 
@@ -93,7 +93,10 @@ Recovery:
 | Check | Result |
 |---|---|
 | Live-base grounding | PASS — GitHub reference `12f9601...` |
-| Branch relation before PR allocation | PASS — 11 ahead / 0 behind |
+| Exact pre-recovery head | `4cca2df72c12e916370df0b3d68213de7f6828ae` |
+| Branch relation at pre-recovery head | PASS — 14 ahead / 0 behind |
+| Changed-file reconciliation | PASS — 14 / 14 intended |
+| GitHub mergeability | PASS — `mergeable=true` |
 | `intake.js` syntax | PASS — LOCAL_EXECUTION |
 | `csv-intake.js` syntax | PASS — LOCAL_EXECUTION |
 | Focused semantic-custody harness | PASS — 9 assertion groups / IMPLEMENTATION_COUPLED |
@@ -103,12 +106,15 @@ Recovery:
 | QF022 missing VIII3 receipt | PASS — fail closed |
 | correction param with SEM014 | PASS — fail closed |
 | project/published CSV focused paths | PASS — required refs retained |
+| Commit status entries | 0 returned — NOT_RUN, not PASS |
+| PR-triggered workflow runs | 0 returned — NOT_RUN, not PASS |
+| Reviews / review threads | 0 / 0 |
 | Full committed tests | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Full repository-native suite | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Served browser | NOT_RUN / NO_UI_CHANGE |
 | Independent KD320 engineering qualification | NOT_RUN / REAL_Q1_Q2_EVIDENCE_PENDING |
 
-No unexecuted check is represented as PASS.
+No unexecuted check is represented as PASS. The exact final branch head after this recovery-only update is recorded in the PR body/GitHub state rather than self-referentially rewriting this file again.
 
 ## Contract-version decision
 
@@ -138,4 +144,4 @@ QF023 full independent project numerical chain + custody
 
 ## EXACT_NEXT_ACTION
 
-Refresh exact PR663 head, live main, ahead/behind, changed files, mergeability, commit statuses, PR workflow runs, reviews and review threads. Update this record if needed. Leave PR663 draft and unmerged until explicit owner authorization for PR663.
+Leave PR663 draft and unmerged. On any later merge request, re-ground live main and PR663, verify the 14-file scope and authority boundary, refresh status/workflow/review truth, and require explicit owner merge authorization for PR663.
