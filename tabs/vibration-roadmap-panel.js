@@ -1,5 +1,9 @@
 import { buildVibrationRoadmapWorkflowPresentation } from './vibration-roadmap-workflow-view.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
+import {
+  formatVibrationRoadmapScopeChoiceLabel,
+  isGovernedVibrationRoadmapScopeChoices,
+} from './vibration-roadmap-scope-selection.js';
 
 const STATUS_LABELS = Object.freeze({
   AVAILABLE: 'Available',
@@ -105,6 +109,16 @@ function governedSelectedAssessment(context) {
   return valid ? status : null;
 }
 
+function assessmentScopeSelector(context) {
+  const scopes = context?.selectedAssessment?.scopeChoices;
+  if (!isGovernedVibrationRoadmapScopeChoices(scopes) || scopes.choices.length < 2) return '';
+  const options = scopes.choices.map((choice) => {
+    const label = formatVibrationRoadmapScopeChoiceLabel(choice);
+    return `<option value="${esc(choice.rowKey)}" ${choice.rowKey === scopes.selectedRowKey ? 'selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+  return `<label>Assessment scope<select data-roadmap-assessment-select>${options}</select></label>`;
+}
+
 function selectedAssessmentAction(status) {
   const route = resolveVibrationCaseActionWorkspace(status.nextActionCode);
   if (!route) return '<small>No central workspace route is registered for this case action.</small>';
@@ -118,7 +132,7 @@ function renderSelectedAssessment(context) {
   const caseLabel = scope.caseId || 'No case ID';
   const action = ASSESSMENT_ACTION_LABELS[status.nextActionCode] ?? status.nextActionCode;
   const evidence = `EI ${status.completeness?.state ?? 'UNKNOWN'} · Screening ${status.screeningEvidence?.state ?? 'NONE'}`;
-  return `<section class="vibration-roadmap-assessment" data-line-case-workflow-state="${esc(status.state)}"><small class="vibration-roadmap-eyebrow">Selected assessment</small><strong>${esc(scope.line)} · ${esc(caseLabel)}</strong><span class="vibration-roadmap-assessment-id">${esc(scope.canonicalId)}</span><span class="vibration-roadmap-focus-status">${esc(status.state)}</span><small class="vibration-roadmap-eyebrow">Case next action</small><span>${esc(action)}</span>${selectedAssessmentAction(status)}<small>${esc(evidence)}</small><small>Exact register scope · project mapping not asserted · workflow projection only</small></section>`;
+  return `<section class="vibration-roadmap-assessment" data-line-case-workflow-state="${esc(status.state)}"><small class="vibration-roadmap-eyebrow">Selected assessment</small><strong>${esc(scope.line)} · ${esc(caseLabel)}</strong><span class="vibration-roadmap-assessment-id">${esc(scope.canonicalId)}</span>${assessmentScopeSelector(context)}<span class="vibration-roadmap-focus-status">${esc(status.state)}</span><small class="vibration-roadmap-eyebrow">Case next action</small><span>${esc(action)}</span>${selectedAssessmentAction(status)}<small>${esc(evidence)}</small><small>Exact register scope · project mapping not asserted · workflow projection only</small></section>`;
 }
 
 function renderNextAttention(workflow) {
