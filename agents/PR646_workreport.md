@@ -225,21 +225,31 @@ automatic type classification   false
 
 ## Validation truth
 
+Hosted validation was inspected on recovery head:
+
+```text
+7f574c9140d6d6c963b93dc1b4383c8905df193f
+```
+
 ```text
 live main/source grounding             PASS / GITHUB_SOURCE
 branch relation / file reconciliation  PASS / GITHUB_COMPARE
 numerical/master/curve isolation       PASS / DIFF_INSPECTION
 workflow isolation                     PASS / DIFF_INSPECTION
 new-module line limits                 PASS / GITHUB_DIFF_STATS
+GitHub mergeable                       true
+commit statuses                        0 returned -> NOT_RUN
+PR workflow runs                       0 returned -> NOT_RUN
+review submissions                     0
+review threads                         0
 native backup CLI                      NOT_RUN / ENVIRONMENT_BLOCKED
 repository-native focused Node tests   NOT_RUN / ENVIRONMENT_BLOCKED
 full repository vibration suites       NOT_RUN / ENVIRONMENT_BLOCKED
 served browser SBC journey             NOT_RUN / ENVIRONMENT_BLOCKED
-hosted exact-head checks               TO_BE_RECONCILED_AFTER_RECOVERY_METADATA
 independent engineering review         NOT_RUN
 ```
 
-No source inspection or historical test evidence is converted into runtime/browser PASS.
+No source inspection, empty hosted execution or historical test evidence is converted into runtime/browser PASS.
 
 ## Exact next action
 
