@@ -1,0 +1,42 @@
+schema: AgentClaim.v1
+pr: 653
+claim_state: ACTIVE
+branch: agent/vib-t24-t25-source-qualification-20260819
+claim_modes:
+  - EXCLUSIVE
+  - OBSERVE_ONLY
+files:
+  exact:
+    - ValidationRecords/VibrationMasters/t24-t25-source-qualification-blocked-v1.json
+    - docs/vibration/T24-T25-Controlled-Source-Reconciliation-v1.md
+    - tests/vibration-t24-t25-source-contract.test.mjs
+    - agents/PR653_workreport.md
+    - agents/status/PR653.yaml
+    - agents/claims/PR653.yaml
+    - agents/WIP-vib-t24-t25-source-qualification_workreport.md
+    - agents/status/WIP-vib-t24-t25-source-qualification.yaml
+    - agents/claims/WIP-vib-t24-t25-source-qualification.yaml
+authority_domains:
+  - T24_CONTROLLED_SOURCE_QUALIFICATION
+  - T25_CONTROLLED_SOURCE_QUALIFICATION
+  - SECONDARY_SYNTHESIS_QUARANTINE
+observe_only:
+  - docs/Masters/Vibration/source-register.json
+  - converters/vibration/source/registry.js
+  - converters/vibration/mechanisms/registry.js
+exclusions:
+  - PRODUCTION_RULE_MASTERS
+  - PRODUCTION_CALCULATORS
+  - VIBRATION_MECHANISM_MATRIX
+  - EI_MAINLINE_AGGREGATION
+  - SCREENING_OR_DESIGN_AUTHORITY
+  - SOURCE_REGISTER_STATE_PROMOTION
+  - .github/workflows/*
+coordination:
+  issue652: HARD_MISSION_PARENT
+  issue450: HARD_SOURCE_PARENT
+  issue429: HARD_PROGRAMME_PARENT
+  PR649: INDEPENDENT_FOLLOW_ON
+main_head_last_checked: 95ee50ff78d81465f3e4968f62767d866f8b9da8
+report_basis_head: 6d9858dbe2191491b2b094a7001539910a34be6c
+last_verified_head: 6d9858dbe2191491b2b094a7001539910a34be6c
