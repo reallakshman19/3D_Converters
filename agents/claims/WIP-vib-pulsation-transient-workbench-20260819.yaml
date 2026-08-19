@@ -8,10 +8,21 @@ claim_modes:
 files:
   exact:
     - tabs/vibration-integrity-pulsation-transient-model.js
+    - tabs/vibration-integrity-pulsation-transient-controller.js
     - tabs/vibration-integrity-pulsation-transient-view.js
     - tabs/vibration-integrity-ui-contract.js
     - tabs/vibration-integrity-user-data-shell.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/engineering-calculations-tab.js
+    - tabs/engineering-workspace-tab.js
+    - core/engineering-tabs-extension.js
+    - core/app.js
+    - main-rhbg-fitguard.js
+    - index.html
     - tests/vibration-pulsation-transient-workbench.test.mjs
+    - tests/vibration-pulsation-transient-cache-chain.test.mjs
+    - tests/vibration-sbc-full-workspace-cache-chain.test.mjs
+    - tests/vibration-sbc-type3-runtime-cache-chain.test.mjs
   prefixes:
     - agents/WIP-vib-pulsation-transient-workbench-20260819
     - agents/status/WIP-vib-pulsation-transient-workbench-20260819
@@ -20,6 +31,7 @@ authority_domains:
   - DEADLEG_T26_BENCHMARK_ONLY_WORK_ITEM_PRESENTATION
   - T28_DRY_GAS_BENCHMARK_ONLY_WORK_ITEM_PRESENTATION
   - VIBRATION_WORK_ITEM_CURRENTNESS
+  - VIBRATION_SHARED_UI_CACHE_CUSTODY
 exclusions:
   - DEADLEG_NUMERICAL_KERNEL
   - T28_DRY_GAS_NUMERICAL_KERNEL
@@ -28,10 +40,11 @@ exclusions:
   - T29
   - T4
   - EI_MAINLINE_AGGREGATION
+  - VIBRATION_MECHANISM_MATRIX
   - SCREENING_OR_DESIGN_AUTHORITY
   - .github/workflows/*
 coordination:
   PR471: SAFE_BY_EXCLUDING_LIQUID_MULTIPHASE_SOURCE_AND_PRODUCTION_PATH
   issue429: HARD_PROGRAMME_PARENT
   issue450: HARD_SOURCE_QUALIFICATION_PARENT
-last_verified_head: ba0dc785a27822b567fb96d4eb6167798e00dfaa
+last_verified_head: 7e03b262e30079f3f71b7f893bbf603926749bca
