@@ -8,7 +8,7 @@
 - BASE: `main@e67b5790a8c6f63ff1fc33edd848facfdc90537a`
 - PREDECESSOR: PR663 merged at base SHA.
 - CRITICALITY: ENGINEERING_CRITICAL
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - BACKUP: `backup/hp-kd320-q1-formal-exit-pre-edit-20260819`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR666
 - PRODUCTION_KERNEL_CHANGED: NO
@@ -19,7 +19,7 @@
 
 PR666 closes a real qualification-boundary bypass. Formal Q1 already requires verified source custody, all 14 independently checked semantics, E01-E08 PASS and G0/G1 PASS. Q2 previously reduced this to receipts + semantics only.
 
-The new redacted Q1 exit attestation is required before Q2 can set `q1Complete=true` and is cryptographically bound by SHA-256 references to the controlled evidence ledger/audit report plus the exact candidate receipt hashes and semantic source/locator/opaque-ref records.
+The new redacted Q1 exit attestation is required before Q2 can set `q1Complete=true` and is bound by SHA-256 references to the controlled evidence ledger/audit report plus the exact candidate receipt hashes and semantic source/locator/opaque-ref records.
 
 ```text
 old: q1Complete = receiptsComplete && semanticsComplete
@@ -33,7 +33,7 @@ SEM001      -> Q1-SRC-B313-2024
 SEM002-014  -> Q1-SRC-VIII3-2025
 ```
 
-PR666 also repairs the stale post-PR663 candidate fixture and restores explicit missing-oracle blockers after formal Q1 completion.
+PR666 also repairs the stale post-PR663 candidate fixture and restores explicit missing-oracle blockers after formal Q1 completion. Malformed Q1 exit schema/record/authority/duplicate-set defects propagate as structural Q2 failures; incomplete evidence remains a normal pending state.
 
 ## Authority boundary
 
@@ -48,7 +48,7 @@ automaticPromotionAllowed    false
 
 No Code equation, fatigue-curve data, licensed source text, native arithmetic, product UI, workflow or release promotion is added.
 
-## Changed-file ledger at PR allocation
+## Final changed-file ledger — 16 intended paths
 
 Qualification implementation/docs:
 
@@ -66,20 +66,23 @@ Tests:
 9. `tests/b313-chapter-ix-kd320-q2-candidate.test.mjs`
 10. `tests/b313-chapter-ix-kd320-q2-template-contract.test.mjs`
 
-WIP recovery history:
+Recovery:
 
 11. `agents/WIP-hp-kd320-q1-formal-exit_workreport.md`
 12. `agents/status/WIP-hp-kd320-q1-formal-exit.yaml`
 13. `agents/claims/WIP-hp-kd320-q1-formal-exit.yaml`
-
-PR-numbered recovery files are added after allocation and therefore increase the final changed-file count by three.
+14. `agents/PR666_workreport.md`
+15. `agents/status/PR666.yaml`
+16. `agents/claims/PR666.yaml`
 
 ## Validation ledger
 
 ```text
-allocation base                       e67b5790a8c6f63ff1fc33edd848facfdc90537a
-allocation relation                   ahead 17 / behind 0
-allocation changed files              13
+base main                              e67b5790a8c6f63ff1fc33edd848facfdc90537a
+head before final recovery sync        4bd1b0a20a82fe8ed0f8258d8b3f262f97037149
+relation at final engineering check    ahead 20 / behind 0
+changed files                          16 / 16 intended
+GitHub mergeable                       true
 formal-exit.js                         160 lines
 q2/intake.js                           279 lines
 formal-exit.js syntax                  PASS / LOCAL_EXECUTION
@@ -96,12 +99,15 @@ attestation authority promotion        PASS / blocked
 QF022/QF023 custody                    PASS
 missing oracle after formal Q1         PASS / explicit blocker
 same candidate through file verifier   PASS
+commit status entries                  0 -> NOT_RUN, not PASS
+PR-triggered workflow runs             0 -> NOT_RUN, not PASS
+reviews / review threads               0 / 0
 full repository-native suite           NOT_RUN / ENVIRONMENT_BLOCKED
 served browser                         NOT_RUN / NO_UI_CHANGE
 independent KD320 qualification        NOT_RUN / REAL_CONTROLLED_EVIDENCE_PENDING
 ```
 
-Focused execution used exact committed module/test bytes; Git blob identities were compared between the executed local files and GitHub. The container still cannot resolve `github.com` for a native checkout.
+Focused execution used exact committed module/test bytes; Git blob identities were compared between the executed local files and GitHub. The container still cannot resolve `github.com` for a native checkout. Final recovery-only commits after the engineering check do not alter the 16-file scope or engineering implementation.
 
 ## Real remaining engineering blocker
 
@@ -133,4 +139,4 @@ Only after formal Q1 exit may Q2 admit QF022/QF023. Native KD320 remains non-aut
 
 ## EXACT_NEXT_ACTION
 
-Reconcile final PR head/main relation, changed files, mergeability, statuses, PR workflow runs, reviews and review threads. Update this report/status and PR body to exact final truth. Leave draft and unmerged until explicit owner authorization for PR666.
+Leave PR666 draft and unmerged. Before any merge decision, re-ground live main/head, verify the same 16-file scope, refresh status/workflow/review truth, and obtain explicit owner authorization for PR666. After merge, the next engineering work is real controlled Q1 evidence population/review, not native KD320 arithmetic.
