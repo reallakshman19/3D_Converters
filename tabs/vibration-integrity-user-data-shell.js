@@ -18,8 +18,8 @@ import {
   createVibrationDynamicWorkItemUiState,
   handleVibrationDynamicWorkItemChange,
   handleVibrationDynamicWorkItemClick,
-} from './vibration-integrity-pulsation-transient-controller.js?v=20260819-vib-pulsation-transient-workbench-1';
-import { renderVibrationPulsationTransientWorkspace } from './vibration-integrity-pulsation-transient-view.js?v=20260819-vib-pulsation-transient-workbench-1';
+} from './vibration-integrity-pulsation-transient-controller.js?v=20260819-vib-t24-t25-evidence-1';
+import { renderVibrationPulsationTransientWorkspace } from './vibration-integrity-pulsation-transient-view.js?v=20260819-vib-t24-t25-evidence-1';
 import {
   createSbcConnectionAuthoringUiState,
   retargetSbcConnectionAuthoringRecord,
