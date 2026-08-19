@@ -23,97 +23,86 @@ Type-3 source neighbor #514 / PR546
 
 ## Handover in 60 seconds
 
-PR646 added a truthful Type 1–4 SBC workspace but currently exposes only `scopeId` + explicit type selection as editable full-vertical state. Required structural fields are displayed as strings; users cannot author/retain a governed `SBC_CONNECTION` input object for Types 1, 2 or 4. Type 3 still has its older bespoke candidate panel.
+PR646 added a truthful Type 1–4 SBC workspace, but only scope + explicit Type were editable for the full vertical. This follow-on adds a governed project-input authoring record for Types 1, 2 and 4, maps exactly to existing `SbcTypeInputContract.v1` field paths, binds values to explicit project evidence references and existing `SBC-UNIT-*` semantic traces, and validates through `validateSbcTypeInputStructure()`.
 
-This work adds a project-input authoring model and UI that maps exactly onto the existing `SbcTypeInputContract.v1` paths, validates through `validateSbcTypeInputStructure()`, attaches existing `SBC-UNIT-*` semantic/provenance records, and remains non-numerical / non-authoritative.
+Type 3 deliberately keeps the existing candidate-input path. The generic editor must not create a second Type-3 engineering-input authority while #546 continues source reconciliation.
 
-Do not implement equations, B1 expected values, B2 expected values, T3 curves, hidden defaults, automatic type classification, main-line authority promotion, lifecycle promotion, or design/screening authority.
+Do not implement equations, B1/B2 expected values, T3 curves, hidden defaults, automatic Type inference, lifecycle promotion, screening/design authority, or main-line authority promotion.
 
 ## Grounding epoch GE-001
-
-Observed 2026-08-19:
 
 ```text
 main                    0a16ce60d515f38151911e673860c24d341c035e
 parent PR               #646 OPEN DRAFT mergeable=true
 parent head             706b692581326803a091fe6418c0a2bdf1d627f0
-parent base             main@0a16ce60d515f38151911e673860c24d341c035e
 parent hosted statuses  0 -> NOT_RUN
 parent PR workflow runs 0 -> NOT_RUN
 parent reviews/threads  0 / 0
 ```
 
-Repository `agents/MASTER_INDEX.md` is absent on current main. Coordination therefore uses live open PRs plus per-PR claims.
+`agents/MASTER_INDEX.md` is absent on current main. Live SBC coordination:
 
-Relevant live SBC work:
+- PR646: HARD_DEPENDENCY / coordinated shared workspace + cache files.
+- PR546: SAFE for this slice; Type-3 source/master/candidate input custody excluded.
+- PR480/483: older source/master framework drafts; no numerical master publication here.
 
-- PR646: parent workspace/UI/cache claim; this WIP is a stacked FOLLOW_ON and may edit parent workspace integration files.
-- PR546: Type-3 production-freeze/source reconciliation; no planned exact-file overlap and its curve/source authority is excluded.
-- PR480/483: older source/master framework drafts; no planned exact-file overlap; no numerical master publication in this WIP.
+## Current diagnosis and falsifier
 
-Overlap classification: `COORDINATION_REQUIRED_WITH_PARENT_PR646` by dependency, `SAFE` against PR546 exact files/authority because Type-3 source/master paths are excluded.
+Parent workspace displayed required paths but could not author a structured `SBC_CONNECTION` record for Type 1/2/4, retain it by exact scope, attach project evidence references, or drive the existing structural validator.
 
-## Current defect / falsifier
-
-Current PR646 workspace can display the required fields for all four types, but only state fields are:
-
-```text
-sbcWorkspaceType
-sbcWorkspaceScopeId
-```
-
-Falsifier:
-
-```text
-open SBC connections -> select TYPE_1 / TYPE_2 / TYPE_4
-=> required field paths are visible
-=> there is no editable structured connection object
-=> no per-field provenance/semantic guidance is bound to entered values
-=> validateSbcTypeInputStructure() is not driven from UI-authored full-vertical data
-```
-
-## Approved implementation boundary
-
-Preferred files:
-
-```text
-NEW  tabs/vibration-integrity-sbc-connection-model.js
-NEW  tabs/vibration-integrity-sbc-connection-view.js
-EDIT tabs/vibration-integrity-sbc-workspace-model.js
-EDIT tabs/vibration-integrity-sbc-workspace-view.js
-EDIT tabs/vibration-integrity-user-data-shell.js
-ADD  tests/vibration-sbc-connection-authoring.test.mjs
-ADD/EDIT cache-chain regression only where changed live UI modules require it
-```
-
-No SBC numerical kernel/master/source document/workflow changes.
+Falsifier for this bounded slice: if making Type 1/2/4 editable requires equations, table/curve values, automatic Type inference, lifecycle changes or benchmark expected values, stop. None are required for the current implementation.
 
 ## Appendix A — implementation authorization
 
-### A1 Production Trace — 19/20
-
-Trace is:
-
 ```text
-UI state
--> proposed project-input SbcConnectionAuthoring record
--> existing getSbcTypeInputContract(type)
--> existing SBC_INPUT_SEMANTIC_TRACE_RECORDS
--> existing validateSbcTypeInputStructure(type, input)
--> workspace completeness/readiness projection
+A1 Production Trace              19/20
+A2 Current Failure Isolation     19/20
+A3 Authority / Invariant         20/20
+A4 Independent Validation        18/20
+A5 Next-Commit / Minimal Patch   19/20
+TOTAL                            95/100
+DISPOSITION                      QUALIFIED_FOR_BOUNDED_SBC_CONNECTION_AUTHORING
 ```
 
-Numerical execution remains downstream and blocked. The authoring UI cannot become calculation authority.
+## Phase A — authoring model — COMPLETE
 
-### A2 Current Failure Isolation — 19/20
+Commit:
 
-The first wrong boundary is presentation/project-input authoring: PR646 exposes contract paths but has no generic Type 1–4 editor or structured retained object. This is not a kernel/source defect. Type-3 bespoke candidate state must remain isolated from the new generic record.
+```text
+0099d18bf49d2559975f6b05cb22a9f5abfd1412
+```
 
-Prediction: adding a pure authoring model + UI and calling the existing structural validator will make Type 1/2/4 structurally editable without changing any `executionAllowed`, lifecycle or numerical result.
+Added `tabs/vibration-integrity-sbc-connection-model.js`:
 
-Falsifier: if implementation requires an equation, curve/table value, automatic Type inference, or lifecycle change, stop; scope is invalid.
+- immutable store keyed by exact SBC scope;
+- exact contract-path values + project evidence references;
+- explicit parsing for text, enum, boolean, positive number/integer and explicit lists;
+- no inferred/default values;
+- Type retarget keeps common required fields and drops hidden old Type-specific fields;
+- existing `SBC-UNIT-*` semantic trace attached by field path;
+- nested structural input is built only from explicit valid values;
+- governed `validateSbcTypeInputStructure()` remains the structural rules authority;
+- project-evidence completeness remains separate from method qualification;
+- every projection retains `qualificationEstablished=false` and `numericalExecutionAllowed=false`.
 
-### A3 Authority / Invariant — 20/20
+## Phase B — authoring view module — IMPLEMENTED / INTEGRATION NEXT
+
+Commit:
+
+```text
+50d4878f412f82b09f51c662be810789d1a98b34
+```
+
+Added `tabs/vibration-integrity-sbc-connection-view.js`:
+
+- editable Type 1/2/4 contract fields;
+- controlled semantic reference + native unit display;
+- explicit project evidence reference per field;
+- structural/evidence status and exact gaps/contradictions;
+- disabled numerical execution control;
+- Type-3 panel explicitly says `NO SECOND INPUT AUTHORITY` and routes users to the existing candidate panel instead of duplicating its physical inputs.
+
+## Protected engineering boundary
 
 ```text
 SBC lifecycle                      RESERVED
@@ -126,49 +115,69 @@ automatic classification           false
 numerical execution                false
 FIT-only main-line source           rejected
 Type-3 curves                       BLOCKED_SOURCE_DATA_CONFLICT
+Type-3 candidate input custody      EXISTING PATH ONLY
 ```
 
-Changing a project input must invalidate only incompatible SBC authoring/readiness presentation; it must not mutate Type-3 source/master authority.
+## Existing-file rollback custody before Phase B integration
 
-### A4 Independent Validation — 18/20
+Native repository backup CLI is unavailable. Exact Git blobs on the stacked branch before edits:
 
-Focused tests will use hand-authored Type 1/2/4 structural vectors independent of UI HTML to verify:
+```text
+tabs/vibration-integrity-sbc-workspace-view.js        713710fa071711120246c28e63f0417658dc3599
+tabs/vibration-integrity-user-data-shell.js           73b66e452241ce40cce712b1542f69f771a8db0c
+index.html                                            388668902abad55e8d38d3798d30887fddd620f2
+main-rhbg-fitguard.js                                 9df44514b214053e0f1a924b3c16dcc37b738aa8
+core/app.js                                           b63b35490866bc9403a850a9f7abeaa0021066b5
+core/engineering-tabs-extension.js                    01d789e8103989058215d08496ff68a5574f3896
+tabs/engineering-workspace-tab.js                     4c94760f8147cc9f40620a195cd804eae96bac8a
+tabs/engineering-calculations-tab.js                  ee43b6631c91f3ecf86c4f06d35e9c7f43a03db9
+tabs/vibration-integrity-tab.js                       59555e0daf68bfcca540c8f734101cdc91f28d39
+tests/vibration-sbc-full-workspace-cache-chain.test.mjs 718be9846919c068197204841c93610608a5d080
+tests/vibration-sbc-type3-runtime-cache-chain.test.mjs   6da19827f0d3b4e06f9a8b7da17063124c364dff
+```
 
-- exact contract-path mapping;
-- missing/invalid structural evidence fails closed;
-- FIT-only main-line evidence is rejected;
-- Type topology contradictions are surfaced;
-- no default fills missing engineering fields;
-- semantic provenance resolves from existing `SBC-UNIT-*` records;
-- rendering shows completeness/errors and never enables numerical execution.
+These immutable Git blobs are rollback evidence only, not native backup PASS.
 
-These are contract/regression checks, not B1/B2 engineering qualification. B1/B2 remain separate gates.
+## Cache custody plan
 
-### A5 Next-Commit / Minimal Patch — 19/20
+Changed live authoring UI will use:
 
-Implement one generic authoring record keyed by exact SBC scope, with nested-path update helpers and a form projection derived from the selected type contract. Integrate it into the existing PR646 workspace instead of creating four calculators or four divergent state models. Preserve Type-3 bespoke candidate UI below the generic evidence panel.
+```text
+20260819-sbc-connection-authoring-1
+```
 
-**TOTAL = 95/100 — QUALIFIED_FOR_BOUNDED_SBC_CONNECTION_AUTHORING**
-
-## Phase plan
-
-1. `PHASE-AUTHORING-MODEL`: generic scope/type structural evidence model + validation projection.
-2. `PHASE-AUTHORING-UI`: editable Type 1–4 fields, semantic/provenance guidance, completeness banner; Type 3 candidate remains separate.
-3. `PHASE-REGRESSION-CACHE`: focused tests + live module cache identity propagation if required.
-4. `PHASE-QUALIFICATION-READINESS`: inspect D5/D6/D8/B2 evidence. Numerical implementation proceeds only if source/benchmark gates are genuinely satisfied; otherwise record hard stop without inventing data.
-5. reconcile, allocate stacked draft PR, migrate WIP recovery files.
+Propagate this new UI identity from startup through `vibration-integrity-user-data-shell.js`, and use it for the SBC workspace/connection UI modules. Unchanged Type-3 numerical/currentness descendants must retain `20260815-sbc-pf05-cache-1`; AIV remains on its existing release identity.
 
 ## Validation ledger
 
 ```text
 live main/PR/source grounding        PASS / SOURCE_INSPECTION
 Appendix A                           PASS 95/100 / EVIDENCE_REVIEW
+authoring model source               IMPLEMENTED
+connection view source               IMPLEMENTED
 native backup CLI                    NOT_RUN / ENVIRONMENT_BLOCKED
+native git remote probe              NOT_RUN / ENVIRONMENT_BLOCKED / DNS github.com
 repository-native tests              NOT_RUN
 served browser                       NOT_RUN
 independent SBC engineering review   NOT_RUN
 ```
 
+## Phase 4 qualification reality already grounded
+
+Current controlled method/PDF/benchmark artifacts remain insufficient for Type 1/2/4 numerics:
+
+```text
+controlled PDF page review           NOT_RUN / ENVIRONMENT_BLOCKED
+Flowchart T3-1 reconciliation        NOT_ESTABLISHED
+numerical unit policy                NOT_FROZEN
+independent engineering review       NOT_ESTABLISHED
+B1 expected values Type1/2/4         NOT_FROZEN / ABSENT
+B2 Type1/2/4                         MISSING_INDEPENDENT_ENGINEERING_EVIDENCE
+SBC-EQ / TBL / CONST / ASS traces    UNPOPULATED
+```
+
+Therefore this WIP may improve structural/evidence readiness but may not create Type 1/2/4 numerical kernels or expected benchmark values from repository transcriptions.
+
 ## Exact next action
 
-Implement `tabs/vibration-integrity-sbc-connection-model.js` using only existing input contracts, classification contracts, and input semantic trace records; then checkpoint before UI integration.
+Wire the new authoring panel/store into the PR646 shell/workspace, propagate `20260819-sbc-connection-authoring-1` through the changed live browser module chain, then add focused authoring/cache regressions.
