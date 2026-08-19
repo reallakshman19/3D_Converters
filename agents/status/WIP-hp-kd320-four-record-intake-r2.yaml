@@ -5,8 +5,8 @@ base: main
 base_sha: 989b24f361ad287a0c0f25f267a118338bf2ed7a
 criticality: ENGINEERING_CRITICAL
 intent: IMPLEMENT
-state: IMPLEMENTING
-coordination: SAFE
+state: READY_FOR_DRAFT_PR
+coordination: COORDINATION_REQUIRED_PR649_NON_OVERLAPPING_HUNK
 authority:
   native_core_kd3_qualified: false
   code_compliance: false
@@ -14,7 +14,14 @@ authority:
   production_kernel_allowed: false
   automatic_promotion_allowed: false
 validation:
-  focused_tests: NOT_RUN
+  js_syntax: PASS_LOCAL_EXECUTION
+  focused_transport_harness: PASS_16_OF_16_LOCAL_EXECUTION_IMPLEMENTATION_COUPLED
+  full_repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN
-  hosted_ci: NOT_RUN
-exact_next_action: implement four-record CSV facade and focused regression tests
+  hosted_ci: NOT_RUN_PRE_PR
+coordination_detail:
+  pr: 649
+  shared_file: tabs/engineering-workspace-tab.js
+  classification: NON_OVERLAPPING_CACHE_HUNKS_AUTHORITY_INDEPENDENT
+  required_before_second_merge: reground_and_preserve_both_cache_identities
+exact_next_action: create draft PR and allocate PR-numbered recovery artifacts
