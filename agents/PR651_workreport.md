@@ -7,10 +7,11 @@
 - WORK_INTENT: IMPLEMENT
 - CRITICALITY: ENGINEERING_CRITICAL
 - MUTATION_AUTHORITY: WRITE_ALLOWED
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - BRANCH: `agent/hp-kd320-q1-semantic-intake`
 - BASE: `main@6c3109935eb2d30652eab441080464777091b1bb`
 - PR_ALLOCATION_HEAD: `fe29e1d273ededdd573bdaf4aca4934a9398db21`
+- LAST_RECONCILED_HEAD_BEFORE_REPORT_REFRESH: `56b6ca90acd5e30abff42edab18e79c860df4376`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - PREDECESSOR: PR650 merged as `6c3109935eb2d30652eab441080464777091b1bb`
 - COORDINATION: PR649 touches the same workspace file for a different cache line and is currently non-mergeable after PR650 drift.
@@ -84,7 +85,11 @@ Cache identity: `20260819-kd320-q1-semantic-intake-1`.
 | UI contract | PASS | SOURCE_INSPECTION | NONE | four modes preserved; sub-package added |
 | Full repository-native tests | NOT_RUN | NOT_OBSERVED | NONE | clone blocked by github.com DNS |
 | Browser acceptance | NOT_RUN | NOT_OBSERVED | NONE | no browser PASS claimed |
-| Hosted CI | NOT_RUN_PENDING_REFRESH | NOT_OBSERVED | NONE | refresh final head |
+| GitHub mergeability | PASS at reconciled head | REMOTE_INSPECTION | NONE | `mergeable=true` at `56b6ca90...`; refresh once after this report/status update |
+| Commit statuses | NOT_RUN | REMOTE_INSPECTION | NONE | zero statuses at `56b6ca90...`; refresh once after final head |
+| PR workflow runs | NOT_RUN | REMOTE_INSPECTION | NONE | zero runs at `56b6ca90...`; refresh once after final head |
+| Reviews | NOT_RUN / NONE PRESENT | REMOTE_INSPECTION | NONE | zero submitted reviews |
+| Review threads | NOT_RUN / NONE PRESENT | REMOTE_INSPECTION | NONE | zero inline review threads |
 | Independent KD320 engineering qualification | NOT_RUN | NOT_OBSERVED | NONE | controlled ASME evidence pending |
 | Native backup utility | NOT_RUN | NOT_OBSERVED | NONE | connector-only environment; backup branch used |
 
@@ -92,18 +97,21 @@ Focused cases cover template identity, receipt-gated Q1 state, missing/duplicate
 
 ## Changed-file ledger
 
-Pre-PR-artifact changed files: exactly 8:
+Final reconciled changed-file set before this report/status refresh: exactly 11 paths:
 
-1. `agents/WIP-hp-kd320-q1-semantic-intake_workreport.md`
-2. `agents/status/WIP-hp-kd320-q1-semantic-intake.yaml`
-3. `agents/claims/WIP-hp-kd320-q1-semantic-intake.yaml`
-4. `engineering/hp-class-standardization/qualification/kd320-q1/semantic-csv-intake.js`
-5. `tabs/hp-kd320-evidence-intake-tab.js`
-6. `tabs/engineering-workspace-tab.js`
-7. `tests/b313-chapter-ix-kd320-q1-semantic-csv-intake.test.mjs`
-8. `tests/hp-kd320-evidence-intake-ui.test.mjs`
+1. `agents/PR651_workreport.md`
+2. `agents/WIP-hp-kd320-q1-semantic-intake_workreport.md`
+3. `agents/claims/PR651.yaml`
+4. `agents/claims/WIP-hp-kd320-q1-semantic-intake.yaml`
+5. `agents/status/PR651.yaml`
+6. `agents/status/WIP-hp-kd320-q1-semantic-intake.yaml`
+7. `engineering/hp-class-standardization/qualification/kd320-q1/semantic-csv-intake.js`
+8. `tabs/engineering-workspace-tab.js`
+9. `tabs/hp-kd320-evidence-intake-tab.js`
+10. `tests/b313-chapter-ix-kd320-q1-semantic-csv-intake.test.mjs`
+11. `tests/hp-kd320-evidence-intake-ui.test.mjs`
 
-PR-numbered recovery artifacts are added after allocation and must be included in final reconciliation.
+No workflow, numerical kernel, Q2 evaluator, edition evaluator, fatigue-curve/master-data, persisted Q1 ledger, or licensed-source-content path is changed.
 
 ## Coordination
 
@@ -115,4 +123,4 @@ PR649 changes the Calculations loader cache line in `tabs/engineering-workspace-
 
 ## EXACT_NEXT_ACTION
 
-Add PR651 status/claim records, reconcile final changed files, refresh mergeability/reviews/threads/commit-status/workflow truth, update PR body, and leave draft/unmerged pending owner authorization.
+Refresh final PR head after this report/status update, confirm the same 11-file set, mergeability, zero/actual status checks, workflow runs, reviews and threads, then update PR body and leave PR651 draft/unmerged pending separate owner authorization.
