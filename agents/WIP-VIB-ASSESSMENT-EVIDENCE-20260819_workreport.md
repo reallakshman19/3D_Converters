@@ -12,11 +12,9 @@
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - COORDINATION: SAFE
 
-## Mission
+## Mission / delivered seam
 
-Phase 4A prerequisite for Project v2/currentness: define non-authoritative, fingerprinted assessment-result evidence receipts and a fail-closed currentness evaluator. A saved receipt may prove what was calculated against which method/input/source basis; loading it must never create a current engineering result.
-
-Target path:
+Phase 4A prerequisite for Project v2/currentness:
 
 ```text
 VibrationAssessmentEvidenceReceipt.v1
@@ -26,52 +24,135 @@ VibrationAssessmentEvidenceReceipt.v1
   -> VibrationAssessmentEvidenceLedgerCurrentness.v1
 ```
 
-## Acceptance
+A saved receipt proves what result payload was calculated against which method/qualification/input/source basis. Loading or revalidating that receipt can **never** create a current engineering result.
 
-1. Receipt binds exact mechanism assessment item + line/case/canonical scope.
-2. Method ID/revision, qualification revision and method-definition hash are pinned.
-3. Engineering-input and source-basis fingerprints are pinned.
-4. Calculation timestamp and result payload are retained for audit evidence.
-5. Receipt authority is evidence-only and cannot promote a loaded result to SCREENING/design/code/root-cause/current engineering authority.
-6. Currentness requires exact method/revision/qualification/method-definition/input/source fingerprint parity.
-7. Missing current basis yields BASIS_UNAVAILABLE; mismatches yield STALE_EVIDENCE with explicit reasons.
-8. `EVIDENCE_CURRENT` means receipt freshness only, never `CURRENT_RESULT` engineering authority.
-9. Ledger preserves history and rejects duplicate receipt IDs.
-10. No project schema version is declared in this slice; Project v2 consumes this later.
+## Receipt behavior
 
-## Scope
+A receipt binds:
 
-Planned new files:
+- receipt ID;
+- exact mechanism assessment item ID;
+- mechanism ID;
+- line/case/canonical scope;
+- calculation timestamp;
+- method ID + method revision;
+- qualification revision;
+- method-definition hash;
+- engineering-input fingerprint;
+- controlled/source-basis fingerprint;
+- JSON-safe result payload;
+- bounded authority-at-calculation metadata.
+
+Receipt creation requires `resultStateAtCalculation = CURRENT_RESULT`; stale results cannot be snapshotted as fresh calculation evidence. The item factory accepts only `VibrationMechanismAssessmentItem.v1` with a current non-null result.
+
+Authority-at-calculation may record SCREENING/candidate context for historical traceability, but the receipt itself always carries:
+
+```text
+authority                       ASSESSMENT_RESULT_EVIDENCE_ONLY
+createsCurrentEngineeringResult false
+screeningAuthority              NOT_AUTHORIZED
+designAuthority                 false
+rootCauseAuthority              false
+codeCompliance                  false
+safetyAuthority                 false
+```
+
+The bounded v1 receipt rejects design/root-cause/code-compliance calculation snapshots because the current vibration programme has no such authority.
+
+## Currentness behavior
+
+States:
+
+```text
+BASIS_UNAVAILABLE
+EVIDENCE_CURRENT
+STALE_EVIDENCE
+```
+
+`EVIDENCE_CURRENT` means receipt freshness only. It does not mean `CURRENT_RESULT`, SCREENING authority, design acceptance, or code compliance.
+
+Exact comparison dimensions:
+
+```text
+methodId
+methodRevision
+qualificationRevision
+methodDefinitionHash
+engineeringInputsHash
+sourceBasisHash
+```
+
+Mismatch reasons are explicit:
+
+```text
+METHOD_ID_CHANGED
+METHOD_REVISION_CHANGED
+QUALIFICATION_REVISION_CHANGED
+METHOD_DEFINITION_CHANGED
+ENGINEERING_INPUTS_CHANGED
+SOURCE_BASIS_CHANGED
+```
+
+Missing current basis returns `BASIS_UNAVAILABLE / CURRENT_BASIS_UNAVAILABLE`. Ledger evaluation preserves receipt history and evaluates each receipt independently against the current basis map.
+
+## Scope / files
+
+Production:
 
 - `converters/vibration/project/assessment-evidence.js`
 - `converters/vibration/project/assessment-currentness.js`
+
+Tests:
+
 - `tests/vibration-assessment-evidence.test.mjs`
 - `tests/vibration-assessment-currentness.test.mjs`
 
-No existing production file is planned to change; existing-file backup is NOT_APPLICABLE unless scope changes.
+All are new files; existing-file backup is `NOT_APPLICABLE`.
 
-## Authority decisions
+No `VibrationIntegrityProject.v2` schema is declared in this PR. Project v2 will consume this validated seam later rather than baking untested currentness semantics into a new persistence version.
 
-- DEC-VP-001: receipt freshness is not result engineering authority.
-- DEC-VP-002: receipt may preserve authority-at-calculation metadata but the receipt itself is always non-authorizing.
-- DEC-VP-003: design/code/root-cause authority snapshots are fixed false in this bounded contract because the current vibration programme has no such authority.
-- DEC-VP-004: no Project v2 schema is declared until this receipt/currentness seam is validated and lifecycle dependencies are stable.
+## Validation truth
 
-## Coordination
+```text
+live repository/source grounding             PASS / SOURCE_INSPECTION
+ownership/coordination                       PASS
+actual mechanism-item schema constant        PASS / SOURCE_INSPECTION
+source syntax                                PASS / LOCAL_EXECUTION
+physical-line policy                         PASS: 184 / 101 / 103 / 90
+focused behavior                             PASS 14/14
+exact product/test Git blob identity         PASS
+receipt forged-authority rejection           PASS
+unsupported authority snapshot rejection     PASS
+stale-item receipt rejection                 PASS
+JSON-safe result payload                     PASS
+exact-basis evidence-current                 PASS
+basis-unavailable fail-closed                PASS
+method/input/source staleness reasons        PASS
+ledger history/currentness counts            PASS
+repository-native focused tests              NOT_RUN / ENVIRONMENT_BLOCKED
+browser acceptance                           NOT_APPLICABLE / no UI
+independent numerical verification            NOT_APPLICABLE / no numerical change
+```
 
-- No open PR found for `VibrationIntegrityProject.v2`, assessment-evidence receipts, or project currentness persistence.
-- PR661/PR662 are verification evidence foundations and are not dependencies for Phase 4A.
-- PR649 contains its own work-item currentness but does not own the project persistence/currentness domain.
+Exact validated blobs:
 
-## Validation state
+```text
+assessment-evidence.js                 1985c63f7f279d224787678278b7eb269d8a5b4e
+assessment-currentness.js              0ee935a26d0efdf71add21e2a2c01546966ed3ff
+vibration-assessment-evidence.test     7390083a08187be94ba51a4489549e9a121eadc2
+vibration-assessment-currentness.test  5ce1b039814f7ca54a8b223697ab184db059f39e
+```
 
-- live main/source grounding: PASS / SOURCE_INSPECTION
-- ownership/coordination: PASS
-- production implementation: NOT_WRITTEN
-- focused tests: NOT_RUN
-- repository-native suite: NOT_RUN / current environment has no checkout
-- browser: NOT_APPLICABLE for no-UI slice
+The 14/14 run used those exact product/test bytes with a narrow local stub only for the existing mechanism-item schema constant; the actual repo constant was separately inspected and matches `VibrationMechanismAssessmentItem.v1`. This is supporting evidence, not repository-native suite PASS.
+
+## Coordination / decisions
+
+- No open PR found for Project v2, assessment-evidence receipts, or project-currentness persistence.
+- PR661/PR662 are independent verification evidence foundations and are not dependencies for Phase 4A.
+- PR649 has work-item currentness but does not own project persistence/currentness.
+- Receipt freshness never promotes result authority.
+- No Project v2 schema is declared until this seam and later lifecycle dependencies are stable.
 
 ## EXACT_NEXT_ACTION
 
-Implement receipt/ledger and currentness contracts with focused fail-closed tests, validate exact bytes, reconcile live main, allocate separate draft PR, migrate custody, stop Owner gate.
+Reconcile branch against live main, allocate a separate draft PR, migrate WIP custody, refresh mergeability/reviews/statuses/workflows, and stop at Owner gate. Do not merge.
