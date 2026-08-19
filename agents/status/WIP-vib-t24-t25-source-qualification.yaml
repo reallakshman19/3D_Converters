@@ -1,0 +1,34 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-vib-t24-t25-source-qualification
+mission: controlled-source qualification for EI AVIFF T2.4 and T2.5 rule graphs
+workstream: VIB.PENDING.MECHANISMS.SOURCE_QUALIFICATION
+branch: agent/vib-t24-t25-source-qualification-20260819
+main_head_last_checked: 6c3109935eb2d30652eab441080464777091b1bb
+work_intent: QUALIFY_SOURCE_ONLY
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-vib-t24-t25-source-qualification_workreport.md
+grounding_epoch: GE-001
+current_stage: SOURCE_QUALIFICATION_EVIDENCE
+blocker: CONTROLLED_PDF_PAGE_EXECUTION_ENVIRONMENT_BLOCKED
+highest_risk: SECONDARY_SYNTHESIS_PROMOTION_WITHOUT_CONTROLLED_RECONCILIATION
+protected_authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  production_rule_master: false
+  production_calculator: false
+source_truth:
+  controlled_blob_identity: VERIFIED
+  controlled_page_execution: NOT_RUN_ENVIRONMENT_BLOCKED
+  public_mirrors: CORROBORATION_ONLY
+  t24_qualification: NOT_QUALIFIED
+  t25_qualification: NOT_QUALIFIED
+identity_findings:
+  t24_source_register_mechanism_id: reciprocatingPositiveDisplacement
+  canonical_mechanism_id: reciprocatingPulsation
+  status: IDENTITY_RECONCILIATION_REQUIRED
+exact_next_action: COMMIT_BLOCKED_SOURCE_CONTRACT_AND_QUARANTINE_RECORD
