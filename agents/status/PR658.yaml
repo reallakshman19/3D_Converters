@@ -6,8 +6,8 @@ base: main
 base_sha_at_replay: 2c65a77368fbc8db61d77209b36871d985ff4b55
 pre_takeover_head: b8488028541665ca888f7f6030bb26f51d59c44b
 product_test_basis_head: bcdf9160f8a2e3cd6f940c9e2e887af8e70950b6
-hosted_reconciliation_basis: 26b377e5de7a17fd6fec5465c99d0fc17bb36b95
-state: IMPLEMENTED_AWAITING_NATIVE_BROWSER_QUALIFICATION
+hosted_reconciliation_basis: edc9c33c3868874de5b3fab63190420a01d4ec59
+state: MERGE_AUTHORIZED_PENDING
 criticality: ENGINEERING_CRITICAL_PRESENTATION_INTEGRATION
 coordination_state: SAFE_WITH_EXPLICIT_IDENTITY_BOUNDARY
 replay:
@@ -15,7 +15,7 @@ replay:
   replay_commit: 839d5bb310f694b869b7bf59a75b26ed81fcbea3
 reconciliation:
   main_sha: 2c65a77368fbc8db61d77209b36871d985ff4b55
-  ahead_by: 13
+  ahead_by: 14
   behind_by: 0
   changed_files: 16
   unexplained_files: 0
@@ -45,5 +45,6 @@ authority:
   case_identity_authority_created: false
   project_persistence_changed: false
   workflow_files_changed: false
-merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: KEEP_PR658_DRAFT_OPEN_UNTIL_NATIVE_BROWSER_QUALIFICATION_OR_SEPARATE_OWNER_MERGE_DIRECTION
+merge_authority: OWNER_GRANTED_FOR_PR658_2026-08-19
+merge_authorization_source: USER_MESSAGE_MERGE_PROCEED_NEXT
+exact_next_action: MARK_READY_RECONCILE_EXACT_HEAD_AND_SQUASH_MERGE_PR658
