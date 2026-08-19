@@ -1,7 +1,9 @@
 pr: 644
-claim_state: ACTIVE
+claim_state: RELEASED
 branch: agent/vibration-aiv-canvas-evidence-hardening-20260818
 scope: AIV canvas evidence/export/currency hardening stacked on PR643
+released_by: OWNER_AUTHORIZED_MERGE
+released_to: main@79546f988b18686459a68103b4675bbba9bcf434
 exact_files:
   - tabs/vibration-aiv-screening-package-state.js
   - tabs/vibration-aiv-canvas-projection-coverage.js
@@ -22,4 +24,4 @@ exclusions:
   - line/case authority promotion
   - generic EI main-line governing aggregation
   - workflow files
-merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
+merge_authority: OWNER_GRANTED_AND_EXECUTED
