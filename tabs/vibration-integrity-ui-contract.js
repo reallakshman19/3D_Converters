@@ -7,6 +7,7 @@ export const VIBRATION_INTEGRITY_UI_CONTRACT = Object.freeze({
     Object.freeze({ id: 'screening', label: 'Screening workspace' }),
     Object.freeze({ id: 'identification', label: 'Mechanism identification' }),
     Object.freeze({ id: 'mechanical', label: 'Mechanical T2.3' }),
+    Object.freeze({ id: 'pulsation-transients', label: 'Pulsation & transients' }),
     Object.freeze({ id: 'sbc', label: 'SBC connections' }),
     Object.freeze({ id: 'user-data', label: 'User Engineering Data' }),
     Object.freeze({ id: 'activity', label: 'Activity & workflow' }),
@@ -22,6 +23,7 @@ export const VIBRATION_INTEGRITY_UI_CONTRACT = Object.freeze({
   authorityVocabulary: Object.freeze([
     'SCREENING',
     'RESERVED',
+    'BENCHMARK ONLY',
     'CANDIDATE MASTER',
     'CANDIDATE USER INPUT',
     'PROJECT INPUT',
