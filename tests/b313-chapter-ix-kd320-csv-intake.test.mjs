@@ -7,6 +7,7 @@ import {
   KD320_PUBLISHED_CSV_HEADERS,
   previewKd320EvidenceCsv,
 } from '../engineering/hp-class-standardization/qualification/kd320-q2/csv-intake.js';
+import { KD320_Q2_METHOD_SEMANTICS } from '../engineering/hp-class-standardization/qualification/kd320-q2/intake.js';
 
 function escape(value) {
   const text = String(value ?? '');
@@ -20,7 +21,7 @@ function csv(headers, row) {
 const correctionParameters = JSON.stringify([
   { name: 'Kmean', value: 1.125, units: 'ratio', semanticRef: 'KD320-SEM-006' },
 ]);
-const semanticRefs = Array.from({ length: 10 }, (_, i) => `KD320-SEM-${String(i + 2).padStart(3, '0')}`).join(';');
+const semanticRefs = KD320_Q2_METHOD_SEMANTICS.join(';');
 const receiptRefs = 'Q1-SRC-B313-2024;Q1-SRC-VIII3-2025';
 
 function projectRow(overrides = {}) {
@@ -40,7 +41,8 @@ function publishedRow(overrides = {}) {
     source_sha256: `sha256:${'a'.repeat(64)}`, controlled_2025_secure_storage_ref: '',
     controlled_2025_document_sha256: '', semantic_reconciliation_json: '[]', salt_mpa: '63.3',
     associated_mean_stress_mpa: '20', correction_parameters_json: correctionParameters, seq_mpa: '70',
-    permissible_cycles: '10000', extracted_by: 'Extractor A', extracted_at: '2026-08-18T10:00:00Z',
+    permissible_cycles: '10000', semantic_refs: semanticRefs, source_receipt_refs: 'Q1-SRC-VIII3-2025',
+    extracted_by: 'Extractor A', extracted_at: '2026-08-18T10:00:00Z',
     admitted_by: 'Admitter B', admitted_at: '2026-08-18T11:00:00Z', ...overrides,
   };
 }
@@ -63,8 +65,11 @@ test('templates expose exact two-mode contracts without numerical defaults', () 
   assert.equal(project.split('\n')[0], KD320_PROJECT_CSV_HEADERS.join(','));
   assert.equal(published.split('\n')[0], KD320_PUBLISHED_CSV_HEADERS.join(','));
   assert.match(project, /2024,2025/);
-  assert.match(published, /,2025,2025,/);
+  assert.match(project, /KD320-SEM-012;KD320-SEM-013/);
+  assert.match(published, /KD320-SEM-012;KD320-SEM-013/);
+  assert.match(published, /Q1-SRC-VIII3-2025/);
   assert.doesNotMatch(project, /63\.299|10000/);
+  assert.doesNotMatch(published, /63\.299|10000/);
 });
 
 test('valid checked project row preflights before Q1 and remains non-authoritative', () => {
@@ -75,6 +80,14 @@ test('valid checked project row preflights before Q1 and remains non-authoritati
   assert.equal(result.rows[0].admission.q2OracleAdmissionReady, false);
   assert.equal(result.rows[0].authority.nativeCoreKd3Qualified, false);
   assert.equal(result.rows[0].authority.canUseForDesignAuthority, false);
+});
+
+test('project preflight requires full method semantic custody through SEM-013', () => {
+  const incomplete = KD320_Q2_METHOD_SEMANTICS.filter((id) => id !== 'KD320-SEM-012').join(';');
+  const result = previewKd320EvidenceCsv(
+    csv(KD320_PROJECT_CSV_HEADERS, projectRow({ semantic_refs: incomplete })), KD320_CSV_MODES.PROJECT);
+  assert.equal(result.ok, false);
+  assert(result.rows[0].issues.some((item) => item.code === 'SEMANTIC_REFS_INCOMPLETE'));
 });
 
 test('project preflight blocks same-person calculation/check custody', () => {
@@ -98,6 +111,23 @@ test('direct 2025 published oracle preflights and remains Q1-gated', () => {
   assert.equal(result.rows[0].preflightState, 'PUBLISHED_ORACLE_READY_FOR_Q2_CANDIDATE');
   assert.equal(result.rows[0].admission.state, 'Q1_CONTROLLED_EVIDENCE_PENDING');
   assert.equal(result.rows[0].admission.authority.productionKernelAllowed, false);
+  assert.deepEqual(result.rows[0].oracle.semanticRefs, KD320_Q2_METHOD_SEMANTICS);
+  assert.deepEqual(result.rows[0].oracle.controlledSourceReceiptRefs, ['Q1-SRC-VIII3-2025']);
+});
+
+test('published preflight requires SEM-002..013 and controlled VIII-3 receipt custody', () => {
+  const missingSemantic = publishedRow({
+    semantic_refs: KD320_Q2_METHOD_SEMANTICS.filter((id) => id !== 'KD320-SEM-013').join(';'),
+  });
+  const semanticResult = previewKd320EvidenceCsv(
+    csv(KD320_PUBLISHED_CSV_HEADERS, missingSemantic), KD320_CSV_MODES.PUBLISHED);
+  assert.equal(semanticResult.ok, false);
+  assert(semanticResult.rows[0].issues.some((item) => item.code === 'SEMANTIC_REFS_INCOMPLETE'));
+
+  const receiptResult = previewKd320EvidenceCsv(
+    csv(KD320_PUBLISHED_CSV_HEADERS, publishedRow({ source_receipt_refs: '' })), KD320_CSV_MODES.PUBLISHED);
+  assert.equal(receiptResult.ok, false);
+  assert(receiptResult.rows[0].issues.some((item) => item.code === 'SOURCE_RECEIPT_REFS_INCOMPLETE'));
 });
 
 test('PVP2025-154710 source edition 2023 routes to the existing edition gate', () => {
@@ -142,7 +172,8 @@ test('blank mean stress is not silently converted to physical zero', () => {
   const row = projectRow({ associated_mean_stress_mpa: '' });
   const result = previewKd320EvidenceCsv(csv(KD320_PROJECT_CSV_HEADERS, row), KD320_CSV_MODES.PROJECT);
   assert.equal(result.rows[0].ok, false);
-  assert(result.rows[0].issues.some((item) => item.code === 'FINITE_NUMBER_REQUIRED' && item.field === 'associated_mean_stress_mpa'));
+  assert(result.rows[0].issues.some((item) =>
+    item.code === 'FINITE_NUMBER_REQUIRED' && item.field === 'associated_mean_stress_mpa'));
 });
 
 test('UTF-8 BOM is tolerated but unterminated quotes fail closed', () => {
@@ -154,10 +185,12 @@ test('UTF-8 BOM is tolerated but unterminated quotes fail closed', () => {
   assert(blocked.fileIssues.some((item) => item.code === 'CSV_PARSE_INVALID'));
 });
 
-test('invalid correction-parameter semantic references fail preflight', () => {
-  const invalid = JSON.stringify([{ name: 'K', value: 1, units: 'ratio', semanticRef: 'KD320-SEM-999' }]);
-  const row = projectRow({ correction_parameters_json: invalid });
-  const result = previewKd320EvidenceCsv(csv(KD320_PROJECT_CSV_HEADERS, row), KD320_CSV_MODES.PROJECT);
-  assert.equal(result.rows[0].ok, false);
-  assert(result.rows[0].issues.some((item) => item.code === 'CORRECTION_PARAMETER_INVALID'));
+test('correction parameters cannot cite Q1-routing or release-custody semantics', () => {
+  for (const semanticRef of ['KD320-SEM-001', 'KD320-SEM-014']) {
+    const invalid = JSON.stringify([{ name: 'K', value: 1, units: 'ratio', semanticRef }]);
+    const row = projectRow({ correction_parameters_json: invalid });
+    const result = previewKd320EvidenceCsv(csv(KD320_PROJECT_CSV_HEADERS, row), KD320_CSV_MODES.PROJECT);
+    assert.equal(result.rows[0].ok, false);
+    assert(result.rows[0].issues.some((item) => item.code === 'CORRECTION_PARAMETER_INVALID'));
+  }
 });

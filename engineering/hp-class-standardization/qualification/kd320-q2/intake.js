@@ -8,7 +8,20 @@ const TARGET = Object.freeze({
 const RECEIPT_IDS = Object.freeze(['Q1-SRC-B313-2024', 'Q1-SRC-VIII3-2025']);
 const SEMANTIC_IDS = Object.freeze(Array.from({ length: 14 }, (_, i) =>
   `KD320-SEM-${String(i + 1).padStart(3, '0')}`));
-const PROJECT_REQUIRED_SEMANTICS = Object.freeze(SEMANTIC_IDS.slice(1, 11));
+const METHOD_SEMANTIC_IDS = Object.freeze(SEMANTIC_IDS.slice(1, 13));
+const CHAIN_SEMANTIC_CUSTODY = Object.freeze({
+  alternatingStressIntensityMpa: 'KD320-SEM-003',
+  associatedMeanStressMpa: 'KD320-SEM-004',
+  correctionParameters: 'KD320-SEM-006',
+  equivalentAlternatingStressMpa: 'KD320-SEM-007',
+  fatigueCurveSelection: 'KD320-SEM-008',
+  fatigueCurveEvaluation: 'KD320-SEM-009',
+  permissibleCycles: 'KD320-SEM-010',
+  materialTemperatureSelection: 'KD320-SEM-011',
+  applicabilityEnvelope: 'KD320-SEM-012',
+  failClosedLimits: 'KD320-SEM-013',
+});
+const PUBLISHED_REQUIRED_RECEIPTS = Object.freeze(['Q1-SRC-VIII3-2025']);
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
@@ -92,8 +105,26 @@ function semanticReady(item, blockers) {
   return ready;
 }
 
-function validateChain(chain, prefix, blockers) {
-  let ready = true;
+function semanticSetReady(refs, required, prefix, blockers) {
+  const supplied = new Set(Array.isArray(refs) ? refs.map(text).filter(Boolean) : []);
+  const missing = required.filter((id) => !supplied.has(id));
+  if (missing.length) blockers.push(`${prefix}:SEMANTIC_REFS_INCOMPLETE:${missing.join(',')}`);
+  const invalid = [...supplied].filter((id) => !SEMANTIC_IDS.includes(id));
+  if (invalid.length) blockers.push(`${prefix}:SEMANTIC_REFS_INVALID:${invalid.join(',')}`);
+  return missing.length === 0 && invalid.length === 0;
+}
+
+function receiptSetReady(refs, required, prefix, blockers) {
+  const supplied = new Set(Array.isArray(refs) ? refs.map(text).filter(Boolean) : []);
+  const missing = required.filter((id) => !supplied.has(id));
+  if (missing.length) blockers.push(`${prefix}:SOURCE_RECEIPT_REFS_INCOMPLETE:${missing.join(',')}`);
+  const invalid = [...supplied].filter((id) => !RECEIPT_IDS.includes(id));
+  if (invalid.length) blockers.push(`${prefix}:SOURCE_RECEIPT_REFS_INVALID:${invalid.join(',')}`);
+  return missing.length === 0 && invalid.length === 0;
+}
+
+function validateChain(chain, prefix, blockers, semanticRefs) {
+  let ready = semanticSetReady(semanticRefs, Object.values(CHAIN_SEMANTIC_CUSTODY), prefix, blockers);
   const require = (condition, code) => {
     if (!condition) { blockers.push(`${prefix}:${code}`); ready = false; }
   };
@@ -104,7 +135,7 @@ function validateChain(chain, prefix, blockers) {
     'CORRECTION_PARAMETERS_MISSING');
   for (const parameter of chain?.correctionParameters || []) {
     require(Boolean(text(parameter?.name)) && finite(parameter?.value)
-      && Boolean(text(parameter?.units)) && SEMANTIC_IDS.includes(text(parameter?.semanticRef)),
+      && Boolean(text(parameter?.units)) && METHOD_SEMANTIC_IDS.includes(text(parameter?.semanticRef)),
     'CORRECTION_PARAMETER_INVALID');
   }
   require(finite(chain?.equivalentAlternatingStressMpa) && chain.equivalentAlternatingStressMpa > 0,
@@ -115,7 +146,9 @@ function validateChain(chain, prefix, blockers) {
 
 function projectOracleReady(oracle, blockers) {
   if (!oracle) { blockers.push('PROJECT_ORACLE_MISSING'); return false; }
-  let ready = validateChain(oracle.chain, 'PROJECT_ORACLE', blockers);
+  const refsReady = semanticSetReady(
+    oracle.semanticRefs, METHOD_SEMANTIC_IDS, 'PROJECT_ORACLE', blockers);
+  let ready = validateChain(oracle.chain, 'PROJECT_ORACLE', blockers, oracle.semanticRefs) && refsReady;
   const require = (condition, code) => {
     if (!condition) { blockers.push(`PROJECT_ORACLE:${code}`); ready = false; }
   };
@@ -131,17 +164,18 @@ function projectOracleReady(oracle, blockers) {
   require(validPair(oracle.calculatedBy, oracle.checkedBy)
     && validTimestamp(oracle.calculatedAt) && validTimestamp(oracle.checkedAt),
     'INDEPENDENT_CHECK_CUSTODY_MISSING');
-  const refs = new Set(Array.isArray(oracle.semanticRefs) ? oracle.semanticRefs.map(text) : []);
-  require(PROJECT_REQUIRED_SEMANTICS.every((id) => refs.has(id)), 'SEMANTIC_REFS_INCOMPLETE');
-  const receiptRefs = new Set(Array.isArray(oracle.controlledSourceReceiptRefs)
-    ? oracle.controlledSourceReceiptRefs.map(text) : []);
-  require(RECEIPT_IDS.every((id) => receiptRefs.has(id)), 'SOURCE_RECEIPT_REFS_INCOMPLETE');
+  require(receiptSetReady(
+    oracle.controlledSourceReceiptRefs, RECEIPT_IDS, 'PROJECT_ORACLE', blockers),
+  'SOURCE_RECEIPT_REFS_INCOMPLETE');
   return ready;
 }
 
 function publishedOracleReady(oracle, blockers) {
   if (!oracle) { blockers.push('PRIMARY_PUBLISHED_ORACLE_MISSING'); return false; }
-  let ready = validateChain(oracle.chain, 'PRIMARY_PUBLISHED_ORACLE', blockers);
+  const refsReady = semanticSetReady(
+    oracle.semanticRefs, METHOD_SEMANTIC_IDS, 'PRIMARY_PUBLISHED_ORACLE', blockers);
+  let ready = validateChain(
+    oracle.chain, 'PRIMARY_PUBLISHED_ORACLE', blockers, oracle.semanticRefs) && refsReady;
   const require = (condition, code) => {
     if (!condition) { blockers.push(`PRIMARY_PUBLISHED_ORACLE:${code}`); ready = false; }
   };
@@ -156,6 +190,9 @@ function publishedOracleReady(oracle, blockers) {
   require(validPair(oracle.extractedBy, oracle.admittedBy)
     && validTimestamp(oracle.extractedAt) && validTimestamp(oracle.admittedAt),
     'INDEPENDENT_ADMISSION_CUSTODY_MISSING');
+  require(receiptSetReady(
+    oracle.controlledSourceReceiptRefs, PUBLISHED_REQUIRED_RECEIPTS,
+    'PRIMARY_PUBLISHED_ORACLE', blockers), 'SOURCE_RECEIPT_REFS_INCOMPLETE');
   return ready;
 }
 
@@ -188,8 +225,10 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
     && semanticChecks.every(Boolean);
 
   const q1Complete = receiptsComplete && semanticsComplete;
-  const projectReady = q1Complete ? projectOracleReady(candidate.projectOracle, blockers) : false;
-  const primaryReady = q1Complete ? publishedOracleReady(candidate.publishedOracle, blockers) : false;
+  const projectReady = candidate.projectOracle
+    ? projectOracleReady(candidate.projectOracle, blockers) : false;
+  const primaryReady = candidate.publishedOracle
+    ? publishedOracleReady(candidate.publishedOracle, blockers) : false;
 
   let state = 'Q1_CONTROLLED_EVIDENCE_PENDING';
   if (q1Complete && projectReady && primaryReady) state = 'Q2_ORACLE_ADMISSION_READY';
@@ -206,6 +245,11 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
     q1Complete,
     q2OracleAdmissionReady: state === 'Q2_ORACLE_ADMISSION_READY',
     blockers: [...new Set(blockers)],
+    oracleCustody: {
+      methodSemanticRefs: [...METHOD_SEMANTIC_IDS],
+      chainSemanticCustody: { ...CHAIN_SEMANTIC_CUSTODY },
+      publishedRequiredReceiptRefs: [...PUBLISHED_REQUIRED_RECEIPTS],
+    },
     authority: {
       nativeCoreKd3Qualified: false,
       codeCompliance: false,
@@ -222,3 +266,6 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
 export const KD320_Q2_TARGET = TARGET;
 export const KD320_Q2_REQUIRED_RECEIPTS = RECEIPT_IDS;
 export const KD320_Q2_REQUIRED_SEMANTICS = SEMANTIC_IDS;
+export const KD320_Q2_METHOD_SEMANTICS = METHOD_SEMANTIC_IDS;
+export const KD320_Q2_CHAIN_SEMANTIC_CUSTODY = CHAIN_SEMANTIC_CUSTODY;
+export const KD320_Q2_PUBLISHED_REQUIRED_RECEIPTS = PUBLISHED_REQUIRED_RECEIPTS;

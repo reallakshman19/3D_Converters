@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   evaluateKd320Q2AdmissionCandidate,
+  KD320_Q2_METHOD_SEMANTICS,
+  KD320_Q2_PUBLISHED_REQUIRED_RECEIPTS,
   KD320_Q2_REQUIRED_SEMANTICS,
 } from '../engineering/hp-class-standardization/qualification/kd320-q2/intake.js';
 
@@ -96,7 +98,7 @@ function semantic(semanticId, index) {
   };
 }
 
-function chain() {
+function chain(correctionSemanticRef = 'KD320-SEM-006') {
   return {
     alternatingStressIntensityMpa: 63.299495811,
     associatedMeanStressMpa: 27.6830252,
@@ -104,10 +106,51 @@ function chain() {
       name: 'CONTROLLED_PARAMETER_1',
       value: 0.2,
       units: 'DIMENSIONLESS',
-      semanticRef: 'KD320-SEM-006',
+      semanticRef: correctionSemanticRef,
     }],
     equivalentAlternatingStressMpa: 70,
     permissibleCycles: 10000,
+  };
+}
+
+function projectOracle(overrides = {}) {
+  return {
+    benchmarkId: 'KD3-QF-023',
+    evidenceClass: 'INDEPENDENT_CHECKED_PROJECT_CALCULATION',
+    methodId: 'KD3-FATIGUE-001',
+    routeId: 'ROUTE-KD3-2024',
+    calculationRef: 'CALC-KD3-001',
+    locationId: 'BORE',
+    b313Edition: '2024',
+    viii3Edition: '2025',
+    controlledSourceReceiptRefs: ['Q1-SRC-B313-2024', 'Q1-SRC-VIII3-2025'],
+    semanticRefs: [...KD320_Q2_METHOD_SEMANTICS],
+    chain: chain(),
+    calculatedBy: 'Engineer A',
+    calculatedAt: ISO_A,
+    checkedBy: 'Engineer B',
+    checkedAt: ISO_B,
+    ...overrides,
+  };
+}
+
+function publishedOracle(overrides = {}) {
+  return {
+    benchmarkId: 'KD3-QF-022',
+    evidenceClass: 'PRIMARY_PUBLISHED_NUMERICAL_ORACLE',
+    viii3Edition: '2025',
+    methodId: 'KD3-FATIGUE-001',
+    bibliographicRef: 'PRIMARY-PUBLICATION-REF',
+    exactLocator: 'worked-example-locator',
+    sourceSha256: HASH_A,
+    semanticRefs: [...KD320_Q2_METHOD_SEMANTICS],
+    controlledSourceReceiptRefs: [...KD320_Q2_PUBLISHED_REQUIRED_RECEIPTS],
+    chain: chain(),
+    extractedBy: 'Researcher A',
+    extractedAt: ISO_A,
+    admittedBy: 'Reviewer B',
+    admittedAt: ISO_B,
+    ...overrides,
   };
 }
 
@@ -119,38 +162,13 @@ function readyCandidate() {
       receipt('Q1-SRC-VIII3-2025', HASH_B),
     ],
     semanticItems: KD320_Q2_REQUIRED_SEMANTICS.map(semantic),
-    projectOracle: {
-      benchmarkId: 'KD3-QF-023',
-      evidenceClass: 'INDEPENDENT_CHECKED_PROJECT_CALCULATION',
-      methodId: 'KD3-FATIGUE-001',
-      routeId: 'ROUTE-KD3-2024',
-      calculationRef: 'CALC-KD3-001',
-      locationId: 'BORE',
-      b313Edition: '2024',
-      viii3Edition: '2025',
-      controlledSourceReceiptRefs: ['Q1-SRC-B313-2024', 'Q1-SRC-VIII3-2025'],
-      semanticRefs: KD320_Q2_REQUIRED_SEMANTICS.slice(1, 11),
-      chain: chain(),
-      calculatedBy: 'Engineer A',
-      calculatedAt: ISO_A,
-      checkedBy: 'Engineer B',
-      checkedAt: ISO_B,
-    },
-    publishedOracle: {
-      benchmarkId: 'KD3-QF-022',
-      evidenceClass: 'PRIMARY_PUBLISHED_NUMERICAL_ORACLE',
-      viii3Edition: '2025',
-      methodId: 'KD3-FATIGUE-001',
-      bibliographicRef: 'PRIMARY-PUBLICATION-REF',
-      exactLocator: 'worked-example-locator',
-      sourceSha256: HASH_A,
-      chain: chain(),
-      extractedBy: 'Researcher A',
-      extractedAt: ISO_A,
-      admittedBy: 'Reviewer B',
-      admittedAt: ISO_B,
-    },
+    projectOracle: projectOracle(),
+    publishedOracle: publishedOracle(),
   };
+}
+
+function hasBlocker(result, prefix) {
+  return result.blockers.some((code) => code.startsWith(prefix));
 }
 
 test('pending Q2 candidate enumerates blockers across all required receipts and semantics', () => {
@@ -163,11 +181,66 @@ test('pending Q2 candidate enumerates blockers across all required receipts and 
   assert.ok(result.blockers.includes('KD320-SEM-014:STATUS_NOT_INDEPENDENTLY_CHECKED'));
 });
 
-test('full Q2 evidence still reaches admission readiness without authority promotion', () => {
+test('full Q2 evidence reaches admission readiness only with explicit method-semantic custody', () => {
   const result = evaluateKd320Q2AdmissionCandidate(readyCandidate());
   assert.equal(result.ok, true);
   assert.equal(result.q2OracleAdmissionReady, true);
   assert.equal(result.state, 'Q2_ORACLE_ADMISSION_READY');
+  assert.deepEqual(result.oracleCustody.methodSemanticRefs, KD320_Q2_METHOD_SEMANTICS);
+  assert.equal(result.oracleCustody.chainSemanticCustody.alternatingStressIntensityMpa, 'KD320-SEM-003');
+  assert.equal(result.oracleCustody.chainSemanticCustody.permissibleCycles, 'KD320-SEM-010');
   assert.equal(result.authority.nativeCoreKd3Qualified, false);
   assert.equal(result.authority.productionKernelAllowed, false);
+});
+
+test('QF023 cannot omit applicability or fail-closed semantics SEM-012/013', () => {
+  const candidate = readyCandidate();
+  candidate.projectOracle.semanticRefs = candidate.projectOracle.semanticRefs
+    .filter((id) => !['KD320-SEM-012', 'KD320-SEM-013'].includes(id));
+  const result = evaluateKd320Q2AdmissionCandidate(candidate);
+  assert.equal(result.q2OracleAdmissionReady, false);
+  assert.equal(result.state, 'Q2_PRIMARY_ORACLE_RETAINED_PROJECT_PENDING');
+  assert(hasBlocker(result, 'PROJECT_ORACLE:SEMANTIC_REFS_INCOMPLETE:'));
+  assert(result.blockers.some((code) => code.includes('KD320-SEM-012')));
+  assert(result.blockers.some((code) => code.includes('KD320-SEM-013')));
+});
+
+test('QF022 cannot omit target-edition fail-closed semantic SEM-013', () => {
+  const candidate = readyCandidate();
+  candidate.publishedOracle.semanticRefs = candidate.publishedOracle.semanticRefs
+    .filter((id) => id !== 'KD320-SEM-013');
+  const result = evaluateKd320Q2AdmissionCandidate(candidate);
+  assert.equal(result.q2OracleAdmissionReady, false);
+  assert.equal(result.state, 'Q2_PROJECT_ORACLE_RETAINED_PRIMARY_PENDING');
+  assert(hasBlocker(result, 'PRIMARY_PUBLISHED_ORACLE:SEMANTIC_REFS_INCOMPLETE:'));
+  assert(result.blockers.some((code) => code.includes('KD320-SEM-013')));
+});
+
+test('QF022 requires controlled VIII-3 2025 source-receipt custody', () => {
+  const candidate = readyCandidate();
+  candidate.publishedOracle.controlledSourceReceiptRefs = [];
+  const result = evaluateKd320Q2AdmissionCandidate(candidate);
+  assert.equal(result.q2OracleAdmissionReady, false);
+  assert(hasBlocker(result, 'PRIMARY_PUBLISHED_ORACLE:SOURCE_RECEIPT_REFS_INCOMPLETE:'));
+  assert(result.blockers.some((code) => code.includes('Q1-SRC-VIII3-2025')));
+});
+
+test('correction parameters cannot cite non-method SEM-001 or SEM-014 custody', () => {
+  for (const semanticRef of ['KD320-SEM-001', 'KD320-SEM-014']) {
+    const candidate = readyCandidate();
+    candidate.projectOracle.chain = chain(semanticRef);
+    const result = evaluateKd320Q2AdmissionCandidate(candidate);
+    assert.equal(result.q2OracleAdmissionReady, false);
+    assert(result.blockers.includes('PROJECT_ORACLE:CORRECTION_PARAMETER_INVALID'));
+  }
+});
+
+test('oracle custody blockers are enumerated even while Q1 controlled evidence is pending', () => {
+  const candidate = pendingCandidate();
+  candidate.projectOracle = projectOracle({ semanticRefs: ['KD320-SEM-003'] });
+  const result = evaluateKd320Q2AdmissionCandidate(candidate);
+  assert.equal(result.state, 'Q1_CONTROLLED_EVIDENCE_PENDING');
+  assert.equal(result.q1Complete, false);
+  assert(hasBlocker(result, 'PROJECT_ORACLE:SEMANTIC_REFS_INCOMPLETE:'));
+  assert(result.blockers.some((code) => code.includes('KD320-SEM-013')));
 });
