@@ -1,0 +1,34 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-vib-t24-t25-decision-evidence-20260819
+mission: non-numerical T2.4/T2.5 decision-evidence custody
+workstream: VIB.PENDING.MECHANISMS
+branch: agent/vib-t24-t25-decision-evidence-20260819
+base_pr: 649
+base_head: b3d0b8ea937cd06d99b44033a15606827f311119
+main_head_last_checked: 989b24f361ad287a0c0f25f267a118338bf2ed7a
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: RECOVERABLE
+handover_readiness: READY
+report_path: agents/WIP-vib-t24-t25-decision-evidence-20260819_workreport.md
+appendix_a_status: PASS_95_OF_100
+current_stage: DECISION_EVIDENCE_CONTRACT
+merge_authority: OWNER_ONLY_NOT_GRANTED
+blocker: CONTROLLED_T24_T25_RULE_CONTENT_NOT_EXECUTED
+protected_authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  automatic_applicability: false
+  numerical_execution: false
+  ei_mainline_contribution: false
+  secondary_synthesis_authority: NONE
+validation_truth:
+  live_grounding: PASS_GITHUB_SOURCE
+  appendix_a: PASS_95_OF_100
+  controlled_pdf: NOT_RUN_ENVIRONMENT_BLOCKED
+  repository_native_tests: NOT_RUN
+  browser: NOT_RUN
+exact_next_action: CORRECT_T24_MECHANISM_ID_AND_IMPLEMENT_NON_NUMERICAL_EVIDENCE_MODEL
