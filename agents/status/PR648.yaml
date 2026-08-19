@@ -1,0 +1,25 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+pr: 648
+work_id: PR648
+branch: agent/hp-kd320-csv-intake-preview
+base_pr: 625
+workstream: HP_KD320_QUALIFICATION
+stage: Q2_CSV_EVIDENCE_INTAKE_PREVIEW
+criticality: ENGINEERING_CRITICAL
+state: READY_FOR_MERGE_RECONCILIATION
+execution_mode: MANUAL
+merge_authority: OWNER_GRANTED_ON_COMPLETION
+authority:
+  q2_oracle_admission_ready: false
+  native_core_kd320: false
+  code_compliance: false
+  design_authority: false
+  production_kernel_allowed: false
+  automatic_promotion_allowed: false
+validation:
+  focused_node_suite: PASS_16_OF_16_LOCAL_EXECUTION
+  production_blob_identity: PASS
+  browser_execution: NOT_RUN_ENVIRONMENT_BLOCKED
+  hosted_ci: REFRESH_REQUIRED_BEFORE_MERGE
+exact_next_action: Reconcile live PR648 diff, checks and reviews, then merge the authorized stack top-down with expected-head guards.
