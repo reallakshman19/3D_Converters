@@ -1,7 +1,9 @@
 pr: 642
-claim_state: ACTIVE
+claim_state: RELEASED
 branch: agent/vibration-aiv-canvas-hardening-20260818
 scope: AIV flare branch lifecycle and disconnected readiness
+released_by: OWNER_AUTHORIZED_MERGE
+released_to: main@79546f988b18686459a68103b4675bbba9bcf434
 exact_files:
   - converters/vibration/aiv/aiv-flare-network-table-generator.js
   - tabs/vibration-aiv-unified-canvas-workflow.js
@@ -17,4 +19,4 @@ exclusions:
   - generic EI main-line governing aggregation
   - design authority
   - workflow files
-merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
+merge_authority: OWNER_GRANTED_AND_EXECUTED
