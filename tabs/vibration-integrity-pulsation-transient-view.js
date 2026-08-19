@@ -98,6 +98,7 @@ export function renderVibrationPulsationTransientWorkspace(state) {
   const projection = buildVibrationDynamicWorkbenchProjection(state.vibrationDynamicWorkItems);
   return `<div class="vi-root">
     <header class="vi-header"><div><h2>Pulsation & Transients</h2><p>Mechanism-specific work items for bounded vibration calculations and source-gated continuations.</p></div><div class="vi-authority"><strong>BENCHMARK-ONLY WORKBENCH</strong><span>SCREENING NOT AUTHORIZED · DESIGN AUTHORITY FALSE</span></div></header>
+    ${state.error ? `<div class="vi-banner bad"><strong>Work item not applied.</strong><span>${esc(state.error)}</span></div>` : ''}
     <div class="vi-banner warn"><strong>Assessment-unit boundary.</strong><span>Deadlegs are assessed as DEADLEG_BRANCH work items and valve events as TRANSIENT_EVENT_PATH work items. These results are not silently attached to a main-line row or admitted to EI governing aggregation.</span></div>
     <section class="vi-card"><div class="vi-section-head"><div><h3>Add bounded work item</h3><p>Only existing merged production kernels are executable in this release.</p></div><div class="vi-actions">
       <button type="button" class="vi-btn primary" data-vi-dynamic-add="DEADLEG_STANDARD">Add Deadleg T2.6</button>
