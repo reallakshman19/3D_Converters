@@ -17,12 +17,18 @@ import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-
 import {
   handleSbcType3Change,
   handleSbcType3Click,
+  openSbcType3FacilityScope,
 } from './vibration-integrity-sbc-type3-controller.js?v=20260815-sbc-pf05-cache-1';
 import {
   createSbcType3UiState,
   recordSbcType3UserDataTableMutation,
 } from './vibration-integrity-sbc-type3-state.js?v=20260815-sbc-pf05-cache-1';
-import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js?v=20260815-sbc-pf05-cache-1';
+import {
+  createSbcWorkspaceUiState,
+  setSbcWorkspaceScope,
+  setSbcWorkspaceType,
+} from './vibration-integrity-sbc-workspace-model.js';
+import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js';
 import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js';
 import {
   addSbcT3UserEngineeringDataRows,
@@ -66,7 +72,6 @@ function userDataPage(state) {
     ${workspaceTabs('user-data')}
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to update user engineering data.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationUserEngineeringData(state)}
-    ${renderSbcType3UserInputPanel(state)}
   </div>`;
 }
 
@@ -97,10 +102,15 @@ function activityPage(state) {
   </div>`;
 }
 
+function sbcPage(state) {
+  return injectWorkspaceTabs(renderSbcConnectionWorkspace(state), workspaceTabs('sbc'));
+}
+
 export function createVibrationUserDataUiState() {
   return {
     ...createMechanicalFacilityUiState(),
     ...createSbcType3UiState(),
+    ...createSbcWorkspaceUiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
     mechanismIdentificationAuthoring: createVibrationIdentificationAuthoringTable(),
@@ -133,8 +143,9 @@ function screeningRenderState(state) {
 
 export function renderVibrationIntegrityWithUserData(state) {
   if (state.workspaceTab === 'identification') return identificationPage(state);
-  if (state.workspaceTab === 'user-data') return userDataPage(state);
   if (state.workspaceTab === 'mechanical') return mechanicalPage(state);
+  if (state.workspaceTab === 'sbc') return sbcPage(state);
+  if (state.workspaceTab === 'user-data') return userDataPage(state);
   if (state.workspaceTab === 'activity') return activityPage(state);
   return injectWorkspaceTabs(renderVibrationIntegrityHtml(screeningRenderState(state)), workspaceTabs('screening'));
 }
@@ -207,8 +218,36 @@ function handleIdentificationClick(state, event, render, audit) {
   return true;
 }
 
+function openSbcWorkspaceFromFacility(state, event, render, audit) {
+  const scope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
+  if (!scope) return false;
+  openSbcType3FacilityScope(state, scope, null, audit);
+  setSbcWorkspaceScope(state, scope);
+  setSbcWorkspaceType(state, 'TYPE_3');
+  state.workspaceTab = 'sbc';
+  render();
+  return true;
+}
+
+function handleSbcWorkspaceTypeClick(state, event, render, audit) {
+  const typeId = event.target.closest('[data-vi-sbc-workspace-type]')?.dataset.viSbcWorkspaceType;
+  if (!typeId) return false;
+  setSbcWorkspaceType(state, typeId);
+  const scope = String(state.sbcWorkspaceScopeId ?? '').trim();
+  if (state.sbcWorkspaceType === 'TYPE_3' && scope) {
+    openSbcType3FacilityScope(state, scope, null, audit);
+    state.workspaceTab = 'sbc';
+  }
+  state.error = null;
+  audit?.('SBC_TYPE_SELECTED', { typeId: state.sbcWorkspaceType }, scope || null);
+  render();
+  return true;
+}
+
 export function handleVibrationUserDataClick(state, event, render, audit) {
   if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
+  if (openSbcWorkspaceFromFacility(state, event, render, audit)) return true;
+  if (handleSbcWorkspaceTypeClick(state, event, render, audit)) return true;
   if (handleSbcType3Click(state, event, render, audit)) return true;
   if (handleIdentificationClick(state, event, render, audit)) return true;
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
@@ -247,6 +286,20 @@ export function handleVibrationUserDataClick(state, event, render, audit) {
 
 export function handleVibrationUserDataChange(state, event, render, audit) {
   if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
+  if (event.target.matches('[data-vi-sbc-workspace-scope]')) {
+    const scope = setSbcWorkspaceScope(state, event.target.value);
+    if (state.sbcWorkspaceType === 'TYPE_3' && scope) {
+      openSbcType3FacilityScope(state, scope, null, audit);
+      state.workspaceTab = 'sbc';
+    }
+    state.error = null;
+    audit?.('SBC_SCOPE_CHANGED', {}, scope || null);
+    render();
+    return true;
+  }
+  if (event.target.matches('[data-vi-sbc-type3-scope]')) {
+    setSbcWorkspaceScope(state, event.target.value);
+  }
   if (handleSbcType3Change(state, event, render, audit)) return true;
   const identificationField = event.target.dataset.viIdentificationCell;
   if (identificationField) {
