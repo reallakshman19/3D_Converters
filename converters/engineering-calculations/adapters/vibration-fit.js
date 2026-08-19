@@ -19,13 +19,14 @@ const QUALIFICATION_REASONS = Object.freeze([
   'OWNER_WORKED_EXAMPLE_BENCHMARK_SUFFICIENT_POLICY',
   'BOUNDED_BRANCH_QUALIFICATION_EVIDENCE',
   'QST_003_DIAMETER_GAP_FAIL_CLOSED',
+  'PRODUCTION_LIFECYCLE_SCREENING_AUTHORITY_SEPARATED',
   'SCREENING_ONLY_DESIGN_AUTHORITY_FALSE',
 ]);
 
 function qualification(mode) {
   const screening = mode === 'screening';
   return composeEngineeringQualification({
-    method: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
+    method: screening ? 'PRODUCTION_AUTHORIZED' : 'BENCHMARK_ONLY',
     data: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
     designAuthority: false,
     reasons: QUALIFICATION_REASONS,
@@ -144,8 +145,8 @@ function correlationIds(intermediates) {
 
 function warning(mode) {
   return mode === 'screening' ? {
-    code: 'SCREENING_ONLY_NOT_DESIGN_AUTHORITY',
-    message: 'FIT result is qualified for bounded screening only; design authority remains false and declared exclusions remain fail-closed.',
+    code: 'PRODUCTION_SCREENING_ONLY_NOT_DESIGN_AUTHORITY',
+    message: 'FIT is production-authorized for bounded screening; effective engineering authority remains SCREENING, design authority remains false, and declared exclusions remain fail-closed.',
   } : {
     code: 'BENCHMARK_REFERENCE_ONLY',
     message: 'FIT result is running in benchmark mode and does not carry screening or design authority.',
@@ -237,16 +238,19 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   name: 'Flow-Induced Vibration Screening — FIT',
   shortName: 'Flow-Induced Vibration Screening',
   methodRevision: 'ei-aviff2-fit-screening-v1',
-  purpose: 'Execute the controlled EI/FIT method for bounded screening with explicit evidence, exclusions and reproducibility.',
+  purpose: 'Execute the production-authorized controlled EI/FIT method for bounded screening with explicit evidence, exclusions and reproducibility.',
   authority: {
     calculationState: 'IMPLEMENTED',
-    qualificationState: 'SCREENING',
+    qualificationState: 'PRODUCTION_AUTHORIZED',
+    engineeringAuthority: 'SCREENING',
+    screeningAuthority: 'AUTHORIZED_BOUNDED',
+    designAuthority: false,
     codeCompliance: false,
   },
   applicability: {
     description: 'Bounded main-line FIT screening scope.',
     limitations: [
-      'Screening authority only; designAuthority=false.',
+      'Production product with bounded screening authority only; designAuthority=false.',
       'Outside diameter 219.1 mm < Dext < 273 mm remains excluded and fail-closed.',
       'Advanced screening requires the declared flexible-family, LOF and 1 Hz < fn <= 3 Hz criteria.',
       'Mixed aggregate/component multiphase data require an explicit resolution mode.',
@@ -264,11 +268,12 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   qualificationIssue: 429,
   ui: {
     visible: true,
+    lifecycleState: 'PRODUCTION',
     executionModes: ['single', 'sandbox', 'batch'],
-    minimumQualificationToShow: 'SCREENING',
+    minimumQualificationToShow: 'PRODUCTION_AUTHORIZED',
     requiredQualificationMode: 'screening',
     productSurface: 'VIBRATION_INTEGRITY_TABLE_WORKSPACE',
-    warning: 'SCREENING ONLY — bounded FIT scope; not design authority.',
+    warning: 'PRODUCTION · BOUNDED SCREENING ONLY — design authority remains false.',
   },
   validateInput,
   calculate,
