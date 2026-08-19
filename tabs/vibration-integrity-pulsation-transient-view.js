@@ -1,3 +1,4 @@
+import { renderVibrationPulsationDecisionEvidencePanel } from './vibration-integrity-pulsation-decision-evidence-view.js?v=20260819-vib-t24-t25-evidence-1';
 import {
   VIBRATION_DYNAMIC_WORK_ITEM_MODES,
   buildVibrationDynamicWorkbenchProjection,
@@ -82,12 +83,10 @@ function itemCard(item) {
   </section>`;
 }
 
-function sourceBlockedPanel() {
+function remainingSourceBlockedPanel() {
   return `<section class="vi-card">
-    <div class="vi-section-head"><div><h3>Pending source-qualified mechanisms</h3><p>T2.4 / T2.5 and the advanced branches remain separate from the executable work items above.</p></div></div>
+    <div class="vi-section-head"><div><h3>Other pending source-qualified branches</h3><p>T2.4 / T2.5 project evidence is captured above, but their controlled decision content remains non-executable.</p></div></div>
     <div class="vi-detail-grid">
-      <div class="vi-metric"><small>T2.4 Reciprocating / PD</small><strong>SOURCE RECONCILIATION REQUIRED</strong><small>Controlled Flowchart T2-2 decision branches must be reconciled before numerical LOF activation.</small></div>
-      <div class="vi-metric"><small>T2.5 Rotating stall</small><strong>SOURCE RECONCILIATION REQUIRED</strong><small>OEM compressor-map evidence remains project evidence; no generic stall-map fallback is permitted.</small></div>
       <div class="vi-metric"><small>T2.6 advanced deadleg</small><strong>BLOCKED SOURCE</strong><small>The current workbench executes only the already-landed standard bounded method.</small></div>
       <div class="vi-metric"><small>T2.8 liquid / multiphase closure</small><strong>SEPARATE CANDIDATE</strong><small>PR471 remains the source-reconciliation neighbor and is not consumed here.</small></div>
     </div>
@@ -97,14 +96,15 @@ function sourceBlockedPanel() {
 export function renderVibrationPulsationTransientWorkspace(state) {
   const projection = buildVibrationDynamicWorkbenchProjection(state.vibrationDynamicWorkItems);
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Pulsation & Transients</h2><p>Mechanism-specific work items for bounded vibration calculations and source-gated continuations.</p></div><div class="vi-authority"><strong>BENCHMARK-ONLY WORKBENCH</strong><span>SCREENING NOT AUTHORIZED · DESIGN AUTHORITY FALSE</span></div></header>
+    <header class="vi-header"><div><h2>Pulsation & Transients</h2><p>Mechanism-specific work items for bounded vibration calculations and source-gated continuations.</p></div><div class="vi-authority"><strong>BOUNDED WORKBENCH</strong><span>SCREENING NOT AUTHORIZED · DESIGN AUTHORITY FALSE</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Work item not applied.</strong><span>${esc(state.error)}</span></div>` : ''}
-    <div class="vi-banner warn"><strong>Assessment-unit boundary.</strong><span>Deadlegs are assessed as DEADLEG_BRANCH work items and valve events as TRANSIENT_EVENT_PATH work items. These results are not silently attached to a main-line row or admitted to EI governing aggregation.</span></div>
-    <section class="vi-card"><div class="vi-section-head"><div><h3>Add bounded work item</h3><p>Only existing merged production kernels are executable in this release.</p></div><div class="vi-actions">
+    <div class="vi-banner warn"><strong>Assessment-unit boundary.</strong><span>Deadlegs are DEADLEG_BRANCH work items and valve events are TRANSIENT_EVENT_PATH work items. T2.4/T2.5 evidence records use exact line/case/canonical scope but remain non-numerical until controlled-source reconciliation.</span></div>
+    ${renderVibrationPulsationDecisionEvidencePanel(state)}
+    <section class="vi-card"><div class="vi-section-head"><div><h3>Add bounded executable work item</h3><p>Only existing merged production kernels are executable in this release.</p></div><div class="vi-actions">
       <button type="button" class="vi-btn primary" data-vi-dynamic-add="DEADLEG_STANDARD">Add Deadleg T2.6</button>
       <button type="button" class="vi-btn primary" data-vi-dynamic-add="T28_DRY_GAS_RAPID_OPENING">Add dry-gas T2.8 event</button>
     </div></div></section>
-    ${projection.items.length ? projection.items.map(itemCard).join('') : '<section class="vi-card vi-empty-state"><h3>No work items yet</h3><p>Add a Deadleg branch or dry-gas rapid-opening event above.</p></section>'}
-    ${sourceBlockedPanel()}
+    ${projection.items.length ? projection.items.map(itemCard).join('') : '<section class="vi-card vi-empty-state"><h3>No executable work items yet</h3><p>Add a Deadleg branch or dry-gas rapid-opening event above.</p></section>'}
+    ${remainingSourceBlockedPanel()}
   </div>`;
 }
