@@ -116,7 +116,14 @@ function assignmentsForRows(container, evidenceIndex, preview) {
 export function renderHpPipingClassWorkbenchTab(container, options = {}) {
   ensureBulkStyles();
   const drafts = new Map();
+  let contextProject = options?.context?.hpPipingClassProject ?? null;
   const destroyBase = renderBaseWorkbench(container, options);
+
+  function currentProject() {
+    return contextProject
+      ? parseHpPipingClassWorkspaceProject(JSON.stringify(contextProject))
+      : readProject();
+  }
 
   function setPreview(evidenceIndex, text, preview) {
     drafts.set(evidenceIndex, { text, preview });
@@ -132,7 +139,7 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
 
   function validate(evidenceIndex, text) {
     try {
-      const preview = previewHpPipingClassKdBulkInput(readProject(), evidenceIndex, text);
+      const preview = previewHpPipingClassKdBulkInput(currentProject(), evidenceIndex, text);
       setPreview(evidenceIndex, text, preview);
       return preview;
     } catch (error) {
@@ -158,7 +165,7 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
   }
 
   function apply(evidenceIndex, text) {
-    const project = readProject();
+    const project = currentProject();
     const preview = previewHpPipingClassKdBulkInput(project, evidenceIndex, text);
     if (!preview.ok) { setPreview(evidenceIndex, text, preview); return; }
     const integrity = rowIntegrity(project, evidenceIndex);
@@ -184,15 +191,19 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
 
   function onInput(event) {
     const area = event.target.closest('[data-hpwb-kd-bulk]');
-    if (!area) return;
-    drafts.set(Number(area.dataset.hpwbKdBulk), { text: area.value, preview: null });
+    if (area) {
+      drafts.set(Number(area.dataset.hpwbKdBulk), { text: area.value, preview: null });
+      return;
+    }
+    if (event.target.closest('[data-hpwb-bind]')) contextProject = null;
   }
 
   function onClick(event) {
     const target = event.target.closest('[data-hpwb-kd-bulk-action]');
     if (!target) {
       const baseAction = event.target.closest('[data-hpwb-action]')?.dataset.hpwbAction;
-      if (['remove-product', 'remove-evidence', 'load-sample', 'new-project', 'import-project'].includes(baseAction)) drafts.clear();
+      if (['remove-product', 'remove-evidence', 'load-sample', 'new-project'].includes(baseAction)) drafts.clear();
+      if (['add-product', 'remove-product', 'add-state', 'remove-state', 'add-transition', 'remove-transition', 'add-evidence', 'remove-evidence', 'add-external-result', 'add-all-external-results', 'copy-external-basis', 'remove-external-result', 'load-sample', 'new-project'].includes(baseAction)) contextProject = null;
       return;
     }
     const evidenceIndex = Number(target.dataset.evidenceIndex);
@@ -205,6 +216,7 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
   }
 
   function onChange(event) {
+    if (event.target.matches('[data-hpwb-file]') && event.target.files?.[0]) contextProject = null;
     const input = event.target.closest('[data-hpwb-kd-bulk-file]');
     if (!input?.files?.[0]) return;
     const evidenceIndex = Number(input.dataset.hpwbKdBulkFile);
