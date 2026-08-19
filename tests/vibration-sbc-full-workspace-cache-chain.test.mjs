@@ -25,6 +25,7 @@ const EDGES = Object.freeze([
   ['tabs/vibration-integrity-user-data-shell.js', `./vibration-integrity-ui-contract.js?v=${KEY}`],
   ['tabs/vibration-integrity-sbc-workspace-view.js', `./vibration-integrity-sbc-workspace-model.js?v=${KEY}`],
   ['tabs/vibration-integrity-sbc-workspace-view.js', `./vibration-integrity-sbc-connection-view.js?v=${KEY}`],
+  ['tabs/vibration-integrity-sbc-connection-view.js', `./vibration-integrity-sbc-connection-model.js?v=${KEY}`],
 ]);
 
 test('startup through SBC connection authoring uses one current UI release identity', () => {
