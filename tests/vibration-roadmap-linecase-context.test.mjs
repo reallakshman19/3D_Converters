@@ -20,6 +20,18 @@ function selectedAssessment() {
       nextActionCode: 'COMPLETE_REQUIRED_ASSESSMENTS',
       completeness: Object.freeze({ state: 'INCOMPLETE' }),
       screeningEvidence: Object.freeze({ state: 'CURRENT' }),
+      authority: Object.freeze({
+        purpose: 'LINE_CASE_WORKFLOW_STATUS_PROJECTION_ONLY',
+        determinesApplicability: false,
+        determinesCompleteness: false,
+      }),
+    }),
+    authority: Object.freeze({
+      purpose: 'SELECTED_REGISTER_SCOPE_WORKFLOW_CONTEXT_ONLY',
+      determinesApplicability: false,
+      determinesCompleteness: false,
+      createsCaseIdentity: false,
+      persistenceAuthority: 'NONE',
     }),
   });
 }
@@ -45,11 +57,18 @@ test('right rail renders exact selected line/case workflow status and next actio
   assert.match(html, /REQUIRED_ASSESSMENT_INCOMPLETE/);
   assert.match(html, /Complete required assessments/);
   assert.match(html, /EI INCOMPLETE · Screening CURRENT/);
-  assert.match(html, /Exact register scope · workflow projection only/);
+  assert.match(html, /Exact register scope · project mapping not asserted · workflow projection only/);
 });
 
 test('panel does not invent a selected case when exact context is absent', () => {
   const html = renderVibrationRoadmapPanel(projection());
+  assert.doesNotMatch(html, /vibration-roadmap-assessment/);
+  assert.doesNotMatch(html, /Case next action/);
+});
+
+test('panel fails closed when selected context lacks governed authority envelopes', () => {
+  const ungoverned = { ...selectedAssessment(), authority: undefined };
+  const html = renderVibrationRoadmapPanel(projection({ selectedAssessment: ungoverned }));
   assert.doesNotMatch(html, /vibration-roadmap-assessment/);
   assert.doesNotMatch(html, /Case next action/);
 });
