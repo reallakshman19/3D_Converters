@@ -1,0 +1,34 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-T1-MATRIX-20260819
+claim_state: ACTIVE
+branch: agent/vibration-t1-full-matrix-20260819
+files:
+  exact:
+    - tabs/vibration-integrity-identification-view.js
+    - tabs/vibration-integrity-identification-matrix.js
+    - tests/vibration-integrity-identification-matrix.test.mjs
+    - agents/WIP-VIB-T1-MATRIX-20260819_workreport.md
+    - agents/status/WIP-VIB-T1-MATRIX-20260819.yaml
+    - agents/claims/WIP-VIB-T1-MATRIX-20260819.yaml
+  prefixes: []
+authority_domains:
+  - VIBRATION_T1_IDENTIFICATION_COVERAGE_PRESENTATION
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+exclusions:
+  - automatic applicability
+  - automatic dispositions
+  - identification producer semantics
+  - mechanism coverage/completeness authority
+  - numerical screening
+  - screening authority promotion
+  - design authority
+  - workflow files
+coordination:
+  PR638: MERGED_PREDECESSOR_T1_SUGGESTIONS
+  PR571: COORDINATED_SEPARATE_COVERAGE_CONTRACT_FILES
+  PR517: BLOCKS_AIV_P0_NOT_THIS_SCOPE
+  PR539: BLOCKS_FIT_ADAPTER_P0_NOT_THIS_SCOPE
+coordination_state: SAFE
+merge_authority: OWNER_ONLY_NOT_GRANTED
