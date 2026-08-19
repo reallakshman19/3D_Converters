@@ -8,6 +8,21 @@ reconciliation_commit: 1dfc354d10908d84819279c3741addd4b98a0f22
 state: IMPLEMENTED_AWAITING_NATIVE_BROWSER_QUALIFICATION
 criticality: STANDARD_PRESENTATION_NAVIGATION
 coordination_state: SAFE_AFTER_CURRENT_MAIN_RECONCILIATION
+hosted_reconciliation:
+  basis_head: 3fa4518b3d494f168695be321919babcf7ea1558
+  ahead_by: 26
+  behind_by: 0
+  changed_files: 14
+  unexplained_files: 0
+  mergeable: true
+  draft: true
+  comments: 0
+  reviews: 0
+  review_threads: 0
+  commit_status_entries: 0
+  commit_status_classification: NOT_RUN
+  pr_triggered_workflow_runs: 0
+  workflow_classification: NOT_RUN
 validation:
   scope_contract_test: PASS_7_OF_7_LOCAL_EXECUTION
   scope_module_syntax: PASS_LOCAL_EXECUTION
@@ -26,4 +41,4 @@ authority:
   screening_authority_changed: false
   workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR671
-exact_next_action: FINAL_HOSTED_RECONCILIATION_KEEP_DRAFT_OPEN
+exact_next_action: KEEP_DRAFT_OPEN_UNTIL_NEW_OWNER_MERGE_AUTHORIZATION
