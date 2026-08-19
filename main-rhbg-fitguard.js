@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260819-sbc-full-workspace-1');
+  const module = await import('./core/app.js?v=20260819-sbc-connection-authoring-1');
   await module.init(startupMount());
 }
 
