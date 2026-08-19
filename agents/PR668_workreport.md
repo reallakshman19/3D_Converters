@@ -13,6 +13,7 @@ PR: 668
 BRANCH: agent/vibration-right-rail-case-action-20260819
 BASE_BRANCH: main
 BASE_SHA_AT_ALLOCATION: b9ffa16180a1fea017505f8e39775fb9f87523ac
+REPORT_BASIS_HEAD: 164df6429f6e67955147e1095b8e4312160afd08
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR668
 ```
 
@@ -52,7 +53,7 @@ Navigation cannot create or change applicability, completeness, case identity, p
 
 ## Product behavior
 
-The selected-assessment card now renders `Open case task` only when the governed `nextActionCode` resolves to an existing central workspace. The roadmap controller validates that the button's `data-vibration-workspace-id` matches the route derived from the action code, then clicks the existing matching `data-vi-workspace-tab` control. It does not remount FIT or invoke Engineering Calculation definition routing.
+The selected-assessment card renders `Open case task` only when the governed `nextActionCode` resolves to an existing central workspace. The roadmap controller validates that the button's `data-vibration-workspace-id` matches the route derived from the action code, then clicks the existing matching `data-vi-workspace-tab` control. It does not remount FIT or invoke Engineering Calculation definition routing.
 
 ## Coordination correction
 
@@ -63,24 +64,32 @@ engineering-calculations-tab.js  f767f4b55dd1cbd86f5d1d54135f0f457d8b7352
 vibration-integrity-tab.js        db71386f048fbc7b4891eacf9709a071825eda1f
 ```
 
-Their unused backup copies were also deleted. Neither path appears in PR668's effective diff.
+Their unused backup copies were deleted. Neither path appears in PR668's effective diff. PR615's roadmap-controller claim is stale because PR615 is closed/merged. PR665, PR517 and PR539 remain active semantic neighbors with no exact-file overlap in the final scope.
 
-PR615's roadmap-controller claim is stale because PR615 is closed/merged. PR665, PR517 and PR539 remain active semantic neighbors with no exact-file overlap in the final scope.
+## Changed-file ledger
 
-## Final product/test paths
-
-```text
-tabs/vibration-roadmap-workspace-routing.js
-tabs/vibration-roadmap-panel.js
-tabs/vibration-roadmap-controller.js
-tests/vibration-roadmap-case-action-routing.test.mjs
-```
-
-Rollback evidence:
+All 12 hosted paths are explained:
 
 ```text
-.backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-panel.js
-.backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-controller.js
+PRODUCT / TEST
+  tabs/vibration-roadmap-workspace-routing.js
+  tabs/vibration-roadmap-panel.js
+  tabs/vibration-roadmap-controller.js
+  tests/vibration-roadmap-case-action-routing.test.mjs
+
+ROLLBACK EVIDENCE
+  .backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-panel.js
+  .backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-controller.js
+
+PR RECOVERY AUTHORITY
+  agents/PR668_workreport.md
+  agents/status/PR668.yaml
+  agents/claims/PR668.yaml
+
+RELEASED WIP HISTORY
+  agents/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819_workreport.md
+  agents/status/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
+  agents/claims/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
 ```
 
 Native `node utils/backup.js` remains `NOT_RUN / ENVIRONMENT_BLOCKED`; connector/Git-blob copies are rollback evidence, not a native backup PASS.
@@ -118,20 +127,24 @@ native backup CLI                                 NOT_RUN / ENVIRONMENT_BLOCKED
 independent numerical verification                NOT_APPLICABLE / no numerical change
 ```
 
-## Allocation reconciliation
+## Hosted reconciliation basis
 
-At PR allocation:
+At `164df6429f6e67955147e1095b8e4312160afd08`:
 
 ```text
-main       b9ffa16180a1fea017505f8e39775fb9f87523ac
-head       9ba1eab0979a68ff2cc169ab4a1911b1d129376d
-relation   ahead 21 / behind 0
-paths      9 intended / 0 unexplained
-PR         open / draft
+main                         b9ffa16180a1fea017505f8e39775fb9f87523ac
+relation                     ahead 28 / behind 0
+changed paths                12 intended / 0 unexplained
+PR                           open / draft / mergeable
+comments                     0
+reviews                      0
+review threads               0
+commit status entries        0 -> NOT_RUN
+PR-triggered workflow runs   0 -> NOT_RUN
 ```
 
-Refresh live state after PR-numbered recovery commits before handover.
+Subsequent commits after this basis are recovery-report/status synchronization only unless product/test blob identity changes.
 
 ## Exact next action
 
-Refresh main + PR668 head, compare changed paths, reviews/threads/comments, commit statuses and PR-triggered workflow runs. Keep PR draft and do not merge without a new explicit owner authorization for PR668.
+Keep PR668 draft open. If further technical work occurs, re-ground and revalidate affected blobs. Do not merge without a new explicit owner authorization for PR668.
