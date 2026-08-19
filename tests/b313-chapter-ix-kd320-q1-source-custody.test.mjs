@@ -31,6 +31,23 @@ function receipt(id, value = receipts) {
   return value.receipts.find((item) => item.receiptId === id);
 }
 
+function completeReceiptEvidence(item, index) {
+  item.status = 'CONTROLLED_RECEIPT_VERIFIED';
+  item.secureStorageRef = `secure://controlled/${index}`;
+  item.documentSha256 = `sha256:${String(index + 1).repeat(64)}`;
+  item.exactLocators = [`CONTROLLED-LOCATOR-${index + 1}`];
+  item.verifiedBy = 'Source Verifier A';
+  item.verifiedAt = '2026-08-19T10:00:00Z';
+  item.independentCheckBy = 'Independent Checker B';
+  item.independentCheckedAt = '2026-08-19T11:00:00Z';
+}
+
+function reconcileSources(ledger) {
+  for (const sourceId of Object.values(KD320_Q1_CONTROLLED_SOURCE_BINDINGS)) {
+    source(sourceId, ledger).status = 'CONTROLLED_SOURCE_RECONCILED';
+  }
+}
+
 test('Q1 has one distinct restricted controlled source for each required receipt', () => {
   assert.deepEqual(KD320_Q1_CONTROLLED_SOURCE_BINDINGS, {
     'Q1-SRC-B313-2024': 'SRC-B313-2024-CONTROLLED',
@@ -97,25 +114,47 @@ test('controlled source cannot be downgraded to public or public-content-allowed
 
 test('verified receipt cannot coexist with unreconciled controlled-source status', () => {
   const altered = structuredClone(receipts);
-  receipt('Q1-SRC-B313-2024', altered).status = 'CONTROLLED_RECEIPT_VERIFIED';
+  completeReceiptEvidence(receipt('Q1-SRC-B313-2024', altered), 0);
   const result = audit({ receipts: altered });
   assert.equal(result.ok, false);
   assert(result.blockers.includes('Q1-SRC-B313-2024:VERIFIED_RECEIPT_REQUIRES_RECONCILED_SOURCE'));
   assert.equal(result.sourceCustodyComplete, false);
 });
 
-test('terminal status strings cannot override a structurally invalid binding', () => {
+test('terminal status strings without receipt evidence cannot complete source custody', () => {
   const alteredReceipts = structuredClone(receipts);
   const alteredLedger = structuredClone(sourceLedger);
   for (const item of alteredReceipts.receipts) item.status = 'CONTROLLED_RECEIPT_VERIFIED';
-  for (const item of Object.values(KD320_Q1_CONTROLLED_SOURCE_BINDINGS)) {
-    source(item, alteredLedger).status = 'CONTROLLED_SOURCE_RECONCILED';
-  }
+  reconcileSources(alteredLedger);
+  const result = audit({ receipts: alteredReceipts, sourceLedger: alteredLedger });
+  assert.equal(result.ok, false);
+  assert.equal(result.sourceCustodyComplete, false);
+  assert(result.blockers.includes('Q1-SRC-B313-2024:VERIFIED_RECEIPT_DOCUMENT_SHA256_INVALID'));
+  assert(result.blockers.includes('Q1-SRC-VIII3-2025:VERIFIED_RECEIPT_EXACT_LOCATORS_MISSING'));
+});
+
+test('terminal status strings cannot override a structurally invalid binding', () => {
+  const alteredReceipts = structuredClone(receipts);
+  const alteredLedger = structuredClone(sourceLedger);
+  alteredReceipts.receipts.forEach(completeReceiptEvidence);
+  reconcileSources(alteredLedger);
   source('SRC-B313-2024-CONTROLLED', alteredLedger).receiptRef = 'Q1-SRC-VIII3-2025';
   const result = audit({ receipts: alteredReceipts, sourceLedger: alteredLedger });
   assert.equal(result.ok, false);
   assert.equal(result.sourceCustodyComplete, false);
   assert(result.blockers.includes('Q1-SRC-B313-2024:CONTROLLED_SOURCE_RECEIPT_BACKREF_MISMATCH'));
+});
+
+test('complete synthetic custody metadata can satisfy structure without granting KD320 authority', () => {
+  const alteredReceipts = structuredClone(receipts);
+  const alteredLedger = structuredClone(sourceLedger);
+  alteredReceipts.receipts.forEach(completeReceiptEvidence);
+  reconcileSources(alteredLedger);
+  const result = audit({ receipts: alteredReceipts, sourceLedger: alteredLedger });
+  assert.equal(result.ok, true, result.blockers.join('\n'));
+  assert.equal(result.sourceCustodyComplete, true);
+  assert.equal(result.authority.nativeCoreKd3Qualified, false);
+  assert.equal(result.authority.canUseForDesignAuthority, false);
 });
 
 test('source custody cannot promote native KD320 authority', () => {
