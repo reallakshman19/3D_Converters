@@ -4,22 +4,21 @@
 
 ```text
 HANDOVER_READINESS: READY
-PR_RECOVERY_STATE: IMPLEMENTED_AWAITING_NATIVE_BROWSER_QUALIFICATION
+PR_RECOVERY_STATE: MERGE_AUTHORIZED_RECONCILED
 WORK_INTENT: IMPLEMENT
-MUTATION_AUTHORITY: WRITE_ALLOWED
 CRITICALITY: STANDARD_PRESENTATION_NAVIGATION
 REPOSITORY: reallaksh19/3D_Converters
 PR: 668
 BRANCH: agent/vibration-right-rail-case-action-20260819
 BASE_BRANCH: main
-BASE_SHA_AT_ALLOCATION: b9ffa16180a1fea017505f8e39775fb9f87523ac
-REPORT_BASIS_HEAD: 164df6429f6e67955147e1095b8e4312160afd08
-MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR668
+CURRENT_MAIN_AT_RECONCILE: 4246f1a088cf06f072a28660c6d49613fbb65013
+RECONCILIATION_COMMIT: ca85fb42a7d78df922823e074a706fd42bf0a301
+MERGE_AUTHORITY: OWNER_GRANTED_FOR_PR668_2026_08_19
 ```
 
-## Handover in 60 seconds
+## Mission and usable behavior
 
-PR668 makes the merged #658 right-rail `Case next action` executable without changing the governed source or engineering meaning of the next action.
+PR668 makes the merged #658 right-rail `Case next action` executable without changing the governed source or engineering meaning of that next action.
 
 ```text
 VibrationLineCaseAssessmentStatus.v1.nextActionCode
@@ -30,11 +29,11 @@ VibrationLineCaseAssessmentStatus.v1.nextActionCode
 -> existing Vibration Integrity workspace handler
 ```
 
-Identification actions route to the existing `identification` workspace. Assessment-gap/review actions route to the existing `screening` workspace. Unsupported action codes fail closed and remain non-clickable.
+Identification actions route to `identification`. Assessment-gap/review actions route to `screening`. Unsupported action codes fail closed and remain non-clickable. The route does not remount FIT, clear the selected facility row, or invoke Engineering Calculation definition routing.
 
 ## Authority boundary
 
-`VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY`:
+`VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY` remains presentation/navigation only:
 
 ```text
 purpose                 RIGHT_RAIL_WORKSPACE_NAVIGATION_ONLY
@@ -49,26 +48,17 @@ screeningAuthority      NOT_AUTHORIZED
 designAuthority         false
 ```
 
-Navigation cannot create or change applicability, completeness, case identity, persistence, numerical results, screening authority, engineering disposition, verification, design/code/safety/root-cause authority, or the source `nextActionCode`.
+No applicability/completeness semantics, project persistence, case identity, numerical method/master, screening/governing authority, engineering disposition, verification, design/code/safety/root-cause authority, workflow file, runtime, writer or canvas ownership changed.
 
-## Product behavior
+## Coordination and re-grounding
 
-The selected-assessment card renders `Open case task` only when the governed `nextActionCode` resolves to an existing central workspace. The roadmap controller validates that the button's `data-vibration-workspace-id` matches the route derived from the action code, then clicks the existing matching `data-vi-workspace-tab` control. It does not remount FIT or invoke Engineering Calculation definition routing.
+An early implementation touched `tabs/engineering-calculations-tab.js` and `tabs/vibration-integrity-tab.js`; live coordination found open PR649 owns those shared UI/cache paths. Those tentative edits were removed and both files restored byte-for-byte before PR allocation. They are absent from the effective PR diff.
 
-## Coordination correction
-
-An initial implementation touched `tabs/engineering-calculations-tab.js` and `tabs/vibration-integrity-tab.js`. Live claim inspection then showed open PR649 owns those exact files and shared UI/cache custody. Both edits were removed and the files restored byte-for-byte to current-main blobs:
-
-```text
-engineering-calculations-tab.js  f767f4b55dd1cbd86f5d1d54135f0f457d8b7352
-vibration-integrity-tab.js        db71386f048fbc7b4891eacf9709a071825eda1f
-```
-
-Their unused backup copies were deleted. Neither path appears in PR668's effective diff. PR615's roadmap-controller claim is stale because PR615 is closed/merged. PR665, PR517 and PR539 remain active semantic neighbors with no exact-file overlap in the final scope.
+After the owner authorized merge on 2026-08-19, `main` had advanced by unrelated HP/KD320 PR669 to `4246f1a088cf06f072a28660c6d49613fbb65013`. PR668 was 30 ahead / 1 behind. PR669 had no final-path overlap. PR668 was non-destructively reconciled with a two-parent commit `ca85fb42a7d78df922823e074a706fd42bf0a301`, using current main as the base tree and overlaying the exact PR668 blobs. Post-reconcile relation was 31 ahead / 0 behind and GitHub mergeability returned true.
 
 ## Changed-file ledger
 
-All 12 hosted paths are explained:
+All 12 paths are explained:
 
 ```text
 PRODUCT / TEST
@@ -81,7 +71,7 @@ ROLLBACK EVIDENCE
   .backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-panel.js
   .backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-controller.js
 
-PR RECOVERY AUTHORITY
+PR RECOVERY
   agents/PR668_workreport.md
   agents/status/PR668.yaml
   agents/claims/PR668.yaml
@@ -92,59 +82,30 @@ RELEASED WIP HISTORY
   agents/claims/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
 ```
 
-Native `node utils/backup.js` remains `NOT_RUN / ENVIRONMENT_BLOCKED`; connector/Git-blob copies are rollback evidence, not a native backup PASS.
+## Validation truth
 
-## Exact focused validation
-
-Exact branch bytes were reconstructed locally and Git blob identities matched GitHub:
+Validated product/test blobs remain unchanged through reconciliation:
 
 ```text
-workflow   e6f21bba96ca9eef5fb369f6a5fe0c35ccdf27e6
 route      f2ed7234b9d332bf5a44e9b988a5c364a2ebb83f
 panel      7e855d95897e12c665f75bfd404bf89fdc543e41
 controller 6842ed5284cf9a1e5d3f21b5648ac6f0a42947a3
 test       7d23327d09e189e7cb3bc1047fe9716bddb7c4ea
 ```
 
-Executed:
-
 ```text
-focused case-action routing test   PASS 6/6 / LOCAL_EXECUTION
-panel syntax                       PASS / LOCAL_EXECUTION
-controller syntax                  PASS / LOCAL_EXECUTION
-exact Git blob identity            PASS / ARTIFACT_INSPECTION
-new JS line policy                 PASS: route 39; test 100
-controller physical lines          283
-panel physical lines               166
+focused case-action test                   PASS 6/6 / LOCAL_EXECUTION
+panel syntax                               PASS / LOCAL_EXECUTION
+controller syntax                          PASS / LOCAL_EXECUTION
+exact product/test blob identity           PASS / ARTIFACT_INSPECTION
+repository-native broader regressions      NOT_RUN / ENVIRONMENT_BLOCKED
+served browser case-action journey         NOT_RUN / ENVIRONMENT_BLOCKED
+native node utils/backup.js                NOT_RUN / ENVIRONMENT_BLOCKED
+independent numerical verification         NOT_APPLICABLE / no numerical change
 ```
 
-Still NOT_RUN:
-
-```text
-repository-native broader vibration regressions  NOT_RUN / ENVIRONMENT_BLOCKED
-served browser case-action journey                NOT_RUN / ENVIRONMENT_BLOCKED
-native backup CLI                                 NOT_RUN / ENVIRONMENT_BLOCKED
-independent numerical verification                NOT_APPLICABLE / no numerical change
-```
-
-## Hosted reconciliation basis
-
-At `164df6429f6e67955147e1095b8e4312160afd08`:
-
-```text
-main                         b9ffa16180a1fea017505f8e39775fb9f87523ac
-relation                     ahead 28 / behind 0
-changed paths                12 intended / 0 unexplained
-PR                           open / draft / mergeable
-comments                     0
-reviews                      0
-review threads               0
-commit status entries        0 -> NOT_RUN
-PR-triggered workflow runs   0 -> NOT_RUN
-```
-
-Subsequent commits after this basis are recovery-report/status synchronization only unless product/test blob identity changes.
+Connector/Git-blob rollback copies exist for edited roadmap files; they are not represented as native backup PASS.
 
 ## Exact next action
 
-Keep PR668 draft open. If further technical work occurs, re-ground and revalidate affected blobs. Do not merge without a new explicit owner authorization for PR668.
+Refresh the final recovery-only head against current main, reviews/threads/comments, commit statuses and PR-triggered workflow runs. Empty hosted checks remain NOT_RUN. If no unexpected drift or overlap exists, mark PR668 ready and squash-merge under the owner authorization recorded above; then verify merged main before starting the next production slice.
