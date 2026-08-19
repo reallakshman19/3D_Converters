@@ -1,3 +1,5 @@
+import { evaluateKd320Q1ExitAttestation } from '../kd320-q1/formal-exit.js';
+
 const TARGET = Object.freeze({
   b313Edition: '2024',
   viii3Edition: '2025',
@@ -224,10 +226,15 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
   const semanticsComplete = semanticChecks.length === SEMANTIC_IDS.length
     && semanticChecks.every(Boolean);
 
-  const q1Complete = receiptsComplete && semanticsComplete;
-  const projectReady = candidate.projectOracle
+  const q1Exit = evaluateKd320Q1ExitAttestation(candidate.q1ExitAttestation, {
+    sourceReceipts: candidate.sourceReceipts,
+    semanticItems: candidate.semanticItems,
+  });
+  blockers.push(...q1Exit.blockers);
+  const q1Complete = receiptsComplete && semanticsComplete && q1Exit.ready;
+  const projectReady = (candidate.projectOracle || q1Complete)
     ? projectOracleReady(candidate.projectOracle, blockers) : false;
-  const primaryReady = candidate.publishedOracle
+  const primaryReady = (candidate.publishedOracle || q1Complete)
     ? publishedOracleReady(candidate.publishedOracle, blockers) : false;
 
   let state = 'Q1_CONTROLLED_EVIDENCE_PENDING';
@@ -245,6 +252,7 @@ export function evaluateKd320Q2AdmissionCandidate(candidate = {}) {
     q1Complete,
     q2OracleAdmissionReady: state === 'Q2_ORACLE_ADMISSION_READY',
     blockers: [...new Set(blockers)],
+    q1Exit,
     oracleCustody: {
       methodSemanticRefs: [...METHOD_SEMANTIC_IDS],
       chainSemanticCustody: { ...CHAIN_SEMANTIC_CUSTODY },

@@ -99,6 +99,37 @@ PRODUCT_RELEASE
 
 Passing Q1 can at most authorize **Q2 independent oracle completion**. It cannot authorize a native production kernel and cannot enable design authority.
 
+### `formal-exit.js` and `formal-exit-attestation.template.json`
+
+Q2 is not allowed to infer formal Q1 completion merely because the two receipt records and 14 semantic rows look complete. Formal Q1 exit requires an independently checked, redacted attestation after the controlled evidence ledger has actually reached:
+
+```text
+E01 E02 E03 E04 E05 E06 E07 E08 = PASS
+G0 G1 = PASS
+```
+
+The attestation is bound to:
+
+```text
+VR-B313-CH9-KD320-NATIVE-001-Q1
+exact B31.3-2024 and VIII-3-2025 document hashes
+all SEM-001...014 source/locator/opaque-semantic bindings
+controlled evidence-ledger secure ref + SHA-256
+Q1 audit-report secure ref + SHA-256
+attestor identity + UTC timestamp
+separate independent checker identity + UTC timestamp
+permanently false native/design/Code authority
+```
+
+Canonical semantic source binding is rechecked independently at the exit boundary:
+
+```text
+KD320-SEM-001       -> Q1-SRC-B313-2024
+KD320-SEM-002..014  -> Q1-SRC-VIII3-2025
+```
+
+The attestation must not contain licensed Code text, equations, curve points, or native KD320 formulae. It is a custody record, not the engineering source itself.
+
 ## Required human/source work to close Q1
 
 ### Step 1 — source officer / implementer
@@ -132,6 +163,12 @@ A different engineer independently checks:
 
 Q1 is complete only after E01-E08 and G0-G1 are explicitly PASS with checker custody.
 
+### Step 4 — formal Q1 exit attestation
+
+After the formal Q1 audit is complete, create the redacted exit attestation from `formal-exit-attestation.template.json`. Bind it to the exact controlled evidence-ledger and audit-report hashes and to the same receipt/semantic records that will be submitted to Q2. A second identity independently checks the attestation.
+
+A missing, incomplete, hash-mismatched, locator-mismatched, noncanonical, or self-checked attestation keeps Q2 at `Q1_CONTROLLED_EVIDENCE_PENDING`.
+
 ## Q1 exit effect
 
 Even after Q1 is completed:
@@ -148,7 +185,7 @@ The only promotion is:
 Q2_INDEPENDENT_ORACLE_COMPLETION = ALLOWED
 ```
 
-Q2 may then populate the 14 pending native oracle cases from independent expected-value sources. Expected values must be frozen before they are compared to future production code.
+Q2 may then populate the pending native oracle cases from independent expected-value sources. Expected values must be frozen before they are compared to future production code.
 
 ## Verification
 
@@ -166,3 +203,5 @@ The gate executes:
 - Q1 contract tests.
 
 The Q1 audit imports only qualification tooling. It does not import production converters, the central calculation registry, the HP workspace controller, or the legacy calculator.
+
+For Q2 admission, the Q2 candidate evaluator separately validates the formal exit attestation against the exact receipt hashes and semantic bindings. This prevents a Q2 candidate from bypassing the E01-E08/G0-G1 method-qualification gate.

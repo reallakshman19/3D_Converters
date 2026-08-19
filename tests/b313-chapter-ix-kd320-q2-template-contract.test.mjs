@@ -28,6 +28,12 @@ test('Q2 candidate template retains all fourteen Q1 semantic placeholders', () =
   );
 });
 
+test('Q2 candidate template never preclaims formal Q1 exit', () => {
+  const candidate = loadTemplate();
+  assert.equal(candidate.q1ExitAttestation, null);
+  assert(candidate._instructions.some((line) => line.includes('E01-E08') && line.includes('G0-G1')));
+});
+
 test('QF023 template cites exact method semantics and both controlled receipts', () => {
   const oracle = loadTemplate().projectOracle;
   assert.deepEqual(oracle.semanticRefs, KD320_Q2_METHOD_SEMANTICS);
