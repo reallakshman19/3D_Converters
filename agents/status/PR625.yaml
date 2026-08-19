@@ -3,20 +3,22 @@ repository: reallaksh19/3D_Converters
 work_id: PR625
 branch: agent/hp-kd320-edition-reconciliation
 base_pr: 623
-base_sha: c7925d3ef61946ceb0afe4ddb549aba05fb483e7
-technical_head: 56df0185bc5f4be2920f78f2ff59e1c5cb8e690d
+base_sha: dd789f69399e1f5cf485a67526d6bbbae9697f72
 workstream: HP_KD320_QUALIFICATION
 stage: Q2_TARGET_EDITION_RECONCILIATION_GATE
 criticality: ENGINEERING_CRITICAL
-state: HARD_BOUNDARY_REACHED
-execution_mode: AUTO
-merge_authority: OWNER_ONLY_NOT_GRANTED
+state: READY_FOR_AUTHORIZED_MERGE
+execution_mode: MANUAL
+merge_authority: OWNER_GRANTED_ON_COMPLETION
+stack_state:
+  successor_pr648: MERGED_INTO_THIS_BRANCH
 validation:
-  syntax: PASS
-  focused_edition_reconciliation: PASS_10_OF_10
-  template_audit: PASS_PENDING
-  template_strict_ready: FAIL_CLOSED_EXIT_2
+  focused_edition_reconciliation: PASS_10_OF_10_RETAINED
+  template_audit: PASS_PENDING_RETAINED
+  template_strict_ready: FAIL_CLOSED_EXIT_2_RETAINED
+  csv_intake_successor: PASS_16_OF_16_LOCAL_EXECUTION
   actual_controlled_2025_reconciliation: NOT_RUN_EVIDENCE_PENDING
+  hosted_ci: REFRESH_BEFORE_MERGE
 authority:
   target_qf022_ready: false
   q2_oracle_admission_ready: false
@@ -24,4 +26,5 @@ authority:
   code_compliance: false
   design_authority: false
   production_kernel_allowed: false
-exact_next_action: Populate the reconciliation only from controlled VIII-3 2025 source custody and independent checking, then submit reconciled QF022 evidence through PR622.
+  automatic_promotion_allowed: false
+exact_next_action: Reconcile live PR625 checks/reviews and merge into PR623 branch with an expected-head guard; do not treat merge as target-edition engineering reconciliation.
