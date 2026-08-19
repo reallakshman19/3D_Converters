@@ -1,0 +1,41 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr: 655
+mission: controlled-source method qualification for EI AVIFF T4 thermowell assessment
+workstream: VIB.PENDING.MECHANISMS.T4_SOURCE_QUALIFICATION
+branch: agent/vib-t4-source-qualification-20260819
+base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
+pr_head_observed: 41d907b53c132d773f0abe484e7ab1d23eadf1eb
+report_basis_head: 41d907b53c132d773f0abe484e7ab1d23eadf1eb
+work_intent: QUALIFY_SOURCE_ONLY
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR655_workreport.md
+report_sync: CURRENT
+appendix_a_status: NOT_QUALIFIED_FOR_NUMERICAL_MUTATION
+grounding_epoch: GE-002
+current_stage: SOURCE_QUALIFICATION_BLOCKED
+blocker: CONTROLLED_PDF_PAGE_EXECUTION_ENVIRONMENT_BLOCKED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+protected_authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  production_kernel: false
+  source_register_promotion: false
+  asme_into_ei_master: false
+source_truth:
+  merged_pr482_candidate: RETAIN_CANDIDATE_NOT_QUALIFIED
+  controlled_page_execution: NOT_RUN_ENVIRONMENT_BLOCKED
+  public_mirrors: CORROBORATION_ONLY
+  source_registry_thermowell_binding: CONFLICTED_EI_T4_VS_ASME_LABEL
+validation_truth:
+  repository_native_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  independent_engineering_review: NOT_RUN
+  hosted_commit_statuses: PENDING_FINAL_HEAD_QUERY
+  hosted_pr_workflow_runs: PENDING_FINAL_HEAD_QUERY
+  reviews: PENDING_FINAL_QUERY
+  review_threads: PENDING_FINAL_QUERY
+exact_next_action: EXECUTE_CONTROLLED_T4_PAGES_IN_BINARY_CAPABLE_RUNTIME
