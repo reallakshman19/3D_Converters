@@ -1,0 +1,132 @@
+{
+  "schema": "T4ControlledSourceQualification.v1",
+  "issue": 654,
+  "parentProgramme": 450,
+  "familyProgramme": 429,
+  "mergedCandidateBaseline": 482,
+  "baseCommit": "95ee50ff78d81465f3e4968f62767d866f8b9da8",
+  "controlledSource": {
+    "repository": "reallaksh19/Common",
+    "commit": "fb549185b9b27edc2379734240320a85c5bef9f6",
+    "path": "EI - AVIFF Guidelines 2nd Edition.pdf",
+    "gitBlobSha1": "sha1:9d3eccc56429411e17c07a579bdebbd13cb0bdc5",
+    "sizeBytes": 10348594,
+    "edition": "2nd Edition",
+    "technicalModule": "T4",
+    "tableLocator": {
+      "section": "T4.2.2",
+      "identifier": "Table T4-1",
+      "printedPage": 87,
+      "pdfPages": [],
+      "locatorStatus": "NAVIGATION_ONLY"
+    },
+    "pageSelection": null,
+    "pageHashes": [],
+    "sectionHashes": [],
+    "controlledPageExecution": "NOT_RUN_ENVIRONMENT_BLOCKED"
+  },
+  "controlledAccessAttempt": {
+    "route": "CONNECTED_GITHUB_FETCH_BLOB",
+    "status": "ENVIRONMENT_BLOCKED",
+    "observation": "Exact binary blob identity is reachable but the connector attempts UTF-8 decoding of PDF bytes and cannot expose the controlled pages.",
+    "engineeringDisposition": "NO_CONTROLLED_T4_METHOD_CONTENT_OBSERVED"
+  },
+  "mergedWallModifierCandidate": {
+    "recordPath": "ValidationRecords/VibrationMasters/ei-aviff-t4-wall-modifier-candidate-v1.json",
+    "dataPath": "docs/Masters/Vibration/ei-aviff-t4-wall-modifier.candidate.csv",
+    "publicationState": "CANDIDATE",
+    "qualificationStatus": "NOT_QUALIFIED",
+    "masterValuesPublished": false,
+    "rows": [
+      { "scheduleBand": "SCHEDULE_160_OR_GREATER", "FM": 0.96, "FMWith4WayWeldedGussets": 0.98 },
+      { "scheduleBand": "SCHEDULE_80_TO_LT_160", "FM": 0.93, "FMWith4WayWeldedGussets": 0.96 },
+      { "scheduleBand": "SCHEDULE_40_TO_LT_80", "FM": 0.85, "FMWith4WayWeldedGussets": 0.93 },
+      { "scheduleBand": "LESS_THAN_SCHEDULE_40", "FM": 0.42, "FMWith4WayWeldedGussets": 0.85 }
+    ],
+    "lookupBehavior": {
+      "inputDomain": "EXPLICIT_CATEGORICAL_SCHEDULE_BAND",
+      "unknownBand": "NOT_READY",
+      "interpolationForbidden": true,
+      "nearestBandFallbackForbidden": true,
+      "implicitStdMappingForbidden": true
+    },
+    "mutationByThisQualification": false
+  },
+  "publicCorroboration": {
+    "classification": "SECONDARY_PUBLICATION_NAVIGATION_AND_RECONCILIATION_ONLY",
+    "engineeringAuthority": "NONE",
+    "tableT41": {
+      "status": "CORROBORATES_MERGED_CANDIDATE_ROWS",
+      "sources": [
+        "https://studylib.net/doc/26210282/energy-institute-guidelines-for-the-avoidance-of-vibratio...",
+        "https://studylib.net/doc/27844928/pdfcoffee.com-energy-institute-aviff-guidelinespdf",
+        "https://www.scribd.com/document/673058764/EI-Guidelines-for-the-Avoidance-of-Vibration-Induced-Fatigue-Failure-in-Process-Pipework"
+      ],
+      "productionUse": "PROHIBITED"
+    },
+    "candidateFlowchart": {
+      "qualificationStatus": "NOT_QUALIFIED_PUBLIC_CORROBORATION_ONLY",
+      "steps": [
+        { "stepId": "T4-CAND-001", "operation": "DEFINE_THERMOWELL_TYPE", "candidateTypes": ["STRAIGHT", "TAPERED", "STEPPED"] },
+        { "stepId": "T4-CAND-002", "operation": "PREDICT_STRUCTURAL_NATURAL_FREQUENCY", "equationIds": ["T4-EQ-1", "T4-EQ-2", "T4-EQ-3"], "equationsQualified": false },
+        { "stepId": "T4-CAND-003", "operation": "RESOLVE_PARENT_PIPE_WALL_MODIFIER", "masterCandidate": "EI_AVIFF.T4.WALL_MODIFIER.v1" },
+        { "stepId": "T4-CAND-004", "operation": "PREDICT_VORTEX_EXCITATION_FREQUENCY", "equationIds": ["T4-EQ-4", "T4-EQ-5"], "equationsQualified": false },
+        { "stepId": "T4-CAND-005", "operation": "COMPARE_FREQUENCY_RATIO_TO_THRESHOLD", "candidateRatio": "Fv / (fn * FM)", "candidateThreshold": 0.8, "exactEqualityDirection": "PENDING_CONTROLLED_SOURCE" },
+        { "stepId": "T4-CAND-006", "operation": "SOURCE_DEFINED_LOF_BRANCH", "candidateOutcomes": [0.29, 1.0], "branchSemantics": "PENDING_CONTROLLED_SOURCE" }
+      ]
+    }
+  },
+  "methodIdentity": {
+    "sourceRegistryPath": "converters/vibration/source/registry.js",
+    "currentMechanismBinding": "CONFLICTED",
+    "observedSources": [
+      "EI_AVIFF_2008:T4",
+      "ASME_PTC_19_3_TW_2016:REPOSITORY_LABEL"
+    ],
+    "requiredSeparation": [
+      "EI_AVIFF_T4_THERMOWELL_ASSESSMENT",
+      "ASME_PTC_19_3_TW_DETAILED_ASSESSMENT"
+    ],
+    "decision": "DO_NOT_COMBINE_ASME_METHOD_DATA_WITH_EI_T4_MASTER"
+  },
+  "unresolvedControlledPredicates": [
+    { "id": "T4-PRED-001", "name": "flowchartT41ExactBranchStructure", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-002", "name": "frequencyRatioBoundaryEqualityAt0p8", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-003", "name": "equations1Through5AndConstants", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-004", "name": "straightGeometryDefinitionAndDimensions", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-005", "name": "taperedGeometryDefinitionAndDimensions", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-006", "name": "steppedGeometryDefinitionAndDimensions", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-007", "name": "thermowellMaterialPropertyCustody", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-008", "name": "parentPipeScheduleBandResolutionFromPhysicalWall", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-009", "name": "fourWayWeldedGussetApplicability", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-010", "name": "vortexFrequencyReynoldsStrouhalMethod", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-011", "name": "operatingCaseFluidVelocityAndPhaseApplicability", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-012", "name": "pulsationMechanicalExcitationSpecialistEscalation", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-013", "name": "lofAndCorrectiveActionSemantics", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T4-PRED-014", "name": "eiVsAsmeMethodIdentityBoundary", "status": "PENDING_CONTROLLED_SOURCE" }
+  ],
+  "implementationHardStops": [
+    "CONTROLLED_T4_PAGE_EXECUTION_NOT_RUN",
+    "T4_EQUATIONS_NOT_CONTROLLED",
+    "T4_GEOMETRY_TAXONOMY_NOT_CONTROLLED",
+    "T4_0P8_EQUALITY_NOT_CONTROLLED",
+    "EI_ASME_METHOD_IDENTITY_CONFLICT_UNRESOLVED",
+    "SOURCE_REGISTER_GEOMETRY_TYPES_NOT_RECONCILED"
+  ],
+  "qualification": {
+    "controlledSourceQualification": "BLOCKED_ENVIRONMENT",
+    "wallModifierCandidate": "RETAIN_CANDIDATE_NOT_QUALIFIED",
+    "fullMethodQualification": "NOT_QUALIFIED",
+    "numericalMutationDisposition": "NOT_QUALIFIED_FOR_T4_NUMERICAL_MUTATION",
+    "sourceRegisterPromotionAllowed": false,
+    "screeningPromotionAllowed": false
+  },
+  "authority": {
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false,
+    "productionKernelAuthorized": false,
+    "asmeMethodImportedIntoEiMaster": false
+  },
+  "exactNextAction": "Execute and hash the exact controlled T4 pages in a binary-capable runtime, reconcile Flowchart T4-1, Equations 1-5, geometry and the 0.8 boundary, resolve EI-vs-ASME method identity, then build independent thermowell benchmark families before any production kernel mutation."
+}
