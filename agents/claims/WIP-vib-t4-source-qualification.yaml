@@ -1,36 +1,9 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-vib-t4-source-qualification
-claim_state: ACTIVE
+claim_state: SUPERSEDED
 branch: agent/vib-t4-source-qualification-20260819
-claim_modes:
-  - EXCLUSIVE
-  - OBSERVE_ONLY
-files:
-  exact:
-    - ValidationRecords/VibrationMasters/t4-source-qualification-blocked-v1.json
-    - docs/vibration/T4-Controlled-Source-Reconciliation-v1.md
-    - tests/vibration-t4-source-contract.test.mjs
-    - agents/WIP-vib-t4-source-qualification_workreport.md
-    - agents/status/WIP-vib-t4-source-qualification.yaml
-    - agents/claims/WIP-vib-t4-source-qualification.yaml
-authority_domains:
-  - T4_CONTROLLED_SOURCE_QUALIFICATION
-  - T4_METHOD_IDENTITY_SEPARATION
-observe_only:
-  - ValidationRecords/VibrationMasters/ei-aviff-t4-wall-modifier-candidate-v1.json
-  - docs/Masters/Vibration/ei-aviff-t4-wall-modifier.candidate.csv
-  - docs/Masters/Vibration/source-register.json
-  - converters/vibration/source/registry.js
-exclusions:
-  - T4_CANDIDATE_ROW_MUTATION
-  - EI_T4_PRODUCTION_KERNEL
-  - ASME_PTC_NUMERICAL_METHOD
-  - SCREENING_OR_DESIGN_AUTHORITY
-  - SOURCE_REGISTER_STATE_PROMOTION
-  - .github/workflows/*
-coordination:
-  issue654: HARD_MISSION_PARENT
-  issue450: HARD_SOURCE_PARENT
-  issue429: HARD_PROGRAMME_PARENT
-  mergedPR482: CANDIDATE_BASELINE_READ_ONLY
+superseded_by: PR655
+active_claim_path: agents/claims/PR655.yaml
+active_status_path: agents/status/PR655.yaml
+active_report_path: agents/PR655_workreport.md
 last_verified_main: 95ee50ff78d81465f3e4968f62767d866f8b9da8
