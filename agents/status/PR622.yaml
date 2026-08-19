@@ -29,9 +29,12 @@ validation:
   edition_reconciliation_suite: PASS_10_OF_10_RETAINED
   csv_intake_suite: PASS_16_OF_16_LOCAL_EXECUTION
   main_drift_source_inspection: PASS
+  review_threads: PASS_ZERO_OPEN
+  submitted_reviews: PASS_ZERO
+  hosted_commit_statuses: NOT_RUN_ZERO_ENTRIES
+  hosted_pr_workflows: NOT_RUN_ZERO_RUNS
   full_repository_suite: NOT_RUN
   real_controlled_q2_candidate: NOT_AVAILABLE_NOT_RUN
-  hosted_ci: REFRESH_BEFORE_MERGE
 authority:
   q1_controlled_receipts_ready: false
   q2_oracle_admission_ready: false
@@ -41,4 +44,4 @@ authority:
   production_kernel_allowed: false
   automatic_promotion_allowed: false
   production_route: USER_CALCULATED_KD3
-exact_next_action: Refresh live main and PR622 mergeability/checks/reviews; merge into main with an expected-head guard only if the reconciled shared-file state remains current.
+exact_next_action: Re-read live main; if the shared-file cache identity is unchanged and PR622 remains mergeable, mark ready and squash-merge with an expected-head guard. After merge, verify main contents and all four PR merged states.
