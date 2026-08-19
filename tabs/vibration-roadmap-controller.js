@@ -8,6 +8,7 @@ import {
 } from '../converters/vibration/project/serialize.js';
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
+import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
 
 export const VIBRATION_ROADMAP_STATE_EVENT = 'vibration-roadmap-state';
 export const VIBRATION_PROJECT_CHANGED_EVENT = 'vibration-project-changed';
@@ -65,6 +66,11 @@ function defaultDownloadText(text, fileName) {
 function customEvent(container, name, detail) {
   const EventClass = container.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
   if (typeof EventClass === 'function') container.dispatchEvent(new EventClass(name, { detail }));
+}
+
+function workspaceTab(container, workspaceId) {
+  return [...container.querySelectorAll('[data-vi-workspace-tab]')]
+    .find((button) => button.dataset.viWorkspaceTab === workspaceId) ?? null;
 }
 
 export function createVibrationRoadmapController(container, { initialState = {}, downloadText = defaultDownloadText } = {}) {
@@ -189,6 +195,14 @@ export function createVibrationRoadmapController(container, { initialState = {},
       collapsed = !collapsed;
       resizeState = null;
       if (lastRender) render(lastRender);
+      return;
+    }
+    const workspaceTarget = event.target.closest('[data-vibration-workspace-id]');
+    if (workspaceTarget) {
+      const route = resolveVibrationCaseActionWorkspace(workspaceTarget.dataset.vibrationWorkflowAction);
+      if (route?.workspaceId === workspaceTarget.dataset.vibrationWorkspaceId) {
+        workspaceTab(container, route.workspaceId)?.click();
+      }
       return;
     }
     const action = event.target.closest('[data-roadmap-action]')?.dataset.roadmapAction;
