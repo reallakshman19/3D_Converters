@@ -94,7 +94,7 @@ function networkDrivenTools(network) {
     <div class="aiv-canvas-editor-toolbar"><button type="button" class="engineering-console-btn is-active" data-aiv-canvas-editor-tool="SELECT">Select / move</button><button type="button" class="engineering-console-btn" data-aiv-canvas-editor-action="cancel">Cancel tool</button></div>
     <div class="aiv-canvas-editor-status" data-aiv-canvas-editor-status>Select an object to inspect or edit it. Drag changes presentation only.</div>
     <div class="aiv-network-authoring-grid">${nodeDraft()}${segmentDraft(network)}</div>
-    <details class="aivq-inline-disclosure"><summary>Bulk graph edit</summary><div class="aivq-disclosure-body">
+    <details class="aivq-inline-disclosure" data-aiv-disclosure-key="aiv-network-bulk-graph-edit"><summary>Bulk graph edit</summary><div class="aivq-disclosure-body">
       <div class="aiv-network-table-wrap"><h5>Network nodes</h5><table class="aivq-input-table"><thead><tr><th>ID</th><th>Kind</th><th>Tag</th><th>Line</th><th>Case</th><th>Action</th></tr></thead><tbody>${nodeRows(network)}</tbody></table></div>
       <div class="aiv-network-table-wrap"><h5>Physical segments</h5><table class="aivq-input-table"><thead><tr><th>ID</th><th>From</th><th>To</th><th>Line</th><th>Length</th><th>Unit</th><th>Action</th></tr></thead><tbody>${segmentRows(network)}</tbody></table></div>
     </div></details>

@@ -1,4 +1,5 @@
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
+import { buildAivCanvasProjectionCoverage } from './vibration-aiv-canvas-projection-coverage.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 
 export const AIV_UNIFIED_CANVAS_PROJECTION_SCHEMA = 'AivUnifiedCanvasProjection.v1';
@@ -113,6 +114,7 @@ export function buildAivUnifiedCanvasPresentation({
   baseProjection = {},
   flareNetwork = null,
   generatedInputSet = null,
+  projectionCoverage = null,
 } = {}) {
   const networkDriven = inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN;
   return deepFreeze({
@@ -127,6 +129,7 @@ export function buildAivUnifiedCanvasPresentation({
       ? networkRelationships(baseProjection, generatedInputSet)
       : tableRelationships(baseProjection),
     lineCaseSummaries: [...(baseProjection?.lineCaseSummaries ?? [])],
+    projectionCoverage,
     authority: {
       engineeringOwner: networkDriven ? 'AivFlareNetwork.v1' : 'WORKING_AIV_TABLES',
       svgPixelsAuthoritativeForDistance: false,
@@ -145,5 +148,6 @@ export function buildAivUnifiedCanvasProjection(input = {}) {
     baseProjection: buildAivCanvasProjection(input),
     flareNetwork: input.flareNetwork,
     generatedInputSet: input.generatedInputSet,
+    projectionCoverage: buildAivCanvasProjectionCoverage(input),
   });
 }

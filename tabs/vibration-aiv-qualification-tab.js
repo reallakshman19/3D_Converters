@@ -26,9 +26,9 @@ import {
   markAivTableDrivenInputChanged,
 } from './vibration-aiv-mode-transition.js?v=20260816-aiv-526-editor-3';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260816-aiv-canvas-release-1';
-import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260816-aiv-526-editor-3';
-import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260816-aiv-canvas-release-1';
+import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260818-aiv-canvas-hardening-1';
+import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js?v=20260818-aiv-canvas-hardening-1';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260818-aiv-canvas-hardening-1';
 import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-release-1';
 import {
   addAivUnifiedCanvasTableRow,
@@ -49,7 +49,12 @@ export function renderAivQualificationWorkspace(container) {
     onDeleteRelationship: deleteCanvasRelationship,
     onSelectionChange: updateCanvasSelectionDetail,
     onFieldCommit: (fieldKey) => { state.lastCommittedAivFieldKey = fieldKey || null; },
-    onError: (error) => { state.error = String(error?.message || error); render(); },
+    onError: (error) => {
+      const message = String(error?.message || error);
+      state.canvasActionError = message;
+      state.error = message;
+      render();
+    },
   });
   const canvasExportController = createAivCanvasExportController(container, {
     getState: () => state,
@@ -99,12 +104,16 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function applyFlareNetworkPresentation(network) {
+    state.canvasActionError = null;
     applyAivFlareNetworkPresentationState(state, network);
     render();
   }
 
   function applyFlareNetwork(network, options = {}) {
-    datasetLoader.applyFlareNetwork(network, options);
+    const { selection, ...commitOptions } = options ?? {};
+    if (selection !== undefined) state.selectedCanvasKey = selection?.selectionKey ?? null;
+    state.canvasActionError = null;
+    datasetLoader.applyFlareNetwork(network, commitOptions);
   }
 
   function tableMutationAllowed() {

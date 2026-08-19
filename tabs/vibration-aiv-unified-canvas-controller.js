@@ -22,8 +22,8 @@ import {
 import {
   applyAivUnifiedNetworkAuthorAction,
   applyAivUnifiedNetworkAuthorChange,
-} from './vibration-aiv-unified-canvas-author.js?v=20260816-aiv-526-editor-3';
-import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260816-aiv-526-editor-3';
+} from './vibration-aiv-unified-canvas-author.js?v=20260818-aiv-canvas-hardening-1';
+import { createAivUnifiedCanvasEditorController } from './vibration-aiv-unified-canvas-editor-controller.js?v=20260818-aiv-canvas-hardening-1';
 import {
   AIV_CANVAS_LABEL_MODE,
   normalizeAivCanvasLabelMode,
@@ -139,6 +139,26 @@ function updateDeleteControl(container, selection) {
   const button = container.querySelector('[data-aiv-canvas-action="delete-relationship"]');
   if (button) button.disabled = isNetworkDriven(container) || !String(selection?.selectionKey ?? '').startsWith('REL:');
 }
+function pathPhysicalSegment(container, event) {
+  const pathLine = event.target?.closest?.('[data-aiv-path-segment-id]');
+  const segmentId = text(pathLine?.dataset?.aivPathSegmentId);
+  if (!segmentId) return null;
+  return [...container.querySelectorAll('[data-aiv-network-segment]')]
+    .find((element) => text(element.dataset.aivNetworkSegment) === segmentId) ?? null;
+}
+function interactiveTarget(container, event, mode) {
+  const target = canvasTarget(event);
+  if (!isNetworkDriven(container) || mode === AIV_CANVAS_MODE.RELATIONSHIPS) return target;
+  return pathPhysicalSegment(container, event) ?? target;
+}
+export function remapAivUnifiedCanvasSourceSelection(selection, network, target) {
+  const nodeId = text(target?.dataset?.aivNetworkNodeId);
+  const key = text(selection?.selectionKey);
+  if (!nodeId || !key.startsWith(`SOURCE:${nodeId}:`)) return selection;
+  const node = network?.nodes?.find((item) => item.canonicalId === nodeId);
+  if (node?.kind !== 'SOURCE') return selection;
+  return Object.freeze({ ...selection, selectionKey: `SOURCE:${nodeId}:${node.sourceInput?.caseId ?? ''}` });
+}
 export function createAivUnifiedCanvasController(container, callbacks = {}) {
   let layout = null; let selection = null; let gesture = null; let suppressClick = false;
   let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE }); let labelMode = AIV_CANVAS_LABEL_MODE.NORMAL;
@@ -209,7 +229,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     if (event.target.closest('[data-aiv-table-add],[data-aiv-table-delete]')) return;
     const row = event.target.closest('[data-aiv-table-row-kind]'); if (row) { select(aivCanvasSelectionFromElement(row), 'table'); return; }
     if (suppressClick) { suppressClick = false; return; }
-    const element = canvasTarget(event); if (!element) return; select(aivCanvasSelectionFromElement(element));
+    const element = interactiveTarget(container, event, relationship.mode); if (!element) return; select(aivCanvasSelectionFromElement(element));
     if (relationship.mode !== AIV_CANVAS_MODE.RELATIONSHIPS || isNetworkDriven(container)) return;
     const endpoint = aivCanvasRelationshipEndpoint(element); if (!endpoint) return;
     const advanced = advanceAivCanvasRelationshipState(relationship, endpoint); relationship = advanced.state;
@@ -221,8 +241,13 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   function change(event) {
     fieldController.noteCommit(event);
     const author = event.target.closest('[data-aiv-network-editor]'); if (!author) return;
-    try { const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), author, event.target); if (result.handled) callbacks.onNetworkChange?.(result.network); }
-    catch (error) { callbacks.onError?.(error); }
+    try {
+      const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), author, event.target);
+      if (!result.handled) return;
+      const nextSelection = remapAivUnifiedCanvasSourceSelection(selection, result.network, event.target);
+      selection = nextSelection;
+      callbacks.onNetworkChange?.(result.network, { selection: nextSelection });
+    } catch (error) { callbacks.onError?.(error); }
   }
   function pointerDown(event) {
     const canvas = svg(container); if (!canvas || !layout || editorController.isDirectEditActive() || event.button !== 0 || !event.target.closest('[data-aiv-unified-canvas-svg]')) return;
