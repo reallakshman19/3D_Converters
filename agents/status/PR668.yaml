@@ -1,0 +1,28 @@
+schema: AgentStatus.v1
+pr_or_wip: PR668
+pull_request: 668
+branch: agent/vibration-right-rail-case-action-20260819
+base: main
+base_sha_at_allocation: b9ffa16180a1fea017505f8e39775fb9f87523ac
+state: IMPLEMENTED_AWAITING_NATIVE_BROWSER_QUALIFICATION
+criticality: STANDARD_PRESENTATION_NAVIGATION
+coordination_state: SAFE_AFTER_SHARED_FILE_OVERLAP_REMOVAL
+validation:
+  exact_focused_test: PASS_6_OF_6_LOCAL_EXECUTION
+  exact_blob_identity: PASS
+  panel_syntax: PASS_LOCAL_EXECUTION
+  controller_syntax: PASS_LOCAL_EXECUTION
+  repository_native_regressions: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  native_backup: NOT_RUN_ENVIRONMENT_BLOCKED
+authority:
+  determines_next_action: false
+  determines_applicability: false
+  determines_completeness: false
+  numerical_authority_changed: false
+  screening_authority_changed: false
+  persistence_changed: false
+  project_case_identity_created: false
+  workflow_files_changed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR668
+exact_next_action: REFRESH_HOSTED_PR_STATE_AND_KEEP_DRAFT_OPEN
