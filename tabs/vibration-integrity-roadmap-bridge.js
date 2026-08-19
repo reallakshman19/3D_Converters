@@ -1,6 +1,7 @@
 import { resolveVibrationIdentificationEvidenceForScope } from './vibration-integrity-identification-model.js';
 import { buildVibrationLineCaseAssessmentStatus } from './vibration-integrity-assessment-status.js';
 import { buildVibrationMechanismMatrixRow } from './vibration-integrity-mechanisms.js?v=20260815-sbc-pf05-cache-1';
+import { buildVibrationRoadmapScopeChoices } from './vibration-roadmap-scope-selection.js';
 
 export const VIBRATION_INTEGRITY_ROADMAP_ASSESSMENT_CONTEXT_SCHEMA =
   'VibrationIntegrityRoadmapAssessmentContext.v1';
@@ -58,10 +59,12 @@ export function buildVibrationIntegritySelectedAssessmentContext(state = {}) {
   const row = selectedWorkspaceRow(state);
   if (!row) return null;
   const status = buildVibrationIntegrityLineCaseStatusForRow(state, row);
+  const scopeChoices = buildVibrationRoadmapScopeChoices(state.workspace?.rows ?? [], row.rowKey);
   return Object.freeze({
     schema: VIBRATION_INTEGRITY_ROADMAP_ASSESSMENT_CONTEXT_SCHEMA,
     rowKey: row.rowKey ?? null,
     lineCaseAssessmentStatus: status,
+    scopeChoices,
     authority: VIBRATION_INTEGRITY_ROADMAP_ASSESSMENT_CONTEXT_AUTHORITY,
   });
 }
