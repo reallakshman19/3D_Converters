@@ -87,6 +87,8 @@ Recovery artifacts:
 - `agents/status/PR660.yaml`
 - `agents/claims/PR660.yaml`
 
+Exactly 8 files are in the PR diff. There are zero production/UI/schema/kernel/workflow file changes.
+
 ## Validation ledger
 
 | Check | Result |
@@ -97,6 +99,11 @@ Recovery artifacts:
 | Miner arithmetic | PASS — `0.05 + 0.04 = 0.09` |
 | Wall sensitivity | PASS — nominal-wall error `-31.704960690350337%` |
 | Production-code diff | PASS — zero product code files |
+| Branch relation | PASS — 8 ahead / 0 behind live main at reconciliation |
+| GitHub mergeability | PASS — mergeable true at reconciliation |
+| Commit statuses | NOT_RUN — 0 returned, not PASS |
+| PR-triggered workflow runs | NOT_RUN — 0 returned, not PASS |
+| Reviews / review threads | 0 / 0 |
 | Committed product-path execution | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Full repository-native suite | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Served browser | NOT_RUN / NO_UI_CHANGE |
@@ -108,6 +115,23 @@ Local container has no `gh` and cannot resolve `github.com`, so the repository c
 
 PR649 remains a separate vibration workstream. PR660 shares no changed file with PR649 and does not alter its engineering authority.
 
+## Final GitHub reconciliation
+
+At reconciliation before this metadata finalization commit:
+
+```text
+main                              93a682a378f0326365daa69712c22d8259b95196
+PR660 product/test head           7217a74cfb92727a648edfd10f2bf56d1123bafe
+relation                          ahead 8 / behind 0
+changed files                     8 intended
+mergeable                         true
+commit statuses                   0 -> NOT_RUN
+PR workflow runs                  0 -> NOT_RUN
+reviews / review threads          0 / 0
+```
+
+The final branch-head SHA after metadata finalization must be read from live PR metadata; no product or test source changes are made by this finalization.
+
 ## EXACT_NEXT_ACTION
 
-Refresh PR660 head, changed files, relation to live main, mergeability, statuses, workflow runs, reviews, and review threads. Keep draft/unmerged until explicit owner authorization for PR660.
+Leave PR660 draft/unmerged until explicit owner authorization. If merge is requested, re-ground live main and the exact PR head, confirm the 8-file qualification-only diff, and refresh statuses/workflows/reviews before squash merge.
