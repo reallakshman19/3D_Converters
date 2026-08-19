@@ -1,0 +1,37 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819
+claim_state: ACTIVE
+branch: agent/vibration-right-rail-case-action-20260819
+files:
+  exact:
+    - tabs/vibration-roadmap-workspace-routing.js
+    - tabs/vibration-roadmap-panel.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/engineering-calculations-tab.js
+    - tests/vibration-roadmap-case-action-routing.test.mjs
+    - agents/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819_workreport.md
+    - agents/status/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
+    - agents/claims/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
+  prefixes:
+    - .backups/connector-20260819-vib-right-rail-case-action/
+authority_domains:
+  - RIGHT_RAIL_CASE_ACTION_NAVIGATION
+  - EXISTING_VIBRATION_WORKSPACE_ROUTING
+exclusions:
+  - next-action engineering semantics
+  - mechanism applicability
+  - AssessmentCompleteness.v1 semantics
+  - project persistence or case identity
+  - numerical calculations or masters
+  - AIV readiness/calculator authority
+  - FIT production-freeze adapter authority
+  - engineering disposition verification design code safety root-cause authority
+  - workflow files
+coordination:
+  PR658: MERGED_SELECTED_CASE_STATUS_PREDECESSOR
+  PR667: MERGED_RIGHT_RAIL_PREDECESSOR
+  PR665: OPEN_PROJECT_V2_NO_FILE_OVERLAP
+  PR517: OPEN_AIV_PF02_NO_FILE_OVERLAP
+  PR539: OPEN_FIT_FREEZE_NO_ADAPTER_OVERLAP
+coordination_state: SAFE
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_FOLLOW_ON
