@@ -105,6 +105,17 @@ function semanticBindingsReady(attestation, semanticItems, blockers) {
   return ready;
 }
 
+function markStructuralFailure(blockers) {
+  const fixed = new Set([
+    'Q1_EXIT_SCHEMA_INVALID',
+    'Q1_EXIT_RECORD_ID_INVALID',
+    'Q1_EXIT_AUTHORITY_MUST_REMAIN_FALSE',
+  ]);
+  const structural = blockers.some((code) => fixed.has(code)
+    || code.endsWith('_DUPLICATE') || code.includes('DUPLICATE_OR_INVALID'));
+  if (structural) blockers.push('Q1_EXIT_STRUCTURE_DUPLICATE_OR_INVALID');
+}
+
 export function evaluateKd320Q1ExitAttestation(
   attestation,
   { sourceReceipts = [], semanticItems = [] } = {},
@@ -135,6 +146,7 @@ export function evaluateKd320Q1ExitAttestation(
     || !validTimestamp(attestation.independentCheckedAt)) {
     blockers.push('Q1_EXIT_INDEPENDENT_CHECK_CUSTODY_INCOMPLETE');
   }
+  markStructuralFailure(blockers);
 
   return {
     ready: blockers.length === 0,
