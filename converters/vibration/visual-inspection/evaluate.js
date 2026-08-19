@@ -1,4 +1,7 @@
-import { createVibrationVisualInspectionEvidencePackage } from './contracts.js';
+import {
+  createVibrationVisualInspectionError,
+  createVibrationVisualInspectionEvidencePackage,
+} from './contracts.js';
 
 export const VIBRATION_VISUAL_INSPECTION_STATUS_SCHEMA = 'VibrationVisualInspectionStatus.v1';
 export const VIBRATION_VISUAL_INSPECTION_STATUS_AUTHORITY = Object.freeze({
@@ -12,6 +15,8 @@ export const VIBRATION_VISUAL_INSPECTION_STATUS_AUTHORITY = Object.freeze({
   codeCompliance: false,
   safetyAuthority: false,
 });
+
+const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -27,15 +32,22 @@ function sameScope(left, right) {
 }
 
 function normalizedScope(value = {}) {
-  const required = ['lineId', 'caseId', 'operatingCaseSnapshotId', 'operatingCaseSnapshotHash'];
+  const required = ['lineId', 'caseId', 'operatingCaseSnapshotId'];
   for (const field of required) {
     if (typeof value[field] !== 'string' || !value[field].trim()) throw new TypeError(`scope.${field} must be non-empty text.`);
+  }
+  if (typeof value.operatingCaseSnapshotHash !== 'string' || !SHA256_PATTERN.test(value.operatingCaseSnapshotHash)) {
+    throw createVibrationVisualInspectionError(
+      'VIBRATION_VISUAL_HASH_REQUIRED',
+      'scope.operatingCaseSnapshotHash must be a canonical sha256 hash.',
+      { field: 'scope.operatingCaseSnapshotHash' },
+    );
   }
   return Object.freeze({
     lineId: value.lineId.trim(),
     caseId: value.caseId.trim(),
     operatingCaseSnapshotId: value.operatingCaseSnapshotId.trim(),
-    operatingCaseSnapshotHash: value.operatingCaseSnapshotHash.trim(),
+    operatingCaseSnapshotHash: value.operatingCaseSnapshotHash,
   });
 }
 
