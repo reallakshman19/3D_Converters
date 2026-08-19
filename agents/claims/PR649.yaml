@@ -1,0 +1,43 @@
+schema: AgentClaim.v1
+pr: 649
+claim_state: ACTIVE
+branch: agent/vib-pulsation-transient-workbench-20260819
+claim_modes:
+  - EXCLUSIVE
+  - COORDINATED
+files:
+  exact:
+    - tabs/vibration-integrity-pulsation-transient-model.js
+    - tabs/vibration-integrity-pulsation-transient-controller.js
+    - tabs/vibration-integrity-pulsation-transient-view.js
+    - tabs/vibration-integrity-ui-contract.js
+    - tabs/vibration-integrity-user-data-shell.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/engineering-calculations-tab.js
+    - tabs/engineering-workspace-tab.js
+    - core/engineering-tabs-extension.js
+    - core/app.js
+    - main-rhbg-fitguard.js
+    - index.html
+    - tests/vibration-pulsation-transient-workbench.test.mjs
+    - tests/vibration-pulsation-transient-cache-chain.test.mjs
+    - tests/vibration-sbc-full-workspace-cache-chain.test.mjs
+    - tests/vibration-sbc-type3-runtime-cache-chain.test.mjs
+authority_domains:
+  - DEADLEG_T26_BENCHMARK_ONLY_WORK_ITEM_PRESENTATION
+  - T28_DRY_GAS_BENCHMARK_ONLY_WORK_ITEM_PRESENTATION
+  - VIBRATION_WORK_ITEM_CURRENTNESS
+  - VIBRATION_SHARED_UI_CACHE_CUSTODY
+exclusions:
+  - NUMERICAL_KERNELS
+  - T28_LIQUID_MULTIPHASE_PR471
+  - T24_T25_NUMERICAL_RULES
+  - EI_MAINLINE_AGGREGATION
+  - VIBRATION_MECHANISM_MATRIX
+  - SCREENING_OR_DESIGN_AUTHORITY
+  - .github/workflows/*
+coordination:
+  PR471: SAFE_BY_EXCLUSION
+  issue429: HARD_PROGRAMME_PARENT
+  issue450: HARD_SOURCE_PARENT
+last_verified_head: d8386fa1276c5340dbab072a12361d3fd4d21e20
