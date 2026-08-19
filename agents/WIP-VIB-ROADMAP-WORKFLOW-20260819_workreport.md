@@ -17,64 +17,136 @@
 
 ## Handover in 60 seconds
 
-Transform the existing right-side `Vibration Roadmap` from a catalogue-first presentation into an action-first workflow rail for the selected project/line, while consuming only existing `VibrationRoadmapProjection.v1` statuses.
+The existing right-side `Vibration Roadmap` is now action-first while remaining presentation-only. It keeps project import/open/save, selected-line control, all existing phase/scope/mechanism nodes, collapse/resize behavior and existing calculation/workspace navigation targets.
 
-This slice MUST NOT create a competing line/case completeness/status authority. PR658 owns `VIBRATION_LINE_CASE_ASSESSMENT_STATUS_PROJECTION`; this WIP is presentation-only and does not edit its files or calculate applicability/completeness.
+New behavior:
 
-Project v2 PR665 remains open/unmerged and is not a dependency for this slice. No Project-v2 file is edited.
+```text
+Current project / line
+-> NEXT ATTENTION card from existing ACTION | ATTENTION | STALE node state
+-> numbered Identify / Screen / Verify / Diagnose / Mitigate / Confirm phases
+-> phase presentation state only
+-> complete existing node catalogue below each phase
+```
 
-## Live grounding
+No phase is called complete. `AVAILABLE`, `DATA`, `IMPORTED` and `CURRENT_RESULT` never become completeness/applicability authority.
+
+## Live grounding / coordination
 
 - main: `7f7ce459c8f059b503b045bbdebbe10d303b1044`
+- branch relation: ahead 9 / behind 0 before this report sync
 - latest main change: unrelated HP KD320 qualification (#666)
-- PR615: merged/closed; its `agents/claims/PR615.yaml` still says ACTIVE and claims roadmap files, therefore that claim is stale historical coordination metadata rather than a live PR blocker.
-- PR658: open draft, exact files under `tabs/vibration-integrity-assessment-status*.js`, `tabs/vibration-integrity-view.js` and tests; authority domain `VIBRATION_LINE_CASE_ASSESSMENT_STATUS_PROJECTION`.
-- PR665: open draft Project-v2 persistence; do not stack or edit its files.
+- PR615 is merged/closed; its main-branch claim still says ACTIVE for roadmap files and is stale historical metadata, not a live PR owner.
+- PR658 remains open/draft with exact files under `tabs/vibration-integrity-assessment-status*.js`, `tabs/vibration-integrity-view.js` and tests; authority domain `VIBRATION_LINE_CASE_ASSESSMENT_STATUS_PROJECTION`.
+- PR665 remains open/draft Project-v2 persistence and is not a dependency; no Project-v2 path is edited.
 
-Coordination classification: `SAFE_WITH_STALE_CLAIM_RECONCILIATION`.
+Coordination: `SAFE_WITH_STALE_CLAIM_RECONCILIATION`.
 
-## Mission / usable capability
+## Implemented capability
 
-The right rail must answer, using existing governed status only:
+New pure module `tabs/vibration-roadmap-workflow-view.js` builds `VibrationRoadmapWorkflowPresentation.v1` from `VibrationRoadmapProjection.v1` only.
 
-1. What project/line am I viewing?
-2. Which lifecycle phase currently needs attention?
-3. What is the first visible blocker/current-state item?
-4. Which existing node can I navigate to next?
+Presentation states are deliberately non-authorizing:
 
-Preserve all existing roadmap nodes and project open/import/save functions. Do not hide engineering detail permanently; reorganize it under an action-first summary.
+```text
+NEEDS_ATTENTION
+HAS_CURRENT_RESULT
+HAS_DATA
+AVAILABLE
+NOT_APPLICABLE_ONLY
+```
 
-## Planned implementation
+The focus algorithm scans phases in existing order and selects the first existing `ACTION`, `ATTENTION` or `STALE` node. It does not infer that an AVAILABLE node is required and does not invent a navigation target.
 
-- add a pure presentation helper for phase summaries + next-attention selection;
-- update `tabs/vibration-roadmap-panel.js` to render workflow focus before the full phase/node list;
-- update `tabs/vibration-roadmap-panel.css` for the workflow focus/phase-state presentation;
-- add focused regression for ordering, non-authority semantics and rendering;
-- retain line picker; do NOT invent a case picker because current `VibrationIntegrityProject.v1` has stable project lines but no governed project case subject collection.
+`tabs/vibration-roadmap-panel.js` now renders:
 
-## Protected invariants
+- header `Vibration Assessment`;
+- current project + current line before project actions;
+- `Next attention` card with existing target seam when one is already registered;
+- a fail-safe `No roadmap attention flag ... does not mean the assessment is complete` message otherwise;
+- numbered phase headers with non-completion state labels;
+- every prior roadmap node underneath.
 
-- `VibrationRoadmapProjection.v1.authority.purpose = VISUAL_NAVIGATION_GUIDANCE_ONLY` remains unchanged.
-- no applicability or completeness determination.
-- no numerical/calculation/master/tolerance/unit changes.
-- no screening/design/code/safety/root-cause authority.
-- no project schema/serializer/controller persistence change.
-- no mutation of PR658 status projection.
-- no workflow-file changes.
-- target/navigation actions remain only existing CALCULATION/WORKSPACE targets; no fabricated navigation target.
+`tabs/vibration-roadmap-panel.css` adds visual focus/numbered-phase styling while retaining the right rail width/collapse/responsive contract.
+
+## Case-scope decision
+
+No case picker was added. Current `VibrationIntegrityProject.v1` provides stable line subjects but no governed project case collection. This slice will not invent a case identity source or derive one from incidental UI data. Exact line+case workflow integration belongs in a later slice when a stable governed case source is available.
+
+## Authority boundary
+
+```text
+purpose                     RIGHT_RAIL_WORKFLOW_FOCUS_PRESENTATION_ONLY
+determinesApplicability     false
+determinesCompleteness      false
+determinesPhaseCompletion   false
+engineeringAuthority        NONE
+screeningAuthority          NOT_AUTHORIZED
+designAuthority             false
+```
+
+`VibrationRoadmapProjection.v1` itself is unchanged and remains `VISUAL_NAVIGATION_GUIDANCE_ONLY`.
+
+No calculation, coefficient, tolerance, unit, master, source registry, project schema/serialization/currentness, engineer disposition, verification authority, workflow file, design/code/safety/root-cause authority or PR658 status projection is changed.
+
+## Backups
+
+Exact pre-edit connector/Git copies:
+
+- `.backups/connector-20260819-vib-roadmap-workflow/tabs/vibration-roadmap-panel.js`
+- `.backups/connector-20260819-vib-roadmap-workflow/tabs/vibration-roadmap-panel.css`
+
+Native `node utils/backup.js save ...`: `NOT_RUN / ENVIRONMENT_BLOCKED` because no native checkout is available. Connector backups are rollback evidence, not a claimed native-backup PASS.
 
 ## Validation ledger
 
-- live main/source grounding: PASS / SOURCE_INSPECTION
-- PR615 claim reconciliation: PASS / SOURCE_INSPECTION — live PR merged despite stale ACTIVE claim file
-- PR658 semantic/exact-file overlap: PASS / SOURCE_INSPECTION — no exact file overlap; presentation must not calculate its status domain
-- repository-native focused tests: NOT_RUN
-- browser acceptance: NOT_RUN
+Executed against exact authored production/test bytes and verified by Git blob identity:
+
+```text
+node --check workflow helper                         PASS / LOCAL_EXECUTION
+node --check edited panel                            PASS / LOCAL_EXECUTION
+focused workflow-panel test                          PASS 4/4 / LOCAL_EXECUTION
+workflow helper blob                                 e6f21bba96ca9eef5fb369f6a5fe0c35ccdf27e6
+edited panel blob                                    19a97696dbdcf98d5f36c2910b2a4c573a461108
+focused test blob                                    831f1d3d9a29bf240ac47fc003110077805a6d1d
+source line policy                                   PASS: 77 / 118 / 82
+branch changed-file reconciliation                   PASS: 9 intended / 0 unexplained
+main relation before report sync                     PASS: ahead 9 / behind 0
+existing roadmap resize/collapse assertions          PASS / SOURCE_INSPECTION compatible
+existing shared calculation click seam               PASS / SOURCE_INSPECTION (`data-calc-id` reused)
+```
+
+Focused test proves:
+
+1. earliest existing attention phase becomes focus;
+2. DATA/CURRENT states do not become phase-complete authority;
+3. panel renders action-first focus and preserves registered navigation targets;
+4. no-attention state explicitly refuses to imply assessment completion.
+
+Truthfully not executed:
+
+```text
+repository-native complete roadmap regression suite  NOT_RUN / ENVIRONMENT_BLOCKED
+served browser acceptance                             NOT_RUN / ENVIRONMENT_BLOCKED
+independent engineering numerical verification       NOT_APPLICABLE / no numerical change
+```
+
+## Changed-file ledger
+
+1. `tabs/vibration-roadmap-workflow-view.js` — new pure presentation helper
+2. `tabs/vibration-roadmap-panel.js` — action-first right rail
+3. `tabs/vibration-roadmap-panel.css` — workflow focus styling
+4. `tests/vibration-roadmap-workflow-panel.test.mjs` — focused regression
+5. `.backups/connector-20260819-vib-roadmap-workflow/tabs/vibration-roadmap-panel.js`
+6. `.backups/connector-20260819-vib-roadmap-workflow/tabs/vibration-roadmap-panel.css`
+7. `agents/WIP-VIB-ROADMAP-WORKFLOW-20260819_workreport.md`
+8. `agents/status/WIP-VIB-ROADMAP-WORKFLOW-20260819.yaml`
+9. `agents/claims/WIP-VIB-ROADMAP-WORKFLOW-20260819.yaml`
 
 ## Highest risk
 
-A presentation helper could accidentally imply phase completion or applicability from `AVAILABLE`, `DATA`, `CURRENT_RESULT`, etc. It must label itself workflow focus/attention only and never use COMPLETE/PASS/SAFE semantics.
+The panel is now more workflow-like, but the underlying roadmap states remain presentation guidance. Future integration must consume PR658/other governed workflow state rather than progressively turning this helper into a hidden completeness/applicability engine.
 
 ## EXACT_NEXT_ACTION
 
-Create connector-side pre-edit backups of `tabs/vibration-roadmap-panel.js` and `tabs/vibration-roadmap-panel.css`, then implement the pure workflow-presentation helper and focused regression before editing the panel renderer.
+Open a draft PR from this branch, migrate recovery authority to PR-numbered report/status/claim records, release WIP custody, then reconcile current PR head/main/check/review truth. Do not merge without explicit Owner authorization.
