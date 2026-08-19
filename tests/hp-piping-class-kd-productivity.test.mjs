@@ -18,6 +18,7 @@ function project() {
       productId: 'P-1',
       externalResults: [{
         cycleId: 'C1', fromStateId: 'P0', toStateId: 'P1', locationId: 'L1',
+        equivalentAlternatingStressMpa: 70, permissibleCycles: 10000,
         calculationBasis: { code: 'VIII-3', edition: '2025', methodRef: 'KD-3', calculationRef: 'CALC-1', calculatedBy: 'A' },
       }],
     }],
@@ -35,11 +36,12 @@ test('add all creates exactly the uncovered governed cycles', () => {
   assert.equal(addAllHpPipingClassExternalResults(value, 0).added, 0);
 });
 
-test('copy first basis copies custody only and does not alter cycle data', () => {
+test('copy first basis copies custody only and does not alter engineering values', () => {
   const value = project();
   addAllHpPipingClassExternalResults(value, 0);
   const before = value.fatigueEvidence[0].externalResults.map((row) => ({
     cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+    seq: row.equivalentAlternatingStressMpa, permissibleCycles: row.permissibleCycles,
   }));
   const sourceBasis = value.fatigueEvidence[0].externalResults[0].calculationBasis;
   const result = copyFirstHpPipingClassKdBasisToAll(value, 0);
@@ -49,6 +51,7 @@ test('copy first basis copies custody only and does not alter cycle data', () =>
   assert.notEqual(value.fatigueEvidence[0].externalResults[2].calculationBasis, sourceBasis);
   assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => ({
     cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+    seq: row.equivalentAlternatingStressMpa, permissibleCycles: row.permissibleCycles,
   })), before);
 });
 
