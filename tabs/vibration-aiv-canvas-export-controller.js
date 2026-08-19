@@ -1,7 +1,11 @@
 import { buildAivCanvasScreeningExportPackage } from '../converters/vibration/aiv/aiv-canvas-export.js';
-import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { buildAivScreeningExportPackage } from '../converters/vibration/aiv/aiv-screening-export.js';
 import { renderAivCanvasControlIcon } from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-spatial-1';
+import {
+  buildAivScreeningPackageInputFromState,
+  isAivCurrentScreeningPackageState,
+} from './vibration-aiv-screening-package-state.js';
+import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js';
 
 function text(value) { return String(value ?? '').trim(); }
 function filterSnapshot(container) {
@@ -20,23 +24,19 @@ export function readAivCanvasPresentationSnapshot(container, layout) {
   });
 }
 export function buildAivCanvasExportPayload(state, presentation = {}) {
-  if (!state?.screeningResult?.ok || !state.readinessEnvelope) return null;
+  const screeningInput = buildAivScreeningPackageInputFromState(state);
+  if (!screeningInput) return null;
   const envelope = state.readinessEnvelope;
-  const engineeringScreeningPackage = buildAivScreeningExportPackage({
-    result: state.screeningResult.evidence.domainResult,
-    sources: envelope.sources,
-    assessments: envelope.assessments,
-    relationships: envelope.sourceAssessments,
-    topology: envelope.exchange,
-    assumptionProfile: state.assumptionProfile,
-    assumptionResolution: state.assumptionResolution,
-  });
-  const canvasProjection = buildAivCanvasProjection({
+  const engineeringScreeningPackage = buildAivScreeningExportPackage(screeningInput);
+  const canvasProjection = buildAivUnifiedCanvasProjection({
     tables: state.tables,
     assumptionResolution: state.assumptionResolution,
     readinessEnvelope: envelope,
     screeningResult: state.screeningResult,
     topology: envelope.exchange,
+    inputMode: state.inputMode,
+    flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
+    generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
   });
   return buildAivCanvasScreeningExportPackage({
     engineeringScreeningPackage,
@@ -81,7 +81,7 @@ export function createAivCanvasExportController(container, {
   getLayout,
 } = {}) {
   function sync() {
-    syncControl(container, Boolean(getState?.()?.screeningResult?.ok));
+    syncControl(container, isAivCurrentScreeningPackageState(getState?.()));
   }
   function click(event) {
     if (event.target?.closest?.('[data-aiv-canvas-export="screening"]') === null) return;

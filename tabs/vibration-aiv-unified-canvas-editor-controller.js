@@ -17,7 +17,8 @@ import {
   createAivUnifiedCanvasBlankNetwork,
   createAivUnifiedCanvasRvBranch,
   inspectAivUnifiedCanvasSourceCompleteness,
-} from './vibration-aiv-unified-canvas-workflow.js?v=20260816-aiv-526-editor-2';
+  isAivUnifiedCanvasRvBranchTarget,
+} from './vibration-aiv-unified-canvas-workflow.js?v=20260818-aiv-canvas-hardening-1';
 
 function text(value) { return String(value ?? '').trim(); }
 function esc(value) {
@@ -56,8 +57,8 @@ function addedSegment(before, after) {
   return after?.segments?.find((item) => !ids.has(item.segmentId)) ?? null;
 }
 function targetOptions(network) {
-  return (network?.nodes ?? []).filter((node) => node.kind !== 'SOURCE')
-    .map((node) => `<option value="${esc(node.canonicalId)}">${esc(node.canonicalId)} · ${esc(node.kind)}</option>`).join('');
+  return (network?.nodes ?? []).filter(isAivUnifiedCanvasRvBranchTarget)
+    .map((node) => `<option value="${esc(node.canonicalId)}">${esc(node.canonicalId)} · ${esc(node.kind)}${node.line ? ` · ${esc(node.line)}` : ''}</option>`).join('');
 }
 function blankNetworkTools(defaults) {
   return `<section class="aivq-inline-disclosure" data-aiv-workflow-tools="new-network"><strong>Start flare network</strong>
@@ -87,7 +88,7 @@ function networkWorkflowTools(network, defaults) {
         <label><span>Branch segment ID</span><input data-aiv-quick-rv-segment value="${esc(`${rvId}-BRANCH`)}"></label>
         <label><span>Engineering length</span><input type="number" step="any" data-aiv-quick-rv-length></label>
         <label><span>Unit</span><select data-aiv-quick-rv-unit><option value="m">m</option><option value="mm">mm</option></select></label>
-        <label><span>Connect to</span><select data-aiv-quick-rv-target><option value="">Select junction/header…</option>${targetOptions(network)}</select></label>
+        <label><span>Connect to routing node</span><select data-aiv-quick-rv-target><option value="">Select junction/connection…</option>${targetOptions(network)}</select></label>
       </div>
       <button type="button" class="engineering-console-btn primary" data-aiv-canvas-editor-action="quick-rv-branch">Add RV + branch</button>
     </fieldset>

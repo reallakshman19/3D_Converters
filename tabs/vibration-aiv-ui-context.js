@@ -13,6 +13,7 @@ function entriesByDataset(container, selector, datasetKey, projector) {
 
 export function aivUiFocusKey(element) {
   const dataset = element?.dataset ?? {};
+  if (dataset.aivEngineeringFieldKey) return `engineering:${text(dataset.aivEngineeringFieldKey)}`;
   if (dataset.aivTableCell) {
     return ['table', dataset.aivTableCell, dataset.aivEditRow, dataset.aivEditColumn]
       .map(text).join(':');
@@ -98,7 +99,7 @@ function restoreDetailTab(container, context) {
 
 function findFocusElement(container, focusKey) {
   if (!focusKey) return null;
-  return [...(container?.querySelectorAll?.('[data-aiv-table-cell],[data-aiv-assumption]') ?? [])]
+  return [...(container?.querySelectorAll?.('[data-aiv-engineering-field-key],[data-aiv-table-cell],[data-aiv-assumption]') ?? [])]
     .find((element) => aivUiFocusKey(element) === focusKey) ?? null;
 }
 

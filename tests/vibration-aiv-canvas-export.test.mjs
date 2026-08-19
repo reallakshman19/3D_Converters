@@ -34,6 +34,7 @@ function domainResult() {
     sourceResults: Object.freeze([]),
     assessmentResults: Object.freeze([]),
     lineCaseSummaries: Object.freeze([]),
+    lineCaseAssessmentInventoryCompleteness: 'UNVERIFIED',
     authority: Object.freeze({ screeningAuthority: 'AUTHORIZED' }),
     assumptionProfile: null,
   });
@@ -42,6 +43,10 @@ function domainResult() {
 function state() {
   const result = domainResult();
   return {
+    inputRevision: 3,
+    screeningState: { token: 7, inputRevision: 3 },
+    destroyed: false,
+    inputMode: 'NETWORK_DRIVEN',
     screeningResult: { ok: true, evidence: { domainResult: result } },
     readinessEnvelope: {
       sources: [], assessments: [], sourceAssessments: [], exchange: { elements: [] }, readiness: { rows: [] },
@@ -53,6 +58,14 @@ function state() {
     },
     assumptionProfile: null,
     assumptionResolution: null,
+    flareNetworkActive: true,
+    flareNetwork: {
+      schema: 'AivFlareNetwork.v1', networkId: 'FLARE-1', revision: 'R3', source: 'UI', sourceRevision: 'R3',
+      nodes: [], segments: [],
+    },
+    generatedInputSet: { schema: 'AivGeneratedInputSet.v1', pathEvidence: [] },
+    eitImport: { evidence: { schema: 'AivEitImportEvidence.v1', title: 'Imported evidence' } },
+    inventoryCompletenessAttestations: [{ schema: 'AivWeldedDiscontinuityInventoryAttestation.v1', engineeringInputRevision: 3 }],
   };
 }
 
@@ -62,7 +75,7 @@ test('canvas export keeps the existing engineering screening package intact and 
     engineeringScreeningPackage: engineering,
     canvasLayout: { schema: 'AivCanvasLayout.v1', viewport: { x: 4, y: 5, zoom: 1.2 }, nodes: [] },
     canvasFilters: { caseId: 'CASE-A', line: 'LINE-1', showMode: 'CURRENT' },
-    canvasProjection: { schema: 'AivCanvasProjection.v1', presentationOnly: true, nodes: [], relationships: [] },
+    canvasProjection: { schema: 'AivUnifiedCanvasProjection.v1', presentationOnly: true, entityNodes: [], relationships: [] },
     svgSnapshot: '<svg data-aiv-canvas-svg="true"></svg>',
   });
   assert.equal(payload.schema, AIV_CANVAS_SCREENING_EXPORT_SCHEMA);
@@ -117,7 +130,7 @@ test('presentation snapshot reads current UI state without deriving engineering 
   });
 });
 
-test('state bridge embeds the standalone screening export and read-only canvas projection', () => {
+test('state bridge preserves the full screening evidence custody and unified presentation projection', () => {
   const payload = buildAivCanvasExportPayload(state(), {
     layout: { schema: 'AivCanvasLayout.v1', viewport: { x: 0, y: 0, zoom: 1 }, nodes: [] },
     filters: { caseId: null, line: null, showMode: 'ALL' },
@@ -125,8 +138,19 @@ test('state bridge embeds the standalone screening export and read-only canvas p
   });
   assert.equal(payload.engineeringScreeningPackage.schema, 'AivScreeningExportPackage.v1');
   assert.equal(payload.engineeringScreeningPackage.result.schema, 'AivCalculatorResult.v1');
-  assert.equal(payload.canvasPresentation.projection.schema, 'AivCanvasProjection.v1');
+  assert.equal(payload.engineeringScreeningPackage.flareNetworkEvidence.networkId, 'FLARE-1');
+  assert.equal(payload.engineeringScreeningPackage.inventoryCompletenessEvidence.engineeringInputRevision, 3);
+  assert.equal(payload.engineeringScreeningPackage.inventoryCompletenessEvidence.attestations.length, 1);
+  assert.equal(payload.engineeringScreeningPackage.eitImportEvidence.schema, 'AivEitImportEvidence.v1');
+  assert.equal(payload.canvasPresentation.projection.schema, 'AivUnifiedCanvasProjection.v1');
   assert.equal(payload.canvasPresentation.projection.presentationOnly, true);
+  assert.equal(payload.canvasPresentation.projection.authority.designAuthority, false);
+});
+
+test('canvas export fails closed when the screening lineage is stale', () => {
+  const stale = state();
+  stale.inputRevision = 4;
+  assert.equal(buildAivCanvasExportPayload(stale), null);
 });
 
 test('canvas export path contains no calculation implementation, geometry-to-distance path or SVG parser', () => {
@@ -139,6 +163,7 @@ test('canvas export path contains no calculation implementation, geometry-to-dis
   }
   assert.match(controller, /Export canvas package/u);
   assert.match(controller, /buildAivScreeningExportPackage/u);
+  assert.match(controller, /buildAivScreeningPackageInputFromState/u);
   assert.match(qualification, /exportScreeningResult/u);
   assert.match(qualification, /createAivCanvasExportController/u);
 });
