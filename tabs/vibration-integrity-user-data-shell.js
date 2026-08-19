@@ -15,6 +15,12 @@ import {
 import { renderVibrationIntegrityActivity } from './vibration-integrity-activity-view.js';
 import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-view.js';
 import {
+  createSbcConnectionAuthoringUiState,
+  retargetSbcConnectionAuthoringRecord,
+  updateSbcConnectionAuthoringEvidenceRef,
+  updateSbcConnectionAuthoringValue,
+} from './vibration-integrity-sbc-connection-model.js?v=20260819-sbc-connection-authoring-1';
+import {
   handleSbcType3Change,
   handleSbcType3Click,
   openSbcType3FacilityScope,
@@ -27,9 +33,9 @@ import {
   createSbcWorkspaceUiState,
   setSbcWorkspaceScope,
   setSbcWorkspaceType,
-} from './vibration-integrity-sbc-workspace-model.js?v=20260819-sbc-full-workspace-1';
-import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js?v=20260819-sbc-full-workspace-1';
-import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js?v=20260819-sbc-full-workspace-1';
+} from './vibration-integrity-sbc-workspace-model.js?v=20260819-sbc-connection-authoring-1';
+import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js?v=20260819-sbc-connection-authoring-1';
+import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js?v=20260819-sbc-connection-authoring-1';
 import {
   addSbcT3UserEngineeringDataRows,
   addSbcType3UserEngineeringDataRows,
@@ -41,6 +47,8 @@ import {
 } from './vibration-integrity-user-data-model.js';
 import { renderVibrationUserEngineeringData } from './vibration-integrity-user-data-view.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js?v=20260815-sbc-pf05-cache-1';
+
+const GENERIC_SBC_AUTHORING_TYPES = new Set(['TYPE_1', 'TYPE_2', 'TYPE_4']);
 
 function esc(value) {
   return String(value ?? '')
@@ -111,6 +119,7 @@ export function createVibrationUserDataUiState() {
     ...createMechanicalFacilityUiState(),
     ...createSbcType3UiState(),
     ...createSbcWorkspaceUiState(),
+    ...createSbcConnectionAuthoringUiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
     mechanismIdentificationAuthoring: createVibrationIdentificationAuthoringTable(),
@@ -234,12 +243,48 @@ function handleSbcWorkspaceTypeClick(state, event, render, audit) {
   if (!typeId) return false;
   setSbcWorkspaceType(state, typeId);
   const scope = String(state.sbcWorkspaceScopeId ?? '').trim();
+  if (scope && GENERIC_SBC_AUTHORING_TYPES.has(state.sbcWorkspaceType)) {
+    state.sbcConnectionAuthoringStore = retargetSbcConnectionAuthoringRecord(
+      state.sbcConnectionAuthoringStore, scope, state.sbcWorkspaceType,
+    );
+  }
   if (state.sbcWorkspaceType === 'TYPE_3' && scope) {
     openSbcType3FacilityScope(state, scope, null, audit);
     state.workspaceTab = 'sbc';
   }
   state.error = null;
   audit?.('SBC_TYPE_SELECTED', { typeId: state.sbcWorkspaceType }, scope || null);
+  render();
+  return true;
+}
+
+function handleSbcConnectionAuthoringChange(state, event, render, audit) {
+  const valuePath = event.target.dataset.viSbcConnectionField;
+  const evidencePath = event.target.dataset.viSbcConnectionEvidence;
+  if (!valuePath && !evidencePath) return false;
+  const selectedType = state.sbcWorkspaceType;
+  const scope = String(state.sbcWorkspaceScopeId ?? '').trim();
+  if (!scope || !GENERIC_SBC_AUTHORING_TYPES.has(selectedType)) {
+    state.error = 'Generic SBC connection authoring requires an exact scope and explicit Type 1, Type 2 or Type 4 selection.';
+    render();
+    return true;
+  }
+  try {
+    if (valuePath) {
+      state.sbcConnectionAuthoringStore = updateSbcConnectionAuthoringValue(
+        state.sbcConnectionAuthoringStore, scope, selectedType, valuePath, event.target.value,
+      );
+      audit?.('SBC_CONNECTION_AUTHORING_CHANGED', { action: 'VALUE_CHANGED', path: valuePath, typeId: selectedType }, scope);
+    } else {
+      state.sbcConnectionAuthoringStore = updateSbcConnectionAuthoringEvidenceRef(
+        state.sbcConnectionAuthoringStore, scope, selectedType, evidencePath, event.target.value,
+      );
+      audit?.('SBC_CONNECTION_AUTHORING_CHANGED', { action: 'EVIDENCE_REF_CHANGED', path: evidencePath, typeId: selectedType }, scope);
+    }
+    state.error = null;
+  } catch (error) {
+    state.error = String(error?.message || error);
+  }
   render();
   return true;
 }
@@ -297,6 +342,7 @@ export function handleVibrationUserDataChange(state, event, render, audit) {
     render();
     return true;
   }
+  if (handleSbcConnectionAuthoringChange(state, event, render, audit)) return true;
   if (event.target.matches('[data-vi-sbc-type3-scope]')) {
     setSbcWorkspaceScope(state, event.target.value);
   }
