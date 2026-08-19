@@ -1,6 +1,9 @@
 import { buildVibrationRoadmapWorkflowPresentation } from './vibration-roadmap-workflow-view.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
-import { isGovernedVibrationRoadmapScopeChoices } from './vibration-roadmap-scope-selection.js';
+import {
+  formatVibrationRoadmapScopeChoiceLabel,
+  isGovernedVibrationRoadmapScopeChoices,
+} from './vibration-roadmap-scope-selection.js';
 
 const STATUS_LABELS = Object.freeze({
   AVAILABLE: 'Available',
@@ -110,7 +113,7 @@ function assessmentScopeSelector(context) {
   const scopes = context?.selectedAssessment?.scopeChoices;
   if (!isGovernedVibrationRoadmapScopeChoices(scopes) || scopes.choices.length < 2) return '';
   const options = scopes.choices.map((choice) => {
-    const label = `${choice.line} · ${choice.caseId || 'No case ID'} · ${choice.canonicalId}`;
+    const label = formatVibrationRoadmapScopeChoiceLabel(choice);
     return `<option value="${esc(choice.rowKey)}" ${choice.rowKey === scopes.selectedRowKey ? 'selected' : ''}>${esc(label)}</option>`;
   }).join('');
   return `<label>Assessment scope<select data-roadmap-assessment-select>${options}</select></label>`;
