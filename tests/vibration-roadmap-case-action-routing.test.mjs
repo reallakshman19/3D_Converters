@@ -6,8 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { renderVibrationRoadmapPanel } from '../tabs/vibration-roadmap-panel.js';
 import {
-  buildVibrationWorkspaceNavigationRequest,
-  isGovernedVibrationWorkspaceNavigationRequest,
+  VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY,
   resolveVibrationCaseActionWorkspace,
 } from '../tabs/vibration-roadmap-workspace-routing.js';
 
@@ -53,21 +52,17 @@ test('case action routing uses existing identification and screening workspaces 
   assert.equal(resolveVibrationCaseActionWorkspace('REVIEW_NOT_APPLICABLE_EVIDENCE').workspaceId, 'identification');
   assert.equal(resolveVibrationCaseActionWorkspace('COMPLETE_REQUIRED_ASSESSMENTS').workspaceId, 'screening');
   assert.equal(resolveVibrationCaseActionWorkspace('REVIEW_ASSESSMENT_GAPS').workspaceId, 'screening');
+  assert.equal(resolveVibrationCaseActionWorkspace('REVIEW_COMPLETE_ASSESSMENT_EVIDENCE').workspaceId, 'screening');
   assert.equal(resolveVibrationCaseActionWorkspace('UNSUPPORTED_ACTION'), null);
 });
 
-test('navigation request fails closed for mismatched or unsupported workspace routes', () => {
-  const valid = buildVibrationWorkspaceNavigationRequest({
-    workspaceId: 'identification', actionCode: 'AUTHOR_T1_IDENTIFICATION',
-  });
-  assert.equal(isGovernedVibrationWorkspaceNavigationRequest(valid), true);
-  assert.equal(buildVibrationWorkspaceNavigationRequest({
-    workspaceId: 'screening', actionCode: 'AUTHOR_T1_IDENTIFICATION',
-  }), null);
-  assert.equal(buildVibrationWorkspaceNavigationRequest({
-    workspaceId: 'activity', actionCode: 'UNSUPPORTED_ACTION',
-  }), null);
-  assert.equal(isGovernedVibrationWorkspaceNavigationRequest({ ...valid, authority: {} }), false);
+test('navigation contract cannot determine the engineering next action', () => {
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.determinesNextAction, false);
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.determinesApplicability, false);
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.determinesCompleteness, false);
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.engineeringAuthority, 'NONE');
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.screeningAuthority, 'NOT_AUTHORIZED');
+  assert.equal(VIBRATION_WORKSPACE_NAVIGATION_AUTHORITY.persistenceAuthority, 'NONE');
 });
 
 test('governed selected case renders an executable central workspace action', () => {
@@ -84,22 +79,22 @@ test('unsupported governed next action stays visible but non-clickable', () => {
   assert.doesNotMatch(html, /data-vibration-workspace-id=/);
 });
 
-test('outer console forwards workspace action before calculation navigation without remount', () => {
-  const source = fs.readFileSync(path.join(ROOT, 'tabs/engineering-calculations-tab.js'), 'utf8');
-  const workspaceBranch = source.indexOf("closest('[data-vibration-workspace-id]')");
-  const calculationBranch = source.indexOf("closest('[data-calc-id]')");
-  assert.ok(workspaceBranch >= 0 && workspaceBranch < calculationBranch);
-  assert.match(source, /host\.dispatchEvent\(new EventClass\(VIBRATION_WORKSPACE_REQUEST_EVENT/);
-  const start = source.indexOf('function openMountedVibrationWorkspace');
-  const end = source.indexOf('\n  function buildRequest', start);
-  assert.doesNotMatch(source.slice(start, end), /resetForDefinition/);
+test('roadmap controller validates the action route then clicks the existing workspace tab', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'tabs/vibration-roadmap-controller.js'), 'utf8');
+  assert.match(source, /resolveVibrationCaseActionWorkspace\(workspaceTarget\.dataset\.vibrationWorkflowAction\)/);
+  assert.match(source, /route\?\.workspaceId === workspaceTarget\.dataset\.vibrationWorkspaceId/);
+  assert.match(source, /querySelectorAll\('\[data-vi-workspace-tab\]'\)/);
+  assert.match(source, /button\.dataset\.viWorkspaceTab === workspaceId/);
+  assert.match(source, /workspaceTab\(container, route\.workspaceId\)\?\.click\(\)/);
 });
 
-test('mounted Vibration Integrity workspace accepts governed request and cleans listener', () => {
-  const source = fs.readFileSync(path.join(ROOT, 'tabs/vibration-integrity-tab.js'), 'utf8');
-  assert.match(source, /isGovernedVibrationWorkspaceNavigationRequest\(request\)/);
-  assert.match(source, /state\.workspaceTab = request\.workspaceId/);
-  assert.match(source, /source: 'RIGHT_RAIL_CASE_ACTION'/);
-  assert.match(source, /addEventListener\(VIBRATION_WORKSPACE_REQUEST_EVENT, onWorkspaceRequest\)/);
-  assert.match(source, /removeEventListener\(VIBRATION_WORKSPACE_REQUEST_EVENT, onWorkspaceRequest\)/);
+test('case-action route remains controller-level navigation with no persistence or calculation target', () => {
+  const controller = fs.readFileSync(path.join(ROOT, 'tabs/vibration-roadmap-controller.js'), 'utf8');
+  const start = controller.indexOf("const workspaceTarget = event.target.closest('[data-vibration-workspace-id]')");
+  const end = controller.indexOf("const action = event.target.closest('[data-roadmap-action]')", start);
+  const block = controller.slice(start, end);
+  assert.doesNotMatch(block, /serializeVibrationIntegrityProject/);
+  assert.doesNotMatch(block, /parseVibrationIntegrityProject/);
+  assert.doesNotMatch(block, /data-calc-id/);
+  assert.doesNotMatch(block, /calculate/);
 });
