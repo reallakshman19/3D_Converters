@@ -94,10 +94,28 @@ independent numerical verification            NOT_APPLICABLE / no numerical chan
 
 Integration source inspection is not represented as runtime PASS.
 
+## Hosted reconciliation
+
+At recovery basis head `3fa4518b3d494f168695be321919babcf7ea1558`:
+
+```text
+relation to main              ahead 26 / behind 0
+changed paths                 14 / 14 explained
+GitHub mergeable              true
+draft                         true
+comments                      0
+reviews                       0
+review threads                0
+commit status entries         0 -> NOT_RUN, not PASS
+PR-triggered workflow runs    0 -> NOT_RUN, not PASS
+```
+
+Subsequent commits only synchronize PR671 recovery metadata; product/test blobs above remain frozen.
+
 ## Rollback evidence
 
 Pre-edit exact Git-blob copies are retained under `.backups/connector-20260819-vib-right-rail-scope-selector/`. Native backup CLI remains NOT_RUN / ENVIRONMENT_BLOCKED.
 
 ## Exact next action
 
-Reconcile final PR-numbered recovery head against live main, changed paths, comments/reviews/threads, commit statuses and PR-triggered workflow runs. Keep draft and do not merge without a new explicit owner authorization for PR671.
+Keep PR671 draft/unmerged. Refresh main and exact-head hosted state before any future merge decision. A new explicit owner authorization for PR671 is required.
