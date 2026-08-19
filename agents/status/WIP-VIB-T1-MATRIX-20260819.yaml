@@ -1,0 +1,22 @@
+work_id: WIP-VIB-T1-MATRIX-20260819
+branch: agent/vibration-t1-full-matrix-20260819
+base_branch: main
+base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
+agent_state: ACTIVE
+current_stage: BASELINE_PLAN
+execution_mode: MANUAL
+auto_state: NOT_ACTIVE
+criticality: ENGINEERING_CRITICAL
+mutation_authority: WRITE_ALLOWED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+coordination_state: SAFE
+blockers:
+  - AIV_P0_BLOCKED_BY_PR517_EXCLUSIVE_CALCULATOR_CLAIM
+  - FIT_ADAPTER_P0_BLOCKED_BY_PR539_OPEN_OVERLAP
+protected_authority:
+  automatic_applicability: false
+  automatic_dispositions: false
+  identification_authority: EXPLICIT_EVIDENCE_ONLY
+  screening_authority: NOT_AUTHORIZED_BY_THIS_SLICE
+  design_authority: false
+exact_next_action: implement read-only full mechanism disposition matrix from current facility scopes and explicit authored rows
