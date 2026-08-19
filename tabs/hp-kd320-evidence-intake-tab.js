@@ -7,11 +7,15 @@ import {
   getKd320Q1SemanticCsvTemplate,
   previewKd320Q1SemanticCsv,
 } from '../engineering/hp-class-standardization/qualification/kd320-q1/semantic-csv-intake.js';
+import {
+  getKd320Q1ExitAttestationJsonTemplate,
+  previewKd320Q1ExitAttestationJson,
+  previewKd320Q1Package,
+} from '../engineering/hp-class-standardization/qualification/kd320-q1/package-preview.js';
 
 function esc(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
 function ensureStyles() {
@@ -44,13 +48,12 @@ function rowIdentity(row) {
 
 function rowGate(row) {
   if (row.admission) return { state: row.admission.state, blockers: row.admission.blockers ?? [] };
-  if (row.editionReconciliation) {
-    return {
-      state: row.editionReconciliation.state,
-      blockers: [...(row.editionReconciliation.structuralErrors ?? []), ...(row.editionReconciliation.blockers ?? []),
-        ...(row.editionReconciliation.changedSemantics ?? []).map((id) => `${id}:CHANGED_REQUIRES_NEW_ORACLE`)],
-    };
-  }
+  if (row.editionReconciliation) return {
+    state: row.editionReconciliation.state,
+    blockers: [...(row.editionReconciliation.structuralErrors ?? []),
+      ...(row.editionReconciliation.blockers ?? []),
+      ...(row.editionReconciliation.changedSemantics ?? []).map((id) => `${id}:CHANGED_REQUIRES_NEW_ORACLE`)],
+  };
   return { state: 'NOT_EVALUATED', blockers: [] };
 }
 
@@ -64,19 +67,27 @@ function blockersHtml(items) {
 function resultsHtml(result, fileName, emptyMessage) {
   if (!result) return `<div class="kd320csv-notice">${esc(emptyMessage)}</div>`;
   const fileIssues = result.fileIssues ?? [];
-  if (fileIssues.length && !result.rows?.length) {
-    return `<div class="kd320csv-notice error"><strong>${esc(fileName)} blocked before row preview.</strong>${blockersHtml(fileIssues)}</div>`;
-  }
+  if (fileIssues.length && !result.rows?.length) return `<div class="kd320csv-notice error"><strong>${esc(fileName)} blocked before row preview.</strong>${blockersHtml(fileIssues)}</div>`;
   const ready = result.rows.filter((row) => row.ok).length;
-  const fileNotice = fileIssues.length
-    ? `<div class="kd320csv-notice error"><strong>File-level contract blockers.</strong>${blockersHtml(fileIssues)}</div>`
-    : '';
+  const fileNotice = fileIssues.length ? `<div class="kd320csv-notice error"><strong>File-level contract blockers.</strong>${blockersHtml(fileIssues)}</div>` : '';
   return `${fileNotice}<div class="kd320csv-notice ${result.ok ? 'good' : 'error'}"><strong>${ready}/${result.rows.length} row(s) passed CSV preflight.</strong> Qualification readiness is evaluated separately; preview never admits evidence.</div>
-  <div class="kd320csv-table-wrap"><table class="kd320csv-table"><thead><tr><th>Row / evidence</th><th>CSV preflight</th><th>Qualification gate</th><th>Preflight blockers</th><th>Gate blockers</th><th>Authority</th></tr></thead><tbody>
-  ${result.rows.map((row) => {
+  <div class="kd320csv-table-wrap"><table class="kd320csv-table"><thead><tr><th>Row / evidence</th><th>CSV preflight</th><th>Qualification gate</th><th>Preflight blockers</th><th>Gate blockers</th><th>Authority</th></tr></thead><tbody>${result.rows.map((row) => {
     const gate = rowGate(row);
     return `<tr><td><strong>${esc(rowIdentity(row))}</strong><br><span class="kd320csv-code">row ${row.rowNumber}</span></td><td><span class="kd320csv-badge ${row.ok ? 'good' : 'blocked'}">${esc(row.preflightState)}</span></td><td><span class="kd320csv-badge info">${esc(gate.state)}</span></td><td>${blockersHtml(row.issues ?? [])}</td><td>${blockersHtml(gate.blockers)}</td><td><span class="kd320csv-badge blocked">DESIGN AUTHORITY FALSE</span><br><span class="kd320csv-code">native KD320=false · production=false</span></td></tr>`;
   }).join('')}</tbody></table></div>`;
+}
+
+function attestationHtml(result, fileName) {
+  if (!result) return '<div class="kd320csv-notice">Download the redacted formal-exit template, complete it after E01–E08/G0–G1 are controlled and checked, then upload the JSON.</div>';
+  if (!result.ok) return `<div class="kd320csv-notice error"><strong>${esc(fileName)} blocked.</strong>${blockersHtml(result.fileIssues ?? [])}</div>`;
+  return `<div class="kd320csv-notice good"><strong>Formal-exit JSON parsed.</strong> Exact receipt hashes, semantic bindings, evidence/gate sets and review custody are validated only in the combined Q1 package gate.</div>`;
+}
+
+function packageHtml(result) {
+  const ready = result?.q1Complete === true;
+  const state = result?.state || 'Q1_CONTROLLED_EVIDENCE_PENDING';
+  const blockers = result?.blockers ?? ['Q1_PACKAGE_CONTROLLED_SOURCE_MISSING', 'Q1_PACKAGE_SEMANTICS_MISSING', 'Q1_PACKAGE_FORMAL_EXIT_MISSING'];
+  return `<div class="kd320csv-notice ${ready ? 'good' : 'error'}"><div class="kd320csv-badges"><span class="kd320csv-badge ${ready ? 'good' : 'blocked'}">${esc(state)}</span><span class="kd320csv-badge blocked">NATIVE KD320 · FALSE</span><span class="kd320csv-badge blocked">DESIGN AUTHORITY · FALSE</span></div><p>${ready ? 'Formal Q1 is complete. QF022/QF023 remain separate Q2 evidence.' : 'Formal Q1 remains blocked until all three CONTROLLED_SOURCE sub-packages agree exactly.'}</p>${blockersHtml(blockers)}</div>`;
 }
 
 function templateFileName(mode) {
@@ -86,79 +97,83 @@ function templateFileName(mode) {
   return 'kd320-qf023-project-calc.template.csv';
 }
 
-function downloadCsv(content, fileName) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+function downloadFile(content, fileName, type = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
+  link.href = url; link.download = fileName; link.click(); URL.revokeObjectURL(url);
 }
 
 export function renderHpKd320EvidenceIntakeTab(container) {
   ensureStyles();
   let mode = KD320_CSV_MODES.CONTROLLED_SOURCE;
-  let result = null;
-  let fileName = '';
-  let semanticResult = null;
-  let semanticFileName = '';
+  let result = null, fileName = '', controlledSourceResult = null;
+  let semanticResult = null, semanticFileName = '';
+  let attestationResult = null, attestationFileName = '';
+  let packageResult = previewKd320Q1Package();
   const modes = [KD320_CSV_MODES.CONTROLLED_SOURCE, KD320_CSV_MODES.EDITION_SEMANTIC,
     KD320_CSV_MODES.QF022_ORACLE, KD320_CSV_MODES.QF023_PROJECT_CALC];
   container.innerHTML = `<div class="kd320csv">
-    <div class="kd320csv-hero"><div><h2>KD320 Evidence Intake</h2><p>Four-record CSV preflight for controlled source custody, 2023→2025 semantic reconciliation, QF022 published-oracle evidence and QF023 independently checked project calculations. Existing Q1/Q2 evaluators remain the gate authority; this surface performs no KD320 numerical calculation.</p></div><aside class="kd320csv-scope"><strong>Qualification boundary</strong><p>Preview-only. No automatic oracle admission, native CORE KD320 qualification, Code-compliance claim, design authority, production-kernel promotion, or licensed source text storage.</p><div class="kd320csv-badges"><span class="kd320csv-badge blocked">CORE KD-3 · NOT QUALIFIED</span><span class="kd320csv-badge blocked">DESIGN AUTHORITY · FALSE</span></div></aside></div>
-    <section class="kd320csv-card"><div class="kd320csv-toolbar"><label class="kd320csv-field"><span>Evidence record class</span><select data-kd320csv-mode>${modes.map((value) => `<option value="${value}">${modeLabel(value)}</option>`).join('')}</select></label><div class="kd320csv-actions"><button type="button" data-kd320csv-template>Download exact template</button><button type="button" class="primary" data-kd320csv-upload>Upload CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320csv-file></div></div><p><strong>CONTROLLED_SOURCE</strong> requires both Q1 source receipts. <strong>EDITION_SEMANTIC</strong> requires exactly KD320-SEM-002…013 for the existing PVP2025-154710 2023→2025 gate. QF022/QF023 delegate to the already-qualified intake contracts.</p><div class="kd320csv-notice"><strong>Data handling:</strong> upload is parsed in browser memory for preview. This UI does not write the CSV into the project, master store, oracle catalog, controlled-source store, or production calculation path.</div></section>
+    <div class="kd320csv-hero"><div><h2>KD320 Evidence Intake</h2><p>Four-record CSV preflight plus controlled Q1 sub-packages. Existing Q1/Q2 evaluators remain the gate authority; this surface performs no KD320 numerical calculation.</p></div><aside class="kd320csv-scope"><strong>Qualification boundary</strong><p>Preview-only. No automatic oracle admission, native CORE KD320 qualification, Code-compliance claim, design authority, production-kernel promotion, or licensed source text storage.</p><div class="kd320csv-badges"><span class="kd320csv-badge blocked">CORE KD-3 · NOT QUALIFIED</span><span class="kd320csv-badge blocked">DESIGN AUTHORITY · FALSE</span></div></aside></div>
+    <section class="kd320csv-card"><div class="kd320csv-toolbar"><label class="kd320csv-field"><span>Evidence record class</span><select data-kd320csv-mode>${modes.map((value) => `<option value="${value}">${modeLabel(value)}</option>`).join('')}</select></label><div class="kd320csv-actions"><button type="button" data-kd320csv-template>Download exact template</button><button type="button" class="primary" data-kd320csv-upload>Upload CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320csv-file></div></div><p><strong>CONTROLLED_SOURCE</strong> remains the top-level receipt record class. Its semantic and formal-exit packages are below; no fifth first-class record is introduced.</p><div class="kd320csv-notice"><strong>Data handling:</strong> all uploads are parsed in browser memory only. Nothing is written into the project, master store, oracle catalog, controlled-source store, or production calculation path.</div></section>
     <section class="kd320csv-card"><h3>Admission preview</h3><div data-kd320csv-results>${resultsHtml(result, fileName, 'Choose a record class, download its exact CSV template if needed, then upload a CSV for preview.')}</div></section>
-    <section class="kd320csv-card kd320csv-subpackage"><div class="kd320csv-toolbar"><div><h3>CONTROLLED_SOURCE sub-package — Q1 semantic contract</h3><p>Exactly 14 controlled semantic rows: KD320-SEM-001…014. The CSV carries controlled references and explicit semantic rules only; it has no field for licensed Code text, equations, fatigue-curve points, or native numerical values.</p></div><div class="kd320csv-actions"><button type="button" data-kd320q1-template>Download Q1 semantic template</button><button type="button" class="primary" data-kd320q1-upload>Upload Q1 semantic CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320q1-file></div></div><div class="kd320csv-notice"><strong>Fail-closed:</strong> SEM-001 must bind to Q1-SRC-B313-2024; SEM-002…014 must bind to Q1-SRC-VIII3-2025. Every row requires exact locator, controlled semantic reference, explicit units/sign/selection/interpolation/applicability values and independent extraction/check custody. A complete semantic package does not make Q1 complete until source receipts are separately verified.</div><div data-kd320q1-results>${resultsHtml(semanticResult, semanticFileName, 'Download the 14-row Q1 semantic template, complete it from controlled evidence, then upload it for preview.')}</div></section>
+    <section class="kd320csv-card kd320csv-subpackage"><div class="kd320csv-toolbar"><div><h3>CONTROLLED_SOURCE sub-package — Q1 semantic contract</h3><p>Exactly 14 controlled semantic rows: KD320-SEM-001…014. No licensed Code text, equations, fatigue-curve points, or native numerical values.</p></div><div class="kd320csv-actions"><button type="button" data-kd320q1-template>Download Q1 semantic template</button><button type="button" class="primary" data-kd320q1-upload>Upload Q1 semantic CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320q1-file></div></div><div class="kd320csv-notice"><strong>Fail-closed:</strong> SEM-001 → Q1-SRC-B313-2024; SEM-002…014 → Q1-SRC-VIII3-2025. Complete semantics alone never make Q1 complete.</div><div data-kd320q1-results>${resultsHtml(semanticResult, semanticFileName, 'Upload the independently checked 14-row semantic package.')}</div></section>
+    <section class="kd320csv-card kd320csv-subpackage"><div class="kd320csv-toolbar"><div><h3>CONTROLLED_SOURCE sub-package — formal Q1 exit</h3><p>Redacted JSON custody record binding exact receipt hashes, all 14 semantic locators/opaque refs, E01–E08, G0/G1, evidence-ledger/audit SHA-256 and independent review.</p></div><div class="kd320csv-actions"><button type="button" data-kd320exit-template>Download formal-exit template</button><button type="button" class="primary" data-kd320exit-upload>Upload formal-exit JSON</button><input class="kd320csv-hidden" type="file" accept="application/json,.json" data-kd320exit-file></div></div><div data-kd320exit-results>${attestationHtml(attestationResult, attestationFileName)}</div></section>
+    <section class="kd320csv-card"><h3>Combined Q1 package preview</h3><p>Joins the latest valid CONTROLLED_SOURCE receipt CSV, Q1 semantic CSV and formal-exit JSON in browser memory and delegates the final state to the Q1/Q2 evaluator.</p><div data-kd320package-results>${packageHtml(packageResult)}</div></section>
   </div>`;
 
   const modeSelect = container.querySelector('[data-kd320csv-mode]');
   const fileInput = container.querySelector('[data-kd320csv-file]');
-  const results = container.querySelector('[data-kd320csv-results]');
   const semanticInput = container.querySelector('[data-kd320q1-file]');
+  const attestationInput = container.querySelector('[data-kd320exit-file]');
+  const results = container.querySelector('[data-kd320csv-results]');
   const semanticResults = container.querySelector('[data-kd320q1-results]');
+  const attestationResults = container.querySelector('[data-kd320exit-results]');
+  const packageResults = container.querySelector('[data-kd320package-results]');
 
+  function refreshPackage() {
+    packageResult = previewKd320Q1Package({ controlledSourceResult, semanticResult, attestationResult });
+    packageResults.innerHTML = packageHtml(packageResult);
+  }
   function refresh() { results.innerHTML = resultsHtml(result, fileName, 'Choose a record class, download its exact CSV template if needed, then upload a CSV for preview.'); }
-  function refreshSemantic() { semanticResults.innerHTML = resultsHtml(semanticResult, semanticFileName, 'Download the 14-row Q1 semantic template, complete it from controlled evidence, then upload it for preview.'); }
-  function onMode() { mode = modeSelect.value; result = null; fileName = ''; if (fileInput) fileInput.value = ''; refresh(); }
+  function onMode() { mode = modeSelect.value; result = null; fileName = ''; fileInput.value = ''; refresh(); }
   async function onFile() {
-    const file = fileInput?.files?.[0];
-    if (!file) return;
+    const file = fileInput.files?.[0]; if (!file) return;
     fileName = file.name;
     try { result = previewKd320EvidenceCsv(await file.text(), mode); }
     catch (error) { result = { ok: false, fileIssues: [{ code: 'CSV_PREVIEW_EXCEPTION', message: String(error?.message || error) }], rows: [] }; }
-    refresh();
-    fileInput.value = '';
+    if (mode === KD320_CSV_MODES.CONTROLLED_SOURCE) controlledSourceResult = result;
+    refresh(); refreshPackage(); fileInput.value = '';
   }
   async function onSemanticFile() {
-    const file = semanticInput?.files?.[0];
-    if (!file) return;
+    const file = semanticInput.files?.[0]; if (!file) return;
     semanticFileName = file.name;
     try { semanticResult = previewKd320Q1SemanticCsv(await file.text()); }
     catch (error) { semanticResult = { ok: false, fileIssues: [{ code: 'Q1_SEMANTIC_PREVIEW_EXCEPTION', message: String(error?.message || error) }], rows: [] }; }
-    refreshSemantic();
-    semanticInput.value = '';
+    semanticResults.innerHTML = resultsHtml(semanticResult, semanticFileName, 'Upload the independently checked 14-row semantic package.');
+    refreshPackage(); semanticInput.value = '';
+  }
+  async function onAttestationFile() {
+    const file = attestationInput.files?.[0]; if (!file) return;
+    attestationFileName = file.name;
+    attestationResult = previewKd320Q1ExitAttestationJson(await file.text());
+    attestationResults.innerHTML = attestationHtml(attestationResult, attestationFileName);
+    refreshPackage(); attestationInput.value = '';
   }
   function onClick(event) {
-    if (event.target.closest('[data-kd320csv-template]')) {
-      downloadCsv(getKd320EvidenceCsvTemplate(mode), templateFileName(mode));
-    }
-    if (event.target.closest('[data-kd320csv-upload]')) fileInput?.click();
-    if (event.target.closest('[data-kd320q1-template]')) {
-      downloadCsv(getKd320Q1SemanticCsvTemplate(), 'kd320-q1-semantic-contract.template.csv');
-    }
-    if (event.target.closest('[data-kd320q1-upload]')) semanticInput?.click();
+    if (event.target.closest('[data-kd320csv-template]')) downloadFile(getKd320EvidenceCsvTemplate(mode), templateFileName(mode));
+    if (event.target.closest('[data-kd320csv-upload]')) fileInput.click();
+    if (event.target.closest('[data-kd320q1-template]')) downloadFile(getKd320Q1SemanticCsvTemplate(), 'kd320-q1-semantic-contract.template.csv');
+    if (event.target.closest('[data-kd320q1-upload]')) semanticInput.click();
+    if (event.target.closest('[data-kd320exit-template]')) downloadFile(getKd320Q1ExitAttestationJsonTemplate(), 'kd320-q1-formal-exit.template.json', 'application/json;charset=utf-8');
+    if (event.target.closest('[data-kd320exit-upload]')) attestationInput.click();
   }
 
-  modeSelect.addEventListener('change', onMode);
-  fileInput.addEventListener('change', onFile);
-  semanticInput.addEventListener('change', onSemanticFile);
+  modeSelect.addEventListener('change', onMode); fileInput.addEventListener('change', onFile);
+  semanticInput.addEventListener('change', onSemanticFile); attestationInput.addEventListener('change', onAttestationFile);
   container.addEventListener('click', onClick);
   return () => {
-    modeSelect.removeEventListener('change', onMode);
-    fileInput.removeEventListener('change', onFile);
-    semanticInput.removeEventListener('change', onSemanticFile);
-    container.removeEventListener('click', onClick);
-    container.innerHTML = '';
+    modeSelect.removeEventListener('change', onMode); fileInput.removeEventListener('change', onFile);
+    semanticInput.removeEventListener('change', onSemanticFile); attestationInput.removeEventListener('change', onAttestationFile);
+    container.removeEventListener('click', onClick); container.innerHTML = '';
   };
 }

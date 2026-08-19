@@ -22,7 +22,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-kd320-evidence-intake',
     label: 'KD320 Evidence Intake',
-    load: () => import('./hp-kd320-evidence-intake-tab.js?v=20260819-kd320-q1-semantic-intake-1').then((module) => module.renderHpKd320EvidenceIntakeTab),
+    load: () => import('./hp-kd320-evidence-intake-tab.js?v=20260819-kd320-q1-package-preview-1').then((module) => module.renderHpKd320EvidenceIntakeTab),
   },
 ]);
 const SUBTAB_IDS = new Set(SUBTABS.map((tab) => tab.id));
@@ -119,5 +119,3 @@ export function renderEngineeringWorkspaceTab(container, { context = null, emit,
     container.innerHTML = '';
   };
 }
-
-export { SUBTABS as ENGINEERING_WORKSPACE_SUBTABS };
