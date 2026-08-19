@@ -3,9 +3,16 @@ pr_or_wip: WIP-VIB-RIGHT-RAIL-SCOPE-SELECTOR-20260819
 branch: agent/vibration-right-rail-scope-selector-20260819
 base: main
 base_sha: 2f34c3904b6a4d70c577461e1ae3191f1bf4f713
-state: IMPLEMENTED_AWAITING_PR_ALLOCATION
+reconciled_main_sha: 0364664705264f4e20b5dbebb3eb7ab996088111
+reconciliation_commit: 1dfc354d10908d84819279c3741addd4b98a0f22
+state: IMPLEMENTED_RECONCILED_AWAITING_PR_ALLOCATION
 criticality: STANDARD_PRESENTATION_NAVIGATION
-coordination_state: SAFE
+coordination_state: SAFE_AFTER_CURRENT_MAIN_RECONCILIATION
+reconciliation:
+  ahead_by_before_recovery_sync: 18
+  behind_by: 0
+  changed_files: 11
+  unexplained_files: 0
 validation:
   scope_contract_test: PASS_7_OF_7_LOCAL_EXECUTION
   scope_module_syntax: PASS_LOCAL_EXECUTION
@@ -24,4 +31,4 @@ authority:
   screening_authority_changed: false
   workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_FOLLOW_ON
-exact_next_action: REGROUND_MAIN_RECONCILE_DIFF_AND_OPEN_DRAFT_PR
+exact_next_action: OPEN_DRAFT_PR_AND_MIGRATE_WIP_CUSTODY
