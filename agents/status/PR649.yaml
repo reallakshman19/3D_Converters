@@ -4,19 +4,30 @@ pr: 649
 mission: benchmark-only work-item workspace for standard Deadleg T2.6 and dry-gas T2.8
 workstream: VIB.PENDING.MECHANISMS
 branch: agent/vib-pulsation-transient-workbench-20260819
-base_sha: 989b24f361ad287a0c0f25f267a118338bf2ed7a
+base_sha: 6c3109935eb2d30652eab441080464777091b1bb
+pr_head_observed: 6512797b18ccb72508219f964bf1aeba343dc749
+report_basis_head: 6512797b18ccb72508219f964bf1aeba343dc749
 implementation_head: 956f6e7f4bc14f851863b28bc644b94f308706a7
-hosted_receipt_head: f4233531e68c8c76358aa2a9fea0f774d41df31c
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
-pr_recovery_state: CONTINUE
+pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/PR649_workreport.md
-appendix_a_status: PASS_96_OF_100
+report_sync: CURRENT
+appendix_a_status: CURRENT_PASS_96_OF_100
+grounding_epoch: GE-002
 current_stage: COMPLETE_OWNER_MERGE_GATE
 merge_authority: OWNER_ONLY_NOT_GRANTED
 blocker: OWNER_MERGE_AUTHORITY_REQUIRED
+main_relation:
+  ahead: 32
+  behind: 0
+  changed_files: 19
+coordination:
+  PR471: SAFE_BY_EXCLUSION
+  PR650: MERGED_AND_RECONCILED
+  PR651: COORDINATION_REQUIRED_SHARED_CACHE_FILE_AUTHORITY_INDEPENDENT
 protected_authority:
   engineering_authority: NONE
   screening_authority: NOT_AUTHORIZED
@@ -24,16 +35,19 @@ protected_authority:
   governing_eligible: false
   ei_mainline_contribution: false
   t28_liquid_multiphase: EXCLUDED_PR471
+  t24_t25_numerical_rules: NOT_IMPLEMENTED_SOURCE_GATED
   deadleg_advanced: BLOCKED_SOURCE
 validation_truth:
-  live_grounding: PASS_GITHUB_SOURCE
+  live_grounding: PASS_GITHUB_COMPARE_ZERO_BEHIND
   appendix_a: PASS_96_OF_100
   kernel_matrix_aggregation_isolation: PASS_GITHUB_COMPARE
+  hp_vibration_loader_reconciliation: PASS_GITHUB_SOURCE
   controlled_pdf: NOT_RUN_ENVIRONMENT_BLOCKED
   repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN_ENVIRONMENT_BLOCKED
-  hosted_commit_statuses: NOT_RUN_ZERO_RETURNED
-  hosted_pr_workflow_runs: NOT_RUN_ZERO_RETURNED
-  reviews: ZERO
-  review_threads: ZERO
-exact_next_action: OWNER_MERGE_GATE_OR_STACKED_T24_T25_EVIDENCE_FOLLOW_ON
+  independent_engineering_review: NOT_RUN
+  hosted_commit_statuses: PENDING_FINAL_RECOVERY_HEAD_QUERY
+  hosted_pr_workflow_runs: PENDING_FINAL_RECOVERY_HEAD_QUERY
+  reviews: PENDING_FINAL_QUERY
+  review_threads: PENDING_FINAL_QUERY
+exact_next_action: OWNER_MERGE_GATE_OR_INDEPENDENT_T24_T25_SOURCE_EVIDENCE_FOLLOW_ON
