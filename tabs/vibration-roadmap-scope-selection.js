@@ -26,6 +26,13 @@ function choiceFromRow(row) {
   return Object.freeze({ rowKey, line, caseId: clean(row?.caseId), canonicalId });
 }
 
+function validChoice(choice) {
+  return clean(choice?.rowKey) === choice?.rowKey
+    && clean(choice?.line) === choice?.line
+    && clean(choice?.canonicalId) === choice?.canonicalId
+    && (choice?.caseId == null || clean(choice.caseId) === choice.caseId);
+}
+
 function duplicateRowKey(choices) {
   const keys = choices.map((choice) => choice.rowKey);
   return new Set(keys).size !== keys.length;
@@ -59,16 +66,21 @@ export function buildVibrationRoadmapScopeChoices(rows = [], selectedRowKey = nu
 
 export function isGovernedVibrationRoadmapScopeChoices(value) {
   const authority = value?.authority;
+  const choices = value?.choices;
+  const selected = clean(value?.selectedRowKey);
   if (value?.schema !== VIBRATION_ROADMAP_SCOPE_CHOICES_SCHEMA || value.state !== 'AVAILABLE') return false;
-  if (!Array.isArray(value.choices) || duplicateRowKey(value.choices)) return false;
+  if (!Array.isArray(choices) || !choices.length || choices.some((choice) => !validChoice(choice))) return false;
+  if (duplicateRowKey(choices) || !selected || !choices.some((choice) => choice.rowKey === selected)) return false;
   return authority?.purpose === 'CURRENT_REGISTER_SCOPE_NAVIGATION_ONLY'
+    && authority?.identitySource === 'VibrationWorkspaceModel.currentRows'
     && authority?.createsCaseIdentity === false
     && authority?.persistenceAuthority === 'NONE'
     && authority?.determinesApplicability === false
     && authority?.determinesCompleteness === false
     && authority?.determinesNextAction === false
     && authority?.engineeringAuthority === 'NONE'
-    && authority?.screeningAuthority === 'NOT_AUTHORIZED';
+    && authority?.screeningAuthority === 'NOT_AUTHORIZED'
+    && authority?.designAuthority === false;
 }
 
 export function resolveVibrationRoadmapScopeSelection(scopeChoices, rowKey) {
