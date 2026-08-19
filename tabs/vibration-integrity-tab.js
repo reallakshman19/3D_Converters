@@ -26,7 +26,7 @@ import {
 import {
   createVibrationUserDataUiState, handleVibrationUserDataChange,
   handleVibrationUserDataClick, renderVibrationIntegrityWithUserData,
-} from './vibration-integrity-user-data-shell.js?v=20260819-vib-pulsation-transient-workbench-1';
+} from './vibration-integrity-user-data-shell.js?v=20260819-vib-t24-t25-evidence-1';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
 
 function workspaceOptions(state) {
