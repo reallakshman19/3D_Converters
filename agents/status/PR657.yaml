@@ -1,0 +1,29 @@
+work_id: PR657
+pull_request: 657
+branch: agent/vibration-t1-full-matrix-20260819
+base_branch: main
+base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
+agent_state: ACTIVE
+current_stage: VALIDATE_AND_RECONCILE
+execution_mode: MANUAL
+auto_state: NOT_ACTIVE
+criticality: ENGINEERING_CRITICAL
+mutation_authority: WRITE_ALLOWED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+coordination_state: SAFE
+validation:
+  exact_source_syntax: PASS_LOCAL_EXECUTION
+  focused_matrix_reconstruction: PASS_5_OF_5
+  view_integration_reconstruction: PASS
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser_acceptance: NOT_RUN
+protected_authority:
+  automatic_applicability: false
+  automatic_dispositions: false
+  identification_authority: EXPLICIT_EVIDENCE_ONLY
+  determines_completeness: false
+  screening_authority: NOT_AUTHORIZED_BY_THIS_PR
+  design_authority: false
+blockers:
+  - NATIVE_REPOSITORY_CHECKOUT_UNAVAILABLE_IN_CURRENT_ENVIRONMENT
+exact_next_action: refresh exact PR head diff reviews statuses and workflow runs; reconcile recovery artifacts and PR body to final changed-file set
