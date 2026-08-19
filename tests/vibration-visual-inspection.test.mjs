@@ -103,3 +103,8 @@ test('wrong exact scope does not appear as visual evidence for requested scope',
   assert.equal(value.state, 'NO_VISUAL_EVIDENCE');
   assert.equal(value.observationCount, 0);
 });
+
+test('scope evaluator rejects malformed operating-case snapshot hash', () => {
+  const malformed = { ...scope, operatingCaseSnapshotHash: 'not-a-canonical-hash' };
+  expectCode(() => evaluateVibrationVisualInspectionScope({ scope: malformed, evidence: pkg() }), 'VIBRATION_VISUAL_HASH_REQUIRED');
+});
