@@ -5,8 +5,9 @@ mission: controlled-source method qualification for EI AVIFF T4 thermowell asses
 workstream: VIB.PENDING.MECHANISMS.T4_SOURCE_QUALIFICATION
 branch: agent/vib-t4-source-qualification-20260819
 base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
-pr_head_observed: 41d907b53c132d773f0abe484e7ab1d23eadf1eb
+pr_head_observed: f6b931b9e0f029e317bdf0d68f7df894240ef290
 report_basis_head: 41d907b53c132d773f0abe484e7ab1d23eadf1eb
+hosted_receipt_basis_head: f6b931b9e0f029e317bdf0d68f7df894240ef290
 work_intent: QUALIFY_SOURCE_ONLY
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
@@ -19,6 +20,10 @@ grounding_epoch: GE-002
 current_stage: SOURCE_QUALIFICATION_BLOCKED
 blocker: CONTROLLED_PDF_PAGE_EXECUTION_ENVIRONMENT_BLOCKED
 merge_authority: OWNER_ONLY_NOT_GRANTED
+main_relation:
+  ahead: 12
+  behind: 0
+  changed_files: 9
 protected_authority:
   engineering_authority: NONE
   screening_authority: NOT_AUTHORIZED
@@ -32,10 +37,13 @@ source_truth:
   public_mirrors: CORROBORATION_ONLY
   source_registry_thermowell_binding: CONFLICTED_EI_T4_VS_ASME_LABEL
 validation_truth:
+  controlled_page_execution: NOT_RUN_ENVIRONMENT_BLOCKED
   repository_native_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_APPLICABLE_SOURCE_EVIDENCE_ONLY
   independent_engineering_review: NOT_RUN
-  hosted_commit_statuses: PENDING_FINAL_HEAD_QUERY
-  hosted_pr_workflow_runs: PENDING_FINAL_HEAD_QUERY
-  reviews: PENDING_FINAL_QUERY
-  review_threads: PENDING_FINAL_QUERY
+  hosted_commit_statuses: NOT_RUN_ZERO_RETURNED
+  hosted_pr_workflow_runs: NOT_RUN_ZERO_RETURNED
+  reviews: ZERO
+  review_threads: ZERO
+  github_mergeable: true
 exact_next_action: EXECUTE_CONTROLLED_T4_PAGES_IN_BINARY_CAPABLE_RUNTIME
