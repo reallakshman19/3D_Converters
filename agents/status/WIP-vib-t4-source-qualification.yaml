@@ -1,0 +1,26 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-vib-t4-source-qualification
+mission: controlled-source method qualification for EI AVIFF T4 thermowell assessment
+workstream: VIB.PENDING.MECHANISMS.T4_SOURCE_QUALIFICATION
+branch: agent/vib-t4-source-qualification-20260819
+main_head_last_checked: 95ee50ff78d81465f3e4968f62767d866f8b9da8
+work_intent: QUALIFY_SOURCE_ONLY
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+current_stage: SOURCE_QUALIFICATION_EVIDENCE
+blocker: CONTROLLED_PDF_PAGE_EXECUTION_ENVIRONMENT_BLOCKED
+protected_authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  candidate_table_mutation: false
+  production_kernel: false
+source_truth:
+  merged_pr482_candidate: PRESENT_NOT_QUALIFIED
+  controlled_page_execution: NOT_RUN_ENVIRONMENT_BLOCKED
+  public_mirrors: CORROBORATION_ONLY
+  source_registry_thermowell_binding: CONFLICTED_EI_T4_VS_ASME_LABEL
+exact_next_action: COMMIT_T4_BLOCKED_METHOD_CONTRACT
