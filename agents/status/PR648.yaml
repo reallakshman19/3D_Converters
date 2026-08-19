@@ -7,7 +7,7 @@ base_pr: 625
 workstream: HP_KD320_QUALIFICATION
 stage: Q2_CSV_EVIDENCE_INTAKE_PREVIEW
 criticality: ENGINEERING_CRITICAL
-state: READY_FOR_MERGE_RECONCILIATION
+state: READY_FOR_AUTHORIZED_MERGE
 execution_mode: MANUAL
 merge_authority: OWNER_GRANTED_ON_COMPLETION
 authority:
@@ -20,6 +20,10 @@ authority:
 validation:
   focused_node_suite: PASS_16_OF_16_LOCAL_EXECUTION
   production_blob_identity: PASS
+  changed_file_ledger: PASS_11_OF_11
+  review_threads: PASS_ZERO_OPEN
+  submitted_reviews: PASS_ZERO
   browser_execution: NOT_RUN_ENVIRONMENT_BLOCKED
-  hosted_ci: REFRESH_REQUIRED_BEFORE_MERGE
-exact_next_action: Reconcile live PR648 diff, checks and reviews, then merge the authorized stack top-down with expected-head guards.
+  hosted_commit_statuses: NOT_RUN_ZERO_ENTRIES
+  hosted_pr_workflows: NOT_RUN_ZERO_RUNS
+exact_next_action: Mark PR648 ready and merge it into PR625 branch with an expected-head guard; then refresh each predecessor and continue top-down to main.
