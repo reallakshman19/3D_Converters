@@ -1,0 +1,257 @@
+{
+  "schema": "T24T25ControlledSourceQualification.v1",
+  "issue": 652,
+  "parentProgramme": 450,
+  "familyProgramme": 429,
+  "baseCommit": "6c3109935eb2d30652eab441080464777091b1bb",
+  "controlledSource": {
+    "repository": "reallaksh19/Common",
+    "commit": "fb549185b9b27edc2379734240320a85c5bef9f6",
+    "path": "EI - AVIFF Guidelines 2nd Edition.pdf",
+    "gitBlobSha1": "sha1:9d3eccc56429411e17c07a579bdebbd13cb0bdc5",
+    "sizeBytes": 10348594,
+    "edition": "2nd Edition",
+    "publisher": "Energy Institute",
+    "publicationDate": "2008-01",
+    "isbn": "9780852934630",
+    "t24NavigationLocator": {
+      "section": "T2.4",
+      "flowchart": "T2-2",
+      "printedPage": 55,
+      "pdfPages": [],
+      "locatorStatus": "NAVIGATION_ONLY"
+    },
+    "t25NavigationLocator": {
+      "section": "T2.5",
+      "flowchart": "T2-3",
+      "printedPage": 56,
+      "pdfPages": [],
+      "locatorStatus": "NAVIGATION_ONLY"
+    },
+    "pageSelection": null,
+    "pageHashes": [],
+    "sectionHashes": [],
+    "controlledPageExecution": "NOT_RUN_ENVIRONMENT_BLOCKED"
+  },
+  "controlledAccessAttempts": [
+    {
+      "route": "CONNECTED_GITHUB_FETCH_BLOB",
+      "target": "reallaksh19/Common blob 9d3eccc56429411e17c07a579bdebbd13cb0bdc5",
+      "status": "ENVIRONMENT_BLOCKED",
+      "observation": "Binary PDF fetch reaches the exact blob identity but the connector attempts UTF-8 decoding and raises UnicodeDecodeError.",
+      "engineeringDisposition": "NO_PAGE_CONTENT_OR_BRANCH_AUTHORITY_OBSERVED"
+    },
+    {
+      "route": "WEB_PINNED_GITHUB_PDF",
+      "target": "controlled Common commit/path",
+      "status": "ENVIRONMENT_BLOCKED",
+      "observation": "Pinned PDF page bytes were not exposed by the web retrieval path in this runtime.",
+      "engineeringDisposition": "NO_PAGE_CONTENT_OR_BRANCH_AUTHORITY_OBSERVED"
+    }
+  ],
+  "officialPublicationMetadata": {
+    "sourceRole": "PUBLISHER_METADATA_ONLY",
+    "url": "https://www.energyinst.org/industry/publications/topics/asset-integrity/guidelines-for-the-avoidance-of-vibration-induced-fatigue-failure-in-process-pipework",
+    "observed": {
+      "edition": "2nd",
+      "published": "January 2008",
+      "isbn": "9780852934630",
+      "errataPages": [61, 68]
+    },
+    "note": "Publisher metadata confirms publication identity only; it does not expose or qualify T2.4/T2.5 rule content. The listed errata pages are not the navigation-only printed pages 55/56."
+  },
+  "currentRepositoryState": {
+    "sourceRegister": {
+      "path": "docs/Masters/Vibration/source-register.json",
+      "t24": {
+        "masterId": "EI_AVIFF.T2.4.RECIP_PD_RULES.v1",
+        "dataType": "RULE",
+        "sourceState": "SOURCE_PINNED",
+        "locatorStatus": "NAVIGATION_ONLY",
+        "mechanismId": "reciprocatingPositiveDisplacement"
+      },
+      "t25": {
+        "masterId": "EI_AVIFF.T2.5.ROTATING_STALL_RULES.v1",
+        "dataType": "RULE",
+        "sourceState": "SOURCE_PINNED",
+        "locatorStatus": "NAVIGATION_ONLY",
+        "mechanismId": "rotatingStall"
+      },
+      "mutationByThisQualification": false
+    },
+    "sourceRegistry": {
+      "path": "converters/vibration/source/registry.js",
+      "t24Binding": "RECONCILIATION_REQUIRED",
+      "t25Binding": "RECONCILIATION_REQUIRED"
+    },
+    "mechanismRegistry": {
+      "path": "converters/vibration/mechanisms/registry.js",
+      "canonicalT24MechanismId": "reciprocatingPulsation",
+      "canonicalT25MechanismId": "rotatingStall"
+    }
+  },
+  "identityFindings": [
+    {
+      "findingId": "T24-ID-001",
+      "status": "IDENTITY_RECONCILIATION_REQUIRED",
+      "sourceRegisterMechanismId": "reciprocatingPositiveDisplacement",
+      "canonicalMechanismRegistryId": "reciprocatingPulsation",
+      "decision": "DO_NOT_SILENTLY_REWRITE_OR_ALIAS_DURING_SOURCE_BLOCKED_QUALIFICATION"
+    }
+  ],
+  "publicCorroboration": {
+    "classification": "UNCONTROLLED_NAVIGATION_AND_CORROBORATION_ONLY",
+    "engineeringAuthority": "NONE",
+    "sources": [
+      {
+        "sourceId": "PUBLIC-MIRROR-STUDYLIB-T24",
+        "url": "https://studylib.net/doc/27844928/pdfcoffee.com-energy-institute-aviff-guidelinespdf",
+        "observedScope": "T2.4 / Flowchart T2-2 searchable text",
+        "productionUse": "PROHIBITED"
+      },
+      {
+        "sourceId": "PUBLIC-MIRROR-STUDYLIB-T25",
+        "url": "https://studylib.net/doc/26210282/energy-institute-guidelines-for-the-avoidance-of-vibratio...",
+        "observedScope": "T2.5 / Flowchart T2-3 searchable text",
+        "productionUse": "PROHIBITED"
+      },
+      {
+        "sourceId": "PUBLIC-MIRROR-SCRIBD-T25",
+        "url": "https://www.scribd.com/document/673058764/EI-Guidelines-for-the-Avoidance-of-Vibration-Induced-Fatigue-Failure-in-Process-Pipework",
+        "observedScope": "T2.5 branch-text corroboration",
+        "productionUse": "PROHIBITED"
+      }
+    ]
+  },
+  "candidateRuleGraphs": {
+    "t24": {
+      "methodScope": "PULSATION_RECIPROCATING_POSITIVE_DISPLACEMENT",
+      "qualificationStatus": "NOT_QUALIFIED_PUBLIC_CORROBORATION_ONLY",
+      "rules": [
+        {
+          "ruleId": "T24-CAND-001",
+          "predicate": "SPECIFIC_RECIP_PD_INFORMATION_KNOWN",
+          "ifFalse": { "candidateLof": 1.0 },
+          "ifTrue": { "nextRuleId": "T24-CAND-002" }
+        },
+        {
+          "ruleId": "T24-CAND-002",
+          "predicate": "POWER_LT_112_KW_AND_DISCHARGE_PRESSURE_LT_35_BAR",
+          "ifTrue": { "candidateLof": 0.4 },
+          "ifFalse": { "nextRuleId": "T24-CAND-003" },
+          "boundaryQualification": "PENDING_CONTROLLED_SOURCE"
+        },
+        {
+          "ruleId": "T24-CAND-003",
+          "predicate": "API_618_674_ACOUSTIC_MECHANICAL_ANALYSIS_COVERS_OPERATING_ENVELOPE_AND_RECOMMENDATIONS_IMPLEMENTED",
+          "ifTrue": { "candidateLof": 0.4 },
+          "ifFalse": { "candidateLof": 1.0 },
+          "evidenceClass": "PROJECT_OR_ENGINEERING_STUDY_EVIDENCE",
+          "exactSourceWording": "PENDING_CONTROLLED_SOURCE"
+        }
+      ]
+    },
+    "t25": {
+      "methodScope": "PULSATION_ROTATING_STALL",
+      "qualificationStatus": "NOT_QUALIFIED_PUBLIC_CORROBORATION_ONLY",
+      "rules": [
+        {
+          "ruleId": "T25-CAND-001",
+          "predicate": "SPECIFIC_COMPRESSOR_INFORMATION_KNOWN",
+          "ifFalse": { "candidateLof": 1.0 },
+          "ifTrue": { "nextRuleId": "T25-CAND-002" }
+        },
+        {
+          "ruleId": "T25-CAND-002",
+          "predicate": "COMPRESSOR_DISPLAYS_ROTATING_STALL_CHARACTERISTIC",
+          "ifFalse": { "candidateLof": 0.2 },
+          "ifTrue": { "nextRuleId": "T25-CAND-003" },
+          "evidenceClass": "PROJECT_OR_OEM_COMPRESSOR_EVIDENCE"
+        },
+        {
+          "ruleId": "T25-CAND-003",
+          "predicate": "OPERATING_AT_LOW_FLOW_AROUND_ROTATING_STALL_CONDITIONS",
+          "ifFalse": { "candidateLof": 0.4 },
+          "ifTrue": { "candidateLof": 1.0 },
+          "evidenceClass": "PROJECT_OR_OEM_OPERATING_MAP_EVIDENCE",
+          "numericMargin": "PENDING_CONTROLLED_SOURCE"
+        }
+      ]
+    }
+  },
+  "secondarySynthesis": {
+    "repository": "reallaksh19/Advanced_Analysis",
+    "commitObserved": "b841975b20e547c721447e95527a995805d9761a",
+    "path": "docs/EI data/P2_Pulsation_and_Specialist_Mechanisms.md",
+    "gitBlobSha1Observed": "sha1:098f521d7f31f98bff78efbbc409a19db2fe1da7",
+    "classification": "CORROBORATION_INVESTIGATION_ONLY",
+    "productionUse": "PROHIBITED_UNTIL_CONTROLLED_SOURCE_RECONCILIATION",
+    "quarantinedClaims": [
+      {
+        "claimId": "T24-SECONDARY-001",
+        "claim": "Specific machine-data completeness fields include operating speed, stroke, cylinders and pulsation-bottle dimensions.",
+        "status": "UNVERIFIED_SECONDARY_DETAIL"
+      },
+      {
+        "claimId": "T24-SECONDARY-002",
+        "claim": "The API 618 requirement is specifically Design Approach 3.",
+        "status": "UNVERIFIED_SECONDARY_DETAIL"
+      },
+      {
+        "claimId": "T25-SECONDARY-001",
+        "claim": "Specific compressor information requires named aerodynamic/stage/diffuser/impeller fields.",
+        "status": "UNVERIFIED_SECONDARY_DETAIL"
+      },
+      {
+        "claimId": "T25-SECONDARY-002",
+        "claim": "Low-flow rotating-stall condition is numerically Q <= 1.15 * Q_stall.",
+        "status": "UNVERIFIED_SECONDARY_NUMERIC_RULE"
+      },
+      {
+        "claimId": "T25-SECONDARY-003",
+        "claim": "Rotating-stall pulsation frequency is universally 10%-30% of shaft running speed for this EI rule implementation.",
+        "status": "UNVERIFIED_SECONDARY_DETAIL"
+      }
+    ]
+  },
+  "unresolvedControlledPredicates": [
+    { "id": "T24-PRED-001", "name": "specificInformationKnownMinimumEvidence", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-002", "name": "powerBoundaryEqualityAt112kW", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-003", "name": "dischargePressureBoundaryEqualityAt35bar", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-004", "name": "dischargePressureBasisAndLocation", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-005", "name": "api618674ExactStudyRequirement", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-006", "name": "operatingEnvelopeSemantics", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24-PRED-007", "name": "recommendationsImplementedEvidence", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T25-PRED-001", "name": "specificCompressorInformationMinimumEvidence", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T25-PRED-002", "name": "rotatingStallCharacteristicEvidenceDefinition", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T25-PRED-003", "name": "lowFlowAroundStallDefinition", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T25-PRED-004", "name": "numericStallMarginIfAny", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T25-PRED-005", "name": "oemMapEvidenceAndOperatingEnvelopeSemantics", "status": "PENDING_CONTROLLED_SOURCE" },
+    { "id": "T24T25-PRED-001", "name": "extentOfExcitationAndPropagationBoundary", "status": "PENDING_CONTROLLED_SOURCE" }
+  ],
+  "implementationHardStops": [
+    "CONTROLLED_T24_T25_PAGE_EXECUTION_NOT_RUN",
+    "EXACT_BRANCH_WORDING_AND_BOUNDARIES_UNQUALIFIED",
+    "PROJECT_OEM_EVIDENCE_SEMANTICS_UNQUALIFIED",
+    "T24_MECHANISM_IDENTITY_RECONCILIATION_REQUIRED",
+    "SECONDARY_NUMERIC_STALL_MARGIN_UNVERIFIED"
+  ],
+  "qualification": {
+    "controlledSourceQualification": "BLOCKED_ENVIRONMENT",
+    "t24": "NOT_QUALIFIED",
+    "t25": "NOT_QUALIFIED",
+    "numericalMutationDisposition": "NOT_QUALIFIED_FOR_T24_T25_NUMERICAL_MUTATION",
+    "sourceRegisterPromotionAllowed": false,
+    "candidateRuleMasterPublicationAllowed": false,
+    "screeningPromotionAllowed": false
+  },
+  "authority": {
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false,
+    "masterValuesPublished": false,
+    "productionRuleMasterAuthorized": false,
+    "productionCalculatorAuthorized": false
+  },
+  "exactNextAction": "Execute the exact controlled EI PDF in a binary-capable runtime, bind and hash printed pages 55/56, reconcile every T24/T25 predicate and project/OEM evidence requirement, resolve the T24 mechanism-ID discrepancy, then perform independent boundary-vector qualification before any rule-master or calculator mutation."
+}
