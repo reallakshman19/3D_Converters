@@ -87,8 +87,8 @@ Preferred boundary:
 - NEW `tabs/vibration-integrity-sbc-workspace-view.js`
 - EDIT `tabs/vibration-integrity-user-data-shell.js`
 - EDIT `tabs/vibration-integrity-ui-contract.js`
-- EDIT `tabs/vibration-integrity-sbc-type3-controller.js` only to route the facility action to the new SBC workspace
 - ADD focused SBC workspace tests
+- propagate one cache identity through the existing startup → Engineering → Vibration shell chain
 - edit CSS only if existing classes are insufficient
 
 No numerical SBC kernel/master/source changes. No workflow files. No family aggregation changes.
@@ -111,9 +111,41 @@ Exact pre-edit Git blobs recorded before production mutation:
 tabs/vibration-integrity-user-data-shell.js       2c922cbb7c884b2ef5d8bdb14f7b3abf22263f39
 tabs/vibration-integrity-ui-contract.js           71cbe0f6610b566c187f9a3de3af373b898eb44e
 tabs/vibration-integrity-sbc-type3-controller.js  f2ab3936f0ba436698d06081792b8cdf0d422ec1
+index.html                                        f1b6733994ef6d98f6e69dfaadde0f32fcf64a5e
+main-rhbg-fitguard.js                             71090c997318e5c1b6b3ac0b4d08cf115bba0877
+core/app.js                                       8aa9d4ce05b8b06869a343600e3b29660db23004
+core/engineering-tabs-extension.js                e9e029a7e5331c9721c5f6e927071b2aa4006b2f
+tabs/engineering-workspace-tab.js                 ff2f5751802560e73c8b4a27299c99d89f63c14e
+tabs/engineering-calculations-tab.js              6780a254ceb60e64c211b8d46d0db6ef7691c4b8
+tabs/vibration-integrity-tab.js                    a91bc037a39cac6ddcee88c15a91f5c6508ae4f1
+tests/vibration-sbc-type3-runtime-cache-chain.test.mjs f4557c1a853dca5cb76f66beda867f8b4dc8eb83
 ```
 
 Immutable Git blobs are rollback evidence only and are not represented as native backup PASS.
+
+## Cache custody
+
+New release identity for this UI slice:
+
+```text
+20260819-sbc-full-workspace-1
+```
+
+It must be visible through:
+
+```text
+index.html
+→ main-rhbg-fitguard.js
+→ core/app.js
+→ core/engineering-tabs-extension.js
+→ tabs/engineering-workspace-tab.js
+→ tabs/engineering-calculations-tab.js
+→ tabs/vibration-integrity-tab.js
+→ tabs/vibration-integrity-user-data-shell.js
+→ SBC workspace / UI contract
+```
+
+The existing PF-05 identity remains valid for unchanged Type-3 numerical/currentness descendants.
 
 ## Validation truth
 
@@ -125,4 +157,4 @@ Immutable Git blobs are rollback evidence only and are not represented as native
 
 ## Exact next action
 
-Implement a pure Type 1–4 workspace projection from governed SBC contracts, then render it as a dedicated `SBC connections` workspace tab and route explicit Type-3 selection to the existing candidate panel without changing Type-3 numerics or authority.
+Complete the cache-chain propagation and focused SBC workspace regressions, then allocate a draft PR without changing numerical/authority state.
