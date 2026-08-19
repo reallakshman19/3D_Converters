@@ -2,7 +2,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'calculations',
     label: 'Calculations',
-    load: () => import('./engineering-calculations-tab.js?v=20260819-vib-pulsation-transient-workbench-1').then((module) => module.renderEngineeringCalculationsTab),
+    load: () => import('./engineering-calculations-tab.js?v=20260819-vib-t24-t25-evidence-1').then((module) => module.renderEngineeringCalculationsTab),
   },
   {
     id: 'b313-material-factors',
