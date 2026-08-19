@@ -5,6 +5,7 @@ const commands = [
   [process.execPath, ['scripts/audit-b313-ch9-kd320-q1.mjs']],
   [process.execPath, ['--test', 'tests/b313-chapter-ix-kd3-qualification-oracle.test.mjs']],
   [process.execPath, ['--test', 'tests/b313-chapter-ix-kd320-q1-contract.test.mjs']],
+  [process.execPath, ['--test', 'tests/b313-chapter-ix-kd320-q1-source-custody.test.mjs']],
 ];
 
 for (const [command, args] of commands) {
