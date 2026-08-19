@@ -41,7 +41,7 @@ function typeProjection(typeId, selectedType) {
 }
 
 export function createSbcWorkspaceUiState() {
-  return Object.freeze({ sbcWorkspaceType: '' });
+  return Object.freeze({ sbcWorkspaceType: '', sbcWorkspaceScopeId: '' });
 }
 
 export function setSbcWorkspaceType(state, value) {
@@ -49,9 +49,14 @@ export function setSbcWorkspaceType(state, value) {
   return state.sbcWorkspaceType;
 }
 
+export function setSbcWorkspaceScope(state, value) {
+  state.sbcWorkspaceScopeId = String(value ?? '').trim();
+  return state.sbcWorkspaceScopeId;
+}
+
 export function buildSbcWorkspaceProjection(state = {}) {
   const selectedType = normalizedType(state.sbcWorkspaceType);
-  const scopeId = String(state.sbcType3ScopeId ?? '').trim();
+  const scopeId = String(state.sbcWorkspaceScopeId ?? state.sbcType3ScopeId ?? '').trim();
   return Object.freeze({
     schema: 'VibrationSbcWorkspaceProjection.v1',
     calculationId: SBC_PUBLIC_CALCULATION_ID,
