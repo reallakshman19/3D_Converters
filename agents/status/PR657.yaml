@@ -3,20 +3,32 @@ pull_request: 657
 branch: agent/vibration-t1-full-matrix-20260819
 base_branch: main
 base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
-agent_state: ACTIVE
-current_stage: VALIDATE_AND_RECONCILE
+agent_state: HANDOVER_READY
+current_stage: HANDOVER_OWNER_GATE
 execution_mode: MANUAL
 auto_state: NOT_ACTIVE
 criticality: ENGINEERING_CRITICAL
 mutation_authority: WRITE_ALLOWED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 coordination_state: SAFE
+pr_state:
+  open: true
+  draft: true
+  mergeable: true
+  behind_main: 0
+  changed_files: 10
+  review_threads: 0
+  reviews: 0
+  commit_status_entries: 0
+  pr_workflow_runs: 0
 validation:
   exact_source_syntax: PASS_LOCAL_EXECUTION
   focused_matrix_reconstruction: PASS_5_OF_5
   view_integration_reconstruction: PASS
+  line_policy: PASS_MATRIX_139_VIEW_176_TEST_115
   repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   browser_acceptance: NOT_RUN
+  hosted_checks: NOT_RUN_ZERO_ENTRIES
 protected_authority:
   automatic_applicability: false
   automatic_dispositions: false
@@ -26,4 +38,5 @@ protected_authority:
   design_authority: false
 blockers:
   - NATIVE_REPOSITORY_CHECKOUT_UNAVAILABLE_IN_CURRENT_ENVIRONMENT
-exact_next_action: refresh exact PR head diff reviews statuses and workflow runs; reconcile recovery artifacts and PR body to final changed-file set
+  - BROWSER_ACCEPTANCE_NOT_RUN
+exact_next_action: owner or native-checkout agent should run repository-native focused/identification tests and browser T1 journey; do not merge without explicit owner authorization
