@@ -7,10 +7,13 @@
 - BRANCH: `agent/vibration-assessment-evidence-20260819`
 - BASE / MERGE BASE: `main@12f9601b7fe9441f7cf7750da5892c09e5ebab7a`
 - ENGINEERING_BASIS_HEAD: `e659bfd35ead074ce5319ded0dca6251806e521c`
+- LAST_FULL_PR_STATE_OBSERVED_HEAD: `bd214492dbcd683617970eb94084f4c325f4bf47`
 - CRITICALITY: ENGINEERING_CRITICAL
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - COORDINATION: SAFE
+
+Later commits after `ENGINEERING_BASIS_HEAD` are recovery/custody metadata only. Product/test blobs are frozen below.
 
 ## Handover in 60 seconds
 
@@ -24,11 +27,11 @@ VibrationAssessmentEvidenceReceipt.v1
   -> VibrationAssessmentEvidenceLedgerCurrentness.v1
 ```
 
-A receipt preserves result evidence and basis fingerprints; loading/revalidating it can never create a current engineering result.
+A receipt preserves result evidence and calculation-basis fingerprints. Loading or revalidating it can never create a current engineering result.
 
-Receipt scope/data includes exact assessment item + line/case/canonical scope, method/revision/qualification revision, method-definition hash, engineering-input hash, source-basis hash, calculation time, JSON-safe result payload and bounded authority-at-calculation metadata.
+Receipt data binds exact assessment item + mechanism + line/case/canonical scope, calculation time, method ID/revision, qualification revision, method-definition hash, engineering-input hash, source-basis hash, JSON-safe result payload and bounded authority-at-calculation metadata.
 
-Receipt creation requires `CURRENT_RESULT` at calculation time. The mechanism-item factory accepts only `VibrationMechanismAssessmentItem.v1` with a current non-null result.
+Receipt creation requires `CURRENT_RESULT` at calculation time. The item factory accepts only `VibrationMechanismAssessmentItem.v1` with a current non-null result.
 
 Receipt authority is always:
 
@@ -42,17 +45,9 @@ codeCompliance                  false
 safetyAuthority                 false
 ```
 
-Currentness states:
+Currentness states are `BASIS_UNAVAILABLE`, `EVIDENCE_CURRENT`, and `STALE_EVIDENCE`. `EVIDENCE_CURRENT` is freshness only, never `CURRENT_RESULT` authority. Parity covers method ID/revision, qualification revision, method-definition hash, engineering-input hash and source-basis hash. Missing current basis fails closed.
 
-```text
-BASIS_UNAVAILABLE
-EVIDENCE_CURRENT
-STALE_EVIDENCE
-```
-
-`EVIDENCE_CURRENT` is freshness only, never `CURRENT_RESULT` authority. Exact parity covers method ID/revision, qualification revision, method-definition hash, engineering-input hash and source-basis hash. Explicit stale reasons identify each mismatch dimension. Missing current basis fails closed to `BASIS_UNAVAILABLE`.
-
-No `VibrationIntegrityProject.v2` schema is declared here; this seam is intended to be consumed by it later.
+No `VibrationIntegrityProject.v2` schema is declared here; a future Project v2 should consume this seam rather than inventing persistence currentness inline.
 
 ## Product/test paths
 
@@ -95,16 +90,34 @@ vibration-assessment-evidence.test     7390083a08187be94ba51a4489549e9a121eadc2
 vibration-assessment-currentness.test  5ce1b039814f7ca54a8b223697ab184db059f39e
 ```
 
-The 14/14 run used these exact product/test bytes with a narrow local stub only for the pre-existing mechanism-item schema constant; the actual repo constant was separately inspected and matches.
+The 14/14 execution used those exact product/test bytes with a narrow local stub only for the pre-existing mechanism-item schema constant; the actual repo constant was separately inspected and matches.
 
-## Coordination / continuation
+## Last full PR-state reconciliation
 
-- No open PR found for Project v2, assessment-evidence receipts or project-currentness persistence before allocation.
-- PR661/PR662 are independent verification evidence foundations.
+Observed at head `bd214492dbcd683617970eb94084f4c325f4bf47`:
+
+```text
+base / merge base           12f9601b7fe9441f7cf7750da5892c09e5ebab7a
+ahead / behind              15 / 0
+changed files               10 intended / 0 unexplained
+mergeable                   true
+state / draft               open / true
+reviews                     0
+review threads              0
+commit status entries       0 -> NOT_RUN
+PR-triggered workflow runs  0 -> NOT_RUN
+```
+
+Any later head movement from report/status synchronization is recovery-only. Refresh live state again before merge.
+
+## Coordination / logical stop
+
+- PR661 measurement verification, PR662 visual evidence and PR664 assessment-evidence currentness are independent foundation PRs.
 - PR649 work-item currentness does not own this project receipt/currentness domain.
+- Do not declare Project v2 or verification persistence by duplicating these unmerged contracts into a stacked branch.
 
-Do not prematurely declare Project v2 or verification persistence while these foundation contracts are unmerged. Once stable, Project v2 can persist `assessmentEvidence[]` and revalidate every receipt on load without self-promotion.
+Once the foundations are stable, Project v2 can persist `assessmentEvidence[]`, verification requirements/dispositions and visual evidence, and revalidate all receipt currentness on load without self-promotion. Phase 7C can then build the persistent line/case Verify workspace on that stable project model.
 
 ## EXACT_NEXT_ACTION
 
-Refresh exact PR head/main relation, changed-file ledger, mergeability, reviews, review threads, statuses and PR-triggered workflow runs. Synchronize final recovery truth and stop at Owner gate. Do not merge.
+STOP at Owner gate. Do not merge. On explicit Owner progression, re-ground current main/PR head and run repository-native focused tests before merge decision.
