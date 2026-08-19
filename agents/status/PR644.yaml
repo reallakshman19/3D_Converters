@@ -3,18 +3,32 @@ branch: agent/vibration-aiv-canvas-evidence-hardening-20260818
 base_pr: 643
 base_sha: afe72d5cc4859bf4d76e95c83563e86d4169b902
 agent_state: ACTIVE
-current_stage: HANDOVER_READY
+current_stage: OWNER_MERGE_GATE
 execution_mode: AUTO
-auto_state: PHASE_3_HANDOVER
+auto_state: COMPLETE
 criticality: ENGINEERING_CRITICAL
-mutation_authority: WRITE_ALLOWED
+mutation_authority: READ_ONLY_UNTIL_OWNER_DECISION
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_THIS_REPAIR_SET
 blockers:
   - REPOSITORY_NATIVE_EXECUTION_UNAVAILABLE
   - BROWSER_EXECUTION_UNAVAILABLE
+  - MERGE_AUTHORITY_NOT_GRANTED
 protected_authority:
   aiv_line_case_screening_authority: NOT_AUTHORIZED
   generic_ei_mainline_aiv: BLOCKED
   canvas_presentation_authority: NON_AUTHORITATIVE
   design_authority: false
-next_action: run cross-stack integration audit and stop at owner merge gate
+stack:
+  - PR642_CORRECTNESS
+  - PR643_INTERACTION
+  - PR644_EVIDENCE_CURRENCY
+final_audit:
+  main_drift: NONE
+  mergeability: PASS_ALL_THREE
+  review_submissions: NONE
+  review_threads: NONE
+  commit_statuses: NOT_RUN_EMPTY
+  pr_workflow_runs: NOT_RUN_EMPTY
+  native_node_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser_journey: NOT_RUN_ENVIRONMENT_BLOCKED
+next_action: owner disposition only; do not merge without explicit authorization
