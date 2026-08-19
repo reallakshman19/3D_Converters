@@ -17,7 +17,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    load: () => import('./hp-piping-class-workbench-tab.js?v=20260816-hp-real-workbench-2').then((module) => module.renderHpPipingClassWorkbenchTab),
+    load: () => import('./hp-piping-class-workbench-tab.js?v=20260819-hp-kd-review-compact-1').then((module) => module.renderHpPipingClassWorkbenchTab),
   },
   {
     id: 'hp-kd320-evidence-intake',

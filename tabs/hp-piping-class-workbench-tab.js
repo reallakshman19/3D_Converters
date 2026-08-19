@@ -21,6 +21,10 @@ import {
   cascadeRemoveHpPipingClassTransition,
   createHpPipingClassExternalResultShell,
 } from './hp-piping-class-workbench-state.js';
+import {
+  addAllHpPipingClassExternalResults,
+  copyFirstHpPipingClassKdBasisToAll,
+} from './hp-piping-class-kd-productivity.js';
 
 const STEPS = Object.freeze([
   { id: 'design', number: 1, label: 'Design Basis', caption: 'Code, class and product data' },
@@ -83,11 +87,12 @@ function ensureStyles() {
     .hpwb-workflow{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:8px;margin-bottom:14px}.hpwb-step{font:inherit;color:inherit;text-align:left;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:rgba(15,23,42,.28);padding:10px;cursor:pointer;display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:center}.hpwb-step:hover{background:rgba(148,163,184,.08)}.hpwb-step.active{border-color:rgba(96,165,250,.48);background:rgba(30,64,175,.16)}.hpwb-step-number{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(148,163,184,.12);font-size:12px;font-weight:850}.hpwb-step strong,.hpwb-step small{display:block}.hpwb-step small{margin-top:2px;color:var(--text-muted,#9aa8b8);font-size:10px}
     .hpwb-panel{border:1px solid rgba(148,163,184,.17);border-radius:14px;background:rgba(15,23,42,.22);padding:16px}.hpwb-panel-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.hpwb-panel-heading h3{margin:0;font-size:18px}.hpwb-panel-heading p{margin:5px 0 0;color:var(--text-muted,#9aa8b8)}.hpwb-code-chip{border:1px solid rgba(96,165,250,.28);border-radius:999px;padding:5px 9px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#93c5fd;white-space:nowrap}
     .hpwb-card{border:1px solid rgba(148,163,184,.15);border-radius:12px;padding:13px;margin:10px 0;background:rgba(2,6,23,.16)}.hpwb-card h4{margin:0 0 9px;font-size:14px}.hpwb-card p{margin:5px 0;color:var(--text-muted,#9aa8b8)}.hpwb-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px}.hpwb-grid.two{grid-template-columns:repeat(2,minmax(220px,1fr))}.hpwb-field{display:grid;gap:5px}.hpwb-field span{font-size:11px;color:var(--text-muted,#9aa8b8);font-weight:650}.hpwb-field input,.hpwb-field select,.hpwb-table input,.hpwb-table select{width:100%;font:inherit;color:inherit;background:rgba(2,6,23,.52);border:1px solid rgba(148,163,184,.23);border-radius:8px;padding:8px}.hpwb-field input[readonly]{opacity:.75}
-    .hpwb-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.14);border-radius:10px}.hpwb-table{width:100%;border-collapse:collapse;min-width:900px}.hpwb-table th,.hpwb-table td{padding:8px;border-bottom:1px solid rgba(148,163,184,.11);text-align:left;vertical-align:middle}.hpwb-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted,#9aa8b8)}.hpwb-table td{font-size:12px}.hpwb-table tr:last-child td{border-bottom:0}
+    .hpwb-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.14);border-radius:10px}.hpwb-table{width:100%;border-collapse:collapse;min-width:900px}.hpwb-table.compact{min-width:1050px}.hpwb-table.audit{min-width:1200px}.hpwb-table th,.hpwb-table td{padding:8px;border-bottom:1px solid rgba(148,163,184,.11);text-align:left;vertical-align:middle}.hpwb-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted,#9aa8b8)}.hpwb-table td{font-size:12px}.hpwb-table tr:last-child td{border-bottom:0}
     .hpwb-metrics{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:9px;margin:10px 0 14px}.hpwb-metric{border:1px solid rgba(148,163,184,.15);border-radius:11px;padding:10px 11px;background:rgba(2,6,23,.2)}.hpwb-metric span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted,#9aa8b8)}.hpwb-metric strong{display:block;margin-top:4px;font-size:17px}.hpwb-metric small{display:block;margin-top:3px;color:var(--text-muted,#9aa8b8);font-size:10px}
     .hpwb-notice{border:1px solid rgba(148,163,184,.17);border-radius:10px;padding:10px 12px;margin:9px 0;background:rgba(15,23,42,.3);line-height:1.45}.hpwb-notice.good{border-color:rgba(74,222,128,.32);background:rgba(20,83,45,.14)}.hpwb-notice.warn{border-color:rgba(250,204,21,.32);background:rgba(113,63,18,.13)}.hpwb-notice.error{border-color:rgba(248,113,113,.34);background:rgba(127,29,29,.14)}.hpwb-notice strong{font-weight:800}.hpwb-notice ul{margin:7px 0 0;padding-left:18px}.hpwb-notice li{margin:3px 0}
     .hpwb-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border:1px solid rgba(148,163,184,.15);border-radius:11px;background:rgba(2,6,23,.18);margin:10px 0}.hpwb-chain-node{padding:7px 9px;border-radius:8px;border:1px solid rgba(148,163,184,.18);font-size:11px;font-weight:750}.hpwb-chain-node.core{border-color:rgba(74,222,128,.3);background:rgba(20,83,45,.14)}.hpwb-chain-node.external{border-color:rgba(250,204,21,.3);background:rgba(113,63,18,.12)}.hpwb-chain-arrow{color:var(--text-muted,#9aa8b8)}
     .hpwb-section-toolbar{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:11px 0 8px}.hpwb-section-toolbar h4{margin:0}.hpwb-foot-actions{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:14px}.hpwb-status{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text-muted,#9aa8b8)}.hpwb-hidden{display:none!important}.hpwb-governed{font-size:11px;color:#93c5fd;line-height:1.4}
+    .hpwb-details{margin-top:10px;border:1px dashed rgba(148,163,184,.22);border-radius:10px;padding:9px 11px}.hpwb-details summary{cursor:pointer;font-weight:750;font-size:12px}.hpwb-details[open] summary{margin-bottom:10px}.hpwb-muted{color:var(--text-muted,#9aa8b8);font-size:11px}.hpwb-kd-status{white-space:nowrap}
     @media(max-width:1180px){.hpwb-workflow{grid-template-columns:repeat(2,minmax(180px,1fr))}.hpwb-metrics{grid-template-columns:repeat(2,minmax(140px,1fr))}.hpwb-grid{grid-template-columns:repeat(2,minmax(180px,1fr))}.hpwb-hero{grid-template-columns:1fr}}
     @media(max-width:680px){.hpwb{padding:0 10px 18px}.hpwb-workflow,.hpwb-grid,.hpwb-grid.two,.hpwb-metrics{grid-template-columns:1fr}.hpwb-step{grid-template-columns:30px 1fr}.hpwb-toolbar{align-items:flex-start}.hpwb-actions{width:100%}.hpwb-button{flex:1 1 145px}.hpwb-inline-select{width:100%}}
   `;
@@ -230,47 +235,38 @@ function cyclesPanel(snapshot, cycleProductId) {
   </section>`;
 }
 
+function kdAuditRows(pkg, evidenceIndex) {
+  return (pkg.externalResults ?? []).map((row, resultIndex) => {
+    const basis = row.calculationBasis ?? {};
+    const prefix = `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis`;
+    return `<tr><td><strong>${esc(row.cycleId || `Row ${resultIndex + 1}`)}</strong></td><td><input data-hpwb-bind="${prefix}.code" data-hpwb-type="text" value="${attr(basis.code)}"></td><td><input data-hpwb-bind="${prefix}.edition" data-hpwb-type="text" value="${attr(basis.edition)}"></td><td><input data-hpwb-bind="${prefix}.methodRef" data-hpwb-type="text" value="${attr(basis.methodRef)}"></td><td><input data-hpwb-bind="${prefix}.calculationRef" data-hpwb-type="text" value="${attr(basis.calculationRef)}"></td><td><input data-hpwb-bind="${prefix}.calculatedBy" data-hpwb-type="text" value="${attr(basis.calculatedBy)}"></td><td><input data-hpwb-bind="${prefix}.checkedBy" data-hpwb-type="text" value="${attr(basis.checkedBy)}"></td><td><input data-hpwb-bind="${prefix}.checkedAt" data-hpwb-type="text" value="${attr(basis.checkedAt)}"></td></tr>`;
+  }).join('');
+}
+
 function kdPanel(snapshot) {
   const project = snapshot.project;
   const evidence = project.fatigueEvidence ?? [];
   const unusedProducts = (project.products ?? []).filter((product) => product.productId && !evidence.some((pkg) => pkg.productId === product.productId));
   return `<section class="hpwb-panel">
-    <div class="hpwb-panel-heading"><div><h3>KD Review</h3><p>Use the qualified product route: CORE pressure-cycle mechanics and Miner bookkeeping with externally calculated and checked KD-3 Seq / N.</p></div><div class="hpwb-code-chip">USER_CALCULATED_KD3</div></div>
-    <div class="hpwb-notice warn"><strong>Native CORE KD320 remains blocked.</strong> This screen does not calculate mean-stress correction or fatigue-curve life. Seq and permissible cycles N retain external calculation custody.</div>
-    <div class="hpwb-chain"><span class="hpwb-chain-node core">CORE pressure states</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node core">CORE Salt</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node external">External Seq</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node external">External N</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node core">CORE Σ n/N</span></div>
-    ${unusedProducts.length ? `<div class="hpwb-section-toolbar"><span class="hpwb-status">Products without KD-3 evidence: ${unusedProducts.length}</span><div class="hpwb-actions">${unusedProducts.map((product) => `<button class="hpwb-button" data-hpwb-action="add-evidence" data-product-id="${attr(product.productId)}" type="button">Attach ${esc(product.productId)}</button>`).join('')}</div></div>` : ''}
+    <div class="hpwb-panel-heading"><div><h3>KD Review</h3><p>Enter external KD-3 Seq / N against governed cycles; CORE shows pressure-cycle Salt and Miner usage. Audit custody stays collapsed below each product until needed.</p></div><div class="hpwb-code-chip">USER_CALCULATED_KD3</div></div>
+    <div class="hpwb-notice warn"><strong>Native CORE KD320 remains blocked.</strong> CORE does not calculate mean-stress correction or fatigue-curve life. The primary table is limited to the engineering quantities needed for the review.</div>
+    <div class="hpwb-chain"><span class="hpwb-chain-node core">CORE pressure states</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node core">CORE Salt</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node external">External Seq / N</span><span class="hpwb-chain-arrow">→</span><span class="hpwb-chain-node core">CORE n/N + ΣU</span></div>
+    ${unusedProducts.length ? `<div class="hpwb-section-toolbar"><span class="hpwb-status">Products not yet in KD review: ${unusedProducts.length}</span><div class="hpwb-actions">${unusedProducts.map((product) => `<button class="hpwb-button" data-hpwb-action="add-evidence" data-product-id="${attr(product.productId)}" type="button">Add ${esc(product.productId)} to KD review</button>`).join('')}</div></div>` : ''}
     ${evidence.map((pkg, evidenceIndex) => {
       const result = productResult(snapshot, pkg.productId)?.calculations?.fatigue;
       const derivedByCycle = new Map((result?.outputs?.cycles ?? []).map((row) => [row.cycleId, row]));
-      return `<div class="hpwb-card"><div class="hpwb-section-toolbar"><div><h4>${esc(pkg.productId)} · external KD-3 evidence</h4><p>${pkg.externalResults?.length ?? 0} governed result row(s)</p></div><div class="hpwb-actions"><button class="hpwb-button" data-hpwb-action="add-external-result" data-evidence-index="${evidenceIndex}" type="button">+ Add uncovered cycle</button><button class="hpwb-button danger" data-hpwb-action="remove-evidence" data-evidence-index="${evidenceIndex}" type="button">Remove package</button></div></div>
-      ${(pkg.externalResults ?? []).map((row, resultIndex) => {
+      const rows = pkg.externalResults ?? [];
+      const governedCycleIds = new Set((project.transient?.transitions ?? []).map((row) => row.cycleId).filter(Boolean));
+      const coveredCycleIds = new Set(rows.map((row) => row.cycleId).filter((cycleId) => governedCycleIds.has(cycleId)));
+      const missing = Math.max(0, governedCycleIds.size - coveredCycleIds.size);
+      return `<div class="hpwb-card"><div class="hpwb-section-toolbar"><div><h4>${esc(pkg.productId)} · KD-3 cycle review</h4><p>${rows.length} row(s) · ${missing ? `${missing} governed cycle(s) still uncovered` : 'all governed cycles covered'}</p></div><div class="hpwb-actions">${missing ? `<button class="hpwb-button primary" data-hpwb-action="add-all-external-results" data-evidence-index="${evidenceIndex}" type="button">Add all governed cycles</button><button class="hpwb-button" data-hpwb-action="add-external-result" data-evidence-index="${evidenceIndex}" type="button">+ Add one</button>` : ''}<button class="hpwb-button danger" data-hpwb-action="remove-evidence" data-evidence-index="${evidenceIndex}" type="button">Remove product</button></div></div>
+      ${rows.length ? `<div class="hpwb-table-wrap"><table class="hpwb-table compact"><thead><tr><th>Cycle</th><th>State pair</th><th>Location</th><th>CORE Salt MPa</th><th>User Salt MPa</th><th>External Seq MPa</th><th>External N</th><th>Applied n</th><th>Ui=n/N</th><th>Status</th><th></th></tr></thead><tbody>${rows.map((row, resultIndex) => {
         const derived = derivedByCycle.get(row.cycleId);
-        const basis = row.calculationBasis ?? {};
-        return `<div class="hpwb-card"><div class="hpwb-grid">
-          ${field('Cycle ID', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.cycleId`, row.cycleId)}
-          ${field('From state', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.fromStateId`, row.fromStateId)}
-          ${field('To state', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.toStateId`, row.toStateId)}
-          ${field('Location', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.locationId`, row.locationId)}
-          ${field('User Salt cross-check (MPa)', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.userAlternatingStressIntensityMpa`, row.userAlternatingStressIntensityMpa, { type: 'number' })}
-          ${field('External Seq (MPa)', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.equivalentAlternatingStressMpa`, row.equivalentAlternatingStressMpa, { type: 'number' })}
-          ${field('External N', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.permissibleCycles`, row.permissibleCycles, { type: 'number' })}
-          ${field('Code', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.code`, basis.code)}
-          ${field('Edition', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.edition`, basis.edition)}
-          ${field('Method / clause', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.methodRef`, basis.methodRef)}
-          ${field('External calculation ref', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.calculationRef`, basis.calculationRef)}
-          ${field('Calculated by', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.calculatedBy`, basis.calculatedBy)}
-          ${field('Checked by', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.checkedBy`, basis.checkedBy)}
-          ${field('Checked at', `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}.calculationBasis.checkedAt`, basis.checkedAt)}
-        </div><div class="hpwb-metrics">
-          <div class="hpwb-metric"><span>CORE Salt</span><strong>${fmt(derived?.coreSaltMpa, 6)} MPa</strong><small>${esc(derived?.saltCrossCheckStatus || 'not run')}</small></div>
-          <div class="hpwb-metric"><span>External Seq</span><strong>${fmt(derived?.equivalentAlternatingStressMpa ?? row.equivalentAlternatingStressMpa)} MPa</strong><small>user supplied</small></div>
-          <div class="hpwb-metric"><span>External N</span><strong>${Number.isFinite(derived?.permissibleCycles ?? row.permissibleCycles) ? Number(derived?.permissibleCycles ?? row.permissibleCycles).toLocaleString() : '—'}</strong><small>user supplied</small></div>
-          <div class="hpwb-metric"><span>Applied n</span><strong>${Number.isFinite(derived?.appliedCycles) ? derived.appliedCycles.toLocaleString() : '—'}</strong><small>governed spectrum</small></div>
-          <div class="hpwb-metric"><span>Ui = n/N</span><strong>${fmt(derived?.usage, 6)}</strong><small>CORE derived</small></div>
-        </div><div class="hpwb-section-toolbar"><span class="hpwb-status">${esc(derived?.evidence?.status || 'Calculation not run')}</span><button class="hpwb-button danger" data-hpwb-action="remove-external-result" data-evidence-index="${evidenceIndex}" data-result-index="${resultIndex}" type="button">Remove row</button></div></div>`;
-      }).join('') || '<div class="hpwb-notice warn">No external result rows. Add an uncovered governed cycle.</div>'}
+        const prefix = `fatigueEvidence.${evidenceIndex}.externalResults.${resultIndex}`;
+        return `<tr><td><strong>${esc(row.cycleId || '—')}</strong></td><td>${esc(row.fromStateId || '—')} → ${esc(row.toStateId || '—')}</td><td><input data-hpwb-bind="${prefix}.locationId" data-hpwb-type="text" value="${attr(row.locationId)}"></td><td><strong>${fmt(derived?.coreSaltMpa, 6)}</strong></td><td><input type="number" step="any" data-hpwb-bind="${prefix}.userAlternatingStressIntensityMpa" data-hpwb-type="number" value="${attr(numValue(row.userAlternatingStressIntensityMpa))}"></td><td><input type="number" step="any" data-hpwb-bind="${prefix}.equivalentAlternatingStressMpa" data-hpwb-type="number" value="${attr(numValue(row.equivalentAlternatingStressMpa))}"></td><td><input type="number" step="any" data-hpwb-bind="${prefix}.permissibleCycles" data-hpwb-type="number" value="${attr(numValue(row.permissibleCycles))}"></td><td>${Number.isFinite(derived?.appliedCycles) ? derived.appliedCycles.toLocaleString() : '—'}</td><td><strong>${fmt(derived?.usage, 6)}</strong></td><td class="hpwb-kd-status">${esc(derived?.evidence?.status || 'Not calculated')}</td><td><button class="hpwb-button danger" data-hpwb-action="remove-external-result" data-evidence-index="${evidenceIndex}" data-result-index="${resultIndex}" type="button">Remove</button></td></tr>`;
+      }).join('')}</tbody></table></div><details class="hpwb-details"><summary>Audit / calculation-basis details</summary><div class="hpwb-section-toolbar"><span class="hpwb-muted">These fields remain available for USER_CALCULATED_KD3 custody, but stay out of the day-to-day engineering table.</span>${rows.length > 1 ? `<button class="hpwb-button" data-hpwb-action="copy-external-basis" data-evidence-index="${evidenceIndex}" type="button">Copy first-row basis to all cycles</button>` : ''}</div><div class="hpwb-notice warn"><strong>Use copy only when one external calculation basis legitimately covers every cycle.</strong> Cycle/location/Seq/N values are never copied.</div><div class="hpwb-table-wrap"><table class="hpwb-table audit"><thead><tr><th>Cycle</th><th>Code</th><th>Edition</th><th>Method / clause</th><th>Calculation ref</th><th>Calculated by</th><th>Checked by</th><th>Checked at</th></tr></thead><tbody>${kdAuditRows(pkg, evidenceIndex)}</tbody></table></div></details>` : '<div class="hpwb-notice warn">No cycle rows. Use “Add all governed cycles” to create the working table in one action.</div>'}
       </div>`;
-    }).join('') || '<div class="hpwb-notice warn"><strong>No external KD-3 package attached.</strong> Attach evidence to a class product to evaluate pressure-cycle fatigue.</div>'}
+    }).join('') || '<div class="hpwb-notice warn"><strong>No product is in KD review.</strong> Add a class product to KD review; cycle rows then come from the governed pressure spectrum.</div>'}
     ${calcNotice(snapshot)}
     <div class="hpwb-foot-actions"><button class="hpwb-button" data-hpwb-goto="cycles" type="button">← Pressure Cycles</button><button class="hpwb-button primary" data-hpwb-goto="envelope" type="button">Continue to Review Envelope →</button></div>
   </section>`;
@@ -435,7 +431,7 @@ export function renderHpPipingClassWorkbenchTab(container, { context = null } = 
       const evidenceIndex = Number(target.dataset.evidenceIndex);
       const shell = createHpPipingClassExternalResultShell(snapshot().project, evidenceIndex);
       if (!shell) {
-        statusMessage = 'No uncovered governed cycle is available for this evidence package';
+        statusMessage = 'No uncovered governed cycle is available for this KD review';
         render('kd');
         return;
       }
@@ -444,6 +440,12 @@ export function renderHpPipingClassWorkbenchTab(container, { context = null } = 
         draft.fatigueEvidence[evidenceIndex].externalResults.push(shell);
       }, { rerender: true });
     }
+    if (action === 'add-all-external-results') mutate((draft) => {
+      addAllHpPipingClassExternalResults(draft, Number(target.dataset.evidenceIndex));
+    }, { rerender: true });
+    if (action === 'copy-external-basis') mutate((draft) => {
+      copyFirstHpPipingClassKdBasisToAll(draft, Number(target.dataset.evidenceIndex));
+    }, { rerender: true });
     if (action === 'remove-external-result') mutate((draft) => {
       draft.fatigueEvidence[Number(target.dataset.evidenceIndex)].externalResults.splice(Number(target.dataset.resultIndex), 1);
     }, { rerender: true });
@@ -475,7 +477,7 @@ export function renderHpPipingClassWorkbenchTab(container, { context = null } = 
     const target = event.target.closest('[data-hpwb-action]');
     if (!target) return;
     const action = target.dataset.hpwbAction;
-    if (['add-product','remove-product','add-state','remove-state','add-transition','remove-transition','add-evidence','remove-evidence','add-external-result','remove-external-result'].includes(action)) {
+    if (['add-product','remove-product','add-state','remove-state','add-transition','remove-transition','add-evidence','remove-evidence','add-external-result','add-all-external-results','copy-external-basis','remove-external-result'].includes(action)) {
       structural(action, target);
       return;
     }
