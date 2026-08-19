@@ -184,11 +184,13 @@ function previewControlledSource(source) {
 function editionRow(row, rowNumber) {
   const issues = [];
   const semanticId = required(row, 'semantic_id', rowNumber, issues);
+  const referenceId = required(row, 'reference_id', rowNumber, issues);
   const sourceEdition = required(row, 'source_code_edition', rowNumber, issues);
   const targetEdition = required(row, 'target_viii3_edition', rowNumber, issues);
+  if (referenceId && referenceId !== 'PVP2025-154710') issues.push(issue(rowNumber, 'EDITION_REFERENCE_ID_UNSUPPORTED', 'reference_id', 'Edition reconciliation is qualified only for PVP2025-154710.'));
   if (sourceEdition && sourceEdition !== '2023') issues.push(issue(rowNumber, 'SOURCE_EDITION_MUST_BE_2023', 'source_code_edition', 'Source edition must be 2023.'));
   if (targetEdition && targetEdition !== '2025') issues.push(issue(rowNumber, 'TARGET_EDITION_MUST_BE_2025', 'target_viii3_edition', 'Target edition must be 2025.'));
-  for (const field of ['reference_id', 'bibliographic_ref', 'exact_locator', 'source_sha256', 'controlled_2025_secure_storage_ref', 'controlled_2025_document_sha256', 'source_locator', 'target_controlled_locator', 'controlled_semantic_ref', 'comparison_status', 'compared_by', 'compared_at', 'independent_check_by', 'independent_checked_at']) required(row, field, rowNumber, issues);
+  for (const field of ['bibliographic_ref', 'exact_locator', 'source_sha256', 'controlled_2025_secure_storage_ref', 'controlled_2025_document_sha256', 'source_locator', 'target_controlled_locator', 'controlled_semantic_ref', 'comparison_status', 'compared_by', 'compared_at', 'independent_check_by', 'independent_checked_at']) required(row, field, rowNumber, issues);
   if (text(row.source_sha256) && !SHA256.test(text(row.source_sha256))) issues.push(issue(rowNumber, 'SOURCE_SHA256_INVALID', 'source_sha256', 'Use sha256:<64 lowercase hex>.'));
   if (text(row.controlled_2025_document_sha256) && !SHA256.test(text(row.controlled_2025_document_sha256))) issues.push(issue(rowNumber, 'CONTROLLED_2025_DOCUMENT_SHA256_INVALID', 'controlled_2025_document_sha256', 'Use sha256:<64 lowercase hex>.'));
   if (text(row.compared_at) && !validTimestamp(row.compared_at)) issues.push(issue(rowNumber, 'COMPARED_AT_INVALID', 'compared_at', 'ISO-8601 UTC timestamp required.'));
