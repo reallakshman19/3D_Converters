@@ -5,7 +5,7 @@ import {
   renderAivCanvasRelationshipResultHtml,
   renderAivCanvasSourceResultHtml,
 } from './vibration-aiv-canvas-results.js';
-import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
+import { AIV_INPUT_MODE, isAivLineageCurrent } from './vibration-aiv-engineering-revision.js';
 import { renderAivUnifiedCanvasEngineeringEditorHtml } from './vibration-aiv-unified-canvas-editor-view.js?v=20260816-aiv-canvas-fields-1';
 
 function esc(value) {
@@ -37,10 +37,14 @@ function provenanceHtml(values = {}) {
   return `<dl class="aiv-canvas-input-values">${rows.map(([key, value]) => `<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`;
 }
 function metric(label, value) { return `<span><small>${esc(label)}</small><strong>${esc(value ?? '—')}</strong></span>`; }
-function summaryHtml(item, kind) {
+function summaryHtml(item, kind, screeningCurrent) {
   if (kind === 'RELATIONSHIP') return `<div class="aiv-canvas-detail-grid">${metric('Source', item.sourceCanonicalId)}${metric('Assessment', item.assessmentCanonicalId)}${metric('Case', item.caseId)}${metric('Line', item.line)}${metric('Applicability', item.applicabilityDisposition)}${metric('Physical distance', item.physicalDistance && item.physicalDistanceUnit ? `${item.physicalDistance} ${item.physicalDistanceUnit}` : '—')}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}</div>`;
   if (kind === 'SEGMENT') return `<div class="aiv-canvas-detail-grid">${metric('Segment', item.segmentId)}${metric('From', item.fromNodeId)}${metric('To', item.toNodeId)}${metric('Line', item.line)}${metric('Engineering length', item.engineeringLength ?? 'UNRESOLVED')}${metric('Distance authority', 'EXPLICIT SEGMENT INPUT')}</div>`;
-  return `<div class="aiv-canvas-detail-grid">${metric('Canonical ID', item.canonicalId)}${metric('Kind', item.nodeKind)}${metric('Case', item.caseId ?? (item.caseIds?.join(', ') || '—'))}${metric('Line', item.line)}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}${metric('Screening status', item.screeningStatus ?? 'NOT_RUN')}${metric('Assumptions', item.assumptionCount ?? 0)}</div>`;
+  const screeningStatus = screeningCurrent ? (item.screeningStatus ?? 'NOT_RUN') : 'STALE · RERUN SCREENING';
+  return `<div class="aiv-canvas-detail-grid">${metric('Canonical ID', item.canonicalId)}${metric('Kind', item.nodeKind)}${metric('Case', item.caseId ?? (item.caseIds?.join(', ') || '—'))}${metric('Line', item.line)}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}${metric('Screening status', screeningStatus)}${metric('Assumptions', item.assumptionCount ?? 0)}</div>`;
+}
+function staleResultHtml() {
+  return '<div class="aivq-banner is-warning" data-aiv-canvas-stale-detail="true"><strong>Stale screening evidence.</strong><span>Engineering inputs changed after this result. Rerun screening before using PWL, LOF, contributions or T2-6 intermediates.</span></div>';
 }
 function t26Html(item) {
   const summary = item?.resultSummary; const cases = summary?.caseCount ? summary.cases : summary ? [summary] : [];
@@ -67,12 +71,14 @@ function tableAction(state, item, kind, selectionKey) {
   const label = generated ? `Open generated ${table} table` : `Open full ${table} table`;
   return `<button type="button" class="engineering-console-btn" data-aiv-canvas-open-table="${table}" data-aiv-selection-key="${esc(selectionKey)}">${esc(label)}</button>`;
 }
-function selectedDetail(state, selectionKey, labelText, item, resultHtml = '', kind = 'NODE') {
+function selectedDetail(state, selectionKey, labelText, item, resultHtml = '', kind = 'NODE', screeningCurrent = true) {
   const assumptions = item.assumptions?.map(assumptionAction).join('') ?? ''; const detailId = `aiv-detail-${selectionKey.replace(/[^a-zA-Z0-9_-]/gu, '-')}`;
   const editorHtml = renderAivUnifiedCanvasEngineeringEditorHtml(state, { ...item, selectionKey }, kind);
   const calcLabel = kind === 'RELATIONSHIP' ? 'Contribution' : kind === 'ASSESSMENT' ? 'Contributions' : 'Calculation';
   const tabs = [tabButton(detailId, 'summary', 'Summary', true), ...(editorHtml ? [tabButton(detailId, 'edit', 'Engineering edit')] : []), tabButton(detailId, 'inputs', 'Inputs'), tabButton(detailId, 'calculation', calcLabel), ...(kind === 'ASSESSMENT' ? [tabButton(detailId, 't26', 'T2-6')] : []), tabButton(detailId, 'assumptions', 'Assumptions'), tabButton(detailId, 'provenance', 'Provenance')].join('');
-  const panels = [panel(detailId, 'summary', summaryHtml(item, kind), true), ...(editorHtml ? [panel(detailId, 'edit', editorHtml)] : []), panel(detailId, 'inputs', inputValuesHtml(item.inputValues)), panel(detailId, 'calculation', resultHtml || '<small>No screening result is available for this item.</small>'), ...(kind === 'ASSESSMENT' ? [panel(detailId, 't26', t26Html(item))] : []), panel(detailId, 'assumptions', assumptions ? `<div class="aiv-canvas-assumption-list">${assumptions}</div>` : '<small>No resolved assumptions for this item.</small>'), panel(detailId, 'provenance', provenanceHtml(item.inputValues))].join('');
+  const calculation = screeningCurrent ? (resultHtml || '<small>No screening result is available for this item.</small>') : staleResultHtml();
+  const t26 = screeningCurrent ? t26Html(item) : staleResultHtml();
+  const panels = [panel(detailId, 'summary', summaryHtml(item, kind, screeningCurrent), true), ...(editorHtml ? [panel(detailId, 'edit', editorHtml)] : []), panel(detailId, 'inputs', inputValuesHtml(item.inputValues)), panel(detailId, 'calculation', calculation), ...(kind === 'ASSESSMENT' ? [panel(detailId, 't26', t26)] : []), panel(detailId, 'assumptions', assumptions ? `<div class="aiv-canvas-assumption-list">${assumptions}</div>` : '<small>No resolved assumptions for this item.</small>'), panel(detailId, 'provenance', provenanceHtml(item.inputValues))].join('');
   return `<section class="aiv-canvas-selected-detail" data-aiv-canvas-assumption-detail="${esc(selectionKey)}" aria-label="Selected AIV item"><div class="aivq-section-head"><div><strong>${esc(labelText)}</strong><div>${ownershipBadge(state)}</div></div>${tableAction(state, item, kind, selectionKey)}</div><div class="aiv-canvas-detail-tabs" role="tablist">${tabs}</div>${panels}</section>`;
 }
 function networkFallback(state, selectionKey) {
@@ -97,9 +103,14 @@ function selectedProjectionItem(state, value, selectionKey) {
 export function renderAivUnifiedCanvasSelectedDetailHtml(state = {}, selectionKey = null) {
   const key = String(selectionKey ?? '').trim(); const selected = selectedProjectionItem(state, projection(state), key);
   if (!selected) return '<div class="aiv-canvas-detail-placeholder">Select a Source, Assessment, physical segment, routing node or Source→Assessment relationship. The Engineering edit tab changes the authoritative input for the active mode.</div>';
-  const { item, kind } = selected;
-  if (kind === 'SEGMENT') return selectedDetail(state, key, `SEGMENT ${item.segmentId}`, item, '', kind);
-  if (kind === 'RELATIONSHIP') return selectedDetail(state, item.selectionKey, `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`, item, renderAivCanvasRelationshipResultHtml(item), kind);
-  const result = kind === 'SOURCE' ? renderAivCanvasSourceResultHtml(item) : kind === 'ASSESSMENT' ? renderAivCanvasAssessmentResultHtml(item) : '';
-  return selectedDetail(state, key, `${kind} ${item.tag || item.canonicalId}`, item, result, kind);
+  const { item, kind } = selected; const screeningCurrent = isAivLineageCurrent(state, 'screening');
+  if (kind === 'SEGMENT') return selectedDetail(state, key, `SEGMENT ${item.segmentId}`, item, '', kind, screeningCurrent);
+  if (kind === 'RELATIONSHIP') {
+    const result = screeningCurrent ? renderAivCanvasRelationshipResultHtml(item) : '';
+    return selectedDetail(state, item.selectionKey, `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`, item, result, kind, screeningCurrent);
+  }
+  const result = screeningCurrent
+    ? (kind === 'SOURCE' ? renderAivCanvasSourceResultHtml(item) : kind === 'ASSESSMENT' ? renderAivCanvasAssessmentResultHtml(item) : '')
+    : '';
+  return selectedDetail(state, key, `${kind} ${item.tag || item.canonicalId}`, item, result, kind, screeningCurrent);
 }

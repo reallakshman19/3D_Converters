@@ -1,5 +1,9 @@
 import { buildDeterministicAivCanvasLayout, createAivCanvasLayout } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { renderAivCanvasFilterControls } from './vibration-aiv-canvas-filter.js';
+import {
+  renderAivCanvasInventoryEvidenceHtml,
+  renderAivCanvasProjectionCoverageHtml,
+} from './vibration-aiv-canvas-evidence-view.js';
 import { renderAivCanvasNodeGlyph, renderAivCanvasStatusGlyphs } from './vibration-aiv-canvas-icons.js';
 import {
   AIV_INPUT_MODE,
@@ -7,7 +11,7 @@ import {
   isAivLineageCurrent,
 } from './vibration-aiv-engineering-revision.js';
 import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260818-aiv-canvas-hardening-1';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-canvas-release-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260818-aiv-canvas-evidence-1';
 import {
   buildAivCanvasNodeFieldLinks,
   buildAivCanvasRelationshipFieldLinks,
@@ -25,7 +29,7 @@ import {
   aivCanvasPathLabelAnchor,
   renderAivCanvasControlIcon,
 } from './vibration-aiv-canvas-presentation.js?v=20260816-aiv-canvas-spatial-1';
-import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js';
+import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js?v=20260818-aiv-canvas-evidence-1';
 
 function esc(value) {
   return String(value ?? '')
@@ -195,7 +199,7 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const modeLabel = networkDriven ? 'NETWORK_DRIVEN · graph authority' : 'TABLE_DRIVEN · table authority'; const relationshipLabel = networkDriven ? 'Inspect paths' : 'Relationships';
   return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}" data-aiv-canvas-label-display="NORMAL" data-aiv-canvas-semantic-level="DETAILED" data-aiv-last-committed-field="${esc(state.lastCommittedAivFieldKey ?? '')}">
     <div class="aivq-section-head"><div><h4>AIV Network Canvas Editor</h4><p>One SVG is the AIV input editor, topology view, relationship view and registered-result surface.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">${esc(modeLabel)}</span><span class="aiv-canvas-badge authority">SVG x/y = presentation only</span><span class="aiv-canvas-badge authority">registered results</span></div></div>
-    ${currentnessHtml(state)}${actionErrorHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
+    ${currentnessHtml(state)}${actionErrorHtml(state)}${renderAivCanvasProjectionCoverageHtml(value)}${renderAivCanvasInventoryEvidenceHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
     <div data-aiv-canvas-workbench="true" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
       <div class="aiv-canvas-frame" style="position:relative;flex:3 1 620px;min-width:min(100%,520px)">
