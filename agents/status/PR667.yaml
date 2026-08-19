@@ -4,10 +4,21 @@ pull_request: 667
 branch: agent/vibration-roadmap-workflow-20260819
 base: main
 base_sha_at_allocation: 7f7ce459c8f059b503b045bbdebbe10d303b1044
-head_sha_at_allocation: 092e42394f63e508f63d2bd1f19d44d7ee9cd296
-state: OPEN_DRAFT_HANDOVER_SYNC
+report_basis_head: 39eaeba8059f199b14a6a9e2630e569f5190f4a2
+state: OPEN_DRAFT_HANDOVER_READY
 criticality: ENGINEERING_CRITICAL_PRESENTATION
 coordination_state: SAFE_WITH_STALE_CLAIM_RECONCILIATION
+reconciliation:
+  ahead_by: 16
+  behind_by: 0
+  changed_files: 12
+  unexplained_files: 0
+  reviews_or_comments: 0
+  review_threads: 0
+  commit_status_entries: 0
+  commit_status_classification: NOT_RUN
+  pr_triggered_workflow_runs: 0
+  workflow_classification: NOT_RUN
 validation:
   focused_exact_byte: PASS_4_OF_4_LOCAL_EXECUTION
   syntax: PASS_LOCAL_EXECUTION
@@ -22,4 +33,4 @@ authority:
   project_persistence_changed: false
   workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: RELEASE_WIP_CUSTODY_AND_RECONCILE_LIVE_PR667
+exact_next_action: OWNER_REVIEW_OR_NATIVE_BROWSER_QUALIFICATION_BEFORE_ANY_MERGE_DECISION
