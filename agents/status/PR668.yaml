@@ -4,9 +4,25 @@ pull_request: 668
 branch: agent/vibration-right-rail-case-action-20260819
 base: main
 base_sha_at_allocation: b9ffa16180a1fea017505f8e39775fb9f87523ac
+hosted_reconciliation_basis: 164df6429f6e67955147e1095b8e4312160afd08
 state: IMPLEMENTED_AWAITING_NATIVE_BROWSER_QUALIFICATION
 criticality: STANDARD_PRESENTATION_NAVIGATION
 coordination_state: SAFE_AFTER_SHARED_FILE_OVERLAP_REMOVAL
+reconciliation:
+  main_sha: b9ffa16180a1fea017505f8e39775fb9f87523ac
+  ahead_by: 28
+  behind_by: 0
+  changed_files: 12
+  unexplained_files: 0
+  mergeable: true
+  draft: true
+  comments: 0
+  reviews: 0
+  review_threads: 0
+  commit_status_entries: 0
+  commit_status_classification: NOT_RUN
+  pr_triggered_workflow_runs: 0
+  workflow_classification: NOT_RUN
 validation:
   exact_focused_test: PASS_6_OF_6_LOCAL_EXECUTION
   exact_blob_identity: PASS
@@ -25,4 +41,4 @@ authority:
   project_case_identity_created: false
   workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR668
-exact_next_action: REFRESH_HOSTED_PR_STATE_AND_KEEP_DRAFT_OPEN
+exact_next_action: KEEP_DRAFT_OPEN_AND_REQUIRE_NEW_OWNER_AUTHORIZATION_BEFORE_MERGE
