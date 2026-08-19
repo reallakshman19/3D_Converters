@@ -16,6 +16,10 @@ import {
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 import { createVibrationRoadmapController } from './vibration-roadmap-controller.js';
+import {
+  buildVibrationWorkspaceNavigationRequest,
+  VIBRATION_WORKSPACE_REQUEST_EVENT,
+} from './vibration-roadmap-workspace-routing.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
@@ -152,6 +156,19 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     render();
   }
 
+  function openMountedVibrationWorkspace(target) {
+    if (definition.id !== FIT_CALCULATION_ID || state.familyLanding) return false;
+    const request = buildVibrationWorkspaceNavigationRequest({
+      workspaceId: target?.dataset.vibrationWorkspaceId,
+      actionCode: target?.dataset.vibrationWorkflowAction,
+    });
+    const host = container.querySelector('[data-fit-workspace-host]');
+    const EventClass = container.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+    if (!request || !host || typeof EventClass !== 'function') return false;
+    host.dispatchEvent(new EventClass(VIBRATION_WORKSPACE_REQUEST_EVENT, { detail: request }));
+    return true;
+  }
+
   function buildRequest() {
     const built = buildEngineeringConsoleRequest(definition, state.draft, {
       executionMode: state.mode,
@@ -223,6 +240,11 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   }
 
   function onClick(event) {
+    const workspace = event.target.closest('[data-vibration-workspace-id]');
+    if (workspace) {
+      openMountedVibrationWorkspace(workspace);
+      return;
+    }
     const calc = event.target.closest('[data-calc-id]');
     if (calc) {
       const next = getEngineeringCalculationDefinition(calc.dataset.calcId);
