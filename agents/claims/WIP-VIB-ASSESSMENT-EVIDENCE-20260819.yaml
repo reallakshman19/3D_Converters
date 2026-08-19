@@ -1,33 +1,13 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-ASSESSMENT-EVIDENCE-20260819
-claim_state: ACTIVE
+claim_state: RELEASED_TO_PR664
 branch: agent/vibration-assessment-evidence-20260819
 files:
-  exact:
-    - converters/vibration/project/assessment-evidence.js
-    - converters/vibration/project/assessment-currentness.js
-    - tests/vibration-assessment-evidence.test.mjs
-    - tests/vibration-assessment-currentness.test.mjs
-    - agents/WIP-VIB-ASSESSMENT-EVIDENCE-20260819_workreport.md
-    - agents/status/WIP-VIB-ASSESSMENT-EVIDENCE-20260819.yaml
-    - agents/claims/WIP-VIB-ASSESSMENT-EVIDENCE-20260819.yaml
+  exact: []
   prefixes: []
-authority_domains:
-  - VIBRATION_ASSESSMENT_EVIDENCE_RECEIPTS
-  - VIBRATION_ASSESSMENT_EVIDENCE_CURRENTNESS
-claim_modes:
-  - EXCLUSIVE
-  - SHARED_READ
-exclusions:
-  - VibrationIntegrityProject.v2 schema declaration
-  - currentResults persistence or authority promotion
-  - verification/visual persistence
-  - mechanism numerical calculations or qualification
-  - screening/design/root-cause/code/safety authority promotion
-  - UI/runtime/writer/canvas/workflow files
-coordination:
-  PR661: INDEPENDENT_MEASUREMENT_VERIFICATION
-  PR662: INDEPENDENT_VISUAL_EVIDENCE
-  PR649: WORK_ITEM_CURRENTNESS_ONLY_NO_PROJECT_DOMAIN_OWNERSHIP
-coordination_state: SAFE
+authority_domains: []
+claim_modes: []
+successor_pr: 664
+current_recovery_authority: agents/claims/PR664.yaml
+coordination_state: RELEASED
 merge_authority: OWNER_ONLY_NOT_GRANTED
