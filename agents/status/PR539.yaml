@@ -1,0 +1,30 @@
+schema: AgentStatus.v1
+pr: 539
+branch: agent/fit-production-authorized-freeze
+base: main
+live_main_basis: 3c3a01ebe00abaa739252c2e67bacb5126540182
+reground_commit: 9888de64b329e787ab7b87ff81ab88f4c1acc3a6
+state: TAKEOVER_QUALIFIED_CURRENT_MAIN_REPLAY
+execution_mode: AUTO
+auto_state: RUNNING
+criticality: ENGINEERING_CRITICAL
+takeover_disposition: SALVAGE_PARTIAL
+appendix_a: PASS_96_OF_100
+coordination_state: SAFE
+validation:
+  current_main_grounding: PASS_SOURCE_INSPECTION
+  stale_blob_replay_rejected: PASS_SOURCE_INSPECTION
+  current_main_patch: NOT_STARTED
+  focused_regression: NOT_RUN
+  fit_release: NOT_RUN
+  browser_freeze: NOT_RUN
+  real_xlsx_e2e: NOT_RUN
+authority:
+  target_method_lifecycle: PRODUCTION_AUTHORIZED
+  target_effective_authority: SCREENING
+  screening_authority: AUTHORIZED_BOUNDED
+  design_authority: false
+  code_compliance: false
+  numerical_change_allowed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR539
+exact_next_action: BACKUP_CURRENT_MAIN_JS_THEN_APPLY_MINIMAL_LIFECYCLE_UI_TEST_PATCH

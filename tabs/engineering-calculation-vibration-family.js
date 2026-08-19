@@ -12,6 +12,25 @@ function statusKind(definition) {
   return isEngineeringCalculationExecutable(definition) ? 'ok' : 'bad';
 }
 
+function hasScreeningAuthority(definition) {
+  const authority = definition.authority ?? {};
+  return authority.engineeringAuthority === 'SCREENING'
+    || ['AUTHORIZED', 'AUTHORIZED_BOUNDED'].includes(authority.screeningAuthority)
+    || authority.qualificationState === 'SCREENING';
+}
+
+function screeningAuthorityLabel(definition) {
+  const authority = definition.authority ?? {};
+  if (authority.screeningAuthority === 'AUTHORIZED_BOUNDED') return 'Screening authority: BOUNDED';
+  if (authority.screeningAuthority === 'AUTHORIZED') return 'Screening authority: AUTHORIZED';
+  return hasScreeningAuthority(definition) ? 'Screening authority: SCREENING' : 'Screening authority: NONE';
+}
+
+function programmeLabel(definition) {
+  if (definition.id === FIT_ID && definitionState(definition) === 'PRODUCTION') return `Programme #${definition.qualificationIssue ?? 429}`;
+  return definition.qualificationIssue ? `Issue #${definition.qualificationIssue}` : 'No qualification issue';
+}
+
 function mechanismAction(definition) {
   const executable = isEngineeringCalculationExecutable(definition);
   const fitWorkspace = definition.id === FIT_ID
@@ -30,7 +49,6 @@ function mechanismAction(definition) {
 }
 
 function mechanismCard(definition) {
-  const issue = definition.qualificationIssue ? `Issue #${definition.qualificationIssue}` : 'No qualification issue';
   const limitations = definition.applicability?.limitations ?? [];
   return `<article class="engineering-vibration-card" data-vibration-mechanism="${esc(definition.id)}">
     <div class="engineering-vibration-card-head">
@@ -41,19 +59,19 @@ function mechanismCard(definition) {
       <div class="engineering-vibration-card-status">${pill(definitionState(definition), statusKind(definition))}</div>
     </div>
     <p>${esc(definition.purpose || '')}</p>
-    <div class="engineering-vibration-meta"><span>${esc(issue)}</span><span>Design authority: NO</span></div>
+    <div class="engineering-vibration-meta"><span>${esc(programmeLabel(definition))}</span><span>${esc(screeningAuthorityLabel(definition))}</span><span>Design authority: NO</span></div>
     ${limitations.length ? `<ul>${limitations.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>` : ''}
     <div class="engineering-console-actions">${mechanismAction(definition)}</div>
   </article>`;
 }
 
 function authorityBanner(rows) {
-  const screening = rows.filter((definition) => definitionState(definition) === 'SCREENING'
+  const screening = rows.filter((definition) => hasScreeningAuthority(definition)
     && isEngineeringCalculationExecutable(definition));
   if (screening.length === 0) {
-    return '<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No registered mechanism currently carries SCREENING qualification; evidence or benchmark capability does not imply screening authority.</div>';
+    return '<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No registered mechanism currently carries SCREENING authority; evidence or benchmark capability does not imply screening authority.</div>';
   }
-  return `<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> ${screening.length} mechanisms currently carry registered SCREENING qualification. Authority remains mechanism-specific; no screening result grants design authority or complete vibration integrity.</div>`;
+  return `<div class="engineering-console-banner warn"><strong>Authority boundary.</strong> ${screening.length} mechanisms currently carry registered SCREENING authority. Product lifecycle is shown separately; no screening result grants design authority or complete vibration integrity.</div>`;
 }
 
 export function renderVibrationFamilyLanding(definitions = []) {
@@ -63,7 +81,7 @@ export function renderVibrationFamilyLanding(definitions = []) {
     <header class="engineering-vibration-header">
       <div>
         <h2>Vibration &amp; Dynamic Screening</h2>
-        <p>Mechanism-specific vibration integrity. Registered qualification states and available product surfaces are shown without promoting evidence into screening authority.</p>
+        <p>Mechanism-specific vibration integrity. Product lifecycle and engineering screening authority are shown separately without promoting evidence into design authority.</p>
       </div>
       <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
