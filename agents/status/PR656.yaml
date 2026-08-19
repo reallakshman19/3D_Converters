@@ -20,8 +20,13 @@ validation:
   compact_ui_contract: PASS_SOURCE_INSPECTION
   diff_normalization: PASS_GITHUB_COMPARE_WORKBENCH_PLUS36_MINUS34
   non_kd_workbench_preservation: PASS_GITHUB_PATCH_INSPECTION
+  changed_files: PASS_11_OF_11_EXPECTED
+  pre_recovery_mergeability: PASS_GITHUB_MERGEABLE
+  commit_statuses: NOT_RUN_ZERO_STATUSES
+  pr_workflow_runs: NOT_RUN_ZERO_RUNS
+  reviews: ZERO
+  review_threads: ZERO
   full_repository_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   workbench_module_execution: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN
-  hosted_ci: NOT_RUN_PENDING_FINAL_REFRESH
-exact_next_action: refresh final GitHub truth and leave draft unmerged
+exact_next_action: leave draft unmerged; on owner merge authorization re-ground main and PR649 then refresh all GitHub truth
