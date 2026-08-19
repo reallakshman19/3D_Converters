@@ -46,6 +46,17 @@ test('selection accepts only governed exact row keys', () => {
   assert.equal(resolveVibrationRoadmapScopeSelection({ ...value, authority: {} }, 'ROW-2'), null);
 });
 
+test('forged malformed choices and selected-key mismatch fail closed', () => {
+  const value = buildVibrationRoadmapScopeChoices(rows(), 'ROW-1');
+  assert.equal(isGovernedVibrationRoadmapScopeChoices({
+    ...value, choices: [{ ...value.choices[0], rowKey: ' ROW-1' }, value.choices[1]],
+  }), false);
+  assert.equal(isGovernedVibrationRoadmapScopeChoices({ ...value, selectedRowKey: 'ROW-X' }), false);
+  assert.equal(isGovernedVibrationRoadmapScopeChoices({
+    ...value, authority: { ...value.authority, identitySource: 'FORGED' },
+  }), false);
+});
+
 test('invalid register rows are omitted rather than becoming synthetic scope identity', () => {
   const value = buildVibrationRoadmapScopeChoices([
     ...rows(),
