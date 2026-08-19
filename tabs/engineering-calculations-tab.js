@@ -97,7 +97,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       if (definition.id === FIT_CALCULATION_ID) {
         const host = container.querySelector('[data-fit-workspace-host]');
         if (!host) return;
-        const module = await import('./vibration-integrity-tab.js?v=20260819-sbc-full-workspace-1');
+        const module = await import('./vibration-integrity-tab.js?v=20260819-sbc-connection-authoring-1');
         if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
         host.innerHTML = '';
         const maybeDestroy = module.renderVibrationIntegrityTab(host);
