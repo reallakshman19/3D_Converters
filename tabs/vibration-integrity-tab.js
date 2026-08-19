@@ -18,6 +18,7 @@ import {
   appendVibrationIntegrityAuditEvent, createVibrationIntegrityAuditLog,
   serializeVibrationIntegrityAuditExport,
 } from './vibration-integrity-audit-log.js';
+import { buildVibrationIntegritySelectedAssessmentContext } from './vibration-integrity-roadmap-bridge.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
 import {
   executeVibrationIntegrityRun, vibrationIntegrityCapturedInputDrifted,
@@ -28,6 +29,7 @@ import {
   handleVibrationUserDataClick, renderVibrationIntegrityWithUserData,
 } from './vibration-integrity-user-data-shell.js?v=20260819-sbc-connection-authoring-1';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
+import { VIBRATION_ROADMAP_STATE_EVENT } from './vibration-roadmap-controller.js';
 
 function workspaceOptions(state) {
   const filters = {};
@@ -74,8 +76,19 @@ export function renderVibrationIntegrityTab(container) {
     });
   }
 
+  function publishAssessmentContext(selectedAssessment = buildVibrationIntegritySelectedAssessmentContext(state)) {
+    const EventClass = container.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+    if (typeof EventClass !== 'function') return;
+    container.dispatchEvent(new EventClass(VIBRATION_ROADMAP_STATE_EVENT, {
+      bubbles: true,
+      detail: { context: { selectedAssessment } },
+    }));
+  }
+
   function render() {
-    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityWithUserData(state);
+    if (state.destroyed) return;
+    container.innerHTML = renderVibrationIntegrityWithUserData(state);
+    publishAssessmentContext();
   }
 
   function discardCalculatedState() {
@@ -343,6 +356,7 @@ export function renderVibrationIntegrityTab(container) {
   recordAudit('WORKSPACE_OPENED', {}, null, null);
   container.addEventListener('click', onClick); container.addEventListener('change', onChange); render();
   return () => {
+    publishAssessmentContext(null);
     state.destroyed = true; container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
   };
 }

@@ -8,6 +8,11 @@ import {
   buildVibrationCompletenessPresentation,
   summarizeVisibleVibrationCompleteness,
 } from './vibration-integrity-completeness-presentation.js';
+import { buildVibrationLineCaseAssessmentStatus } from './vibration-integrity-assessment-status.js';
+import {
+  renderVibrationAssessmentCompletenessCell,
+  renderVibrationLineCaseAssessmentStatusCell,
+} from './vibration-integrity-assessment-status-view.js';
 import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismMatrixRow,
@@ -179,20 +184,6 @@ function resultEvidenceCell(assessment, label) {
   return `<strong>${esc(assessment.mechanism.label)} · ${esc(assessment.lof)}</strong><small class="vi-mono">${esc(label)}</small>`;
 }
 
-function assessmentCompletenessCell(matrix) {
-  const completeness = matrix.assessmentCompleteness;
-  const presentation = buildVibrationCompletenessPresentation({
-    completeness,
-    screeningGoverning: matrix.screeningGoverning,
-    candidateGoverning: matrix.candidateGoverning,
-  });
-  const reasons = Array.isArray(completeness?.reasons) && completeness.reasons.length
-    ? completeness.reasons
-    : ['IDENTIFICATION_EVIDENCE_MISSING'];
-  const detail = reasons.length ? `<small class="vi-mono">${esc(reasons.join('; '))}</small>` : '';
-  return `<strong>${esc(presentation.headline)}</strong><small>${esc(presentation.coverageSummary)}</small>${detail}`;
-}
-
 function matrixContext(state) {
   return {
     resultState: state.resultState,
@@ -206,10 +197,14 @@ function matrixContext(state) {
 
 function visibleMatrixRows(workspace, state) {
   const context = matrixContext(state);
-  return (workspace?.rows ?? []).map((row) => Object.freeze({
-    row,
-    matrix: buildVibrationMechanismMatrixRow(row, context),
-  }));
+  return (workspace?.rows ?? []).map((row) => {
+    const matrix = buildVibrationMechanismMatrixRow(row, context);
+    return Object.freeze({
+      row,
+      matrix,
+      assessmentStatus: buildVibrationLineCaseAssessmentStatus({ row, matrix }),
+    });
+  });
 }
 
 function assessmentCoveragePanel(matrixRows) {
@@ -229,11 +224,11 @@ function assessmentCoveragePanel(matrixRows) {
 }
 
 function tableRows(matrixRows, workspace) {
-  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 10;
+  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 11;
   if (!matrixRows.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
-  return matrixRows.map(({ row, matrix }) => {
+  return matrixRows.map(({ row, matrix, assessmentStatus }) => {
     const presentation = buildVibrationCompletenessPresentation({
       completeness: matrix.assessmentCompleteness,
       screeningGoverning: matrix.screeningGoverning,
@@ -242,7 +237,8 @@ function tableRows(matrixRows, workspace) {
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
       <td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
-      <td>${assessmentCompletenessCell(matrix)}</td>
+      <td>${renderVibrationLineCaseAssessmentStatusCell(assessmentStatus)}</td>
+      <td>${renderVibrationAssessmentCompletenessCell(matrix)}</td>
       <td>${cell(row.completenessStatus)}</td>
       ${matrix.assessments.map(mechanismCell).map((value) => `<td>${value}</td>`).join('')}
       <td>${resultEvidenceCell(matrix.screeningGoverning, presentation.screening.label)}</td>
@@ -265,13 +261,13 @@ function workspaceTable(state) {
   }
   const matrixRows = visibleMatrixRows(state.workspace, state);
   return `<section class="vi-card vi-workspace-card">
-    <div class="vi-section-head"><div><h3>Facility vibration assessment register</h3><p>EI assessment completeness is primary. FIT bounded screening and Mechanical/SBC candidates remain supporting evidence until required mechanism coverage is complete.</p></div></div>
+    <div class="vi-section-head"><div><h3>Facility vibration assessment register</h3><p>Line/case workflow status points to the next evidence task; EI assessment completeness remains the primary engineering assessment result. FIT bounded screening and Mechanical/SBC candidates remain supporting evidence until required mechanism coverage is complete.</p></div></div>
     ${resultCurrencyBanner(state)}
     ${assessmentCoveragePanel(matrixRows)}
-    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Current screening evidence uses authorized screening mechanisms only and remains subordinate to EI assessment completeness. Mechanical/SBC candidate values remain separate and cannot replace screening evidence. Family completion requires governed identification plus every required assessment. Design authority remains false.</span></div>
+    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Line/case workflow status is a projection only and cannot determine applicability or completeness. Current screening evidence uses authorized screening mechanisms only and remains subordinate to EI assessment completeness. Mechanical/SBC candidate values remain separate and cannot replace screening evidence. Design authority remains false.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>EI assessment status</th><th>FIT row state</th>${mechanismHeaders()}<th>Current screening evidence</th><th>Candidate evidence</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Line/case workflow status</th><th>EI assessment status</th><th>FIT row state</th>${mechanismHeaders()}<th>Current screening evidence</th><th>Candidate evidence</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
     </tr></thead><tbody>${tableRows(matrixRows, state.workspace)}</tbody></table></div>
   </section>`;
 }
@@ -292,7 +288,7 @@ function importFacts(state) {
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric EI vibration assessment workspace with completeness-first result hierarchy and bounded mechanism evidence.</p></div><div class="vi-authority"><strong>EI ASSESSMENT</strong><span>COMPLETENESS FIRST · FIT BOUNDED SCREENING EVIDENCE · MECHANICAL/SBC CANDIDATE · DESIGN AUTHORITY FALSE</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric EI vibration assessment workspace with completeness-first engineering results and explicit workflow status.</p></div><div class="vi-authority"><strong>EI ASSESSMENT</strong><span>COMPLETENESS FIRST · WORKFLOW STATUS PROJECTION · FIT BOUNDED SCREENING EVIDENCE · MECHANICAL/SBC CANDIDATE · DESIGN AUTHORITY FALSE</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
