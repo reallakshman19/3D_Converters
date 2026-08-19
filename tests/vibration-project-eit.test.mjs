@@ -20,12 +20,17 @@ function node(projection, mechanismId) {
   return projection.phases.flatMap((phase) => phase.nodes).find((item) => item.mechanismId === mechanismId);
 }
 
-test('EIT creates a persistence-only project without promoting imported results', () => {
+test('EIT creates a V2 persistence-only project without promoting imported results', () => {
   const project = buildVibrationIntegrityProjectFromEit(importedFixture());
-  assert.equal(project.schema, 'VibrationIntegrityProject.v1');
+  assert.equal(project.schema, 'VibrationIntegrityProject.v2');
   assert.equal(project.project.projectId, 'eit-project:3010');
   assert.equal(project.authority.importedResultsAreCurrentEngineeringAuthority, false);
+  assert.equal(project.authority.assessmentEvidenceIsCurrentEngineeringAuthority, false);
   assert.equal(project.currentResults.length, 0);
+  assert.equal(project.assessmentEvidence.receipts.length, 0);
+  assert.equal(project.verificationRequirements.length, 0);
+  assert.equal(project.verificationDispositions.length, 0);
+  assert.equal(project.visualInspectionEvidence.records.length, 0);
   assert.equal(project.mechanismImports.length, 7);
 });
 
@@ -67,10 +72,10 @@ test('project produces line-scoped roadmap state without engineering promotion',
 test('project file cannot forge engineering or screening authority', () => {
   const project = JSON.parse(serializeVibrationIntegrityProject(buildVibrationIntegrityProjectFromEit(importedFixture())));
   project.authority.screeningAuthorized = true;
-  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /cannot grant engineering, screening, or design authority/);
+  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /cannot grant engineering, screening, design, root-cause, or persisted-evidence authority/);
 });
 
-test('V1 project rejects unqualified current-result payloads on load', () => {
+test('V2 project rejects unqualified current-result payloads on load', () => {
   const project = JSON.parse(serializeVibrationIntegrityProject(buildVibrationIntegrityProjectFromEit(importedFixture())));
   project.currentResults.push({ result: 'unqualified' });
   assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /does not yet accept current-result authority records/);

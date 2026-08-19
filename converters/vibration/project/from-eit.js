@@ -1,5 +1,7 @@
 import { ENERGY_INSTITUTE_EIT_IMPORT_SCHEMA } from '../eit/contract.js';
+import { createVibrationAssessmentEvidenceLedger } from './assessment-evidence.js';
 import { createEmptyVibrationMeasurementEvidencePackage } from './measurement.js';
+import { createVibrationVisualInspectionEvidencePackage } from '../visual-inspection/contracts.js';
 import {
   VIBRATION_INTEGRITY_PROJECT_AUTHORITY,
   VIBRATION_INTEGRITY_PROJECT_SCHEMA,
@@ -56,6 +58,20 @@ function unknownModuleImports(eitImport) {
   })));
 }
 
+function projectAuthority() {
+  return {
+    containerAuthority: VIBRATION_INTEGRITY_PROJECT_AUTHORITY,
+    importedResultsAreCurrentEngineeringAuthority: false,
+    measurementEvidenceIsCurrentEngineeringAuthority: false,
+    assessmentEvidenceIsCurrentEngineeringAuthority: false,
+    verificationDispositionIsScreeningAuthority: false,
+    visualInspectionEvidenceIsCurrentEngineeringAuthority: false,
+    screeningAuthorized: false,
+    designAuthority: false,
+    rootCauseAuthority: false,
+  };
+}
+
 export function buildVibrationIntegrityProjectFromEit(eitImport, options = {}) {
   if (eitImport?.schema !== ENERGY_INSTITUTE_EIT_IMPORT_SCHEMA) {
     throw createVibrationProjectError('VIBRATION_PROJECT_EIT_IMPORT_REQUIRED', `Project EIT adapter requires ${ENERGY_INSTITUTE_EIT_IMPORT_SCHEMA}.`, { actual: eitImport?.schema ?? null });
@@ -75,15 +91,12 @@ export function buildVibrationIntegrityProjectFromEit(eitImport, options = {}) {
     currentResults: [],
     measurements: [],
     measurementEvidence: createEmptyVibrationMeasurementEvidencePackage(),
+    assessmentEvidence: createVibrationAssessmentEvidenceLedger({ receipts: [] }),
+    verificationRequirements: [],
+    verificationDispositions: [],
+    visualInspectionEvidence: createVibrationVisualInspectionEvidencePackage({ records: [] }),
     actions: [],
-    authority: {
-      containerAuthority: VIBRATION_INTEGRITY_PROJECT_AUTHORITY,
-      importedResultsAreCurrentEngineeringAuthority: false,
-      measurementEvidenceIsCurrentEngineeringAuthority: false,
-      screeningAuthorized: false,
-      designAuthority: false,
-      rootCauseAuthority: false,
-    },
+    authority: projectAuthority(),
   };
   assertVibrationIntegrityProject(project);
   return deepFreezeProjectValue(project);
