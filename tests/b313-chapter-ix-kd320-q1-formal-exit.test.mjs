@@ -66,10 +66,10 @@ function attestation(overrides = {}) {
   };
 }
 
-function evaluate(value) {
+function evaluate(value, semanticItems = semantics()) {
   return evaluateKd320Q1ExitAttestation(value, {
     sourceReceipts: receipts(),
-    semanticItems: semantics(),
+    semanticItems,
   });
 }
 
@@ -108,6 +108,16 @@ test('formal Q1 exit is bound to every semantic source, locator and opaque seman
   const result = evaluate(value);
   assert.equal(result.ready, false);
   assert(result.blockers.includes('Q1_EXIT_SEMANTIC_BINDING_MISMATCH:KD320-SEM-012'));
+});
+
+test('formal Q1 exit independently enforces canonical B31.3/VIII-3 semantic source binding', () => {
+  const semanticItems = semantics();
+  semanticItems[0].controlledSourceRef = 'Q1-SRC-VIII3-2025';
+  const value = attestation();
+  value.semanticBindings[0].controlledSourceRef = 'Q1-SRC-VIII3-2025';
+  const result = evaluate(value, semanticItems);
+  assert.equal(result.ready, false);
+  assert(result.blockers.includes('Q1_EXIT_SEMANTIC_BINDING_MISMATCH:KD320-SEM-001'));
 });
 
 test('formal Q1 exit requires independent attestation custody and permanently false authority', () => {
