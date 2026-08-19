@@ -4,7 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const SBC_WORKSPACE_KEY = '20260819-sbc-full-workspace-1';
+const SBC_WORKSPACE_KEY = '20260819-sbc-connection-authoring-1';
 const SBC_TYPE3_KEY = '20260815-sbc-pf05-cache-1';
 const AIV_KEY = '20260816-aiv-canvas-release-1';
 
@@ -15,9 +15,11 @@ function source(path) {
 const WORKSPACE_EDGES = Object.freeze([
   ['tabs/engineering-calculations-tab.js', `./vibration-integrity-tab.js?v=${SBC_WORKSPACE_KEY}`],
   ['tabs/vibration-integrity-tab.js', `./vibration-integrity-user-data-shell.js?v=${SBC_WORKSPACE_KEY}`],
+  ['tabs/vibration-integrity-user-data-shell.js', `./vibration-integrity-sbc-connection-model.js?v=${SBC_WORKSPACE_KEY}`],
   ['tabs/vibration-integrity-user-data-shell.js', `./vibration-integrity-sbc-workspace-model.js?v=${SBC_WORKSPACE_KEY}`],
   ['tabs/vibration-integrity-user-data-shell.js', `./vibration-integrity-sbc-workspace-view.js?v=${SBC_WORKSPACE_KEY}`],
   ['tabs/vibration-integrity-user-data-shell.js', `./vibration-integrity-ui-contract.js?v=${SBC_WORKSPACE_KEY}`],
+  ['tabs/vibration-integrity-sbc-workspace-view.js', `./vibration-integrity-sbc-connection-view.js?v=${SBC_WORKSPACE_KEY}`],
 ]);
 
 const TYPE3_EDGES = Object.freeze([
@@ -50,7 +52,7 @@ const TYPE3_EDGES = Object.freeze([
   ['converters/vibration/sbc/facility.js', `./type3-user-data.js?v=${SBC_TYPE3_KEY}`],
 ]);
 
-test('full SBC workspace uses the current UI release identity', () => {
+test('SBC connection authoring uses the current UI release identity', () => {
   for (const [path, expected] of WORKSPACE_EDGES) {
     assert.ok(source(path).includes(expected), `${path} must contain ${expected}`);
   }
