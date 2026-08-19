@@ -6,6 +6,7 @@ workstream: VIB.PENDING.MECHANISMS
 branch: agent/vib-pulsation-transient-workbench-20260819
 base_sha: 989b24f361ad287a0c0f25f267a118338bf2ed7a
 implementation_head: 956f6e7f4bc14f851863b28bc644b94f308706a7
+hosted_receipt_head: f4233531e68c8c76358aa2a9fea0f774d41df31c
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
@@ -13,9 +14,9 @@ pr_recovery_state: CONTINUE
 handover_readiness: READY
 report_path: agents/PR649_workreport.md
 appendix_a_status: PASS_96_OF_100
-current_stage: HOSTED_RECONCILIATION
+current_stage: COMPLETE_OWNER_MERGE_GATE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-blocker: null
+blocker: OWNER_MERGE_AUTHORITY_REQUIRED
 protected_authority:
   engineering_authority: NONE
   screening_authority: NOT_AUTHORIZED
@@ -31,5 +32,8 @@ validation_truth:
   controlled_pdf: NOT_RUN_ENVIRONMENT_BLOCKED
   repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN_ENVIRONMENT_BLOCKED
-  hosted_final_head: PENDING_RECONCILIATION
-exact_next_action: RECONCILE_FINAL_HEAD_THEN_BEGIN_STACKED_T24_T25_EVIDENCE_SLICE
+  hosted_commit_statuses: NOT_RUN_ZERO_RETURNED
+  hosted_pr_workflow_runs: NOT_RUN_ZERO_RETURNED
+  reviews: ZERO
+  review_threads: ZERO
+exact_next_action: OWNER_MERGE_GATE_OR_STACKED_T24_T25_EVIDENCE_FOLLOW_ON
