@@ -23,6 +23,12 @@ test('wrapper validates before touching existing row bindings and calculates thr
   assert.match(source, /data-hpwb-action="calculate"/);
 });
 
+test('wrapper preserves explicit project context until the base project is actually mutated', () => {
+  assert.match(source, /contextProject = options\?\.context\?\.hpPipingClassProject/);
+  assert.match(source, /function currentProject\(\)/);
+  assert.match(source, /contextProject\s*=\s*null/);
+});
+
 test('wrapper preserves audit separation and does not replace the existing workbench controller', () => {
   assert.match(source, /Audit basis stays separate/);
   assert.doesNotMatch(source, /createHpPipingClassWorkspaceController/);
