@@ -30,10 +30,6 @@ import {
 } from './vibration-integrity-user-data-shell.js?v=20260819-sbc-connection-authoring-1';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
 import { VIBRATION_ROADMAP_STATE_EVENT } from './vibration-roadmap-controller.js';
-import {
-  isGovernedVibrationWorkspaceNavigationRequest,
-  VIBRATION_WORKSPACE_REQUEST_EVENT,
-} from './vibration-roadmap-workspace-routing.js';
 
 function workspaceOptions(state) {
   const filters = {};
@@ -93,19 +89,6 @@ export function renderVibrationIntegrityTab(container) {
     if (state.destroyed) return;
     container.innerHTML = renderVibrationIntegrityWithUserData(state);
     publishAssessmentContext();
-  }
-
-  function onWorkspaceRequest(event) {
-    const request = event.detail;
-    if (state.destroyed || !isGovernedVibrationWorkspaceNavigationRequest(request)) return;
-    const before = workflowId();
-    state.workspaceTab = request.workspaceId;
-    recordAudit('WORKSPACE_TAB_OPENED', {
-      tab: request.workspaceId,
-      source: 'RIGHT_RAIL_CASE_ACTION',
-      nextActionCode: request.sourceActionCode,
-    }, null, before);
-    render();
   }
 
   function discardCalculatedState() {
@@ -371,12 +354,9 @@ export function renderVibrationIntegrityTab(container) {
   }
 
   recordAudit('WORKSPACE_OPENED', {}, null, null);
-  container.addEventListener(VIBRATION_WORKSPACE_REQUEST_EVENT, onWorkspaceRequest);
   container.addEventListener('click', onClick); container.addEventListener('change', onChange); render();
   return () => {
     publishAssessmentContext(null);
-    state.destroyed = true;
-    container.removeEventListener(VIBRATION_WORKSPACE_REQUEST_EVENT, onWorkspaceRequest);
-    container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
+    state.destroyed = true; container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
   };
 }
