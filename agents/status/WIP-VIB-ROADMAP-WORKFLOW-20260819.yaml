@@ -1,0 +1,22 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-VIB-ROADMAP-WORKFLOW-20260819
+branch: agent/vibration-roadmap-workflow-20260819
+base: main
+base_sha: 7f7ce459c8f059b503b045bbdebbe10d303b1044
+state: IMPLEMENTING
+criticality: ENGINEERING_CRITICAL_PRESENTATION
+coordination_state: SAFE_WITH_STALE_CLAIM_RECONCILIATION
+current_phase: BASELINE_COMPLETE_PLAN_ACTIVE
+validation:
+  live_grounding: PASS_SOURCE_INSPECTION
+  exact_file_overlap: PASS_NO_LIVE_OVERLAP
+  repository_native_tests: NOT_RUN
+  browser: NOT_RUN
+authority:
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  applicability_or_completeness_authority_changed: false
+  project_persistence_changed: false
+  workflow_files_changed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: BACKUP_PANEL_AND_CSS_THEN_ADD_PURE_WORKFLOW_PRESENTATION_HELPER
