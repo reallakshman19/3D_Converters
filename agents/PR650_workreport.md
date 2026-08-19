@@ -11,7 +11,7 @@
 - BRANCH: `agent/hp-kd320-four-record-intake-r2`
 - BASE: `main@989b24f361ad287a0c0f25f267a118338bf2ed7a`
 - PR_ALLOCATION_HEAD: `8f0432fa813e1665222010df1d8ad70e246438f9`
-- REPORT_BASIS_HEAD: `8f0432fa813e1665222010df1d8ad70e246438f9`
+- FINAL_VALIDATION_HEAD_BEFORE_RECOVERY_UPDATE: `f2d6b2dbaad45ac311462bf3fd64a39647250769`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - COORDINATION: `COORDINATION_REQUIRED` with open draft PR #649 for one shared cache-custody file; exact hunks are non-overlapping.
 
@@ -26,7 +26,7 @@ QF022_ORACLE
 QF023_PROJECT_CALC
 ```
 
-The patch is deliberately transport/presentation only. Existing Q2 and 2023→2025 edition evaluators remain the qualification authorities. No native KD320 arithmetic, fatigue-curve data, licensed source text, automatic evidence admission, production-kernel permission, design authority, or Code-compliance authority is added.
+The patch is deliberately transport/presentation only. Existing Q2 and 2023→2025 edition evaluators remain the qualification authorities. No native KD320 arithmetic, fatigue-curve data, licensed ASME text, automatic evidence admission, production-kernel permission, design authority, or Code-compliance authority is added.
 
 `CONTROLLED_SOURCE` validates the exact two Q1 receipt identities and their custody. Complete source receipts alone remain `Q1_CONTROLLED_EVIDENCE_PENDING` because Q1 semantics `KD320-SEM-001…014` remain pending.
 
@@ -108,15 +108,19 @@ The hunks and authority domains are independent. Classification is `COORDINATION
 
 | Check | Status | Observation | Oracle | Limitation |
 |---|---|---|---|---|
-| Live base grounding | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | main `989b24f...` before PR allocation |
+| Live base grounding | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | main `989b24f...` before PR allocation and no base drift observed through final pre-recovery refresh |
 | Q1/G0/G1 authority state | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | remains blocked/pending |
 | PR649 overlap analysis | PASS WITH COORDINATION | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | exact shared-file hunks inspected |
 | JS syntax checks | PASS | LOCAL_EXECUTION | IMPLEMENTATION_COUPLED | Node v22.16.0 |
 | R2 focused transport harness | PASS 16/16 | LOCAL_EXECUTION | IMPLEMENTATION_COUPLED | minimal executable mirror; not full repo checkout |
 | Unsupported reference regression | PASS | LOCAL_EXECUTION | IMPLEMENTATION_COUPLED | all 12 rows reject `OTHER-PAPER` |
+| Final changed-file reconciliation | PASS 12/12 | GITHUB_DIFF_INSPECTION | AUTHORITATIVE_REFERENCE | exactly expected mission + recovery files; no workflow/kernel/master/source-data files |
+| GitHub mergeability | PASS | GITHUB_PR_STATE | AUTHORITATIVE_REFERENCE | `mergeable=true` at head `f2d6b2d...` |
+| Reviews / review threads | 0 / 0 | GITHUB_PR_STATE | AUTHORITATIVE_REFERENCE | no review evidence yet |
 | Full repository-native tests | NOT_RUN | NOT_OBSERVED | NONE | GitHub DNS/checkout unavailable in execution container |
 | Served browser acceptance | NOT_RUN | NOT_OBSERVED | NONE | no browser PASS claimed |
-| Hosted CI | NOT_RUN_PENDING_REFRESH | NOT_OBSERVED | NONE | refresh after final PR head |
+| Commit statuses | NOT_RUN | GITHUB_STATUS_QUERY | AUTHORITATIVE_REFERENCE | 0 status entries at `f2d6b2d...`; absence is not PASS |
+| PR workflow runs | NOT_RUN | GITHUB_ACTIONS_QUERY | AUTHORITATIVE_REFERENCE | 0 PR-triggered runs at `f2d6b2d...`; absence is not PASS |
 | Independent KD320 engineering qualification | NOT_RUN | NOT_OBSERVED | NONE | controlled Code semantics/oracles still pending |
 | Native backup utility | NOT_RUN | NOT_OBSERVED | NONE | environment blocked; exact pre-edit branch preserved instead |
 
@@ -141,27 +145,22 @@ Exact pre-edit base preserved on:
 
 The repository-required `node utils/backup.js save ...` could not be executed because the tool environment has no local repository checkout and cannot resolve github.com. Status remains `NOT_RUN / ENVIRONMENT_BLOCKED`; no false backup claim is made.
 
-## Changed-file ledger
+## Final changed-file ledger — 12/12 reconciled
 
-Pre-PR-artifact GitHub compare showed exactly nine mission files:
+1. `agents/PR650_workreport.md` — PR recovery authority.
+2. `agents/WIP-hp-kd320-four-record-intake-r2_workreport.md` — pre-allocation recovery history.
+3. `agents/claims/PR650.yaml` — PR scope/coordination claim.
+4. `agents/claims/WIP-hp-kd320-four-record-intake-r2.yaml` — WIP claim history.
+5. `agents/status/PR650.yaml` — PR status truth.
+6. `agents/status/WIP-hp-kd320-four-record-intake-r2.yaml` — WIP status history.
+7. `engineering/hp-class-standardization/qualification/kd320-q2/csv-four-record-intake.js` — four-record preview facade; 287 lines; no native arithmetic.
+8. `tabs/engineering-workspace-tab.js` — KD320 intake cache identity only; coordinate with PR649.
+9. `tabs/hp-kd320-evidence-intake-tab.js` — four-class UI and blocker/gate presentation.
+10. `tests/b313-chapter-ix-kd320-csv-edition-reference.test.mjs` — unsupported-reference fail-closed regression.
+11. `tests/b313-chapter-ix-kd320-csv-four-record-intake.test.mjs` — core four-record transport regressions.
+12. `tests/hp-kd320-evidence-intake-ui.test.mjs` — UI/static delegation/no-arithmetic assertions.
 
-1. `agents/WIP-hp-kd320-four-record-intake-r2_workreport.md`
-2. `agents/claims/WIP-hp-kd320-four-record-intake-r2.yaml`
-3. `agents/status/WIP-hp-kd320-four-record-intake-r2.yaml`
-4. `engineering/hp-class-standardization/qualification/kd320-q2/csv-four-record-intake.js`
-5. `tabs/engineering-workspace-tab.js`
-6. `tabs/hp-kd320-evidence-intake-tab.js`
-7. `tests/b313-chapter-ix-kd320-csv-edition-reference.test.mjs`
-8. `tests/b313-chapter-ix-kd320-csv-four-record-intake.test.mjs`
-9. `tests/hp-kd320-evidence-intake-ui.test.mjs`
-
-PR-numbered artifacts added after allocation:
-
-10. `agents/PR650_workreport.md`
-11. `agents/status/PR650.yaml`
-12. `agents/claims/PR650.yaml`
-
-Final changed-file reconciliation must confirm this exact 12-file set.
+No `.github/workflows/*`, numerical kernel, qualification evaluator, fatigue-curve/master-data, controlled-source ledger, or licensed-source content changed.
 
 ## Appendix A
 
@@ -169,4 +168,4 @@ Final changed-file reconciliation must confirm this exact 12-file set.
 
 ## EXACT_NEXT_ACTION
 
-Create PR650 status/claim artifacts, fetch final PR head, reconcile all changed files, refresh mergeability/reviews/threads/commit-status/PR-workflow truth, then leave the draft handover-ready with `MERGE_AUTHORITY=OWNER_ONLY_NOT_GRANTED`.
+Leave PR650 draft and unmerged. If PR649 lands first, re-ground PR650 and preserve PR649's Calculations cache identity plus PR650's KD320 cache identity before any merge request. If PR650 is considered for merge first, re-check live main, PR649 status, 12-file scope, reviews/threads/statuses/workflows, and obtain explicit owner merge authorization for PR650.
