@@ -7,7 +7,7 @@
 - BASE_AT_ALLOCATION: `main@2f34c3904b6a4d70c577461e1ae3191f1bf4f713`
 - PREDECESSOR: PR669 merged at `4246f1a088cf06f072a28660c6d49613fbb65013`
 - CRITICALITY: ENGINEERING_CRITICAL
-- STATE: OPEN_DRAFT_HANDOVER_PREP
+- STATE: OPEN_DRAFT_HANDOVER_READY
 - BACKUP: `backup/hp-kd320-q1-source-custody-pre-edit-20260819`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR670
 
@@ -53,7 +53,7 @@ G1 = BLOCKED_PENDING_E03_E08
 The repository does not contain the controlled document bytes/hashes/locators. Searches of the connected Drive did not locate a matching controlled B31.3/ASME standard by name. Therefore source verification and semantic extraction remain `NOT_RUN`.
 
 ## Changed-file ledger
-Engineering/test scope before PR recovery:
+Engineering/test scope:
 
 1. `engineering/hp-class-standardization/qualification/kd3-oracle/source-ledger.json`
 2. `engineering/hp-class-standardization/qualification/kd320-q1/source-receipts.json`
@@ -62,7 +62,7 @@ Engineering/test scope before PR recovery:
 5. `scripts/verify-b313-ch9-kd320-q1.mjs`
 6. `tests/b313-chapter-ix-kd320-q1-source-custody.test.mjs`
 
-Recovery files:
+Recovery scope:
 - `agents/WIP-hp-kd320-q1-source-custody_workreport.md`
 - `agents/status/WIP-hp-kd320-q1-source-custody.yaml`
 - `agents/claims/WIP-hp-kd320-q1-source-custody.yaml`
@@ -92,6 +92,21 @@ SEM-001...014 extraction             NOT_RUN / CONTROLLED_DOCUMENTS_UNAVAILABLE
 
 Do not convert `NOT_RUN` to PASS.
 
+## Hosted reconciliation receipt
+At engineering/recovery head `3ca1fbb580805348233375de761b16a9bae56946`:
+
+```text
+live main                     2f34c3904b6a4d70c577461e1ae3191f1bf4f713
+branch relation               ahead 9 / behind 0
+changed files                 12 / 12 intended
+GitHub mergeable              true
+commit status entries         0 returned -> NOT_RUN, not PASS
+PR-triggered workflow runs    0 returned -> NOT_RUN, not PASS
+reviews / review threads      0 / 0
+```
+
+Subsequent commits are recovery metadata only; engineering and test blobs are frozen.
+
 ## Authority boundary
 
 ```text
@@ -104,7 +119,7 @@ automaticPromotionAllowed    false
 ```
 
 ## Exact next action
-Reconcile the final PR head against live main and hosted review/check state. Leave PR670 draft/unmerged until explicit owner authorization. After merge, the next engineering action is not more software plumbing: obtain the real controlled B31.3-2024 and VIII-3-2025 project copies and complete the secure receipt/hash/locator/checker handoff.
+Leave PR670 draft/unmerged until explicit owner authorization. After merge, the next engineering action is not more software plumbing: obtain the real controlled B31.3-2024 and VIII-3-2025 project copies and complete the secure receipt/hash/locator/checker handoff.
 
 ## Appendix A — takeover questions
 1. What specific custody defect did PR670 close?
