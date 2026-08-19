@@ -44,15 +44,21 @@ The copy action never copies cycle identity, state pair, location, Salt, Seq, N 
 | Live base | PASS | GitHub | `95ee50ff...` |
 | Productivity helper | PASS 3/3 | LOCAL_EXECUTION | implementation-coupled |
 | Helper negative assurance | PASS | LOCAL_EXECUTION | basis copy leaves cycle/location/Seq/N unchanged |
-| Compact UI contract | COMMITTED / SOURCE_INSPECTION | GitHub | not browser execution |
+| Compact UI contract | PASS | SOURCE_INSPECTION | no browser execution |
+| Main drift | PASS | GitHub | still `95ee50ff...` before PR allocation |
 | Full repository tests | NOT_RUN | ENVIRONMENT_BLOCKED | github.com DNS unavailable locally |
+| Workbench module execution | NOT_RUN | ENVIRONMENT_BLOCKED | no full checkout/module graph |
 | Browser | NOT_RUN | NOT_OBSERVED | no browser PASS claimed |
 | Hosted CI | NOT_RUN | NOT_OBSERVED | pending PR |
 
-## Active review item
+## Diff review
 
-RISK-001: the first workbench implementation reformatted more of the existing file than the functional scope requires. Functional changes remain confined to KD Review/productivity behavior, but final PR diff must be inspected for accidental non-KD behavior changes before merge.
+The intended mission is bounded to KD Review/productivity, but the current workbench edit is `+88/-351` because the first implementation compressed formatting in unchanged surrounding functions. This is unnecessary diff churn, not a claimed product change.
+
+Classification: `RISK-001 / MERGE_BLOCKED_PENDING_DIFF_NORMALIZATION_OR_INDEPENDENT_REVIEW`.
+
+A draft PR is acceptable for product review and handover, but this successor should not merge in this state. Before merge, either normalize the workbench diff back to surgical hunks or independently prove unchanged Design/Static/Cycles/Envelope behavior with repository-native regression execution.
 
 ## EXACT_NEXT_ACTION
 
-Reconcile branch diff, inspect non-KD workbench changes, create a draft product PR, then refresh mergeability/check/review truth. Do not merge without owner authorization for the successor PR.
+Open the draft product PR, allocate PR-numbered recovery artifacts, then leave it unmerged with the diff-normalization item explicit.
