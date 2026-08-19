@@ -3,6 +3,10 @@ import {
   KD320_CSV_MODES,
   previewKd320EvidenceCsv,
 } from '../engineering/hp-class-standardization/qualification/kd320-q2/csv-four-record-intake.js';
+import {
+  getKd320Q1SemanticCsvTemplate,
+  previewKd320Q1SemanticCsv,
+} from '../engineering/hp-class-standardization/qualification/kd320-q1/semantic-csv-intake.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -21,7 +25,7 @@ function ensureStyles() {
     .kd320csv-badges{display:flex;gap:7px;flex-wrap:wrap}.kd320csv-badge{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid rgba(148,163,184,.25);border-radius:999px;font-size:11px;font-weight:800}.kd320csv-badge.blocked{border-color:rgba(248,113,113,.36);background:rgba(127,29,29,.14)}.kd320csv-badge.info{border-color:rgba(96,165,250,.34);background:rgba(30,64,175,.14)}.kd320csv-badge.good{border-color:rgba(74,222,128,.34);background:rgba(20,83,45,.14)}
     .kd320csv-notice{padding:10px 12px;border:1px solid rgba(148,163,184,.17);border-radius:10px;margin:9px 0;background:rgba(2,6,23,.2)}.kd320csv-notice.error{border-color:rgba(248,113,113,.34);background:rgba(127,29,29,.13)}.kd320csv-notice.good{border-color:rgba(74,222,128,.32);background:rgba(20,83,45,.13)}.kd320csv-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
     .kd320csv-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.15);border-radius:10px}.kd320csv-table{width:100%;border-collapse:collapse;min-width:1100px}.kd320csv-table th,.kd320csv-table td{padding:9px;border-bottom:1px solid rgba(148,163,184,.11);text-align:left;vertical-align:top}.kd320csv-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted,#9aa8b8)}.kd320csv-table td{font-size:12px}.kd320csv-list{margin:5px 0 0;padding-left:17px}.kd320csv-list li{margin:3px 0}
-    .kd320csv-hidden{display:none!important}@media(max-width:850px){.kd320csv{padding:0 10px 18px}.kd320csv-hero{grid-template-columns:1fr}.kd320csv-field{min-width:100%;width:100%}.kd320csv-actions{width:100%}.kd320csv button{flex:1 1 160px}}
+    .kd320csv-subpackage{border-style:dashed}.kd320csv-hidden{display:none!important}@media(max-width:850px){.kd320csv{padding:0 10px 18px}.kd320csv-hero{grid-template-columns:1fr}.kd320csv-field{min-width:100%;width:100%}.kd320csv-actions{width:100%}.kd320csv button{flex:1 1 160px}}
   `;
   document.head.appendChild(style);
 }
@@ -57,8 +61,8 @@ function blockersHtml(items) {
   return `<ul class="kd320csv-list">${visible.map((item) => `<li class="kd320csv-code">${esc(typeof item === 'string' ? item : `${item.code}: ${item.message}`)}</li>`).join('')}</ul>${more > 0 ? `<small>+ ${more} more blocker(s)</small>` : ''}`;
 }
 
-function resultsHtml(result, fileName) {
-  if (!result) return '<div class="kd320csv-notice">Choose a record class, download its exact CSV template if needed, then upload a CSV for preview.</div>';
+function resultsHtml(result, fileName, emptyMessage) {
+  if (!result) return `<div class="kd320csv-notice">${esc(emptyMessage)}</div>`;
   const fileIssues = result.fileIssues ?? [];
   if (fileIssues.length && !result.rows?.length) {
     return `<div class="kd320csv-notice error"><strong>${esc(fileName)} blocked before row preview.</strong>${blockersHtml(fileIssues)}</div>`;
@@ -82,12 +86,12 @@ function templateFileName(mode) {
   return 'kd320-qf023-project-calc.template.csv';
 }
 
-function downloadTemplate(mode) {
-  const blob = new Blob([getKd320EvidenceCsvTemplate(mode)], { type: 'text/csv;charset=utf-8' });
+function downloadCsv(content, fileName) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = templateFileName(mode);
+  link.download = fileName;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -97,19 +101,25 @@ export function renderHpKd320EvidenceIntakeTab(container) {
   let mode = KD320_CSV_MODES.CONTROLLED_SOURCE;
   let result = null;
   let fileName = '';
+  let semanticResult = null;
+  let semanticFileName = '';
   const modes = [KD320_CSV_MODES.CONTROLLED_SOURCE, KD320_CSV_MODES.EDITION_SEMANTIC,
     KD320_CSV_MODES.QF022_ORACLE, KD320_CSV_MODES.QF023_PROJECT_CALC];
   container.innerHTML = `<div class="kd320csv">
     <div class="kd320csv-hero"><div><h2>KD320 Evidence Intake</h2><p>Four-record CSV preflight for controlled source custody, 2023→2025 semantic reconciliation, QF022 published-oracle evidence and QF023 independently checked project calculations. Existing Q1/Q2 evaluators remain the gate authority; this surface performs no KD320 numerical calculation.</p></div><aside class="kd320csv-scope"><strong>Qualification boundary</strong><p>Preview-only. No automatic oracle admission, native CORE KD320 qualification, Code-compliance claim, design authority, production-kernel promotion, or licensed source text storage.</p><div class="kd320csv-badges"><span class="kd320csv-badge blocked">CORE KD-3 · NOT QUALIFIED</span><span class="kd320csv-badge blocked">DESIGN AUTHORITY · FALSE</span></div></aside></div>
     <section class="kd320csv-card"><div class="kd320csv-toolbar"><label class="kd320csv-field"><span>Evidence record class</span><select data-kd320csv-mode>${modes.map((value) => `<option value="${value}">${modeLabel(value)}</option>`).join('')}</select></label><div class="kd320csv-actions"><button type="button" data-kd320csv-template>Download exact template</button><button type="button" class="primary" data-kd320csv-upload>Upload CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320csv-file></div></div><p><strong>CONTROLLED_SOURCE</strong> requires both Q1 source receipts. <strong>EDITION_SEMANTIC</strong> requires exactly KD320-SEM-002…013 for the existing PVP2025-154710 2023→2025 gate. QF022/QF023 delegate to the already-qualified intake contracts.</p><div class="kd320csv-notice"><strong>Data handling:</strong> upload is parsed in browser memory for preview. This UI does not write the CSV into the project, master store, oracle catalog, controlled-source store, or production calculation path.</div></section>
-    <section class="kd320csv-card"><h3>Admission preview</h3><div data-kd320csv-results>${resultsHtml(result, fileName)}</div></section>
+    <section class="kd320csv-card"><h3>Admission preview</h3><div data-kd320csv-results>${resultsHtml(result, fileName, 'Choose a record class, download its exact CSV template if needed, then upload a CSV for preview.')}</div></section>
+    <section class="kd320csv-card kd320csv-subpackage"><div class="kd320csv-toolbar"><div><h3>CONTROLLED_SOURCE sub-package — Q1 semantic contract</h3><p>Exactly 14 controlled semantic rows: KD320-SEM-001…014. The CSV carries controlled references and explicit semantic rules only; it has no field for licensed Code text, equations, fatigue-curve points, or native numerical values.</p></div><div class="kd320csv-actions"><button type="button" data-kd320q1-template>Download Q1 semantic template</button><button type="button" class="primary" data-kd320q1-upload>Upload Q1 semantic CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320q1-file></div></div><div class="kd320csv-notice"><strong>Fail-closed:</strong> SEM-001 must bind to Q1-SRC-B313-2024; SEM-002…014 must bind to Q1-SRC-VIII3-2025. Every row requires exact locator, controlled semantic reference, explicit units/sign/selection/interpolation/applicability values and independent extraction/check custody. A complete semantic package does not make Q1 complete until source receipts are separately verified.</div><div data-kd320q1-results>${resultsHtml(semanticResult, semanticFileName, 'Download the 14-row Q1 semantic template, complete it from controlled evidence, then upload it for preview.')}</div></section>
   </div>`;
 
   const modeSelect = container.querySelector('[data-kd320csv-mode]');
   const fileInput = container.querySelector('[data-kd320csv-file]');
   const results = container.querySelector('[data-kd320csv-results]');
+  const semanticInput = container.querySelector('[data-kd320q1-file]');
+  const semanticResults = container.querySelector('[data-kd320q1-results]');
 
-  function refresh() { results.innerHTML = resultsHtml(result, fileName); }
+  function refresh() { results.innerHTML = resultsHtml(result, fileName, 'Choose a record class, download its exact CSV template if needed, then upload a CSV for preview.'); }
+  function refreshSemantic() { semanticResults.innerHTML = resultsHtml(semanticResult, semanticFileName, 'Download the 14-row Q1 semantic template, complete it from controlled evidence, then upload it for preview.'); }
   function onMode() { mode = modeSelect.value; result = null; fileName = ''; if (fileInput) fileInput.value = ''; refresh(); }
   async function onFile() {
     const file = fileInput?.files?.[0];
@@ -120,17 +130,34 @@ export function renderHpKd320EvidenceIntakeTab(container) {
     refresh();
     fileInput.value = '';
   }
+  async function onSemanticFile() {
+    const file = semanticInput?.files?.[0];
+    if (!file) return;
+    semanticFileName = file.name;
+    try { semanticResult = previewKd320Q1SemanticCsv(await file.text()); }
+    catch (error) { semanticResult = { ok: false, fileIssues: [{ code: 'Q1_SEMANTIC_PREVIEW_EXCEPTION', message: String(error?.message || error) }], rows: [] }; }
+    refreshSemantic();
+    semanticInput.value = '';
+  }
   function onClick(event) {
-    if (event.target.closest('[data-kd320csv-template]')) downloadTemplate(mode);
+    if (event.target.closest('[data-kd320csv-template]')) {
+      downloadCsv(getKd320EvidenceCsvTemplate(mode), templateFileName(mode));
+    }
     if (event.target.closest('[data-kd320csv-upload]')) fileInput?.click();
+    if (event.target.closest('[data-kd320q1-template]')) {
+      downloadCsv(getKd320Q1SemanticCsvTemplate(), 'kd320-q1-semantic-contract.template.csv');
+    }
+    if (event.target.closest('[data-kd320q1-upload]')) semanticInput?.click();
   }
 
   modeSelect.addEventListener('change', onMode);
   fileInput.addEventListener('change', onFile);
+  semanticInput.addEventListener('change', onSemanticFile);
   container.addEventListener('click', onClick);
   return () => {
     modeSelect.removeEventListener('change', onMode);
     fileInput.removeEventListener('change', onFile);
+    semanticInput.removeEventListener('change', onSemanticFile);
     container.removeEventListener('click', onClick);
     container.innerHTML = '';
   };
