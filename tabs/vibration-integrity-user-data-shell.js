@@ -15,6 +15,12 @@ import {
 import { renderVibrationIntegrityActivity } from './vibration-integrity-activity-view.js';
 import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-view.js';
 import {
+  createVibrationDynamicWorkItemUiState,
+  handleVibrationDynamicWorkItemChange,
+  handleVibrationDynamicWorkItemClick,
+} from './vibration-integrity-pulsation-transient-controller.js?v=20260819-vib-pulsation-transient-workbench-1';
+import { renderVibrationPulsationTransientWorkspace } from './vibration-integrity-pulsation-transient-view.js?v=20260819-vib-pulsation-transient-workbench-1';
+import {
   createSbcConnectionAuthoringUiState,
   retargetSbcConnectionAuthoringRecord,
   updateSbcConnectionAuthoringEvidenceRef,
@@ -35,7 +41,7 @@ import {
   setSbcWorkspaceType,
 } from './vibration-integrity-sbc-workspace-model.js?v=20260819-sbc-connection-authoring-1';
 import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js?v=20260819-sbc-connection-authoring-1';
-import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js?v=20260819-sbc-connection-authoring-1';
+import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js?v=20260819-vib-pulsation-transient-workbench-1';
 import {
   addSbcT3UserEngineeringDataRows,
   addSbcType3UserEngineeringDataRows,
@@ -114,12 +120,17 @@ function sbcPage(state) {
   return injectWorkspaceTabs(renderSbcConnectionWorkspace(state), workspaceTabs('sbc'));
 }
 
+function pulsationTransientPage(state) {
+  return injectWorkspaceTabs(renderVibrationPulsationTransientWorkspace(state), workspaceTabs('pulsation-transients'));
+}
+
 export function createVibrationUserDataUiState() {
   return {
     ...createMechanicalFacilityUiState(),
     ...createSbcType3UiState(),
     ...createSbcWorkspaceUiState(),
     ...createSbcConnectionAuthoringUiState(),
+    ...createVibrationDynamicWorkItemUiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
     mechanismIdentificationAuthoring: createVibrationIdentificationAuthoringTable(),
@@ -153,6 +164,7 @@ function screeningRenderState(state) {
 export function renderVibrationIntegrityWithUserData(state) {
   if (state.workspaceTab === 'identification') return identificationPage(state);
   if (state.workspaceTab === 'mechanical') return mechanicalPage(state);
+  if (state.workspaceTab === 'pulsation-transients') return pulsationTransientPage(state);
   if (state.workspaceTab === 'sbc') return sbcPage(state);
   if (state.workspaceTab === 'user-data') return userDataPage(state);
   if (state.workspaceTab === 'activity') return activityPage(state);
@@ -291,6 +303,7 @@ function handleSbcConnectionAuthoringChange(state, event, render, audit) {
 
 export function handleVibrationUserDataClick(state, event, render, audit) {
   if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
+  if (handleVibrationDynamicWorkItemClick(state, event, render, audit)) return true;
   if (openSbcWorkspaceFromFacility(state, event, render, audit)) return true;
   if (handleSbcWorkspaceTypeClick(state, event, render, audit)) return true;
   if (handleSbcType3Click(state, event, render, audit)) return true;
@@ -331,6 +344,7 @@ export function handleVibrationUserDataClick(state, event, render, audit) {
 
 export function handleVibrationUserDataChange(state, event, render, audit) {
   if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
+  if (handleVibrationDynamicWorkItemChange(state, event, render, audit)) return true;
   if (event.target.matches('[data-vi-sbc-workspace-scope]')) {
     const scope = setSbcWorkspaceScope(state, event.target.value);
     if (state.sbcWorkspaceType === 'TYPE_3' && scope) {
