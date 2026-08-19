@@ -7,9 +7,10 @@
 - BRANCH: `agent/vibration-roadmap-workflow-20260819`
 - BASE_AT_ALLOCATION: `main@7f7ce459c8f059b503b045bbdebbe10d303b1044`
 - PR_HEAD_AT_ALLOCATION: `092e42394f63e508f63d2bd1f19d44d7ee9cd296`
-- REPORT_BASIS_HEAD: `39eaeba8059f199b14a6a9e2630e569f5190f4a2`
+- REPORT_BASIS_HEAD: `fdaae41897d5252ae1da2deda84ceb3173e82e62`
 - CRITICALITY: ENGINEERING_CRITICAL_PRESENTATION
-- MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
+- MERGE_AUTHORITY: `OWNER_GRANTED_FOR_PR667_2026-08-19`
+- MERGE_AUTHORIZATION_SOURCE: owner message `fix #667 and merge`
 - NUMERICAL_METHOD_CHANGED: NO
 - ENGINEERING_AUTHORITY_CHANGED: NO
 - PROJECT_PERSISTENCE_CHANGED: NO
@@ -29,6 +30,8 @@ Current project / current line
 ```
 
 It does not decide phase completion, applicability, completeness, screening authority or engineering disposition.
+
+Owner explicitly authorized repair-and-merge of PR667 on 2026-08-19. Diff inspection found no product defect or review-requested change requiring a code patch; the stale delivery custody fields were the item requiring repair before merge.
 
 ## Coordination
 
@@ -138,16 +141,16 @@ Focused test proves:
 
 ```text
 main / merge base                 7f7ce459c8f059b503b045bbdebbe10d303b1044
-ahead / behind                    16 / 0
+ahead / behind                    18 / 0
 changed files                     12 intended / 0 unexplained
-PR state                          open draft
+PR state                          open draft, mergeable true
 review comments/submissions       0
 review threads                    0
 commit status entries             0 -> NOT_RUN
 PR-triggered workflow runs        0 -> NOT_RUN
 ```
 
-Subsequent commits after `REPORT_BASIS_HEAD` are recovery/status synchronization only and do not modify the validated product/test blobs listed above.
+Subsequent commits after `REPORT_BASIS_HEAD` are merge-custody/status synchronization only and do not modify the validated product/test blobs listed above.
 
 ## Changed-file ledger
 
@@ -170,4 +173,4 @@ The panel is visually workflow-like while the underlying roadmap remains guidanc
 
 ## EXACT_NEXT_ACTION
 
-Owner review or native/browser qualification of PR667. If PR667 is later authorized and merged, the next production UI slice should connect the right rail to a governed exact line/case workflow source rather than adding more presentation heuristics. Do not merge without explicit Owner authorization.
+Mark PR667 ready for review, refresh current head/main/mergeability/checks, then squash-merge PR667 using the exact expected head SHA if still clean. After merge, verify PR state and main SHA.
