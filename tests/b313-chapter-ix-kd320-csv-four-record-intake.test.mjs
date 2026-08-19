@@ -11,6 +11,7 @@ import {
   KD320_PROJECT_CSV_HEADERS,
   KD320_PUBLISHED_CSV_HEADERS,
 } from '../engineering/hp-class-standardization/qualification/kd320-q2/csv-intake.js';
+import { KD320_Q2_METHOD_SEMANTICS } from '../engineering/hp-class-standardization/qualification/kd320-q2/intake.js';
 
 function escape(value) {
   const text = String(value ?? '');
@@ -26,7 +27,7 @@ const HASH_B = `sha256:${'b'.repeat(64)}`;
 const correctionParameters = JSON.stringify([
   { name: 'Kmean', value: 1.125, units: 'ratio', semanticRef: 'KD320-SEM-006' },
 ]);
-const semanticRefs = Array.from({ length: 10 }, (_, i) => `KD320-SEM-${String(i + 2).padStart(3, '0')}`).join(';');
+const semanticRefs = KD320_Q2_METHOD_SEMANTICS.join(';');
 
 function sourceRows() {
   return [
@@ -57,23 +58,24 @@ function editionRows() {
   });
 }
 
-function projectRow() {
+function projectRow(overrides = {}) {
   return {
     calculation_ref: 'CALC-001', location_id: 'LOC-001', b313_edition: '2024', viii3_edition: '2025', salt_mpa: '63.3',
     associated_mean_stress_mpa: '25', correction_parameters_json: correctionParameters, seq_mpa: '70', permissible_cycles: '10000',
     calculated_by: 'Engineer A', calculated_at: '2026-08-19T01:00:00Z', checked_by: 'Engineer B', checked_at: '2026-08-19T02:00:00Z',
-    semantic_refs: semanticRefs, source_receipt_refs: 'Q1-SRC-B313-2024;Q1-SRC-VIII3-2025',
+    semantic_refs: semanticRefs, source_receipt_refs: 'Q1-SRC-B313-2024;Q1-SRC-VIII3-2025', ...overrides,
   };
 }
 
-function publishedRow() {
+function publishedRow(overrides = {}) {
   return {
     reference_id: 'PVP2025-154710', source_code_edition: '2025', target_viii3_edition: '2025',
     bibliographic_ref: 'doi:10.1115/PVP2025-154710', exact_locator: 'Section 3.2 Table 3', source_sha256: HASH_A,
     controlled_2025_secure_storage_ref: '', controlled_2025_document_sha256: '', semantic_reconciliation_json: '[]',
     salt_mpa: '63.3', associated_mean_stress_mpa: '20', correction_parameters_json: correctionParameters, seq_mpa: '70',
-    permissible_cycles: '10000', extracted_by: 'Extractor A', extracted_at: '2026-08-19T01:00:00Z',
-    admitted_by: 'Admitter B', admitted_at: '2026-08-19T02:00:00Z',
+    permissible_cycles: '10000', semantic_refs: semanticRefs, source_receipt_refs: 'Q1-SRC-VIII3-2025',
+    extracted_by: 'Extractor A', extracted_at: '2026-08-19T01:00:00Z',
+    admitted_by: 'Admitter B', admitted_at: '2026-08-19T02:00:00Z', ...overrides,
   };
 }
 
@@ -146,18 +148,33 @@ test('edition-semantic intake blocks edition drift and inconsistent package cont
   assert(result.fileIssues.some((item) => item.code === 'EDITION_CONTEXT_INCONSISTENT'));
 });
 
-test('QF022 record class delegates to the existing published-oracle contract', () => {
+test('QF022 record class delegates with explicit SEM-002..013 and target receipt custody', () => {
   const result = previewKd320EvidenceCsv(csv(KD320_PUBLISHED_CSV_HEADERS, publishedRow()), KD320_CSV_MODES.QF022_ORACLE);
   assert.equal(result.ok, true);
   assert.equal(result.delegatedMode, 'PUBLISHED_NUMERICAL_ORACLE');
   assert.equal(result.rows[0].preflightState, 'PUBLISHED_ORACLE_READY_FOR_Q2_CANDIDATE');
+  assert.deepEqual(result.rows[0].oracle.semanticRefs, KD320_Q2_METHOD_SEMANTICS);
+  assert.deepEqual(result.rows[0].oracle.controlledSourceReceiptRefs, ['Q1-SRC-VIII3-2025']);
 });
 
-test('QF023 record class delegates to the existing checked-project contract', () => {
+test('QF023 record class delegates with explicit SEM-002..013 custody', () => {
   const result = previewKd320EvidenceCsv(csv(KD320_PROJECT_CSV_HEADERS, projectRow()), KD320_CSV_MODES.QF023_PROJECT_CALC);
   assert.equal(result.ok, true);
   assert.equal(result.delegatedMode, 'PROJECT_CHECKED_CALCULATION');
   assert.equal(result.rows[0].preflightState, 'PROJECT_ORACLE_READY_FOR_Q2_CANDIDATE');
+  assert.deepEqual(result.rows[0].oracle.semanticRefs, KD320_Q2_METHOD_SEMANTICS);
+});
+
+test('QF022/QF023 facade fails closed when SEM-012/013 custody is incomplete', () => {
+  const incomplete = KD320_Q2_METHOD_SEMANTICS.filter((id) => id !== 'KD320-SEM-013').join(';');
+  const qf022 = previewKd320EvidenceCsv(
+    csv(KD320_PUBLISHED_CSV_HEADERS, publishedRow({ semantic_refs: incomplete })), KD320_CSV_MODES.QF022_ORACLE);
+  assert.equal(qf022.ok, false);
+  assert(qf022.rows[0].issues.some((item) => item.code === 'SEMANTIC_REFS_INCOMPLETE'));
+  const qf023 = previewKd320EvidenceCsv(
+    csv(KD320_PROJECT_CSV_HEADERS, projectRow({ semantic_refs: incomplete })), KD320_CSV_MODES.QF023_PROJECT_CALC);
+  assert.equal(qf023.ok, false);
+  assert(qf023.rows[0].issues.some((item) => item.code === 'SEMANTIC_REFS_INCOMPLETE'));
 });
 
 test('new record classes reject unknown CSV headers and malformed quoting', () => {
