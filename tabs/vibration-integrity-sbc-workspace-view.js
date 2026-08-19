@@ -1,4 +1,5 @@
-import { buildSbcWorkspaceProjection } from './vibration-integrity-sbc-workspace-model.js';
+import { buildSbcWorkspaceProjection } from './vibration-integrity-sbc-workspace-model.js?v=20260819-sbc-connection-authoring-1';
+import { renderSbcConnectionAuthoringPanel } from './vibration-integrity-sbc-connection-view.js?v=20260819-sbc-connection-authoring-1';
 import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js?v=20260815-sbc-pf05-cache-1';
 
 function esc(value) {
@@ -81,6 +82,7 @@ export function renderSbcConnectionWorkspace(state) {
     </section>
     ${mainLinePanel(projection)}
     ${selectedTypePanel(projection)}
+    ${selected ? renderSbcConnectionAuthoringPanel(state, selected.typeId) : ''}
     ${selected?.isType3 ? renderSbcType3UserInputPanel(state) : ''}
   </div>`;
 }
