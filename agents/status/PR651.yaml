@@ -21,5 +21,8 @@ validation:
   full_repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
   ui_static_contract: PASS_SOURCE_INSPECTION
   browser: NOT_RUN
-  hosted_ci: NOT_RUN_PENDING_FINAL_HEAD_REFRESH
-exact_next_action: reconcile final PR651 diff and refresh checks reviews threads workflows
+  commit_statuses: ZERO_NOT_RUN_AT_PREVIOUS_RECONCILED_HEAD
+  pr_workflow_runs: ZERO_NOT_RUN_AT_PREVIOUS_RECONCILED_HEAD
+  reviews: ZERO
+  review_threads: ZERO
+exact_next_action: refresh final head and GitHub checks then leave PR651 draft unmerged pending owner authorization
