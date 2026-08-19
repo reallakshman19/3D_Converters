@@ -27,9 +27,9 @@ import {
   createSbcWorkspaceUiState,
   setSbcWorkspaceScope,
   setSbcWorkspaceType,
-} from './vibration-integrity-sbc-workspace-model.js';
-import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js';
-import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js';
+} from './vibration-integrity-sbc-workspace-model.js?v=20260819-sbc-full-workspace-1';
+import { renderSbcConnectionWorkspace } from './vibration-integrity-sbc-workspace-view.js?v=20260819-sbc-full-workspace-1';
+import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js?v=20260819-sbc-full-workspace-1';
 import {
   addSbcT3UserEngineeringDataRows,
   addSbcType3UserEngineeringDataRows,
