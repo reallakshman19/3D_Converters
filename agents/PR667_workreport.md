@@ -7,6 +7,7 @@
 - BRANCH: `agent/vibration-roadmap-workflow-20260819`
 - BASE_AT_ALLOCATION: `main@7f7ce459c8f059b503b045bbdebbe10d303b1044`
 - PR_HEAD_AT_ALLOCATION: `092e42394f63e508f63d2bd1f19d44d7ee9cd296`
+- REPORT_BASIS_HEAD: `39eaeba8059f199b14a6a9e2630e569f5190f4a2`
 - CRITICALITY: ENGINEERING_CRITICAL_PRESENTATION
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - NUMERICAL_METHOD_CHANGED: NO
@@ -133,7 +134,22 @@ Focused test proves:
 3. action-first rendering retains existing navigation target attributes;
 4. no-attention state cannot imply assessment completion.
 
-## Changed-file ledger at PR allocation
+## Hosted reconciliation at REPORT_BASIS_HEAD
+
+```text
+main / merge base                 7f7ce459c8f059b503b045bbdebbe10d303b1044
+ahead / behind                    16 / 0
+changed files                     12 intended / 0 unexplained
+PR state                          open draft
+review comments/submissions       0
+review threads                    0
+commit status entries             0 -> NOT_RUN
+PR-triggered workflow runs        0 -> NOT_RUN
+```
+
+Subsequent commits after `REPORT_BASIS_HEAD` are recovery/status synchronization only and do not modify the validated product/test blobs listed above.
+
+## Changed-file ledger
 
 1. `tabs/vibration-roadmap-workflow-view.js`
 2. `tabs/vibration-roadmap-panel.js`
@@ -154,4 +170,4 @@ The panel is visually workflow-like while the underlying roadmap remains guidanc
 
 ## EXACT_NEXT_ACTION
 
-Complete PR667 status/claim allocation, release WIP custody, then reconcile current main/head, changed files, reviews, statuses and PR-triggered workflow runs. Do not merge without explicit Owner authorization.
+Owner review or native/browser qualification of PR667. If PR667 is later authorized and merged, the next production UI slice should connect the right rail to a governed exact line/case workflow source rather than adding more presentation heuristics. Do not merge without explicit Owner authorization.
