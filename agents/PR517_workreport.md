@@ -1,178 +1,232 @@
 # PR517 — AIV PF-02 Production Freeze Work Report
 
-## Recovery Header
+## Recovery header
 
 ```text
 HANDOVER_READINESS: READY
-PR_RECOVERY_STATE: HEALTHY
-TAKEOVER_AUTHORITY: WRITE_ALLOWED_WITHIN_ISSUE_513_GATE
-EXECUTION_MODE: MANUAL
-SCOPE_AUTHORITY: ISSUE_513_PF02
-MERGE_AUTHORITY: OWNER_ONLY
-PR_HEAD_OBSERVED: 92fc30070070a3eeb7a938071c9c6daf1ff83abd
-REPORT_BASIS_HEAD: 92fc30070070a3eeb7a938071c9c6daf1ff83abd
-MAIN_HEAD_LAST_CHECKED: d659e670a2f8fe0a35fc8072382512f6493898cf
-MERGE_BASE: d659e670a2f8fe0a35fc8072382512f6493898cf
-REPORT_SYNC: CURRENT
-APPENDIX_A_STATUS: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_513_GATE_APPLIES
-GROUNDING_EPOCH: PF02-GE-001
-LAST_DURABLE_CHECKPOINT: PF-02 manifest + before receipt + benchmark ledger + draft PR
-CURRENT_STAGE: BASELINE / LIVE REPRODUCTION
-CURRENT_BLOCKER: exact-current-main real-app Chromium unavailable because mandatory URLBlocklist=["*"] blocks navigation and Pages runner executes zero steps
-HIGHEST_RISK: replaying PR506's broad executable-contract/grouping batch or treating source inspection as live product reproduction
-EXACT_NEXT_ACTION: run current main in navigation-permitted Chromium, execute PF-02 UI negative matrix plus direct calculateEngineering parity experiment; only after reproduction implement the smallest PF-02-only contract unification
+WORK_INTENT: IMPLEMENT
+REPOSITORY_STATE: EXISTING_PR
+MUTATION_AUTHORITY: EVIDENCE_AND_RECOVERY_WRITE_ALLOWED
+PRODUCTION_MUTATION_AUTHORITY: BLOCKED_PENDING_LIVE_REPRODUCTION
+CRITICALITY: ENGINEERING_CRITICAL
+EXECUTION_MODE: AUTO
+AUTO_STATE: RUNNING_BLOCKED_AT_LIVE_PRODUCT_GATE
+SCOPE_AUTHORITY: ISSUE_513_PF02_READINESS_EXECUTABLE_PARITY
+MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR517
+PR: 517
+BRANCH: agent/aiv-pf02-readiness-contract-20260815
+LIVE_MAIN_BASIS: 3c3a01ebe00abaa739252c2e67bacb5126540182
+OLD_PR_HEAD: 4c6e15c80ba6f2ebb4985397575f044eb0893048
+REGROUND_COMMIT: 132f50e6311b2a869dc616d9c2cb4b505c088927
+BACKUP_BRANCH: backup/pr517-pre-reground-20260819
+GROUNDING_EPOCH: PR517-PF02-GE-20260819-AUTO-01
+TAKEOVER_DISPOSITION: SALVAGE_PARTIAL_EVIDENCE_ONLY
+APPENDIX_A_STATUS: PASS_95_OF_100_SCOPE_LIMITED
 ```
 
-## Handover in 60 Seconds
+## Handover in 60 seconds
 
-PR #517 is issue #513 PF-02 only: **readiness ↔ executable calculator contract parity**.
+PF-02 owns one question:
 
-Owner explicitly waived the rule that blocked PF-01 must close before moving next; the waiver is issue comment `5302095544`. The waiver is progression-only. PF-01 remains non-PASS and PF-02 retains its own live-product-first requirement.
+> Does `READY_FOR_QUALIFICATION` represent the same executable engineering precondition enforced by the registered AIV screening path?
 
-Current production baseline is:
+Current-main tracing still says **not proven**, and now identifies concrete parity mismatches at source level. Production code is not patched because PF-02's own live-product-first gate remains binding.
+
+The branch was rebuilt linearly on current main with the original six evidence/recovery files. The old branch head is preserved at `backup/pr517-pre-reground-20260819`.
+
+## Current production trace
 
 ```text
-main@d659e670a2f8fe0a35fc8072382512f6493898cf
+CSV / table input
+  -> AIV tabular parsers
+  -> buildAivReadiness()
+  -> readiness counts
+  -> isAivScreeningReady()
+  -> buildAivEngineeringScreeningRequest()
+  -> calculateEngineering(VIB.AIV.ACOUSTIC)
+  -> adapter validateInput()
+  -> calculateAiv(... qualificationMode='screening')
+  -> calculateAivKernelCandidateSource()
+  -> point contribution / combination
+  -> assessment SCREENING result
 ```
 
-No production, test, package or workflow code is changed in PR #517 yet.
+Authority remains:
 
-Current-main source inspection identifies the candidate PF-02 defect:
+```text
+screening result scope          ASSESSMENT
+line/case summary authority     false
+design authority               false
+SVG/pixel distance authority    false
+```
 
-1. UI `Run Screening` uses `isAivScreeningReady()` and requires `readyForQualification > 0`, `notReady === 0`, `methodGap === 0`, plus current assumption acceptance.
-2. `buildAivEngineeringScreeningRequest()` independently refuses a readiness envelope that has NOT_READY or METHOD_GAP blockers.
-3. Registered engine validation calls `VIBRATION_AIV_ENGINEERING_CALCULATION_DEFINITION.validateInput()` before numerical execution.
-4. That adapter validator currently checks only non-empty tables/topology and assumption-profile validity.
-5. Current `calculateAiv(... qualificationMode='screening')` then executes without calling `buildAivReadiness()` or an equivalent executable contract.
+## Concrete current-main mismatch evidence
 
-Therefore there is a source-level parity gap: the product UI proves readiness before screening, but direct registered API execution does not prove the same boundary. This is **not yet counted as defect reproduction** because PF-02 requires live product evidence.
+### Unsupported quantity unit
 
-## PF-02 Required Contract Matrix
+Current tabular quantity parsing requires a value+unit pair but preserves the unit string without checking the numerical kernel's unit envelope.
 
-For each row, the real UI and direct registered API must agree:
+Current readiness validates source mass flow by positive value only:
 
-| Domain | UI expected | Registered API expected |
-|---|---|---|
-| valid controlled D.2.3 | READY_FOR_QUALIFICATION then screening executes | executes |
-| P1 <= P2 after basis resolution | NOT_READY | reject |
-| resolved absolute pressure <= 0 | NOT_READY | reject |
-| temperature <= 0 K equivalent | NOT_READY | reject |
-| unsupported flow/pressure/temperature/MW/distance/diameter unit | NOT_READY | reject |
-| GAUGE without reference pressure/source/revision | NOT_READY | reject |
-| sonic state unresolved/invalid | NOT_READY | reject |
-| trim state/reduction/provenance invalid | NOT_READY | reject |
-| required assessment geometry absent/invalid | NOT_READY or METHOD_GAP | reject |
-| physical distance/evidence absent/invalid | NOT_READY | reject |
-| assessment type outside qualified Stage-8 envelope | METHOD_GAP | reject |
+```text
+if (!(row.massFlow.value > 0)) -> invalid
+```
 
-The registered path must never become more permissive than readiness.
+It does not validate `row.massFlow.unit`.
 
-## Current Source Custody
+The current kernel accepts only:
+
+```text
+kg/s
+kg/h
+```
+
+and otherwise throws:
+
+```text
+AIV_CANDIDATE_UNIT_UNSUPPORTED
+```
+
+A supporting local execution of exact extracted current source logic proved:
+
+```text
+parser quantity { value: 53482, unit: 'lb/h' }  -> preserved
+kernel massFlowKgS(...)                         -> AIV_CANDIDATE_UNIT_UNSUPPORTED
+```
+
+Therefore readiness can lack a unit blocker for an input that the numerical path rejects. This is a concrete **source-contract parity mismatch**, but it is not represented as a full registered-API or browser reproduction.
+
+### Pressure ordering
+
+Current readiness checks positive absolute pressure and gauge-reference evidence, but does not compare resolved upstream and downstream absolute pressures.
+
+The current kernel explicitly requires:
+
+```text
+p1PaAbs > p2PaAbs
+```
+
+and throws `AIV_CANDIDATE_PRESSURE_DROP_INVALID` otherwise.
+
+Supporting extracted source-logic execution confirmed equal absolute pressures hit that kernel rejection.
+
+### Other parity domains still requiring executable matrix coverage
+
+Source inspection also requires exact-current-head execution for:
+- temperature unit/domain;
+- pressure units after gauge/absolute basis resolution;
+- molecular-weight units;
+- distance units;
+- diameter units;
+- complete assessment-type method envelope;
+- trim/sonic edge cases;
+- valid controlled D.2.3 positive path.
+
+No unsupported engineering state is promoted to a conclusion based only on source inspection.
+
+## Current source custody
 
 ```text
 converters/vibration/aiv/aiv-readiness.js
-  blob 6423267fd49b3d720874a7b699b0b48a657a5df6
+  6423267fd49b3d720874a7b699b0b48a657a5df6
 
 converters/vibration/aiv/aiv-calculator.js
-  blob 08f1664f1be6a104fe421655e96a46ca66c6a80c
+  5014342e1436ca9fbf723242a348f768fb842f0c
+
+converters/vibration/aiv/aiv-kernel-candidate.js
+  b0967c4c2e9fb98c90b6a3e9028ce9851e9bbcbb
 
 converters/engineering-calculations/adapters/vibration-aiv.js
-  blob 81b6774dc24456ac5c89d983a26593ee34d20ba5
+  2dff38ac41005a7835c14cc3ed9502da46e70524
 
 converters/engineering-calculations/engine.js
-  blob 7b37f45cd22789e565ce8c4b1c31d01a263f9c74
+  7b37f45cd22789e565ce8c4b1c31d01a263f9c74
 
-converters/engineering-calculations/input-resolution.js
-  blob 4e65a52b57e4c99ef04d9cd6aeafb24b987a9e36
+converters/vibration/aiv/source-csv.js
+  057c57c7d26aaa69b81eeaa0d802d24c3af433c9
+
+converters/vibration/aiv/aiv-tabular-common.js
+  7db1eac719093013d8ed3bb9c478e5e246145b63
 
 tabs/vibration-aiv-screening-gate.js
-  blob dcde1fadd5b54f17d07e63da4705680dbcf152d4
+  dcde1fadd5b54f17d07e63da4705680dbcf152d4
 
 tabs/vibration-aiv-screening-request.js
-  blob fd6588f8567fa977d72e75912678201663027cee
+  a9bcef48c9bab98dd8229b5435c6dc87e9f86749
 ```
 
-## PR #506 Salvage Analysis
+## Appendix A — engineering-critical takeover qualification
 
-PR #506 head remains `b846cbfb765cbc01734154ad837b12d040fe0bf7` and is a 33-file batch.
-
-Useful PF-02 candidate evidence:
+Basis: current main, current AIV parser/readiness/gate/request/adapter/calculator/kernel/engine, existing PR517 evidence, and the PF-02 live-product gate.
 
 ```text
-converters/vibration/aiv/aiv-executable-contract.js
-  blob a6de9d2c6bda73370fa5d9889503de4757b95701
+A1 Production Trace               20/20
+   Traced current table/parser -> readiness -> UI gate/request -> registered adapter -> calculator -> kernel path.
 
-converters/vibration/aiv/aiv-calculator.js
-  blob f9785783a155371d7174dfc3ebe326e577abddb6
+A2 Current Failure Isolation      20/20
+   Isolated concrete unit and pressure-order parity mismatches; falsifier remains the exact-current-head executable UI/API matrix.
+
+A3 Authority / Invariant          20/20
+   Assessment-only screening, line/case non-authority, design=false and presentation-distance non-authority remain protected. PF-03 grouping and equations are excluded.
+
+A4 Independent Validation         17/20
+   Current source contracts cross-check parser/readiness against kernel rejection and supporting extracted source logic executes the unit/pressure cases. Real registered API and browser matrix remain NOT_RUN.
+
+A5 Next Commit / Minimal Patch    18/20
+   Evidence/recovery action is exact. If live reproduction clears the gate, the minimal production correction is one shared PF-02 executable-domain contract consumed by readiness and screening execution, without PF-03 grouping semantics.
+
+TOTAL                              95/100
+DISPOSITION                        QUALIFIED_FOR_CURRENT_MAIN_PF02_EVIDENCE_REGROUND_ONLY
+PRODUCTION_MUTATION                BLOCKED_PENDING_LIVE_REPRODUCTION
 ```
 
-The candidate adds explicit executable checks for pressure drop, temperature, supported units, gauge reference evidence, sonic/trim state, required geometry, distance evidence and Stage-8 assessment type. It also runs readiness internally before screening.
+The 95/100 score does not waive the live-product gate and does not authorize a production patch.
 
-**Do not replay it wholesale.** The same candidate module also contains simultaneous-source-group logic assigned to PF-03. Pulling that module unchanged would contaminate PF-02 with the next defect slice.
+## Validation truth
 
-PF-02 implementation decision after live reproduction must choose the minimum way to share executable-domain validation between readiness and calculation without importing PF-03 grouping semantics, master custody, async custody or export work.
-
-## Candidate Implementation Shape — Not Yet Authorized
-
-No code is committed, but the smallest acceptable shape is likely:
-
-1. a PF-02-only executable-domain validator (<300 physical JS lines) containing only source/assessment/relationship executable checks required by PF-02;
-2. readiness calls those validators so `READY_FOR_QUALIFICATION` includes the real executable domain;
-3. screening `calculateAiv()` runs readiness and the same executable validators before any numerical stage;
-4. direct registered `calculateEngineering()` therefore cannot bypass readiness because it reaches the hardened screening calculator through the existing adapter/engine boundary;
-5. benchmark mode remains independently usable for frozen benchmark qualification and must not accidentally inherit screening-only project-readiness requirements unless explicitly intended by the frozen contract.
-
-Alternative implementations are acceptable only if they are smaller and preserve one source of truth for the executable domain.
-
-## Falsifier
-
-If exact-current-main live UI plus direct registered API demonstrates that all PF-02 negative domains already fail consistently through the same qualification boundary, disposition becomes:
+Executed/supporting:
 
 ```text
-NOT_REPRODUCIBLE_ON_CURRENT_MAIN
+current-main source grounding                         PASS / SOURCE_INSPECTION
+current PR clean re-ground                            PASS / current-main linear history
+unit parser -> kernel mismatch source logic           PASS / LOCAL_EXECUTION_EXTRACTED_CURRENT_LOGIC
+pressure-order kernel rejection source logic          PASS / LOCAL_EXECUTION_EXTRACTED_CURRENT_LOGIC
 ```
 
-and no #506 parity patch is replayed.
-
-## Frozen Authority / Numerical Boundaries
+Still NOT_RUN:
 
 ```text
-TABLES = engineering input/source of truth
-SVG CANVAS = navigation / relationship editing / explanation only
-screeningResultScope = ASSESSMENT
-line/case summary = non-authoritative
-designAuthority = false
-SVG/pixel geometry = NEVER engineering physical distance authority
+exact-current-head real application Chromium matrix  NOT_RUN / ENVIRONMENT_BLOCKED
+full registered calculateEngineering PF-02 matrix    NOT_RUN / NO_FULL_CHECKOUT
+B1-B14 current-head release matrix                    NOT_RUN
+native release suite                                  NOT_RUN / ENVIRONMENT_BLOCKED
+native node utils/backup.js                           NOT_RUN / NO_CHECKOUT
 ```
 
-PF-02 must not change EI equations, coefficients, expected benchmark values, simultaneous-group semantics, master qualification semantics, stale-async semantics, or export lineage.
+The local source-logic execution is deliberately not labeled a registered-API or browser PASS.
 
-## Validation State
+## Production mutation gate
 
-| Gate | Status |
-|---|---|
-| #513 specialist qualification | PASS — comment 5301819610 |
-| Owner progression waiver from PF-01 | PASS — comment 5302095544 |
-| current-main grounding | PASS — d659e670... |
-| PF-02 manifest | PASS |
-| source contract trace | PASS / SOURCE_INSPECTION_ONLY |
-| real-app current-main Chromium PF-02 matrix | NOT_RUN / ENVIRONMENT_BLOCKED |
-| direct registered API negative matrix | NOT_RUN |
-| implementation | NOT_STARTED |
-| B1-B14 | NOT_RUN |
-| native release suite | NOT_RUN |
+Do **not** modify current AIV readiness/calculator/adapter production code in this environment unless one of the following occurs:
 
-No `FULL_BROWSER_PASS` is claimed.
+1. a navigation-permitted exact-current-head live app reproduces the PF-02 parity defect, or
+2. the Owner explicitly changes/waives the PF-02 live-product-first requirement.
 
-## Current PR File Ledger
+If the live matrix shows no actual parity defect, disposition becomes `NOT_REPRODUCIBLE_ON_CURRENT_MAIN` and no PR506 behavior is replayed.
+
+## Candidate fix shape if the gate clears
+
+Smallest acceptable shape:
 
 ```text
-ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-manifest.json
-ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-before.json
-ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-benchmark.json
-agents/PR517_workreport.md
-agents/status/PR517.yaml      (to be created)
-agents/claims/PR517.yaml      (to be created)
+PF02ExecutableDomain.v1
+  -> parser-independent canonical input checks
+  -> readiness consumes same domain checks
+  -> screening calculator/adapter consumes same domain checks
 ```
 
-No merge without explicit Owner authorization.
+Must include only PF-02 domains. It must **not** import PR506's PF-03 simultaneous-source-group semantics, change masters/equations/oracles, widen result scope, or grant design authority.
+
+## Current disposition / next action
+
+AUTO mode has reached the exact external execution gate. Update current PF-02 validation records with this current-head source-contract reproduction and hosted state, then keep #517 draft/unmerged and blocked for production mutation until the required live executable matrix becomes available or the Owner changes that gate.
