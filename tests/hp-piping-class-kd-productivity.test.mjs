@@ -38,17 +38,18 @@ test('add all creates exactly the uncovered governed cycles', () => {
 test('copy first basis copies custody only and does not alter cycle data', () => {
   const value = project();
   addAllHpPipingClassExternalResults(value, 0);
-  value.fatigueEvidence[1] = undefined;
-  const before = value.fatigueEvidence[0].externalResults.map((row) => ({ cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId }));
+  const before = value.fatigueEvidence[0].externalResults.map((row) => ({
+    cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+  }));
+  const sourceBasis = value.fatigueEvidence[0].externalResults[0].calculationBasis;
   const result = copyFirstHpPipingClassKdBasisToAll(value, 0);
   assert.equal(result.copied, 2);
-  assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => row.calculationBasis), [
-    value.fatigueEvidence[0].externalResults[0].calculationBasis,
-    value.fatigueEvidence[0].externalResults[0].calculationBasis,
-    value.fatigueEvidence[0].externalResults[0].calculationBasis,
-  ]);
-  assert.notEqual(value.fatigueEvidence[0].externalResults[1].calculationBasis, value.fatigueEvidence[0].externalResults[0].calculationBasis);
-  assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => ({ cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId })), before);
+  assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => row.calculationBasis), [sourceBasis, sourceBasis, sourceBasis]);
+  assert.notEqual(value.fatigueEvidence[0].externalResults[1].calculationBasis, sourceBasis);
+  assert.notEqual(value.fatigueEvidence[0].externalResults[2].calculationBasis, sourceBasis);
+  assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => ({
+    cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+  })), before);
 });
 
 test('helpers fail closed for missing packages or insufficient rows', () => {
