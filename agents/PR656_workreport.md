@@ -7,7 +7,7 @@
 - BRANCH: `agent/hp-kd-review-compact`
 - BASE: `main@95ee50ff78d81465f3e4968f62767d866f8b9da8`
 - CRITICALITY: ENGINEERING_CRITICAL
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - BACKUP: `backup/hp-kd-review-compact-pre-edit-20260819`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_SUCCESSOR
 
@@ -50,10 +50,14 @@ No numerical kernel, HP project schema, Q1/Q2 evidence contract, fatigue curve, 
 | Compact UI contract | PASS — SOURCE_INSPECTION |
 | Workbench diff normalization | PASS — `+36/-34` after rebuilding from exact base blob |
 | Non-KD workbench preservation | PASS — GITHUB_PATCH_INSPECTION |
+| Changed-file reconciliation | PASS — 11/11 expected paths |
+| GitHub mergeability | PASS — mergeable at pre-recovery head |
+| Commit statuses | NOT_RUN — 0 statuses |
+| PR workflow runs | NOT_RUN — 0 runs |
+| Reviews / review threads | 0 / 0 |
 | Full repository-native tests | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Workbench module graph execution | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Served browser acceptance | NOT_RUN |
-| Hosted CI | NOT_RUN_PENDING_FINAL_REFRESH |
 
 No unexecuted check is represented as PASS.
 
@@ -73,4 +77,4 @@ Recovery artifacts are the PR656 and WIP workreport/status/claim files.
 
 ## EXACT_NEXT_ACTION
 
-Refresh final PR head, changed files, mergeability, reviews/threads, commit statuses and PR workflow runs. Leave draft/unmerged until owner authorization for PR656.
+Leave PR656 draft/unmerged. On owner merge authorization, re-ground current `main` and PR649 coordination, refresh mergeability/status/workflow truth on the then-current head, and merge only if the HP cache identity and authority boundaries remain intact.
