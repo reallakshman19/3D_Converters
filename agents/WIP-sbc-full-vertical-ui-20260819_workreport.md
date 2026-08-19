@@ -87,6 +87,7 @@ Preferred boundary:
 - NEW `tabs/vibration-integrity-sbc-workspace-view.js`
 - EDIT `tabs/vibration-integrity-user-data-shell.js`
 - EDIT `tabs/vibration-integrity-ui-contract.js`
+- EDIT `tabs/vibration-integrity-sbc-type3-controller.js` only to route the facility action to the new SBC workspace
 - ADD focused SBC workspace tests
 - edit CSS only if existing classes are insufficient
 
@@ -104,7 +105,15 @@ No numerical SBC kernel/master/source changes. No workflow files. No family aggr
 
 Native repository backup command is unavailable in this connector runtime: `NOT_RUN / ENVIRONMENT_BLOCKED`.
 
-Before every existing-file edit, record the exact pre-edit Git blob SHA in this report. Immutable Git blobs are rollback evidence only and are not represented as native backup PASS.
+Exact pre-edit Git blobs recorded before production mutation:
+
+```text
+tabs/vibration-integrity-user-data-shell.js       2c922cbb7c884b2ef5d8bdb14f7b3abf22263f39
+tabs/vibration-integrity-ui-contract.js           71cbe0f6610b566c187f9a3de3af373b898eb44e
+tabs/vibration-integrity-sbc-type3-controller.js  f2ab3936f0ba436698d06081792b8cdf0d422ec1
+```
+
+Immutable Git blobs are rollback evidence only and are not represented as native backup PASS.
 
 ## Validation truth
 
