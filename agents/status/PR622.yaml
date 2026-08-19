@@ -2,32 +2,36 @@ schema: AgentStatus.v1
 repository: reallaksh19/3D_Converters
 work_id: PR622
 branch: agent/hp-kd320-q2-admission-intake
-base_pr: 619
-base_branch: agent/hp-kd320-high-pr-reconciliation
-base_sha: e32ab20c44b2f1b60e2a117fb05c2d87023637de
-implementation_head: 41505a04d8d03237d91ffb5d4d5d898a6fcbb6fd
-main_at_final_reground: 095ad19421e61bce69acb195ae707eead7cb9e1e
+base_branch: main
+base_sha: 0a16ce60d515f38151911e673860c24d341c035e
 workstream: HP_KD320_QUALIFICATION
 stage: Q2_CONTROLLED_EVIDENCE_ORACLE_ADMISSION
 criticality: ENGINEERING_CRITICAL
-state: HARD_BOUNDARY_REACHED
-coordination: STACKED_DEPENDENCY_PR619_NO_EXACT_FILE_OVERLAP
-appendix_a: 99/100
-execution_mode: AUTO
-auto_state: HARD_BOUNDARY_REACHED
-merge_authority: OWNER_ONLY_NOT_GRANTED
+state: READY_FOR_AUTHORIZED_MERGE
+coordination: FINAL_STACK_AGGREGATOR
+appendix_a: 99/100_RETAINED
+execution_mode: MANUAL
+merge_authority: OWNER_GRANTED_ON_COMPLETION
+stack_state:
+  successor_pr623: MERGED_INTO_THIS_BRANCH
+  successor_pr625: INCLUDED_VIA_PR623
+  successor_pr648: INCLUDED_VIA_PR623_PR625
 validation:
-  technical_blob_identity: PASS
-  syntax: PASS
-  focused_q2_candidate: PASS_9_OF_9
-  template_default_state: PASS_Q1_CONTROLLED_EVIDENCE_PENDING
-  template_require_ready: PASS_EXIT_2
+  q2_focused_suite: PASS_9_OF_9_RETAINED
+  q2_post_fix_diagnostic: PASS_2_OF_2_RETAINED
+  published_prefill_suite: PASS_5_OF_5_RETAINED
+  edition_reconciliation_suite: PASS_10_OF_10_RETAINED
+  csv_intake_suite: PASS_16_OF_16_LOCAL_EXECUTION
   full_repository_suite: NOT_RUN
-  full_q1_verification: NOT_RUN
-  real_controlled_candidate: NOT_AVAILABLE_NOT_RUN
+  real_controlled_q2_candidate: NOT_AVAILABLE_NOT_RUN
+  hosted_ci: REFRESH_BEFORE_MERGE
 authority:
+  q1_controlled_receipts_ready: false
+  q2_oracle_admission_ready: false
   native_core_kd320: false
   code_compliance: false
   design_authority: false
   production_kernel_allowed: false
-exact_next_action: Populate and independently check a real controlled Q2 candidate; do not implement native KD320 arithmetic until Q2_ORACLE_ADMISSION_READY is established.
+  automatic_promotion_allowed: false
+  production_route: USER_CALCULATED_KD3
+exact_next_action: Re-ground main and reconcile live PR622 checks/reviews; merge into main with an expected-head guard only if mergeability remains clean. Do not implement or enable native KD320 until controlled Q2 evidence is admitted.
