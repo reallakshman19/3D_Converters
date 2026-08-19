@@ -14,6 +14,9 @@ files:
     - agents/PR668_workreport.md
     - agents/status/PR668.yaml
     - agents/claims/PR668.yaml
+    - agents/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819_workreport.md
+    - agents/status/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
+    - agents/claims/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819.yaml
   prefixes: []
 authority_domains:
   - RIGHT_RAIL_CASE_ACTION_NAVIGATION
