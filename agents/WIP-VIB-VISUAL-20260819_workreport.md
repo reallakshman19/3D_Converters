@@ -39,6 +39,8 @@ operatingCaseSnapshotId
 operatingCaseSnapshotHash
 ```
 
+Both stored records and requested evaluation scopes require a canonical `sha256:` operating-case snapshot hash. A malformed requested hash fails explicitly rather than being treated as a valid-but-unmatched scope.
+
 Subjects:
 
 ```text
@@ -146,9 +148,10 @@ Only new production/test files are changed, so existing-file backup is `NOT_APPL
 | #660 drift classification / re-ground | PASS | HP qualification-only / byte replay |
 | actual `VibrationIntegrityProject.v1` fixture compatibility | PASS | SOURCE_INSPECTION against current schema |
 | new source syntax | PASS | LOCAL_EXECUTION exact product/test bytes |
-| physical-line policy | PASS | 223 / 73 / 64 / 105 / 59 |
-| focused behavior | PASS 12/12 | LOCAL_EXECUTION controlled reconstruction |
+| physical-line policy | PASS | 223 / 85 / 64 / 110 / 59 |
+| focused behavior | PASS 13/13 | LOCAL_EXECUTION controlled reconstruction |
 | exact product/test blob identity | PASS | branch blobs equal executed Git hashes |
+| malformed requested scope hash | PASS | explicit `VIBRATION_VISUAL_HASH_REQUIRED` regression |
 | wrong-scope evidence exclusion | PASS | focused regression |
 | immutable/hash-pinned artifact custody | PASS | focused regression |
 | authority promotion negative assurance | PASS | focused regression/source inspection |
@@ -161,13 +164,13 @@ Exact validated blobs:
 
 ```text
 contracts.js                         70bd8fb744a2575ea7430729a3ea1ab802d61558
-evaluate.js                          8c8307b6dabfa4b3b245672111b3483c82488b2c
+evaluate.js                          606c6401b934da9b0964db4ac3ce1dac1b0da5d3
 project/visual-inspection.js         66daefad206cda389f33f593bde55b34f0a7e600
-visual inspection test               550ba28dc0fb90362d26e58d680b41c63847b51e
+visual inspection test               79b167869954520c75b659dc0905b57402961236
 project visual inspection test       fa4cde518cadfb4041d13223ae5d2440f38899b6
 ```
 
-The 12/12 run used exact product/test bytes with a narrow local stub only for the existing project validator. The actual current project validator was separately inspected and the committed project fixture satisfies its required schema/authority/array/line rules. This remains supporting evidence, not repository-native suite PASS.
+The 13/13 run used exact product/test bytes with a narrow local stub only for the existing project validator. The actual current project validator was separately inspected and the committed project fixture satisfies its required schema/authority/array/line rules. This remains supporting evidence, not repository-native suite PASS.
 
 ## Decisions
 
@@ -176,6 +179,7 @@ The 12/12 run used exact product/test bytes with a narrow local stub only for th
 - DEC-VV-008 observed condition is evidence/review trigger, not root cause or screening failure.
 - DEC-VV-009 not-observed is inspection-specific evidence only, not safety acceptance.
 - DEC-VV-010 persistence/UI/integration with PR661 belongs Phase 7C after both evidence models exist.
+- DEC-VV-011 requested evaluation scope must meet the same canonical operating-case hash contract as stored evidence.
 
 ## Appendix A
 
