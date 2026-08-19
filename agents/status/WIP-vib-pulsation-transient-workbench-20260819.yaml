@@ -4,6 +4,7 @@ pr_or_wip: WIP-vib-pulsation-transient-workbench-20260819
 mission: mechanism-correct benchmark-only work-item workspace for standard Deadleg T2.6 and dry-gas T2.8
 workstream: VIB.PENDING.MECHANISMS
 branch: agent/vib-pulsation-transient-workbench-20260819
+base_sha: 989b24f361ad287a0c0f25f267a118338bf2ed7a
 main_head_last_checked: 989b24f361ad287a0c0f25f267a118338bf2ed7a
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
@@ -13,7 +14,7 @@ handover_readiness: READY
 report_path: agents/WIP-vib-pulsation-transient-workbench-20260819_workreport.md
 appendix_a_status: PASS_96_OF_100
 grounding_epoch: GE-001
-current_stage: IMPLEMENT_WORK_ITEM_MODEL
+current_stage: PR_ALLOCATION_READY
 execution_authorization: OWNER_DIRECTED_CONTINUATION
 merge_authority: OWNER_ONLY_NOT_GRANTED
 blocker: null
@@ -23,12 +24,18 @@ protected_authority:
   screening_authority: NOT_AUTHORIZED
   design_authority: false
   governing_eligible: false
+  ei_mainline_contribution: false
   t28_liquid_multiphase: EXCLUDED_PR471
   deadleg_advanced: BLOCKED_SOURCE
+  t24_t25_numerical_rules: NOT_IMPLEMENTED_SOURCE_RECONCILIATION_REQUIRED
 validation_truth:
   live_grounding: PASS_GITHUB_SOURCE
   appendix_a: PASS_96_OF_100
+  base_compare: PASS_20_AHEAD_0_BEHIND_19_FILES
+  kernel_field_reconciliation: PASS_SOURCE_INSPECTION
+  kernel_matrix_aggregation_isolation: PASS_GITHUB_COMPARE
   controlled_pdf: NOT_RUN_ENVIRONMENT_BLOCKED
-  repository_native_tests: NOT_RUN
-  browser: NOT_RUN
-exact_next_action: IMPLEMENT_WORK_ITEM_MODEL_USING_EXISTING_KERNELS_ONLY
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  hosted_pr_checks: PENDING_PR_ALLOCATION
+exact_next_action: ALLOCATE_DRAFT_PR_AND_RECONCILE_HOSTED_HEAD
