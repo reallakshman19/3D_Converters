@@ -6,6 +6,8 @@
 PR                    #649
 branch                agent/vib-pulsation-transient-workbench-20260819
 base                  main@989b24f361ad287a0c0f25f267a118338bf2ed7a
+implementation head   956f6e7f4bc14f851863b28bc644b94f308706a7
+hosted receipt head   f4233531e68c8c76358aa2a9fea0f774d41df31c
 criticality           ENGINEERING_CRITICAL
 state                 OPEN / DRAFT
 merge authority       OWNER_ONLY / NOT_GRANTED
@@ -78,11 +80,14 @@ main drift                            none
 new model/controller/view             260 / 81 / 110 physical lines
 kernel field reconciliation           PASS / GITHUB_SOURCE_INSPECTION
 kernel/matrix/aggregation isolation   PASS / GITHUB_COMPARE
+GitHub PR mergeable                   true
+hosted commit statuses                0 returned -> NOT_RUN, not PASS
+hosted PR workflow runs               0 returned -> NOT_RUN, not PASS
+reviews / review threads              0 / 0
 controlled EI PDF execution           NOT_RUN / ENVIRONMENT_BLOCKED
 repository-native Node execution      NOT_RUN / ENVIRONMENT_BLOCKED
 served browser acceptance             NOT_RUN / ENVIRONMENT_BLOCKED
 independent engineering review        NOT_RUN
-hosted exact-head statuses/runs       pending final recovery-head check
 ```
 
 Committed test source is not represented as runtime PASS.
@@ -95,4 +100,4 @@ Committed test source is not represented as runtime PASS.
 
 ## Exact next action
 
-Finalize hosted exact-head truth, then continue T2.4/T2.5 source-qualified decision-evidence work on a stacked branch without introducing numerical rules from secondary synthesis.
+PR649 is frozen at the owner merge gate. A separate stacked follow-on may continue T2.4/T2.5 source-qualified decision-evidence work without introducing numerical rules from secondary synthesis.
