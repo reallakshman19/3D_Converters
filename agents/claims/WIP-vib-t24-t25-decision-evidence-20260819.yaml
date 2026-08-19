@@ -1,0 +1,48 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-vib-t24-t25-decision-evidence-20260819
+claim_state: ACTIVE
+branch: agent/vib-t24-t25-decision-evidence-20260819
+claim_modes:
+  - EXCLUSIVE
+  - COORDINATED
+files:
+  exact:
+    - docs/Masters/Vibration/source-register.json
+    - tabs/vibration-integrity-pulsation-decision-evidence-model.js
+    - tabs/vibration-integrity-pulsation-decision-evidence-view.js
+    - tabs/vibration-integrity-pulsation-transient-view.js
+    - tabs/vibration-integrity-pulsation-transient-controller.js
+    - tabs/vibration-integrity-user-data-shell.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/engineering-calculations-tab.js
+    - tabs/engineering-workspace-tab.js
+    - core/engineering-tabs-extension.js
+    - core/app.js
+    - main-rhbg-fitguard.js
+    - index.html
+    - tests/vibration-t24-t25-decision-evidence.test.mjs
+    - tests/vibration-pulsation-transient-cache-chain.test.mjs
+  prefixes:
+    - agents/WIP-vib-t24-t25-decision-evidence-20260819
+    - agents/status/WIP-vib-t24-t25-decision-evidence-20260819
+    - agents/claims/WIP-vib-t24-t25-decision-evidence-20260819
+authority_domains:
+  - T24_RECIP_PD_PROJECT_DECISION_EVIDENCE
+  - T25_ROTATING_STALL_PROJECT_DECISION_EVIDENCE
+  - T24_SOURCE_REGISTER_MECHANISM_ID_RECONCILIATION
+exclusions:
+  - T24_T25_NUMERICAL_RULES
+  - NUMERICAL_KERNELS
+  - VIBRATION_MECHANISM_MATRIX
+  - EI_MAINLINE_AGGREGATION
+  - PR471_T28_LIQUID_MULTIPHASE
+  - T29
+  - T4
+  - SCREENING_OR_DESIGN_AUTHORITY
+  - .github/workflows/*
+coordination:
+  PR649: HARD_PARENT_SHARED_WORKSPACE
+  PR471: SAFE_BY_EXCLUSION
+  issue429: HARD_PROGRAMME_PARENT
+  issue450: HARD_SOURCE_PARENT
+last_verified_head: 1fab7aa3a6f0e3dbab31cb1374f6737368e876cb
