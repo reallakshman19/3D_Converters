@@ -5,8 +5,9 @@ mission: controlled-source qualification for EI AVIFF T2.4 and T2.5 rule graphs
 workstream: VIB.PENDING.MECHANISMS.SOURCE_QUALIFICATION
 branch: agent/vib-t24-t25-source-qualification-20260819
 base_sha: 95ee50ff78d81465f3e4968f62767d866f8b9da8
-pr_head_observed: 6d9858dbe2191491b2b094a7001539910a34be6c
+pr_head_observed: eee3dcb1a8dd9c0412f2c70d6e26f96e990d54ca
 report_basis_head: 6d9858dbe2191491b2b094a7001539910a34be6c
+hosted_receipt_basis_head: eee3dcb1a8dd9c0412f2c70d6e26f96e990d54ca
 work_intent: QUALIFY_SOURCE_ONLY
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
@@ -20,9 +21,9 @@ current_stage: SOURCE_QUALIFICATION_BLOCKED
 blocker: CONTROLLED_PDF_PAGE_EXECUTION_ENVIRONMENT_BLOCKED
 merge_authority: OWNER_ONLY_NOT_GRANTED
 main_relation:
-  ahead: 7
+  ahead: 13
   behind: 0
-  changed_files_at_allocation: 6
+  changed_files: 9
 protected_authority:
   engineering_authority: NONE
   screening_authority: NOT_AUTHORIZED
@@ -41,10 +42,13 @@ identity_findings:
   canonical_mechanism_id: reciprocatingPulsation
   status: IDENTITY_RECONCILIATION_REQUIRED
 validation_truth:
+  controlled_page_execution: NOT_RUN_ENVIRONMENT_BLOCKED
   repository_native_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_APPLICABLE_SOURCE_EVIDENCE_ONLY
   independent_engineering_review: NOT_RUN
-  hosted_commit_statuses: PENDING_FINAL_HEAD_QUERY
-  hosted_pr_workflow_runs: PENDING_FINAL_HEAD_QUERY
-  reviews: PENDING_FINAL_QUERY
-  review_threads: PENDING_FINAL_QUERY
+  hosted_commit_statuses: NOT_RUN_ZERO_RETURNED
+  hosted_pr_workflow_runs: NOT_RUN_ZERO_RETURNED
+  reviews: ZERO
+  review_threads: ZERO
+  github_mergeable: true
 exact_next_action: EXECUTE_CONTROLLED_T24_T25_PAGES_IN_BINARY_CAPABLE_RUNTIME
