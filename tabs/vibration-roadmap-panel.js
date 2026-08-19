@@ -86,16 +86,32 @@ function projectTools(context) {
   return `<section class="vibration-roadmap-project"><div class="vibration-roadmap-project-title"><small>Current project</small><strong>${esc(title)}</strong><small>Project persistence only · imported results require registered rerun</small></div>${linePicker}<div class="vibration-roadmap-project-actions"><button type="button" data-roadmap-action="import-eit">Import EI .eit</button><button type="button" data-roadmap-action="open-project">Open project</button><button type="button" data-roadmap-action="save-project" ${context?.projectId ? '' : 'disabled'}>Save project</button><input type="file" accept=".eit,application/json" data-roadmap-eit-file hidden><input type="file" accept=".vibproj,application/json" data-roadmap-project-file hidden></div>${message}</section>`;
 }
 
-function renderSelectedAssessment(context) {
+function governedSelectedAssessment(context) {
   const selected = context?.selectedAssessment;
   const status = selected?.lineCaseAssessmentStatus;
-  if (selected?.schema !== 'VibrationIntegrityRoadmapAssessmentContext.v1'
-    || status?.schema !== 'VibrationLineCaseAssessmentStatus.v1') return '';
+  const selectedAuthority = selected?.authority;
+  const statusAuthority = status?.authority;
+  const valid = selected?.schema === 'VibrationIntegrityRoadmapAssessmentContext.v1'
+    && selectedAuthority?.purpose === 'SELECTED_REGISTER_SCOPE_WORKFLOW_CONTEXT_ONLY'
+    && selectedAuthority?.determinesApplicability === false
+    && selectedAuthority?.determinesCompleteness === false
+    && selectedAuthority?.createsCaseIdentity === false
+    && selectedAuthority?.persistenceAuthority === 'NONE'
+    && status?.schema === 'VibrationLineCaseAssessmentStatus.v1'
+    && statusAuthority?.purpose === 'LINE_CASE_WORKFLOW_STATUS_PROJECTION_ONLY'
+    && statusAuthority?.determinesApplicability === false
+    && statusAuthority?.determinesCompleteness === false;
+  return valid ? status : null;
+}
+
+function renderSelectedAssessment(context) {
+  const status = governedSelectedAssessment(context);
+  if (!status) return '';
   const scope = status.scope ?? {};
   const caseLabel = scope.caseId || 'No case ID';
   const action = ASSESSMENT_ACTION_LABELS[status.nextActionCode] ?? status.nextActionCode;
   const evidence = `EI ${status.completeness?.state ?? 'UNKNOWN'} · Screening ${status.screeningEvidence?.state ?? 'NONE'}`;
-  return `<section class="vibration-roadmap-assessment" data-line-case-workflow-state="${esc(status.state)}"><small class="vibration-roadmap-eyebrow">Selected assessment</small><strong>${esc(scope.line)} · ${esc(caseLabel)}</strong><span class="vibration-roadmap-assessment-id">${esc(scope.canonicalId)}</span><span class="vibration-roadmap-focus-status">${esc(status.state)}</span><small class="vibration-roadmap-eyebrow">Case next action</small><span>${esc(action)}</span><small>${esc(evidence)}</small><small>Exact register scope · workflow projection only</small></section>`;
+  return `<section class="vibration-roadmap-assessment" data-line-case-workflow-state="${esc(status.state)}"><small class="vibration-roadmap-eyebrow">Selected assessment</small><strong>${esc(scope.line)} · ${esc(caseLabel)}</strong><span class="vibration-roadmap-assessment-id">${esc(scope.canonicalId)}</span><span class="vibration-roadmap-focus-status">${esc(status.state)}</span><small class="vibration-roadmap-eyebrow">Case next action</small><span>${esc(action)}</span><small>${esc(evidence)}</small><small>Exact register scope · project mapping not asserted · workflow projection only</small></section>`;
 }
 
 function renderNextAttention(workflow) {
