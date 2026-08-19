@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 pr_or_wip: PR667
-claim_state: ACTIVE
+claim_state: MERGE_AUTHORIZED_PENDING
 pull_request: 667
 branch: agent/vibration-roadmap-workflow-20260819
 files:
@@ -43,3 +43,4 @@ coordination:
 coordination_state: SAFE_WITH_STALE_CLAIM_RECONCILIATION
 merge_authority: OWNER_GRANTED_FOR_PR667_2026-08-19
 merge_authorization_source: USER_MESSAGE_FIX_667_AND_MERGE
+release_condition: PR667_MERGED
