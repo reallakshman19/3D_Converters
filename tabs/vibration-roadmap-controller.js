@@ -9,6 +9,7 @@ import {
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
+import { resolveVibrationRoadmapScopeSelection } from './vibration-roadmap-scope-selection.js';
 
 export const VIBRATION_ROADMAP_STATE_EVENT = 'vibration-roadmap-state';
 export const VIBRATION_PROJECT_CHANGED_EVENT = 'vibration-project-changed';
@@ -71,6 +72,11 @@ function customEvent(container, name, detail) {
 function workspaceTab(container, workspaceId) {
   return [...container.querySelectorAll('[data-vi-workspace-tab]')]
     .find((button) => button.dataset.viWorkspaceTab === workspaceId) ?? null;
+}
+
+function assessmentRow(container, rowKey) {
+  return [...container.querySelectorAll('[data-vi-row]')]
+    .find((button) => button.dataset.viRow === rowKey) ?? null;
 }
 
 export function createVibrationRoadmapController(container, { initialState = {}, downloadText = defaultDownloadText } = {}) {
@@ -212,6 +218,12 @@ export function createVibrationRoadmapController(container, { initialState = {},
   }
 
   function onChange(event) {
+    if (event.target.matches('[data-roadmap-assessment-select]')) {
+      const choices = displayState.context?.selectedAssessment?.scopeChoices;
+      const selected = resolveVibrationRoadmapScopeSelection(choices, event.target.value);
+      if (selected) assessmentRow(container, selected.rowKey)?.click();
+      return;
+    }
     if (event.target.matches('[data-roadmap-line-select]')) {
       selectedLineId = event.target.value;
       syncProjectState();
