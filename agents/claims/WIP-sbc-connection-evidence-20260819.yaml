@@ -1,0 +1,37 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-sbc-connection-evidence-20260819
+claim_state: ACTIVE
+branch: agent/sbc-connection-evidence-20260819
+claim_modes:
+  - EXCLUSIVE
+  - COORDINATED
+files:
+  exact:
+    - tabs/vibration-integrity-sbc-connection-model.js
+    - tabs/vibration-integrity-sbc-connection-view.js
+    - tabs/vibration-integrity-sbc-workspace-model.js
+    - tabs/vibration-integrity-sbc-workspace-view.js
+    - tabs/vibration-integrity-user-data-shell.js
+    - tests/vibration-sbc-connection-authoring.test.mjs
+  prefixes:
+    - agents/WIP-sbc-connection-evidence-20260819
+    - agents/status/WIP-sbc-connection-evidence-20260819
+    - agents/claims/WIP-sbc-connection-evidence-20260819
+authority_domains:
+  - SBC_CONNECTION_PROJECT_INPUT_AUTHORING
+  - SBC_STRUCTURAL_COMPLETENESS_PRESENTATION
+  - SBC_INPUT_SEMANTIC_PROVENANCE_PRESENTATION
+exclusions:
+  - SBC_NUMERICAL_KERNELS
+  - SBC_B1_B2_EXPECTED_VALUES
+  - SBC_T3_CURVES
+  - VIBRATION_MASTER_PUBLICATION
+  - EI_MAINLINE_AGGREGATION
+  - SBC_LIFECYCLE_PROMOTION
+  - SCREENING_OR_DESIGN_AUTHORITY
+  - AUTOMATIC_TYPE_CLASSIFICATION
+  - .github/workflows/*
+coordination:
+  PR646: COORDINATED_HARD_DEPENDENCY_PARENT_FILES
+  PR546: SAFE_NO_TYPE3_SOURCE_MASTER_MUTATION
+last_verified_head: 0d86664b11e5d9fc5514915f378d3aa8db796a54
