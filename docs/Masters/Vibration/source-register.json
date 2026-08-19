@@ -205,7 +205,7 @@
     },
     {
       "masterId": "EI_AVIFF.T2.4.RECIP_PD_RULES.v1",
-      "mechanismId": "reciprocatingPositiveDisplacement",
+      "mechanismId": "reciprocatingPulsation",
       "dataType": "RULE",
       "sourceState": "SOURCE_PINNED",
       "sourceRef": "EI_AVIFF_2E_GUIDANCE",
