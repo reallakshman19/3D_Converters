@@ -9,6 +9,11 @@ export const KD320_Q1_EXIT_GATE_REFS = Object.freeze(['G0', 'G1']);
 const RECEIPT_IDS = Object.freeze(['Q1-SRC-B313-2024', 'Q1-SRC-VIII3-2025']);
 const SEMANTIC_IDS = Object.freeze(Array.from({ length: 14 }, (_, index) =>
   `KD320-SEM-${String(index + 1).padStart(3, '0')}`));
+const EXPECTED_SOURCE = Object.freeze(Object.fromEntries(
+  SEMANTIC_IDS.map((id, index) => [
+    id, index === 0 ? 'Q1-SRC-B313-2024' : 'Q1-SRC-VIII3-2025',
+  ]),
+));
 const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
@@ -84,8 +89,10 @@ function semanticBindingsReady(attestation, semanticItems, blockers) {
   for (const id of SEMANTIC_IDS) {
     const expected = candidate.get(id);
     const actual = bound.get(id);
+    const source = EXPECTED_SOURCE[id];
     const same = expected && actual
-      && text(actual.controlledSourceRef) === text(expected.controlledSourceRef)
+      && text(expected.controlledSourceRef) === source
+      && text(actual.controlledSourceRef) === source
       && text(actual.exactSourceLocator) === text(expected.exactSourceLocator)
       && text(actual.controlledSemanticRef) === text(expected.controlledSemanticRef)
       && text(actual.exactSourceLocator)
