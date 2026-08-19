@@ -19,6 +19,11 @@ const SUBTABS = Object.freeze([
     label: 'HP Piping Class',
     load: () => import('./hp-piping-class-workbench-tab.js?v=20260816-hp-real-workbench-2').then((module) => module.renderHpPipingClassWorkbenchTab),
   },
+  {
+    id: 'hp-kd320-evidence-intake',
+    label: 'KD320 Evidence Intake',
+    load: () => import('./hp-kd320-evidence-intake-tab.js?v=20260819-kd320-csv-intake-1').then((module) => module.renderHpKd320EvidenceIntakeTab),
+  },
 ]);
 const SUBTAB_IDS = new Set(SUBTABS.map((tab) => tab.id));
 const STORAGE_KEY = 'format-converters.engineeringCalculationsSubtab';
