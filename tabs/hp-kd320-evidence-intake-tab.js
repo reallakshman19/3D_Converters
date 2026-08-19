@@ -1,0 +1,118 @@
+import {
+  getKd320EvidenceCsvTemplate,
+  KD320_CSV_MODES,
+  previewKd320EvidenceCsv,
+} from '../engineering/hp-class-standardization/qualification/kd320-q2/csv-intake.js';
+
+function esc(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function ensureStyles() {
+  if (document.querySelector('style[data-kd320-csv-intake-style="true"]')) return;
+  const style = document.createElement('style');
+  style.dataset.kd320CsvIntakeStyle = 'true';
+  style.textContent = `
+    .kd320csv{padding:0 18px 24px;min-height:calc(100vh - 150px)}.kd320csv *{box-sizing:border-box}
+    .kd320csv-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,430px);gap:16px;padding:10px 0 16px}.kd320csv h2{margin:0;font-size:24px}.kd320csv p{color:var(--text-muted,#9aa8b8);line-height:1.45}.kd320csv-scope{border:1px solid rgba(248,113,113,.32);border-radius:13px;padding:13px;background:rgba(127,29,29,.13)}
+    .kd320csv-card{border:1px solid rgba(148,163,184,.17);border-radius:13px;padding:14px;margin:10px 0;background:rgba(15,23,42,.24)}.kd320csv-card h3{margin:0 0 8px;font-size:16px}.kd320csv-toolbar{display:flex;align-items:end;justify-content:space-between;gap:10px;flex-wrap:wrap}.kd320csv-actions{display:flex;gap:8px;flex-wrap:wrap}.kd320csv-field{display:grid;gap:5px;min-width:290px}.kd320csv-field span{font-size:11px;color:var(--text-muted,#9aa8b8);font-weight:700}.kd320csv select,.kd320csv button{font:inherit;color:inherit;border:1px solid rgba(148,163,184,.24);background:rgba(15,23,42,.52);border-radius:9px;padding:8px 11px}.kd320csv button{cursor:pointer}.kd320csv button.primary{background:rgba(37,99,235,.24);border-color:rgba(96,165,250,.44);font-weight:750}.kd320csv button:disabled{opacity:.5;cursor:not-allowed}
+    .kd320csv-badges{display:flex;gap:7px;flex-wrap:wrap}.kd320csv-badge{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid rgba(148,163,184,.25);border-radius:999px;font-size:11px;font-weight:800}.kd320csv-badge.blocked{border-color:rgba(248,113,113,.36);background:rgba(127,29,29,.14)}.kd320csv-badge.info{border-color:rgba(96,165,250,.34);background:rgba(30,64,175,.14)}.kd320csv-badge.good{border-color:rgba(74,222,128,.34);background:rgba(20,83,45,.14)}
+    .kd320csv-notice{padding:10px 12px;border:1px solid rgba(148,163,184,.17);border-radius:10px;margin:9px 0;background:rgba(2,6,23,.2)}.kd320csv-notice.error{border-color:rgba(248,113,113,.34);background:rgba(127,29,29,.13)}.kd320csv-notice.good{border-color:rgba(74,222,128,.32);background:rgba(20,83,45,.13)}.kd320csv-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
+    .kd320csv-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.15);border-radius:10px}.kd320csv-table{width:100%;border-collapse:collapse;min-width:1050px}.kd320csv-table th,.kd320csv-table td{padding:9px;border-bottom:1px solid rgba(148,163,184,.11);text-align:left;vertical-align:top}.kd320csv-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted,#9aa8b8)}.kd320csv-table td{font-size:12px}.kd320csv-list{margin:5px 0 0;padding-left:17px}.kd320csv-list li{margin:3px 0}
+    .kd320csv-hidden{display:none!important}@media(max-width:850px){.kd320csv{padding:0 10px 18px}.kd320csv-hero{grid-template-columns:1fr}.kd320csv-field{min-width:100%;width:100%}.kd320csv-actions{width:100%}.kd320csv button{flex:1 1 160px}}
+  `;
+  document.head.appendChild(style);
+}
+
+function modeLabel(mode) {
+  return mode === KD320_CSV_MODES.PROJECT ? 'Project checked calculation' : 'Published numerical oracle';
+}
+
+function rowIdentity(row) {
+  return row.oracle?.calculationRef || row.oracle?.bibliographicRef || `CSV row ${row.rowNumber}`;
+}
+
+function rowGate(row) {
+  if (row.admission) return { state: row.admission.state, blockers: row.admission.blockers ?? [] };
+  if (row.editionReconciliation) {
+    return {
+      state: row.editionReconciliation.state,
+      blockers: [...(row.editionReconciliation.structuralErrors ?? []), ...(row.editionReconciliation.blockers ?? []),
+        ...(row.editionReconciliation.changedSemantics ?? []).map((id) => `${id}:CHANGED_REQUIRES_NEW_ORACLE`)],
+    };
+  }
+  return { state: 'NOT_EVALUATED', blockers: [] };
+}
+
+function blockersHtml(items) {
+  if (!items.length) return '<span>None at this gate.</span>';
+  const visible = items.slice(0, 8);
+  const more = items.length - visible.length;
+  return `<ul class="kd320csv-list">${visible.map((item) => `<li class="kd320csv-code">${esc(typeof item === 'string' ? item : `${item.code}: ${item.message}`)}</li>`).join('')}</ul>${more > 0 ? `<small>+ ${more} more blocker(s)</small>` : ''}`;
+}
+
+function resultsHtml(result, fileName) {
+  if (!result) return '<div class="kd320csv-notice">Choose a mode, download its exact CSV template if needed, then upload a CSV for preview.</div>';
+  if (result.fileIssues?.length) return `<div class="kd320csv-notice error"><strong>${esc(fileName)} blocked before row parsing.</strong>${blockersHtml(result.fileIssues)}</div>`;
+  const ready = result.rows.filter((row) => row.ok).length;
+  return `<div class="kd320csv-notice ${result.ok ? 'good' : 'error'}"><strong>${ready}/${result.rows.length} row(s) passed CSV preflight.</strong> Gate readiness below is evaluated independently; preview never admits evidence.</div>
+  <div class="kd320csv-table-wrap"><table class="kd320csv-table"><thead><tr><th>Row / evidence</th><th>CSV preflight</th><th>Q2 / edition gate</th><th>Preflight blockers</th><th>Gate blockers</th><th>Authority</th></tr></thead><tbody>
+  ${result.rows.map((row) => {
+    const gate = rowGate(row);
+    return `<tr><td><strong>${esc(rowIdentity(row))}</strong><br><span class="kd320csv-code">row ${row.rowNumber}</span></td><td><span class="kd320csv-badge ${row.ok ? 'good' : 'blocked'}">${esc(row.preflightState)}</span></td><td><span class="kd320csv-badge info">${esc(gate.state)}</span></td><td>${blockersHtml(row.issues ?? [])}</td><td>${blockersHtml(gate.blockers)}</td><td><span class="kd320csv-badge blocked">DESIGN AUTHORITY FALSE</span><br><span class="kd320csv-code">native KD320=false · production=false</span></td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+function downloadTemplate(mode) {
+  const blob = new Blob([getKd320EvidenceCsvTemplate(mode)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = mode === KD320_CSV_MODES.PROJECT ? 'kd320-project-checked-calculation.template.csv' : 'kd320-published-numerical-oracle.template.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export function renderHpKd320EvidenceIntakeTab(container) {
+  ensureStyles();
+  let mode = KD320_CSV_MODES.PROJECT;
+  let result = null;
+  let fileName = '';
+  container.innerHTML = `<div class="kd320csv">
+    <div class="kd320csv-hero"><div><h2>KD320 Evidence Intake</h2><p>CSV preflight for externally calculated KD-3 evidence. The surface validates custody and candidate structure, then reuses the existing Q2 or 2023→2025 edition gate. It performs no KD320 numerical calculation.</p></div><aside class="kd320csv-scope"><strong>Qualification boundary</strong><p>Preview-only. No automatic oracle admission, native CORE KD320 qualification, Code-compliance claim, design authority, or production-kernel promotion.</p><div class="kd320csv-badges"><span class="kd320csv-badge blocked">CORE KD-3 · NOT QUALIFIED</span><span class="kd320csv-badge blocked">DESIGN AUTHORITY · FALSE</span></div></aside></div>
+    <section class="kd320csv-card"><div class="kd320csv-toolbar"><label class="kd320csv-field"><span>Evidence mode</span><select data-kd320csv-mode><option value="${KD320_CSV_MODES.PROJECT}">${modeLabel(KD320_CSV_MODES.PROJECT)}</option><option value="${KD320_CSV_MODES.PUBLISHED}">${modeLabel(KD320_CSV_MODES.PUBLISHED)}</option></select></label><div class="kd320csv-actions"><button type="button" data-kd320csv-template>Download exact template</button><button type="button" class="primary" data-kd320csv-upload>Upload CSV</button><input class="kd320csv-hidden" type="file" accept="text/csv,.csv" data-kd320csv-file></div></div><p>Project mode requires target B31.3 2024 / VIII-3 2025 plus independent checked-calc custody. Published mode accepts direct VIII-3 2025 evidence or routes only the existing `PVP2025-154710` VIII-3 2023 evidence through the controlled 2023→2025 reconciliation gate.</p><div class="kd320csv-notice"><strong>Data handling:</strong> upload is parsed in browser memory for preview. This UI does not write the CSV into the project, master store, oracle catalog, or production calculation path.</div></section>
+    <section class="kd320csv-card"><h3>Admission preview</h3><div data-kd320csv-results>${resultsHtml(result, fileName)}</div></section>
+  </div>`;
+
+  const modeSelect = container.querySelector('[data-kd320csv-mode]');
+  const fileInput = container.querySelector('[data-kd320csv-file]');
+  const results = container.querySelector('[data-kd320csv-results]');
+
+  function refresh() { results.innerHTML = resultsHtml(result, fileName); }
+  function onMode() { mode = modeSelect.value; result = null; fileName = ''; if (fileInput) fileInput.value = ''; refresh(); }
+  async function onFile() {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+    fileName = file.name;
+    try { result = previewKd320EvidenceCsv(await file.text(), mode); }
+    catch (error) { result = { ok: false, fileIssues: [{ code: 'CSV_PREVIEW_EXCEPTION', message: String(error?.message || error) }], rows: [] }; }
+    refresh();
+    fileInput.value = '';
+  }
+  function onClick(event) {
+    if (event.target.closest('[data-kd320csv-template]')) downloadTemplate(mode);
+    if (event.target.closest('[data-kd320csv-upload]')) fileInput?.click();
+  }
+
+  modeSelect.addEventListener('change', onMode);
+  fileInput.addEventListener('change', onFile);
+  container.addEventListener('click', onClick);
+  return () => {
+    modeSelect.removeEventListener('change', onMode);
+    fileInput.removeEventListener('change', onFile);
+    container.removeEventListener('click', onClick);
+    container.innerHTML = '';
+  };
+}
