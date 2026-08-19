@@ -31,6 +31,13 @@ function duplicateRowKey(choices) {
   return new Set(keys).size !== keys.length;
 }
 
+export function formatVibrationRoadmapScopeChoiceLabel(choice) {
+  const line = clean(choice?.line) ?? 'Unassigned line';
+  const caseId = clean(choice?.caseId) ?? 'No case ID';
+  const canonicalId = clean(choice?.canonicalId) ?? 'Unassigned scope';
+  return `${line} · ${caseId} · ${canonicalId}`;
+}
+
 export function buildVibrationRoadmapScopeChoices(rows = [], selectedRowKey = null) {
   const choices = rows.map(choiceFromRow).filter(Boolean);
   const selected = clean(selectedRowKey);
