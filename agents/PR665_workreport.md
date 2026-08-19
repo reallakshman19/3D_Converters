@@ -7,13 +7,14 @@
 - BRANCH: `agent/vibration-project-v2-20260819`
 - BASE / MERGE BASE: `main@e67b5790a8c6f63ff1fc33edd848facfdc90537a`
 - ENGINEERING_BASIS_HEAD: `7a3644b9f27302362b6cbb382d7ce65fc6c88746`
+- LAST_FULL_PR_STATE_OBSERVED_HEAD: `24c92b6ec03e087f654bc712c74979b733649d5e`
 - CRITICALITY: ENGINEERING_CRITICAL
-- PR_STATE: OPEN_DRAFT
+- PR_STATE: OPEN_DRAFT_HANDOVER_READY
 - EXECUTION_MODE: MANUAL
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 - COORDINATION: SAFE
 
-Later commits after `ENGINEERING_BASIS_HEAD` are recovery/custody metadata only. Product/test blobs are frozen below.
+Commits after `ENGINEERING_BASIS_HEAD` are recovery/custody metadata only. Product/test blobs are frozen below. `LAST_FULL_PR_STATE_OBSERVED_HEAD` is the exact head at which the full hosted-state reconciliation below was performed; this report update necessarily moves the branch afterward.
 
 ## Handover in 60 seconds
 
@@ -51,12 +52,7 @@ VibrationIntegrityProjectLoadCurrentness.v1
 
 ### Verification evidence/dispositions
 
-Requirements/dispositions validate through #661 contracts. Persisted disposition must:
-
-- reference a persisted requirement;
-- match exact mechanism and line/case/snapshot ID/hash;
-- cite persisted measurement session/product IDs that exist;
-- cite evidence whose owning session matches the same exact operating-case scope.
+Requirements/dispositions validate through #661 contracts. A persisted disposition must reference a persisted requirement, match exact mechanism and line/case/snapshot ID/hash, cite measurement session/product IDs that actually exist, and cite evidence whose owning session matches that same exact operating-case scope.
 
 Disposition persistence is requirement-level evidence review only, never screening PASS.
 
@@ -74,7 +70,7 @@ Disposition persistence is requirement-level evidence review only, never screeni
 
 Historical EIT results remain `HISTORICAL_REVIEW_REQUIRED`.
 
-No runtime/writer/canvas/workflow switch changed. Existing roadmap controller uses parser/serializer abstractions and roadmap builder uses `assertVibrationIntegrityProject()`, so no UI ownership change is required for this schema transition.
+No runtime/writer/canvas/workflow switch changed. Existing roadmap controller uses parser/serializer abstractions and roadmap builder uses `assertVibrationIntegrityProject()`, so no UI ownership change is required for the schema transition.
 
 ## Re-grounding
 
@@ -86,14 +82,6 @@ qual(hp): harden KD320 Q2 oracle semantic custody (#663)
 ```
 
 The complete Project-v2 tree was replayed byte-for-byte onto that main before PR allocation.
-
-Pre-allocation relation:
-
-```text
-base / merge base  e67b5790a8c6f63ff1fc33edd848facfdc90537a
-ahead / behind      3 / 0
-changed paths       13 intended / 0 unexplained
-```
 
 ## Product/test paths
 
@@ -150,6 +138,33 @@ vibration-project-eit.test.mjs    89bd513ae47e2db3820a51dc142d4cb5ad8d376e
 
 The 8/8 execution used exact Project-v2 changed/new bytes with narrow local reconstructions for pre-existing dependencies. Actual merged dependencies/runtime seams were separately inspected. This is supporting evidence, not repository-native suite PASS.
 
+## Last full PR-state reconciliation
+
+Observed at head `24c92b6ec03e087f654bc712c74979b733649d5e`:
+
+```text
+base / merge base           e67b5790a8c6f63ff1fc33edd848facfdc90537a
+ahead / behind              9 / 0
+changed files               16 intended / 0 unexplained
+mergeable                   true
+state / draft               open / true
+reviews                     0
+review threads              0
+commit status entries       0 -> NOT_RUN
+PR-triggered workflow runs  0 -> NOT_RUN
+```
+
+Changed-file classes at the observed head:
+
+```text
+4 exact rollback backups
+6 PR/WIP recovery artifacts
+4 production files
+2 test files
+```
+
+No empty or unexecuted hosted check is represented as PASS.
+
 ## Authority invariants
 
 ```text
@@ -170,4 +185,4 @@ Phase 7C persistent line/case Verify workspace should begin only from a stable P
 
 ## EXACT_NEXT_ACTION
 
-Refresh exact PR665 head/main relation, changed-file ledger, mergeability, reviews, review threads, combined commit statuses and PR-triggered workflow runs. Synchronize final recovery truth and stop at Owner gate. Do not merge.
+Stop at Owner gate. Do not merge. If Owner later authorizes PR665 merge/review progression, first re-ground live main and exact PR head, rerun repository-native project/EIT/measurement/verification/visual regressions in an available checkout, refresh hosted status/workflow/review truth, and preserve all authority boundaries above.
