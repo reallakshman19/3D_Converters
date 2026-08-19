@@ -3,8 +3,25 @@ pr_or_wip: WIP-VIB-RIGHT-RAIL-SCOPE-SELECTOR-20260819
 branch: agent/vibration-right-rail-scope-selector-20260819
 base: main
 base_sha: 2f34c3904b6a4d70c577461e1ae3191f1bf4f713
-state: IMPLEMENTING
+state: IMPLEMENTED_AWAITING_PR_ALLOCATION
 criticality: STANDARD_PRESENTATION_NAVIGATION
 coordination_state: SAFE
+validation:
+  scope_contract_test: PASS_7_OF_7_LOCAL_EXECUTION
+  scope_module_syntax: PASS_LOCAL_EXECUTION
+  exact_scope_blob_identity: PASS
+  integration_wiring: PASS_SOURCE_INSPECTION
+  repository_native_regressions: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  native_backup: NOT_RUN_ENVIRONMENT_BLOCKED
+authority:
+  creates_case_identity: false
+  persistence_changed: false
+  determines_applicability: false
+  determines_completeness: false
+  determines_next_action: false
+  numerical_authority_changed: false
+  screening_authority_changed: false
+  workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_FOLLOW_ON
-exact_next_action: SAVE_PRE_EDIT_BACKUPS_THEN_IMPLEMENT_SCOPE_SELECTOR
+exact_next_action: REGROUND_MAIN_RECONCILE_DIFF_AND_OPEN_DRAFT_PR
