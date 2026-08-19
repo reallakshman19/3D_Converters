@@ -4,11 +4,11 @@
 - PR: #669
 - TITLE: `feat(hp): add formal KD320 Q1 package preview`
 - BRANCH: `agent/hp-kd320-q1-package-preview`
-- BASE_AT_ALLOCATION: `main@b9ffa16180a1fea017505f8e39775fb9f87523ac`
+- BASE: `main@b9ffa16180a1fea017505f8e39775fb9f87523ac`
 - PREDECESSOR: PR666 merged formal Q1 exit gate.
 - MODE: AUTO
 - CRITICALITY: ENGINEERING_CRITICAL
-- STATE: OPEN_DRAFT_HANDOVER_PREP
+- STATE: OPEN_DRAFT_HANDOVER_READY
 - BACKUP: `backup/hp-kd320-q1-package-preview-pre-edit-20260819`
 - MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_PR669
 - PRODUCTION_KERNEL_CHANGED: NO
@@ -104,17 +104,38 @@ independent KD320 engineering qualification NOT_RUN / REAL_CONTROLLED_EVIDENCE_P
 
 Do not convert any NOT_RUN item into PASS.
 
-## Allocation truth
+## Hosted reconciliation
+At engineering/recovery head `ddbdc74f8dbd451697c19697ecc5ee0458513735` before final metadata synchronization:
+
 ```text
-base                             b9ffa16180a1fea017505f8e39775fb9f87523ac
-head at PR creation              208a878b2d875693d297d314d60b08b6001bf4c3
-commits                          4
-changed files                    8
-additions/deletions              600 / 87
-state                            open draft
+base / merge base             b9ffa16180a1fea017505f8e39775fb9f87523ac
+branch relation               ahead 7 / behind 0
+changed files                 11 / 11 intended
+GitHub mergeable              true
+state / draft                 open / true
+commit status entries         0 -> NOT_RUN, not PASS
+PR-triggered workflow runs    0 -> NOT_RUN, not PASS
+reviews                       0
+review threads                0
 ```
 
-PR-numbered recovery files are added after allocation and therefore increase final commits/files.
+Subsequent branch commits after this receipt are recovery-metadata synchronization only; the validated engineering/test blobs listed above do not move.
+
+## Changed-file ledger
+Engineering/UI/tests:
+1. `engineering/hp-class-standardization/qualification/kd320-q1/package-preview.js`
+2. `tabs/hp-kd320-evidence-intake-tab.js`
+3. `tabs/engineering-workspace-tab.js`
+4. `tests/b313-chapter-ix-kd320-q1-package-preview.test.mjs`
+5. `tests/hp-kd320-evidence-intake-ui.test.mjs`
+
+Recovery:
+6. `agents/WIP-hp-kd320-q1-package-preview_workreport.md`
+7. `agents/status/WIP-hp-kd320-q1-package-preview.yaml`
+8. `agents/claims/WIP-hp-kd320-q1-package-preview.yaml`
+9. `agents/PR669_workreport.md`
+10. `agents/status/PR669.yaml`
+11. `agents/claims/PR669.yaml`
 
 ## Remaining real blocker
 Software intake plumbing should stop here unless a genuine defect is found. Formal Q1 still needs real controlled source evidence and independent checking for both receipts, SEM001-014, E01-E08, G0/G1 and the exit attestation. Q2 then needs QF022/QF023.
@@ -132,4 +153,4 @@ Software intake plumbing should stop here unless a genuine defect is found. Form
 10. Which checks are PASS vs NOT_RUN?
 
 ## EXACT_NEXT_ACTION
-Reconcile final PR head against live main; check files, mergeability, statuses, Actions runs, reviews and review threads; update this report/status and PR body; leave draft/unmerged.
+Leave PR669 draft and unmerged. Next engineering activity is controlled Q1 evidence closure, not additional qualification UI/plumbing, unless a real defect is discovered.
