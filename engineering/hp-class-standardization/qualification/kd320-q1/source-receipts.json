@@ -13,7 +13,7 @@
       "edition": "2024",
       "purpose": "Chapter IX high-pressure fatigue invocation and applicability custody",
       "publicIdentitySourceRef": "ASME-B313-2024-PUBLIC",
-      "controlledLedgerSourceRef": null,
+      "controlledLedgerSourceRef": "SRC-B313-2024-CONTROLLED",
       "status": "PENDING_CONTROLLED_SOURCE_RECEIPT",
       "licenseClass": "LICENSED_RESTRICTED",
       "storageClass": "SECURE_STORE",
@@ -25,7 +25,7 @@
       "independentCheckBy": null,
       "independentCheckedAt": null,
       "publicRepositoryContentAllowed": false,
-      "notes": "Q1 records the receipt schema only. Controlled source bytes, hash and paragraph-level locators are not committed here."
+      "notes": "Controlled source identity is registered in the public ledger, but source bytes, secure storage reference, hash and paragraph-level locators remain outside the public repository and are still pending reconciliation."
     },
     {
       "receiptId": "Q1-SRC-VIII3-2025",
@@ -45,11 +45,12 @@
       "independentCheckBy": null,
       "independentCheckedAt": null,
       "publicRepositoryContentAllowed": false,
-      "notes": "Existing source routing metadata is not qualification-complete until secure bytes/hash and exact controlled locators are reconciled."
+      "notes": "Controlled source identity is registered in the public ledger, but source bytes, secure storage reference, hash and exact controlled locators remain outside the public repository and are still pending reconciliation."
     }
   ],
   "verifiedReceiptRequirements": {
     "requiredFields": [
+      "controlledLedgerSourceRef",
       "secureStorageRef",
       "documentSha256",
       "exactLocators",
