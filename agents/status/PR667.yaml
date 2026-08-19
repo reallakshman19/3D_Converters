@@ -1,0 +1,25 @@
+schema: AgentStatus.v1
+pr_or_wip: PR667
+pull_request: 667
+branch: agent/vibration-roadmap-workflow-20260819
+base: main
+base_sha_at_allocation: 7f7ce459c8f059b503b045bbdebbe10d303b1044
+head_sha_at_allocation: 092e42394f63e508f63d2bd1f19d44d7ee9cd296
+state: OPEN_DRAFT_HANDOVER_SYNC
+criticality: ENGINEERING_CRITICAL_PRESENTATION
+coordination_state: SAFE_WITH_STALE_CLAIM_RECONCILIATION
+validation:
+  focused_exact_byte: PASS_4_OF_4_LOCAL_EXECUTION
+  syntax: PASS_LOCAL_EXECUTION
+  source_size: PASS
+  repository_native_full_roadmap: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+authority:
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  applicability_or_completeness_authority_changed: false
+  phase_completion_authority_changed: false
+  project_persistence_changed: false
+  workflow_files_changed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: RELEASE_WIP_CUSTODY_AND_RECONCILE_LIVE_PR667
