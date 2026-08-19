@@ -3,12 +3,12 @@ repository: reallaksh19/3D_Converters
 work_id: PR622
 branch: agent/hp-kd320-q2-admission-intake
 base_branch: main
-base_sha: 0a16ce60d515f38151911e673860c24d341c035e
+base_sha: ccc154194206c5518b05638667bd19b00ecdccd5
 workstream: HP_KD320_QUALIFICATION
 stage: Q2_CONTROLLED_EVIDENCE_ORACLE_ADMISSION
 criticality: ENGINEERING_CRITICAL
 state: READY_FOR_AUTHORIZED_MERGE
-coordination: FINAL_STACK_AGGREGATOR
+coordination: FINAL_STACK_AGGREGATOR_MAIN_DRIFT_RECONCILED
 appendix_a: 99/100_RETAINED
 execution_mode: MANUAL
 merge_authority: OWNER_GRANTED_ON_COMPLETION
@@ -16,12 +16,19 @@ stack_state:
   successor_pr623: MERGED_INTO_THIS_BRANCH
   successor_pr625: INCLUDED_VIA_PR623
   successor_pr648: INCLUDED_VIA_PR623_PR625
+main_drift:
+  observed_main: ccc154194206c5518b05638667bd19b00ecdccd5
+  source: PR647_SBC_CONNECTION_AUTHORING
+  shared_file: tabs/engineering-workspace-tab.js
+  resolution: RETAIN_MAIN_SBC_CACHE_IDENTITY_AND_ADD_KD320_SUBTAB
+  rollback_branch: backup/hp-kd320-pr622-pre-main-drift-reconcile-20260819
 validation:
   q2_focused_suite: PASS_9_OF_9_RETAINED
   q2_post_fix_diagnostic: PASS_2_OF_2_RETAINED
   published_prefill_suite: PASS_5_OF_5_RETAINED
   edition_reconciliation_suite: PASS_10_OF_10_RETAINED
   csv_intake_suite: PASS_16_OF_16_LOCAL_EXECUTION
+  main_drift_source_inspection: PASS
   full_repository_suite: NOT_RUN
   real_controlled_q2_candidate: NOT_AVAILABLE_NOT_RUN
   hosted_ci: REFRESH_BEFORE_MERGE
@@ -34,4 +41,4 @@ authority:
   production_kernel_allowed: false
   automatic_promotion_allowed: false
   production_route: USER_CALCULATED_KD3
-exact_next_action: Re-ground main and reconcile live PR622 checks/reviews; merge into main with an expected-head guard only if mergeability remains clean. Do not implement or enable native KD320 until controlled Q2 evidence is admitted.
+exact_next_action: Refresh live main and PR622 mergeability/checks/reviews; merge into main with an expected-head guard only if the reconciled shared-file state remains current.
