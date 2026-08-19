@@ -12,64 +12,130 @@ REPOSITORY: reallaksh19/3D_Converters
 BASE_BRANCH: main
 BASE_SHA: b9ffa16180a1fea017505f8e39775fb9f87523ac
 BRANCH: agent/vibration-right-rail-case-action-20260819
+STATE: IMPLEMENTED_AWAITING_PR_ALLOCATION
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED_FOR_FOLLOW_ON
 ```
 
-## Mission
+## Handover in 60 seconds
 
-Make the merged #658 right-rail `Case next action` executable without changing the governed source of the next action or remounting/losing the selected Vibration Integrity facility row.
+This slice makes the merged #658 right-rail `Case next action` executable while keeping `VibrationLineCaseAssessmentStatus.v1.nextActionCode` as the sole source of the displayed next action.
 
-Target flow:
+Final route:
 
 ```text
-VibrationLineCaseAssessmentStatus.v1.nextActionCode
--> navigation-only action-to-workspace route
+governed selected assessment
+-> nextActionCode
+-> navigation-only action/workspace map
 -> right-rail Open case task button
--> outer engineering console forwards request to the already-mounted FIT product host
--> Vibration Integrity workspace validates request and switches existing workspaceTab
+-> existing vibration-roadmap-controller click handler
+-> existing visible data-vi-workspace-tab button.click()
+-> existing Vibration Integrity workspace tab handler
 ```
 
-## Authority / invariants
+No FIT product remount, no project/persistence mutation, no applicability/completeness calculation, and no new engineering authority are introduced.
 
-Navigation must not determine applicability, completeness, next-action engineering semantics, screening authority, engineering disposition, case identity, persistence, numerical values, or result currentness.
+## Product behavior
 
-No Project-v2, AIV PF-02, FIT production-freeze adapter, numerical master/method, workflow file, runtime/writer/canvas ownership, or engineering result change is in scope.
+Supported identification actions open the existing `identification` workspace. Supported assessment-gap/review actions open the existing `screening` workspace. Unknown next-action codes stay visible but have no executable route.
 
-The route must fail closed for unsupported action codes and unsupported workspace IDs.
-
-## Coordination
-
-- #658 merged and is the selected-case status/right-rail source.
-- #667 merged and is the right-rail action-first predecessor.
-- #665 remains open Project-v2; no persistence path will be touched.
-- #517 remains open AIV PF-02; no AIV calculator/readiness path will be touched.
-- #539/#540 remain open FIT production-freeze authority work; no FIT adapter/family authority path will be touched.
-- stale merged claims on right-panel paths are historical coordination metadata, not live PR blockers.
-
-Coordination classification: `SAFE_WITH_STALE_MERGED_CLAIM_RECONCILIATION`.
-
-## Intended paths
+`tabs/vibration-roadmap-workspace-routing.js` is navigation-only and declares:
 
 ```text
-tabs/vibration-roadmap-workspace-routing.js               NEW
-tabs/vibration-roadmap-panel.js                           EDIT
-tabs/vibration-integrity-tab.js                           EDIT
-tabs/engineering-calculations-tab.js                      EDIT
-tests/vibration-roadmap-case-action-routing.test.mjs      NEW
-.backups/connector-20260819-vib-right-rail-case-action/   NEW rollback copies
-agents/WIP-VIB-RIGHT-RAIL-CASE-ACTION-20260819_*           RECOVERY
+purpose                 RIGHT_RAIL_WORKSPACE_NAVIGATION_ONLY
+nextActionSource        VibrationLineCaseAssessmentStatus.v1
+determinesNextAction    false
+determinesApplicability false
+determinesCompleteness  false
+createsCaseIdentity     false
+persistenceAuthority    NONE
+engineeringAuthority    NONE
+screeningAuthority      NOT_AUTHORIZED
+designAuthority         false
 ```
 
-## Validation plan
+## Coordination correction
 
-- pure action-code -> workspace routing regression;
-- unsupported action/workspace fail closed;
-- selected governed case renders actionable button;
-- right-panel action is forwarded before calculation routing and does not call definition reset/remount;
-- mounted Vibration Integrity workspace accepts only governed navigation requests and uses existing `workspaceTab` path;
-- syntax/source-size checks;
-- repository-native/browser execution remains NOT_RUN if environment unavailable.
+An initial route attempted to edit `tabs/engineering-calculations-tab.js` and `tabs/vibration-integrity-tab.js`. Live coordination then showed PR649 has an ACTIVE exclusive/coordinated claim over those exact shared UI/cache-custody paths.
+
+Mutation stopped. Both files were restored byte-for-byte to current-main Git blobs:
+
+```text
+engineering-calculations-tab.js  f767f4b55dd1cbd86f5d1d54135f0f457d8b7352
+vibration-integrity-tab.js        db71386f048fbc7b4891eacf9709a071825eda1f
+```
+
+The unused backups for those shared files were deleted. They are absent from the effective branch diff. Final routing lives entirely in the roadmap layer. PR615's apparent roadmap-controller claim is stale because PR615 is merged/closed.
+
+## Final intended product/test paths
+
+```text
+tabs/vibration-roadmap-workspace-routing.js
+tabs/vibration-roadmap-panel.js
+tabs/vibration-roadmap-controller.js
+tests/vibration-roadmap-case-action-routing.test.mjs
+```
+
+Rollback evidence:
+
+```text
+.backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-panel.js
+.backups/connector-20260819-vib-right-rail-case-action/tabs/vibration-roadmap-controller.js
+```
+
+Native `node utils/backup.js` is `NOT_RUN / ENVIRONMENT_BLOCKED`; connector/Git-blob copies are rollback evidence only.
+
+## Exact focused validation
+
+Minimal local reconstruction used exact committed branch bytes. Git blob identities matched GitHub:
+
+```text
+workflow   e6f21bba96ca9eef5fb369f6a5fe0c35ccdf27e6
+route      f2ed7234b9d332bf5a44e9b988a5c364a2ebb83f
+panel      7e855d95897e12c665f75bfd404bf89fdc543e41
+controller 6842ed5284cf9a1e5d3f21b5648ac6f0a42947a3
+test       7d23327d09e189e7cb3bc1047fe9716bddb7c4ea
+```
+
+Executed evidence:
+
+```text
+focused case-action routing test   PASS 6/6 / LOCAL_EXECUTION / exact blobs
+panel syntax                       PASS / LOCAL_EXECUTION
+controller syntax                  PASS / LOCAL_EXECUTION
+new JS line policy                 PASS: route 39; test 100
+controller physical lines          283
+panel physical lines               166
+```
+
+Still NOT_RUN:
+
+```text
+repository-native broader vibration regressions  NOT_RUN / ENVIRONMENT_BLOCKED
+served browser case-action journey                NOT_RUN / ENVIRONMENT_BLOCKED
+native backup CLI                                 NOT_RUN / ENVIRONMENT_BLOCKED
+independent numerical verification                NOT_APPLICABLE / no numerical change
+```
+
+## Current reconciliation
+
+```text
+main       b9ffa16180a1fea017505f8e39775fb9f87523ac
+relation   ahead 18 / behind 0
+paths      9 intended / 0 unexplained
+```
+
+## Authority invariants
+
+Do not change:
+- `VibrationLineCaseAssessmentStatus.v1` next-action semantics;
+- mechanism applicability or `AssessmentCompleteness.v1`;
+- project case/line identity or persistence;
+- AIV PF-02 / FIT production-freeze logic;
+- numerical methods/masters/results;
+- engineering disposition, verification, design/code/safety/root-cause authority;
+- PR649 shared cache custody;
+- workflow files.
 
 ## Exact next action
 
-Create status/claim records and exact pre-edit Git-blob backups for every existing file before mutation, then implement the pure navigation route and event bridge.
+Open one draft PR for this navigation slice, migrate recovery custody to PR-numbered artifacts, reconcile hosted checks/reviews/changed paths, and leave merge authority owner-only.
