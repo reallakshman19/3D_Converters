@@ -9,53 +9,110 @@
 - EXECUTION_MODE: MANUAL
 - BRANCH: `agent/hp-kd320-q1-semantic-intake`
 - BASE: `main@6c3109935eb2d30652eab441080464777091b1bb`
-- REPORT_BASIS_HEAD: `6c3109935eb2d30652eab441080464777091b1bb`
 - PREDECESSOR: PR #650 merged by squash as `6c3109935eb2d30652eab441080464777091b1bb`
 - BACKUP: `backup/hp-kd320-q1-semantic-intake-pre-edit-20260819`
-- COORDINATION: `COORDINATION_REQUIRED` with open PR #649 for `tabs/engineering-workspace-tab.js`; actual hunk is the Calculations loader cache identity, not KD320 evidence authority.
+- COORDINATION: `COORDINATION_REQUIRED` with PR #649 for `tabs/engineering-workspace-tab.js`. PR649 is now non-mergeable after PR650 main drift; its actual intended hunk is the Calculations loader cache identity, while this WIP changes only the KD320 Evidence Intake loader cache identity.
 
 ## Handover in 60 seconds
 
-Mission: add preview-only Q1 semantic evidence intake for the canonical `KD320-SEM-001…014` set without changing the four first-class record classes landed in PR650. Treat the semantic CSV as a controlled-source sub-package, not a fifth record class.
+Mission: add preview-only Q1 semantic evidence intake for the canonical `KD320-SEM-001…014` set without changing the four first-class record classes landed in PR650. The Q1 semantic CSV is a `CONTROLLED_SOURCE` sub-package, not a fifth record class.
 
-No Code semantics may be inferred, reconstructed or populated. The template contains semantic IDs and required source-receipt identity only; all source locators/controlled semantic references/rules/custody fields remain blank for user-controlled evidence.
+Implemented:
 
-The existing Q2 admission evaluator remains the qualification authority. The new parser may construct a transient candidate only to show whether the semantic package is structurally complete; source receipts remain pending unless separately supplied, therefore Q1 cannot be promoted by this increment.
+- new `kd320-q1/semantic-csv-intake.js` (202 lines);
+- exact 14-row template with canonical source binding: SEM001 -> `Q1-SRC-B313-2024`, SEM002…014 -> `Q1-SRC-VIII3-2025`;
+- required exact locator, controlled semantic ref, units/sign/selection/interpolation/applicability fields and independent extraction/check custody;
+- exact semantic-set validation with missing/duplicate/unknown blockers;
+- rejection of unknown public CSV fields such as `engineering_definition`;
+- transient delegation to `evaluateKd320Q2AdmissionCandidate()` with source receipts deliberately pending;
+- product UI controls for Q1 semantic template download/upload under the existing `CONTROLLED_SOURCE` surface;
+- cache identity `20260819-kd320-q1-semantic-intake-1`;
+- focused regression source.
 
-## Acceptance
+No Code semantics are inferred, reconstructed or populated by this PR. The template contains IDs and receipt bindings only; all controlled semantic content is supplied externally by the authorized evidence custodian.
 
-1. Exact 14-row template: `KD320-SEM-001…014`; SEM001 -> `Q1-SRC-B313-2024`, SEM002…014 -> `Q1-SRC-VIII3-2025`.
-2. Required per-row custody: exact controlled locator, controlled semantic ref, explicit units/sign/selection/interpolation/applicability values, extractor/checker identities and UTC timestamps.
-3. Distinct extractor/checker identities and exact semantic/source binding.
-4. No `engineeringDefinition`, licensed text, equation text, curve points or numerical KD320 values accepted in the public CSV contract.
-5. Missing/duplicate/unknown semantics fail closed.
-6. Preview delegates readiness to the existing Q2 admission evaluator using pending source receipts; authority flags remain false.
-7. Engineering UI exposes the Q1 semantic sub-package under `CONTROLLED_SOURCE`, with exact template download and browser-memory-only upload.
-8. No native arithmetic, production registration, master-data write, automatic admission or design authority.
+## Authority / protected invariants
 
-## Authority / invariants
+```text
+nativeCoreKd3Qualified       false
+codeCompliance               false
+canUseForDesignAuthority     false
+productionKernelAllowed      false
+automaticPromotionAllowed    false
+production fatigue route     USER_CALCULATED_KD3
+```
 
-- `nativeCoreKd3Qualified=false`
-- `codeCompliance=false`
-- `canUseForDesignAuthority=false`
-- `productionKernelAllowed=false`
-- `automaticPromotionAllowed=false`
-- production fatigue route remains `USER_CALCULATED_KD3`.
-- four top-level CSV record classes remain unchanged.
-- licensed ASME content remains outside the public repository.
+Negative assurance:
+
+- four first-class record classes unchanged;
+- no native KD320 arithmetic;
+- no fatigue-curve data;
+- no licensed ASME text field or persisted Code content;
+- no Q1 ledger mutation/persistence;
+- no automatic evidence admission;
+- no design/Code authority promotion;
+- Q1 cannot complete from the semantic package alone because receipt objects remain pending in the delegated candidate.
+
+## Key implementation trace
+
+```text
+CONTROLLED_SOURCE / Q1 semantic sub-package
+  -> exact 14-row CSV contract
+  -> row/set fail-closed validation
+  -> transient INDEPENDENTLY_CHECKED semantic candidate objects
+  -> source receipts intentionally PENDING_CONTROLLED_SOURCE_RECEIPT
+  -> existing evaluateKd320Q2AdmissionCandidate()
+  -> state remains Q1_CONTROLLED_EVIDENCE_PENDING until real source receipts are joined
+```
+
+The public CSV headers intentionally exclude `engineering_definition`, licensed text, equations, fatigue-curve points, Salt, Seq and permissible-cycle fields. `controlled_semantic_ref` is a reference field; uploaded CSV remains browser-memory-only and is not committed or persisted.
 
 ## Validation ledger
 
-| Check | Status | Observation | Oracle | Notes |
+| Check | Status | Observation | Oracle | Limitation |
 |---|---|---|---|---|
-| Live main grounding | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | `main@6c310993...` |
+| Live main grounding | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | base `6c310993...` |
 | PR650 merge | PASS | GITHUB_MERGE_RESULT | AUTHORITATIVE_REFERENCE | squash merged |
-| Existing Q1 contract | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | canonical 14 semantics still pending |
-| Focused tests | NOT_RUN | NOT_OBSERVED | NONE | pending implementation |
-| Full repo tests | NOT_RUN | NOT_OBSERVED | NONE | connector-only environment |
-| Browser | NOT_RUN | NOT_OBSERVED | NONE | do not infer PASS |
-| Hosted CI | NOT_RUN | NOT_OBSERVED | NONE | no PR yet |
+| Existing Q1 canonical set | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | SEM001…014 confirmed |
+| New module line budget | PASS | GITHUB_COMPARE | NONE | 202 lines < 300 |
+| Focused semantic transport harness | PASS 8/8 | LOCAL_EXECUTION | IMPLEMENTATION_COUPLED | minimal mirror with source-faithful candidate contract; not full repo checkout |
+| Module syntax check | PASS | LOCAL_EXECUTION | NONE | `node --check` on exact semantic module mirror |
+| Full repository-native tests | NOT_RUN | NOT_OBSERVED | NONE | github.com DNS unavailable; clone failed |
+| UI static contract | PASS | SOURCE_INSPECTION | NONE | four modes preserved; Q1 sub-package controls present |
+| Served browser acceptance | NOT_RUN | NOT_OBSERVED | NONE | no browser PASS claimed |
+| Hosted CI | NOT_RUN | NOT_OBSERVED | NONE | pending PR creation |
+| Independent KD320 engineering qualification | NOT_RUN | NOT_OBSERVED | NONE | controlled ASME evidence still pending |
+| Native backup utility | NOT_RUN | NOT_OBSERVED | NONE | connector-only environment; exact pre-edit backup branch preserved |
+
+Local mirror checks covered:
+
+1. exact 14-row template/source binding;
+2. complete package remains receipt-gated;
+3. missing/duplicate semantics;
+4. source-binding mismatch;
+5. required explicit semantic fields;
+6. independent checker identity;
+7. UTC timestamp requirement;
+8. rejection of `engineering_definition` header;
+9. BOM tolerance / malformed quote fail-closed.
+
+## Changed-file ledger
+
+Expected mission paths:
+
+1. `agents/WIP-hp-kd320-q1-semantic-intake_workreport.md`
+2. `agents/status/WIP-hp-kd320-q1-semantic-intake.yaml`
+3. `agents/claims/WIP-hp-kd320-q1-semantic-intake.yaml`
+4. `engineering/hp-class-standardization/qualification/kd320-q1/semantic-csv-intake.js`
+5. `tabs/hp-kd320-evidence-intake-tab.js`
+6. `tabs/engineering-workspace-tab.js`
+7. `tests/b313-chapter-ix-kd320-q1-semantic-csv-intake.test.mjs`
+8. `tests/hp-kd320-evidence-intake-ui.test.mjs`
+
+## Appendix A
+
+`NOT_REQUIRED_FOR_TAKEOVER` at creation: this is a new successor PR from live main, not takeover of an existing engineering-critical PR. Any later agent taking over technical mutation must complete the normal repository-specific takeover qualification.
 
 ## EXACT_NEXT_ACTION
 
-Implement a bounded Q1 semantic CSV parser/template module and wire it into the existing KD320 Evidence Intake UI as a controlled-source sub-package, then add fail-closed regression tests.
+Re-ground live main, reconcile the eight-file diff, open a draft PR, add PR-numbered recovery artifacts, then refresh mergeability/reviews/threads/status/workflow truth. Do not merge the new PR without separate owner authorization.
