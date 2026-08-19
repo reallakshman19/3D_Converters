@@ -1,36 +1,13 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-VIB-PROJECT-V2-20260819
-claim_state: ACTIVE
+claim_state: RELEASED_TO_PR665
 branch: agent/vibration-project-v2-20260819
 files:
-  exact:
-    - converters/vibration/project/schema.js
-    - converters/vibration/project/serialize.js
-    - converters/vibration/project/from-eit.js
-    - converters/vibration/project/load-currentness.js
-    - tests/vibration-project-v2.test.mjs
-    - tests/vibration-project-eit.test.mjs
-    - agents/WIP-VIB-PROJECT-V2-20260819_workreport.md
-    - agents/status/WIP-VIB-PROJECT-V2-20260819.yaml
-    - agents/claims/WIP-VIB-PROJECT-V2-20260819.yaml
-  prefixes:
-    - .backups/connector-20260819-vib-project-v2/
-authority_domains:
-  - VIBRATION_PROJECT_V2_PERSISTENCE
-  - VIBRATION_PROJECT_LOAD_CURRENTNESS
-claim_modes:
-  - EXCLUSIVE
-  - SHARED_READ
-exclusions:
-  - current engineering result persistence or promotion
-  - screening/design/root-cause/code/safety authority promotion
-  - AssessmentCompleteness.v1 semantics
-  - mechanism numerical calculations or qualification
-  - AIV/FIT production-freeze domains
-  - runtime/writer/canvas/workflow files
-coordination:
-  PR661: MERGED_VERIFICATION_FOUNDATION
-  PR662: MERGED_VISUAL_FOUNDATION
-  PR664: MERGED_ASSESSMENT_EVIDENCE_FOUNDATION
-coordination_state: SAFE
+  exact: []
+  prefixes: []
+authority_domains: []
+claim_modes: []
+successor_pr: 665
+current_recovery_authority: agents/claims/PR665.yaml
+coordination_state: RELEASED
 merge_authority: OWNER_ONLY_NOT_GRANTED
