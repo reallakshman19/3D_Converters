@@ -1,3 +1,5 @@
+import { resolveHpPipingClassFatigueAnalysisGeometry } from './hp-piping-class-fatigue-analysis-geometry.js';
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -122,11 +124,13 @@ export function nextUncoveredTransition(project, evidenceIndex) {
 export function createHpPipingClassExternalResultShell(project, evidenceIndex) {
   const transition = nextUncoveredTransition(project, evidenceIndex);
   if (!transition) return null;
+  const geometry = resolveHpPipingClassFatigueAnalysisGeometry(project, evidenceIndex);
   return {
     cycleId: transition.cycleId,
     fromStateId: transition.fromStateId || '',
     toStateId: transition.toStateId || '',
     locationId: '',
+    ...(geometry.ok ? { analysisGeometry: clone(geometry.analysisGeometry) } : {}),
     calculationBasis: {},
   };
 }
