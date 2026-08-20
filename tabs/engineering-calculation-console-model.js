@@ -12,7 +12,7 @@ function stateOf(definition) {
 
 function editorValue(field, value) {
   if (value === undefined || value === null || value === '') return '';
-  if (field.type === 'object' || field.type === 'table') return JSON.stringify(value, null, 2);
+  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return JSON.stringify(value, null, 2);
   if (field.type === 'vector3') return Array.isArray(value) ? value.join(', ') : String(value);
   return value;
 }
@@ -50,12 +50,14 @@ function parseBoolean(raw) {
   throw new TypeError('must be true or false');
 }
 
-function parseObject(raw, fieldType) {
+function parseJsonAggregate(raw, fieldType) {
   const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (fieldType === 'object' && (value === null || typeof value !== 'object' || Array.isArray(value))) {
     throw new TypeError('must be a JSON object');
   }
-  if (fieldType === 'table' && !Array.isArray(value)) throw new TypeError('must be a JSON array');
+  if ((fieldType === 'array' || fieldType === 'table') && !Array.isArray(value)) {
+    throw new TypeError('must be a JSON array');
+  }
   return value;
 }
 
@@ -90,8 +92,8 @@ export function parseEngineeringConsoleField(field, raw) {
     if (!(field.values ?? []).includes(raw)) throw new TypeError(`must be one of ${(field.values ?? []).join(', ')}`);
     return { included: true, value: raw };
   }
-  if (field.type === 'object' || field.type === 'table') {
-    return { included: true, value: parseObject(raw, field.type) };
+  if (field.type === 'object' || field.type === 'array' || field.type === 'table') {
+    return { included: true, value: parseJsonAggregate(raw, field.type) };
   }
   if (field.type === 'vector3') return { included: true, value: parseVector3(raw) };
   return { included: true, value: String(raw) };
@@ -143,7 +145,7 @@ export function parseEngineeringBatchEditor(text) {
   if (!Array.isArray(requests)) {
     return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
   }
-  return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) } };
+  return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) };
 }
 
 export function invalidateEngineeringConsoleExecution(state) {
