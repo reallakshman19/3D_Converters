@@ -9,6 +9,11 @@ import {
   buildVibrationOperatingScenario,
 } from '../converters/vibration/dataset/index.js';
 import {
+  VIBRATION_FACILITY_FIT_CALCULATION_ID,
+  VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
+} from '../converters/vibration/facility/fit-plan.js';
+import { executeVibrationFacilityFitPlan } from '../converters/vibration/facility/fit-execute.js';
+import {
   createVibrationScenarioExecutionBinding,
   executeVibrationWithScenarioGuard,
 } from '../converters/vibration/mechanisms/scenario-execution.js';
@@ -81,6 +86,34 @@ function facilityState(currentScenario) {
   };
 }
 
+function readyFitPlan(binding) {
+  return {
+    schema: VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
+    authority: 'REQUEST_PLANNING_ONLY',
+    engineeringAuthority: 'SCREENING',
+    screeningAuthorized: true,
+    calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
+    qualificationMode: 'screening',
+    datasetSchema: 'VibrationIntegrityDataset.v1',
+    datasetId: binding.datasetId,
+    items: [{
+      status: 'READY',
+      calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
+      canonicalId: 'CANON-001', line: 'L-100', caseId: 'NORMAL',
+      missing: [], invalid: [], reasons: [],
+      scenarioBinding: binding,
+      request: {
+        calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
+        inputs: {}, inputUnits: {},
+        options: { qualificationMode: 'screening', includeEvidence: true },
+      },
+      sourceTrace: null,
+    }],
+    counts: { assessmentPoints: 1, items: 1, ready: 1, notReady: 0 },
+    warnings: [],
+  };
+}
+
 test('common runtime guard rejects same logical scenario with changed snapshot before callback', () => {
   const prepared = scenario(100);
   const current = scenario(101);
@@ -111,6 +144,17 @@ test('common runtime guard reaches callback exactly once for the exact snapshot'
   });
   assert.equal(calls, 1);
   assert.equal(value, prepared.snapshotHash);
+});
+
+test('FIT facility execution rejects stale scenario before the central batch call is reachable', () => {
+  const prepared = scenario(100);
+  const current = scenario(101);
+  const plan = readyFitPlan(createVibrationScenarioExecutionBinding(prepared));
+  assert.throws(
+    () => executeVibrationFacilityFitPlan(plan, { operatingScenarios: [current] }),
+    (error) => error.code === 'FIT_FACILITY_SCENARIO_SNAPSHOT_MISMATCH'
+      && error.details?.upstreamCode === 'VIBRATION_SCENARIO_EXECUTION_SNAPSHOT_MISMATCH',
+  );
 });
 
 test('Mechanical T2.3 facility wrapper fails on stale snapshot before evaluating the method', async () => {
