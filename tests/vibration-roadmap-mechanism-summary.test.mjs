@@ -140,10 +140,12 @@ test('cavitation and thermowell stay visible as required blocked work with gover
   const thermowell = item(summary, 'thermowells');
   assert.equal(cavitation.disposition, 'REQUIRED');
   assert.equal(cavitation.state, 'REQUIRED_NOT_IMPLEMENTED');
+  assert.equal(cavitation.lof, null);
   assert.equal(cavitation.sourceStatus, 'RECONCILIATION_REQUIRED');
   assert.match(cavitation.sourceLabel, /T2\.9.*reconciliation required/);
   assert.equal(thermowell.disposition, 'REQUIRED');
   assert.equal(thermowell.state, 'REQUIRED_NOT_IMPLEMENTED');
+  assert.equal(thermowell.lof, null);
   assert.equal(thermowell.sourceStatus, 'CONFLICTED');
   assert.match(thermowell.sourceLabel, /Source conflict:.*T4.*ASME PTC 19\.3 TW-2016/);
   assert.match(thermowell.sourceReason, /must not be silently combined/);
@@ -160,6 +162,7 @@ test('right-rail summary renders source blockers and never equates unavailable w
   assert.match(html, /Source conflict:/);
   assert.match(html, /Source\/method blocked/);
   assert.match(html, /Missing implementation never means not applicable/);
+  assert.doesNotMatch(html, /LOF 0(?:\D|$)/);
 });
 
 test('right panel includes mechanism assessment only beneath a governed selected exact scope', () => {
