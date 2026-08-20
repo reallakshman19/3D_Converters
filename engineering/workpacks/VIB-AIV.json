@@ -22,6 +22,20 @@
     "state": "ACTIVE"
   },
   "calculator": { "path": "converters/vibration/aiv/aiv-calculator.js" },
+  "stage8": {
+    "path": "converters/vibration/aiv/aiv-t26.js",
+    "schema": "AivT26DiscontinuityResult.v1",
+    "model": "SOURCE_CALCULATED_T2_6",
+    "sourceAuthority": {
+      "repository": "reallaksh19/Advanced_Analysis",
+      "mergeCommit": "ca53d589b79fc34f5a5616c0ce7de00e06c13df4",
+      "flowchartBlob": "176d98565f582983c78868aa6210848a16f75881",
+      "methodRegisterBlob": "968e48e679e8a50e7a1247a24cfd7adfc63ca37c",
+      "state": "SOURCE_CORROBORATED_D2_3_REPRODUCED",
+      "exactPinnedPdfVisualParity": "NOT_RUN_TRANSPORT_BLOCKED",
+      "productionReleaseQualificationRequired": true
+    }
+  },
   "assumptionProfile": {
     "path": "converters/vibration/aiv/aiv-assumption-profile.js",
     "exportName": "AIV_DEFAULT_ASSUMPTION_PROFILE"
@@ -51,7 +65,7 @@
     "screeningAuthorityPromotionApplied": false,
     "designAuthority": false
   },
-  "methodRevision": "ei-aviff2-aiv-auto-screening-v3",
+  "methodRevision": "ei-aviff2-aiv-auto-screening-v4",
   "authority": {
     "calculationState": "IMPLEMENTED",
     "qualificationState": "SCREENING",
@@ -66,17 +80,25 @@
     "fullVibrationAssessmentComplete": false
   },
   "boundedMethod": {
-    "stage8Model": "CONFIGURED_D23_INTERMEDIATES",
-    "scopeRule": "SCREENING authority is bounded to the currently qualified assessment implementation. Stage-9 reduction is qualified for derivation; exact-revision human attestation plus machine topology checks may establish inventory completeness evidence, but this method revision does not promote line/case screening authority.",
-    "dependencies": [
-      { "path": "benchmark.publishedA", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "retained T2-6 configured evidence" },
-      { "path": "benchmark.publishedS", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "retained T2-6 configured evidence" },
-      { "path": "benchmark.publishedB", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "active errata log10N input" },
-      { "path": "benchmark.flm1Published", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "selected when flm1Mode=PUBLISHED" },
-      { "path": "benchmark.flm1Recalculated", "classification": "BOUNDED_CONFIGURED_IMPLEMENTATION_DEPENDENCY", "runtimeRole": "selected when flm1Mode=RECALCULATED" },
-      { "path": "benchmark.flm2", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; production FLM2 is calculated from combined point PWL" },
-      { "path": "benchmark.lossFactor", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; production Lf is calculated" },
-      { "path": "benchmark.d23FirstDiscontinuityLof", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "comparison expected value only" },
+    "stage8Model": "SOURCE_CALCULATED_T2_6",
+    "scopeRule": "SCREENING authority remains assessment-scoped and bounded to the currently qualified WELDOLET/WELDED_TEE input envelope. Stage 8 derives T2.6 intermediates from current engineering inputs; benchmark values remain oracle-only. Stage-9 reduction is qualified for derivation and does not promote line/case screening authority.",
+    "runtimeDependencies": [
+      { "path": "assessment.mainOutsideDiameter", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "T2.6 Dext and Dext/dext numerator" },
+      { "path": "assessment.mainWallThickness", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "T2.6 Dext/T shape ratio" },
+      { "path": "assessment.branchOutsideDiameter", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "T2.6 Dext/dext denominator" },
+      { "path": "assessment.assessmentType", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "Weldolet FLM2 branch versus supported non-Weldolet branch" },
+      { "path": "assessment.duplexState", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "Duplex FLM3 branch" },
+      { "path": "assessment.combinedPointPwlDb", "classification": "SOURCE_CALCULATED_RUNTIME_INPUT", "runtimeRole": "T2.6 a/s/B and modifier input" }
+    ],
+    "benchmarkDependencies": [
+      { "path": "benchmark.publishedA", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "historical D2.3 reference; not a screening Stage-8 input" },
+      { "path": "benchmark.publishedS", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "historical D2.3 reference; not a screening Stage-8 input" },
+      { "path": "benchmark.publishedB", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "historical D2.3 reference; not a screening Stage-8 input" },
+      { "path": "benchmark.flm1Published", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "published arithmetic reconciliation reference; never overrides calculated FLM1" },
+      { "path": "benchmark.flm1Recalculated", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "historical independent recalculation reference" },
+      { "path": "benchmark.flm2", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; runtime FLM2 is calculated from point PWL" },
+      { "path": "benchmark.lossFactor", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark/evidence value; runtime Lf is calculated and clamped" },
+      { "path": "benchmark.d23FirstDiscontinuityLof", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "benchmark-mode comparison expected value only" },
       { "path": "benchmark.workedExampleReliefLineLof", "classification": "BENCHMARK_ORACLE_ONLY", "runtimeRole": "frozen D.2.3 full-line benchmark reference; not a runtime line-result input" }
     ]
   },
@@ -147,8 +169,9 @@
     "rule": "Only issue #513 protocol/evidence may establish final Product Freeze disposition."
   },
   "activeOverlap": [
-    { "ref": "PR#517", "classification": "COORDINATION_REQUIRED", "boundary": "PF-02 readiness/execution parity; do not solve here" },
-    { "ref": "PR#506", "classification": "COORDINATION_REQUIRED", "boundary": "salvage/evidence candidate; not current baseline" },
+    { "ref": "PR#517", "classification": "MERGED_PREDECESSOR", "boundary": "PF-02 evidence/reproduction merged; stale ACTIVE claim metadata is historical only" },
+    { "ref": "PR#506", "classification": "SUPERSEDED_FOR_T26_SOURCE_PARITY", "boundary": "stale hardening branch remains salvage/evidence only; do not replay product blobs" },
+    { "ref": "Advanced_Analysis#1289", "classification": "MERGED_SOURCE_AUTHORITY", "boundary": "source-corroborated T2.5/T2.6 qualification evidence; exact pinned-PDF visual parity and Product Freeze remain separate" },
     { "ref": "ISSUE#526", "classification": "WORDING_ONLY", "boundary": "unified canvas exists on main; no runtime ownership redesign" },
     { "ref": "ISSUE#453", "classification": "EXTERNAL_ACCEPTANCE_UMBRELLA", "boundary": "this Work Pack does not close production acceptance" }
   ],
@@ -176,7 +199,7 @@
     { "id": "AIV-WP-021", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyLineAggregationQualification" } },
     { "id": "AIV-WP-022", "type": "CUSTOM_DECLARED_PROBE", "severity": "ERROR", "config": { "probeModule": "aiv", "exportName": "verifyInventoryCompletenessEvidenceBoundary" } }
   ],
-  "requiredQualificationCommands": ["npm run workpack:verify -- VIB-AIV", "node --test tests/vibration-aiv-workpack-drift.test.mjs", "npm run workpack:verify -- VIB-FIT", "node --test tests/engineering-workpack-framework.test.mjs", "npm run verify:aiv-screening-release", "npm run verify:aiv-canvas-release"],
-  "protectedInvariants": ["screeningAuthority=AUTHORIZED only for ASSESSMENT result scope", "line/case reduction rule may be qualified for derivation while line/case screening authority remains false", "inventory completeness is evidence-dependent and requires exact-revision human attestation plus machine topology verification", "verified inventory completeness does not itself promote line/case screening authority", "benchmark.workedExampleReliefLineLof is oracle-only and not a runtime line-result input", "designAuthority=false", "codeCompliance=false", "assumption presence does not create screening authority", "configured D.2.3 dependencies do not imply unrestricted AIV authority", "independent benchmark expected values are not generated by production", "SVG/pixel geometry never creates engineering physical distance", "full vibration integrity is not established by AIV alone", "Product Freeze cannot be inferred from method qualification"],
-  "forbiddenPaths": ["converters/vibration/aiv T2-6 numerical equations", "AIV equation coefficients or empirical constants", "AIV benchmark expected values or tolerances", "AIV assumption numerical defaults or policy", "AIV screening applicability expansion", "AIV readiness/PF-02 execution behavior", "AIV canvas runtime ownership or physical-distance semantics", ".github/workflows/*"]
+  "requiredQualificationCommands": ["node --test tests/vibration-aiv-t26-source-parity.test.mjs", "node --test tests/vibration-aiv-auto-product-path.test.mjs", "npm run workpack:verify -- VIB-AIV", "node --test tests/vibration-aiv-workpack-drift.test.mjs", "npm run workpack:verify -- VIB-FIT", "node --test tests/engineering-workpack-framework.test.mjs", "npm run verify:aiv-screening-release", "npm run verify:aiv-canvas-release"],
+  "protectedInvariants": ["screeningAuthority=AUTHORIZED only for ASSESSMENT result scope", "line/case reduction rule may be qualified for derivation while line/case screening authority remains false", "inventory completeness is evidence-dependent and requires exact-revision human attestation plus machine topology verification", "verified inventory completeness does not itself promote line/case screening authority", "benchmark A/S/B and published FLM1 values are oracle-only and never override source-calculated Stage-8 runtime values", "benchmark.workedExampleReliefLineLof is oracle-only and not a runtime line-result input", "designAuthority=false", "codeCompliance=false", "assumption presence does not create screening authority", "independent benchmark expected values are not generated by production", "SVG/pixel geometry never creates engineering physical distance", "full vibration integrity is not established by AIV alone", "Product Freeze cannot be inferred from method qualification", "merged PR1289 source authority remains qualification evidence and does not itself satisfy exact pinned-PDF visual parity or release qualification"],
+  "forbiddenPaths": ["AIV T2-5 multi-source semantics or source-group result identity", "AIV benchmark expected values or tolerances", "AIV assumption numerical defaults or policy", "AIV screening applicability expansion beyond the current WELDOLET/WELDED_TEE Stage-8 envelope", "AIV line/case screening authority promotion", "AIV canvas runtime ownership or physical-distance semantics", ".github/workflows/*"]
 }
