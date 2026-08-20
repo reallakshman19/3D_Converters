@@ -1,7 +1,8 @@
 import {
-  evaluateMechanicalFacilityCandidate,
+  evaluateMechanicalFacilityCandidateWithScenario,
   mechanicalFacilityScopeId,
 } from '../converters/vibration/mechanical/facility.js';
+import { createVibrationScenarioExecutionBinding } from '../converters/vibration/mechanisms/scenario-execution.js';
 
 export function createMechanicalFacilityUiState() {
   return {
@@ -10,6 +11,7 @@ export function createMechanicalFacilityUiState() {
     mechanicalNotApplicableByScope: {},
     mechanicalCandidateResultsByScope: {},
     mechanicalPendingByScope: {},
+    mechanicalScenarioBindingsByScope: {},
     mechanicalEvaluationSequence: 0,
   };
 }
@@ -21,6 +23,26 @@ function sourceKeys(state, scopeId) {
 function candidateRow(state, scopeId) {
   const rows = state.workspace?.rows ?? [];
   return rows.find((row) => mechanicalFacilityScopeId(row) === scopeId) ?? null;
+}
+
+function operatingScenarioForRow(state, row) {
+  if (!row || state.resultState !== 'CURRENT_RESULT') return null;
+  return (state.envelope?.workflow?.operatingScenarios ?? []).find((scenario) => (
+    scenario.line === row.line && scenario.caseId === row.caseId
+  )) ?? null;
+}
+
+function preparedScenarioBinding(state, scopeId, row) {
+  const existing = state.mechanicalScenarioBindingsByScope?.[scopeId] ?? null;
+  if (existing) return existing;
+  const scenario = operatingScenarioForRow(state, row);
+  if (!scenario) return null;
+  const binding = createVibrationScenarioExecutionBinding(scenario);
+  state.mechanicalScenarioBindingsByScope = {
+    ...state.mechanicalScenarioBindingsByScope,
+    [scopeId]: binding,
+  };
+  return binding;
 }
 
 function invalidateResult(state, scopeId) {
@@ -52,8 +74,19 @@ function setNotApplicable(state, scopeId, value) {
 export function openMechanicalFacilityInputs(state, scopeId, render, audit) {
   state.workspaceTab = 'mechanical';
   state.mechanicalFacilityScopeId = String(scopeId ?? '').trim();
+  const row = candidateRow(state, state.mechanicalFacilityScopeId);
+  const scenario = operatingScenarioForRow(state, row);
+  if (row && scenario) {
+    state.mechanicalScenarioBindingsByScope = {
+      ...state.mechanicalScenarioBindingsByScope,
+      [state.mechanicalFacilityScopeId]: createVibrationScenarioExecutionBinding(scenario),
+    };
+  }
   state.error = null;
-  audit?.('MECHANICAL_INPUTS_OPENED', {}, state.mechanicalFacilityScopeId || null);
+  audit?.('MECHANICAL_INPUTS_OPENED', {
+    scenarioId: scenario?.scenarioId ?? null,
+    scenarioSnapshotHash: scenario?.snapshotHash ?? null,
+  }, state.mechanicalFacilityScopeId || null);
   render();
 }
 
@@ -80,6 +113,8 @@ function commitEvaluation(state, scopeId, token, result, render, audit) {
   audit?.('MECHANICAL_EVALUATED', {
     governingLof: result.governingLof,
     governingSourceKey: result.governingSourceKey,
+    scenarioId: result.scenarioExecutionBasis?.scenarioId ?? null,
+    scenarioSnapshotHash: result.scenarioExecutionBasis?.scenarioSnapshotHash ?? null,
   }, scopeId);
   render();
 }
@@ -89,7 +124,7 @@ function failEvaluation(state, scopeId, token, error, render, audit) {
   const pending = { ...state.mechanicalPendingByScope };
   delete pending[scopeId];
   state.mechanicalPendingByScope = pending;
-  state.error = String(error?.message || error);
+  state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
   audit?.('MECHANICAL_EVALUATION_FAILED', { error: state.error.slice(0, 500) }, scopeId);
   render();
 }
@@ -105,15 +140,30 @@ function evaluateMechanicalInputs(state, render, audit) {
     render();
     return;
   }
+  const scenario = operatingScenarioForRow(state, row);
+  const binding = preparedScenarioBinding(state, scopeId, row);
+  if (!scenario || !binding) {
+    state.error = 'MECHANICAL_OPERATING_SCENARIO_NOT_CURRENT: Run the facility screening again before evaluating Mechanical T2.3.';
+    render();
+    return;
+  }
   invalidateResult(state, scopeId);
   const token = state.mechanicalEvaluationSequence + 1;
   state.mechanicalEvaluationSequence = token;
   state.mechanicalPendingByScope = { ...state.mechanicalPendingByScope, [scopeId]: token };
   state.error = null;
-  audit?.('MECHANICAL_EVALUATION_STARTED', { sourceKeys: keys }, scopeId);
+  audit?.('MECHANICAL_EVALUATION_STARTED', {
+    sourceKeys: keys,
+    scenarioId: binding.scenarioId,
+    scenarioSnapshotHash: binding.scenarioSnapshotHash,
+  }, scopeId);
   render();
-  evaluateMechanicalFacilityCandidate(row, keys)
-    .then((result) => commitEvaluation(state, scopeId, token, result, render, audit))
+  evaluateMechanicalFacilityCandidateWithScenario({
+    row,
+    sourceKeys: keys,
+    scenarioBinding: binding,
+    operatingScenario: scenario,
+  }).then((result) => commitEvaluation(state, scopeId, token, result, render, audit))
     .catch((error) => failEvaluation(state, scopeId, token, error, render, audit));
 }
 

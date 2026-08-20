@@ -1,4 +1,8 @@
-import { assembleVibrationIntegrityDataset } from '../dataset/index.js';
+import {
+  VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  assembleVibrationIntegrityDataset,
+  buildVibrationOperatingScenario,
+} from '../dataset/index.js';
 import { buildVibrationFacilityFitPlan } from './fit-plan.js';
 import { executeVibrationFacilityFitPlan } from './fit-execute.js';
 import { buildVibrationFacilityFitRegister } from './fit-register.js';
@@ -46,6 +50,14 @@ function validateOptions(options) {
   return options;
 }
 
+function operatingScenarios(dataset) {
+  return dataset.operatingCases.map((row) => buildVibrationOperatingScenario(dataset, {
+    line: row.line,
+    caseId: row.caseId,
+    coherenceDeclaration: VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  }));
+}
+
 function runVibrationFacilityFit(input, options, qualificationMode) {
   const workflowOptions = validateOptions(options);
   const dataset = assembleVibrationIntegrityDataset({
@@ -55,8 +67,9 @@ function runVibrationFacilityFit(input, options, qualificationMode) {
   }, {
     allowLimitedExchange: workflowOptions.allowLimitedExchange === true,
   });
+  const scenarios = operatingScenarios(dataset);
   const plan = buildVibrationFacilityFitPlan(dataset, { qualificationMode });
-  const result = executeVibrationFacilityFitPlan(plan);
+  const result = executeVibrationFacilityFitPlan(plan, { operatingScenarios: scenarios });
   const register = buildVibrationFacilityFitRegister(result);
   const screening = qualificationMode === 'screening';
 
@@ -67,6 +80,7 @@ function runVibrationFacilityFit(input, options, qualificationMode) {
     screeningAuthorized: screening,
     qualificationMode,
     dataset,
+    operatingScenarios: scenarios,
     plan,
     result,
     register,

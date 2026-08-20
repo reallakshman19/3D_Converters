@@ -26,8 +26,7 @@ export function sbcFacilityScopeId(row = {}) {
   const line = requiredText(row.line, 'row.line');
   const canonicalId = requiredText(row.canonicalId, 'row.canonicalId');
   const caseId = row.caseId === null || row.caseId === undefined || row.caseId === ''
-    ? null
-    : String(row.caseId).trim();
+    ? null : String(row.caseId).trim();
   return `SBC-FACILITY/${scopePart(line)}/${scopePart(caseId)}/${scopePart(canonicalId)}`;
 }
 
@@ -63,9 +62,7 @@ function invalidPrecomputed(scope, userRows, candidate, reason) {
       methodId: candidate?.methodId ?? null,
       scopeId: scope.scopeId,
       problems: Object.freeze([Object.freeze({
-        term: 'precomputedCandidate',
-        status: 'INVALID_INPUT',
-        reason,
+        term: 'precomputedCandidate', status: 'INVALID_INPUT', reason,
       })]),
     }),
     authority: candidate?.authority ?? CANDIDATE_AUTHORITY,
@@ -93,31 +90,40 @@ function precomputedEvaluation(scope, userRows, candidate) {
   });
 }
 
-export function evaluateSbcFacilityType3(row, options = {}) {
+export function inspectSbcFacilityType3(row, options = {}) {
   const scope = sbcFacilityScope(row);
   const userRows = sbcFacilityUserRows(row, options.userRows);
   const precomputed = precomputedEvaluation(scope, userRows, options.precomputedCandidate);
   if (precomputed) return precomputed;
   if (!userRows.length) {
     return Object.freeze({
-      ok: false,
-      status: 'INPUT_REQUIRED',
-      scope,
-      userRows,
-      result: null,
+      ok: false, status: 'INPUT_REQUIRED', scope, userRows, result: null,
       authority: CANDIDATE_AUTHORITY,
     });
   }
-  const result = calculateSbcType3FromUserEngineeringData({
-    scopeId: scope.scopeId,
+  return Object.freeze({
+    ok: false,
+    status: 'READY_FOR_EXPLICIT_EVALUATION',
+    scope,
     userRows,
+    result: null,
+    authority: CANDIDATE_AUTHORITY,
+  });
+}
+
+export function evaluateSbcFacilityType3(row, options = {}) {
+  const inspected = inspectSbcFacilityType3(row, options);
+  if (inspected.ok || inspected.status !== 'READY_FOR_EXPLICIT_EVALUATION') return inspected;
+  const result = calculateSbcType3FromUserEngineeringData({
+    scopeId: inspected.scope.scopeId,
+    userRows: inspected.userRows,
     governed: options.governed ?? {},
   });
   return Object.freeze({
     ok: result.ok,
     status: result.status,
-    scope,
-    userRows,
+    scope: inspected.scope,
+    userRows: inspected.userRows,
     result,
     authority: result.authority,
   });
