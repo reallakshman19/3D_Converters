@@ -59,7 +59,17 @@ function fatigueBasis(calculationRef = 'HP-FAT-EXT-001') {
   };
 }
 
-function baseProject({ referenceSampleId, projectId, classId, revision, nominalWallMm = 13.49, wallState, withFatigue = true, userSaltMpa = NPS4_REFERENCE_EXPECTED.cycleSaltMpa } = {}) {
+function baseProject({
+  referenceSampleId,
+  projectId,
+  classId,
+  revision,
+  nominalWallMm = 13.49,
+  wallState,
+  withFatigue = true,
+  userSaltMpa = NPS4_REFERENCE_EXPECTED.cycleSaltMpa,
+  fatigueAnalysisWallMm = NPS4_REFERENCE_EXPECTED.selectedFatigueWallMm,
+} = {}) {
   return {
     schemaVersion: 'hp-piping-class-project/v2',
     metadata: {
@@ -108,6 +118,7 @@ function baseProject({ referenceSampleId, projectId, classId, revision, nominalW
       productId: 'NPS4-S160',
       externalResults: [{
         cycleId: 'C1', locationId: 'BORE_INNER_SURFACE', fromStateId: 'LOW', toStateId: 'HIGH',
+        analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: fatigueAnalysisWallMm },
         userAlternatingStressIntensityMpa: userSaltMpa,
         equivalentAlternatingStressMpa: 70,
         permissibleCycles: 10000,
@@ -132,6 +143,7 @@ const RAW_REFERENCE_PROJECTS = Object.freeze({
       futureExternalLossMm: 0.3,
     },
     userSaltMpa: NPS4_BROWNFIELD_EXPECTED.cycleSaltMpa,
+    fatigueAnalysisWallMm: NPS4_BROWNFIELD_EXPECTED.selectedFatigueWallMm,
   })),
   [HP_PIPING_CLASS_NPS4_STATIC_FAIL_REFERENCE_ID]: Object.freeze(baseProject({
     referenceSampleId: HP_PIPING_CLASS_NPS4_STATIC_FAIL_REFERENCE_ID,
@@ -145,7 +157,7 @@ const SAMPLE_DEFINITIONS = Object.freeze([
     id: HP_PIPING_CLASS_NPS4_REFERENCE_ID,
     label: 'NPS 4 · Sch 160 · pressure fatigue',
     shortLabel: 'Baseline pressure-fatigue',
-    description: 'Executable canonical class regression: static wall, 2→20 MPa cycle, independently checked external Seq/N, and CORE Miner usage.',
+    description: 'Executable canonical class regression: static wall, 2→20 MPa cycle, geometry-bound external Seq/N, and CORE Miner usage.',
     authority: 'SOFTWARE_REGRESSION_AND_EXTERNAL_KD3_REVIEW_ONLY',
     expected: NPS4_REFERENCE_EXPECTED,
   }),
@@ -153,7 +165,7 @@ const SAMPLE_DEFINITIONS = Object.freeze([
     id: HP_PIPING_CLASS_NPS4_BROWNFIELD_REFERENCE_ID,
     label: 'NPS 4 · Brownfield projected EOL wall',
     shortLabel: 'Brownfield EOL wall',
-    description: 'Executable brownfield regression using measured current wall and future losses; fatigue uses the selected projected end-of-life wall.',
+    description: 'Executable brownfield regression using measured current wall and future losses; external Seq/N are explicitly bound to the selected projected end-of-life wall.',
     authority: 'SOFTWARE_REGRESSION_AND_EXTERNAL_KD3_REVIEW_ONLY',
     expected: NPS4_BROWNFIELD_EXPECTED,
   }),
