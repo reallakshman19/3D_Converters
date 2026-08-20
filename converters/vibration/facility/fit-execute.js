@@ -9,6 +9,7 @@ import {
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
 } from './fit-plan.js';
 import { normalizeFitFacilityQualificationMode } from './fit-plan-contract.js';
+import { vibrationFacilityScenarioSetKey } from './scenario-handoff.js';
 
 export const VIBRATION_FACILITY_FIT_RESULT_SCHEMA = 'VibrationFacilityFitResult.v1';
 
@@ -167,6 +168,7 @@ export function executeVibrationFacilityFitPlan(planInput = {}, options = {}) {
   const plan = assertPlan(planInput);
   const qualificationMode = normalizeFitFacilityQualificationMode(plan.qualificationMode);
   const readyItems = plan.items.filter((item) => item.status === 'READY');
+  const scenarioSetKey = vibrationFacilityScenarioSetKey(options.operatingScenarios ?? []);
   const scenarioBases = readyItems.length
     ? assertVibrationFacilityFitScenarioBindings(plan, options.operatingScenarios)
     : new Map();
@@ -213,6 +215,7 @@ export function executeVibrationFacilityFitPlan(planInput = {}, options = {}) {
     planSchema: plan.schema,
     datasetSchema: plan.datasetSchema ?? null,
     datasetId: plan.datasetId ?? null,
+    scenarioSetKey,
     rows,
     counts: {
       total: rows.length, plannedReady: readyItems.length, calculated, calculationFailed, notAssessed,
