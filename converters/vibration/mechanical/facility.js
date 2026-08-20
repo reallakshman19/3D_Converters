@@ -1,3 +1,4 @@
+import { executeVibrationWithScenarioGuard } from '../mechanisms/scenario-execution.js';
 import {
   MECHANICAL_T23_DIRECT_BASELINE_ROWS,
   MECHANICAL_T23_SHARED_SUPPORT_RULE,
@@ -81,6 +82,15 @@ function normalizeSourceKeys(sourceKeys) {
   return keys;
 }
 
+function assertScenarioScope(scope, operatingScenario) {
+  if (scope.caseId === null || scope.caseId === undefined) {
+    throw new Error('MECHANICAL_FACILITY_OPERATING_CASE_REQUIRED');
+  }
+  if (operatingScenario?.line !== scope.line || operatingScenario?.caseId !== scope.caseId) {
+    throw new Error('MECHANICAL_FACILITY_SCENARIO_SCOPE_MISMATCH');
+  }
+}
+
 export async function evaluateMechanicalFacilityCandidate(row, sourceKeys) {
   const scope = mechanicalFacilityScope(row);
   const evaluated = evaluateMechanicalT23DirectBaseline(normalizeSourceKeys(sourceKeys));
@@ -96,6 +106,27 @@ export async function evaluateMechanicalFacilityCandidate(row, sourceKeys) {
     methodId: evaluated.methodId,
     methodRevision: evaluated.methodRevision,
     authority: evaluated.authority,
+  });
+}
+
+export async function evaluateMechanicalFacilityCandidateWithScenario({
+  row,
+  sourceKeys,
+  scenarioBinding,
+  operatingScenario,
+} = {}) {
+  const scope = mechanicalFacilityScope(row);
+  assertScenarioScope(scope, operatingScenario);
+  return executeVibrationWithScenarioGuard({
+    scenarioBinding,
+    operatingScenario,
+    execute: async ({ executionBasis }) => {
+      const result = await evaluateMechanicalFacilityCandidate(row, sourceKeys);
+      return deepFreeze({
+        ...result,
+        scenarioExecutionBasis: executionBasis,
+      });
+    },
   });
 }
 
