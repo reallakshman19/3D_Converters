@@ -8,12 +8,24 @@ import {
 
 function project() {
   return {
+    classBasis: { internalAllowanceMm: 3, externalAllowanceMm: 0 },
+    products: [{
+      productId: 'P-1',
+      calculationBasis: {
+        mode: 'DIRECT_ENGINEERING_INPUT',
+        outsideDiameterMm: 114.3,
+        nominalWallMm: 13.49,
+        minusTolerancePct: 12.5,
+      },
+      wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
+    }],
     transient: { transitions: [
       { cycleId: 'C1', fromStateId: 'P0', toStateId: 'P1' },
       { cycleId: 'C2', fromStateId: 'P1', toStateId: 'P0' },
     ] },
     fatigueEvidence: [{ productId: 'P-1', externalResults: [{
       cycleId: 'C1', fromStateId: 'P0', toStateId: 'P1', locationId: 'OLD',
+      analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 },
       userAlternatingStressIntensityMpa: 10,
       equivalentAlternatingStressMpa: 11,
       permissibleCycles: 100,
@@ -25,12 +37,13 @@ function project() {
 
 const header = HP_PIPING_CLASS_KD_BULK_HEADERS.join('\t');
 
-test('valid TSV maps every governed cycle and preserves same-cycle custody', () => {
+test('valid TSV maps every governed cycle, preserves custody and stamps current analysis geometry', () => {
   const value = project();
   const source = `${header}\nC2\tL2\t20\t25\t5000\nC1\tL1\t15\t18\t2000`;
   const preview = previewHpPipingClassKdBulkInput(value, 0, source);
-  assert.equal(preview.ok, true);
+  assert.equal(preview.ok, true, JSON.stringify(preview));
   assert.equal(preview.delimiter, 'TSV');
+  assert.deepEqual(preview.analysisGeometry, { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 });
   const applied = applyHpPipingClassKdBulkInput(value, 0, source);
   assert.equal(applied.applied, true);
   assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => row.cycleId), ['C1', 'C2']);
@@ -40,12 +53,15 @@ test('valid TSV maps every governed cycle and preserves same-cycle custody', () 
   assert.equal(value.fatigueEvidence[0].externalResults[0].associatedMeanStressMpa, 33);
   assert.equal(value.fatigueEvidence[0].externalResults[0].calculationBasis.calculationRef, 'CALC-1');
   assert.deepEqual(value.fatigueEvidence[0].externalResults[1].calculationBasis, {});
+  for (const row of value.fatigueEvidence[0].externalResults) {
+    assert.deepEqual(row.analysisGeometry, { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 });
+  }
 });
 
 test('valid CSV supports quoted location text', () => {
   const source = `${HP_PIPING_CLASS_KD_BULK_HEADERS.join(',')}\nC1,"NOZZLE, A",15,18,2000\nC2,L2,20,25,5000`;
   const preview = previewHpPipingClassKdBulkInput(project(), 0, source);
-  assert.equal(preview.ok, true);
+  assert.equal(preview.ok, true, JSON.stringify(preview));
   assert.equal(preview.delimiter, 'CSV');
   assert.equal(preview.rows[0].locationId, 'NOZZLE, A');
 });
