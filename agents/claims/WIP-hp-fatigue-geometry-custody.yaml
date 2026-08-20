@@ -1,0 +1,15 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+branch: agent/hp-fatigue-geometry-custody
+criticality: ENGINEERING_CRITICAL
+claim: USER_CALCULATED_KD3_EXTERNAL_GEOMETRY_COUPLING
+paths:
+  - converters/b313-chapter-ix/user-calculated-fatigue.js
+  - converters/b313-chapter-ix/hp-piping-class-project.js
+  - converters/b313-chapter-ix/hp-piping-class-orchestrator.js
+  - converters/engineering-calculations/adapters/b313-chapter-ix-production-review.js
+  - converters/engineering-calculations/adapters/b313-chapter-ix-user-calculated-fatigue.js
+  - tabs/hp-piping-class-reference-samples.js
+  - tests/
+authority_boundary: USER_CALCULATED_KD3_ONLY_NATIVE_KD320_FALSE
+merge_authority: OWNER_ONLY_NOT_GRANTED
