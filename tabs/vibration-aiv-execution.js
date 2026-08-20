@@ -2,7 +2,7 @@ import {
   AIV_DEFAULT_ASSUMPTION_PROFILE,
   resolveAivWorkingTablesWithAssumptions,
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
-import { buildAivFacilityScenarioExecutionPlan } from '../converters/vibration/aiv/aiv-facility-scenario-plan.js';
+import { executeAivWithFacilityScenarioCustody } from '../converters/vibration/aiv/aiv-facility-execution.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import {
   beginAivAsyncOperation,
@@ -44,25 +44,6 @@ function commitReadiness(state, readinessEnvelope, assumptionResolution) {
   });
   state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
   state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
-}
-
-function linkedScenarioError(state) {
-  const error = new Error(
-    'Linked facility AIV execution requires a CURRENT governed facility scenario handoff. Return to Vibration Integrity, rerun the facility assessment if needed, select the facility scope, then reopen AIV.',
-  );
-  error.code = state.facilityScenarioHandoffErrorCode || 'AIV_FACILITY_SCENARIO_HANDOFF_NOT_CURRENT';
-  return error;
-}
-
-function buildLinkedScenarioPlan(state) {
-  if (!state.facilityLinkIntent) return null;
-  if (state.facilityScenarioHandoffStatus !== 'CURRENT' || !state.facilityScenarioHandoff) {
-    throw linkedScenarioError(state);
-  }
-  return buildAivFacilityScenarioExecutionPlan({
-    handoff: state.facilityScenarioHandoff,
-    readinessEnvelope: state.readinessEnvelope,
-  });
 }
 
 export function createAivExecutionActions({ state, render, downloadText }) {
@@ -129,11 +110,19 @@ export function createAivExecutionActions({ state, render, downloadText }) {
         inventoryCompletenessAttestations: state.inventoryCompletenessAttestations ?? [],
         engineeringInputRevision: state.inputRevision,
       });
-      const scenarioExecutionPlan = buildLinkedScenarioPlan(state);
-      state.scenarioExecutionPlan = scenarioExecutionPlan;
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
-      const result = calculateEngineering(request);
+      const executed = executeAivWithFacilityScenarioCustody({
+        facilityLinkIntent: state.facilityLinkIntent,
+        facilityScenarioHandoff: state.facilityScenarioHandoff,
+        facilityScenarioHandoffStatus: state.facilityScenarioHandoffStatus,
+        facilityScenarioHandoffErrorCode: state.facilityScenarioHandoffErrorCode,
+        readinessEnvelope: state.readinessEnvelope,
+        request,
+        calculate: calculateEngineering,
+      });
+      const { result, scenarioExecutionPlan } = executed;
+      state.scenarioExecutionPlan = scenarioExecutionPlan;
       if (!result.ok) {
         const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ')
           || 'AIV screening calculation failed.';
@@ -191,7 +180,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     const screeningPackage = await buildScreeningPackage();
     if (!screeningPackage) return;
     try {
-      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-2');
+      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-screening-export-2');
       if (!isAivLineageCurrent(state, 'screening')) return;
       const title = state.eitImport?.title || (state.flareNetworkActive
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
