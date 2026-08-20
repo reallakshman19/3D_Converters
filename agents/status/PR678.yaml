@@ -1,0 +1,32 @@
+schema: AgentStatus.v1
+pr_or_wip: PR678
+pull_request: 678
+branch: agent/vib-operating-scenario-m5-20260820
+base: main
+base_sha_at_allocation: f19a050f8c542ce07e72d1c00af86142de92257f
+report_basis_head: ac4e4f694911c73857da80a9de83ee421d7a9bc8
+state: DRAFT_FOCUSED_VALIDATION_COMPLETE
+criticality: ENGINEERING_CRITICAL_DATA_CONTRACT
+coordination_state: SAFE_NO_EXACT_CONFLICT
+validation:
+  grounding: PASS_SOURCE_INSPECTION
+  issue429_invariant_trace: PASS_SOURCE_INSPECTION
+  current_dataset_trace: PASS_SOURCE_INSPECTION
+  pr665_overlap: PASS_NO_EXACT_FILE_OVERLAP
+  reconstructed_module_syntax: PASS_LOCAL_EXECUTION
+  reconstructed_core_falsifiers: PASS_LOCAL_EXECUTION_IMPLEMENTATION_COUPLED
+  physical_line_policy: PASS_276_232_AT_ALLOCATION_COMPARE
+  repository_native_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_APPLICABLE_DATA_CONTRACT_ONLY
+authority:
+  purpose: OPERATING_SCENARIO_IDENTITY_AND_PROVENANCE_ONLY
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  design_authority_changed: false
+  numerical_authority_changed: false
+  process_actualization_authority_changed: false
+  coherence_authority: CALLER_DECLARATION_ONLY
+  cross_scenario_mixing_allowed: false
+  independent_maxima_synthesis_allowed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR678
+exact_next_action: FINAL_PR_HEAD_MAIN_DIFF_REVIEWS_CHECKS_RECONCILIATION_THEN_KEEP_DRAFT
