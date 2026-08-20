@@ -1,3 +1,5 @@
+import { assertAivFacilityScenarioExecutionPlan } from '../converters/vibration/aiv/aiv-facility-scenario-plan.js';
+
 export const AIV_SCREENING_SESSION_SCHEMA = 'AivScreeningSessionEvidence.v1';
 
 let currentSession = null;
@@ -23,17 +25,26 @@ function assertCurrentScreeningResult(result) {
   return result;
 }
 
-export function publishCurrentAivScreeningSession(result, { inputRevision = null } = {}) {
+export function publishCurrentAivScreeningSession(result, {
+  inputRevision = null,
+  scenarioExecutionPlan = null,
+} = {}) {
   const screened = assertCurrentScreeningResult(result);
+  const linkedPlan = scenarioExecutionPlan == null
+    ? null
+    : assertAivFacilityScenarioExecutionPlan(scenarioExecutionPlan);
   currentSession = deepFreeze({
     schema: AIV_SCREENING_SESSION_SCHEMA,
     calculationId: 'VIB.AIV.ACOUSTIC',
     resultState: 'CURRENT_RESULT',
     inputRevision: Number.isSafeInteger(inputRevision) && inputRevision >= 0 ? inputRevision : null,
+    executionContext: linkedPlan ? 'FACILITY_LINKED' : 'STANDALONE',
+    scenarioExecutionPlan: linkedPlan,
     screeningResult: screened,
     authority: {
       purpose: 'SESSION_CURRENT_SCREENING_EVIDENCE_ONLY',
       screeningAuthority: 'INHERITED_FROM_REGISTERED_AIV_RESULT',
+      facilityScenarioAuthority: linkedPlan ? 'CUSTODY_ONLY' : 'NONE',
       lineCaseAggregationAuthority: false,
       designAuthority: false,
     },

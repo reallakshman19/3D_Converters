@@ -2,6 +2,7 @@ import {
   AIV_DEFAULT_ASSUMPTION_PROFILE,
   resolveAivWorkingTablesWithAssumptions,
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { executeAivWithFacilityScenarioCustody } from '../converters/vibration/aiv/aiv-facility-execution.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import {
   beginAivAsyncOperation,
@@ -54,6 +55,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.readinessEnvelope = null;
     state.resultSet = null;
     state.screeningResult = null;
+    state.scenarioExecutionPlan = null;
     state.selectedRowKey = null;
     state.assumptionResolution = null;
     state.assumptionAcceptance = null;
@@ -65,6 +67,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.busy = true;
     state.error = null;
     state.screeningResult = null;
+    state.scenarioExecutionPlan = null;
     clearCurrentAivScreeningSession();
     render();
     try {
@@ -109,7 +112,17 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       });
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
-      const result = calculateEngineering(request);
+      const executed = executeAivWithFacilityScenarioCustody({
+        facilityLinkIntent: state.facilityLinkIntent,
+        facilityScenarioHandoff: state.facilityScenarioHandoff,
+        facilityScenarioHandoffStatus: state.facilityScenarioHandoffStatus,
+        facilityScenarioHandoffErrorCode: state.facilityScenarioHandoffErrorCode,
+        readinessEnvelope: state.readinessEnvelope,
+        request,
+        calculate: calculateEngineering,
+      });
+      const { result, scenarioExecutionPlan } = executed;
+      state.scenarioExecutionPlan = scenarioExecutionPlan;
       if (!result.ok) {
         const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ')
           || 'AIV screening calculation failed.';
@@ -117,11 +130,15 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       }
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       state.screeningResult = result;
-      publishCurrentAivScreeningSession(result, { inputRevision: state.inputRevision });
+      publishCurrentAivScreeningSession(result, {
+        inputRevision: state.inputRevision,
+        scenarioExecutionPlan,
+      });
       finishAivAsyncOperation(state, 'screening', operation, true);
     } catch (error) {
       if (isAivAsyncOperationCurrent(state, 'screening', operation)) {
         state.screeningResult = null;
+        state.scenarioExecutionPlan = null;
         clearCurrentAivScreeningSession();
         state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       }
@@ -163,7 +180,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     const screeningPackage = await buildScreeningPackage();
     if (!screeningPackage) return;
     try {
-      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-2');
+      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-screening-export-2');
       if (!isAivLineageCurrent(state, 'screening')) return;
       const title = state.eitImport?.title || (state.flareNetworkActive
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')

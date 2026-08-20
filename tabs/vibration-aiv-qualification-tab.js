@@ -38,9 +38,28 @@ import {
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260816-aiv-526-editor-3';
 
-export function renderAivQualificationWorkspace(container) {
+function esc(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function facilityLinkStatusHtml(state) {
+  if (!state.facilityLinkIntent) {
+    return '<section class="aivq-card aivq-banner"><strong>STANDALONE AIV</strong><span>This workspace is not linked to a current Vibration Integrity facility scenario set. Results remain valid only inside the standalone AIV workbench and cannot satisfy facility mechanism coverage.</span></section>';
+  }
+  if (state.facilityScenarioHandoffStatus === 'CURRENT' && state.facilityScenarioHandoff) {
+    return `<section class="aivq-card aivq-banner is-qualified"><strong>FACILITY LINKED</strong><span>Dataset ${esc(state.facilityScenarioHandoff.datasetId)} · Facility run ${esc(state.facilityScenarioHandoff.facilityRunId)} · exact source/assessment OperatingScenario snapshots are required before AIV execution.</span></section>`;
+  }
+  return `<section class="aivq-card aivq-banner is-warning"><strong>FACILITY LINK BLOCKED</strong><span>${esc(state.facilityScenarioHandoffStatus ?? 'UNKNOWN')} · ${esc(state.facilityScenarioHandoffErrorCode ?? 'AIV_FACILITY_SCENARIO_HANDOFF_NOT_CURRENT')}. Linked AIV execution is blocked until a current governed facility scenario handoff is supplied.</span></section>`;
+}
+
+export function renderAivQualificationWorkspace(container, options = {}) {
   ensureAivQualificationStylesheet();
-  const state = createInitialAivQualificationState();
+  const state = createInitialAivQualificationState(options);
   const canvasController = createAivUnifiedCanvasController(container, {
     getNetwork: () => state.flareNetwork,
     onNetworkChange: applyFlareNetwork,
@@ -92,6 +111,7 @@ export function renderAivQualificationWorkspace(container) {
     const uiContext = captureAivUiContext(container);
     state.canvasError = null;
     container.innerHTML = renderAivQualificationWorkspaceHtml(state);
+    container.querySelector('.aivq-header')?.insertAdjacentHTML('afterend', facilityLinkStatusHtml(state));
     try { canvasController.sync(); } catch (error) { showCanvasError(error); }
     canvasExportController.sync();
     restoreAivUiContext(container, uiContext);

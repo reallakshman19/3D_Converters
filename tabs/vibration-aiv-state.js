@@ -3,7 +3,11 @@ import { createAivEngineeringRevisionState } from './vibration-aiv-engineering-r
 import { createEmptyAivInputTable } from './vibration-aiv-input-model.js';
 import { createEmptyAivFlareNetworkWorkspace } from './vibration-aiv-flare-network-state.js';
 
-export function createInitialAivQualificationState() {
+export function createInitialAivQualificationState({
+  facilityScenarioHandoff = null,
+  facilityScenarioHandoffStatus = null,
+  facilityScenarioHandoffErrorCode = null,
+} = {}) {
   return {
     ...createAivEngineeringRevisionState(),
     files: { eit: null, topology: null, sources: null, assessments: null, relationships: null },
@@ -27,6 +31,11 @@ export function createInitialAivQualificationState() {
     readinessEnvelope: null,
     resultSet: null,
     screeningResult: null,
+    scenarioExecutionPlan: null,
+    facilityScenarioHandoff,
+    facilityScenarioHandoffStatus,
+    facilityScenarioHandoffErrorCode,
+    facilityLinkIntent: facilityScenarioHandoffStatus !== null,
     selectedRowKey: null,
     selectedCanvasKey: null,
     canvasActionError: null,
