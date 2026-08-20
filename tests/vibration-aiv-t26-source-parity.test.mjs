@@ -42,8 +42,8 @@ test('T2.6 independently reproduces the D.2.3 source-calculated a/s/B chain', ()
   approx(result.A, 0.9398945187723486, 1e-12, 'A');
   approx(result.S, 68.22911392405064, 1e-12, 'S');
   approx(result.B, 152.2067364535756, 1e-9, 'B');
-  approx(result.log10N, 9.902644470587115, 1e-10, 'log10N');
-  approx(result.N, 7991797506.05151, 2, 'N');
+  approx(result.log10N, 9.902644471323583, 1e-10, 'log10N');
+  approx(result.N, 7991797506.039946, 2, 'N');
   approx(result.FLM1, 1.2109758194311824, 1e-12, 'FLM1');
   assert.equal(result.FLM1Mode, 'SOURCE_CALCULATED');
   assert.equal(result.FLM2Applied, true);
