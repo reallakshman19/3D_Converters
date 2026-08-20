@@ -12,16 +12,19 @@ files:
   prefixes:
     - converters/vibration/facility/
     - converters/vibration/aiv/
-    - tabs/vibration-integrity-tab.js
     - tabs/engineering-calculations-tab.js
     - tabs/vibration-aiv-
     - tabs/vibration-integrity-mechanisms.js
-    - tests/vibration-aiv-facility-
+    - tabs/vibration-integrity-roadmap-bridge.js
+    - tests/vibration-aiv-facility-scenario-handoff.test.mjs
+    - tests/vibration-facility-fit-execute.test.mjs
+    - tests/vibration-integrity-mechanism-matrix.test.mjs
 exclusions:
   - AIV equations and coefficients
   - AIV source/master qualification
   - process actualization
   - applicability/completeness authority
+  - line/case AIV screening aggregation authority
   - design authority
 coordination:
   PR682: MERGED_RUNTIME_GUARD_FOUNDATION
