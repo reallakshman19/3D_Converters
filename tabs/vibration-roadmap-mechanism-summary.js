@@ -18,21 +18,6 @@ export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY = Object.freeze({
   designAuthority: false,
 });
 
-const FALLBACK_UNIT_TYPE = Object.freeze({
-  fit: 'MAIN_LINE_SECTION',
-  mechanicalExcitation: 'MAIN_LINE_SECTION',
-  reciprocatingPulsation: 'MAIN_LINE_SECTION',
-  rotatingStall: 'MAIN_LINE_SECTION',
-  deadlegPulsation: 'DEADLEG_BRANCH',
-  corrugationPulsation: 'SPECIALIST_SYSTEM',
-  slugFlow: 'SPECIALIST_SYSTEM',
-  aiv: 'AIV_SOURCE_ASSESSMENT_PAIR',
-  valveTransients: 'TRANSIENT_EVENT_PATH',
-  cavitationFlashing: 'MAIN_LINE_SECTION',
-  thermowells: 'INTRUSIVE_ELEMENT',
-  smallBoreConnections: 'SBC_CONNECTION',
-});
-
 function frozen(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) frozen(child);
@@ -104,7 +89,7 @@ function mechanismItem(assessment, indexes) {
     title: assessment.mechanism.title ?? assessment.mechanism.label ?? id,
     catalogueSourceSection: assessment.mechanism.sourceSection ?? null,
     ...sourceProjection(id),
-    assessmentUnitType: evidence?.assessmentUnitType ?? FALLBACK_UNIT_TYPE[id] ?? null,
+    assessmentUnitType: evidence?.assessmentUnitType ?? null,
     disposition,
     state,
     nextAction,
