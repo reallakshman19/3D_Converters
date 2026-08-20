@@ -95,6 +95,7 @@ function projectRow(row, index, facilityResult) {
     status: row.status,
     completenessStatus: completenessStatus(row.status),
     ...projection,
+    scenarioExecutionBasis: row.scenarioExecutionBasis ?? null,
     engineeringAuthority: facilityResult.engineeringAuthority ?? 'NONE',
     screeningAuthorized: Boolean(facilityResult.screeningAuthorized),
     missing: Object.freeze([...(row.missing ?? [])]),
