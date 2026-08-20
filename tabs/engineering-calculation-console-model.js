@@ -145,7 +145,7 @@ export function parseEngineeringBatchEditor(text) {
   if (!Array.isArray(requests)) {
     return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
   }
-  return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) };
+  return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) } };
 }
 
 export function invalidateEngineeringConsoleExecution(state) {
