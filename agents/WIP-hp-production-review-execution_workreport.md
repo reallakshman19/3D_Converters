@@ -7,6 +7,7 @@
 - INTENT: contribute useful HP calculations to the production runtime now; defer qualification gates/evidence completion to later work
 - STATE: `IMPLEMENTED_ON_BRANCH_PENDING_NATIVE_EXECUTION_AND_PR`
 - MERGE_AUTHORITY: `NOT_GRANTED`
+- PR_AUTHORITY: `NOT_GRANTED`
 
 ## User direction
 Production calculation value takes priority over additional blocker/gate/evidence plumbing in this increment.
@@ -15,8 +16,12 @@ The implemented boundary is:
 
 ```text
 mathematical/input inconsistency       -> hard calculation failure
-missing provenance/checker custody     -> advisory in production-review route
-formal qualification route             -> preserved unchanged for later evidence work
+structural project inconsistency       -> hard project failure
+authority-promotion attempt            -> hard failure
+missing method/source identity         -> production advisory
+missing provenance/checker custody     -> production advisory
+master-store custody not loaded/match  -> production advisory during calculation
+formal qualification route             -> preserved for later evidence work
 native CORE KD320                       -> still not executed / not qualified
 Code compliance / design authority      -> still false
 ```
@@ -37,21 +42,41 @@ calculationState    IMPLEMENTED
 qualificationState  IMPLEMENTED
 required mode gate  none
 codeCompliance      false
-Design authority    false
+design authority    false
 ```
 
 The legacy benchmark/qualification definitions are not weakened or removed.
 
-## HP Piping Class workbench
+## HP Piping Class production workbench
 `hp-piping-class-orchestrator.js` now sends the fatigue step to:
 
 ```text
 PIPE.B313.CH9.FATIGUE_USER_REVIEW
 ```
 
-Static and wall calculations remain on the existing proven Chapter IX kernels.
+Static and wall calculations remain on the existing Chapter IX domain kernels.
 
-The product path can therefore consume numerically complete user/external Seq and N rows even when `calculationBasis` / checker custody is not yet recorded. Missing custody appears as advisory evidence issues in the new production-review result instead of preventing calculation.
+The product path can therefore consume numerically complete user/external Seq and N rows even when `calculationBasis` / checker custody is not yet recorded. Missing custody appears as advisory evidence issues instead of preventing calculation.
+
+### Workspace pre-gates relaxed for production review
+`validateHpPipingClassProject()` now accepts a policy:
+
+```text
+validationPolicy = REQUIRED           # existing/default behavior
+validationPolicy = PRODUCTION_REVIEW  # workbench execution behavior
+```
+
+Under `PRODUCTION_REVIEW`, `METHOD_IDENTITY_REQUIRED` is advisory. Numerical/structural project defects remain blocking.
+
+`hp-piping-class-workspace-controller.js` now:
+- uses `PRODUCTION_REVIEW` validation for the product workspace;
+- no longer pre-blocks calculation because canonical master-store custody is not loaded;
+- no longer pre-blocks calculation because an embedded governed basis does not reproduce the loaded custody projection;
+- surfaces those custody findings in `advisories` / `warnings`;
+- still requires the canonical master store when the user asks the UI to **create/bind a new governed basis package**;
+- still blocks any result that attempts to promote native KD3, Code compliance or design authority.
+
+This separates “can calculate for engineering review?” from “is the source/evidence chain qualified?”
 
 ## Evidence-policy compatibility
 `evaluateChapterIxUserCalculatedFatigueSpectrum()` now supports:
@@ -68,6 +93,11 @@ evidencePolicy = ADVISORY   # production-review behavior
 ## Hard failures intentionally retained
 Production review still fails closed for:
 
+- invalid project schema/canonical units;
+- missing project/product structure needed to execute the workflow;
+- invalid design pressure/allowances;
+- invalid direct diameter/stress/wall/tolerance inputs;
+- invalid wall-state definitions;
 - missing/duplicate governed cycle result rows;
 - missing result location/state identity;
 - state-pair mismatch;
@@ -77,12 +107,24 @@ Production review still fails closed for:
 - user Salt conflict against CORE pressure-cycle Salt beyond the repository QA cross-check tolerance;
 - Seq = 0 when CORE Salt is non-zero;
 - missing/non-positive permissible cycles N for non-zero damage;
-- invalid geometry/effective wall/transient definitions inherited from the existing CORE domain kernels.
+- invalid geometry/effective wall/transient definitions inherited from the existing domain kernels;
+- any attempt to set `nativeCoreKd3Qualified`, `codeCompliance`, or `canUseForDesignAuthority` true.
 
-These are calculation-integrity failures, not source-custody gates.
+These are calculation-integrity / authority-integrity failures, not source-custody gates.
 
-## Evidence advisories
-When `evidencePolicy=ADVISORY`, the domain returns per-cycle evidence states and aggregate:
+## Advisory-only conditions in production review
+Examples:
+
+```text
+METHOD_IDENTITY_REQUIRED
+USER_FATIGUE_BASIS_REQUIRED
+USER_FATIGUE_CHECKER_NOT_INDEPENDENT
+USER_FATIGUE_CHECK_CUSTODY_INCOMPLETE
+MASTER_STORE_NOT_LOADED
+GOVERNED_BASIS_CUSTODY_BLOCKED   # retained code may appear as advisory in workspace output
+```
+
+When `evidencePolicy=ADVISORY`, the fatigue domain returns:
 
 ```text
 evidencePolicy
@@ -91,15 +133,7 @@ evidenceIssues[]
 independentCheckComplete
 ```
 
-Examples of advisory-only conditions:
-
-```text
-USER_FATIGUE_BASIS_REQUIRED
-USER_FATIGUE_CHECKER_NOT_INDEPENDENT
-USER_FATIGUE_CHECK_CUSTODY_INCOMPLETE
-```
-
-The strict/default route still treats those conditions as failures.
+The strict/default fatigue route still treats its evidence requirements as failures.
 
 ## Frozen numerical reference retained
 Independent arithmetic reference for NPS 4:
@@ -129,7 +163,7 @@ Pressure-cycle references:
 2 -> 20 MPa  Salt = 63.29949581051363 MPa
 ```
 
-Miner examples in the focused test:
+Miner examples in the focused tests:
 
 ```text
 n=10000, N=20000 -> U=0.5
@@ -140,8 +174,8 @@ n=500,   N=10000 -> U=0.05
 Added:
 - `tests/b313-chapter-ix-production-review.test.mjs`
 
-Coverage includes:
-1. production-review IDs are registered as normal executable calculations with no qualification-mode gate;
+Coverage authored for:
+1. production-review IDs registered as normal executable calculations with no qualification-mode gate;
 2. direct NPS4 pressure arithmetic parity;
 3. wall-state EOL/projected-EOL parity;
 4. user Seq/N fatigue calculation with no calculationBasis/checker evidence;
@@ -152,20 +186,39 @@ Coverage includes:
 Updated:
 - `tests/hp-piping-class-orchestrator-contract.test.mjs`
   - expected fatigue calculation ID changed from formal intake to production-review intake.
+- `tests/hp-piping-class-master-controller.test.mjs`
+  - creating a new governed binding still requires loaded master store;
+  - calculation from an embedded governed package proceeds with `MASTER_STORE_NOT_LOADED` advisory;
+  - custody mismatch proceeds as advisory;
+  - missing method edition identity is advisory in production workspace validation.
 
 ## Changed-file ledger
 Engineering/runtime:
 1. `converters/engineering-calculations/adapters/b313-chapter-ix-production-review.js`
 2. `converters/engineering-calculations/default-registry.js`
 3. `converters/b313-chapter-ix/user-calculated-fatigue.js`
-4. `converters/b313-chapter-ix/hp-piping-class-orchestrator.js`
+4. `converters/b313-chapter-ix/hp-piping-class-project.js`
+5. `converters/b313-chapter-ix/hp-piping-class-orchestrator.js`
+6. `tabs/hp-piping-class-workspace-controller.js`
 
 Tests:
-5. `tests/b313-chapter-ix-production-review.test.mjs`
-6. `tests/hp-piping-class-orchestrator-contract.test.mjs`
+7. `tests/b313-chapter-ix-production-review.test.mjs`
+8. `tests/hp-piping-class-orchestrator-contract.test.mjs`
+9. `tests/hp-piping-class-master-controller.test.mjs`
 
 Recovery:
-7. `agents/WIP-hp-production-review-execution_workreport.md`
+10. `agents/WIP-hp-production-review-execution_workreport.md`
+
+## Source-scope reconciliation
+Current branch relation before this update:
+
+```text
+base     a2dc24c27c791355044ae64939647a7c78804aca
+behind   0
+files    10 intended
+```
+
+No `Advanced_Analysis` evidence master, KD320 native formula/curve, unrelated vibration implementation, or unrelated UI file is changed.
 
 ## Validation ledger
 
@@ -183,6 +236,14 @@ GitHub status checks                              NOT_RUN / no PR created in thi
 
 Do not convert `NOT_RUN` to PASS.
 
+## Pre-existing central-registry defects observed on base
+These are **not fixed in this HP increment**:
+
+1. `tests/engineering-calculation-core.test.mjs` still asserts an old catalogue count (`8 executable / 26 total`) that does not match current default-registry source even before these new review IDs are considered.
+2. `converters/engineering-calculations/registry.js` does not list `array` in `FIELD_TYPES`, while the already-active AIV calculation definition declares `inventoryCompletenessAttestations` with `type: 'array'`.
+
+These are central-console baseline issues and should be handled separately rather than mixed into this production HP change.
+
 ## Authority boundary
 This work changes production executability, not engineering authority.
 
@@ -192,24 +253,34 @@ codeCompliance                false
 canUseForDesignAuthority      false
 formal evidence-required ID   preserved
 production review ID          advisory evidence policy
+project method identity       advisory in production review
+master custody precheck       advisory during calculation
 ```
 
 ## Exact next action
 Before PR publication/merge:
 1. obtain a native checkout or equivalent executable source materialization;
-2. run `node --test tests/b313-chapter-ix-production-review.test.mjs tests/hp-piping-class-orchestrator-contract.test.mjs tests/b313-chapter-ix-user-calculated-fatigue.test.mjs tests/b313-chapter-ix-user-calculated-fatigue-product.test.mjs`;
-3. run the relevant HP Piping Class regression suite;
-4. browser-check Engineering Calculations catalogue and HP Piping Class sample path;
+2. run at minimum:
+   - `tests/b313-chapter-ix-production-review.test.mjs`
+   - `tests/hp-piping-class-orchestrator-contract.test.mjs`
+   - `tests/hp-piping-class-master-controller.test.mjs`
+   - `tests/b313-chapter-ix-user-calculated-fatigue.test.mjs`
+   - `tests/b313-chapter-ix-user-calculated-fatigue-product.test.mjs`;
+3. run relevant HP Piping Class parity/real-workbench regressions;
+4. browser-check Engineering Calculations catalogue and HP Piping Class sample/direct-input path;
 5. publish a draft PR only with explicit PR-creation authorization.
 
 ## Appendix A — takeover questions
-1. Why is a separate production-review adapter preferable to weakening the benchmark adapters in place?
+1. Why is a separate production-review adapter preferable to weakening benchmark adapters in place?
 2. Which three new calculation IDs are production-executable?
 3. What does `evidencePolicy=ADVISORY` relax, and what does it explicitly not relax?
-4. Does missing `calculationBasis` prevent the production-review fatigue calculation? No.
+4. Does missing `calculationBasis` prevent production-review fatigue calculation? No.
 5. Does missing `calculationBasis` still prevent the formal USER_CALCULATED_KD3 intake? Yes.
 6. Why must a user Salt mismatch remain a hard failure?
-7. What NPS4 EOL effective wall should be reproduced? `8.80375 mm`.
-8. What is the exact 2->20 MPa Salt reference? `63.29949581051363 MPa`.
-9. What authority flags remain false?
-10. Which validation items remain NOT_RUN and why?
+7. Which project validation issue is currently advisory under `PRODUCTION_REVIEW`? `METHOD_IDENTITY_REQUIRED`.
+8. Does an unloaded master store prevent calculation from an already embedded governed basis package? No; it is advisory.
+9. Does creating/binding a new governed basis still require a loaded master store? Yes.
+10. What NPS4 EOL effective wall should be reproduced? `8.80375 mm`.
+11. What is the exact 2->20 MPa Salt reference? `63.29949581051363 MPa` (double-precision display may end in ...362 due binary rounding).
+12. What authority flags remain false?
+13. Which validation items remain NOT_RUN and why?
