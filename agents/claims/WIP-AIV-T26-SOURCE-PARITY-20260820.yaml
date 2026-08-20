@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-AIV-T26-SOURCE-PARITY-20260820
-claim_state: ACTIVE
+claim_state: PAUSED_PENDING_QUALIFICATION
 files:
   exact:
     - converters/vibration/aiv/aiv-t26.js
@@ -32,7 +32,8 @@ authority_domains:
   - AIV_SCREENING_BENCHMARK_DEPENDENCY_SEPARATION
   - AIV_METHOD_REVISION_CUSTODY
 claim_modes:
-  - EXCLUSIVE
+  - EXCLUSIVE_WHILE_HANDOVER_GATE_OPEN
+continuation_authority: READ_ONLY_PENDING_3_QUESTION_QUALIFICATION
 excluded_authority:
   - AIV_T2_5_MULTI_SOURCE_SEMANTICS
   - LINE_CASE_SCREENING_AUTHORITY
@@ -45,7 +46,10 @@ coordination:
   PR517: MERGED_PREDECESSOR_STALE_CLAIM_METADATA_ONLY
   Advanced_Analysis_PR1289: MERGED_SOURCE_AUTHORITY
 base_head: a2dc24c27c791355044ae64939647a7c78804aca
+implementation_head_before_handover: e558e6cb1154e1faf27c3d87546a4d669e5e93b2
 overlap_state: SAFE
 validation_gate: tests/vibration-aiv-t26-source-parity.test.mjs
+qualification_gate: Q1_Q2_Q3_TOTAL_56_OF_60_AND_EACH_18_OF_20
 merge_authority: OWNER_ONLY_NOT_GRANTED
-note: Surgical Stage-8 source-parity slice. Benchmark fields remain available as evidence but do not drive screening Stage-8 numerics. No authority widening; Product Freeze/release qualification remains separate.
+exact_next_action: ANSWER_AND_GRADE_Q1_Q2_Q3_BEFORE_RESUMING_WRITE_AUTHORITY
+note: Further numerical implementation is intentionally paused. Current Stage-8 source-parity implementation remains recoverable on the branch; benchmark fields are evidence/oracles, not screening runtime inputs. Product Freeze/release qualification remains separate.
