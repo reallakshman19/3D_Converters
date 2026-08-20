@@ -126,7 +126,13 @@ scripts/validate-hp-piping-class-product-matrix-browser.mjs
 tests/hp-piping-class-product-matrix-browser-script.test.mjs
 ```
 
-Recovery files are added after PR creation.
+Recovery files after PR creation:
+
+```text
+agents/PR685_workreport.md
+agents/status/PR685.yaml
+agents/claims/PR685.yaml
+```
 
 ## Executed validation
 
@@ -154,7 +160,28 @@ existing PR681 base browser lane rerun             NOT_RUN / unchanged in this P
 full repository regression                         NOT_RUN
 ```
 
-The runtime has Chromium but cannot obtain the native repository checkout/archive through direct GitHub network access. No source-injection or transport self-test is promoted to FULL_APP PASS.
+The runtime has Chromium but cannot obtain the native repository checkout/archive through direct GitHub network access. The GitHub connector also rejects repository tarball endpoints. No source-injection or transport self-test is promoted to FULL_APP PASS.
+
+## Hosted reconciliation
+
+At PR head `7b91eca66ab9be20a6de97510755eae62973d65d` before final recovery-only synchronization:
+
+```text
+PR                                              #685
+state                                           open / draft
+mergeable                                       true
+base                                             main@60e057a864194ce65ac10b18895c9098f6d65e23
+branch ancestry                                  ahead 5 / behind 0
+changed paths                                    6 intended
+implementation/test/package paths                3
+recovery paths                                   3
+commit status checks                             0 returned -> NOT_RUN
+PR-triggered workflow runs                       0 returned -> NOT_RUN
+reviews                                          0
+review threads                                   0
+```
+
+Subsequent commits that only synchronize this workreport/status do not change the qualification implementation basis.
 
 ## Gate to claim FULL_APP PASS
 
@@ -183,9 +210,9 @@ and the original PR681 lane must also PASS in the same combined command.
 
 ## Next action
 
-1. Reconcile exact PR head/base and hosted status/review state.
-2. In any native checkout, run the combined browser command and retain both receipts/screenshots.
-3. Keep FULL_APP as NOT_RUN until that receipt exists.
+1. In any native checkout, run the combined browser command and retain both receipts/screenshots.
+2. Keep FULL_APP as NOT_RUN until that receipt exists.
+3. Reconcile the exact PR head again before any merge.
 4. Do not merge without explicit owner merge authorization.
 
 ## Appendix A — takeover qualification
