@@ -7,7 +7,7 @@
 - BASE_AT_ALLOCATION: `main@a2dc24c27c791355044ae64939647a7c78804aca`
 - TITLE: `feat(hp): enable production engineering-review execution`
 - INTENT: contribute useful HP calculations to the production runtime now; defer qualification gates/evidence completion
-- STATE: `OPEN_READY_FOR_OWNER_AUTHORIZED_MERGE`
+- STATE: `READY_FOR_OWNER_AUTHORIZED_MERGE`
 - PR_AUTHORITY: `GRANTED_2026-08-20`
 - MERGE_AUTHORITY: `GRANTED_2026-08-20`
 
@@ -139,7 +139,11 @@ old workbench fatigue-ID search                   PASS / only known contract tes
 native node test execution                        NOT_RUN / native checkout unavailable
 full repository regression suite                  NOT_RUN / native checkout unavailable
 browser/UI interaction suite                      NOT_RUN
-GitHub status checks                              PENDING_RECHECK_BEFORE_MERGE
+PR mergeability precheck                          PASS / mergeable=true at head 8e5c04a350a8a7f84e96d74f062c4596cc400045
+commit status entries                             0 returned -> NOT_RUN / no status checks present
+PR-triggered workflow runs                        0 returned -> NOT_RUN / no workflow runs present
+reviews                                           0
+review threads                                    0
 ```
 
 Do not convert `NOT_RUN` to PASS.
@@ -160,7 +164,7 @@ master custody precheck       advisory during calculation
 ```
 
 ## Merge instruction
-Owner explicitly instructed: create PR always, then merge now. Merge is authorized after final head/mergeability/status recheck. Outstanding `NOT_RUN` items remain disclosed and are not merge blockers under that explicit owner instruction.
+Owner explicitly instructed: `create PR (always), then merge. Merge now` on 2026-08-20. Merge is authorized. Outstanding `NOT_RUN` items remain disclosed and are not represented as PASS.
 
 ## Appendix A — takeover questions
 1. Why is a separate production-review adapter preferable to weakening benchmark adapters in place?
