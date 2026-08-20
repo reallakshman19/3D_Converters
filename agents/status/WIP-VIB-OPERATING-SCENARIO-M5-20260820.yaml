@@ -1,0 +1,26 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-VIB-OPERATING-SCENARIO-M5-20260820
+branch: agent/vib-operating-scenario-m5-20260820
+base: main
+base_sha: f19a050f8c542ce07e72d1c00af86142de92257f
+report_basis_head: f19a050f8c542ce07e72d1c00af86142de92257f
+state: IMPLEMENTATION_STARTED
+criticality: ENGINEERING_CRITICAL_DATA_CONTRACT
+coordination_state: SAFE_NO_EXACT_CONFLICT
+authority:
+  purpose: OPERATING_SCENARIO_IDENTITY_AND_PROVENANCE_ONLY
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  design_authority_changed: false
+  numerical_authority_changed: false
+  process_actualization_authority_changed: false
+  cross_scenario_mixing_allowed: false
+  independent_maxima_synthesis_allowed: false
+validation:
+  grounding: PASS_SOURCE_INSPECTION
+  issue429_invariant_trace: PASS_SOURCE_INSPECTION
+  current_dataset_trace: PASS_SOURCE_INSPECTION
+  pr665_overlap: PASS_NO_EXACT_FILE_OVERLAP
+  focused_tests: NOT_RUN
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: IMPLEMENT_OPERATING_SCENARIO_CONTRACT_AND_FALSIFIERS
