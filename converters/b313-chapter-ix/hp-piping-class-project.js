@@ -24,6 +24,15 @@ export const HP_PIPING_CLASS_CANONICAL_UNITS = Object.freeze({
   temperature: 'degC',
 });
 
+export const HP_PIPING_CLASS_VALIDATION_POLICIES = Object.freeze([
+  'REQUIRED',
+  'PRODUCTION_REVIEW',
+]);
+
+const PRODUCTION_REVIEW_ADVISORY_CODES = new Set([
+  'METHOD_IDENTITY_REQUIRED',
+]);
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -46,6 +55,23 @@ function nonNegative(value) {
 
 function issue(path, code, message) {
   return Object.freeze({ path, code, message });
+}
+
+function validationPolicy(value) {
+  return value === 'PRODUCTION_REVIEW' ? 'PRODUCTION_REVIEW' : 'REQUIRED';
+}
+
+function classifyIssues(issues, policy) {
+  if (policy !== 'PRODUCTION_REVIEW') {
+    return {
+      blockingIssues: issues,
+      advisories: [],
+    };
+  }
+  return {
+    blockingIssues: issues.filter((row) => !PRODUCTION_REVIEW_ADVISORY_CODES.has(row.code)),
+    advisories: issues.filter((row) => PRODUCTION_REVIEW_ADVISORY_CODES.has(row.code)),
+  };
 }
 
 function authorityManifest(input = {}) {
@@ -290,10 +316,18 @@ function validateFatigueEvidence(project, productIds, issues) {
   });
 }
 
-export function validateHpPipingClassProject(project = {}) {
+export function validateHpPipingClassProject(project = {}, options = {}) {
   const issues = [];
+  const policy = validationPolicy(options.validationPolicy);
   if (!project || typeof project !== 'object' || Array.isArray(project)) {
-    return { ok: false, issues: [issue('', 'PROJECT_INVALID', 'HP Piping Class project must be an object.')] };
+    const invalid = [issue('', 'PROJECT_INVALID', 'HP Piping Class project must be an object.')];
+    return {
+      ok: false,
+      validationPolicy: policy,
+      issues: invalid,
+      advisories: [],
+      allIssues: invalid,
+    };
   }
   if (project.schemaVersion !== HP_PIPING_CLASS_PROJECT_VERSION) {
     issues.push(issue('schemaVersion', 'PROJECT_VERSION_UNSUPPORTED', `schemaVersion must be ${HP_PIPING_CLASS_PROJECT_VERSION}.`));
@@ -305,7 +339,14 @@ export function validateHpPipingClassProject(project = {}) {
   const productIds = validateProducts(project, issues);
   validateFatigueEvidence(project, productIds, issues);
   validateTransient(project, issues, Array.isArray(project.fatigueEvidence) && project.fatigueEvidence.length > 0);
-  return { ok: issues.length === 0, issues };
+  const classified = classifyIssues(issues, policy);
+  return {
+    ok: classified.blockingIssues.length === 0,
+    validationPolicy: policy,
+    issues: classified.blockingIssues,
+    advisories: classified.advisories,
+    allIssues: issues,
+  };
 }
 
 export function indexHpPipingClassFatigueEvidence(project = {}) {
