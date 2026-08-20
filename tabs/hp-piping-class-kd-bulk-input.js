@@ -1,3 +1,5 @@
+import { resolveHpPipingClassFatigueAnalysisGeometry } from './hp-piping-class-fatigue-analysis-geometry.js';
+
 export const HP_PIPING_CLASS_KD_BULK_HEADERS = Object.freeze([
   'cycle_id',
   'location_id',
@@ -118,11 +120,26 @@ export function previewHpPipingClassKdBulkInput(project, evidenceIndex, sourceTe
   const issues = [];
   const pkg = project?.fatigueEvidence?.[evidenceIndex];
   if (!pkg) issues.push(issue('KD_BULK_PACKAGE_NOT_FOUND', 'The selected KD review product was not found.'));
+  const geometry = pkg ? resolveHpPipingClassFatigueAnalysisGeometry(project, evidenceIndex) : null;
+  if (pkg && !geometry?.ok) {
+    issues.push(issue(
+      'KD_BULK_ANALYSIS_GEOMETRY_UNAVAILABLE',
+      geometry?.message || 'Current product OD/effective fatigue wall could not be resolved.',
+      { sourceCode: geometry?.code ?? null },
+    ));
+  }
   const transitions = governedTransitions(project, issues);
   const normalizedText = String(sourceText ?? '').replace(/^\uFEFF/, '').trim();
   if (!normalizedText) issues.push(issue('KD_BULK_TEXT_REQUIRED', 'Paste or load a Seq/N table before validation.'));
-  if (!pkg || !transitions.length || !normalizedText) {
-    return { ok: false, delimiter: null, rows: [], issues, summary: { governedCycles: transitions.length, parsedRows: 0 } };
+  if (!pkg || !transitions.length || !normalizedText || !geometry?.ok) {
+    return {
+      ok: false,
+      delimiter: null,
+      rows: [],
+      analysisGeometry: geometry?.analysisGeometry ?? null,
+      issues,
+      summary: { governedCycles: transitions.length, parsedRows: 0 },
+    };
   }
 
   const lines = normalizedText.split(/\r?\n/).filter((line) => line.trim());
@@ -136,6 +153,7 @@ export function previewHpPipingClassKdBulkInput(project, evidenceIndex, sourceTe
     ok: issues.length === 0,
     delimiter: delimiter === '\t' ? 'TSV' : 'CSV',
     rows,
+    analysisGeometry: clone(geometry.analysisGeometry),
     issues,
     summary: { governedCycles: transitions.length, parsedRows: rows.length },
   };
@@ -156,6 +174,7 @@ export function applyHpPipingClassKdBulkInput(project, evidenceIndex, sourceText
     next.fromStateId = text(transition.fromStateId);
     next.toStateId = text(transition.toStateId);
     next.locationId = bulk.locationId;
+    next.analysisGeometry = clone(preview.analysisGeometry);
     next.equivalentAlternatingStressMpa = bulk.equivalentAlternatingStressMpa;
     if (bulk.userAlternatingStressIntensityMpa === null) delete next.userAlternatingStressIntensityMpa;
     else next.userAlternatingStressIntensityMpa = bulk.userAlternatingStressIntensityMpa;
