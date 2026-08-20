@@ -29,6 +29,16 @@ export {
 } from './coverage.js';
 
 export {
+  VIBRATION_SCENARIO_EXECUTION_BINDING_SCHEMA,
+  VIBRATION_SCENARIO_EXECUTION_BASIS_SCHEMA,
+  VIBRATION_SCENARIO_EXECUTION_AUTHORITY,
+  createVibrationScenarioExecutionBinding,
+  assertVibrationScenarioExecutionBinding,
+  assertVibrationScenarioExecutionBasis,
+  executeVibrationWithScenarioGuard,
+} from './scenario-execution.js';
+
+export {
   VIBRATION_ASSESSMENT_UNIT_SCHEMA,
   VIBRATION_ASSESSMENT_UNIT_SET_SCHEMA,
   VIBRATION_ASSESSMENT_EXECUTION_BASIS_SCHEMA,
