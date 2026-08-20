@@ -1,6 +1,5 @@
-import { AIV_ASSUMPTION_PROFILE_SCHEMA } from './aiv-assumption-profile.js';
-
 export const AIV_SCREENING_PROFILE_VALIDATION_SCHEMA = 'AivScreeningProfileValidation.v1';
+const AIV_ASSUMPTION_PROFILE_SCHEMA = 'AivAssumptionProfile.v1';
 
 function requiredPolicy(profile, key) {
   return profile?.policy?.[key] === true;
