@@ -7,6 +7,17 @@ import {
 
 function project() {
   return {
+    classBasis: { internalAllowanceMm: 3, externalAllowanceMm: 0 },
+    products: [{
+      productId: 'P-1',
+      calculationBasis: {
+        mode: 'DIRECT_ENGINEERING_INPUT',
+        outsideDiameterMm: 114.3,
+        nominalWallMm: 13.49,
+        minusTolerancePct: 12.5,
+      },
+      wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
+    }],
     transient: {
       transitions: [
         { cycleId: 'C1', fromStateId: 'P0', toStateId: 'P1' },
@@ -18,6 +29,7 @@ function project() {
       productId: 'P-1',
       externalResults: [{
         cycleId: 'C1', fromStateId: 'P0', toStateId: 'P1', locationId: 'L1',
+        analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 },
         equivalentAlternatingStressMpa: 70, permissibleCycles: 10000,
         calculationBasis: { code: 'VIII-3', edition: '2025', methodRef: 'KD-3', calculationRef: 'CALC-1', calculatedBy: 'A' },
       }],
@@ -25,22 +37,25 @@ function project() {
   };
 }
 
-test('add all creates exactly the uncovered governed cycles', () => {
+test('add all creates exactly the uncovered governed cycles with current geometry', () => {
   const value = project();
   const result = addAllHpPipingClassExternalResults(value, 0);
   assert.equal(result.added, 2);
   assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => row.cycleId), ['C1', 'C2', 'C3']);
   assert.deepEqual(value.fatigueEvidence[0].externalResults[1], {
-    cycleId: 'C2', fromStateId: 'P1', toStateId: 'P0', locationId: '', calculationBasis: {},
+    cycleId: 'C2', fromStateId: 'P1', toStateId: 'P0', locationId: '',
+    analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 },
+    calculationBasis: {},
   });
   assert.equal(addAllHpPipingClassExternalResults(value, 0).added, 0);
 });
 
-test('copy first basis copies custody only and does not alter engineering values', () => {
+test('copy first basis copies custody only and does not alter engineering values or geometry', () => {
   const value = project();
   addAllHpPipingClassExternalResults(value, 0);
   const before = value.fatigueEvidence[0].externalResults.map((row) => ({
     cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+    geometry: row.analysisGeometry,
     seq: row.equivalentAlternatingStressMpa, permissibleCycles: row.permissibleCycles,
   }));
   const sourceBasis = value.fatigueEvidence[0].externalResults[0].calculationBasis;
@@ -51,6 +66,7 @@ test('copy first basis copies custody only and does not alter engineering values
   assert.notEqual(value.fatigueEvidence[0].externalResults[2].calculationBasis, sourceBasis);
   assert.deepEqual(value.fatigueEvidence[0].externalResults.map((row) => ({
     cycleId: row.cycleId, from: row.fromStateId, to: row.toStateId, locationId: row.locationId,
+    geometry: row.analysisGeometry,
     seq: row.equivalentAlternatingStressMpa, permissibleCycles: row.permissibleCycles,
   })), before);
 });
