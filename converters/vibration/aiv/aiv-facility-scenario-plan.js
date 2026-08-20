@@ -110,6 +110,7 @@ export function buildAivFacilityScenarioExecutionPlan({ handoff: handoffInput, r
     schema: AIV_FACILITY_SCENARIO_EXECUTION_PLAN_SCHEMA,
     datasetId: handoff.datasetId,
     facilityRunId: handoff.facilityRunId,
+    facilityScenarioSetKey: handoff.scenarioSetKey,
     relationshipExecutions: relationships,
     cardinality: relationships.length,
     authority: AIV_FACILITY_SCENARIO_EXECUTION_AUTHORITY,
@@ -126,6 +127,7 @@ export function assertAivFacilityScenarioExecutionPlan(value) {
   }
   requiredText(value.datasetId, 'datasetId');
   requiredText(value.facilityRunId, 'facilityRunId');
+  requiredText(value.facilityScenarioSetKey, 'facilityScenarioSetKey');
   if (!Array.isArray(value.relationshipExecutions) || !value.relationshipExecutions.length) {
     throw planError('AIV_FACILITY_SCENARIO_PLAN_RELATIONSHIPS_INVALID', 'Linked AIV scenario plan relationships are required.');
   }
@@ -166,7 +168,8 @@ export function inspectAivFacilityScenarioPlanForAssessment(planInput, row = {})
   if (!matches.length) return Object.freeze({ ok: false, status: 'AIV_FACILITY_ASSESSMENT_SCOPE_NOT_LINKED' });
   const currentBasis = row.scenarioExecutionBasis ?? null;
   if (!currentBasis) return Object.freeze({ ok: false, status: 'AIV_FACILITY_CURRENT_SCENARIO_BASIS_MISSING' });
-  const current = matches.every((item) => {
+  if (!row.scenarioSetKey) return Object.freeze({ ok: false, status: 'AIV_FACILITY_CURRENT_SCENARIO_SET_KEY_MISSING' });
+  const current = plan.facilityScenarioSetKey === row.scenarioSetKey && matches.every((item) => {
     const basis = item.assessmentScenarioExecutionBasis;
     return basis.datasetId === currentBasis.datasetId
       && basis.scenarioId === currentBasis.scenarioId
