@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createAivAssumptionProfile } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { validateAivScreeningProfile } from '../converters/vibration/aiv/aiv-screening-profile.js';
 import {
   AIV_T26_SOURCE_BINDING,
@@ -24,6 +23,26 @@ function assessment(overrides = {}) {
     material: 'CARBON_STEEL',
     duplexState: 'NO',
     ...overrides,
+  };
+}
+
+function screeningProfile() {
+  return {
+    schema: 'AivAssumptionProfile.v1',
+    policy: {
+      assumptionsMustBeVisible: true,
+      assumptionsMustBeEditable: true,
+      assumptionsMustBeExportedWithResults: true,
+      screeningAuthorityImplied: false,
+      designAuthority: false,
+    },
+    benchmark: {
+      publishedA: 'not-screening-input',
+      publishedS: '',
+      publishedB: 'not-screening-input',
+      flm1Mode: 'PUBLISHED',
+      flm1Published: '999',
+    },
   };
 }
 
@@ -94,16 +113,7 @@ test('T2.6 assessment validation fails closed on unsupported type, unit, branch 
 });
 
 test('screening profile validation does not consume benchmark A/S/B or FLM1 configuration', () => {
-  const profile = createAivAssumptionProfile({
-    benchmark: {
-      publishedA: 'not-screening-input',
-      publishedS: '',
-      publishedB: 'not-screening-input',
-      flm1Mode: 'PUBLISHED',
-      flm1Published: '999',
-    },
-  });
-  const validation = validateAivScreeningProfile(profile);
+  const validation = validateAivScreeningProfile(screeningProfile());
   assert.equal(validation.status, 'PASS');
   assert.equal(validation.benchmarkIntermediatesRequired, false);
 });
