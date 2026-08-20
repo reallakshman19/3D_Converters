@@ -1,3 +1,4 @@
+import { renderVibrationRoadmapMechanismSummary } from './vibration-roadmap-mechanism-summary-view.js';
 import { buildVibrationRoadmapWorkflowPresentation } from './vibration-roadmap-workflow-view.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
 import {
@@ -135,6 +136,11 @@ function renderSelectedAssessment(context) {
   return `<section class="vibration-roadmap-assessment" data-line-case-workflow-state="${esc(status.state)}"><small class="vibration-roadmap-eyebrow">Selected assessment</small><strong>${esc(scope.line)} · ${esc(caseLabel)}</strong><span class="vibration-roadmap-assessment-id">${esc(scope.canonicalId)}</span>${assessmentScopeSelector(context)}<span class="vibration-roadmap-focus-status">${esc(status.state)}</span><small class="vibration-roadmap-eyebrow">Case next action</small><span>${esc(action)}</span>${selectedAssessmentAction(status)}<small>${esc(evidence)}</small><small>Exact register scope · project mapping not asserted · workflow projection only</small></section>`;
 }
 
+function renderSelectedMechanisms(context) {
+  if (!governedSelectedAssessment(context)) return '';
+  return renderVibrationRoadmapMechanismSummary(context?.selectedAssessment?.mechanismSummary);
+}
+
 function renderNextAttention(workflow) {
   const next = workflow.nextAttention;
   if (!next) {
@@ -170,7 +176,7 @@ export function renderVibrationRoadmapPanel(projection, { collapsed = false, wid
   const phases = workflow.phases.map((phase) => renderPhase(
     phase, activeCalculationId, workflow.focusPhaseId,
   )).join('');
-  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel${widthAttribute}>${resizeHandle(collapsed)}<header><div><strong>Vibration Assessment</strong><small>Right-panel workflow guidance · no applicability, completeness, screening or design authority</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projectTools(projection.context)}${renderSelectedAssessment(projection.context)}${renderNextAttention(workflow)}<div class="vibration-roadmap-workflow-label"><strong>Workflow</strong><small>Existing governed roadmap states · phase labels are not completion claims</small></div>${phases}</div></aside>`;
+  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel${widthAttribute}>${resizeHandle(collapsed)}<header><div><strong>Vibration Assessment</strong><small>Right-panel workflow guidance · no applicability, completeness, screening or design authority</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projectTools(projection.context)}${renderSelectedAssessment(projection.context)}${renderSelectedMechanisms(projection.context)}${renderNextAttention(workflow)}<div class="vibration-roadmap-workflow-label"><strong>Workflow</strong><small>Existing governed roadmap states · phase labels are not completion claims</small></div>${phases}</div></aside>`;
 }
 
 export function mountVibrationRoadmapPanel(host, projection, options = {}) {
