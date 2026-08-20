@@ -1,0 +1,16 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-AIV-FACILITY-SCENARIO-HANDOFF-20260820
+branch: agent/aiv-facility-scenario-handoff-20260820
+base: main
+base_sha: 1f8f12daf3846780341ad34ab56f9dc0bde05593
+state: IMPLEMENTATION
+criticality: ENGINEERING_CRITICAL_ORCHESTRATION
+predecessor_pr: 682
+predecessor_state: MERGED
+validation:
+  current_main_grounding: PASS
+  overlap: SAFE_PR506_SALVAGE_ONLY_PER_MERGED_PR517
+  repository_native_tests: NOT_RUN
+  browser: NOT_RUN
+merge_authority: NOT_GRANTED_FOR_THIS_SUCCESSOR
+next_action: IMPLEMENT_HANDOFF_AND_LINKED_AIV_EXECUTION
