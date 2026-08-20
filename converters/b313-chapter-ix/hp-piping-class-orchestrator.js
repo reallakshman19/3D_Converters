@@ -1,7 +1,4 @@
-import {
-  B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
-  calculateEngineering,
-} from '../engineering-calculations/index.js';
+import { calculateEngineering } from '../engineering-calculations/index.js';
 import {
   HP_PIPING_CLASS_AUTHORITY_POLICY,
   HP_PIPING_CLASS_PROJECT_VERSION,
@@ -16,7 +13,7 @@ const CALCULATION_IDS = Object.freeze({
   staticDirect: 'PIPE.B313.CH9.STRAIGHT_PRESSURE',
   staticGoverned: 'PIPE.B313.CH9.STRAIGHT_PRESSURE_FROM_BASIS',
   wallState: 'PIPE.B313.CH9.WALL_STATE',
-  fatigue: B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
+  fatigue: 'PIPE.B313.CH9.FATIGUE_USER_REVIEW',
 });
 
 function clone(value) {
@@ -278,8 +275,16 @@ function summarize(products) {
   };
 }
 
+function validationAdvisoryWarnings(validation) {
+  return (validation.advisories ?? []).map((row) => ({
+    code: row.code,
+    message: `${row.path}: ${row.message}`,
+    advisory: true,
+  }));
+}
+
 export function evaluateHpPipingClassProject(project = {}, options = {}) {
-  const validation = validateHpPipingClassProject(project);
+  const validation = validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
   if (!validation.ok) {
     return immutable({
       ok: false,
@@ -287,6 +292,7 @@ export function evaluateHpPipingClassProject(project = {}, options = {}) {
       projectVersion: project?.schemaVersion ?? null,
       projectState: 'INVALID_PROJECT',
       issues: clone(validation.issues),
+      advisories: clone(validation.advisories),
       products: [],
       authority: authority(),
     });
@@ -320,9 +326,13 @@ export function evaluateHpPipingClassProject(project = {}, options = {}) {
     products,
     summary,
     authority: authority(),
-    warnings: [{
-      code: 'HP_PIPING_CLASS_REVIEW_ONLY',
-      message: 'HP Piping Class v2 orchestrates canonical Chapter IX calculations only. Native CORE KD-3, Code compliance, and design authority remain unqualified/not established.',
-    }],
+    advisories: clone(validation.advisories),
+    warnings: [
+      {
+        code: 'HP_PIPING_CLASS_REVIEW_ONLY',
+        message: 'HP Piping Class v2 orchestrates canonical Chapter IX calculations for engineering review. Native CORE KD-3, Code compliance, and design authority remain unqualified/not established.',
+      },
+      ...validationAdvisoryWarnings(validation),
+    ],
   });
 }

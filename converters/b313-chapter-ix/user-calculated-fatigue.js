@@ -4,6 +4,10 @@ import { calculateChapterIxCumulativeDamage } from './cumulative-damage.js';
 
 export const USER_SALT_CROSSCHECK_RELATIVE_TOLERANCE = 1e-4;
 export const USER_CALCULATED_FATIGUE_VERSION = 'b313-ch9-user-calculated-fatigue/v1';
+export const USER_CALCULATED_FATIGUE_EVIDENCE_POLICIES = Object.freeze([
+  'REQUIRED',
+  'ADVISORY',
+]);
 
 function failure(code, message, details = {}) {
   return { ok: false, code, message, details, canUseForDesignAuthority: false };
@@ -19,6 +23,10 @@ function text(value) {
 
 function normalizedIdentity(value) {
   return text(value).toLocaleLowerCase();
+}
+
+function evidencePolicy(value) {
+  return value === 'ADVISORY' ? 'ADVISORY' : 'REQUIRED';
 }
 
 function indexExternalResults(rows) {
@@ -37,27 +45,83 @@ function indexExternalResults(rows) {
   return { ok: true, map };
 }
 
-function requireBasis(row, cycleId) {
+function inspectBasis(row, cycleId) {
   const basis = row?.calculationBasis;
-  if (!basis || typeof basis !== 'object') {
-    return failure('USER_FATIGUE_BASIS_REQUIRED', `${cycleId}.calculationBasis is required.`, { cycleId });
+  const issues = [];
+  if (!basis || typeof basis !== 'object' || Array.isArray(basis)) {
+    issues.push({
+      code: 'USER_FATIGUE_BASIS_REQUIRED',
+      message: `${cycleId}.calculationBasis is required for evidence completion.`,
+      cycleId,
+      field: 'calculationBasis',
+    });
+    return {
+      basis: {},
+      issues,
+      checked: false,
+      calculatedBy: null,
+      checkedBy: null,
+      checkedAt: null,
+    };
   }
-  for (const field of ['code', 'edition', 'methodRef', 'calculationRef', 'calculatedBy']) {
+
+  const requiredFields = ['code', 'edition', 'methodRef', 'calculationRef', 'calculatedBy'];
+  for (const field of requiredFields) {
     if (!text(basis[field])) {
-      return failure('USER_FATIGUE_BASIS_REQUIRED', `${cycleId}.calculationBasis.${field} is required.`, { cycleId, field });
+      issues.push({
+        code: 'USER_FATIGUE_BASIS_REQUIRED',
+        message: `${cycleId}.calculationBasis.${field} is required for evidence completion.`,
+        cycleId,
+        field,
+      });
     }
   }
-  if (normalizedIdentity(basis.checkedBy)
-      && normalizedIdentity(basis.checkedBy) === normalizedIdentity(basis.calculatedBy)) {
-    return failure('USER_FATIGUE_CHECKER_NOT_INDEPENDENT', `${cycleId} checker must differ from calculatedBy.`, { cycleId });
+
+  const calculatedBy = text(basis.calculatedBy) || null;
+  const checkedBy = text(basis.checkedBy) || null;
+  const checkedAt = text(basis.checkedAt) || null;
+  if (normalizedIdentity(checkedBy)
+      && normalizedIdentity(checkedBy) === normalizedIdentity(calculatedBy)) {
+    issues.push({
+      code: 'USER_FATIGUE_CHECKER_NOT_INDEPENDENT',
+      message: `${cycleId} checker must differ from calculatedBy for evidence completion.`,
+      cycleId,
+      field: 'checkedBy',
+    });
   }
-  if (Boolean(text(basis.checkedBy)) !== Boolean(text(basis.checkedAt))) {
-    return failure('USER_FATIGUE_CHECK_CUSTODY_INCOMPLETE', `${cycleId} checkedBy and checkedAt must be supplied together.`, { cycleId });
+  if (Boolean(checkedBy) !== Boolean(checkedAt)) {
+    issues.push({
+      code: 'USER_FATIGUE_CHECK_CUSTODY_INCOMPLETE',
+      message: `${cycleId} checkedBy and checkedAt must be supplied together for evidence completion.`,
+      cycleId,
+      field: checkedBy ? 'checkedAt' : 'checkedBy',
+    });
   }
-  return null;
+
+  const basisComplete = requiredFields.every((field) => Boolean(text(basis[field])));
+  const distinctChecker = Boolean(checkedBy && checkedAt)
+    && normalizedIdentity(checkedBy) !== normalizedIdentity(calculatedBy);
+  return {
+    basis,
+    issues,
+    checked: basisComplete && distinctChecker && issues.length === 0,
+    calculatedBy,
+    checkedBy,
+    checkedAt,
+  };
 }
 
-function validateExternalRow(row, cycle) {
+function requireBasis(row, cycleId) {
+  const inspected = inspectBasis(row, cycleId);
+  const first = inspected.issues[0];
+  if (!first) return null;
+  return failure(first.code, first.message.replace(/ for evidence completion\.$/u, '.'), {
+    cycleId,
+    ...(first.field ? { field: first.field } : {}),
+  });
+}
+
+function validateExternalRow(row, cycle, policy) {
   const cycleId = cycle.cycleId;
   for (const field of ['locationId', 'fromStateId', 'toStateId']) {
     if (!text(row?.[field])) {
@@ -91,8 +155,10 @@ function validateExternalRow(row, cycle) {
   if (row.saPrimeMpa !== undefined && row.saPrimeMpa !== null && (!finite(row.saPrimeMpa) || !(row.saPrimeMpa > 0))) {
     return failure('USER_SA_PRIME_INVALID', `${cycleId}.saPrimeMpa must be finite and > 0 when supplied.`, { cycleId });
   }
-  const basisError = requireBasis(row, cycleId);
-  if (basisError) return basisError;
+  if (policy === 'REQUIRED') {
+    const basisError = requireBasis(row, cycleId);
+    if (basisError) return basisError;
+  }
   return null;
 }
 
@@ -119,18 +185,27 @@ function compareSalt(coreSalt, userSalt) {
   };
 }
 
-function evidenceState(row) {
-  const basis = row.calculationBasis;
-  const checked = Boolean(text(basis.checkedBy) && text(basis.checkedAt));
+function evidenceState(row, cycleId) {
+  const inspected = inspectBasis(row, cycleId);
+  let status = 'USER_CALCULATED_NOT_INDEPENDENTLY_CHECKED';
+  if (!row?.calculationBasis || typeof row.calculationBasis !== 'object') {
+    status = 'USER_CALCULATED_BASIS_NOT_RECORDED';
+  } else if (inspected.issues.length > 0) {
+    status = 'USER_CALCULATED_EVIDENCE_INCOMPLETE';
+  } else if (inspected.checked) {
+    status = 'USER_CALCULATED_INDEPENDENTLY_CHECKED';
+  }
   return {
-    status: checked ? 'USER_CALCULATED_INDEPENDENTLY_CHECKED' : 'USER_CALCULATED_NOT_INDEPENDENTLY_CHECKED',
-    calculatedBy: text(basis.calculatedBy),
-    checkedBy: text(basis.checkedBy) || null,
-    checkedAt: text(basis.checkedAt) || null,
+    status,
+    calculatedBy: inspected.calculatedBy,
+    checkedBy: inspected.checkedBy,
+    checkedAt: inspected.checkedAt,
+    issues: inspected.issues,
   };
 }
 
 export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
+  const policy = evidencePolicy(input.evidencePolicy);
   const transient = resolveChapterIxTransientSpectrum({
     spectrum: input.spectrum,
     states: input.states,
@@ -154,7 +229,7 @@ export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
     if (!row) {
       return failure('USER_FATIGUE_RESULT_MISSING', `Missing external result for ${cycle.cycleId}.`, { cycleId: cycle.cycleId });
     }
-    const rowError = validateExternalRow(row, cycle);
+    const rowError = validateExternalRow(row, cycle, policy);
     if (rowError) return rowError;
     const stress = calculateChapterIxPressureCycleStress({
       outsideDiameterMm: input.outsideDiameterMm,
@@ -182,7 +257,7 @@ export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
     if (!zeroDamage && (!finite(permissibleCycles) || !(permissibleCycles > 0))) {
       return failure('USER_N_ALLOWED_INVALID', `${cycle.cycleId}.permissibleCycles must be finite and > 0 when Seq is nonzero.`, { cycleId: cycle.cycleId });
     }
-    const evidence = evidenceState(row);
+    const evidence = evidenceState(row, cycle.cycleId);
     evaluated.push({
       cycleId: cycle.cycleId,
       locationId: text(row.locationId),
@@ -208,7 +283,9 @@ export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
         appliedCycles: 'GOVERNED_TRANSIENT_SPECTRUM',
         damage: 'CORE_DERIVED',
       },
-      calculationBasis: { ...row.calculationBasis },
+      calculationBasis: row.calculationBasis && typeof row.calculationBasis === 'object'
+        ? { ...row.calculationBasis }
+        : {},
       evidence,
     });
   }
@@ -216,6 +293,10 @@ export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
   const damage = calculateChapterIxCumulativeDamage({ cycles: evaluated });
   if (!damage.ok) return failure(damage.code, damage.message, { stage: 'CUMULATIVE_DAMAGE' });
   const allChecked = evaluated.every((row) => row.evidence.status === 'USER_CALCULATED_INDEPENDENTLY_CHECKED');
+  const evidenceIssues = evaluated.flatMap((row) => row.evidence.issues.map((issue) => ({
+    cycleId: row.cycleId,
+    ...issue,
+  })));
   return {
     ok: true,
     version: USER_CALCULATED_FATIGUE_VERSION,
@@ -226,6 +307,9 @@ export function evaluateChapterIxUserCalculatedFatigueSpectrum(input = {}) {
     canUseForDesignAuthority: false,
     codeCompliance: false,
     independentCheckComplete: allChecked,
+    evidencePolicy: policy,
+    evidenceIssueCount: evidenceIssues.length,
+    evidenceIssues,
     transient,
     cycles: evaluated,
     damage,

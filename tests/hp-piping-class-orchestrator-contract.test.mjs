@@ -73,7 +73,7 @@ function requestRecorder({ staticPass = true, fatigueOk = true } = {}) {
           return { ok: true, outputs: { staticReferencePass: staticPass } };
         case 'PIPE.B313.CH9.WALL_STATE':
           return { ok: true, outputs: { endOfLifeEffectiveWallMm: 8.80375 } };
-        case 'PIPE.B313.CH9.FATIGUE_USER_CALCULATED':
+        case 'PIPE.B313.CH9.FATIGUE_USER_REVIEW':
           return fatigueOk
             ? { ok: true, outputs: { usageWithinUnity: true, cumulativeUsage: 0.05 } }
             : { ok: false, errors: [{ code: 'USER_FATIGUE_BLOCKED' }] };
@@ -84,14 +84,14 @@ function requestRecorder({ staticPass = true, fatigueOk = true } = {}) {
   };
 }
 
-test('direct product maps only through central calculation IDs', () => {
+test('direct product maps static/wall through existing kernels and fatigue through production review', () => {
   const engine = requestRecorder();
   const result = evaluateHpPipingClassProject(directProject(), { engine });
   assert.equal(result.ok, true);
   assert.deepEqual(engine.requests.map((row) => row.calculationId), [
     'PIPE.B313.CH9.STRAIGHT_PRESSURE',
     'PIPE.B313.CH9.WALL_STATE',
-    'PIPE.B313.CH9.FATIGUE_USER_CALCULATED',
+    'PIPE.B313.CH9.FATIGUE_USER_REVIEW',
   ]);
   assert.equal(engine.requests[0].options.qualificationMode, 'benchmark');
   assert.equal(engine.requests[1].options.qualificationMode, 'benchmark');
@@ -123,7 +123,7 @@ test('engineering reference FAIL remains a successful calculation', () => {
   assert.equal(result.summary.staticReferenceFailed, 1);
 });
 
-test('provided fatigue evidence that fails evaluation blocks the product calculation', () => {
+test('provided fatigue numerical input that fails evaluation blocks the product calculation', () => {
   const engine = requestRecorder({ fatigueOk: false });
   const result = evaluateHpPipingClassProject(directProject(), { engine });
   assert.equal(result.ok, false);
