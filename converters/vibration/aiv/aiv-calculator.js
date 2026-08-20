@@ -87,7 +87,7 @@ function inventoryState(summaries) {
   return verified > 0 ? 'PARTIAL' : 'UNVERIFIED';
 }
 
-function assessmentResult(combined, assessment, exchange, profile, qualificationMode, authority) {
+function assessmentResult(rows, combined, assessment, exchange, profile, qualificationMode, authority) {
   const sourceT26 = calculateAivT26Discontinuity({ pointPwlDb: combined.combinedPointPwlDb, assessment });
   const benchmark = benchmarkTrace(sourceT26, profile, qualificationMode);
   const t26 = benchmark ? { ...sourceT26, ...benchmark } : sourceT26;
@@ -101,6 +101,7 @@ function assessmentResult(combined, assessment, exchange, profile, qualification
     line: assessmentLine(exchange, combined.assessmentCanonicalId),
     caseId: combined.caseId,
     contributingSourceCanonicalIds: combined.sourceCanonicalIds,
+    sourceContributionsAtPoint: rows,
     combinedPointPwlDb: combined.combinedPointPwlDb,
     t26Intermediates: t26,
     lof: t26.lof,
@@ -148,6 +149,7 @@ export function calculateAiv({
   const assessmentResults = [...grouped.values()].map((rows) => {
     const combined = combineAivKernelCandidatePointContributions(rows);
     return assessmentResult(
+      rows,
       combined,
       assessmentMap.get(combined.assessmentCanonicalId),
       exchange,
