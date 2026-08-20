@@ -13,6 +13,7 @@ import {
 } from '../converters/vibration/dataset/index.js';
 import {
   createVibrationFacilityScenarioHandoff,
+  vibrationFacilityScenarioSetKey,
 } from '../converters/vibration/facility/scenario-handoff.js';
 import {
   VIBRATION_TABLE_EXCHANGE_INTEGRITY,
@@ -43,27 +44,27 @@ function exchange(datasetId = 'plant-a') {
   };
 }
 
-function operatingCases(massFlow = 100) {
+function operatingCases({ sourceMassFlow = 100, assessmentMassFlow = 100 } = {}) {
   return [
     {
       caseId: 'NORMAL', line: 'L-SOURCE', phase: 'GAS', source: 'HMB-1',
       sourceRevision: 'A', recordId: 'HMB-1-SOURCE-NORMAL',
-      massFlow: { value: massFlow, unit: 'kg/s' },
+      massFlow: { value: sourceMassFlow, unit: 'kg/s' },
       pressure: { value: 20, unit: 'barg', reference: 'gauge' },
     },
     {
       caseId: 'NORMAL', line: 'L-ASSESS', phase: 'GAS', source: 'HMB-1',
       sourceRevision: 'A', recordId: 'HMB-1-ASSESS-NORMAL',
-      massFlow: { value: massFlow, unit: 'kg/s' },
+      massFlow: { value: assessmentMassFlow, unit: 'kg/s' },
       pressure: { value: 15, unit: 'barg', reference: 'gauge' },
     },
   ];
 }
 
-function dataset(datasetId = 'plant-a', massFlow = 100) {
+function dataset(datasetId = 'plant-a', flowOptions = {}) {
   return assembleVibrationIntegrityDataset({
     exchange: exchange(datasetId),
-    operatingCases: operatingCases(massFlow),
+    operatingCases: operatingCases(flowOptions),
     enrichment: [],
   });
 }
@@ -76,8 +77,8 @@ function scenario(source, line) {
   });
 }
 
-function scenarioSet(datasetId = 'plant-a', massFlow = 100) {
-  const source = dataset(datasetId, massFlow);
+function scenarioSet(datasetId = 'plant-a', flowOptions = {}) {
+  const source = dataset(datasetId, flowOptions);
   return [scenario(source, 'L-SOURCE'), scenario(source, 'L-ASSESS')];
 }
 
@@ -107,17 +108,34 @@ function screeningResult() {
   };
 }
 
-function currentHandoff(massFlow = 100) {
+function currentHandoff(flowOptions = {}) {
   return createVibrationFacilityScenarioHandoff({
-    operatingScenarios: scenarioSet('plant-a', massFlow),
+    operatingScenarios: scenarioSet('plant-a', flowOptions),
     runId: 'FIT-RUN-1',
   });
 }
 
-test('facility handoff retains one governed dataset and exact source/assessment scenario bindings', () => {
+function currentAssessmentRow(scenarios) {
+  const assessment = scenarios.find((item) => item.line === 'L-ASSESS');
+  return {
+    line: 'L-ASSESS', caseId: 'NORMAL', canonicalId: 'CAN-1',
+    scenarioSetKey: vibrationFacilityScenarioSetKey(scenarios),
+    scenarioExecutionBasis: {
+      datasetId: assessment.datasetId,
+      scenarioId: assessment.scenarioId,
+      scenarioSnapshotHash: assessment.snapshotHash,
+      line: assessment.line,
+      caseId: assessment.caseId,
+    },
+  };
+}
+
+test('facility handoff retains one governed dataset, full scenario-set key and exact bindings', () => {
   const handoff = currentHandoff();
   assert.equal(handoff.datasetId, 'plant-a');
   assert.equal(handoff.cardinality, 2);
+  assert.match(handoff.scenarioSetKey, /^VFSK1:/u);
+  assert.equal(handoff.scenarioSetKey, vibrationFacilityScenarioSetKey(handoff.entries.map((entry) => entry.scenario)));
   assert.deepEqual(handoff.entries.map((entry) => entry.line), ['L-SOURCE', 'L-ASSESS']);
   assert(handoff.entries.every((entry) => entry.binding.scenarioSnapshotHash === entry.scenario.snapshotHash));
 });
@@ -131,12 +149,12 @@ test('facility handoff rejects mixed datasets before AIV planning', () => {
   );
 });
 
-test('AIV relationship plan binds source and assessment lines for the same facility case', () => {
-  const plan = buildAivFacilityScenarioExecutionPlan({
-    handoff: currentHandoff(), readinessEnvelope: readiness(),
-  });
+test('AIV relationship plan binds source and assessment lines and retains facility scenario-set identity', () => {
+  const handoff = currentHandoff();
+  const plan = buildAivFacilityScenarioExecutionPlan({ handoff, readinessEnvelope: readiness() });
   assert.equal(plan.datasetId, 'plant-a');
   assert.equal(plan.cardinality, 1);
+  assert.equal(plan.facilityScenarioSetKey, handoff.scenarioSetKey);
   const item = plan.relationshipExecutions[0];
   assert.equal(item.sourceLine, 'L-SOURCE');
   assert.equal(item.assessmentLine, 'L-ASSESS');
@@ -179,9 +197,10 @@ test('non-current facility link blocks AIV before calculation callback', () => {
 
 test('exact linked facility custody reaches AIV callback once and returns the plan', () => {
   let calls = 0;
+  const handoff = currentHandoff();
   const executed = executeAivWithFacilityScenarioCustody({
     facilityLinkIntent: true,
-    facilityScenarioHandoff: currentHandoff(),
+    facilityScenarioHandoff: handoff,
     facilityScenarioHandoffStatus: 'CURRENT',
     readinessEnvelope: readiness(),
     request: { calculationId: 'VIB.AIV.ACOUSTIC' },
@@ -190,6 +209,7 @@ test('exact linked facility custody reaches AIV callback once and returns the pl
   assert.equal(calls, 1);
   assert.equal(executed.result.ok, true);
   assert.equal(executed.scenarioExecutionPlan.cardinality, 1);
+  assert.equal(executed.scenarioExecutionPlan.facilityScenarioSetKey, handoff.scenarioSetKey);
 });
 
 test('standalone AIV remains executable but produces no facility scenario plan', () => {
@@ -204,17 +224,27 @@ test('standalone AIV remains executable but produces no facility scenario plan',
   assert.equal(executed.scenarioExecutionPlan, null);
 });
 
-test('facility admission detects an older AIV assessment snapshot after a later facility rerun', () => {
-  const oldHandoff = currentHandoff(100);
+test('facility admission rejects an older AIV assessment snapshot after assessment-line change', () => {
+  const oldHandoff = currentHandoff();
   const plan = buildAivFacilityScenarioExecutionPlan({ handoff: oldHandoff, readinessEnvelope: readiness() });
-  const newer = scenarioSet('plant-a', 101).find((item) => item.line === 'L-ASSESS');
-  const admission = inspectAivFacilityScenarioPlanForAssessment(plan, {
-    line: 'L-ASSESS', caseId: 'NORMAL', canonicalId: 'CAN-1',
-    scenarioExecutionBasis: {
-      datasetId: newer.datasetId, scenarioId: newer.scenarioId,
-      scenarioSnapshotHash: newer.snapshotHash, line: newer.line, caseId: newer.caseId,
-    },
+  const newerScenarios = scenarioSet('plant-a', { sourceMassFlow: 100, assessmentMassFlow: 101 });
+  const admission = inspectAivFacilityScenarioPlanForAssessment(plan, currentAssessmentRow(newerScenarios));
+  assert.equal(admission.ok, false);
+  assert.equal(admission.status, 'AIV_FACILITY_SCENARIO_STALE');
+});
+
+test('facility admission rejects source-line-only drift even when assessment snapshot is unchanged', () => {
+  const oldScenarios = scenarioSet('plant-a', { sourceMassFlow: 100, assessmentMassFlow: 100 });
+  const oldHandoff = createVibrationFacilityScenarioHandoff({
+    operatingScenarios: oldScenarios, runId: 'FIT-RUN-OLD',
   });
+  const plan = buildAivFacilityScenarioExecutionPlan({ handoff: oldHandoff, readinessEnvelope: readiness() });
+  const newerScenarios = scenarioSet('plant-a', { sourceMassFlow: 101, assessmentMassFlow: 100 });
+  const oldAssessment = oldScenarios.find((item) => item.line === 'L-ASSESS');
+  const newAssessment = newerScenarios.find((item) => item.line === 'L-ASSESS');
+  assert.equal(oldAssessment.snapshotHash, newAssessment.snapshotHash);
+  assert.notEqual(vibrationFacilityScenarioSetKey(oldScenarios), vibrationFacilityScenarioSetKey(newerScenarios));
+  const admission = inspectAivFacilityScenarioPlanForAssessment(plan, currentAssessmentRow(newerScenarios));
   assert.equal(admission.ok, false);
   assert.equal(admission.status, 'AIV_FACILITY_SCENARIO_STALE');
 });
