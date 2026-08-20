@@ -23,7 +23,7 @@ function fieldControl(field, state) {
   const id = `engineering-console-${field.key.replace(/[^a-z0-9_-]/gi,'-')}`;
   if (field.type === 'boolean') return `<label class="engineering-console-checkbox"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}><span>Enabled</span></label>`;
   if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}">${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
-  if (field.type === 'object' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false">${esc(value)}</textarea>`;
+  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false">${esc(value)}</textarea>`;
   const type = ['number','integer'].includes(field.type ?? 'number') ? 'number' : 'text';
   return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}">`;
 }
