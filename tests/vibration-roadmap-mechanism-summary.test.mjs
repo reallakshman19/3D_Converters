@@ -134,7 +134,7 @@ test('12-mechanism summary preserves governed coverage and fail-closed unavailab
   assert.equal(item(summary, 'smallBoreConnections').state, 'CANDIDATE_ONLY');
 });
 
-test('cavitation and thermowell stay visible as required blocked work with governed source custody', () => {
+test('cavitation and thermowell stay visible as required unavailable work with governed source custody', () => {
   const summary = buildVibrationRoadmapMechanismSummary(matrix());
   const cavitation = item(summary, 'cavitationFlashing');
   const thermowell = item(summary, 'thermowells');
@@ -151,38 +151,52 @@ test('cavitation and thermowell stay visible as required blocked work with gover
   assert.match(thermowell.sourceReason, /must not be silently combined/);
 });
 
-test('right-rail summary renders source blockers and never equates unavailable with not applicable', () => {
+test('right-rail summary is advisory linking and never acts as an execution or authority gate', () => {
+  const authority = VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY;
+  assert.equal(authority.guidanceOnly, true);
+  assert.equal(authority.determinesApplicability, false);
+  assert.equal(authority.determinesCompleteness, false);
+  assert.equal(authority.blocksExecution, false);
+  assert.equal(authority.blocksNavigation, false);
+  assert.equal(authority.blocksCalculation, false);
+  assert.equal(authority.blocksPersistence, false);
+  assert.equal(authority.authorityGate, false);
+  assert.equal(authority.numericalAuthority, 'NONE');
+  assert.equal(authority.aggregationAuthority, 'NONE');
+  assert.equal(authority.screeningAuthority, 'NOT_AUTHORIZED');
+});
+
+test('right-rail rendering labels unavailable methods as guidance, not a UI blocker', () => {
   const summary = buildVibrationRoadmapMechanismSummary(matrix());
   const html = renderVibrationRoadmapMechanismSummary(summary);
-  assert.match(html, /Mechanism assessment/);
-  assert.match(html, /12-mechanism scope/);
+  assert.match(html, /Mechanism guidance/);
+  assert.match(html, /12-mechanism scope · guidance only/);
   assert.match(html, /Cav \/ flash/);
   assert.match(html, /T2\.9 · reconciliation required/);
   assert.match(html, /Thermowells/);
   assert.match(html, /Source conflict:/);
-  assert.match(html, /Source\/method blocked/);
-  assert.match(html, /Missing implementation never means not applicable/);
+  assert.match(html, /Method unavailable/);
+  assert.match(html, /Advisory\/linking only/);
+  assert.match(html, /do not block execution, navigation, calculation, or persistence/);
+  assert.match(html, /data-guidance-only="true"/);
+  assert.doesNotMatch(html, /Source\/method blocked/);
   assert.doesNotMatch(html, /LOF 0 ·/);
+  assert.doesNotMatch(html, /disabled/);
 });
 
-test('right panel includes mechanism assessment only beneath a governed selected exact scope', () => {
+test('right panel includes mechanism guidance only beneath a governed selected exact scope', () => {
   const summary = buildVibrationRoadmapMechanismSummary(matrix());
   const html = renderVibrationRoadmapPanel(panelProjection(summary));
   assert.match(html, /Selected assessment/);
-  assert.match(html, /Mechanism assessment/);
+  assert.match(html, /Mechanism guidance/);
   const ungoverned = { ...selectedAssessment(summary), authority: undefined };
-  const blocked = renderVibrationRoadmapPanel(Object.freeze({
+  const hidden = renderVibrationRoadmapPanel(Object.freeze({
     ...panelProjection(summary), context: Object.freeze({ selectedAssessment: ungoverned }),
   }));
-  assert.doesNotMatch(blocked, /Mechanism assessment/);
+  assert.doesNotMatch(hidden, /Mechanism guidance/);
 });
 
-test('summary authority is non-authorizing and bridge consumes matrix rather than static catalogue status', () => {
-  assert.equal(VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY.determinesApplicability, false);
-  assert.equal(VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY.determinesCompleteness, false);
-  assert.equal(VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY.numericalAuthority, 'NONE');
-  assert.equal(VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY.aggregationAuthority, 'NONE');
-  assert.equal(VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY.screeningAuthority, 'NOT_AUTHORIZED');
+test('bridge consumes matrix rather than static catalogue status', () => {
   const source = fs.readFileSync(path.join(ROOT, 'tabs/vibration-integrity-roadmap-bridge.js'), 'utf8');
   assert.match(source, /buildVibrationMechanismMatrixRow/);
   assert.match(source, /mechanismSummary:\s*buildVibrationRoadmapMechanismSummary\(projection\.matrix\)/);
