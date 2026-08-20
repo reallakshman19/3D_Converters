@@ -1,3 +1,4 @@
+import { inspectAivFacilityScenarioPlanForAssessment } from '../converters/vibration/aiv/aiv-facility-scenario-plan.js';
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260815-sbc-pf05-cache-1';
 import { evaluateEiMainLineAggregation } from '../converters/vibration/ei-mainline-aggregation.js';
@@ -90,22 +91,49 @@ function aivSessionContext(context) {
   return {
     screeningResult: context.aivScreeningResult ?? session?.screeningResult ?? null,
     resultState: context.aivResultState ?? session?.resultState ?? 'UNRUN',
+    executionContext: context.aivExecutionContext ?? session?.executionContext ?? null,
+    scenarioExecutionPlan: context.aivScenarioExecutionPlan ?? session?.scenarioExecutionPlan ?? null,
   };
+}
+
+function emptyAivAssessment(row, mechanism, reason, resultState = 'UNRUN') {
+  const contractSet = createVibrationMechanismAssessmentSet({
+    mechanismId: 'aiv', scope: rowScope(row), items: [],
+  });
+  return Object.freeze({
+    mechanism, contractSet, itemId: null, assessmentState: 'NOT_EVALUATED', calculated: false,
+    lof: null, referenceBand: null, qualificationState: null,
+    implementationState: 'IMPLEMENTED_SCREENING', resultState,
+    resultScope: 'ASSESSMENT', governingEligible: false, facilityScopeId: null,
+    readiness: Object.freeze({ missing: [], invalid: [], reasons: [reason] }),
+  });
 }
 
 function aivAssessment(row, mechanism, context) {
   const sessionContext = aivSessionContext(context);
+  if (!sessionContext.screeningResult) {
+    return emptyAivAssessment(row, mechanism, 'AIV_CURRENT_ASSESSMENT_RESULT_NOT_AVAILABLE');
+  }
+  if (sessionContext.executionContext !== 'FACILITY_LINKED' || !sessionContext.scenarioExecutionPlan) {
+    return emptyAivAssessment(row, mechanism, 'AIV_STANDALONE_NOT_FACILITY_EVIDENCE');
+  }
+  const scenarioCustody = inspectAivFacilityScenarioPlanForAssessment(
+    sessionContext.scenarioExecutionPlan,
+    row,
+  );
+  if (!scenarioCustody.ok) {
+    return emptyAivAssessment(
+      row,
+      mechanism,
+      scenarioCustody.status,
+      scenarioCustody.status === 'AIV_FACILITY_SCENARIO_STALE' ? 'STALE_RESULT' : 'UNRUN',
+    );
+  }
   const contractSet = buildAivVibrationMechanismAssessmentSet({
     row, screeningResult: sessionContext.screeningResult, resultState: sessionContext.resultState,
   });
   if (contractSet.cardinality.count === 0) {
-    return Object.freeze({
-      mechanism, contractSet, itemId: null, assessmentState: 'NOT_EVALUATED', calculated: false,
-      lof: null, referenceBand: null, qualificationState: null,
-      implementationState: 'IMPLEMENTED_SCREENING', resultState: 'UNRUN',
-      resultScope: 'ASSESSMENT', governingEligible: false, facilityScopeId: null,
-      readiness: Object.freeze({ missing: [], invalid: [], reasons: ['AIV_CURRENT_ASSESSMENT_RESULT_NOT_AVAILABLE'] }),
-    });
+    return emptyAivAssessment(row, mechanism, 'AIV_CURRENT_ASSESSMENT_RESULT_NOT_AVAILABLE');
   }
   const item = contractSet.items[0];
   return Object.freeze({
@@ -114,7 +142,8 @@ function aivAssessment(row, mechanism, context) {
     qualificationState: item.qualification?.effective ?? null,
     implementationState: item.implementationState, resultState: item.resultState,
     resultScope: 'ASSESSMENT', governingEligible: false, facilityScopeId: null,
-    readiness: item.readiness, evidence: item.evidence,
+    readiness: item.readiness,
+    evidence: Object.freeze({ ...item.evidence, facilityScenarioCustody: scenarioCustody }),
   });
 }
 
