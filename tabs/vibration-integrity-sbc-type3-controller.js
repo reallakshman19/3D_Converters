@@ -1,3 +1,8 @@
+import {
+  createVibrationScenarioExecutionBinding,
+  executeVibrationWithScenarioGuard,
+} from '../converters/vibration/mechanisms/scenario-execution.js';
+import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260820-runtime-scenario-guard-1';
 import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibration/sbc/type3-master-assisted-candidate.js?v=20260815-sbc-pf05-cache-1';
 import { deriveSbcType3MasterAssistedInputs } from '../converters/vibration/sbc/type3-master-assisted-derivation.js?v=20260815-sbc-pf05-cache-1';
 import {
@@ -18,7 +23,7 @@ import {
   sbcType3ScopeRevision,
   syncVisibleSbcType3Result,
   visibleSbcType3Result,
-} from './vibration-integrity-sbc-type3-state.js?v=20260815-sbc-pf05-cache-1';
+} from './vibration-integrity-sbc-type3-state.js?v=20260820-runtime-scenario-guard-1';
 
 const PHYSICAL = SBC_TYPE3_ENGINEERING_CHANGE_KINDS.physicalInput;
 
@@ -37,13 +42,54 @@ function normalizedPhysical(state, scope) {
   };
 }
 
+function facilityRow(state, scope) {
+  return (state.workspace?.rows ?? []).find((row) => {
+    try {
+      return sbcFacilityScopeId(row) === scope;
+    } catch {
+      return false;
+    }
+  }) ?? null;
+}
+
+function operatingScenarioForRow(state, row) {
+  if (!row || state.resultState !== 'CURRENT_RESULT') return null;
+  return (state.envelope?.workflow?.operatingScenarios ?? []).find((scenario) => (
+    scenario.line === row.line && scenario.caseId === row.caseId
+  )) ?? null;
+}
+
+function bindCurrentScenario(state, scope) {
+  const row = facilityRow(state, scope);
+  const scenario = operatingScenarioForRow(state, row);
+  if (!row || !scenario) return null;
+  const binding = createVibrationScenarioExecutionBinding(scenario);
+  state.sbcType3ScenarioBindingsByScope = {
+    ...state.sbcType3ScenarioBindingsByScope,
+    [scope]: binding,
+  };
+  return { row, scenario, binding };
+}
+
+function currentScenarioCustody(state, scope) {
+  const row = facilityRow(state, scope);
+  const scenario = operatingScenarioForRow(state, row);
+  const binding = state.sbcType3ScenarioBindingsByScope?.[scope] ?? null;
+  return row && scenario && binding ? { row, scenario, binding } : null;
+}
+
 export function openSbcType3FacilityScope(state, scopeValue, render, audit) {
   const scope = scopeId(scopeValue);
   state.workspaceTab = 'user-data';
   state.sbcType3ScopeId = scope;
   state.sbcType3Result = visibleSbcType3Result(state, scope);
+  const custody = bindCurrentScenario(state, scope);
   state.error = null;
-  audit?.('SBC_INPUTS_OPENED', { mode: 'MASTER_ASSISTED' }, scope);
+  audit?.('SBC_INPUTS_OPENED', {
+    mode: 'MASTER_ASSISTED',
+    scenarioId: custody?.binding.scenarioId ?? null,
+    scenarioSnapshotHash: custody?.binding.scenarioSnapshotHash ?? null,
+  }, scope);
   render?.();
 }
 
@@ -154,32 +200,51 @@ export async function evaluateSbcType3MasterAssisted(
   state, render, audit, calculate = calculateSbcType3MasterAssistedCandidate,
 ) {
   const scope = scopeId(state.sbcType3ScopeId);
+  const custody = currentScenarioCustody(state, scope);
+  if (!custody) {
+    state.error = 'SBC_OPERATING_SCENARIO_NOT_CURRENT: Open this SBC facility scope from a current facility run before evaluating.';
+    render?.();
+    return false;
+  }
   const started = beginSbcType3CandidateEvaluation(state.sbcType3CurrentnessStore, scope);
   state.sbcType3CurrentnessStore = started.store;
   setBusy(state, scope, started.operation.token);
   state.error = null;
   render?.();
   try {
-    const result = await calculate({
-      scopeId: scope,
-      physical: normalizedPhysical(state, scope),
-      mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
-      userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+    const guarded = await executeVibrationWithScenarioGuard({
+      scenarioBinding: custody.binding,
+      operatingScenario: custody.scenario,
+      execute: async ({ executionBasis }) => ({
+        executionBasis,
+        result: await calculate({
+          scopeId: scope,
+          physical: normalizedPhysical(state, scope),
+          mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
+          userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+        }),
+      }),
     });
+    const result = Object.freeze({ ...guarded.result, scenarioExecutionBasis: guarded.executionBasis });
     if (!result.ok) return commitNotReady(state, scope, started.operation, result);
     const completed = commitSbcType3CandidateEvaluation(
       state.sbcType3CurrentnessStore, started.operation, result,
     );
     if (!completed.accepted) return false;
     commitAcceptedCandidate(state, scope, result, completed);
-    audit?.('SBC_TYPE3_EVALUATED', { status: result.status, lof: result.lof }, scope);
+    audit?.('SBC_TYPE3_EVALUATED', {
+      status: result.status,
+      lof: result.lof,
+      scenarioId: guarded.executionBasis.scenarioId,
+      scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
+    }, scope);
     return true;
   } catch (error) {
     const failed = failSbcType3CandidateEvaluation(
       state.sbcType3CurrentnessStore, started.operation, String(error?.message || error),
     );
     state.sbcType3CurrentnessStore = failed.store;
-    if (failed.handled) state.error = String(error?.message || error);
+    if (failed.handled) state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     return false;
   } finally {
     clearBusy(state, scope, started.operation.token);
