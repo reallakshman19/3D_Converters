@@ -3,16 +3,16 @@
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: HEALTHY
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
-PR_HEAD_OBSERVED: d01be89ef1af8f16f0805a294734d41fce40fe9d
-REPORT_BASIS_HEAD: d01be89ef1af8f16f0805a294734d41fce40fe9d
+PR_HEAD_OBSERVED: eb436f43ec8423cb77f1aad7b39e6441e7eeff9e
+REPORT_BASIS_HEAD: eb436f43ec8423cb77f1aad7b39e6441e7eeff9e
 MAIN_HEAD_LAST_CHECKED: f19a050f8c542ce07e72d1c00af86142de92257f
 MERGE_BASE: f19a050f8c542ce07e72d1c00af86142de92257f
 REPORT_SYNC: CURRENT
-GROUNDING_EPOCH: GE-002
-CURRENT_STAGE: DRAFT_PR_FOCUSED_VALIDATION
+GROUNDING_EPOCH: GE-003
+CURRENT_STAGE: DRAFT_READY_FOR_OWNER_REVIEW
 CURRENT_BLOCKER: repository-native committed test remains unavailable in this runtime
 HIGHEST_RISK: scenario identity/provenance must never become an implicit engineering-authority or independent-maxima synthesis path
-EXACT_NEXT_ACTION: reconcile current main/PR head/diff/checks, keep PR draft, then in a successor PR bind assessment units to scenarioId/snapshotHash without modifying this contract
+EXACT_NEXT_ACTION: keep PR678 draft; after explicit owner merge authorization, merge exact head then start successor AssessmentUnit->OperatingScenario binding slice
 
 ## Handover in 60 Seconds
 
@@ -32,9 +32,27 @@ VibrationIntegrityDataset.v1
 
 PR: `https://github.com/reallaksh19/3D_Converters/pull/678`
 Branch: `agent/vib-operating-scenario-m5-20260820`
-Base/merge base at allocation: `f19a050f8c542ce07e72d1c00af86142de92257f`
-State: OPEN / DRAFT / UNMERGED
+Current base/main/merge base: `f19a050f8c542ce07e72d1c00af86142de92257f`
+Current observed PR head: `eb436f43ec8423cb77f1aad7b39e6441e7eeff9e`
+State: OPEN / DRAFT / MERGEABLE / UNMERGED
 Merge authority: OWNER_ONLY / NOT_GRANTED_FOR_PR678
+
+## Exact Remote Reconciliation — GE-003
+
+```text
+main / merge base       f19a050f8c542ce07e72d1c00af86142de92257f
+PR head                 eb436f43ec8423cb77f1aad7b39e6441e7eeff9e
+changed paths           7 / all intended
+reviews                 0
+review threads          0
+status contexts         0 returned -> NOT_RUN
+PR workflow runs        0 returned -> NOT_RUN
+main drift              none observed
+mergeable               true
+draft                    true
+```
+
+Empty status/workflow results are not represented as PASS.
 
 ## Implemented Contract
 
@@ -144,9 +162,9 @@ No mechanism can obtain screening/design authority from scenario construction.
 ## Changed-File Ledger
 
 Production/test:
-- `converters/vibration/dataset/operating-scenario.js` — NEW, 276 physical lines at allocation compare
+- `converters/vibration/dataset/operating-scenario.js` — NEW, 276 physical lines at implementation compare
 - `converters/vibration/dataset/index.js` — MODIFIED, export only (+8)
-- `tests/vibration-operating-scenario.test.mjs` — NEW, 232 physical lines at allocation compare
+- `tests/vibration-operating-scenario.test.mjs` — NEW, 232 physical lines at implementation compare
 
 Backup/recovery:
 - `.backups/connector-20260820-vib-operating-scenario-m5/converters/vibration/dataset/index.js`
@@ -186,8 +204,12 @@ No Project-v2 file, mechanism kernel/adapter, process-actualization authority, g
 - PR665 overlap inspection: PASS / NO_EXACT_OVERLAP
 - reconstructed module syntax: PASS / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED
 - reconstructed core falsifiers: PASS / LOCAL_EXECUTION / IMPLEMENTATION_COUPLED
-- physical-line policy at allocation compare: PASS / 276 production, 232 test
+- physical-line policy at implementation compare: PASS / 276 production, 232 test
 - exact pre-edit connector backup: PASS / repository backup path created before `index.js` edit
+- exact changed-file negative assurance: PASS / 7 intended paths only
+- reviews/review threads: PASS / REMOTE_SOURCE_STATE 0/0
+- exact-head status contexts: NOT_RUN / 0 returned
+- exact-head PR workflow runs: NOT_RUN / 0 returned
 - repository-native committed test: NOT_RUN / ENVIRONMENT_BLOCKED
 - browser: NOT_APPLICABLE / DATA_CONTRACT_ONLY
 - independent numerical verification: NOT_APPLICABLE / no equation or engineering value changed
