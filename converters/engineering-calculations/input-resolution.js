@@ -42,6 +42,10 @@ function normalizeVector3(value) {
 
 function normalizeFieldValue(field, value, unit) {
   if (field.type === 'vector3') return normalizeVector3(value);
+  if (field.type === 'array') {
+    if (!Array.isArray(value)) throw new TypeError('must be an array');
+    return cloneEngineeringValue(value);
+  }
   if (field.type === 'object' || field.type === 'table') return cloneEngineeringValue(value);
   const scalar = normalizeScalar(field, value);
   if (!['number', 'integer'].includes(field.type ?? 'number') || !field.quantity || field.quantity === 'dimensionless') return scalar;
