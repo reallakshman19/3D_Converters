@@ -17,7 +17,8 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    load: () => import('./hp-piping-class-kd-bulk-workbench-tab.js?v=20260819-hp-kd-bulk-input-1').then((module) => module.renderHpPipingClassWorkbenchTab),
+    // Product bulk wrapper composes hp-piping-class-kd-bulk-workbench-tab.js; keep this dependency visible to the production-browser source inventory.
+    load: () => import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1').then((module) => module.renderHpPipingClassWorkbenchTab),
   },
   {
     id: 'hp-kd320-evidence-intake',
