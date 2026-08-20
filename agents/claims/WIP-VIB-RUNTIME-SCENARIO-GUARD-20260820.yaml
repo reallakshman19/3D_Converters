@@ -1,0 +1,40 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-RUNTIME-SCENARIO-GUARD-20260820
+claim_state: ACTIVE
+branch: agent/vib-runtime-scenario-guard-integration-20260820
+stacked_base_pr: 680
+authority_domains:
+  - VIBRATION_RUNTIME_SCENARIO_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+files:
+  planned_exact:
+    - converters/vibration/mechanisms/scenario-execution.js
+    - converters/vibration/mechanisms/assessment-unit.js
+    - converters/vibration/facility/fit-plan.js
+    - converters/vibration/facility/fit-execute.js
+    - converters/vibration/facility/fit-workflow.js
+    - converters/vibration/mechanical/facility.js
+    - tabs/vibration-integrity-mechanical-controller.js
+    - converters/vibration/sbc/facility.js
+    - converters/vibration/mechanisms/sbc.js
+    - tabs/vibration-integrity-user-data-shell.js
+    - tabs/vibration-aiv-execution.js
+exclusions:
+  - mechanism equations/correlations
+  - source/master qualification
+  - geometry consistency tolerance
+  - process actualization/conversion
+  - EI main-line aggregation mathematics
+  - right-panel authority or blocking semantics
+  - project persistence
+  - .github/workflows/*
+coordination:
+  PR680: STACKED_BASE_COMMON_ASSESSMENT_UNIT_GUARD
+  PR649: AVOID_PULSATION_TRANSIENT_WORKBENCH_FILES
+  PR653: AVOID_T24_T25_SOURCE_GATE_FILES
+  PR655: AVOID_T4_SOURCE_GATE_FILES
+  PR665: AVOID_PROJECT_V2_FILES
+merge_authority: OWNER_ONLY_NOT_GRANTED
+release_condition: OWNER_REVIEW_AND_EXPLICIT_MERGE_AUTHORIZATION
