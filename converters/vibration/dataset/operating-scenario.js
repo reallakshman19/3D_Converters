@@ -16,6 +16,7 @@ export const VIBRATION_OPERATING_SCENARIO_AUTHORITY = Object.freeze({
   designAuthority: false,
   numericalAuthority: 'NONE',
   processActualizationAuthority: 'NONE',
+  coherenceAuthority: 'CALLER_DECLARATION_ONLY',
   determinesApplicability: false,
   determinesCompleteness: false,
   crossScenarioMixingAllowed: false,
@@ -52,6 +53,24 @@ function sha256(value) {
   return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
 }
 
+function datasetProvenance(dataset) {
+  const exchange = dataset.exchangeAuthority ?? {};
+  const datasetId = requireText(exchange.datasetId, 'dataset.exchangeAuthority.datasetId');
+  const missingFields = [];
+  if (!exchange.datasetVersion) missingFields.push('datasetVersion');
+  if (!exchange.sourceHash) missingFields.push('sourceHash');
+  return {
+    datasetId,
+    datasetVersion: exchange.datasetVersion ?? null,
+    sourceHash: exchange.sourceHash ?? null,
+    canonicalHash: exchange.canonicalHash ?? null,
+    projectionHash: exchange.projectionHash ?? null,
+    sourceFileName: dataset.sourceFileName ?? null,
+    status: missingFields.length ? 'INCOMPLETE' : 'COMPLETE',
+    missingFields,
+  };
+}
+
 function assertDataset(dataset) {
   if (!dataset || typeof dataset !== 'object' || Array.isArray(dataset)) {
     throw scenarioError('VIBRATION_SCENARIO_DATASET_REQUIRED', 'A vibration dataset is required.');
@@ -64,6 +83,7 @@ function assertDataset(dataset) {
       `Operating scenarios require governed ${VIBRATION_INTEGRITY_DATASET_SCHEMA} input.`,
     );
   }
+  datasetProvenance(dataset);
   return dataset;
 }
 
@@ -130,7 +150,7 @@ function quantitySnapshot(row) {
   return quantities;
 }
 
-function provenance(row) {
+function caseProvenance(row) {
   const missingFields = [];
   if (!row.sourceRevision) missingFields.push('sourceRevision');
   if (!row.recordId) missingFields.push('recordId');
@@ -143,8 +163,23 @@ function provenance(row) {
   };
 }
 
-function identity(line, caseId) {
-  const identityHash = sha256({ line, caseId });
+function combinedProvenance(dataset, row) {
+  const datasetRecord = datasetProvenance(dataset);
+  const operatingCase = caseProvenance(row);
+  const missingFields = [
+    ...datasetRecord.missingFields.map((field) => `dataset.${field}`),
+    ...operatingCase.missingFields.map((field) => `operatingCase.${field}`),
+  ];
+  return {
+    status: missingFields.length ? 'INCOMPLETE' : 'COMPLETE',
+    missingFields,
+    dataset: datasetRecord,
+    operatingCase,
+  };
+}
+
+function identity(datasetId, line, caseId) {
+  const identityHash = sha256({ datasetId, line, caseId });
   return {
     scenarioId: `OS-${identityHash.slice('sha256:'.length, 'sha256:'.length + 24)}`,
     identityHash,
@@ -153,6 +188,7 @@ function identity(line, caseId) {
 
 function snapshotCore(scenario) {
   return {
+    datasetId: scenario.datasetId,
     line: scenario.line,
     caseId: scenario.caseId,
     label: scenario.label,
@@ -164,17 +200,19 @@ function snapshotCore(scenario) {
   };
 }
 
-function buildScenario(row, selector) {
-  const scenarioIdentity = identity(row.line, row.caseId);
+function buildScenario(dataset, row, selector) {
+  const provenance = combinedProvenance(dataset, row);
+  const scenarioIdentity = identity(provenance.dataset.datasetId, row.line, row.caseId);
   const scenario = {
     schema: VIBRATION_OPERATING_SCENARIO_SCHEMA,
     ...scenarioIdentity,
+    datasetId: provenance.dataset.datasetId,
     line: row.line,
     caseId: row.caseId,
     label: row.label ?? null,
     phase: row.phase ?? null,
     quantities: quantitySnapshot(row),
-    provenance: provenance(row),
+    provenance,
     coherence: {
       declaration: selector.coherenceDeclaration,
       basis: 'SINGLE_DATASET_OPERATING_CASE_ROW',
@@ -183,6 +221,7 @@ function buildScenario(row, selector) {
       designLimitSubstitutionAllowed: false,
     },
     basisState: {
+      processBasis: 'NOT_REPRESENTED_BY_DATASET_V1',
       processActualization: 'NOT_PERFORMED',
       pressureReference: row.pressure
         ? (row.pressure.reference ? 'AS_PROVIDED' : 'UNRESOLVED')
@@ -197,7 +236,7 @@ function buildScenario(row, selector) {
 export function buildVibrationOperatingScenario(datasetInput, selectorInput) {
   const dataset = assertDataset(datasetInput);
   const selector = normalizeSelector(selectorInput);
-  return buildScenario(selectCase(dataset, selector), selector);
+  return buildScenario(dataset, selectCase(dataset, selector), selector);
 }
 
 export function assertVibrationOperatingScenario(value) {
@@ -205,9 +244,13 @@ export function assertVibrationOperatingScenario(value) {
     || value.schema !== VIBRATION_OPERATING_SCENARIO_SCHEMA) {
     throw scenarioError('VIBRATION_SCENARIO_SCHEMA_INVALID', `Expected ${VIBRATION_OPERATING_SCENARIO_SCHEMA}.`);
   }
-  const expectedIdentity = identity(requireText(value.line, 'line'), requireText(value.caseId, 'caseId'));
+  const expectedIdentity = identity(
+    requireText(value.datasetId, 'datasetId'),
+    requireText(value.line, 'line'),
+    requireText(value.caseId, 'caseId'),
+  );
   if (value.scenarioId !== expectedIdentity.scenarioId || value.identityHash !== expectedIdentity.identityHash) {
-    throw scenarioError('VIBRATION_SCENARIO_IDENTITY_INVALID', 'Scenario identity does not match line/case identity.');
+    throw scenarioError('VIBRATION_SCENARIO_IDENTITY_INVALID', 'Scenario identity does not match dataset/line/case identity.');
   }
   if (value.coherence?.declaration !== VIBRATION_OPERATING_SCENARIO_DECLARATION
     || value.coherence?.basis !== 'SINGLE_DATASET_OPERATING_CASE_ROW'
@@ -222,7 +265,8 @@ export function assertVibrationOperatingScenario(value) {
     || authority.screeningAuthority !== 'NOT_AUTHORIZED'
     || authority.designAuthority !== false
     || authority.numericalAuthority !== 'NONE'
-    || authority.processActualizationAuthority !== 'NONE') {
+    || authority.processActualizationAuthority !== 'NONE'
+    || authority.coherenceAuthority !== 'CALLER_DECLARATION_ONLY') {
     throw scenarioError('VIBRATION_SCENARIO_AUTHORITY_INVALID', 'Scenario authority boundary is invalid.');
   }
   if (value.snapshotHash !== sha256(snapshotCore(value))) {
