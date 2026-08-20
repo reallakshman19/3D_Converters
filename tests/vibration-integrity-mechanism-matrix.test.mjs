@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {
+  AIV_FACILITY_SCENARIO_EXECUTION_AUTHORITY,
+} from '../converters/vibration/aiv/aiv-facility-scenario-plan.js';
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js';
 import { SBC_TYPE3_BLOCKERS } from '../converters/vibration/sbc/type3-user-data.js';
@@ -19,6 +22,10 @@ function row() {
     line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1',
     standardLof: 0.34, governingReferenceLof: 0.34,
     referenceBand: 'LOF_0_3_TO_LT_0_5', qualificationState: 'SCREENING',
+    scenarioExecutionBasis: {
+      datasetId: 'plant-a', scenarioId: 'OS-L100-NORMAL',
+      scenarioSnapshotHash: 'sha256:assessment-current', line: 'L-100', caseId: 'NORMAL',
+    },
   };
 }
 
@@ -125,6 +132,38 @@ function aivScreeningResult(target = row(), lof = 0.42) {
   };
 }
 
+function aivScenarioPlan(target = row(), assessmentSnapshotHash = target.scenarioExecutionBasis.scenarioSnapshotHash) {
+  return {
+    schema: 'AivFacilityScenarioExecutionPlan.v1',
+    datasetId: target.scenarioExecutionBasis.datasetId,
+    facilityRunId: 'FIT-RUN-TEST-1',
+    relationshipExecutions: [{
+      rowKey: JSON.stringify(['RV-101', target.canonicalId, target.caseId]),
+      sourceCanonicalId: 'RV-101', assessmentCanonicalId: target.canonicalId,
+      caseId: target.caseId, sourceLine: 'L-SOURCE', assessmentLine: target.line,
+      sourceScenarioExecutionBasis: {
+        datasetId: target.scenarioExecutionBasis.datasetId, scenarioId: 'OS-SOURCE-NORMAL',
+        scenarioSnapshotHash: 'sha256:source-current', line: 'L-SOURCE', caseId: target.caseId,
+      },
+      assessmentScenarioExecutionBasis: {
+        datasetId: target.scenarioExecutionBasis.datasetId, scenarioId: target.scenarioExecutionBasis.scenarioId,
+        scenarioSnapshotHash: assessmentSnapshotHash, line: target.line, caseId: target.caseId,
+      },
+    }],
+    cardinality: 1,
+    authority: AIV_FACILITY_SCENARIO_EXECUTION_AUTHORITY,
+  };
+}
+
+function linkedAivContext(target = row(), lof = 0.42, assessmentSnapshotHash) {
+  return {
+    aivScreeningResult: aivScreeningResult(target, lof),
+    aivResultState: 'CURRENT_RESULT',
+    aivExecutionContext: 'FACILITY_LINKED',
+    aivScenarioExecutionPlan: aivScenarioPlan(target, assessmentSnapshotHash),
+  };
+}
+
 test('catalogue preserves Mechanical screening while integrating AIV at assessment scope only', () => {
   assert.deepEqual(VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => mechanism.id), VIBRATION_MECHANISM_IDS);
   const fit = VIBRATION_INTEGRITY_MECHANISMS.find((item) => item.id === 'fit');
@@ -171,11 +210,10 @@ test('caller-defined partial coverage universe is rejected by production orchest
   }), /CALLER_DEFINED_COVERAGE_CONFIG_FORBIDDEN/u);
 });
 
-test('current exact AIV assessment evidence satisfies AIV coverage but cannot govern the line', () => {
+test('current exact facility-linked AIV assessment evidence satisfies AIV coverage but cannot govern the line', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    resultState: 'CURRENT_RESULT', aivScreeningResult: aivScreeningResult(target, 0.42),
-    aivResultState: 'CURRENT_RESULT',
+    resultState: 'CURRENT_RESULT', ...linkedAivContext(target, 0.42),
     mechanismIdentifications: [identification('aiv', 'AIV_SOURCE_ASSESSMENT_PAIR', target)],
   });
   const aiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
@@ -185,10 +223,31 @@ test('current exact AIV assessment evidence satisfies AIV coverage but cannot go
   assert.equal(aiv.qualificationState, 'SCREENING');
   assert.equal(aiv.governingEligible, false);
   assert.equal(aiv.contractSet.items[0].result.governingLof, null);
+  assert.equal(aiv.evidence.facilityScenarioCustody.status, 'AIV_FACILITY_SCENARIO_CURRENT');
   assert.equal(matrix.mechanismCoverage.required[0].status, 'ASSESSMENT_COMPLETE');
   assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
   assert.equal(matrix.screeningGoverning.lof, 0.34);
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
+});
+
+test('standalone AIV result cannot satisfy facility mechanism coverage', () => {
+  const target = row();
+  const aiv = buildVibrationMechanismAssessment(target, 'aiv', {
+    aivScreeningResult: aivScreeningResult(target), aivResultState: 'CURRENT_RESULT',
+  });
+  assert.equal(aiv.assessmentState, 'NOT_EVALUATED');
+  assert.equal(aiv.calculated, false);
+  assert.deepEqual(aiv.readiness.reasons, ['AIV_STANDALONE_NOT_FACILITY_EVIDENCE']);
+});
+
+test('stale facility-linked AIV snapshot cannot satisfy current facility coverage', () => {
+  const target = row();
+  const aiv = buildVibrationMechanismAssessment(target, 'aiv', {
+    ...linkedAivContext(target, 0.42, 'sha256:assessment-old'),
+  });
+  assert.equal(aiv.assessmentState, 'NOT_EVALUATED');
+  assert.equal(aiv.resultState, 'STALE_RESULT');
+  assert.deepEqual(aiv.readiness.reasons, ['AIV_FACILITY_SCENARIO_STALE']);
 });
 
 test('external qualified AIV coverage evidence remains supported without static AIV line authority', () => {
@@ -235,8 +294,7 @@ test('qualified Mechanical direct baseline participates in screening governing, 
 test('AIV assessment cannot replace a higher qualified Mechanical screening result', () => {
   const target = row();
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    resultState: 'CURRENT_RESULT', ...mechanicalContext(target),
-    aivScreeningResult: aivScreeningResult(target, 0.95), aivResultState: 'CURRENT_RESULT',
+    resultState: 'CURRENT_RESULT', ...mechanicalContext(target), ...linkedAivContext(target, 0.95),
   });
   const aiv = matrix.assessments.find((item) => item.mechanism.id === 'aiv');
   assert.equal(aiv.lof, 0.95);
