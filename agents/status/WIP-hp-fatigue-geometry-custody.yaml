@@ -1,0 +1,15 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+branch: agent/hp-fatigue-geometry-custody
+base_sha: a97a44c92377c2fb8953fd5d212c0f53067b132f
+criticality: ENGINEERING_CRITICAL
+intent: USER_CALCULATED_KD3_EXTERNAL_GEOMETRY_COUPLING
+state: IMPLEMENTATION_IN_PROGRESS
+production_route: USER_CALCULATED_KD3
+native_core_kd3_qualified: false
+code_compliance: false
+design_authority: false
+production_kernel_allowed: false
+numerical_defect: EXTERNAL_SEQ_N_NOT_BOUND_TO_CORE_OD_EFFECTIVE_WALL
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: enforce analysisGeometry match before consuming external Seq/N
