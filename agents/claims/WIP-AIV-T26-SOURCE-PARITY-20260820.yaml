@@ -1,0 +1,48 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-AIV-T26-SOURCE-PARITY-20260820
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/aiv/aiv-t26.js
+    - converters/vibration/aiv/aiv-calculator.js
+    - converters/vibration/aiv/aiv-readiness.js
+    - converters/vibration/aiv/aiv-assumption-profile.js
+    - converters/engineering-calculations/adapters/vibration-aiv.js
+    - engineering/workpacks/VIB-AIV.json
+    - engineering/workpacks/probes/vib-aiv.mjs
+    - tests/vibration-aiv-t26-source-parity.test.mjs
+    - tests/vibration-aiv-auto-product-path.test.mjs
+    - tests/vibration-aiv-assumption-profile.test.mjs
+    - agents/WIP-AIV-T26-SOURCE-PARITY-20260820_workreport.md
+    - agents/status/WIP-AIV-T26-SOURCE-PARITY-20260820.yaml
+    - agents/claims/WIP-AIV-T26-SOURCE-PARITY-20260820.yaml
+    - .backups/connector-20260820-aiv-t26-source-parity/original-blobs.yaml
+  observe_only:
+    - converters/vibration/aiv/aiv-kernel-candidate.js
+    - converters/vibration/aiv/aiv-line-aggregation.js
+    - converters/vibration/aiv/aiv-errata-evidence.js
+    - converters/vibration/aiv/aiv-release-plan.js
+    - tests/vibration-aiv-screening-release.test.mjs
+    - ValidationRecords/AIV/ProductionFreeze/**
+authority_domains:
+  - AIV_T2_6_STAGE8_NUMERICAL_IMPLEMENTATION
+  - AIV_STAGE8_READINESS_EXECUTION_PARITY
+  - AIV_METHOD_REVISION_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+excluded_authority:
+  - AIV_T2_5_MULTI_SOURCE_SEMANTICS
+  - LINE_CASE_SCREENING_AUTHORITY
+  - DESIGN_AUTHORITY
+  - CANVAS_OR_RUNTIME_OWNERSHIP
+  - WORKFLOW_FILES
+  - PRODUCT_FREEZE_FINAL_DISPOSITION
+coordination:
+  PR506: SUPERSEDED_FOR_THIS_SCOPE_STALE_104_BEHIND_NON_GOAL_NO_NEW_EI_EQUATIONS
+  PR517: MERGED_PREDECESSOR_STALE_CLAIM_METADATA_ONLY
+  Advanced_Analysis_PR1289: MERGED_SOURCE_AUTHORITY
+base_head: a2dc24c27c791355044ae64939647a7c78804aca
+overlap_state: SAFE
+validation_gate: tests/vibration-aiv-t26-source-parity.test.mjs
+merge_authority: OWNER_ONLY_NOT_GRANTED
+note: Surgical Stage-8 source-parity slice. No authority widening; source-corroborated equations remain subject to separate Product Freeze/release qualification.
