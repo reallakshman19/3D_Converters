@@ -8,7 +8,8 @@ BRANCH: agent/hp-product-matrix-bulk-intake
 BASE: main
 BASE_SHA_AT_PR_OPEN: 1f8f12daf3846780341ad34ab56f9dc0bde05593
 PR_HEAD_AT_OPEN: 5e386641ca4b12c1b5b535525568dac2c41e9398
-CURRENT_STAGE: DRAFT_PR_BROWSER_QUALIFICATION_PENDING
+IMPLEMENTATION_TEST_HEAD_BEFORE_RECOVERY_SYNC: 0d08aaf9773224cdf097c961f868b18d810a2a47
+CURRENT_STAGE: DRAFT_EXACT_BLOB_QUALIFIED_FULL_APP_PENDING
 PR_AUTHORITY: GRANTED_2026_08_20
 MERGE_AUTHORITY: NOT_GRANTED
 
@@ -51,7 +52,7 @@ CSV and TSV are supported. Maximum 500 product rows.
 - Bulk input manages `DIRECT_ENGINEERING_INPUT` products only.
 - `GOVERNED_BASIS_PACKAGE` products are preserved and cannot be overwritten by an imported row.
 - Internal/external allowances remain class-level. Repeated CSV values must be identical for every row or the whole import is blocked.
-- Design pressure remains the existing class-level input and is not inferred.
+- Design pressure remains the existing class-level input and is not inferred from product bulk input.
 - Product identity is exact for custody. Duplicate imported IDs are checked case-insensitively.
 - A case-only rename of an existing product ID is blocked rather than silently detaching fatigue/result custody.
 - Fatigue packages for retained product IDs are preserved.
@@ -124,6 +125,8 @@ tabs/hp-piping-class-product-bulk-workbench-tab.js
 
 The new wrapper adds only product-matrix intake/preview and a nominal-size column. Apply serializes the rebuilt project through the existing JSON import action, waits for the existing controller to accept it, then triggers the existing Calculate action.
 
+PR681 browser-harness source inventory originally looked for the KD wrapper name directly in the route source. Because PR683 adds one wrapper layer, the route now contains an explicit composition comment naming `hp-piping-class-kd-bulk-workbench-tab.js`. This preserves the existing PR681 source-inventory assertion without changing runtime routing or duplicating the KD/result workbench.
+
 ## Authority boundary
 
 Unchanged:
@@ -148,7 +151,7 @@ tests/hp-piping-class-product-bulk-failclosed.test.mjs
 tests/hp-piping-class-product-bulk-ui.test.mjs
 ```
 
-Recovery paths after PR promotion:
+Recovery paths:
 
 ```text
 agents/PR683_workreport.md
@@ -156,39 +159,118 @@ agents/status/PR683.yaml
 agents/claims/PR683.yaml
 ```
 
-The former WIP workreport is retired after these PR records exist.
+The former WIP workreport is retired.
+
+## Exact committed-blob execution
+
+Because direct `git clone` / `git ls-remote` cannot resolve `github.com` in the current container, the focused source and test blobs were fetched through the GitHub connector and reconstructed locally.
+
+Before execution, `git hash-object` on each local file matched the exact PR blob SHA:
+
+```text
+product bulk module  3c4978bbf31197bc5b28330cfb52ffa841fc6e56
+product bulk wrapper 5bfad0413ad3c4ebb8b9d9997503f119f99c8193
+active route          02231f15ec39b07541286144b8f3cb86c8453278
+UI source test        b540595de90710b492388ed96408647ce2781ca6
+```
+
+The two numerical/fail-closed test blobs were likewise exact committed blobs.
+
+Executed:
+
+```text
+node --test
+  tests/hp-piping-class-product-bulk-input.test.mjs
+  tests/hp-piping-class-product-bulk-failclosed.test.mjs
+  tests/hp-piping-class-product-bulk-ui.test.mjs
+```
+
+Result:
+
+```text
+tests   15
+pass    15
+fail     0
+```
+
+Classification:
+
+```text
+PASS 15/15 / LOCAL_EXECUTION_EXACT_COMMITTED_BLOBS
+```
+
+This is stronger than source inspection, but it is not described as a native repository checkout run.
+
+## Chromium source-injection evidence
+
+The exact committed product-bulk module blob was injected into a real installed Chromium instance through CDP, following the same evidence-level discipline used by PR681.
+
+Two-product fixture:
+
+```text
+NPS4-S160 | 114.3 mm | S 138 MPa | 13.49 mm | 12.5% | ci 3 | co 0
+NPS6-XXS  | 168.3 mm | S 138 MPa | 18.26 mm | 12.5% | ci 3 | co 0
+```
+
+Observed in Chromium:
+
+```text
+preview ok             true
+parsed rows            2
+NPS4 min manufactured  11.80375 mm
+NPS4 effective net      8.80375 mm
+NPS6 min manufactured  15.977500000000001 mm
+NPS6 effective net     12.977500000000001 mm
+apply                   true
+products                NPS4-S160, NPS6-XXS
+nativeCoreKd3Qualified  false
+codeCompliance          false
+canUseForDesignAuthority false
+runtime exceptions      0
+```
+
+Tolerance-based assertions passed at 1e-12.
+
+Classification:
+
+```text
+PASS / REAL_CHROMIUM_SOURCE_INJECTION
+```
+
+This does **not** prove routed full-workbench navigation, `DataTransfer` file-import bridging, controller persistence, class-result refresh, export UI, or mobile layout.
 
 ## Validation ledger
-
-Executed before PR opening:
 
 ```text
 current-main re-grounding                         PASS / GITHUB_SOURCE
 main advancement HP-overlap                       PASS / NONE; vibration-only
-normalized branch ancestry                        PASS / behind 0
-exact implementation changed paths                PASS / 6 intended
+normalized branch ancestry                        PASS / behind 0 before recovery sync
+exact changed implementation paths                PASS / 6 intended
 independent product-wall arithmetic               PASS
 NPS4 minimum/effective wall                       PASS / 11.80375 / 8.80375 mm
 NPS6 minimum/effective wall                       PASS / 15.9775 / 12.9775 mm
 brownfield projected EOL                          PASS / 10.5 mm
 negative effective-wall falsifier                 PASS / -0.375 mm -> blocked
-source-level fail-closed cases                    ENCODED
+focused exact committed-blob Node tests           PASS 15/15
+real Chromium product-module source injection     PASS
+Chromium runtime exceptions                       0
+PR681 route source-inventory compatibility        PASS / SOURCE + EXACT-BLOB TEST
 ```
 
-Still not qualified unless subsequently recorded here:
+Still not qualified:
 
 ```text
-repository-native focused Node tests              NOT_RUN
-existing HP regression suite                      NOT_RUN
-PR681 FULL_APP Chromium two-product import        NOT_RUN
+repository-native checkout execution              NOT_RUN / DNS_ENVIRONMENT_BLOCKED
+existing full HP regression suite                 NOT_RUN
+PR681 FULL_APP Chromium two-product import        NOT_RUN / NO_NATIVE_CHECKOUT
 full repository regression                        NOT_RUN
 ```
 
-Never promote source inspection or Chromium transport self-test into `FULL_APP` product PASS.
+Never promote exact-blob execution or source injection into `FULL_APP` product PASS.
 
-## Qualification target on PR683
+## FULL_APP target still pending
 
-The browser journey should extend the merged PR681 harness with:
+The required routed journey remains:
 
 ```text
 load baseline HP class
@@ -204,14 +286,12 @@ load baseline HP class
 -> 375x900 containment/table-local overflow
 ```
 
-A lower execution mode must not claim routed full-workbench qualification.
-
 ## Next action
 
-1. Execute focused committed tests if a native checkout becomes available.
-2. Execute/extend `verify:hp-production-browser` against the exact PR683 head if FULL_APP can be run.
-3. Reconcile exact head/base, status checks, workflows, reviews, and review threads.
-4. Keep PR draft until the executed evidence is accurately recorded.
+1. Reconcile the exact PR683 head against current main.
+2. Record hosted status checks/workflows/reviews/threads against that exact head.
+3. Keep the PR draft because `FULL_APP` remains NOT_RUN.
+4. In the first native checkout + Chromium environment, execute/extend `npm run verify:hp-production-browser` for the two-product matrix and retain the receipt.
 5. Do not merge without explicit merge authorization.
 
 ## Appendix A — takeover qualification
@@ -222,4 +302,5 @@ A lower execution mode must not claim routed full-workbench qualification.
 4. What happens to fatigue custody for retained versus removed direct products?
 5. Why is the rebuilt project routed through the existing JSON import/controller and Calculate action?
 6. Which arithmetic is preview validation versus canonical engineering calculation?
-7. What evidence distinguishes `FULL_APP` browser qualification from a transport/source-injection check?
+7. Why is exact committed-blob Node execution not called a native checkout run?
+8. Why is real Chromium source injection still insufficient to claim `FULL_APP`?
