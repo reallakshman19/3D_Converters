@@ -6,10 +6,11 @@ TAKEOVER_AUTHORITY: WRITE_ALLOWED
 MAIN_HEAD_LAST_CHECKED: 68511e14b594eab9e21d06da3ddfc0836e92295b
 MERGE_BASE: 68511e14b594eab9e21d06da3ddfc0836e92295b
 IMPLEMENTATION_BASIS_HEAD: 13c3b4ddba1474cda0959f95afd6dab4b6cc749b
-CURRENT_STAGE: DRAFT_PR_FOCUSED_VALIDATION
+PR_HEAD_OBSERVED_BEFORE_RECOVERY_SYNC: 33168e85df7aed876bdad80bd14abd3b55025eed
+CURRENT_STAGE: DRAFT_READY_FOR_OWNER_REVIEW
 CURRENT_BLOCKER: repository-native committed execution unavailable in connector-only runtime
 HIGHEST_RISK: direct mechanism paths still bypass the new common guard until the successor adapter-integration PR
-EXACT_NEXT_ACTION: reconcile exact PR680 head/diff/reviews/checks; keep draft; successor PR routes current mechanism execution preparation through this contract
+EXACT_NEXT_ACTION: owner review/merge PR680; successor PR routes current executable mechanisms through this scenario guard
 
 ## Mission
 PR680 adds the first-class orchestration seam between `RequiredAssessmentSet.v1`, merged `OperatingScenario.v1`, and future M12 mechanism execution.
@@ -56,12 +57,30 @@ The guard proves custody only. It never grants permission to execute a method or
 
 Backup/recovery files are separate. Existing FIT/AIV/Mechanical/SBC adapters, calculations, source/master, UI, project persistence, geometry tolerance and process actualization remain read-only.
 
+## Final hosted reconciliation
+At observed head `33168e85df7aed876bdad80bd14abd3b55025eed` before recovery-only synchronization:
+
+```text
+base / merge base          68511e14b594eab9e21d06da3ddfc0836e92295b
+ahead / behind             14 / 0
+changed files              7 intended / 0 unexplained
+mergeable                  true
+draft                      true
+reviews                    0
+review threads             0
+status contexts            0 returned -> NOT_RUN
+PR-triggered workflow runs 0 returned -> NOT_RUN
+main drift                 none observed
+```
+
+Subsequent commits only synchronize this workreport/status and do not change the implementation/test basis.
+
 ## Validation ledger
 - merged PR678/current-main grounding: PASS / SOURCE_INSPECTION
 - RequiredAssessmentSet / mechanism contract trace: PASS / SOURCE_INSPECTION
 - open competing PR search: PASS / none found
 - physical-line policy: PASS / 252 production, 223 test
-- exact changed-path scope: PASS / bounded contract/export/test/recovery
+- exact changed-path scope: PASS / 7 intended paths
 - source-level falsifier coverage: PASS / ENCODED
   - exact binding
   - stable logical ID / moving snapshot ID
@@ -74,6 +93,8 @@ Backup/recovery files are separate. Existing FIT/AIV/Mechanical/SBC adapters, ca
   - tampered unit rejection
 - native checkout: NOT_RUN / ENVIRONMENT_BLOCKED (`github.com` DNS unavailable)
 - repository-native committed test: NOT_RUN / ENVIRONMENT_BLOCKED
+- status contexts: NOT_RUN / zero returned
+- PR workflow runs: NOT_RUN / zero returned
 - browser: NOT_APPLICABLE / data-orchestration contract
 - independent numerical verification: NOT_APPLICABLE / no equation or engineering value change
 
