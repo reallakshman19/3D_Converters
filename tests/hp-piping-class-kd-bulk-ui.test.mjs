@@ -47,7 +47,25 @@ test('detailed result ledger is refreshed only from the canonical evaluator afte
   assert.match(source, /evaluateHpPipingClassProject\(project, \{ includeEvidence: true \}\)/);
   assert.match(source, /baseAction === 'calculate'/);
   assert.match(source, /refreshLatestReview\(\)/);
-  assert.match(source, /renderHpPipingClassProductionResultHtml/);
+  assert.match(source, /renderHpPipingClassProductionResultHtml\(latestReview, resultView\)/);
   assert.match(source, /hpwbProductionResults/);
-  assert.match(source, /latestReview = null/);
+  assert.match(source, /clearReview\(\)/);
+});
+
+test('result export is generated from the same latest review and is round-trip verified before download', () => {
+  assert.match(source, /buildHpPipingClassResultExport\(latestReview\)/);
+  assert.match(source, /verifyHpPipingClassResultRoundTrip\(bundle\)/);
+  assert.match(source, /if \(!verified\.ok\) return/);
+  assert.match(source, /serializeHpPipingClassResultCsv\(bundle\)/);
+  assert.match(source, /serializeHpPipingClassResultJson\(bundle\)/);
+  assert.match(source, /data-hpwb-result-action/);
+});
+
+test('matrix filter and sort state do not mutate project engineering state', () => {
+  assert.match(source, /resultView = \{ filter: 'all', sortBy: 'reviewPriority', roundTrip: null \}/);
+  assert.match(source, /data-hpwb-result-filter/);
+  assert.match(source, /data-hpwb-result-sort/);
+  assert.match(source, /resultView\.filter = event\.target\.value/);
+  assert.match(source, /resultView\.sortBy = event\.target\.value/);
+  assert.doesNotMatch(source, /methodManifest\.codeCompliance\s*=\s*true/);
 });

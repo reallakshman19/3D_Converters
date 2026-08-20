@@ -1,3 +1,9 @@
+import {
+  buildHpPipingClassResultExport,
+  filterHpPipingClassResultRows,
+  sortHpPipingClassResultRows,
+} from './hp-piping-class-result-export.js';
+
 function esc(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -58,6 +64,29 @@ export function renderHpPipingClassProductionReadinessHtml(validation = {}) {
     return `<div class="hpwb-notice warn"><strong>Calculation available · ${summary.advisories.length} advisory item(s).</strong><ul>${summary.advisories.slice(0, 8).map((item) => `<li><span class="hpwb-code">${esc(item.code)}</span> · ${esc(item.path || 'project')}: ${esc(item.message)}</li>`).join('')}</ul><div class="hpwb-muted">Advisories do not block the production engineering-review calculation and do not establish design authority.</div></div>`;
   }
   return '<div class="hpwb-notice good"><strong>Calculation inputs structurally ready.</strong> No production-review validation blockers or method-identity advisories are open.</div>';
+}
+
+function priorityBadge(row) {
+  const kind = ['BLOCKED', 'STATIC_FAIL', 'FATIGUE_EXCEEDS_UNITY'].includes(row.reviewPriority) ? 'blocked'
+    : row.reviewPriority === 'FATIGUE_EVALUATED' ? 'warn' : 'info';
+  return `<span class="hpwb-badge ${kind}">${esc(row.reviewPriority)}</span>`;
+}
+
+function classMatrix(result, view = {}) {
+  const bundle = buildHpPipingClassResultExport(result);
+  const filter = view.filter ?? 'all';
+  const sortBy = view.sortBy ?? 'reviewPriority';
+  const filtered = filterHpPipingClassResultRows(bundle.productRows, filter);
+  const rows = sortHpPipingClassResultRows(filtered, sortBy);
+  const governing = sortHpPipingClassResultRows(bundle.productRows, 'reviewPriority')[0] ?? null;
+  const roundTrip = view.roundTrip ?? null;
+  return `<section class="hpwb-card hpwb-class-matrix" data-hpwb-class-result-matrix="true">
+    <div class="hpwb-section-toolbar"><div><h4>Class-wide result matrix</h4><p>Review-priority sorting is a reporting aid only; it is not a Code governing rule or design-release decision.</p></div><div class="hpwb-actions"><button class="hpwb-button" data-hpwb-result-action="export-csv" type="button">Export results CSV</button><button class="hpwb-button" data-hpwb-result-action="export-json" type="button">Export results JSON</button><button class="hpwb-button" data-hpwb-result-action="verify-roundtrip" type="button">Verify round trip</button></div></div>
+    <div class="hpwb-grid two"><label class="hpwb-field"><span>Filter</span><select data-hpwb-result-filter><option value="all" ${filter === 'all' ? 'selected' : ''}>All products</option><option value="needsAttention" ${filter === 'needsAttention' ? 'selected' : ''}>Needs attention</option><option value="blocked" ${filter === 'blocked' ? 'selected' : ''}>Calculation blocked</option><option value="staticFail" ${filter === 'staticFail' ? 'selected' : ''}>Static fail</option><option value="fatigueExceeds" ${filter === 'fatigueExceeds' ? 'selected' : ''}>Fatigue U &gt; 1</option><option value="fatigueEvaluated" ${filter === 'fatigueEvaluated' ? 'selected' : ''}>Fatigue evaluated</option><option value="staticOnly" ${filter === 'staticOnly' ? 'selected' : ''}>Static only</option></select></label><label class="hpwb-field"><span>Sort</span><select data-hpwb-result-sort><option value="reviewPriority" ${sortBy === 'reviewPriority' ? 'selected' : ''}>Review priority</option><option value="cumulativeUsage" ${sortBy === 'cumulativeUsage' ? 'selected' : ''}>Cumulative fatigue usage ↓</option><option value="pressureRatingMargin" ${sortBy === 'pressureRatingMargin' ? 'selected' : ''}>Pressure-rating margin ↑</option><option value="productId" ${sortBy === 'productId' ? 'selected' : ''}>Product ID</option></select></label></div>
+    ${governing ? `<div class="hpwb-notice warn"><strong>Highest review priority:</strong> ${esc(governing.productId)} · ${esc(governing.reviewPriority)} · P-rating margin ${fmt(governing.pressureRatingMargin, 6)} · cumulative U ${fmt(governing.cumulativeUsage, 6)}.</div>` : ''}
+    ${roundTrip ? `<div class="hpwb-notice ${roundTrip.ok ? 'good' : 'error'}" data-hpwb-result-roundtrip-status><strong>Round trip ${roundTrip.ok ? 'PASS' : 'FAIL'}.</strong> JSON ${roundTrip.jsonOk ? 'PASS' : 'FAIL'} · CSV ${roundTrip.csvOk ? 'PASS' : 'FAIL'} · ${roundTrip.productRowCount} product row(s) · ${roundTrip.cycleRowCount} cycle row(s).</div>` : '<div class="hpwb-muted" data-hpwb-result-roundtrip-status>Round-trip verification not run for the current calculation result.</div>'}
+    <div class="hpwb-table-wrap"><table class="hpwb-table hpwb-class-result-table"><thead><tr><th>Product</th><th>Priority</th><th>Static</th><th>P-rating MPa</th><th>P-rating margin</th><th>Req. nominal mm</th><th>Fatigue wall mm</th><th>U</th><th>Max cycle Ui</th><th>Governing cycle</th><th>State</th></tr></thead><tbody>${rows.map((row) => `<tr data-hpwb-result-product="${esc(row.productId)}"><td><strong>${esc(row.productId || '—')}</strong></td><td>${priorityBadge(row)}</td><td>${row.staticPass === true ? 'PASS' : row.staticPass === false ? 'FAIL' : '—'}</td><td>${fmt(row.pressureRatingMpa, 5)}</td><td>${fmt(row.pressureRatingMargin, 6)}</td><td>${fmt(row.requiredNominalThicknessMm, 5)}</td><td>${fmt(row.selectedFatigueWallMm, 5)}</td><td>${fmt(row.cumulativeUsage, 6)}</td><td>${fmt(row.maximumCycleUsage, 6)}</td><td>${esc(row.governingCycleId || '—')}</td><td>${esc(row.engineeringState || '—')}</td></tr>`).join('') || '<tr><td colspan="11">No products match the selected filter.</td></tr>'}</tbody></table></div>
+  </section>`;
 }
 
 function staticTable(product) {
@@ -126,7 +155,7 @@ function productDetail(product) {
   </details>`;
 }
 
-export function renderHpPipingClassProductionResultHtml(result = null) {
+export function renderHpPipingClassProductionResultHtml(result = null, view = {}) {
   if (!result) return '';
   if (!result.ok) {
     return `<div class="hpwb-notice error"><strong>${esc(result.projectState || 'CALCULATION BLOCKED')}</strong> · No production result ledger is shown because the canonical evaluator did not complete.</div>`;
@@ -135,6 +164,7 @@ export function renderHpPipingClassProductionResultHtml(result = null) {
   return `<section class="hpwb-card hpwb-production-review" data-hpwb-production-review="true">
     <div class="hpwb-section-toolbar"><div><h4>Production engineering-review ledger</h4><p>Detailed numerical replay of the same canonical evaluator after an explicit review run.</p></div><span class="hpwb-badge warn">REVIEW ONLY · NO DESIGN AUTHORITY</span></div>
     ${advisories.length ? `<div class="hpwb-notice warn"><strong>${advisories.length} advisory / warning item(s).</strong><ul>${advisories.slice(0, 12).map((row) => `<li><span class="hpwb-code">${esc(row.code)}</span> · ${esc(row.scope)}: ${esc(row.message)}</li>`).join('')}</ul></div>` : '<div class="hpwb-notice good">No calculation warnings were returned by the review evaluator.</div>'}
+    ${classMatrix(result, view)}
     ${(result.products ?? []).map(productDetail).join('') || '<div class="hpwb-notice warn">No product results were returned.</div>'}
   </section>`;
 }
