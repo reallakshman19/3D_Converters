@@ -14,7 +14,7 @@ import {
   VIBRATION_TABLE_EXCHANGE_SCHEMA,
 } from '../converters/vibration/exchange/schema.js';
 
-function exchange() {
+function exchange(authorityOverrides = {}) {
   return {
     schema: VIBRATION_TABLE_EXCHANGE_SCHEMA,
     completeExchange: true,
@@ -25,6 +25,7 @@ function exchange() {
       sourceHash: 'sha256:source',
       datasetId: 'plant-a',
       datasetVersion: 'rev-1',
+      ...authorityOverrides,
     },
     sourceFileName: 'plant-a.xlsx',
     elements: [
@@ -64,9 +65,9 @@ function cases() {
   ];
 }
 
-function dataset(operatingCases = cases()) {
+function dataset(operatingCases = cases(), exchangeValue = exchange()) {
   return assembleVibrationIntegrityDataset({
-    exchange: exchange(),
+    exchange: exchangeValue,
     operatingCases,
     enrichment: [],
   });
@@ -83,18 +84,23 @@ function selector(caseId = 'NORMAL') {
 test('exact line/case selection creates one coherent frozen OperatingScenario snapshot', () => {
   const scenario = buildVibrationOperatingScenario(dataset(), selector());
   assert.equal(scenario.schema, VIBRATION_OPERATING_SCENARIO_SCHEMA);
+  assert.equal(scenario.datasetId, 'plant-a');
   assert.equal(scenario.line, 'L-100');
   assert.equal(scenario.caseId, 'NORMAL');
   assert.equal(scenario.quantities.massFlow.value, 100);
   assert.equal(scenario.quantities.pressure.value, 10);
   assert.equal(scenario.provenance.status, 'COMPLETE');
-  assert.equal(scenario.provenance.source, 'HMB-100');
-  assert.equal(scenario.provenance.sourceRevision, 'C');
-  assert.equal(scenario.provenance.recordId, 'HMB-100-L100-NORMAL');
+  assert.equal(scenario.provenance.dataset.datasetId, 'plant-a');
+  assert.equal(scenario.provenance.dataset.datasetVersion, 'rev-1');
+  assert.equal(scenario.provenance.dataset.sourceHash, 'sha256:source');
+  assert.equal(scenario.provenance.operatingCase.source, 'HMB-100');
+  assert.equal(scenario.provenance.operatingCase.sourceRevision, 'C');
+  assert.equal(scenario.provenance.operatingCase.recordId, 'HMB-100-L100-NORMAL');
   assert.equal(scenario.coherence.basis, 'SINGLE_DATASET_OPERATING_CASE_ROW');
   assert.equal(scenario.coherence.crossScenarioMixingAllowed, false);
   assert.equal(scenario.coherence.independentMaximaSynthesisAllowed, false);
   assert.equal(scenario.coherence.designLimitSubstitutionAllowed, false);
+  assert.equal(scenario.basisState.processBasis, 'NOT_REPRESENTED_BY_DATASET_V1');
   assert.equal(scenario.basisState.processActualization, 'NOT_PERFORMED');
   assert.equal(scenario.basisState.pressureReference, 'AS_PROVIDED');
   assert.equal(scenario.authority, VIBRATION_OPERATING_SCENARIO_AUTHORITY);
@@ -119,14 +125,13 @@ test('two credible cases remain distinct and no independent-maxima Franken-case 
     { massFlow: relief.quantities.massFlow.value, pressure: relief.quantities.pressure.value },
     { massFlow: 50, pressure: 20 },
   );
-
   assert.notDeepEqual(
     { massFlow: normal.quantities.massFlow.value, pressure: normal.quantities.pressure.value },
     { massFlow: 100, pressure: 20 },
   );
 });
 
-test('scenario creation requires an explicit coherent-state declaration and rejects maxima selectors', () => {
+test('scenario creation requires explicit coherent-state declaration and rejects maxima selectors', () => {
   assert.throws(
     () => buildVibrationOperatingScenario(dataset(), { line: 'L-100', caseId: 'NORMAL' }),
     (error) => error.code === 'VIBRATION_SCENARIO_TEXT_REQUIRED',
@@ -146,7 +151,7 @@ test('scenario creation requires an explicit coherent-state declaration and reje
   );
 });
 
-test('missing source revision and record ID remain explicit provenance gaps', () => {
+test('missing source revision and record ID remain explicit operating-case provenance gaps', () => {
   const incomplete = [{
     caseId: 'NORMAL',
     line: 'L-100',
@@ -155,25 +160,42 @@ test('missing source revision and record ID remain explicit provenance gaps', ()
   }];
   const scenario = buildVibrationOperatingScenario(dataset(incomplete), selector());
   assert.equal(scenario.provenance.status, 'INCOMPLETE');
-  assert.deepEqual(scenario.provenance.missingFields, ['sourceRevision', 'recordId']);
-  assert.equal(scenario.provenance.sourceRevision, null);
-  assert.equal(scenario.provenance.recordId, null);
+  assert.deepEqual(
+    scenario.provenance.missingFields,
+    ['operatingCase.sourceRevision', 'operatingCase.recordId'],
+  );
+  assert.equal(scenario.provenance.operatingCase.sourceRevision, null);
+  assert.equal(scenario.provenance.operatingCase.recordId, null);
 });
 
-test('logical scenario identity stays stable while engineering input changes move the snapshot hash', () => {
+test('logical scenario identity is dataset scoped while snapshot moves with engineering input/revision', () => {
   const first = buildVibrationOperatingScenario(dataset(), selector());
   const changedCases = cases().map((row) => (
     row.caseId === 'NORMAL'
       ? { ...row, massFlow: { value: 101, unit: 'kg/s' } }
       : row
   ));
-  const second = buildVibrationOperatingScenario(dataset(changedCases), selector());
-  assert.equal(first.scenarioId, second.scenarioId);
-  assert.equal(first.identityHash, second.identityHash);
-  assert.notEqual(first.snapshotHash, second.snapshotHash);
+  const changedInput = buildVibrationOperatingScenario(dataset(changedCases), selector());
+  assert.equal(first.scenarioId, changedInput.scenarioId);
+  assert.equal(first.identityHash, changedInput.identityHash);
+  assert.notEqual(first.snapshotHash, changedInput.snapshotHash);
+
+  const changedDatasetRevision = buildVibrationOperatingScenario(
+    dataset(cases(), exchange({ datasetVersion: 'rev-2' })),
+    selector(),
+  );
+  assert.equal(first.scenarioId, changedDatasetRevision.scenarioId);
+  assert.notEqual(first.snapshotHash, changedDatasetRevision.snapshotHash);
+
+  const foreignDataset = buildVibrationOperatingScenario(
+    dataset(cases(), exchange({ datasetId: 'plant-b' })),
+    selector(),
+  );
+  assert.notEqual(first.scenarioId, foreignDataset.scenarioId);
+  assert.notEqual(first.identityHash, foreignDataset.identityHash);
 });
 
-test('snapshot integrity detects tampering and foreign datasets fail closed', () => {
+test('snapshot integrity detects tampering and foreign or identity-less datasets fail closed', () => {
   const scenario = buildVibrationOperatingScenario(dataset(), selector());
   const tampered = JSON.parse(JSON.stringify(scenario));
   tampered.quantities.massFlow.value = 999;
@@ -185,9 +207,13 @@ test('snapshot integrity detects tampering and foreign datasets fail closed', ()
     () => buildVibrationOperatingScenario({ schema: 'OtherDataset.v1', operatingCases: [] }, selector()),
     (error) => error.code === 'VIBRATION_SCENARIO_DATASET_INVALID',
   );
+  assert.throws(
+    () => buildVibrationOperatingScenario(dataset(cases(), exchange({ datasetId: '' })), selector()),
+    (error) => error.code === 'VIBRATION_SCENARIO_TEXT_REQUIRED',
+  );
 });
 
-test('pressure reference is preserved but never inferred and no process actualization is performed', () => {
+test('pressure reference is preserved but never inferred and process actualization stays separate', () => {
   const noReference = [{
     caseId: 'NORMAL',
     line: 'L-100',
@@ -199,6 +225,8 @@ test('pressure reference is preserved but never inferred and no process actualiz
   const scenario = buildVibrationOperatingScenario(dataset(noReference), selector());
   assert.equal(Object.hasOwn(scenario.quantities.pressure, 'reference'), false);
   assert.equal(scenario.basisState.pressureReference, 'UNRESOLVED');
+  assert.equal(scenario.basisState.processBasis, 'NOT_REPRESENTED_BY_DATASET_V1');
   assert.equal(scenario.basisState.processActualization, 'NOT_PERFORMED');
   assert.equal(scenario.authority.processActualizationAuthority, 'NONE');
+  assert.equal(scenario.authority.coherenceAuthority, 'CALLER_DECLARATION_ONLY');
 });
