@@ -2,11 +2,17 @@ import {
   HP_PIPING_CLASS_WORKSPACE_STORAGE_KEY,
   parseHpPipingClassWorkspaceProject,
 } from './hp-piping-class-workspace-controller.js';
+import { validateHpPipingClassProject } from '../converters/b313-chapter-ix/hp-piping-class-project.js';
+import { evaluateHpPipingClassProject } from '../converters/b313-chapter-ix/hp-piping-class-orchestrator.js';
 import { renderHpPipingClassWorkbenchTab as renderBaseWorkbench } from './hp-piping-class-workbench-tab.js';
 import {
   HP_PIPING_CLASS_KD_BULK_HEADERS,
   previewHpPipingClassKdBulkInput,
 } from './hp-piping-class-kd-bulk-input.js';
+import {
+  renderHpPipingClassProductionReadinessHtml,
+  renderHpPipingClassProductionResultHtml,
+} from './hp-piping-class-production-review-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -30,6 +36,10 @@ function ensureBulkStyles() {
   style.textContent = `
     .hpwb-bulk-input{width:100%;min-height:135px;resize:vertical;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:inherit;background:rgba(2,6,23,.52);border:1px solid rgba(148,163,184,.23);border-radius:8px;padding:10px;line-height:1.45}
     .hpwb-bulk-contract{display:block;margin:6px 0;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#93c5fd;overflow-wrap:anywhere}
+    .hpwb-production-readiness{margin-bottom:12px}.hpwb-production-readiness .hpwb-notice{margin:0}
+    .hpwb-production-review{margin-top:14px}.hpwb-production-ledger-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.hpwb-production-ledger-grid h4,.hpwb-production-review>section>h4{margin:0 0 7px}.hpwb-production-table{min-width:440px}.hpwb-production-cycle-table{min-width:1180px}.hpwb-production-product{margin-top:12px}.hpwb-production-metrics{grid-template-columns:repeat(5,minmax(120px,1fr))}.hpwb-code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#93c5fd}
+    @media(max-width:980px){.hpwb-production-ledger-grid{grid-template-columns:1fr}.hpwb-production-metrics{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+    @media(max-width:680px){.hpwb-production-metrics{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
 }
@@ -117,12 +127,59 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
   ensureBulkStyles();
   const drafts = new Map();
   let contextProject = options?.context?.hpPipingClassProject ?? null;
+  let latestReview = null;
   const destroyBase = renderBaseWorkbench(container, options);
 
   function currentProject() {
     return contextProject
       ? parseHpPipingClassWorkspaceProject(JSON.stringify(contextProject))
       : readProject();
+  }
+
+  function refreshLatestReview() {
+    try {
+      const project = currentProject();
+      const validation = validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
+      latestReview = validation.ok
+        ? evaluateHpPipingClassProject(project, { includeEvidence: true })
+        : null;
+    } catch {
+      latestReview = null;
+    }
+    return latestReview;
+  }
+
+  function injectProductionReview() {
+    const root = container.querySelector('.hpwb');
+    const workflow = container.querySelector('[data-hpwb-workflow]');
+    if (!root || !workflow) return;
+    let project;
+    try { project = currentProject(); } catch { return; }
+    const validation = validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
+    const readinessHtml = renderHpPipingClassProductionReadinessHtml(validation);
+    let readiness = root.querySelector('[data-hpwb-production-readiness]');
+    if (!readiness) {
+      readiness = document.createElement('div');
+      readiness.className = 'hpwb-production-readiness';
+      readiness.dataset.hpwbProductionReadiness = 'true';
+      workflow.before(readiness);
+    }
+    if (readiness.innerHTML !== readinessHtml) readiness.innerHTML = readinessHtml;
+
+    const panel = container.querySelector('.hpwb-panel');
+    const isEnvelope = panel?.querySelector('.hpwb-panel-heading h3')?.textContent?.trim() === 'Review Envelope';
+    let detail = panel?.querySelector('[data-hpwb-production-results]') ?? null;
+    if (!isEnvelope || !latestReview) {
+      detail?.remove();
+      return;
+    }
+    const resultHtml = renderHpPipingClassProductionResultHtml(latestReview);
+    if (!detail) {
+      detail = document.createElement('div');
+      detail.dataset.hpwbProductionResults = 'true';
+      panel.querySelector('.hpwb-foot-actions')?.before(detail);
+    }
+    if (detail.innerHTML !== resultHtml) detail.innerHTML = resultHtml;
   }
 
   function setPreview(evidenceIndex, text, preview) {
@@ -162,6 +219,7 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
       editor.innerHTML = editorHtml(evidenceIndex, state);
       card.querySelector('.hpwb-section-toolbar')?.after(editor);
     });
+    injectProductionReview();
   }
 
   function apply(evidenceIndex, text) {
@@ -195,7 +253,11 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
       drafts.set(Number(area.dataset.hpwbKdBulk), { text: area.value, preview: null });
       return;
     }
-    if (event.target.closest('[data-hpwb-bind]')) contextProject = null;
+    if (event.target.closest('[data-hpwb-bind]')) {
+      contextProject = null;
+      latestReview = null;
+      queueMicrotask(injectProductionReview);
+    }
   }
 
   function onClick(event) {
@@ -203,7 +265,15 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
     if (!target) {
       const baseAction = event.target.closest('[data-hpwb-action]')?.dataset.hpwbAction;
       if (['remove-product', 'remove-evidence', 'load-sample', 'new-project'].includes(baseAction)) drafts.clear();
-      if (['add-product', 'remove-product', 'add-state', 'remove-state', 'add-transition', 'remove-transition', 'add-evidence', 'remove-evidence', 'add-external-result', 'add-all-external-results', 'copy-external-basis', 'remove-external-result', 'load-sample', 'new-project'].includes(baseAction)) contextProject = null;
+      if (['add-product', 'remove-product', 'add-state', 'remove-state', 'add-transition', 'remove-transition', 'add-evidence', 'remove-evidence', 'add-external-result', 'add-all-external-results', 'copy-external-basis', 'remove-external-result', 'load-sample', 'new-project'].includes(baseAction)) {
+        contextProject = null;
+        latestReview = null;
+      }
+      if (baseAction === 'calculate' || baseAction === 'load-sample') {
+        if (baseAction === 'load-sample') contextProject = null;
+        refreshLatestReview();
+      }
+      queueMicrotask(injectProductionReview);
       return;
     }
     const evidenceIndex = Number(target.dataset.evidenceIndex);
@@ -216,12 +286,19 @@ export function renderHpPipingClassWorkbenchTab(container, options = {}) {
   }
 
   function onChange(event) {
-    if (event.target.matches('[data-hpwb-file]') && event.target.files?.[0]) contextProject = null;
+    if (event.target.matches('[data-hpwb-file]') && event.target.files?.[0]) {
+      contextProject = null;
+      latestReview = null;
+    }
     const input = event.target.closest('[data-hpwb-kd-bulk-file]');
     if (!input?.files?.[0]) return;
     const evidenceIndex = Number(input.dataset.hpwbKdBulkFile);
     loadFile(input.files[0], evidenceIndex).finally(() => { input.value = ''; });
   }
+
+  try {
+    if (currentProject()?.metadata?.referenceSampleId) refreshLatestReview();
+  } catch {}
 
   const observer = new MutationObserver(injectEditors);
   observer.observe(container, { childList: true, subtree: true });

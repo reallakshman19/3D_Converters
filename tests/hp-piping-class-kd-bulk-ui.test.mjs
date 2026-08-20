@@ -35,3 +35,19 @@ test('wrapper preserves audit separation and does not replace the existing workb
   assert.doesNotMatch(source, /nativeCoreKd3Qualified\s*=\s*true/);
   assert.doesNotMatch(source, /codeCompliance\s*=\s*true/);
 });
+
+test('active wrapper adds production-review readiness without converting advisories into blockers', () => {
+  assert.match(source, /validateHpPipingClassProject\(project, \{ validationPolicy: 'PRODUCTION_REVIEW' \}\)/);
+  assert.match(source, /renderHpPipingClassProductionReadinessHtml/);
+  assert.match(source, /hpwbProductionReadiness/);
+  assert.match(source, /injectProductionReview/);
+});
+
+test('detailed result ledger is refreshed only from the canonical evaluator after explicit calculation actions', () => {
+  assert.match(source, /evaluateHpPipingClassProject\(project, \{ includeEvidence: true \}\)/);
+  assert.match(source, /baseAction === 'calculate'/);
+  assert.match(source, /refreshLatestReview\(\)/);
+  assert.match(source, /renderHpPipingClassProductionResultHtml/);
+  assert.match(source, /hpwbProductionResults/);
+  assert.match(source, /latestReview = null/);
+});
