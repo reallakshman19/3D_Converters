@@ -1,3 +1,4 @@
+import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
 import {
   createVibrationScenarioExecutionBinding,
   executeVibrationWithScenarioGuard,
@@ -21,23 +22,36 @@ function operatingScenarioForRow(state, row) {
   )) ?? null;
 }
 
+function facilityRunBasisForRow(state, row) {
+  if (!row || state.resultState !== 'CURRENT_RESULT') return null;
+  const runId = state.runSnapshot?.runId;
+  const datasetId = row.scenarioExecutionBasis?.datasetId;
+  const scenarioSetKey = row.scenarioSetKey;
+  if (!runId || !datasetId || !scenarioSetKey) return null;
+  return createVibrationFacilityRunBasis({ runId, datasetId, scenarioSetKey });
+}
+
 export function bindCurrentSbcFacilityScenario(state, scope) {
   const row = facilityRow(state, scope);
   const scenario = operatingScenarioForRow(state, row);
-  if (!row || !scenario) return null;
+  const runBasis = facilityRunBasisForRow(state, row);
+  if (!row || !scenario || !runBasis) return null;
   const binding = createVibrationScenarioExecutionBinding(scenario);
   state.sbcType3ScenarioBindingsByScope = {
     ...state.sbcType3ScenarioBindingsByScope,
     [scope]: binding,
   };
-  return Object.freeze({ row, scenario, binding });
+  return Object.freeze({ row, scenario, binding, runBasis });
 }
 
 export function currentSbcFacilityScenarioCustody(state, scope) {
   const row = facilityRow(state, scope);
   const scenario = operatingScenarioForRow(state, row);
   const binding = state.sbcType3ScenarioBindingsByScope?.[scope] ?? null;
-  return row && scenario && binding ? Object.freeze({ row, scenario, binding }) : null;
+  const runBasis = facilityRunBasisForRow(state, row);
+  return row && scenario && binding && runBasis
+    ? Object.freeze({ row, scenario, binding, runBasis })
+    : null;
 }
 
 export function executeSbcFacilityWithScenario(state, scope, execute) {
@@ -47,12 +61,12 @@ export function executeSbcFacilityWithScenario(state, scope, execute) {
       'Open this SBC facility scope from a current facility run before evaluating.',
     );
     error.name = 'SbcFacilityScenarioError';
-    error.code = 'SBC_OPERATING_SCENARIO_NOT_CURRENT';
+    error.code = 'SBC_FACILITY_RUN_NOT_CURRENT';
     throw error;
   }
   return executeVibrationWithScenarioGuard({
     scenarioBinding: custody.binding,
     operatingScenario: custody.scenario,
-    execute,
+    execute: (guarded) => execute({ ...guarded, facilityRunBasis: custody.runBasis }),
   });
 }
