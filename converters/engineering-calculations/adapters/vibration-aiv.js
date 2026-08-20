@@ -3,16 +3,15 @@ import {
   createEngineeringCalculationError,
 } from '../contracts.js';
 import { composeEngineeringQualification } from '../qualification.js';
-import {
-  AIV_DEFAULT_ASSUMPTION_PROFILE,
-  validateAivAssumptionProfile,
-} from '../../vibration/aiv/aiv-assumption-profile.js';
+import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../../vibration/aiv/aiv-assumption-profile.js';
 import { calculateAiv } from '../../vibration/aiv/aiv-calculator.js';
+import { validateAivScreeningProfile } from '../../vibration/aiv/aiv-screening-profile.js';
 
 const SCREENING_REASONS = Object.freeze([
   'EI_D2_3_PRODUCT_PATH_22_OF_22_PASS',
   'BENCHMARK_ONLY_EXACT_HEAD_RELEASE_VALIDATION_PASS',
   'SCREENING_EIGHT_GROUP_MACHINE_QUALIFICATION_PASS',
+  'SOURCE_RECONCILED_T2_6_STAGE8_CALCULATION',
   'VISIBLE_USER_CONFIGURABLE_ASSUMPTIONS',
   'ASSESSMENT_SCOPE_SCREENING_ONLY',
   'AIV_LINE_REDUCTION_RULE_QUALIFIED_DERIVATION_ONLY',
@@ -57,12 +56,12 @@ function validateInput(input) {
     ));
   }
   const profile = input.assumptionProfile ?? AIV_DEFAULT_ASSUMPTION_PROFILE;
-  const validation = validateAivAssumptionProfile(profile);
+  const validation = validateAivScreeningProfile(profile);
   if (!validation.valid) {
     errors.push(createEngineeringCalculationError(
       'INPUT_INVALID',
-      'AIV assumption profile is invalid.',
-      { missing: validation.missing, invalidNumeric: validation.invalidNumeric },
+      'AIV screening assumption profile violates screening policy.',
+      { issues: validation.issues },
       'assumptionProfile',
     ));
   }
@@ -73,6 +72,7 @@ function validateInput(input) {
       applicable: errors.length === 0,
       limitations: [
         'Assessment-level LOF is the qualified screening result scope.',
+        'Stage 8 T2.6 uses current assessment geometry, connection type and explicit duplex disposition; benchmark A/S/B and FLM1 values are oracle-only.',
         'Line/case reduction uses the qualified greatest-discontinuity rule.',
         'Welded-discontinuity inventory completeness may be verified from exact-revision human attestation plus machine topology checks, but this calculation does not promote line/case screening authority.',
         'Missing engineering inputs may be filled only by the visible/exported user-configurable assumption profile.',
@@ -136,6 +136,7 @@ function calculate(input, runtime = {}) {
       applicable: true,
       limitations: [
         screening ? 'Assessment-level screening authority only.' : 'Benchmark execution only.',
+        'Stage 8 uses the source-reconciled T2.6 evaluator; configured D.2.3 intermediates are not runtime inputs.',
         'Line/case LOF is derived from current assessment results using the qualified greatest-discontinuity rule.',
         result.lineCaseAssessmentInventoryCompleteness === 'VERIFIED_COMPLETE'
           ? 'Current line/case inventory completeness evidence verified; line/case screening authority is still not promoted by this method revision.'
@@ -146,7 +147,8 @@ function calculate(input, runtime = {}) {
     provenance: {
       domainApi: 'calculateAiv',
       methodId: 'VIB.AIV.ACOUSTIC',
-      methodRevision: 'ei-aviff2-aiv-auto-screening-v3',
+      methodRevision: 'ei-aviff2-aiv-auto-screening-v4',
+      stage8Model: 'SOURCE_CALCULATED_T2_6',
       assumptionProfileSchema: result.assumptionProfile.schema,
       lineCaseAggregationRuleId: result.lineCaseAggregationRuleId,
       inventoryCompletenessHumanEvidenceRequired: true,
@@ -183,17 +185,18 @@ export const VIBRATION_AIV_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   family: 'VIB',
   name: 'Acoustic-Induced Vibration Screening',
   shortName: 'Acoustic-Induced Vibration',
-  methodRevision: 'ei-aviff2-aiv-auto-screening-v3',
-  purpose: 'Execute the traceable 10-stage AIV method for assessment-level screening, derived line/case reduction and explicit welded-discontinuity inventory completeness custody.',
+  methodRevision: 'ei-aviff2-aiv-auto-screening-v4',
+  purpose: 'Execute the traceable 10-stage AIV method with source-calculated T2.6 assessment screening, derived line/case reduction and explicit welded-discontinuity inventory completeness custody.',
   authority: {
     calculationState: 'IMPLEMENTED',
     qualificationState: 'SCREENING',
     codeCompliance: false,
   },
   applicability: {
-    description: 'Gas-phase pressure-reducing AIV source-to-welded-discontinuity assessment screening with explicit source/path/geometry evidence, visible assumptions and optional exact-revision inventory completeness evidence.',
+    description: 'Gas-phase pressure-reducing AIV source-to-welded-discontinuity assessment screening with explicit source/path/geometry/material evidence, visible assumptions and optional exact-revision inventory completeness evidence.',
     limitations: [
       'Assessment-level screening authority only; no design authority.',
+      'Current source-calculated T2.6 screening envelope is WELDOLET/WELDED_TEE with explicit branch OD and Duplex YES/NO disposition.',
       'Line/case reduction rule is qualified for derivation.',
       'Verified inventory completeness evidence does not itself promote line/case screening authority.',
       'All assumed values must remain visible, editable and exported.',
