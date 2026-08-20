@@ -1,0 +1,24 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-VIB-RUNTIME-SCENARIO-GUARD-20260820
+branch: agent/vib-runtime-scenario-guard-integration-20260820
+base: agent/vib-assessment-unit-scenario-binding-20260820
+base_pr: 680
+base_sha: 03ff53eebc7b4cafe03d06f1d7044c137aa13beb
+state: IMPLEMENTATION_STARTED
+criticality: ENGINEERING_CRITICAL_RUNTIME_ORCHESTRATION
+coordination_state: STACKED_ON_PR680_NO_KNOWN_EXACT_CONFLICT
+validation:
+  engineering_pr_delivery: PASS_SOURCE_INSPECTION
+  authority_boundary_trace: PASS_SOURCE_INSPECTION
+  actual_kernel_call_trace: PASS_SOURCE_INSPECTION
+  focused_tests: NOT_RUN
+authority:
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  design_authority_changed: false
+  numerical_authority_changed: false
+  execution_authority_changed: false
+blockers:
+  aiv_facility_scenario_handoff: REQUIRED_NO_FABRICATED_DATASET_ID
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: IMPLEMENT_COMMON_SCENARIO_EXECUTION_BINDING_AND_REAL_PRODUCTION_CONSUMERS
