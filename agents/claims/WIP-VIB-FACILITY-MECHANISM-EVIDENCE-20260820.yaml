@@ -1,0 +1,26 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-FACILITY-MECHANISM-EVIDENCE-20260820
+claim_state: ACTIVE
+branch: agent/vib-facility-mechanism-evidence-20260820
+authority_domains:
+  - VIBRATION_FACILITY_MECHANISM_EVIDENCE
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+files:
+  exact:
+    - converters/vibration/facility/mechanism-evidence.js
+    - tabs/vibration-integrity-run-evidence.js
+    - tests/vibration-facility-mechanism-evidence.test.mjs
+    - tests/vibration-integrity-run-evidence.test.mjs
+exclusions:
+  - vibration mechanism equations and coefficients
+  - source/master qualification
+  - applicability and completeness authority
+  - EI main-line aggregation authority
+  - design authority
+  - right-panel blocking or execution authority
+  - process actualization
+coordination:
+  PR684: MERGED_AIV_FACILITY_SCENARIO_CUSTODY_FOUNDATION
+release_condition: OWNER_MERGE_AUTHORITY_REQUIRED
