@@ -1,4 +1,5 @@
 import { buildAivTopologyViewModel } from './aiv-topology-view-model.js';
+import { validateAivT26Assessment } from './aiv-t26.js';
 
 export const AIV_READINESS_SCHEMA = 'AivReadinessPlan.v2';
 
@@ -144,7 +145,14 @@ function sameUnit(...quantities) {
   return units.length > 0 && units.every((unit) => unit === units[0]);
 }
 
-function validateAssessment(row, missing, invalid) {
+function addT26Issues(row, missing, invalid, methodGaps) {
+  for (const item of validateAivT26Assessment(row).issues) {
+    const target = item.kind === 'METHOD_GAP' ? methodGaps : item.kind === 'MISSING' ? missing : invalid;
+    target.push(issue(item.code, item.field, item.message));
+  }
+}
+
+function validateAssessment(row, missing, invalid, methodGaps) {
   if (!row) {
     missing.push(issue('AIV_ASSESSMENT_JOIN_REQUIRED', 'assessment', 'Relationship does not resolve to an AIV assessment record.'));
     return;
@@ -157,8 +165,7 @@ function validateAssessment(row, missing, invalid) {
   const comparableMainUnits = sameUnit(...mainDimensions);
   if (!comparableMainUnits) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIMENSION_UNITS_MIXED', 'assessment', 'Main OD, ID and wall thickness must use one explicit unit before readiness compares dimensions.'));
   if (comparableMainUnits && row.mainInsideDiameter.value >= row.mainOutsideDiameter.value) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIAMETER_CONFLICT', 'assessment.mainInsideDiameter', 'Main inside diameter must be less than main outside diameter.'));
-  if (['WELDOLET', 'WELDED_TEE'].includes(row.assessmentType) && !(row.branchOutsideDiameter?.value > 0)) missing.push(issue('AIV_ASSESSMENT_BRANCH_OD_REQUIRED', 'assessment.branchOutsideDiameter', `${row.assessmentType} requires explicit branch outside diameter evidence.`));
-  if (row.duplexState === 'UNRESOLVED') missing.push(issue('AIV_ASSESSMENT_DUPLEX_STATE_UNRESOLVED', 'assessment.duplexState', 'Duplex/material branch disposition is unresolved.'));
+  addT26Issues(row, missing, invalid, methodGaps);
 }
 
 function validateRelationship(row, topology, missing, invalid) {
@@ -191,7 +198,7 @@ function buildRow(exchange, relationship, source, assessment) {
   });
   const groups = { missing: [], invalid: [], methodGaps: [], warnings: [] };
   validateSource(source, groups.missing, groups.invalid, groups.methodGaps, groups.warnings);
-  validateAssessment(assessment, groups.missing, groups.invalid);
+  validateAssessment(assessment, groups.missing, groups.invalid, groups.methodGaps);
   validateRelationship(relationship, topology, groups.missing, groups.invalid);
   if (relationship.sourceCanonicalId === relationship.assessmentCanonicalId) groups.invalid.push(issue('AIV_SOURCE_ASSESSMENT_IDENTITY_COLLISION', 'relationship', 'Source and assessment Canonical IDs must be distinct.'));
   const sourceElement = exchange.elements.find((element) => element.canonicalId === relationship.sourceCanonicalId) ?? null;
@@ -258,7 +265,7 @@ export function buildAivReadiness(exchange, sources = [], assessments = [], rela
     counts,
     rows,
     notes: [
-      'Readiness validates joined source, assessment, relationship and certified-topology evidence; it does not itself execute the calculator.',
+      'Readiness validates joined source, assessment, relationship, T2.6 executable-domain and certified-topology evidence; it does not itself execute the calculator.',
       'Physical AIV distance is supplied by engineering relationship evidence or an explicit visible assumption and is never derived from topology presentation geometry.',
       'READY_FOR_QUALIFICATION is the retained readiness-state name; under current release authority, rows with no NOT_READY or METHOD_GAP may proceed to assessment-level SCREENING execution.',
       'Explicit SONIC input is within the machine-qualified SFF=6 branch; unresolved sonic state remains fail-closed.',
