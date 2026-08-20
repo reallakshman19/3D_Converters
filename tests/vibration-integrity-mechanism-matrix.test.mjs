@@ -22,6 +22,7 @@ function row() {
     line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1',
     standardLof: 0.34, governingReferenceLof: 0.34,
     referenceBand: 'LOF_0_3_TO_LT_0_5', qualificationState: 'SCREENING',
+    scenarioSetKey: 'VFSK1:matrix-current',
     scenarioExecutionBasis: {
       datasetId: 'plant-a', scenarioId: 'OS-L100-NORMAL',
       scenarioSnapshotHash: 'sha256:assessment-current', line: 'L-100', caseId: 'NORMAL',
@@ -132,11 +133,16 @@ function aivScreeningResult(target = row(), lof = 0.42) {
   };
 }
 
-function aivScenarioPlan(target = row(), assessmentSnapshotHash = target.scenarioExecutionBasis.scenarioSnapshotHash) {
+function aivScenarioPlan(
+  target = row(),
+  assessmentSnapshotHash = target.scenarioExecutionBasis.scenarioSnapshotHash,
+  facilityScenarioSetKey = target.scenarioSetKey,
+) {
   return {
     schema: 'AivFacilityScenarioExecutionPlan.v1',
     datasetId: target.scenarioExecutionBasis.datasetId,
     facilityRunId: 'FIT-RUN-TEST-1',
+    facilityScenarioSetKey,
     relationshipExecutions: [{
       rowKey: JSON.stringify(['RV-101', target.canonicalId, target.caseId]),
       sourceCanonicalId: 'RV-101', assessmentCanonicalId: target.canonicalId,
@@ -155,12 +161,17 @@ function aivScenarioPlan(target = row(), assessmentSnapshotHash = target.scenari
   };
 }
 
-function linkedAivContext(target = row(), lof = 0.42, assessmentSnapshotHash) {
+function linkedAivContext(
+  target = row(),
+  lof = 0.42,
+  assessmentSnapshotHash,
+  facilityScenarioSetKey,
+) {
   return {
     aivScreeningResult: aivScreeningResult(target, lof),
     aivResultState: 'CURRENT_RESULT',
     aivExecutionContext: 'FACILITY_LINKED',
-    aivScenarioExecutionPlan: aivScenarioPlan(target, assessmentSnapshotHash),
+    aivScenarioExecutionPlan: aivScenarioPlan(target, assessmentSnapshotHash, facilityScenarioSetKey),
   };
 }
 
@@ -240,10 +251,25 @@ test('standalone AIV result cannot satisfy facility mechanism coverage', () => {
   assert.deepEqual(aiv.readiness.reasons, ['AIV_STANDALONE_NOT_FACILITY_EVIDENCE']);
 });
 
-test('stale facility-linked AIV snapshot cannot satisfy current facility coverage', () => {
+test('stale facility-linked AIV assessment snapshot cannot satisfy current facility coverage', () => {
   const target = row();
   const aiv = buildVibrationMechanismAssessment(target, 'aiv', {
     ...linkedAivContext(target, 0.42, 'sha256:assessment-old'),
+  });
+  assert.equal(aiv.assessmentState, 'NOT_EVALUATED');
+  assert.equal(aiv.resultState, 'STALE_RESULT');
+  assert.deepEqual(aiv.readiness.reasons, ['AIV_FACILITY_SCENARIO_STALE']);
+});
+
+test('source-line scenario-set drift invalidates AIV even when assessment snapshot is unchanged', () => {
+  const target = row();
+  const aiv = buildVibrationMechanismAssessment(target, 'aiv', {
+    ...linkedAivContext(
+      target,
+      0.42,
+      target.scenarioExecutionBasis.scenarioSnapshotHash,
+      'VFSK1:matrix-old-source-state',
+    ),
   });
   assert.equal(aiv.assessmentState, 'NOT_EVALUATED');
   assert.equal(aiv.resultState, 'STALE_RESULT');
