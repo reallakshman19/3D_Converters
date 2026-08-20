@@ -39,7 +39,7 @@ test('wrapper preserves audit separation and does not replace the existing workb
 test('active wrapper adds production-review readiness without converting advisories into blockers', () => {
   assert.match(source, /validateHpPipingClassProject\(project, \{ validationPolicy: 'PRODUCTION_REVIEW' \}\)/);
   assert.match(source, /renderHpPipingClassProductionReadinessHtml/);
-  assert.match(source, /data-hpwb-production-readiness/);
+  assert.match(source, /hpwbProductionReadiness/);
   assert.match(source, /injectProductionReview/);
 });
 
@@ -48,6 +48,6 @@ test('detailed result ledger is refreshed only from the canonical evaluator afte
   assert.match(source, /baseAction === 'calculate'/);
   assert.match(source, /refreshLatestReview\(\)/);
   assert.match(source, /renderHpPipingClassProductionResultHtml/);
-  assert.match(source, /data-hpwb-production-results/);
+  assert.match(source, /hpwbProductionResults/);
   assert.match(source, /latestReview = null/);
 });
