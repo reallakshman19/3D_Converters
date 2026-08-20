@@ -19,7 +19,7 @@ const GROUP_LABELS = Object.freeze({
   SPECIALIST_SYSTEM: 'Specialist mechanisms',
   SBC_CONNECTION: 'Small-bore connections',
   INTRUSIVE_ELEMENT: 'Intrusive elements',
-  UNCLASSIFIED: 'Other mechanisms',
+  UNCLASSIFIED: 'Identification pending / unclassified',
 });
 
 const STATE_LABELS = Object.freeze({
@@ -85,5 +85,6 @@ export function renderVibrationRoadmapMechanismSummary(summary) {
   const groups = grouped(summary.items).map((entry) => (
     `<div class="vibration-roadmap-mechanism-group"><h4>${esc(GROUP_LABELS[entry.group])}</h4>${entry.items.map(mechanismRow).join('')}</div>`
   )).join('');
-  return `<section class="vibration-roadmap-mechanism-summary"><div class="vibration-roadmap-workflow-label"><strong>Mechanism assessment</strong><small>12-mechanism scope · projection only</small></div>${summaryCounts(summary)}<small class="vibration-roadmap-mechanism-rule">Required but unavailable remains incomplete. Missing implementation never means not applicable.</small>${groups}</section>`;
+  const scopeLabel = `${summary.counts.total}-mechanism scope · projection only`;
+  return `<section class="vibration-roadmap-mechanism-summary"><div class="vibration-roadmap-workflow-label"><strong>Mechanism assessment</strong><small>${esc(scopeLabel)}</small></div>${summaryCounts(summary)}<small class="vibration-roadmap-mechanism-rule">Required but unavailable remains incomplete. Missing implementation never means not applicable.</small>${groups}</section>`;
 }
