@@ -18,6 +18,7 @@ validation:
   main_grounding: PASS
   initial_branch_ancestry: PASS_AHEAD_2_BEHIND_0
   initial_changed_paths: PASS_3_INTENDED
+  final_reconciled_paths_before_status_sync: PASS_6_INTENDED
   companion_runner_syntax: PASS
   companion_static_regression: PASS_9_OF_9
   chromium_cdp_self_test: PASS
@@ -27,6 +28,15 @@ validation:
   independent_numerical: PASS
   product_matrix_full_app: NOT_RUN_NATIVE_CHECKOUT_UNAVAILABLE
   combined_hp_browser_command: NOT_RUN_NATIVE_CHECKOUT_UNAVAILABLE
+  base_browser_lane_rerun: NOT_RUN_UNCHANGED_THIS_PR
   full_repository_regression: NOT_RUN
+hosted_reconciliation:
+  observed_head_before_recovery_sync: 7b91eca66ab9be20a6de97510755eae62973d65d
+  mergeable: true
+  behind_main: 0
+  commit_status_checks: 0
+  pr_workflow_runs: 0
+  reviews: 0
+  review_threads: 0
 merge_authority: NOT_GRANTED
-next_action: RECONCILE_PR_THEN_RUN_NATIVE_FULL_APP_WHEN_AVAILABLE
+next_action: RUN_NATIVE_COMBINED_FULL_APP_WHEN_AVAILABLE_THEN_RECONCILE
