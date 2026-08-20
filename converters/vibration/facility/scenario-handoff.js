@@ -41,8 +41,11 @@ function scopeKey(line, caseId) {
   return JSON.stringify([line, caseId]);
 }
 
-function normalizeEntries(values) {
-  if (!Array.isArray(values) || values.length === 0) {
+function normalizedScenarioSet(values, { requireNonEmpty = false } = {}) {
+  if (!Array.isArray(values)) {
+    throw handoffError('VIBRATION_FACILITY_HANDOFF_SCENARIOS_INVALID', 'Facility scenarios must be an array.');
+  }
+  if (requireNonEmpty && values.length === 0) {
     throw handoffError(
       'VIBRATION_FACILITY_HANDOFF_SCENARIOS_REQUIRED',
       'Facility scenario handoff requires at least one governed OperatingScenario.',
@@ -50,7 +53,7 @@ function normalizeEntries(values) {
   }
   const datasetIds = new Set();
   const seen = new Set();
-  const entries = values.map((value) => {
+  const scenarios = values.map((value) => {
     const scenario = assertVibrationOperatingScenario(value);
     const key = scopeKey(scenario.line, scenario.caseId);
     if (seen.has(key)) {
@@ -61,21 +64,49 @@ function normalizeEntries(values) {
     }
     seen.add(key);
     datasetIds.add(scenario.datasetId);
-    return {
-      line: scenario.line,
-      caseId: scenario.caseId,
-      scenario,
-      binding: createVibrationScenarioExecutionBinding(scenario),
-    };
+    return scenario;
   });
-  if (datasetIds.size !== 1) {
+  if (datasetIds.size > 1) {
     throw handoffError(
       'VIBRATION_FACILITY_HANDOFF_DATASET_MIX_FORBIDDEN',
-      'One facility scenario handoff cannot mix OperatingScenarios from different datasets.',
+      'One facility scenario set cannot mix OperatingScenarios from different datasets.',
       { datasetIds: [...datasetIds].sort() },
     );
   }
-  return { datasetId: [...datasetIds][0], entries };
+  return { datasetId: datasetIds.size ? [...datasetIds][0] : null, scenarios };
+}
+
+function scenarioSetKeyFromNormalized(scenarios) {
+  if (!scenarios.length) return null;
+  const rows = scenarios.map((scenario) => [
+    scenario.datasetId,
+    scenario.line,
+    scenario.caseId,
+    scenario.scenarioId,
+    scenario.identityHash,
+    scenario.snapshotHash,
+  ]).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  return `VFSK1:${JSON.stringify(rows)}`;
+}
+
+export function vibrationFacilityScenarioSetKey(operatingScenarios = []) {
+  const normalized = normalizedScenarioSet(operatingScenarios);
+  return scenarioSetKeyFromNormalized(normalized.scenarios);
+}
+
+function normalizeEntries(values) {
+  const normalized = normalizedScenarioSet(values, { requireNonEmpty: true });
+  const entries = normalized.scenarios.map((scenario) => ({
+    line: scenario.line,
+    caseId: scenario.caseId,
+    scenario,
+    binding: createVibrationScenarioExecutionBinding(scenario),
+  }));
+  return {
+    datasetId: normalized.datasetId,
+    scenarioSetKey: scenarioSetKeyFromNormalized(normalized.scenarios),
+    entries,
+  };
 }
 
 export function createVibrationFacilityScenarioHandoff({ operatingScenarios, runId } = {}) {
@@ -84,6 +115,7 @@ export function createVibrationFacilityScenarioHandoff({ operatingScenarios, run
     schema: VIBRATION_FACILITY_SCENARIO_HANDOFF_SCHEMA,
     datasetId: normalized.datasetId,
     facilityRunId: requiredText(runId, 'runId'),
+    scenarioSetKey: normalized.scenarioSetKey,
     entries: normalized.entries,
     cardinality: normalized.entries.length,
     authority: VIBRATION_FACILITY_SCENARIO_HANDOFF_AUTHORITY,
@@ -100,10 +132,12 @@ export function assertVibrationFacilityScenarioHandoff(value) {
   }
   const datasetId = requiredText(value.datasetId, 'datasetId');
   requiredText(value.facilityRunId, 'facilityRunId');
+  requiredText(value.scenarioSetKey, 'scenarioSetKey');
   if (!Array.isArray(value.entries) || value.entries.length === 0) {
     throw handoffError('VIBRATION_FACILITY_HANDOFF_ENTRIES_INVALID', 'Facility scenario handoff entries are required.');
   }
   const seen = new Set();
+  const scenarios = [];
   for (const entry of value.entries) {
     const scenario = assertVibrationOperatingScenario(entry?.scenario);
     const binding = assertVibrationScenarioExecutionBinding(entry?.binding);
@@ -116,7 +150,11 @@ export function assertVibrationFacilityScenarioHandoff(value) {
     const key = scopeKey(entry.line, entry.caseId);
     if (seen.has(key)) throw handoffError('VIBRATION_FACILITY_HANDOFF_SCENARIO_DUPLICATE', `Duplicate facility scenario for ${entry.line}/${entry.caseId}.`);
     seen.add(key);
+    scenarios.push(scenario);
     assertVibrationScenarioExecutionBasis(binding, scenario);
+  }
+  if (value.scenarioSetKey !== scenarioSetKeyFromNormalized(scenarios)) {
+    throw handoffError('VIBRATION_FACILITY_HANDOFF_SCENARIO_SET_KEY_INVALID', 'Facility scenario-set key does not match its OperatingScenario snapshots.');
   }
   if (Number(value.cardinality) !== value.entries.length) {
     throw handoffError('VIBRATION_FACILITY_HANDOFF_CARDINALITY_INVALID', 'Facility scenario handoff cardinality does not match entries.');
