@@ -29,6 +29,18 @@ export {
 } from './coverage.js';
 
 export {
+  VIBRATION_ASSESSMENT_UNIT_SCHEMA,
+  VIBRATION_ASSESSMENT_UNIT_SET_SCHEMA,
+  VIBRATION_ASSESSMENT_EXECUTION_BASIS_SCHEMA,
+  VIBRATION_ASSESSMENT_UNIT_AUTHORITY,
+  createVibrationAssessmentUnit,
+  createVibrationAssessmentUnitSet,
+  assertVibrationAssessmentUnit,
+  assertVibrationAssessmentUnitExecutionBasis,
+  executeVibrationAssessmentUnitWithScenarioGuard,
+} from './assessment-unit.js';
+
+export {
   VIBRATION_MECHANISM_REGISTRY_SCHEMA,
   VIBRATION_MECHANISM_REGISTRY_REVISION,
   VIBRATION_MECHANISM_IDS,
