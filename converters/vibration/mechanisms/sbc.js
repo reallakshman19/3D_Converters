@@ -1,4 +1,4 @@
-import { evaluateSbcFacilityType3 } from '../sbc/facility.js?v=20260815-sbc-pf05-cache-1';
+import { inspectSbcFacilityType3 } from '../sbc/facility.js?v=20260820-runtime-scenario-guard-1';
 import {
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,
@@ -16,6 +16,12 @@ function readinessFromEvaluation(evaluation) {
     return {
       missing: ['SBC_TYPE3_USER_INPUT_TEMPLATE'], invalid: [],
       reasons: ['SBC_APPLICABILITY_AND_TYPE3_INPUT_REQUIRED'],
+    };
+  }
+  if (evaluation.status === 'READY_FOR_EXPLICIT_EVALUATION') {
+    return {
+      missing: [], invalid: [],
+      reasons: ['SBC_TYPE3_EXPLICIT_EVALUATION_REQUIRED'],
     };
   }
   if (evaluation.result?.ok === false) {
@@ -75,7 +81,7 @@ export function buildSbcVibrationMechanismAssessmentItem({
   precomputedCandidate = null,
   resultState: requestedResultState = null,
 } = {}) {
-  const evaluation = evaluateSbcFacilityType3(row, { userRows, governed, precomputedCandidate });
+  const evaluation = inspectSbcFacilityType3(row, { userRows, governed, precomputedCandidate });
   const result = resultValue(evaluation);
   return createVibrationMechanismAssessmentItem({
     mechanismId: SBC_VIBRATION_MECHANISM_ID,
@@ -121,6 +127,7 @@ export function buildSbcVibrationMechanismAssessmentItem({
       userRows: evaluation.userRows,
       authority: evaluation.authority,
       masterAssisted: evaluation.result?.status === 'CALCULATED_MASTER_ASSISTED_CANDIDATE',
+      projectionOnly: true,
     },
   });
 }
