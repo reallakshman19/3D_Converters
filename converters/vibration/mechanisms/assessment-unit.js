@@ -1,29 +1,20 @@
 import { createHash } from 'node:crypto';
-
 import { assertVibrationOperatingScenario } from '../dataset/operating-scenario.js';
 import {
   VIBRATION_ASSESSMENT_UNIT_TYPES,
   VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA,
   VIBRATION_REQUIRED_QUALIFICATIONS,
 } from './coverage.js';
-
 export const VIBRATION_ASSESSMENT_UNIT_SCHEMA = 'VibrationAssessmentUnit.v1';
 export const VIBRATION_ASSESSMENT_UNIT_SET_SCHEMA = 'VibrationAssessmentUnitSet.v1';
 export const VIBRATION_ASSESSMENT_EXECUTION_BASIS_SCHEMA = 'VibrationAssessmentExecutionBasis.v1';
-
 export const VIBRATION_ASSESSMENT_UNIT_AUTHORITY = Object.freeze({
   purpose: 'ASSESSMENT_UNIT_SCENARIO_CUSTODY_ONLY',
-  engineeringAuthority: 'NONE',
-  screeningAuthority: 'NOT_AUTHORIZED',
-  designAuthority: false,
-  numericalAuthority: 'NONE',
-  executionAuthority: 'NONE',
-  determinesApplicability: false,
-  determinesCompleteness: false,
-  crossScenarioMixingAllowed: false,
-  scenarioSubstitutionAllowed: false,
+  engineeringAuthority: 'NONE', screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false,
+  numericalAuthority: 'NONE', executionAuthority: 'NONE',
+  determinesApplicability: false, determinesCompleteness: false,
+  crossScenarioMixingAllowed: false, scenarioSubstitutionAllowed: false,
 });
-
 function unitError(code, message, details = {}) {
   const error = new Error(message);
   error.name = 'VibrationAssessmentUnitError';
@@ -31,20 +22,17 @@ function unitError(code, message, details = {}) {
   error.details = Object.freeze({ ...details });
   return error;
 }
-
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
   return Object.freeze(value);
 }
-
 function requireText(value, field) {
   if (typeof value !== 'string' || !value.trim()) {
     throw unitError('VIBRATION_ASSESSMENT_UNIT_TEXT_REQUIRED', `${field} is required.`, { field });
   }
   return value.trim();
 }
-
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
   if (value && typeof value === 'object') {
@@ -52,75 +40,54 @@ function stableJson(value) {
   }
   return JSON.stringify(value);
 }
-
 function sha256(value) {
   return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
 }
-
 function normalizeScope(scope = {}) {
-  const caseId = requireText(scope.caseId, 'requirement.scope.caseId');
   return {
     line: requireText(scope.line, 'requirement.scope.line'),
-    caseId,
+    caseId: requireText(scope.caseId, 'requirement.scope.caseId'),
     canonicalId: requireText(scope.canonicalId, 'requirement.scope.canonicalId'),
   };
 }
-
 function normalizeRequirement(requirement = {}) {
   const assessmentUnitType = requireText(requirement.assessmentUnitType, 'requirement.assessmentUnitType');
   if (!VIBRATION_ASSESSMENT_UNIT_TYPES.includes(assessmentUnitType)) {
-    throw unitError(
-      'VIBRATION_ASSESSMENT_UNIT_TYPE_INVALID',
-      `Unsupported assessment unit type ${assessmentUnitType}.`,
-      { assessmentUnitType },
-    );
+    throw unitError('VIBRATION_ASSESSMENT_UNIT_TYPE_INVALID', `Unsupported assessment unit type ${assessmentUnitType}.`, { assessmentUnitType });
   }
   const requiredQualification = requireText(requirement.requiredQualification, 'requirement.requiredQualification');
   if (!VIBRATION_REQUIRED_QUALIFICATIONS.includes(requiredQualification)) {
-    throw unitError(
-      'VIBRATION_ASSESSMENT_UNIT_QUALIFICATION_INVALID',
-      `Unsupported required qualification ${requiredQualification}.`,
-      { requiredQualification },
-    );
+    throw unitError('VIBRATION_ASSESSMENT_UNIT_QUALIFICATION_INVALID', `Unsupported required qualification ${requiredQualification}.`, { requiredQualification });
   }
   return {
     assessmentId: requireText(requirement.assessmentId, 'requirement.assessmentId'),
     identificationId: requireText(requirement.identificationId, 'requirement.identificationId'),
     mechanismId: requireText(requirement.mechanismId, 'requirement.mechanismId'),
-    scope: normalizeScope(requirement.scope),
-    assessmentUnitType,
-    requiredQualification,
+    scope: normalizeScope(requirement.scope), assessmentUnitType, requiredQualification,
   };
 }
-
 function scenarioBinding(scenarioInput) {
   const scenario = assertVibrationOperatingScenario(scenarioInput);
   return {
     scenarioId: scenario.scenarioId,
     scenarioIdentityHash: scenario.identityHash,
     scenarioSnapshotHash: scenario.snapshotHash,
-    datasetId: scenario.datasetId,
-    line: scenario.line,
-    caseId: scenario.caseId,
+    datasetId: scenario.datasetId, line: scenario.line, caseId: scenario.caseId,
     provenanceStatus: scenario.provenance?.status ?? 'INCOMPLETE',
   };
 }
-
 function assertRequirementScenarioScope(requirement, binding) {
   if (requirement.scope.line !== binding.line || requirement.scope.caseId !== binding.caseId) {
     throw unitError(
       'VIBRATION_ASSESSMENT_UNIT_SCENARIO_SCOPE_MISMATCH',
       'Assessment requirement line/case does not match the operating scenario.',
       {
-        requirementLine: requirement.scope.line,
-        requirementCaseId: requirement.scope.caseId,
-        scenarioLine: binding.line,
-        scenarioCaseId: binding.caseId,
+        requirementLine: requirement.scope.line, requirementCaseId: requirement.scope.caseId,
+        scenarioLine: binding.line, scenarioCaseId: binding.caseId,
       },
     );
   }
 }
-
 function logicalIdentity(requirement, binding) {
   return sha256({
     assessmentId: requirement.assessmentId,
@@ -129,7 +96,6 @@ function logicalIdentity(requirement, binding) {
     scenarioId: binding.scenarioId,
   });
 }
-
 function unitSnapshotCore(unit) {
   return {
     assessmentUnitId: unit.assessmentUnitId,
@@ -142,33 +108,26 @@ function unitSnapshotCore(unit) {
     operatingScenario: unit.operatingScenario,
   };
 }
-
 function buildUnit(requirement, binding) {
   const identityHash = logicalIdentity(requirement, binding);
   const unit = {
     schema: VIBRATION_ASSESSMENT_UNIT_SCHEMA,
     assessmentUnitId: `VAU-${identityHash.slice('sha256:'.length, 'sha256:'.length + 24)}`,
     identityHash,
-    assessmentId: requirement.assessmentId,
-    identificationId: requirement.identificationId,
-    mechanismId: requirement.mechanismId,
-    assessmentUnitType: requirement.assessmentUnitType,
+    assessmentId: requirement.assessmentId, identificationId: requirement.identificationId,
+    mechanismId: requirement.mechanismId, assessmentUnitType: requirement.assessmentUnitType,
     requiredQualification: requirement.requiredQualification,
-    scope: requirement.scope,
-    operatingScenario: binding,
-    authority: VIBRATION_ASSESSMENT_UNIT_AUTHORITY,
+    scope: requirement.scope, operatingScenario: binding, authority: VIBRATION_ASSESSMENT_UNIT_AUTHORITY,
   };
   unit.unitSnapshotHash = sha256(unitSnapshotCore(unit));
   return deepFreeze(unit);
 }
-
 export function createVibrationAssessmentUnit({ requirement, operatingScenario } = {}) {
   const normalizedRequirement = normalizeRequirement(requirement);
   const binding = scenarioBinding(operatingScenario);
   assertRequirementScenarioScope(normalizedRequirement, binding);
   return buildUnit(normalizedRequirement, binding);
 }
-
 function scenarioMap(values = []) {
   if (!Array.isArray(values)) {
     throw unitError('VIBRATION_ASSESSMENT_UNIT_SCENARIOS_INVALID', 'operatingScenarios must be an array.');
@@ -180,10 +139,7 @@ function scenarioMap(values = []) {
     datasetIds.add(scenario.datasetId);
     const key = JSON.stringify([scenario.line, scenario.caseId]);
     if (byScope.has(key)) {
-      throw unitError(
-        'VIBRATION_ASSESSMENT_UNIT_SCENARIO_DUPLICATE',
-        `Duplicate operating scenario for ${scenario.line}/${scenario.caseId}.`,
-      );
+      throw unitError('VIBRATION_ASSESSMENT_UNIT_SCENARIO_DUPLICATE', `Duplicate operating scenario for ${scenario.line}/${scenario.caseId}.`);
     }
     byScope.set(key, scenario);
   }
@@ -196,13 +152,9 @@ function scenarioMap(values = []) {
   }
   return byScope;
 }
-
 export function createVibrationAssessmentUnitSet({ requiredAssessmentSet, operatingScenarios } = {}) {
   if (requiredAssessmentSet?.schema !== VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA) {
-    throw unitError(
-      'VIBRATION_ASSESSMENT_UNIT_REQUIRED_SET_INVALID',
-      `requiredAssessmentSet must use ${VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA}.`,
-    );
+    throw unitError('VIBRATION_ASSESSMENT_UNIT_REQUIRED_SET_INVALID', `requiredAssessmentSet must use ${VIBRATION_REQUIRED_ASSESSMENT_SET_SCHEMA}.`);
   }
   const scenarios = scenarioMap(operatingScenarios);
   const units = (requiredAssessmentSet.required ?? []).map((requirement) => {
@@ -224,14 +176,10 @@ export function createVibrationAssessmentUnitSet({ requiredAssessmentSet, operat
   };
   return deepFreeze({
     schema: VIBRATION_ASSESSMENT_UNIT_SET_SCHEMA,
-    setId: sha256(setCore),
-    requiredAssessmentSetId: setCore.requiredAssessmentSetId,
-    units,
-    cardinality: units.length,
-    authority: VIBRATION_ASSESSMENT_UNIT_AUTHORITY,
+    setId: sha256(setCore), requiredAssessmentSetId: setCore.requiredAssessmentSetId,
+    units, cardinality: units.length, authority: VIBRATION_ASSESSMENT_UNIT_AUTHORITY,
   });
 }
-
 export function assertVibrationAssessmentUnit(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)
       || value.schema !== VIBRATION_ASSESSMENT_UNIT_SCHEMA) {
@@ -251,12 +199,9 @@ export function assertVibrationAssessmentUnit(value) {
   }
   const authority = value.authority ?? {};
   if (authority.purpose !== VIBRATION_ASSESSMENT_UNIT_AUTHORITY.purpose
-      || authority.engineeringAuthority !== 'NONE'
-      || authority.screeningAuthority !== 'NOT_AUTHORIZED'
-      || authority.designAuthority !== false
-      || authority.numericalAuthority !== 'NONE'
-      || authority.executionAuthority !== 'NONE'
-      || authority.crossScenarioMixingAllowed !== false
+      || authority.engineeringAuthority !== 'NONE' || authority.screeningAuthority !== 'NOT_AUTHORIZED'
+      || authority.designAuthority !== false || authority.numericalAuthority !== 'NONE'
+      || authority.executionAuthority !== 'NONE' || authority.crossScenarioMixingAllowed !== false
       || authority.scenarioSubstitutionAllowed !== false) {
     throw unitError('VIBRATION_ASSESSMENT_UNIT_AUTHORITY_INVALID', 'Assessment-unit authority boundary is invalid.');
   }
@@ -265,15 +210,12 @@ export function assertVibrationAssessmentUnit(value) {
   }
   return value;
 }
-
 export function assertVibrationAssessmentUnitExecutionBasis(assessmentUnitInput, operatingScenarioInput) {
   const unit = assertVibrationAssessmentUnit(assessmentUnitInput);
   const scenario = assertVibrationOperatingScenario(operatingScenarioInput);
   const binding = unit.operatingScenario;
-  if (binding.datasetId !== scenario.datasetId
-      || binding.line !== scenario.line
-      || binding.caseId !== scenario.caseId
-      || binding.scenarioId !== scenario.scenarioId
+  if (binding.datasetId !== scenario.datasetId || binding.line !== scenario.line
+      || binding.caseId !== scenario.caseId || binding.scenarioId !== scenario.scenarioId
       || binding.scenarioIdentityHash !== scenario.identityHash) {
     throw unitError(
       'VIBRATION_ASSESSMENT_UNIT_SCENARIO_IDENTITY_MISMATCH',
@@ -291,23 +233,16 @@ export function assertVibrationAssessmentUnitExecutionBasis(assessmentUnitInput,
     schema: VIBRATION_ASSESSMENT_EXECUTION_BASIS_SCHEMA,
     assessmentUnitId: unit.assessmentUnitId,
     assessmentUnitSnapshotHash: unit.unitSnapshotHash,
-    scenarioId: scenario.scenarioId,
-    scenarioSnapshotHash: scenario.snapshotHash,
+    scenarioId: scenario.scenarioId, scenarioSnapshotHash: scenario.snapshotHash,
     authority: {
       purpose: 'PRE_EXECUTION_SCENARIO_BINDING_CHECK_ONLY',
-      engineeringAuthority: 'NONE',
-      screeningAuthority: 'NOT_AUTHORIZED',
-      designAuthority: false,
-      numericalAuthority: 'NONE',
-      executionAuthority: 'NONE',
+      engineeringAuthority: 'NONE', screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false,
+      numericalAuthority: 'NONE', executionAuthority: 'NONE',
     },
   });
 }
-
 export function executeVibrationAssessmentUnitWithScenarioGuard({
-  assessmentUnit,
-  operatingScenario,
-  execute,
+  assessmentUnit, operatingScenario, execute,
 } = {}) {
   if (typeof execute !== 'function') {
     throw unitError('VIBRATION_ASSESSMENT_UNIT_EXECUTOR_REQUIRED', 'execute must be a function.');
