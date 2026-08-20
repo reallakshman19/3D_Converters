@@ -1,0 +1,28 @@
+schema: ConnectorBackupBlobRefs.v1
+reason: Preserve exact current-main bytes before AIV T2.6 source-parity edits.
+base_main: a2dc24c27c791355044ae64939647a7c78804aca
+branch: agent/aiv-t26-source-parity-20260820
+files:
+  - path: converters/vibration/aiv/aiv-calculator.js
+    blob: 5014342e1436ca9fbf723242a348f768fb842f0c
+  - path: converters/vibration/aiv/aiv-readiness.js
+    blob: 6423267fd49b3d720874a7b699b0b48a657a5df6
+  - path: converters/vibration/aiv/aiv-assumption-profile.js
+    blob: f1b25982292dd4d0ae2b006debd66b3955b39c70
+    edit_status: NOT_PLANNED_AFTER_SCOPE_NARROWING
+  - path: converters/engineering-calculations/adapters/vibration-aiv.js
+    blob: 2dff38ac41005a7835c14cc3ed9502da46e70524
+  - path: engineering/workpacks/VIB-AIV.json
+    blob: a2b2cfca7905229ffff5eaba6b309bbdadc7c533
+  - path: engineering/workpacks/probes/vib-aiv.mjs
+    blob: 1f96c86b94ee7347fe348c0b314af1fa77234908
+  - path: tests/vibration-aiv-auto-product-path.test.mjs
+    blob: 60da0d7e641bcedc07abcfb5daf0213d6897c4e1
+  - path: tests/vibration-aiv-assumption-profile.test.mjs
+    blob: 7e0ca77243fd575cc9ff2ba660f027668ce5a122
+    edit_status: NOT_PLANNED_AFTER_SCOPE_NARROWING
+source_authority:
+  advanced_analysis_merge: ca53d589b79fc34f5a5616c0ce7de00e06c13df4
+  t2_6_flowchart_blob: 176d98565f582983c78868aa6210848a16f75881
+  t2_7_method_register_blob: 968e48e679e8a50e7a1247a24cfd7adfc63ca37c
+note: Native `node utils/backup.js save ...` is NOT_RUN / ENVIRONMENT_BLOCKED. These exact Git blob references are rollback evidence, not a native-backup PASS.
