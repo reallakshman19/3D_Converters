@@ -1,0 +1,29 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-AIV-T26-SOURCE-PARITY-20260820
+mission: Replace configured D2.3 AIV Stage-8 intermediates with source-reconciled T2.6 calculation
+workstream: VIBRATION_AIV_T26_SOURCE_PARITY
+branch: agent/aiv-t26-source-parity-20260820
+base_head: a2dc24c27c791355044ae64939647a7c78804aca
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: RECOVERABLE
+handover_readiness: READY
+report_path: agents/WIP-AIV-T26-SOURCE-PARITY-20260820_workreport.md
+appendix_a: PASS_100_OF_100
+overlap_state: SAFE_WITH_PR506_SUPERSEDED_FOR_THIS_SCOPE
+source_authority:
+  repository: reallaksh19/Advanced_Analysis
+  merge_commit: ca53d589b79fc34f5a5616c0ce7de00e06c13df4
+  t2_6_blob: 176d98565f582983c78868aa6210848a16f75881
+  method_register_blob: 968e48e679e8a50e7a1247a24cfd7adfc63ca37c
+validation_state:
+  live_main_grounding: PASS
+  source_authority_merge: PASS
+  pr506_takeover_disposition: SUPERSEDE_FOR_THIS_SCOPE
+  production_mutation: NOT_STARTED
+  native_backup_cli: NOT_RUN_ENVIRONMENT_BLOCKED
+  merge: NOT_AUTHORIZED
+exact_next_action: pin exact current-main pre-edit blobs, commit rollback manifest, then implement pure T2.6 evaluator and focused integration
+last_updated: 2026-08-20T12:00:00+04:00
