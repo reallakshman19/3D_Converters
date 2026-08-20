@@ -3,13 +3,19 @@ import { resolveVibrationRoadmapSourceBinding } from '../converters/vibration/so
 export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_SCHEMA = 'VibrationRoadmapMechanismSummary.v1';
 
 export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY = Object.freeze({
-  purpose: 'SELECTED_SCOPE_MECHANISM_SUMMARY_PROJECTION_ONLY',
+  purpose: 'SELECTED_SCOPE_MECHANISM_SUMMARY_GUIDANCE_ONLY',
   dispositionSource: 'RequiredAssessmentSet.v1',
   coverageSource: 'MechanismCoverage.v1',
   completenessSource: 'AssessmentCompleteness.v1',
   sourceIdentitySource: 'VibrationEngineeringSourceRegistry.v1',
+  guidanceOnly: true,
   determinesApplicability: false,
   determinesCompleteness: false,
+  blocksExecution: false,
+  blocksNavigation: false,
+  blocksCalculation: false,
+  blocksPersistence: false,
+  authorityGate: false,
   numericalAuthority: 'NONE',
   aggregationAuthority: 'NONE',
   persistenceAuthority: 'NONE',
@@ -149,9 +155,15 @@ export function isGovernedVibrationRoadmapMechanismSummary(value) {
   const authority = value?.authority;
   return value?.schema === VIBRATION_ROADMAP_MECHANISM_SUMMARY_SCHEMA
     && Array.isArray(value.items)
-    && authority?.purpose === 'SELECTED_SCOPE_MECHANISM_SUMMARY_PROJECTION_ONLY'
+    && authority?.purpose === 'SELECTED_SCOPE_MECHANISM_SUMMARY_GUIDANCE_ONLY'
+    && authority?.guidanceOnly === true
     && authority?.determinesApplicability === false
     && authority?.determinesCompleteness === false
+    && authority?.blocksExecution === false
+    && authority?.blocksNavigation === false
+    && authority?.blocksCalculation === false
+    && authority?.blocksPersistence === false
+    && authority?.authorityGate === false
     && authority?.numericalAuthority === 'NONE'
     && authority?.aggregationAuthority === 'NONE'
     && authority?.persistenceAuthority === 'NONE'
