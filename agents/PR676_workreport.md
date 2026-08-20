@@ -6,7 +6,7 @@
 - BRANCH: `agent/engineering-console-runtime-array-contract`
 - BASE_AT_ALLOCATION: `main@a97a44c92377c2fb8953fd5d212c0f53067b132f`
 - TITLE: `fix(engineering): repair console array contract and catalogue startup`
-- STATE: `OPEN_READY_FOR_OWNER_AUTHORIZED_MERGE_PENDING_FINAL_RECHECK`
+- STATE: `OPEN_READY_FOR_OWNER_AUTHORIZED_MERGE`
 - PR_AUTHORITY: `GRANTED_2026-08-20`
 - MERGE_AUTHORITY: `GRANTED_2026-08-20`
 
@@ -75,6 +75,18 @@ Tests:
 Recovery:
 7. `agents/PR676_workreport.md`
 
+## Final pre-merge state
+```text
+head                                             b254c87d236e017504e5039278f71c1ac8453ba1
+mergeable                                        true
+branch relation                                  ahead 8 / behind 0
+changed files                                    7 intended
+GitHub commit status checks                      0 / NOT_RUN
+PR-triggered workflow runs                       0 / NOT_RUN
+submitted reviews                                0
+inline review threads                            0
+```
+
 ## Validation ledger
 ```text
 base defect source proof                            PASS
@@ -84,7 +96,7 @@ container native clone                              FAIL / DNS cannot resolve gi
 native Node focused tests                           NOT_RUN / no native checkout
 full repository regression                          NOT_RUN
 browser validation                                  NOT_RUN
-GitHub status/workflow/review state                 PENDING_FINAL_RECHECK
+GitHub hosted checks                                NOT_RUN / no checks or PR workflows present
 ```
 
 Do not convert `NOT_RUN` to PASS.
