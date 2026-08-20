@@ -28,7 +28,7 @@ const STATE_LABELS = Object.freeze({
   IDENTIFICATION_UNKNOWN: 'Unknown',
   NOT_APPLICABLE: 'N/A',
   ASSESSMENT_COMPLETE: 'Complete',
-  REQUIRED_NOT_IMPLEMENTED: 'Source/method blocked',
+  REQUIRED_NOT_IMPLEMENTED: 'Method unavailable',
   REQUIRED_NOT_READY: 'Not ready',
   INPUTS_REQUIRED: 'Inputs required',
   NOT_EVALUATED: 'Not evaluated',
@@ -85,6 +85,6 @@ export function renderVibrationRoadmapMechanismSummary(summary) {
   const groups = grouped(summary.items).map((entry) => (
     `<div class="vibration-roadmap-mechanism-group"><h4>${esc(GROUP_LABELS[entry.group])}</h4>${entry.items.map(mechanismRow).join('')}</div>`
   )).join('');
-  const scopeLabel = `${summary.counts.total}-mechanism scope · projection only`;
-  return `<section class="vibration-roadmap-mechanism-summary"><div class="vibration-roadmap-workflow-label"><strong>Mechanism assessment</strong><small>${esc(scopeLabel)}</small></div>${summaryCounts(summary)}<small class="vibration-roadmap-mechanism-rule">Required but unavailable remains incomplete. Missing implementation never means not applicable.</small>${groups}</section>`;
+  const scopeLabel = `${summary.counts.total}-mechanism scope · guidance only`;
+  return `<section class="vibration-roadmap-mechanism-summary" data-guidance-only="true"><div class="vibration-roadmap-workflow-label"><strong>Mechanism guidance</strong><small>${esc(scopeLabel)}</small></div>${summaryCounts(summary)}<small class="vibration-roadmap-mechanism-rule">Advisory/linking only. These states are projected from upstream engineering contracts and do not block execution, navigation, calculation, or persistence.</small>${groups}</section>`;
 }
