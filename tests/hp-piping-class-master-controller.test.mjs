@@ -40,6 +40,8 @@ function reviewResult(productId = 'DIRECT-1') {
     projectState: 'CALCULATED_NOT_AUTHORIZED',
     authority: { ...REVIEW_AUTHORITY },
     products: [{ productId, calculationOk: true, engineeringState: 'STATIC_EVALUATED_FATIGUE_NOT_SUPPLIED', authority: { ...REVIEW_AUTHORITY }, assessment: { staticPass: true, fatigueEvaluated: false } }],
+    warnings: [],
+    advisories: [],
   };
 }
 
@@ -64,6 +66,16 @@ function packageFor(selection) {
   };
 }
 
+function governedProject() {
+  const project = directProject();
+  project.products[0] = {
+    productId: 'PROD-A',
+    calculationBasis: { mode: 'GOVERNED_BASIS_PACKAGE', basisPackage: packageFor({ materialId: 'MAT-A', b313Edition: '2024', materialTemperatureC: 150, productId: 'PROD-A' }).basisPackage },
+    wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
+  };
+  return project;
+}
+
 test('controller loads canonical master runtime into transient workspace state only', async () => {
   const storage = memoryStorage();
   const controller = createHpPipingClassWorkspaceController({
@@ -77,7 +89,7 @@ test('controller loads canonical master runtime into transient workspace state o
   assert.equal(Object.hasOwn(project, 'masterRuntime'), false);
 });
 
-test('governed binding fails closed before canonical master store is loaded', () => {
+test('governed binding still requires the canonical master store because it creates a new basis package', () => {
   const controller = createHpPipingClassWorkspaceController({ initialProject: directProject(), storage: memoryStorage() });
   const result = controller.bindGovernedBasis(0, { materialId: 'MAT-A', b313Edition: '2024', materialTemperatureC: 150, productId: 'PROD-A' });
   assert.equal(result.ok, false);
@@ -104,58 +116,60 @@ test('governed binding uses canonical package factory and clears stale result', 
   assert.equal(bound.canUseForDesignAuthority, false);
 });
 
-test('calculation blocks governed package when canonical store is not loaded', () => {
-  const project = directProject();
-  project.products[0] = {
-    productId: 'PROD-A',
-    calculationBasis: { mode: 'GOVERNED_BASIS_PACKAGE', basisPackage: packageFor({ materialId: 'MAT-A', b313Edition: '2024', materialTemperatureC: 150, productId: 'PROD-A' }).basisPackage },
-    wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
-  };
-  let calls = 0;
-  const controller = createHpPipingClassWorkspaceController({ initialProject: project, storage: memoryStorage(), evaluator: () => { calls += 1; return reviewResult('PROD-A'); } });
-  const result = controller.calculate();
-  assert.equal(result.ok, false);
-  assert.equal(result.projectState, 'MASTER_STORE_CUSTODY_BLOCKED');
-  assert.equal(result.issues[0].code, 'MASTER_STORE_NOT_LOADED');
-  assert.equal(calls, 0);
-});
-
-test('calculation rejects imported governed package that does not reproduce loaded canonical projection', async () => {
-  const project = directProject();
-  project.products[0] = {
-    productId: 'PROD-A',
-    calculationBasis: { mode: 'GOVERNED_BASIS_PACKAGE', basisPackage: packageFor({ materialId: 'MAT-A', b313Edition: '2024', materialTemperatureC: 150, productId: 'PROD-A' }).basisPackage },
-    wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
-  };
+test('embedded governed package may calculate for engineering review before canonical store custody is loaded', () => {
   let calls = 0;
   const controller = createHpPipingClassWorkspaceController({
-    initialProject: project, storage: memoryStorage(),
+    initialProject: governedProject(), storage: memoryStorage(),
+    evaluator: () => { calls += 1; return reviewResult('PROD-A'); },
+  });
+  const result = controller.calculate();
+  assert.equal(result.ok, true);
+  assert.equal(calls, 1);
+  assert(result.advisories.some((row) => row.code === 'MASTER_STORE_NOT_LOADED'));
+  assert(result.warnings.some((row) => row.code === 'MASTER_STORE_NOT_LOADED'));
+  assert.equal(result.authority.canUseForDesignAuthority, false);
+});
+
+test('canonical custody mismatch is advisory during production review rather than a pre-calculation blocker', async () => {
+  let calls = 0;
+  const controller = createHpPipingClassWorkspaceController({
+    initialProject: governedProject(), storage: memoryStorage(),
     evaluator: () => { calls += 1; return reviewResult('PROD-A'); },
     masterLoader: async () => masterRuntime(),
     basisCustodyValidator: () => ({ ok: false, code: 'GOVERNED_BASIS_CUSTODY_BLOCKED', message: 'mismatch' }),
   });
   await controller.loadMasterStore();
   const result = controller.calculate();
-  assert.equal(result.projectState, 'MASTER_STORE_CUSTODY_BLOCKED');
-  assert.equal(result.issues[0].code, 'GOVERNED_BASIS_CUSTODY_BLOCKED');
-  assert.equal(calls, 0);
+  assert.equal(result.ok, true);
+  assert.equal(calls, 1);
+  assert(result.advisories.some((row) => row.code === 'GOVERNED_BASIS_CUSTODY_BLOCKED'));
+  assert.equal(result.authority.canUseForDesignAuthority, false);
 });
 
-test('governed calculation reaches evaluator only after canonical custody validation passes', async () => {
-  const project = directProject();
-  project.products[0] = {
-    productId: 'PROD-A',
-    calculationBasis: { mode: 'GOVERNED_BASIS_PACKAGE', basisPackage: packageFor({ materialId: 'MAT-A', b313Edition: '2024', materialTemperatureC: 150, productId: 'PROD-A' }).basisPackage },
-    wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
-  };
+test('governed calculation reaches evaluator normally when canonical custody validation passes', async () => {
   let calls = 0;
   const controller = createHpPipingClassWorkspaceController({
-    initialProject: project, storage: memoryStorage(), evaluator: () => { calls += 1; return reviewResult('PROD-A'); },
+    initialProject: governedProject(), storage: memoryStorage(), evaluator: () => { calls += 1; return reviewResult('PROD-A'); },
     masterLoader: async () => masterRuntime(), basisCustodyValidator: () => ({ ok: true, canUseForDesignAuthority: false }),
   });
   await controller.loadMasterStore();
   const result = controller.calculate();
   assert.equal(result.ok, true);
   assert.equal(calls, 1);
+  assert.equal(result.advisories.length, 0);
   assert.equal(result.authority.canUseForDesignAuthority, false);
+});
+
+test('missing method edition identity is advisory in production workspace validation', () => {
+  const project = directProject();
+  delete project.methodManifest.b313Edition;
+  const controller = createHpPipingClassWorkspaceController({
+    initialProject: project, storage: memoryStorage(), evaluator: () => reviewResult(),
+  });
+  const snapshot = controller.getSnapshot();
+  assert.equal(snapshot.validation.ok, true);
+  assert.equal(snapshot.validation.issues.length, 0);
+  assert(snapshot.validation.advisories.some((row) => row.code === 'METHOD_IDENTITY_REQUIRED'));
+  const result = controller.calculate();
+  assert.equal(result.ok, true);
 });
