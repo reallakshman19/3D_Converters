@@ -35,6 +35,7 @@ function fatigueInputs(resultOverrides = {}) {
       locationId: 'BORE_INNER_SURFACE',
       fromStateId: 'LOW',
       toStateId: 'HIGH',
+      analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 },
       userAlternatingStressIntensityMpa: 87.91596640349115,
       equivalentAlternatingStressMpa: 95,
       permissibleCycles: 20000,
@@ -53,6 +54,10 @@ test('production-review calculations are executable in normal strict console mod
     assert.equal(definition.ui.requiredQualificationMode, undefined);
     assert.equal(definition.ui.productSurface, 'ENGINEERING_CALCULATIONS');
   }
+  assert.equal(
+    getEngineeringCalculationDefinition(IDS.userFatigue).methodRevision,
+    'production-engineering-review-v2-geometry-bound',
+  );
 });
 
 test('production straight-pressure review reproduces the frozen NPS4 arithmetic under default execution', () => {
@@ -115,8 +120,41 @@ test('production USER_CALCULATED_KD3 review computes Salt and Miner usage when p
   close(result.outputs.cumulativeUsage, 0.5);
   assert.equal(result.outputs.usageWithinUnity, true);
   assert(result.warnings.some((row) => row.code === 'EXTERNAL_KD3_EVIDENCE_ADVISORY'));
+  assert(result.warnings.some((row) => row.code === 'EXTERNAL_KD3_GEOMETRY_BOUND'));
+  assert.equal(result.provenance.externalAnalysisGeometryBound, true);
   assert.equal(result.provenance.codeCompliance, false);
   assert.equal(result.provenance.canUseForDesignAuthority, false);
+});
+
+test('production review hard-fails missing or stale external KD3 analysis geometry before Seq/N use', () => {
+  const missing = fatigueInputs();
+  delete missing.externalResults[0].analysisGeometry;
+  const missingResult = calculateEngineering({ calculationId: IDS.userFatigue, inputs: missing });
+  assert.equal(missingResult.ok, false);
+  assert.equal(missingResult.errors[0].code, 'USER_FATIGUE_ANALYSIS_GEOMETRY_REQUIRED');
+
+  const stale = fatigueInputs({
+    analysisGeometry: { outsideDiameterMm: 114.3, effectiveWallMm: 8.80375 },
+  });
+  stale.effectiveWall = 8.7;
+  delete stale.externalResults[0].userAlternatingStressIntensityMpa;
+  const staleResult = calculateEngineering({ calculationId: IDS.userFatigue, inputs: stale });
+  assert.equal(staleResult.ok, false);
+  assert.equal(staleResult.errors[0].code, 'USER_FATIGUE_ANALYSIS_WALL_MISMATCH');
+  assert.equal(staleResult.errors[0].details.domainDetails.expectedEffectiveWallMm, 8.7);
+  assert.equal(staleResult.errors[0].details.domainDetails.suppliedEffectiveWallMm, 8.80375);
+});
+
+test('production geometry guard uses a tight repository data-coupling tolerance, not exact float equality', () => {
+  const result = calculateEngineering({
+    calculationId: IDS.userFatigue,
+    inputs: fatigueInputs({
+      analysisGeometry: { outsideDiameterMm: 114.3000005, effectiveWallMm: 8.8037505 },
+    }),
+  });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.intermediates.geometryMatchToleranceMm, 1e-6);
+  assert.equal(result.intermediates.geometryToleranceAuthority, 'REPOSITORY_DATA_COUPLING_QA_ONLY_NOT_ASME_ACCEPTANCE');
 });
 
 test('formal USER_CALCULATED_KD3 intake retains its evidence gate for later qualification work', () => {
@@ -145,7 +183,7 @@ test('production review defers evidence only; invalid numerical fatigue input st
   assert.equal(saltConflict.errors[0].code, 'USER_SALT_MISMATCH');
 });
 
-test('HP Piping Class product path uses advisory-evidence fatigue review and still reproduces NPS4 result', () => {
+test('HP Piping Class product path uses geometry-bound advisory-evidence fatigue review and reproduces NPS4 result', () => {
   const project = createHpPipingClassNps4ReferenceProject();
   delete project.fatigueEvidence[0].externalResults[0].calculationBasis;
   const result = evaluateHpPipingClassProject(project);
@@ -157,7 +195,24 @@ test('HP Piping Class product path uses advisory-evidence fatigue review and sti
   close(result.products[0].calculations.fatigue.outputs.cycles[0].coreSaltMpa, 63.29949581051363);
   close(result.products[0].assessment.cumulativeUsage, 0.05);
   assert(result.products[0].calculations.fatigue.outputs.evidenceIssueCount > 0);
+  assert.equal(result.products[0].calculations.fatigue.provenance.externalAnalysisGeometryBound, true);
   assert.equal(result.authority.nativeCoreKd3Qualified, false);
   assert.equal(result.authority.codeCompliance, false);
   assert.equal(result.authority.canUseForDesignAuthority, false);
+});
+
+test('HP Piping Class blocks stale Seq/N when selected fatigue wall changes without refreshing external rows', () => {
+  const project = createHpPipingClassNps4ReferenceProject();
+  project.products[0].wallState = {
+    fatigueWallBasis: 'PROJECTED_END_OF_LIFE',
+    measuredCurrentWallMm: 10.2,
+    futureInternalLossMm: 1.2,
+    futureExternalLossMm: 0.3,
+  };
+  delete project.fatigueEvidence[0].externalResults[0].userAlternatingStressIntensityMpa;
+  const result = evaluateHpPipingClassProject(project);
+  assert.equal(result.ok, false);
+  assert.equal(result.products[0].engineeringState, 'FATIGUE_BLOCKED');
+  assert.equal(result.products[0].calculations.fatigue.errors[0].code, 'USER_FATIGUE_ANALYSIS_WALL_MISMATCH');
+  close(result.products[0].selectedFatigueWallMm, 8.7);
 });
