@@ -3,16 +3,25 @@ pr_or_wip: PR674
 pull_request: 674
 branch: agent/vib-right-rail-mechanism-cockpit-20260820
 base: main
-base_sha_at_allocation: 72ef2f1907a3e2ebde8ad0abe156d2aedd01b284
+base_sha: 72ef2f1907a3e2ebde8ad0abe156d2aedd01b284
 implementation_basis_head: 8bea5a35ee2a31251e7e9bc249b28f9697f039ed
-pr_head_at_allocation: 4504eacbfb90b6d771183b41483f13b222500bd0
+pr_head_observed: c3167de39323c33066db6ae37d771f65db54b57e
 report_basis_head: 8bea5a35ee2a31251e7e9bc249b28f9697f039ed
-state: DRAFT_FOCUSED_VALIDATION
+state: DRAFT_VALIDATION_BLOCKED
 criticality: ENGINEERING_CRITICAL_PRESENTATION_INTEGRATION
 coordination_state: COORDINATION_REQUIRED_NO_EXACT_CONFLICT
+remote_state:
+  open: true
+  draft: true
+  mergeable: true
+  changed_files: 12
+  reviews: 0
+  review_threads: 0
+  main_drift: NONE_OBSERVED
 validation:
   repository_grounding: PASS_SOURCE_INSPECTION
   overlap_grounding: PASS_SOURCE_INSPECTION
+  final_changed_file_negative_assurance: PASS_GITHUB_COMPARE
   reconstructed_new_module_syntax: PASS_LOCAL_EXECUTION
   reconstructed_mechanism_summary: PASS_LOCAL_EXECUTION_IMPLEMENTATION_COUPLED
   cavitation_t29_blocked_projection: PASS_LOCAL_EXECUTION_PLUS_SOURCE_INSPECTION
@@ -22,8 +31,8 @@ validation:
   repository_native_regressions: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN_ENVIRONMENT_BLOCKED
   native_backup: NOT_RUN_ENVIRONMENT_BLOCKED
-  preallocation_status_contexts: NOT_RUN_ZERO_RETURNED
-  preallocation_workflow_runs: NOT_RUN_ZERO_RETURNED
+  exact_head_status_contexts: NOT_RUN_ZERO_RETURNED
+  exact_head_workflow_runs: NOT_RUN_ZERO_RETURNED
 authority:
   engineering_authority_changed: false
   numerical_authority_changed: false
@@ -34,4 +43,4 @@ authority:
   project_persistence_changed: false
   workflow_files_changed: false
 merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR674
-exact_next_action: RECONCILE_FINAL_PR_HEAD_DIFF_REVIEWS_CHECKS_AND_KEEP_DRAFT_PENDING_NATIVE_BROWSER_VALIDATION
+exact_next_action: RUN_REPOSITORY_NATIVE_FOCUSED_AND_RELEVANT_RIGHT_RAIL_TESTS_PLUS_SERVED_BROWSER_OR_RETAIN_NOT_RUN_TRUTH
