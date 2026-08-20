@@ -1,0 +1,27 @@
+schema: AgentStatus.v1
+pr_or_wip: PR680
+pull_request: 680
+branch: agent/vib-assessment-unit-scenario-binding-20260820
+base: main
+base_sha: 68511e14b594eab9e21d06da3ddfc0836e92295b
+implementation_basis_head: 13c3b4ddba1474cda0959f95afd6dab4b6cc749b
+state: DRAFT_FOCUSED_VALIDATION_COMPLETE
+criticality: ENGINEERING_CRITICAL_ORCHESTRATION_CONTRACT
+coordination_state: SAFE_NO_EXACT_CONFLICT
+validation:
+  grounding: PASS_SOURCE_INSPECTION
+  pr678_trace: PASS_SOURCE_INSPECTION
+  assessment_contract_trace: PASS_SOURCE_INSPECTION
+  line_policy: PASS_252_223
+  source_level_falsifiers: PASS_ENCODED
+  repository_native_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_APPLICABLE_DATA_CONTRACT_ONLY
+authority:
+  purpose: ASSESSMENT_UNIT_SCENARIO_CUSTODY_ONLY
+  engineering_authority_changed: false
+  screening_authority_changed: false
+  design_authority_changed: false
+  numerical_authority_changed: false
+  execution_authority_changed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR680
+exact_next_action: RECONCILE_EXACT_PR680_HEAD_DIFF_REVIEWS_CHECKS_AND_KEEP_DRAFT
