@@ -55,7 +55,10 @@ function activeView(definition, state) {
 
 function renderConsoleActions(definition, state) {
   if (isFitWorkspace(definition)) {
-    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
+    const screening = definition.authority?.screeningAuthority === 'AUTHORIZED_BOUNDED'
+      ? pill('BOUNDED SCREENING', 'ok')
+      : pill('SCREENING AUTHORITY UNDECLARED', 'warn');
+    return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))} ${screening}</div>`;
   }
   if (isAivQualificationWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
