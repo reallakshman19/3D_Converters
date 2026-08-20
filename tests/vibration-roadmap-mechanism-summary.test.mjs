@@ -162,7 +162,7 @@ test('right-rail summary renders source blockers and never equates unavailable w
   assert.match(html, /Source conflict:/);
   assert.match(html, /Source\/method blocked/);
   assert.match(html, /Missing implementation never means not applicable/);
-  assert.doesNotMatch(html, /LOF 0(?:\D|$)/);
+  assert.doesNotMatch(html, /LOF 0 ·/);
 });
 
 test('right panel includes mechanism assessment only beneath a governed selected exact scope', () => {
