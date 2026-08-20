@@ -7,7 +7,7 @@ PR: #681
 BRANCH: agent/hp-production-browser-qualification
 BASE: main
 BASE_SHA_AT_BRANCH: 68511e14b594eab9e21d06da3ddfc0836e92295b
-CURRENT_STAGE: FINAL_RECONCILIATION_BEFORE_OWNER_AUTHORIZED_MERGE
+CURRENT_STAGE: OWNER_AUTHORIZED_READY_TO_MERGE
 
 ## Handover in 60 Seconds
 
@@ -131,7 +131,7 @@ Browser qualification is software/product evidence only. It does not establish A
 
 ## Changed Files
 
-Before this recovery record:
+Implementation/test:
 
 ```text
 package.json
@@ -160,6 +160,18 @@ Chromium CDP transport self-test                    PASS / REAL_CHROMIUM
 Chromium runtime exceptions in self-test            0
 375x900 viewport emulation in self-test             PASS
 branch source grounding                             PASS / GITHUB_SOURCE_INSPECTION
+changed-path reconciliation                         PASS / SIX INTENDED PATHS
+```
+
+Hosted state observed before final recovery sync:
+
+```text
+commit status entries                               0 -> NOT_RUN
+PR-triggered workflow runs                          0 -> NOT_RUN
+reviews                                             0
+review threads                                      0
+mergeable                                           true
+branch behind main                                  0
 ```
 
 Not run and must remain explicit:
@@ -168,7 +180,6 @@ Not run and must remain explicit:
 FULL_APP HP production browser journey              NOT_RUN / NO_NATIVE_CHECKOUT
 SOURCE_INJECTION exact repo-source browser run       NOT_RUN / NO_NATIVE_CHECKOUT
 full repository regression suite                    NOT_RUN
-hosted PR status/workflows                          PENDING_FINAL_RECONCILIATION
 ```
 
 Current environment has `/usr/bin/chromium`, but direct native checkout remains blocked because `github.com` cannot be resolved from the container. The self-test therefore validates the CDP harness, not the HP product flow.
@@ -185,11 +196,11 @@ Screenshots are written to the same artifact directory. Generated artifacts are 
 
 ## Exact Next Action
 
-1. reconcile PR681 exact head against current main;
-2. confirm changed-file set remains only the three implementation/test paths plus three recovery paths;
-3. inspect status checks, PR-triggered workflow runs, reviews and threads;
-4. mark ready if mergeable and behind=0;
-5. squash merge only against the exact reconciled head under the owner's existing merge authorization;
+1. re-read PR681 exact head after this recovery sync;
+2. confirm changed-file set remains these six paths and branch remains behind=0;
+3. confirm mergeability and no new hosted review/check state appeared;
+4. mark ready for review;
+5. squash merge only against that exact head under the owner's merge authorization;
 6. in the first environment with a native checkout + Chromium, execute `npm run verify:hp-production-browser` and retain the FULL_APP receipt.
 
 ## Appendix A — Takeover Questions
