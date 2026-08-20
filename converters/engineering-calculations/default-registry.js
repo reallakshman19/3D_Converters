@@ -5,7 +5,7 @@ import { B313_CHAPTER_IX_STRAIGHT_PIPELINE_ENGINEERING_CALCULATION_DEFINITION } 
 import { B313_CHAPTER_IX_ENGINEERING_CALCULATION_DEFINITION } from './adapters/b313-chapter-ix.js';
 import {
   B313_CHAPTER_IX_PRODUCTION_REVIEW_ENGINEERING_CALCULATION_DEFINITIONS,
-} from './adapters/b313-chapter-ix-production-review.js';
+} from './adapters/b313-chapter-ix-production-review-geometry.js';
 import { B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ENGINEERING_CALCULATION_DEFINITION } from './adapters/b313-chapter-ix-user-calculated-fatigue.js';
 import { B313_CHAPTER_IX_WALL_STATE_ENGINEERING_CALCULATION_DEFINITION } from './adapters/b313-chapter-ix-wall-state.js';
 import { EMPIRICAL_WEIGHT_ENGINEERING_CALCULATION_DEFINITION } from './adapters/empirical-weight.js';
