@@ -1,3 +1,5 @@
+import { resolveVibrationRoadmapSourceBinding } from '../converters/vibration/source/registry.js';
+
 export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_SCHEMA = 'VibrationRoadmapMechanismSummary.v1';
 
 export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY = Object.freeze({
@@ -5,6 +7,7 @@ export const VIBRATION_ROADMAP_MECHANISM_SUMMARY_AUTHORITY = Object.freeze({
   dispositionSource: 'RequiredAssessmentSet.v1',
   coverageSource: 'MechanismCoverage.v1',
   completenessSource: 'AssessmentCompleteness.v1',
+  sourceIdentitySource: 'VibrationEngineeringSourceRegistry.v1',
   determinesApplicability: false,
   determinesCompleteness: false,
   numericalAuthority: 'NONE',
@@ -79,6 +82,15 @@ function presentationState(disposition, coverage) {
   return incompleteState(coverage?.reason);
 }
 
+function sourceProjection(mechanismId) {
+  const binding = resolveVibrationRoadmapSourceBinding({ mechanismId });
+  return Object.freeze({
+    sourceStatus: binding.status,
+    sourceLabel: binding.displayLabel,
+    sourceReason: binding.reason ?? null,
+  });
+}
+
 function mechanismItem(assessment, indexes) {
   const id = assessment?.mechanism?.id;
   if (!id) throw new Error('MECHANISM_SUMMARY_ASSESSMENT_ID_MISSING');
@@ -89,7 +101,8 @@ function mechanismItem(assessment, indexes) {
     mechanismId: id,
     label: assessment.mechanism.label ?? assessment.mechanism.title ?? id,
     title: assessment.mechanism.title ?? assessment.mechanism.label ?? id,
-    sourceSection: assessment.mechanism.sourceSection ?? null,
+    catalogueSourceSection: assessment.mechanism.sourceSection ?? null,
+    ...sourceProjection(id),
     assessmentUnitType: evidence?.assessmentUnitType ?? FALLBACK_UNIT_TYPE[id] ?? null,
     disposition,
     state,
