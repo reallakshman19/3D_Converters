@@ -49,6 +49,7 @@ export function createSbcType3UiState() {
     sbcType3LastEvaluationByScope: {},
     sbcType3CurrentnessStore: createSbcType3CandidateCurrentnessStore(),
     sbcFacilityCandidateResults: {},
+    sbcType3ScenarioBindingsByScope: {},
     sbcType3BusyTokenByScope: {},
     sbcType3PreparationSequence: 0,
     sbcType3PreparationTokenByScope: {},

@@ -2,6 +2,8 @@ import {
   ENGINEERING_CALCULATION_BATCH_VERSION,
   calculateEngineeringBatch,
 } from '../../engineering-calculations/index.js';
+import { assertVibrationOperatingScenario } from '../dataset/operating-scenario.js';
+import { assertVibrationScenarioExecutionBasis } from '../mechanisms/scenario-execution.js';
 import {
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
@@ -41,18 +43,15 @@ function assertPlan(plan) {
     );
   }
   if (!Array.isArray(plan.items)) {
-    throw executionError(
-      'FIT_FACILITY_PLAN_INVALID',
-      'Facility FIT plan items must be an array.',
-    );
+    throw executionError('FIT_FACILITY_PLAN_INVALID', 'Facility FIT plan items must be an array.');
   }
   for (const [index, item] of plan.items.entries()) {
     if (item.status === 'READY') {
       if (!item.request || item.request.calculationId !== VIBRATION_FACILITY_FIT_CALCULATION_ID
-          || item.request.options?.qualificationMode !== qualificationMode) {
+          || item.request.options?.qualificationMode !== qualificationMode || !item.scenarioBinding) {
         throw executionError(
           'FIT_FACILITY_PLAN_AUTHORITY_VIOLATION',
-          'READY FIT plan items must contain an unchanged request matching the plan qualification mode.',
+          'READY FIT plan items require an unchanged request and exact scenario binding.',
           { index, canonicalId: item.canonicalId, line: item.line, qualificationMode },
         );
       }
@@ -65,6 +64,53 @@ function assertPlan(plan) {
     }
   }
   return plan;
+}
+
+function scenarioMap(values = []) {
+  if (!Array.isArray(values)) {
+    throw executionError('FIT_FACILITY_SCENARIOS_INVALID', 'operatingScenarios must be an array.');
+  }
+  const scenarios = new Map();
+  for (const value of values) {
+    const scenario = assertVibrationOperatingScenario(value);
+    const key = JSON.stringify([scenario.line, scenario.caseId]);
+    if (scenarios.has(key)) {
+      throw executionError(
+        'FIT_FACILITY_SCENARIO_DUPLICATE',
+        `Duplicate OperatingScenario for ${scenario.line}/${scenario.caseId}.`,
+      );
+    }
+    scenarios.set(key, scenario);
+  }
+  return scenarios;
+}
+
+export function assertVibrationFacilityFitScenarioBindings(planInput, operatingScenarios) {
+  const plan = assertPlan(planInput);
+  const scenarios = scenarioMap(operatingScenarios);
+  const bases = new Map();
+  for (const item of plan.items.filter((candidate) => candidate.status === 'READY')) {
+    const scenario = scenarios.get(JSON.stringify([item.line, item.caseId]));
+    if (!scenario) {
+      throw executionError(
+        'FIT_FACILITY_SCENARIO_MISSING',
+        `READY FIT item ${item.canonicalId} has no current OperatingScenario.`,
+        { line: item.line, caseId: item.caseId, canonicalId: item.canonicalId },
+      );
+    }
+    try {
+      bases.set(item, assertVibrationScenarioExecutionBasis(item.scenarioBinding, scenario));
+    } catch (error) {
+      throw executionError(
+        error?.code === 'VIBRATION_SCENARIO_EXECUTION_SNAPSHOT_MISMATCH'
+          ? 'FIT_FACILITY_SCENARIO_SNAPSHOT_MISMATCH'
+          : 'FIT_FACILITY_SCENARIO_IDENTITY_MISMATCH',
+        `FIT scenario custody failed for ${item.canonicalId}: ${String(error?.message || error)}`,
+        { line: item.line, caseId: item.caseId, canonicalId: item.canonicalId, upstreamCode: error?.code ?? null },
+      );
+    }
+  }
+  return bases;
 }
 
 function notAssessedRow(item) {
@@ -82,7 +128,7 @@ function notAssessedRow(item) {
   };
 }
 
-function failedRow(item, centralResult) {
+function failedRow(item, centralResult, scenarioExecutionBasis) {
   return {
     status: 'CALCULATION_FAILED',
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
@@ -90,12 +136,13 @@ function failedRow(item, centralResult) {
     line: item.line,
     caseId: item.caseId,
     errors: centralResult?.errors ?? Object.freeze([]),
+    scenarioExecutionBasis,
     sourceTrace: item.sourceTrace ?? null,
     centralResult,
   };
 }
 
-function calculatedRow(item, centralResult, qualificationMode) {
+function calculatedRow(item, centralResult, qualificationMode, scenarioExecutionBasis) {
   return {
     status: qualificationMode === 'screening' ? 'CALCULATED_SCREENING' : 'CALCULATED_BENCHMARK',
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
@@ -110,15 +157,19 @@ function calculatedRow(item, centralResult, qualificationMode) {
     qualification: centralResult.qualification,
     qualificationCoverage: centralResult.evidence?.qualificationCoverage ?? null,
     screeningCandidate: centralResult.evidence?.screeningCandidate ?? null,
+    scenarioExecutionBasis,
     sourceTrace: item.sourceTrace ?? null,
     centralResult,
   };
 }
 
-export function executeVibrationFacilityFitPlan(planInput = {}) {
+export function executeVibrationFacilityFitPlan(planInput = {}, options = {}) {
   const plan = assertPlan(planInput);
   const qualificationMode = normalizeFitFacilityQualificationMode(plan.qualificationMode);
   const readyItems = plan.items.filter((item) => item.status === 'READY');
+  const scenarioBases = readyItems.length
+    ? assertVibrationFacilityFitScenarioBindings(plan, options.operatingScenarios)
+    : new Map();
   const batch = readyItems.length
     ? calculateEngineeringBatch({
       contractVersion: ENGINEERING_CALCULATION_BATCH_VERSION,
@@ -139,7 +190,10 @@ export function executeVibrationFacilityFitPlan(planInput = {}) {
   const rows = plan.items.map((item) => {
     if (item.status !== 'READY') return notAssessedRow(item);
     const centralResult = resultByPlanItem.get(item);
-    return centralResult?.ok ? calculatedRow(item, centralResult, qualificationMode) : failedRow(item, centralResult);
+    const basis = scenarioBases.get(item);
+    return centralResult?.ok
+      ? calculatedRow(item, centralResult, qualificationMode, basis)
+      : failedRow(item, centralResult, basis);
   });
 
   const calculated = rows.filter((row) => (
@@ -158,20 +212,14 @@ export function executeVibrationFacilityFitPlan(planInput = {}) {
     qualificationMode,
     planSchema: plan.schema,
     datasetSchema: plan.datasetSchema ?? null,
+    datasetId: plan.datasetId ?? null,
     rows,
     counts: {
-      total: rows.length,
-      plannedReady: readyItems.length,
-      calculated,
-      calculationFailed,
-      notAssessed,
+      total: rows.length, plannedReady: readyItems.length, calculated, calculationFailed, notAssessed,
     },
     complete: calculationFailed === 0 && notAssessed === 0,
     centralBatchSummary: {
-      ok: batch.ok,
-      total: batch.total,
-      succeeded: batch.succeeded,
-      failed: batch.failed,
+      ok: batch.ok, total: batch.total, succeeded: batch.succeeded, failed: batch.failed,
     },
     warnings: Object.freeze([
       ...(notAssessed ? [{

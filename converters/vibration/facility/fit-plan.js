@@ -1,4 +1,9 @@
+import {
+  VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  buildVibrationOperatingScenario,
+} from '../dataset/index.js';
 import { VIBRATION_INTEGRITY_DATASET_SCHEMA } from '../dataset/schema.js';
+import { createVibrationScenarioExecutionBinding } from '../mechanisms/scenario-execution.js';
 import {
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
@@ -41,7 +46,24 @@ function assertDataset(dataset) {
   return dataset;
 }
 
-function buildItems(context, qualificationMode) {
+function operatingScenario(dataset, line, caseId) {
+  return buildVibrationOperatingScenario(dataset, {
+    line,
+    caseId,
+    coherenceDeclaration: VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  });
+}
+
+function bindPlanItemToScenario(dataset, item) {
+  if (item.caseId === null || item.caseId === undefined) return item;
+  const scenario = operatingScenario(dataset, item.line, item.caseId);
+  return {
+    ...item,
+    scenarioBinding: createVibrationScenarioExecutionBinding(scenario),
+  };
+}
+
+function buildItems(dataset, context, qualificationMode) {
   const items = [];
   for (const point of context.points) {
     const cases = point.line ? context.casesByLine.get(point.line) ?? [] : [];
@@ -50,7 +72,8 @@ function buildItems(context, qualificationMode) {
       continue;
     }
     for (const operatingCase of cases) {
-      items.push(buildFitFacilityPlanItem(point, operatingCase, context.index, qualificationMode));
+      const item = buildFitFacilityPlanItem(point, operatingCase, context.index, qualificationMode);
+      items.push(bindPlanItemToScenario(dataset, item));
     }
   }
   return items.sort((a, b) => String(a.line ?? '').localeCompare(String(b.line ?? ''))
@@ -75,7 +98,7 @@ export function buildVibrationFacilityFitPlan(datasetInput = {}, options = {}) {
   const dataset = assertDataset(datasetInput);
   const qualificationMode = normalizeFitFacilityQualificationMode(options.qualificationMode ?? 'benchmark');
   const context = buildFitFacilityPlanContext(dataset);
-  const items = buildItems(context, qualificationMode);
+  const items = buildItems(dataset, context, qualificationMode);
   const ready = items.filter((item) => item.status === 'READY').length;
   const screening = qualificationMode === 'screening';
 
@@ -87,6 +110,7 @@ export function buildVibrationFacilityFitPlan(datasetInput = {}, options = {}) {
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
     qualificationMode,
     datasetSchema: dataset.schema,
+    datasetId: dataset.exchangeAuthority?.datasetId ?? null,
     datasetExchangeIntegrityStatus: dataset.exchangeIntegrityStatus ?? null,
     items,
     counts: {

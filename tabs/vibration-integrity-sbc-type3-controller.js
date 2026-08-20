@@ -1,11 +1,16 @@
 import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibration/sbc/type3-master-assisted-candidate.js?v=20260815-sbc-pf05-cache-1';
 import { deriveSbcType3MasterAssistedInputs } from '../converters/vibration/sbc/type3-master-assisted-derivation.js?v=20260815-sbc-pf05-cache-1';
+import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
   SBC_TYPE3_ENGINEERING_CHANGE_KINDS,
   beginSbcType3CandidateEvaluation,
   commitSbcType3CandidateEvaluation,
   failSbcType3CandidateEvaluation,
 } from './vibration-integrity-sbc-candidate-currentness.js?v=20260815-sbc-pf05-cache-1';
+import {
+  bindCurrentSbcFacilityScenario,
+  executeSbcFacilityWithScenario,
+} from './vibration-integrity-sbc-scenario-execution.js';
 import {
   addVibrationUserEngineeringDataRow,
   deleteVibrationUserEngineeringDataRow,
@@ -18,7 +23,7 @@ import {
   sbcType3ScopeRevision,
   syncVisibleSbcType3Result,
   visibleSbcType3Result,
-} from './vibration-integrity-sbc-type3-state.js?v=20260815-sbc-pf05-cache-1';
+} from './vibration-integrity-sbc-type3-state.js?v=20260820-runtime-scenario-guard-1';
 
 const PHYSICAL = SBC_TYPE3_ENGINEERING_CHANGE_KINDS.physicalInput;
 
@@ -42,8 +47,13 @@ export function openSbcType3FacilityScope(state, scopeValue, render, audit) {
   state.workspaceTab = 'user-data';
   state.sbcType3ScopeId = scope;
   state.sbcType3Result = visibleSbcType3Result(state, scope);
+  const custody = bindCurrentSbcFacilityScenario(state, scope);
   state.error = null;
-  audit?.('SBC_INPUTS_OPENED', { mode: 'MASTER_ASSISTED' }, scope);
+  audit?.('SBC_INPUTS_OPENED', {
+    mode: 'MASTER_ASSISTED',
+    scenarioId: custody?.binding.scenarioId ?? null,
+    scenarioSnapshotHash: custody?.binding.scenarioSnapshotHash ?? null,
+  }, scope);
   render?.();
 }
 
@@ -160,29 +170,72 @@ export async function evaluateSbcType3MasterAssisted(
   state.error = null;
   render?.();
   try {
-    const result = await calculate({
-      scopeId: scope,
-      physical: normalizedPhysical(state, scope),
-      mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
-      userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
-    });
+    const guarded = await executeSbcFacilityWithScenario(state, scope, async ({ executionBasis }) => ({
+      executionBasis,
+      result: await calculate({
+        scopeId: scope,
+        physical: normalizedPhysical(state, scope),
+        mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
+        userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+      }),
+    }));
+    const result = Object.freeze({ ...guarded.result, scenarioExecutionBasis: guarded.executionBasis });
     if (!result.ok) return commitNotReady(state, scope, started.operation, result);
     const completed = commitSbcType3CandidateEvaluation(
       state.sbcType3CurrentnessStore, started.operation, result,
     );
     if (!completed.accepted) return false;
     commitAcceptedCandidate(state, scope, result, completed);
-    audit?.('SBC_TYPE3_EVALUATED', { status: result.status, lof: result.lof }, scope);
+    audit?.('SBC_TYPE3_EVALUATED', {
+      status: result.status,
+      lof: result.lof,
+      scenarioId: guarded.executionBasis.scenarioId,
+      scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
+    }, scope);
     return true;
   } catch (error) {
     const failed = failSbcType3CandidateEvaluation(
       state.sbcType3CurrentnessStore, started.operation, String(error?.message || error),
     );
     state.sbcType3CurrentnessStore = failed.store;
-    if (failed.handled) state.error = String(error?.message || error);
+    if (failed.handled) state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     return false;
   } finally {
     clearBusy(state, scope, started.operation.token);
+    render?.();
+  }
+}
+
+export function evaluateSbcType3ExplicitIntermediate(
+  state, render, audit, calculate = calculateSbcType3FromUserEngineeringData,
+) {
+  const scope = scopeId(state.sbcType3ScopeId);
+  try {
+    const guarded = executeSbcFacilityWithScenario(state, scope, ({ executionBasis }) => ({
+      executionBasis,
+      result: calculate({
+        userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+        scopeId: scope,
+      }),
+    }));
+    state.sbcType3Result = Object.freeze({
+      ...guarded.result,
+      scenarioExecutionBasis: guarded.executionBasis,
+    });
+    state.error = null;
+    audit?.('SBC_TYPE3_EVALUATED', {
+      status: state.sbcType3Result?.status ?? null,
+      lof: state.sbcType3Result?.lof ?? null,
+      mode: 'LEGACY_EXPLICIT_INTERMEDIATE',
+      scenarioId: guarded.executionBasis.scenarioId,
+      scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
+    }, scope);
+    return true;
+  } catch (error) {
+    state.sbcType3Result = null;
+    state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    return false;
+  } finally {
     render?.();
   }
 }
@@ -199,6 +252,10 @@ export function handleSbcType3Click(state, event, render, audit) {
   }
   if (event.target.closest('[data-vi-sbc-master-evaluate]')) {
     void evaluateSbcType3MasterAssisted(state, render, audit);
+    return true;
+  }
+  if (event.target.closest('[data-vi-sbc-type3-evaluate]')) {
+    evaluateSbcType3ExplicitIntermediate(state, render, audit);
     return true;
   }
   return false;
