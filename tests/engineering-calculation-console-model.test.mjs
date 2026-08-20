@@ -9,6 +9,7 @@ import {
   parseEngineeringBatchEditor,
   parseEngineeringConsoleField,
 } from '../tabs/engineering-calculation-console-model.js';
+import { renderInputForm } from '../tabs/engineering-calculation-console-sections.js';
 
 const definition = {
   id: 'TEST.CALC.ONE',
@@ -18,30 +19,45 @@ const definition = {
     { key: 'flag', type: 'boolean', engineeringDefault: false },
     { key: 'mode', type: 'enum', values: ['A', 'B'], engineeringDefault: 'A' },
     { key: 'obj', type: 'object' },
+    { key: 'arr', label: 'Attestations', type: 'array' },
     { key: 'optional', type: 'number' },
   ],
 };
 
-test('draft uses declared defaults and canonical units only', () => {
-  const draft = createEngineeringConsoleDraft(definition, { p: 12 });
+test('draft uses declared defaults, JSON aggregate editing, and canonical units only', () => {
+  const draft = createEngineeringConsoleDraft(definition, { p: 12, arr: [{ id: 'A1' }] });
   assert.equal(draft.values.p, 12);
   assert.equal(draft.values.flag, false);
   assert.equal(draft.values.mode, 'A');
   assert.equal(draft.units.p, 'MPa');
+  assert.equal(draft.values.arr, '[\n  {\n    "id": "A1"\n  }\n]');
   assert.equal(draft.values.optional, '');
 });
 
-test('typed parser preserves zero/false and rejects malformed JSON', () => {
+test('typed parser preserves zero/false, supports arrays, and rejects malformed aggregate shapes', () => {
   assert.deepEqual(parseEngineeringConsoleField({ key: 'n', type: 'number' }, 0), { included: true, value: 0 });
   assert.deepEqual(parseEngineeringConsoleField({ key: 'b', type: 'boolean' }, false), { included: true, value: false });
+  assert.deepEqual(parseEngineeringConsoleField({ key: 'a', type: 'array' }, '[{"id":"A1"}]'), {
+    included: true,
+    value: [{ id: 'A1' }],
+  });
   assert.throws(() => parseEngineeringConsoleField({ key: 'o', type: 'object' }, '{bad'), /JSON/);
+  assert.throws(() => parseEngineeringConsoleField({ key: 'a', type: 'array' }, '{"id":"A1"}'), /JSON array/);
+});
+
+test('array fields render as JSON textarea controls rather than scalar text inputs', () => {
+  const draft = createEngineeringConsoleDraft(definition, { p: 10, arr: [{ id: 'A1' }] });
+  const html = renderInputForm(definition, { draft, editorErrors: [] });
+  assert.match(html, /<textarea[^>]+data-field="arr"/);
+  assert.match(html, /&quot;id&quot;: &quot;A1&quot;/);
 });
 
 test('request omits blank optional fields and enables sandbox explicitly', () => {
-  const draft = createEngineeringConsoleDraft(definition, { p: 10 });
+  const draft = createEngineeringConsoleDraft(definition, { p: 10, arr: [{ id: 'A1' }] });
   const built = buildEngineeringConsoleRequest(definition, draft, { executionMode: 'sandbox', qualificationMode: 'screening' });
   assert.equal(built.ok, true);
   assert.equal(built.request.inputs.p, 10);
+  assert.deepEqual(built.request.inputs.arr, [{ id: 'A1' }]);
   assert.equal(Object.hasOwn(built.request.inputs, 'optional'), false);
   assert.equal(built.request.inputUnits.p, 'MPa');
   assert.equal(built.request.options.executionMode, 'sandbox');
