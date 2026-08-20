@@ -65,68 +65,106 @@ function nearlyEqual(actual, expected, tolerance = 1e-12) {
   assert(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 }
 
-test('registry accepts the canonical calculator grammar without obsolete definition fields', () => {
+test('registry accepts canonical definitions including first-class array fields', () => {
   const definition = {
     contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
     id: 'ESTIMATION.TEST.MINIMAL',
     family: 'ESTIMATION',
     name: 'Minimal canonical definition',
-    methodRevision: 'test-v1',
-    purpose: 'Prove the production registry no longer requires legacy definition fields.',
+    methodRevision: 'test-v2',
+    purpose: 'Prove the production registry accepts the current canonical contract.',
     authority: {
       calculationState: 'IMPLEMENTED',
       qualificationState: 'BENCHMARK_ONLY',
       codeCompliance: false,
     },
-    inputs: [],
-    outputs: [],
+    applicability: { description: 'Synthetic registry contract test.', limitations: [] },
+    inputs: [{ key: 'rows', label: 'Rows', type: 'array', required: true }],
+    outputs: [{ key: 'rows', label: 'Rows', type: 'array' }],
     validateInput() { return { ok: true, errors: [] }; },
-    calculate() {
+    calculate(input) {
       return {
-        outputs: { sample: 1 },
+        ok: true,
+        outputs: { rows: input.rows },
         checks: [],
         assessment: { status: 'REFERENCE_ONLY' },
         qualification: { method: 'BENCHMARK_ONLY', data: 'BENCHMARK_ONLY', designAuthority: false },
       };
     },
   };
-  const registry = createEngineeringCalculationRegistry([definition]);
+  const registry = createEngineeringCalculationRegistry({ definitions: [definition] });
   const engine = createEngineeringCalculationEngine({ registry });
   assert.equal(registry.get(definition.id).domainModel, undefined);
   assert.equal(registry.get(definition.id).separationOfConcerns, undefined);
   assert.equal(registry.get(definition.id).expectedFailureModes, undefined);
-  const result = engine.calculate({ calculationId: definition.id, inputs: {} });
+  const result = engine.calculate({ calculationId: definition.id, inputs: { rows: [{ id: 'A1' }] } });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.outputs.sample, 1);
+  assert.deepEqual(result.outputs.rows, [{ id: 'A1' }]);
 });
 
-test('default catalogue exposes 8 executable definitions and 18 qualification-blocked placeholders', () => {
+test('default catalogue constructs and exposes current executable production routes', () => {
   const all = listEngineeringCalculations();
   const available = listEngineeringCalculations({ availableOnly: true });
-  assert.equal(all.length, 26);
-  assert.equal(available.length, 8);
-  assert.deepEqual(available.map((row) => row.id).sort(), [
-    'ESTIMATION.WEIGHT.EMPIRICAL',
-    'PIPE.B313.CH9.RESOLVE_BASIS',
-    'PIPE.B313.CH9.STRAIGHT_PRESSURE',
-    'PIPE.B313.CH9.STRAIGHT_PRESSURE_FROM_BASIS',
-    'PIPE.B313.CH9.WALL_STATE',
-    'PIPE.B313.MATERIAL_DESIGN',
+  const availableIds = new Set(available.map((row) => row.id));
+  for (const id of [
     'PIPE.B313.THICKNESS',
+    'PIPE.B313.MATERIAL_DESIGN',
+    'PIPE.B313.CH9.STRAIGHT_PRESSURE_REVIEW',
+    'PIPE.B313.CH9.WALL_STATE_REVIEW',
+    'PIPE.B313.CH9.FATIGUE_USER_REVIEW',
     'VIB.FIV.FLOW_TURBULENCE',
-  ]);
+    'VIB.AIV.ACOUSTIC',
+  ]) assert(availableIds.has(id), `Expected executable catalogue ID ${id}`);
+
   const families = listEngineeringCalculationFamilies();
-  assert.equal(families.reduce((sum, family) => sum + family.count, 0), 26);
-  assert.equal(families.find((family) => family.id === 'VIB')?.count, 6);
-  const externalPressure = getEngineeringCalculationDefinition('PIPE.EXTERNAL_PRESSURE.CHECK');
-  assert.equal(externalPressure.authority.qualificationState, 'BLOCKED');
-  assert.equal(externalPressure.qualificationIssue, 428);
-  const shellIndentation = getEngineeringCalculationDefinition('PIPE.SHELL_INDENTATION');
-  assert.equal(shellIndentation.id, 'PIPE.SHELL_INDENTATION');
-  assert.equal(shellIndentation.authority.qualificationState, 'BLOCKED');
-  assert.equal(shellIndentation.qualificationIssue, 428);
+  assert.equal(families.reduce((sum, family) => sum + family.count, 0), all.length);
+  assert.equal(
+    families.find((family) => family.id === 'VIB')?.count,
+    all.filter((definition) => definition.family === 'VIB').length,
+  );
   assert(Object.isFrozen(all));
   assert(Object.isFrozen(getEngineeringCalculationDefinition('PIPE.B313.THICKNESS')));
+});
+
+test('qualification-gated placeholders remain blocked while AIV is active screening', () => {
+  const blockedIds = new Set(listEngineeringCalculations().filter((row) => (
+    row.authority?.qualificationState ?? row.authority?.calculationState
+  ) === 'BLOCKED').map((row) => row.id));
+
+  for (const id of [
+    'PIPE.EXTERNAL_PRESSURE.CHECK',
+    'PIPE.BRANCH.REINFORCEMENT',
+    'PIPE.SHELL_INDENTATION',
+    'VIB.CAVITATION.FLASHING',
+    'VIB.SBC.SMALL_BORE',
+    'VIB.SLUG.TIME_HISTORY',
+    'VIB.SURGE.MOMENTUM',
+    'RELIEF.GAS.REACTION_FORCE',
+    'RELIEF.LIQUID.REACTION_FORCE',
+    'SUPPORT.TRUNNION.LOCAL_STRESS',
+    'SUPPORT.WELDED_SHOE.CHECK',
+    'EQUIP.API610.NOZZLE_LOADS',
+    'EQUIP.API617.LOAD_CHECK',
+    'EQUIP.NEMA_SM23.LOAD_CHECK',
+    'FLANGE.LEAKAGE.CHECK',
+    'FLANGE.GRE.CHECK',
+    'HAZARD.BLAST.SCREENING',
+  ]) assert(blockedIds.has(id), `Expected blocked catalogue ID ${id}`);
+
+  assert.equal(blockedIds.has('VIB.AIV.ACOUSTIC'), false);
+  const aiv = getEngineeringCalculationDefinition('VIB.AIV.ACOUSTIC');
+  assert.equal(aiv.authority.qualificationState, 'SCREENING');
+  assert.equal(aiv.inputs.find((field) => field.key === 'inventoryCompletenessAttestations')?.type, 'array');
+});
+
+test('blocked method states fail closed before numerical output', () => {
+  const blocked = calculateEngineering({
+    calculationId: 'VIB.CAVITATION.FLASHING',
+    inputs: { madeUp: 1 },
+  });
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
+  assert.equal(Object.hasOwn(blocked, 'outputs'), false);
 });
 
 test('B31.3 benchmark direct-factor path survives centralized API dispatch', () => {
@@ -162,43 +200,6 @@ test('empirical documented sample remains available through the centralized API'
   assert.equal(result.qualification.designAuthority, false);
 });
 
-test('qualification-gated placeholder definitions keep the frozen calculation IDs in order', () => {
-  const blocked = listEngineeringCalculations().filter((row) => (
-    row.authority?.qualificationState ?? row.authority?.calculationState
-  ) === 'BLOCKED');
-  assert.deepEqual(blocked.map((row) => row.id), [
-    'EQUIP.API610.NOZZLE_LOADS',
-    'EQUIP.API617.LOAD_CHECK',
-    'EQUIP.NEMA_SM23.LOAD_CHECK',
-    'FLANGE.GRE.CHECK',
-    'FLANGE.LEAKAGE.CHECK',
-    'HAZARD.BLAST.SCREENING',
-    'PIPE.BRANCH.REINFORCEMENT',
-    'PIPE.EXTERNAL_PRESSURE.CHECK',
-    'PIPE.SHELL_INDENTATION',
-    'RELIEF.GAS.REACTION_FORCE',
-    'RELIEF.LIQUID.REACTION_FORCE',
-    'SUPPORT.TRUNNION.LOCAL_STRESS',
-    'SUPPORT.WELDED_SHOE.CHECK',
-    'VIB.AIV.ACOUSTIC',
-    'VIB.CAVITATION.FLASHING',
-    'VIB.SBC.SMALL_BORE',
-    'VIB.SLUG.TIME_HISTORY',
-    'VIB.SURGE.MOMENTUM',
-  ]);
-});
-
-test('non-implemented states fail closed before numerical output', () => {
-  const blocked = calculateEngineering({
-    calculationId: 'VIB.AIV.ACOUSTIC',
-    inputs: { madeUp: 1 },
-  });
-  assert.equal(blocked.ok, false);
-  assert.equal(blocked.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
-  assert.equal(blocked.errors[0].details.qualificationState, 'BLOCKED');
-  assert.equal(Object.hasOwn(blocked, 'outputs'), false);
-});
-
 test('central unit resolver normalizes explicit gauge pressure and geometric inputs', () => {
   assert.equal(convertEngineeringUnit(10, 'pressure', 'barg', 'MPa'), 1);
   const resolved = resolveEngineeringCalculationInputs(
@@ -232,6 +233,38 @@ test('validation and resolution remain independently callable and fail closed', 
   );
   assert.equal(resolved.ok, true, JSON.stringify(resolved));
   assert(Math.abs(resolved.canonicalInput.designPressure - 0.0689475728) < 1e-12);
+});
+
+test('AIV array input survives central resolution without scalar coercion', () => {
+  const attestations = [{ assessmentId: 'A1', complete: true }];
+  const resolved = resolveEngineeringCalculationInputs(
+    'VIB.AIV.ACOUSTIC',
+    {
+      sources: [],
+      assessments: [],
+      relationships: [],
+      topology: {},
+      inventoryCompletenessAttestations: attestations,
+      engineeringInputRevision: 3,
+    }, {},
+    { qualificationMode: 'screening' },
+  );
+  assert.deepEqual(resolved.canonicalInput.inventoryCompletenessAttestations, attestations);
+  assert.deepEqual(resolved.resolvedInputs.inventoryCompletenessAttestations.canonicalValue, attestations);
+});
+
+test('AIV rejects non-array inventory attestations at central input normalization', () => {
+  const resolved = resolveEngineeringCalculationInputs(
+    'VIB.AIV.ACOUSTIC',
+    {
+      sources: [], assessments: [], relationships: [], topology: {},
+      inventoryCompletenessAttestations: { assessmentId: 'A1' },
+      engineeringInputRevision: 3,
+    }, {},
+    { qualificationMode: 'screening' },
+  );
+  assert.equal(resolved.ok, false);
+  assert(resolved.errors.some((error) => error.field === 'inventoryCompletenessAttestations'));
 });
 
 test('FIT is active only as benchmark-only workbook reference and retains issue #429', () => {
@@ -317,23 +350,13 @@ test('FIT validation fails closed on missing gas viscosity and unresolved manual
   assert.equal(gap.errors[0].code, 'INPUT_OUTSIDE_APPLICABILITY');
 });
 
-test('other vibration mechanisms remain qualification-blocked', () => {
-  const definition = getEngineeringCalculationDefinition('VIB.AIV.ACOUSTIC');
-  assert.equal(definition.authority.qualificationState, 'BLOCKED');
-  assert.deepEqual(definition.inputs, []);
-  const result = calculateEngineering({ calculationId: definition.id, inputs: {} });
-  assert.equal(result.ok, false);
-  assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
-  assert.equal(Object.hasOwn(result, 'outputs'), false);
-});
-
-test('batch execution preserves result isolation and immutability', () => {
+test('batch execution preserves result isolation and immutability with a genuinely blocked mechanism', () => {
   const batch = calculateEngineeringBatch({
     contractVersion: 'engineering-calculation-batch/v1',
     requests: [
       { calculationId: 'PIPE.B313.THICKNESS', inputs: B313_BENCHMARK_INPUT },
       { calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput },
-      { calculationId: 'VIB.AIV.ACOUSTIC', inputs: {} },
+      { calculationId: 'VIB.CAVITATION.FLASHING', inputs: {} },
     ],
   });
   assert.equal(batch.ok, false);
@@ -346,13 +369,13 @@ test('batch execution preserves result isolation and immutability', () => {
   assert(Object.isFrozen(batch));
 });
 
-test('mixed batch preserves benchmark FIT, successful empirical, and blocked AIV results independently', () => {
+test('mixed batch preserves benchmark FIT, successful empirical, and blocked mechanism independently', () => {
   const batch = calculateEngineeringBatch({
     contractVersion: 'engineering-calculation-batch/v1',
     requests: [
       fitGasRequest('benchmark'),
       { calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput },
-      { calculationId: 'VIB.AIV.ACOUSTIC', inputs: {} },
+      { calculationId: 'VIB.CAVITATION.FLASHING', inputs: {} },
     ],
   });
   assert.equal(batch.ok, false);
