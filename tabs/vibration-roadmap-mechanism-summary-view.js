@@ -63,11 +63,16 @@ function resultLine(item) {
   return values.length ? `<small>${esc(values.join(' · '))}</small>` : '';
 }
 
+function sourceLine(item) {
+  if (!item.sourceLabel) return '';
+  const reason = item.sourceReason ? ` title="${esc(item.sourceReason)}"` : '';
+  return `<small data-mechanism-source-status="${esc(item.sourceStatus ?? 'UNRESOLVED')}"${reason}>${esc(item.sourceLabel)}</small>`;
+}
+
 function mechanismRow(item) {
   const stateLabel = STATE_LABELS[item.state] ?? item.state;
-  const method = item.sourceSection ? `<small>${esc(item.sourceSection)}</small>` : '';
   const disposition = `${item.disposition}${item.coverageReason ? ` · ${item.coverageReason}` : ''}`;
-  return `<div class="vibration-roadmap-mechanism" data-mechanism-id="${esc(item.mechanismId)}" data-mechanism-state="${esc(item.state)}"><div><strong>${esc(item.label)}</strong>${method}<small>${esc(disposition)}</small>${resultLine(item)}</div><div class="vibration-roadmap-mechanism-state"><span>${esc(stateLabel)}</span><small>${esc(item.nextAction)}</small></div></div>`;
+  return `<div class="vibration-roadmap-mechanism" data-mechanism-id="${esc(item.mechanismId)}" data-mechanism-state="${esc(item.state)}"><div><strong>${esc(item.label)}</strong>${sourceLine(item)}<small>${esc(disposition)}</small>${resultLine(item)}</div><div class="vibration-roadmap-mechanism-state"><span>${esc(stateLabel)}</span><small>${esc(item.nextAction)}</small></div></div>`;
 }
 
 function summaryCounts(summary) {
