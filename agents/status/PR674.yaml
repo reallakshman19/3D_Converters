@@ -1,0 +1,37 @@
+schema: AgentStatus.v1
+pr_or_wip: PR674
+pull_request: 674
+branch: agent/vib-right-rail-mechanism-cockpit-20260820
+base: main
+base_sha_at_allocation: 72ef2f1907a3e2ebde8ad0abe156d2aedd01b284
+implementation_basis_head: 8bea5a35ee2a31251e7e9bc249b28f9697f039ed
+pr_head_at_allocation: 4504eacbfb90b6d771183b41483f13b222500bd0
+report_basis_head: 8bea5a35ee2a31251e7e9bc249b28f9697f039ed
+state: DRAFT_FOCUSED_VALIDATION
+criticality: ENGINEERING_CRITICAL_PRESENTATION_INTEGRATION
+coordination_state: COORDINATION_REQUIRED_NO_EXACT_CONFLICT
+validation:
+  repository_grounding: PASS_SOURCE_INSPECTION
+  overlap_grounding: PASS_SOURCE_INSPECTION
+  reconstructed_new_module_syntax: PASS_LOCAL_EXECUTION
+  reconstructed_mechanism_summary: PASS_LOCAL_EXECUTION_IMPLEMENTATION_COUPLED
+  cavitation_t29_blocked_projection: PASS_LOCAL_EXECUTION_PLUS_SOURCE_INSPECTION
+  thermowell_source_conflict_projection: PASS_LOCAL_EXECUTION_PLUS_SOURCE_INSPECTION
+  missing_lof_preserved_null: PASS_LOCAL_EXECUTION
+  focused_repository_test: NOT_RUN_ENVIRONMENT_BLOCKED
+  repository_native_regressions: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  native_backup: NOT_RUN_ENVIRONMENT_BLOCKED
+  preallocation_status_contexts: NOT_RUN_ZERO_RETURNED
+  preallocation_workflow_runs: NOT_RUN_ZERO_RETURNED
+authority:
+  engineering_authority_changed: false
+  numerical_authority_changed: false
+  screening_authority_changed: false
+  applicability_authority_changed: false
+  completeness_authority_changed: false
+  aggregation_authority_created: false
+  project_persistence_changed: false
+  workflow_files_changed: false
+merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR674
+exact_next_action: RECONCILE_FINAL_PR_HEAD_DIFF_REVIEWS_CHECKS_AND_KEEP_DRAFT_PENDING_NATIVE_BROWSER_VALIDATION
