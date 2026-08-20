@@ -15,7 +15,10 @@ import {
   parseEngineeringBatchEditor,
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
-import { createVibrationRoadmapController } from './vibration-roadmap-controller.js';
+import {
+  VIBRATION_ROADMAP_STATE_EVENT,
+  createVibrationRoadmapController,
+} from './vibration-roadmap-controller.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
@@ -79,6 +82,9 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     activeView: isEngineeringCalculationExecutable(definition) ? 'results' : 'basis',
     editorErrors: [], validation: null, resolution: null, result: null,
     batchText: '[]', batchResult: null, batchError: null,
+    facilityScenarioHandoff: context?.facilityScenarioHandoff ?? null,
+    facilityScenarioHandoffStatus: context?.facilityScenarioHandoffStatus ?? null,
+    facilityScenarioHandoffErrorCode: context?.facilityScenarioHandoffErrorCode ?? null,
   };
   const roadmapController = createVibrationRoadmapController(container, {
     initialState: context?.vibrationRoadmap ?? {},
@@ -107,10 +113,14 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       if (definition.id === AIV_CALCULATION_ID) {
         const host = container.querySelector('[data-aiv-qualification-host]');
         if (!host) return;
-        const module = await import('./vibration-aiv-qualification-tab.js?v=20260816-aiv-canvas-release-1');
+        const module = await import('./vibration-aiv-qualification-tab.js?v=20260820-aiv-facility-scenario-1');
         if (destroyed || token !== productToken || definition.id !== AIV_CALCULATION_ID || state.familyLanding) return;
         host.innerHTML = '';
-        const maybeDestroy = module.renderAivQualificationWorkspace(host);
+        const maybeDestroy = module.renderAivQualificationWorkspace(host, {
+          facilityScenarioHandoff: state.facilityScenarioHandoff,
+          facilityScenarioHandoffStatus: state.facilityScenarioHandoffStatus,
+          facilityScenarioHandoffErrorCode: state.facilityScenarioHandoffErrorCode,
+        });
         productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
       }
     } catch (error) {
@@ -222,6 +232,15 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     render();
   }
 
+  function onRoadmapStateForFacilityHandoff(event) {
+    const eventContext = event.detail?.context;
+    if (!eventContext || !Object.prototype.hasOwnProperty.call(eventContext, 'selectedAssessment')) return;
+    const selected = eventContext.selectedAssessment;
+    state.facilityScenarioHandoff = selected?.facilityScenarioHandoff ?? null;
+    state.facilityScenarioHandoffStatus = selected?.facilityScenarioHandoffStatus ?? null;
+    state.facilityScenarioHandoffErrorCode = selected?.facilityScenarioHandoffErrorCode ?? null;
+  }
+
   function onClick(event) {
     const calc = event.target.closest('[data-calc-id]');
     if (calc) {
@@ -280,6 +299,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     onInput(event);
   }
 
+  container.addEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
   container.addEventListener('click', onClick);
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);
@@ -289,6 +309,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     destroyed = true;
     cleanupProduct();
     roadmapController.destroy();
+    container.removeEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
