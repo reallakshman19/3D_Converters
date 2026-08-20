@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  assembleVibrationIntegrityDataset,
+  buildVibrationOperatingScenario,
+} from '../converters/vibration/dataset/index.js';
+import {
+  VIBRATION_TABLE_EXCHANGE_INTEGRITY,
+  VIBRATION_TABLE_EXCHANGE_SCHEMA,
+} from '../converters/vibration/exchange/schema.js';
+import {
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
   VIBRATION_FACILITY_FIT_RESULT_SCHEMA,
   executeVibrationFacilityFitPlan,
 } from '../converters/vibration/facility/index.js';
+import { createVibrationScenarioExecutionBinding } from '../converters/vibration/mechanisms/scenario-execution.js';
 
 function readyItem(overrides = {}) {
   return {
@@ -62,27 +72,90 @@ function notReadyItem() {
   };
 }
 
-function plan(items) {
+function scopeKey(line, caseId) {
+  return JSON.stringify([line, caseId]);
+}
+
+function scenarioContext(items) {
+  const ready = items.filter((item) => item.status === 'READY');
+  if (!ready.length) return { operatingScenarios: [], bindingByScope: new Map() };
+  const scopes = [...new Map(ready.map((item) => [scopeKey(item.line, item.caseId), item])).values()];
+  const exchange = {
+    schema: VIBRATION_TABLE_EXCHANGE_SCHEMA,
+    completeExchange: true,
+    integrityStatus: VIBRATION_TABLE_EXCHANGE_INTEGRITY.DECLARED_NOT_REVERIFIED,
+    authority: {
+      canonicalHash: 'sha256:fit-execute-canonical',
+      projectionHash: 'sha256:fit-execute-projection',
+      sourceHash: 'sha256:fit-execute-source',
+      datasetId: 'fit-execute-test',
+      datasetVersion: 'rev-1',
+    },
+    sourceFileName: 'fit-execute-test.xlsx',
+    elements: scopes.map((item) => ({ canonicalId: item.canonicalId, line: item.line, type: 'PIPE' })),
+  };
+  const operatingCases = scopes.map((item, index) => ({
+    caseId: item.caseId,
+    line: item.line,
+    phase: index === 0 ? 'GAS' : 'LIQUID',
+    source: 'FIT-EXECUTE-TEST',
+    sourceRevision: 'A',
+    recordId: `FIT-EXECUTE-${item.line}-${item.caseId}`,
+    massFlow: { value: 10 + index, unit: 'kg/s' },
+    pressure: { value: 10 + index, unit: 'barg', reference: 'gauge' },
+  }));
+  const dataset = assembleVibrationIntegrityDataset({ exchange, operatingCases, enrichment: [] });
+  const operatingScenarios = scopes.map((item) => buildVibrationOperatingScenario(dataset, {
+    line: item.line,
+    caseId: item.caseId,
+    coherenceDeclaration: VIBRATION_OPERATING_SCENARIO_DECLARATION,
+  }));
+  const bindingByScope = new Map(operatingScenarios.map((scenario) => [
+    scopeKey(scenario.line, scenario.caseId), createVibrationScenarioExecutionBinding(scenario),
+  ]));
+  return { operatingScenarios, bindingByScope };
+}
+
+function preparedPlan(items, overrides = {}) {
+  const context = scenarioContext(items);
+  const boundItems = items.map((item) => (
+    item.status === 'READY'
+      ? { ...item, scenarioBinding: context.bindingByScope.get(scopeKey(item.line, item.caseId)) }
+      : item
+  ));
   return {
-    schema: VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
-    authority: 'REQUEST_PLANNING_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
-    calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
-    qualificationMode: 'benchmark',
-    datasetSchema: 'VibrationIntegrityDataset.v1',
-    datasetExchangeIntegrityStatus: 'DECLARED_NOT_REVERIFIED',
-    items,
+    plan: {
+      schema: VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
+      authority: 'REQUEST_PLANNING_ONLY',
+      engineeringAuthority: 'NONE',
+      screeningAuthorized: false,
+      calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
+      qualificationMode: 'benchmark',
+      datasetSchema: 'VibrationIntegrityDataset.v1',
+      datasetId: 'fit-execute-test',
+      datasetExchangeIntegrityStatus: 'DECLARED_NOT_REVERIFIED',
+      items: boundItems,
+      ...overrides,
+    },
+    operatingScenarios: context.operatingScenarios,
   };
 }
 
+function execute(items, overrides = {}) {
+  const prepared = preparedPlan(items, overrides);
+  return executeVibrationFacilityFitPlan(prepared.plan, {
+    operatingScenarios: prepared.operatingScenarios,
+  });
+}
+
 test('READY rows execute through central batch while NOT_READY remains non-numerical', () => {
-  const result = executeVibrationFacilityFitPlan(plan([readyItem(), notReadyItem()]));
+  const result = execute([readyItem(), notReadyItem()]);
   assert.equal(result.schema, VIBRATION_FACILITY_FIT_RESULT_SCHEMA);
   assert.equal(result.authority, 'ORCHESTRATION_ONLY');
   assert.equal(result.engineeringAuthority, 'NONE');
   assert.equal(result.screeningAuthorized, false);
   assert.equal(result.qualificationMode, 'benchmark');
+  assert.match(result.scenarioSetKey, /^VFSK1:/u);
   assert.deepEqual(result.counts, {
     total: 2,
     plannedReady: 1,
@@ -103,6 +176,8 @@ test('READY rows execute through central batch while NOT_READY remains non-numer
   assert.equal(calculated.screeningCandidate.screeningAuthorized, false);
   assert.equal(typeof calculated.standardLof, 'number');
   assert.equal(calculated.sourceTrace.operatingCase.source, 'HMB-100');
+  assert.equal(calculated.scenarioExecutionBasis.line, 'L-100');
+  assert.equal(calculated.scenarioExecutionBasis.caseId, 'NORMAL');
 
   const incomplete = result.rows[1];
   assert.equal(incomplete.status, 'NOT_ASSESSED_DATA_INCOMPLETE');
@@ -136,7 +211,7 @@ test('READY request that fails central applicability remains CALCULATION_FAILED 
       options: { qualificationMode: 'benchmark', includeEvidence: true },
     },
   });
-  const result = executeVibrationFacilityFitPlan(plan([invalidRequest]));
+  const result = execute([invalidRequest]);
   assert.equal(result.counts.calculated, 0);
   assert.equal(result.counts.calculationFailed, 1);
   assert.equal(result.complete, false);
@@ -173,26 +248,29 @@ test('multiple READY rows preserve plan order while central batch uses the same 
       options: { qualificationMode: 'benchmark', includeEvidence: true },
     },
   });
-  const result = executeVibrationFacilityFitPlan(plan([readyItem(), second]));
+  const result = execute([readyItem(), second]);
   assert.deepEqual(result.rows.map((row) => row.canonicalId), ['CANON-001', 'CANON-003']);
   assert.equal(result.centralBatchSummary.total, 2);
   assert.equal(result.counts.calculated, 2);
   assert.equal(result.rows[1].referenceBand, 'LOF_GE_1');
   assert.equal(result.rows[1].screeningCandidate.candidateForEngineeringReview, true);
   assert.equal(result.rows[1].screeningCandidate.screeningAuthorized, false);
+  assert.match(result.scenarioSetKey, /^VFSK1:/u);
 });
 
 test('empty READY set returns zero central-batch summary and preserves NOT_READY rows', () => {
-  const result = executeVibrationFacilityFitPlan(plan([notReadyItem()]));
+  const result = execute([notReadyItem()]);
   assert.deepEqual(result.centralBatchSummary, { ok: true, total: 0, succeeded: 0, failed: 0 });
   assert.equal(result.counts.plannedReady, 0);
   assert.equal(result.counts.notAssessed, 1);
   assert.equal(result.rows[0].status, 'NOT_ASSESSED_DATA_INCOMPLETE');
+  assert.equal(result.scenarioSetKey, null);
 });
 
 test('executor rejects plan-level or request-level screening mode mutation', () => {
+  const planMutation = preparedPlan([readyItem()], { qualificationMode: 'screening' });
   assert.throws(
-    () => executeVibrationFacilityFitPlan({ ...plan([readyItem()]), qualificationMode: 'screening' }),
+    () => executeVibrationFacilityFitPlan(planMutation.plan, { operatingScenarios: planMutation.operatingScenarios }),
     (error) => error.code === 'FIT_FACILITY_PLAN_AUTHORITY_VIOLATION',
   );
 
@@ -201,15 +279,17 @@ test('executor rejects plan-level or request-level screening mode mutation', () 
     ...mutated.request,
     options: { ...mutated.request.options, qualificationMode: 'screening' },
   };
+  const requestMutation = preparedPlan([mutated]);
   assert.throws(
-    () => executeVibrationFacilityFitPlan(plan([mutated])),
+    () => executeVibrationFacilityFitPlan(requestMutation.plan, { operatingScenarios: requestMutation.operatingScenarios }),
     (error) => error.code === 'FIT_FACILITY_PLAN_AUTHORITY_VIOLATION',
   );
 });
 
 test('non-READY item carrying an executable request is rejected', () => {
+  const prepared = preparedPlan([{ ...notReadyItem(), request: readyItem().request }]);
   assert.throws(
-    () => executeVibrationFacilityFitPlan(plan([{ ...notReadyItem(), request: readyItem().request }])),
+    () => executeVibrationFacilityFitPlan(prepared.plan, { operatingScenarios: prepared.operatingScenarios }),
     (error) => error.code === 'FIT_FACILITY_PLAN_INVALID',
   );
 });
