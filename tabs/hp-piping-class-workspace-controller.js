@@ -79,6 +79,7 @@ function invalidProjectResult(validation) {
     ok: false,
     projectState: 'INVALID_PROJECT',
     issues: Object.freeze(clone(validation.issues ?? [])),
+    advisories: Object.freeze(clone(validation.advisories ?? [])),
     products: Object.freeze([]),
     authority: Object.freeze({ ...HP_PIPING_CLASS_AUTHORITY_POLICY }),
   });
@@ -93,14 +94,24 @@ function masterNotLoadedResult() {
   });
 }
 
-function custodyBlockedResult(issues) {
-  return Object.freeze({
-    ok: false,
-    projectState: 'MASTER_STORE_CUSTODY_BLOCKED',
-    issues: Object.freeze(clone(issues)),
-    products: Object.freeze([]),
-    authority: Object.freeze({ ...HP_PIPING_CLASS_AUTHORITY_POLICY }),
-  });
+function advisoryWarning(row) {
+  return {
+    code: row.code,
+    message: `${row.path}: ${row.message}`,
+    advisory: true,
+  };
+}
+
+function withWorkspaceAdvisories(result, advisories) {
+  const next = clone(result) ?? {};
+  const existing = Array.isArray(next.advisories) ? next.advisories : [];
+  const combined = [...existing, ...clone(advisories ?? [])];
+  next.advisories = combined;
+  next.warnings = [
+    ...(Array.isArray(next.warnings) ? next.warnings : []),
+    ...(advisories ?? []).map(advisoryWarning),
+  ];
+  return next;
 }
 
 export function createHpPipingClassWorkspaceController({
@@ -118,11 +129,15 @@ export function createHpPipingClassWorkspaceController({
   let revision = 0;
   const listeners = new Set();
 
+  function productionValidation() {
+    return validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
+  }
+
   function snapshot() {
     return Object.freeze({
       controllerVersion: HP_PIPING_CLASS_WORKSPACE_CONTROLLER_VERSION,
       project: clone(project),
-      validation: clone(validateHpPipingClassProject(project)),
+      validation: clone(productionValidation()),
       calculation: clone(calculation),
       masterRuntime: clone(masterRuntime),
       revision,
@@ -208,7 +223,7 @@ export function createHpPipingClassWorkspaceController({
       return governed.map(({ index }) => ({
         path: `products[${index}].calculationBasis.basisPackage`,
         code: 'MASTER_STORE_NOT_LOADED',
-        message: 'Governed basis cannot execute until the canonical b313-ch9-master-store/v1 runtime store is loaded.',
+        message: 'Canonical master-store custody has not been loaded. Embedded basis-package calculation may proceed for engineering review; custody reconciliation is deferred.',
       }));
     }
     return governed.flatMap(({ product, index }) => {
@@ -218,33 +233,27 @@ export function createHpPipingClassWorkspaceController({
       });
       return checked?.ok ? [] : [{
         path: `products[${index}].calculationBasis.basisPackage`,
-        code: checked?.code || 'GOVERNED_BASIS_CUSTODY_BLOCKED',
-        message: checked?.message || 'Governed basis failed canonical master-store custody validation.',
+        code: checked?.code || 'GOVERNED_BASIS_CUSTODY_ADVISORY',
+        message: checked?.message || 'Governed basis did not reproduce canonical master-store custody; calculation may proceed for engineering review and must not be treated as design authority.',
       }];
     });
   }
 
   function calculate(options = {}) {
-    const validation = validateHpPipingClassProject(project);
+    const validation = productionValidation();
     if (!validation.ok) {
       calculation = invalidProjectResult(validation);
       revision += 1;
       emit('CALCULATION_BLOCKED_INVALID_PROJECT');
       return calculation;
     }
-    const custodyIssues = governedCustodyIssues();
-    if (custodyIssues.length) {
-      calculation = custodyBlockedResult(custodyIssues);
-      revision += 1;
-      emit('CALCULATION_BLOCKED_MASTER_STORE_CUSTODY');
-      return calculation;
-    }
+    const custodyAdvisories = governedCustodyIssues();
     const evaluated = evaluator(project, {
       includeEvidence: options.includeEvidence !== false,
     });
     calculation = authorityPromotionDetected(evaluated)
       ? promotionBlockedResult(evaluated)
-      : clone(evaluated);
+      : withWorkspaceAdvisories(evaluated, custodyAdvisories);
     revision += 1;
     emit(calculation.ok ? 'CALCULATION_COMPLETED_REVIEW_ONLY' : 'CALCULATION_BLOCKED');
     return clone(calculation);
