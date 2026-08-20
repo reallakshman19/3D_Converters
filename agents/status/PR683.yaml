@@ -1,0 +1,23 @@
+schema: AgentStatus.v1
+pr_or_wip: PR683
+pull_request: 683
+branch: agent/hp-product-matrix-bulk-intake
+base: main
+base_sha_at_pr_open: 1f8f12daf3846780341ad34ab56f9dc0bde05593
+state: DRAFT_BROWSER_QUALIFICATION_PENDING
+criticality: HP_PRODUCTION_PRODUCTIVITY
+authority:
+  calculation_mode: USER_CALCULATED_KD3
+  native_core_kd3_qualified: false
+  code_compliance: false
+  can_use_for_design_authority: false
+validation:
+  current_main_grounding: PASS
+  changed_path_reconciliation: PASS
+  independent_wall_arithmetic: PASS
+  focused_node_tests: NOT_RUN
+  hp_regression_suite: NOT_RUN
+  full_app_chromium_bulk_import: NOT_RUN
+  full_repository_regression: NOT_RUN
+merge_authority: NOT_GRANTED
+next_action: QUALIFY_EXACT_PR_HEAD_THEN_RECONCILE
