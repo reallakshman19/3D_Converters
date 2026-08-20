@@ -130,17 +130,20 @@ export async function verifyAssumptionAuthorityBoundary(context) {
 }
 
 export async function verifyBoundedMethodCustody(context) {
-  const profile = await profileFrom(context);
-  const source = await sourceFrom(context, context.workpack.calculator.path);
-  const lineReference = context.workpack.boundedMethod.dependencies
-    .find((item) => item.path === 'benchmark.workedExampleReliefLineLof');
-  const ok = profile?.benchmark?.stage8Model === 'CONFIGURED_D23_INTERMEDIATES'
-    && source.includes('AIV stage 8 supports CONFIGURED_D23_INTERMEDIATES only.')
-    && context.workpack.boundedMethod.dependencies
-      .every((item) => item.classification !== 'UNRESTRICTED_PROJECT_AUTHORITY')
-    && lineReference?.classification === 'BENCHMARK_ORACLE_ONLY'
-    && /not a runtime line-result input/iu.test(lineReference?.runtimeRole ?? '');
-  return { ok, detail: 'configured D.2.3 dependencies remain explicitly bounded and the 1.48 line reference is oracle-only' };
+  const calculator = await sourceFrom(context, context.workpack.calculator.path);
+  const stage8 = await sourceFrom(context, context.workpack.stage8.path);
+  const benchmarkDependencies = context.workpack.boundedMethod.benchmarkDependencies ?? [];
+  const ok = context.workpack.boundedMethod.stage8Model === 'SOURCE_CALCULATED_T2_6'
+    && context.workpack.stage8.sourceAuthority.mergeCommit === 'ca53d589b79fc34f5a5616c0ce7de00e06c13df4'
+    && context.workpack.stage8.sourceAuthority.productionReleaseQualificationRequired === true
+    && calculator.includes('calculateAivT26Discontinuity')
+    && !calculator.includes('CONFIGURED_D23_INTERMEDIATES')
+    && stage8.includes("FLM1Mode: 'SOURCE_CALCULATED'")
+    && stage8.includes('if (ratio >= 10) return 0.5')
+    && benchmarkDependencies.length > 0
+    && benchmarkDependencies.every((item) => item.classification === 'BENCHMARK_ORACLE_ONLY')
+    && benchmarkDependencies.every((item) => !/runtime.*input/iu.test(item.runtimeRole ?? ''));
+  return { ok, detail: 'Stage 8 is source-calculated from current assessment inputs; D2.3 benchmark intermediates remain oracle-only' };
 }
 
 export async function verifyIndependentBenchmarks(context) {
@@ -182,8 +185,10 @@ export async function verifyProductFreezeOwnership(context) {
 
 export async function verifyOverlapClassification(context) {
   const overlap = context.workpack.activeOverlap ?? [];
-  const ok = overlap.some((item) => item.ref === 'PR#517')
-    && overlap.some((item) => item.ref === 'PR#506')
+  const byRef = new Map(overlap.map((item) => [item.ref, item]));
+  const ok = byRef.get('PR#517')?.classification === 'MERGED_PREDECESSOR'
+    && byRef.get('PR#506')?.classification === 'SUPERSEDED_FOR_T26_SOURCE_PARITY'
+    && byRef.get('Advanced_Analysis#1289')?.classification === 'MERGED_SOURCE_AUTHORITY'
     && overlap.every((item) => item.classification);
-  return { ok, detail: 'active AIV overlap is explicitly classified before mutation' };
+  return { ok, detail: 'AIV overlap/source predecessors are explicitly classified against current main before mutation' };
 }
