@@ -11,7 +11,7 @@ const REQUIRED_FIELDS = Object.freeze([
   'authority', 'applicability', 'inputs', 'outputs', 'calculate',
 ]);
 const CALCULATION_ID_PATTERN = /^[A-Z][A-Z0-9_]*(\.[A-Z][A-Z0-9_]*){1,}$/;
-const FIELD_TYPES = new Set(['number', 'integer', 'boolean', 'string', 'enum', 'vector3', 'table', 'object']);
+const FIELD_TYPES = new Set(['number', 'integer', 'boolean', 'string', 'enum', 'vector3', 'array', 'table', 'object']);
 
 function definitionError(code, message, details = {}) {
   const error = new TypeError(message);
