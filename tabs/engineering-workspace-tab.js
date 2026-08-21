@@ -17,6 +17,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
+    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient bulk enhancement is additive.
     load: () => Promise.all([
       import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1'),
       import('./hp-piping-class-transient-bulk-enhancer.js?v=20260821-hp-transient-bulk-1'),
