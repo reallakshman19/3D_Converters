@@ -8,6 +8,10 @@ import {
   createVibrationActionCompletionRecord,
 } from '../converters/vibration/facility/action-completion.js';
 import {
+  appendVibrationActionCompletionRecord,
+  createVibrationActionCompletionLedger,
+} from '../converters/vibration/facility/action-completion-ledger.js';
+import {
   buildVibrationFacilityRowActionLifecycle,
 } from '../converters/vibration/facility/action-lifecycle.js';
 import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
@@ -70,6 +74,43 @@ test('completion custody has no engineering, screening, design or governing auth
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.determinesCompleteness, false);
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.determinesGoverningResult, false);
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.blocksCalculation, false);
+});
+
+test('append-only ledger admits only the next legal occurrence transition', () => {
+  const action = openLifecycle().currentActions[0];
+  const completion = completeRecord(action.occurrence);
+  const reopen = createVibrationActionCompletionRecord({
+    occurrence: action.occurrence,
+    sequence: 2,
+    transition: 'REOPEN',
+    recordedAt: '2026-08-21T09:00:00Z',
+    actorId: 'ENGINEER-002',
+    reason: 'New evidence requires reassessment.',
+    evidenceRefs: [],
+  });
+  let ledger = createVibrationActionCompletionLedger();
+  ledger = appendVibrationActionCompletionRecord(ledger, completion);
+  ledger = appendVibrationActionCompletionRecord(ledger, reopen);
+  assert.equal(ledger.records.length, 2);
+  assert.equal(ledger.records[0].transition, 'COMPLETE');
+  assert.equal(ledger.records[1].transition, 'REOPEN');
+  assert.throws(
+    () => appendVibrationActionCompletionRecord(ledger, completion),
+    (error) => error?.code === 'VIBRATION_ACTION_COMPLETION_LEDGER_SEQUENCE_GAP',
+  );
+  const illegalThird = createVibrationActionCompletionRecord({
+    occurrence: action.occurrence,
+    sequence: 3,
+    transition: 'REOPEN',
+    recordedAt: '2026-08-21T10:00:00Z',
+    actorId: 'ENGINEER-003',
+    reason: 'Illegal repeated reopen.',
+    evidenceRefs: [],
+  });
+  assert.throws(
+    () => appendVibrationActionCompletionRecord(ledger, illegalThird),
+    (error) => error?.code === 'VIBRATION_ACTION_COMPLETION_LEDGER_ILLEGAL_TRANSITION',
+  );
 });
 
 test('exact completion record closes the current finding but does not remove the source action', () => {
