@@ -2,15 +2,31 @@ schema: AgentStatus.v1
 pr_or_wip: WIP-VIB-FACILITY-MECHANISM-EVIDENCE-20260820
 branch: agent/vib-facility-mechanism-evidence-20260820
 base: main
-base_sha: db5f9e250edfa6fa01097b02ff71b1737ea78436
-state: IMPLEMENTATION
-criticality: ENGINEERING_CRITICAL_EVIDENCE_ORCHESTRATION
+base_sha_at_start: db5f9e250edfa6fa01097b02ff71b1737ea78436
+main_head_last_checked: cd02030d7d28438ddda8e11ac92acb319cd06cd9
 predecessor_pr: 684
 predecessor_state: MERGED
+state: READY_FOR_PR_ALLOCATION
+criticality: ENGINEERING_CRITICAL_EVIDENCE_ORCHESTRATION
+authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  numerical_authority: NONE
+  aggregation_authority: NONE
+  determines_applicability: false
+  determines_completeness: false
 validation:
   current_main_grounding: PASS
-  repository_native_tests: NOT_RUN
-  browser: NOT_RUN
+  predecessor_merge: PASS
+  main_drift: PASS_HP_ONLY_NO_EXACT_OVERLAP
+  diff_normalization: PASS
+  physical_line_policy: PASS
+  reconstructed_run_basis_syntax: PASS_LOCAL_EXECUTION
+  reconstructed_mechanism_evidence_syntax: PASS_LOCAL_EXECUTION
+  reconstructed_custody_falsifiers: PASS_LOCAL_EXECUTION_WITH_STUBS
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
   independent_numerical: NOT_APPLICABLE
 merge_authority: NOT_GRANTED_FOR_SUCCESSOR
-next_action: IMPLEMENT_NON_AUTHORIZING_MECHANISM_EVIDENCE_ENVELOPE
+next_action: ALLOCATE_DRAFT_PR_AND_MIGRATE_RECOVERY
