@@ -24,6 +24,15 @@ test('report UI only exports from a canonical re-evaluation and verified report 
   assert.match(enhancer, /data-hpwb-class-result-matrix/);
 });
 
+test('report enhancer follows workbench project custody: stored project first, route context fallback, edits retire context', () => {
+  assert.match(enhancer, /options\?\.context\?\.hpPipingClassProject/);
+  assert.match(enhancer, /const stored = readStoredProject\(\)/);
+  assert.match(enhancer, /if \(stored\) return stored/);
+  assert.match(enhancer, /if \(contextProject\) return cloneProject\(contextProject\)/);
+  assert.match(enhancer, /data-hpwb-bind/);
+  assert.match(enhancer, /contextProject = null/);
+});
+
 test('report contract delegates numerical result custody to the existing canonical result-export contract', () => {
   assert.match(report, /buildHpPipingClassResultExport/);
   assert.match(report, /verifyHpPipingClassResultRoundTrip/);
