@@ -1,3 +1,4 @@
+import { buildVibrationFacilityActionLifecycle } from '../converters/vibration/facility/action-lifecycle.js';
 import { buildVibrationFacilityMechanismEvidence } from '../converters/vibration/facility/mechanism-evidence.js';
 import { assertVibrationIntegrityAuditLog } from './vibration-integrity-audit-log.js';
 import { getCurrentAivScreeningSession } from './vibration-aiv-screening-session.js';
@@ -172,6 +173,13 @@ function mechanismEvidence(state, snapshot, envelope) {
   });
 }
 
+function actionLifecycle(state, envelope) {
+  return buildVibrationFacilityActionLifecycle({
+    registerRows: envelope.workflow.register.rows,
+    resultState: state.resultState,
+  });
+}
+
 export async function buildVibrationIntegrityRunEvidence(state = {}) {
   if (state.resultState !== 'CURRENT_RESULT') {
     throw evidenceError('FIT_RUN_EVIDENCE_RESULT_NOT_CURRENT', 'Only a CURRENT_RESULT may be exported as FIT reproducibility evidence.', {
@@ -201,6 +209,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
     },
     execution: jsonClone(envelope),
     mechanismEvidence: mechanismEvidence(state, snapshot, envelope),
+    actionLifecycle: actionLifecycle(state, envelope),
   });
 }
 
