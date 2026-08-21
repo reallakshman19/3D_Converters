@@ -11,7 +11,7 @@ import { assertVibrationMeasurementEvidencePackage } from '../measurement/contra
 import { createVibrationVerificationRequirement } from '../verification/contracts.js';
 import { evaluateVibrationVerification } from '../verification/evaluate.js';
 
-export const VIBRATION_ACTION_VERIFICATION_ATTACHMENT_SCHEMA = 'VibrationActionVerificationAttachment.v1';
+export const VIBRATION_ACTION_VERIFICATION_ATTACHMENT_SCHEMA = 'VibrationActionVerificationAttachment.v2';
 
 export const VIBRATION_ACTION_VERIFICATION_AUTHORITY = Object.freeze({
   purpose: 'ACTION_OCCURRENCE_MEASUREMENT_VERIFICATION_CUSTODY_ONLY',
