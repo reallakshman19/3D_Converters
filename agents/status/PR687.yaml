@@ -1,0 +1,30 @@
+schema: AgentStatus.v1
+pr_or_wip: PR687
+pull_request: 687
+branch: agent/hp-transient-bulk-intake
+base: main
+base_sha_at_start: cd02030d7d28438ddda8e11ac92acb319cd06cd9
+predecessor_pr: 685
+predecessor_merge: cd02030d7d28438ddda8e11ac92acb319cd06cd9
+state: DRAFT_HOSTED_RECONCILIATION
+criticality: HP_PRODUCTION_PRODUCTIVITY
+authority:
+  calculation_mode: USER_CALCULATED_KD3
+  native_core_kd3_qualified: false
+  code_compliance: false
+  can_use_for_design_authority: false
+validation:
+  main_grounding: PASS
+  initial_branch_ancestry: PASS_AHEAD_12_BEHIND_0
+  implementation_paths: PASS_7_INTENDED
+  helper_syntax: PASS
+  enhancer_syntax: PASS
+  route_syntax: PASS
+  exact_blob_focused_suite: PASS_22_OF_22
+  canonical_transient_integration: PASS_2_OF_2
+  state_value_drift_falsifier: PASS_STATE_VALUE_CHANGED
+  transient_full_app_browser: NOT_RUN
+  combined_hp_browser_command: NOT_RUN
+  full_repository_regression: NOT_RUN
+merge_authority: NOT_GRANTED_FOR_PR687
+next_action: RECONCILE_EXACT_PR_HEAD_AND_HOSTED_STATE
