@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { assertVibrationActionOccurrence } from '../facility/action-completion.js';
 import { assertVibrationActionVerificationLedger } from '../facility/action-verification-ledger.js';
 
@@ -31,6 +33,8 @@ export const VIBRATION_RCA_AUTHORITY = Object.freeze({
   safetyAuthority: false,
 });
 
+const SHA256 = /^sha256:[0-9a-f]{64}$/u;
+
 function rcaError(code, message, details = {}) {
   const error = new Error(message);
   error.name = 'VibrationRcaError';
@@ -57,6 +61,18 @@ function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
   return Object.freeze(value);
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
 }
 
 function authority(value) {
@@ -112,6 +128,7 @@ function conclusionValue(input, evidence) {
   if (input?.schema != null && input.schema !== VIBRATION_RCA_CONCLUSION_SCHEMA) {
     throw rcaError('VIBRATION_RCA_CONCLUSION_SCHEMA_INVALID', `Expected ${VIBRATION_RCA_CONCLUSION_SCHEMA}.`);
   }
+  if (input.authority != null) authority(input.authority);
   const outcome = text(input.outcome, 'conclusion.outcome');
   if (!VIBRATION_RCA_CONCLUSION_OUTCOMES.includes(outcome)) {
     throw rcaError('VIBRATION_RCA_CONCLUSION_OUTCOME_INVALID', 'Unsupported engineer RCA conclusion outcome.', { outcome });
@@ -138,8 +155,12 @@ function conclusionValue(input, evidence) {
   });
 }
 
-function hypothesisRecordId(projectId, occurrenceId, hypothesisId) {
-  return JSON.stringify([projectId, occurrenceId, hypothesisId]);
+function recordIdentity(projectId, occurrenceId, hypothesisId, fingerprint) {
+  return JSON.stringify([projectId, occurrenceId, hypothesisId, fingerprint]);
+}
+
+function fingerprintPayload({ projectId, occurrence, hypothesisId, mechanismId, statement, evidence, conclusion }) {
+  return { projectId, occurrenceId: occurrence.occurrenceId, hypothesisId, mechanismId, statement, evidence, conclusion };
 }
 
 export function createVibrationRcaHypothesis({
@@ -148,7 +169,7 @@ export function createVibrationRcaHypothesis({
   mechanismId: mechanismInput,
   verificationLedger,
   hypothesisId: hypothesisInput,
-  statement,
+  statement: statementInput,
   evidenceForRecordIds = [],
   evidenceAgainstRecordIds = [],
   conclusion = null,
@@ -157,6 +178,7 @@ export function createVibrationRcaHypothesis({
   const occurrence = assertVibrationActionOccurrence(occurrenceInput);
   const hypothesisId = text(hypothesisInput, 'hypothesisId');
   const mechanismId = text(mechanismInput, 'mechanismId');
+  const statement = text(statementInput, 'statement');
   const forIds = uniqueIds(evidenceForRecordIds, 'evidenceForRecordIds');
   const againstIds = uniqueIds(evidenceAgainstRecordIds, 'evidenceAgainstRecordIds');
   const index = verificationIndex(verificationLedger, projectId, occurrence.occurrenceId);
@@ -169,15 +191,18 @@ export function createVibrationRcaHypothesis({
     }
   }
   const engineerConclusion = conclusionValue(conclusion, evidence);
+  const payload = fingerprintPayload({ projectId, occurrence, hypothesisId, mechanismId, statement, evidence, conclusion: engineerConclusion });
+  const hypothesisFingerprint = sha256(payload);
   return deepFreeze({
     schema: VIBRATION_RCA_HYPOTHESIS_SCHEMA,
-    hypothesisRecordId: hypothesisRecordId(projectId, occurrence.occurrenceId, hypothesisId),
+    hypothesisRecordId: recordIdentity(projectId, occurrence.occurrenceId, hypothesisId, hypothesisFingerprint),
+    hypothesisFingerprint,
     projectId,
     hypothesisId,
     actionId: occurrence.actionId,
     mechanismId,
     occurrence,
-    statement: text(statement, 'statement'),
+    statement,
     evidence,
     conclusion: engineerConclusion,
     state: engineerConclusion ? 'ENGINEER_CONCLUSION_RECORDED' : 'HYPOTHESIS_OPEN',
@@ -193,11 +218,10 @@ export function assertVibrationRcaHypothesis(value) {
   const projectId = text(value.projectId, 'hypothesis.projectId');
   const occurrence = assertVibrationActionOccurrence(value.occurrence);
   const hypothesisId = text(value.hypothesisId, 'hypothesis.hypothesisId');
-  text(value.mechanismId, 'hypothesis.mechanismId');
-  text(value.statement, 'hypothesis.statement');
-  if (value.actionId !== occurrence.actionId
-      || value.hypothesisRecordId !== hypothesisRecordId(projectId, occurrence.occurrenceId, hypothesisId)) {
-    throw rcaError('VIBRATION_RCA_HYPOTHESIS_ID_INVALID', 'RCA hypothesis identity does not match its custody fields.');
+  const mechanismId = text(value.mechanismId, 'hypothesis.mechanismId');
+  const statement = text(value.statement, 'hypothesis.statement');
+  if (value.actionId !== occurrence.actionId) {
+    throw rcaError('VIBRATION_RCA_ACTION_MISMATCH', 'RCA hypothesis action does not match its occurrence.');
   }
   if (!Array.isArray(value.evidence) || value.evidence.length === 0) {
     throw rcaError('VIBRATION_RCA_EVIDENCE_REQUIRED', 'RCA evidence snapshot is required.');
@@ -212,10 +236,19 @@ export function assertVibrationRcaHypothesis(value) {
     text(item.attachmentId, 'hypothesis.evidence[].attachmentId');
     text(item.requirementId, 'hypothesis.evidence[].requirementId');
     text(item.verificationState, 'hypothesis.evidence[].verificationState');
-    text(item.evidenceFingerprint, 'hypothesis.evidence[].evidenceFingerprint');
+    if (!SHA256.test(String(item.evidenceFingerprint ?? ''))) {
+      throw rcaError('VIBRATION_RCA_EVIDENCE_FINGERPRINT_INVALID', 'RCA evidence fingerprints must be canonical sha256 values.');
+    }
   }
   const conclusion = conclusionValue(value.conclusion, value.evidence);
   const expectedState = conclusion ? 'ENGINEER_CONCLUSION_RECORDED' : 'HYPOTHESIS_OPEN';
   if (value.state !== expectedState) throw rcaError('VIBRATION_RCA_STATE_INVALID', 'RCA hypothesis state does not match its explicit engineer conclusion.');
+  const expectedFingerprint = sha256(fingerprintPayload({
+    projectId, occurrence, hypothesisId, mechanismId, statement, evidence: value.evidence, conclusion,
+  }));
+  if (value.hypothesisFingerprint !== expectedFingerprint
+      || value.hypothesisRecordId !== recordIdentity(projectId, occurrence.occurrenceId, hypothesisId, expectedFingerprint)) {
+    throw rcaError('VIBRATION_RCA_HYPOTHESIS_FINGERPRINT_INVALID', 'RCA hypothesis identity does not match its evidence/conclusion custody.');
+  }
   return value;
 }
