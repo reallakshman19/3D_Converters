@@ -53,7 +53,7 @@ function previewHtml(preview, applied = false) {
   const cleanup = preview.plan?.removedExternalRows ?? [];
   const removedPackages = preview.plan?.removedFatigueProductIds ?? [];
   return `<div class="hpwb-notice good"><strong>${applied ? 'Transient spectrum applied.' : 'Transient spectrum valid.'}</strong> Spectrum ${esc(preview.spectrumId)} · ${summary.parsedStates ?? 0} state(s) · ${summary.parsedCycles ?? 0} governed cycle(s) · ${Number(summary.totalDeclaredCycles ?? 0).toLocaleString()} declared lifetime cycles.${applied ? ' Review calculation requested through the existing canonical workbench action.' : ''}</div>
-    <div class="hpwb-notice"><strong>KD custody:</strong> ${summary.retainedExternalRows ?? 0} external row(s) retain exact cycle/state-pair custody · ${summary.removedExternalRows ?? 0} stale row(s) will be removed · ${summary.fatiguePackagesNeedingCycleRows ?? 0} existing KD package(s) will need one or more cycle rows after import.</div>
+    <div class="hpwb-notice"><strong>KD custody:</strong> ${summary.retainedExternalRows ?? 0} external row(s) retain exact cycle/state-pair + state-value custody · ${summary.removedExternalRows ?? 0} stale row(s) will be removed · ${summary.fatiguePackagesNeedingCycleRows ?? 0} existing KD package(s) will need one or more cycle rows after import.</div>
     ${cleanup.length ? `<div class="hpwb-notice warn"><strong>Stale external rows removed:</strong> ${esc(cleanup.map((row) => `${row.productId}:${row.cycleId}(${row.reason})`).join(', '))}.</div>` : ''}
     ${removedPackages.length ? `<div class="hpwb-notice warn"><strong>Empty KD package(s) removed:</strong> ${esc(removedPackages.join(', '))}. Re-add the product in KD Review when new Seq/N values are available.</div>` : ''}
     <h4>Operating-state preview</h4>
@@ -66,7 +66,7 @@ function editorHtml(state) {
   const stateHeader = HP_PIPING_CLASS_STATE_BULK_HEADERS.join(',');
   const cycleHeader = HP_PIPING_CLASS_CYCLE_BULK_HEADERS.join(',');
   return `<summary>Paste / import operating states + governed cycles</summary>
-    <p class="hpwb-muted">Uses the current Spectrum ID above. Applying replaces this class spectrum's state/cycle tables. Existing external Seq/N rows are retained only when cycle ID, from-state and to-state remain exactly unchanged.</p>
+    <p class="hpwb-muted">Uses the current Spectrum ID above. Applying replaces this class spectrum's state/cycle tables. Existing external Seq/N rows are retained only when cycle ID, from-state, to-state and the referenced state pressure/material/structural temperatures remain exactly unchanged.</p>
     <div class="hpwb-transient-bulk-grid">
       <div><strong>Operating states</strong><span class="hpwb-transient-bulk-contract">${esc(stateHeader)}</span><textarea data-hpwb-transient-states spellcheck="false" placeholder="${esc(stateHeader)}\nLOW,2,40,40\nHIGH,20,80,80">${esc(state.statesText ?? '')}</textarea><div class="hpwb-actions"><button class="hpwb-button" data-hpwb-transient-action="load-states" type="button">Load states CSV / TSV</button></div></div>
       <div><strong>Governed cycles</strong><span class="hpwb-transient-bulk-contract">${esc(cycleHeader)}</span><textarea data-hpwb-transient-cycles spellcheck="false" placeholder="${esc(cycleHeader)}\nC1,LOW,HIGH,500,25,PRESSURE_CYCLE,OPS-001">${esc(state.cyclesText ?? '')}</textarea><div class="hpwb-actions"><button class="hpwb-button" data-hpwb-transient-action="load-cycles" type="button">Load cycles CSV / TSV</button></div></div>
