@@ -1,0 +1,25 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-M14-ACTION-VERIFICATION-20260821
+claim_state: ACTIVE
+branch: agent/vib-m14-action-verification-custody-20260821
+authority_domains:
+  - VIBRATION_ACTION_VERIFICATION_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+files:
+  exact:
+    - converters/vibration/facility/action-verification.js
+    - tests/vibration-facility-action-verification.test.mjs
+exclusions:
+  - measurement acquisition contract changes
+  - verification numerical/status logic changes
+  - mechanism equations and coefficients
+  - applicability and AssessmentCompleteness authority
+  - EI aggregation authority
+  - root-cause authority
+  - design authority
+  - direct action completion mutation
+coordination:
+  PR695: MERGED_M13_COMPLETION_AUTHORING_FOUNDATION
+release_condition: OWNER_MERGE_AUTHORITY_REQUIRED
