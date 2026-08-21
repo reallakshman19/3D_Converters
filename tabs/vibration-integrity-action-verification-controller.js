@@ -240,19 +240,49 @@ export function cancelVibrationActionVerificationEditor(state) {
   state.actionVerificationDraft = emptyDraft();
 }
 
-export function handleVibrationActionVerificationClick(state, event, render) {
+export function handleVibrationActionVerificationClick(state, event, render, audit) {
   const open = event.target.closest('[data-vi-action-verification-open]')?.dataset.viActionVerificationOpen;
   if (open) {
-    try { openVibrationActionVerificationEditor(state, open); state.error = null; }
-    catch (error) { state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`; }
+    try {
+      const editor = openVibrationActionVerificationEditor(state, open);
+      state.error = null;
+      audit?.('ACTION_VERIFICATION_EDITOR_OPENED', {
+        actionId: editor.actionId,
+        occurrenceId: editor.occurrenceId,
+        projectId: editor.projectId,
+      }, editor.actionId);
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    }
     render(); return true;
   }
   if (event.target.closest('[data-vi-action-verification-cancel]')) {
-    cancelVibrationActionVerificationEditor(state); state.error = null; render(); return true;
+    const editor = state.actionVerificationEditor;
+    cancelVibrationActionVerificationEditor(state);
+    state.error = null;
+    audit?.('ACTION_VERIFICATION_EDITOR_CANCELLED', {
+      actionId: editor?.actionId ?? null,
+      occurrenceId: editor?.occurrenceId ?? null,
+    }, editor?.actionId ?? null);
+    render(); return true;
   }
   if (!event.target.closest('[data-vi-action-verification-submit]')) return false;
-  try { submitVibrationActionVerificationEditor(state); state.error = null; }
-  catch (error) { state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`; }
+  try {
+    const attachment = submitVibrationActionVerificationEditor(state);
+    state.error = null;
+    audit?.('ACTION_VERIFICATION_RECORDED', {
+      attachmentId: attachment.attachmentId,
+      actionId: attachment.action.actionId,
+      occurrenceId: attachment.occurrence.occurrenceId,
+      requirementId: attachment.requirement.requirementId,
+      verificationState: attachment.verificationStatus.state,
+      sessionCount: attachment.evidenceSnapshot.sessions.length,
+      productCount: attachment.evidenceSnapshot.products.length,
+    }, attachment.action.actionId);
+  } catch (error) {
+    state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    audit?.('ACTION_VERIFICATION_RECORD_FAILED', { error: state.error.slice(0, 500) }, state.actionVerificationEditor?.actionId ?? null);
+  }
   render(); return true;
 }
 
