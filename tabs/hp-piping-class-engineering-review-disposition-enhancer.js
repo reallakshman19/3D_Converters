@@ -63,6 +63,7 @@ function filename(project) {
 function cardHtml() {
   return `<section class="hpwb-card hpwb-review-disposition" data-hpwb-review-disposition="true">
     <div class="hpwb-section-toolbar"><div><h4>Engineering review disposition</h4><p>Append-only custody bound to the exact SHA-256 of the canonical review report. This is not design approval or Code authority.</p></div><span class="hpwb-badge warn">REVIEW CUSTODY ONLY</span></div>
+    <div class="hpwb-notice warn"><strong>Identity boundary:</strong> reviewer/checker names are user-declared. SHA-256 binds the disposition to report content; this is not a digital signature, PKI identity, or release authorization.</div>
     <div data-hpwb-review-disposition-summary class="hpwb-muted">Resolving current report binding…</div>
     <div class="hpwb-grid two" style="margin-top:10px">
       <label class="hpwb-field"><span>Reviewer / checker identity</span><input data-hpwb-review-disposition-actor type="text" placeholder="ENGINEER_B"></label>
@@ -147,7 +148,7 @@ export function installHpPipingClassEngineeringReviewDispositionEnhancer(contain
     const next = await appendHpPipingClassReviewDisposition(readLedger(), report, input);
     writeLedger(next);
     const latest = next.entries.at(-1);
-    setStatus(card, 'good', `<strong>Disposition recorded.</strong> ${esc(latest.entryId)} · append-only review custody. <span class="hpwb-muted">No design-release or Code authority granted.</span>`);
+    setStatus(card, 'good', `<strong>Disposition recorded.</strong> ${esc(latest.entryId)} · append-only review custody. <span class="hpwb-muted">Declared identity only; no digital signature, design-release, or Code authority granted.</span>`);
     await refresh();
   }
 
@@ -157,7 +158,7 @@ export function installHpPipingClassEngineeringReviewDispositionEnhancer(contain
     const verified = await verifyHpPipingClassReviewDispositionPackage(pkg);
     if (!verified.ok) throw new Error(`Review package verification failed: ${verified.error}`);
     downloadText(filename(project), serializeHpPipingClassReviewDispositionPackageJson(pkg), 'application/json;charset=utf-8');
-    setStatus(card, 'good', `<strong>Review package verified.</strong> SHA-256 ${esc(verified.reportSha256.slice(0, 16))}… · ${verified.currentRecordCount} current record(s) · ${verified.historicalRecordCount} historical record(s).`);
+    setStatus(card, 'good', `<strong>Review package verified.</strong> SHA-256 ${esc(verified.reportSha256.slice(0, 16))}… · ${verified.currentRecordCount} current record(s) · ${verified.historicalRecordCount} historical record(s). <span class="hpwb-muted">Content binding verified; actor identity is user-declared.</span>`);
   }
 
   async function onClick(event) {
