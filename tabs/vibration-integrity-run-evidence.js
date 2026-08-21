@@ -1,5 +1,6 @@
 import { buildVibrationFacilityActionLifecycle } from '../converters/vibration/facility/action-lifecycle.js';
 import { buildVibrationFacilityMechanismEvidence } from '../converters/vibration/facility/mechanism-evidence.js';
+import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
 import { assertVibrationIntegrityAuditLog } from './vibration-integrity-audit-log.js';
 import { getCurrentAivScreeningSession } from './vibration-aiv-screening-session.js';
 
@@ -173,10 +174,18 @@ function mechanismEvidence(state, snapshot, envelope) {
   });
 }
 
-function actionLifecycle(state, envelope) {
+function actionLifecycle(state, snapshot, envelope) {
+  const workflow = envelope.workflow;
+  const runBasis = createVibrationFacilityRunBasis({
+    runId: snapshot.runId,
+    datasetId: workflow.result.datasetId,
+    scenarioSetKey: workflow.result.scenarioSetKey,
+  });
   return buildVibrationFacilityActionLifecycle({
-    registerRows: envelope.workflow.register.rows,
+    registerRows: workflow.register.rows,
     resultState: state.resultState,
+    runBasis,
+    completionRecords: state.actionCompletionRecords ?? [],
   });
 }
 
@@ -209,7 +218,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
     },
     execution: jsonClone(envelope),
     mechanismEvidence: mechanismEvidence(state, snapshot, envelope),
-    actionLifecycle: actionLifecycle(state, envelope),
+    actionLifecycle: actionLifecycle(state, snapshot, envelope),
   });
 }
 
