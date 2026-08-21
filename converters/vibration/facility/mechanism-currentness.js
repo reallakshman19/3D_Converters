@@ -3,6 +3,7 @@ import {
   createVibrationFacilityRunBasis,
   vibrationFacilityRunBasisMatches,
 } from './run-basis.js';
+import { vibrationFacilityScenarioSetKey } from './scenario-handoff.js';
 
 export const VIBRATION_FACILITY_MECHANISM_CURRENTNESS_SCHEMA =
   'VibrationFacilityMechanismCurrentnessProjection.v1';
@@ -58,6 +59,7 @@ function scenarioMap(values, run) {
   if (!Array.isArray(values)) return null;
   const map = new Map();
   try {
+    if (vibrationFacilityScenarioSetKey(values) !== run.scenarioSetKey) return null;
     for (const input of values) {
       const scenario = assertVibrationOperatingScenario(input);
       if (scenario.datasetId !== run.datasetId) return null;
