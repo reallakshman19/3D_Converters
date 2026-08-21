@@ -1,0 +1,33 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-VIB-M14-ACTIVITY-VERIFICATION-20260821
+claim_state: ACTIVE
+branch: agent/vib-m14-activity-verification-authoring-20260821
+authority_domains:
+  - VIBRATION_PROJECT_MEASUREMENT_HANDOFF
+  - VIBRATION_ACTION_VERIFICATION_AUTHORING
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+files:
+  exact:
+    - tabs/vibration-project-evidence-handoff.js
+    - converters/vibration/facility/action-verification-ledger.js
+    - tabs/vibration-integrity-action-verification-controller.js
+    - tabs/vibration-integrity-action-verification-view.js
+    - tabs/engineering-calculations-tab.js
+    - tabs/vibration-integrity-tab.js
+    - tabs/vibration-integrity-user-data-shell.js
+    - tabs/vibration-integrity-activity-view.js
+    - tabs/vibration-integrity-audit-log.js
+exclusions:
+  - measurement acquisition contract changes
+  - verification evaluate/contracts changes
+  - mechanism equations and coefficients
+  - applicability and AssessmentCompleteness authority
+  - EI aggregation authority
+  - root-cause authority
+  - design authority
+  - automatic action completion
+coordination:
+  PR697: MERGED_M14_ACTION_VERIFICATION_FOUNDATION
+release_condition: OWNER_MERGE_AUTHORITY_REQUIRED
