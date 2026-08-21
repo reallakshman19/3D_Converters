@@ -9,7 +9,7 @@ BASE: main
 BASE_SHA_AFTER_REPLAY: 54a4f56e36c2025320ea464630fbffac9accc71d
 PREDECESSOR_PR: 692 (MERGED)
 PREDECESSOR_MERGE: 82cd3ddf5562f3fe990fe5f718d7d8e13e23357a
-CURRENT_STAGE: DRAFT_READY_FOR_NATIVE_VALIDATION
+CURRENT_STAGE: READY_FOR_REVIEW_PENDING_NATIVE_VALIDATION
 MERGE_AUTHORITY: NOT_GRANTED_FOR_PR694
 
 ## Mission
@@ -42,7 +42,10 @@ HTML is standalone and print-ready. It embeds the complete machine-readable repo
 - B31.3 and VIII-3 edition identity;
 - canonical units;
 - design pressure and class allowances;
-- spectrum, design life, operating states, governed cycles;
+- exact canonical calculation IDs used by the orchestrator;
+- product engineering-input basis: nominal size, basis mode, OD, allowable stress, nominal wall, minus tolerance and wall-state/brownfield inputs;
+- governed basis package custody retained in machine JSON when applicable;
+- spectrum, design life, operating states and governed cycles;
 - deterministic class product review matrix;
 - required nominal wall / pressure rating / margin / selected fatigue wall / cumulative U;
 - cycle state pair, n, pressure range, CORE Salt, user Salt, external Seq/N and Ui;
@@ -63,6 +66,17 @@ verifyHpPipingClassResultRoundTrip
 ```
 
 The UI enhancer re-runs the existing canonical orchestrator at export time. No report value is independently recomputed using pressure/thickness/fatigue formulae.
+
+## Project custody
+
+The active HP workbench can be opened from a route-context project before a persisted workspace copy exists. The report enhancer therefore follows the same custody order:
+
+```text
+stored current project
+  -> if unavailable, route context hpPipingClassProject
+```
+
+Any project input edit or project-file change retires the context fallback so an old route snapshot cannot be exported after the engineer changes the working model.
 
 ## Fail-closed report transaction
 
@@ -110,25 +124,42 @@ Native CORE KD-3 / KD320 not qualified
 Code compliance not established
 ```
 
+## Audit corrections made before handoff
+
+### 1. Context-project export custody
+
+Initial enhancer read only localStorage. That could spuriously block report export when the HP route was legitimately rendered from `options.context.hpPipingClassProject` before persistence.
+
+Correction: stored project is preferred, route context is a bounded fallback, and project edits retire that fallback.
+
+### 2. Engineer-facing input-basis completeness
+
+Initial dossier projected canonical outputs but did not give the reviewer the full product input basis.
+
+Correction: report/HTML now include OD, allowable stress, nominal wall, minus tolerance, wall-state inputs and canonical calculation IDs. Machine JSON retains complete `calculationBasis` / wall-state custody.
+
 ## Authored focused tests
 
 `tests/hp-piping-class-engineering-review-report.test.mjs` covers:
 
-1. NPS4 reference numerical/custody projection;
-2. result-export round-trip prerequisite;
-3. report JSON round-trip;
-4. standalone HTML numerical and authority tokens;
-5. embedded JSON equality;
-6. static-reference FAIL remains reportable;
-7. project/result identity mismatch blocks;
-8. project/result authority promotion blocks;
-9. report schema/authority tampering blocks.
+1. NPS4 direct input basis (OD 114.3 mm, S 138 MPa, nominal wall 13.49 mm, tolerance 12.5%);
+2. canonical calculation-ID custody;
+3. NPS4 reference numerical/custody projection;
+4. existing result-export round-trip prerequisite;
+5. report JSON round-trip;
+6. standalone HTML input/output numerical and authority tokens;
+7. embedded JSON equality;
+8. static-reference FAIL remains reportable;
+9. project/result identity mismatch blocks;
+10. project/result authority promotion blocks;
+11. report schema/authority tampering blocks.
 
 `tests/hp-piping-class-engineering-review-report-ui.test.mjs` covers:
 
 - active route composition/cleanup;
 - canonical re-evaluation at export time;
 - HTML/JSON buttons only on the result matrix;
+- stored-project / route-context custody and context retirement on edits;
 - existing result-export numerical custody;
 - no `Math.exp`/`Math.log` duplicate pressure math;
 - visible review-only and external-KD-custody language.
@@ -137,13 +168,14 @@ Code compliance not established
 
 ```text
 current-main replay                         PASS
-branch ancestry                             PASS (behind 0 before PR open)
+branch ancestry                             PASS (behind 0 at last reconciliation)
 changed implementation/test/CI paths        PASS (6 intended before recovery)
 source-level numerical ownership audit      PASS
 source-level authority audit                PASS
+source-level context-custody audit           PASS
 authored report contract suite              AUTHORED_NOT_EXECUTED
 native report Node suite                    NOT_RUN
-HP Real Workbench PR workflow               PENDING_RECONCILIATION
+HP Real Workbench PR workflow               NOT_RUN (0 workflow runs returned for exact head)
 FULL_APP report download                    NOT_RUN
 full repository regression                  NOT_RUN
 ```
@@ -173,12 +205,11 @@ agents/claims/PR694.yaml
 
 ## Next action
 
-1. Mark PR ready so the existing checkout-based HP Real Workbench gate may trigger.
-2. Inspect workflow jobs/logs if a run appears.
-3. Fix any native report contract or route-wiring failure.
-4. Browser-check Review Envelope -> Export review HTML/JSON -> filenames/content.
-5. Reconcile exact PR head/current main/statuses/reviews.
-6. Do not merge without explicit owner authorization for PR694.
+1. Re-read exact PR694 head and current main.
+2. Execute native report contract/UI tests if a checkout-capable runner becomes available.
+3. Browser-check Review Envelope -> Export review HTML/JSON -> filenames/content/print layout.
+4. Reconcile exact statuses/workflows/reviews.
+5. Do not merge without explicit owner authorization for PR694.
 
 ## Appendix A — takeover qualification
 
@@ -188,4 +219,6 @@ agents/claims/PR694.yaml
 4. Which authority fields must always remain false?
 5. What external KD custody is retained in the report?
 6. Why does the standalone HTML embed the full report JSON?
-7. Which validations remain NOT_RUN?
+7. Why must input basis and calculation IDs appear in an engineer-facing report?
+8. How does the route-context fallback avoid exporting a stale project after user edits?
+9. Which validations remain NOT_RUN?
