@@ -1,3 +1,7 @@
+import {
+  assertVibrationActionCompletionLedger,
+  createVibrationActionCompletionLedger,
+} from '../converters/vibration/facility/action-completion-ledger.js';
 import { buildVibrationFacilityActionLifecycle } from '../converters/vibration/facility/action-lifecycle.js';
 import { buildVibrationFacilityMechanismEvidence } from '../converters/vibration/facility/mechanism-evidence.js';
 import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
@@ -181,11 +185,14 @@ function actionLifecycle(state, snapshot, envelope) {
     datasetId: workflow.result.datasetId,
     scenarioSetKey: workflow.result.scenarioSetKey,
   });
+  const ledger = state.actionCompletionLedger == null
+    ? createVibrationActionCompletionLedger()
+    : assertVibrationActionCompletionLedger(state.actionCompletionLedger);
   return buildVibrationFacilityActionLifecycle({
     registerRows: workflow.register.rows,
     resultState: state.resultState,
     runBasis,
-    completionRecords: state.actionCompletionRecords ?? [],
+    completionRecords: ledger.records,
   });
 }
 
