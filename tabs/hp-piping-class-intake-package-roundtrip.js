@@ -58,6 +58,7 @@ function validateRepresentability(project, issues) {
     onlyKeys(cycle, ['spectrumId', 'cycleId', 'fromStateId', 'toStateId', 'totalCycles', 'cyclesPerYear', 'category', 'provenanceId'], `transient.transitions[${index}]`, issues);
   }
 
+  const governedByCycle = new Map((project?.transient?.transitions ?? []).map((row) => [text(row?.cycleId), row]).filter(([id]) => id));
   for (const [pkgIndex, pkg] of (project?.fatigueEvidence ?? []).entries()) {
     onlyKeys(pkg, ['productId', 'externalResults'], `fatigueEvidence[${pkgIndex}]`, issues);
     const rows = pkg?.externalResults ?? [];
@@ -73,6 +74,18 @@ function validateRepresentability(project, issues) {
       onlyKeys(row,
         ['cycleId', 'locationId', 'fromStateId', 'toStateId', 'userAlternatingStressIntensityMpa', 'equivalentAlternatingStressMpa', 'permissibleCycles', 'calculationBasis'],
         `fatigueEvidence[${pkgIndex}].externalResults[${rowIndex}]`, issues);
+      const governed = governedByCycle.get(text(row?.cycleId));
+      if (!governed || text(row?.fromStateId) !== text(governed?.fromStateId) || text(row?.toStateId) !== text(governed?.toStateId)) {
+        issues.push(issue(
+          'INTAKE_PACKAGE_EXPORT_KD_STATE_BINDING_MISMATCH',
+          `${text(pkg?.productId)}:${text(row?.cycleId)} external result state-pair custody does not reproduce the governed transition; export stopped rather than silently rebinding evidence.`,
+          {
+            productId: text(pkg?.productId), cycleId: text(row?.cycleId),
+            externalFromStateId: text(row?.fromStateId), externalToStateId: text(row?.toStateId),
+            governedFromStateId: text(governed?.fromStateId), governedToStateId: text(governed?.toStateId),
+          },
+        ));
+      }
       if (row?.calculationBasis && Object.keys(row.calculationBasis).length) {
         issues.push(issue(
           'INTAKE_PACKAGE_EXPORT_KD_BASIS_UNSUPPORTED',
@@ -153,7 +166,7 @@ function surface(project) {
     products: (project?.products ?? []).map((p) => [p.productId, p.nominalSize, p.calculationBasis?.outsideDiameterMm, p.calculationBasis?.allowableStressMpa, p.calculationBasis?.nominalWallMm, p.calculationBasis?.minusTolerancePct, p.wallState?.fatigueWallBasis, p.wallState?.measuredCurrentWallMm ?? null, p.wallState?.futureInternalLossMm ?? null, p.wallState?.futureExternalLossMm ?? null]),
     states: (project?.transient?.states ?? []).map((s) => [s.stateId, s.pressureMpa, s.materialTemperatureC, s.structuralTemperatureC]),
     cycles: (project?.transient?.transitions ?? []).map((c) => [c.cycleId, c.fromStateId, c.toStateId, c.totalCycles, c.cyclesPerYear ?? null, c.category ?? '', c.provenanceId ?? null]),
-    kd: (project?.fatigueEvidence ?? []).map((pkg) => [pkg.productId, (pkg.externalResults ?? []).map((r) => [r.cycleId, r.locationId, r.userAlternatingStressIntensityMpa ?? null, r.equivalentAlternatingStressMpa, r.permissibleCycles ?? null])]),
+    kd: (project?.fatigueEvidence ?? []).map((pkg) => [pkg.productId, (pkg.externalResults ?? []).map((r) => [r.cycleId, r.fromStateId, r.toStateId, r.locationId, r.userAlternatingStressIntensityMpa ?? null, r.equivalentAlternatingStressMpa, r.permissibleCycles ?? null])]),
   };
 }
 
@@ -175,7 +188,7 @@ export function buildHpPipingClassIntakePackageExport(project) {
   }
   const roundTripOk = JSON.stringify(surface(project)) === JSON.stringify(surface(reimport.project));
   if (!roundTripOk) {
-    return { ok: false, issues: [issue('INTAKE_PACKAGE_EXPORT_ROUNDTRIP_MISMATCH', 'Generated package re-import changed one or more package-owned engineering inputs.')], package: null, reimport };
+    return { ok: false, issues: [issue('INTAKE_PACKAGE_EXPORT_ROUNDTRIP_MISMATCH', 'Generated package re-import changed one or more package-owned engineering inputs or derived KD state-pair custody.')], package: null, reimport };
   }
   return {
     ok: true,
@@ -262,7 +275,7 @@ export function compareHpPipingClassIntakeReplacement(currentProject, candidateP
 
   const kdRows = (project) => (project?.fatigueEvidence ?? []).flatMap((pkg) => (pkg.externalResults ?? []).map((row) => ({ ...row, key: `${text(pkg.productId)}::${text(row.cycleId)}` })));
   const kBefore = indexed(kdRows(currentProject), 'key'); const kAfter = indexed(kdRows(candidateProject), 'key'); structuralChanges(changes, 'KD', kBefore, kAfter);
-  for (const id of [...kBefore.keys()].filter((key) => kAfter.has(key)).sort()) addFieldChanges(changes, 'KD', id, kBefore.get(id), kAfter.get(id), [['locationId','FATIGUE_BASIS'],['userAlternatingStressIntensityMpa','FATIGUE_BASIS'],['equivalentAlternatingStressMpa','FATIGUE_BASIS'],['permissibleCycles','FATIGUE_BASIS']]);
+  for (const id of [...kBefore.keys()].filter((key) => kAfter.has(key)).sort()) addFieldChanges(changes, 'KD', id, kBefore.get(id), kAfter.get(id), [['fromStateId','FATIGUE_BASIS'],['toStateId','FATIGUE_BASIS'],['locationId','FATIGUE_BASIS'],['userAlternatingStressIntensityMpa','FATIGUE_BASIS'],['equivalentAlternatingStressMpa','FATIGUE_BASIS'],['permissibleCycles','FATIGUE_BASIS']]);
 
   const impacts = ['IDENTITY','STRUCTURE','METHOD_BASIS','STRESS_BASIS','DAMAGE_BASIS','FATIGUE_BASIS','CUSTODY'];
   const counts = Object.freeze(Object.fromEntries(impacts.map((impact) => [impact, changes.filter((row) => row.impact === impact).length])));
