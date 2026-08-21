@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { assertVibrationActionVerificationLedger } from '../converters/vibration/facility/action-verification-ledger.js';
 import { createVibrationActionCompletionUiState } from '../tabs/vibration-integrity-action-completion-controller.js';
 import {
   buildVibrationActionVerificationAuthoringModel,
@@ -30,6 +31,7 @@ import {
 } from './vibration-verification-fixtures.mjs';
 
 const REQUIRED = 'QUALIFIED_BOUNDED_SCREENING_FURTHER_ASSESSMENT_REQUIRED';
+const OTHER_SHA = `sha256:${'9'.repeat(64)}`;
 
 function row() {
   const scope = verificationScope();
@@ -116,6 +118,37 @@ test('RCA is unavailable until exact project-scoped verification evidence exists
   assert.equal(model.actions[0].verificationRecords.length, 0);
 });
 
+test('M15 source record is V2 and cryptographically binds verification disposition/status custody', () => {
+  const state = currentState();
+  const record = recordVerification(state, { accepted: true });
+  assert.equal(record.attachment.schema, 'VibrationActionVerificationAttachment.v2');
+  assert.match(record.attachment.verificationStatusFingerprint, /^sha256:[0-9a-f]{64}$/u);
+  assert.match(record.attachment.attachmentId, /sha256:/u);
+});
+
+test('semantic verification-state tamper is rejected before RCA can consume the ledger', () => {
+  const state = currentState();
+  recordVerification(state, { accepted: true });
+  const parsed = JSON.parse(JSON.stringify(state.actionVerificationLedger));
+  parsed.records[0].attachment.verificationStatus.state = 'AWAITING_ENGINEER_DISPOSITION';
+  assert.throws(
+    () => assertVibrationActionVerificationLedger(parsed),
+    (error) => error?.code === 'VIBRATION_ACTION_VERIFICATION_STATUS_STATE_MISMATCH',
+  );
+});
+
+test('coherent disposition/state rewrite still fails the bound status fingerprint', () => {
+  const state = currentState();
+  recordVerification(state, { accepted: true });
+  const parsed = JSON.parse(JSON.stringify(state.actionVerificationLedger));
+  parsed.records[0].attachment.verificationStatus.disposition.outcome = 'EVIDENCE_INSUFFICIENT';
+  parsed.records[0].attachment.verificationStatus.state = 'EVIDENCE_INSUFFICIENT';
+  assert.throws(
+    () => assertVibrationActionVerificationLedger(parsed),
+    (error) => error?.code === 'VIBRATION_ACTION_VERIFICATION_STATUS_FINGERPRINT_INVALID',
+  );
+});
+
 test('evidence-linked hypothesis can remain open without claiming root cause', () => {
   const state = currentState();
   const verificationRecord = recordVerification(state);
@@ -123,6 +156,7 @@ test('evidence-linked hypothesis can remain open without claiming root cause', (
   const hypothesis = submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:10:00Z' });
   assert.equal(hypothesis.state, 'HYPOTHESIS_OPEN');
   assert.equal(hypothesis.conclusion, null);
+  assert.match(hypothesis.evidence[0].verificationStatusFingerprint, /^sha256:[0-9a-f]{64}$/u);
   assert.equal(state.rcaLedger.records.length, 1);
   assert.equal(state.actionCompletionLedger.records.length, 0);
 });
@@ -204,6 +238,24 @@ test('RCA hypothesis fingerprint rejects post-creation evidence/conclusion custo
   const hypothesis = submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:40:00Z' });
   const parsed = JSON.parse(JSON.stringify(hypothesis));
   parsed.statement = 'Tampered hypothesis statement';
+  assert.throws(
+    () => assertVibrationRcaHypothesis(parsed),
+    (error) => error?.code === 'VIBRATION_RCA_HYPOTHESIS_FINGERPRINT_INVALID',
+  );
+});
+
+test('RCA evidence requires a canonical verification-status fingerprint', () => {
+  const state = currentState();
+  const verificationRecord = recordVerification(state, { accepted: true });
+  populateRca(state, verificationRecord);
+  const hypothesis = submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:45:00Z' });
+  const parsed = JSON.parse(JSON.stringify(hypothesis));
+  parsed.evidence[0].verificationStatusFingerprint = 'NOT-A-HASH';
+  assert.throws(
+    () => assertVibrationRcaHypothesis(parsed),
+    (error) => error?.code === 'VIBRATION_RCA_VERIFICATION_STATUS_FINGERPRINT_INVALID',
+  );
+  parsed.evidence[0].verificationStatusFingerprint = OTHER_SHA;
   assert.throws(
     () => assertVibrationRcaHypothesis(parsed),
     (error) => error?.code === 'VIBRATION_RCA_HYPOTHESIS_FINGERPRINT_INVALID',
