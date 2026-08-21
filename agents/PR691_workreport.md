@@ -163,22 +163,31 @@ PASS     reconstructed core falsifiers                  5/5 LOCAL EXECUTION
 NOT_RUN  repository-native focused Node tests           ENVIRONMENT_BLOCKED
 NOT_RUN  repository-native vibration regression suite   ENVIRONMENT_BLOCKED
 NOT_RUN  served-browser Vibration Integrity journey     ENVIRONMENT_BLOCKED
-NOT_RUN  hosted exact-head checks                       PENDING_POST_MIGRATION
+NOT_RUN  exact-head status contexts                     0 returned
+NOT_RUN  exact-head PR-triggered workflow runs          0 returned
 N/A      independent numerical verification             no numerical change
 ```
 
 Reconstructed execution is supporting implementation evidence only, not repository-native qualification.
 
-## PR allocation snapshot
+## Exact hosted reconciliation before recovery-only sync
 
 ```text
 PR               #691
+head             0ba7977add2f065c86a68769303c86362166b4ac
+base/main        d8f109b2a1587d1d79dbe40b8787b7115e6fd5f0
 state            OPEN / DRAFT / UNMERGED
-base             main@d8f109b2a1587d1d79dbe40b8787b7115e6fd5f0
-head             398ee2e594f10af73bdc5dd6b5709ab1c28c6c8b
-changed files    11 pre-recovery-migration
-mergeable        false on initial allocation response; RECHECK REQUIRED
+mergeable        true
+changed files    11
+branch relation  ahead 20 / behind 0
+reviews          0
+review threads   0
+comments         0
+status contexts  0 -> NOT_RUN
+PR workflow runs 0 -> NOT_RUN
 ```
+
+The initial allocation `mergeable=false` was transient; the post-migration exact reconciliation returned `mergeable=true`.
 
 ## Next after this slice
 1. source-backed actions for additional mechanisms only as explicit method/result obligations become available;
