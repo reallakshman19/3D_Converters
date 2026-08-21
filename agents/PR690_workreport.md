@@ -188,6 +188,24 @@ agents/status/PR690.yaml
 agents/claims/PR690.yaml
 ```
 
+## Hosted reconciliation
+
+At PR head `4bbdc44cc2234918483434b5a08c8000dbb4a239` before this recovery-only sync:
+
+```text
+base main                       d8f109b2a1587d1d79dbe40b8787b7115e6fd5f0
+branch ancestry                 ahead 12 / behind 0
+changed files                   7 = 4 engineering/test/CI + 3 recovery
+PR mergeable                    true
+PR draft                        true
+commit status checks            0 -> NOT_RUN
+PR-triggered workflow runs      0 -> NOT_RUN
+reviews                         0
+review threads                  0
+```
+
+The present commit changes recovery metadata only. Re-read the PR after this sync for the exact final head.
+
 ## Next action
 
 1. Re-read exact PR690 head and current main.
