@@ -22,6 +22,7 @@ on:
       - 'tests/hp-piping-class-native-editors.test.mjs'
       - 'tests/hp-piping-class-intake-package*.test.mjs'
       - 'scripts/verify-hp-piping-class-real-workbench.mjs'
+      - 'scripts/validate-hp-piping-class-intake-roundtrip-browser.mjs'
       - '.github/workflows/hp-piping-class-real-workbench.yml'
 
 permissions:
@@ -39,4 +40,4 @@ jobs:
       - name: Verify HP Piping Class real workbench
         run: node scripts/verify-hp-piping-class-real-workbench.mjs
       - name: Verify HP class intake package
-        run: node --test tests/hp-piping-class-intake-package.test.mjs tests/hp-piping-class-intake-package-failclosed.test.mjs tests/hp-piping-class-intake-package-ui.test.mjs tests/hp-piping-class-intake-package-roundtrip.test.mjs
+        run: node --test tests/hp-piping-class-intake-package.test.mjs tests/hp-piping-class-intake-package-failclosed.test.mjs tests/hp-piping-class-intake-package-ui.test.mjs tests/hp-piping-class-intake-package-roundtrip.test.mjs tests/hp-piping-class-intake-package-browser.test.mjs
