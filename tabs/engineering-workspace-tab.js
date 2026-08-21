@@ -17,8 +17,18 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    // Product bulk wrapper composes hp-piping-class-kd-bulk-workbench-tab.js; keep this dependency visible to the production-browser source inventory.
-    load: () => import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1').then((module) => module.renderHpPipingClassWorkbenchTab),
+    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient bulk enhancement is additive.
+    load: () => Promise.all([
+      import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1'),
+      import('./hp-piping-class-transient-bulk-enhancer.js?v=20260821-hp-transient-bulk-1'),
+    ]).then(([workbench, transientBulk]) => (container, options) => {
+      const destroyWorkbench = workbench.renderHpPipingClassWorkbenchTab(container, options);
+      const destroyTransientBulk = transientBulk.installHpPipingClassTransientBulkEnhancer(container, options);
+      return () => {
+        destroyTransientBulk?.();
+        destroyWorkbench?.();
+      };
+    }),
   },
   {
     id: 'hp-kd320-evidence-intake',
