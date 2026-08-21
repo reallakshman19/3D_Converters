@@ -170,8 +170,8 @@ export async function evaluateSbcType3MasterAssisted(
   state.error = null;
   render?.();
   try {
-    const guarded = await executeSbcFacilityWithScenario(state, scope, async ({ executionBasis }) => ({
-      executionBasis,
+    const guarded = await executeSbcFacilityWithScenario(state, scope, async ({ executionBasis, facilityRunBasis }) => ({
+      executionBasis, facilityRunBasis,
       result: await calculate({
         scopeId: scope,
         physical: normalizedPhysical(state, scope),
@@ -179,7 +179,10 @@ export async function evaluateSbcType3MasterAssisted(
         userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
       }),
     }));
-    const result = Object.freeze({ ...guarded.result, scenarioExecutionBasis: guarded.executionBasis });
+    const result = Object.freeze({
+      ...guarded.result, scenarioExecutionBasis: guarded.executionBasis,
+      facilityRunBasis: guarded.facilityRunBasis,
+    });
     if (!result.ok) return commitNotReady(state, scope, started.operation, result);
     const completed = commitSbcType3CandidateEvaluation(
       state.sbcType3CurrentnessStore, started.operation, result,
@@ -211,16 +214,16 @@ export function evaluateSbcType3ExplicitIntermediate(
 ) {
   const scope = scopeId(state.sbcType3ScopeId);
   try {
-    const guarded = executeSbcFacilityWithScenario(state, scope, ({ executionBasis }) => ({
-      executionBasis,
+    const guarded = executeSbcFacilityWithScenario(state, scope, ({ executionBasis, facilityRunBasis }) => ({
+      executionBasis, facilityRunBasis,
       result: calculate({
         userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
         scopeId: scope,
       }),
     }));
     state.sbcType3Result = Object.freeze({
-      ...guarded.result,
-      scenarioExecutionBasis: guarded.executionBasis,
+      ...guarded.result, scenarioExecutionBasis: guarded.executionBasis,
+      facilityRunBasis: guarded.facilityRunBasis,
     });
     state.error = null;
     audit?.('SBC_TYPE3_EVALUATED', {

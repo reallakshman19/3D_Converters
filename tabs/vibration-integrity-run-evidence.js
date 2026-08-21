@@ -1,4 +1,6 @@
+import { buildVibrationFacilityMechanismEvidence } from '../converters/vibration/facility/mechanism-evidence.js';
 import { assertVibrationIntegrityAuditLog } from './vibration-integrity-audit-log.js';
+import { getCurrentAivScreeningSession } from './vibration-aiv-screening-session.js';
 
 export const FIT_RUN_EVIDENCE_SCHEMA = 'FitRunEvidencePackage.v1';
 export const VIBRATION_AUDIT_IDENTITY_SCHEMA = 'VibrationIntegrityAuditIdentity.v1';
@@ -156,6 +158,20 @@ async function auditEvidence(auditLog) {
   });
 }
 
+function mechanismEvidence(state, snapshot, envelope) {
+  const workflow = envelope.workflow;
+  return buildVibrationFacilityMechanismEvidence({
+    runId: snapshot.runId,
+    datasetId: workflow.result.datasetId,
+    scenarioSetKey: workflow.result.scenarioSetKey,
+    registerRows: workflow.register.rows,
+    operatingScenarios: workflow.operatingScenarios ?? [],
+    mechanicalResultsByScope: state.mechanicalCandidateResultsByScope ?? {},
+    sbcResultsByScope: state.sbcFacilityCandidateResults ?? {},
+    aivSession: getCurrentAivScreeningSession(),
+  });
+}
+
 export async function buildVibrationIntegrityRunEvidence(state = {}) {
   if (state.resultState !== 'CURRENT_RESULT') {
     throw evidenceError('FIT_RUN_EVIDENCE_RESULT_NOT_CURRENT', 'Only a CURRENT_RESULT may be exported as FIT reproducibility evidence.', {
@@ -184,6 +200,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
       benchmark: benchmarkEvidence(state.benchmark?.loaded ?? null),
     },
     execution: jsonClone(envelope),
+    mechanismEvidence: mechanismEvidence(state, snapshot, envelope),
   });
 }
 

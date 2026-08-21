@@ -70,14 +70,32 @@ function scenario(massFlow = 100) {
   });
 }
 
-function facilityRow() {
-  return { line: 'L-100', caseId: 'NORMAL', canonicalId: 'CANON-001' };
+function scenarioBasis(current) {
+  return {
+    schema: 'VibrationScenarioExecutionBasis.v1',
+    scenarioId: current.scenarioId,
+    scenarioSnapshotHash: current.snapshotHash,
+    datasetId: current.datasetId,
+    line: current.line,
+    caseId: current.caseId,
+  };
+}
+
+function facilityRow(current = scenario()) {
+  return {
+    line: 'L-100',
+    caseId: 'NORMAL',
+    canonicalId: 'CANON-001',
+    scenarioSetKey: 'VFSK1:test-current-set',
+    scenarioExecutionBasis: scenarioBasis(current),
+  };
 }
 
 function facilityState(currentScenario) {
   return {
     resultState: 'CURRENT_RESULT',
-    workspace: { rows: [facilityRow()] },
+    runSnapshot: { runId: 'FIT-RUN-TEST' },
+    workspace: { rows: [facilityRow(currentScenario)] },
     envelope: { workflow: { operatingScenarios: [currentScenario] } },
     sbcType3ScenarioBindingsByScope: {},
     sbcType3ScopeId: 'SBC-FACILITY/L-100/NORMAL/CANON-001',
@@ -164,7 +182,7 @@ test('Mechanical T2.3 facility wrapper fails on stale snapshot before evaluating
   assert(sourceKey);
   await assert.rejects(
     evaluateMechanicalFacilityCandidateWithScenario({
-      row: facilityRow(), sourceKeys: [sourceKey],
+      row: facilityRow(prepared), sourceKeys: [sourceKey],
       scenarioBinding: createVibrationScenarioExecutionBinding(prepared),
       operatingScenario: current,
     }),
@@ -179,6 +197,7 @@ test('SBC facility helper rejects stale current scenario before callback', () =>
   const scope = state.sbcType3ScopeId;
   const custody = bindCurrentSbcFacilityScenario(state, scope);
   assert(custody);
+  assert.equal(custody.runBasis.runId, 'FIT-RUN-TEST');
   state.envelope = { workflow: { operatingScenarios: [current] } };
   let calls = 0;
   assert.throws(
@@ -205,6 +224,22 @@ test('legacy SBC explicit-intermediate button path is also stale-snapshot guarde
   assert.equal(ok, false);
   assert.equal(calls, 0);
   assert.match(state.error, /VIBRATION_SCENARIO_EXECUTION_SNAPSHOT_MISMATCH/);
+});
+
+test('SBC exact-snapshot callback receives the originating facility run basis', () => {
+  const prepared = scenario(100);
+  const state = facilityState(prepared);
+  const scope = state.sbcType3ScopeId;
+  assert(bindCurrentSbcFacilityScenario(state, scope));
+  let observed = null;
+  const value = executeSbcFacilityWithScenario(state, scope, ({ facilityRunBasis }) => {
+    observed = facilityRunBasis;
+    return 'OK';
+  });
+  assert.equal(value, 'OK');
+  assert.equal(observed.runId, 'FIT-RUN-TEST');
+  assert.equal(observed.datasetId, 'plant-a');
+  assert.equal(observed.scenarioSetKey, 'VFSK1:test-current-set');
 });
 
 test('SBC mechanism matrix remains projection-only and cannot import the Type-3 calculator', () => {

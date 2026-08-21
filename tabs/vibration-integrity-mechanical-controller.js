@@ -1,3 +1,4 @@
+import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
 import {
   evaluateMechanicalFacilityCandidateWithScenario,
   mechanicalFacilityScopeId,
@@ -30,6 +31,16 @@ function operatingScenarioForRow(state, row) {
   return (state.envelope?.workflow?.operatingScenarios ?? []).find((scenario) => (
     scenario.line === row.line && scenario.caseId === row.caseId
   )) ?? null;
+}
+
+function currentFacilityRunBasis(state, row) {
+  if (!row || state.resultState !== 'CURRENT_RESULT') return null;
+  const result = state.envelope?.workflow?.result;
+  const runId = state.runSnapshot?.runId;
+  const datasetId = result?.datasetId;
+  const scenarioSetKey = result?.scenarioSetKey ?? row.scenarioSetKey;
+  if (!runId || !datasetId || !scenarioSetKey) return null;
+  return createVibrationFacilityRunBasis({ runId, datasetId, scenarioSetKey });
 }
 
 function preparedScenarioBinding(state, scopeId, row) {
@@ -76,6 +87,7 @@ export function openMechanicalFacilityInputs(state, scopeId, render, audit) {
   state.mechanicalFacilityScopeId = String(scopeId ?? '').trim();
   const row = candidateRow(state, state.mechanicalFacilityScopeId);
   const scenario = operatingScenarioForRow(state, row);
+  const runBasis = currentFacilityRunBasis(state, row);
   if (row && scenario) {
     state.mechanicalScenarioBindingsByScope = {
       ...state.mechanicalScenarioBindingsByScope,
@@ -86,6 +98,7 @@ export function openMechanicalFacilityInputs(state, scopeId, render, audit) {
   audit?.('MECHANICAL_INPUTS_OPENED', {
     scenarioId: scenario?.scenarioId ?? null,
     scenarioSnapshotHash: scenario?.snapshotHash ?? null,
+    facilityRunId: runBasis?.runId ?? null,
   }, state.mechanicalFacilityScopeId || null);
   render();
 }
@@ -115,6 +128,7 @@ function commitEvaluation(state, scopeId, token, result, render, audit) {
     governingSourceKey: result.governingSourceKey,
     scenarioId: result.scenarioExecutionBasis?.scenarioId ?? null,
     scenarioSnapshotHash: result.scenarioExecutionBasis?.scenarioSnapshotHash ?? null,
+    facilityRunId: result.facilityRunBasis?.runId ?? null,
   }, scopeId);
   render();
 }
@@ -142,8 +156,9 @@ function evaluateMechanicalInputs(state, render, audit) {
   }
   const scenario = operatingScenarioForRow(state, row);
   const binding = preparedScenarioBinding(state, scopeId, row);
-  if (!scenario || !binding) {
-    state.error = 'MECHANICAL_OPERATING_SCENARIO_NOT_CURRENT: Run the facility screening again before evaluating Mechanical T2.3.';
+  const runBasis = currentFacilityRunBasis(state, row);
+  if (!scenario || !binding || !runBasis) {
+    state.error = 'MECHANICAL_FACILITY_RUN_NOT_CURRENT: Run the facility screening again before evaluating Mechanical T2.3.';
     render();
     return;
   }
@@ -156,6 +171,7 @@ function evaluateMechanicalInputs(state, render, audit) {
     sourceKeys: keys,
     scenarioId: binding.scenarioId,
     scenarioSnapshotHash: binding.scenarioSnapshotHash,
+    facilityRunId: runBasis.runId,
   }, scopeId);
   render();
   evaluateMechanicalFacilityCandidateWithScenario({
@@ -163,8 +179,10 @@ function evaluateMechanicalInputs(state, render, audit) {
     sourceKeys: keys,
     scenarioBinding: binding,
     operatingScenario: scenario,
-  }).then((result) => commitEvaluation(state, scopeId, token, result, render, audit))
-    .catch((error) => failEvaluation(state, scopeId, token, error, render, audit));
+  }).then((result) => commitEvaluation(state, scopeId, token, Object.freeze({
+    ...result,
+    facilityRunBasis: runBasis,
+  }), render, audit)).catch((error) => failEvaluation(state, scopeId, token, error, render, audit));
 }
 
 export function handleMechanicalFacilityClick(state, event, render, audit) {
