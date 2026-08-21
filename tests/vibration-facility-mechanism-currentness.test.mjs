@@ -13,6 +13,7 @@ import {
   projectVibrationFacilityMechanismCurrentness,
 } from '../converters/vibration/facility/mechanism-currentness.js';
 import { createVibrationFacilityRunBasis } from '../converters/vibration/facility/run-basis.js';
+import { vibrationFacilityScenarioSetKey } from '../converters/vibration/facility/scenario-handoff.js';
 import { buildVibrationIntegrityMatrixContext } from '../tabs/vibration-integrity-matrix-context.js';
 
 function exchange() {
@@ -50,6 +51,10 @@ function scenario(flow = 100) {
   });
 }
 
+function scenarioSetKey(current) {
+  return vibrationFacilityScenarioSetKey([current]);
+}
+
 function executionBasis(current) {
   return Object.freeze({
     schema: 'VibrationScenarioExecutionBasis.v1',
@@ -61,25 +66,25 @@ function executionBasis(current) {
   });
 }
 
-function runBasis(runId, scenarioSetKey = 'VFSK1:set-a') {
-  return createVibrationFacilityRunBasis({ runId, datasetId: 'plant-a', scenarioSetKey });
+function runBasis(current, runId = 'FIT-RUN-2', key = scenarioSetKey(current)) {
+  return createVibrationFacilityRunBasis({ runId, datasetId: 'plant-a', scenarioSetKey: key });
 }
 
-function candidate(current, runId = 'FIT-RUN-2', scenarioSetKey = 'VFSK1:set-a') {
+function candidate(current, runId = 'FIT-RUN-2', key = scenarioSetKey(current)) {
   return Object.freeze({
     scenarioExecutionBasis: executionBasis(current),
-    facilityRunBasis: runBasis(runId, scenarioSetKey),
+    facilityRunBasis: runBasis(current, runId, key),
   });
 }
 
-function aivSession(runId = 'FIT-RUN-2', scenarioSetKey = 'VFSK1:set-a') {
+function aivSession(current, runId = 'FIT-RUN-2', key = scenarioSetKey(current)) {
   return Object.freeze({
     resultState: 'CURRENT_RESULT',
     executionContext: 'FACILITY_LINKED',
     scenarioExecutionPlan: Object.freeze({
       facilityRunId: runId,
       datasetId: 'plant-a',
-      scenarioSetKey,
+      scenarioSetKey: key,
     }),
   });
 }
@@ -90,7 +95,7 @@ function currentOptions(overrides = {}) {
     resultState: 'CURRENT_RESULT',
     runId: 'FIT-RUN-2',
     datasetId: 'plant-a',
-    scenarioSetKey: 'VFSK1:set-a',
+    scenarioSetKey: scenarioSetKey(current),
     operatingScenarios: [current],
     mechanicalCandidateResultsByScope: {},
     sbcCandidateResultsByScope: {},
@@ -140,7 +145,7 @@ test('identical rerun filters previous-run Mechanical and SBC caches despite equ
 test('same-run candidate with stale OperatingScenario snapshot is filtered', () => {
   const prepared = scenario(100);
   const current = scenario(101);
-  const stale = candidate(prepared);
+  const stale = candidate(prepared, 'FIT-RUN-2', scenarioSetKey(current));
   const projection = projectVibrationFacilityMechanismCurrentness(currentOptions({
     current,
     mechanicalCandidateResultsByScope: { MECH: stale },
@@ -149,26 +154,41 @@ test('same-run candidate with stale OperatingScenario snapshot is filtered', () 
   assert.equal(projection.excluded[0].mechanismId, 'mechanicalExcitation');
 });
 
+test('claimed facility scenario-set key must equal deterministic OperatingScenario fingerprint', () => {
+  const current = scenario(100);
+  const projection = projectVibrationFacilityMechanismCurrentness(currentOptions({
+    current,
+    scenarioSetKey: 'VFSK1:tampered',
+  }));
+  assert.equal(projection.status, 'FACILITY_SCENARIO_SET_INVALID');
+  assert.equal(projection.run, null);
+  assert.deepEqual(projection.mechanicalCandidateResultsByScope, {});
+});
+
 test('AIV session must match exact current facility run and scenario set', () => {
-  const exact = aivSession();
-  const current = projectVibrationFacilityMechanismCurrentness(currentOptions({ aivScreeningSession: exact }));
+  const scenarioNow = scenario(100);
+  const exact = aivSession(scenarioNow);
+  const current = projectVibrationFacilityMechanismCurrentness(currentOptions({
+    current: scenarioNow, aivScreeningSession: exact,
+  }));
   assert.equal(current.aivScreeningSession, exact);
 
   const prior = projectVibrationFacilityMechanismCurrentness(currentOptions({
-    aivScreeningSession: aivSession('FIT-RUN-1'),
+    current: scenarioNow, aivScreeningSession: aivSession(scenarioNow, 'FIT-RUN-1'),
   }));
   assert.equal(prior.aivScreeningSession, null);
   assert.equal(prior.excluded[0].mechanismId, 'aiv');
 
   const foreignSet = projectVibrationFacilityMechanismCurrentness(currentOptions({
-    aivScreeningSession: aivSession('FIT-RUN-2', 'VFSK1:old-set'),
+    current: scenarioNow,
+    aivScreeningSession: aivSession(scenarioNow, 'FIT-RUN-2', 'VFSK1:old-set'),
   }));
   assert.equal(foreignSet.aivScreeningSession, null);
 });
 
 test('whole-facility STALE_RESULT preserves retained stale inspection instead of claiming currentness', () => {
   const retained = Object.freeze({ retained: true });
-  const session = aivSession('FIT-RUN-1');
+  const session = aivSession(scenario(100), 'FIT-RUN-1');
   const context = buildVibrationIntegrityMatrixContext({
     resultState: 'STALE_RESULT',
     mechanicalCandidateResultsByScope: { MECH: retained },
