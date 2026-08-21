@@ -85,7 +85,23 @@ test('changed state pair invalidates external Seq/N custody instead of rewriting
   assert.equal(result.project.fatigueEvidence.length, 0);
 });
 
-test('removed cycle removes stale external row and now-empty KD package', () => {
+test('state pressure or temperature drift invalidates external Seq/N even when cycle identity and pair are unchanged', () => {
+  const changedStates = [
+    'state_id,pressure_mpa,material_temperature_c,structural_temperature_c',
+    'LOW,2,40,40',
+    'HIGH,21,81,80',
+  ].join('\n');
+  const result = applyHpPipingClassTransientBulkInput(project(), { statesText: changedStates, cyclesText: cycles });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.removedExternalRows.length, 1);
+  assert.equal(result.plan.removedExternalRows[0].cycleId, 'C1');
+  assert.equal(result.plan.removedExternalRows[0].reason, 'STATE_VALUE_CHANGED');
+  assert.deepEqual(result.plan.removedFatigueProductIds, ['NPS4-S160']);
+  assert.equal(result.project.fatigueEvidence.length, 0);
+  assert.equal(result.transitions[0].previewPressureRangeMpa, 19);
+});
+
+test('removed cycle removes stale external row while retaining other valid KD rows', () => {
   const p = project();
   p.transient.transitions.push({ spectrumId: 'SPEC-1', cycleId: 'C2', fromStateId: 'HIGH', toStateId: 'LOW', totalCycles: 100 });
   p.fatigueEvidence[0].externalResults.push({ cycleId: 'C2', fromStateId: 'HIGH', toStateId: 'LOW', locationId: 'BORE' });
