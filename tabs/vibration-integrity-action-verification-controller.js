@@ -141,7 +141,8 @@ export function openVibrationActionVerificationEditor(state, occurrenceId) {
   state.actionVerificationEditor = Object.freeze({
     occurrenceId: occurrence,
     actionId: entry.action.actionId,
-    openedRunId: model.actions[0]?.action?.occurrence?.runBasis?.runId ?? entry.action.occurrence.runBasis.runId,
+    openedRunId: entry.action.occurrence.runBasis.runId,
+    projectId: model.handoff.projectId,
     evidenceRevisionKey: model.handoff.evidenceRevisionKey,
   });
   state.actionVerificationDraft = emptyDraft();
@@ -195,8 +196,9 @@ export function submitVibrationActionVerificationEditor(state, { recordedAt = ne
   const { model, entry } = currentEntry(state, editor.occurrenceId);
   if (entry.action.actionId !== editor.actionId
       || entry.action.occurrence.runBasis.runId !== editor.openedRunId
+      || model.handoff.projectId !== editor.projectId
       || model.handoff.evidenceRevisionKey !== editor.evidenceRevisionKey) {
-    throw authoringError('VIBRATION_ACTION_VERIFICATION_EDITOR_STALE', 'Facility run or project measurement evidence changed after the editor opened.');
+    throw authoringError('VIBRATION_ACTION_VERIFICATION_EDITOR_STALE', 'Facility run, project identity or project measurement evidence changed after the editor opened.');
   }
   const draft = state.actionVerificationDraft ?? emptyDraft();
   assertSelectedEvidence(entry, draft);
