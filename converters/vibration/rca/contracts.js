@@ -118,6 +118,7 @@ function snapshotEvidence(index, forIds, againstIds) {
       attachmentId: attachment.attachmentId,
       requirementId: attachment.requirement.requirementId,
       verificationState: attachment.verificationStatus.state,
+      verificationStatusFingerprint: attachment.verificationStatusFingerprint,
       evidenceFingerprint: attachment.evidenceFingerprint,
     });
   }));
@@ -238,6 +239,9 @@ export function assertVibrationRcaHypothesis(value) {
     text(item.verificationState, 'hypothesis.evidence[].verificationState');
     if (!SHA256.test(String(item.evidenceFingerprint ?? ''))) {
       throw rcaError('VIBRATION_RCA_EVIDENCE_FINGERPRINT_INVALID', 'RCA evidence fingerprints must be canonical sha256 values.');
+    }
+    if (!SHA256.test(String(item.verificationStatusFingerprint ?? ''))) {
+      throw rcaError('VIBRATION_RCA_VERIFICATION_STATUS_FINGERPRINT_INVALID', 'RCA verification-status fingerprints must be canonical sha256 values.');
     }
   }
   const conclusion = conclusionValue(value.conclusion, value.evidence);
