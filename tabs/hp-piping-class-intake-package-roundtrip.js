@@ -165,9 +165,10 @@ export function buildHpPipingClassIntakePackageExport(project) {
   const pkg = buildPackageObject(project);
   const reimport = previewHpPipingClassIntakePackageForReview(pkg);
   if (!reimport.ok) {
+    const detail = (reimport.issues ?? []).slice(0, 4).map((row) => `${row.code}: ${row.message}`).join(' | ');
     return {
       ok: false,
-      issues: [issue('INTAKE_PACKAGE_EXPORT_REIMPORT_BLOCKED', 'Generated v1 package did not pass the existing package/canonical preflight.', { issues: clone(reimport.issues ?? []) })],
+      issues: [issue('INTAKE_PACKAGE_EXPORT_REIMPORT_BLOCKED', `Generated v1 package did not pass the existing package/canonical preflight.${detail ? ` ${detail}` : ''}`, { issues: clone(reimport.issues ?? []) })],
       package: null,
       reimport,
     };
@@ -203,9 +204,45 @@ function structuralChanges(changes, domain, beforeMap, afterMap) {
 export function compareHpPipingClassIntakeReplacement(currentProject, candidateProject) {
   const changes = [];
   addFieldChanges(changes, 'CLASS', 'CLASS',
-    { projectId: currentProject?.metadata?.projectId, classId: currentProject?.metadata?.classId, revision: currentProject?.metadata?.revision, designPressureMpa: currentProject?.classBasis?.designPressureMpa, internalAllowanceMm: currentProject?.classBasis?.internalAllowanceMm, externalAllowanceMm: currentProject?.classBasis?.externalAllowanceMm, spectrumId: currentProject?.transient?.spectrum?.spectrumId },
-    { projectId: candidateProject?.metadata?.projectId, classId: candidateProject?.metadata?.classId, revision: candidateProject?.metadata?.revision, designPressureMpa: candidateProject?.classBasis?.designPressureMpa, internalAllowanceMm: candidateProject?.classBasis?.internalAllowanceMm, externalAllowanceMm: candidateProject?.classBasis?.externalAllowanceMm, spectrumId: candidateProject?.transient?.spectrum?.spectrumId },
-    [['projectId','IDENTITY'],['classId','IDENTITY'],['revision','IDENTITY'],['designPressureMpa','STRESS_BASIS'],['internalAllowanceMm','STRESS_BASIS'],['externalAllowanceMm','STRESS_BASIS'],['spectrumId','IDENTITY']],
+    {
+      projectId: currentProject?.metadata?.projectId,
+      classId: currentProject?.metadata?.classId,
+      revision: currentProject?.metadata?.revision,
+      b313Edition: currentProject?.methodManifest?.b313Edition,
+      viii3Edition: currentProject?.methodManifest?.viii3Edition,
+      designPressureMpa: currentProject?.classBasis?.designPressureMpa,
+      internalAllowanceMm: currentProject?.classBasis?.internalAllowanceMm,
+      externalAllowanceMm: currentProject?.classBasis?.externalAllowanceMm,
+      spectrumId: currentProject?.transient?.spectrum?.spectrumId,
+      designLifeYears: currentProject?.transient?.spectrum?.designLifeYears,
+      preparedBy: currentProject?.transient?.spectrum?.preparedBy,
+      checkedBy: currentProject?.transient?.spectrum?.checkedBy,
+      approvedBy: currentProject?.transient?.spectrum?.approvedBy,
+      spectrumStatus: currentProject?.transient?.spectrum?.status,
+    },
+    {
+      projectId: candidateProject?.metadata?.projectId,
+      classId: candidateProject?.metadata?.classId,
+      revision: candidateProject?.metadata?.revision,
+      b313Edition: candidateProject?.methodManifest?.b313Edition,
+      viii3Edition: candidateProject?.methodManifest?.viii3Edition,
+      designPressureMpa: candidateProject?.classBasis?.designPressureMpa,
+      internalAllowanceMm: candidateProject?.classBasis?.internalAllowanceMm,
+      externalAllowanceMm: candidateProject?.classBasis?.externalAllowanceMm,
+      spectrumId: candidateProject?.transient?.spectrum?.spectrumId,
+      designLifeYears: candidateProject?.transient?.spectrum?.designLifeYears,
+      preparedBy: candidateProject?.transient?.spectrum?.preparedBy,
+      checkedBy: candidateProject?.transient?.spectrum?.checkedBy,
+      approvedBy: candidateProject?.transient?.spectrum?.approvedBy,
+      spectrumStatus: candidateProject?.transient?.spectrum?.status,
+    },
+    [
+      ['projectId','IDENTITY'],['classId','IDENTITY'],['revision','IDENTITY'],
+      ['b313Edition','METHOD_BASIS'],['viii3Edition','METHOD_BASIS'],
+      ['designPressureMpa','STRESS_BASIS'],['internalAllowanceMm','STRESS_BASIS'],['externalAllowanceMm','STRESS_BASIS'],
+      ['spectrumId','IDENTITY'],['designLifeYears','DAMAGE_BASIS'],
+      ['preparedBy','CUSTODY'],['checkedBy','CUSTODY'],['approvedBy','CUSTODY'],['spectrumStatus','CUSTODY'],
+    ],
   );
 
   const pBefore = indexed(currentProject?.products, 'productId'); const pAfter = indexed(candidateProject?.products, 'productId'); structuralChanges(changes, 'PRODUCT', pBefore, pAfter);
@@ -227,13 +264,14 @@ export function compareHpPipingClassIntakeReplacement(currentProject, candidateP
   const kBefore = indexed(kdRows(currentProject), 'key'); const kAfter = indexed(kdRows(candidateProject), 'key'); structuralChanges(changes, 'KD', kBefore, kAfter);
   for (const id of [...kBefore.keys()].filter((key) => kAfter.has(key)).sort()) addFieldChanges(changes, 'KD', id, kBefore.get(id), kAfter.get(id), [['locationId','FATIGUE_BASIS'],['userAlternatingStressIntensityMpa','FATIGUE_BASIS'],['equivalentAlternatingStressMpa','FATIGUE_BASIS'],['permissibleCycles','FATIGUE_BASIS']]);
 
-  const counts = Object.freeze(Object.fromEntries(['IDENTITY','STRUCTURE','STRESS_BASIS','DAMAGE_BASIS','FATIGUE_BASIS','CUSTODY'].map((impact) => [impact, changes.filter((row) => row.impact === impact).length])));
+  const impacts = ['IDENTITY','STRUCTURE','METHOD_BASIS','STRESS_BASIS','DAMAGE_BASIS','FATIGUE_BASIS','CUSTODY'];
+  const counts = Object.freeze(Object.fromEntries(impacts.map((impact) => [impact, changes.filter((row) => row.impact === impact).length])));
   return Object.freeze({
     ok: true,
     changed: changes.length > 0,
     changes: Object.freeze(changes),
     counts,
-    highImpact: counts.STRUCTURE + counts.STRESS_BASIS + counts.FATIGUE_BASIS > 0,
+    highImpact: counts.STRUCTURE + counts.METHOD_BASIS + counts.STRESS_BASIS + counts.FATIGUE_BASIS > 0,
     summary: Object.freeze({ totalChanges: changes.length, ...counts }),
   });
 }
