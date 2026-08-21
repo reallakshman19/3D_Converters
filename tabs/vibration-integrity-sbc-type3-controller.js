@@ -2,19 +2,27 @@ import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibratio
 import { deriveSbcType3MasterAssistedInputs } from '../converters/vibration/sbc/type3-master-assisted-derivation.js?v=20260815-sbc-pf05-cache-1';
 import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
-  SBC_TYPE3_ENGINEERING_CHANGE_KINDS, beginSbcType3CandidateEvaluation,
-  commitSbcType3CandidateEvaluation, failSbcType3CandidateEvaluation,
+  SBC_TYPE3_ENGINEERING_CHANGE_KINDS,
+  beginSbcType3CandidateEvaluation,
+  commitSbcType3CandidateEvaluation,
+  failSbcType3CandidateEvaluation,
 } from './vibration-integrity-sbc-candidate-currentness.js?v=20260815-sbc-pf05-cache-1';
 import {
-  bindCurrentSbcFacilityScenario, executeSbcFacilityWithScenario,
+  bindCurrentSbcFacilityScenario,
+  executeSbcFacilityWithScenario,
 } from './vibration-integrity-sbc-scenario-execution.js';
 import {
-  addVibrationUserEngineeringDataRow, deleteVibrationUserEngineeringDataRow,
+  addVibrationUserEngineeringDataRow,
+  deleteVibrationUserEngineeringDataRow,
   vibrationUserEngineeringDataResolverRows,
 } from './vibration-integrity-user-data-model.js';
 import {
-  deleteSbcType3StateKey, invalidateSbcType3Scope, isSbcType3CurveEvidenceRow,
-  sbcType3ScopeRevision, syncVisibleSbcType3Result, visibleSbcType3Result,
+  deleteSbcType3StateKey,
+  invalidateSbcType3Scope,
+  isSbcType3CurveEvidenceRow,
+  sbcType3ScopeRevision,
+  syncVisibleSbcType3Result,
+  visibleSbcType3Result,
 } from './vibration-integrity-sbc-type3-state.js?v=20260820-runtime-scenario-guard-1';
 
 const PHYSICAL = SBC_TYPE3_ENGINEERING_CHANGE_KINDS.physicalInput;
@@ -28,7 +36,10 @@ function scopeId(value) {
 function normalizedPhysical(state, scope) {
   const raw = state.sbcType3PhysicalByScope?.[scope] ?? {};
   const mass = String(raw.firstSpanHasUnsupportedMass ?? '').trim().toUpperCase();
-  return { ...raw, firstSpanHasUnsupportedMass: mass === 'TRUE' ? true : mass === 'FALSE' ? false : undefined };
+  return {
+    ...raw,
+    firstSpanHasUnsupportedMass: mass === 'TRUE' ? true : mass === 'FALSE' ? false : undefined,
+  };
 }
 
 export function openSbcType3FacilityScope(state, scopeValue, render, audit) {
@@ -49,7 +60,10 @@ export function openSbcType3FacilityScope(state, scopeValue, render, audit) {
 
 function updatePhysical(state, scope, field, value) {
   const current = state.sbcType3PhysicalByScope?.[scope] ?? {};
-  state.sbcType3PhysicalByScope = { ...state.sbcType3PhysicalByScope, [scope]: { ...current, [field]: value } };
+  state.sbcType3PhysicalByScope = {
+    ...state.sbcType3PhysicalByScope,
+    [scope]: { ...current, [field]: value },
+  };
   state.sbcType3DerivationByScope = deleteSbcType3StateKey(state.sbcType3DerivationByScope, scope);
   invalidateSbcType3Scope(state, scope, PHYSICAL);
 }
@@ -64,7 +78,9 @@ function removeCurveRows(table, scope) {
   let next = table;
   for (let index = next.rows.length - 1; index >= 0; index -= 1) {
     const row = next.rows[index];
-    if (row.scopeId === scope && isSbcType3CurveEvidenceRow(row)) next = deleteVibrationUserEngineeringDataRow(next, index);
+    if (row.scopeId === scope && isSbcType3CurveEvidenceRow(row)) {
+      next = deleteVibrationUserEngineeringDataRow(next, index);
+    }
   }
   return next;
 }
@@ -77,7 +93,9 @@ function preparationToken(state, scope, revision) {
   const sequence = state.sbcType3PreparationSequence + 1;
   state.sbcType3PreparationSequence = sequence;
   const token = `SBC-T3-PREP/${encodeURIComponent(scope)}/${revision}/${sequence}`;
-  state.sbcType3PreparationTokenByScope = { ...state.sbcType3PreparationTokenByScope, [scope]: token };
+  state.sbcType3PreparationTokenByScope = {
+    ...state.sbcType3PreparationTokenByScope, [scope]: token,
+  };
   return token;
 }
 
@@ -86,14 +104,17 @@ function preparationIsCurrent(state, scope, revision, token) {
     && state.sbcType3PreparationTokenByScope?.[scope] === token;
 }
 
-export async function prepareSbcType3CurveEvidence(state, render, audit, derive = deriveSbcType3MasterAssistedInputs) {
+export async function prepareSbcType3CurveEvidence(
+  state, render, audit, derive = deriveSbcType3MasterAssistedInputs,
+) {
   const scope = scopeId(state.sbcType3ScopeId);
   const revision = sbcType3ScopeRevision(state, scope);
   const token = preparationToken(state, scope, revision);
   state.error = null;
   render?.();
   const derivation = await derive({
-    scopeId: scope, physical: normalizedPhysical(state, scope),
+    scopeId: scope,
+    physical: normalizedPhysical(state, scope),
     mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
   });
   if (!preparationIsCurrent(state, scope, revision, token)) return false;
@@ -151,10 +172,14 @@ export async function evaluateSbcType3MasterAssisted(
   render?.();
   try {
     const guarded = await executeSbcFacilityWithScenario(
-      state, scope, async ({ executionBasis, facilityRunBasis }) => ({
-        executionBasis, facilityRunBasis,
+      state,
+      scope,
+      async ({ executionBasis, facilityRunBasis }) => ({
+        executionBasis,
+        facilityRunBasis,
         result: await calculate({
-          scopeId: scope, physical: normalizedPhysical(state, scope),
+          scopeId: scope,
+          physical: normalizedPhysical(state, scope),
           mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
           userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
         }),
@@ -166,11 +191,14 @@ export async function evaluateSbcType3MasterAssisted(
       facilityRunBasis: guarded.facilityRunBasis,
     });
     if (!result.ok) return commitNotReady(state, scope, started.operation, result);
-    const completed = commitSbcType3CandidateEvaluation(state.sbcType3CurrentnessStore, started.operation, result);
+    const completed = commitSbcType3CandidateEvaluation(
+      state.sbcType3CurrentnessStore, started.operation, result,
+    );
     if (!completed.accepted) return false;
     commitAcceptedCandidate(state, scope, result, completed);
     audit?.('SBC_TYPE3_EVALUATED', {
-      status: result.status, lof: result.lof,
+      status: result.status,
+      lof: result.lof,
       scenarioId: guarded.executionBasis.scenarioId,
       scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
       facilityRunId: guarded.facilityRunBasis.runId,
@@ -194,10 +222,18 @@ export function evaluateSbcType3ExplicitIntermediate(
 ) {
   const scope = scopeId(state.sbcType3ScopeId);
   try {
-    const guarded = executeSbcFacilityWithScenario(state, scope, ({ executionBasis, facilityRunBasis }) => ({
-      executionBasis, facilityRunBasis,
-      result: calculate({ userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData), scopeId: scope }),
-    }));
+    const guarded = executeSbcFacilityWithScenario(
+      state,
+      scope,
+      ({ executionBasis, facilityRunBasis }) => ({
+        executionBasis,
+        facilityRunBasis,
+        result: calculate({
+          userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+          scopeId: scope,
+        }),
+      }),
+    );
     state.sbcType3Result = Object.freeze({
       ...guarded.result,
       scenarioExecutionBasis: guarded.executionBasis,
@@ -205,8 +241,10 @@ export function evaluateSbcType3ExplicitIntermediate(
     });
     state.error = null;
     audit?.('SBC_TYPE3_EVALUATED', {
-      status: state.sbcType3Result?.status ?? null, lof: state.sbcType3Result?.lof ?? null,
-      mode: 'LEGACY_EXPLICIT_INTERMEDIATE', scenarioId: guarded.executionBasis.scenarioId,
+      status: state.sbcType3Result?.status ?? null,
+      lof: state.sbcType3Result?.lof ?? null,
+      mode: 'LEGACY_EXPLICIT_INTERMEDIATE',
+      scenarioId: guarded.executionBasis.scenarioId,
       scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
       facilityRunId: guarded.facilityRunBasis.runId,
     }, scope);
@@ -215,15 +253,29 @@ export function evaluateSbcType3ExplicitIntermediate(
     state.sbcType3Result = null;
     state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     return false;
-  } finally { render?.(); }
+  } finally {
+    render?.();
+  }
 }
 
 export function handleSbcType3Click(state, event, render, audit) {
   const facilityScope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
-  if (facilityScope) { openSbcType3FacilityScope(state, facilityScope, render, audit); return true; }
-  if (event.target.closest('[data-vi-sbc-master-template]')) { void prepareSbcType3CurveEvidence(state, render, audit); return true; }
-  if (event.target.closest('[data-vi-sbc-master-evaluate]')) { void evaluateSbcType3MasterAssisted(state, render, audit); return true; }
-  if (event.target.closest('[data-vi-sbc-type3-evaluate]')) { evaluateSbcType3ExplicitIntermediate(state, render, audit); return true; }
+  if (facilityScope) {
+    openSbcType3FacilityScope(state, facilityScope, render, audit);
+    return true;
+  }
+  if (event.target.closest('[data-vi-sbc-master-template]')) {
+    void prepareSbcType3CurveEvidence(state, render, audit);
+    return true;
+  }
+  if (event.target.closest('[data-vi-sbc-master-evaluate]')) {
+    void evaluateSbcType3MasterAssisted(state, render, audit);
+    return true;
+  }
+  if (event.target.closest('[data-vi-sbc-type3-evaluate]')) {
+    evaluateSbcType3ExplicitIntermediate(state, render, audit);
+    return true;
+  }
   return false;
 }
 
@@ -232,18 +284,24 @@ export function handleSbcType3Change(state, event, render, audit) {
     state.sbcType3ScopeId = event.target.value;
     const scope = String(event.target.value).trim();
     if (scope) state.sbcType3Result = visibleSbcType3Result(state, scope);
-    state.error = null; render?.(); return true;
+    state.error = null;
+    render?.();
+    return true;
   }
   const field = event.target.dataset.viSbcMasterPhysical;
   if (field) {
     const scope = scopeId(state.sbcType3ScopeId);
     updatePhysical(state, scope, field, event.target.value);
     audit?.('USER_DATA_CHANGED', { action: 'SBC_PHYSICAL_INPUT_CHANGED', field }, scope);
-    state.error = null; render?.(); return true;
+    state.error = null;
+    render?.();
+    return true;
   }
   if (!event.target.matches('[data-vi-sbc-master-mainline]')) return false;
   const scope = scopeId(state.sbcType3ScopeId);
   updateMainline(state, scope, event.target.value);
   audit?.('USER_DATA_CHANGED', { action: 'SBC_MAINLINE_INPUT_CHANGED' }, scope);
-  state.error = null; render?.(); return true;
+  state.error = null;
+  render?.();
+  return true;
 }
