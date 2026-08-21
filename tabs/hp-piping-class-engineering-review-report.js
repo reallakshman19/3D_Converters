@@ -104,6 +104,18 @@ function evidenceCustody(project = {}) {
   return Object.freeze(rows);
 }
 
+function productInputs(project = {}) {
+  const rows = (project.products ?? []).map((product) => Object.freeze({
+    productId: text(product.productId),
+    nominalSize: text(product.nominalSize),
+    basisMode: text(product.calculationBasis?.mode),
+    calculationBasis: Object.freeze(clone(product.calculationBasis ?? {})),
+    wallState: Object.freeze(clone(product.wallState ?? {})),
+  }));
+  rows.sort((a, b) => a.productId.localeCompare(b.productId));
+  return Object.freeze(rows);
+}
+
 function sortedCycles(rows = []) {
   return Object.freeze([...rows].sort((a, b) => String(a.productId ?? '').localeCompare(String(b.productId ?? ''))
     || String(a.cycleId ?? '').localeCompare(String(b.cycleId ?? ''))
@@ -142,6 +154,7 @@ export function buildHpPipingClassEngineeringReviewReport(project = {}, result =
       projectVersion: text(result.projectVersion || project.schemaVersion),
       orchestratorVersion: text(result.orchestratorVersion),
       resultExportVersion: resultBundle.schemaVersion,
+      calculationIds: Object.freeze(clone(result.calculationIds ?? {})),
     }),
     method: Object.freeze({
       b313Edition: text(project.methodManifest?.b313Edition),
@@ -151,6 +164,7 @@ export function buildHpPipingClassEngineeringReviewReport(project = {}, result =
     canonicalUnits: Object.freeze(clone(project.canonicalUnits ?? {})),
     authority,
     classBasis: Object.freeze(clone(project.classBasis ?? {})),
+    productInputs: productInputs(project),
     transient: Object.freeze({
       spectrum: Object.freeze(clone(project.transient?.spectrum ?? null)),
       states: Object.freeze(clone(project.transient?.states ?? [])),
@@ -167,7 +181,7 @@ export function buildHpPipingClassEngineeringReviewReport(project = {}, result =
       priorityDisclaimer: 'Review-priority ordering is a reporting aid only; it is not a Code governing rule or design-release decision.',
     }),
     productResults: Object.freeze(sortedProducts.map((row) => Object.freeze(clone(row)))),
-    cycleResults: sortedCycles(resultBundle.cycleRows).map((row) => Object.freeze(clone(row))),
+    cycleResults: Object.freeze(sortedCycles(resultBundle.cycleRows).map((row) => Object.freeze(clone(row)))),
     externalKdCustody: evidenceCustody(project),
     advisories: collectAdvisories(result),
     limitations: Object.freeze([
@@ -192,8 +206,8 @@ export function parseHpPipingClassEngineeringReviewReportJson(textValue) {
   if (parsed?.schemaVersion !== HP_PIPING_CLASS_ENGINEERING_REVIEW_REPORT_VERSION) throw new TypeError('Unsupported HP engineering-review report schema.');
   if (parsed?.reportPurpose !== 'ENGINEERING_REVIEW_ONLY') throw new TypeError('HP engineering-review report purpose must remain ENGINEERING_REVIEW_ONLY.');
   assertReviewOnlyAuthority(parsed.authority, 'report.authority');
-  if (!Array.isArray(parsed.productResults) || !Array.isArray(parsed.cycleResults) || !Array.isArray(parsed.externalKdCustody)) {
-    throw new TypeError('HP engineering-review report is missing canonical result/custody arrays.');
+  if (!Array.isArray(parsed.productInputs) || !Array.isArray(parsed.productResults) || !Array.isArray(parsed.cycleResults) || !Array.isArray(parsed.externalKdCustody)) {
+    throw new TypeError('HP engineering-review report is missing canonical input/result/custody arrays.');
   }
   return Object.freeze(parsed);
 }
@@ -212,6 +226,15 @@ export function verifyHpPipingClassEngineeringReviewReportRoundTrip(report) {
   } catch (error) {
     return Object.freeze({ ok: false, error: error.message, schemaVersion: report?.schemaVersion ?? null, productCount: 0, cycleCount: 0, custodyRowCount: 0 });
   }
+}
+
+function inputRowsHtml(report) {
+  if (!report.productInputs.length) return '<tr><td colspan="12">No product inputs supplied.</td></tr>';
+  return report.productInputs.map((row) => {
+    const basis = row.calculationBasis ?? {};
+    const wall = row.wallState ?? {};
+    return `<tr><td><strong>${esc(row.productId || '—')}</strong></td><td>${esc(row.nominalSize || '—')}</td><td>${esc(row.basisMode || '—')}</td><td>${fmt(basis.outsideDiameterMm)}</td><td>${fmt(basis.allowableStressMpa)}</td><td>${fmt(basis.nominalWallMm)}</td><td>${fmt(basis.minusTolerancePct, 3)}</td><td>${esc(wall.fatigueWallBasis || '—')}</td><td>${fmt(wall.measuredCurrentWallMm)}</td><td>${fmt(wall.futureInternalLossMm)}</td><td>${fmt(wall.futureExternalLossMm)}</td><td>${basis.basisPackage ? 'Governed package retained in JSON' : 'Direct engineering input'}</td></tr>`;
+  }).join('');
 }
 
 function productRowsHtml(report) {
@@ -260,6 +283,7 @@ export function serializeHpPipingClassEngineeringReviewReportHtml(report) {
   const s = report.reviewSummary ?? {};
   const b = report.classBasis ?? {};
   const spectrum = report.transient?.spectrum ?? {};
+  const ids = report.sourceContracts?.calculationIds ?? {};
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(report.identity.classId)} ${esc(report.identity.revision)} — HP Piping Class Engineering Review</title>
 <style>
@@ -277,21 +301,24 @@ export function serializeHpPipingClassEngineeringReviewReportHtml(report) {
 <div class="card"><small>B31.3 edition</small><strong>${esc(report.method.b313Edition || '—')}</strong></div>
 <div class="card"><small>VIII-3 edition</small><strong>${esc(report.method.viii3Edition || '—')}</strong></div>
 </section>
-<h2>1. Basis and authority</h2>
+<h2>1. Basis, method and authority</h2>
 <div class="table-wrap"><table><tbody>
 <tr><th>Calculation mode</th><td class="mono">${esc(report.method.calculationMode)}</td><th>Design pressure</th><td>${fmt(b.designPressureMpa)} MPa</td></tr>
 <tr><th>Internal allowance</th><td>${fmt(b.internalAllowanceMm)} mm</td><th>External allowance</th><td>${fmt(b.externalAllowanceMm)} mm</td></tr>
 <tr><th>Spectrum</th><td>${esc(spectrum?.spectrumId || '—')}</td><th>Design life</th><td>${Number.isFinite(spectrum?.designLifeYears) ? `${esc(spectrum.designLifeYears)} years` : '—'}</td></tr>
 <tr><th>Orchestrator</th><td class="mono">${esc(report.sourceContracts.orchestratorVersion)}</td><th>Result contract</th><td class="mono">${esc(report.sourceContracts.resultExportVersion)}</td></tr>
+<tr><th>Static direct ID</th><td class="mono">${esc(ids.staticDirect || '—')}</td><th>Wall-state ID</th><td class="mono">${esc(ids.wallState || '—')}</td></tr>
+<tr><th>Fatigue review ID</th><td class="mono">${esc(ids.fatigue || '—')}</td><th>Basis resolver ID</th><td class="mono">${esc(ids.basis || '—')}</td></tr>
 </tbody></table></div>
 <div class="warn" style="margin-top:10px">${esc(s.priorityDisclaimer)}</div>
-<h2>2. Product review matrix</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Priority</th><th>Static</th><th>Req. nominal mm</th><th>P-rating MPa</th><th>P-rating margin</th><th>Fatigue wall basis</th><th>Fatigue wall mm</th><th>U</th><th>Governing cycle</th><th>State</th></tr></thead><tbody>${productRowsHtml(report)}</tbody></table></div>
-<h2>3. Operating states and governed cycles</h2><h3>Operating states</h3><div class="table-wrap"><table><thead><tr><th>State</th><th>Pressure MPa</th><th>Material °C</th><th>Structural °C</th></tr></thead><tbody>${stateRowsHtml(report)}</tbody></table></div>
+<h2>2. Product engineering-input basis</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Nominal size</th><th>Basis mode</th><th>OD mm</th><th>S MPa</th><th>Nominal wall mm</th><th>Minus tol %</th><th>Fatigue wall basis</th><th>Measured wall mm</th><th>Future internal loss</th><th>Future external loss</th><th>Custody</th></tr></thead><tbody>${inputRowsHtml(report)}</tbody></table></div>
+<h2>3. Product review matrix</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Priority</th><th>Static</th><th>Req. nominal mm</th><th>P-rating MPa</th><th>P-rating margin</th><th>Fatigue wall basis</th><th>Fatigue wall mm</th><th>U</th><th>Governing cycle</th><th>State</th></tr></thead><tbody>${productRowsHtml(report)}</tbody></table></div>
+<h2>4. Operating states and governed cycles</h2><h3>Operating states</h3><div class="table-wrap"><table><thead><tr><th>State</th><th>Pressure MPa</th><th>Material °C</th><th>Structural °C</th></tr></thead><tbody>${stateRowsHtml(report)}</tbody></table></div>
 <h3>Governed cycles</h3><div class="table-wrap"><table><thead><tr><th>Cycle</th><th>From</th><th>To</th><th>Lifetime n</th><th>Cycles/year</th><th>Category</th><th>Provenance</th></tr></thead><tbody>${transitionRowsHtml(report)}</tbody></table></div>
-<h2>4. Pressure-cycle fatigue result ledger</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Cycle</th><th>State pair</th><th>ΔP MPa</th><th>CORE Salt MPa</th><th>User Salt MPa</th><th>External Seq MPa</th><th>External N</th><th>n</th><th>Ui</th><th>Evidence status</th></tr></thead><tbody>${cycleRowsHtml(report)}</tbody></table></div>
-<h2>5. External KD-3 custody</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Cycle</th><th>Location</th><th>Seq MPa</th><th>N</th><th>Code</th><th>Edition</th><th>Calculation ref</th><th>Checked by</th></tr></thead><tbody>${custodyRowsHtml(report)}</tbody></table></div>
-<h2>6. Advisories and warnings</h2>${report.advisories.length ? `<ul>${report.advisories.map((row) => `<li><span class="mono">${esc(row.code)}</span> · ${esc(row.scope)} · ${esc(row.message)}</li>`).join('')}</ul>` : '<p>No calculation warnings or advisories were returned.</p>'}
-<h2>7. Limitations</h2><ul class="limitations">${report.limitations.map((row) => `<li>${esc(row)}</li>`).join('')}</ul>
+<h2>5. Pressure-cycle fatigue result ledger</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Cycle</th><th>State pair</th><th>ΔP MPa</th><th>CORE Salt MPa</th><th>User Salt MPa</th><th>External Seq MPa</th><th>External N</th><th>n</th><th>Ui</th><th>Evidence status</th></tr></thead><tbody>${cycleRowsHtml(report)}</tbody></table></div>
+<h2>6. External KD-3 custody</h2><div class="table-wrap"><table><thead><tr><th>Product</th><th>Cycle</th><th>Location</th><th>Seq MPa</th><th>N</th><th>Code</th><th>Edition</th><th>Calculation ref</th><th>Checked by</th></tr></thead><tbody>${custodyRowsHtml(report)}</tbody></table></div>
+<h2>7. Advisories and warnings</h2>${report.advisories.length ? `<ul>${report.advisories.map((row) => `<li><span class="mono">${esc(row.code)}</span> · ${esc(row.scope)} · ${esc(row.message)}</li>`).join('')}</ul>` : '<p>No calculation warnings or advisories were returned.</p>'}
+<h2>8. Limitations</h2><ul class="limitations">${report.limitations.map((row) => `<li>${esc(row)}</li>`).join('')}</ul>
 <p class="muted">This standalone HTML embeds the complete machine-readable report JSON below for audit/replay.</p>
 <script type="application/json" id="hp-engineering-review-report-data">${embedded}</script>
 </main></body></html>\n`;
