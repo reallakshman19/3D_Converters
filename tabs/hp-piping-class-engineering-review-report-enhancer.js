@@ -17,10 +17,13 @@ function esc(value) {
     .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-function currentProject() {
+function cloneProject(project) {
+  return project == null ? null : parseHpPipingClassWorkspaceProject(JSON.stringify(project));
+}
+
+function readStoredProject() {
   const raw = globalThis.localStorage?.getItem(HP_PIPING_CLASS_WORKSPACE_STORAGE_KEY);
-  if (!raw) throw new Error('Current HP Piping Class project is not available in workspace storage.');
-  return parseHpPipingClassWorkspaceProject(raw);
+  return raw ? parseHpPipingClassWorkspaceProject(raw) : null;
 }
 
 function safe(value, fallback) {
@@ -54,31 +57,40 @@ function setStatus(container, kind, message) {
   target.innerHTML = message;
 }
 
-function buildCurrentReport() {
-  const project = currentProject();
-  const validation = validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
-  if (!validation.ok) {
-    const error = new Error(`Current project has ${validation.issues?.length ?? 0} production-review validation blocker(s).`);
-    error.code = 'HP_ENGINEERING_REPORT_PROJECT_BLOCKED';
-    throw error;
-  }
-  const result = evaluateHpPipingClassProject(project, { includeEvidence: true });
-  if (!result.ok) {
-    const error = new Error(`Canonical HP review did not complete: ${result.projectState || 'CALCULATION_BLOCKED'}.`);
-    error.code = 'HP_ENGINEERING_REPORT_CALCULATION_BLOCKED';
-    throw error;
-  }
-  const report = buildHpPipingClassEngineeringReviewReport(project, result);
-  const verified = verifyHpPipingClassEngineeringReviewReportRoundTrip(report);
-  if (!verified.ok) {
-    const error = new Error(`Engineering-review report JSON round trip failed${verified.error ? `: ${verified.error}` : '.'}`);
-    error.code = 'HP_ENGINEERING_REPORT_ROUNDTRIP_FAILED';
-    throw error;
-  }
-  return { project, report, verified };
-}
+export function installHpPipingClassEngineeringReviewReportEnhancer(container, options = {}) {
+  let contextProject = cloneProject(options?.context?.hpPipingClassProject ?? null);
 
-export function installHpPipingClassEngineeringReviewReportEnhancer(container) {
+  function currentProject() {
+    const stored = readStoredProject();
+    if (stored) return stored;
+    if (contextProject) return cloneProject(contextProject);
+    throw new Error('Current HP Piping Class project is not available in workspace storage or route context.');
+  }
+
+  function buildCurrentReport() {
+    const project = currentProject();
+    const validation = validateHpPipingClassProject(project, { validationPolicy: 'PRODUCTION_REVIEW' });
+    if (!validation.ok) {
+      const error = new Error(`Current project has ${validation.issues?.length ?? 0} production-review validation blocker(s).`);
+      error.code = 'HP_ENGINEERING_REPORT_PROJECT_BLOCKED';
+      throw error;
+    }
+    const result = evaluateHpPipingClassProject(project, { includeEvidence: true });
+    if (!result.ok) {
+      const error = new Error(`Canonical HP review did not complete: ${result.projectState || 'CALCULATION_BLOCKED'}.`);
+      error.code = 'HP_ENGINEERING_REPORT_CALCULATION_BLOCKED';
+      throw error;
+    }
+    const report = buildHpPipingClassEngineeringReviewReport(project, result);
+    const verified = verifyHpPipingClassEngineeringReviewReportRoundTrip(report);
+    if (!verified.ok) {
+      const error = new Error(`Engineering-review report JSON round trip failed${verified.error ? `: ${verified.error}` : '.'}`);
+      error.code = 'HP_ENGINEERING_REPORT_ROUNDTRIP_FAILED';
+      throw error;
+    }
+    return { project, report, verified };
+  }
+
   function inject() {
     const matrix = container.querySelector('[data-hpwb-class-result-matrix="true"]');
     const actions = matrix?.querySelector('.hpwb-section-toolbar .hpwb-actions');
@@ -94,6 +106,14 @@ export function installHpPipingClassEngineeringReviewReportEnhancer(container) {
     json.dataset.hpwbEngineeringReportAction = 'json';
     json.textContent = 'Export review JSON';
     actions.append(html, json);
+  }
+
+  function onInput(event) {
+    if (event.target.closest('[data-hpwb-bind]')) contextProject = null;
+  }
+
+  function onChange(event) {
+    if (event.target.matches('[data-hpwb-file]')) contextProject = null;
   }
 
   function onClick(event) {
@@ -114,10 +134,14 @@ export function installHpPipingClassEngineeringReviewReportEnhancer(container) {
 
   const observer = new MutationObserver(inject);
   observer.observe(container, { childList: true, subtree: true });
+  container.addEventListener('input', onInput);
+  container.addEventListener('change', onChange);
   container.addEventListener('click', onClick);
   inject();
   return () => {
     observer.disconnect();
+    container.removeEventListener('input', onInput);
+    container.removeEventListener('change', onChange);
     container.removeEventListener('click', onClick);
   };
 }
