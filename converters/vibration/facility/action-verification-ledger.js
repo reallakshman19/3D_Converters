@@ -26,6 +26,12 @@ function ledgerError(code, message) {
   return error;
 }
 
+function requiredText(value, field) {
+  const text = String(value ?? '').trim();
+  if (!text) throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_TEXT_REQUIRED', `${field} is required.`);
+  return text;
+}
+
 function timestamp(value) {
   const text = String(value ?? '').trim();
   if (!text || Number.isNaN(Date.parse(text))) {
@@ -48,8 +54,12 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function entryId(sequence, attachmentId) {
-  return JSON.stringify([sequence, attachmentId]);
+function entryId(sequence, projectId, attachmentId) {
+  return JSON.stringify([sequence, projectId, attachmentId]);
+}
+
+function attachmentKey(projectId, attachmentId) {
+  return JSON.stringify([projectId, attachmentId]);
 }
 
 export function createVibrationActionVerificationLedger() {
@@ -65,32 +75,37 @@ export function assertVibrationActionVerificationLedger(value) {
     throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_SCHEMA_INVALID', `Expected ${VIBRATION_ACTION_VERIFICATION_LEDGER_SCHEMA}.`);
   }
   authority(value.authority);
-  const attachmentIds = new Set();
+  const attachmentKeys = new Set();
   value.records.forEach((record, index) => {
     const sequence = index + 1;
+    const projectId = requiredText(record?.projectId, 'record.projectId');
     const attachment = assertVibrationActionVerificationAttachment(record?.attachment);
-    if (record.sequence !== sequence || record.recordId !== entryId(sequence, attachment.attachmentId)) {
+    if (record.sequence !== sequence || record.recordId !== entryId(sequence, projectId, attachment.attachmentId)) {
       throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_SEQUENCE_INVALID', 'Verification ledger records must be contiguous and deterministic.');
     }
     timestamp(record.recordedAt);
-    if (attachmentIds.has(attachment.attachmentId)) {
-      throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_DUPLICATE', 'The same verification attachment cannot be appended twice.');
+    const key = attachmentKey(projectId, attachment.attachmentId);
+    if (attachmentKeys.has(key)) {
+      throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_DUPLICATE', 'The same project verification attachment cannot be appended twice.');
     }
-    attachmentIds.add(attachment.attachmentId);
+    attachmentKeys.add(key);
   });
   return value;
 }
 
-export function appendVibrationActionVerificationAttachment(ledgerInput, attachmentInput, recordedAt) {
+export function appendVibrationActionVerificationAttachment(ledgerInput, projectIdInput, attachmentInput, recordedAt) {
   const ledger = assertVibrationActionVerificationLedger(ledgerInput);
+  const projectId = requiredText(projectIdInput, 'projectId');
   const attachment = assertVibrationActionVerificationAttachment(attachmentInput);
-  if (ledger.records.some((record) => record.attachment.attachmentId === attachment.attachmentId)) {
-    throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_DUPLICATE', 'The same verification attachment cannot be appended twice.');
+  const key = attachmentKey(projectId, attachment.attachmentId);
+  if (ledger.records.some((record) => attachmentKey(record.projectId, record.attachment.attachmentId) === key)) {
+    throw ledgerError('VIBRATION_ACTION_VERIFICATION_LEDGER_DUPLICATE', 'The same project verification attachment cannot be appended twice.');
   }
   const sequence = ledger.records.length + 1;
   const record = deepFreeze({
     sequence,
-    recordId: entryId(sequence, attachment.attachmentId),
+    recordId: entryId(sequence, projectId, attachment.attachmentId),
+    projectId,
     recordedAt: timestamp(recordedAt),
     attachment,
   });
