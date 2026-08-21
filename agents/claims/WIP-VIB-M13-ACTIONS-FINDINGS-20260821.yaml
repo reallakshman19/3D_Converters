@@ -10,11 +10,10 @@ claim_modes:
 files:
   exact:
     - converters/vibration/facility/action-lifecycle.js
-    - tabs/vibration-integrity-action-lifecycle.js
-    - tabs/vibration-integrity-mechanisms.js
     - tabs/vibration-integrity-view.js
     - tabs/vibration-integrity-run-evidence.js
     - tests/vibration-facility-action-lifecycle.test.mjs
+    - tests/vibration-integrity-run-evidence.test.mjs
 exclusions:
   - mechanism equations and coefficients
   - source/master qualification
