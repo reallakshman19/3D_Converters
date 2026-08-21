@@ -13,6 +13,7 @@ import {
   VIBRATION_MEASUREMENT_DISPOSITION_OUTCOMES,
   VIBRATION_VERIFICATION_REQUIREMENT_TYPES,
 } from '../converters/vibration/verification/contracts.js';
+import { auditVibrationActionVerification } from './vibration-integrity-action-verification-audit.js';
 import { buildVibrationActionCompletionAuthoringModel } from './vibration-integrity-action-completion-controller.js';
 import { assertVibrationProjectEvidenceHandoff } from './vibration-project-evidence-handoff.js';
 
@@ -240,16 +241,14 @@ export function cancelVibrationActionVerificationEditor(state) {
   state.actionVerificationDraft = emptyDraft();
 }
 
-export function handleVibrationActionVerificationClick(state, event, render, audit) {
+export function handleVibrationActionVerificationClick(state, event, render) {
   const open = event.target.closest('[data-vi-action-verification-open]')?.dataset.viActionVerificationOpen;
   if (open) {
     try {
       const editor = openVibrationActionVerificationEditor(state, open);
       state.error = null;
-      audit?.('ACTION_VERIFICATION_EDITOR_OPENED', {
-        actionId: editor.actionId,
-        occurrenceId: editor.occurrenceId,
-        projectId: editor.projectId,
+      auditVibrationActionVerification(state, 'ACTION_VERIFICATION_EDITOR_OPENED', {
+        actionId: editor.actionId, occurrenceId: editor.occurrenceId, projectId: editor.projectId,
       }, editor.actionId);
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -260,9 +259,8 @@ export function handleVibrationActionVerificationClick(state, event, render, aud
     const editor = state.actionVerificationEditor;
     cancelVibrationActionVerificationEditor(state);
     state.error = null;
-    audit?.('ACTION_VERIFICATION_EDITOR_CANCELLED', {
-      actionId: editor?.actionId ?? null,
-      occurrenceId: editor?.occurrenceId ?? null,
+    auditVibrationActionVerification(state, 'ACTION_VERIFICATION_EDITOR_CANCELLED', {
+      actionId: editor?.actionId ?? null, occurrenceId: editor?.occurrenceId ?? null,
     }, editor?.actionId ?? null);
     render(); return true;
   }
@@ -270,7 +268,7 @@ export function handleVibrationActionVerificationClick(state, event, render, aud
   try {
     const attachment = submitVibrationActionVerificationEditor(state);
     state.error = null;
-    audit?.('ACTION_VERIFICATION_RECORDED', {
+    auditVibrationActionVerification(state, 'ACTION_VERIFICATION_RECORDED', {
       attachmentId: attachment.attachmentId,
       actionId: attachment.action.actionId,
       occurrenceId: attachment.occurrence.occurrenceId,
@@ -281,7 +279,9 @@ export function handleVibrationActionVerificationClick(state, event, render, aud
     }, attachment.action.actionId);
   } catch (error) {
     state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    audit?.('ACTION_VERIFICATION_RECORD_FAILED', { error: state.error.slice(0, 500) }, state.actionVerificationEditor?.actionId ?? null);
+    auditVibrationActionVerification(state, 'ACTION_VERIFICATION_RECORD_FAILED', {
+      error: state.error.slice(0, 500),
+    }, state.actionVerificationEditor?.actionId ?? null);
   }
   render(); return true;
 }
