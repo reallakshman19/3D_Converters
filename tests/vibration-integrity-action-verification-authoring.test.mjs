@@ -61,15 +61,15 @@ function currentState(projectEvidence = handoff(), runId = 'FIT-RUN-1') {
   };
 }
 
-function populateRequirement(state, { disposition = false } = {}) {
+function populateRequirement(state, { disposition = false, requirementId = 'VERIFY-1' } = {}) {
   const model = buildVibrationActionVerificationAuthoringModel(state);
   openVibrationActionVerificationEditor(state, model.actions[0].occurrenceId);
-  updateVibrationActionVerificationDraft(state, 'requirementId', 'VERIFY-1');
+  updateVibrationActionVerificationDraft(state, 'requirementId', requirementId);
   updateVibrationActionVerificationDraft(state, 'requirementReason', 'Confirm field response before closing the required action.');
   toggleVibrationActionVerificationSelection(state, 'requiredProductTypes', 'OVERALL', true);
   if (disposition) {
     updateVibrationActionVerificationDraft(state, 'includeDisposition', true);
-    updateVibrationActionVerificationDraft(state, 'dispositionId', 'DISP-1');
+    updateVibrationActionVerificationDraft(state, 'dispositionId', `DISP-${requirementId}`);
     updateVibrationActionVerificationDraft(state, 'reviewerId', 'ENGINEER-002');
     updateVibrationActionVerificationDraft(state, 'dispositionReason', 'Required field product reviewed.');
     toggleVibrationActionVerificationSelection(state, 'sessionIds', 'MS-1', true);
@@ -92,7 +92,6 @@ test('only exact scenario-scope project evidence is selectable for the current a
   assert.equal(model.enabled, true);
   assert.deepEqual(model.actions[0].sessions.map((item) => item.sessionId), ['MS-1']);
   assert.deepEqual(model.actions[0].products.map((item) => item.productId), ['SP-1', 'SP-2']);
-
   const wrong = verificationEvidencePackage({
     scope: verificationScope({ operatingCaseSnapshotHash: `sha256:${'e'.repeat(64)}` }),
   });
@@ -108,6 +107,7 @@ test('measurement can be attached before disposition and action remains OPEN', (
   const attachment = submitVibrationActionVerificationEditor(state, { recordedAt: '2026-08-21T11:00:00Z' });
   assert.equal(attachment.verificationStatus.state, 'AWAITING_ENGINEER_DISPOSITION');
   assert.equal(state.actionVerificationLedger.records.length, 1);
+  assert.equal(state.actionVerificationLedger.records[0].projectId, 'P-1');
   assert.equal(state.actionCompletionLedger.records.length, 0);
   assert.equal(buildVibrationActionCompletionAuthoringModel(state).actions[0].action.completionState, 'OPEN');
 });
@@ -118,9 +118,25 @@ test('accepted engineer disposition is recorded but cannot auto-complete the act
   const attachment = submitVibrationActionVerificationEditor(state, { recordedAt: '2026-08-21T11:15:00Z' });
   assert.equal(attachment.verificationStatus.state, 'VERIFICATION_EVIDENCE_ACCEPTED');
   assert.deepEqual(attachment.verificationStatus.disposition.evidence.productIds, ['SP-1']);
-  assert.equal(state.actionVerificationLedger.records.length, 1);
+  assert.equal(state.actionVerificationLedger.records[0].projectId, 'P-1');
   assert.equal(state.actionCompletionLedger.records.length, 0);
   assert.equal(buildVibrationActionCompletionAuthoringModel(state).actions[0].action.completionState, 'OPEN');
+});
+
+test('verification history is project-scoped even for an identical facility occurrence and evidence', () => {
+  const state = currentState(handoff(verificationEvidencePackage(), 'P-1'));
+  populateRequirement(state, { requirementId: 'VERIFY-P1' });
+  const first = submitVibrationActionVerificationEditor(state, { recordedAt: '2026-08-21T11:05:00Z' });
+  assert.equal(buildVibrationActionVerificationAuthoringModel(state).actions[0].attachmentCount, 1);
+  setVibrationActionVerificationProjectEvidence(state, handoff(verificationEvidencePackage(), 'P-2'));
+  const p2Before = buildVibrationActionVerificationAuthoringModel(state);
+  assert.equal(p2Before.actions[0].attachmentCount, 0);
+  assert.equal(p2Before.actions[0].latestRecord, null);
+  populateRequirement(state, { requirementId: 'VERIFY-P1' });
+  const second = submitVibrationActionVerificationEditor(state, { recordedAt: '2026-08-21T11:06:00Z' });
+  assert.equal(first.attachmentId, second.attachmentId);
+  assert.deepEqual(state.actionVerificationLedger.records.map((record) => record.projectId), ['P-1', 'P-2']);
+  assert.equal(buildVibrationActionVerificationAuthoringModel(state).actions[0].attachmentCount, 1);
 });
 
 test('accepted disposition without explicit required product reference fails and ledger is unchanged', () => {
@@ -177,12 +193,14 @@ test('product wiring transports project evidence and renders verification before
   const integrity = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-tab.js', import.meta.url)), 'utf8');
   const activity = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-activity-view.js', import.meta.url)), 'utf8');
   const controller = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-action-verification-controller.js', import.meta.url)), 'utf8');
+  const audit = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-audit-log.js', import.meta.url)), 'utf8');
   assert.match(engineering, /VIBRATION_PROJECT_CHANGED_EVENT/);
   assert.match(engineering, /VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT/);
   assert.match(integrity, /VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT/);
   assert.match(integrity, /handleVibrationActionVerificationClick/);
   assert.match(integrity, /handleVibrationActionVerificationChange/);
   assert.ok(activity.indexOf('renderVibrationActionVerificationPanel') < activity.indexOf('renderVibrationActionCompletionPanel(state)'));
+  assert.match(audit, /ACTION_VERIFICATION_RECORDED/);
   assert.doesNotMatch(controller, /createVibrationActionCompletionRecord|appendVibrationActionCompletionRecord/);
 });
 
