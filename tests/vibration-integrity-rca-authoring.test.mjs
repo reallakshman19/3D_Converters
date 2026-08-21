@@ -149,6 +149,20 @@ test('explicit engineer conclusion may confirm root cause only with accepted sup
   assert.equal(state.actionCompletionLedger.records.length, 0);
 });
 
+test('open hypothesis can later receive an immutable engineer-conclusion revision', () => {
+  const state = currentState();
+  const verificationRecord = recordVerification(state, { accepted: true });
+  populateRca(state, verificationRecord);
+  submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:21:00Z' });
+  populateRca(state, verificationRecord, { outcome: 'CONFIRMED_ROOT_CAUSE' });
+  submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:22:00Z' });
+  assert.equal(state.rcaLedger.records.length, 2);
+  assert.equal(state.rcaLedger.records[0].hypothesisRevision, 1);
+  assert.equal(state.rcaLedger.records[0].hypothesis.state, 'HYPOTHESIS_OPEN');
+  assert.equal(state.rcaLedger.records[1].hypothesisRevision, 2);
+  assert.equal(state.rcaLedger.records[1].hypothesis.conclusion.outcome, 'CONFIRMED_ROOT_CAUSE');
+});
+
 test('the same verification record cannot be evidence both for and against', () => {
   const state = currentState();
   const verificationRecord = recordVerification(state, { accepted: true });
