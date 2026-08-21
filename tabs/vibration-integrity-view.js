@@ -5,6 +5,7 @@ import {
 import { renderVibrationIntegrityInputArea } from './vibration-integrity-input-view.js';
 import { buildSelectedFitMechanismAssessmentSet } from './vibration-integrity-mechanism-context.js';
 import { buildVibrationIntegrityMatrixContext } from './vibration-integrity-matrix-context.js';
+import { buildVibrationFacilityRowActionLifecycle } from '../converters/vibration/facility/action-lifecycle.js';
 import {
   buildVibrationCompletenessPresentation,
   summarizeVisibleVibrationCompleteness,
@@ -192,6 +193,7 @@ function visibleMatrixRows(workspace, state) {
     return Object.freeze({
       row,
       matrix,
+      actionLifecycle: buildVibrationFacilityRowActionLifecycle(row, { resultState: state.resultState }),
       assessmentStatus: buildVibrationLineCaseAssessmentStatus({ row, matrix }),
     });
   });
@@ -213,12 +215,26 @@ function assessmentCoveragePanel(matrixRows) {
     <div class="vi-summary">${cards.map(([label, value]) => `<div class="vi-metric"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>`;
 }
 
+function actionLifecycleCell(lifecycle) {
+  if (lifecycle.sourceConflicts.length) {
+    return `<strong>ACTION SOURCE CONFLICT</strong><small class="vi-mono">${esc(lifecycle.sourceConflicts[0].code)}</small>`;
+  }
+  if (lifecycle.findings.length) {
+    const action = lifecycle.currentActions[0];
+    return `<strong>Further assessment required</strong><small class="vi-mono">${esc(action.obligation)} · ${esc(action.completionState)}</small>`;
+  }
+  if (lifecycle.retainedStaleActions.length) {
+    return '<span class="vi-empty">Retained stale required action</span>';
+  }
+  return '<span class="vi-empty">—</span>';
+}
+
 function tableRows(matrixRows, workspace) {
   const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 11;
   if (!matrixRows.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
-  return matrixRows.map(({ row, matrix, assessmentStatus }) => {
+  return matrixRows.map(({ row, matrix, actionLifecycle, assessmentStatus }) => {
     const presentation = buildVibrationCompletenessPresentation({
       completeness: matrix.assessmentCompleteness,
       screeningGoverning: matrix.screeningGoverning,
@@ -235,7 +251,7 @@ function tableRows(matrixRows, workspace) {
       <td>${resultEvidenceCell(matrix.candidateGoverning, presentation.candidate.label)}</td>
       <td>${cell(row.qualificationState)}</td>
       <td>${evidenceCell(row)}</td>
-      <td>${row.continuationRequired ? 'Further assessment required' : '<span class="vi-empty">—</span>'}</td>
+      <td>${actionLifecycleCell(actionLifecycle)}</td>
     </tr>`;
   }).join('');
 }
@@ -257,7 +273,7 @@ function workspaceTable(state) {
     <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Line/case workflow status is a projection only and cannot determine applicability or completeness. Current screening evidence uses authorized screening mechanisms only and remains subordinate to EI assessment completeness. Mechanical/SBC candidate values remain separate and cannot replace screening evidence. Design authority remains false.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Line/case workflow status</th><th>EI assessment status</th><th>FIT row state</th>${mechanismHeaders()}<th>Current screening evidence</th><th>Candidate evidence</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Line/case workflow status</th><th>EI assessment status</th><th>FIT row state</th>${mechanismHeaders()}<th>Current screening evidence</th><th>Candidate evidence</th><th>Qualification</th><th>FIT evidence</th><th>Required actions / findings</th>
     </tr></thead><tbody>${tableRows(matrixRows, state.workspace)}</tbody></table></div>
   </section>`;
 }
