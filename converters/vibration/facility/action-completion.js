@@ -10,8 +10,9 @@ export const VIBRATION_ACTION_COMPLETION_AUTHORITY = Object.freeze({
   designAuthority: false,
   numericalAuthority: 'NONE',
   aggregationAuthority: 'NONE',
-  persistenceAuthority: 'APPEND_ONLY_RECORD_CONTRACT_ONLY',
+  persistenceAuthority: 'NONE',
   completionAuthority: 'CALLER_ATTESTATION_ONLY',
+  storageSemantics: 'APPEND_ONLY_RECORD_CONTRACT',
   determinesApplicability: false,
   determinesCompleteness: false,
   determinesGoverningResult: false,
@@ -41,6 +42,15 @@ function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
   return Object.freeze(value);
+}
+
+function assertAuthority(value) {
+  for (const [key, expected] of Object.entries(VIBRATION_ACTION_COMPLETION_AUTHORITY)) {
+    if (value?.[key] !== expected) {
+      throw completionError('VIBRATION_ACTION_COMPLETION_AUTHORITY_INVALID', `Completion authority mismatch at ${key}.`);
+    }
+  }
+  return value;
 }
 
 function isoTimestamp(value) {
@@ -98,9 +108,13 @@ export function assertVibrationActionOccurrence(value) {
   const run = assertVibrationFacilityRunBasis(value.runBasis);
   const scenario = scenarioBasis(value.scenarioExecutionBasis);
   const actionId = requiredText(value.actionId, 'occurrence.actionId');
+  if (scenario.datasetId !== run.datasetId) {
+    throw completionError('VIBRATION_ACTION_OCCURRENCE_DATASET_MISMATCH', 'Action scenario dataset does not match the facility run.');
+  }
   if (value.occurrenceId !== occurrenceId(actionId, run, scenario)) {
     throw completionError('VIBRATION_ACTION_OCCURRENCE_ID_INVALID', 'Action occurrence identity does not match its custody fields.');
   }
+  assertAuthority(value.authority);
   return value;
 }
 
@@ -159,6 +173,7 @@ export function assertVibrationActionCompletionRecord(value) {
   requiredText(value.actorId, 'record.actorId');
   requiredText(value.reason, 'record.reason');
   evidenceRefs(value.evidenceRefs, transition);
+  assertAuthority(value.authority);
   return value;
 }
 
