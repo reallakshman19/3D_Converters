@@ -1,3 +1,8 @@
+import {
+  createVibrationActionOccurrence,
+  evaluateVibrationActionCompletion,
+} from './action-completion.js';
+
 export const VIBRATION_REQUIRED_ACTION_SCHEMA = 'VibrationRequiredAction.v1';
 export const VIBRATION_FINDING_SCHEMA = 'VibrationFinding.v1';
 export const VIBRATION_FACILITY_ACTION_LIFECYCLE_SCHEMA = 'VibrationFacilityActionLifecycle.v1';
@@ -53,27 +58,40 @@ function conflict(row, code) {
   });
 }
 
-function fitAction(row, resultState) {
+function actionOccurrence(action, row, runBasis) {
+  if (!runBasis) return { occurrence: null, conflict: null };
+  if (!row?.scenarioExecutionBasis) {
+    return { occurrence: null, conflict: conflict(row, 'ACTION_OCCURRENCE_CUSTODY_MISSING') };
+  }
+  try {
+    return {
+      occurrence: createVibrationActionOccurrence({
+        action,
+        runBasis,
+        scenarioExecutionBasis: row.scenarioExecutionBasis,
+      }),
+      conflict: null,
+    };
+  } catch {
+    return { occurrence: null, conflict: conflict(row, 'ACTION_OCCURRENCE_CUSTODY_INVALID') };
+  }
+}
+
+function fitAction(row, resultState, runBasis) {
   const required = row?.continuationRequired === true;
   const statusMatches = row?.screeningCandidateStatus === FIT_CONTINUATION_STATUS;
   if (required !== statusMatches) {
-    return {
-      action: null,
-      conflict: conflict(row, 'FIT_CONTINUATION_STATUS_CONFLICT'),
-    };
+    return { action: null, conflicts: [conflict(row, 'FIT_CONTINUATION_STATUS_CONFLICT')] };
   }
-  if (!required) return { action: null, conflict: null };
+  if (!required) return { action: null, conflicts: [] };
 
   let scope;
   try {
     scope = scopeFromRow(row);
   } catch {
-    return {
-      action: null,
-      conflict: conflict(row, 'FIT_CONTINUATION_SCOPE_INVALID'),
-    };
+    return { action: null, conflicts: [conflict(row, 'FIT_CONTINUATION_SCOPE_INVALID')] };
   }
-  const action = Object.freeze({
+  const baseAction = {
     schema: VIBRATION_REQUIRED_ACTION_SCHEMA,
     actionId: actionId(scope, 'FURTHER_ASSESSMENT'),
     mechanismId: 'fit',
@@ -90,30 +108,78 @@ function fitAction(row, resultState) {
       obligationAuthority: 'CARRIED_FROM_SOURCE_RESULT_ONLY',
       sourceScopeId: 'FIT-SCREENING-CANDIDATE-V1',
     }),
+  };
+  const custody = actionOccurrence(baseAction, row, runBasis);
+  const action = Object.freeze({
+    ...baseAction,
+    occurrence: custody.occurrence,
+    completionHistory: Object.freeze([]),
+    latestCompletion: null,
   });
-  return { action, conflict: null };
+  return {
+    action,
+    conflicts: custody.conflict ? [custody.conflict] : [],
+  };
 }
 
-function findingFromAction(action) {
-  if (action.resultState !== 'CURRENT_RESULT'
-      || action.obligation !== 'SHALL'
-      || action.completionState !== 'OPEN') return null;
+function applyCompletion(action, completionRecords) {
+  if (!action?.occurrence) return { action, foreignRecords: [] };
+  const evaluation = evaluateVibrationActionCompletion({
+    occurrence: action.occurrence,
+    records: completionRecords,
+  });
+  return {
+    action: Object.freeze({
+      ...action,
+      completionState: evaluation.completionState,
+      completionHistory: evaluation.appliedRecords,
+      latestCompletion: evaluation.latestRecord,
+    }),
+    foreignRecords: evaluation.foreignRecords,
+  };
+}
+
+function unresolvedFindingFromAction(action) {
+  if (action.resultState !== 'CURRENT_RESULT' || action.obligation !== 'SHALL') return null;
+  if (action.completionState !== 'OPEN' && action.completionState !== 'REOPENED') return null;
   return Object.freeze({
     schema: VIBRATION_FINDING_SCHEMA,
     findingId: findingId(action),
     actionId: action.actionId,
+    occurrenceId: action.occurrence?.occurrenceId ?? null,
     mechanismId: action.mechanismId,
     scope: action.scope,
-    state: 'OPEN_REQUIRED_ACTION',
+    state: action.completionState === 'REOPENED'
+      ? 'REOPENED_REQUIRED_ACTION'
+      : 'OPEN_REQUIRED_ACTION',
     reason: action.reason,
     completionState: action.completionState,
   });
 }
 
-function lifecycle({ actions, conflicts, resultState }) {
+function resolvedFindingFromAction(action) {
+  if (action.resultState !== 'CURRENT_RESULT'
+      || action.obligation !== 'SHALL'
+      || action.completionState !== 'COMPLETED') return null;
+  return Object.freeze({
+    schema: VIBRATION_FINDING_SCHEMA,
+    findingId: findingId(action),
+    actionId: action.actionId,
+    occurrenceId: action.occurrence?.occurrenceId ?? null,
+    mechanismId: action.mechanismId,
+    scope: action.scope,
+    state: 'CLOSED_COMPLETED_ACTION',
+    reason: action.reason,
+    completionState: action.completionState,
+  });
+}
+
+function lifecycle({ actions, conflicts, resultState, foreignCompletionRecords = [] }) {
   const currentActions = actions.filter((action) => action.resultState === 'CURRENT_RESULT');
   const retainedStaleActions = actions.filter((action) => action.resultState === 'STALE_RESULT');
-  const findings = currentActions.map(findingFromAction).filter(Boolean);
+  const findings = currentActions.map(unresolvedFindingFromAction).filter(Boolean);
+  const resolvedFindings = currentActions.map(resolvedFindingFromAction).filter(Boolean);
+  const appliedCompletionRecords = currentActions.flatMap((action) => action.completionHistory ?? []);
   return Object.freeze({
     schema: VIBRATION_FACILITY_ACTION_LIFECYCLE_SCHEMA,
     authority: VIBRATION_FACILITY_ACTION_LIFECYCLE_AUTHORITY,
@@ -121,38 +187,57 @@ function lifecycle({ actions, conflicts, resultState }) {
     currentActions: Object.freeze(currentActions),
     retainedStaleActions: Object.freeze(retainedStaleActions),
     findings: Object.freeze(findings),
+    resolvedFindings: Object.freeze(resolvedFindings),
     sourceConflicts: Object.freeze(conflicts),
+    appliedCompletionRecords: Object.freeze(appliedCompletionRecords),
+    foreignCompletionRecords: Object.freeze(foreignCompletionRecords),
     summary: Object.freeze({
       currentActionCount: currentActions.length,
       retainedStaleActionCount: retainedStaleActions.length,
       openFindingCount: findings.length,
+      resolvedFindingCount: resolvedFindings.length,
+      appliedCompletionRecordCount: appliedCompletionRecords.length,
+      foreignCompletionRecordCount: foreignCompletionRecords.length,
       sourceConflictCount: conflicts.length,
     }),
   });
 }
 
-export function buildVibrationFacilityRowActionLifecycle(row = {}, { resultState = 'UNRUN' } = {}) {
-  const { action, conflict: sourceConflict } = fitAction(row, resultState);
+export function buildVibrationFacilityRowActionLifecycle(row = {}, {
+  resultState = 'UNRUN', runBasis = null, completionRecords = [],
+} = {}) {
+  const produced = fitAction(row, resultState, runBasis);
+  const applied = produced.action
+    ? applyCompletion(produced.action, completionRecords)
+    : { action: null, foreignRecords: [] };
   return lifecycle({
-    actions: action ? [action] : [],
-    conflicts: sourceConflict ? [sourceConflict] : [],
+    actions: applied.action ? [applied.action] : [],
+    conflicts: produced.conflicts,
     resultState,
+    foreignCompletionRecords: applied.foreignRecords,
   });
 }
 
-export function buildVibrationFacilityActionLifecycle({ registerRows = [], resultState = 'UNRUN' } = {}) {
+export function buildVibrationFacilityActionLifecycle({
+  registerRows = [], resultState = 'UNRUN', runBasis = null, completionRecords = [],
+} = {}) {
   if (!Array.isArray(registerRows)) throw new TypeError('registerRows must be an array.');
+  if (!Array.isArray(completionRecords)) throw new TypeError('completionRecords must be an array.');
   const actions = [];
   const conflicts = [];
+  const foreignCompletionRecords = [];
   for (const row of registerRows) {
-    const rowLifecycle = buildVibrationFacilityRowActionLifecycle(row, { resultState });
+    const rowLifecycle = buildVibrationFacilityRowActionLifecycle(row, {
+      resultState, runBasis, completionRecords,
+    });
     actions.push(...rowLifecycle.currentActions, ...rowLifecycle.retainedStaleActions);
     conflicts.push(...rowLifecycle.sourceConflicts);
+    foreignCompletionRecords.push(...rowLifecycle.foreignCompletionRecords);
   }
   const ids = new Set();
   for (const action of actions) {
     if (ids.has(action.actionId)) throw new Error(`Duplicate vibration required action: ${action.actionId}`);
     ids.add(action.actionId);
   }
-  return lifecycle({ actions, conflicts, resultState });
+  return lifecycle({ actions, conflicts, resultState, foreignCompletionRecords });
 }
