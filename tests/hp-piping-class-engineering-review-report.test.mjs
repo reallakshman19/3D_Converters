@@ -18,7 +18,14 @@ function project() {
       nativeCoreKd3Qualified: false, codeCompliance: false, canUseForDesignAuthority: false,
     },
     classBasis: { designPressureMpa: 20, internalAllowanceMm: 3, externalAllowanceMm: 0 },
-    products: [{ productId: 'NPS4-S160' }],
+    products: [{
+      productId: 'NPS4-S160', nominalSize: 'NPS 4',
+      calculationBasis: {
+        mode: 'DIRECT_ENGINEERING_INPUT', outsideDiameterMm: 114.3, allowableStressMpa: 138,
+        nominalWallMm: 13.49, minusTolerancePct: 12.5,
+      },
+      wallState: { fatigueWallBasis: 'END_OF_LIFE_EFFECTIVE' },
+    }],
     transient: {
       spectrum: { spectrumId: 'HP-CS-001-SPECTRUM', designLifeYears: 20, preparedBy: 'ENGINEER_A', checkedBy: 'ENGINEER_B' },
       states: [
@@ -54,6 +61,13 @@ function result({ staticPass = true } = {}) {
     projectVersion: 'hp-piping-class-project/v2',
     projectState: 'CALCULATED_NOT_AUTHORIZED',
     projectIdentity: { projectId: 'HP-PROJ-001', classId: 'HP-CS-001', revision: 'A' },
+    calculationIds: {
+      basis: 'PIPE.B313.CH9.RESOLVE_BASIS',
+      staticDirect: 'PIPE.B313.CH9.STRAIGHT_PRESSURE',
+      staticGoverned: 'PIPE.B313.CH9.STRAIGHT_PRESSURE_FROM_BASIS',
+      wallState: 'PIPE.B313.CH9.WALL_STATE',
+      fatigue: 'PIPE.B313.CH9.FATIGUE_USER_REVIEW',
+    },
     authority: {
       calculationMode: 'USER_CALCULATED_KD3', nativeCoreKd3Qualified: false, codeCompliance: false,
       canUseForDesignAuthority: false, engineeringAuthority: 'HP_PIPING_CLASS_REVIEW_ORCHESTRATION_ONLY',
@@ -101,13 +115,20 @@ function result({ staticPass = true } = {}) {
   };
 }
 
-test('review report reproduces the NPS4 canonical review numbers and external KD custody without authority promotion', () => {
+test('review report reproduces NPS4 input basis, canonical review numbers and external KD custody without authority promotion', () => {
   const report = buildHpPipingClassEngineeringReviewReport(project(), result());
   assert.equal(report.schemaVersion, 'hp-piping-class-engineering-review-report/v1');
   assert.equal(report.reportPurpose, 'ENGINEERING_REVIEW_ONLY');
   assert.equal(report.authority.nativeCoreKd3Qualified, false);
   assert.equal(report.authority.codeCompliance, false);
   assert.equal(report.authority.canUseForDesignAuthority, false);
+  assert.equal(report.productInputs[0].nominalSize, 'NPS 4');
+  assert.equal(report.productInputs[0].calculationBasis.outsideDiameterMm, 114.3);
+  assert.equal(report.productInputs[0].calculationBasis.allowableStressMpa, 138);
+  assert.equal(report.productInputs[0].calculationBasis.nominalWallMm, 13.49);
+  assert.equal(report.productInputs[0].calculationBasis.minusTolerancePct, 12.5);
+  assert.equal(report.sourceContracts.calculationIds.staticDirect, 'PIPE.B313.CH9.STRAIGHT_PRESSURE');
+  assert.equal(report.sourceContracts.calculationIds.fatigue, 'PIPE.B313.CH9.FATIGUE_USER_REVIEW');
   assert.equal(report.productResults[0].requiredNominalThicknessMm, 12.240449712388969);
   assert.equal(report.productResults[0].pressureRatingMpa, 23.086120852009273);
   assert.equal(report.productResults[0].selectedFatigueWallMm, 8.80375);
@@ -130,7 +151,7 @@ test('report JSON round trip and embedded standalone HTML preserve the machine-r
   const serialized = serializeHpPipingClassEngineeringReviewReportJson(report);
   assert.deepEqual(parseHpPipingClassEngineeringReviewReportJson(serialized), report);
   const html = serializeHpPipingClassEngineeringReviewReportHtml(report);
-  for (const token of ['REVIEW ONLY · NO DESIGN AUTHORITY', '12.24045', '23.08612', '63.299496', '0.050000', 'HP-FAT-EXT-001', 'ENGINEER_B']) assert.ok(html.includes(token), `missing HTML token ${token}`);
+  for (const token of ['REVIEW ONLY · NO DESIGN AUTHORITY', '114.30000', '138.00000', '13.49000', '12.24045', '23.08612', '63.299496', '0.050000', 'PIPE.B313.CH9.STRAIGHT_PRESSURE', 'PIPE.B313.CH9.FATIGUE_USER_REVIEW', 'HP-FAT-EXT-001', 'ENGINEER_B']) assert.ok(html.includes(token), `missing HTML token ${token}`);
   const embedded = html.match(/<script type="application\/json" id="hp-engineering-review-report-data">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(embedded);
   assert.deepEqual(JSON.parse(embedded), report);
