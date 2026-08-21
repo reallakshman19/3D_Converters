@@ -114,10 +114,11 @@ function sbc(base, scenarioBasis = base.row.scenarioExecutionBasis, runBasis = b
   });
 }
 
-function linkedAivSession(handoff, lof = 0.42) {
+function linkedAivSession(handoff, lof = 0.42, resultState = 'CURRENT_RESULT') {
   const plan = buildAivFacilityScenarioExecutionPlan({ handoff, readinessEnvelope: readiness() });
   return Object.freeze({
-    schema: 'AivScreeningSessionEvidence.v1', executionContext: 'FACILITY_LINKED', scenarioExecutionPlan: plan,
+    schema: 'AivScreeningSessionEvidence.v1', executionContext: 'FACILITY_LINKED', resultState,
+    scenarioExecutionPlan: plan,
     screeningResult: Object.freeze({ outputs: Object.freeze({ assessmentResults: Object.freeze([Object.freeze({
       schema: 'AivAssessmentResult.v1', status: 'SCREENING_CALCULATED', assessmentCanonicalId: 'CAN-1',
       line: 'L-ASSESS', caseId: 'NORMAL', lof,
@@ -130,7 +131,8 @@ function build(options = {}) {
   const base = options.base ?? fixture();
   return buildVibrationFacilityMechanismEvidence({
     runId: options.runId ?? base.runBasis.runId, datasetId: 'plant-a', scenarioSetKey: base.handoff.scenarioSetKey,
-    registerRows: options.registerRows ?? [base.row], mechanicalResultsByScope: options.mechanicalResultsByScope ?? {},
+    registerRows: options.registerRows ?? [base.row], operatingScenarios: options.operatingScenarios ?? base.operatingScenarios,
+    mechanicalResultsByScope: options.mechanicalResultsByScope ?? {},
     sbcResultsByScope: options.sbcResultsByScope ?? {}, aivSession: options.aivSession ?? null,
   });
 }
@@ -197,6 +199,13 @@ test('standalone AIV is excluded, not silently promoted to facility evidence', (
   assert.equal(evidence.excludedEvidence[0].reason, 'AIV_STANDALONE_NOT_FACILITY_EVIDENCE');
 });
 
+test('non-current linked AIV session is excluded even when its facility plan still matches', () => {
+  const base = fixture();
+  const evidence = build({ base, aivSession: linkedAivSession(base.handoff, 0.42, 'STALE_RESULT') });
+  assert.equal(evidence.currentEvidence.length, 0);
+  assert.equal(evidence.excludedEvidence[0].reason, 'AIV_RESULT_NOT_CURRENT');
+});
+
 test('current facility-linked AIV is admitted at assessment scope only', () => {
   const base = fixture();
   const evidence = build({ base, aivSession: linkedAivSession(base.handoff) });
@@ -214,22 +223,43 @@ test('identical rerun excludes prior AIV by facilityRunId even when scenario set
   assert.equal(evidence.excludedEvidence[0].reason, 'AIV_FACILITY_RUN_STALE');
 });
 
-test('source-line-only drift excludes linked AIV even when assessment basis is unchanged', () => {
+test('source-line-only drift excludes linked AIV when runId is held constant', () => {
   const oldBase = fixture(100, 80, 'FIT-RUN-1');
-  const newerBase = fixture(101, 80, 'FIT-RUN-2');
+  const newerBase = fixture(101, 80, 'FIT-RUN-1');
   assert.equal(oldBase.row.scenarioExecutionBasis.scenarioSnapshotHash, newerBase.row.scenarioExecutionBasis.scenarioSnapshotHash);
   assert.notEqual(oldBase.handoff.scenarioSetKey, newerBase.handoff.scenarioSetKey);
-  const evidence = build({ base: newerBase, runId: 'FIT-RUN-2', aivSession: linkedAivSession(oldBase.handoff) });
+  const evidence = build({ base: newerBase, runId: 'FIT-RUN-1', aivSession: linkedAivSession(oldBase.handoff) });
   assert.equal(evidence.currentEvidence.length, 0);
-  assert.equal(evidence.excludedEvidence[0].reason, 'AIV_FACILITY_RUN_STALE');
+  assert.equal(evidence.excludedEvidence[0].reason, 'AIV_FACILITY_SCENARIO_SET_STALE');
 });
 
-test('NOT_READY register row without scenario basis is valid base evidence and does not invent secondary evidence', () => {
+test('FIT-incomplete row can still admit same-run Mechanical evidence from the current OperatingScenario', () => {
   const base = fixture();
-  const incomplete = { line: 'L-ASSESS', caseId: 'NORMAL', canonicalId: 'CAN-2', scenarioSetKey: base.handoff.scenarioSetKey };
-  const evidence = build({ base, registerRows: [base.row, incomplete] });
-  assert.equal(evidence.currentEvidence.length, 0);
-  assert.equal(evidence.excludedEvidence.length, 0);
+  const incomplete = Object.freeze({
+    line: 'L-ASSESS', caseId: 'NORMAL', canonicalId: 'CAN-2', scenarioSetKey: base.handoff.scenarioSetKey,
+  });
+  const assessmentScenario = base.operatingScenarios.find((item) => item.line === 'L-ASSESS');
+  const secondaryBase = { ...base, row: Object.freeze({ ...incomplete, scenarioExecutionBasis: executionBasis(assessmentScenario) }) };
+  const evidence = build({
+    base,
+    registerRows: [incomplete],
+    mechanicalResultsByScope: { [mechanicalFacilityScopeId(incomplete)]: mechanical(secondaryBase) },
+  });
+  assert.equal(evidence.currentEvidence.length, 1);
+  assert.equal(evidence.currentEvidence[0].mechanismId, 'mechanicalExcitation');
+  assert.equal(evidence.currentEvidence[0].scope.canonicalId, 'CAN-2');
+});
+
+test('register row carrying a stale scenario basis fails closed against the workflow scenario', () => {
+  const base = fixture();
+  const staleRow = Object.freeze({
+    ...base.row,
+    scenarioExecutionBasis: Object.freeze({ ...base.row.scenarioExecutionBasis, scenarioSnapshotHash: 'stale-row-basis' }),
+  });
+  assert.throws(
+    () => build({ base, registerRows: [staleRow] }),
+    (error) => error.code === 'VIBRATION_FACILITY_MECHANISM_EVIDENCE_ROW_SCENARIO_MISMATCH',
+  );
 });
 
 test('base register row from another scenario set fails closed', () => {
@@ -237,7 +267,8 @@ test('base register row from another scenario set fails closed', () => {
   const newerBase = fixture(101, 80, 'FIT-RUN-2');
   assert.throws(
     () => buildVibrationFacilityMechanismEvidence({
-      runId: 'FIT-RUN-2', datasetId: 'plant-a', scenarioSetKey: newerBase.handoff.scenarioSetKey, registerRows: [oldBase.row],
+      runId: 'FIT-RUN-2', datasetId: 'plant-a', scenarioSetKey: newerBase.handoff.scenarioSetKey,
+      registerRows: [oldBase.row], operatingScenarios: newerBase.operatingScenarios,
     }),
     (error) => error.code === 'VIBRATION_FACILITY_MECHANISM_EVIDENCE_BASE_RUN_MISMATCH',
   );
