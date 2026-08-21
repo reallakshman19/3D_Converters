@@ -18,6 +18,10 @@ on:
       - 'tabs/hp-piping-class-engineering-review-report-enhancer.js'
       - 'tabs/hp-piping-class-engineering-review-disposition.js'
       - 'tabs/hp-piping-class-engineering-review-disposition-enhancer.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-v2.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-package-v2.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-v2-enhancer.js'
+      - 'tabs/hp-piping-class-review-disposition-chain-v2.js'
       - 'tabs/hp-piping-class-review-package-verifier.js'
       - 'tabs/hp-piping-class-review-package-verifier-tab.js'
       - 'tabs/hp-piping-class-product-bulk-input.js'
@@ -53,6 +57,6 @@ jobs:
       - name: Verify HP engineering review report
         run: node --test tests/hp-piping-class-engineering-review-report.test.mjs tests/hp-piping-class-engineering-review-report-ui.test.mjs
       - name: Verify HP engineering review disposition custody
-        run: node --test tests/hp-piping-class-engineering-review-disposition.test.mjs tests/hp-piping-class-engineering-review-disposition-ui.test.mjs
+        run: node --test tests/hp-piping-class-engineering-review-disposition.test.mjs tests/hp-piping-class-engineering-review-disposition-ui.test.mjs tests/hp-piping-class-engineering-review-disposition-v2.test.mjs tests/hp-piping-class-engineering-review-disposition-v2-ui.test.mjs
       - name: Verify HP review package verifier
-        run: node --test tests/hp-piping-class-review-package-verifier.test.mjs tests/hp-piping-class-review-package-verifier-ui.test.mjs tests/hp-piping-class-review-package-verifier-receipt.test.mjs
+        run: node --test tests/hp-piping-class-review-package-verifier.test.mjs tests/hp-piping-class-review-package-verifier-ui.test.mjs tests/hp-piping-class-review-package-verifier-receipt.test.mjs tests/hp-piping-class-review-package-verifier-v2.test.mjs
