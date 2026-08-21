@@ -1,0 +1,34 @@
+schema: AgentStatus.v1
+pr_or_wip: PR699
+pull_request: 699
+branch: agent/vib-m14-activity-verification-authoring-20260821
+base: main
+base_sha_at_start: ad71a42af34afef565ea4645de83d0613996a106
+pr_allocation_head: f67b2d00507e2d031bc62a7aa36c197030cda401
+predecessor_pr: 697
+predecessor_state: MERGED
+state: DRAFT_RECONCILIATION_PENDING
+criticality: ENGINEERING_CRITICAL_MEASUREMENT_VERIFICATION_AUTHORING
+validation:
+  current_main_grounding: PASS_MAIN_AD71A42A
+  project_measurement_evidence_audit: PASS_SOURCE_INSPECTION
+  authority_boundary: PASS_SOURCE_INSPECTION
+  exact_scope_matching: PASS_SOURCE_INSPECTION
+  backup_custody: PASS_CONNECTOR_GIT_BLOB
+  semantic_diff: PASS_BOUNDED
+  line_policy: PASS_117_15_298_85_96_209_70
+  open_pr_coordination: PASS_WITH_STALE_PR479_OVERLAP_CLASSIFIED
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  vibration_regressions: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  independent_numerical: NOT_APPLICABLE
+hosted_reconciliation:
+  allocation_relation: AHEAD_30_BEHIND_0
+  mergeable: PENDING_RECOVERY_MIGRATION
+  commit_status_checks: PENDING_EXACT_HEAD
+  pr_workflow_runs: PENDING_EXACT_HEAD
+  reviews: PENDING_EXACT_HEAD
+  review_threads: PENDING_EXACT_HEAD
+  comments: PENDING_EXACT_HEAD
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: FINISH_RECOVERY_MIGRATION_AND_EXACT_HEAD_RECONCILIATION
