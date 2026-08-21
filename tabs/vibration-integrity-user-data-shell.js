@@ -8,6 +8,11 @@ import {
 } from './vibration-integrity-identification-model.js';
 import { renderVibrationIdentificationAuthoring } from './vibration-integrity-identification-view.js';
 import {
+  createVibrationActionCompletionUiState,
+  handleVibrationActionCompletionChange,
+  handleVibrationActionCompletionClick,
+} from './vibration-integrity-action-completion-controller.js';
+import {
   createMechanicalFacilityUiState,
   handleMechanicalFacilityChange,
   handleMechanicalFacilityClick,
@@ -116,6 +121,7 @@ function sbcPage(state) {
 
 export function createVibrationUserDataUiState() {
   return {
+    ...createVibrationActionCompletionUiState(),
     ...createMechanicalFacilityUiState(),
     ...createSbcType3UiState(),
     ...createSbcWorkspaceUiState(),
@@ -290,6 +296,7 @@ function handleSbcConnectionAuthoringChange(state, event, render, audit) {
 }
 
 export function handleVibrationUserDataClick(state, event, render, audit) {
+  if (handleVibrationActionCompletionClick(state, event, render, audit)) return true;
   if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
   if (openSbcWorkspaceFromFacility(state, event, render, audit)) return true;
   if (handleSbcWorkspaceTypeClick(state, event, render, audit)) return true;
@@ -330,6 +337,7 @@ export function handleVibrationUserDataClick(state, event, render, audit) {
 }
 
 export function handleVibrationUserDataChange(state, event, render, audit) {
+  if (handleVibrationActionCompletionChange(state, event, render)) return true;
   if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
   if (event.target.matches('[data-vi-sbc-workspace-scope]')) {
     const scope = setSbcWorkspaceScope(state, event.target.value);
