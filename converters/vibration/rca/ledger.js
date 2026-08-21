@@ -14,7 +14,7 @@ export const VIBRATION_RCA_LEDGER_AUTHORITY = Object.freeze({
   rootCauseAuthority: 'EXPLICIT_ENGINEER_ATTESTATION_ONLY',
   platformRootCauseInference: false,
   autoConfirmAllowed: false,
-  storageSemantics: 'APPEND_ONLY_SESSION_LEDGER',
+  storageSemantics: 'APPEND_ONLY_HYPOTHESIS_REVISION_LEDGER',
   determinesApplicability: false,
   determinesAssessmentCompleteness: false,
   determinesCompletion: false,
@@ -52,8 +52,8 @@ function authority(value) {
   }
 }
 
-function recordId(sequence, projectId, hypothesisRecordId) {
-  return JSON.stringify([sequence, projectId, hypothesisRecordId]);
+function recordId(sequence, projectId, hypothesisId, revision, hypothesisRecordId) {
+  return JSON.stringify([sequence, projectId, hypothesisId, revision, hypothesisRecordId]);
 }
 
 function hypothesisKey(projectId, hypothesis) {
@@ -69,20 +69,26 @@ export function assertVibrationRcaLedger(value) {
     throw ledgerError('VIBRATION_RCA_LEDGER_SCHEMA_INVALID', `Expected ${VIBRATION_RCA_LEDGER_SCHEMA}.`);
   }
   authority(value.authority);
-  const keys = new Set();
+  const revisions = new Map();
+  const lastFingerprints = new Map();
   value.records.forEach((record, index) => {
     const sequence = index + 1;
     const projectId = text(record?.projectId, 'record.projectId');
     const hypothesis = assertVibrationRcaHypothesis(record?.hypothesis);
+    const key = hypothesisKey(projectId, hypothesis);
+    const revision = (revisions.get(key) ?? 0) + 1;
     if (projectId !== hypothesis.projectId
         || record.sequence !== sequence
-        || record.recordId !== recordId(sequence, projectId, hypothesis.hypothesisRecordId)) {
-      throw ledgerError('VIBRATION_RCA_LEDGER_SEQUENCE_INVALID', 'RCA ledger records must be contiguous and project-consistent.');
+        || record.hypothesisRevision !== revision
+        || record.recordId !== recordId(sequence, projectId, hypothesis.hypothesisId, revision, hypothesis.hypothesisRecordId)) {
+      throw ledgerError('VIBRATION_RCA_LEDGER_SEQUENCE_INVALID', 'RCA ledger records must be globally contiguous and hypothesis revisions must be contiguous.');
     }
     time(record.recordedAt);
-    const key = hypothesisKey(projectId, hypothesis);
-    if (keys.has(key)) throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE', 'The same project/action hypothesis ID cannot be appended twice.');
-    keys.add(key);
+    if (lastFingerprints.get(key) === hypothesis.hypothesisFingerprint) {
+      throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE_REVISION', 'An RCA hypothesis revision must change its statement, evidence or conclusion custody.');
+    }
+    revisions.set(key, revision);
+    lastFingerprints.set(key, hypothesis.hypothesisFingerprint);
   });
   return value;
 }
@@ -93,13 +99,16 @@ export function appendVibrationRcaHypothesis(ledgerInput, projectIdInput, hypoth
   const hypothesis = assertVibrationRcaHypothesis(hypothesisInput);
   if (hypothesis.projectId !== projectId) throw ledgerError('VIBRATION_RCA_LEDGER_PROJECT_MISMATCH', 'RCA hypothesis project does not match ledger append scope.');
   const key = hypothesisKey(projectId, hypothesis);
-  if (ledger.records.some((record) => hypothesisKey(record.projectId, record.hypothesis) === key)) {
-    throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE', 'The same project/action hypothesis ID cannot be appended twice.');
+  const prior = ledger.records.filter((record) => hypothesisKey(record.projectId, record.hypothesis) === key);
+  if (prior.at(-1)?.hypothesis.hypothesisFingerprint === hypothesis.hypothesisFingerprint) {
+    throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE_REVISION', 'An RCA hypothesis revision must change its statement, evidence or conclusion custody.');
   }
   const sequence = ledger.records.length + 1;
+  const hypothesisRevision = prior.length + 1;
   const record = deepFreeze({
     sequence,
-    recordId: recordId(sequence, projectId, hypothesis.hypothesisRecordId),
+    hypothesisRevision,
+    recordId: recordId(sequence, projectId, hypothesis.hypothesisId, hypothesisRevision, hypothesis.hypothesisRecordId),
     projectId,
     recordedAt: time(recordedAt),
     hypothesis,
