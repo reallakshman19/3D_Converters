@@ -45,12 +45,24 @@ test('line selection does not rewrite measurement evidence identity', () => {
   assert.equal(selected.evidenceRevisionKey, unselected.evidenceRevisionKey);
 });
 
-test('measurement evidence mutation without matching revision key is rejected', () => {
+test('measurement artifact mutation without matching revision key is rejected', () => {
   const handoff = createVibrationProjectEvidenceHandoff({
     project: verificationProject(verificationEvidencePackage()), selectedLineId: 'L-1',
   });
   const parsed = JSON.parse(JSON.stringify(handoff));
   parsed.measurementEvidence.products[0].artifact.sha256 = OTHER_HASH;
+  assert.throws(
+    () => assertVibrationProjectEvidenceHandoff(parsed),
+    (error) => error?.code === 'VIBRATION_PROJECT_EVIDENCE_REVISION_INVALID',
+  );
+});
+
+test('calibration or acquisition provenance mutation also invalidates the evidence revision', () => {
+  const handoff = createVibrationProjectEvidenceHandoff({
+    project: verificationProject(verificationEvidencePackage()), selectedLineId: 'L-1',
+  });
+  const parsed = JSON.parse(JSON.stringify(handoff));
+  parsed.measurementEvidence.sessions[0].channels[0].calibration.certificateId = 'CERT-2';
   assert.throws(
     () => assertVibrationProjectEvidenceHandoff(parsed),
     (error) => error?.code === 'VIBRATION_PROJECT_EVIDENCE_REVISION_INVALID',
