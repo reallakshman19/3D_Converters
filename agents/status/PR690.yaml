@@ -15,14 +15,20 @@ authority:
   can_use_for_design_authority: false
 validation:
   main_grounding: PASS
-  branch_ancestry_last_reconciled: PASS_BEHIND_0
-  implementation_test_paths: PASS_4_INTENDED_BEFORE_RECOVERY
+  hosted_reconciliation_pre_sync_head: 4bbdc44cc2234918483434b5a08c8000dbb4a239
+  branch_ancestry: PASS_AHEAD_12_BEHIND_0_AT_RECONCILIATION
+  changed_paths: PASS_4_ENGINEERING_TEST_CI_PLUS_3_RECOVERY
   source_ownership_audit: PASS
   authored_roundtrip_suite: AUTHORED_NOT_EXECUTED
   native_roundtrip_node_suite: NOT_RUN
   hp_real_workbench_workflow: NOT_RUN_ZERO_RETURNED
   hp_i1_i3_workflow: NOT_RUN
+  hosted_status_checks: NOT_RUN_ZERO_RETURNED
+  reviews: 0
+  review_threads: 0
   full_app_roundtrip: NOT_RUN
   full_repository_regression: NOT_RUN
+  mergeable: true
+  draft: true
 merge_authority: NOT_GRANTED_FOR_PR690
-next_action: EXECUTE_NATIVE_TESTS_IF_AVAILABLE_AND_RECONCILE_EXACT_HEAD
+next_action: RE_READ_EXACT_FINAL_HEAD_AND_EXECUTE_NATIVE_TESTS_IF_AVAILABLE
