@@ -32,6 +32,8 @@ function authority() {
     codeCompliance: false,
     canUseForDesignAuthority: false,
     canAuthorizeRelease: false,
+    actorIdentityAuthority: 'USER_DECLARED',
+    digitalSignature: false,
   });
 }
 
@@ -39,9 +41,10 @@ function assertAuthority(value, path = 'authority') {
   const source = value ?? {};
   if (source.purpose !== 'REVIEW_CUSTODY_ONLY') throw new TypeError(`${path}.purpose must remain REVIEW_CUSTODY_ONLY.`);
   if (source.calculationMode !== 'USER_CALCULATED_KD3') throw new TypeError(`${path}.calculationMode must remain USER_CALCULATED_KD3.`);
-  for (const field of ['nativeCoreKd3Qualified', 'codeCompliance', 'canUseForDesignAuthority', 'canAuthorizeRelease']) {
+  for (const field of ['nativeCoreKd3Qualified', 'codeCompliance', 'canUseForDesignAuthority', 'canAuthorizeRelease', 'digitalSignature']) {
     if (source[field] !== false) throw new TypeError(`${path}.${field} must remain false.`);
   }
+  if (source.actorIdentityAuthority !== 'USER_DECLARED') throw new TypeError(`${path}.actorIdentityAuthority must remain USER_DECLARED.`);
 }
 
 function assertIso(value, path) {
@@ -193,6 +196,8 @@ export async function buildHpPipingClassReviewDispositionPackage(report, ledgerV
     limitations: Object.freeze([
       'Review disposition records are custody records only and do not establish Code compliance.',
       'NO_OBJECTION_FOR_ENGINEERING_REVIEW is not design approval or release authorization.',
+      'SHA-256 binds a record to report content; it does not authenticate the declared reviewer/checker identity.',
+      'Reviewer/checker identity is user-declared; this package is not a digital signature or PKI/e-signature record.',
       'Any change to the canonical engineering review report produces a different SHA-256 binding; prior records remain historical.',
       'Native CORE KD-3 / KD320 remains not qualified.',
     ]),
