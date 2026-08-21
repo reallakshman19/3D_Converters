@@ -56,6 +56,26 @@ test('replacement impact separates stress, fatigue and damage basis changes dete
   ]);
 });
 
+test('method editions, spectrum life and spectrum custody cannot hide from replacement preview', () => {
+  const current = importedProject();
+  const candidate = structuredClone(current);
+  candidate.methodManifest.b313Edition = '2025';
+  candidate.methodManifest.viii3Edition = '2026';
+  candidate.transient.spectrum.designLifeYears = 25;
+  candidate.transient.spectrum.checkedBy = 'Checker B';
+  const impact = compareHpPipingClassIntakeReplacement(current, candidate);
+  assert.equal(impact.highImpact, true);
+  assert.equal(impact.summary.METHOD_BASIS, 2);
+  assert.equal(impact.summary.DAMAGE_BASIS, 1);
+  assert.equal(impact.summary.CUSTODY, 1);
+  assert.deepEqual(impact.changes.map((row) => [row.field, row.impact]), [
+    ['b313Edition','METHOD_BASIS'],
+    ['viii3Edition','METHOD_BASIS'],
+    ['designLifeYears','DAMAGE_BASIS'],
+    ['checkedBy','CUSTODY'],
+  ]);
+});
+
 test('added and removed rows are explicit structural replacement impacts', () => {
   const current = importedProject();
   const candidate = structuredClone(current);
@@ -98,5 +118,6 @@ test('UI exposes editable export, deterministic impact preview and stale-validat
   assert.match(enhancer, /INTAKE_PACKAGE_REVALIDATION_REQUIRED/);
   assert.match(enhancer, /validatedCurrentSignature/);
   assert.match(enhancer, /Replacement impact/);
+  assert.match(enhancer, /method basis/);
   assert.match(enhancer, /lossless only for the v1 representable surface/);
 });
