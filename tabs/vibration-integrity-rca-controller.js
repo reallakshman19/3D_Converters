@@ -66,7 +66,10 @@ function actionVerificationRecords(ledger, projectId, occurrenceId) {
 }
 
 function verificationRevision(records) {
-  return JSON.stringify(records.map((record) => record.recordId));
+  return JSON.stringify(records.map((record) => [
+    record.recordId,
+    record.attachment.verificationStatusFingerprint,
+  ]));
 }
 
 export function buildVibrationRcaAuthoringModel(state = {}) {
