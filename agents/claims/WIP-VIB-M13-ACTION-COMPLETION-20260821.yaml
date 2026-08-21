@@ -10,11 +10,10 @@ claim_modes:
 files:
   exact:
     - converters/vibration/facility/action-completion.js
+    - converters/vibration/facility/action-completion-ledger.js
     - converters/vibration/facility/action-lifecycle.js
-    - tabs/vibration-integrity-view.js
     - tabs/vibration-integrity-run-evidence.js
     - tests/vibration-facility-action-completion.test.mjs
-    - tests/vibration-facility-action-lifecycle.test.mjs
 exclusions:
   - mechanism equations and coefficients
   - source/master qualification
@@ -22,6 +21,7 @@ exclusions:
   - EI main-line aggregation authority
   - design authority
   - bare UI checkbox completion
+  - operator identity invention
   - cross-run completion carry-forward
 coordination:
   PR691: MERGED_M13_ACTION_FOUNDATION
