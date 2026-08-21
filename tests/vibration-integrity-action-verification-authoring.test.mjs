@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { buildVibrationActionCompletionAuthoringModel, createVibrationActionCompletionUiState } from '../tabs/vibration-integrity-action-completion-controller.js';
 import {
@@ -37,10 +39,10 @@ function row() {
   };
 }
 
-function handoff(pkg = verificationEvidencePackage()) {
-  return createVibrationProjectEvidenceHandoff({
-    project: verificationProject(pkg), selectedLineId: 'L-1',
-  });
+function handoff(pkg = verificationEvidencePackage(), projectId = 'P-1') {
+  const project = verificationProject(pkg);
+  project.project = { ...project.project, projectId };
+  return createVibrationProjectEvidenceHandoff({ project, selectedLineId: 'L-1' });
 }
 
 function currentState(projectEvidence = handoff(), runId = 'FIT-RUN-1') {
@@ -148,6 +150,17 @@ test('editor cannot append after project measurement evidence revision changes',
   assert.equal(state.actionVerificationLedger.records.length, 0);
 });
 
+test('editor cannot append after project identity changes even with identical evidence', () => {
+  const state = currentState();
+  populateRequirement(state);
+  setVibrationActionVerificationProjectEvidence(state, handoff(verificationEvidencePackage(), 'P-2'));
+  assert.throws(
+    () => submitVibrationActionVerificationEditor(state, { recordedAt: '2026-08-21T11:30:00Z' }),
+    (error) => error?.code === 'VIBRATION_ACTION_VERIFICATION_EDITOR_STALE',
+  );
+  assert.equal(state.actionVerificationLedger.records.length, 0);
+});
+
 test('editor cannot append after identical-scenario facility rerun changes runId', () => {
   const state = currentState();
   populateRequirement(state);
@@ -157,6 +170,20 @@ test('editor cannot append after identical-scenario facility rerun changes runId
     (error) => ['VIBRATION_ACTION_VERIFICATION_EDITOR_STALE', 'VIBRATION_ACTION_VERIFICATION_OCCURRENCE_NOT_CURRENT'].includes(error?.code),
   );
   assert.equal(state.actionVerificationLedger.records.length, 0);
+});
+
+test('product wiring transports project evidence and renders verification before explicit completion', () => {
+  const engineering = readFileSync(fileURLToPath(new URL('../tabs/engineering-calculations-tab.js', import.meta.url)), 'utf8');
+  const integrity = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-tab.js', import.meta.url)), 'utf8');
+  const activity = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-activity-view.js', import.meta.url)), 'utf8');
+  const controller = readFileSync(fileURLToPath(new URL('../tabs/vibration-integrity-action-verification-controller.js', import.meta.url)), 'utf8');
+  assert.match(engineering, /VIBRATION_PROJECT_CHANGED_EVENT/);
+  assert.match(engineering, /VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT/);
+  assert.match(integrity, /VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT/);
+  assert.match(integrity, /handleVibrationActionVerificationClick/);
+  assert.match(integrity, /handleVibrationActionVerificationChange/);
+  assert.ok(activity.indexOf('renderVibrationActionVerificationPanel') < activity.indexOf('renderVibrationActionCompletionPanel(state)'));
+  assert.doesNotMatch(controller, /createVibrationActionCompletionRecord|appendVibrationActionCompletionRecord/);
 });
 
 test('fixture remains bound to canonical verification snapshot hash', () => {
