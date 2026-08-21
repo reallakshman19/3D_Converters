@@ -1,0 +1,46 @@
+schema: AgentStatus.v1
+pr_or_wip: PR686
+pull_request: 686
+branch: agent/vib-facility-mechanism-evidence-20260820
+base: main
+base_sha_at_start: db5f9e250edfa6fa01097b02ff71b1737ea78436
+pr_base_at_allocation: cd02030d7d28438ddda8e11ac92acb319cd06cd9
+pr_head_at_allocation: 125b101ffcd838b657627a36094614589d658a01
+predecessor_pr: 684
+predecessor_state: MERGED
+state: DRAFT_PR_RECOVERY_MIGRATION
+criticality: ENGINEERING_CRITICAL_EVIDENCE_ORCHESTRATION
+authority:
+  engineering_authority: NONE
+  screening_authority: NOT_AUTHORIZED
+  design_authority: false
+  numerical_authority: NONE
+  aggregation_authority: NONE
+  persistence_authority: NONE
+  determines_applicability: false
+  determines_completeness: false
+  blocks_execution: false
+  blocks_navigation: false
+  blocks_calculation: false
+  blocks_persistence: false
+validation:
+  current_main_grounding: PASS
+  predecessor_merge: PASS
+  main_drift: PASS_HP_ONLY_NO_EXACT_OVERLAP
+  diff_normalization: PASS
+  physical_line_policy: PASS
+  reconstructed_custody_syntax: PASS_LOCAL_EXECUTION
+  reconstructed_custody_falsifiers: PASS_LOCAL_EXECUTION_WITH_STUBS
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  independent_numerical: NOT_APPLICABLE
+hosted_reconciliation:
+  allocation_mergeable: false
+  exact_final_head: PENDING
+  changed_files: PENDING_POST_MIGRATION
+  commit_status_checks: PENDING
+  pr_workflow_runs: PENDING
+  reviews: PENDING
+  review_threads: PENDING
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: RETIRE_WIP_ALIASES_THEN_RECONCILE_EXACT_PR_HEAD
