@@ -84,9 +84,21 @@ function runRows(rowsInput, runBasis, scenarios) {
         'Facility register row does not belong to the supplied run/scenario set.', rowScope,
       );
     }
-    if (input.scenarioExecutionBasis) return input;
     const scenario = scenarios.get(scopeKey(input.line, input.caseId));
-    return scenario ? Object.freeze({ ...input, scenarioExecutionBasis: scenarioBasis(scenario) }) : input;
+    if (!scenario) throw evidenceError(
+      'VIBRATION_FACILITY_MECHANISM_EVIDENCE_SCENARIO_MISSING',
+      'Facility register row has no current OperatingScenario in this run.', rowScope,
+    );
+    const currentBasis = scenarioBasis(scenario);
+    if (input.scenarioExecutionBasis && !scenarioBasisMatches(input.scenarioExecutionBasis, currentBasis)) {
+      throw evidenceError(
+        'VIBRATION_FACILITY_MECHANISM_EVIDENCE_ROW_SCENARIO_MISMATCH',
+        'Facility register row scenario basis is not current for this run.', rowScope,
+      );
+    }
+    return input.scenarioExecutionBasis
+      ? input
+      : Object.freeze({ ...input, scenarioExecutionBasis: currentBasis });
   });
 }
 
@@ -159,6 +171,9 @@ function aivEvidence(rows, session, runBasis, current, rejected) {
   const plan = session.scenarioExecutionPlan;
   if (session.executionContext !== 'FACILITY_LINKED' || !plan) {
     rejected.push(excluded('aiv', null, 'AIV_STANDALONE_NOT_FACILITY_EVIDENCE', session.schema)); return;
+  }
+  if (session.resultState !== 'CURRENT_RESULT') {
+    rejected.push(excluded('aiv', null, 'AIV_RESULT_NOT_CURRENT', session.schema)); return;
   }
   if (plan.facilityRunId !== runBasis.runId) {
     rejected.push(excluded('aiv', null, 'AIV_FACILITY_RUN_STALE', session.schema)); return;
