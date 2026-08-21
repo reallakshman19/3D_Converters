@@ -8,6 +8,7 @@ BRANCH: agent/vib-m14-activity-verification-authoring-20260821
 BASE: main
 BASE_SHA_AT_START: ad71a42af34afef565ea4645de83d0613996a106
 PR_ALLOCATION_HEAD: f67b2d00507e2d031bc62a7aa36c197030cda401
+HOSTED_RECONCILIATION_HEAD: 9756f7b0ed4c68812facbb258925106a1c583073
 PREDECESSOR_PR: 697 (MERGED)
 PREDECESSOR_MERGE: ad71a42af34afef565ea4645de83d0613996a106
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
@@ -107,7 +108,7 @@ Exact pre-edit Git-blob backups exist under `.backups/connector-20260821-vib-m14
 
 `#665` Project-v2 persistence has no exact path overlap. PR699 does not absorb persistence/currentness promotion semantics.
 
-## Validation truth at PR allocation
+## Validation truth
 
 ```text
 PASS     predecessor PR697 merged / main grounding          HOSTED SOURCE
@@ -116,16 +117,20 @@ PASS     exact scenario-scope + authority review             SOURCE INSPECTION
 PASS     exact pre-edit Git-blob backups                      CONNECTOR TREE/BLOB
 PASS     existing-file semantic diff bounded                  +40/-2 +28/-5 +2 +2
 PASS     new-file line policy                                 117/15/298/85/96/209/70
-PASS     pre-allocation relation                              ahead 30 / behind 0
+PASS     exact changed-path scope                             18 intended / 0 unexplained
+PASS     hosted mergeability at reconciliation head          true
+PASS     branch relation at reconciliation head              ahead 36 / behind 0
+PASS     reviews / review threads / comments                 0 / 0 / 0
 PASS     open-PR coordination                                 #479 classified / #665 non-overlap
 NOT_RUN  repository-native focused Node tests                 ENVIRONMENT_BLOCKED: native Git DNS failure
 NOT_RUN  repository-native vibration regression suite         ENVIRONMENT_BLOCKED
 NOT_RUN  served-browser Activity verification journey         ENVIRONMENT_BLOCKED
-PENDING  exact-head statuses / PR-triggered workflow runs     post-recovery reconciliation
+NOT_RUN  exact-head status contexts                           0 returned
+NOT_RUN  exact-head PR-triggered workflow runs                0 returned
 N/A      independent numerical verification                   no numerical change
 ```
 
-No authored falsifier is represented as repository-native execution PASS.
+No authored falsifier or empty hosted check is represented as repository-native execution PASS. The recovery-sync commits after `HOSTED_RECONCILIATION_HEAD` change only recovery records, not production/test blobs.
 
 ## Appendix A — takeover questions
 1. Why does evidence require exact snapshot ID/hash, not only line/case?
@@ -140,4 +145,4 @@ No authored falsifier is represented as repository-native execution PASS.
 10. What must a later Project-v2 persistence slice preserve about current engineering authority?
 
 ## Next
-Perform exact-head PR reconciliation after recovery migration. Keep PR699 draft/unmerged. Owner-specific merge authorization is required.
+PR699 is draft and handover-ready. Owner review/merge is the next gate. Do not merge without explicit Owner authorization for PR699.
