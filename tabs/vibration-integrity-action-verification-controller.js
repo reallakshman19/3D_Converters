@@ -96,10 +96,8 @@ export function buildVibrationActionVerificationAuthoringModel(state = {}) {
   const enabled = completion.enabled && Boolean(handoff);
   const actions = completion.actions.map((entry) => {
     const evidence = evidenceForOccurrence(handoff, entry.action.occurrence);
-    const records = ledger.records.filter((record) => (
-      record.projectId === handoff?.projectId
-      && record.attachment.occurrence.occurrenceId === entry.occurrenceId
-    ));
+    const records = ledger.records.filter((record) => record.projectId === handoff?.projectId
+      && record.attachment.occurrence.occurrenceId === entry.occurrenceId);
     return Object.freeze({
       action: entry.action,
       occurrenceId: entry.occurrenceId,
