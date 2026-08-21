@@ -11,9 +11,10 @@ PREDECESSOR_PR: 699 (MERGED)
 PREDECESSOR_MERGE: 7aabe404c6f58db1b78756de9412ab93e867b5fe
 CURRENT_MAIN_LAST_RECONCILED: da5dade3d19caba8ae2bd8015aeeae16ae28777a
 REPORT_SOURCE_BASIS_HEAD: 8d6f11f5790c5c6708c1bacf05ae25e4e42bf8b1
+HOSTED_RECONCILIATION_BASIS_HEAD: 311919af77f0d0dfdda9a9dfca4be060faddc19b
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
-`REPORT_SOURCE_BASIS_HEAD` is the post-implementation/pre-recovery source basis. Later recovery-only commits intentionally move the branch head.
+`REPORT_SOURCE_BASIS_HEAD` is the final source-implementation basis before recovery-only commits. `HOSTED_RECONCILIATION_BASIS_HEAD` is the recovery-clean head checked for GitHub state; later report/status bookkeeping commits may move the branch without changing production/test semantics.
 
 ## Mission
 Implement the first M15 root-cause-analysis product slice after merged M14 measurement/verification authoring. RCA consumes exact project/action/verification custody, captures explicit hypotheses and evidence FOR/AGAINST, and permits only explicit engineer-attested conclusions. The platform cannot autonomously infer or confirm root cause and RCA cannot alter screening, applicability, AssessmentCompleteness, action completion, design, code or safety authority.
@@ -58,27 +59,11 @@ There is no probability score, universal RCA index, automatic mechanism ranking,
 
 ## M14 prerequisite integrity audit — finding and repair
 
-### Finding
-Merged M14 `VibrationActionVerificationAttachment.v1` bound its exact measurement hash snapshot through `evidenceFingerprint`, but the attachment identity did not bind the complete verification status/disposition semantics. The parser checked status scope/authority and evidence IDs, but did not independently prove that:
+Merged M14 `VibrationActionVerificationAttachment.v1` bound its exact measurement hash snapshot through `evidenceFingerprint`, but attachment identity did not bind the complete verification status/disposition semantics. That becomes material when M15 consumes accepted verification as a root-cause prerequisite.
 
-```text
-verificationStatus.state
-<-> disposition.outcome
-<-> disposition evidence references
-<-> required product coverage
-<-> exact attachment evidence snapshot
-```
+Current code therefore creates `VibrationActionVerificationAttachment.v2`. V2 adds `verificationStatusFingerprint` and binds it into `attachmentId` together with `evidenceFingerprint`.
 
-were mutually consistent.
-
-That gap becomes material in M15 because an RCA `CONFIRMED_ROOT_CAUSE` prerequisite consumes the verification acceptance state.
-
-### Repair
-Current code creates `VibrationActionVerificationAttachment.v2`.
-
-V2 adds `verificationStatusFingerprint` and binds it into `attachmentId` together with `evidenceFingerprint`.
-
-New `action-verification-integrity.js` independently enforces:
+`action-verification-integrity.js` independently enforces:
 
 ```text
 status schema / requirement / mechanism / requirementType / exact scenario scope
@@ -93,25 +78,16 @@ status.state == state implied by evidence + disposition outcome
 no unsupported/non-canonical status fields
 ```
 
-The RCA evidence snapshot now records both:
-
-```text
-evidenceFingerprint
-verificationStatusFingerprint
-```
-
-and the hypothesis fingerprint commits both.
-
-The RCA editor revision key also includes each verification record ID plus its status fingerprint.
+The RCA evidence snapshot records both `evidenceFingerprint` and `verificationStatusFingerprint`; the hypothesis fingerprint commits both. The RCA editor revision key includes each verification record ID plus its verification-status fingerprint.
 
 ### Integrity boundary
-This is deterministic semantic self-consistency/tamper-detection custody. It is **not** identity authentication.
+The SHA-256 values provide deterministic semantic self-consistency/tamper-detection custody. They are **not** identity authentication or digital signatures.
 
 ```text
 reviewerIdentityAuthentication = NOT_AVAILABLE_USER_DECLARED
 engineerIdentityAuthentication = NOT_AVAILABLE_USER_DECLARED
-digitalSignature              = false
-signerAuthenticity             = NOT_AVAILABLE
+digitalSignature               = false
+signerAuthenticity              = NOT_AVAILABLE
 ```
 
 No statement in PR700 may upgrade these limitations.
@@ -119,7 +95,6 @@ No statement in PR700 may upgrade these limitations.
 ## Evidence/currentness custody
 - M15 sees M14 verification records only for exact `projectId + occurrenceId`.
 - Current M15 admissible records are V2 attachments parsed through the strengthened M14 assertion path.
-- Evidence references use immutable session-ledger record IDs.
 - Each RCA evidence snapshot records direction, attachment ID, requirement ID, verification state, evidence fingerprint and verification-status fingerprint.
 - The same verification record cannot be both FOR and AGAINST.
 - RCA editor is pinned to `occurrenceId + actionId + runId + projectId + exact verification revision key`.
@@ -129,7 +104,7 @@ No statement in PR700 may upgrade these limitations.
 - Post-creation uncoordinated hypothesis/evidence/conclusion drift invalidates the fingerprint.
 
 ## Append-only RCA evolution
-A one-record-per-hypothesis implementation was rejected during falsification because an open hypothesis could never later receive new evidence or an engineer conclusion. The final ledger uses immutable per-hypothesis revisions:
+The RCA ledger uses immutable per-hypothesis revisions:
 
 ```text
 hypothesisRevision = 1, 2, 3, ...
@@ -137,30 +112,17 @@ hypothesisRevision = 1, 2, 3, ...
 
 Global record sequence and per-hypothesis revision are deterministic and contiguous. Reusing the hypothesis ID appends a revision. An identical no-change revision is rejected. Previous evidence and conclusions are never overwritten.
 
-## Inherited M14 Activity defect found and fixed
-Merged PR699 appended verification correctly, but its success-audit path read nonexistent:
-
-```text
-attachment.evidenceSnapshot
-```
-
-The actual attachment field is:
-
-```text
-attachment.evidence
-```
-
-The old path could append successfully and then throw while auditing, misleading the operator with a failure event. PR700 uses:
+## Inherited M14 Activity defect fixed
+PR699's success-audit path read nonexistent `attachment.evidenceSnapshot`; the actual field is `attachment.evidence`. A successful verification append could therefore be followed by a misleading audit failure. PR700 uses:
 
 ```text
 attachment.evidence.sessions.length
 attachment.evidence.products.length
 ```
 
-and its structural falsifier forbids `attachment.evidenceSnapshot` in the controller.
+and a structural falsifier forbids `attachment.evidenceSnapshot` in that controller.
 
 ## Activity workspace
-Intended presentation order:
 
 ```text
 Measurement / verification evidence
@@ -184,7 +146,7 @@ RCA_RECORD_FAILED
 
 ```text
 converters/vibration/facility/action-verification.js             ~278
-converters/vibration/facility/action-verification-integrity.js    145
+converters/vibration/facility/action-verification-integrity.js    159
 converters/vibration/rca/contracts.js                              258
 converters/vibration/rca/ledger.js                                 121
 tabs/vibration-integrity-rca-audit.js                               15
@@ -201,13 +163,7 @@ tabs/vibration-integrity-activity-view.js                     +3 / -1
 tabs/vibration-integrity-audit-log.js                         +1 / -0
 ```
 
-Exact pre-edit Git-blob backups are retained under:
-
-```text
-.backups/connector-20260821-vib-m15-rca-authoring/
-```
-
-including the pre-hardening M14 `converters/vibration/facility/action-verification.js` blob.
+Exact pre-edit Git-blob backups are retained under `.backups/connector-20260821-vib-m15-rca-authoring/`, including the pre-hardening M14 action-verification file.
 
 ## Falsifiers encoded
 1. M15 cannot autonomously create engineering, screening, design, completion or inferred-root-cause authority.
@@ -231,28 +187,31 @@ Authored falsifier source is not runtime PASS until executed in a native checkou
 
 ## Coordination
 - PR699: merged M14 Activity/verification foundation.
-- PR698: merged HP-only commit `da5dade3...`; current branch is one behind solely for this unrelated HP change at last source reconciliation. No vibration path overlap was found.
+- PR698: merged HP-only commit `da5dade3...`; branch is one behind solely for this unrelated HP commit at hosted reconciliation. No vibration-path overlap was found.
 - PR665: related `VibrationIntegrityProject.v2` persistence; zero exact path overlap, not absorbed.
-- PR506: older AIV hardening returned by an `action-verification` text search; no M15 RCA ownership overlap.
+- PR506: older AIV hardening surfaced by text search; no M15 RCA ownership overlap.
 - No second open RCA implementation PR was found.
 
-Do not manufacture a connector-only merge commit that would accidentally resolve the unrelated HP parent by dropping its tree changes. Rebase/replay in a real Git checkout if exact behind-zero ancestry becomes a release requirement.
+Do not manufacture a connector-only merge commit that could accidentally resolve the unrelated HP parent by dropping its tree changes. Rebase/replay in a real Git checkout if behind-zero ancestry becomes a release requirement.
 
 ## Validation truth
 
 ```text
-PASS     predecessor PR699 merged / M15 source grounding         HOSTED SOURCE
-PASS     M15 RCA authority audit                                 SOURCE INSPECTION
-PASS     inherited M14 status-integrity audit and repair          SOURCE INSPECTION
-PASS     exact pre-edit Git-blob backups                          CONNECTOR TREE/BLOB
-PASS     physical line policy                                     ~278/145/258/121/15/239/82/274; shared 298
-PASS     open-PR coordination                                     #665 zero overlap; #698 HP-only
-NOT_RUN  repository-native focused Node tests                     ENVIRONMENT_BLOCKED: native git DNS could not resolve github.com
-NOT_RUN  repository-native vibration regression suite             ENVIRONMENT_BLOCKED
-NOT_RUN  served-browser RCA journey                               ENVIRONMENT_BLOCKED
-NOT_RUN  independent reviewer/engineer identity authentication     NOT_IMPLEMENTED / OUT_OF_SCOPE
-N/A      independent numerical verification                       no equation/value change
-PENDING  final exact-head status/workflow/review reconciliation    after recovery cleanup
+PASS     predecessor PR699 merged / M15 source grounding          HOSTED SOURCE
+PASS     M15 RCA authority audit                                   SOURCE INSPECTION
+PASS     inherited M14 status-integrity audit and repair            SOURCE INSPECTION
+PASS     exact pre-edit Git-blob backups                            CONNECTOR TREE/BLOB
+PASS     physical line policy                                       ~278/159/258/121/15/239/82/274; shared 298
+PASS     open-PR coordination                                       #665 zero overlap; #698 HP-only
+PASS     hosted mergeability @311919af                              true
+PASS     reviews / review threads / comments @311919af              0 / 0 / 0
+NOT_RUN  hosted commit status contexts @311919af                    0 returned
+NOT_RUN  hosted PR-triggered workflow runs @311919af                0 returned
+NOT_RUN  repository-native focused Node tests                       ENVIRONMENT_BLOCKED: git ls-remote -> Could not resolve host github.com
+NOT_RUN  repository-native vibration regression suite               ENVIRONMENT_BLOCKED
+NOT_RUN  served-browser RCA journey                                 ENVIRONMENT_BLOCKED
+NOT_RUN  reviewer/engineer identity authentication                  NOT_IMPLEMENTED / OUT_OF_SCOPE
+N/A      independent numerical verification                         no equation/value change
 ```
 
 No authored test is represented as an executed PASS.
@@ -273,4 +232,4 @@ No authored test is represented as an executed PASS.
 13. Which executable validations remain NOT_RUN and why?
 
 ## Exact next action
-Retire superseded WIP recovery files, perform exact final-head hosted reconciliation, update PR body/status with the final truth, and keep PR700 draft/unmerged until explicit owner authorization for PR700.
+Keep PR700 draft and unmerged. A future merge attempt must first replay/rebase onto current main in a real Git-capable environment, execute the focused/native vibration tests, perform the served-browser RCA journey, and obtain new explicit owner merge authorization for PR700.
