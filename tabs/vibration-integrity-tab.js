@@ -25,10 +25,17 @@ import {
   vibrationIntegrityRunInputDrifted,
 } from './vibration-integrity-run-controller.js';
 import {
+  createVibrationActionVerificationUiState,
+  handleVibrationActionVerificationChange,
+  handleVibrationActionVerificationClick,
+  setVibrationActionVerificationProjectEvidence,
+} from './vibration-integrity-action-verification-controller.js';
+import {
   createVibrationUserDataUiState, handleVibrationUserDataChange,
   handleVibrationUserDataClick, renderVibrationIntegrityWithUserData,
 } from './vibration-integrity-user-data-shell.js?v=20260819-sbc-connection-authoring-1';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
+import { VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT } from './vibration-project-evidence-handoff.js';
 import { VIBRATION_ROADMAP_STATE_EVENT } from './vibration-roadmap-controller.js';
 
 function workspaceOptions(state) {
@@ -41,9 +48,10 @@ function workspaceOptions(state) {
   return { filters, sort: { ...state.sort }, ...(state.selectedRowKey ? { selectedRowKey: state.selectedRowKey } : {}) };
 }
 
-function initialState() {
+function initialState(projectEvidenceHandoff = null) {
   return {
     ...createVibrationIntegrityInputRuntimeState(), ...createVibrationUserDataUiState(),
+    ...createVibrationActionVerificationUiState(projectEvidenceHandoff),
     preflight: null, envelope: null, workspace: null,
     resultState: 'UNRUN', runSnapshot: null, inputTab: 'engineering',
     filters: { line: '', completeness: '', band: '', candidate: '' },
@@ -59,9 +67,9 @@ function inputDriftError() {
   return error;
 }
 
-export function renderVibrationIntegrityTab(container) {
+export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff = null } = {}) {
   ensureVibrationIntegrityStylesheet();
-  const state = initialState();
+  const state = initialState(projectEvidenceHandoff);
 
   function workflowId() {
     return deriveVibrationIntegrityWorkflowState(state).state;
@@ -89,6 +97,16 @@ export function renderVibrationIntegrityTab(container) {
     if (state.destroyed) return;
     container.innerHTML = renderVibrationIntegrityWithUserData(state);
     publishAssessmentContext();
+  }
+
+  function onProjectEvidenceHandoff(event) {
+    try {
+      setVibrationActionVerificationProjectEvidence(state, event.detail?.handoff ?? null);
+      state.error = null;
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    }
+    render();
   }
 
   function discardCalculatedState() {
@@ -301,6 +319,7 @@ export function renderVibrationIntegrityTab(container) {
   }
 
   function onClick(event) {
+    if (handleVibrationActionVerificationClick(state, event, render)) return;
     if (handleVibrationUserDataClick(state, event, render, recordAudit)) return;
     if (handleTableClick(event)) return;
     const sourceTarget = event.target.closest('[data-vi-source-target]')?.dataset.viSourceTarget;
@@ -334,6 +353,7 @@ export function renderVibrationIntegrityTab(container) {
   }
 
   function onChange(event) {
+    if (handleVibrationActionVerificationChange(state, event, render)) return;
     if (handleVibrationUserDataChange(state, event, render, recordAudit)) return;
     const fileTarget = event.target.dataset.viFile;
     if (fileTarget) { const file = event.target.files?.[0]; if (file) loadFile(fileTarget, file); return; }
@@ -354,9 +374,12 @@ export function renderVibrationIntegrityTab(container) {
   }
 
   recordAudit('WORKSPACE_OPENED', {}, null, null);
+  container.addEventListener(VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT, onProjectEvidenceHandoff);
   container.addEventListener('click', onClick); container.addEventListener('change', onChange); render();
   return () => {
     publishAssessmentContext(null);
-    state.destroyed = true; container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
+    state.destroyed = true;
+    container.removeEventListener(VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT, onProjectEvidenceHandoff);
+    container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
   };
 }
