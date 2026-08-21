@@ -85,6 +85,9 @@ test('FIT run evidence binds audit and engineering identities to the central ben
   assert.equal(evidence.mechanismEvidence.summary.currentCount, 0);
   assert.equal(evidence.mechanismEvidence.summary.completenessDetermined, false);
   assert.equal(evidence.mechanismEvidence.authority.blocksExecution, false);
+  assert.equal(evidence.actionLifecycle.schema, 'VibrationFacilityActionLifecycle.v1');
+  assert.equal(evidence.actionLifecycle.authority.determinesCompleteness, false);
+  assert.equal(evidence.actionLifecycle.authority.blocksCalculation, false);
 });
 
 test('FIT run evidence preserves bounded screening authority without design authority', async () => {
@@ -99,6 +102,8 @@ test('FIT run evidence preserves bounded screening authority without design auth
   assert.equal(evidence.execution.workflow.result.rows[0].centralResult.qualification.designAuthority, false);
   assert.equal(evidence.mechanismEvidence.authority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(evidence.mechanismEvidence.authority.designAuthority, false);
+  assert.equal(evidence.actionLifecycle.authority.engineeringAuthority, 'NONE');
+  assert.equal(evidence.actionLifecycle.authority.designAuthority, false);
 });
 
 test('FIT run evidence serializer round-trips the governed package', async () => {
@@ -112,6 +117,7 @@ test('FIT run evidence serializer round-trips the governed package', async () =>
   assert.equal(parsed.execution.workflow.result.calculationId, 'VIB.FIV.FLOW_TURBULENCE');
   assert.equal(parsed.mechanismEvidence.run.runId, 'FIT-RUN-TEST-001');
   assert.equal(parsed.mechanismEvidence.summary.governingResultDetermined, false);
+  assert.equal(parsed.actionLifecycle.schema, 'VibrationFacilityActionLifecycle.v1');
   assert.equal(serialized.endsWith('\n'), true);
 });
 
