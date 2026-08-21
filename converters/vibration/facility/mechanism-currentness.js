@@ -24,26 +24,20 @@ export const VIBRATION_FACILITY_MECHANISM_CURRENTNESS_AUTHORITY = Object.freeze(
   blocksPersistence: false,
 });
 
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
-  for (const child of Object.values(value)) deepFreeze(child);
-  return Object.freeze(value);
-}
-
 function scopeKey(line, caseId) {
   return JSON.stringify([line, caseId ?? null]);
 }
 
 function emptyProjection(status, excluded = []) {
-  return deepFreeze({
+  return Object.freeze({
     schema: VIBRATION_FACILITY_MECHANISM_CURRENTNESS_SCHEMA,
     authority: VIBRATION_FACILITY_MECHANISM_CURRENTNESS_AUTHORITY,
     status,
     run: null,
-    mechanicalCandidateResultsByScope: {},
-    sbcCandidateResultsByScope: {},
+    mechanicalCandidateResultsByScope: Object.freeze({}),
+    sbcCandidateResultsByScope: Object.freeze({}),
     aivScreeningSession: null,
-    excluded,
+    excluded: Object.freeze([...excluded]),
   });
 }
 
@@ -142,7 +136,7 @@ export function projectVibrationFacilityMechanismCurrentness(options = {}) {
     'smallBoreConnections', options.sbcCandidateResultsByScope, run, scenarios, excluded,
   );
   const aivScreeningSession = currentAivSession(options.aivScreeningSession, run, excluded);
-  return deepFreeze({
+  return Object.freeze({
     schema: VIBRATION_FACILITY_MECHANISM_CURRENTNESS_SCHEMA,
     authority: VIBRATION_FACILITY_MECHANISM_CURRENTNESS_AUTHORITY,
     status: 'CURRENT_RUN_PROJECTED',
@@ -150,6 +144,6 @@ export function projectVibrationFacilityMechanismCurrentness(options = {}) {
     mechanicalCandidateResultsByScope,
     sbcCandidateResultsByScope,
     aivScreeningSession,
-    excluded,
+    excluded: Object.freeze([...excluded]),
   });
 }
