@@ -1,0 +1,31 @@
+schema: AgentStatus.v1
+pr_or_wip: PR700
+pull_request: 700
+branch: agent/vib-m15-rca-authoring-20260821
+base: main
+base_sha_at_start: 7aabe404c6f58db1b78756de9412ab93e867b5fe
+pr_allocation_head: 38e55eafd2357b6aafa2b2e991f29a398048e17f
+predecessor_pr: 699
+predecessor_state: MERGED
+state: DRAFT_RECONCILIATION_PENDING
+criticality: ENGINEERING_CRITICAL_RCA_EVIDENCE_CUSTODY
+validation:
+  current_main_grounding: PASS_MAIN_7AABE404
+  roadmap_rca_authority_audit: PASS_SOURCE_INSPECTION
+  backup_custody: PASS_CONNECTOR_GIT_BLOB
+  line_policy: PASS_254_121_15_236_82_222_SHARED298
+  open_pr_coordination: PASS_PR665_ZERO_EXACT_OVERLAP
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  vibration_regressions: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  independent_numerical: NOT_APPLICABLE
+hosted_reconciliation:
+  allocation_relation: AHEAD_21_BEHIND_0
+  mergeable: PENDING_RECOVERY_MIGRATION
+  commit_status_checks: PENDING_EXACT_HEAD
+  pr_workflow_runs: PENDING_EXACT_HEAD
+  reviews: PENDING_EXACT_HEAD
+  review_threads: PENDING_EXACT_HEAD
+  comments: PENDING_EXACT_HEAD
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: FINISH_RECOVERY_MIGRATION_AND_EXACT_HEAD_RECONCILIATION
