@@ -40,7 +40,7 @@ test('review dispositions intentionally exclude approval/release semantics', () 
   assert.equal(HP_PIPING_CLASS_REVIEW_DISPOSITIONS.some((value) => /APPROV|RELEASE/.test(value)), false);
 });
 
-test('append-only disposition binds actor and custody to the exact report SHA-256', async () => {
+test('append-only disposition binds declared actor custody to the exact report SHA-256 without authenticating identity', async () => {
   const source = report();
   const expectedHash = await hashHpPipingClassEngineeringReviewReport(source);
   const ledger = await appendHpPipingClassReviewDisposition(createHpPipingClassReviewDispositionLedger(), source, {
@@ -49,10 +49,11 @@ test('append-only disposition binds actor and custody to the exact report SHA-25
   assert.equal(ledger.entries.length, 1);
   assert.equal(ledger.entries[0].sequence, 1);
   assert.equal(ledger.entries[0].reportSha256, expectedHash);
-  assert.equal(ledger.entries[0].canAuthorizeRelease, undefined);
   assert.equal(ledger.entries[0].authority.canAuthorizeRelease, false);
   assert.equal(ledger.entries[0].authority.codeCompliance, false);
   assert.equal(ledger.entries[0].authority.canUseForDesignAuthority, false);
+  assert.equal(ledger.entries[0].authority.actorIdentityAuthority, 'USER_DECLARED');
+  assert.equal(ledger.entries[0].authority.digitalSignature, false);
 });
 
 test('any report engineering change makes prior review custody historical instead of carrying it forward', async () => {
@@ -76,13 +77,16 @@ test('comments and rejection require an explicit comment', async () => {
   }
 });
 
-test('ledger parser rejects authority promotion and non-append-only sequence corruption', async () => {
+test('ledger parser rejects authority promotion, fake digital-signature authority and non-append-only sequence corruption', async () => {
   const ledger = await appendHpPipingClassReviewDisposition(null, report(), {
     actor: 'ENGINEER_C', role: 'CHECKER', disposition: 'COMMENTS_RECORDED', comment: 'Resolve item R-01.', recordedAt: '2026-08-21T10:30:00Z',
   });
   const promoted = JSON.parse(JSON.stringify(ledger));
   promoted.authority.canAuthorizeRelease = true;
   assert.throws(() => parseHpPipingClassReviewDispositionLedger(promoted), /canAuthorizeRelease must remain false/);
+  const signed = JSON.parse(JSON.stringify(ledger));
+  signed.entries[0].authority.digitalSignature = true;
+  assert.throws(() => parseHpPipingClassReviewDispositionLedger(signed), /digitalSignature must remain false/);
   const reordered = JSON.parse(JSON.stringify(ledger));
   reordered.entries[0].sequence = 2;
   assert.throws(() => parseHpPipingClassReviewDispositionLedger(reordered), /append-only and contiguous/);
@@ -96,6 +100,9 @@ test('review package independently verifies embedded report hash and detects rep
   const verified = await verifyHpPipingClassReviewDispositionPackage(pkg);
   assert.equal(verified.ok, true);
   assert.equal(verified.currentRecordCount, 1);
+  assert.equal(pkg.authority.actorIdentityAuthority, 'USER_DECLARED');
+  assert.equal(pkg.authority.digitalSignature, false);
+  assert.ok(pkg.limitations.some((line) => /not a digital signature/i.test(line)));
   const tampered = JSON.parse(JSON.stringify(pkg));
   tampered.report.classBasis.designPressureMpa = 22;
   const failed = await verifyHpPipingClassReviewDispositionPackage(tampered);
