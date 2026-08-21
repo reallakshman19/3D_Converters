@@ -33,7 +33,7 @@ function editor(entry, model) {
   const outcomes = ['NO_CONCLUSION', ...model.conclusionOutcomes];
   return `<div class="vi-editor" data-vi-rca-editor="${esc(entry.occurrenceId)}">
     <div class="vi-section-head"><div><h4>RCA hypothesis</h4>
-      <p>Engineer-authored investigation only. The software does not infer or confirm root cause. Confirmed root cause requires explicit engineer attestation and accepted supporting verification evidence.</p></div></div>
+      <p>Engineer-authored investigation only. The software does not infer or confirm root cause. Reuse a hypothesis ID to append a new immutable revision as evidence or the engineer conclusion evolves.</p></div></div>
     <div class="vi-form-grid">
       <label>Hypothesis ID<input data-vi-rca-field="hypothesisId" value="${esc(draft.hypothesisId)}" placeholder="RCA-HYP-001"></label>
       <label>Conclusion<select data-vi-rca-field="conclusionOutcome">${outcomes.map((value) => option(value, draft.conclusionOutcome, value.replaceAll('_', ' '))).join('')}</select></label>
@@ -55,7 +55,7 @@ function history(entry) {
   return entry.rcaRecords.slice().reverse().map((record) => {
     const hypothesis = record.hypothesis;
     return `<div class="vi-inline-note" data-vi-rca-record="${esc(record.recordId)}">
-      <strong>${esc(hypothesis.hypothesisId)}</strong> — ${esc(hypothesis.statement)}
+      <strong>${esc(hypothesis.hypothesisId)} · rev ${esc(record.hypothesisRevision)}</strong> — ${esc(hypothesis.statement)}
       <br><small>State: ${esc(hypothesis.state)} · evidence ${esc(hypothesis.evidence.length)} · conclusion ${esc(hypothesis.conclusion?.outcome ?? 'NONE')}</small>
     </div>`;
   }).join('');
@@ -72,7 +72,7 @@ export function renderVibrationRcaPanel(state = {}) {
     ${!model.handoff ? '<div class="vi-callout">Load/select a governed vibration project to bind RCA evidence to project identity.</div>' : ''}
     ${model.actions.map((entry) => `<article class="vi-subcard" data-vi-rca-action="${esc(entry.occurrenceId)}">
       <div class="vi-section-head"><div><h4>${esc(entry.action.mechanismId)} · ${esc(entry.action.scope.line)} / ${esc(entry.action.scope.caseId)}</h4>
-        <p>Verification records: ${esc(entry.verificationRecords.length)} · accepted: ${esc(entry.acceptedVerificationCount)} · RCA records: ${esc(entry.rcaRecords.length)}</p></div>
+        <p>Verification records: ${esc(entry.verificationRecords.length)} · accepted: ${esc(entry.acceptedVerificationCount)} · RCA revisions: ${esc(entry.rcaRecords.length)}</p></div>
         <button type="button" class="vi-btn" data-vi-rca-open="${esc(entry.occurrenceId)}"${entry.authorable ? '' : ' disabled'}>Add RCA hypothesis</button>
       </div>
       ${history(entry)}
