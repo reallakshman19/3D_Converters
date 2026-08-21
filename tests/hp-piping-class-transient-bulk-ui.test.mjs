@@ -9,6 +9,7 @@ const input = await readFile(new URL('../tabs/hp-piping-class-transient-bulk-inp
 test('active HP route still composes the product/KD workbench and adds transient bulk enhancer', () => {
   assert.match(route, /hp-piping-class-product-bulk-workbench-tab\.js/);
   assert.match(route, /hp-piping-class-transient-bulk-enhancer\.js/);
+  assert.match(route, /hp-piping-class-kd-bulk-workbench-tab\.js/);
   assert.match(route, /installHpPipingClassTransientBulkEnhancer/);
   assert.match(route, /destroyTransientBulk/);
   assert.match(route, /destroyWorkbench/);
@@ -32,9 +33,10 @@ test('apply path reuses existing JSON import controller and review calculation a
   assert.match(enhancer, /waitForImportedProject/);
 });
 
-test('UI explains that Seq/N is neither inferred nor silently rewritten', () => {
+test('UI explains that Seq/N is neither inferred nor silently reused after transient drift', () => {
   assert.match(enhancer, /No Seq, N or KD-3 engineering quantity is inferred here/);
-  assert.match(enhancer, /retained only when cycle ID, from-state and to-state remain exactly unchanged/);
+  assert.match(enhancer, /cycle ID, from-state, to-state and the referenced state pressure\/material\/structural temperatures remain exactly unchanged/);
+  assert.match(enhancer, /cycle\/state-pair \+ state-value custody/);
   assert.match(enhancer, /Stale external rows removed/);
 });
 
