@@ -53,7 +53,6 @@ export function openSbcType3FacilityScope(state, scopeValue, render, audit) {
     mode: 'MASTER_ASSISTED',
     scenarioId: custody?.binding.scenarioId ?? null,
     scenarioSnapshotHash: custody?.binding.scenarioSnapshotHash ?? null,
-    facilityRunId: custody?.runBasis.runId ?? null,
   }, scope);
   render?.();
 }
@@ -171,23 +170,17 @@ export async function evaluateSbcType3MasterAssisted(
   state.error = null;
   render?.();
   try {
-    const guarded = await executeSbcFacilityWithScenario(
-      state,
-      scope,
-      async ({ executionBasis, facilityRunBasis }) => ({
-        executionBasis,
-        facilityRunBasis,
-        result: await calculate({
-          scopeId: scope,
-          physical: normalizedPhysical(state, scope),
-          mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
-          userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
-        }),
+    const guarded = await executeSbcFacilityWithScenario(state, scope, async ({ executionBasis, facilityRunBasis }) => ({
+      executionBasis, facilityRunBasis,
+      result: await calculate({
+        scopeId: scope,
+        physical: normalizedPhysical(state, scope),
+        mainlineLof: state.sbcType3MainlineByScope?.[scope] ?? null,
+        userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
       }),
-    );
+    }));
     const result = Object.freeze({
-      ...guarded.result,
-      scenarioExecutionBasis: guarded.executionBasis,
+      ...guarded.result, scenarioExecutionBasis: guarded.executionBasis,
       facilityRunBasis: guarded.facilityRunBasis,
     });
     if (!result.ok) return commitNotReady(state, scope, started.operation, result);
@@ -201,7 +194,6 @@ export async function evaluateSbcType3MasterAssisted(
       lof: result.lof,
       scenarioId: guarded.executionBasis.scenarioId,
       scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
-      facilityRunId: guarded.facilityRunBasis.runId,
     }, scope);
     return true;
   } catch (error) {
@@ -222,21 +214,15 @@ export function evaluateSbcType3ExplicitIntermediate(
 ) {
   const scope = scopeId(state.sbcType3ScopeId);
   try {
-    const guarded = executeSbcFacilityWithScenario(
-      state,
-      scope,
-      ({ executionBasis, facilityRunBasis }) => ({
-        executionBasis,
-        facilityRunBasis,
-        result: calculate({
-          userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
-          scopeId: scope,
-        }),
+    const guarded = executeSbcFacilityWithScenario(state, scope, ({ executionBasis, facilityRunBasis }) => ({
+      executionBasis, facilityRunBasis,
+      result: calculate({
+        userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+        scopeId: scope,
       }),
-    );
+    }));
     state.sbcType3Result = Object.freeze({
-      ...guarded.result,
-      scenarioExecutionBasis: guarded.executionBasis,
+      ...guarded.result, scenarioExecutionBasis: guarded.executionBasis,
       facilityRunBasis: guarded.facilityRunBasis,
     });
     state.error = null;
@@ -246,7 +232,6 @@ export function evaluateSbcType3ExplicitIntermediate(
       mode: 'LEGACY_EXPLICIT_INTERMEDIATE',
       scenarioId: guarded.executionBasis.scenarioId,
       scenarioSnapshotHash: guarded.executionBasis.scenarioSnapshotHash,
-      facilityRunId: guarded.facilityRunBasis.runId,
     }, scope);
     return true;
   } catch (error) {
