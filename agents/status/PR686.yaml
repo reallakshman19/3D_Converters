@@ -4,11 +4,12 @@ pull_request: 686
 branch: agent/vib-facility-mechanism-evidence-20260820
 base: main
 base_sha_at_start: db5f9e250edfa6fa01097b02ff71b1737ea78436
-pr_base_at_allocation: cd02030d7d28438ddda8e11ac92acb319cd06cd9
-pr_head_at_allocation: 125b101ffcd838b657627a36094614589d658a01
+current_main_observed: cd02030d7d28438ddda8e11ac92acb319cd06cd9
+reconciliation_basis_head: 58d92086d61379cbea770ad4b9dc9816f7f5eea3
+report_sync: CURRENT_RECOVERY_ONLY_COMMITS_ALLOWED
 predecessor_pr: 684
 predecessor_state: MERGED
-state: DRAFT_PR_RECOVERY_MIGRATION
+state: DRAFT_VALIDATION_BLOCKED
 criticality: ENGINEERING_CRITICAL_EVIDENCE_ORCHESTRATION
 authority:
   engineering_authority: NONE
@@ -32,15 +33,23 @@ validation:
   reconstructed_custody_syntax: PASS_LOCAL_EXECUTION
   reconstructed_custody_falsifiers: PASS_LOCAL_EXECUTION_WITH_STUBS
   repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED
+  repository_native_vibration_regressions: NOT_RUN_ENVIRONMENT_BLOCKED
   browser: NOT_RUN_ENVIRONMENT_BLOCKED
   independent_numerical: NOT_APPLICABLE
 hosted_reconciliation:
-  allocation_mergeable: false
-  exact_final_head: PENDING
-  changed_files: PENDING_POST_MIGRATION
-  commit_status_checks: PENDING
-  pr_workflow_runs: PENDING
-  reviews: PENDING
-  review_threads: PENDING
+  basis_head: 58d92086d61379cbea770ad4b9dc9816f7f5eea3
+  state: OPEN_DRAFT_UNMERGED
+  mergeable: true
+  changed_files: 18
+  intended_files: 18
+  unexplained_files: 0
+  ahead_main: 42
+  behind_main: 1_HP_ONLY
+  commit_status_checks: 0_NOT_RUN
+  pr_workflow_runs: 0_NOT_RUN
+  reviews: 0
+  review_threads: 0
+  comments: 0
 merge_authority: OWNER_ONLY_NOT_GRANTED
-next_action: RETIRE_WIP_ALIASES_THEN_RECONCILE_EXACT_PR_HEAD
+current_blocker: REPOSITORY_NATIVE_AND_BROWSER_EXECUTION_UNAVAILABLE
+next_action: RUN_FOCUSED_NATIVE_TESTS_VIBRATION_REGRESSIONS_AND_BROWSER_WHEN_AVAILABLE
