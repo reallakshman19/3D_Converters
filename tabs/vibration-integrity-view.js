@@ -4,6 +4,7 @@ import {
 } from './vibration-integrity-detail-view.js';
 import { renderVibrationIntegrityInputArea } from './vibration-integrity-input-view.js';
 import { buildSelectedFitMechanismAssessmentSet } from './vibration-integrity-mechanism-context.js';
+import { buildVibrationIntegrityMatrixContext } from './vibration-integrity-matrix-context.js';
 import {
   buildVibrationCompletenessPresentation,
   summarizeVisibleVibrationCompleteness,
@@ -184,19 +185,8 @@ function resultEvidenceCell(assessment, label) {
   return `<strong>${esc(assessment.mechanism.label)} · ${esc(assessment.lof)}</strong><small class="vi-mono">${esc(label)}</small>`;
 }
 
-function matrixContext(state) {
-  return {
-    resultState: state.resultState,
-    userEngineeringDataRows: state.userEngineeringData?.rows ?? [],
-    mechanicalSourceKeysByScope: state.mechanicalSourceKeysByScope ?? {},
-    mechanicalNotApplicableByScope: state.mechanicalNotApplicableByScope ?? {},
-    mechanicalCandidateResultsByScope: state.mechanicalCandidateResultsByScope ?? {},
-    sbcCandidateResultsByScope: state.sbcFacilityCandidateResults ?? {},
-  };
-}
-
 function visibleMatrixRows(workspace, state) {
-  const context = matrixContext(state);
+  const context = buildVibrationIntegrityMatrixContext(state);
   return (workspace?.rows ?? []).map((row) => {
     const matrix = buildVibrationMechanismMatrixRow(row, context);
     return Object.freeze({
