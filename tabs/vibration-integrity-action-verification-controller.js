@@ -273,8 +273,8 @@ export function handleVibrationActionVerificationClick(state, event, render) {
       occurrenceId: attachment.occurrence.occurrenceId,
       requirementId: attachment.requirement.requirementId,
       verificationState: attachment.verificationStatus.state,
-      sessionCount: attachment.evidenceSnapshot.sessions.length,
-      productCount: attachment.evidenceSnapshot.products.length,
+      sessionCount: attachment.evidence.sessions.length,
+      productCount: attachment.evidence.products.length,
     }, attachment.action.actionId);
   } catch (error) {
     state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
