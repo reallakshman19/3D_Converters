@@ -19,6 +19,14 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+function assertAuthority(value) {
+  for (const [key, expected] of Object.entries(VIBRATION_ACTION_COMPLETION_AUTHORITY)) {
+    if (value?.[key] !== expected) {
+      throw ledgerError('VIBRATION_ACTION_COMPLETION_LEDGER_AUTHORITY_INVALID', `Completion ledger authority mismatch at ${key}.`);
+    }
+  }
+}
+
 export function createVibrationActionCompletionLedger() {
   return deepFreeze({
     schema: VIBRATION_ACTION_COMPLETION_LEDGER_SCHEMA,
@@ -31,6 +39,7 @@ export function assertVibrationActionCompletionLedger(value) {
   if (value?.schema !== VIBRATION_ACTION_COMPLETION_LEDGER_SCHEMA || !Array.isArray(value.records)) {
     throw ledgerError('VIBRATION_ACTION_COMPLETION_LEDGER_INVALID', `Expected ${VIBRATION_ACTION_COMPLETION_LEDGER_SCHEMA}.`);
   }
+  assertAuthority(value.authority);
   const recordIds = new Set();
   const byOccurrence = new Map();
   for (const input of value.records) {
