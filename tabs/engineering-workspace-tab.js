@@ -17,14 +17,17 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient bulk enhancement is additive.
+    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient and single-package intake are additive.
     load: () => Promise.all([
       import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1'),
       import('./hp-piping-class-transient-bulk-enhancer.js?v=20260821-hp-transient-bulk-1'),
-    ]).then(([workbench, transientBulk]) => (container, options) => {
+      import('./hp-piping-class-intake-package-enhancer.js?v=20260821-hp-class-package-1'),
+    ]).then(([workbench, transientBulk, intakePackage]) => (container, options) => {
       const destroyWorkbench = workbench.renderHpPipingClassWorkbenchTab(container, options);
       const destroyTransientBulk = transientBulk.installHpPipingClassTransientBulkEnhancer(container, options);
+      const destroyIntakePackage = intakePackage.installHpPipingClassIntakePackageEnhancer(container, options);
       return () => {
+        destroyIntakePackage?.();
         destroyTransientBulk?.();
         destroyWorkbench?.();
       };
