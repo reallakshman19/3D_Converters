@@ -45,7 +45,7 @@ test('runner falsifies stale comparison admission after workspace mutation', () 
 });
 
 test('runner revalidates before admitting the modified package', () => {
-  assert.match(runner, /stored\.metadata\.revision, 'B'/);
+  assert.match(runner, /metadata\?\.revision==='B'/);
   assert.match(runner, /stored\.methodManifest\.b313Edition, '2025'/);
   assert.match(runner, /stored\.transient\.spectrum\.designLifeYears, 25/);
   assert.match(runner, /stored\.products\[1\]\.calculationBasis\.nominalWallMm, 18\.27/);
