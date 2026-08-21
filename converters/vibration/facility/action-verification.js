@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import {
   assertVibrationActionCompletionRecord,
   assertVibrationActionOccurrence,
@@ -54,10 +56,30 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
+}
+
 function assertAuthority(value) {
   for (const [key, expected] of Object.entries(VIBRATION_ACTION_VERIFICATION_AUTHORITY)) {
     if (value?.[key] !== expected) {
       throw custodyError('VIBRATION_ACTION_VERIFICATION_AUTHORITY_INVALID', `Attachment authority mismatch at ${key}.`, { key });
+    }
+  }
+}
+
+function assertVerificationStatusAuthority(value) {
+  for (const [key, expected] of Object.entries(VIBRATION_VERIFICATION_STATUS_AUTHORITY)) {
+    if (value?.[key] !== expected) {
+      throw custodyError('VIBRATION_ACTION_VERIFICATION_STATUS_AUTHORITY_INVALID', `Verification status authority mismatch at ${key}.`, { key });
     }
   }
 }
@@ -163,8 +185,14 @@ function evidenceSnapshot(status, pkg) {
   return Object.freeze({ sessions: Object.freeze(sessions), products: Object.freeze(products) });
 }
 
-function attachmentId(occurrenceId, requirementId, dispositionId, completionRecordId) {
-  return JSON.stringify([occurrenceId, requirementId, dispositionId ?? null, completionRecordId ?? null]);
+function attachmentId(occurrenceId, requirementId, dispositionId, completionRecordId, evidenceFingerprint) {
+  return JSON.stringify([
+    occurrenceId,
+    requirementId,
+    dispositionId ?? null,
+    completionRecordId ?? null,
+    evidenceFingerprint,
+  ]);
 }
 
 export function createVibrationActionVerificationAttachment({
@@ -180,16 +208,25 @@ export function createVibrationActionVerificationAttachment({
     disposition,
   });
   const normalizedCompletion = completionReference(completionRecord, normalizedOccurrence);
+  const evidence = evidenceSnapshot(verificationStatus, pkg);
+  const evidenceFingerprint = sha256(evidence);
   const dispositionId = verificationStatus.disposition?.dispositionId ?? null;
   const recordId = normalizedCompletion?.recordId ?? null;
   return deepFreeze({
     schema: VIBRATION_ACTION_VERIFICATION_ATTACHMENT_SCHEMA,
-    attachmentId: attachmentId(normalizedOccurrence.occurrenceId, normalizedRequirement.requirementId, dispositionId, recordId),
+    attachmentId: attachmentId(
+      normalizedOccurrence.occurrenceId,
+      normalizedRequirement.requirementId,
+      dispositionId,
+      recordId,
+      evidenceFingerprint,
+    ),
     action: actionRef,
     occurrence: normalizedOccurrence,
     requirement: normalizedRequirement,
     verificationStatus,
-    evidence: evidenceSnapshot(verificationStatus, pkg),
+    evidence,
+    evidenceFingerprint,
     completionRecord: normalizedCompletion,
     relation: normalizedCompletion ? 'ACTION_OCCURRENCE_AND_COMPLETION_RECORD' : 'ACTION_OCCURRENCE_ONLY',
     authority: VIBRATION_ACTION_VERIFICATION_AUTHORITY,
@@ -204,7 +241,8 @@ function assertEvidenceSnapshot(value, status) {
   const productIds = value.products.map((product) => text(product.productId, 'evidence.products[].productId')).sort();
   const expectedSessions = [...status.evidence.matchingSessionIds].sort();
   const expectedProducts = [...status.evidence.matchingProductIds].sort();
-  if (JSON.stringify(sessionIds) !== JSON.stringify(expectedSessions) || JSON.stringify(productIds) !== JSON.stringify(expectedProducts)) {
+  if (JSON.stringify(sessionIds) !== JSON.stringify(expectedSessions)
+      || JSON.stringify(productIds) !== JSON.stringify(expectedProducts)) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_ID_MISMATCH', 'Evidence snapshot IDs do not match verification status evidence.');
   }
   for (const session of value.sessions) {
@@ -230,23 +268,28 @@ export function assertVibrationActionVerificationAttachment(value) {
   const requirement = requirementForAction(actionRef, occurrence, value.requirement);
   const status = value.verificationStatus;
   if (status?.schema !== VIBRATION_VERIFICATION_STATUS_SCHEMA
-      || status.authority !== VIBRATION_VERIFICATION_STATUS_AUTHORITY
       || status.requirementId !== requirement.requirementId
       || status.mechanismId !== requirement.mechanismId
       || !sameScope(status.scope, requirement.scope)) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_STATUS_INVALID', 'Verification status does not match the attached requirement.');
   }
+  assertVerificationStatusAuthority(status.authority);
   const completion = completionReference(value.completionRecord, occurrence);
   const expectedRelation = completion ? 'ACTION_OCCURRENCE_AND_COMPLETION_RECORD' : 'ACTION_OCCURRENCE_ONLY';
   if (value.relation !== expectedRelation) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_RELATION_INVALID', 'Attachment relation does not match its completion-record custody.');
   }
   assertEvidenceSnapshot(value.evidence, status);
+  const expectedFingerprint = sha256(value.evidence);
+  if (value.evidenceFingerprint !== expectedFingerprint) {
+    throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_FINGERPRINT_INVALID', 'Evidence fingerprint does not match the attached measurement evidence snapshot.');
+  }
   const expectedId = attachmentId(
     occurrence.occurrenceId,
     requirement.requirementId,
     status.disposition?.dispositionId ?? null,
     completion?.recordId ?? null,
+    expectedFingerprint,
   );
   if (value.attachmentId !== expectedId) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_ID_INVALID', 'Attachment identity does not match its custody fields.');
