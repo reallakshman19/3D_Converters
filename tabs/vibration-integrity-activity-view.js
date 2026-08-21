@@ -1,4 +1,5 @@
 import { renderVibrationActionCompletionPanel } from './vibration-integrity-action-completion-view.js';
+import { renderVibrationActionVerificationPanel } from './vibration-integrity-action-verification-view.js';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
 
 function esc(value) {
@@ -35,6 +36,7 @@ export function renderVibrationIntegrityActivity(state = {}) {
     </div>
     ${workflow.readiness ? `<div class="vi-import-facts"><span>Ready: <strong>${esc(workflow.readiness.ready)}</strong></span><span>Not ready: <strong>${esc(workflow.readiness.notReady)}</strong></span><span>Assessment points: <strong>${esc(workflow.readiness.assessmentPoints)}</strong></span></div>` : ''}
   </section>
+  ${renderVibrationActionVerificationPanel(state)}
   ${renderVibrationActionCompletionPanel(state)}
   <section class="vi-card" data-vi-audit-log="${esc(state.auditLog?.schema ?? 'UNAVAILABLE')}">
     <div class="vi-section-head"><div><h3>Activity journal</h3><p>Ordered, scope-aware product actions. This activity export is non-authoritative observational metadata; it is not FIT run reproducibility evidence and cannot alter engineering results.</p></div></div>
