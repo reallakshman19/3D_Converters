@@ -16,9 +16,14 @@ import {
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 import {
+  VIBRATION_PROJECT_CHANGED_EVENT,
   VIBRATION_ROADMAP_STATE_EVENT,
   createVibrationRoadmapController,
 } from './vibration-roadmap-controller.js';
+import {
+  VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT,
+  createVibrationProjectEvidenceHandoff,
+} from './vibration-project-evidence-handoff.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
@@ -72,6 +77,13 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   }
 
   const initialFamilyLanding = !context?.calculationId && context?.familyId === VIBRATION_FAMILY_ID;
+  const initialProject = context?.vibrationRoadmap?.project ?? null;
+  const initialProjectEvidenceHandoff = initialProject
+    ? createVibrationProjectEvidenceHandoff({
+      project: initialProject,
+      selectedLineId: context?.vibrationRoadmap?.context?.lineId ?? null,
+    })
+    : null;
   const state = {
     selectedFamily: initialFamilyLanding ? VIBRATION_FAMILY_ID : definition.family,
     selectedId: initialFamilyLanding ? null : definition.id,
@@ -85,6 +97,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     facilityScenarioHandoff: context?.facilityScenarioHandoff ?? null,
     facilityScenarioHandoffStatus: context?.facilityScenarioHandoffStatus ?? null,
     facilityScenarioHandoffErrorCode: context?.facilityScenarioHandoffErrorCode ?? null,
+    projectEvidenceHandoff: initialProjectEvidenceHandoff,
   };
   const roadmapController = createVibrationRoadmapController(container, {
     initialState: context?.vibrationRoadmap ?? {},
@@ -96,6 +109,16 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     productDestroy = null;
   }
 
+  function dispatchProjectEvidenceHandoff() {
+    const host = container.querySelector('[data-fit-workspace-host]');
+    if (!host) return;
+    const EventClass = host.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+    if (typeof EventClass !== 'function') return;
+    host.dispatchEvent(new EventClass(VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT, {
+      detail: { handoff: state.projectEvidenceHandoff },
+    }));
+  }
+
   async function mountProductSurface() {
     if (state.familyLanding) return;
     const token = ++productToken;
@@ -103,10 +126,12 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       if (definition.id === FIT_CALCULATION_ID) {
         const host = container.querySelector('[data-fit-workspace-host]');
         if (!host) return;
-        const module = await import('./vibration-integrity-tab.js?v=20260819-sbc-connection-authoring-1');
+        const module = await import('./vibration-integrity-tab.js?v=20260821-m14-verification-authoring-1');
         if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
         host.innerHTML = '';
-        const maybeDestroy = module.renderVibrationIntegrityTab(host);
+        const maybeDestroy = module.renderVibrationIntegrityTab(host, {
+          projectEvidenceHandoff: state.projectEvidenceHandoff,
+        });
         productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
         return;
       }
@@ -241,6 +266,17 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     state.facilityScenarioHandoffErrorCode = selected?.facilityScenarioHandoffErrorCode ?? null;
   }
 
+  function onVibrationProjectChanged(event) {
+    const project = event.detail?.project ?? null;
+    state.projectEvidenceHandoff = project
+      ? createVibrationProjectEvidenceHandoff({
+        project,
+        selectedLineId: event.detail?.lineId ?? null,
+      })
+      : null;
+    dispatchProjectEvidenceHandoff();
+  }
+
   function onClick(event) {
     const calc = event.target.closest('[data-calc-id]');
     if (calc) {
@@ -300,6 +336,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   }
 
   container.addEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
+  container.addEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
   container.addEventListener('click', onClick);
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);
@@ -310,6 +347,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     cleanupProduct();
     roadmapController.destroy();
     container.removeEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
+    container.removeEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
