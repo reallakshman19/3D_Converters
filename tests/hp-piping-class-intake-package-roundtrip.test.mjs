@@ -76,6 +76,21 @@ test('method editions, spectrum life and spectrum custody cannot hide from repla
   ]);
 });
 
+test('stale external KD state-pair binding blocks editable export instead of being silently rebound', () => {
+  const project = importedProject();
+  const row = project.fatigueEvidence[0].externalResults[0];
+  row.fromStateId = 'HIGH';
+  row.toStateId = 'LOW';
+  const built = buildHpPipingClassIntakePackageExport(project);
+  assert.equal(built.ok, false);
+  assert.ok(built.issues.some((item) => item.code === 'INTAKE_PACKAGE_EXPORT_KD_STATE_BINDING_MISMATCH'));
+
+  const candidate = importedProject();
+  const impact = compareHpPipingClassIntakeReplacement(project, candidate);
+  assert.equal(impact.summary.FATIGUE_BASIS, 2);
+  assert.deepEqual(impact.changes.filter((item) => item.domain === 'KD').map((item) => item.field), ['fromStateId','toStateId']);
+});
+
 test('added and removed rows are explicit structural replacement impacts', () => {
   const current = importedProject();
   const candidate = structuredClone(current);
