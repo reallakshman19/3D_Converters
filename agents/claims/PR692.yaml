@@ -1,0 +1,25 @@
+schema: AgentClaims.v1
+pr: 692
+branch: agent/hp-intake-roundtrip-browser
+claims:
+  - id: PR692-001
+    statement: verify:hp-production-browser now requires base, product-matrix, and intake-roundtrip lanes.
+    status: IMPLEMENTED_NOT_RUNTIME_QUALIFIED
+  - id: PR692-002
+    statement: Intake round-trip FULL_APP receipt cannot claim qualification before real routed navigation completes.
+    status: IMPLEMENTED_NOT_RUNTIME_QUALIFIED
+  - id: PR692-003
+    statement: The browser journey falsifies stale replacement validation before Apply.
+    status: AUTHORED_NOT_EXECUTED
+  - id: PR692-004
+    statement: Authority remains review-only and numerical authority is unchanged.
+    status: SOURCE_CONFIRMED
+authority:
+  native_core_kd3_qualified: false
+  code_compliance: false
+  can_use_for_design_authority: false
+  numerical_authority: UNCHANGED
+prohibited_claims:
+  - FULL_APP_PASS_WITHOUT_NATIVE_ROUTED_EXECUTION
+  - HOSTED_CI_PASS_WHEN_NO_RUN_EXISTS
+  - DESIGN_AUTHORITY
