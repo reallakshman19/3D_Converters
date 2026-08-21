@@ -39,25 +39,16 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function scopeKey(scope = {}) {
-  return [scope.lineId, scope.caseId, scope.operatingCaseSnapshotId, scope.operatingCaseSnapshotHash]
-    .map((value) => String(value ?? '').trim()).join('|');
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function evidenceRevisionKey(pkg) {
-  const sessions = pkg.sessions.map((session) => ({
-    sessionId: session.sessionId,
-    scope: scopeKey(session.scope),
-    rawHashes: session.channels.map((channel) => channel.rawData.sha256).sort(),
-  })).sort((a, b) => a.sessionId.localeCompare(b.sessionId));
-  const products = pkg.products.map((product) => ({
-    productId: product.productId,
-    sessionId: product.sessionId,
-    productType: product.productType,
-    artifactSha256: product.artifact.sha256,
-    inputRawDataHashes: [...product.inputRawDataHashes].sort(),
-  })).sort((a, b) => a.productId.localeCompare(b.productId));
-  return JSON.stringify({ sessions, products });
+  return stableJson(pkg);
 }
 
 function authority(value) {
