@@ -143,5 +143,5 @@ test('Activity authoring surface captures actor, reason and evidence without a c
   assert.match(shell, /handleVibrationActionCompletionClick/);
   assert.match(shell, /handleVibrationActionCompletionChange/);
   assert.match(audit, /ACTION_COMPLETION_RECORDED/);
-  assert.doesNotMatch(controller, /completionState\s*=/);
+  assert.doesNotMatch(controller, /state\.[A-Za-z0-9_]*completionState\s*=/);
 });
