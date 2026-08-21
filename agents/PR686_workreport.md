@@ -7,11 +7,14 @@ PR: #686
 BRANCH: agent/vib-facility-mechanism-evidence-20260820
 BASE: main
 BASE_SHA_AT_START: db5f9e250edfa6fa01097b02ff71b1737ea78436
-PR_BASE_AT_ALLOCATION: cd02030d7d28438ddda8e11ac92acb319cd06cd9
-PR_HEAD_AT_ALLOCATION: 125b101ffcd838b657627a36094614589d658a01
+PR_BASE_CURRENT: cd02030d7d28438ddda8e11ac92acb319cd06cd9
+PR_HEAD_OBSERVED_BEFORE_FINAL_REPORT_SYNC: 58d92086d61379cbea770ad4b9dc9816f7f5eea3
+REPORT_BASIS_HEAD: 58d92086d61379cbea770ad4b9dc9816f7f5eea3
+REPORT_SYNC: CURRENT
 PREDECESSOR_PR: 684 (MERGED)
 PREDECESSOR_MERGE: db5f9e250edfa6fa01097b02ff71b1737ea78436
-CURRENT_STAGE: DRAFT_PR_RECOVERY_MIGRATION
+CURRENT_STAGE: DRAFT_VALIDATION_BLOCKED
+CURRENT_BLOCKER: REPOSITORY_NATIVE_AND_BROWSER_EXECUTION_UNAVAILABLE
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
 ## Mission
@@ -100,7 +103,11 @@ Resolution: current scenario custody is resolved from `workflow.operatingScenari
 - standalone AIV remains explicitly excluded from facility evidence;
 - stale/foreign evidence is not allowed to retain a numerical value in the current-evidence projection.
 
-## Effective implementation/test paths
+## Effective changed-file ledger
+
+Exactly 18 effective paths at the hosted reconciliation basis:
+
+Production/contracts:
 
 ```text
 converters/vibration/facility/run-basis.js
@@ -109,22 +116,42 @@ tabs/vibration-integrity-mechanical-controller.js
 tabs/vibration-integrity-run-evidence.js
 tabs/vibration-integrity-sbc-scenario-execution.js
 tabs/vibration-integrity-sbc-type3-controller.js
+```
+
+Tests:
+
+```text
 tests/vibration-facility-mechanism-evidence.test.mjs
 tests/vibration-integrity-run-evidence.test.mjs
 tests/vibration-runtime-scenario-guard.test.mjs
 ```
 
-Connector-side exact pre-edit backups are retained under:
+Connector-side exact pre-edit backups:
 
 ```text
-.backups/connector-20260820-vib-facility-mechanism-evidence/
+.backups/connector-20260820-vib-facility-mechanism-evidence/tabs/vibration-integrity-mechanical-controller.js
+.backups/connector-20260820-vib-facility-mechanism-evidence/tabs/vibration-integrity-run-evidence.js
+.backups/connector-20260820-vib-facility-mechanism-evidence/tabs/vibration-integrity-sbc-scenario-execution.js
+.backups/connector-20260820-vib-facility-mechanism-evidence/tabs/vibration-integrity-sbc-type3-controller.js
+.backups/connector-20260820-vib-facility-mechanism-evidence/tests/vibration-integrity-run-evidence.test.mjs
+.backups/connector-20260820-vib-facility-mechanism-evidence/tests/vibration-runtime-scenario-guard.test.mjs
 ```
+
+Recovery:
+
+```text
+agents/PR686_workreport.md
+agents/status/PR686.yaml
+agents/claims/PR686.yaml
+```
+
+The three WIP recovery aliases were retired after PR allocation; no WIP duplicate remains in the effective diff.
 
 Native `node utils/backup.js save` remains `NOT_RUN / ENVIRONMENT_BLOCKED`; connector backups are not represented as native backup execution.
 
 ## Diff quality / line policy
 
-Whole-file connector formatting churn was removed before PR allocation. Existing production-file deltas at allocation were bounded to semantic edits only:
+Whole-file connector formatting churn was removed before PR allocation. Existing production-file deltas are bounded semantic edits:
 
 ```text
 tabs/vibration-integrity-mechanical-controller.js      +22 / -4
@@ -194,39 +221,61 @@ Direct native clone remains unavailable because this runtime cannot resolve GitH
 
 ## Main drift / coordination
 
-Current main at allocation:
+Current main at reconciliation:
 
 ```text
 cd02030d7d28438ddda8e11ac92acb319cd06cd9
 PR #685 · HP product-matrix full-app browser qualification
 ```
 
-This is HP-only. No exact production/test file overlap was found.
+The branch relation at the reconciliation basis is:
+
+```text
+ahead 42 / behind 1
+merge base db5f9e250edfa6fa01097b02ff71b1737ea78436
+```
+
+The one behind commit is HP-only. No exact production/test file overlap was found, and GitHub reports PR686 mergeable.
 
 Open vibration PRs inspected for coordination include #540, #665, #657, #655, #653, #649, #571, #546 and #508. Their engineering/source/persistence domains are independent of this custody slice; exact-path checks against #508 and #665 found no overlap.
 
-## PR allocation snapshot
+## Hosted reconciliation
+
+At `PR_HEAD_OBSERVED_BEFORE_FINAL_REPORT_SYNC = 58d92086d61379cbea770ad4b9dc9816f7f5eea3`:
 
 ```text
-PR                 #686
-state              OPEN / DRAFT / UNMERGED
-base               main@cd02030d7d28438ddda8e11ac92acb319cd06cd9
-head               125b101ffcd838b657627a36094614589d658a01
-changed files      18 before PR recovery migration
-commits            36 before PR recovery migration
-GitHub mergeable   false on first allocation response; RECHECK REQUIRED after recovery migration
+PR                           #686
+state                        OPEN / DRAFT / UNMERGED
+base                         main@cd02030d7d28438ddda8e11ac92acb319cd06cd9
+changed files                18 intended / 0 unexplained
+commits                      42
+mergeable                    true
+reviews                      0
+review threads               0
+conversation/review comments 0
+commit status contexts       0 returned -> NOT_RUN
+PR-triggered workflow runs   0 returned -> NOT_RUN
 ```
 
-Do not interpret the first `mergeable=false` snapshot as a final conflict determination. Exact final-head reconciliation is required after recovery migration.
+GitHub initially reported `mergeable=false` at PR allocation, then reported `mergeable=true` after recovery migration. The initial value is treated as a transient allocation snapshot, not as a conflict.
+
+Subsequent commits that only synchronize this workreport/status do not change engineering behavior, test code, authority, or the effective production/test file set. Under that recovery-only freshness rule, `REPORT_SYNC=CURRENT` remains valid.
 
 ## Exact next action
 
-1. Create `agents/status/PR686.yaml` and `agents/claims/PR686.yaml`.
-2. Retire the superseded WIP recovery aliases.
-3. Re-read exact PR head, changed files, mergeability, reviews/threads, status contexts and PR-triggered workflow runs.
-4. Update this record and PR body to the final reconciled head.
-5. Keep native/browser validation `NOT_RUN` until genuinely executed.
-6. Do not merge without explicit Owner authorization.
+In a repository-capable runtime:
+
+```text
+node --test tests/vibration-facility-mechanism-evidence.test.mjs
+node --test tests/vibration-integrity-run-evidence.test.mjs
+node --test tests/vibration-runtime-scenario-guard.test.mjs
+```
+
+Then run the relevant Vibration Integrity regressions and served-browser acceptance. Until then, retain `NOT_RUN` truth.
+
+Following this PR, the next bounded systemic slice is to make the **on-screen mechanism matrix/currentness projection** consume `VibrationFacilityRunBasis.v1` so identical-rerun stale Mechanical/SBC/AIV caches cannot appear current in the UI. That successor must consume this custody contract without duplicating `AssessmentCompleteness.v1` or creating new governing authority.
+
+Do not merge PR686 without explicit Owner authorization.
 
 ## Appendix A — takeover questions
 
