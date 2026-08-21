@@ -1,0 +1,50 @@
+schema: AgentClaim.v1
+pr_or_wip: PR700
+pull_request: 700
+claim_state: ACTIVE
+branch: agent/vib-m15-rca-authoring-20260821
+authority_domains:
+  - VIBRATION_RCA_EVIDENCE_CUSTODY
+  - VIBRATION_RCA_ACTIVITY_AUTHORING
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+files:
+  exact:
+    - converters/vibration/rca/contracts.js
+    - converters/vibration/rca/ledger.js
+    - tabs/vibration-integrity-rca-audit.js
+    - tabs/vibration-integrity-rca-controller.js
+    - tabs/vibration-integrity-rca-view.js
+    - tabs/vibration-integrity-action-verification-controller.js
+    - tabs/vibration-integrity-activity-view.js
+    - tabs/vibration-integrity-audit-log.js
+    - tests/vibration-integrity-rca-authoring.test.mjs
+exclusions:
+  - automatic root-cause inference
+  - mechanism equations and coefficients
+  - applicability and AssessmentCompleteness authority
+  - EI aggregation authority
+  - design or code authority
+  - M13 action completion mutation
+  - project persistence schema changes
+claims:
+  - id: PR700-001
+    statement: RCA evidence is limited to exact project-scoped M14 verification records for the exact current action occurrence.
+    status: IMPLEMENTED_NOT_RUNTIME_QUALIFIED
+  - id: PR700-002
+    statement: Confirmed root cause can exist only as explicit engineer attestation with accepted supporting verification evidence; platform inference is forbidden.
+    status: IMPLEMENTED_NOT_RUNTIME_QUALIFIED
+  - id: PR700-003
+    statement: RCA hypothesis evolution is append-only revision history with deterministic fingerprint custody and no overwrite semantics.
+    status: IMPLEMENTED_NOT_RUNTIME_QUALIFIED
+  - id: PR700-004
+    statement: RCA cannot determine screening, applicability, AssessmentCompleteness, action completion, design, code, safety or governing results.
+    status: SOURCE_CONFIRMED
+  - id: PR700-005
+    statement: The inherited M14 Activity success audit now reads the actual attachment.evidence field instead of nonexistent evidenceSnapshot.
+    status: SOURCE_CONFIRMED
+coordination:
+  PR699: MERGED_M14_ACTIVITY_VERIFICATION_FOUNDATION
+  PR665: RELATED_PROJECT_V2_ZERO_EXACT_PATH_OVERLAP
+release_condition: OWNER_MERGE_AUTHORITY_REQUIRED
