@@ -28,7 +28,7 @@ test('review custody is stored separately from the HP engineering project and co
   assert.doesNotMatch(enhancer, /setItem\(HP_PIPING_CLASS_WORKSPACE_STORAGE_KEY/);
 });
 
-test('UI exposes only non-authorizing review dispositions and append-only language', () => {
+test('UI exposes only non-authorizing review dispositions, append-only language and declared-identity disclosure', () => {
   for (const token of [
     'NO_OBJECTION_FOR_ENGINEERING_REVIEW',
     'COMMENTS_RECORDED',
@@ -36,15 +36,19 @@ test('UI exposes only non-authorizing review dispositions and append-only langua
     'Records cannot be edited or deleted here',
     'REVIEW CUSTODY ONLY',
     'No design-release or Code authority granted',
-  ]) assert.ok(enhancer.includes(token), `missing ${token}`);
+    'user-declared',
+    'not a digital signature',
+  ]) assert.ok(enhancer.toLowerCase().includes(token.toLowerCase()), `missing ${token}`);
   assert.doesNotMatch(enhancer, />Approved<|APPROVED_FOR_DESIGN|DESIGN_APPROVED/);
 });
 
-test('report binding uses Web Crypto SHA-256 and package verification fails closed', () => {
+test('report binding uses Web Crypto SHA-256 and package verification fails closed without claiming identity authentication', () => {
   assert.match(core, /crypto\?\.subtle/);
   assert.match(core, /SHA-256/);
   assert.match(core, /serializeHpPipingClassEngineeringReviewReportJson/);
   assert.match(core, /canAuthorizeRelease: false/);
+  assert.match(core, /actorIdentityAuthority: 'USER_DECLARED'/);
+  assert.match(core, /digitalSignature: false/);
   assert.match(core, /verifyHpPipingClassReviewDispositionPackage/);
   assert.doesNotMatch(core, /Math\.exp|Math\.log/);
   assert.doesNotMatch(enhancer, /Math\.exp|Math\.log/);
