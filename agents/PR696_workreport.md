@@ -9,7 +9,7 @@ BASE: main
 BASE_SHA_AFTER_REPLAY: 55eade922b061830db70b45a22e8f328ef005e02
 PREDECESSOR_PR: 694 (MERGED)
 PREDECESSOR_MERGE: c5c3fa6f1c20ad3e0d046b8e2b9565569600d425
-CURRENT_STAGE: DRAFT_READY_FOR_NATIVE_VALIDATION
+CURRENT_STAGE: READY_FOR_REVIEW_PENDING_NATIVE_VALIDATION
 MERGE_AUTHORITY: NOT_GRANTED_FOR_PR696
 
 ## Mission
@@ -36,42 +36,26 @@ COMMENTS_RECORDED
 REJECTED_FOR_ENGINEERING_REVIEW
 ```
 
-There is intentionally no `APPROVED`, `APPROVED_FOR_DESIGN`, `RELEASED`, or equivalent authority state.
-
-`NO_OBJECTION_FOR_ENGINEERING_REVIEW` is review custody only.
+There is intentionally no APPROVED / APPROVED_FOR_DESIGN / RELEASED state. `NO_OBJECTION_FOR_ENGINEERING_REVIEW` is review custody only.
 
 ## Exact-report binding
 
-Each entry records:
+Each entry records contiguous append-only sequence, deterministic entry ID, report schema, SHA-256, project/class/revision, role, actor, disposition, comment, timestamp and non-authorizing authority metadata.
 
-- contiguous append-only sequence;
-- deterministic entry ID;
-- exact report schema;
-- SHA-256 of the exact serialized engineering-review report JSON;
-- project ID / class ID / revision;
-- CHECKER or REVIEWER role;
-- declared actor identity;
-- disposition;
-- comment;
-- timestamp;
-- non-authorizing authority metadata.
-
-Any canonical report change produces a different SHA-256. Prior records remain in the ledger but become historical relative to the new report. Reverting to byte-identical report content intentionally restores the same content binding.
+Any canonical report change produces a different SHA-256. Prior records remain historical relative to the changed report. Byte-identical report content intentionally restores the same content binding.
 
 ## Identity-authentication boundary
-
-SHA-256 is content binding only.
 
 ```text
 actorIdentityAuthority = USER_DECLARED
 digitalSignature = false
 ```
 
-This is not PKI, e-signature, authenticated identity, or a cryptographic approval signature. The UI and exported package state that limitation explicitly.
+SHA-256 proves report-content binding only. It does not authenticate reviewer/checker identity. The feature is not PKI, e-signature, authenticated identity, or a cryptographic approval signature.
 
 ## Authority boundary
 
-Ledger, entries and export package retain:
+Ledger, entries and packages retain:
 
 ```text
 purpose = REVIEW_CUSTODY_ONLY
@@ -88,21 +72,9 @@ Review custody is stored separately from `HpPipingClassProject/v2` and never mut
 
 ## UI
 
-The active HP route composes a new additive disposition enhancer after the engineering-review report enhancer.
+The active HP route composes the disposition enhancer after the engineering-review report enhancer. The Review Envelope exposes current report hash, current/historical record counts, reviewer/checker identity, role, disposition, comment, append-only record action and verified review-package JSON export.
 
-The Review Envelope exposes:
-
-- current report SHA-256 prefix;
-- current vs historical disposition counts;
-- reviewer/checker identity;
-- role;
-- disposition;
-- comment;
-- append-only `Record disposition` action;
-- verified `Export review package JSON` action;
-- explicit declared-identity / no-digital-signature warning.
-
-The enhancer re-runs production-review validation, the canonical HP orchestrator and the existing review-report builder. It does not scrape visible UI numerical text and contains no Chapter IX/KD formula path.
+The enhancer re-runs production-review validation, the canonical HP orchestrator and the existing review-report builder. It does not scrape numerical UI text and contains no Chapter IX/KD formula path.
 
 ## Storage custody
 
@@ -112,11 +84,7 @@ Review ledger key:
 format-converters.hpPipingClassEngineeringReviewDisposition.v1
 ```
 
-It is separate from the HP engineering project storage key.
-
-Stored-project custody is preferred. `options.context.hpPipingClassProject` is fallback only before stored state exists and is retired when engineering project fields or project file state change.
-
-Malformed stored review custody blocks disposition use; it is not silently reset or overwritten.
+It is separate from the HP engineering project key. Stored project custody is preferred; route context is fallback only until project state is stored and is retired on engineering edits/file changes. Malformed review custody blocks rather than silently resets.
 
 ## Export package
 
@@ -126,60 +94,43 @@ Schema:
 hp-piping-class-engineering-review-disposition-package/v1
 ```
 
-Contains:
-
-- embedded exact engineering-review report;
-- report SHA-256;
-- append-only review ledger;
-- current/historical summary;
-- non-authorizing limitations.
-
-Package verification recomputes SHA-256 from the embedded report and validates ledger structure/authority. This is self-consistency/content-integrity verification, not reviewer identity authentication.
+The package embeds the exact review report, report SHA-256, append-only ledger, current/historical summary and limitations. Verification recomputes the report SHA-256 and validates ledger structure/authority. This proves package self-consistency/content binding, not reviewer identity authenticity.
 
 ## Authored focused tests
 
 `tests/hp-piping-class-engineering-review-disposition.test.mjs` covers:
 
-1. approval/release semantics absent from allowed dispositions;
-2. exact report SHA-256 binding;
-3. append-only sequence and entry custody;
-4. changed report returns to PENDING_REVIEW and prior custody becomes historical;
+1. approval/release semantics absent;
+2. exact SHA-256 report binding;
+3. append-only sequence/custody;
+4. changed report -> historical prior record + PENDING_REVIEW;
 5. comment requirement for comments/rejection;
-6. authority promotion blocked;
-7. fake digital-signature authority blocked;
-8. non-contiguous sequence blocked;
-9. package verification PASS path;
-10. embedded-report tamper falsifier.
+6. authority promotion rejection;
+7. fake digital-signature authority rejection;
+8. non-contiguous sequence rejection;
+9. review package verification;
+10. embedded-report tamper falsifier;
+11. USER_DECLARED identity boundary.
 
-`tests/hp-piping-class-engineering-review-disposition-ui.test.mjs` covers:
-
-- active route composition and cleanup;
-- canonical re-evaluation instead of UI scraping;
-- review ledger separate from engineering project;
-- context fallback retirement;
-- only non-authorizing disposition wording;
-- append-only language;
-- declared-identity / no-digital-signature disclosure;
-- SHA-256/Web Crypto ownership;
-- absence of duplicate pressure formulae.
+`tests/hp-piping-class-engineering-review-disposition-ui.test.mjs` covers route composition/cleanup, canonical re-evaluation, separate storage, context retirement, non-authorizing wording, append-only behavior, declared-identity disclosure, SHA-256 ownership and absence of duplicate pressure math.
 
 ## Validation truth
 
 ```text
 current-main replay                         PASS
-branch ancestry                             PASS (behind 0 before PR open)
-changed implementation/test/CI paths        PASS (6 intended before recovery)
+branch ancestry                             PASS / behind 0 at last reconcile
+changed implementation/test/CI paths        PASS / 6 intended before recovery
 source-level numerical ownership audit      PASS
 source-level authority audit                PASS
 source-level content-vs-identity audit       PASS
 focused disposition tests                   AUTHORED_NOT_EXECUTED
 native disposition Node suite               NOT_RUN
-HP Real Workbench PR workflow               PENDING_RECONCILIATION
+HP Real Workbench PR workflow               NOT_RUN / 0 runs returned
 FULL_APP disposition interaction            NOT_RUN
 full repository regression                  NOT_RUN
 ```
 
-Do not promote authored tests to PASS without execution.
+No authored test is promoted to PASS without execution.
 
 ## Changed-file ledger
 
@@ -202,21 +153,24 @@ agents/status/PR696.yaml
 agents/claims/PR696.yaml
 ```
 
+## Final hosted reconciliation
+
+Ready-for-review was triggered on PR696. GitHub returned zero PR workflow runs for the exact head checked at reconciliation. Therefore `HP Real Workbench` remains `NOT_RUN`, not PASS or FAIL. No source-test failure is claimed.
+
 ## Next action
 
-1. Mark PR ready and inspect the existing HP Real Workbench workflow.
-2. If a native run appears, inspect the exact disposition test step and fix any failures.
-3. FULL_APP check: calculate -> report matrix -> disposition -> mutate engineering input -> verify prior record becomes historical/PENDING -> restore -> export review package.
-4. Reconcile exact head/current main/statuses/reviews.
-5. Do not merge without explicit owner authorization for PR696.
+1. Execute the native disposition Node tests if a checkout/run becomes available.
+2. FULL_APP: calculate -> report -> record disposition -> edit engineering input -> verify prior record becomes historical/PENDING -> restore exact report -> verify binding -> export package.
+3. Reconcile exact head/current main/statuses/reviews.
+4. Do not merge without explicit owner authorization for PR696.
 
 ## Appendix A — takeover qualification
 
-1. Why does SHA-256 binding not authenticate the reviewer identity?
-2. What values can a review disposition take, and why is APPROVED absent?
-3. What happens to a recorded no-objection when one engineering input changes?
-4. What authority flags must remain false?
-5. Why is the disposition ledger separate from the engineering project?
+1. Why does SHA-256 binding not authenticate reviewer identity?
+2. Why is APPROVED absent from allowed disposition states?
+3. What happens to a recorded no-objection when an engineering input changes?
+4. Which authority flags must remain false?
+5. Why is the review ledger separate from the engineering project?
 6. What makes the ledger append-only?
 7. What does package verification prove, and what does it not prove?
 8. Which validations remain NOT_RUN?
