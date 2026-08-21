@@ -70,7 +70,9 @@ test('completion custody has no engineering, screening, design or governing auth
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.engineeringAuthority, 'NONE');
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.designAuthority, false);
+  assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.persistenceAuthority, 'NONE');
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.completionAuthority, 'CALLER_ATTESTATION_ONLY');
+  assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.storageSemantics, 'APPEND_ONLY_RECORD_CONTRACT');
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.determinesCompleteness, false);
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.determinesGoverningResult, false);
   assert.equal(VIBRATION_ACTION_COMPLETION_AUTHORITY.blocksCalculation, false);
@@ -208,13 +210,17 @@ test('scenario snapshot drift also creates a different action occurrence', () =>
   assert.equal(changed.foreignCompletionRecords.length, 1);
 });
 
-test('run-evidence path supplies exact run custody and caller completion records', () => {
+test('run-evidence path requires the governed append-only completion ledger', () => {
   const source = readFileSync(
     fileURLToPath(new URL('../tabs/vibration-integrity-run-evidence.js', import.meta.url)),
     'utf8',
   );
   assert.match(source, /createVibrationFacilityRunBasis/);
   assert.match(source, /runId: snapshot\.runId/);
-  assert.match(source, /completionRecords: state\.actionCompletionRecords \?\? \[\]/);
+  assert.match(source, /createVibrationActionCompletionLedger/);
+  assert.match(source, /assertVibrationActionCompletionLedger/);
+  assert.match(source, /state\.actionCompletionLedger/);
+  assert.match(source, /completionRecords: ledger\.records/);
+  assert.doesNotMatch(source, /state\.actionCompletionRecords/);
   assert.doesNotMatch(source, /completionState\s*=\s*['"]COMPLETED['"]/);
 });
