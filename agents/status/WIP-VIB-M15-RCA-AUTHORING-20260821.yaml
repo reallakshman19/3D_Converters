@@ -1,0 +1,22 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-VIB-M15-RCA-AUTHORING-20260821
+branch: agent/vib-m15-rca-authoring-20260821
+base: main
+base_sha_at_start: 7aabe404c6f58db1b78756de9412ab93e867b5fe
+predecessor_pr: 699
+predecessor_state: MERGED
+state: READY_FOR_PR_ALLOCATION
+criticality: ENGINEERING_CRITICAL_RCA_EVIDENCE_CUSTODY
+validation:
+  current_main_grounding: PASS_MAIN_7AABE404
+  roadmap_rca_authority_audit: PASS_SOURCE_INSPECTION
+  exact_changed_path_scope: PASS_13_INTENDED
+  backup_custody: PASS_CONNECTOR_GIT_BLOB
+  line_policy: PASS_254_121_15_236_82_222_SHARED298
+  open_pr_coordination: PASS_PR665_ZERO_EXACT_OVERLAP
+  repository_native_tests: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  vibration_regressions: NOT_RUN_ENVIRONMENT_BLOCKED_DNS
+  browser: NOT_RUN_ENVIRONMENT_BLOCKED
+  independent_numerical: NOT_APPLICABLE
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: ALLOCATE_DRAFT_PR_AND_RECONCILE_EXACT_HEAD
