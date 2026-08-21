@@ -93,8 +93,8 @@ function initialStatus(evidence) {
   return 'AWAITING_ENGINEER_DISPOSITION';
 }
 
-function assertDisposition(status, requirement, evidence, facts) {
-  if (status.disposition == null) return initialStatus(facts);
+function dispositionResult(status, requirement, evidence, facts) {
+  if (status.disposition == null) return { disposition: null, expectedState: initialStatus(facts) };
   const disposition = createVibrationMeasurementDisposition(status.disposition);
   if (stableJson(disposition) !== stableJson(status.disposition)) {
     throw integrityError('VIBRATION_ACTION_VERIFICATION_DISPOSITION_NONCANONICAL', 'Verification disposition contains non-canonical or unsupported fields.');
@@ -121,7 +121,7 @@ function assertDisposition(status, requirement, evidence, facts) {
       throw integrityError('VIBRATION_ACTION_VERIFICATION_ACCEPTANCE_REFERENCES_INCOMPLETE', 'Accepted verification disposition does not reference every required product type.', { missingProductTypes: missingReferences });
     }
   }
-  return statusFromDisposition(disposition.outcome);
+  return { disposition, expectedState: statusFromDisposition(disposition.outcome) };
 }
 
 export function assertVibrationActionVerificationStatusIntegrity(status, requirement, evidence) {
@@ -137,9 +137,23 @@ export function assertVibrationActionVerificationStatusIntegrity(status, require
   assertStatusAuthority(status.authority);
   const facts = evidenceFacts(requirement, evidence);
   assertStatusEvidence(status.evidence, facts);
-  const expectedState = assertDisposition(status, requirement, evidence, facts);
+  const { disposition, expectedState } = dispositionResult(status, requirement, evidence, facts);
   if (!expectedState || status.state !== expectedState) {
     throw integrityError('VIBRATION_ACTION_VERIFICATION_STATUS_STATE_MISMATCH', 'Verification status state does not match its evidence/disposition custody.', { expectedState, actualState: status.state });
+  }
+  const canonical = {
+    schema: VIBRATION_VERIFICATION_STATUS_SCHEMA,
+    requirementId: requirement.requirementId,
+    scope: requirement.scope,
+    mechanismId: requirement.mechanismId,
+    requirementType: requirement.requirementType,
+    state: expectedState,
+    evidence: facts,
+    disposition,
+    authority: VIBRATION_VERIFICATION_STATUS_AUTHORITY,
+  };
+  if (stableJson(status) !== stableJson(canonical)) {
+    throw integrityError('VIBRATION_ACTION_VERIFICATION_STATUS_NONCANONICAL', 'Verification status contains unsupported or non-canonical fields.');
   }
   return status;
 }
