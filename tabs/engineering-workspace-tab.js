@@ -40,6 +40,11 @@ const SUBTABS = Object.freeze([
     }),
   },
   {
+    id: 'hp-review-package-verify',
+    label: 'HP Review Package Verify',
+    load: () => import('./hp-piping-class-review-package-verifier-tab.js?v=20260821-hp-review-package-verify-1').then((module) => module.renderHpPipingClassReviewPackageVerifierTab),
+  },
+  {
     id: 'hp-kd320-evidence-intake',
     label: 'KD320 Evidence Intake',
     load: () => import('./hp-kd320-evidence-intake-tab.js?v=20260819-kd320-q1-package-preview-1').then((module) => module.renderHpKd320EvidenceIntakeTab),

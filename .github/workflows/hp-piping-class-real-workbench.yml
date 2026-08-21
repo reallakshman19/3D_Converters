@@ -18,6 +18,8 @@ on:
       - 'tabs/hp-piping-class-engineering-review-report-enhancer.js'
       - 'tabs/hp-piping-class-engineering-review-disposition.js'
       - 'tabs/hp-piping-class-engineering-review-disposition-enhancer.js'
+      - 'tabs/hp-piping-class-review-package-verifier.js'
+      - 'tabs/hp-piping-class-review-package-verifier-tab.js'
       - 'tabs/hp-piping-class-product-bulk-input.js'
       - 'tabs/hp-piping-class-transient-bulk-input.js'
       - 'tabs/hp-piping-class-kd-bulk-input.js'
@@ -27,6 +29,7 @@ on:
       - 'tests/hp-piping-class-intake-package*.test.mjs'
       - 'tests/hp-piping-class-engineering-review-report*.test.mjs'
       - 'tests/hp-piping-class-engineering-review-disposition*.test.mjs'
+      - 'tests/hp-piping-class-review-package-verifier*.test.mjs'
       - 'scripts/verify-hp-piping-class-real-workbench.mjs'
       - 'scripts/validate-hp-piping-class-intake-roundtrip-browser.mjs'
       - '.github/workflows/hp-piping-class-real-workbench.yml'
@@ -51,3 +54,5 @@ jobs:
         run: node --test tests/hp-piping-class-engineering-review-report.test.mjs tests/hp-piping-class-engineering-review-report-ui.test.mjs
       - name: Verify HP engineering review disposition custody
         run: node --test tests/hp-piping-class-engineering-review-disposition.test.mjs tests/hp-piping-class-engineering-review-disposition-ui.test.mjs
+      - name: Verify HP review package verifier
+        run: node --test tests/hp-piping-class-review-package-verifier.test.mjs tests/hp-piping-class-review-package-verifier-ui.test.mjs tests/hp-piping-class-review-package-verifier-receipt.test.mjs
