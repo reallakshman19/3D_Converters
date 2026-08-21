@@ -63,19 +63,41 @@ No existing production file changed and no backup was required.
 ```text
 PASS     predecessor PR695 merged / main grounding          HOSTED SOURCE
 PASS     existing measurement/verification contract audit   SOURCE INSPECTION
-PASS     changed-path scope                                 2 implementation/test + recovery
+PASS     changed-path scope                                 5 intended / 0 unexplained
 PASS     physical-line policy                               298 / 266
 PASS     open-PR coordination                               no overlapping action-verification PR found
+PASS     hosted mergeability                                true at implementation/recovery head 3cf179da94f5119b5e1f07bbbd943681712d61ce
+PASS     reviews / review threads / comments                0 / 0 / 0
 NOT_RUN  repository-native focused Node test                ENVIRONMENT_BLOCKED: native Git DNS failure
 NOT_RUN  repository-native vibration regression suite       ENVIRONMENT_BLOCKED
+NOT_RUN  exact-head status contexts                         0 returned
+NOT_RUN  exact-head PR-triggered workflow runs              0 returned
 N/A      browser journey                                    foundation contract only
 N/A      independent numerical verification                 no equation/value change
 ```
 
 No authored test is represented as repository-native execution PASS.
 
+## Hosted reconciliation
+
+```text
+PR               #697
+head observed    3cf179da94f5119b5e1f07bbbd943681712d61ce
+state            OPEN / DRAFT / UNMERGED
+mergeable        true
+changed files    5
+branch relation  ahead 15 / behind 0
+reviews          0
+review threads   0
+comments         0
+status contexts  0 -> NOT_RUN
+PR workflow runs 0 -> NOT_RUN
+```
+
+The final recovery-sync commits do not alter implementation/test blobs.
+
 ## Next
-Reconcile exact final PR head/files/mergeability/reviews/checks. Successor M14 work can integrate typed attachments into Activity/project evidence authoring without changing verification or completion authority.
+Owner review/merge PR697. Successor M14 work can integrate typed attachments into Activity/project evidence authoring without changing verification or completion authority.
 
 ## Appendix A — takeover questions
 1. Why is M14 a custody bridge instead of a new verification method?
