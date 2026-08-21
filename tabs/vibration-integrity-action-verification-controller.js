@@ -97,7 +97,8 @@ export function buildVibrationActionVerificationAuthoringModel(state = {}) {
   const actions = completion.actions.map((entry) => {
     const evidence = evidenceForOccurrence(handoff, entry.action.occurrence);
     const records = ledger.records.filter((record) => (
-      record.attachment.occurrence.occurrenceId === entry.occurrenceId
+      record.projectId === handoff?.projectId
+      && record.attachment.occurrence.occurrenceId === entry.occurrenceId
     ));
     return Object.freeze({
       action: entry.action,
@@ -229,7 +230,7 @@ export function submitVibrationActionVerificationEditor(state, { recordedAt = ne
     disposition,
   });
   state.actionVerificationLedger = appendVibrationActionVerificationAttachment(
-    model.ledger, attachment, recordedAt,
+    model.ledger, model.handoff.projectId, attachment, recordedAt,
   );
   state.actionVerificationEditor = null;
   state.actionVerificationDraft = emptyDraft();
