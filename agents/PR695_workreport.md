@@ -8,6 +8,7 @@ BRANCH: agent/vib-m13-action-completion-authoring-20260821
 BASE: main
 BASE_SHA_AT_START: 54a4f56e36c2025320ea464630fbffac9accc71d
 PR_HEAD_AT_ALLOCATION: 577d8ae2d93885873e7a0a8d3ab258f38d3923a3
+HOSTED_RECONCILIATION_HEAD: 21ff0d9152fc6706437b1146f0e2240b14d1f062
 PREDECESSOR_PR: 693 (MERGED)
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
@@ -60,6 +61,16 @@ Exact backups:
 .backups/connector-20260821-vib-m13-action-completion-authoring/tabs/vibration-integrity-user-data-shell.js
 ```
 
+Canonical recovery:
+
+```text
+agents/PR695_workreport.md
+agents/status/PR695.yaml
+agents/claims/PR695.yaml
+```
+
+No WIP recovery alias remains.
+
 Existing-file semantic deltas: shell +8, activity +2, audit +2. New controller/view/test: 246 / 71 / 147 lines.
 
 ## Falsifiers encoded
@@ -77,20 +88,42 @@ Existing-file semantic deltas: shell +8, activity +2, audit +2. New controller/v
 
 ```text
 PASS     predecessor PR693 merged / main grounding       HOSTED SOURCE
-PASS     exact changed-path reconciliation               SOURCE INSPECTION
+PASS     exact changed-path reconciliation               12 intended / 0 unexplained
 PASS     exact pre-edit Git-blob backups                 CONNECTOR TREE/BLOB
 PASS     semantic diff normalization                     +8/+2/+2 existing files
 PASS     new-file physical-line policy                   246 / 71 / 147
 PASS     open-PR coordination                            no overlapping authoring PR found
+PASS     hosted mergeability at reconciliation head     true
+PASS     reviews / review threads / comments             0 / 0 / 0
 NOT_RUN  repository-native focused Node tests            ENVIRONMENT_BLOCKED: native Git DNS failure
 NOT_RUN  repository-native vibration regression suite    ENVIRONMENT_BLOCKED
 NOT_RUN  served-browser Activity authoring journey       ENVIRONMENT_BLOCKED
-NOT_RUN  hosted exact-head checks                        PENDING_POST_MIGRATION
+NOT_RUN  exact-head status contexts                      0 returned
+NOT_RUN  exact-head PR-triggered workflow runs           0 returned
 N/A      independent numerical verification              no numerical change
 ```
 
+Committed falsifiers remain source evidence only; they are not represented as repository-native execution PASS.
+
+## Hosted reconciliation snapshot
+
+```text
+PR               #695
+head             21ff0d9152fc6706437b1146f0e2240b14d1f062
+base/main        54a4f56e36c2025320ea464630fbffac9accc71d
+state            OPEN / DRAFT / UNMERGED
+mergeable        true
+changed files    12
+branch relation  ahead 19 / behind 0
+reviews          0
+review threads   0
+comments         0
+status contexts  0 -> NOT_RUN
+PR workflow runs 0 -> NOT_RUN
+```
+
 ## Next
-Reconcile exact final PR head, files, mergeability, reviews/threads/comments/status/workflow state. Future M14 work may attach controlled measurement/verification evidence to completion records without granting screening/design authority.
+Future M14 work may attach controlled measurement/verification evidence to required actions/completion records without granting screening/design authority. If PR695 is merged, start that successor from fresh main rather than extending this branch.
 
 ## Appendix A — takeover questions
 1. Why is transition derived instead of user-selectable?
