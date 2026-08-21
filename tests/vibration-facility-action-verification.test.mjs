@@ -189,6 +189,7 @@ test('accepted verification attaches exact measurement hashes and completion rec
   assert.equal(attachment.completionRecord.recordId, completion(occ).recordId);
   assert.deepEqual(attachment.evidence.sessions[0].rawDataHashes, [RAW_HASH]);
   assert.equal(attachment.evidence.products[0].artifactSha256, ARTIFACT_HASH);
+  assert.match(attachment.evidenceFingerprint, /^sha256:[0-9a-f]{64}$/u);
   assert.equal(attachment.authority.determinesCompletion, false);
 });
 
@@ -246,7 +247,7 @@ test('completion from an identical prior run cannot be attached to the current a
   );
 });
 
-test('attachment survives JSON round trip and tampered evidence hashes fail assertion', () => {
+test('attachment survives JSON round trip and evidence hash tampering breaks its fingerprint', () => {
   const occ = occurrence();
   const req = requirement(occ);
   const attachment = createVibrationActionVerificationAttachment({
@@ -260,7 +261,6 @@ test('attachment survives JSON round trip and tampered evidence hashes fail asse
   roundTrip.evidence.products[0].artifactSha256 = `sha256:${'e'.repeat(64)}`;
   assert.throws(
     () => assertVibrationActionVerificationAttachment(roundTrip),
-    (error) => error?.code === 'VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID'
-      || error?.code === 'VIBRATION_ACTION_VERIFICATION_EVIDENCE_ID_MISMATCH',
+    (error) => error?.code === 'VIBRATION_ACTION_VERIFICATION_EVIDENCE_FINGERPRINT_INVALID',
   );
 });
