@@ -1,6 +1,7 @@
 import { createVibrationFacilityScenarioHandoff } from '../converters/vibration/facility/scenario-handoff.js';
 import { resolveVibrationIdentificationEvidenceForScope } from './vibration-integrity-identification-model.js';
 import { buildVibrationLineCaseAssessmentStatus } from './vibration-integrity-assessment-status.js';
+import { buildVibrationIntegrityMatrixContext } from './vibration-integrity-matrix-context.js';
 import { buildVibrationMechanismMatrixRow } from './vibration-integrity-mechanisms.js?v=20260815-sbc-pf05-cache-1';
 import { buildVibrationRoadmapMechanismSummary } from './vibration-roadmap-mechanism-summary.js';
 import { buildVibrationRoadmapScopeChoices } from './vibration-roadmap-scope-selection.js';
@@ -21,17 +22,6 @@ export const VIBRATION_INTEGRITY_ROADMAP_ASSESSMENT_CONTEXT_AUTHORITY = Object.f
   screeningAuthority: 'NOT_AUTHORIZED',
   designAuthority: false,
 });
-
-function matrixContext(state) {
-  return {
-    resultState: state.resultState,
-    userEngineeringDataRows: state.userEngineeringData?.rows ?? [],
-    mechanicalSourceKeysByScope: state.mechanicalSourceKeysByScope ?? {},
-    mechanicalNotApplicableByScope: state.mechanicalNotApplicableByScope ?? {},
-    mechanicalCandidateResultsByScope: state.mechanicalCandidateResultsByScope ?? {},
-    sbcCandidateResultsByScope: state.sbcFacilityCandidateResults ?? {},
-  };
-}
 
 function rowWithIdentificationEvidence(state, row) {
   const evidence = resolveVibrationIdentificationEvidenceForScope(
@@ -54,7 +44,10 @@ function selectedWorkspaceRow(state) {
 
 function buildLineCaseProjection(state, row) {
   const scopedRow = rowWithIdentificationEvidence(state, row);
-  const matrix = buildVibrationMechanismMatrixRow(scopedRow, matrixContext(state));
+  const matrix = buildVibrationMechanismMatrixRow(
+    scopedRow,
+    buildVibrationIntegrityMatrixContext(state),
+  );
   const status = buildVibrationLineCaseAssessmentStatus({ row: scopedRow, matrix });
   return Object.freeze({ scopedRow, matrix, status });
 }
