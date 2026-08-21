@@ -84,10 +84,7 @@ function parseTable(sourceText, headers, maximumRows, prefix, label, issues) {
   }
   return {
     delimiter: delimiter === '\t' ? 'TSV' : 'CSV',
-    rows: header.ok ? lines.slice(1, maximumRows + 1).map((line, offset) => ({
-      rowNumber: offset + 2,
-      parsed: parseRecord(line, delimiter),
-    })) : [],
+    rows: header.ok ? lines.slice(1, maximumRows + 1).map((line, offset) => ({ rowNumber: offset + 2, parsed: parseRecord(line, delimiter) })) : [],
   };
 }
 
@@ -124,13 +121,7 @@ function normalizeStates(project, sourceText, spectrumId, issues) {
     if (!material.ok) issues.push(issue('STATE_BULK_MATERIAL_TEMPERATURE_INVALID', `State row ${rowNumber} material_temperature_c must be finite.`, { rowNumber, stateId }));
     if (!structural.ok) issues.push(issue('STATE_BULK_STRUCTURAL_TEMPERATURE_INVALID', `State row ${rowNumber} structural_temperature_c must be finite.`, { rowNumber, stateId }));
 
-    states.push(Object.freeze({
-      spectrumId,
-      stateId,
-      pressureMpa: pressure.value,
-      materialTemperatureC: material.value,
-      structuralTemperatureC: structural.value,
-    }));
+    states.push(Object.freeze({ spectrumId, stateId, pressureMpa: pressure.value, materialTemperatureC: material.value, structuralTemperatureC: structural.value }));
   }
   return { states, delimiter: table.delimiter };
 }
@@ -198,23 +189,41 @@ function normalizeCycles(project, sourceText, spectrumId, states, issues) {
   return { transitions, delimiter: table.delimiter };
 }
 
-function custodyPlan(project, transitions) {
-  const imported = new Map(transitions.map((row) => [row.cycleId, row]));
+function sameStateSnapshot(left, right) {
+  if (!left || !right || text(left.stateId) !== text(right.stateId)) return false;
+  return ['pressureMpa', 'materialTemperatureC', 'structuralTemperatureC'].every((field) => left[field] === right[field]);
+}
+
+function externalCustodyStatus(project, importedCycles, importedStates, row) {
+  const cycle = importedCycles.get(text(row?.cycleId));
+  if (!cycle) return { retained: false, reason: 'CYCLE_REMOVED' };
+  if (text(row?.fromStateId) !== cycle.fromStateId || text(row?.toStateId) !== cycle.toStateId) {
+    return { retained: false, reason: 'STATE_PAIR_CHANGED' };
+  }
+  const existingStates = new Map((project?.transient?.states ?? []).map((state) => [text(state?.stateId), state]));
+  const fromSame = sameStateSnapshot(existingStates.get(cycle.fromStateId), importedStates.get(cycle.fromStateId));
+  const toSame = sameStateSnapshot(existingStates.get(cycle.toStateId), importedStates.get(cycle.toStateId));
+  if (!fromSame || !toSame) return { retained: false, reason: 'STATE_VALUE_CHANGED' };
+  return { retained: true, reason: null };
+}
+
+function custodyPlan(project, states, transitions) {
+  const importedCycles = new Map(transitions.map((row) => [row.cycleId, row]));
+  const importedStates = new Map(states.map((row) => [row.stateId, row]));
   const packages = [];
+  const removedExternalRows = [];
   let retainedExternalRows = 0;
-  let removedExternalRows = 0;
   for (const pkg of project?.fatigueEvidence ?? []) {
     const retainedCycleIds = [];
     const removedCycleIds = [];
     for (const row of pkg?.externalResults ?? []) {
-      const cycle = imported.get(text(row?.cycleId));
-      const exactPair = cycle && text(row?.fromStateId) === cycle.fromStateId && text(row?.toStateId) === cycle.toStateId;
-      if (exactPair) {
-        retainedCycleIds.push(cycle.cycleId);
+      const status = externalCustodyStatus(project, importedCycles, importedStates, row);
+      if (status.retained) {
+        retainedCycleIds.push(text(row?.cycleId));
         retainedExternalRows += 1;
       } else {
         removedCycleIds.push(text(row?.cycleId));
-        removedExternalRows += 1;
+        removedExternalRows.push(Object.freeze({ productId: text(pkg?.productId), cycleId: text(row?.cycleId), reason: status.reason }));
       }
     }
     const retained = new Set(retainedCycleIds);
@@ -227,7 +236,7 @@ function custodyPlan(project, transitions) {
       packageRemovedIfApplied: retainedCycleIds.length === 0 && (pkg?.externalResults ?? []).length > 0,
     }));
   }
-  return Object.freeze({ packages: Object.freeze(packages), retainedExternalRows, removedExternalRows });
+  return Object.freeze({ packages: Object.freeze(packages), retainedExternalRows, removedExternalRows: Object.freeze(removedExternalRows) });
 }
 
 export function previewHpPipingClassTransientBulkInput(project, { statesText = '', cyclesText = '' } = {}) {
@@ -236,7 +245,7 @@ export function previewHpPipingClassTransientBulkInput(project, { statesText = '
   if (!spectrumId) issues.push(issue('TRANSIENT_BULK_SPECTRUM_ID_REQUIRED', 'Set the class Spectrum ID before validating bulk states/cycles.'));
   const normalizedStates = normalizeStates(project, statesText, spectrumId, issues);
   const normalizedCycles = normalizeCycles(project, cyclesText, spectrumId, normalizedStates.states, issues);
-  const plan = custodyPlan(project, normalizedCycles.transitions);
+  const plan = custodyPlan(project, normalizedStates.states, normalizedCycles.transitions);
   return {
     ok: issues.length === 0,
     spectrumId,
@@ -251,7 +260,7 @@ export function previewHpPipingClassTransientBulkInput(project, { statesText = '
       parsedCycles: normalizedCycles.transitions.length,
       totalDeclaredCycles: normalizedCycles.transitions.reduce((sum, row) => sum + (Number.isFinite(row.totalCycles) ? row.totalCycles : 0), 0),
       retainedExternalRows: plan.retainedExternalRows,
-      removedExternalRows: plan.removedExternalRows,
+      removedExternalRows: plan.removedExternalRows.length,
       fatiguePackages: plan.packages.length,
       fatiguePackagesNeedingCycleRows: plan.packages.filter((row) => row.missingCycleIds.length > 0).length,
     }),
@@ -273,16 +282,17 @@ export function applyHpPipingClassTransientBulkInput(project, input = {}) {
     return transition;
   });
 
-  const imported = new Map(next.transient.transitions.map((row) => [row.cycleId, row]));
+  const importedCycles = new Map(next.transient.transitions.map((row) => [row.cycleId, row]));
+  const importedStates = new Map(next.transient.states.map((row) => [row.stateId, row]));
   const retainedPackages = [];
   const removedFatigueProductIds = [];
   const removedExternalRows = [];
   for (const pkg of Array.isArray(next.fatigueEvidence) ? next.fatigueEvidence : []) {
     const kept = [];
     for (const row of pkg?.externalResults ?? []) {
-      const cycle = imported.get(text(row?.cycleId));
-      if (cycle && text(row?.fromStateId) === cycle.fromStateId && text(row?.toStateId) === cycle.toStateId) kept.push(row);
-      else removedExternalRows.push(Object.freeze({ productId: text(pkg?.productId), cycleId: text(row?.cycleId), reason: cycle ? 'STATE_PAIR_CHANGED' : 'CYCLE_REMOVED' }));
+      const status = externalCustodyStatus(project, importedCycles, importedStates, row);
+      if (status.retained) kept.push(row);
+      else removedExternalRows.push(Object.freeze({ productId: text(pkg?.productId), cycleId: text(row?.cycleId), reason: status.reason }));
     }
     if (kept.length > 0 || (pkg?.externalResults ?? []).length === 0) {
       pkg.externalResults = kept;
