@@ -17,16 +17,25 @@ authority:
   can_use_for_design_authority: false
   can_authorize_release: false
 validation:
-  main_grounding: PASS
-  implementation_branch_ancestry: PASS_AHEAD_2_BEHIND_0
+  main_grounding: PASS_MAIN_DA5DADE3D19CABA8AE2BD8015AEEAE16AE28777A
+  implementation_branch_ancestry: PASS_AHEAD_2_BEHIND_0_BEFORE_RECOVERY
   implementation_changed_paths: PASS_9_INTENDED
   focused_exact_authored_blob_tests: PASS_29_OF_29_WITH_MINIMAL_REPORT_CONTRACT_STUB
   enhancer_syntax: PASS
   storage_custody_functional_check: PASS
   exact_blob_hash_verification: PASS
   native_checkout_focused_suite: NOT_RUN_CHECKOUT_UNAVAILABLE
-  hp_real_workbench_workflow: NOT_RUN_RECONCILE_FINAL_HEAD
+  hp_real_workbench_workflow: NOT_RUN_ZERO_PR_WORKFLOW_RUNS_RETURNED
   full_app: NOT_RUN
   full_repository_regression: NOT_RUN
+  hosted_status_checks: NOT_RUN_ZERO_STATUSES_RETURNED
+  reviews: ZERO
+  review_threads: ZERO
+pr:
+  mergeable_at_reconciliation: true
+  behind_main_at_reconciliation: 0
+  changed_paths_total: 12
+  implementation_test_paths: 9
+  recovery_paths: 3
 merge_authority: NOT_GRANTED
-next_action: RECONCILE_FINAL_PR_HEAD_AND_HOSTED_STATE
+next_action: FINAL_BOOKKEEPING_HEAD_RECONCILIATION_THEN_NATIVE_FULL_APP_WHEN_AVAILABLE
