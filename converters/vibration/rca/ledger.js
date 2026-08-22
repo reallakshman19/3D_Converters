@@ -60,6 +60,15 @@ function hypothesisKey(projectId, hypothesis) {
   return JSON.stringify([projectId, hypothesis.occurrence.occurrenceId, hypothesis.hypothesisId]);
 }
 
+function assertConclusionRevision(priorHypothesis, hypothesis) {
+  if (priorHypothesis?.conclusion && !hypothesis.conclusion) {
+    throw ledgerError(
+      'VIBRATION_RCA_LEDGER_CONCLUSION_ATTESTATION_REQUIRED',
+      'A hypothesis revision after an engineer conclusion must carry another explicit engineer conclusion.',
+    );
+  }
+}
+
 export function createVibrationRcaLedger() {
   return deepFreeze({ schema: VIBRATION_RCA_LEDGER_SCHEMA, records: [], authority: VIBRATION_RCA_LEDGER_AUTHORITY });
 }
@@ -71,6 +80,7 @@ export function assertVibrationRcaLedger(value) {
   authority(value.authority);
   const revisions = new Map();
   const lastFingerprints = new Map();
+  const lastHypotheses = new Map();
   value.records.forEach((record, index) => {
     const sequence = index + 1;
     const projectId = text(record?.projectId, 'record.projectId');
@@ -87,8 +97,10 @@ export function assertVibrationRcaLedger(value) {
     if (lastFingerprints.get(key) === hypothesis.hypothesisFingerprint) {
       throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE_REVISION', 'An RCA hypothesis revision must change its statement, evidence or conclusion custody.');
     }
+    assertConclusionRevision(lastHypotheses.get(key), hypothesis);
     revisions.set(key, revision);
     lastFingerprints.set(key, hypothesis.hypothesisFingerprint);
+    lastHypotheses.set(key, hypothesis);
   });
   return value;
 }
@@ -100,9 +112,11 @@ export function appendVibrationRcaHypothesis(ledgerInput, projectIdInput, hypoth
   if (hypothesis.projectId !== projectId) throw ledgerError('VIBRATION_RCA_LEDGER_PROJECT_MISMATCH', 'RCA hypothesis project does not match ledger append scope.');
   const key = hypothesisKey(projectId, hypothesis);
   const prior = ledger.records.filter((record) => hypothesisKey(record.projectId, record.hypothesis) === key);
-  if (prior.at(-1)?.hypothesis.hypothesisFingerprint === hypothesis.hypothesisFingerprint) {
+  const previous = prior.at(-1)?.hypothesis ?? null;
+  if (previous?.hypothesisFingerprint === hypothesis.hypothesisFingerprint) {
     throw ledgerError('VIBRATION_RCA_LEDGER_DUPLICATE_REVISION', 'An RCA hypothesis revision must change its statement, evidence or conclusion custody.');
   }
+  assertConclusionRevision(previous, hypothesis);
   const sequence = ledger.records.length + 1;
   const hypothesisRevision = prior.length + 1;
   const record = deepFreeze({
