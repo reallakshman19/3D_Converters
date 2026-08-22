@@ -197,6 +197,19 @@ test('open hypothesis can later receive an immutable engineer-conclusion revisio
   assert.equal(state.rcaLedger.records[1].hypothesis.conclusion.outcome, 'CONFIRMED_ROOT_CAUSE');
 });
 
+test('a concluded hypothesis cannot be anonymously downgraded back to open', () => {
+  const state = currentState();
+  const verificationRecord = recordVerification(state, { accepted: true });
+  populateRca(state, verificationRecord, { outcome: 'CONFIRMED_ROOT_CAUSE' });
+  submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:23:00Z' });
+  populateRca(state, verificationRecord);
+  assert.throws(
+    () => submitVibrationRcaEditor(state, { recordedAt: '2026-08-21T13:24:00Z' }),
+    (error) => error?.code === 'VIBRATION_RCA_LEDGER_CONCLUSION_ATTESTATION_REQUIRED',
+  );
+  assert.equal(state.rcaLedger.records.length, 1);
+});
+
 test('the same verification record cannot be evidence both for and against', () => {
   const state = currentState();
   const verificationRecord = recordVerification(state, { accepted: true });
