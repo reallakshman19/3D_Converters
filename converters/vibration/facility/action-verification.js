@@ -147,6 +147,7 @@ function evidenceSnapshot(status, pkg) {
     const session = sessionIndex.get(sessionId);
     return Object.freeze({
       sessionId,
+      measurementRecordFingerprint: vibrationActionVerificationFingerprint(session),
       rawDataHashes: Object.freeze(session.channels.map((channel) => channel.rawData.sha256).sort()),
     });
   });
@@ -156,6 +157,7 @@ function evidenceSnapshot(status, pkg) {
       productId,
       sessionId: product.sessionId,
       productType: product.productType,
+      measurementRecordFingerprint: vibrationActionVerificationFingerprint(product),
       artifactSha256: product.artifact.sha256,
       inputRawDataHashes: Object.freeze([...product.inputRawDataHashes].sort()),
     });
@@ -225,17 +227,19 @@ function assertEvidenceSnapshot(value) {
   }
   for (const session of value.sessions) {
     text(session.sessionId, 'evidence.sessions[].sessionId');
-    if (!Array.isArray(session.rawDataHashes) || session.rawDataHashes.some((hash) => !SHA256.test(hash))) {
-      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Session raw-data evidence hashes must be canonical sha256 values.');
+    if (!SHA256.test(String(session.measurementRecordFingerprint ?? ''))
+        || !Array.isArray(session.rawDataHashes) || session.rawDataHashes.some((hash) => !SHA256.test(hash))) {
+      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Session provenance/raw-data evidence fingerprints must be canonical sha256 values.');
     }
   }
   for (const product of value.products) {
     text(product.productId, 'evidence.products[].productId');
     text(product.sessionId, 'evidence.products[].sessionId');
     text(product.productType, 'evidence.products[].productType');
-    if (!SHA256.test(product.artifactSha256) || !Array.isArray(product.inputRawDataHashes)
+    if (!SHA256.test(String(product.measurementRecordFingerprint ?? ''))
+        || !SHA256.test(product.artifactSha256) || !Array.isArray(product.inputRawDataHashes)
         || product.inputRawDataHashes.some((hash) => !SHA256.test(hash))) {
-      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Signal-product evidence hashes must be canonical sha256 values.');
+      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Signal-product provenance/artifact evidence fingerprints must be canonical sha256 values.');
     }
   }
 }
