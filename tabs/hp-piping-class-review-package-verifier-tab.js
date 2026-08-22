@@ -2,17 +2,12 @@ import {
   serializeHpPipingClassReviewPackageVerificationReceipt,
   verifyHpPipingClassReviewPackageJson,
 } from './hp-piping-class-review-package-verifier.js';
+import { HP_PIPING_CLASS_REVIEW_CHAIN_INTEGRITY } from './hp-piping-class-engineering-review-disposition.js';
 
 function esc(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
-
-function fmt(value, digits = 5) {
-  return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
-}
-
+function fmt(value, digits = 5) { return Number.isFinite(value) ? Number(value).toFixed(digits) : '—'; }
 function ensureStyles() {
   if (document.querySelector('style[data-hp-review-package-verifier-style="true"]')) return;
   const style = document.createElement('style');
@@ -25,141 +20,85 @@ function ensureStyles() {
   `;
   document.head.appendChild(style);
 }
-
 function trustRows(receipt) {
   const trust = receipt?.trust ?? {};
   const rows = [
-    ['Report SHA-256 binding', trust.reportContentSha256Binding],
-    ['Embedded report schema round trip', trust.embeddedReportSchemaRoundTrip],
-    ['Ledger structural validation', trust.ledgerStructuralValidation],
-    ['Stored summary recomputation', trust.storedSummaryRecomputation],
-    ['Ledger-entry cryptographic integrity', trust.ledgerEntryCryptographicIntegrity],
-    ['Reviewer identity authentication', trust.reviewerIdentityAuthentication],
-    ['Digital signature', trust.digitalSignature === false ? 'FALSE / NOT PRESENT' : String(trust.digitalSignature)],
-    ['Code compliance', trust.codeCompliance === false ? 'NOT ESTABLISHED' : String(trust.codeCompliance)],
-    ['Design authority', trust.designAuthority === false ? 'NOT GRANTED' : String(trust.designAuthority)],
+    ['Report SHA-256 binding', trust.reportContentSha256Binding], ['Embedded report schema round trip', trust.embeddedReportSchemaRoundTrip],
+    ['Ledger structural validation', trust.ledgerStructuralValidation], ['Stored summary recomputation', trust.storedSummaryRecomputation],
+    ['Ledger-entry cryptographic integrity', trust.ledgerEntryCryptographicIntegrity], ['Ledger chain head', trust.ledgerHeadSha256 ?? 'NOT AVAILABLE'],
+    ['Reviewer identity authentication', trust.reviewerIdentityAuthentication], ['Digital signature', trust.digitalSignature === false ? 'FALSE / NOT PRESENT' : String(trust.digitalSignature)],
+    ['Code compliance', trust.codeCompliance === false ? 'NOT ESTABLISHED' : String(trust.codeCompliance)], ['Design authority', trust.designAuthority === false ? 'NOT GRANTED' : String(trust.designAuthority)],
     ['Release authority', trust.releaseAuthority === false ? 'NOT GRANTED' : String(trust.releaseAuthority)],
   ];
   return rows.map(([label, value]) => `<tr><th>${esc(label)}</th><td class="hp-review-verify-code">${esc(value)}</td></tr>`).join('');
 }
-
 function ledgerRows(result) {
   const currentIds = new Set((result.currentEntries ?? []).map((entry) => entry.entryId));
   const rows = result.ledger?.entries ?? [];
-  if (!rows.length) return '<tr><td colspan="9">No review-disposition entries in this package.</td></tr>';
+  if (!rows.length) return '<tr><td colspan="10">No review-disposition entries in this package.</td></tr>';
   return rows.map((entry) => `<tr>
     <td>${esc(entry.sequence)}</td><td>${currentIds.has(entry.entryId) ? '<strong>CURRENT</strong>' : 'HISTORICAL'}</td>
     <td>${esc(entry.role)}</td><td>${esc(entry.actor)}</td><td>${esc(entry.disposition)}</td><td>${esc(entry.recordedAt)}</td>
     <td>${esc(entry.comment ?? '—')}</td><td class="hp-review-verify-code">${esc(String(entry.reportSha256 ?? '').slice(0, 16))}…</td>
-    <td>${esc(entry.authority?.actorIdentityAuthority ?? '—')}</td>
+    <td class="hp-review-verify-code">${entry.entrySha256 ? `${esc(entry.entrySha256.slice(0, 16))}…` : 'LEGACY V1'}</td><td>${esc(entry.authority?.actorIdentityAuthority ?? '—')}</td>
   </tr>`).join('');
 }
-
 function productRows(result) {
   const rows = result.package?.report?.productResults ?? [];
   if (!rows.length) return '<tr><td colspan="7">No product result rows in embedded report.</td></tr>';
   return rows.map((row) => `<tr><td><strong>${esc(row.productId)}</strong></td><td>${esc(row.reviewPriority ?? '—')}</td><td>${row.staticPass === true ? 'PASS' : row.staticPass === false ? 'FAIL' : '—'}</td><td>${fmt(row.requiredNominalThicknessMm)}</td><td>${fmt(row.pressureRatingMpa)}</td><td>${fmt(row.cumulativeUsage, 6)}</td><td>${esc(row.engineeringState ?? '—')}</td></tr>`).join('');
 }
-
+function integrityNotice(receipt) {
+  if (receipt?.trust?.ledgerEntryCryptographicIntegrity === HP_PIPING_CLASS_REVIEW_CHAIN_INTEGRITY) {
+    return '<div class="hp-review-verify-notice warn"><strong>Integrity boundary:</strong> v2 review entries form a verified SHA-256 hash chain. This proves package self-consistency/tamper-evidence only; reviewer/checker identity remains user-declared and the chain is not a digital signature, trusted timestamp, Code approval, design approval, or release authorization.</div>';
+  }
+  return '<div class="hp-review-verify-notice warn"><strong>Legacy integrity boundary:</strong> v1 review entries are not hash-chained or digitally signed. Reviewer/checker identity is user-declared; this verifier does not prove actor authenticity, Code compliance, design approval or release authority.</div>';
+}
 function verifiedHtml(result) {
   const receipt = result.receipt;
   const report = result.package.report;
   const basis = report.classBasis ?? {};
   return `<div class="hp-review-verify-notice good"><strong>PACKAGE SELF-CONSISTENCY VERIFIED.</strong> Report hash, embedded report schema, ledger structure and stored summary all match fresh recomputation.</div>
-    <div class="hp-review-verify-notice warn"><strong>Verification limit:</strong> v1 review entries are not hash-chained or digitally signed. Reviewer/checker identity is user-declared; this verifier does not prove actor authenticity, Code compliance, design approval or release authority.</div>
+    ${integrityNotice(receipt)}
     <section class="hp-review-verify-card"><h3>Package identity</h3><div class="hp-review-verify-grid" style="margin-top:10px">
-      <div class="hp-review-verify-metric"><small>Project</small><strong>${esc(receipt.identity.projectId)}</strong></div>
-      <div class="hp-review-verify-metric"><small>Class</small><strong>${esc(receipt.identity.classId)}</strong></div>
-      <div class="hp-review-verify-metric"><small>Revision</small><strong>${esc(receipt.identity.revision)}</strong></div>
-      <div class="hp-review-verify-metric"><small>Current disposition</small><strong>${esc(receipt.currentDisposition)}</strong></div>
-      <div class="hp-review-verify-metric"><small>Design pressure</small><strong>${fmt(basis.designPressureMpa)} MPa</strong></div>
-      <div class="hp-review-verify-metric"><small>Project state</small><strong>${esc(receipt.projectState ?? '—')}</strong></div>
-      <div class="hp-review-verify-metric"><small>Current records</small><strong>${esc(receipt.currentRecordCount)}</strong></div>
-      <div class="hp-review-verify-metric"><small>Historical records</small><strong>${esc(receipt.historicalRecordCount)}</strong></div>
-    </div><p class="hp-review-verify-code">SHA-256 ${esc(receipt.reportSha256)}</p></section>
+      <div class="hp-review-verify-metric"><small>Project</small><strong>${esc(receipt.identity.projectId)}</strong></div><div class="hp-review-verify-metric"><small>Class</small><strong>${esc(receipt.identity.classId)}</strong></div>
+      <div class="hp-review-verify-metric"><small>Revision</small><strong>${esc(receipt.identity.revision)}</strong></div><div class="hp-review-verify-metric"><small>Current disposition</small><strong>${esc(receipt.currentDisposition)}</strong></div>
+      <div class="hp-review-verify-metric"><small>Design pressure</small><strong>${fmt(basis.designPressureMpa)} MPa</strong></div><div class="hp-review-verify-metric"><small>Project state</small><strong>${esc(receipt.projectState ?? '—')}</strong></div>
+      <div class="hp-review-verify-metric"><small>Current records</small><strong>${esc(receipt.currentRecordCount)}</strong></div><div class="hp-review-verify-metric"><small>Historical records</small><strong>${esc(receipt.historicalRecordCount)}</strong></div>
+    </div><p class="hp-review-verify-code">Report SHA-256 ${esc(receipt.reportSha256)}</p></section>
     <section class="hp-review-verify-card"><h3>What this verification proves</h3><div class="hp-review-verify-table-wrap" style="margin-top:10px"><table><tbody>${trustRows(receipt)}</tbody></table></div></section>
-    <section class="hp-review-verify-card"><h3>Review custody ledger</h3><p class="hp-review-verify-muted">CURRENT means the entry binds to the exact embedded report hash and identity. It does not mean design-approved.</p><div class="hp-review-verify-table-wrap"><table><thead><tr><th>#</th><th>Binding</th><th>Role</th><th>Declared actor</th><th>Disposition</th><th>Recorded</th><th>Comment</th><th>Report hash</th><th>Identity authority</th></tr></thead><tbody>${ledgerRows(result)}</tbody></table></div></section>
+    <section class="hp-review-verify-card"><h3>Review custody ledger</h3><p class="hp-review-verify-muted">CURRENT means the entry binds to the exact embedded report hash and identity. It does not mean design-approved.</p><div class="hp-review-verify-table-wrap"><table><thead><tr><th>#</th><th>Binding</th><th>Role</th><th>Declared actor</th><th>Disposition</th><th>Recorded</th><th>Comment</th><th>Report hash</th><th>Entry hash</th><th>Identity authority</th></tr></thead><tbody>${ledgerRows(result)}</tbody></table></div></section>
     <section class="hp-review-verify-card"><h3>Embedded engineering result summary</h3><div class="hp-review-verify-table-wrap" style="margin-top:10px"><table><thead><tr><th>Product</th><th>Review priority</th><th>Static</th><th>Required nominal mm</th><th>P-rating MPa</th><th>U</th><th>Engineering state</th></tr></thead><tbody>${productRows(result)}</tbody></table></div></section>
     <section class="hp-review-verify-card"><h3>Verifier limitations</h3><ul>${receipt.limitations.map((item) => `<li>${esc(item)}</li>`).join('')}</ul></section>`;
 }
-
-function failedHtml(result) {
-  return `<div class="hp-review-verify-notice error"><strong>PACKAGE VERIFICATION BLOCKED.</strong><ul>${(result.issues ?? []).map((item) => `<li><span class="hp-review-verify-code">${esc(item.code)}</span> · ${esc(item.message)}</li>`).join('')}</ul></div>`;
-}
-
+function failedHtml(result) { return `<div class="hp-review-verify-notice error"><strong>PACKAGE VERIFICATION BLOCKED.</strong><ul>${(result.issues ?? []).map((item) => `<li><span class="hp-review-verify-code">${esc(item.code)}</span> · ${esc(item.message)}</li>`).join('')}</ul></div>`; }
 function downloadText(filename, content) {
-  const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([content], { type: 'application/json;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
 }
 
 export function renderHpPipingClassReviewPackageVerifierTab(container) {
   ensureStyles();
   let state = { text: '', result: null };
   container.innerHTML = `<div class="hp-review-verify">
-    <section class="hp-review-verify-card"><h2>HP Review Package Verify</h2><p>Independent, read-only verification of <span class="hp-review-verify-code">hp-piping-class-engineering-review-disposition-package/v1</span>. This tool does not import or modify the HP engineering project.</p>
+    <section class="hp-review-verify-card"><h2>HP Review Package Verify</h2><p>Independent, read-only verification of HP engineering-review disposition packages <span class="hp-review-verify-code">v1 / v2</span>. This tool does not import or modify the HP engineering project.</p>
       <textarea data-hp-review-package-text spellcheck="false" placeholder="Paste exported *.hp-review-disposition.json here"></textarea>
       <div class="hp-review-verify-actions"><button type="button" data-hp-review-package-action="load">Load JSON</button><button type="button" class="primary" data-hp-review-package-action="verify">Verify package</button><button type="button" data-hp-review-package-action="receipt" disabled>Export verification receipt</button></div>
       <input type="file" hidden data-hp-review-package-file accept=".json,application/json,text/json">
-    </section>
-    <div data-hp-review-package-result><div class="hp-review-verify-notice warn">No package verified yet.</div></div>
-  </div>`;
-
-  const area = container.querySelector('[data-hp-review-package-text]');
-  const resultTarget = container.querySelector('[data-hp-review-package-result]');
-  const receiptButton = container.querySelector('[data-hp-review-package-action="receipt"]');
-  const fileInput = container.querySelector('[data-hp-review-package-file]');
-
-  function renderResult() {
-    receiptButton.disabled = !state.result?.ok;
-    resultTarget.innerHTML = !state.result ? '<div class="hp-review-verify-notice warn">No package verified yet.</div>' : state.result.ok ? verifiedHtml(state.result) : failedHtml(state.result);
-  }
-
-  async function verify() {
-    state = { text: area.value, result: await verifyHpPipingClassReviewPackageJson(area.value) };
-    renderResult();
-  }
-
+    </section><div data-hp-review-package-result><div class="hp-review-verify-notice warn">No package verified yet.</div></div></div>`;
+  const area = container.querySelector('[data-hp-review-package-text]'); const resultTarget = container.querySelector('[data-hp-review-package-result]');
+  const receiptButton = container.querySelector('[data-hp-review-package-action="receipt"]'); const fileInput = container.querySelector('[data-hp-review-package-file]');
+  function renderResult() { receiptButton.disabled = !state.result?.ok; resultTarget.innerHTML = !state.result ? '<div class="hp-review-verify-notice warn">No package verified yet.</div>' : state.result.ok ? verifiedHtml(state.result) : failedHtml(state.result); }
+  async function verify() { state = { text: area.value, result: await verifyHpPipingClassReviewPackageJson(area.value) }; renderResult(); }
   async function onClick(event) {
-    const action = event.target.closest('[data-hp-review-package-action]')?.dataset.hpReviewPackageAction;
-    if (!action) return;
-    if (action === 'load') fileInput.click();
-    else if (action === 'verify') await verify();
-    else if (action === 'receipt' && state.result?.ok) {
-      const id = state.result.receipt.identity;
-      const name = `${id.classId || 'hp-piping-class'}-${id.revision || 'review'}.hp-review-package-verification.json`;
+    const action = event.target.closest('[data-hp-review-package-action]')?.dataset.hpReviewPackageAction; if (!action) return;
+    if (action === 'load') fileInput.click(); else if (action === 'verify') await verify(); else if (action === 'receipt' && state.result?.ok) {
+      const id = state.result.receipt.identity; const name = `${id.classId || 'hp-piping-class'}-${id.revision || 'review'}.hp-review-package-verification.json`;
       downloadText(name, serializeHpPipingClassReviewPackageVerificationReceipt(state.result.receipt));
     }
   }
-
-  async function onChange(event) {
-    if (event.target !== fileInput) return;
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    area.value = await file.text();
-    state = { text: area.value, result: null };
-    renderResult();
-    await verify();
-    fileInput.value = '';
-  }
-
-  function onInput(event) {
-    if (event.target !== area) return;
-    state = { text: area.value, result: null };
-    renderResult();
-  }
-
-  container.addEventListener('click', onClick);
-  container.addEventListener('change', onChange);
-  container.addEventListener('input', onInput);
-  return () => {
-    container.removeEventListener('click', onClick);
-    container.removeEventListener('change', onChange);
-    container.removeEventListener('input', onInput);
-    container.innerHTML = '';
-  };
+  async function onChange(event) { if (event.target !== fileInput) return; const file = fileInput.files?.[0]; if (!file) return; area.value = await file.text(); state = { text: area.value, result: null }; renderResult(); await verify(); fileInput.value = ''; }
+  function onInput(event) { if (event.target !== area) return; state = { text: area.value, result: null }; renderResult(); }
+  container.addEventListener('click', onClick); container.addEventListener('change', onChange); container.addEventListener('input', onInput);
+  return () => { container.removeEventListener('click', onClick); container.removeEventListener('change', onChange); container.removeEventListener('input', onInput); container.innerHTML = ''; };
 }

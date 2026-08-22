@@ -21,8 +21,13 @@ test('disposition enhancer re-evaluates the canonical project instead of trustin
   assert.doesNotMatch(enhancer, /innerText.*pressure|textContent.*Salt/i);
 });
 
-test('review custody is stored separately from the HP engineering project and context fallback retires on edits', () => {
-  assert.match(enhancer, /HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY/);
+test('review custody remains separate and v1/v2 storage never silently migrates or coexists ambiguously', () => {
+  assert.match(enhancer, /format-converters\.hpPipingClassEngineeringReviewDisposition\.v2/);
+  assert.match(enhancer, /format-converters\.hpPipingClassEngineeringReviewDisposition\.v1/);
+  assert.match(enhancer, /Both v1 and v2 HP review custody stores exist/);
+  assert.match(enhancer, /HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_VERSION/);
+  assert.match(enhancer, /HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_V1_VERSION/);
+  assert.match(enhancer, /ledger\.schemaVersion === HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_VERSION/);
   assert.match(enhancer, /readStoredProject\(\) \?\? contextProject/);
   assert.match(enhancer, /contextProject = null/);
   assert.doesNotMatch(enhancer, /setItem\(HP_PIPING_CLASS_WORKSPACE_STORAGE_KEY/);
@@ -38,17 +43,19 @@ test('UI exposes only non-authorizing review dispositions, append-only language 
     'No design-release or Code authority granted',
     'user-declared',
     'not a digital signature',
+    'tamper-evident v2 SHA-256 entry chain',
   ]) assert.ok(enhancer.toLowerCase().includes(token.toLowerCase()), `missing ${token}`);
   assert.doesNotMatch(enhancer, />Approved<|APPROVED_FOR_DESIGN|DESIGN_APPROVED/);
 });
 
-test('report binding uses Web Crypto SHA-256 and package verification fails closed without claiming identity authentication', () => {
+test('report and entry binding use SHA-256 while identity/release authority remain unavailable', () => {
   assert.match(core, /crypto\?\.subtle/);
   assert.match(core, /SHA-256/);
   assert.match(core, /serializeHpPipingClassEngineeringReviewReportJson/);
   assert.match(core, /canAuthorizeRelease: false/);
   assert.match(core, /actorIdentityAuthority: 'USER_DECLARED'/);
   assert.match(core, /digitalSignature: false/);
+  assert.match(core, /verifyHpPipingClassReviewDispositionLedgerChain/);
   assert.match(core, /verifyHpPipingClassReviewDispositionPackage/);
   assert.doesNotMatch(core, /Math\.exp|Math\.log/);
   assert.doesNotMatch(enhancer, /Math\.exp|Math\.log/);
