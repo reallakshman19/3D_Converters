@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import unittest
 
 import cii14_section_rules as rules14
@@ -13,6 +14,33 @@ class CiiFormatAuthorityConvergenceTests(unittest.TestCase):
         self.assertEqual(syntax11.BLOCK_LINES_PER_SECTION, rules11.LINES_PER_AUX_BLOCK)
         self.assertEqual(syntax11.BLOCK_LINES_PER_SECTION["FORCMNT"], 20)
         self.assertEqual(syntax11.BLOCK_LINES_PER_SECTION["FLANGES"], 12)
+
+    def test_legacy_checker_counts_blank_fixed_rows_as_physical_flange_rows(self) -> None:
+        payload = [(index + 1, f"row-{index + 1}") for index in range(12)]
+        payload[3] = (4, "")
+        section = syntax11.Section(name="FLANGES", header_line=1, payload=payload)
+
+        errors: list[dict[str, object]] = []
+        syntax11._validate_blocked_section(section, "FLANGES", 1, errors)
+        self.assertEqual(errors, [])
+
+        stale = syntax11.Section(name="FLANGES", header_line=1, payload=payload[:11])
+        stale_errors: list[dict[str, object]] = []
+        syntax11._validate_blocked_section(stale, "FLANGES", 1, stale_errors)
+        self.assertEqual(len(stale_errors), 1)
+        self.assertEqual(stale_errors[0]["code"], "section_block_rows")
+
+    def test_legacy_report_keeps_blank_fixed_rows_in_derived_block_counts(self) -> None:
+        payload = [(index + 1, f"row-{index + 1}") for index in range(12)]
+        payload[3] = (4, "")
+        section = syntax11.Section(name="FLANGES", header_line=1, payload=payload)
+        report = syntax11._build_report(
+            Path("fixture.cii"), [section], {}, [], [], text=None
+        )
+        derived = report["derivedBlockCounts"]["FLANGES"]
+        self.assertEqual(derived["rows"], 12)
+        self.assertEqual(derived["derivedBlocks"], 1)
+        self.assertEqual(derived["remainderRows"], 0)
 
     def test_v14_profile_matches_dedicated_bridge_validator_deltas(self) -> None:
         expected_deltas = {
