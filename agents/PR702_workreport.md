@@ -5,11 +5,11 @@
 ```text
 PR = 702
 WORK_INTENT = IMPLEMENT
-REPOSITORY_STATE = DRAFT_PR_OPEN
+REPOSITORY_STATE = DRAFT_HANDOVER_READY_RUNTIME_NOT_RUN
 MUTATION_AUTHORITY = WRITE_ALLOWED_BOUNDED
 CRITICALITY = ENGINEERING_CRITICAL
 EXECUTION_MODE = AUTO
-AUTO_STATE = RUNNING
+AUTO_STATE = STOPPED_ENVIRONMENT_BOUNDARY
 MERGE_AUTHORITY = OWNER_ONLY_NOT_GRANTED
 BASE_MAIN = ca8d391ac5f829f53bebb3c37adf0547c34a67b4
 BRANCH = agent/cii-fortran-format-authority-fix-20260826
@@ -18,145 +18,202 @@ COORDINATION = SAFE
 
 ## Handover in 60 Seconds
 
-PR #702 reconciles contradictory CAESAR II CII fixed-FORTRAN syntax authorities found during V11/V14 Writer2 cross-checking. It does **not** change the V11↔V14 converter, Writer behavior, numerical engineering content, topology, units, browser runtime, or workflows.
+PR #702 reconciles CAESAR II CII fixed-FORTRAN syntax authorities discovered during V11/V14 Writer2 cross-checking. The engineering patch is intentionally bounded to duplicated/stale validation authority; it does **not** change the V11↔V14 converter, Writer behavior, topology, units, browser runtime, numerical engineering values, generic numeric semantics, or workflows.
 
-Implemented engineering corrections:
+Implemented corrections:
 
-1. `converters/scripts/cii14_section_rules.py`: Ver14 `ALLOWBLS` corrected **26 → 28 rows/block**, matching **168 logical V14 items** and the dedicated bridge converter/validator/RCA.
-2. `converters/scripts/cii_syntax_check_2019.py`: CII2019/V11 `FORCMNT` corrected **13 → 20** and `FLANGES` corrected **11 → 12**, matching `cii2019_section_rules.py`.
-3. The same legacy checker now counts **physical auxiliary rows including blank fixed rows** instead of dropping blanks. This is required because a fixed-record row can be semantically present even when blank; current `cii2019_section_rules.py` explicitly records this for real 12-row FLANGES records.
-4. `converters/scripts/test_cii_format_authority_convergence.py`: now contains seven focused regressions locking V11/V14 authority convergence, stale V14 ALLOWBLS width rejection, #1042 CONTROL NONAM/RESTRAINT I13 separation, Writer-relevant cardinalities, and blank physical-row custody in both validation and derived-count reporting.
+1. `converters/scripts/cii14_section_rules.py`
+   - Ver14 `ALLOWBLS`: **26 → 28 physical rows/block**.
+   - Authority basis: Ver14 = **168 logical items / 28 rows**; V11 = 153 / 26.
+
+2. `converters/scripts/cii_syntax_check_2019.py`
+   - V11/CII2019 `FORCMNT`: **13 → 20 rows/block**.
+   - V11/CII2019 `FLANGES`: **11 → 12 rows/block**.
+   - auxiliary block validation and derived-count reporting now count **physical payload rows**, including blank fixed rows, rather than silently dropping blanks.
+
+3. `converters/scripts/test_cii_format_authority_convergence.py`
+   - seven focused regression/falsifier tests lock V11 map convergence, Ver14 ALLOWBLS/SIF/REDUCER deltas, stale 26-row Ver14 ALLOWBLS rejection, #1042 CONTROL I13 custody, Writer-relevant block cardinalities, and blank physical-row preservation.
+
+## Why the blank-row change is required
+
+`cii2019_section_rules.py` explicitly distinguishes fixed-record physical rows from nonblank rows. Real FLANGES data can contain a genuinely blank physical row; dropping it before cardinality division converts a correct 12-row record into an apparent 11-row record. The legacy checker was therefore internally inconsistent even after changing the FLANGES constant to 12.
+
+PR702 now aligns both validation and derived block-count reporting with physical fixed-record custody.
 
 ## Protected engineering invariants
 
-- CONTROL rows 1–3 remain `2X,6I13`; row 4 remains `2X,I13`.
-- 1-based `CONTROL row1 / field4 = NONAM`; 1-based `CONTROL row2 / field4 = RESTRAINT count`.
-- ELEMENT remains 15 rows/block in V11 and V14.
-- RESTRANT remains 24 rows/block in both versions.
-- SIF&TEES remains V11=10 and V14=14 rows/block; the item 15/16 axial/torsional semantic swap remains owned by `cii_v11_v14_sif.py`.
-- REDUCERS remains V11=1 / V14=2 rows/block.
-- MISCEL_1 mixed I13/G13.6 semantics are untouched.
-- no generic numeric/D-exponent authority is added.
-
-## Authority / evidence basis
-
-- `cii_v11_v14.py`: V11 ALLOWBLS 153 items/26 rows; V14 168 items/28 rows.
-- `cii_v11_v14_validate.py`: independent V14 auxiliary deltas `ALLOWBLS=28`, `SIF&TEES=14`, `REDUCERS=2`.
-- `docs/cii/cii-v14-v11-import-rca.md`: explicit repaired 28↔26 ALLOWBLS mapping and semantic SIF mapping.
-- `test_cii_v11_v14.py`: retained native pair and 28→26 / 26→28 ALLOWBLS regressions.
-- `cii2019_section_rules.py`: current V11 auxiliary authority `FORCMNT=20`, `FLANGES=12`, and physical-row-preserving `aux_block_rows()` with explicit warning not to discard blank FLANGES rows.
-- `cii2019_flanges_sync.py`: neutral-file profile states FLANGES = 72 values on 12 physical lines, including its fixed string row.
-
-## Decisions
-
-- `DEC-CII-FMT-001`: dedicated converter/independent validator/native-pair evidence outranks stale duplicate constants.
-- `DEC-CII-FMT-002`: no refactor was introduced to dynamically derive the legacy checker map. The smallest literal corrections are paired with a regression asserting complete V11 map equality to `cii2019_section_rules.py`.
-- `DEC-CII-FMT-003`: fixed-record cardinality is physical-row cardinality. Blank rows inside an auxiliary block are content, not disposable whitespace.
-- `DEC-CII-FMT-004`: no unrelated REAL token/D-exponent, converter, Writer, topology, units, or workflow changes are admitted.
-
-## Backup custody
-
-Native `node utils/backup.js save ...` is `NOT_RUN / ENVIRONMENT_BLOCKED`: this runtime cannot obtain a native checkout because DNS resolution for `github.com` fails.
-
-Before production mutation, exact main Git blobs were retained:
-
 ```text
-cii14_section_rules.py
-  main blob = fa0aed33322dd6995427bce440edbd465efcc897
-  backup blob = fa0aed33322dd6995427bce440edbd465efcc897
-
-cii_syntax_check_2019.py
-  main blob = 37f7092a0e11c775c62139254fc1001dcc9b0776
-  backup blob = 37f7092a0e11c775c62139254fc1001dcc9b0776
+CONTROL rows 1-3             = 2X,6I13
+CONTROL row 4                = 2X,I13
+CONTROL row1 field4          = NONAM
+CONTROL row2 field4          = RESTRAINT count
+ELEMENT                      = 15 rows/block V11 and V14
+RESTRANT                     = 24 rows/block V11 and V14
+SIF&TEES                     = 10 rows/block V11; 14 V14
+REDUCERS                     = 1 row/block V11; 2 V14
+MISCEL_1 mixed I13/G13.6     = untouched
+SIF item15/item16 semantics  = unchanged; owned by cii_v11_v14_sif.py
 ```
 
-Backup paths:
+No generic REAL rendering or D-exponent behavior was changed.
 
-```text
-.backups/connector-20260826-cii-format-authority/converters_scripts_cii14_section_rules.py.bak
-.backups/connector-20260826-cii-format-authority/converters_scripts_cii_syntax_check_2019.py.bak
-```
+## Authority evidence
 
-The first connector-created syntax-checker backup was not byte-identical. It was detected **before any production mutation** and corrected by commit `847064fe4939fc761cdedf26c44ded5b4347c845` by pointing the backup path directly to the exact original blob. Final custody is exact.
+The patch is grounded in the live repository sources at main `ca8d391ac5f829f53bebb3c37adf0547c34a67b4`:
 
-## Engineering implementation commits
+- `cii_v11_v14.py`: V11 ALLOWBLS 153/26; V14 168/28.
+- `cii_v11_v14_validate.py`: Ver14 `ALLOWBLS=28`, `SIF&TEES=14`, `REDUCERS=2` independent target envelope.
+- `docs/cii/cii-v14-v11-import-rca.md`: records the repaired 28↔26 ALLOWBLS and semantic SIF mapping.
+- `test_cii_v11_v14.py`: retained native-pair and ALLOWBLS 28↔26 regressions.
+- `cii2019_section_rules.py`: V11 `FORCMNT=20`, `FLANGES=12`, and explicit physical-row preservation.
+- `cii2019_flanges_sync.py`: neutral-file FLANGES definition = 72 values on 12 physical lines.
+
+## Engineering commits
 
 ```text
 f4597e8417364007a3d68f2ee21d10dd3c5d9131
-  Ver14 ALLOWBLS 26 -> 28 (+ authority comment)
+  Ver14 ALLOWBLS 26 -> 28
 
 607a4ebd27b890b83fd60e3cc9b4362952db2e2c
-  V11 FORCMNT 13 -> 20
-  V11 FLANGES 11 -> 12
+  V11 FORCMNT 13 -> 20; FLANGES 11 -> 12
 
 51004e5a24877bc07aad5ba0815e2b2c0a4ac389
-  initial five-test format-authority convergence suite
+  initial convergence/falsifier suite
 
 a2e5f5188141ce8adfdcb402869d4e699749aef2
-  preserve all physical auxiliary payload rows in legacy block validation/reporting
+  physical auxiliary row custody in validation/reporting
 
 d4af9710f1bb6f4f5550e04a02d6f7ca599ae239
-  add blank-row FLANGES validation/report falsifiers
+  blank-row FLANGES validation/report regressions
 ```
 
-Commit-diff inspection for `a2e5f5...` proves exactly two behavior changes: `_validate_blocked_section()` and `_build_report()` switch from nonblank-row filtering to physical payload-row counting. No other checker logic changed.
+Hosted patch inspection confirms:
+
+```text
+cii14_section_rules.py
+  one authority value + explanatory comment
+
+cii_syntax_check_2019.py
+  FORCMNT 13 -> 20
+  FLANGES 11 -> 12
+  two nonblank-filter -> physical-row-count changes
+
+test_cii_format_authority_convergence.py
+  new 135-line / seven-test suite
+```
+
+## Backup custody
+
+Repository-native `node utils/backup.js save ...` is `NOT_RUN / ENVIRONMENT_BLOCKED` because this runtime cannot obtain a native checkout (`github.com` DNS resolution failure).
+
+Before production mutation, exact Git preimages were retained:
+
+```text
+cii14_section_rules.py
+  original blob = fa0aed33322dd6995427bce440edbd465efcc897
+  backup blob   = fa0aed33322dd6995427bce440edbd465efcc897
+
+cii_syntax_check_2019.py
+  original blob = 37f7092a0e11c775c62139254fc1001dcc9b0776
+  backup blob   = 37f7092a0e11c775c62139254fc1001dcc9b0776
+```
+
+The first connector-side syntax-checker backup was accidentally reconstructed with unrelated lexical REAL edits. It was detected **before any production mutation** and corrected by commit `847064fe4939fc761cdedf26c44ded5b4347c845`, which points the backup path to the exact original Git blob. Final backup custody is exact.
 
 ## Issues / disposition
 
-- `ISS-CII-FMT-001`: V14 ALLOWBLS 26-vs-28 conflict — **FIXED_IN_BRANCH**.
-- `ISS-CII-FMT-002`: legacy V11 FORCMNT=13 / FLANGES=11 — **FIXED_IN_BRANCH**.
-- `ISS-CII-FMT-003`: legacy checker collapsed blank fixed rows before auxiliary block counting — **FIXED_IN_BRANCH**.
-- `RISK-CII-FMT-001`: fixed-record row-count errors can reject valid CAESAR files or admit malformed ones — mitigated by convergence/falsifier tests.
-- `RISK-CII-FMT-002`: numeric lexical validity is not equivalent to fixed-FORTRAN authority — unchanged; no generic numeric rewrite added.
+```text
+ISS-CII-FMT-001  V14 ALLOWBLS 26-vs-28 authority conflict      FIXED_IN_BRANCH
+ISS-CII-FMT-002  V11 FORCMNT=13 / FLANGES=11 stale constants FIXED_IN_BRANCH
+ISS-CII-FMT-003  blank physical aux rows collapsed by checker FIXED_IN_BRANCH
+```
 
-## Validation ledger
+## Final hosted reconciliation
 
-| Check | Status | Observation | Oracle | Notes |
-|---|---|---|---|---|
-| live main grounding | PASS | REMOTE_EXECUTION | GitHub | main stayed `ca8d391a...` through prior hosted reconciliation; recheck required before final freeze |
-| open CII-format PR overlap | PASS | REMOTE_EXECUTION | GitHub | none relevant at branch start |
-| exact pre-edit blob custody | PASS | REMOTE_EXECUTION | GitHub blob identity | both backup blobs equal main preimages |
-| production diff minimality for three constants | PASS | REMOTE_EXECUTION | GitHub commit diff | only intended row-count literals/comment |
-| blank-row behavior diff minimality | PASS | REMOTE_EXECUTION | GitHub commit diff | exactly two physical-row count sites |
-| updated seven-test Python syntax | PASS | LOCAL_EXECUTION_RECONSTRUCTED | Python `compile()` | exact authored test text compiles; not repository execution |
-| source authority cross-check | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | converter/validator/RCA/tests/section rules align |
-| native checkout | NOT_RUN | LOCAL_EXECUTION | NONE | DNS cannot resolve github.com |
-| native backup command | NOT_RUN | NOT_OBSERVED | NONE | exact checkout unavailable |
-| focused regression in exact repo checkout | NOT_RUN | NOT_OBSERVED | NONE | exact checkout unavailable |
-| full CII Python regression suite | NOT_RUN | NOT_OBSERVED | NONE | exact checkout unavailable |
-| actual CAESAR import | NOT_RUN | NOT_OBSERVED | NONE | no runtime acceptance claim made |
+Observed before handoff freeze:
 
-No `NOT_RUN` entry is represented as PASS.
+```text
+main                                      ca8d391ac5f829f53bebb3c37adf0547c34a67b4
+PR                                        #702
+state                                     OPEN
+DRAFT                                     true
+merged                                    false
+mergeable                                 true
+changed files                             8
+reviews                                   0
+review threads                            0
+PR-triggered workflow runs                0
+merge authority                           NOT GRANTED
+```
 
-## Changed-file ledger
+Exact hosted changed-file set:
 
 ```text
 .backups/connector-20260826-cii-format-authority/converters_scripts_cii14_section_rules.py.bak
 .backups/connector-20260826-cii-format-authority/converters_scripts_cii_syntax_check_2019.py.bak
 agents/PR702_workreport.md
-agents/status/PR702.yaml
 agents/claims/PR702.yaml
+agents/status/PR702.yaml
 converters/scripts/cii14_section_rules.py
 converters/scripts/cii_syntax_check_2019.py
 converters/scripts/test_cii_format_authority_convergence.py
 ```
 
+## Validation ledger
+
+| Check | Status | Observation | Oracle | Notes |
+|---|---|---|---|---|
+| live main / PR grounding | PASS | REMOTE_EXECUTION | GitHub | base unchanged, PR open/draft/mergeable |
+| exact pre-edit backup identity | PASS | REMOTE_EXECUTION | Git blob SHA | exact byte custody |
+| final hosted changed-file scope | PASS | REMOTE_EXECUTION | GitHub PR | exactly eight files |
+| three authority-value patch | PASS | REMOTE_EXECUTION | hosted patch | bounded values only |
+| physical-row behavior patch | PASS | REMOTE_EXECUTION | hosted patch | exactly two count sites |
+| seven-test source syntax | PASS | LOCAL_EXECUTION_RECONSTRUCTED | Python `compile()` | exact authored test text; not repo execution |
+| authority cross-check | PASS | SOURCE_INSPECTION | repository qualified sources | values/record semantics converge |
+| reviews / threads | PASS | REMOTE_EXECUTION | GitHub | none outstanding |
+| PR-triggered workflow runs | NOT_RUN | REMOTE_OBSERVATION | GitHub | zero runs exist; not a PASS substitute |
+| exact native checkout | NOT_RUN | LOCAL_EXECUTION | NONE | DNS environment block |
+| repository-native focused test | NOT_RUN | NOT_OBSERVED | NONE | exact checkout unavailable |
+| full CII Python regression suite | NOT_RUN | NOT_OBSERVED | NONE | exact checkout unavailable |
+| actual CAESAR import | NOT_RUN | NOT_OBSERVED | NONE | no external acceptance claim |
+
+No `NOT_RUN` is promoted to PASS.
+
+## Current verdict
+
+```text
+ENGINEERING PATCH          IMPLEMENTED
+SOURCE AUTHORITY           RECONCILED
+HOSTED PATCH SCOPE         CLEAN
+REGRESSION FALSIFIERS      AUTHORED
+EXACT PYTHON EXECUTION     NOT_RUN_ENVIRONMENT
+PR STATE                   DRAFT / HANDOVER_READY
+MERGE                      NOT AUTHORIZED
+```
+
 ## EXACT_NEXT_ACTION
 
-Re-ground live `main`, PR702 head/draft/mergeability, eight-file scope, reviews/threads, and hosted check state. If no exact executable checkout becomes available, leave focused/full Python tests `NOT_RUN`, keep PR702 draft/unmerged, mark the recovery package handover-ready, and stop AUTO at the environment boundary.
+On an exact checkout:
+
+```text
+cd converters/scripts
+python test_cii_format_authority_convergence.py
+```
+
+Then run adjacent V11/V14 converter, mixed-record, section-rule, flange, and merge regression suites. Record genuine PASS/FAIL in this report/status. If all required gates pass, the PR can be considered for ready-for-review; merging still requires explicit Owner authorization.
 
 ## Appendix A — takeover qualification
 
-Any incoming agent must answer from live PR702/repository state before further engineering mutation:
+Incoming agent must answer from live repository/PR702 state before further engineering mutation:
 
-1. State current `main`, PR702 head, draft state, merge authority, and exact changed-file list.
-2. Prove Ver14 ALLOWBLS = 28 rows/168 items using converter + independent validator + RCA/tests; identify the stale 26-row source repaired here.
-3. Prove V11 FORCMNT=20 and FLANGES=12 and show why FLANGES cardinality is **physical 12 rows even if one row is blank**.
-4. Trace CONTROL row1/field4 NONAM versus row2/field4 RESTRAINT in 1-based neutral-file and zero-based implementation notation.
-5. Explain why SIF&TEES is not a simple 10↔14 truncation/extension and state item 15/16 semantic swap.
-6. Confirm PR702 does not broaden numeric lexical formatting, D-exponent parsing, converter semantics, Writer authority, topology, units, or workflows.
-7. Reconcile validation truth: distinguish remote/source/reconstructed-syntax PASS from exact repository runtime `NOT_RUN`.
-8. Verify both exact pre-edit backup blob identities and explain the corrected initial backup-custody incident.
-9. Inspect the blank-row regression and show that 12 physical FLANGES rows with one blank pass while 11 physical rows fail.
+1. State current main, PR702 head, draft/merge state, merge authority, and exact changed-file list.
+2. Prove Ver14 ALLOWBLS = 168 items / 28 rows and identify the stale 26-row authority repaired here.
+3. Prove V11 FORCMNT=20 and FLANGES=12, and explain why blank fixed rows must remain in physical block cardinality.
+4. Trace CONTROL row1/field4 NONAM and row2/field4 RESTRAINT in 1-based neutral-file and zero-based implementation notation.
+5. Explain the V11/V14 SIF&TEES 10/14 row difference and item15/item16 semantic swap.
+6. Confirm no converter, Writer, topology, units, generic numeric, D-exponent, or workflow authority was widened.
+7. Distinguish remote/source/reconstructed-syntax PASS from exact repository runtime NOT_RUN.
+8. Verify both backup blob identities and explain the corrected initial backup-custody incident.
+9. Show the blank-row falsifier: 12 physical FLANGES rows with one blank pass; 11 physical rows fail.
 
 No merge action is permitted without explicit Owner authorization.
