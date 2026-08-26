@@ -1,0 +1,38 @@
+schema: engineering-pr-status/v1
+pr: 702
+repository: reallaksh19/3D_Converters
+branch: agent/cii-fortran-format-authority-fix-20260826
+base_branch: main
+base_sha: ca8d391ac5f829f53bebb3c37adf0547c34a67b4
+pr_head_at_allocation: 62d89116dddfc59d3a5e0aa3eeee54f9cc802179
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+execution_mode: AUTO
+auto_state: RUNNING
+mutation_authority: WRITE_ALLOWED_BOUNDED
+merge_authority: OWNER_ONLY_NOT_GRANTED
+recovery_state: CONTINUE
+coordination: SAFE
+stage: HOSTED_PR_RECONCILIATION
+pr_state: OPEN_DRAFT
+mission: >-
+  Reconcile stale CAESAR CII fixed-FORTRAN row-count authorities with already-qualified
+  V11/V14 converter, validator, native-pair and CII2019 section-rule evidence.
+production_authority:
+  cii14_section_rules_allowbls_width: CORRECT_26_TO_28
+  cii2019_syntax_forcmnt_width: CORRECT_13_TO_20
+  cii2019_syntax_flanges_width: CORRECT_11_TO_12
+  converter_semantics: NO_CHANGE
+  writer_runtime: NO_CHANGE
+  topology: NO_CHANGE
+  units: NO_CHANGE
+  workflows: NO_CHANGE
+validation:
+  exact_backup_blob_identity: PASS_REMOTE
+  production_diff_minimality: PASS_REMOTE
+  new_test_python_compile: PASS_LOCAL_RECONSTRUCTED
+  repository_native_focused_tests: NOT_RUN_ENVIRONMENT
+  repository_native_full_tests: NOT_RUN_ENVIRONMENT
+exact_next_action: >-
+  Retire WIP-named artifacts, reconcile hosted PR702 file/diff/review/check state,
+  and do not merge without explicit Owner authorization.
