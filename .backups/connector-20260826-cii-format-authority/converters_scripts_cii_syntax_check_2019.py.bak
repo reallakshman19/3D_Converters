@@ -30,7 +30,7 @@ except ImportError:
 SECTION_HEADER_RX = re.compile(r"^\s*#\$\s+([A-Z0-9_&]+)\s*$")
 INTEGER_TOKEN_RX = re.compile(r"^[+-]?\d+$")
 REAL_TOKEN_RX = re.compile(
-    r"^[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?|\d+[EeDd][-+]?\d+)$"
+    r"^[+-]?(?:(?:\d+\.\d*|\d*\.\d+|\d+)(?:[Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)$"
 )
 
 EXPECTED_SECTION_ORDER = [
@@ -146,7 +146,7 @@ def _is_real(token: str) -> bool:
 def _real_value(token: str) -> float:
     if not _is_real(token):
         raise ValueError(f"Token is not a real number: {token}")
-    return float(token.replace("D", "E").replace("d", "e"))
+    return float(token)
 
 
 def _ceil_div(value: int, divisor: int) -> int:
@@ -786,7 +786,7 @@ def _validate_units(section: Section | None, errors: list[dict[str, object]]) ->
                     f"UNITS numeric row {row_index} has non-real token '{token}'.",
                 )
                 break
-            numeric_values.append(_real_value(token))
+            numeric_values.append(float(token))
 
     if numeric_values and all(abs(value) < 1e-12 for value in numeric_values):
         _add_error(
@@ -1143,7 +1143,7 @@ def _validate_c2_risk_tokens(sections: list[Section], errors: list[dict[str, obj
                     continue
                 if not _is_real(token):
                     continue
-                value = _real_value(token)
+                value = float(token)
                 if abs(value - CAESAR_INPUTXML_MISSING_SENTINEL) < 1e-6:
                     _add_error(
                         errors,
