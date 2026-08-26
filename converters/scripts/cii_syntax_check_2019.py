@@ -89,14 +89,14 @@ BLOCK_LINES_PER_SECTION = {
     "EXPJT": 1,
     "RESTRANT": 24,
     "DISPLMNT": 20,
-    "FORCMNT": 13,
+    "FORCMNT": 20,
     "UNIFORM": 6,
     "WIND": 1,
     "OFFSETS": 1,
     "ALLOWBLS": 26,
     "SIF&TEES": 10,
     "REDUCERS": 1,
-    "FLANGES": 11,
+    "FLANGES": 12,
     "EQUIPMNT": 6,
 }
 
