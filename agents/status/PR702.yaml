@@ -4,16 +4,15 @@ repository: reallaksh19/3D_Converters
 branch: agent/cii-fortran-format-authority-fix-20260826
 base_branch: main
 base_sha: ca8d391ac5f829f53bebb3c37adf0547c34a67b4
-pr_head_at_allocation: 62d89116dddfc59d3a5e0aa3eeee54f9cc802179
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 execution_mode: AUTO
-auto_state: RUNNING
+auto_state: STOPPED_ENVIRONMENT_BOUNDARY
 mutation_authority: WRITE_ALLOWED_BOUNDED
 merge_authority: OWNER_ONLY_NOT_GRANTED
-recovery_state: CONTINUE
+recovery_state: HANDOVER_READY
 coordination: SAFE
-stage: FINAL_HOSTED_RECONCILIATION
+stage: DRAFT_HANDOVER_READY_RUNTIME_NOT_RUN
 pr_state: OPEN_DRAFT
 mission: >-
   Reconcile stale CAESAR CII fixed-FORTRAN row-count and physical-row custody authorities
@@ -27,16 +26,27 @@ production_authority:
   writer_runtime: NO_CHANGE
   topology: NO_CHANGE
   units: NO_CHANGE
+  generic_numeric_semantics: NO_CHANGE
   workflows: NO_CHANGE
+hosted_reconciliation:
+  main_sha: ca8d391ac5f829f53bebb3c37adf0547c34a67b4
+  changed_files: 8
+  reviews: 0
+  review_threads: 0
+  pr_triggered_workflow_runs: 0
+  draft: true
+  merged: false
+  mergeable: true
 validation:
   exact_backup_blob_identity: PASS_REMOTE
-  production_diff_minimality: PASS_REMOTE
-  updated_test_python_compile: PASS_LOCAL_RECONSTRUCTED
-  blank_row_regression_authored: PASS_SOURCE_INSPECTION
+  hosted_production_patch_scope: PASS_REMOTE
+  blank_row_patch_minimality: PASS_REMOTE
+  seven_test_python_compile: PASS_LOCAL_RECONSTRUCTED
+  source_authority_crosscheck: PASS_SOURCE_INSPECTION
   repository_native_focused_tests: NOT_RUN_ENVIRONMENT
   repository_native_full_tests: NOT_RUN_ENVIRONMENT
   actual_caesar_import: NOT_RUN_ENVIRONMENT
 exact_next_action: >-
-  Reconcile hosted PR702 head/files/diff/review/check state after the blank-row fix;
-  if no exact executable checkout becomes available, mark the draft handover-ready with
-  focused/full runtime tests explicitly NOT_RUN and do not merge without Owner authorization.
+  On an exact checkout, run converters/scripts/test_cii_format_authority_convergence.py and
+  the adjacent CII V11/V14 regression suites; record actual PASS/FAIL. Keep PR702 draft and
+  do not merge unless Owner authorization is explicitly granted.
