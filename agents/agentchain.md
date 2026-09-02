@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0016 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0016.md | #709 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Execute the focused PR709 installation-strength tests against an exact native repository checkout; preserve NOT_RUN if that environment remains unavailable. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0017 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0017.md | #711 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the PR709 installation-strength tests plus the PR711 central registry regression on an exact stacked checkout; after PASS, wait for PR709 owner disposition before re-grounding PR711 onto main. |
 
 ## ENDPOINT LOG
 
@@ -28,3 +28,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0014 | ENGCALC-BOLTED-JOINTS | LEG-01 | 014a4beb5908de60d4ed6f46456918868475515f | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0014.md |
 | EP-0015 | ENGCALC-BOLTED-JOINTS | LEG-02 | 71fcf551713e447542aaf644e3cab5c5e8e283ea | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0015.md |
 | EP-0016 | ENGCALC-BOLTED-JOINTS | LEG-02 | 6ff6e56fee4444908bbb877bca6dc67bacd8db87 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0016.md |
+| EP-0017 | ENGCALC-BOLTED-JOINTS | LEG-03 | e3c38ab22409db2e5afbda76f8948cbe6001d31b | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0017.md |
