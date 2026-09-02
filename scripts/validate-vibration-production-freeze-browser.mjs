@@ -14,6 +14,10 @@ const TIMEOUT = 45_000;
 const FIT_BENCHMARK_ID = 'EI-D2-FIT-RECYCLE-SUCTION-6IN';
 const FIT_BENCHMARK = VIBRATION_FIT_UI_BENCHMARK_CASES.find((entry) => entry.id === FIT_BENCHMARK_ID);
 const MECHANICAL_EXPECTED_LOF = 0.4;
+const MECHANICAL_SCREENING_AUTHORITY = 'AUTHORIZED';
+const MECHANICAL_AUTHORITY_SCOPE = 'DIRECT_TABLE_T2_3_BASELINE_ONLY';
+const MECHANICAL_QUALIFICATION_RECORD = 'ValidationRecords/VibrationIntegrity/mechanical-t23-direct-screening-qualification-v1.json';
+const MECHANICAL_ORACLE_ID = 'VIB-MECH-PROC-ORACLE-01';
 
 if (!FIT_BENCHMARK) throw new Error(`Missing controlled FIT benchmark ${FIT_BENCHMARK_ID}.`);
 
@@ -119,22 +123,32 @@ async function runMechanicalBenchmark(page, receipt) {
   await page.locator('[data-vi-mechanical-source="CENTRIFUGAL_COMPRESSOR"]').check();
   await page.locator('[data-vi-mechanical-source="ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW"]').check();
   await click(page.locator('[data-vi-mechanical-evaluate]'));
-  await page.waitForFunction(() => document.body.innerText.includes('Candidate LOF'), null, { timeout: TIMEOUT });
+  await page.waitForFunction(() => document.body.innerText.includes('Screening LOF'), null, { timeout: TIMEOUT });
   const text = await page.locator('.vi-root').innerText();
-  const actual = numberFrom(text, 'Candidate LOF');
+  const actual = numberFrom(text, 'Screening LOF');
   assert.equal(actual, MECHANICAL_EXPECTED_LOF);
   assert.match(text, /ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW/u);
-  assert.match(text, /CANDIDATE/u);
+  assert.match(text, /Authority\s*SCREENING/u);
+  assert.match(text, /Qualified direct Table T2-3 screening/u);
   step(receipt, {
     id: 'PF-005',
-    name: 'Evaluate Mechanical T2.3 against EI D2.4 oracle',
+    name: 'Evaluate qualified Mechanical T2.3 direct screening against EI D2.4 oracle',
     screenshot: await shot(page, '05-mechanical-result.png'),
     benchmark: {
       id: 'EI-D2.4-MECHANICAL-EXCITATION',
+      oracleId: MECHANICAL_ORACLE_ID,
       expectedGoverningLof: MECHANICAL_EXPECTED_LOF,
       actualGoverningLof: actual,
       sources: ['CENTRIFUGAL_COMPRESSOR', 'ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW'],
       result: 'PASS',
+    },
+    authority: {
+      engineeringAuthority: 'SCREENING',
+      screeningAuthority: MECHANICAL_SCREENING_AUTHORITY,
+      authorityScope: MECHANICAL_AUTHORITY_SCOPE,
+      sharedSupportTransferAuthorized: false,
+      dynamicReductionAuthorized: false,
+      designAuthority: false,
     },
   });
 }
@@ -145,14 +159,20 @@ async function verifyAuthority(page, receipt) {
   await workspace.waitFor({ state: 'visible', timeout: TIMEOUT });
   const text = await workspace.innerText();
   assert.match(text, /FIT\s*·\s*[0-9.]+/u);
-  assert.match(text, /Mechanical\s*·\s*0\.4\s*·\s*CANDIDATE/u);
-  assert.match(text, /0\.4[\s\S]*CANDIDATE MASTER/u);
-  assert.doesNotMatch(text, /Mechanical\s*·\s*0\.4[\s\S]*Screening governing/u);
+  assert.match(text, /Mechanical\s*·\s*0\.4/u);
+  assert.doesNotMatch(text, /Mechanical\s*·\s*0\.4\s*·\s*CANDIDATE/u);
+  assert.match(text, /Partial screening evidence|Current screening evidence/u);
   step(receipt, {
     id: 'PF-006',
-    name: 'Verify candidate cannot replace screening governing',
+    name: 'Verify bounded Mechanical screening can govern without design or excluded-rule promotion',
     screenshot: await shot(page, '06-governing-matrix.png'),
-    authority: { designAuthority: false, candidateMayReplaceScreeningGoverning: false },
+    authority: {
+      mechanicalScreeningAuthority: MECHANICAL_SCREENING_AUTHORITY,
+      mechanicalAuthorityScope: MECHANICAL_AUTHORITY_SCOPE,
+      sharedSupportTransferAuthorized: false,
+      dynamicReductionAuthorized: false,
+      designAuthority: false,
+    },
   });
 }
 
@@ -192,9 +212,12 @@ async function main() {
     sources: {
       fit: VIBRATION_FIT_UI_BENCHMARK_SOURCE,
       mechanical: EI_AVIFF_APPENDIX_B_SOURCE,
+      mechanicalQualificationRecord: MECHANICAL_QUALIFICATION_RECORD,
+      mechanicalOracleId: MECHANICAL_ORACLE_ID,
       mechanicalOracleTests: [
         'tests/vibration-appendix-b-worked-example-stage3.test.mjs',
         'tests/vibration-mechanical-ei-worked-examples.test.mjs',
+        'tests/vibration-mechanical-t23-qualification-record.test.mjs',
       ],
     },
     steps: [],
