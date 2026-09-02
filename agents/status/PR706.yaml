@@ -7,8 +7,8 @@ auto_state: DETAILED_FRICTION_REFERENCE_COMPLETE
 scope_authority: LOCKED_TO_APPROVED_MISSION
 branch: agent/engcalc-bolted-joints-phase1-20260902
 base_main: bff53e336bdbddbe0fb829b7991ca5ed27fc836a
-latest_material_head: c6f5b2117bf4b98428227105227119117362f77d
-latest_endpoint: EP-0013
+latest_material_head: 014a4beb5908de60d4ed6f46456918868475515f
+latest_endpoint: EP-0014
 engineering_critical: true
 authority_domain: flange-and-bolted-joint-calculations
 coordination_state: SAFE_FOR_BOUNDED_NEW_FILE_SCOPE
@@ -28,6 +28,7 @@ bolts:
   bolt_group_state: LINEAR_REFERENCE_ONLY
   detailed_friction_state: REFERENCE_KERNEL_ONLY
   detailed_friction_registry_integrated: false
+  legacy_geometry_scope: 60_DEGREE_INCLUDED_THREAD_ONLY
   installation_combined_stress_state: NOT_IMPLEMENTED
 source_authority:
   asme_bpvc_viii_1_2025_edition_identity: PASS_OFFICIAL_PUBLIC_METADATA
@@ -41,7 +42,7 @@ validation:
   base_drift: PASS_ZERO_BEHIND
   focused_existing_flange_bolt_source_reconstructed: PASS_36_OF_36
   ug44_registry_equivalent_source_reconstructed: PASS_3_OF_3
-  detailed_friction_source_reconstructed: PASS_8_OF_8
+  detailed_friction_source_reconstructed: PASS_9_OF_9
   detailed_friction_cli_source_reconstructed: PASS
   hosted_checkout_node22: PASS
   hosted_registry_initialization: PASS_INDIRECT_INTEGRATION_EVIDENCE
@@ -52,8 +53,11 @@ validation:
   browser: NOT_RUN
   independent_engineering_review: NOT_RUN
 backup:
-  native_pre_edit: NOT_RUN_ENVIRONMENT_BLOCKED
-  connector_exact_copies: PRESENT_NOT_POLICY_EQUIVALENT
+  detailed_friction_pre_edit_command: EXECUTED_RECONSTRUCTED_WORKSPACE
+  detailed_friction_exact_repo_backup: .backups/2_converters_engineering_calculations_bolts_detailed_friction_js.bak
+  connector_exact_copies: PRESENT
+  exact_native_checkout_backup_context: NOT_AVAILABLE
+  central_registry_index_native_pre_edit: NOT_RUN_ENVIRONMENT_BLOCKED
 authority_boundary:
   code_compliance: false
   design_authority: false
