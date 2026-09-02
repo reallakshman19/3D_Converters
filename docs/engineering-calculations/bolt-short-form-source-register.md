@@ -51,6 +51,34 @@ These are retained as secondary references, not controlled governing sources.
 5. **Gasketed flange assembly needs additional checks.** Gasket seating/contact, flange rotation, bolt interaction, relaxation and tightening sequence are outside the present short-form kernel.
 6. **Installation torsional stress is not evaluated yet.** The kernel explicitly reports `installationTorsionalStressEvaluated=false`.
 
+## Frozen workbook oracle
+
+`Bolt Torques.xls` is now committed at `docs/flange/Bolt Torques(1).xls` and
+hash-pinned by the source archive. `tests/bolt-torque-workbook-oracles.test.mjs`
+freezes its BS 3580 Appendix B eq. 2 table against
+`tests/fixtures/bolt-torque-workbook-oracles.json`.
+
+Reproduced exactly (relative error `< 1e-9`) at the sheet's stated `K = 0.15`:
+the `Min` (0.5 yield) and `Max` (0.8 yield) columns for grades
+`4.6/304/316` (230 MPa), `8.8` (620 MPa) and `B7` (730 MPa), across all 14
+thread sizes — 84 cells.
+
+Two columns are **deliberately excluded** rather than transcribed:
+
+| Excluded | Why | Consequence |
+|---|---|---|
+| `Design` (0.7 yield) column | Hand-rounded, not computed: 33 of 42 cells differ from `T = K·As·σy·f·d`, worst `+6.29%` (M12 grade 8.8: formula `65.86 N·m`, table `70.00 N·m`) | Deviations are predominantly positive, so the tabulated value **exceeds** the 0.7-yield target it claims. Derive from the formula; never read that column |
+| `Titanium` grade | Does not follow from the sheet's own stated `275 MPa` at the stated `K = 0.15`. Reproduces at either `366.67 MPa` with `K = 0.15` or `275 MPa` with `K = 0.2`; the readings are indistinguishable from cell values alone | Titanium torque data from this source is `UNRESOLVED` and must not be used until the intended yield/nut-factor pair is confirmed |
+
+The suite asserts both exclusions positively — that the `Design` column *does*
+deviate and that the stated Titanium yield *does not* reproduce — so a later
+silent transcription of either cannot pass unnoticed.
+
+The lubricant nut-factor table (`0.12` solid PTFE film to `0.30` unlubricated
+clean stainless) is frozen as a range check only. It remains reference data:
+selecting a `K` for a real joint still requires the qualified friction basis
+listed below.
+
 ## Authority gates before production design use
 
 - qualified thread/stress-area basis;

@@ -51,7 +51,7 @@ filenames. None of them is a governing Code source.
 | `Flange Rating Vs Nozzle loads -Rev.3.xlsx` | UG-44(b) row check per size/class. Visible sheet `#150`, hidden `#300`/`#600`/`#900`, hidden `Sheet1` master table, hidden `Sheet2` pipe-stress record schema | Primary basis for the UG-44 row semantics and the 3D integration record shape | Master-data authority; the row loads are project scenario data |
 | `Flange UG 44(1).xlsx` | 84 rows (21 sizes × classes 150/300/600/900) of `G`, gasket ID/OD, `PR`, `PD`, `FM` | Regression fixture (`tests/fixtures/flange-ug44-workbook-rows.json`) | An independent second source — it is byte-equivalent in content to the hidden `Sheet1` above |
 | `Nozzle Flange MAWP Results-C101 (1).pdf` | PV Elite 28 nozzle-flange MAWP report, tabulating `G`, `FM`, `ME`, `FE`, `PD`, `Pmax` per nozzle | Cross-solver benchmark (already exercised in `tests/flange-ug44-core.test.mjs`) | Exact table reconstruction — displayed inputs are rounded |
-| `bolt Paper-65.pdf` | Conference paper, method provenance for external loads on flanged joints | Background and provenance | Code or design authority |
+| `bolt Paper-65.pdf` | *The effect of bolt tightening methods and sequence on the performance of gasketed bolted flange joint assembly* — tightening method/sequence vs. achieved preload scatter, bolt bending, gasket contact stress | Assembly-model evidence for P7 (preload scatter, tightening sequence); supports treating preload as primary and torque as one assembly method | Code or design authority; results are specific to the flange configuration studied |
 | `Bolt Torque Calc(1).xls` | Detailed V-thread torque calculation for a 1"–8UN stud: thread geometry, lead angle, nut bearing geometry, decomposed nut factor | Basis for `bolts/detailed-friction.js` legacy comparator | Design authority; see the unit defect below |
 | `Bolt Torques(1).xls` | BS 3580 Appendix B eq. 2 short-form torques, nut-factor table by lubricant, yield table by bolt grade, torque table M6–M27+ | Basis for `bolts/short-form.js` | Direct transcription of its `Design` column — see the rounding note below |
 | `3427571_A Standard pipe supports Bolted.xls` | Clamped pipe-shoe friction-grip capacity and clamp bolt torque (Kellogg 3810, Shigley ch. 8) | Pipe-support clamp sizing reference; third torque instance at `K = 0.2` | **The LEG-04 3D bolt group.** It contains no bolt-group load distribution — see #721 |
@@ -78,14 +78,25 @@ later transcription silently inherits them.
    is high by `0.25%`. The `ft·lb` value is the self-consistent one and is what
    `bolts/detailed-friction.js` reproduces.
 
-3. **`Bolt Torques(1).xls` `Design` columns are hand-rounded, not computed.**
-   The `Min` (0.5 yield) and `Max` (0.8 yield) columns reproduce
-   `T = K·As·σy·f·d` exactly; the `Design` (0.7 yield) column is rounded to one
-   or two significant figures and departs from the formula by up to ~4%
-   (M16 grade 8.8: formula `163.5 N·m`, table `160 N·m`). Transcribe the
-   formula, not that column.
+3. **`Bolt Torques(1).xls` `Design` column is hand-rounded, not computed, and
+   rounds the unsafe way.** The `Min` (0.5 yield) and `Max` (0.8 yield) columns
+   reproduce `T = K·As·σy·f·d` exactly at the stated `K = 0.15`. The `Design`
+   (0.7 yield) column does not: **33 of its 42** reproducible-grade cells differ
+   from the formula, worst **+6.29%** (M12 grade 8.8: formula `65.86 N·m`,
+   table `70.00 N·m`). The deviations are predominantly *positive*, so the
+   tabulated Design torque exceeds the 0.7-yield target it claims to represent.
+   Transcribe the formula, never that column.
 
-4. **`Flange UG 44(1).xlsx` is not an independent source.** Its content matches
+4. **`Bolt Torques(1).xls` Titanium column does not follow from its own stated
+   yield.** The sheet prints `Titanium = 275 N/mm²` and `Nut Factor used = 0.15`,
+   but its Titanium torques need an effective `σy·K` product 33% higher — they
+   reproduce exactly at either `366.67 MPa` with `K = 0.15`, or `275 MPa` with
+   `K = 0.2`. The two readings cannot be separated from cell values alone
+   (the formulas are not recoverable), so the grade is **excluded from
+   exact-match assertions** and flagged unresolved. The other three grades
+   (`4.6/304/316` at 230, `8.8` at 620, `B7` at 730 MPa) reproduce exactly.
+
+5. **`Flange UG 44(1).xlsx` is not an independent source.** Its content matches
    the hidden `Sheet1` of the Rev.3 workbook. Treating the two as mutually
    corroborating would double-count one source.
 

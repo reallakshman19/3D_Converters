@@ -228,6 +228,26 @@ The focused analytical tests are independent hard-coded constructions, not expec
 - exact versus legacy-linearized distinction;
 - fail-closed invalid geometry and singular denominator.
 
+### Frozen workbook oracle
+
+The legacy workbook is now committed at `docs/flange/Bolt Torque Calc(1).xls` and
+hash-pinned by the source archive. `tests/bolt-torque-workbook-oracles.test.mjs`
+freezes its 1"–8UN case against
+`tests/fixtures/bolt-torque-workbook-oracles.json` and asserts the kernel
+reproduces, to within 1e-12 relative:
+
+- thread geometry `H`, `Es`, `Ks`, `As` and the lead angle;
+- each of the three nut-factor components (pitch `0.019894`, thread friction
+  `0.058352`, bearing friction `0.077528`), summing to `K = 0.155774`;
+- the torque `357.494 ft·lb`.
+
+**Unit defect pinned deliberately.** The workbook also carries a `485.911 N·m`
+cell for the same result, which is inconsistent with its own `ft·lb` value by
+`0.25%` (the correct conversion is `484.697 N·m`). The oracle asserts the kernel
+matches the `ft·lb` value and *does not* match the `N·m` cell, with the gap
+bounded to `0.2%–0.3%`, so neither a silent kernel change nor a silent
+"correction" of the workbook can pass unnoticed.
+
 ## Qualification state
 
 ```text

@@ -79,14 +79,30 @@ test('sources cited by the UG-44 workbook basis module are present and unaltered
   }
 });
 
+function assertCitedSource(source, label) {
+  const name = path.posix.basename(source.path);
+  const entry = manifest.find((item) => item.name === name);
+
+  assert.ok(entry, `${label} cites ${source.path}, which is not in the archive manifest.`);
+  assert.equal(entry.sha256, source.sha256, `${label} cites a stale hash for ${source.path}.`);
+  assert.equal(sha256OfFile(name), source.sha256);
+}
+
 test('the transcribed UG-44 fixture cites a source that is present and unaltered', () => {
   const fixture = JSON.parse(
     fs.readFileSync(new URL('./fixtures/flange-ug44-workbook-rows.json', import.meta.url), 'utf8'),
   );
-  const name = path.posix.basename(fixture.source.path);
-  const entry = manifest.find((item) => item.name === name);
+  assertCitedSource(fixture.source, 'the UG-44 row fixture');
+});
 
-  assert.ok(entry, 'the UG-44 fixture cites a source that is not in the archive manifest.');
-  assert.equal(entry.sha256, fixture.source.sha256);
-  assert.equal(sha256OfFile(name), fixture.source.sha256);
+test('every bolt torque oracle cites a source that is present and unaltered', () => {
+  const fixture = JSON.parse(
+    fs.readFileSync(new URL('./fixtures/bolt-torque-workbook-oracles.json', import.meta.url), 'utf8'),
+  );
+  const oracles = Object.entries(fixture.oracles);
+  assert.equal(oracles.length, 3);
+
+  for (const [name, oracle] of oracles) {
+    assertCitedSource(oracle.source, `the ${name} oracle`);
+  }
 });
