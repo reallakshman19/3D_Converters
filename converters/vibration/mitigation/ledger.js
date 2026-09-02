@@ -29,6 +29,10 @@ export const VIBRATION_MITIGATION_LEDGER_AUTHORITY = Object.freeze({
   blocksPersistence: false,
 });
 
+const LEDGER_KEYS = Object.freeze(['schema', 'records', 'authority']);
+const PROPOSAL_RECORD_KEYS = Object.freeze(['sequence', 'entryType', 'recordId', 'projectId', 'proposal']);
+const IMPLEMENTATION_RECORD_KEYS = Object.freeze(['sequence', 'entryType', 'recordId', 'projectId', 'implementation']);
+
 function ledgerError(code, message, details = {}) {
   const error = new Error(message);
   error.name = 'VibrationMitigationLedgerError';
@@ -49,9 +53,21 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+function exactKeys(value, expectedKeys, code, field) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw ledgerError(code, `${field} must be an object.`, { field });
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw ledgerError(code, `${field} contains missing or unsupported fields.`, { field, actual, expected });
+  }
+}
+
 function authority(value) {
+  exactKeys(value, Object.keys(VIBRATION_MITIGATION_LEDGER_AUTHORITY), 'VIBRATION_MITIGATION_LEDGER_AUTHORITY_INVALID', 'ledger.authority');
   for (const [key, expected] of Object.entries(VIBRATION_MITIGATION_LEDGER_AUTHORITY)) {
-    if (value?.[key] !== expected) {
+    if (value[key] !== expected) {
       throw ledgerError('VIBRATION_MITIGATION_LEDGER_AUTHORITY_INVALID', `Mitigation ledger authority mismatch at ${key}.`, { key });
     }
   }
@@ -74,7 +90,8 @@ export function createVibrationMitigationLedger() {
 }
 
 export function assertVibrationMitigationLedger(value) {
-  if (value?.schema !== VIBRATION_MITIGATION_LEDGER_SCHEMA || !Array.isArray(value.records)) {
+  exactKeys(value, LEDGER_KEYS, 'VIBRATION_MITIGATION_LEDGER_SCHEMA_INVALID', 'ledger');
+  if (value.schema !== VIBRATION_MITIGATION_LEDGER_SCHEMA || !Array.isArray(value.records)) {
     throw ledgerError('VIBRATION_MITIGATION_LEDGER_SCHEMA_INVALID', `Expected ${VIBRATION_MITIGATION_LEDGER_SCHEMA}.`);
   }
   authority(value.authority);
@@ -87,6 +104,7 @@ export function assertVibrationMitigationLedger(value) {
       throw ledgerError('VIBRATION_MITIGATION_LEDGER_SEQUENCE_INVALID', 'Mitigation ledger records must be globally contiguous.');
     }
     if (record.entryType === 'PROPOSAL') {
+      exactKeys(record, PROPOSAL_RECORD_KEYS, 'VIBRATION_MITIGATION_LEDGER_RECORD_SHAPE_INVALID', 'proposal record');
       const proposal = assertVibrationMitigationProposal(record.proposal);
       if (proposal.projectId !== projectId) {
         throw ledgerError('VIBRATION_MITIGATION_LEDGER_PROJECT_MISMATCH', 'Mitigation proposal project does not match ledger record scope.');
@@ -102,6 +120,7 @@ export function assertVibrationMitigationLedger(value) {
       return;
     }
     if (record.entryType === 'IMPLEMENTATION') {
+      exactKeys(record, IMPLEMENTATION_RECORD_KEYS, 'VIBRATION_MITIGATION_LEDGER_RECORD_SHAPE_INVALID', 'implementation record');
       const implementation = assertVibrationMitigationImplementation(record.implementation);
       if (implementation.projectId !== projectId) {
         throw ledgerError('VIBRATION_MITIGATION_LEDGER_PROJECT_MISMATCH', 'Mitigation implementation project does not match ledger record scope.');
