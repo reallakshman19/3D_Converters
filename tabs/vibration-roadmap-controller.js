@@ -10,6 +10,14 @@ import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap
 import { createVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
 import {
+  VIBRATION_ROADMAP_DEFAULT_WIDTH,
+  VIBRATION_ROADMAP_MAX_WIDTH,
+  VIBRATION_ROADMAP_MIN_WIDTH,
+  clampVibrationRoadmapWidth,
+  loadVibrationRoadmapPresentationPreference,
+  saveVibrationRoadmapPresentationPreference,
+} from './vibration-roadmap-presentation-preference.js';
+import {
   captureVibrationRoadmapViewState,
   restoreVibrationRoadmapViewState,
 } from './vibration-roadmap-view-state.js';
@@ -18,17 +26,14 @@ import { resolveVibrationRoadmapScopeSelection } from './vibration-roadmap-scope
 
 export const VIBRATION_ROADMAP_STATE_EVENT = 'vibration-roadmap-state';
 export const VIBRATION_PROJECT_CHANGED_EVENT = 'vibration-project-changed';
-export const VIBRATION_ROADMAP_MIN_WIDTH = 260;
-export const VIBRATION_ROADMAP_DEFAULT_WIDTH = 320;
-export const VIBRATION_ROADMAP_MAX_WIDTH = 520;
+export {
+  VIBRATION_ROADMAP_DEFAULT_WIDTH,
+  VIBRATION_ROADMAP_MAX_WIDTH,
+  VIBRATION_ROADMAP_MIN_WIDTH,
+  clampVibrationRoadmapWidth,
+} from './vibration-roadmap-presentation-preference.js';
 const VIBRATION_FAMILY_ID = 'VIB';
 const WIDTH_STEP = 16;
-
-export function clampVibrationRoadmapWidth(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return VIBRATION_ROADMAP_DEFAULT_WIDTH;
-  return Math.min(VIBRATION_ROADMAP_MAX_WIDTH, Math.max(VIBRATION_ROADMAP_MIN_WIDTH, Math.round(number)));
-}
 
 export function shouldShowVibrationRoadmap(definition, state = {}) {
   return state.familyLanding === VIBRATION_FAMILY_ID || definition?.family === VIBRATION_FAMILY_ID;
@@ -84,19 +89,33 @@ function assessmentRow(container, rowKey) {
     .find((button) => button.dataset.viRow === rowKey) ?? null;
 }
 
+function browserPresentationStorage(windowLike) {
+  try {
+    return windowLike?.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function createVibrationRoadmapController(container, { initialState = {}, downloadText = defaultDownloadText } = {}) {
+  const resizeWindow = container.ownerDocument?.defaultView ?? null;
+  const presentationStorage = browserPresentationStorage(resizeWindow);
+  const storedPresentationPreference = loadVibrationRoadmapPresentationPreference(presentationStorage);
+  const hasInitialCollapsed = Object.prototype.hasOwnProperty.call(initialState, 'collapsed');
+  const hasInitialWidth = initialState.roadmapWidth !== undefined || initialState.width !== undefined;
   let displayState = normalizedDisplayState(initialState);
   let explicitMechanismStates = initialState.mechanismStates ?? {};
   let currentProject = initialState.project ?? null;
   let selectedLineId = initialState.context?.lineId ?? null;
-  let collapsed = initialState.collapsed === true;
-  let roadmapWidth = clampVibrationRoadmapWidth(initialState.roadmapWidth ?? initialState.width);
+  let collapsed = hasInitialCollapsed ? initialState.collapsed === true : storedPresentationPreference?.collapsed ?? false;
+  let roadmapWidth = clampVibrationRoadmapWidth(
+    hasInitialWidth ? (initialState.roadmapWidth ?? initialState.width) : storedPresentationPreference?.roadmapWidth,
+  );
   let resizeState = null;
   let lastRender = null;
   let projectMessage = null;
   let projectMessageKind = 'info';
   let navigationDiagnostic = null;
-  const resizeWindow = container.ownerDocument?.defaultView ?? null;
 
   function syncProjectState(contextOverlay = displayState.context) {
     if (!currentProject) return;
@@ -130,6 +149,10 @@ export function createVibrationRoadmapController(container, { initialState = {},
     const handle = container.querySelector('[data-roadmap-resize]');
     handle?.setAttribute('aria-valuenow', String(roadmapWidth));
     handle?.setAttribute('aria-valuetext', `${roadmapWidth} pixels`);
+  }
+
+  function persistPresentationPreference() {
+    saveVibrationRoadmapPresentationPreference(presentationStorage, { roadmapWidth, collapsed });
   }
 
   function setWidth(value) {
@@ -229,6 +252,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
     if (event.target.closest('[data-roadmap-collapse]')) {
       collapsed = !collapsed;
       resizeState = null;
+      persistPresentationPreference();
       if (lastRender) render(lastRender);
       return;
     }
@@ -327,6 +351,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
     if (!resizeState) return;
     if (resizeState.pointerId != null && event.pointerId != null && resizeState.pointerId !== event.pointerId) return;
     resizeState = null;
+    persistPresentationPreference();
   }
 
   function onKeyDown(event) {
@@ -338,6 +363,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
     else if (event.key === 'End') next = VIBRATION_ROADMAP_MAX_WIDTH;
     if (next == null) return;
     setWidth(next);
+    persistPresentationPreference();
     event.preventDefault?.();
   }
 
