@@ -101,10 +101,11 @@ async function auditCoreInteraction(page, viewport) {
   await collapse.click();
   const expanded = await collapse.getAttribute('aria-expanded');
 
-  const resizeCount = await page.locator('[data-roadmap-resize]').count();
-  let resize = { present: resizeCount > 0, keyboardEndValue: null };
-  if (resizeCount > 0) {
-    const handle = page.locator('[data-roadmap-resize]').first();
+  const handle = page.locator('[data-roadmap-resize]').first();
+  const resizeCount = await handle.count();
+  const resizeVisible = resizeCount > 0 && await handle.isVisible();
+  let resize = { present: resizeVisible, keyboardEndValue: null };
+  if (resizeVisible) {
     await handle.focus();
     await page.keyboard.press('End');
     resize.keyboardEndValue = await handle.getAttribute('aria-valuenow');
