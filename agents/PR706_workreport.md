@@ -124,6 +124,6 @@ against the exact PR #706 head in a native checkout. Record `PASS` or `FAIL`. If
 
 ## Durable relay
 
-AUTO activation endpoint: `agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0004.md`.
+Latest endpoint: `agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0005.md`.
 
-Next durable endpoint records the validation hard stop.
+EP-0005 records the AUTO validation hard stop and current Q1-Q5 takeover gate.
