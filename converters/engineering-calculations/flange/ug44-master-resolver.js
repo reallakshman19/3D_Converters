@@ -1,4 +1,5 @@
 import { validateFlangeMasterStore } from './master-store.js';
+import { meanGasketReactionDiameterM } from './ug44-workbook-basis.js';
 
 const BLOCKED_STATES = new Set(['SCHEMA_ONLY', 'DRAFT', 'RETIRED']);
 const SOURCE_PENDING_STATES = new Set(['SOURCE_PENDING', 'TRANSCRIBED']);
@@ -98,6 +99,45 @@ function recordState(records, sources) {
   return 'RESOLVED_NOT_AUTHORIZED';
 }
 
+/**
+ * Gasket reaction diameter, either stored directly or derived from the stored
+ * contact geometry.
+ *
+ * Records transcribed from the source workbooks deliberately do not store `G`:
+ * the workbook's own column is the mean gasket contact diameter, and freezing
+ * that one basis into a master record would make it look governed. Such records
+ * carry the contact diameters instead, and `G` is derived here with the basis
+ * reported alongside it.
+ */
+function gasketReactionDiameter(record, collection) {
+  if (Object.hasOwn(record, 'gasketReactionDiameterM')) {
+    const stored = positiveNumber(record, 'gasketReactionDiameterM', collection);
+    return stored.ok
+      ? { ...stored, basis: 'STORED_ON_RECORD', isCodeSeatingWidthDerivation: false }
+      : stored;
+  }
+  if (!Object.hasOwn(record, 'innerDiameterMm') || !Object.hasOwn(record, 'outerDiameterMm')) {
+    return failure(
+      'MASTER_VALUE_INVALID',
+      `${collection} ${record.recordId} has neither gasketReactionDiameterM nor contact diameters.`,
+    );
+  }
+  try {
+    const derived = meanGasketReactionDiameterM({
+      gasketInnerDiameterMm: record.innerDiameterMm,
+      gasketOuterDiameterMm: record.outerDiameterMm,
+    });
+    return {
+      ok: true,
+      value: derived.gasketReactionDiameterM,
+      basis: derived.basis,
+      isCodeSeatingWidthDerivation: false,
+    };
+  } catch (error) {
+    return failure('MASTER_VALUE_INVALID', `${collection} ${record.recordId}: ${error.message}`);
+  }
+}
+
 function resolveComponent(store, collection, selector, field, validator) {
   const resolved = resolveExactRecord(store, collection, selector);
   if (!resolved.ok) return resolved;
@@ -105,7 +145,13 @@ function resolveComponent(store, collection, selector, field, validator) {
   if (!source.ok) return source;
   const checkedValue = validator(resolved.record, field, collection);
   if (!checkedValue.ok) return checkedValue;
-  return { ok: true, record: resolved.record, source: source.source, value: checkedValue.value };
+  return {
+    ok: true,
+    record: resolved.record,
+    source: source.source,
+    value: checkedValue.value,
+    basis: checkedValue.basis,
+  };
 }
 
 export function resolveUg44MasterInputs(store = {}, selectors = {}) {
@@ -123,7 +169,7 @@ export function resolveUg44MasterInputs(store = {}, selectors = {}) {
   if (!factor.ok) return factor;
   const gasket = resolveComponent(
     store, 'gasketGeometries', selectors.gasketGeometry,
-    'gasketReactionDiameterM', positiveNumber,
+    'gasketReactionDiameterM', (record, field, collection) => gasketReactionDiameter(record, collection),
   );
   if (!gasket.ok) return gasket;
 
@@ -137,6 +183,7 @@ export function resolveUg44MasterInputs(store = {}, selectors = {}) {
       momentFactor: factor.value,
       gasketReactionDiameterM: gasket.value,
     },
+    gasketReactionDiameterBasis: gasket.basis,
     recordIds: records.map((record) => record.recordId),
     sourceIds: [...new Set(sources.map((source) => source.sourceId))],
     interpolationUsed: false,

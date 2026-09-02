@@ -145,7 +145,7 @@ function ratingRecords() {
     useAuthority: 'ENGINEERING_SANDBOX',
     pressureClass,
     ratedPressureKPa,
-    ratedPressurePa: ratedPressureKPa * 1000,
+    pressureRatingPa: ratedPressureKPa * 1000,
     temperatureC: null,
     materialGroup: null,
     standard: null,
