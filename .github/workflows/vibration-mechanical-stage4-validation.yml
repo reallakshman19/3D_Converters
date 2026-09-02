@@ -53,6 +53,8 @@ jobs:
           tests/vibration-mechanical-t23-applicability-stage4.test.mjs
           tests/vibration-mechanical-t23-ui-stage4.test.mjs
           tests/vibration-mechanical-t23-module-boundaries-stage4.test.mjs
+          tests/vibration-mechanical-t23-qualification-record.test.mjs
+          tests/vibration-sbc-type3-benchmark-custody.test.mjs
           tests/vibration-mechanism-contract.test.mjs
           tests/vibration-integrity-mechanism-matrix.test.mjs
           tests/vibration-production-freeze-browser-contract.test.mjs
