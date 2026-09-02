@@ -42,6 +42,13 @@ function action() {
     actionId: 'ACTION-1',
     mechanismId: 'fit',
     scope: { line: 'L-1', caseId: 'NORMAL', canonicalId: 'CAN-1' },
+    module: 'FIT',
+    actionKey: 'FURTHER_ASSESSMENT',
+    obligation: 'SHALL',
+    reason: 'QUALIFIED_BOUNDED_SCREENING_FURTHER_ASSESSMENT_REQUIRED',
+    completionState: 'OPEN',
+    resultState: 'CURRENT_RESULT',
+    source: { kind: 'FIT_SCREENING_CONTINUATION' },
   };
 }
 
@@ -137,6 +144,13 @@ test('M16 custody cannot create screening, design, completion, numerical or reco
   assert.equal(VIBRATION_MITIGATION_LEDGER_AUTHORITY.persistenceAuthority, 'NONE');
 });
 
+test('proposal accepts a full lifecycle action but stores a canonical action custody snapshot', () => {
+  const proposal = proposalFixture({ includeBasis: false });
+  assert.deepEqual(Object.keys(proposal.action).sort(), ['actionId', 'mechanismId', 'schema', 'scope']);
+  assert.equal(proposal.action.actionId, 'ACTION-1');
+  assert.equal(proposal.action.mechanismId, 'fit');
+});
+
 test('proposal binds exact occurrence plus optional M14 verification and M15 RCA snapshots', () => {
   const proposal = proposalFixture();
   assert.match(proposal.proposalFingerprint, /^sha256:[0-9a-f]{64}$/u);
@@ -191,7 +205,7 @@ test('proposal fingerprint rejects post-creation engineering-text drift', () => 
   );
 });
 
-test('proposal rejects added authority claims and unsupported action fields', () => {
+test('proposal rejects added authority claims and unsupported stored action fields', () => {
   const authorityTamper = JSON.parse(JSON.stringify(proposalFixture()));
   authorityTamper.authority.designApproval = true;
   assert.throws(
