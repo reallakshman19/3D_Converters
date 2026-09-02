@@ -125,7 +125,11 @@ export function createVibrationRoadmapController(container, { initialState = {},
   function applyWidth() {
     const layout = container.querySelector('.engineering-console-layout');
     layout?.style.setProperty('--vibration-roadmap-width', `${roadmapWidth}px`);
-    container.querySelector('[data-vibration-roadmap-panel]')?.setAttribute('data-roadmap-width', String(roadmapWidth));
+    const panel = container.querySelector('[data-vibration-roadmap-panel]');
+    panel?.setAttribute('data-roadmap-width', String(roadmapWidth));
+    const handle = container.querySelector('[data-roadmap-resize]');
+    handle?.setAttribute('aria-valuenow', String(roadmapWidth));
+    handle?.setAttribute('aria-valuetext', `${roadmapWidth} pixels`);
   }
 
   function setWidth(value) {
