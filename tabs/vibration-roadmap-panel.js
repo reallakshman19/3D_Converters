@@ -1,3 +1,4 @@
+import { isVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapMechanismSummary } from './vibration-roadmap-mechanism-summary-view.js';
 import { buildVibrationRoadmapWorkflowPresentation } from './vibration-roadmap-workflow-view.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
@@ -94,17 +95,7 @@ function projectTools(context) {
 
 function navigationFeedback(context) {
   const diagnostic = context?.navigationDiagnostic;
-  const authority = diagnostic?.authority;
-  const valid = typeof diagnostic?.code === 'string' && diagnostic.code
-    && typeof diagnostic?.message === 'string' && diagnostic.message
-    && authority?.purpose === 'UI_NAVIGATION_DIAGNOSTIC_ONLY'
-    && authority.engineeringAuthority === 'NONE'
-    && authority.screeningAuthority === 'NOT_AUTHORIZED'
-    && authority.designAuthority === false
-    && authority.determinesApplicability === false
-    && authority.determinesCompleteness === false
-    && authority.blocksCalculation === false;
-  if (!valid) return '';
+  if (!isVibrationRoadmapNavigationDiagnostic(diagnostic)) return '';
   return `<div class="vibration-roadmap-message vibration-roadmap-navigation-message" data-kind="error" data-roadmap-navigation-message data-roadmap-navigation-code="${esc(diagnostic.code)}"><strong>Navigation unavailable</strong><span>${esc(diagnostic.message)}</span><small>UI routing diagnostic only · no engineering authority and no calculation blocking.</small></div>`;
 }
 
