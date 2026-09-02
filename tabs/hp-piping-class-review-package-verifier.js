@@ -1,5 +1,8 @@
 import {
+  HP_PIPING_CLASS_REVIEW_DISPOSITION_PACKAGE_V1_VERSION,
   HP_PIPING_CLASS_REVIEW_DISPOSITION_PACKAGE_VERSION,
+  HP_PIPING_CLASS_REVIEW_CHAIN_INTEGRITY,
+  HP_PIPING_CLASS_REVIEW_CHAIN_NOT_AVAILABLE_V1,
   parseHpPipingClassReviewDispositionLedger,
   summarizeHpPipingClassReviewDisposition,
   verifyHpPipingClassReviewDispositionPackage,
@@ -37,11 +40,7 @@ function canonicalJson(value) {
 }
 
 function identity(report = {}) {
-  return Object.freeze({
-    projectId: text(report.identity?.projectId),
-    classId: text(report.identity?.classId),
-    revision: text(report.identity?.revision),
-  });
+  return Object.freeze({ projectId: text(report.identity?.projectId), classId: text(report.identity?.classId), revision: text(report.identity?.revision) });
 }
 
 function trustMatrixV1() {
@@ -83,11 +82,7 @@ function trustMatrixV2({ checkpointVerified = false, legacyCount = 0 } = {}) {
     releaseAuthority: false,
   });
 }
-
-function issue(code, message) {
-  return Object.freeze({ code, message: String(message ?? '') });
-}
-
+function issue(code, message) { return Object.freeze({ code, message: String(message ?? '') }); }
 function assertPackageShape(pkg) {
   if (!pkg || typeof pkg !== 'object' || Array.isArray(pkg)) {
     throw Object.assign(new TypeError('HP review package must be a JSON object.'), {
@@ -262,7 +257,6 @@ export async function verifyHpPipingClassReviewPackageObject(packageValue, {
       trust: verified.trust,
       limitations: receiptLimitations(pkg, verified.trust),
     });
-
     return Object.freeze({
       ok: true,
       package: Object.freeze(pkg),

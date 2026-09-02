@@ -89,14 +89,14 @@ BLOCK_LINES_PER_SECTION = {
     "EXPJT": 1,
     "RESTRANT": 24,
     "DISPLMNT": 20,
-    "FORCMNT": 13,
+    "FORCMNT": 20,
     "UNIFORM": 6,
     "WIND": 1,
     "OFFSETS": 1,
     "ALLOWBLS": 26,
     "SIF&TEES": 10,
     "REDUCERS": 1,
-    "FLANGES": 11,
+    "FLANGES": 12,
     "EQUIPMNT": 6,
 }
 
@@ -676,7 +676,7 @@ def _validate_blocked_section(
     if section is None:
         return
     lines_per_block = BLOCK_LINES_PER_SECTION[section_name]
-    rows = [entry for entry in section.payload if entry[1].strip()]
+    rows = list(section.payload)
     expected_rows = expected_blocks * lines_per_block
     if len(rows) != expected_rows:
         _add_error(
@@ -1168,7 +1168,7 @@ def _build_report(
         section = section_map.get(section_name)
         if section is None:
             continue
-        rows = len([entry for entry in section.payload if entry[1].strip()])
+        rows = len(section.payload)
         derived_counts[section_name] = {
             "rows": rows,
             "linesPerBlock": lines_per_block,

@@ -6,6 +6,8 @@ import { validateHpPipingClassProject } from '../converters/b313-chapter-ix/hp-p
 import { evaluateHpPipingClassProject } from '../converters/b313-chapter-ix/hp-piping-class-orchestrator.js';
 import { buildHpPipingClassEngineeringReviewReport } from './hp-piping-class-engineering-review-report.js';
 import {
+  HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_V1_VERSION,
+  HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_VERSION,
   appendHpPipingClassReviewDisposition,
   buildHpPipingClassReviewDispositionPackage,
   createHpPipingClassReviewDispositionLedger,
@@ -15,7 +17,8 @@ import {
   verifyHpPipingClassReviewDispositionPackage,
 } from './hp-piping-class-engineering-review-disposition.js';
 
-export const HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY = 'format-converters.hpPipingClassEngineeringReviewDisposition.v1';
+export const HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY = 'format-converters.hpPipingClassEngineeringReviewDisposition.v2';
+export const HP_PIPING_CLASS_REVIEW_DISPOSITION_LEGACY_STORAGE_KEY = 'format-converters.hpPipingClassEngineeringReviewDisposition.v1';
 
 function esc(value) {
   return String(value ?? '')
@@ -32,14 +35,44 @@ function readStoredProject() {
   return raw ? parseHpPipingClassWorkspaceProject(raw) : null;
 }
 
+export function readHpPipingClassReviewDispositionLedgerFromStorage(storage = globalThis.localStorage) {
+  const currentRaw = storage?.getItem(HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY);
+  const legacyRaw = storage?.getItem(HP_PIPING_CLASS_REVIEW_DISPOSITION_LEGACY_STORAGE_KEY);
+  if (currentRaw && legacyRaw) {
+    throw new Error('Both v1 and v2 HP review custody stores exist. Resolve custody explicitly before recording another disposition.');
+  }
+  if (currentRaw) {
+    const ledger = parseHpPipingClassReviewDispositionLedger(currentRaw);
+    if (ledger.schemaVersion !== HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_VERSION) {
+      throw new Error('The v2 HP review custody storage key contains a non-v2 ledger.');
+    }
+    return ledger;
+  }
+  if (legacyRaw) {
+    const ledger = parseHpPipingClassReviewDispositionLedger(legacyRaw);
+    if (ledger.schemaVersion !== HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_V1_VERSION) {
+      throw new Error('The legacy HP review custody storage key contains a non-v1 ledger.');
+    }
+    return ledger;
+  }
+  return createHpPipingClassReviewDispositionLedger();
+}
+
+export function writeHpPipingClassReviewDispositionLedgerToStorage(ledgerValue, storage = globalThis.localStorage) {
+  const ledger = parseHpPipingClassReviewDispositionLedger(ledgerValue);
+  const key = ledger.schemaVersion === HP_PIPING_CLASS_REVIEW_DISPOSITION_LEDGER_VERSION
+    ? HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY
+    : HP_PIPING_CLASS_REVIEW_DISPOSITION_LEGACY_STORAGE_KEY;
+  storage?.setItem(key, JSON.stringify(ledger));
+  return key;
+}
+
 function readLedger() {
-  const raw = globalThis.localStorage?.getItem(HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY);
-  if (!raw) return createHpPipingClassReviewDispositionLedger();
-  return parseHpPipingClassReviewDispositionLedger(raw);
+  return readHpPipingClassReviewDispositionLedgerFromStorage();
 }
 
 function writeLedger(ledger) {
-  globalThis.localStorage?.setItem(HP_PIPING_CLASS_REVIEW_DISPOSITION_STORAGE_KEY, JSON.stringify(ledger));
+  writeHpPipingClassReviewDispositionLedgerToStorage(ledger);
 }
 
 function safe(value, fallback) {
@@ -62,8 +95,8 @@ function filename(project) {
 
 function cardHtml() {
   return `<section class="hpwb-card hpwb-review-disposition" data-hpwb-review-disposition="true">
-    <div class="hpwb-section-toolbar"><div><h4>Engineering review disposition</h4><p>Append-only custody bound to the exact SHA-256 of the canonical review report. This is not design approval or Code authority.</p></div><span class="hpwb-badge warn">REVIEW CUSTODY ONLY</span></div>
-    <div class="hpwb-notice warn"><strong>Identity boundary:</strong> reviewer/checker names are user-declared. SHA-256 binds the disposition to report content; this is not a digital signature, PKI identity, or release authorization.</div>
+    <div class="hpwb-section-toolbar"><div><h4>Engineering review disposition</h4><p>Append-only custody bound to the exact SHA-256 of the canonical review report. New custody uses a tamper-evident v2 SHA-256 entry chain.</p></div><span class="hpwb-badge warn">REVIEW CUSTODY ONLY</span></div>
+    <div class="hpwb-notice warn"><strong>Identity boundary:</strong> reviewer/checker names are user-declared. The report hash and v2 entry chain provide content self-consistency/tamper evidence only; this is not a digital signature, trusted timestamp, PKI identity, Code approval, design approval, or release authorization.</div>
     <div data-hpwb-review-disposition-summary class="hpwb-muted">Resolving current report binding…</div>
     <div class="hpwb-grid two" style="margin-top:10px">
       <label class="hpwb-field"><span>Reviewer / checker identity</span><input data-hpwb-review-disposition-actor type="text" placeholder="ENGINEER_B"></label>
@@ -148,7 +181,8 @@ export function installHpPipingClassEngineeringReviewDispositionEnhancer(contain
     const next = await appendHpPipingClassReviewDisposition(readLedger(), report, input);
     writeLedger(next);
     const latest = next.entries.at(-1);
-    setStatus(card, 'good', `<strong>Disposition recorded.</strong> ${esc(latest.entryId)} · append-only review custody. <span class="hpwb-muted">Declared identity only; no digital signature, design-release, or Code authority granted.</span>`);
+    const integrity = latest.entrySha256 ? ` · entry SHA-256 ${esc(latest.entrySha256.slice(0, 16))}…` : ' · legacy v1 custody';
+    setStatus(card, 'good', `<strong>Disposition recorded.</strong> ${esc(latest.entryId)}${integrity}. <span class="hpwb-muted">Declared identity only; No design-release or Code authority granted.</span>`);
     await refresh();
   }
 
@@ -158,7 +192,8 @@ export function installHpPipingClassEngineeringReviewDispositionEnhancer(contain
     const verified = await verifyHpPipingClassReviewDispositionPackage(pkg);
     if (!verified.ok) throw new Error(`Review package verification failed: ${verified.error}`);
     downloadText(filename(project), serializeHpPipingClassReviewDispositionPackageJson(pkg), 'application/json;charset=utf-8');
-    setStatus(card, 'good', `<strong>Review package verified.</strong> SHA-256 ${esc(verified.reportSha256.slice(0, 16))}… · ${verified.currentRecordCount} current record(s) · ${verified.historicalRecordCount} historical record(s). <span class="hpwb-muted">Content binding verified; actor identity is user-declared.</span>`);
+    const chain = verified.ledgerHeadSha256 ? ` · chain head ${esc(verified.ledgerHeadSha256.slice(0, 16))}…` : ' · legacy v1 ledger';
+    setStatus(card, 'good', `<strong>Review package verified.</strong> report SHA-256 ${esc(verified.reportSha256.slice(0, 16))}…${chain} · ${verified.currentRecordCount} current record(s) · ${verified.historicalRecordCount} historical record(s). <span class="hpwb-muted">Content self-consistency verified; actor identity is user-declared.</span>`);
   }
 
   async function onClick(event) {

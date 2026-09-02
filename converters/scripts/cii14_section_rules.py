@@ -33,7 +33,7 @@ LINES_PER_AUX_BLOCK: dict[str, int] = {
     "UNIFORM": 6,
     "WIND": 1,
     "OFFSETS": 1,
-    "ALLOWBLS": 26,
+    "ALLOWBLS": 28,   # Ver 11 = 26; qualified Ver 14 = 168 values / 28 rows.
     "SIF&TEES": 14,   # Ver 11 = 10; paired benchmark proves Ver 14 = 14.
     "REDUCERS": 2,    # Ver 11 = 1; paired benchmark proves Ver 14 = 2.
     "FLANGES": 12,

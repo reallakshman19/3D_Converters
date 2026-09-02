@@ -2,17 +2,12 @@ import {
   serializeHpPipingClassReviewPackageVerificationReceipt,
   verifyHpPipingClassReviewPackageJson,
 } from './hp-piping-class-review-package-verifier.js';
+import { HP_PIPING_CLASS_REVIEW_CHAIN_INTEGRITY } from './hp-piping-class-engineering-review-disposition.js';
 
 function esc(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
-
-function fmt(value, digits = 5) {
-  return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
-}
-
+function fmt(value, digits = 5) { return Number.isFinite(value) ? Number(value).toFixed(digits) : '—'; }
 function ensureStyles() {
   if (document.querySelector('style[data-hp-review-package-verifier-style="true"]')) return;
   const style = document.createElement('style');
@@ -25,7 +20,6 @@ function ensureStyles() {
   `;
   document.head.appendChild(style);
 }
-
 function trustRows(receipt) {
   const trust = receipt?.trust ?? {};
   const rows = [
@@ -55,7 +49,6 @@ function allLedgerEntries(result) {
   }
   return (result.ledger?.entries ?? []).map((entry) => ({ ...entry, integrityClass: 'LEGACY_V1_UNSEALED' }));
 }
-
 function ledgerRows(result) {
   const currentIds = new Set((result.currentEntries ?? []).map((entry) => entry.entryId));
   const rows = allLedgerEntries(result);
@@ -68,7 +61,6 @@ function ledgerRows(result) {
     <td>${esc(entry.authority?.actorIdentityAuthority ?? '—')}</td>
   </tr>`).join('');
 }
-
 function productRows(result) {
   const rows = result.package?.report?.productResults ?? [];
   if (!rows.length) return '<tr><td colspan="7">No product result rows in embedded report.</td></tr>';
@@ -108,19 +100,10 @@ function verifiedHtml(result) {
     <section class="hp-review-verify-card"><h3>Embedded engineering result summary</h3><div class="hp-review-verify-table-wrap" style="margin-top:10px"><table><thead><tr><th>Product</th><th>Review priority</th><th>Static</th><th>Required nominal mm</th><th>P-rating MPa</th><th>U</th><th>Engineering state</th></tr></thead><tbody>${productRows(result)}</tbody></table></div></section>
     <section class="hp-review-verify-card"><h3>Verifier limitations</h3><ul>${receipt.limitations.map((item) => `<li>${esc(item)}</li>`).join('')}</ul></section>`;
 }
-
-function failedHtml(result) {
-  return `<div class="hp-review-verify-notice error"><strong>PACKAGE VERIFICATION BLOCKED.</strong><ul>${(result.issues ?? []).map((item) => `<li><span class="hp-review-verify-code">${esc(item.code)}</span> · ${esc(item.message)}</li>`).join('')}</ul></div>`;
-}
-
+function failedHtml(result) { return `<div class="hp-review-verify-notice error"><strong>PACKAGE VERIFICATION BLOCKED.</strong><ul>${(result.issues ?? []).map((item) => `<li><span class="hp-review-verify-code">${esc(item.code)}</span> · ${esc(item.message)}</li>`).join('')}</ul></div>`; }
 function downloadText(filename, content) {
-  const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([content], { type: 'application/json;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
 }
 
 export function renderHpPipingClassReviewPackageVerifierTab(container) {

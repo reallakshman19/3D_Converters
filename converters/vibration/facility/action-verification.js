@@ -1,19 +1,17 @@
-import { createHash } from 'node:crypto';
-
 import {
   assertVibrationActionCompletionRecord,
   assertVibrationActionOccurrence,
 } from './action-completion.js';
+import {
+  assertVibrationActionVerificationStatusIntegrity,
+  vibrationActionVerificationFingerprint,
+} from './action-verification-integrity.js';
 import { VIBRATION_REQUIRED_ACTION_SCHEMA } from './action-lifecycle.js';
 import { assertVibrationMeasurementEvidencePackage } from '../measurement/contracts.js';
 import { createVibrationVerificationRequirement } from '../verification/contracts.js';
-import {
-  VIBRATION_VERIFICATION_STATUS_AUTHORITY,
-  VIBRATION_VERIFICATION_STATUS_SCHEMA,
-  evaluateVibrationVerification,
-} from '../verification/evaluate.js';
+import { evaluateVibrationVerification } from '../verification/evaluate.js';
 
-export const VIBRATION_ACTION_VERIFICATION_ATTACHMENT_SCHEMA = 'VibrationActionVerificationAttachment.v1';
+export const VIBRATION_ACTION_VERIFICATION_ATTACHMENT_SCHEMA = 'VibrationActionVerificationAttachment.v2';
 
 export const VIBRATION_ACTION_VERIFICATION_AUTHORITY = Object.freeze({
   purpose: 'ACTION_OCCURRENCE_MEASUREMENT_VERIFICATION_CUSTODY_ONLY',
@@ -56,30 +54,10 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function sha256(value) {
-  return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
-}
-
 function assertAuthority(value) {
   for (const [key, expected] of Object.entries(VIBRATION_ACTION_VERIFICATION_AUTHORITY)) {
     if (value?.[key] !== expected) {
       throw custodyError('VIBRATION_ACTION_VERIFICATION_AUTHORITY_INVALID', `Attachment authority mismatch at ${key}.`, { key });
-    }
-  }
-}
-
-function assertVerificationStatusAuthority(value) {
-  for (const [key, expected] of Object.entries(VIBRATION_VERIFICATION_STATUS_AUTHORITY)) {
-    if (value?.[key] !== expected) {
-      throw custodyError('VIBRATION_ACTION_VERIFICATION_STATUS_AUTHORITY_INVALID', `Verification status authority mismatch at ${key}.`, { key });
     }
   }
 }
@@ -169,6 +147,7 @@ function evidenceSnapshot(status, pkg) {
     const session = sessionIndex.get(sessionId);
     return Object.freeze({
       sessionId,
+      measurementRecordFingerprint: vibrationActionVerificationFingerprint(session),
       rawDataHashes: Object.freeze(session.channels.map((channel) => channel.rawData.sha256).sort()),
     });
   });
@@ -178,6 +157,7 @@ function evidenceSnapshot(status, pkg) {
       productId,
       sessionId: product.sessionId,
       productType: product.productType,
+      measurementRecordFingerprint: vibrationActionVerificationFingerprint(product),
       artifactSha256: product.artifact.sha256,
       inputRawDataHashes: Object.freeze([...product.inputRawDataHashes].sort()),
     });
@@ -185,13 +165,17 @@ function evidenceSnapshot(status, pkg) {
   return Object.freeze({ sessions: Object.freeze(sessions), products: Object.freeze(products) });
 }
 
-function attachmentId(occurrenceId, requirementId, dispositionId, completionRecordId, evidenceFingerprint) {
+function attachmentId(
+  occurrenceId, requirementId, dispositionId, completionRecordId,
+  evidenceFingerprint, verificationStatusFingerprint,
+) {
   return JSON.stringify([
     occurrenceId,
     requirementId,
     dispositionId ?? null,
     completionRecordId ?? null,
     evidenceFingerprint,
+    verificationStatusFingerprint,
   ]);
 }
 
@@ -209,7 +193,9 @@ export function createVibrationActionVerificationAttachment({
   });
   const normalizedCompletion = completionReference(completionRecord, normalizedOccurrence);
   const evidence = evidenceSnapshot(verificationStatus, pkg);
-  const evidenceFingerprint = sha256(evidence);
+  assertVibrationActionVerificationStatusIntegrity(verificationStatus, normalizedRequirement, evidence);
+  const evidenceFingerprint = vibrationActionVerificationFingerprint(evidence);
+  const verificationStatusFingerprint = vibrationActionVerificationFingerprint(verificationStatus);
   const dispositionId = verificationStatus.disposition?.dispositionId ?? null;
   const recordId = normalizedCompletion?.recordId ?? null;
   return deepFreeze({
@@ -220,11 +206,13 @@ export function createVibrationActionVerificationAttachment({
       dispositionId,
       recordId,
       evidenceFingerprint,
+      verificationStatusFingerprint,
     ),
     action: actionRef,
     occurrence: normalizedOccurrence,
     requirement: normalizedRequirement,
     verificationStatus,
+    verificationStatusFingerprint,
     evidence,
     evidenceFingerprint,
     completionRecord: normalizedCompletion,
@@ -233,27 +221,25 @@ export function createVibrationActionVerificationAttachment({
   });
 }
 
-function assertEvidenceSnapshot(value, status) {
+function assertEvidenceSnapshot(value) {
   if (!value || typeof value !== 'object' || !Array.isArray(value.sessions) || !Array.isArray(value.products)) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_SNAPSHOT_INVALID', 'Attachment evidence snapshot is invalid.');
   }
-  const sessionIds = value.sessions.map((session) => text(session.sessionId, 'evidence.sessions[].sessionId')).sort();
-  const productIds = value.products.map((product) => text(product.productId, 'evidence.products[].productId')).sort();
-  const expectedSessions = [...status.evidence.matchingSessionIds].sort();
-  const expectedProducts = [...status.evidence.matchingProductIds].sort();
-  if (JSON.stringify(sessionIds) !== JSON.stringify(expectedSessions)
-      || JSON.stringify(productIds) !== JSON.stringify(expectedProducts)) {
-    throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_ID_MISMATCH', 'Evidence snapshot IDs do not match verification status evidence.');
-  }
   for (const session of value.sessions) {
-    if (!Array.isArray(session.rawDataHashes) || session.rawDataHashes.some((hash) => !SHA256.test(hash))) {
-      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Session raw-data evidence hashes must be canonical sha256 values.');
+    text(session.sessionId, 'evidence.sessions[].sessionId');
+    if (!SHA256.test(String(session.measurementRecordFingerprint ?? ''))
+        || !Array.isArray(session.rawDataHashes) || session.rawDataHashes.some((hash) => !SHA256.test(hash))) {
+      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Session provenance/raw-data evidence fingerprints must be canonical sha256 values.');
     }
   }
   for (const product of value.products) {
-    if (!SHA256.test(product.artifactSha256) || !Array.isArray(product.inputRawDataHashes)
+    text(product.productId, 'evidence.products[].productId');
+    text(product.sessionId, 'evidence.products[].sessionId');
+    text(product.productType, 'evidence.products[].productType');
+    if (!SHA256.test(String(product.measurementRecordFingerprint ?? ''))
+        || !SHA256.test(product.artifactSha256) || !Array.isArray(product.inputRawDataHashes)
         || product.inputRawDataHashes.some((hash) => !SHA256.test(hash))) {
-      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Signal-product evidence hashes must be canonical sha256 values.');
+      throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_HASH_INVALID', 'Signal-product provenance/artifact evidence fingerprints must be canonical sha256 values.');
     }
   }
 }
@@ -266,30 +252,28 @@ export function assertVibrationActionVerificationAttachment(value) {
   const occurrence = assertVibrationActionOccurrence(value.occurrence);
   const actionRef = actionReference(value.action, occurrence);
   const requirement = requirementForAction(actionRef, occurrence, value.requirement);
-  const status = value.verificationStatus;
-  if (status?.schema !== VIBRATION_VERIFICATION_STATUS_SCHEMA
-      || status.requirementId !== requirement.requirementId
-      || status.mechanismId !== requirement.mechanismId
-      || !sameScope(status.scope, requirement.scope)) {
-    throw custodyError('VIBRATION_ACTION_VERIFICATION_STATUS_INVALID', 'Verification status does not match the attached requirement.');
-  }
-  assertVerificationStatusAuthority(status.authority);
+  assertEvidenceSnapshot(value.evidence);
+  const status = assertVibrationActionVerificationStatusIntegrity(value.verificationStatus, requirement, value.evidence);
   const completion = completionReference(value.completionRecord, occurrence);
   const expectedRelation = completion ? 'ACTION_OCCURRENCE_AND_COMPLETION_RECORD' : 'ACTION_OCCURRENCE_ONLY';
   if (value.relation !== expectedRelation) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_RELATION_INVALID', 'Attachment relation does not match its completion-record custody.');
   }
-  assertEvidenceSnapshot(value.evidence, status);
-  const expectedFingerprint = sha256(value.evidence);
-  if (value.evidenceFingerprint !== expectedFingerprint) {
+  const expectedEvidenceFingerprint = vibrationActionVerificationFingerprint(value.evidence);
+  if (value.evidenceFingerprint !== expectedEvidenceFingerprint) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_EVIDENCE_FINGERPRINT_INVALID', 'Evidence fingerprint does not match the attached measurement evidence snapshot.');
+  }
+  const expectedStatusFingerprint = vibrationActionVerificationFingerprint(status);
+  if (value.verificationStatusFingerprint !== expectedStatusFingerprint) {
+    throw custodyError('VIBRATION_ACTION_VERIFICATION_STATUS_FINGERPRINT_INVALID', 'Verification status fingerprint does not match the attached disposition/status custody.');
   }
   const expectedId = attachmentId(
     occurrence.occurrenceId,
     requirement.requirementId,
     status.disposition?.dispositionId ?? null,
     completion?.recordId ?? null,
-    expectedFingerprint,
+    expectedEvidenceFingerprint,
+    expectedStatusFingerprint,
   );
   if (value.attachmentId !== expectedId) {
     throw custodyError('VIBRATION_ACTION_VERIFICATION_ID_INVALID', 'Attachment identity does not match its custody fields.');
