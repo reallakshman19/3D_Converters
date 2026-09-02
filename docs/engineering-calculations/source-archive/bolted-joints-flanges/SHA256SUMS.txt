@@ -1,0 +1,10 @@
+cabb4bb4b89f01574ff41f966a8523fc97d5f47e92c85f20d06d7100ee24a4ce  Nozzle Flange MAWP Results-C101.pdf
+068224341eb05745d9907c0bf790d2ce49c8a6d0f85ac2ba9cafa2deb33e9a3e  bolt Paper-65.pdf
+efba9f80138500464b38b773a53d6f524803513ca9453528c8e95d818493370f  Bolt Torque Calc.xls
+ac216a681f070d4795ebf9074efddc0fb5372dbc5d177a01b92d134c3ee459bf  Bolt Torques.xls
+122ec0f5ed53fc38cac2b103bf77839b4b90b9d54a555ebd457c45de20759a41  3427571_A Standard pipe supports Bolted.xls
+1ffa1bbe061eca072834639177537c06c48b0f7e1e52033f39f3d2d45bc849a4  flange design to BS5500.xls
+b51c26baa76574cc0eda0cac1036978ca5cc9f4af505ffcfe0a51edac4123607  Integral-type Flange Rigidity Calc - ASME VIII Div 2 App M - UNCHECKED.xls
+f0c2f005539f23ce738418cdb0c89d4ad0036fd35c5b300750750c0c7372ba46  Flange UG 44.xlsx
+44dd5e17daac62274f75bced45532b8c3344e293630c8a99226b996ca496d49f  FLANGE LEAKAGE CHECK GRE.xls
+d664bad746f39479a09ee9f126c39dd858822dfcb575f45d0a09152fa89e3b66  Flange Rating Vs Nozzle loads -Rev.3.xlsx
