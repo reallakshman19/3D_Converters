@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0010 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0010.md | #706 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Qualify the detailed thread/bearing-friction torque equation basis from an inspectable legacy workbook or controlled source before coding that method; central integration remains separately gated. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0011 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0011.md | #706 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Qualify the detailed thread/bearing-friction torque equation basis from an inspectable legacy workbook or controlled source; focused source-reconstructed flange/bolt tests now pass, while exact native full-repo validation remains NOT_RUN. |
 
 ## ENDPOINT LOG
 
@@ -22,3 +22,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0008 | ENGCALC-BOLTED-JOINTS | LEG-01 | 2db1988418fb303756c2d974d4bc0263bf4340da | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0008.md |
 | EP-0009 | ENGCALC-BOLTED-JOINTS | LEG-01 | c8eeaa2f258d3e18ef80f460d65a4e0cc5c32e0f | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0009.md |
 | EP-0010 | ENGCALC-BOLTED-JOINTS | LEG-01 | dc861a714491bbaec801fbd03fb9a91bb3491ebc | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0010.md |
+| EP-0011 | ENGCALC-BOLTED-JOINTS | LEG-01 | 5bd4e7d5c7c96ed4d37620396d1619f31909b27d | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0011.md |
