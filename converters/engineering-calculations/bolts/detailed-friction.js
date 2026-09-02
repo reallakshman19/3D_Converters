@@ -1,5 +1,7 @@
 const PI = Math.PI;
 const DEG_TO_RAD = PI / 180;
+const LEGACY_INCLUDED_THREAD_ANGLE_DEG = 60;
+const ANGLE_TOLERANCE_DEG = 1e-12;
 
 function finite(value, name) {
   const number = Number(value);
@@ -100,17 +102,19 @@ export function calculateBearingFrictionRadiusUniformWear({
 export function calculateLegacyThreadGeometry({
   nominalDiameterM,
   pitchM,
-  includedThreadAngleDeg = 60,
+  includedThreadAngleDeg = LEGACY_INCLUDED_THREAD_ANGLE_DEG,
   starts = 1,
 } = {}) {
   const diameter = positive(nominalDiameterM, 'nominalDiameterM');
   const pitch = positive(pitchM, 'pitchM');
   const includedAngle = positive(includedThreadAngleDeg, 'includedThreadAngleDeg');
-  if (includedAngle >= 180) {
-    throw new RangeError('includedThreadAngleDeg must be less than 180 degrees.');
+  if (Math.abs(includedAngle - LEGACY_INCLUDED_THREAD_ANGLE_DEG) > ANGLE_TOLERANCE_DEG) {
+    throw new RangeError(
+      'Legacy workbook thread geometry is qualified only for a 60-degree included thread angle.',
+    );
   }
   const threadStarts = positiveInteger(starts, 'starts');
-  const halfAngleRad = includedAngle * DEG_TO_RAD / 2;
+  const halfAngleRad = LEGACY_INCLUDED_THREAD_ANGLE_DEG * DEG_TO_RAD / 2;
   const fundamentalTriangleHeightM = pitch * Math.cos(halfAngleRad);
   const pitchDiameterM = diameter - 0.75 * fundamentalTriangleHeightM;
   const minorDiameterM = diameter - (17 / 12) * fundamentalTriangleHeightM;
@@ -126,7 +130,7 @@ export function calculateLegacyThreadGeometry({
     nominalDiameterM: diameter,
     pitchM: pitch,
     includedThreadAngleDeg: includedAngle,
-    threadHalfAngleDeg: includedAngle / 2,
+    threadHalfAngleDeg: LEGACY_INCLUDED_THREAD_ANGLE_DEG / 2,
     starts: threadStarts,
     leadM,
     fundamentalTriangleHeightM,
@@ -242,7 +246,7 @@ export function calculateLegacyWorkbookDetailedAssembly({
   preloadN,
   nominalDiameterM,
   pitchM,
-  includedThreadAngleDeg = 60,
+  includedThreadAngleDeg = LEGACY_INCLUDED_THREAD_ANGLE_DEG,
   starts = 1,
   threadFrictionCoefficient,
   bearingFrictionCoefficient,
