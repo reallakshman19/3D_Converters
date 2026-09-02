@@ -6,10 +6,11 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0001 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0001.md | WIP | ACTIVE | FLANGE / BOLTS engineering calculations | Implement the source-qualified SI-form UG-44(b) kernel and independent benchmark tests without editing existing production files. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0002 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0002.md | #706 | ACTIVE | FLANGE / BOLTS engineering calculations | Run the two exact-head focused Node tests in a native checkout and record PASS/FAIL before further engineering-critical production mutation. |
 
 ## ENDPOINT LOG
 
 | Endpoint | Chain | Leg | Checkpoint head | State | Locator |
 |---|---|---|---|---|---|
 | EP-0001 | ENGCALC-BOLTED-JOINTS | LEG-01 | bff53e336bdbddbe0fb829b7991ca5ed27fc836a | ACTIVE | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0001.md |
+| EP-0002 | ENGCALC-BOLTED-JOINTS | LEG-01 | 5ea2aa31e0f6b136510532ab5eb6801e7e66ec88 | ACTIVE | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0002.md |
