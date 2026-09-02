@@ -16,6 +16,7 @@ import {
 } from './engineering-calculation-console-sections.js';
 import { renderVibrationFamilyLanding } from './engineering-calculation-vibration-family.js';
 import { UG44_PRODUCT_SURFACE, renderUg44ResultsHtml } from './engineering-calculation-ug44-surface.js';
+import { renderFlangeFamilyLanding } from './engineering-calculation-flange-family.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
@@ -86,12 +87,17 @@ function renderDefinitionBody(definition, state) {
   return `<section class="engineering-console-card"><h3>Inputs</h3>${renderInputForm(definition,state)}<div class="engineering-console-actions"><button class="engineering-console-btn" data-action="validate" ${resolvable ? '' : 'disabled'}>Validate</button><button class="engineering-console-btn" data-action="resolve" ${resolvable ? '' : 'disabled'}>Resolve</button><button class="engineering-console-btn primary" data-action="calculate" ${executable ? '' : 'disabled'}>Calculate</button></div></section><nav class="engineering-console-view-tabs">${tabs.map(([id,label]) => `<button class="engineering-console-view-btn ${state.activeView === id ? 'is-active' : ''}" data-view="${id}">${label}</button>`).join('')}</nav><section class="engineering-console-results">${activeView(definition,state)}</section>`;
 }
 
+function familyLandingBody(definitions, state) {
+  if (state.familyLanding === 'FLANGE') return renderFlangeFamilyLanding(definitions);
+  return renderVibrationFamilyLanding(definitions);
+}
+
 function renderFamilyLanding(definitions, families, state) {
-  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div></header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions, families, state)}</aside><main class="engineering-console-main">${renderVibrationFamilyLanding(definitions)}</main></div></div>`;
+  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div></header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions, families, state)}</aside><main class="engineering-console-main">${familyLandingBody(definitions, state)}</main></div></div>`;
 }
 
 export function renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state }) {
-  if (state.familyLanding === 'VIB') return renderFamilyLanding(definitions, families, state);
+  if (state.familyLanding === 'VIB' || state.familyLanding === 'FLANGE') return renderFamilyLanding(definitions, families, state);
 
   const issue = definition.qualificationIssue ? pill(`#${definition.qualificationIssue}`, 'warn') : '';
   return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div>${renderConsoleActions(definition,state)}</header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions,families,state)}</aside><main class="engineering-console-main"><section class="engineering-console-definition"><div><h3>${esc(definition.name)}</h3><div class="engineering-console-id">${esc(definition.id)}</div></div><div>${pill(definitionState(definition), authorityPillKind(definition))} ${issue}</div></section>${renderDefinitionBody(definition,state)}</main></div></div>`;

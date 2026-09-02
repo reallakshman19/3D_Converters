@@ -28,6 +28,8 @@ import {
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
 const VIBRATION_FAMILY_ID = 'VIB';
+const FLANGE_FAMILY_ID = 'FLANGE';
+const FAMILY_LANDING_IDS = new Set([VIBRATION_FAMILY_ID, FLANGE_FAMILY_ID]);
 
 function ensureLinkedStylesheet(selector, href, datasetKey) {
   if (document.querySelector(selector)) return;
@@ -76,7 +78,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     return () => {};
   }
 
-  const initialFamilyLanding = !context?.calculationId && context?.familyId === VIBRATION_FAMILY_ID;
+  const initialFamilyLanding = !context?.calculationId && FAMILY_LANDING_IDS.has(context?.familyId);
   const initialProject = context?.vibrationRoadmap?.project ?? null;
   const initialProjectEvidenceHandoff = initialProject
     ? createVibrationProjectEvidenceHandoff({
@@ -85,9 +87,9 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     })
     : null;
   const state = {
-    selectedFamily: initialFamilyLanding ? VIBRATION_FAMILY_ID : definition.family,
+    selectedFamily: initialFamilyLanding ? context.familyId : definition.family,
     selectedId: initialFamilyLanding ? null : definition.id,
-    familyLanding: initialFamilyLanding ? VIBRATION_FAMILY_ID : null,
+    familyLanding: initialFamilyLanding ? context.familyId : null,
     draft: createEngineeringConsoleDraft(definition, context?.inputs ?? {}),
     mode: context?.executionMode === 'sandbox' ? 'sandbox' : 'single',
     qualificationMode: context?.qualificationMode || 'strict',
@@ -287,7 +289,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     const family = event.target.closest('[data-family-id]');
     if (family) {
       const familyId = family.dataset.familyId;
-      if (familyId === VIBRATION_FAMILY_ID) {
+      if (FAMILY_LANDING_IDS.has(familyId)) {
         openFamilyLanding(familyId);
         return;
       }
