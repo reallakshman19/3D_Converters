@@ -60,6 +60,25 @@ export const VIBRATION_MITIGATION_IMPLEMENTATION_AUTHORITY = Object.freeze({
 });
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
+const ACTION_KEYS = Object.freeze(['schema', 'actionId', 'mechanismId', 'scope']);
+const ACTION_SCOPE_KEYS = Object.freeze(['line', 'caseId', 'canonicalId']);
+const BASIS_KEYS = Object.freeze(['verificationRecords', 'rcaRecords', 'evidenceRefs']);
+const VERIFICATION_SNAPSHOT_KEYS = Object.freeze([
+  'recordId', 'attachmentId', 'requirementId', 'verificationState',
+  'verificationStatusFingerprint', 'evidenceFingerprint',
+]);
+const RCA_SNAPSHOT_KEYS = Object.freeze([
+  'recordId', 'hypothesisRecordId', 'hypothesisId', 'hypothesisFingerprint', 'state', 'conclusionOutcome',
+]);
+const PROPOSAL_KEYS = Object.freeze([
+  'schema', 'proposalRecordId', 'proposalFingerprint', 'projectId', 'action', 'occurrence',
+  'proposalId', 'engineerId', 'proposedAt', 'proposalText', 'rationale', 'basis', 'authority',
+]);
+const IMPLEMENTATION_KEYS = Object.freeze([
+  'schema', 'implementationRecordId', 'implementationFingerprint', 'proposal',
+  'proposalRecordId', 'proposalFingerprint', 'projectId', 'actionId', 'mechanismId', 'occurrenceId',
+  'implementationId', 'implementedBy', 'implementedAt', 'implementationStatement', 'evidence', 'authority',
+]);
 
 function mitigationError(code, message, details = {}) {
   const error = new Error(message);
@@ -101,24 +120,38 @@ function sha256(value) {
   return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
 }
 
+function assertExactKeys(value, expectedKeys, code, field) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw mitigationError(code, `${field} must be an object.`, { field });
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  if (stableJson(actual) !== stableJson(expected)) {
+    throw mitigationError(code, `${field} contains missing or unsupported fields.`, { field, actual, expected });
+  }
+}
+
 function assertAuthority(value, expected, code) {
+  assertExactKeys(value, Object.keys(expected), code, 'authority');
   for (const [key, expectedValue] of Object.entries(expected)) {
-    if (value?.[key] !== expectedValue) {
+    if (value[key] !== expectedValue) {
       throw mitigationError(code, `Mitigation authority mismatch at ${key}.`, { key });
     }
   }
 }
 
 function actionReference(action, occurrence) {
-  if (action?.schema !== VIBRATION_REQUIRED_ACTION_SCHEMA) {
+  assertExactKeys(action, ACTION_KEYS, 'VIBRATION_MITIGATION_ACTION_SHAPE_INVALID', 'action');
+  assertExactKeys(action.scope, ACTION_SCOPE_KEYS, 'VIBRATION_MITIGATION_ACTION_SCOPE_SHAPE_INVALID', 'action.scope');
+  if (action.schema !== VIBRATION_REQUIRED_ACTION_SCHEMA) {
     throw mitigationError('VIBRATION_MITIGATION_ACTION_SCHEMA_INVALID', `action.schema must be ${VIBRATION_REQUIRED_ACTION_SCHEMA}.`);
   }
   const actionId = text(action.actionId, 'action.actionId');
   const mechanismId = text(action.mechanismId, 'action.mechanismId');
   const scope = Object.freeze({
-    line: text(action.scope?.line, 'action.scope.line'),
-    caseId: text(action.scope?.caseId, 'action.scope.caseId'),
-    canonicalId: text(action.scope?.canonicalId, 'action.scope.canonicalId'),
+    line: text(action.scope.line, 'action.scope.line'),
+    caseId: text(action.scope.caseId, 'action.scope.caseId'),
+    canonicalId: text(action.scope.canonicalId, 'action.scope.canonicalId'),
   });
   if (actionId !== occurrence.actionId) {
     throw mitigationError('VIBRATION_MITIGATION_ACTION_OCCURRENCE_MISMATCH', 'Mitigation action does not match the exact action occurrence.');
@@ -206,7 +239,8 @@ function assertVerificationSnapshots(values) {
   if (!Array.isArray(values)) throw mitigationError('VIBRATION_MITIGATION_VERIFICATION_SNAPSHOT_INVALID', 'basis.verificationRecords must be an array.');
   const ids = new Set();
   for (const item of values) {
-    const recordId = text(item?.recordId, 'basis.verificationRecords[].recordId');
+    assertExactKeys(item, VERIFICATION_SNAPSHOT_KEYS, 'VIBRATION_MITIGATION_VERIFICATION_SNAPSHOT_INVALID', 'basis.verificationRecords[]');
+    const recordId = text(item.recordId, 'basis.verificationRecords[].recordId');
     if (ids.has(recordId)) throw mitigationError('VIBRATION_MITIGATION_REFERENCE_DUPLICATE', 'Verification snapshot record IDs must be unique.');
     ids.add(recordId);
     text(item.attachmentId, 'basis.verificationRecords[].attachmentId');
@@ -223,7 +257,8 @@ function assertRcaSnapshots(values) {
   if (!Array.isArray(values)) throw mitigationError('VIBRATION_MITIGATION_RCA_SNAPSHOT_INVALID', 'basis.rcaRecords must be an array.');
   const ids = new Set();
   for (const item of values) {
-    const recordId = text(item?.recordId, 'basis.rcaRecords[].recordId');
+    assertExactKeys(item, RCA_SNAPSHOT_KEYS, 'VIBRATION_MITIGATION_RCA_SNAPSHOT_INVALID', 'basis.rcaRecords[]');
+    const recordId = text(item.recordId, 'basis.rcaRecords[].recordId');
     if (ids.has(recordId)) throw mitigationError('VIBRATION_MITIGATION_REFERENCE_DUPLICATE', 'RCA snapshot record IDs must be unique.');
     ids.add(recordId);
     text(item.hypothesisRecordId, 'basis.rcaRecords[].hypothesisRecordId');
@@ -288,6 +323,7 @@ export function assertVibrationMitigationProposal(value) {
   if (value?.schema !== VIBRATION_MITIGATION_PROPOSAL_SCHEMA) {
     throw mitigationError('VIBRATION_MITIGATION_PROPOSAL_SCHEMA_INVALID', `Expected ${VIBRATION_MITIGATION_PROPOSAL_SCHEMA}.`);
   }
+  assertExactKeys(value, PROPOSAL_KEYS, 'VIBRATION_MITIGATION_PROPOSAL_SHAPE_INVALID', 'proposal');
   assertAuthority(value.authority, VIBRATION_MITIGATION_PROPOSAL_AUTHORITY, 'VIBRATION_MITIGATION_PROPOSAL_AUTHORITY_INVALID');
   const projectId = text(value.projectId, 'proposal.projectId');
   const occurrence = assertVibrationActionOccurrence(value.occurrence);
@@ -297,9 +333,7 @@ export function assertVibrationMitigationProposal(value) {
   const proposedAt = isoTime(value.proposedAt, 'proposal.proposedAt');
   const proposalText = text(value.proposalText, 'proposal.proposalText');
   const rationale = text(value.rationale, 'proposal.rationale');
-  if (!value.basis || typeof value.basis !== 'object' || Array.isArray(value.basis)) {
-    throw mitigationError('VIBRATION_MITIGATION_BASIS_INVALID', 'proposal.basis must be an object.');
-  }
+  assertExactKeys(value.basis, BASIS_KEYS, 'VIBRATION_MITIGATION_BASIS_INVALID', 'proposal.basis');
   const basis = {
     verificationRecords: assertVerificationSnapshots(value.basis.verificationRecords),
     rcaRecords: assertRcaSnapshots(value.basis.rcaRecords),
@@ -366,6 +400,7 @@ export function assertVibrationMitigationImplementation(value) {
   if (value?.schema !== VIBRATION_MITIGATION_IMPLEMENTATION_SCHEMA) {
     throw mitigationError('VIBRATION_MITIGATION_IMPLEMENTATION_SCHEMA_INVALID', `Expected ${VIBRATION_MITIGATION_IMPLEMENTATION_SCHEMA}.`);
   }
+  assertExactKeys(value, IMPLEMENTATION_KEYS, 'VIBRATION_MITIGATION_IMPLEMENTATION_SHAPE_INVALID', 'implementation');
   assertAuthority(value.authority, VIBRATION_MITIGATION_IMPLEMENTATION_AUTHORITY, 'VIBRATION_MITIGATION_IMPLEMENTATION_AUTHORITY_INVALID');
   const proposal = assertVibrationMitigationProposal(value.proposal);
   const implementationId = text(value.implementationId, 'implementation.implementationId');
@@ -378,7 +413,7 @@ export function assertVibrationMitigationImplementation(value) {
   }
   const expected = implementationPayload({ proposal, implementationId, implementedBy, implementedAt, implementationStatement, evidence });
   for (const [key, expectedValue] of Object.entries(expected)) {
-    if (value[key] !== expectedValue && stableJson(value[key]) !== stableJson(expectedValue)) {
+    if (stableJson(value[key]) !== stableJson(expectedValue)) {
       throw mitigationError('VIBRATION_MITIGATION_IMPLEMENTATION_BINDING_INVALID', `Implementation custody mismatch at ${key}.`, { key });
     }
   }
