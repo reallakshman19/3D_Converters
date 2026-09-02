@@ -17,19 +17,19 @@ const SUBTABS = Object.freeze([
   {
     id: 'hp-piping-class',
     label: 'HP Piping Class',
-    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient/package/report/disposition enhancers are additive.
+    // Product bulk workbench composes hp-piping-class-kd-bulk-workbench-tab.js; transient/package/report/v2-disposition enhancers are additive.
     load: () => Promise.all([
       import('./hp-piping-class-product-bulk-workbench-tab.js?v=20260820-hp-product-bulk-1'),
       import('./hp-piping-class-transient-bulk-enhancer.js?v=20260821-hp-transient-bulk-1'),
       import('./hp-piping-class-intake-package-enhancer.js?v=20260821-hp-class-package-1'),
       import('./hp-piping-class-engineering-review-report-enhancer.js?v=20260821-hp-review-report-1'),
-      import('./hp-piping-class-engineering-review-disposition-enhancer.js?v=20260821-hp-review-disposition-1'),
+      import('./hp-piping-class-engineering-review-disposition-v2-enhancer.js?v=20260821-hp-review-disposition-v2-1'),
     ]).then(([workbench, transientBulk, intakePackage, reviewReport, reviewDisposition]) => (container, options) => {
       const destroyWorkbench = workbench.renderHpPipingClassWorkbenchTab(container, options);
       const destroyTransientBulk = transientBulk.installHpPipingClassTransientBulkEnhancer(container, options);
       const destroyIntakePackage = intakePackage.installHpPipingClassIntakePackageEnhancer(container, options);
       const destroyReviewReport = reviewReport.installHpPipingClassEngineeringReviewReportEnhancer(container, options);
-      const destroyReviewDisposition = reviewDisposition.installHpPipingClassEngineeringReviewDispositionEnhancer(container, options);
+      const destroyReviewDisposition = reviewDisposition.installHpPipingClassEngineeringReviewDispositionV2Enhancer(container, options);
       return () => {
         destroyReviewDisposition?.();
         destroyReviewReport?.();
