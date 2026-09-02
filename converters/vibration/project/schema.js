@@ -267,9 +267,16 @@ function assertV2EngineeringInputs(engineeringInputs) {
     'VIBRATION_PROJECT_V2_ENGINEERING_INPUT_SHAPE_INVALID',
     'project.engineeringInputs',
   );
-  requiredArray(engineeringInputs.identificationEvidence, 'project.engineeringInputs.identificationEvidence');
-  requiredArray(engineeringInputs.userEngineeringData, 'project.engineeringInputs.userEngineeringData');
-  requiredArray(engineeringInputs.assumptions, 'project.engineeringInputs.assumptions');
+  for (const key of V2_ENGINEERING_INPUT_KEYS) {
+    const rows = requiredArray(engineeringInputs[key], `project.engineeringInputs.${key}`);
+    if (rows.length) {
+      throw projectError(
+        'VIBRATION_PROJECT_V2_ENGINEERING_INPUT_CONTRACT_UNQUALIFIED',
+        `V2 reserves engineeringInputs.${key} but this lifecycle-persistence slice does not accept non-empty records yet.`,
+        { key },
+      );
+    }
+  }
 }
 
 function assertV2VisualInspection(project, lineIds) {
@@ -310,7 +317,13 @@ function assertVibrationIntegrityProjectV2(project) {
   const projectId = requiredText(project.project?.projectId, 'project.project.projectId');
   requiredObject(project.sourceImports, 'project.sourceImports');
   requiredArray(project.unknownCompatibilityModules, 'project.unknownCompatibilityModules');
-  requiredArray(project.actions, 'project.actions');
+  const actions = requiredArray(project.actions, 'project.actions');
+  if (actions.length) {
+    throw projectError(
+      'VIBRATION_PROJECT_V2_LEGACY_ACTION_CONTRACT_UNQUALIFIED',
+      'V2 reserves project.actions for compatibility but lifecycle custody must use project.activity.',
+    );
+  }
   requiredArray(project.historicalCalculationEvidence, 'project.historicalCalculationEvidence');
   if (project.historicalCalculationEvidence.length) {
     throw projectError(
@@ -367,6 +380,10 @@ export function migrateVibrationIntegrityProjectToV2(value) {
       .filter(([key]) => !known.has(key))
       .map(([key, item]) => [key, cloneProjectValue(item)]),
   );
+  const legacyActions = cloneProjectValue(project.actions ?? []);
+  const extensions = {};
+  if (Object.keys(legacyV1TopLevel).length) extensions.legacyV1TopLevel = legacyV1TopLevel;
+  if (legacyActions.length) extensions.legacyV1Actions = legacyActions;
   const migrated = {
     schema: VIBRATION_INTEGRITY_PROJECT_SCHEMA_V2,
     project: cloneProjectValue(project.project),
@@ -377,7 +394,7 @@ export function migrateVibrationIntegrityProjectToV2(value) {
     currentResults: [],
     measurements: [],
     measurementEvidence: cloneProjectValue(project.measurementEvidence),
-    actions: cloneProjectValue(project.actions ?? []),
+    actions: [],
     engineeringInputs: {
       identificationEvidence: [],
       userEngineeringData: [],
@@ -387,7 +404,7 @@ export function migrateVibrationIntegrityProjectToV2(value) {
     visualInspectionEvidence: emptyVisualInspectionEvidence(),
     historicalCalculationEvidence: [],
     activity: createEmptyVibrationProjectV2Activity(projectId),
-    extensions: Object.keys(legacyV1TopLevel).length ? { legacyV1TopLevel } : {},
+    extensions,
     authority: VIBRATION_INTEGRITY_PROJECT_V2_AUTHORITY,
   };
   assertVibrationIntegrityProjectV2(migrated);
