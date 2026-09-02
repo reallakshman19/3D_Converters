@@ -78,17 +78,46 @@ A successful route clears any prior navigation diagnostic before invoking the ex
 
 ```text
 Branch re-ground to current main                 PASS
-Effective branch behind main                     0 at implementation start
+Effective branch behind main                     0 at PR creation
 UI-001 standalone Node unit oracle               PASS / 4 tests
 UI-002 source contract tests                     AUTHORED
 UI-002 renderer diagnostic tests                 AUTHORED
-Full repository-native Node suite                NOT_RUN pending hosted/native checkout
-Rendered browser interaction regression          NOT_RUN / successor UI-010
+Hosted Vibration Production Freeze Validation    FAIL
+Hosted Stage-4 precheck                          31 PASS / 8 FAIL
+Full repository-native Node suite                SKIPPED by workflow after Stage-4 failure
+Hosted Chromium production-freeze journey        SKIPPED by workflow after Stage-4 failure
+Rendered Vibration UI interaction regression     NOT_RUN / successor UI-010
 Screenshot/viewport verification                 NOT_RUN
 Numerical verification                           NOT_APPLICABLE
 ```
 
 The standalone UI-001 oracle exercised semantic focus keys, scroll capture, focus+scroll restoration, and the no-focus-steal rule; all four tests passed.
+
+### Hosted failure disposition
+
+PR #707 triggered `Vibration Production Freeze Validation` run `33609689839`. Its `node-and-chromium` job failed in the workflow's existing Stage-4 precheck before the full Node suite or Chromium journey could execute.
+
+The failing assertions/stacks are in untouched Mechanical/SBC Stage-4 files and contracts, including:
+
+```text
+tests/vibration-integrity-mechanism-matrix.test.mjs
+tests/vibration-mechanical-t23-module-boundaries-stage4.test.mjs
+tests/vibration-mechanical-t23-ui-stage4.test.mjs
+```
+
+Observed examples include stale expectations for the former Mechanical candidate path/symbols while the current product source exposes the qualified direct T2.3 screening path, plus SBC matrix/readiness expectations. No failing stack enters `vibration-roadmap-controller.js`, `vibration-roadmap-panel.js`, `vibration-roadmap-view-state.js`, or the UI-001/UI-002 tests.
+
+This is **not** converted to PASS and does not authorize merge. Because the precheck terminates the job, the new UI-002 tests and browser evidence remain unexecuted by hosted CI.
+
+## Merge gate
+
+```text
+MERGE_AUTHORITY          OWNER_ONLY_NOT_GRANTED
+MERGE_READINESS          BLOCKED
+BLOCKER                  HOSTED VALIDATION RED; FULL SUITE/BROWSER NOT EXECUTED
+```
+
+The PR must remain draft until the repository validation baseline is reconciled and the bounded UI tests are executed in a native/hosted checkout. An unrelated Stage-4 failure is not evidence that UI-001/UI-002 failed, but it is also not evidence that they passed integration.
 
 ## Negative assurance
 
