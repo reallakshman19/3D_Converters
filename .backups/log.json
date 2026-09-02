@@ -1,5 +1,5 @@
 {
-  "lastId": 9,
+  "lastId": 10,
   "entries": [
     {
       "id": 1,
@@ -63,6 +63,13 @@
       "file": "converters/vibration/project/schema.js",
       "context": "Protect PR720 project schema before foreign lifecycle handoff project-scope guard (connector-reconstructed backup)",
       "backupFile": "9_converters_vibration_project_schema_js.bak"
+    },
+    {
+      "id": 10,
+      "timestamp": "2026-09-02 17:27:00",
+      "file": "tests/vibration-project-lifecycle-persistence.test.mjs",
+      "context": "Protect PR720 focused persistence regression before foreign handoff negative assertion (connector-reconstructed backup)",
+      "backupFile": "10_tests_vibration_project_lifecycle_persistence_test_mjs.bak"
     }
   ]
 }
