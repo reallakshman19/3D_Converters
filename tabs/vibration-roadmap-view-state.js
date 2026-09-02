@@ -37,12 +37,11 @@ function findFocusTarget(panel, focusKey) {
   return [...candidates].find((candidate) => vibrationRoadmapFocusKey(candidate) === focusKey) ?? null;
 }
 
-function mayRestoreFocus(documentRef, panel) {
+function mayRestoreFocus(documentRef) {
   const active = documentRef?.activeElement ?? null;
   if (!active) return true;
   if (active === documentRef.body || active === documentRef.documentElement) return true;
-  if (active.isConnected === false) return true;
-  return panel.contains?.(active) === false ? false : vibrationRoadmapFocusKey(active) == null;
+  return active.isConnected === false;
 }
 
 function focusWithoutScroll(target) {
@@ -62,7 +61,7 @@ export function restoreVibrationRoadmapViewState(panel, state, documentRef = pan
     scroll.scrollTop = numeric(state.scrollTop);
     scroll.scrollLeft = numeric(state.scrollLeft);
   }
-  if (!state.focusKey || !mayRestoreFocus(documentRef, panel)) return false;
+  if (!state.focusKey || !mayRestoreFocus(documentRef)) return false;
   const target = findFocusTarget(panel, state.focusKey);
   const restored = focusWithoutScroll(target);
   if (restored && scroll) {
