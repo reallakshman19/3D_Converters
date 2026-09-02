@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0015 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0015.md | #709 | ACTIVE / AUTO | FLANGE / BOLTS engineering calculations | Implement standalone installation torsional stress and axial/torsional von-Mises utilization using thread torque only and an explicit stress-section diameter; do not central-register in this leg. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0016 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0016.md | #709 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Execute the focused PR709 installation-strength tests against an exact native repository checkout; preserve NOT_RUN if that environment remains unavailable. |
 
 ## ENDPOINT LOG
 
@@ -27,3 +27,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0013 | ENGCALC-BOLTED-JOINTS | LEG-01 | c6f5b2117bf4b98428227105227119117362f77d | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0013.md |
 | EP-0014 | ENGCALC-BOLTED-JOINTS | LEG-01 | 014a4beb5908de60d4ed6f46456918868475515f | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0014.md |
 | EP-0015 | ENGCALC-BOLTED-JOINTS | LEG-02 | 71fcf551713e447542aaf644e3cab5c5e8e283ea | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0015.md |
+| EP-0016 | ENGCALC-BOLTED-JOINTS | LEG-02 | 6ff6e56fee4444908bbb877bca6dc67bacd8db87 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0016.md |
