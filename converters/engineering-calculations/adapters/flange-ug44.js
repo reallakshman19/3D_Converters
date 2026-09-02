@@ -1,6 +1,7 @@
 import { ENGINEERING_CALCULATION_CONTRACT_VERSION } from '../contracts.js';
 import { composeEngineeringQualification } from '../qualification.js';
 import { calculateUg44RatedFlange } from '../flange/ug44.js';
+import { resolveUg44CalculationInputs } from '../flange/ug44-input-resolution.js';
 
 export const FLANGE_UG44_ENGINEERING_CALCULATION_ID = 'FLANGE.RATED_LOAD.UG44B';
 
@@ -15,6 +16,8 @@ const APPLICABILITY = Object.freeze({
   limitations: Object.freeze([
     'Primary Code source qualification is pending; this result is not Code/design authority.',
     'Flange pressure-temperature rating and gasket reaction diameter are caller-provided; governed master-data lookup is not yet integrated.',
+    'Gasket reaction diameter may be derived as the mean gasket contact diameter. That is the legacy workbook basis, not an Appendix 2 effective-seating-width derivation, and does not govern G.',
+    'Design pressure may include a static head of specific gravity times height times standard gravity, applied uniformly rather than per-nozzle elevation.',
     'The adapter consumes resolved opening axial force and resultant in-plane bending moment; 3D load transformation remains a separate upstream step.',
   ]),
 });
@@ -22,7 +25,11 @@ const APPLICABILITY = Object.freeze({
 const INPUTS = Object.freeze([
   { key: 'ratedPressure', label: 'Rated pressure', type: 'number', required: true, quantity: 'pressure', canonicalUnit: 'Pa', minExclusive: 0 },
   { key: 'designPressure', label: 'Design pressure', type: 'number', required: true, quantity: 'pressure', canonicalUnit: 'Pa', min: 0 },
-  { key: 'gasketReactionDiameter', label: 'Gasket reaction diameter', type: 'number', required: true, quantity: 'length', canonicalUnit: 'm', minExclusive: 0 },
+  { key: 'gasketReactionDiameter', label: 'Gasket reaction diameter', type: 'number', required: false, quantity: 'length', canonicalUnit: 'm', minExclusive: 0 },
+  { key: 'gasketInnerDiameter', label: 'Gasket contact inner diameter', type: 'number', required: false, quantity: 'length', canonicalUnit: 'm', minExclusive: 0 },
+  { key: 'gasketOuterDiameter', label: 'Gasket contact outer diameter', type: 'number', required: false, quantity: 'length', canonicalUnit: 'm', minExclusive: 0 },
+  { key: 'specificGravity', label: 'Liquid specific gravity', type: 'number', required: false, quantity: 'dimensionless', canonicalUnit: null, min: 0 },
+  { key: 'liquidHeight', label: 'Liquid height above the flange', type: 'number', required: false, quantity: 'length', canonicalUnit: 'm', min: 0 },
   { key: 'momentFactor', label: 'Moment factor', type: 'number', required: true, quantity: 'dimensionless', canonicalUnit: null, min: 0 },
   { key: 'bendingMoment', label: 'Resolved bending moment', type: 'number', required: true, quantity: 'moment', canonicalUnit: 'N*m', min: 0 },
   { key: 'openingAxialForce', label: 'Opening axial force', type: 'number', required: true, quantity: 'force', canonicalUnit: 'N', min: 0 },
@@ -51,16 +58,6 @@ function qualification() {
   });
 }
 
-function calculationInputs(input) {
-  return {
-    ratedPressurePa: input.ratedPressure,
-    designPressurePa: input.designPressure,
-    gasketReactionDiameterM: input.gasketReactionDiameter,
-    momentFactor: input.momentFactor,
-    bendingMomentNm: input.bendingMoment,
-    openingAxialForceN: input.openingAxialForce,
-  };
-}
 
 function resultOutputs(result) {
   return {
@@ -77,7 +74,8 @@ function resultOutputs(result) {
 }
 
 function calculate(input) {
-  const result = calculateUg44RatedFlange(calculationInputs(input));
+  const resolved = resolveUg44CalculationInputs(input);
+  const result = calculateUg44RatedFlange(resolved.calculationInputs);
   return {
     ok: true,
     outputs: resultOutputs(result),
@@ -85,6 +83,9 @@ function calculate(input) {
       uncappedMaximumPressure: result.uncappedMaximumPressurePa,
       availablePressure: result.availablePressurePa,
       demandPressure: result.demandPressurePa,
+      resolvedGasketReactionDiameter: resolved.calculationInputs.gasketReactionDiameterM,
+      resolvedDesignPressure: resolved.calculationInputs.designPressurePa,
+      staticHeadPressure: resolved.basis.designPressure.staticHeadPa,
     },
     checks: [{ id: 'UG44B_REFERENCE_RELATIONSHIP', satisfied: result.pass, utilization: result.utilization, designAuthority: false }],
     assessment: {
@@ -99,6 +100,9 @@ function calculate(input) {
       validationBasis: 'PV_ELITE_C101_ROUNDED_INPUT_CROSS_SOLVER',
       primaryCodeSourceQualified: false,
       flangeMasterDataQualified: false,
+      gasketReactionDiameterBasis: resolved.basis.gasketReactionDiameter.basis,
+      designPressureBasis: resolved.basis.designPressure.basis,
+      gasketReactionDiameterIsCodeSeatingWidthDerivation: false,
     },
     evidence: { domainResult: result, authorityBoundary: 'BENCHMARK_ONLY_NOT_CODE_OR_DESIGN_AUTHORITY' },
   };
