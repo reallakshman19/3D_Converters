@@ -1,1 +1,0 @@
-Temporary note: Pages runtime compatibility changes are being split to a dedicated hotfix branch/PR so PR704 remains M16-only. This file will be removed from PR704 before handover.
