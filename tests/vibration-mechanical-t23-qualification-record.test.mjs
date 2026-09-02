@@ -34,6 +34,9 @@ test('Mechanical T2.3 qualification record is closed to direct Table T2-3 screen
       decision: 'BOUND_DIRECT_TABLE_T2_3_SCREENING_ONLY',
     },
   });
+  assert.equal(record.validationPolicy.repositoryNativeFocusedTests, 'REQUIRED_AT_RELEASE_GATE');
+  assert.equal(record.validationPolicy.fullRepositoryNodeSuite, 'REQUIRED_AT_RELEASE_GATE');
+  assert.equal(record.validationPolicy.benchmarkedChromiumJourney, 'REQUIRED_AT_RELEASE_GATE');
   assert.equal(record.validationPolicy.missingExecutionEvidence, 'NOT_FROZEN');
 });
 
