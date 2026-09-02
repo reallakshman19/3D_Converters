@@ -1,13 +1,14 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0002
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0002.md
+ACTIVE_ENDPOINT: EP-0003
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0003.md
 MATERIAL_HISTORY_ROOT_BASE: 0a16f973acea81aa2670815a7128ab587359bc68
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0002.md
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0003.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: ccf7a893018a506bd8c94edb692397bedbc32390
+HEAD: 01456d1bacf95bd11a082be8978085a707f29556
+VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
 CUSTODY_STATE: HELD
@@ -47,7 +48,7 @@ OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: independent source/artifact confirmation of guard and negative test; Actions runs=0 and status contexts=0 at current PR head
+HANDOVER_VALIDATION_EVIDENCE: source/artifact confirmation plus explicit closed->reopened trigger attempt; branch Actions runs remain zero; workflow absent on main blocks normal workflow_dispatch availability
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -63,5 +64,5 @@ POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
 INDEPENDENT_CONFIRMATION_BASIS: source/artifact inspection only; runtime execution remains NOT_RUN
 PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_NEXT_MATERIAL_LEG
-CURRENT_BLOCKER: Exact-head focused execution remains unavailable; source confirmation is not an execution PASS.
-EXACT_NEXT_ACTION: Obtain exact-head focused validation. If PASS, record the receipt and classify Q5 as NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
+CURRENT_BLOCKER: No executable focused-test receipt is available for VALIDATION_TARGET_HEAD; reopened-event retrigger produced zero Actions runs and no product failure is demonstrated.
+EXACT_NEXT_ACTION: Obtain repository-native or independently executed focused validation for VALIDATION_TARGET_HEAD. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
