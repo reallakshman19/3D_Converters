@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0014 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0014.md | #706 | ACTIVE / AUTO | FLANGE / BOLTS engineering calculations | Implement installation torsional stress and combined axial/torsional von-Mises utilization as a separate non-authorizing bolt-strength reference using thread torque only and explicit stress-section diameter. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0019 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0019.md | #715/#716 landed | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Execute the three focused bolt/registry tests on an exact current-main checkout. If exact execution is unavailable, preserve NOT_RUN and stop; do not advance to LEG-04. |
 
 ## ENDPOINT LOG
 
@@ -26,3 +26,8 @@ AGENTCHAIN_VERSION: 2
 | EP-0012 | ENGCALC-BOLTED-JOINTS | LEG-01 | ae5955ba56ed1a3823a6b03b6f06437f5f7441ea | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0012.md |
 | EP-0013 | ENGCALC-BOLTED-JOINTS | LEG-01 | c6f5b2117bf4b98428227105227119117362f77d | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0013.md |
 | EP-0014 | ENGCALC-BOLTED-JOINTS | LEG-01 | 014a4beb5908de60d4ed6f46456918868475515f | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0014.md |
+| EP-0015 | ENGCALC-BOLTED-JOINTS | LEG-02 | 71fcf551713e447542aaf644e3cab5c5e8e283ea | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0015.md |
+| EP-0016 | ENGCALC-BOLTED-JOINTS | LEG-02 | 6ff6e56fee4444908bbb877bca6dc67bacd8db87 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0016.md |
+| EP-0017 | ENGCALC-BOLTED-JOINTS | LEG-03 | e3c38ab22409db2e5afbda76f8948cbe6001d31b | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0017.md |
+| EP-0018 | ENGCALC-BOLTED-JOINTS | LEG-03 | c7395422dd2d306681b9b2ece3e6071ca8957247 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0018.md |
+| EP-0019 | ENGCALC-BOLTED-JOINTS | LEG-03 | cc22ba02678e5b51294a03ed2416cfe8ed8af1ee | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0019.md |
