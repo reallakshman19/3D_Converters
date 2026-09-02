@@ -104,6 +104,7 @@ async function focusEvidence(page, target) {
   const outline = parseColor(styleEvidence.outlineColor);
   const effectiveOutline = outline ? composite(outline, styleEvidence.backdrop) : null;
   const ratio = effectiveOutline ? contrastRatio(effectiveOutline, styleEvidence.backdrop) : null;
+  const computedStyleContrastCheckApplicable = styleEvidence.outlineStyle !== 'auto';
   const screenshot = `focus-${target.id}.png`;
   await page.screenshot({ path: path.join(outputDir, screenshot), fullPage: false });
   return {
@@ -113,7 +114,9 @@ async function focusEvidence(page, target) {
     ...styleEvidence,
     effectiveOutline,
     outlineAdjacentContrastRatio: ratio,
-    meetsThreeToOneContrast: ratio != null ? ratio >= 3 : false,
+    computedStyleContrastCheckApplicable,
+    meetsThreeToOneContrast: computedStyleContrastCheckApplicable && ratio != null ? ratio >= 3 : null,
+    screenshotVerificationRequired: !computedStyleContrastCheckApplicable,
     screenshot,
   };
 }
@@ -147,11 +150,13 @@ try {
       designAuthority: false,
       blocking: false,
     },
+    interpretation: 'CSS_OUTLINE_AUTO_PAINTING_IS_BROWSER_THEME_DEPENDENT; COMPUTED_OUTLINE_COLOR_IS_NOT_AUTHORITATIVE_FOR_THE_PAINTED_FOCUS_RING. AUTO_OUTLINE_CONTROLS REQUIRE_SCREENSHOT_REVIEW.',
     controls,
-    failures: controls.filter((control) => control.reached && !control.meetsThreeToOneContrast).map((control) => control.id),
+    computedStyleFailures: controls.filter((control) => control.computedStyleContrastCheckApplicable && control.meetsThreeToOneContrast === false).map((control) => control.id),
+    autoOutlineRequiresScreenshotReview: controls.filter((control) => control.screenshotVerificationRequired).map((control) => control.id),
   };
   await writeFile(path.join(outputDir, 'focus-appearance-report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.log(`VIBRATION_ROADMAP_UI012_FOCUS_SUMMARY=${JSON.stringify({ failures: report.failures, controls: controls.map(({ id, outlineAdjacentContrastRatio }) => ({ id, outlineAdjacentContrastRatio })) })}`);
+  console.log(`VIBRATION_ROADMAP_UI012_FOCUS_SUMMARY=${JSON.stringify({ computedStyleFailures: report.computedStyleFailures, autoOutlineRequiresScreenshotReview: report.autoOutlineRequiresScreenshotReview, controls: controls.map(({ id, outlineStyle, outlineAdjacentContrastRatio }) => ({ id, outlineStyle, outlineAdjacentContrastRatio })) })}`);
   console.log('VIBRATION_ROADMAP_UI012_FOCUS_AUDIT=COMPLETE');
 } finally {
   await browser.close();
