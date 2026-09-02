@@ -141,17 +141,15 @@ function assertAuthority(value, expected, code) {
 }
 
 function actionReference(action, occurrence) {
-  assertExactKeys(action, ACTION_KEYS, 'VIBRATION_MITIGATION_ACTION_SHAPE_INVALID', 'action');
-  assertExactKeys(action.scope, ACTION_SCOPE_KEYS, 'VIBRATION_MITIGATION_ACTION_SCOPE_SHAPE_INVALID', 'action.scope');
-  if (action.schema !== VIBRATION_REQUIRED_ACTION_SCHEMA) {
+  if (action?.schema !== VIBRATION_REQUIRED_ACTION_SCHEMA) {
     throw mitigationError('VIBRATION_MITIGATION_ACTION_SCHEMA_INVALID', `action.schema must be ${VIBRATION_REQUIRED_ACTION_SCHEMA}.`);
   }
   const actionId = text(action.actionId, 'action.actionId');
   const mechanismId = text(action.mechanismId, 'action.mechanismId');
   const scope = Object.freeze({
-    line: text(action.scope.line, 'action.scope.line'),
-    caseId: text(action.scope.caseId, 'action.scope.caseId'),
-    canonicalId: text(action.scope.canonicalId, 'action.scope.canonicalId'),
+    line: text(action.scope?.line, 'action.scope.line'),
+    caseId: text(action.scope?.caseId, 'action.scope.caseId'),
+    canonicalId: text(action.scope?.canonicalId, 'action.scope.canonicalId'),
   });
   if (actionId !== occurrence.actionId) {
     throw mitigationError('VIBRATION_MITIGATION_ACTION_OCCURRENCE_MISMATCH', 'Mitigation action does not match the exact action occurrence.');
@@ -161,6 +159,14 @@ function actionReference(action, occurrence) {
     throw mitigationError('VIBRATION_MITIGATION_ACTION_SCOPE_MISMATCH', 'Mitigation action scope does not match the occurrence scenario.');
   }
   return Object.freeze({ schema: VIBRATION_REQUIRED_ACTION_SCHEMA, actionId, mechanismId, scope });
+}
+
+function assertCanonicalActionSnapshot(value, canonical) {
+  assertExactKeys(value, ACTION_KEYS, 'VIBRATION_MITIGATION_ACTION_SHAPE_INVALID', 'proposal.action');
+  assertExactKeys(value.scope, ACTION_SCOPE_KEYS, 'VIBRATION_MITIGATION_ACTION_SCOPE_SHAPE_INVALID', 'proposal.action.scope');
+  if (stableJson(value) !== stableJson(canonical)) {
+    throw mitigationError('VIBRATION_MITIGATION_ACTION_SHAPE_INVALID', 'Stored mitigation action snapshot is not canonical.');
+  }
 }
 
 function uniqueIds(values, field) {
@@ -328,6 +334,7 @@ export function assertVibrationMitigationProposal(value) {
   const projectId = text(value.projectId, 'proposal.projectId');
   const occurrence = assertVibrationActionOccurrence(value.occurrence);
   const action = actionReference(value.action, occurrence);
+  assertCanonicalActionSnapshot(value.action, action);
   const proposalId = text(value.proposalId, 'proposal.proposalId');
   const engineerId = text(value.engineerId, 'proposal.engineerId');
   const proposedAt = isoTime(value.proposedAt, 'proposal.proposedAt');
