@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/vibration-roadmap-ui012-viewport-audit.yml'
       - 'scripts/run-vibration-roadmap-viewport-audit.mjs'
+      - 'scripts/run-vibration-roadmap-focus-appearance-audit.mjs'
       - 'tests/browser/vibration-roadmap-viewport-audit.html'
       - 'tabs/vibration-roadmap-*.js'
       - 'tabs/vibration-roadmap-panel.css'
@@ -39,6 +40,9 @@ jobs:
 
       - name: Run UI-012 viewport audit
         run: node scripts/run-vibration-roadmap-viewport-audit.mjs
+
+      - name: Run UI-012 focus appearance audit
+        run: node scripts/run-vibration-roadmap-focus-appearance-audit.mjs
 
       - name: Upload UI-012 screenshots and report
         if: always()
