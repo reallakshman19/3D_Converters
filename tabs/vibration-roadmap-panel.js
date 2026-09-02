@@ -57,7 +57,7 @@ function renderNode(node, activeCalculationId) {
   const detail = node.detail ? `<small>${esc(node.detail)}</small>` : '';
   const disabled = node.target ? '' : ' aria-disabled="true"';
   const active = node.target?.calculationId === activeCalculationId ? ' is-active' : '';
-  return `<button type="button" class="vibration-roadmap-node${active}" data-roadmap-status="${esc(node.status)}"${targetAttributes(node)}${disabled}><span><strong>${esc(node.label)}</strong><small>${esc(node.specialty)}</small>${sourceLine(node)}</span><span class="vibration-roadmap-status">${esc(label)}${detail}</span></button>`;
+  return `<button type="button" class="vibration-roadmap-node${active}" data-roadmap-node-id="${esc(node.id)}" data-roadmap-status="${esc(node.status)}"${targetAttributes(node)}${disabled}><span><strong>${esc(node.label)}</strong><small>${esc(node.specialty)}</small>${sourceLine(node)}</span><span class="vibration-roadmap-status">${esc(label)}${detail}</span></button>`;
 }
 
 function scopeGroups(nodes) {
@@ -90,6 +90,22 @@ function projectTools(context) {
   const message = context?.projectMessage
     ? `<div class="vibration-roadmap-message" data-kind="${esc(context.projectMessageKind ?? 'info')}">${esc(context.projectMessage)}</div>` : '';
   return `<section class="vibration-roadmap-project"><div class="vibration-roadmap-project-title"><small>Current project</small><strong>${esc(title)}</strong><small>Project persistence only · imported results require registered rerun</small></div>${linePicker}<div class="vibration-roadmap-project-actions"><button type="button" data-roadmap-action="import-eit">Import EI .eit</button><button type="button" data-roadmap-action="open-project">Open project</button><button type="button" data-roadmap-action="save-project" ${context?.projectId ? '' : 'disabled'}>Save project</button><input type="file" accept=".eit,application/json" data-roadmap-eit-file hidden><input type="file" accept=".vibproj,application/json" data-roadmap-project-file hidden></div>${message}</section>`;
+}
+
+function navigationFeedback(context) {
+  const diagnostic = context?.navigationDiagnostic;
+  const authority = diagnostic?.authority;
+  const valid = typeof diagnostic?.code === 'string' && diagnostic.code
+    && typeof diagnostic?.message === 'string' && diagnostic.message
+    && authority?.purpose === 'UI_NAVIGATION_DIAGNOSTIC_ONLY'
+    && authority.engineeringAuthority === 'NONE'
+    && authority.screeningAuthority === 'NOT_AUTHORIZED'
+    && authority.designAuthority === false
+    && authority.determinesApplicability === false
+    && authority.determinesCompleteness === false
+    && authority.blocksCalculation === false;
+  if (!valid) return '';
+  return `<div class="vibration-roadmap-message vibration-roadmap-navigation-message" data-kind="error" data-roadmap-navigation-message data-roadmap-navigation-code="${esc(diagnostic.code)}"><strong>Navigation unavailable</strong><span>${esc(diagnostic.message)}</span><small>UI routing diagnostic only · no engineering authority and no calculation blocking.</small></div>`;
 }
 
 function governedSelectedAssessment(context) {
@@ -176,7 +192,7 @@ export function renderVibrationRoadmapPanel(projection, { collapsed = false, wid
   const phases = workflow.phases.map((phase) => renderPhase(
     phase, activeCalculationId, workflow.focusPhaseId,
   )).join('');
-  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel${widthAttribute}>${resizeHandle(collapsed)}<header><div><strong>Vibration Assessment</strong><small>Right-panel workflow guidance · no applicability, completeness, screening or design authority</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projectTools(projection.context)}${renderSelectedAssessment(projection.context)}${renderSelectedMechanisms(projection.context)}${renderNextAttention(workflow)}<div class="vibration-roadmap-workflow-label"><strong>Workflow</strong><small>Existing governed roadmap states · phase labels are not completion claims</small></div>${phases}</div></aside>`;
+  return `<aside class="vibration-roadmap-panel${collapsedClass}" data-vibration-roadmap-panel${widthAttribute}>${resizeHandle(collapsed)}<header><div><strong>Vibration Assessment</strong><small>Right-panel workflow guidance · no applicability, completeness, screening or design authority</small></div><button type="button" class="vibration-roadmap-collapse" data-roadmap-collapse aria-label="${collapsed ? 'Expand' : 'Collapse'} vibration roadmap">${collapsed ? '‹' : '›'}</button></header><div class="vibration-roadmap-scroll">${projectTools(projection.context)}${navigationFeedback(projection.context)}${renderSelectedAssessment(projection.context)}${renderSelectedMechanisms(projection.context)}${renderNextAttention(workflow)}<div class="vibration-roadmap-workflow-label"><strong>Workflow</strong><small>Existing governed roadmap states · phase labels are not completion claims</small></div>${phases}</div></aside>`;
 }
 
 export function mountVibrationRoadmapPanel(host, projection, options = {}) {
