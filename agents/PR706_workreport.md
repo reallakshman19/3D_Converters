@@ -5,7 +5,8 @@ LEG_ID: LEG-01
 PR: 706
 BRANCH: agent/engcalc-bolted-joints-phase1-20260902
 BASE_MAIN: bff53e336bdbddbe0fb829b7991ca5ed27fc836a
-CHECKPOINT_HEAD: 5ea2aa31e0f6b136510532ab5eb6801e7e66ec88
+MATERIAL_CHECKPOINT_HEAD: 5ea2aa31e0f6b136510532ab5eb6801e7e66ec88
+VALIDATION_HEAD_OBSERVED: 6076ff1c41720ca9a1f830232b692eb3bd402656
 STATE: ACTIVE_VALIDATION_REQUIRED
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
@@ -41,65 +42,53 @@ registryIntegrated   = true
 UIExecutionPath      = SOURCE_WIRED_NOT_BROWSER_VALIDATED
 ```
 
-`equationSatisfied=true` is deliberately not a Code/design PASS. The adapter's assessment, qualification and provenance keep that distinction explicit.
+`equationSatisfied=true` is deliberately not a Code/design PASS.
 
 ## Source and benchmark state
 
-The user-supplied PV Elite C101 report identifies ASME UG-44(b), attributes the method to PVP2013-97814, and displays the acceptance/Pmax relationships and nozzle examples. Its displayed inputs are rounded, so those examples remain rounded-input cross-solver checks with a declared 2% relative tolerance.
-
-Independent arithmetic is protected by a hand-constructed SI pressure-equivalent fixture. Primary governing Code source qualification and governed flange master data remain unresolved.
+The user-supplied PV Elite C101 report is retained as a rounded-input cross-solver benchmark. Independent arithmetic uses a hand-constructed SI pressure-equivalent fixture. Primary governing Code source qualification and governed flange/gasket master data remain unresolved.
 
 ## Validation truth
 
 ```text
-source/architecture inspection              PASS
-main/base drift                              PASS / zero behind at checkpoint
-open PR exact registry/index name search    PASS / no competing PR found
-new adapter <300 lines                       PASS by inspection
-bounded functions / named exports           PASS by inspection
-prior reconstructed kernel tests            PASS 6/6 supporting only
-exact-head repository-native focused tests  NOT_RUN
-hosted CI                                    NOT_RUN
-browser                                      NOT_RUN
-independent engineering review               NOT_RUN
+source/architecture inspection                 PASS
+main/base drift                                 PASS / zero behind at material checkpoint
+open PR exact registry/index name search       PASS / no competing PR found
+new adapter line/function policy               PASS by inspection
+prior reconstructed kernel tests               PASS 6/6 supporting only
+hosted checkout + Node 22 execution             PASS
+hosted central index/registry initialization   PASS / indirect integration evidence
+hosted HP qualification suite                  FAIL 14/15
+focused flange exact-head tests                NOT_RUN
+browser                                         NOT_RUN
+independent engineering review                  NOT_RUN
 ```
 
-No `NOT_RUN` item is represented as PASS.
+### Hosted failure isolation
+
+GitHub Actions run `33601912543`, job `100157263996`, executed on the PR #706 merge ref. The single failure occurs in `tests/hp-piping-class-orchestrator-parity.test.mjs`: the test expects source text matching `PIPE.B313.CH9.FATIGUE_USER_CALCULATED`, while the HP orchestrator source contains `PIPE.B313.CH9.FATIGUE_USER_REVIEW`.
+
+PR #706 changes neither that HP test nor the HP orchestrator. The failure is therefore recorded as `FAIL / REMOTE_EXECUTION / OUT_OF_SCOPE_HP_PARITY`, not as a flange numerical failure. The PR is still red; no green status is claimed.
+
+The same run provides limited positive integration evidence: the exact PR checkout loaded the central Engineering Calculations index/default registry successfully and reached HP domain assertions, so the new UG44 definition did not cause registry initialization failure in that run.
 
 ## Coordination / overlap
 
-Open PR re-ground before shared-file mutation found no open PR naming `converters/engineering-calculations/default-registry.js` or `converters/engineering-calculations/index.js`. PR #540 touches FIT adapter/UI, and PR #649 touches `tabs/engineering-workspace-tab.js`; neither owns the two registry files changed here. Current classification for the registry/index edits: `SAFE` by observed path/authority search, subject to re-check before any later shared-file edit.
+No open PR was found naming `converters/engineering-calculations/default-registry.js` or `converters/engineering-calculations/index.js` before mutation. PR #540 touches FIT adapter/UI and PR #649 touches the Engineering workspace tab; neither owns the two registry files changed here. Re-check before any later shared-file mutation.
 
 ## Backup compliance
 
-The original kernel/load/CLI/test files were new. `agents/agentchain.md` had a repository-native pre-edit backup generated with `node utils/backup.js save` and committed under `.backups/`.
+The initial kernel/load/CLI/test files were new. `agents/agentchain.md` has a repository-native pre-edit backup recorded by `utils/backup.js` for its first edit.
 
-For the later existing registry/index edits, this connector session could not execute the required native backup command. Exact connector-side pre-edit byte copies were committed before mutation:
-
-```text
-.backups/connector-20260902-engcalc-ug44-registry/
-  converters_engineering-calculations_default-registry.js.bak
-  converters_engineering-calculations_index.js.bak
-```
-
-This is recorded as `NOT_RUN / ENVIRONMENT_BLOCKED` for the native command and is **not** claimed as policy-equivalent PASS. PR #706 remains draft and is not merge-ready on that basis alone.
+The later registry/index edits have exact connector-side pre-edit byte backups, but the required native `node utils/backup.js save ...` command for those files remains `NOT_RUN / ENVIRONMENT_BLOCKED`. Those copies are evidence only, not policy-equivalent PASS. PR #706 remains draft and is not merge-ready on that basis alone.
 
 ## Changed-file intent
 
-Engineering/software scope now includes:
-
-- flange kernel and joint-load primitives;
-- benchmark-only adapter;
-- default-registry registration and public export;
-- focused kernel/registry tests and CLI;
-- relay/workreport/status/claim artifacts;
-- exact pre-edit backup evidence.
-
-No workflow, writer, runtime, canvas, vibration numerical authority or existing FIT/AIV numerical method is changed.
+Engineering/software scope includes the flange kernel, joint-load primitives, BENCHMARK_ONLY adapter, default-registry/public-index registration, focused tests and CLI, plus relay/status/claim/backup custody. No workflow, writer, runtime, canvas, vibration numerical authority or FIT/AIV numerical method is changed.
 
 ## Highest risk
 
-The calculator is now discoverable/executable through the generic Engineering Calculations registry at `BENCHMARK_ONLY`, but primary Code-source qualification, flange/gasket master-data authority, exact-head native tests and browser presentation remain open. Any UI presentation that visually implies Code/design acceptance would be a release blocker.
+Focused flange tests, primary Code-source qualification, governed flange/gasket data and browser authority presentation remain open. Do not fix the unrelated HP parity test inside this mission merely to make hosted CI green.
 
 ## EXACT_NEXT_ACTION
 
@@ -107,4 +96,4 @@ Run `node --test tests/flange-ug44-core.test.mjs tests/flange-ug44-registry.test
 
 ## Durable relay
 
-Latest endpoint: `agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0002.md`.
+Latest endpoint: `agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0003.md`.
