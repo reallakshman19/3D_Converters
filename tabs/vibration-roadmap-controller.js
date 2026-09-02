@@ -7,6 +7,7 @@ import {
   serializeVibrationIntegrityProject,
 } from '../converters/vibration/project/serialize.js';
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
+import { createVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
 import {
   captureVibrationRoadmapViewState,
@@ -179,20 +180,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
   }
 
   function failNavigation(code, message, details = {}) {
-    navigationDiagnostic = Object.freeze({
-      code,
-      message,
-      details: Object.freeze({ ...details }),
-      authority: Object.freeze({
-        purpose: 'UI_NAVIGATION_DIAGNOSTIC_ONLY',
-        engineeringAuthority: 'NONE',
-        screeningAuthority: 'NOT_AUTHORIZED',
-        designAuthority: false,
-        determinesApplicability: false,
-        determinesCompleteness: false,
-        blocksCalculation: false,
-      }),
-    });
+    navigationDiagnostic = createVibrationRoadmapNavigationDiagnostic({ code, message, details });
     if (lastRender) render(lastRender);
   }
 
