@@ -17,8 +17,15 @@ test('production freeze Chromium journey is benchmarked step-by-step and records
   assert.match(browser, /expectedStandardLof/u);
   assert.match(browser, /standardLofTolerance/u);
   assert.match(browser, /EI-D2\.4-MECHANICAL-EXCITATION/u);
+  assert.match(browser, /VIB-MECH-PROC-ORACLE-01/u);
+  assert.match(browser, /mechanical-t23-direct-screening-qualification-v1\.json/u);
   assert.match(browser, /expectedGoverningLof/u);
-  assert.match(browser, /candidateMayReplaceScreeningGoverning:\s*false/u);
+  assert.match(browser, /mechanicalScreeningAuthority:\s*MECHANICAL_SCREENING_AUTHORITY/u);
+  assert.match(browser, /mechanicalAuthorityScope:\s*MECHANICAL_AUTHORITY_SCOPE/u);
+  assert.match(browser, /sharedSupportTransferAuthorized:\s*false/u);
+  assert.match(browser, /dynamicReductionAuthorized:\s*false/u);
+  assert.match(browser, /designAuthority:\s*false/u);
+  assert.doesNotMatch(browser, /candidateMayReplaceScreeningGoverning/u);
   assert.match(browser, /auditTrailIdentity/u);
   assert.match(browser, /event\.eventType === 'RUN_EVIDENCE_EXPORT_STARTED'/u);
   for (const screenshot of [
