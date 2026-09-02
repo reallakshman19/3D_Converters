@@ -1,13 +1,13 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0003
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0003.md
+ACTIVE_ENDPOINT: EP-0004
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0004.md
 MATERIAL_HISTORY_ROOT_BASE: 0a16f973acea81aa2670815a7128ab587359bc68
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0003.md
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0004.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: 01456d1bacf95bd11a082be8978085a707f29556
+HEAD: bb0b99d8d5c2da79013e00a77d4f41fd1a48fdc7
 VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
@@ -48,7 +48,7 @@ OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: source/artifact confirmation plus explicit closed->reopened trigger attempt; branch Actions runs remain zero; workflow absent on main blocks normal workflow_dispatch availability
+HANDOVER_VALIDATION_EVIDENCE: default-branch vibration-roadmap-ui-regression workflow matches PR720 reopened event plus changed tabs/vibration-roadmap-controller.js, yet no PR720 run exists; repository has 6851 historical Actions runs but latest returned PR/push activity is around 2026-09-02T11:02Z, before current afternoon PR events
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -64,5 +64,6 @@ POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
 INDEPENDENT_CONFIRMATION_BASIS: source/artifact inspection only; runtime execution remains NOT_RUN
 PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_NEXT_MATERIAL_LEG
-CURRENT_BLOCKER: No executable focused-test receipt is available for VALIDATION_TARGET_HEAD; reopened-event retrigger produced zero Actions runs and no product failure is demonstrated.
-EXACT_NEXT_ACTION: Obtain repository-native or independently executed focused validation for VALIDATION_TARGET_HEAD. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
+CI_DELIVERY_CLASSIFICATION: REPOSITORY_ACTIONS_EVENT_DELIVERY_GAP_CURRENT_WINDOW
+CURRENT_BLOCKER: Exact focused execution remains unavailable; a default-branch workflow that should match the explicit reopened event also produced no run, and no product failure is demonstrated.
+EXACT_NEXT_ACTION: Obtain independently executable focused validation for VALIDATION_TARGET_HEAD. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
