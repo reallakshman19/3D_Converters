@@ -48,3 +48,10 @@ test('CI uploads Chromium screenshots and production-freeze receipt even when va
   assert.match(workflow, /artifacts\/vibration-production-freeze/u);
   assert.match(workflow, /if:\s*always\(\)/u);
 });
+
+test('CI has a qualification-branch push fallback when pull-request event delivery is unavailable', async () => {
+  const workflow = await source('.github/workflows/vibration-mechanical-stage4-validation.yml');
+  assert.match(workflow, /push:[\s\S]*branches:[\s\S]*qual\/vibration-stage4-\*/u);
+  assert.match(workflow, /push:[\s\S]*paths:[\s\S]*tests\/vibration-\*\*/u);
+  assert.match(workflow, /workflow_dispatch:/u);
+});
