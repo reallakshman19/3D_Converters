@@ -1,0 +1,35 @@
+name: Vibration Mitigation Custody Regression
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/vibration-mitigation-custody-regression.yml'
+      - 'converters/vibration/mitigation/**'
+      - 'converters/vibration/facility/action-completion.js'
+      - 'converters/vibration/facility/action-verification.js'
+      - 'converters/vibration/facility/action-verification-ledger.js'
+      - 'converters/vibration/facility/run-basis.js'
+      - 'converters/vibration/rca/**'
+      - 'tests/vibration-mitigation-custody.test.mjs'
+      - 'tests/vibration-verification-fixtures.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mitigation-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run focused M16 mitigation custody contract
+        run: node --test tests/vibration-mitigation-custody.test.mjs
