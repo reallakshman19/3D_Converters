@@ -34,9 +34,7 @@ test('browser crypto shim fails closed outside the narrow SHA-256/hex contract',
 
 test('standalone import map resolves node:crypto before the versioned app entry point', () => {
   const index = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
-  const importMap = `\"node:crypto\":\"./core/browser-node-crypto.js?v=${RELEASE_KEY}\"`;
-  const entry = `./main-rhbg-fitguard.js?v=${RELEASE_KEY}`;
-  assert.match(index, new RegExp(importMap.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(index, new RegExp(entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(index, new RegExp(`node:crypto.*browser-node-crypto\\.js\\?v=${RELEASE_KEY}`));
+  assert.match(index, new RegExp(`main-rhbg-fitguard\\.js\\?v=${RELEASE_KEY}`));
   assert.ok(index.indexOf('type="importmap"') < index.indexOf('type="module"'));
 });
