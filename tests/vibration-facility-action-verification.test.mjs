@@ -173,7 +173,7 @@ test('requirement helper derives exact verification scope from the action occurr
   assert.equal(req.mechanismId, 'fit');
 });
 
-test('accepted verification attaches exact measurement hashes and completion record custody', () => {
+test('accepted verification attaches exact measurement hashes, full-record fingerprints and completion custody', () => {
   const occ = occurrence();
   const req = requirement(occ);
   const attachment = createVibrationActionVerificationAttachment({
@@ -189,8 +189,32 @@ test('accepted verification attaches exact measurement hashes and completion rec
   assert.equal(attachment.completionRecord.recordId, completion(occ).recordId);
   assert.deepEqual(attachment.evidence.sessions[0].rawDataHashes, [RAW_HASH]);
   assert.equal(attachment.evidence.products[0].artifactSha256, ARTIFACT_HASH);
+  assert.match(attachment.evidence.sessions[0].measurementRecordFingerprint, /^sha256:[0-9a-f]{64}$/u);
+  assert.match(attachment.evidence.products[0].measurementRecordFingerprint, /^sha256:[0-9a-f]{64}$/u);
   assert.match(attachment.evidenceFingerprint, /^sha256:[0-9a-f]{64}$/u);
   assert.equal(attachment.authority.determinesCompletion, false);
+});
+
+test('calibration provenance changes evidence identity even when raw and product hashes do not change', () => {
+  const occ = occurrence();
+  const req = requirement(occ);
+  const firstPackage = measurementPackage(req.scope);
+  const secondPackage = measurementPackage(req.scope);
+  secondPackage.sessions[0].channels[0].calibration = {
+    ...secondPackage.sessions[0].channels[0].calibration,
+    certificateId: 'CERT-2',
+  };
+  const first = createVibrationActionVerificationAttachment({
+    action: action(), occurrence: occ, requirement: req, measurementEvidence: firstPackage,
+  });
+  const second = createVibrationActionVerificationAttachment({
+    action: action(), occurrence: occ, requirement: req, measurementEvidence: secondPackage,
+  });
+  assert.deepEqual(first.evidence.sessions[0].rawDataHashes, second.evidence.sessions[0].rawDataHashes);
+  assert.equal(first.evidence.products[0].artifactSha256, second.evidence.products[0].artifactSha256);
+  assert.notEqual(first.evidence.sessions[0].measurementRecordFingerprint, second.evidence.sessions[0].measurementRecordFingerprint);
+  assert.notEqual(first.evidenceFingerprint, second.evidenceFingerprint);
+  assert.notEqual(first.attachmentId, second.attachmentId);
 });
 
 test('measurement evidence may be attached before engineer disposition without promoting acceptance', () => {

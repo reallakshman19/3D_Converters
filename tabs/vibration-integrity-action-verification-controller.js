@@ -15,8 +15,8 @@ import {
 } from '../converters/vibration/verification/contracts.js';
 import { auditVibrationActionVerification } from './vibration-integrity-action-verification-audit.js';
 import { buildVibrationActionCompletionAuthoringModel } from './vibration-integrity-action-completion-controller.js';
+import { handleVibrationRcaChange, handleVibrationRcaClick } from './vibration-integrity-rca-controller.js';
 import { assertVibrationProjectEvidenceHandoff } from './vibration-project-evidence-handoff.js';
-
 export const VIBRATION_ACTION_VERIFICATION_AUTHORING_AUTHORITY = Object.freeze({
   purpose: 'PROJECT_EVIDENCE_ACTION_VERIFICATION_AUTHORING_ONLY',
   engineeringAuthority: 'NONE',
@@ -263,7 +263,7 @@ export function handleVibrationActionVerificationClick(state, event, render) {
     }, editor?.actionId ?? null);
     render(); return true;
   }
-  if (!event.target.closest('[data-vi-action-verification-submit]')) return false;
+  if (!event.target.closest('[data-vi-action-verification-submit]')) return handleVibrationRcaClick(state, event, render);
   try {
     const attachment = submitVibrationActionVerificationEditor(state);
     state.error = null;
@@ -273,8 +273,8 @@ export function handleVibrationActionVerificationClick(state, event, render) {
       occurrenceId: attachment.occurrence.occurrenceId,
       requirementId: attachment.requirement.requirementId,
       verificationState: attachment.verificationStatus.state,
-      sessionCount: attachment.evidenceSnapshot.sessions.length,
-      productCount: attachment.evidenceSnapshot.products.length,
+      sessionCount: attachment.evidence.sessions.length,
+      productCount: attachment.evidence.products.length,
     }, attachment.action.actionId);
   } catch (error) {
     state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -288,7 +288,7 @@ export function handleVibrationActionVerificationClick(state, event, render) {
 export function handleVibrationActionVerificationChange(state, event, render) {
   const group = event.target.dataset.viActionVerificationSelection;
   const field = event.target.dataset.viActionVerificationField;
-  if (!group && !field) return false;
+  if (!group && !field) return handleVibrationRcaChange(state, event, render);
   try {
     if (group) toggleVibrationActionVerificationSelection(state, group, event.target.value, event.target.checked);
     else updateVibrationActionVerificationDraft(state, field, event.target.type === 'checkbox' ? event.target.checked : event.target.value);
