@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 
 const baseUrl = process.env.VIBRATION_ROADMAP_BROWSER_URL || 'http://127.0.0.1:4173';
 const pageUrl = `${baseUrl}/tests/browser/vibration-roadmap-interaction.html`;
+const presentationPreferenceKey = '3D_Converters.vibrationRoadmapPresentationPreference.v1';
 
 async function waitForServer(url, timeoutMs = 30_000) {
   const started = Date.now();
@@ -115,6 +116,23 @@ try {
   await page.setViewportSize({ width: 899, height: 900 });
   const columns899 = await page.locator('.engineering-console-layout').evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(' ').filter(Boolean).length);
   assert.equal(columns899, 1);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator('[data-roadmap-collapse]').click();
+  const storedPreference = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), presentationPreferenceKey);
+  assert.deepEqual(storedPreference, {
+    schema: 'VibrationRoadmapPresentationPreference.v1',
+    roadmapWidth: 520,
+    collapsed: true,
+  });
+
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.waitForFunction(() => globalThis.__VIBRATION_ROADMAP_BROWSER_READY__ === true);
+  assert.equal(await roadmapWidth(page), 520, 'stored roadmap width must survive controller recreation');
+  assert.equal(await page.locator('[data-roadmap-collapse]').getAttribute('aria-expanded'), 'false', 'stored collapsed state must survive controller recreation');
+  assert.equal(await page.locator('[data-roadmap-resize]').count(), 0);
+  await page.locator('[data-roadmap-collapse]').click();
+  assert.equal(await roadmapWidth(page), 520);
 
   console.log('VIBRATION_ROADMAP_BROWSER_REGRESSION=PASS');
 } finally {
