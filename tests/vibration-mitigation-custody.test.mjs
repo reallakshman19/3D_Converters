@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  createVibrationActionOccurrence,
-} from '../converters/vibration/facility/action-completion.js';
+import { createVibrationActionOccurrence } from '../converters/vibration/facility/action-completion.js';
 import {
   createVibrationActionVerificationAttachment,
   createVibrationActionVerificationRequirement,
@@ -22,6 +20,7 @@ import {
   createVibrationMitigationProposal,
 } from '../converters/vibration/mitigation/contracts.js';
 import {
+  VIBRATION_MITIGATION_LEDGER_AUTHORITY,
   appendVibrationMitigationImplementation,
   appendVibrationMitigationProposal,
   assertVibrationMitigationLedger,
@@ -135,6 +134,7 @@ test('M16 custody cannot create screening, design, completion, numerical or reco
   assert.equal(VIBRATION_MITIGATION_PROPOSAL_AUTHORITY.automaticRecommendation, false);
   assert.equal(VIBRATION_MITIGATION_PROPOSAL_AUTHORITY.predictedBenefitAuthority, 'NONE');
   assert.equal(VIBRATION_MITIGATION_IMPLEMENTATION_AUTHORITY.postModificationVerificationAuthority, 'NONE');
+  assert.equal(VIBRATION_MITIGATION_LEDGER_AUTHORITY.persistenceAuthority, 'NONE');
 });
 
 test('proposal binds exact occurrence plus optional M14 verification and M15 RCA snapshots', () => {
@@ -191,6 +191,21 @@ test('proposal fingerprint rejects post-creation engineering-text drift', () => 
   );
 });
 
+test('proposal rejects added authority claims and unsupported action fields', () => {
+  const authorityTamper = JSON.parse(JSON.stringify(proposalFixture()));
+  authorityTamper.authority.designApproval = true;
+  assert.throws(
+    () => assertVibrationMitigationProposal(authorityTamper),
+    (error) => error?.code === 'VIBRATION_MITIGATION_PROPOSAL_AUTHORITY_INVALID',
+  );
+  const actionTamper = JSON.parse(JSON.stringify(proposalFixture()));
+  actionTamper.action.designAuthority = true;
+  assert.throws(
+    () => assertVibrationMitigationProposal(actionTamper),
+    (error) => error?.code === 'VIBRATION_MITIGATION_ACTION_SHAPE_INVALID',
+  );
+});
+
 test('implementation is explicit caller attestation with evidence and no automatic action completion', () => {
   const proposal = proposalFixture();
   const implementation = createVibrationMitigationImplementation({
@@ -241,7 +256,7 @@ test('append-only ledger requires proposal before its exact implementation and r
   );
 });
 
-test('ledger and record fingerprints reject post-append custody drift', () => {
+test('ledger and record fingerprints reject post-append custody drift or authority promotion', () => {
   const proposal = proposalFixture();
   const ledger = appendVibrationMitigationProposal(createVibrationMitigationLedger(), proposal);
   const parsed = JSON.parse(JSON.stringify(ledger));
@@ -249,5 +264,11 @@ test('ledger and record fingerprints reject post-append custody drift', () => {
   assert.throws(
     () => assertVibrationMitigationLedger(parsed),
     (error) => error?.code === 'VIBRATION_MITIGATION_PROPOSAL_FINGERPRINT_INVALID',
+  );
+  const authorityTamper = JSON.parse(JSON.stringify(ledger));
+  authorityTamper.authority.persistent = true;
+  assert.throws(
+    () => assertVibrationMitigationLedger(authorityTamper),
+    (error) => error?.code === 'VIBRATION_MITIGATION_LEDGER_AUTHORITY_INVALID',
   );
 });
