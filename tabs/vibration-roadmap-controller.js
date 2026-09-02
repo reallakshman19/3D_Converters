@@ -7,7 +7,12 @@ import {
   serializeVibrationIntegrityProject,
 } from '../converters/vibration/project/serialize.js';
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
+import { createVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
+import {
+  captureVibrationRoadmapViewState,
+  restoreVibrationRoadmapViewState,
+} from './vibration-roadmap-view-state.js';
 import { resolveVibrationCaseActionWorkspace } from './vibration-roadmap-workspace-routing.js';
 import { resolveVibrationRoadmapScopeSelection } from './vibration-roadmap-scope-selection.js';
 
@@ -90,6 +95,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
   let lastRender = null;
   let projectMessage = null;
   let projectMessageKind = 'info';
+  let navigationDiagnostic = null;
   const resizeWindow = container.ownerDocument?.defaultView ?? null;
 
   function syncProjectState(contextOverlay = displayState.context) {
@@ -112,13 +118,18 @@ export function createVibrationRoadmapController(container, { initialState = {},
       calculationId: definition?.family === VIBRATION_FAMILY_ID ? definition.id : null,
       projectMessage,
       projectMessageKind,
+      navigationDiagnostic,
     };
   }
 
   function applyWidth() {
     const layout = container.querySelector('.engineering-console-layout');
     layout?.style.setProperty('--vibration-roadmap-width', `${roadmapWidth}px`);
-    container.querySelector('[data-vibration-roadmap-panel]')?.setAttribute('data-roadmap-width', String(roadmapWidth));
+    const panel = container.querySelector('[data-vibration-roadmap-panel]');
+    panel?.setAttribute('data-roadmap-width', String(roadmapWidth));
+    const handle = container.querySelector('[data-roadmap-resize]');
+    handle?.setAttribute('aria-valuenow', String(roadmapWidth));
+    handle?.setAttribute('aria-valuetext', `${roadmapWidth} pixels`);
   }
 
   function setWidth(value) {
@@ -128,6 +139,8 @@ export function createVibrationRoadmapController(container, { initialState = {},
 
   function render({ definition, state }) {
     lastRender = { definition, state };
+    const previousPanel = container.querySelector('[data-vibration-roadmap-panel]');
+    const viewState = captureVibrationRoadmapViewState(previousPanel, container.ownerDocument);
     cleanPanel(container);
     if (!shouldShowVibrationRoadmap(definition, state)) return;
     const layout = container.querySelector('.engineering-console-layout');
@@ -141,6 +154,11 @@ export function createVibrationRoadmapController(container, { initialState = {},
     if (collapsed) layout.classList.add('vibration-roadmap-collapsed');
     layout.style.setProperty('--vibration-roadmap-width', `${roadmapWidth}px`);
     layout.insertAdjacentHTML('beforeend', renderVibrationRoadmapPanel(projection, { collapsed, width: roadmapWidth }));
+    restoreVibrationRoadmapViewState(
+      container.querySelector('[data-vibration-roadmap-panel]'),
+      viewState,
+      container.ownerDocument,
+    );
   }
 
   function commitProject(candidate, message) {
@@ -148,6 +166,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
     selectedLineId = candidate.subjects.lines[0]?.lineId ?? null;
     projectMessage = message;
     projectMessageKind = 'info';
+    navigationDiagnostic = null;
     syncProjectState();
     customEvent(container, VIBRATION_PROJECT_CHANGED_EVENT, { project: currentProject, lineId: selectedLineId });
     if (lastRender) render(lastRender);
@@ -156,6 +175,16 @@ export function createVibrationRoadmapController(container, { initialState = {},
   function failProject(error) {
     projectMessage = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     projectMessageKind = 'error';
+    if (lastRender) render(lastRender);
+  }
+
+  function clearNavigationDiagnostic() {
+    navigationDiagnostic = null;
+    container.querySelector('[data-roadmap-navigation-message]')?.remove();
+  }
+
+  function failNavigation(code, message, details = {}) {
+    navigationDiagnostic = createVibrationRoadmapNavigationDiagnostic({ code, message, details });
     if (lastRender) render(lastRender);
   }
 
@@ -205,10 +234,36 @@ export function createVibrationRoadmapController(container, { initialState = {},
     }
     const workspaceTarget = event.target.closest('[data-vibration-workspace-id]');
     if (workspaceTarget) {
-      const route = resolveVibrationCaseActionWorkspace(workspaceTarget.dataset.vibrationWorkflowAction);
-      if (route?.workspaceId === workspaceTarget.dataset.vibrationWorkspaceId) {
-        workspaceTab(container, route.workspaceId)?.click();
+      const requestedWorkspaceId = workspaceTarget.dataset.vibrationWorkspaceId;
+      const actionCode = workspaceTarget.dataset.vibrationWorkflowAction;
+      const route = resolveVibrationCaseActionWorkspace(actionCode);
+      if (!route) {
+        failNavigation(
+          'VIBRATION_ROADMAP_WORKSPACE_ROUTE_UNRESOLVED',
+          'Case task is not available in the current workspace view.',
+          { actionCode: actionCode ?? null, requestedWorkspaceId: requestedWorkspaceId ?? null },
+        );
+        return;
       }
+      if (route.workspaceId !== requestedWorkspaceId) {
+        failNavigation(
+          'VIBRATION_ROADMAP_WORKSPACE_ROUTE_MISMATCH',
+          'Case task routing no longer matches the rendered workspace target.',
+          { actionCode: actionCode ?? null, requestedWorkspaceId, resolvedWorkspaceId: route.workspaceId },
+        );
+        return;
+      }
+      const target = workspaceTab(container, route.workspaceId);
+      if (!target) {
+        failNavigation(
+          'VIBRATION_ROADMAP_WORKSPACE_TARGET_NOT_FOUND',
+          'Case task is not available in the current workspace view.',
+          { actionCode: route.actionCode, workspaceId: route.workspaceId },
+        );
+        return;
+      }
+      clearNavigationDiagnostic();
+      target.click();
       return;
     }
     const action = event.target.closest('[data-roadmap-action]')?.dataset.roadmapAction;
@@ -221,11 +276,30 @@ export function createVibrationRoadmapController(container, { initialState = {},
     if (event.target.matches('[data-roadmap-assessment-select]')) {
       const choices = displayState.context?.selectedAssessment?.scopeChoices;
       const selected = resolveVibrationRoadmapScopeSelection(choices, event.target.value);
-      if (selected) assessmentRow(container, selected.rowKey)?.click();
+      if (!selected) {
+        failNavigation(
+          'VIBRATION_ROADMAP_ASSESSMENT_SCOPE_UNRESOLVED',
+          'Assessment scope could not be resolved from the current governed scope choices.',
+          { requestedRowKey: event.target.value ?? null },
+        );
+        return;
+      }
+      const target = assessmentRow(container, selected.rowKey);
+      if (!target) {
+        failNavigation(
+          'VIBRATION_ROADMAP_ASSESSMENT_TARGET_NOT_FOUND',
+          'Assessment scope is not available in the current workspace view.',
+          { rowKey: selected.rowKey },
+        );
+        return;
+      }
+      clearNavigationDiagnostic();
+      target.click();
       return;
     }
     if (event.target.matches('[data-roadmap-line-select]')) {
       selectedLineId = event.target.value;
+      navigationDiagnostic = null;
       syncProjectState();
       customEvent(container, VIBRATION_PROJECT_CHANGED_EVENT, { project: currentProject, lineId: selectedLineId });
       if (lastRender) render(lastRender);
