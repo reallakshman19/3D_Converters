@@ -32,11 +32,12 @@ async function evaluateMechanical(page) {
   await page.locator('[data-vi-mechanical-source="ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW"]').check();
   await page.locator('[data-vi-mechanical-evaluate]').click();
   const panel = page.locator('.vi-root');
-  await page.waitForFunction(() => document.body.innerText.includes('Candidate LOF'), null, { timeout: TIMEOUT });
+  await page.waitForFunction(() => document.body.innerText.includes('Screening LOF'), null, { timeout: TIMEOUT });
   const text = await panel.innerText();
-  assert.match(text, /Candidate LOF\s*0\.4/u);
+  assert.match(text, /Screening LOF\s*0\.4/u);
   assert.match(text, /ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW/u);
-  assert.match(text, /CANDIDATE/u);
+  assert.match(text, /Authority\s*SCREENING/u);
+  assert.match(text, /Qualified direct Table T2-3 screening/u);
 }
 
 async function verifyMatrixAuthority(page) {
@@ -45,9 +46,9 @@ async function verifyMatrixAuthority(page) {
   await workspace.waitFor({ state: 'visible', timeout: TIMEOUT });
   const text = await workspace.innerText();
   assert.match(text, /FIT\s*·\s*[0-9.]+/u);
-  assert.match(text, /Mechanical\s*·\s*0\.4\s*·\s*CANDIDATE/u);
-  assert.match(text, /0\.4[\s\S]*CANDIDATE MASTER/u);
-  assert.doesNotMatch(text, /Mechanical\s*·\s*0\.4[\s\S]*Screening governing/u);
+  assert.match(text, /Mechanical\s*·\s*0\.4/u);
+  assert.doesNotMatch(text, /Mechanical\s*·\s*0\.4\s*·\s*CANDIDATE/u);
+  assert.match(text, /Partial screening evidence|Current screening evidence/u);
 }
 
 async function main() {
@@ -61,7 +62,7 @@ async function main() {
     await evaluateMechanical(page);
     await verifyMatrixAuthority(page);
     assert.deepEqual(pageErrors, [], `Browser page errors:\n${pageErrors.join('\n')}`);
-    console.log('PASS Mechanical T2.3 Chromium acceptance: D2.4 candidate 0.4; FIT screening authority retained.');
+    console.log('PASS Mechanical T2.3 Chromium acceptance: D2.4 screening 0.4 within DIRECT_TABLE_T2_3_BASELINE_ONLY; excluded rules and design authority remain unauthorized.');
   } finally {
     await browser.close();
   }
