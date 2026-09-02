@@ -1,5 +1,5 @@
 {
-  "lastId": 8,
+  "lastId": 9,
   "entries": [
     {
       "id": 1,
@@ -56,6 +56,13 @@
       "file": "agents/agentchain.md",
       "context": "Reconcile ENGCALC-BOLTED-JOINTS post-merge relay to EP-0019 after #715/#716 (connector-reconstructed backup)",
       "backupFile": "8_agents_agentchain_md.bak"
+    },
+    {
+      "id": 9,
+      "timestamp": "2026-09-02 17:23:00",
+      "file": "converters/vibration/project/schema.js",
+      "context": "Protect PR720 project schema before foreign lifecycle handoff project-scope guard (connector-reconstructed backup)",
+      "backupFile": "9_converters_vibration_project_schema_js.bak"
     }
   ]
 }
