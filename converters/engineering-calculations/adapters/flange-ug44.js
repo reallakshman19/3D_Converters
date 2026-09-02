@@ -121,6 +121,14 @@ function definition() {
     applicability: APPLICABILITY,
     inputs: INPUTS,
     outputs: OUTPUTS,
+    // No lifecycleState: the console pill must keep falling through to the
+    // BENCHMARK_ONLY authority state rather than reporting a lifecycle above it.
+    ui: {
+      visible: true,
+      executionModes: ['single', 'sandbox', 'batch'],
+      productSurface: 'FLANGE_UG44_ASSESSMENT_SURFACE',
+      warning: 'BENCHMARK_ONLY — the reference relation only. Not Code compliance and not design authority.',
+    },
     calculate,
   };
 }

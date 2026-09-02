@@ -15,9 +15,11 @@ import {
   renderResults,
 } from './engineering-calculation-console-sections.js';
 import { renderVibrationFamilyLanding } from './engineering-calculation-vibration-family.js';
+import { UG44_PRODUCT_SURFACE, renderUg44ResultsHtml } from './engineering-calculation-ug44-surface.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
+const UG44_CALCULATION_ID = 'FLANGE.RATED_LOAD.UG44B';
 const FIT_PRODUCT_SURFACE = 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
 const AIV_QUALIFICATION_SURFACE = 'VIBRATION_AIV_QUALIFICATION_WORKSPACE';
 
@@ -35,6 +37,10 @@ function isAivQualificationWorkspace(definition) {
   return definition.id === AIV_CALCULATION_ID && definition.ui?.productSurface === AIV_QUALIFICATION_SURFACE;
 }
 
+function isUg44AssessmentSurface(definition) {
+  return definition.id === UG44_CALCULATION_ID && definition.ui?.productSurface === UG44_PRODUCT_SURFACE;
+}
+
 function renderCatalog(definitions, families, state) {
   return families.filter((family) => family.count > 0).map((family) => {
     const rows = definitions.filter((definition) => definition.family === family.id);
@@ -50,6 +56,7 @@ function activeView(definition, state) {
   if (state.activeView === 'basis') return renderBasis(definition, state.resolution);
   if (state.activeView === 'evidence') return renderEvidence(state.result);
   if (state.activeView === 'batch') return renderBatch(state, definition);
+  if (isUg44AssessmentSurface(definition)) return renderUg44ResultsHtml(state.result, state.validation);
   return renderResults(state.result, state.validation);
 }
 
