@@ -276,6 +276,19 @@ test('project-scoped M14-M16 records from another project fail closed', () => {
   );
 });
 
+test('direct lifecycle attachment rejects a foreign handoff before M13 custody can cross project scope', () => {
+  const actionCompletionLedger = lifecycleLedgers().actionCompletionLedger;
+  const foreign = createVibrationProjectLifecycleHandoffFromState({
+    projectId: 'P-FOREIGN',
+    state: { actionCompletionLedger },
+  });
+  assert.equal(foreign.actionCompletionLedger.records.length, 1);
+  assert.throws(
+    () => attachVibrationProjectLifecycleLedgers(v1Project(), foreign),
+    (error) => error?.code === 'VIBRATION_PROJECT_V2_LIFECYCLE_PROJECT_MISMATCH',
+  );
+});
+
 test('current and historical calculation evidence cannot be smuggled into v2 persistence', () => {
   const project = attachVibrationProjectLifecycleLedgers(v1Project(), lifecycleLedgers());
   const current = JSON.parse(JSON.stringify(project));
