@@ -32,6 +32,34 @@ The kernel does **not** currently derive `PR`, `G`, or `FM` from ASME tables or 
 | Code Case 2901 public reproduction / historical text | `HISTORICAL_CODE_CASE_EVIDENCE` | Shows the historical equation form and applicability concepts that preceded/incorporated into UG-44(b) | Public reproduction is not controlled current ASME authority; later revisions exist | Benchmark/source-trace evidence only until controlled current revision is verified |
 | User-supplied PV Elite C101 nozzle-flange MAWP report | `CROSS_SOLVER_BENCHMARK` | Identifies UG-44(b), displays the equation/Pmax form, opening-only axial treatment, pressure-rating cap behavior, and numerical nozzle examples | Does not replace the governing Code; displayed values are rounded; does not independently qualify master tables | Accepted cross-solver benchmark only |
 | `Flange UG 44.xlsx` and `Flange Rating Vs Nozzle loads -Rev.3.xlsx` | `LEGACY_CALCULATION_DATA` | Useful regression rows and evidence of prior project usage | Contains manually altered/scenario data and ungoverned values; not Code authority | Do not import directly as production master authority |
+
+Both workbooks are now committed at `docs/flange/` and hash-pinned by
+`docs/engineering-calculations/source-archive/bolted-joints-flanges/SHA256SUMS.txt`,
+enforced by `tests/flange-source-archive-custody.test.mjs`. Note that
+`Flange UG 44.xlsx` is **not** an independent second source: its content matches
+the hidden `Sheet1` of the Rev.3 workbook, so the two must not be treated as
+mutually corroborating.
+
+## Workbook input bases — documented, still not governed
+
+Reading the committed Rev.3 workbook resolves what the legacy spreadsheet
+actually does for three inputs the kernel takes from the caller. These are now
+reproduced and pinned in
+`converters/engineering-calculations/flange/ug44-workbook-basis.js` and
+`tests/flange-ug44-workbook-basis.test.mjs`.
+
+| Input | Workbook basis | Status |
+|---|---|---|
+| `G` | `((gasket OD − gasket ID) / 2) + gasket ID`, i.e. the mean gasket contact diameter | Documented and tested. **Not** an Appendix 2 seating-width (`b`) derivation, so it does not close the governed-`G` gate |
+| `PD` | System design pressure `+ SG × liquid height × 9.80665`, one sheet-level value applied to every row | Documented and tested. The uniform-head simplification is a workbook convention, not a per-nozzle elevation treatment |
+| `ME` | `SQRT(ME² + ME²)`, i.e. an equal-orthogonal-component scenario giving `ME·√2` | Documented and tested. This is a load-case envelope assumption, **not** a component resolution. `resolveFlangeOpeningLoads` uses `hypot(mx, my)` and coincides only when the components are equal |
+
+The workbook also evaluates its right-hand side with the literal `3.14` rather
+than `pi`, making its allowable `0.0507%` smaller than the exact relation. Its
+own 2" class 150 row passes by `0.0083%` — a margin narrower than the deviation
+the constant introduces. `legacyWorkbookUg44Acceptance` reproduces the workbook
+form and reports the deviation so that legacy rows can be regression-compared
+without importing the constant into the kernel.
 | Secondary technical articles describing UG-44(b)/Code Case 2901 | `SECONDARY_REFERENCE` | Useful for locating method history, revisions, and implementation cautions | Not a governing engineering source | Discovery/reference only |
 
 ## Current official edition evidence
@@ -127,9 +155,11 @@ reviewDate
 - Current active Code Case 2901 revision and its relationship to the selected 2025 Code basis: `UNRESOLVED`.
 - Controlled B16.5/B16.47 2025 pressure-temperature master records: `UNRESOLVED`.
 - Controlled `FM` table master records: `UNRESOLVED`.
-- Controlled gasket reaction-diameter derivation: `UNRESOLVED`.
-- Focused exact-head Node test execution: `NOT_RUN`.
-- Browser acceptance: `NOT_RUN`.
+- Controlled gasket reaction-diameter derivation: `UNRESOLVED` (the workbook's mean-gasket-diameter basis is documented above, but a Code seating-width derivation is not).
+- Static-head/pressure reference at the flange: `WORKBOOK_BASIS_DOCUMENTED`, governed definition `UNRESOLVED`.
+- Focused exact-head Node test execution: `RUN` — see `ValidationRecords/BoltedJoints/P0-exact-main-validation.md`.
+- Source byte custody: `ESTABLISHED` — originals committed at `docs/flange/` and hash-enforced by `tests/flange-source-archive-custody.test.mjs`.
+- Browser acceptance: `BLOCKED` — the Engineering Calculation Console suites carry two pre-existing vibration-family failures on current `main`; see the P0 validation record.
 - Independent engineering review: `NOT_RUN`.
 
 ## Protected interpretation

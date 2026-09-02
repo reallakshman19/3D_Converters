@@ -18,6 +18,11 @@ authority, master-data authority, or governing eligibility to any calculation.
 | Working tree | clean (no local modifications) |
 | Runner | `node --test`, Node `v22.22.2`, Linux |
 
+`main` subsequently advanced to `7dcef47da9d5d259470a7926500fec43558fc5f8`
+(`Add files via upload`), which adds the eleven owner-supplied source files under
+`docs/flange/` and changes no executable code. Every result below was re-run on
+that commit and is unchanged.
+
 ## Result 1 — UG-44 / flange suites: PASS
 
 | Suite | Tests | Pass | Fail |
@@ -42,6 +47,11 @@ authority, master-data authority, or governing eligibility to any calculation.
 | **Subtotal** | **47** | **47** | **0** |
 
 Combined bolted-joint / flange total: **64 tests, 64 pass, 0 fail.**
+
+Once the owner-supplied sources landed on `main`, this branch added two further
+suites against the committed bytes — `flange-source-archive-custody` (5) and
+`flange-ug44-workbook-basis` (12) — taking the bolted-joint / flange total to
+**81 tests, 81 pass, 0 fail**.
 
 ## Result 3 — Engineering Calculation Console acceptance: BLOCKED (2 pre-existing failures)
 
