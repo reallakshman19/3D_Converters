@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 pr_or_wip: PR704
-claim_state: HANDOVER_PENDING_VALIDATION
+claim_state: MERGED_POST_VALIDATED
 branch: agent/vib-m16-mitigation-custody-20260821
 authority_domains:
   - VIBRATION_MITIGATION_PROPOSAL_CUSTODY
@@ -26,4 +26,4 @@ exclusions:
   - M15 RCA mutation
   - post-modification confirmation logic
   - project persistence changes
-release_condition: NATIVE_OR_HOSTED_FOCUSED_TEST_PASS_AND_OWNER_MERGE_AUTHORITY
+release_condition: SATISFIED_POST_MERGE_HOSTED_FOCUSED_TEST_PASS_RUN_33615134622_AND_OWNER_MERGE_AUTHORITY
