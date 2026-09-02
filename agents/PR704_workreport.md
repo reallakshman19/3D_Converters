@@ -1,6 +1,6 @@
 # PR704 — M16 Mitigation Custody Foundation — Work Report
 
-HANDOVER_READINESS: PENDING_NATIVE_VALIDATION
+HANDOVER_READINESS: POST_MERGE_VALIDATED
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 PR: #704
 BRANCH: agent/vib-m16-mitigation-custody-20260821
@@ -8,7 +8,8 @@ BASE: main
 BASE_SHA_AT_RECOVERY: 3224c5561d6f9cad4b5c9821520661c44f3dd44c
 PRE_RECOVERY_HEAD: 7090c6da1047d0197c5b67bfe7b34bd5baf151b1
 PRE_RECOVERY_BACKUP: backup/pr704-pre-recovery-20260902
-MERGE_AUTHORITY: OWNER_AUTHORIZED_IF_REQUIRED
+MERGE_AUTHORITY: OWNER_AUTHORIZED_EXPLICIT_OVERRIDE
+MERGE_COMMIT: d043376eb623822c657904f707bccf199b3356b3
 
 ## Recovery
 
@@ -101,7 +102,7 @@ Durable M13/M14/M15/M16 project lifecycle persistence remains a successor requir
 1. **Authority shape closure** — initial assertions validated expected authority values but tolerated additional unvalidated authority keys. Contracts and ledger now reject missing/extra authority fields.
 2. **Production action compatibility** — an intermediate hardening applied closed-shape checks to incoming `VibrationRequiredAction.v1` objects, which would reject real lifecycle actions carrying legitimate additional fields. Creation now accepts the full governed action and stores a canonical minimal action snapshot; assertion seals that stored snapshot against later field injection.
 
-## Falsification suite authored
+## Falsification suite
 
 `tests/vibration-mitigation-custody.test.mjs` covers:
 - no screening/design/completion/numerical/recommendation authority;
@@ -119,20 +120,32 @@ Durable M13/M14/M15/M16 project lifecycle persistence remains a successor requir
 
 ```text
 source contract review            PASS_WITH_TWO_REPAIRS
-focused test implementation       AUTHORED
-repository-native node test       NOT_RUN_ENVIRONMENT_BLOCKED_DNS
-hosted CI                         NOT_RUN_NO_WORKFLOW_RUNS
+focused mitigation custody test   PASS_11_OF_11
+hosted CI                         PASS_RUN_33615134622_NODE22
+repository-native shell           NOT_RUN_ENVIRONMENT_BLOCKED_DNS
 browser                           NOT_APPLICABLE_PURE_CONTRACT_FOUNDATION
 ```
 
-The current environment cannot resolve `github.com` from the native shell, so a repository checkout and `node --test tests/vibration-mitigation-custody.test.mjs` could not be executed here. GitHub also reported no hosted workflow runs for the PR head at review time. These remain `NOT_RUN`; they are not converted to PASS.
+The owner explicitly authorized merge before the focused test had executed. PR704 was therefore merged at `d043376eb623822c657904f707bccf199b3356b3` while the focused test was still `NOT_RUN`; that historical disposition is not rewritten as a pre-merge PASS.
 
-## Merge gate
-
-Do not merge until either native or hosted execution passes:
+Post-merge validation was then executed through draft PR #710, whose candidate was based directly on merge commit `d043376eb623822c657904f707bccf199b3356b3` and added only the focused CI workflow. GitHub Actions run `33615134622` executed:
 
 ```text
 node --test tests/vibration-mitigation-custody.test.mjs
 ```
 
-Then recheck current `main`, PR mergeability and effective changed-file ledger before merge.
+Result:
+
+```text
+tests     11
+pass      11
+fail       0
+skipped    0
+cancelled  0
+```
+
+This closes the M16 focused-test evidence gap after merge. It does not alter the authority or persistence limitations above and does not cure unrelated repository-wide Stage-4 production-freeze failures.
+
+## Successor requirement
+
+Durable project lifecycle persistence for M13/M14/M15/M16 remains unimplemented. The next engineering lifecycle step is to design and qualify that persistence layer without promoting session ledgers or imported evidence to current engineering authority.
