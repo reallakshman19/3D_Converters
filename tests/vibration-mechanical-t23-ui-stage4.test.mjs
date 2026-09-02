@@ -18,14 +18,15 @@ function state(overrides = {}) {
   };
 }
 
-test('Mechanical panel exposes exact equipment selection and explicit candidate authority', () => {
+test('Mechanical panel exposes exact equipment selection and bounded direct screening authority', () => {
   const html = renderMechanicalFacilityPanel(state());
   assert.match(html, /Mechanical excitation · EI AVIFF T2\.3/u);
   assert.match(html, /data-vi-mechanical-source="CENTRIFUGAL_COMPRESSOR"/u);
   assert.match(html, /data-vi-mechanical-source="ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW"/u);
   assert.match(html, /data-vi-mechanical-not-applicable/u);
-  assert.match(html, /Candidate master path/u);
-  assert.match(html, /cannot replace authorized FIT screening/u);
+  assert.match(html, /Qualified direct Table T2-3 screening/u);
+  assert.match(html, /nine direct T2\.3 machinery baseline values are screening-qualified/u);
+  assert.match(html, /Shared-support transfer and the conditional 0\.4 reduction[\s\S]*remain outside this authority/u);
   assert.match(html, /data-vi-mechanical-evaluate/u);
 });
 
@@ -46,30 +47,31 @@ test('shared-support rule is visible but disabled until adjacent-line LOF is mod
   assert.match(html, /Requires explicit adjacent-line LOF/u);
 });
 
-test('calculated panel publishes candidate LOF and governing source without screening promotion', () => {
+test('calculated panel publishes screening LOF and governing source without design promotion', () => {
   const result = Object.freeze({
     governingLof: 0.4,
     governingSourceKey: 'ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW',
     rows: Object.freeze([
-      { sourceKey: 'CENTRIFUGAL_COMPRESSOR', baselineLof: 0.2, qualificationGate: 'CONTINUOUS_FLOW_BASELINE' },
-      { sourceKey: 'ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW', baselineLof: 0.4, qualificationGate: 'ELECTRICAL_AND_MECHANICAL_FREQUENCY_CHECK' },
+      { sourceKey: 'CENTRIFUGAL_COMPRESSOR', baselineLof: 0.2, qualificationGate: 'DIRECT_TABLE_T2_3_BASELINE' },
+      { sourceKey: 'ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW', baselineLof: 0.4, qualificationGate: 'DIRECT_TABLE_T2_3_BASELINE' },
     ]),
   });
   const html = renderMechanicalFacilityPanel(state({
     mechanicalCandidateResultsByScope: { [SCOPE]: result },
   }));
-  assert.match(html, /Candidate LOF[\s\S]*0\.4/u);
+  assert.match(html, /Screening LOF[\s\S]*0\.4/u);
   assert.match(html, /Governing source/u);
-  assert.match(html, /CANDIDATE/u);
-  assert.doesNotMatch(html, /AUTHORIZED_SCREENING/u);
+  assert.match(html, /Authority[\s\S]*SCREENING/u);
+  assert.doesNotMatch(html, /DESIGN/u);
 });
 
-test('screening view routes Mechanical applicability and cache state into the matrix', async () => {
-  const source = await readFile(new URL('../tabs/vibration-integrity-view.js', import.meta.url), 'utf8');
-  assert.match(source, /data-vi-mechanical-facility-scope/u);
-  assert.match(source, /mechanicalSourceKeysByScope/u);
-  assert.match(source, /mechanicalNotApplicableByScope/u);
-  assert.match(source, /mechanicalCandidateResultsByScope/u);
-  assert.match(source, /CANDIDATE MASTER/u);
-  assert.match(source, /compact\) return button/u);
+test('screening view and mechanism projection route Mechanical facility state into the matrix', async () => {
+  const view = await readFile(new URL('../tabs/vibration-integrity-view.js', import.meta.url), 'utf8');
+  const mechanisms = await readFile(new URL('../tabs/vibration-integrity-mechanisms.js', import.meta.url), 'utf8');
+  assert.match(view, /data-vi-mechanical-facility-scope/u);
+  assert.match(view, /Mechanical inputs/u);
+  assert.match(mechanisms, /mechanicalSourceKeysByScope/u);
+  assert.match(mechanisms, /mechanicalNotApplicableByScope/u);
+  assert.match(mechanisms, /mechanicalCandidateResultsByScope/u);
+  assert.match(mechanisms, /buildMechanicalVibrationMechanismAssessmentSet/u);
 });

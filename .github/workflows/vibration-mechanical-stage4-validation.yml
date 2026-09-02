@@ -12,6 +12,18 @@ on:
       - '.github/workflows/vibration-mechanical-stage4-validation.yml'
       - 'package.json'
       - 'package-lock.json'
+  push:
+    branches:
+      - 'qual/vibration-stage4-*'
+    paths:
+      - 'converters/vibration/**'
+      - 'tabs/vibration-integrity-**'
+      - 'tests/vibration-**'
+      - 'scripts/validate-vibration-mechanical-stage4-browser.mjs'
+      - 'scripts/validate-vibration-production-freeze-browser.mjs'
+      - '.github/workflows/vibration-mechanical-stage4-validation.yml'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 
 permissions:
@@ -41,6 +53,8 @@ jobs:
           tests/vibration-mechanical-t23-applicability-stage4.test.mjs
           tests/vibration-mechanical-t23-ui-stage4.test.mjs
           tests/vibration-mechanical-t23-module-boundaries-stage4.test.mjs
+          tests/vibration-mechanical-t23-qualification-record.test.mjs
+          tests/vibration-sbc-type3-benchmark-custody.test.mjs
           tests/vibration-mechanism-contract.test.mjs
           tests/vibration-integrity-mechanism-matrix.test.mjs
           tests/vibration-production-freeze-browser-contract.test.mjs

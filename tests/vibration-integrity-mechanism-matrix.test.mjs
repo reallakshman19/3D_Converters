@@ -74,6 +74,25 @@ function sbcRows(targetRow = row()) {
   ];
 }
 
+function sbcCandidate(targetRow = row(), lof = 0.7) {
+  const scopeId = sbcFacilityScopeId(targetRow);
+  return Object.freeze({
+    ok: true,
+    status: 'CALCULATED_MASTER_ASSISTED_CANDIDATE',
+    methodId: 'VIB.SBC.T3.TYPE3.MASTER_ASSISTED_CANDIDATE',
+    scopeId,
+    lof,
+    firstSpan: Object.freeze({ c: 0.68, d: 0.2, e: 0.7, locationLof: 1, modifier: 0.7 }),
+    subsequentSpans: Object.freeze({ f: 0.6, g: 0.2, modifier: 0.6 }),
+    overallModifier: 0.7,
+    mainline: Object.freeze({ lof: 1, multiplier: 1.42, adjustedLof: 1.42 }),
+    authority: Object.freeze({
+      engineeringAuthority: 'NONE', screeningAuthority: 'NOT_AUTHORIZED',
+      designAuthority: false, masterDataAuthority: false,
+    }),
+  });
+}
+
 function mechanicalScreening(targetRow = row(), lof = 0.4, scopeId = mechanicalFacilityScopeId(targetRow)) {
   return Object.freeze({
     schema: 'MechanicalFacilityScreeningResult.v1', status: 'CALCULATED_SCREENING',
@@ -329,10 +348,12 @@ test('AIV assessment cannot replace a higher qualified Mechanical screening resu
   assert.equal(matrix.screeningGoverning.lof, 0.4);
 });
 
-test('higher SBC candidate can govern candidate tier but cannot replace Mechanical screening', () => {
+test('precomputed SBC candidate can govern candidate tier but cannot replace Mechanical screening', () => {
   const target = row();
+  const scopeId = sbcFacilityScopeId(target);
   const matrix = buildVibrationMechanismMatrixRow(target, {
-    resultState: 'CURRENT_RESULT', userEngineeringDataRows: sbcRows(target),
+    resultState: 'CURRENT_RESULT',
+    sbcCandidateResultsByScope: { [scopeId]: sbcCandidate(target) },
     ...mechanicalContext(target), aivScreeningSession: null,
   });
   assert.equal(matrix.screeningGoverning.mechanism.id, 'mechanicalExcitation');
@@ -373,7 +394,7 @@ test('stale facility state excludes current FIT/Mechanical governing while retai
   assert.equal(matrix.retainedCandidateGoverning, null);
 });
 
-test('incomplete SBC data remains fail-closed and does not create a candidate governing value', () => {
+test('raw SBC rows remain projection-only and require explicit evaluation before a candidate can govern', () => {
   const target = row();
   const rows = sbcRows(target).filter((item) => item.blockerId !== SBC_TYPE3_BLOCKERS.figureT34);
   const matrix = buildVibrationMechanismMatrixRow(target, {
@@ -382,7 +403,9 @@ test('incomplete SBC data remains fail-closed and does not create a candidate go
   const sbc = matrix.assessments.find((item) => item.mechanism.id === 'smallBoreConnections');
   assert.equal(sbc.calculated, false);
   assert.equal(sbc.assessmentState, 'APPLICABLE_INCOMPLETE');
-  assert.ok(sbc.readiness.missing.includes('LOFGEOM(G)'));
+  assert.deepEqual(sbc.readiness.missing, []);
+  assert.ok(sbc.readiness.reasons.includes('SBC_TYPE3_EXPLICIT_EVALUATION_REQUIRED'));
+  assert.equal(sbc.evidence.projectionOnly, true);
   assert.equal(matrix.candidateGoverning, null);
   assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
 });
