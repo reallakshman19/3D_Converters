@@ -5,13 +5,13 @@ LEG_ID: LEG-01
 PR: 706
 BRANCH: agent/engcalc-bolted-joints-phase1-20260902
 BASE_MAIN: bff53e336bdbddbe0fb829b7991ca5ed27fc836a
-CHECKPOINT_HEAD: 7a764b7b58acceece0949069ffe1f439170f50e7
-STATE: READY_FOR_REVIEW_BOUNDED_SLICE
+CHECKPOINT_HEAD: 5ea2aa31e0f6b136510532ab5eb6801e7e66ec88
+STATE: ACTIVE_VALIDATION_REQUIRED
 MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
 ## Mission
 
-Start `Engineering Calculations -> Flanges & Joints` with a bounded rated-flange external-load kernel and 3D joint-load primitives, without silently widening into registry/UI or design authority.
+Start `Engineering Calculations -> Flanges & Joints` with a bounded rated-flange external-load calculation, 3D joint-load primitives and central Engineering Calculations registration while preserving a fail-closed benchmark-only authority boundary.
 
 ## Delivered capability
 
@@ -23,61 +23,88 @@ Start `Engineering Calculations -> Flanges & Joints` with a bounded rated-flange
 - opening-only axial force selection;
 - resultant in-plane bending, transverse shear and torsion retention;
 - direct Node CLI;
-- analytical and PV Elite rounded-display regression source.
+- analytical and PV Elite rounded-display regression source;
+- benchmark-only Engineering Calculation adapter;
+- registration in the existing default registry and public Engineering Calculations index;
+- central-engine unit-conversion and registration regression source.
 
 ## Engineering authority
 
 ```text
 engineeringAuthority = NONE_PENDING_SOURCE_QUALIFICATION
+calculationState     = BENCHMARK_ONLY
 screeningAuthority   = NOT_AUTHORIZED
 codeCompliance       = false
 designAuthority      = false
-registryIntegrated   = false
-UIIntegrated         = false
+governingEligible    = false
+registryIntegrated   = true
+UIExecutionPath      = SOURCE_WIRED_NOT_BROWSER_VALIDATED
 ```
+
+`equationSatisfied=true` is deliberately not a Code/design PASS. The adapter's assessment, qualification and provenance keep that distinction explicit.
 
 ## Source and benchmark state
 
-The user-supplied PV Elite C101 report identifies ASME UG-44(b), attributes the method to PVP2013-97814, and displays the acceptance/Pmax relationships and nozzle examples. Its displayed inputs are rounded, so those examples are used only as rounded-input cross-solver checks with a declared 2% relative tolerance.
+The user-supplied PV Elite C101 report identifies ASME UG-44(b), attributes the method to PVP2013-97814, and displays the acceptance/Pmax relationships and nozzle examples. Its displayed inputs are rounded, so those examples remain rounded-input cross-solver checks with a declared 2% relative tolerance.
 
-Independent arithmetic is protected by a hand-constructed SI fixture that exactly establishes equivalent pressure and Pmax without importing the production implementation.
+Independent arithmetic is protected by a hand-constructed SI pressure-equivalent fixture. Primary governing Code source qualification and governed flange master data remain unresolved.
 
 ## Validation truth
 
 ```text
-source/architecture inspection           PASS
-new-file JS/MJS line policy              PASS by inspection
-small-function / named-export policy     PASS by inspection
-reconstructed exact-authored Node tests  PASS 6/6
-repository-native exact-checkout tests   NOT_RUN
-hosted CI                                NOT_RUN
-browser                                  NOT_APPLICABLE
-independent engineering review           NOT_RUN
+source/architecture inspection              PASS
+main/base drift                              PASS / zero behind at checkpoint
+open PR exact registry/index name search    PASS / no competing PR found
+new adapter <300 lines                       PASS by inspection
+bounded functions / named exports           PASS by inspection
+prior reconstructed kernel tests            PASS 6/6 supporting only
+exact-head repository-native focused tests  NOT_RUN
+hosted CI                                    NOT_RUN
+browser                                      NOT_RUN
+independent engineering review               NOT_RUN
 ```
 
-The 6/6 local execution is supporting reconstructed execution; it is not relabeled as repository-native validation.
+No `NOT_RUN` item is represented as PASS.
 
 ## Coordination / overlap
 
-Open PRs were inspected before mutation. No active claim was found over the new flange rated-load / bolted-joint numerical domain. Shared Engineering Calculations registry/UI files are intentionally not claimed or edited in this PR.
+Open PR re-ground before shared-file mutation found no open PR naming `converters/engineering-calculations/default-registry.js` or `converters/engineering-calculations/index.js`. PR #540 touches FIT adapter/UI, and PR #649 touches `tabs/engineering-workspace-tab.js`; neither owns the two registry files changed here. Current classification for the registry/index edits: `SAFE` by observed path/authority search, subject to re-check before any later shared-file edit.
 
 ## Backup compliance
 
-All source/test/CLI changes in the bounded implementation are new files. The relay-index promotion edit is preceded by backup generated using `node utils/backup.js save agents/agentchain.md ...` on exact branch bytes, with resulting artifacts committed under `.backups/`.
+The original kernel/load/CLI/test files were new. `agents/agentchain.md` had a repository-native pre-edit backup generated with `node utils/backup.js save` and committed under `.backups/`.
+
+For the later existing registry/index edits, this connector session could not execute the required native backup command. Exact connector-side pre-edit byte copies were committed before mutation:
+
+```text
+.backups/connector-20260902-engcalc-ug44-registry/
+  converters_engineering-calculations_default-registry.js.bak
+  converters_engineering-calculations_index.js.bak
+```
+
+This is recorded as `NOT_RUN / ENVIRONMENT_BLOCKED` for the native command and is **not** claimed as policy-equivalent PASS. PR #706 remains draft and is not merge-ready on that basis alone.
 
 ## Changed-file intent
 
-- flange kernel and joint-load primitives;
-- focused test and CLI;
-- relay/workreport/status/claim artifacts;
-- backup artifacts required for the relay-index update.
+Engineering/software scope now includes:
 
-No workflow, existing numerical solver, writer, runtime, canvas or Engineering Calculations registry/UI file is modified.
+- flange kernel and joint-load primitives;
+- benchmark-only adapter;
+- default-registry registration and public export;
+- focused kernel/registry tests and CLI;
+- relay/workreport/status/claim artifacts;
+- exact pre-edit backup evidence.
+
+No workflow, writer, runtime, canvas, vibration numerical authority or existing FIT/AIV numerical method is changed.
 
 ## Highest risk
 
-Current arithmetic is not yet production-authorized because code-edition/source qualification, flange/gasket database authority and native registry integration remain open.
+The calculator is now discoverable/executable through the generic Engineering Calculations registry at `BENCHMARK_ONLY`, but primary Code-source qualification, flange/gasket master-data authority, exact-head native tests and browser presentation remain open. Any UI presentation that visually implies Code/design acceptance would be a release blocker.
 
 ## EXACT_NEXT_ACTION
 
-In the next leg, perform a backup-compliant edit of the existing Engineering Calculations registry to expose the method only at a non-authorizing qualification state, after independently re-running the focused test in a native checkout and re-grounding shared-file overlap.
+Run `node --test tests/flange-ug44-core.test.mjs tests/flange-ug44-registry.test.mjs` against the exact PR #706 head in a native checkout and record PASS/FAIL before the next engineering-critical production mutation.
+
+## Durable relay
+
+Latest endpoint: `agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0002.md`.
