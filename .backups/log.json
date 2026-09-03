@@ -1,5 +1,5 @@
 {
-  "lastId": 19,
+  "lastId": 20,
   "entries": [
     {
       "id": 1,
@@ -133,6 +133,13 @@
       "file": "tabs/vibration-integrity-tab.js",
       "context": "Protect PR720 Vibration Integrity workspace before canonical null-project lifecycle clearing (connector-reconstructed backup)",
       "backupFile": "19_tabs_vibration_integrity_tab_js.bak"
+    },
+    {
+      "id": 20,
+      "timestamp": "2026-09-03 06:41:00",
+      "file": "tests/vibration-project-lifecycle-persistence.test.mjs",
+      "context": "Protect PR720 focused persistence regression before updating handoff fixtures to explicit lifecycle project custody (connector-reconstructed backup)",
+      "backupFile": "20_tests_vibration_project_lifecycle_persistence_test_mjs.bak"
     }
   ]
 }
