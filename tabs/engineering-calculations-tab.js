@@ -24,6 +24,11 @@ import {
   VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT,
   createVibrationProjectEvidenceHandoff,
 } from './vibration-project-evidence-handoff.js';
+import {
+  VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT,
+  VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT,
+  createVibrationProjectLifecycleHandoff,
+} from './vibration-project-lifecycle-handoff.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
@@ -84,6 +89,9 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       selectedLineId: context?.vibrationRoadmap?.context?.lineId ?? null,
     })
     : null;
+  const initialProjectLifecycleHandoff = initialProject
+    ? createVibrationProjectLifecycleHandoff({ project: initialProject })
+    : null;
   const state = {
     selectedFamily: initialFamilyLanding ? VIBRATION_FAMILY_ID : definition.family,
     selectedId: initialFamilyLanding ? null : definition.id,
@@ -98,6 +106,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     facilityScenarioHandoffStatus: context?.facilityScenarioHandoffStatus ?? null,
     facilityScenarioHandoffErrorCode: context?.facilityScenarioHandoffErrorCode ?? null,
     projectEvidenceHandoff: initialProjectEvidenceHandoff,
+    projectLifecycleHandoff: initialProjectLifecycleHandoff,
   };
   const roadmapController = createVibrationRoadmapController(container, {
     initialState: context?.vibrationRoadmap ?? {},
@@ -119,6 +128,16 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     }));
   }
 
+  function dispatchProjectLifecycleHandoff() {
+    const host = container.querySelector('[data-fit-workspace-host]');
+    if (!host) return;
+    const EventClass = host.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+    if (typeof EventClass !== 'function') return;
+    host.dispatchEvent(new EventClass(VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT, {
+      detail: { handoff: state.projectLifecycleHandoff },
+    }));
+  }
+
   async function mountProductSurface() {
     if (state.familyLanding) return;
     const token = ++productToken;
@@ -131,6 +150,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
         host.innerHTML = '';
         const maybeDestroy = module.renderVibrationIntegrityTab(host, {
           projectEvidenceHandoff: state.projectEvidenceHandoff,
+          projectLifecycleHandoff: state.projectLifecycleHandoff,
         });
         productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
         return;
@@ -274,7 +294,15 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
         selectedLineId: event.detail?.lineId ?? null,
       })
       : null;
+    state.projectLifecycleHandoff = project
+      ? createVibrationProjectLifecycleHandoff({ project })
+      : null;
     dispatchProjectEvidenceHandoff();
+    dispatchProjectLifecycleHandoff();
+  }
+
+  function onVibrationProjectLifecycleChanged(event) {
+    roadmapController.applyLifecycleHandoff(event.detail?.handoff ?? null);
   }
 
   function onClick(event) {
@@ -337,6 +365,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
 
   container.addEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
   container.addEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
+  container.addEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
   container.addEventListener('click', onClick);
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);
@@ -348,6 +377,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     roadmapController.destroy();
     container.removeEventListener(VIBRATION_ROADMAP_STATE_EVENT, onRoadmapStateForFacilityHandoff);
     container.removeEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
+    container.removeEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
