@@ -1,13 +1,13 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0005
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0005.md
+ACTIVE_ENDPOINT: EP-0006
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0006.md
 MATERIAL_HISTORY_ROOT_BASE: 0a16f973acea81aa2670815a7128ab587359bc68
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0005.md
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0006.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: 6f821f23729a67037d76a06c0ae1fc67400d5220
+HEAD: 1132d7eceffe81c1d90074461ed777a7738aa9cf
 VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
@@ -48,7 +48,7 @@ OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: GitHub recorded the deliberate close/reopen event; validation target has zero check-runs; GitHub Actions app id 15368 has zero check suites while other apps created queued suites; matching default-branch Vibration Roadmap UI Regression has prior successful pull_request history
+HANDOVER_VALIDATION_EVIDENCE: validation target and later live PR head both have zero GitHub Actions runs/check-runs; live head created queued suites for GitHub Pages, Netlify, and Claude but no GitHub Actions suite; repository-wide latest Actions run remains 2026-09-02T11:02:50Z
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -64,6 +64,6 @@ POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
 INDEPENDENT_CONFIRMATION_BASIS: source/artifact inspection only; runtime execution remains NOT_RUN
 PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_NEXT_MATERIAL_LEG
-CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_AFTER_RECORDED_PR_EVENT
-CURRENT_BLOCKER: Exact focused execution remains unavailable; GitHub recorded the qualifying PR event but GitHub Actions created neither a suite nor a run for the validation target, and no product failure is demonstrated.
+CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_ACROSS_MULTIPLE_PR_HEAD_UPDATES
+CURRENT_BLOCKER: Exact focused execution remains unavailable; GitHub Actions ingestion is absent across the validation target and later PR-head updates while other integrations create suites, and no product failure is demonstrated.
 EXACT_NEXT_ACTION: Obtain independently executable focused validation for VALIDATION_TARGET_HEAD. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
