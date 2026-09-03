@@ -42,6 +42,7 @@ import {
   assertVibrationProjectLifecycleHandoff,
   createVibrationProjectLifecycleHandoffFromState,
 } from './vibration-project-lifecycle-handoff.js';
+import { clearVibrationProjectLifecycleState } from './vibration-project-lifecycle-state.js';
 import { VIBRATION_ROADMAP_STATE_EVENT } from './vibration-roadmap-controller.js';
 
 function workspaceOptions(state) {
@@ -173,7 +174,7 @@ export function renderVibrationIntegrityTab(container, {
       setVibrationActionVerificationProjectEvidence(state, next);
       const projectId = String(next?.projectId ?? '').trim();
       if (projectId && state.lifecycleProjectId !== projectId) resetLifecycleStateForProject(state, projectId);
-      if (!projectId) state.lifecycleProjectId = null;
+      if (!projectId) clearVibrationProjectLifecycleState(state);
       state.error = null;
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -187,7 +188,7 @@ export function renderVibrationIntegrityTab(container, {
       const evidenceProjectId = String(state.projectEvidenceHandoff?.projectId ?? '').trim();
       if (next == null) {
         if (evidenceProjectId) resetLifecycleStateForProject(state, evidenceProjectId);
-        else state.lifecycleProjectId = null;
+        else clearVibrationProjectLifecycleState(state);
       } else {
         applyLifecycleHandoffToState(state, next);
       }
