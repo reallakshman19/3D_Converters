@@ -1,12 +1,12 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0013
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0013.md
+ACTIVE_ENDPOINT: EP-0015
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0015.md
 MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
-LATEST_MATERIAL_LEG: LEG-001
-LATEST_MATERIAL_LEG_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/material-legs/LEG-001.md
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
+LATEST_MATERIAL_LEG: LEG-002
+LATEST_MATERIAL_LEG_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/material-legs/LEG-002.md
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0014.md
 PR: 720
 PR_STATE: MERGED
 SOURCE_BRANCH: feat/vibration-project-v2-lifecycle-20260902
@@ -15,7 +15,7 @@ PR_HEAD_AT_MERGE: 6b11e3369c0d50f44b1873f4ee319d59f61d572d
 MERGE_METHOD: SQUASH
 MERGE_COMMIT: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
 MERGED_AT: 2026-09-03T04:15:12Z
-HEAD: 91cddfbd8c8bcdf489d1aa7e588bd62457cc2b19
+HEAD: edc2071e9605ba82c16d384a5907dc6ecdc156f6
 VALIDATION_TARGET_HEAD: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
@@ -53,12 +53,12 @@ QUESTION_SET_STATUS: CURRENT
 QUESTION_PACK_ACTION: REUSED
 QUESTION_DISPLAY: HIDE
 OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
-OWNER_DIRECTIVE: 2026-09-03T04:14:11Z — merge, proceed next
+OWNER_DIRECTIVE: 2026-09-03T04:20:16Z — proceed next
 OWNER_MERGE_DIRECTIVE: OWNER_DIRECT 2026-09-03T04:14:11Z — "merge, proceed next"
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: Exact changed-source blob identity PASS and isolated Chromium lifecycle-boundary execution PASS 5/5 before merge; repository-native focused Node execution and full rendered application route remain NOT_RUN after merge; no full-product browser PASS is claimed.
+HANDOVER_VALIDATION_EVIDENCE: Exact changed-source blob identity PASS and isolated Chromium lifecycle-boundary execution PASS 5/5 before merge. After merge, a fresh branch from exact merge commit e0469dc939b53e1fc7cf5be3ab4ecb80fe313857 matched the existing workflow branch/path filters at carrier head 2172f0da2135efafdeeb383b4d4b66acaaea5430, but exact-head Actions queries returned zero runs twice and combined statuses were empty. No Node process executed; repository-native Node and full rendered application qualification remain NOT_RUN.
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -66,22 +66,26 @@ REPORTING_CONTRACT: ACTIVE_HANDOVER_FIRST
 HANDOVER_RESPONSE_REQUIRED: ALWAYS
 RESPONSE_DELTA_MODE: DELTA_ONLY
 OWNER_QUALIFICATION_BASELINE_DISCOVERY: COMPLETE
-OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T04:14:11Z — "merge, proceed next"
+OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T04:20:16Z — "proceed next"
 OWNER_QUALIFICATION_BASELINE_MANIFEST: attached production-readiness review + existing PR720 Q1-Q5
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
 POST_BASIS_DRIFT: MERGED_TO_MAIN_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: RETAINED_CURRENT_CUSTODIAN
-INDEPENDENT_CONFIRMATION_BASIS: exact source identity + isolated Chromium decision-logic falsification; repository-native/full-route execution remains absent
-PREWORK_HISTORY_STATUS: RECORDED_FOR_LEG_001
+INDEPENDENT_CONFIRMATION_BASIS: exact source identity + isolated Chromium decision-logic falsification + exact-trigger hosted ingestion falsifier; repository-native/full-route execution remains absent
+PREWORK_HISTORY_STATUS: RECORDED_FOR_LEG_002
 MATERIAL_LEG_HISTORY_STATUS: RECORDED
 REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
-CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_UNRESOLVED
+QUALIFICATION_CARRIER_BRANCH: feat/vibration-project-v2-lifecycle-qualification-20260903
+QUALIFICATION_CARRIER_BASE: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
+QUALIFICATION_CARRIER_HEAD: 2172f0da2135efafdeeb383b4d4b66acaaea5430
+CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_TRIGGER_MATCHED_INGESTION_FAIL_NO_RUN_CREATED
 M13_PROVENANCE_DEFECT: CHROMIUM_ISOLATED_PASS_FULL_ROUTE_NOT_RUN
 NULL_PROJECT_LIFECYCLE_RESIDUE: CHROMIUM_ISOLATED_PASS_FULL_ROUTE_NOT_RUN
 CHROMIUM_ISOLATED_BOUNDARY_STATUS: PASS_5_OF_5
 REPOSITORY_NATIVE_NODE_STATUS: NOT_RUN
+STATE_BOUNDARY_NODE_STATUS: NOT_RUN
 FULL_RENDERED_CHROMIUM_STATUS: NOT_RUN
 RELEASE_STATE: RELEASE_NOT_QUALIFIED
-CURRENT_BLOCKER: Repository-native focused Node qualification and the actual rendered v1->M13-M16->v2 save/destroy/reopen/project-clear route remain unexecuted on merged main. Isolated Chromium evidence does not close the full release gate.
-EXACT_NEXT_ACTION: Obtain repository-native focused Node execution on main including tests/vibration-project-lifecycle-state-boundary.test.mjs. If PASS, run the full application Chromium lifecycle journey. If execution remains unavailable, preserve NOT_RUN and RELEASE_NOT_QUALIFIED.
+CURRENT_BLOCKER: GitHub Actions failed to create a run even for a fresh exact-merge-derived branch and changed path that satisfy the existing workflow trigger. The current environment has no authenticated repository checkout/runner for the required Node suite. This is an execution-delivery gap, not a test failure.
+EXACT_NEXT_ACTION: Obtain an authenticated local checkout or another authorized executable runner and run the focused PR720 Node suite plus tests/vibration-project-lifecycle-state-boundary.test.mjs against merge commit e0469dc939b53e1fc7cf5be3ab4ecb80fe313857 without modifying expectations. If PASS, run the full application Chromium lifecycle journey. Do not mutate workflow configuration without separate explicit Owner authority; until execution exists, preserve NOT_RUN and RELEASE_NOT_QUALIFIED.
