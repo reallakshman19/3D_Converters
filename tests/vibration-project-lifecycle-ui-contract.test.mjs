@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import * as projectSchema from '../converters/vibration/project/schema.js';
+import { resolveVibrationProjectSchemaApi } from '../tabs/vibration-project-schema-compat.js';
 
 async function source(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -28,7 +30,8 @@ test('vibration workspace restores project lifecycle custody and publishes only 
 
 test('roadmap project controller persists lifecycle custody without resetting selected line', async () => {
   const text = await source('tabs/vibration-roadmap-controller.js');
-  assert.match(text, /attachVibrationProjectLifecycleLedgers\(currentProject, handoff\)/u);
+  assert.match(text, /attachVibrationProjectLifecycleLedgersCompat\(currentProject, handoff\)/u);
+  assert.doesNotMatch(text, /from ['"]\.\.\/converters\/vibration\/project\/schema\.js['"]/u);
   assert.match(text, /VIBRATION_PROJECT_LIFECYCLE_PROJECT_MISMATCH/u);
   assert.match(text, /applyLifecycleHandoff,/u);
   const lifecycleFunction = text.slice(
@@ -37,4 +40,28 @@ test('roadmap project controller persists lifecycle custody without resetting se
   );
   assert.doesNotMatch(lifecycleFunction, /selectedLineId\s*=\s*currentProject\.subjects\.lines\[0\]/u);
   assert.match(lifecycleFunction, /screening|engineering calculation authority is unchanged/iu);
+});
+
+test('lifecycle schema compatibility adapter resolves current APIs and fails closed for stale surfaces', async () => {
+  assert.equal(
+    resolveVibrationProjectSchemaApi(projectSchema, 'vibrationProjectLifecycleLedgers'),
+    projectSchema.vibrationProjectLifecycleLedgers,
+  );
+  assert.equal(
+    resolveVibrationProjectSchemaApi(projectSchema, 'attachVibrationProjectLifecycleLedgers'),
+    projectSchema.attachVibrationProjectLifecycleLedgers,
+  );
+  assert.throws(
+    () => resolveVibrationProjectSchemaApi({}, 'vibrationProjectLifecycleLedgers'),
+    (error) => error?.code === 'VIBRATION_PROJECT_SCHEMA_LIFECYCLE_API_UNAVAILABLE'
+      && error?.details?.apiName === 'vibrationProjectLifecycleLedgers',
+  );
+  const adapter = await source('tabs/vibration-project-schema-compat.js');
+  assert.match(adapter, /import \* as projectSchema from ['"]\.\.\/converters\/vibration\/project\/schema\.js\?v=20260903-pr720-lifecycle-schema-1['"]/u);
+});
+
+test('lifecycle handoff no longer named-imports post-PR720 lifecycle APIs from project schema', async () => {
+  const text = await source('tabs/vibration-project-lifecycle-handoff.js');
+  assert.match(text, /vibrationProjectLifecycleLedgersCompat\(validated\)/u);
+  assert.doesNotMatch(text, /from ['"]\.\.\/converters\/vibration\/project\/schema\.js['"]/u);
 });
