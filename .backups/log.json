@@ -1,5 +1,5 @@
 {
-  "lastId": 16,
+  "lastId": 17,
   "entries": [
     {
       "id": 1,
@@ -112,6 +112,13 @@
       "file": "agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/ACTIVE.md",
       "context": "Advance PR720 v2 chain to EP-0007 public GitHub status correlation checkpoint (connector-reconstructed backup)",
       "backupFile": "16_agents_chains_PR720_VIBRATION_PROJECT_V2_LIFECYCLE_ACTIVE_md.bak"
+    },
+    {
+      "id": 17,
+      "timestamp": "2026-09-03 02:14:54",
+      "file": "agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/ACTIVE.md",
+      "context": "Advance PR720 v2 chain to EP-0008 after Owner-requested clean rebase and repeated GitHub Actions ingestion gap (connector-reconstructed backup)",
+      "backupFile": "17_agents_chains_PR720_VIBRATION_PROJECT_V2_LIFECYCLE_ACTIVE_md.bak"
     }
   ]
 }
