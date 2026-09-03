@@ -91,6 +91,26 @@ function build(projectIdInput, ledgers = {}) {
   });
 }
 
+function stateProjectId(projectIdInput, state, actionCompletionLedger) {
+  const requestedProjectId = text(projectIdInput, 'projectId');
+  const establishedProjectId = String(state.lifecycleProjectId ?? '').trim();
+  if (establishedProjectId && establishedProjectId !== requestedProjectId) {
+    throw handoffError(
+      'VIBRATION_PROJECT_LIFECYCLE_STATE_PROJECT_MISMATCH',
+      'Lifecycle state is already bound to a different vibration project.',
+      { projectId: requestedProjectId, stateProjectId: establishedProjectId },
+    );
+  }
+  if (!establishedProjectId && actionCompletionLedger.records.length) {
+    throw handoffError(
+      'VIBRATION_PROJECT_LIFECYCLE_M13_PROJECT_CUSTODY_REQUIRED',
+      'Non-empty M13 completion custody requires an established lifecycleProjectId in workspace state.',
+      { projectId: requestedProjectId },
+    );
+  }
+  return establishedProjectId || requestedProjectId;
+}
+
 export function createVibrationProjectLifecycleHandoff({ project } = {}) {
   const validated = assertVibrationIntegrityProject(project);
   const lifecycle = vibrationProjectLifecycleLedgers(validated);
@@ -98,8 +118,12 @@ export function createVibrationProjectLifecycleHandoff({ project } = {}) {
 }
 
 export function createVibrationProjectLifecycleHandoffFromState({ projectId, state = {} } = {}) {
-  return build(projectId, {
-    actionCompletionLedger: state.actionCompletionLedger,
+  const actionCompletionLedger = assertVibrationActionCompletionLedger(
+    state.actionCompletionLedger ?? createVibrationActionCompletionLedger(),
+  );
+  const resolvedProjectId = stateProjectId(projectId, state, actionCompletionLedger);
+  return build(resolvedProjectId, {
+    actionCompletionLedger,
     actionVerificationLedger: state.actionVerificationLedger,
     rcaLedger: state.rcaLedger,
     mitigationLedger: state.mitigationLedger,
