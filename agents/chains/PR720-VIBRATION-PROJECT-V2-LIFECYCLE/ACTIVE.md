@@ -1,8 +1,8 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0017
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0017.md
+ACTIVE_ENDPOINT: EP-0018
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0018.md
 MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
 LATEST_MATERIAL_LEG: LEG-002
 LATEST_MATERIAL_LEG_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/material-legs/LEG-002.md
@@ -15,7 +15,7 @@ PR_HEAD_AT_MERGE: 6b11e3369c0d50f44b1873f4ee319d59f61d572d
 MERGE_METHOD: SQUASH
 MERGE_COMMIT: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
 MERGED_AT: 2026-09-03T04:15:12Z
-HEAD: 6e36ea67878cf21379e389ed5b425f98424f66e7
+HEAD: f8473a23830787eb541dd112527418e30d2c5b6d
 VALIDATION_TARGET_HEAD: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
@@ -28,7 +28,7 @@ MERGE_AUTHORIZED: CONSUMED
 MERGE_RESULT: MERGED
 REVIEW_COUNT: 0
 UNRESOLVED_REVIEW_THREADS: 0
-REQUIRED_CHECKS_STATUS: NOT_RUN
+REQUIRED_CHECKS_STATUS: FAIL
 AUTHORITY_DOMAIN: VIBRATION_PROJECT_LIFECYCLE_PERSISTENCE_ONLY
 ACTIVE_CUSTODIAN: ChatGPT takeover agent
 AGENT_INSTANCE_ID: chatgpt:3dbc5ecf-9b10-4b8e-8bbf-f5a2a9f89aca
@@ -52,13 +52,13 @@ QUESTION_SET_ID: PR720-Q1Q5-c74c7ef
 QUESTION_SET_STATUS: CURRENT
 QUESTION_PACK_ACTION: REUSED
 QUESTION_DISPLAY: HIDE
-OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
-OWNER_DIRECTIVE: 2026-09-03T09:43:23Z — proceed next
-OWNER_MERGE_DIRECTIVE: OWNER_DIRECT 2026-09-03T04:14:11Z — "merge, proceed next"
+OWNER_PROGRESSION_COMMAND: MERGE_PR724
+OWNER_DIRECTIVE: 2026-09-03T09:59:20Z — merge (PR724)
+OWNER_MERGE_DIRECTIVE: OWNER_DIRECT 2026-09-03T09:59:20Z — "merge" (PR724)
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
-HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: Exact merged changed-source blobs PASS; isolated Chromium lifecycle-boundary execution PASS 5/5; isolated Node lifecycle decision-boundary execution PASS 3/3 on Node v22.16.0. Repository-native Node remains NOT_RUN. On exact-merge-derived carrier head 2172f0da2135efafdeeb383b4d4b66acaaea5430, matching push, pull_request opened (temporary PR724), and ready_for_review events each produced zero workflow runs; combined statuses remained empty. PR724 was closed unmerged. Full rendered application route remains NOT_RUN.
+HANDOVER_VALIDATION_STATUS: FAIL
+HANDOVER_VALIDATION_EVIDENCE: PR724 was Owner-authorized and squash-merged at 106e6fa4366403abd02947df927f8362811e50be. Reopening reconciled PR724 restored Actions ingestion. Vibration Project V2 Lifecycle Regression run 33742153726 executed Node v22.23.2 and failed 1 of 48 tests: tests/vibration-project-eit.test.mjs stale error-message regex expected "does not yet accept" while production correctly failed closed with "does not accept". The state-boundary test was not in the workflow command and remains repository-native NOT_RUN. Separate Production Freeze run 33742153728 failed 1 of 50 Stage 4 tests in vibration-integrity-mechanism-matrix.test.mjs and skipped the full Node suite/browser journey.
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -66,28 +66,32 @@ REPORTING_CONTRACT: ACTIVE_HANDOVER_FIRST
 HANDOVER_RESPONSE_REQUIRED: ALWAYS
 RESPONSE_DELTA_MODE: DELTA_ONLY
 OWNER_QUALIFICATION_BASELINE_DISCOVERY: COMPLETE
-OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T09:43:23Z — "proceed next"
+OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T09:59:20Z — "merge" (PR724)
 OWNER_QUALIFICATION_BASELINE_MANIFEST: attached production-readiness review + existing PR720 Q1-Q5
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
-POST_BASIS_DRIFT: MERGED_TO_MAIN_WITHIN_QUALIFIED_BOUNDARY
+POST_BASIS_DRIFT: PR724_QUALIFICATION_CARRIER_MERGED_TO_MAIN
 QUALIFICATION_COVERAGE: RETAINED_CURRENT_CUSTODIAN
-INDEPENDENT_CONFIRMATION_BASIS: exact merged source identity + isolated Chromium decision-logic falsification + isolated Node decision-logic falsification + all-invokable-automatic-trigger hosted ingestion falsification; repository-native/full-route execution remains absent
+INDEPENDENT_CONFIRMATION_BASIS: exact merged source identity + isolated Chromium 5/5 + isolated Node 3/3 + hosted repository-native lifecycle workflow 47/48 FAIL
 PREWORK_HISTORY_STATUS: RECORDED_FOR_LEG_002
 MATERIAL_LEG_HISTORY_STATUS: RECORDED
 REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
 QUALIFICATION_CARRIER_BRANCH: feat/vibration-project-v2-lifecycle-qualification-20260903
 QUALIFICATION_CARRIER_BASE: e0469dc939b53e1fc7cf5be3ab4ecb80fe313857
-QUALIFICATION_CARRIER_HEAD: 2172f0da2135efafdeeb383b4d4b66acaaea5430
-QUALIFICATION_CARRIER_PR: 724_CLOSED_UNMERGED
-CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_ALL_INVOKABLE_AUTOMATIC_TRIGGERS_INGESTION_FAIL_NO_RUN_CREATED
+QUALIFICATION_CARRIER_HEAD: 3964dcd56d9d1f61e9c62a15cd1f2e959a3172de
+QUALIFICATION_CARRIER_PR: 724_MERGED
+QUALIFICATION_CARRIER_MERGE_COMMIT: 106e6fa4366403abd02947df927f8362811e50be
+HOSTED_PR_MERGE_REF: 6688dacf015e9630a7870a458eabba834a5091a5
+CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_RESTORED_ON_REOPEN_EXECUTION_FAIL
+LIFECYCLE_WORKFLOW_RUN: 33742153726_FAIL_47_OF_48
+PRODUCTION_FREEZE_WORKFLOW_RUN: 33742153728_FAIL_49_OF_50_STAGE4
 M13_PROVENANCE_DEFECT: ISOLATED_CHROMIUM_AND_NODE_PASS_FULL_ROUTE_NOT_RUN
 NULL_PROJECT_LIFECYCLE_RESIDUE: ISOLATED_CHROMIUM_AND_NODE_PASS_FULL_ROUTE_NOT_RUN
 CHROMIUM_ISOLATED_BOUNDARY_STATUS: PASS_5_OF_5
 NODE_ISOLATED_BOUNDARY_STATUS: PASS_3_OF_3
-REPOSITORY_NATIVE_NODE_STATUS: NOT_RUN
+REPOSITORY_NATIVE_NODE_STATUS: FAIL_47_OF_48_ON_PR724_MERGE_REF
 STATE_BOUNDARY_NODE_STATUS: ISOLATED_PASS_REPOSITORY_NATIVE_NOT_RUN
-FULL_RENDERED_CHROMIUM_STATUS: NOT_RUN
+FULL_RENDERED_CHROMIUM_STATUS: NOT_RUN_SKIPPED_AFTER_PRODUCTION_FREEZE_STAGE4_FAIL
 RELEASE_STATE: RELEASE_NOT_QUALIFIED
-CURRENT_BLOCKER: GitHub Actions creates no run for any invokable configured automatic trigger on the exact-merge-derived carrier; outbound DNS prevents authenticated checkout materialization; the connected GitHub surface exposes neither workflow dispatch nor workflow-state/Actions-permission administration. Isolated Chromium and Node receipts corroborate the repaired decision boundaries but do not replace repository-native execution or the full rendered save/reopen/project-clear route.
-EXACT_NEXT_ACTION: Obtain an authenticated checkout or another authorized executable runner and run the focused PR720 Node suite plus tests/vibration-project-lifecycle-state-boundary.test.mjs unchanged against merge commit e0469dc939b53e1fc7cf5be3ab4ecb80fe313857. If PASS, run the full application Chromium lifecycle journey. Do not mutate workflow or repository Actions configuration without separate explicit Owner authority; until exact execution exists, preserve NOT_RUN and RELEASE_NOT_QUALIFIED.
+CURRENT_BLOCKER: Hosted execution now exists. The focused lifecycle workflow fails only the current-result rejection message regex in tests/vibration-project-eit.test.mjs (47/48 PASS); the repository-native state-boundary regression is still absent from that workflow. Independently, production-freeze Stage 4 fails vibration-integrity-mechanism-matrix.test.mjs (49/50 PASS), so full Node and Chromium production-freeze execution is skipped.
+EXACT_NEXT_ACTION: Do not patch under the completed merge-only directive. On the next Owner progression command, open a bounded repair leg with required backups. Confirm canonical current-result rejection wording, repair only the demonstrated tests/vibration-project-eit.test.mjs expectation if stale, add/execute the state-boundary test in the focused rerun without changing production authority, and keep the production-freeze matrix failure as a separate blocker unless Owner explicitly combines scopes. Preserve RELEASE_NOT_QUALIFIED until all required gates pass.
