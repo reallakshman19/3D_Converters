@@ -15,9 +15,9 @@ import {
   createVibrationRcaLedger,
 } from '../converters/vibration/rca/ledger.js';
 import {
-  assertVibrationIntegrityProject,
-  vibrationProjectLifecycleLedgers,
-} from '../converters/vibration/project/schema.js';
+  assertVibrationIntegrityProjectCompat,
+  vibrationProjectLifecycleLedgersCompat,
+} from './vibration-project-schema-compat.js';
 
 export const VIBRATION_PROJECT_LIFECYCLE_HANDOFF_SCHEMA = 'VibrationProjectLifecycleHandoff.v1';
 export const VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT = 'vibration-project-lifecycle-handoff';
@@ -112,8 +112,8 @@ function stateProjectId(projectIdInput, state, actionCompletionLedger) {
 }
 
 export function createVibrationProjectLifecycleHandoff({ project } = {}) {
-  const validated = assertVibrationIntegrityProject(project);
-  const lifecycle = vibrationProjectLifecycleLedgers(validated);
+  const validated = assertVibrationIntegrityProjectCompat(project);
+  const lifecycle = vibrationProjectLifecycleLedgersCompat(validated);
   return build(lifecycle.projectId, lifecycle);
 }
 
