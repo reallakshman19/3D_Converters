@@ -181,6 +181,10 @@ function lifecycleLedgers(projectId = PROJECT_ID) {
   };
 }
 
+function lifecycleState(projectId = PROJECT_ID) {
+  return { lifecycleProjectId: projectId, ...lifecycleLedgers(projectId) };
+}
+
 function v1Project() {
   return verificationProject(verificationEvidencePackage());
 }
@@ -277,10 +281,9 @@ test('project-scoped M14-M16 records from another project fail closed', () => {
 });
 
 test('direct lifecycle attachment rejects a foreign handoff before M13 custody can cross project scope', () => {
-  const actionCompletionLedger = lifecycleLedgers().actionCompletionLedger;
   const foreign = createVibrationProjectLifecycleHandoffFromState({
     projectId: 'P-FOREIGN',
-    state: { actionCompletionLedger },
+    state: lifecycleState('P-FOREIGN'),
   });
   assert.equal(foreign.actionCompletionLedger.records.length, 1);
   assert.throws(
@@ -356,7 +359,7 @@ test('roadmap controller persists an exact lifecycle handoff and upgrades v1 wit
   });
   const handoff = createVibrationProjectLifecycleHandoffFromState({
     projectId: PROJECT_ID,
-    state: lifecycleLedgers(),
+    state: lifecycleState(),
   });
   const persisted = controller.applyLifecycleHandoff(handoff);
   assert.equal(persisted.schema, VIBRATION_INTEGRITY_PROJECT_SCHEMA_V2);
@@ -377,7 +380,7 @@ test('roadmap controller rejects lifecycle custody from another project without 
   });
   const foreign = createVibrationProjectLifecycleHandoffFromState({
     projectId: 'P-FOREIGN',
-    state: lifecycleLedgers('P-FOREIGN'),
+    state: lifecycleState('P-FOREIGN'),
   });
   assert.equal(controller.applyLifecycleHandoff(foreign), null);
   controller.destroy();
