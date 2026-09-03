@@ -1,19 +1,19 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0008
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0008.md
+ACTIVE_ENDPOINT: EP-0009
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
 MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0008.md
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: 16b2b421db1cf6149434479b8ce1230ad0b21437
-VALIDATION_TARGET_HEAD: 811ec87b675cc6cbcb16731c88d8146f303077c3
+HEAD: 3d8b6c0deb8e8f8722d359e2938a940036010c44
+VALIDATION_TARGET_HEAD: PENDING_POST_MATERIAL
 STATE: ACTIVE
-ENGINEERING_STATE: BLOCKED
+ENGINEERING_STATE: IN_PROGRESS
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: PASS
-WRITE_AUTHORITY: READ_ONLY
+WRITE_AUTHORITY: WRITE_ALLOWED
 AUTO_STATE: PAUSED
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
@@ -45,10 +45,11 @@ QUESTION_SET_STATUS: CURRENT
 QUESTION_PACK_ACTION: REUSED
 QUESTION_DISPLAY: HIDE
 OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
+OWNER_DIRECTIVE: 2026-09-03T02:31:19Z — proceed next
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: Owner-requested rebase cleanly aligned PR720 to current main at 46 ahead / 0 behind; fresh 2026-09-03T02:14:54Z synchronization again produced three non-Actions suites but zero GitHub Actions suites/runs/check-runs; repository-wide latest Actions run remains 2026-09-02T11:02:50Z
+HANDOVER_VALIDATION_EVIDENCE: Prework only. Live rebase reconciliation confirms the prior M13 provenance patch is absent and null-project handlers retain lifecycle ledgers; no new runtime evidence yet.
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -56,19 +57,19 @@ REPORTING_CONTRACT: ACTIVE_HANDOVER_FIRST
 HANDOVER_RESPONSE_REQUIRED: ALWAYS
 RESPONSE_DELTA_MODE: DELTA_ONLY
 OWNER_QUALIFICATION_BASELINE_DISCOVERY: COMPLETE
-OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-02T17:21:21Z — "qualified, start phase wise coding"
-OWNER_QUALIFICATION_BASELINE_MANIFEST: NONE
+OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T02:31:19Z — "proceed next"
+OWNER_QUALIFICATION_BASELINE_MANIFEST: attached production-readiness review + existing PR720 Q1-Q5
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
 POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
-INDEPENDENT_CONFIRMATION_BASIS: source/artifact and rebase-history inspection only; runtime execution remains NOT_RUN
-PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_NEXT_MATERIAL_LEG
+INDEPENDENT_CONFIRMATION_BASIS: current source/history inspection; same persistence authority boundary
+PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_POST_REBASE_RECOVERY_LEG
 REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
 REBASE_BASE_HEAD: 7dcef47da9d5d259470a7926500fec43558fc5f8
 REBASE_SYNC_HEAD: c11766f048f6ef889e1b6a83e4c7190704206602
 PRE_REBASE_VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
 PUBLIC_PLATFORM_INCIDENT_CORRELATION: NONE_REPORTED_ON_GITHUB_STATUS_FOR_2026-09-02
 CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_REPRODUCED_AFTER_REBASE_SYNCHRONIZE_WITHOUT_PUBLIC_PLATFORM_INCIDENT
-CURRENT_BLOCKER: Exact focused execution remains unavailable; a fresh post-rebase PR synchronization again created non-Actions suites while GitHub Actions created neither suite nor run, repository-wide Actions activity remains stale, and no product failure is demonstrated. Repository/account/billing/quota/settings root cause remains unproven.
-EXACT_NEXT_ACTION: Obtain independently executable focused validation for VALIDATION_TARGET_HEAD or a later chain/backup-only source-equivalent head. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
+CURRENT_BLOCKER: Rebase omitted the previously reviewed M13 state-bound custody patch, and null-project lifecycle clearing is still incomplete. Both are now authorized as one bounded post-rebase persistence recovery leg; runtime qualification remains NOT_RUN.
+EXACT_NEXT_ACTION: Create repository-standard backups, restore the M13 state-bound handoff guard, implement canonical null-project lifecycle clearing, add focused adversarial/behavioral regressions, then reconcile exact-head validation truth.
