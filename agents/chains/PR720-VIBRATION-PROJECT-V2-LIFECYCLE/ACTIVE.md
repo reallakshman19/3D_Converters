@@ -1,19 +1,21 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0009
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
+ACTIVE_ENDPOINT: EP-0010
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0010.md
 MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
+LATEST_MATERIAL_LEG: LEG-001
+LATEST_MATERIAL_LEG_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/material-legs/LEG-001.md
 MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: 3d8b6c0deb8e8f8722d359e2938a940036010c44
-VALIDATION_TARGET_HEAD: PENDING_POST_MATERIAL
+HEAD: 73cc47d16b038e9510035ef347ef118a3b2b41df
+VALIDATION_TARGET_HEAD: 1a53e2fa7681bba09e9882398f1e445172c8d3e6
 STATE: ACTIVE
-ENGINEERING_STATE: IN_PROGRESS
+ENGINEERING_STATE: BLOCKED
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: PASS
-WRITE_AUTHORITY: WRITE_ALLOWED
+WRITE_AUTHORITY: READ_ONLY
 AUTO_STATE: PAUSED
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
@@ -49,7 +51,7 @@ OWNER_DIRECTIVE: 2026-09-03T02:31:19Z — proceed next
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: Prework only. Live rebase reconciliation confirms the prior M13 provenance patch is absent and null-project handlers retain lifecycle ledgers; no new runtime evidence yet.
+HANDOVER_VALIDATION_EVIDENCE: Source inspection closes the M13 relabelling and null-project lifecycle-residue counterexamples at material head 1a53e2fa7681bba09e9882398f1e445172c8d3e6; repository-native Node/browser execution remains NOT_RUN; GitHub Actions runs=0 and status contexts=0.
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -62,14 +64,13 @@ OWNER_QUALIFICATION_BASELINE_MANIFEST: attached production-readiness review + ex
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
 POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
-QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
-INDEPENDENT_CONFIRMATION_BASIS: current source/history inspection; same persistence authority boundary
-PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_POST_REBASE_RECOVERY_LEG
+QUALIFICATION_COVERAGE: RETAINED_CURRENT_CUSTODIAN
+INDEPENDENT_CONFIRMATION_BASIS: exact source/falsifier inspection only; runtime execution remains NOT_RUN
+PREWORK_HISTORY_STATUS: RECORDED_FOR_LEG_001
+MATERIAL_LEG_HISTORY_STATUS: RECORDED
 REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
-REBASE_BASE_HEAD: 7dcef47da9d5d259470a7926500fec43558fc5f8
-REBASE_SYNC_HEAD: c11766f048f6ef889e1b6a83e4c7190704206602
-PRE_REBASE_VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
-PUBLIC_PLATFORM_INCIDENT_CORRELATION: NONE_REPORTED_ON_GITHUB_STATUS_FOR_2026-09-02
-CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_REPRODUCED_AFTER_REBASE_SYNCHRONIZE_WITHOUT_PUBLIC_PLATFORM_INCIDENT
-CURRENT_BLOCKER: Rebase omitted the previously reviewed M13 state-bound custody patch, and null-project lifecycle clearing is still incomplete. Both are now authorized as one bounded post-rebase persistence recovery leg; runtime qualification remains NOT_RUN.
-EXACT_NEXT_ACTION: Create repository-standard backups, restore the M13 state-bound handoff guard, implement canonical null-project lifecycle clearing, add focused adversarial/behavioral regressions, then reconcile exact-head validation truth.
+CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_UNRESOLVED
+M13_PROVENANCE_DEFECT: SOURCE_LEVEL_CLOSED_RUNTIME_NOT_RUN
+NULL_PROJECT_LIFECYCLE_RESIDUE: SOURCE_LEVEL_CLOSED_RUNTIME_NOT_RUN
+CURRENT_BLOCKER: Exact executable qualification and rendered production-route evidence remain absent; release remains RELEASE_NOT_QUALIFIED.
+EXACT_NEXT_ACTION: Obtain independent exact-head execution of the focused PR720 Node suite plus tests/vibration-project-lifecycle-state-boundary.test.mjs. If PASS, record the receipt and proceed to rendered v1->M13-M16->v2 save/destroy/reopen/project-clear qualification; if FAIL, patch only the first demonstrated persistence boundary.
