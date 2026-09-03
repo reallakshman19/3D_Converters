@@ -429,6 +429,13 @@ export function vibrationProjectLifecycleLedgers(value) {
 export function attachVibrationProjectLifecycleLedgers(value, ledgers = {}) {
   const project = migrateVibrationIntegrityProjectToV2(value);
   const projectId = requiredText(project.project?.projectId, 'project.project.projectId');
+  if (ledgers.projectId != null && requiredText(ledgers.projectId, 'ledgers.projectId') !== projectId) {
+    throw projectError(
+      'VIBRATION_PROJECT_V2_LIFECYCLE_PROJECT_MISMATCH',
+      'Lifecycle ledger handoff is bound to a different vibration project.',
+      { projectId, handoffProjectId: ledgers.projectId },
+    );
+  }
   const completion = assertVibrationActionCompletionLedger(
     ledgers.actionCompletionLedger ?? project.activity.actionCompletion.ledger,
   );
