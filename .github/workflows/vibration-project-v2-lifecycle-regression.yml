@@ -1,0 +1,59 @@
+name: Vibration Project V2 Lifecycle Regression
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/vibration-project-v2-lifecycle-regression.yml'
+      - 'converters/vibration/project/**'
+      - 'converters/vibration/facility/action-completion*.js'
+      - 'converters/vibration/facility/action-verification*.js'
+      - 'converters/vibration/rca/**'
+      - 'converters/vibration/mitigation/**'
+      - 'tabs/vibration-project-lifecycle-handoff.js'
+      - 'tabs/vibration-project-evidence-handoff.js'
+      - 'tabs/vibration-integrity-tab.js'
+      - 'tabs/engineering-calculations-tab.js'
+      - 'tabs/vibration-roadmap-controller.js'
+      - 'tests/vibration-project-*.test.mjs'
+      - 'tests/vibration-facility-action-completion.test.mjs'
+      - 'tests/vibration-mitigation-custody.test.mjs'
+      - 'tests/vibration-verification-fixtures.mjs'
+  push:
+    branches:
+      - 'feat/vibration-project-v2-lifecycle-*'
+    paths:
+      - '.github/workflows/vibration-project-v2-lifecycle-regression.yml'
+      - 'converters/vibration/project/**'
+      - 'tabs/vibration-project-lifecycle-handoff.js'
+      - 'tabs/vibration-integrity-tab.js'
+      - 'tabs/engineering-calculations-tab.js'
+      - 'tabs/vibration-roadmap-controller.js'
+      - 'tests/vibration-project-*.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run project v2 lifecycle regression
+        run: >-
+          node --test
+          tests/vibration-project-lifecycle-persistence.test.mjs
+          tests/vibration-project-lifecycle-ui-contract.test.mjs
+          tests/vibration-project-eit.test.mjs
+          tests/vibration-project-measurement-persistence.test.mjs
+          tests/vibration-facility-action-completion.test.mjs
+          tests/vibration-mitigation-custody.test.mjs

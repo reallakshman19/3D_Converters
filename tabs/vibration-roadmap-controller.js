@@ -1,12 +1,14 @@
 import { parseEnergyInstituteEit } from '../converters/vibration/eit/parse.js';
 import { buildVibrationIntegrityProjectFromEit } from '../converters/vibration/project/from-eit.js';
 import { buildVibrationRoadmapStateFromProject } from '../converters/vibration/project/roadmap.js';
+import { attachVibrationProjectLifecycleLedgers } from '../converters/vibration/project/schema.js';
 import {
   VIBRATION_INTEGRITY_PROJECT_FILE_EXTENSION,
   parseVibrationIntegrityProject,
   serializeVibrationIntegrityProject,
 } from '../converters/vibration/project/serialize.js';
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
+import { assertVibrationProjectLifecycleHandoff } from './vibration-project-lifecycle-handoff.js';
 import { createVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
 import {
@@ -95,6 +97,14 @@ function browserPresentationStorage(windowLike) {
   } catch {
     return null;
   }
+}
+
+function lifecyclePersistenceError(code, message, details = {}) {
+  const error = new Error(message);
+  error.name = 'VibrationProjectLifecyclePersistenceError';
+  error.code = code;
+  error.details = Object.freeze({ ...details });
+  return error;
 }
 
 export function createVibrationRoadmapController(container, { initialState = {}, downloadText = defaultDownloadText } = {}) {
@@ -199,6 +209,37 @@ export function createVibrationRoadmapController(container, { initialState = {},
     projectMessage = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     projectMessageKind = 'error';
     if (lastRender) render(lastRender);
+  }
+
+  function applyLifecycleHandoff(handoffInput) {
+    try {
+      if (!currentProject) {
+        throw lifecyclePersistenceError(
+          'VIBRATION_PROJECT_LIFECYCLE_PROJECT_REQUIRED',
+          'A vibration project must be open before lifecycle custody can be persisted.',
+        );
+      }
+      const handoff = assertVibrationProjectLifecycleHandoff(handoffInput);
+      const projectId = String(currentProject.project?.projectId ?? '').trim();
+      if (handoff.projectId !== projectId) {
+        throw lifecyclePersistenceError(
+          'VIBRATION_PROJECT_LIFECYCLE_PROJECT_MISMATCH',
+          'Lifecycle custody belongs to a different vibration project.',
+          { projectId, handoffProjectId: handoff.projectId },
+        );
+      }
+      currentProject = attachVibrationProjectLifecycleLedgers(currentProject, handoff);
+      projectMessage = 'Lifecycle custody stored in the project container; engineering calculation authority is unchanged.';
+      projectMessageKind = 'info';
+      navigationDiagnostic = null;
+      syncProjectState();
+      customEvent(container, VIBRATION_PROJECT_CHANGED_EVENT, { project: currentProject, lineId: selectedLineId });
+      if (lastRender) render(lastRender);
+      return currentProject;
+    } catch (error) {
+      failProject(error);
+      return null;
+    }
   }
 
   function clearNavigationDiagnostic() {
@@ -379,6 +420,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
 
   return Object.freeze({
     render,
+    applyLifecycleHandoff,
     destroy() {
       resizeState = null;
       cleanPanel(container);

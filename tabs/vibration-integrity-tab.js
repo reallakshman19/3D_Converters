@@ -36,6 +36,13 @@ import {
 } from './vibration-integrity-user-data-shell.js?v=20260819-sbc-connection-authoring-1';
 import { deriveVibrationIntegrityWorkflowState } from './vibration-integrity-workflow-state.js';
 import { VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT } from './vibration-project-evidence-handoff.js';
+import {
+  VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT,
+  VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT,
+  assertVibrationProjectLifecycleHandoff,
+  createVibrationProjectLifecycleHandoffFromState,
+} from './vibration-project-lifecycle-handoff.js';
+import { clearVibrationProjectLifecycleState } from './vibration-project-lifecycle-state.js';
 import { VIBRATION_ROADMAP_STATE_EVENT } from './vibration-roadmap-controller.js';
 
 function workspaceOptions(state) {
@@ -48,10 +55,36 @@ function workspaceOptions(state) {
   return { filters, sort: { ...state.sort }, ...(state.selectedRowKey ? { selectedRowKey: state.selectedRowKey } : {}) };
 }
 
-function initialState(projectEvidenceHandoff = null) {
-  return {
+function applyLifecycleHandoffToState(state, handoffInput) {
+  const handoff = assertVibrationProjectLifecycleHandoff(handoffInput);
+  const evidenceProjectId = String(state.projectEvidenceHandoff?.projectId ?? '').trim();
+  if (evidenceProjectId && handoff.projectId !== evidenceProjectId) {
+    const error = new Error('Project lifecycle custody does not match the current project evidence handoff.');
+    error.name = 'VibrationProjectLifecycleStateError';
+    error.code = 'VIBRATION_PROJECT_LIFECYCLE_HANDOFF_PROJECT_MISMATCH';
+    throw error;
+  }
+  state.lifecycleProjectId = handoff.projectId;
+  state.actionCompletionLedger = handoff.actionCompletionLedger;
+  state.actionVerificationLedger = handoff.actionVerificationLedger;
+  state.rcaLedger = handoff.rcaLedger;
+  state.mitigationLedger = handoff.mitigationLedger;
+  return handoff;
+}
+
+function resetLifecycleStateForProject(state, projectId) {
+  return applyLifecycleHandoffToState(
+    state,
+    createVibrationProjectLifecycleHandoffFromState({ projectId, state: {} }),
+  );
+}
+
+function initialState(projectEvidenceHandoff = null, projectLifecycleHandoff = null) {
+  const state = {
     ...createVibrationIntegrityInputRuntimeState(), ...createVibrationUserDataUiState(),
     ...createVibrationActionVerificationUiState(projectEvidenceHandoff),
+    lifecycleProjectId: null,
+    mitigationLedger: undefined,
     preflight: null, envelope: null, workspace: null,
     resultState: 'UNRUN', runSnapshot: null, inputTab: 'engineering',
     filters: { line: '', completeness: '', band: '', candidate: '' },
@@ -59,6 +92,23 @@ function initialState(projectEvidenceHandoff = null) {
     auditLog: createVibrationIntegrityAuditLog(),
     busy: false, busyAction: null, error: null, destroyed: false,
   };
+  if (projectLifecycleHandoff != null) applyLifecycleHandoffToState(state, projectLifecycleHandoff);
+  else if (projectEvidenceHandoff?.projectId) resetLifecycleStateForProject(state, projectEvidenceHandoff.projectId);
+  return state;
+}
+
+function lifecycleRefs(state) {
+  return [
+    state.actionCompletionLedger,
+    state.actionVerificationLedger,
+    state.rcaLedger,
+    state.mitigationLedger,
+  ];
+}
+
+function lifecycleRefsChanged(before, state) {
+  const after = lifecycleRefs(state);
+  return after.some((value, index) => value !== before[index]);
 }
 
 function inputDriftError() {
@@ -67,9 +117,12 @@ function inputDriftError() {
   return error;
 }
 
-export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff = null } = {}) {
+export function renderVibrationIntegrityTab(container, {
+  projectEvidenceHandoff = null,
+  projectLifecycleHandoff = null,
+} = {}) {
   ensureVibrationIntegrityStylesheet();
-  const state = initialState(projectEvidenceHandoff);
+  const state = initialState(projectEvidenceHandoff, projectLifecycleHandoff);
 
   function workflowId() {
     return deriveVibrationIntegrityWorkflowState(state).state;
@@ -93,6 +146,22 @@ export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff 
     }));
   }
 
+  function publishProjectLifecycle() {
+    const projectId = String(state.projectEvidenceHandoff?.projectId ?? state.lifecycleProjectId ?? '').trim();
+    if (!projectId) return;
+    const EventClass = container.ownerDocument?.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+    if (typeof EventClass !== 'function') return;
+    const handoff = createVibrationProjectLifecycleHandoffFromState({ projectId, state });
+    container.dispatchEvent(new EventClass(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, {
+      bubbles: true,
+      detail: { handoff },
+    }));
+  }
+
+  function publishLifecycleIfChanged(before) {
+    if (lifecycleRefsChanged(before, state)) publishProjectLifecycle();
+  }
+
   function render() {
     if (state.destroyed) return;
     container.innerHTML = renderVibrationIntegrityWithUserData(state);
@@ -101,7 +170,28 @@ export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff 
 
   function onProjectEvidenceHandoff(event) {
     try {
-      setVibrationActionVerificationProjectEvidence(state, event.detail?.handoff ?? null);
+      const next = event.detail?.handoff ?? null;
+      setVibrationActionVerificationProjectEvidence(state, next);
+      const projectId = String(next?.projectId ?? '').trim();
+      if (projectId && state.lifecycleProjectId !== projectId) resetLifecycleStateForProject(state, projectId);
+      if (!projectId) clearVibrationProjectLifecycleState(state);
+      state.error = null;
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    }
+    render();
+  }
+
+  function onProjectLifecycleHandoff(event) {
+    try {
+      const next = event.detail?.handoff ?? null;
+      const evidenceProjectId = String(state.projectEvidenceHandoff?.projectId ?? '').trim();
+      if (next == null) {
+        if (evidenceProjectId) resetLifecycleStateForProject(state, evidenceProjectId);
+        else clearVibrationProjectLifecycleState(state);
+      } else {
+        applyLifecycleHandoffToState(state, next);
+      }
       state.error = null;
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -319,8 +409,15 @@ export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff 
   }
 
   function onClick(event) {
-    if (handleVibrationActionVerificationClick(state, event, render)) return;
-    if (handleVibrationUserDataClick(state, event, render, recordAudit)) return;
+    const beforeLifecycle = lifecycleRefs(state);
+    if (handleVibrationActionVerificationClick(state, event, render)) {
+      publishLifecycleIfChanged(beforeLifecycle);
+      return;
+    }
+    if (handleVibrationUserDataClick(state, event, render, recordAudit)) {
+      publishLifecycleIfChanged(beforeLifecycle);
+      return;
+    }
     if (handleTableClick(event)) return;
     const sourceTarget = event.target.closest('[data-vi-source-target]')?.dataset.viSourceTarget;
     if (sourceTarget) { event.preventDefault(); openSourceTarget(sourceTarget); return; }
@@ -375,11 +472,13 @@ export function renderVibrationIntegrityTab(container, { projectEvidenceHandoff 
 
   recordAudit('WORKSPACE_OPENED', {}, null, null);
   container.addEventListener(VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT, onProjectEvidenceHandoff);
+  container.addEventListener(VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT, onProjectLifecycleHandoff);
   container.addEventListener('click', onClick); container.addEventListener('change', onChange); render();
   return () => {
     publishAssessmentContext(null);
     state.destroyed = true;
     container.removeEventListener(VIBRATION_PROJECT_EVIDENCE_HANDOFF_EVENT, onProjectEvidenceHandoff);
+    container.removeEventListener(VIBRATION_PROJECT_LIFECYCLE_HANDOFF_EVENT, onProjectLifecycleHandoff);
     container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
   };
 }
