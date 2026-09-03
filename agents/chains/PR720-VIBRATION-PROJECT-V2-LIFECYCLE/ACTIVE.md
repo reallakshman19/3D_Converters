@@ -1,15 +1,15 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0010
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0010.md
+ACTIVE_ENDPOINT: EP-0012
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0012.md
 MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
 LATEST_MATERIAL_LEG: LEG-001
 LATEST_MATERIAL_LEG_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/material-legs/LEG-001.md
 MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0009.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: 73cc47d16b038e9510035ef347ef118a3b2b41df
+HEAD: 4019c9bf20477841e46928604f4fae9757e951c4
 VALIDATION_TARGET_HEAD: 1a53e2fa7681bba09e9882398f1e445172c8d3e6
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
@@ -18,7 +18,7 @@ QUALIFICATION_STATE: PASS
 WRITE_AUTHORITY: READ_ONLY
 AUTO_STATE: PAUSED
 MERGE_AUTHORITY: OWNER_ONLY
-MERGE_AUTHORIZED: FALSE
+MERGE_AUTHORIZED: TRUE
 MERGEABILITY: MERGEABLE
 REVIEW_COUNT: 0
 UNRESOLVED_REVIEW_THREADS: 0
@@ -47,11 +47,12 @@ QUESTION_SET_STATUS: CURRENT
 QUESTION_PACK_ACTION: REUSED
 QUESTION_DISPLAY: HIDE
 OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
-OWNER_DIRECTIVE: 2026-09-03T02:31:19Z — proceed next
+OWNER_DIRECTIVE: 2026-09-03T03:45:11Z — test in Chromium if required
+OWNER_MERGE_DIRECTIVE: OWNER_DIRECT 2026-09-03T03:44:46Z — "ok merge"
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: Source inspection closes the M13 relabelling and null-project lifecycle-residue counterexamples at material head 1a53e2fa7681bba09e9882398f1e445172c8d3e6; repository-native Node/browser execution remains NOT_RUN; GitHub Actions runs=0 and status contexts=0.
+HANDOVER_VALIDATION_EVIDENCE: Exact changed-source blob identity PASS and isolated Chromium lifecycle-boundary execution PASS 5/5; repository-native focused Node execution and full rendered application route remain NOT_RUN; no full-product browser PASS is claimed.
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -59,18 +60,22 @@ REPORTING_CONTRACT: ACTIVE_HANDOVER_FIRST
 HANDOVER_RESPONSE_REQUIRED: ALWAYS
 RESPONSE_DELTA_MODE: DELTA_ONLY
 OWNER_QUALIFICATION_BASELINE_DISCOVERY: COMPLETE
-OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T02:31:19Z — "proceed next"
+OWNER_QUALIFICATION_BASELINE_SOURCE: OWNER_DIRECT 2026-09-03T02:31:19Z — "proceed next" plus 2026-09-03T03:45:11Z Chromium authorization
 OWNER_QUALIFICATION_BASELINE_MANIFEST: attached production-readiness review + existing PR720 Q1-Q5
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
 POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: RETAINED_CURRENT_CUSTODIAN
-INDEPENDENT_CONFIRMATION_BASIS: exact source/falsifier inspection only; runtime execution remains NOT_RUN
+INDEPENDENT_CONFIRMATION_BASIS: exact source identity + isolated Chromium decision-logic falsification; repository-native/full-route execution remains absent
 PREWORK_HISTORY_STATUS: RECORDED_FOR_LEG_001
 MATERIAL_LEG_HISTORY_STATUS: RECORDED
 REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
 CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_UNRESOLVED
-M13_PROVENANCE_DEFECT: SOURCE_LEVEL_CLOSED_RUNTIME_NOT_RUN
-NULL_PROJECT_LIFECYCLE_RESIDUE: SOURCE_LEVEL_CLOSED_RUNTIME_NOT_RUN
-CURRENT_BLOCKER: Exact executable qualification and rendered production-route evidence remain absent; release remains RELEASE_NOT_QUALIFIED.
-EXACT_NEXT_ACTION: Obtain independent exact-head execution of the focused PR720 Node suite plus tests/vibration-project-lifecycle-state-boundary.test.mjs. If PASS, record the receipt and proceed to rendered v1->M13-M16->v2 save/destroy/reopen/project-clear qualification; if FAIL, patch only the first demonstrated persistence boundary.
+M13_PROVENANCE_DEFECT: CHROMIUM_ISOLATED_PASS_FULL_ROUTE_NOT_RUN
+NULL_PROJECT_LIFECYCLE_RESIDUE: CHROMIUM_ISOLATED_PASS_FULL_ROUTE_NOT_RUN
+CHROMIUM_ISOLATED_BOUNDARY_STATUS: PASS_5_OF_5
+REPOSITORY_NATIVE_NODE_STATUS: NOT_RUN
+FULL_RENDERED_CHROMIUM_STATUS: NOT_RUN
+RELEASE_STATE: RELEASE_NOT_QUALIFIED
+CURRENT_BLOCKER: Repository-native focused Node qualification and the actual rendered v1->M13-M16->v2 save/destroy/reopen/project-clear route remain unexecuted. Isolated Chromium evidence does not close the full release gate.
+EXACT_NEXT_ACTION: Obtain repository-native focused Node execution including tests/vibration-project-lifecycle-state-boundary.test.mjs. If PASS, run the full application Chromium lifecycle journey. EP-0011 Owner merge authorization remains valid as a separate authority plane; any merge before those qualification receipts must preserve RELEASE_NOT_QUALIFIED and must not claim runtime qualification.
