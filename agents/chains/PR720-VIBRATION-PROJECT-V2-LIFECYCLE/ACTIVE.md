@@ -1,14 +1,14 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: PR720-VIBRATION-PROJECT-V2-LIFECYCLE
 MISSION: Preserve project-scoped M13-M16 lifecycle custody in VibrationIntegrityProject.v2 without promoting engineering authority.
-ACTIVE_ENDPOINT: EP-0007
-ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0007.md
-MATERIAL_HISTORY_ROOT_BASE: 0a16f973acea81aa2670815a7128ab587359bc68
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0007.md
+ACTIVE_ENDPOINT: EP-0008
+ACTIVE_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0008.md
+MATERIAL_HISTORY_ROOT_BASE: aa2bdac7ba24709fdb895f5e320a5def0a803623
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/endpoints/EP-0008.md
 PR: 720
 BRANCH: feat/vibration-project-v2-lifecycle-20260902
-HEAD: c03f70b7ee0746be3a0295d3bbb8829f7bcb0a6b
-VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
+HEAD: 16b2b421db1cf6149434479b8ce1230ad0b21437
+VALIDATION_TARGET_HEAD: 811ec87b675cc6cbcb16731c88d8146f303077c3
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
 CUSTODY_STATE: HELD
@@ -48,7 +48,7 @@ OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 HANDOVER_PROTOCOL_VERSION: 2
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: validation target and successive PR heads have zero GitHub Actions runs/check-runs while other integrations create suites; repository-wide latest Actions run remains 2026-09-02T11:02:50Z; GitHub public status reports no incident on 2026-09-02 and Actions operational
+HANDOVER_VALIDATION_EVIDENCE: Owner-requested rebase cleanly aligned PR720 to current main at 46 ahead / 0 behind; fresh 2026-09-03T02:14:54Z synchronization again produced three non-Actions suites but zero GitHub Actions suites/runs/check-runs; repository-wide latest Actions run remains 2026-09-02T11:02:50Z
 CHAIN_HANDOVER_READY: TRUE
 TAKEOVER_QUALIFICATION_READY: TRUE
 HANDOVER_READY: FALSE
@@ -62,9 +62,13 @@ OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 
 POST_BASIS_DRIFT: MATERIAL_WITHIN_QUALIFIED_BOUNDARY
 QUALIFICATION_COVERAGE: INDEPENDENTLY_CONFIRMED
-INDEPENDENT_CONFIRMATION_BASIS: source/artifact inspection only; runtime execution remains NOT_RUN
+INDEPENDENT_CONFIRMATION_BASIS: source/artifact and rebase-history inspection only; runtime execution remains NOT_RUN
 PREWORK_HISTORY_STATUS: PREWORK_READY_FOR_NEXT_MATERIAL_LEG
+REBASE_BACKUP_REF: backup/pr720-pre-rebase-20260903
+REBASE_BASE_HEAD: 7dcef47da9d5d259470a7926500fec43558fc5f8
+REBASE_SYNC_HEAD: c11766f048f6ef889e1b6a83e4c7190704206602
+PRE_REBASE_VALIDATION_TARGET_HEAD: b7f5080edff1b0ee81b57eea33637287fc94d020
 PUBLIC_PLATFORM_INCIDENT_CORRELATION: NONE_REPORTED_ON_GITHUB_STATUS_FOR_2026-09-02
-CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_WITHOUT_PUBLIC_PLATFORM_INCIDENT
-CURRENT_BLOCKER: Exact focused execution remains unavailable; GitHub Actions ingestion is absent across multiple PR-head updates while other integrations create suites, GitHub public status reports no platform incident for the date, and no product failure is demonstrated. Repository/account/billing/quota/settings root cause remains unproven.
-EXACT_NEXT_ACTION: Obtain independently executable focused validation for VALIDATION_TARGET_HEAD. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
+CI_DELIVERY_CLASSIFICATION: GITHUB_ACTIONS_INGESTION_GAP_REPRODUCED_AFTER_REBASE_SYNCHRONIZE_WITHOUT_PUBLIC_PLATFORM_INCIDENT
+CURRENT_BLOCKER: Exact focused execution remains unavailable; a fresh post-rebase PR synchronization again created non-Actions suites while GitHub Actions created neither suite nor run, repository-wide Actions activity remains stale, and no product failure is demonstrated. Repository/account/billing/quota/settings root cause remains unproven.
+EXACT_NEXT_ACTION: Obtain independently executable focused validation for VALIDATION_TARGET_HEAD or a later chain/backup-only source-equivalent head. If PASS, record receipt and classify Q5 NO-PATCH unless new evidence identifies another wrong boundary; if FAIL, patch only the first demonstrated persistence boundary.
