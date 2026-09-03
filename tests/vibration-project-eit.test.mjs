@@ -73,5 +73,5 @@ test('project file cannot forge engineering or screening authority', () => {
 test('V1 project rejects unqualified current-result payloads on load', () => {
   const project = JSON.parse(serializeVibrationIntegrityProject(buildVibrationIntegrityProjectFromEit(importedFixture())));
   project.currentResults.push({ result: 'unqualified' });
-  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /does not yet accept current-result authority records/);
+  assert.throws(() => parseVibrationIntegrityProject(JSON.stringify(project)), /does not accept current-result authority records/);
 });
