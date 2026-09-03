@@ -1,7 +1,6 @@
 import { parseEnergyInstituteEit } from '../converters/vibration/eit/parse.js';
 import { buildVibrationIntegrityProjectFromEit } from '../converters/vibration/project/from-eit.js';
 import { buildVibrationRoadmapStateFromProject } from '../converters/vibration/project/roadmap.js';
-import { attachVibrationProjectLifecycleLedgers } from '../converters/vibration/project/schema.js';
 import {
   VIBRATION_INTEGRITY_PROJECT_FILE_EXTENSION,
   parseVibrationIntegrityProject,
@@ -9,6 +8,7 @@ import {
 } from '../converters/vibration/project/serialize.js';
 import { buildVibrationRoadmapProjection } from '../converters/vibration/roadmap/projection.js';
 import { assertVibrationProjectLifecycleHandoff } from './vibration-project-lifecycle-handoff.js';
+import { attachVibrationProjectLifecycleLedgersCompat } from './vibration-project-schema-compat.js';
 import { createVibrationRoadmapNavigationDiagnostic } from './vibration-roadmap-navigation-diagnostic.js';
 import { renderVibrationRoadmapPanel } from './vibration-roadmap-panel.js';
 import {
@@ -228,7 +228,7 @@ export function createVibrationRoadmapController(container, { initialState = {},
           { projectId, handoffProjectId: handoff.projectId },
         );
       }
-      currentProject = attachVibrationProjectLifecycleLedgers(currentProject, handoff);
+      currentProject = attachVibrationProjectLifecycleLedgersCompat(currentProject, handoff);
       projectMessage = 'Lifecycle custody stored in the project container; engineering calculation authority is unchanged.';
       projectMessageKind = 'info';
       navigationDiagnostic = null;
