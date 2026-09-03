@@ -1,5 +1,5 @@
 {
-  "lastId": 28,
+  "lastId": 30,
   "entries": [
     {"id":1,"timestamp":"2026-09-02 06:52:52","file":"agents/agentchain.md","context":"Promote ENGCALC-BOLTED-JOINTS to PR706 post-validation endpoint","backupFile":"1_agents_agentchain_md.bak"},
     {"id":2,"timestamp":"2026-09-02 08:51:54","file":"converters/engineering-calculations/bolts/detailed-friction.js","context":"Constrain legacy Bolt Torque Calc geometry helper to qualified 60-degree included-angle applicability before edit","backupFile":"2_converters_engineering-calculations_bolts_detailed-friction_js.bak"},
@@ -28,6 +28,8 @@
     {"id":25,"timestamp":"2026-09-03 13:45:00","file":"agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/ACTIVE.md","context":"Advance PR720 from EP-0016 after pull_request opened and ready_for_review trigger ingestion falsification on temporary PR724 (connector-reconstructed backup)","backupFile":"25_agents_chains_PR720_VIBRATION_PROJECT_V2_LIFECYCLE_ACTIVE_md.bak"},
     {"id":26,"timestamp":"2026-09-03 14:03:00","file":"agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/ACTIVE.md","context":"Advance PR720 after Owner-authorized PR724 squash merge and first hosted Node execution receipt (connector-reconstructed backup)","backupFile":"26_agents_chains_PR720_VIBRATION_PROJECT_V2_LIFECYCLE_ACTIVE_md.bak"},
     {"id":27,"timestamp":"2026-09-03 14:12:00","file":"tabs/vibration-aiv-promotion-view.js","context":"Protect AIV promotion status renderer before distinguishing imported EI .eit evidence from unloaded controlled benchmark (connector-reconstructed backup)","backupFile":"27_tabs_vibration_aiv_promotion_view_js.bak"},
-    {"id":28,"timestamp":"2026-09-03 14:12:00","file":".backups/log.json","context":"Protect backup registry before registering AIV imported-EIT status repair backups (connector-reconstructed backup)","backupFile":"28__backups_log_json.bak"}
+    {"id":28,"timestamp":"2026-09-03 14:12:00","file":".backups/log.json","context":"Protect backup registry before registering AIV imported-EIT status repair backups (connector-reconstructed backup)","backupFile":"28__backups_log_json.bak"},
+    {"id":29,"timestamp":"2026-09-03 14:27:00","file":"package.json","context":"Protect AIV verification scripts before registering imported-EIT promotion-status regression (connector-reconstructed backup)","backupFile":"29_package_json.bak"},
+    {"id":30,"timestamp":"2026-09-03 14:27:00","file":".backups/log.json","context":"Protect backup registry before registering package.json AIV regression wiring backup (connector-reconstructed backup)","backupFile":"30__backups_log_json.bak"}
   ]
 }
