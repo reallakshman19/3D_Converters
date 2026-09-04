@@ -155,7 +155,10 @@ function sbcAssessment(row, mechanism, context) {
     row, userRows: context.userEngineeringDataRows ?? [], governed: context.sbcGoverned ?? {},
     precomputedCandidate, resultState: context.sbcResultState ?? inheritedCurrency,
   });
-  const assessment = contractAssessment(mechanism, contractSet);
+  const assessment = Object.freeze({
+    ...contractAssessment(mechanism, contractSet),
+    evidence: contractSet.items[0].evidence,
+  });
   if (assessment.assessmentState !== 'CALCULATED') return assessment;
   return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
 }
