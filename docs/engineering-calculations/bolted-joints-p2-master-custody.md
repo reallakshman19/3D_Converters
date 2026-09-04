@@ -36,7 +36,7 @@ sourceRevision
 sourceSectionOrTable
 ```
 
-Starting at `INDEPENDENTLY_CHECKED`, the source must also identify:
+Starting at `INDEPENDENTLY_CHECKED`, both the source and every reviewed dependent master record must also identify:
 
 ```text
 reviewedBy
@@ -163,6 +163,7 @@ Ranges must satisfy `min <= nominal <= max`; nut factors must be positive and fr
 The master stores reject:
 
 - missing advanced-state provenance;
+- missing independent-review identity on `INDEPENDENTLY_CHECKED` / `QUALIFIED` sources or records;
 - advanced records whose source is less mature;
 - missing governed engineering identity fields;
 - invalid positive/non-negative engineering values;
