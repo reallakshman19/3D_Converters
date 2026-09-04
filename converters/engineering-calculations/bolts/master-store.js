@@ -63,15 +63,20 @@ function requiredFinite(record, fields, collection, positive = false) {
   });
 }
 
+function reviewCustodyErrors(record, collection) {
+  return REVIEWED_STATES.has(record?.recordState)
+    ? requiredText(record, ['reviewedBy', 'reviewDate'], collection)
+    : [];
+}
+
 function sourceCustodyErrors(record) {
   if (!CUSTODY_STATES.has(record?.recordState)) return [];
-  const errors = requiredText(record, [
-    'standard', 'edition', 'sourceDocument', 'sourceRevision', 'sourceSectionOrTable',
-  ], 'sources');
-  if (REVIEWED_STATES.has(record.recordState)) {
-    errors.push(...requiredText(record, ['reviewedBy', 'reviewDate'], 'sources'));
-  }
-  return errors;
+  return [
+    ...requiredText(record, [
+      'standard', 'edition', 'sourceDocument', 'sourceRevision', 'sourceSectionOrTable',
+    ], 'sources'),
+    ...reviewCustodyErrors(record, 'sources'),
+  ];
 }
 
 function orderedRange(record, fields, collection, positive) {
@@ -115,24 +120,25 @@ function frictionCustodyErrors(record, collection) {
 
 function recordCustodyErrors(record, collection) {
   if (!CUSTODY_STATES.has(record?.recordState)) return [];
+  let errors = [];
   if (collection === 'threads') {
-    return [
+    errors = [
       ...requiredText(record, ['threadStandard', 'standardEdition', 'nominalDesignation'], collection),
       ...requiredFinite(record, [
         'nominalDiameterM', 'pitchM', 'leadM', 'pitchDiameterM',
         'tensileStressAreaM2', 'stressSectionDiameterM',
       ], collection, true),
     ];
-  }
-  if (collection === 'materials') {
-    return [
+  } else if (collection === 'materials') {
+    errors = [
       ...requiredText(record, ['materialSpec', 'referenceStressBasis'], collection),
       ...requiredFinite(record, ['temperatureC'], collection),
       ...requiredFinite(record, ['referenceStressPa'], collection, true),
     ];
+  } else if (collection === 'frictionConditions') {
+    errors = frictionCustodyErrors(record, collection);
   }
-  if (collection === 'frictionConditions') return frictionCustodyErrors(record, collection);
-  return [];
+  return [...errors, ...reviewCustodyErrors(record, collection)];
 }
 
 function recordError(record, collection) {
