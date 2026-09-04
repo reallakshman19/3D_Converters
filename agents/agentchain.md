@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0026 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0026.md | #737 stacked on #734 | ACTIVE / AUTO | FLANGE / BOLTS engineering calculations | Implement the recovered GRE equivalent-pressure screen as a new-file-only SCREENING_REFERENCE_ONLY kernel with explicit SI inputs and workbook regression. Do not add leak-rate, gasket-contact/separation, registry/UI, or authority promotion in the same patch. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0027 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0027.md | #738 stacked on #737 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the two focused P6 equivalent-pressure tests on an exact PR-head checkout. If unavailable, preserve NOT_RUN; do not central-register or add leak-rate, gasket-contact/separation, UI, or authority promotion. |
 
 ## ENDPOINT LOG
 
@@ -38,3 +38,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0024 | ENGCALC-BOLTED-JOINTS | P4-FORMULA-RECOVERY | 948c539c2a6803d324e14a626e1834a05c259377 | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0024.md |
 | EP-0025 | ENGCALC-BOLTED-JOINTS | P4-LEGACY-BENCHMARK | d50462e8dca9164098fb8249e9cfaa04cc9e0f69 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0025.md |
 | EP-0026 | ENGCALC-BOLTED-JOINTS | P6-GRE-SOURCE-QUALIFICATION | 081edad56505de889ca7aaf8d48c2f79d3043438 | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0026.md |
+| EP-0027 | ENGCALC-BOLTED-JOINTS | P6-GRE-EQUIVALENT-PRESSURE | 208fa7b194b326c2ab6769ace87aefb24cd4f552 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0027.md |
