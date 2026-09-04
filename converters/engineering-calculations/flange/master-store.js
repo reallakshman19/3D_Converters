@@ -63,21 +63,27 @@ function requiredFinite(record, fields, collection, positive = false) {
   });
 }
 
+function reviewCustodyErrors(record, collection) {
+  return REVIEWED_STATES.has(record?.recordState)
+    ? requiredText(record, ['reviewedBy', 'reviewDate'], collection)
+    : [];
+}
+
 function sourceCustodyErrors(record) {
   if (!CUSTODY_STATES.has(record?.recordState)) return [];
-  const errors = requiredText(record, [
-    'standard', 'edition', 'sourceDocument', 'sourceRevision', 'sourceSectionOrTable',
-  ], 'sources');
-  if (REVIEWED_STATES.has(record.recordState)) {
-    errors.push(...requiredText(record, ['reviewedBy', 'reviewDate'], 'sources'));
-  }
-  return errors;
+  return [
+    ...requiredText(record, [
+      'standard', 'edition', 'sourceDocument', 'sourceRevision', 'sourceSectionOrTable',
+    ], 'sources'),
+    ...reviewCustodyErrors(record, 'sources'),
+  ];
 }
 
 function recordCustodyErrors(record, collection) {
   if (!CUSTODY_STATES.has(record?.recordState)) return [];
+  let errors = [];
   if (collection === 'flangeRatings') {
-    return [
+    errors = [
       ...requiredText(record, [
         'standard', 'standardEdition', 'nominalSize', 'pressureClass', 'series',
         'flangeType', 'materialGroup',
@@ -85,9 +91,8 @@ function recordCustodyErrors(record, collection) {
       ...requiredFinite(record, ['temperatureC'], collection),
       ...requiredFinite(record, ['pressureRatingPa'], collection, true),
     ];
-  }
-  if (collection === 'momentFactors') {
-    const errors = [
+  } else if (collection === 'momentFactors') {
+    errors = [
       ...requiredText(record, [
         'methodId', 'methodRevision', 'flangeType', 'applicability',
       ], collection),
@@ -96,17 +101,15 @@ function recordCustodyErrors(record, collection) {
     if (Number.isFinite(record.momentFactor) && record.momentFactor < 0) {
       errors.push(`${collection} ${record.recordId} momentFactor must be non-negative for ${record.recordState} custody.`);
     }
-    return errors;
-  }
-  if (collection === 'gasketGeometries') {
-    return [
+  } else if (collection === 'gasketGeometries') {
+    errors = [
       ...requiredText(record, [
         'gasketGeometryId', 'gasketType', 'gasketReactionDiameterBasis',
       ], collection),
       ...requiredFinite(record, ['gasketReactionDiameterM'], collection, true),
     ];
   }
-  return [];
+  return [...errors, ...reviewCustodyErrors(record, collection)];
 }
 
 function recordError(record, collection) {
