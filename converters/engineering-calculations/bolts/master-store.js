@@ -103,6 +103,9 @@ function frictionCustodyErrors(record, collection) {
   if (hasDetailed) {
     errors.push(...orderedRange(record, threadFields, collection, false));
     errors.push(...orderedRange(record, bearingFields, collection, false));
+    if ([...threadFields, ...bearingFields].some((field) => record[field] < 0)) {
+      errors.push(`${collection} ${record.recordId} friction coefficients must be non-negative for ${record.recordState} custody.`);
+    }
   }
   if (!hasK && !hasDetailed) {
     errors.push(`${collection} ${record.recordId} requires an ordered nut-factor range or ordered thread/bearing friction ranges for ${record.recordState} custody.`);
