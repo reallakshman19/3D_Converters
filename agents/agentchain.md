@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0019 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0019.md | #715/#716 landed | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Execute the three focused bolt/registry tests on an exact current-main checkout. If exact execution is unavailable, preserve NOT_RUN and stop; do not advance to LEG-04. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0025 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0025.md | #734 stacked on #733 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Attempt exact PR734 focused execution. If unavailable, preserve NOT_RUN; do not central-register the legacy benchmark. Seek a controlled current detailed-flange source or an owner sequencing decision for P6 while P5 remains blocked. |
 
 ## ENDPOINT LOG
 
@@ -31,3 +31,9 @@ AGENTCHAIN_VERSION: 2
 | EP-0017 | ENGCALC-BOLTED-JOINTS | LEG-03 | e3c38ab22409db2e5afbda76f8948cbe6001d31b | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0017.md |
 | EP-0018 | ENGCALC-BOLTED-JOINTS | LEG-03 | c7395422dd2d306681b9b2ece3e6071ca8957247 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0018.md |
 | EP-0019 | ENGCALC-BOLTED-JOINTS | LEG-03 | cc22ba02678e5b51294a03ed2416cfe8ed8af1ee | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0019.md |
+| EP-0020 | ENGCALC-BOLTED-JOINTS | P1-SOURCE-QUALIFICATION | b4141efb303d3633a7b5aaa6f1a7fe9d692d0976 | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0020.md |
+| EP-0021 | ENGCALC-BOLTED-JOINTS | P2-MASTER-CUSTODY | 3be215c882207346d1171bd309c0b9efcc1de3e2 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0021.md |
+| EP-0022 | ENGCALC-BOLTED-JOINTS | P3-BOLT-GROUP | 12c037b5f9099141efecdd82054477c77b9ed62b | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0022.md |
+| EP-0023 | ENGCALC-BOLTED-JOINTS | P4-P5-SOURCE-QUALIFICATION | a8fee609d70499769278a1c83b792257171383a5 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0023.md |
+| EP-0024 | ENGCALC-BOLTED-JOINTS | P4-FORMULA-RECOVERY | 948c539c2a6803d324e14a626e1834a05c259377 | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0024.md |
+| EP-0025 | ENGCALC-BOLTED-JOINTS | P4-LEGACY-BENCHMARK | d50462e8dca9164098fb8249e9cfaa04cc9e0f69 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0025.md |
