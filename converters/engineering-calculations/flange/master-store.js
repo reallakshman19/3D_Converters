@@ -87,12 +87,16 @@ function recordCustodyErrors(record, collection) {
     ];
   }
   if (collection === 'momentFactors') {
-    return [
+    const errors = [
       ...requiredText(record, [
         'methodId', 'methodRevision', 'flangeType', 'applicability',
       ], collection),
       ...requiredFinite(record, ['momentFactor'], collection),
     ];
+    if (Number.isFinite(record.momentFactor) && record.momentFactor < 0) {
+      errors.push(`${collection} ${record.recordId} momentFactor must be non-negative for ${record.recordState} custody.`);
+    }
+    return errors;
   }
   if (collection === 'gasketGeometries') {
     return [
