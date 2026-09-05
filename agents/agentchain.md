@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0032 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0032.md | #743 stacked on #742 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the focused PR743 adapter test on an exact checkout. If PASS, qualify a controlled flange-face semantic binding/handoff that removes caller interpretation of face identity and opening direction; preserve earlier NOT_RUN gates. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0033 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0033.md | #744 stacked on #743 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the focused PR744 flange-face-binding test on an exact checkout. If PASS, qualify a FlangeFaceBinding.v1 producer only when controlled source evidence establishes the physical flange face, opening direction and mating side; preserve earlier NOT_RUN gates. |
 
 ## ENDPOINT LOG
 
@@ -44,3 +44,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0030 | ENGCALC-BOLTED-JOINTS | P8-3D-INTEGRATION-CONTRACT | 4b91ccfc4aecc3249910a8782bd246fd27362207 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0030.md |
 | EP-0031 | ENGCALC-BOLTED-JOINTS | P8-EXPLICIT-JOINT-FACE-RESOLVER | 632d316a80c2bc16f1fe41a4fdc2aafaf74f9c54 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0031.md |
 | EP-0032 | ENGCALC-BOLTED-JOINTS | P8-ADVANCED-ANALYSIS-INTERFACE-ADAPTER | f5956cc0cad32a4ca2ab9a0722a083f31c844f59 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0032.md |
+| EP-0033 | ENGCALC-BOLTED-JOINTS | P8-SEALED-FLANGE-FACE-BINDING | 53d1d1b9054105e1ab3ee51f593cee129ab9a449 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0033.md |
