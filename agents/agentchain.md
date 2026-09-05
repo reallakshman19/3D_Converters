@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0037 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0037.md | #748 stacked on #747 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | HARD STOP: await one real controlled and independently accepted FlangeFaceBindingSourceRecord.v1 plus exact validation when available. Only then verify/seal the record and implement a separately scoped fail-closed producer. Preserve all earlier NOT_RUN gates and owner-only merge authority. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0038 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0038.md | #749 stacked on #748 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | HARD STOP: use the controlled source intake to obtain one real independently accepted FlangeFaceBindingSourceRecord.v1 source; then verify/seal the record with exact validation truth before any separately scoped producer work. Preserve owner-only merge authority. |
 
 ## ENDPOINT LOG
 
@@ -49,3 +49,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0035 | ENGCALC-BOLTED-JOINTS | P8-CONTROLLED-BINDING-SOURCE-REGISTER | a8a289603b385e34aad7d0c281497e11376c6183 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0035.md |
 | EP-0036 | ENGCALC-BOLTED-JOINTS | P8-CROSS-REPOSITORY-BINDING-SOURCE-AUDIT | 1881c2c09bfe6a755710f3863de22bea2f864c7c | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0036.md |
 | EP-0037 | ENGCALC-BOLTED-JOINTS | P8-BINDING-SOURCE-ACQUISITION-PACKAGE | b510ac6fb9b79b15c5939fb1ad806a69036942d7 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0037.md |
+| EP-0038 | ENGCALC-BOLTED-JOINTS | P8-CONTROLLED-SOURCE-SUBMISSION-WORKFLOW | a883120613092f24b20e9c0748098b49e8af1be9 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0038.md |
