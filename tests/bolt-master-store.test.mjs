@@ -158,8 +158,8 @@ test('source-pending custody resolves only as non-authorizing reference', () => 
   const candidate = store({
     sources: [source({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
     threads: [thread({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
-    materials: [material({ recordState: 'INDEPENDENTLY_CHECKED', useAuthority: 'ENGINEERING_SANDBOX' })],
-    frictionConditions: [friction({ recordState: 'INDEPENDENTLY_CHECKED', useAuthority: 'ENGINEERING_SANDBOX' })],
+    materials: [material({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
+    frictionConditions: [friction({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
   });
   const result = resolveBoltShortFormMasters(candidate, selectors());
   assert.equal(result.ok, true, JSON.stringify(result));

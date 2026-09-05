@@ -25,6 +25,15 @@ export const FLANGE_MASTER_COLLECTIONS = Object.freeze([
   'gasketGeometries',
 ]);
 
+const CUSTODY_RANK = Object.freeze({
+  SOURCE_PENDING: 1,
+  TRANSCRIBED: 2,
+  INDEPENDENTLY_CHECKED: 3,
+  QUALIFIED: 4,
+});
+const CUSTODY_STATES = new Set(['TRANSCRIBED', 'INDEPENDENTLY_CHECKED', 'QUALIFIED']);
+const REVIEWED_STATES = new Set(['INDEPENDENTLY_CHECKED', 'QUALIFIED']);
+
 function text(value) {
   return String(value ?? '').trim();
 }
@@ -35,6 +44,72 @@ function clone(value) {
 
 function emptyCollections() {
   return Object.fromEntries(FLANGE_MASTER_COLLECTIONS.map((name) => [name, []]));
+}
+
+function requiredText(record, fields, collection) {
+  return fields
+    .filter((field) => !text(record?.[field]))
+    .map((field) => `${collection} ${record.recordId} ${field} is required for ${record.recordState} custody.`);
+}
+
+function requiredFinite(record, fields, collection, positive = false) {
+  return fields.flatMap((field) => {
+    const value = record?.[field];
+    if (!Number.isFinite(value) || (positive && value <= 0)) {
+      const adjective = positive ? 'positive finite' : 'finite';
+      return [`${collection} ${record.recordId} ${field} must be ${adjective} for ${record.recordState} custody.`];
+    }
+    return [];
+  });
+}
+
+function reviewCustodyErrors(record, collection) {
+  return REVIEWED_STATES.has(record?.recordState)
+    ? requiredText(record, ['reviewedBy', 'reviewDate'], collection)
+    : [];
+}
+
+function sourceCustodyErrors(record) {
+  if (!CUSTODY_STATES.has(record?.recordState)) return [];
+  return [
+    ...requiredText(record, [
+      'standard', 'edition', 'sourceDocument', 'sourceRevision', 'sourceSectionOrTable',
+    ], 'sources'),
+    ...reviewCustodyErrors(record, 'sources'),
+  ];
+}
+
+function recordCustodyErrors(record, collection) {
+  if (!CUSTODY_STATES.has(record?.recordState)) return [];
+  let errors = [];
+  if (collection === 'flangeRatings') {
+    errors = [
+      ...requiredText(record, [
+        'standard', 'standardEdition', 'nominalSize', 'pressureClass', 'series',
+        'flangeType', 'materialGroup',
+      ], collection),
+      ...requiredFinite(record, ['temperatureC'], collection),
+      ...requiredFinite(record, ['pressureRatingPa'], collection, true),
+    ];
+  } else if (collection === 'momentFactors') {
+    errors = [
+      ...requiredText(record, [
+        'methodId', 'methodRevision', 'flangeType', 'applicability',
+      ], collection),
+      ...requiredFinite(record, ['momentFactor'], collection),
+    ];
+    if (Number.isFinite(record.momentFactor) && record.momentFactor < 0) {
+      errors.push(`${collection} ${record.recordId} momentFactor must be non-negative for ${record.recordState} custody.`);
+    }
+  } else if (collection === 'gasketGeometries') {
+    errors = [
+      ...requiredText(record, [
+        'gasketGeometryId', 'gasketType', 'gasketReactionDiameterBasis',
+      ], collection),
+      ...requiredFinite(record, ['gasketReactionDiameterM'], collection, true),
+    ];
+  }
+  return [...errors, ...reviewCustodyErrors(record, collection)];
 }
 
 function recordError(record, collection) {
@@ -51,11 +126,17 @@ function recordError(record, collection) {
   return null;
 }
 
-function sourceReferenceError(record, collection, sourceIds) {
+function sourceReferenceError(record, collection, sourceMap) {
   if (collection === 'sources') return null;
   if (!text(record?.sourceId)) return `${collection} ${record.recordId} sourceId is required.`;
-  if (!sourceIds.has(text(record.sourceId))) {
-    return `${collection} ${record.recordId} references missing sourceId ${record.sourceId}.`;
+  const source = sourceMap.get(text(record.sourceId));
+  if (!source) return `${collection} ${record.recordId} references missing sourceId ${record.sourceId}.`;
+  if (CUSTODY_STATES.has(record.recordState)) {
+    const recordRank = CUSTODY_RANK[record.recordState] ?? 0;
+    const sourceRank = CUSTODY_RANK[source.recordState] ?? 0;
+    if (sourceRank < recordRank) {
+      return `${collection} ${record.recordId} custody exceeds source ${record.sourceId} maturity.`;
+    }
   }
   return null;
 }
@@ -71,21 +152,24 @@ function duplicateErrors(rows, collection) {
   return errors;
 }
 
-function validateCollection(rows, collection, sourceIds) {
+function validateCollection(rows, collection, sourceMap) {
   if (!Array.isArray(rows)) return [`collections.${collection} must be an array.`];
   const errors = [...duplicateErrors(rows, collection)];
   for (const record of rows) {
     const structuralError = recordError(record, collection);
     if (structuralError) errors.push(structuralError);
-    const sourceError = sourceReferenceError(record, collection, sourceIds);
+    errors.push(...(collection === 'sources'
+      ? sourceCustodyErrors(record)
+      : recordCustodyErrors(record, collection)));
+    const sourceError = sourceReferenceError(record, collection, sourceMap);
     if (sourceError) errors.push(sourceError);
   }
   return errors;
 }
 
-function sourceIdsFrom(store) {
+function sourceMapFrom(store) {
   const rows = Array.isArray(store?.collections?.sources) ? store.collections.sources : [];
-  return new Set(rows.map((row) => text(row.sourceId)).filter(Boolean));
+  return new Map(rows.map((row) => [text(row.sourceId), row]).filter(([id]) => id));
 }
 
 function sourceIdErrors(rows) {
@@ -131,10 +215,10 @@ export function validateFlangeMasterStore(store = {}) {
   if (store.interpolationPolicy !== 'EXACT_MATCH_ONLY') {
     errors.push('Flange master store interpolationPolicy must be EXACT_MATCH_ONLY.');
   }
-  const sourceIds = sourceIdsFrom(store);
+  const sourceMap = sourceMapFrom(store);
   errors.push(...sourceIdErrors(store.collections?.sources));
   for (const collection of FLANGE_MASTER_COLLECTIONS) {
-    errors.push(...validateCollection(store.collections?.[collection], collection, sourceIds));
+    errors.push(...validateCollection(store.collections?.[collection], collection, sourceMap));
   }
   return { ok: errors.length === 0, errors };
 }

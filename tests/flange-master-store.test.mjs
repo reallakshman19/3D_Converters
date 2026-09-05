@@ -162,8 +162,8 @@ test('source-pending records resolve only as a non-authorizing reference', () =>
   const candidate = store({
     sources: [source({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
     flangeRatings: [rating({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
-    momentFactors: [momentFactor({ recordState: 'INDEPENDENTLY_CHECKED', useAuthority: 'ENGINEERING_SANDBOX' })],
-    gasketGeometries: [gasket({ recordState: 'INDEPENDENTLY_CHECKED', useAuthority: 'ENGINEERING_SANDBOX' })],
+    momentFactors: [momentFactor({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
+    gasketGeometries: [gasket({ recordState: 'SOURCE_PENDING', useAuthority: 'NONE' })],
   });
   const result = resolveUg44MasterInputs(candidate, selectors());
   assert.equal(result.ok, true, JSON.stringify(result));
