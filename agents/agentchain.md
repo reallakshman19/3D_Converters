@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0030 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0030.md | #741 stacked on #739 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Reconcile the common P3 resultant-transport dependency into P8 ancestry and qualify an explicit flange-face engineering frame plus signed six-DOF load-case source before implementing a pure resolver/transform layer. Preserve all earlier NOT_RUN gates. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0031 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0031.md | #742 stacked on #741 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the focused PR742 JointModelContext test on an exact checkout. If PASS, qualify one concrete automatic source adapter only when it supplies a controlled flange-face frame plus signed six-DOF loads and provenance; preserve earlier NOT_RUN gates. |
 
 ## ENDPOINT LOG
 
@@ -42,3 +42,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0028 | ENGCALC-BOLTED-JOINTS | P7-ASSEMBLY-SOURCE-QUALIFICATION | f34ea75cb31adac5fa0ccb5736c6621d2a50147f | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0028.md |
 | EP-0029 | ENGCALC-BOLTED-JOINTS | P7-EXPLICIT-PRELOAD-ENVELOPE | 7cf121c66347b3b99d2b69516ac6fd8af9142aa9 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0029.md |
 | EP-0030 | ENGCALC-BOLTED-JOINTS | P8-3D-INTEGRATION-CONTRACT | 4b91ccfc4aecc3249910a8782bd246fd27362207 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0030.md |
+| EP-0031 | ENGCALC-BOLTED-JOINTS | P8-EXPLICIT-JOINT-FACE-RESOLVER | 632d316a80c2bc16f1fe41a4fdc2aafaf74f9c54 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0031.md |
