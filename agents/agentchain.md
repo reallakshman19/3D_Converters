@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0035 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0035.md | #746 stacked on #745 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Obtain and independently review a real controlled FlangeFaceBindingSourceRecord.v1, then run the focused PR746 test on an exact checkout; only then implement a separately scoped fail-closed binding producer. Preserve earlier NOT_RUN gates. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0036 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0036.md | #747 stacked on #746 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Prepare a controlled source-acquisition package: machine-readable FlangeFaceBindingSourceRecord.v1 template plus independent-review checklist. Do not populate synthetic project facts or implement the producer. If no real controlled source is then supplied, stop at the source boundary. |
 
 ## ENDPOINT LOG
 
@@ -47,3 +47,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0033 | ENGCALC-BOLTED-JOINTS | P8-SEALED-FLANGE-FACE-BINDING | 53d1d1b9054105e1ab3ee51f593cee129ab9a449 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0033.md |
 | EP-0034 | ENGCALC-BOLTED-JOINTS | P8-BINDING-PRODUCER-SOURCE-QUALIFICATION | 9a9c69f3fe55c581f57e1aadc075289b40327914 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0034.md |
 | EP-0035 | ENGCALC-BOLTED-JOINTS | P8-CONTROLLED-BINDING-SOURCE-REGISTER | a8a289603b385e34aad7d0c281497e11376c6183 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0035.md |
+| EP-0036 | ENGCALC-BOLTED-JOINTS | P8-CROSS-REPOSITORY-BINDING-SOURCE-AUDIT | 1881c2c09bfe6a755710f3863de22bea2f864c7c | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0036.md |
