@@ -6,7 +6,7 @@ AGENTCHAIN_VERSION: 2
 
 | Chain | Mission | Latest endpoint | Endpoint file | PR | State | Authority domain | Next action |
 |---|---|---|---|---|---|---|---|
-| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0028 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0028.md | #739 stacked on #738 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Obtain controlled project assembly/PCC-1 basis and qualified uncertainty inputs before any predictive sequence-interaction solver. Absent those, only a separately scoped explicit-input non-authorizing uncertainty envelope may proceed; preserve all earlier NOT_RUN gates. |
+| ENGCALC-BOLTED-JOINTS | Implement validated bolted-joint calculations under Engineering Calculations | EP-0029 | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0029.md | #740 stacked on #739 | BLOCKED / AUTO | FLANGE / BOLTS engineering calculations | Run the focused P7 explicit-preload-envelope test on an exact PR-head checkout. Preserve NOT_RUN if unavailable. Predictive sequence/interaction work still requires controlled project assembly and uncertainty criteria. |
 
 ## ENDPOINT LOG
 
@@ -40,3 +40,4 @@ AGENTCHAIN_VERSION: 2
 | EP-0026 | ENGCALC-BOLTED-JOINTS | P6-GRE-SOURCE-QUALIFICATION | 081edad56505de889ca7aaf8d48c2f79d3043438 | ACTIVE / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0026.md |
 | EP-0027 | ENGCALC-BOLTED-JOINTS | P6-GRE-EQUIVALENT-PRESSURE | 208fa7b194b326c2ab6769ace87aefb24cd4f552 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0027.md |
 | EP-0028 | ENGCALC-BOLTED-JOINTS | P7-ASSEMBLY-SOURCE-QUALIFICATION | f34ea75cb31adac5fa0ccb5736c6621d2a50147f | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0028.md |
+| EP-0029 | ENGCALC-BOLTED-JOINTS | P7-EXPLICIT-PRELOAD-ENVELOPE | 7cf121c66347b3b99d2b69516ac6fd8af9142aa9 | BLOCKED / AUTO | agents/agentchain/ENGCALC-BOLTED-JOINTS/EP-0029.md |
