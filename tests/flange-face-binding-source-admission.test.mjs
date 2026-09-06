@@ -82,14 +82,19 @@ function record(overrides = {}) {
   return { ...value, ...overrides };
 }
 
+function projectControlledCandidate(candidate) {
+  return { ...candidate, recordState: 'PROJECT_CONTROLLED', semanticHash: '' };
+}
+
 function review(candidate, overrides = {}) {
+  const controlled = projectControlledCandidate(candidate);
   return {
     reviewer: 'Independent Reviewer',
     reviewerRole: 'Mechanical Engineer',
     reviewEvidenceId: 'REVIEW-EVIDENCE-750',
     disposition: 'ACCEPTED',
     reviewDate: '2026-09-06',
-    reviewedSubmissionHash: computeFlangeFaceBindingSourceSubmissionReviewHash(candidate),
+    reviewedSubmissionHash: computeFlangeFaceBindingSourceSubmissionReviewHash(controlled),
     ...overrides,
   };
 }
@@ -99,14 +104,26 @@ function submission(recordOverrides = {}, reviewOverrides = {}) {
   return { record: candidate, independentReview: review(candidate, reviewOverrides) };
 }
 
-test('review hash is stable across source-control review state transition', () => {
+test('project-controlled review hash survives only the controlled state transition', () => {
   const projectControlled = record({ recordState: 'PROJECT_CONTROLLED' });
   const independentlyChecked = record({ recordState: 'INDEPENDENTLY_CHECKED' });
+  const independentReview = review(independentlyChecked);
   assert.equal(
+    independentReview.reviewedSubmissionHash,
     computeFlangeFaceBindingSourceSubmissionReviewHash(projectControlled),
-    computeFlangeFaceBindingSourceSubmissionReviewHash(independentlyChecked),
   );
+  const admitted = admitFlangeFaceBindingSourceSubmission({ record: independentlyChecked, independentReview });
+  assert.equal(admitted.reviewedSubmissionHash, independentReview.reviewedSubmissionHash);
 });
+
+for (const recordState of ['DRAFT', 'INDEPENDENTLY_CHECKED', 'RETIRED']) {
+  test(`pre-review fingerprint rejects ${recordState} records`, () => {
+    assert.throws(
+      () => computeFlangeFaceBindingSourceSubmissionReviewHash(record({ recordState })),
+      /recordState must equal PROJECT_CONTROLLED for pre-review fingerprinting/u,
+    );
+  });
+}
 
 test('admits only independently checked source custody and preserves non-authorizing flags', () => {
   const admitted = admitFlangeFaceBindingSourceSubmission(submission());
@@ -187,6 +204,20 @@ test('pre-review CLI fingerprints the exact project-controlled candidate', () =>
     assert.equal(
       fingerprint.reviewedSubmissionHash,
       computeFlangeFaceBindingSourceSubmissionReviewHash(candidate),
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('pre-review CLI rejects a draft candidate', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'ffbs-review-hash-draft-'));
+  const file = join(directory, 'record.json');
+  try {
+    writeFileSync(file, JSON.stringify(record({ recordState: 'DRAFT' })), 'utf8');
+    assert.throws(
+      () => computeFlangeFaceBindingSourceReviewHashFile(file),
+      /recordState must equal PROJECT_CONTROLLED for pre-review fingerprinting/u,
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });
