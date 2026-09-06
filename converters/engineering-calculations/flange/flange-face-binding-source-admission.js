@@ -8,6 +8,7 @@ import { semanticHashAdvancedAnalysis } from './advanced-analysis-semantic-hash.
 
 export const FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA = 'FlangeFaceBindingSourceAdmission.v1';
 export const FLANGE_FACE_BINDING_SOURCE_ACCEPTED_REVIEW_DISPOSITION = 'ACCEPTED';
+export const FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE = 'PROJECT_CONTROLLED';
 
 const REVIEW_KEYS = Object.freeze([
   'reviewer',
@@ -63,9 +64,18 @@ function reviewProjection(record) {
   return projection;
 }
 
+function reviewedSubmissionHash(record) {
+  return semanticHashAdvancedAnalysis(reviewProjection(record));
+}
+
 export function computeFlangeFaceBindingSourceSubmissionReviewHash(record = {}) {
   const validated = sealFlangeFaceBindingSourceRecord(record);
-  return semanticHashAdvancedAnalysis(reviewProjection(validated));
+  if (validated.recordState !== FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE) {
+    throw admissionError([
+      `record.recordState must equal ${FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE} for pre-review fingerprinting.`,
+    ]);
+  }
+  return reviewedSubmissionHash(validated);
 }
 
 export function admitFlangeFaceBindingSourceSubmission({ record = {}, independentReview = {} } = {}) {
@@ -76,8 +86,8 @@ export function admitFlangeFaceBindingSourceSubmission({ record = {}, independen
   if (errors.length > 0) throw admissionError(errors);
 
   const sealedRecord = sealFlangeFaceBindingSourceRecord(record);
-  const reviewedSubmissionHash = semanticHashAdvancedAnalysis(reviewProjection(sealedRecord));
-  if (independentReview.reviewedSubmissionHash !== reviewedSubmissionHash) {
+  const expectedReviewHash = reviewedSubmissionHash(sealedRecord);
+  if (independentReview.reviewedSubmissionHash !== expectedReviewHash) {
     throw admissionError(['independentReview.reviewedSubmissionHash does not match the submitted record semantics.']);
   }
 
@@ -88,7 +98,7 @@ export function admitFlangeFaceBindingSourceSubmission({ record = {}, independen
   return Object.freeze({
     schema: FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA,
     sourceAuthority: FLANGE_FACE_BINDING_SOURCE_AUTHORITY,
-    reviewedSubmissionHash,
+    reviewedSubmissionHash: expectedReviewHash,
     independentReview: Object.freeze(clone(independentReview)),
     record: sealedRecord,
     automaticBindingProducer: false,
