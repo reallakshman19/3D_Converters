@@ -2,7 +2,7 @@
 
 VALIDATION_ID: P8-PR751-SOURCE-ADMISSION-20260906
 PR: #751
-PR_HEAD_VALIDATED: 0083361bab2ba29efb28f6c15b9b31a66e127b09
+LATEST_MATERIAL_HEAD_VALIDATED: feed79cb2e797eb6fdd3926255ad356aec09d8f3
 MAIN_OBSERVED: c5815ae827edc231b933f56554218e642e60c179
 NODE_VERSION: v22.16.0
 
@@ -15,53 +15,72 @@ node --test \
 ```
 
 STATUS: NOT_RUN
-OBSERVATION: A native authenticated checkout of private repository `reallaksh19/3D_Converters` was unavailable in the current connector/container boundary. No GitHub PR-triggered workflow run was available to substitute for that execution.
-ORACLE: exact repository checkout required for native PASS.
+OBSERVATION: A native authenticated checkout of private repository `reallaksh19/3D_Converters` remains unavailable in the current connector/container boundary. Direct Git access cannot resolve GitHub, and no PR-triggered workflow run exists for the current head.
+ORACLE: exact authenticated repository checkout required for native PASS.
 
-## Reconstructed focused execution
+## Prior focused byte-custody reconstruction
 
 STATUS: PASS_SUPPORTING_RECONSTRUCTION
-OBSERVATION: LOCAL_EXECUTION over a reconstructed focused dependency set
+OBSERVATION: LOCAL_EXECUTION over reconstructed focused dependency set at the pre-LEG-004 head
 ORACLE: IMPLEMENTATION_COUPLED regression coverage plus issue/checklist source-governance rules
 NODE_VERSION: v22.16.0
 RESULT: 24 tests / 24 pass / 0 fail / 0 skipped
-DURATION_REPORTED_BY_NODE: 85.320853 ms
 
-The reconstruction used exact GitHub blob bytes for the focused source-custody files, including:
+The prior reconstruction retained exact GitHub blob custody for the focused source-admission/register/hash/CLI/test files and used only a constants-only reduction of `advanced-analysis-interface-adapter.js`. It remains supporting evidence and is not promoted to exact-checkout PASS.
 
-- `converters/engineering-calculations/flange/flange-face-binding-source-admission.js` — `250618d9b9f797863ed9c64648a9c590a1d1d0b6`;
-- `converters/engineering-calculations/flange/flange-face-binding-source-register.js` — `9254991c257b04bb26c15dc69d92cfcbf63660a5`;
-- `converters/engineering-calculations/flange/advanced-analysis-semantic-hash.js` — `7c443237aa573b79322f24733733955d7b64d878`;
-- `scripts/admit-flange-face-binding-source.mjs` — `2cf38939b799ebddff4060a4d52e758b06ed67be`;
-- `scripts/compute-flange-face-binding-source-review-hash.mjs` — `d5fbb4e9c6d7a15e557c37127b94734ddc2121c3`;
-- `tests/flange-face-binding-source-admission.test.mjs` — `c8749fabdb4fac7c8a78bcd16df00ac1d636ee99`;
-- `tests/flange-face-binding-source-register.test.mjs` — `342387a1489936eb366d11d508b465c1a4980cb1`.
+## LEG-004 supporting behavior reproduction
 
-The imported `advanced-analysis-interface-adapter.js` remains reduced in the reconstructed environment to its two exact pinned constants because neither focused test executes the adapter function. This limitation keeps the result supporting-only rather than an authenticated exact-checkout PASS.
+STATUS: PASS_SUPPORTING_REPRODUCTION
+OBSERVATION: LOCAL_EXECUTION over a focused reproduction of the repaired admission/register contracts
+ORACLE: IMPLEMENTATION_COUPLED regression coverage plus the documented `PROJECT_CONTROLLED -> independent review -> INDEPENDENTLY_CHECKED` source-governance sequence
+NODE_VERSION: v22.16.0
+RESULT: 28 tests / 28 pass / 0 fail / 0 skipped
+DURATION_REPORTED_BY_NODE: 83.478595 ms
 
-The new review-fingerprint CLI also passed `node --check` in the reconstructed environment, and its local Git blob SHA exactly matched the GitHub blob above.
+The LEG-004 run specifically verifies:
+
+- a `PROJECT_CONTROLLED` candidate fingerprint remains valid after only the controlled state transition to `INDEPENDENTLY_CHECKED`;
+- public pre-review fingerprinting rejects `DRAFT`;
+- public pre-review fingerprinting rejects `INDEPENDENTLY_CHECKED`;
+- public pre-review fingerprinting rejects `RETIRED`;
+- admission still requires `INDEPENDENTLY_CHECKED`;
+- `REJECTED` and `NOT_RUN` review dispositions fail closed;
+- review replay after `selectedFaceId` changes is rejected;
+- stale final semantic hashes remain rejected;
+- the pre-review CLI rejects a `DRAFT` candidate;
+- source authority and all automatic-binding/Code/design/governing flags remain non-authorizing.
+
+Supporting syntax parse also passed for the repaired admission module and review-fingerprint CLI.
+
+Current GitHub content custody after repair:
+
+- `flange-face-binding-source-admission.js` — `0278eaa4da35e6ba5f7c44e9086f88407342e85f`;
+- `flange-face-binding-source-admission.test.mjs` — `8075d2735ccc2bdea37a9c34b4b2819281b40ff0`;
+- existing source register remains `9254991c257b04bb26c15dc69d92cfcbf63660a5`;
+- existing register test remains `342387a1489936eb366d11d508b465c1a4980cb1`.
+
+The 28/28 result is intentionally labeled supporting reproduction rather than exact byte-for-byte/native checkout execution.
 
 ## Validation findings and repairs
 
 ### Review replay
 
-The initial admission implementation did not bind review identity/evidence/disposition to exact candidate semantics. An accepted review could therefore be replayed against another valid record.
-
-PR #751 now computes `reviewedSubmissionHash` over all record semantics except `recordState` and final `semanticHash`. This preserves the same review hash across the controlled `PROJECT_CONTROLLED -> INDEPENDENTLY_CHECKED` state transition while binding project/model/joint/face/frame/interface/provenance/tolerance semantics.
-
-Negative verification confirms that changing `selectedFaceId` while reusing the prior accepted review is rejected.
+The initial admission implementation did not bind an accepted review to exact candidate semantics. PR #751 added `reviewedSubmissionHash` over all source-record semantics except `recordState` and final `semanticHash`, so a semantic change such as `selectedFaceId` invalidates the review.
 
 ### Review workflow operability
 
-After adding `reviewedSubmissionHash`, the repository still lacked a supported way to generate that fingerprint before independent review, and the intake/checklist language did not require the exact new field. The independent-review checklist also used `ACCEPT / REJECT / HOLD`, while issue #750 and the admission contract use `ACCEPTED / REJECTED / NOT_RUN`.
+PR #751 added a pre-review fingerprint CLI, updated the issue form/workflow/checklist to carry the exact hash, and aligned review disposition vocabulary to `ACCEPTED | REJECTED | NOT_RUN`.
 
-PR #751 now:
+### Pre-review state bypass — LEG-004
 
-- adds `scripts/compute-flange-face-binding-source-review-hash.mjs`;
-- tests the pre-review fingerprint path using a `PROJECT_CONTROLLED` candidate;
-- updates the issue form to collect the exact `reviewedSubmissionHash`;
-- updates the controlled submission workflow to compute the hash before review and carry it through the state transition;
-- aligns the independent-review checklist disposition values exactly with issue #750 and the software contract.
+The public fingerprint helper still accepted every generic source-register state. Because `recordState` is excluded from the stable review fingerprint, a `DRAFT` or `RETIRED` candidate could be fingerprinted and later changed only to `INDEPENDENTLY_CHECKED`.
+
+LEG-004 closes that path:
+
+- public pre-review fingerprinting requires `PROJECT_CONTROLLED`;
+- admission independently requires `INDEPENDENTLY_CHECKED`;
+- admission recomputes the same state-independent reviewed projection internally, rather than calling the public pre-review helper;
+- the generic source-register/sealer remains unchanged.
 
 ## Protected unchanged boundaries
 
@@ -76,4 +95,4 @@ automaticBindingProducer  true
 
 No model geometry, flange face, opening direction, mating side, interface identity, engineering tolerance, master data or solver result is inferred or defaulted by this PR.
 
-One real independently accepted controlled project source remains externally required by issue #750. Exact native PR-head test execution remains `NOT_RUN`; the supporting reconstruction must not be relabeled as native PASS.
+One real independently accepted controlled project source remains externally required by issue #750. Exact authenticated PR-head test execution remains `NOT_RUN`; supporting evidence must not be relabeled as native PASS.
