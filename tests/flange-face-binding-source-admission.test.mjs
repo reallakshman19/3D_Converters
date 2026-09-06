@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA,
   admitFlangeFaceBindingSourceSubmission,
+  computeFlangeFaceBindingSourceSubmissionReviewHash,
 } from '../converters/engineering-calculations/flange/flange-face-binding-source-admission.js';
 import {
   FLANGE_FACE_BINDING_SOURCE_AUTHORITY,
@@ -80,25 +81,37 @@ function record(overrides = {}) {
   return { ...value, ...overrides };
 }
 
-function review(overrides = {}) {
+function review(candidate, overrides = {}) {
   return {
     reviewer: 'Independent Reviewer',
     reviewerRole: 'Mechanical Engineer',
     reviewEvidenceId: 'REVIEW-EVIDENCE-750',
     disposition: 'ACCEPTED',
     reviewDate: '2026-09-06',
+    reviewedSubmissionHash: computeFlangeFaceBindingSourceSubmissionReviewHash(candidate),
     ...overrides,
   };
 }
 
 function submission(recordOverrides = {}, reviewOverrides = {}) {
-  return { record: record(recordOverrides), independentReview: review(reviewOverrides) };
+  const candidate = record(recordOverrides);
+  return { record: candidate, independentReview: review(candidate, reviewOverrides) };
 }
+
+test('review hash is stable across source-control review state transition', () => {
+  const projectControlled = record({ recordState: 'PROJECT_CONTROLLED' });
+  const independentlyChecked = record({ recordState: 'INDEPENDENTLY_CHECKED' });
+  assert.equal(
+    computeFlangeFaceBindingSourceSubmissionReviewHash(projectControlled),
+    computeFlangeFaceBindingSourceSubmissionReviewHash(independentlyChecked),
+  );
+});
 
 test('admits only independently checked source custody and preserves non-authorizing flags', () => {
   const admitted = admitFlangeFaceBindingSourceSubmission(submission());
   assert.equal(admitted.schema, FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA);
   assert.equal(admitted.sourceAuthority, FLANGE_FACE_BINDING_SOURCE_AUTHORITY);
+  assert.equal(admitted.reviewedSubmissionHash, admitted.independentReview.reviewedSubmissionHash);
   assert.match(admitted.record.semanticHash, /^fnv1a64:[0-9a-f]{16}$/u);
   assert.equal(admitted.automaticBindingProducer, false);
   assert.equal(admitted.codeCompliance, false);
@@ -133,17 +146,31 @@ test('rejects incomplete independent-review provenance', () => {
   );
 });
 
-test('retains the existing stale-semantic-hash rejection', () => {
-  const stale = { ...record(), semanticHash: 'fnv1a64:0000000000000000' };
+test('rejects replay of an accepted review against changed source semantics', () => {
+  const original = record();
+  const independentReview = review(original);
+  const changed = record({
+    joint: { ...original.joint, selectedFaceId: 'FACE-750-N1-CHANGED' },
+  });
   assert.throws(
-    () => admitFlangeFaceBindingSourceSubmission({ record: stale, independentReview: review() }),
+    () => admitFlangeFaceBindingSourceSubmission({ record: changed, independentReview }),
+    /reviewedSubmissionHash does not match/u,
+  );
+});
+
+test('retains the existing stale-semantic-hash rejection', () => {
+  const clean = record();
+  const stale = { ...clean, semanticHash: 'fnv1a64:0000000000000000' };
+  assert.throws(
+    () => admitFlangeFaceBindingSourceSubmission({ record: stale, independentReview: review(clean) }),
     /semanticHash is stale/u,
   );
 });
 
 test('accepts a previously sealed independently checked record without changing its hash', () => {
-  const sealed = sealFlangeFaceBindingSourceRecord(record());
-  const admitted = admitFlangeFaceBindingSourceSubmission({ record: sealed, independentReview: review() });
+  const candidate = record();
+  const sealed = sealFlangeFaceBindingSourceRecord(candidate);
+  const admitted = admitFlangeFaceBindingSourceSubmission({ record: sealed, independentReview: review(candidate) });
   assert.equal(admitted.record.semanticHash, sealed.semanticHash);
 });
 
@@ -155,6 +182,7 @@ test('CLI file consumer applies the same admission boundary', () => {
     const admitted = admitFlangeFaceBindingSourceFile(file);
     assert.equal(admitted.record.recordId, 'FFBS-750-001');
     assert.equal(admitted.independentReview.disposition, 'ACCEPTED');
+    assert.equal(admitted.reviewedSubmissionHash, admitted.independentReview.reviewedSubmissionHash);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
