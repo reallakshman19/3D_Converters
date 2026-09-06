@@ -1,17 +1,20 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: ENGCALC-P8-750-SOURCE-ADMISSION
 MISSION: Add a fail-closed source-submission admission boundary for issue #750 without inventing project semantics or authorizing automatic flange binding.
-ACTIVE_ENDPOINT: EP-0001
-ACTIVE_ENDPOINT_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/endpoints/EP-0001.md
+ACTIVE_ENDPOINT: EP-0002
+ACTIVE_ENDPOINT_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/endpoints/EP-0002.md
+LATEST_MATERIAL_LEG: LEG-001
+LATEST_MATERIAL_LEG_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/material-legs/LEG-001.md
 BRANCH: work/engcalc-p8-750-source-admission-20260906
 BASE_MAIN: c5815ae827edc231b933f56554218e642e60c179
-HEAD: 896a5940de196326f691878b1da10ae0ecfe2c5b
-PR: NONE
-PR_STATE: NOT_CREATED
-MERGEABILITY: UNKNOWN
+HEAD: bcf9863e0bfb0ad03d1343caf10ad20b7a54c2d4
+MATERIAL_HEAD: 0cb6f4dcbcf45c6e99176b44f3e8f2cd2a1ee427
+PR: 751
+PR_STATE: OPEN_DRAFT
+MERGEABILITY: MERGEABLE
 REVIEWS: NONE
 UNRESOLVED_REVIEW_THREADS: 0
-REQUIRED_CHECKS: NOT_RUN
+REQUIRED_CHECKS: EXACT_FOCUSED_NODE_NOT_RUN; PR_TRIGGERED_WORKFLOWS_0
 STATE: ACTIVE
 ENGINEERING_STATE: BLOCKED
 CUSTODY_STATE: HELD
@@ -25,26 +28,26 @@ WORK_ITEM_KEY: github:reallaksh19/3D_Converters#750
 WORK_ITEM_MODE: EXCLUSIVE
 AGENT_INSTANCE_ID: chatgpt:047b0b9d-98dd-48a3-ab0a-d00aec31aa9e
 ACTIVE_CUSTODIAN: ChatGPT GPT-5.6 Sol current conversation
-CUSTODY_EPOCH: 1
-COORDINATION_STATE: SAFE — open related #722/#723 inspected; no exact planned-file overlap
+CUSTODY_EPOCH: 2
+COORDINATION_STATE: SAFE — open related #722/#723 inspected; no exact material-file overlap
 DEPENDENCIES: issue #721 P8; external real controlled source remains required for actual record admission
 AUTHORITY_DOMAIN: P8_FLANGE_FACE_SOURCE_SUBMISSION_ADMISSION_ONLY
 COMMON_PROTOCOL: engineering-pr-delivery-v2
 COMMON_PROTOCOL_BASIS: 3e21f0054ab8d80b7fe045e7c105a81643fcbbf7
 COMMON_PROTOCOL_STATUS: CURRENT
 HANDOVER_PROTOCOL_VERSION: 2
-OWNER_PROGRESSION_COMMAND: UNSET
+OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 QUALIFICATION_SCOPE_ID: QSCOPE-750-FLANGE-FACE-SOURCE-ADMISSION
 QUESTION_SET_ID: QS-ENGCALC-P8-750-0001
 QUESTION_SET_STATUS: CURRENT
-QUESTION_PACK_ACTION: NOT_APPLICABLE
+QUESTION_PACK_ACTION: REUSED
 QUESTION_DISPLAY: HIDE
 TAKEOVER_QUALIFICATION_READY: TRUE
 CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: connector source inspection only
-HANDOVER_READY: TRUE
+HANDOVER_VALIDATION_EVIDENCE: supporting local node --check PASS; exact repository Node tests NOT_RUN; PR workflows 0
+HANDOVER_READY: FALSE
 MATERIAL_HISTORY_ROOT_BASE: c5815ae827edc231b933f56554218e642e60c179
 MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/endpoints/EP-0001.md
 ISSUE_BASIS_ID: IB-0001
@@ -52,18 +55,18 @@ ISSUE_BASIS_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/issue-basis/IB-0
 ISSUE_BASIS_STATUS: CURRENT
 ISSUE_CURRENT_STATE_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/issue-state/CURRENT.md
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0001
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0002
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5560334058
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5560332736
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5560335114
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5560420091
 ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
 ROADMAPS: NONE — no repository Owner Roadmap discovered; issue #721 retained as governing programme issue / ISSUE_EXECUTION_PLAN
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ALIGNED
 ROADMAP_MUTATION_AUTHORITY: NONE
-ORIGINAL_TASK_STATUS: BLOCKED_EXTERNAL_SOURCE; bounded admission-guard software slice identified
-INPUT_STATUS: 5 AVAILABLE / 1 UNRESOLVED real project source
-BENCHMARK_STATUS: source/register test NOT_RUN; issue/checklist authority READY
-CURRENT_BLOCKER: Material coding cannot start because no exact engineering-pr-delivery-v2 progression command has been issued; current Owner wording is not silently aliased.
-LEG_DIAGNOSIS: Existing seal/register path preserves hash integrity but does not represent independent source admission. Add a separate admission seam after progression authority clears.
-EXACT_NEXT_ACTION: Owner issues `proceed next`; then implement LEG-001 admission module + CLI + focused tests, preserving automaticBindingProducer/codeCompliance/designAuthority/governingEligible=false and the external-source hard stop.
+ORIGINAL_TASK_STATUS: BLOCKED_EXTERNAL_SOURCE; PR #751 bounded admission mechanism delivered
+INPUT_STATUS: 6 AVAILABLE / 1 UNRESOLVED real project source
+BENCHMARK_STATUS: exact source admission/register Node tests NOT_RUN; supporting syntax PASS; issue/checklist authority READY
+CURRENT_BLOCKER: Exact PR #751 focused Node execution and one real independently accepted controlled source are unavailable.
+LEG_DIAGNOSIS: LEG-001 separates independent source admission from generic hash sealing; it requires INDEPENDENTLY_CHECKED + ACCEPTED review while preserving all non-authorizing flags.
+EXACT_NEXT_ACTION: Execute `node --test tests/flange-face-binding-source-admission.test.mjs tests/flange-face-binding-source-register.test.mjs` on exact PR #751 checkout. If PASS, record exact evidence and obtain independent PR review. Do not merge without explicit Owner authorization and do not close #750 until a real accepted source exists.
