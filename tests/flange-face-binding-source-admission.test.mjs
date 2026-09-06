@@ -18,6 +18,7 @@ import {
   ADVANCED_ANALYSIS_SOURCE_REPOSITORY,
 } from '../converters/engineering-calculations/flange/advanced-analysis-interface-adapter.js';
 import { admitFlangeFaceBindingSourceFile } from '../scripts/admit-flange-face-binding-source.mjs';
+import { computeFlangeFaceBindingSourceReviewHashFile } from '../scripts/compute-flange-face-binding-source-review-hash.mjs';
 
 function record(overrides = {}) {
   const value = {
@@ -172,6 +173,24 @@ test('accepts a previously sealed independently checked record without changing 
   const sealed = sealFlangeFaceBindingSourceRecord(candidate);
   const admitted = admitFlangeFaceBindingSourceSubmission({ record: sealed, independentReview: review(candidate) });
   assert.equal(admitted.record.semanticHash, sealed.semanticHash);
+});
+
+test('pre-review CLI fingerprints the exact project-controlled candidate', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'ffbs-review-hash-'));
+  const file = join(directory, 'record.json');
+  const candidate = record({ recordState: 'PROJECT_CONTROLLED' });
+  try {
+    writeFileSync(file, JSON.stringify(candidate), 'utf8');
+    const fingerprint = computeFlangeFaceBindingSourceReviewHashFile(file);
+    assert.equal(fingerprint.recordId, candidate.recordId);
+    assert.equal(fingerprint.recordRevisionId, candidate.recordRevisionId);
+    assert.equal(
+      fingerprint.reviewedSubmissionHash,
+      computeFlangeFaceBindingSourceSubmissionReviewHash(candidate),
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('CLI file consumer applies the same admission boundary', () => {
