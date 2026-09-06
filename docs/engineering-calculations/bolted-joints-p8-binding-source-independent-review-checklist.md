@@ -96,45 +96,77 @@ candidateCount        1
 - [ ] tolerances are not silently defaulted by software;
 - [ ] tolerances are not used to choose among multiple otherwise ambiguous candidates.
 
-## H. Record sealing and validation
+## H. Pre-review fingerprint and controlled state transition
 
-Before sealing:
+Before independent review:
 
 - [ ] remove all template wrapper fields;
 - [ ] set `schema = FlangeFaceBindingSourceRecord.v1` exactly;
+- [ ] set `recordState = PROJECT_CONTROLLED` only after project control evidence exists;
 - [ ] set `semanticHash = ""`;
-- [ ] confirm the runtime record contains only the exact v1 record keys.
+- [ ] confirm the candidate contains only the exact v1 record keys;
+- [ ] retain the exact candidate bytes/revision that are supplied to the reviewer.
 
-Then execute on the exact target revision when available:
+Compute the review fingerprint from that exact candidate:
 
 ```bash
-node --test tests/flange-face-binding-source-register.test.mjs
+node scripts/compute-flange-face-binding-source-review-hash.mjs <record.json>
 ```
 
-and seal the reviewed record with `sealFlangeFaceBindingSourceRecord()`.
+Retain the returned `recordId`, `recordRevisionId` and `reviewedSubmissionHash` with the review evidence.
 
-- [ ] focused exact-checkout test result is recorded as PASS, FAIL or NOT_RUN without relabeling;
-- [ ] sealed semantic hash is retained with the controlled record;
-- [ ] a subsequent modification produces a new record revision and semantic hash;
-- [ ] retired/superseded records cannot be mistaken for current source authority.
+The `reviewedSubmissionHash` intentionally excludes only `recordState` and final `semanticHash`. Therefore:
+
+- [ ] the fingerprint is unchanged by the controlled `PROJECT_CONTROLLED -> INDEPENDENTLY_CHECKED` state transition;
+- [ ] any change to project/model/joint/face/opening/mating/interface/provenance/tolerance semantics changes the fingerprint and requires a new independent review;
+- [ ] an accepted review is never replayed against a candidate with different reviewed semantics.
 
 ## I. Independent engineering review disposition
 
 Record the independent reviewer separately from the record author/preparer.
 
 ```text
-reviewer:                 ______________________________
+reviewer:                  ______________________________
 review organization/role: ______________________________
-review date:              ______________________________
-reviewed record revision: ______________________________
-reviewed semantic hash:   ______________________________
-disposition:              ACCEPT / REJECT / HOLD
-comments/evidence ref:    ______________________________
+review date:               ______________________________
+reviewed record revision:  ______________________________
+reviewedSubmissionHash:    fnv1a64:______________________
+disposition:               ACCEPTED | REJECTED | NOT_RUN
+comments/evidence ref:     ______________________________
 ```
 
-Admission is allowed only when disposition is `ACCEPT` and all required checklist items above are satisfied.
+Admission is allowed only when disposition is exactly `ACCEPTED`, the `reviewedSubmissionHash` matches the exact candidate semantics, and all required checklist items above are satisfied. `REJECTED` and `NOT_RUN` remain blocked states.
 
-## J. Authority boundary after acceptance
+After an `ACCEPTED` review:
+
+- [ ] transition `recordState` to `INDEPENDENTLY_CHECKED`;
+- [ ] keep `semanticHash = ""` before final sealing;
+- [ ] construct the submission JSON with the exact independent-review fields required by `FlangeFaceBindingSourceAdmission.v1`;
+- [ ] verify the admission helper rejects any review-hash mismatch.
+
+## J. Admission, sealing and validation
+
+Run the focused test gate on the exact target revision when available:
+
+```bash
+node --test \
+  tests/flange-face-binding-source-admission.test.mjs \
+  tests/flange-face-binding-source-register.test.mjs
+```
+
+Then admit the reviewed submission:
+
+```bash
+node scripts/admit-flange-face-binding-source.mjs <submission.json>
+```
+
+- [ ] focused exact-checkout test result is recorded as PASS, FAIL or NOT_RUN without relabeling;
+- [ ] admitted output preserves `PROJECT_SOURCE_CUSTODY_ONLY`;
+- [ ] sealed record semantic hash is retained with the controlled record;
+- [ ] a subsequent semantic modification produces a new review fingerprint, new review evidence where required, new record revision and final semantic hash;
+- [ ] retired/superseded records cannot be mistaken for current source authority.
+
+## K. Authority boundary after acceptance
 
 Even an accepted source record remains a source-custody input. It does not by itself grant:
 
