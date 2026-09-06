@@ -2,8 +2,8 @@
 
 ISSUE_BASIS_ID: IB-0001
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#750
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0002
-UPDATED_AT: 2026-09-06T16:00:11Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0003
+UPDATED_AT: 2026-09-06T17:18:00Z
 
 ## Original task / acceptance ledger
 
@@ -11,7 +11,7 @@ TASK-001 | Obtain exactly one real project-controlled flange-face binding source
 TASK-002 | Require explicit PHYSICAL_FLANGE, selected face/port, flange-face reference point, positive opening direction, mating side and provenance; do not infer missing semantics. | OPEN | protected invariant
 TASK-003 | Require exact pinned Advanced_Analysis interface-set/interface/frame semantic identities and reporting sign convention. | OPEN | protected invariant
 TASK-004 | Require exact identifiers, one candidate and controlled explicit tolerances. | OPEN | protected invariant
-TASK-005 | Require independent engineering review with ACCEPTED/REJECTED/NOT_RUN truth. | PARTIAL | PR #751 adds software admission enforcement for ACCEPTED + INDEPENDENTLY_CHECKED; no real review exists
+TASK-005 | Require independent engineering review with ACCEPTED/REJECTED/NOT_RUN truth. | PARTIAL | PR #751 enforces ACCEPTED + INDEPENDENTLY_CHECKED and binds review to exact candidate semantics; no real review exists
 TASK-006 | After acceptance, construct and verify/seal the v1 record with exact validation truth. | BLOCKED | depends on TASK-001 and a real accepted review
 TASK-007 | Preserve PROJECT_SOURCE_CUSTODY_ONLY and no authority promotion. | OPEN | PR #751 preserves non-authorizing flags; real source admission remains unresolved
 
@@ -23,15 +23,18 @@ INPUT-003 | Existing source-register implementation and focused tests. | AVAILAB
 INPUT-004 | Independent-review checklist. | AVAILABLE | docs/engineering-calculations/bolted-joints-p8-binding-source-independent-review-checklist.md@main
 INPUT-005 | Pinned Advanced_Analysis source identity. | AVAILABLE | reallaksh19/Advanced_Analysis@eabb93cd44c59ce182d73284cb707653917e07c8
 INPUT-006 | One real independently accepted project source record. | UNRESOLVED | issue #750 has no real source submission
-INPUT-007 | PR #751 source-admission implementation. | AVAILABLE | draft PR #751 / material head 0cb6f4dcbcf45c6e99176b44f3e8f2cd2a1ee427
+INPUT-007 | PR #751 source-admission implementation. | AVAILABLE | draft PR #751 / material validation head 35541ae9159949f31b82d0c70fcd9a18f4d7d39b
+INPUT-008 | PR #751 reconstructed validation record. | AVAILABLE | ValidationRecords/BoltedJoints/P8-pr751-source-admission-validation.md
 
 ## Benchmark / oracle ledger
 
-BM-001 | Source-register + source-admission focused Node test suite. | NOT_RUN | exact native checkout execution unavailable through current connector; no PR-triggered workflow runs observed
+BM-001 | Exact source-register + source-admission focused Node suite on authenticated PR checkout. | NOT_RUN | private-repository connector/container boundary; no PR-triggered workflow substitute
 BM-002 | Issue #750 acceptance sequence and fail-closed boundary. | READY | Owner-controlled issue requirement
 BM-003 | P8 independent-review checklist admission rule. | READY | repository procedural authority
 BM-004 | Existing source-register non-authorizing flags. | PASS | source inspection only; automaticBindingProducer/codeCompliance/designAuthority/governingEligible are false
-BM-005 | New admission module and CLI syntax. | PASS | supporting local `node --check`; not an engineering execution PASS
+BM-005 | New admission module and CLI syntax. | PASS | supporting local syntax execution only
+BM-006 | Reconstructed focused admission + register tests. | PASS_SUPPORTING_RECONSTRUCTION | Node v22.16.0; 23/23; exact target/test/hash/CLI bytes, adapter reduced to exact pinned constants only
+BM-007 | Review-replay negative control. | PASS_SUPPORTING_RECONSTRUCTION | accepted review rejected after selectedFaceId semantic change
 
 ## Roadmap ledger
 
@@ -46,6 +49,8 @@ OWNER_QUALIFICATION_BASELINE_STATUS: NOT_APPLICABLE
 
 ## Current implementation state
 
-PR #751 adds a separate `FlangeFaceBindingSourceAdmission.v1` seam rather than modifying the existing generic integrity sealer. Admission requires `recordState = INDEPENDENTLY_CHECKED`, exact independent-review provenance, and `disposition = ACCEPTED`, then reuses the existing source-record sealer/register validator. DRAFT, PROJECT_CONTROLLED, RETIRED, REJECTED, NOT_RUN, incomplete provenance and stale semantic hashes are negative paths.
+PR #751 keeps the existing generic source-record sealer unchanged and adds `FlangeFaceBindingSourceAdmission.v1`. Admission requires `recordState = INDEPENDENTLY_CHECKED`, exact independent-review provenance, `disposition = ACCEPTED`, and a matching `reviewedSubmissionHash` before reusing the existing source-record sealer/register validator.
 
-The PR does not supply project facts, infer geometry, produce `FlangeFaceBinding.v1`, resolve masters, invoke solvers or promote engineering authority. The external real-source hard stop remains unchanged.
+`reviewedSubmissionHash` uses the pinned canonical JSON / FNV-1a 64-bit mechanism and excludes only `recordState` and final `semanticHash`. It is therefore stable across the controlled review-state transition while still binding project/model/joint/face/opening/mating/interface/provenance/tolerance semantics. Reusing an accepted review after a semantic change is rejected.
+
+The PR does not supply project facts, infer geometry, produce `FlangeFaceBinding.v1`, resolve masters, invoke solvers or promote engineering authority. The external real-source hard stop and exact-checkout validation gate remain unchanged.
