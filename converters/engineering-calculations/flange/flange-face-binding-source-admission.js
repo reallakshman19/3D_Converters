@@ -19,6 +19,18 @@ const REVIEW_KEYS = Object.freeze([
   'reviewDate',
   'reviewedSubmissionHash',
 ]);
+const ADMISSION_KEYS = Object.freeze([
+  'schema',
+  'sourceAuthority',
+  'reviewedSubmissionHash',
+  'independentReview',
+  'record',
+  'automaticBindingProducer',
+  'codeCompliance',
+  'designAuthority',
+  'governingEligible',
+  'admissionSemanticHash',
+]);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -79,17 +91,7 @@ function reviewedSubmissionHash(record) {
   return semanticHashAdvancedAnalysis(reviewProjection(record));
 }
 
-export function computeFlangeFaceBindingSourceSubmissionReviewHash(record = {}) {
-  const validated = sealFlangeFaceBindingSourceRecord(record);
-  if (validated.recordState !== FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE) {
-    throw admissionError([
-      `record.recordState must equal ${FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE} for pre-review fingerprinting.`,
-    ]);
-  }
-  return reviewedSubmissionHash(validated);
-}
-
-export function admitFlangeFaceBindingSourceSubmission({ record = {}, independentReview = {} } = {}) {
+function buildAdmissionCore({ record = {}, independentReview = {} } = {}) {
   const errors = validateIndependentReview(independentReview);
   if (record.recordState !== 'INDEPENDENTLY_CHECKED') {
     errors.push('record.recordState must equal INDEPENDENTLY_CHECKED for admission.');
@@ -106,15 +108,62 @@ export function admitFlangeFaceBindingSourceSubmission({ record = {}, independen
   const registerValidation = validateFlangeFaceBindingSourceRegister(register);
   if (!registerValidation.ok) throw admissionError(registerValidation.errors);
 
-  return Object.freeze({
+  return {
     schema: FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA,
     sourceAuthority: FLANGE_FACE_BINDING_SOURCE_AUTHORITY,
     reviewedSubmissionHash: expectedReviewHash,
-    independentReview: Object.freeze(clone(independentReview)),
+    independentReview: clone(independentReview),
     record: sealedRecord,
     automaticBindingProducer: false,
     codeCompliance: false,
     designAuthority: false,
     governingEligible: false,
+  };
+}
+
+function admissionSemanticHash(core) {
+  return semanticHashAdvancedAnalysis(core);
+}
+
+export function computeFlangeFaceBindingSourceSubmissionReviewHash(record = {}) {
+  const validated = sealFlangeFaceBindingSourceRecord(record);
+  if (validated.recordState !== FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE) {
+    throw admissionError([
+      `record.recordState must equal ${FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE} for pre-review fingerprinting.`,
+    ]);
+  }
+  return reviewedSubmissionHash(validated);
+}
+
+export function admitFlangeFaceBindingSourceSubmission(input = {}) {
+  const core = buildAdmissionCore(input);
+  return Object.freeze({
+    ...core,
+    independentReview: Object.freeze(core.independentReview),
+    admissionSemanticHash: admissionSemanticHash(core),
   });
+}
+
+export function validateFlangeFaceBindingSourceAdmission(admission = {}) {
+  const errors = [];
+  if (!exactKeys(admission, ADMISSION_KEYS, 'admission', errors)) return { ok: false, errors };
+
+  let expectedCore;
+  try {
+    expectedCore = buildAdmissionCore({
+      record: admission.record,
+      independentReview: admission.independentReview,
+    });
+  } catch (error) {
+    errors.push(...(Array.isArray(error.errors) ? error.errors : [error.message]));
+    return { ok: false, errors };
+  }
+
+  const { admissionSemanticHash: submittedHash, ...submittedCore } = admission;
+  const expectedHash = admissionSemanticHash(expectedCore);
+  if (semanticHashAdvancedAnalysis(submittedCore) !== expectedHash) {
+    errors.push('admission payload differs from the reconstructed admission contract.');
+  }
+  if (submittedHash !== expectedHash) errors.push('admissionSemanticHash is missing or stale.');
+  return { ok: errors.length === 0, errors };
 }
