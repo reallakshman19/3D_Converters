@@ -2,7 +2,7 @@
 
 VALIDATION_ID: P8-PR751-SOURCE-ADMISSION-20260906
 PR: #751
-LATEST_MATERIAL_HEAD_VALIDATED: 963c2691faa22e28ad946efadf55782576b69625
+LATEST_MATERIAL_HEAD_VALIDATED: 6fb9f91cb2a7420fe2173b117e399846332fa416
 MAIN_OBSERVED: c5815ae827edc231b933f56554218e642e60c179
 NODE_VERSION: v22.16.0
 
@@ -15,46 +15,54 @@ node --test \
 ```
 
 STATUS: NOT_RUN
-OBSERVATION: A native authenticated checkout of private repository `reallaksh19/3D_Converters` remains unavailable in the current connector/container boundary. No PR-triggered workflow run exists for the current head.
+OBSERVATION: A native authenticated checkout of private repository `reallaksh19/3D_Converters` remains unavailable in the current connector/container boundary. No PR-triggered workflow run exists for the observed head.
 ORACLE: exact authenticated repository checkout required for native PASS.
 
 ## Prior supporting evidence
 
 - pre-LEG-004 focused byte-custody reconstruction: PASS_SUPPORTING_RECONSTRUCTION, 24/24, Node v22.16.0;
 - LEG-004 source-governance reproduction: PASS_SUPPORTING_REPRODUCTION, 28/28, Node v22.16.0;
+- LEG-005 reviewer-independence delta: PASS_SUPPORTING_DELTA, 3/3, Node v22.16.0;
 - exact authenticated checkout remains NOT_RUN throughout.
 
-## LEG-005 reviewer-independence validation
+## LEG-006 admission-envelope validation
 
 STATUS: PASS_SUPPORTING_DELTA
-OBSERVATION: LOCAL_EXECUTION over exact current admission-module bytes plus focused stubbed custody dependencies
-ORACLE: IMPLEMENTATION_COUPLED negative-control execution + independent-review checklist requirement
+OBSERVATION: exact current admission-module and validator-CLI bytes were syntax checked; focused local behavior used the exact admission module + exact semantic-hash helper with a stubbed source-register dependency.
+ORACLE: persisted source-custody integrity behavior; issue #750 requirement to preserve exact validation/provenance truth.
 NODE_VERSION: v22.16.0
-RESULT: 3 tests / 3 pass / 0 fail / 0 skipped
+RESULT: 5 tests / 5 pass / 0 fail / 0 skipped
 
-The exact current GitHub admission blob was reconstructed locally and verified with `git hash-object`:
+Exact current GitHub blobs verified locally with `git hash-object`:
 
 ```text
 flange-face-binding-source-admission.js
-GitHub blob: 52b6f28a721d6acb89d148d6fc631e01620cacbd
-local blob:  52b6f28a721d6acb89d148d6fc631e01620cacbd
+GitHub blob: c5b2af60daaa2f65391a1f47fb08cb8937cd2a47
+local blob:  c5b2af60daaa2f65391a1f47fb08cb8937cd2a47
+
+validate-flange-face-binding-source-admission.mjs
+GitHub blob: 4a3cfb6ded590309a3dc346d24f2efdff080ae73
+local blob:  4a3cfb6ded590309a3dc346d24f2efdff080ae73
 ```
 
-`node --check` on that exact admission blob: PASS.
+`node --check` on both exact blobs: PASS.
 
 Focused supporting execution verifies:
 
-- distinct explicit `preparer` and `reviewer` identities proceed through admission;
-- missing `preparer` fails closed;
-- a preparer identity equivalent to the reviewer after NFKC normalization, trim, whitespace collapse and case folding fails closed.
+- an intact admitted envelope validates and carries `admissionSemanticHash`;
+- changing `independentReview.reviewEvidenceId` invalidates the retained admission hash;
+- changing a non-authorizing authority flag (`governingEligible`) invalidates the reconstructed envelope/hash;
+- changing review provenance and re-admitting produces a different admission hash;
+- the persisted-admission validator CLI accepts intact JSON and rejects a tampered authority flag.
 
-The focused execution uses stubbed source-register/hash dependencies and therefore validates only the LEG-005 reviewer-independence delta. It is not a substitute for the exact repository focused suite.
+The focused behavior harness stubs the source-register dependency and therefore validates only the LEG-006 admission-envelope delta. It is not a substitute for the exact repository focused suite.
 
 Current material GitHub custody:
 
-- admission module — `52b6f28a721d6acb89d148d6fc631e01620cacbd`;
-- admission test — `fc95063c5b77b0d9388b5085458a6d6a8a65dfd2`;
-- source register remains unchanged from the prior leg.
+- admission module — `c5b2af60daaa2f65391a1f47fb08cb8937cd2a47`;
+- admission test — `a53b9e7bf27b6df789ec2a2f38d7c1a692b11e8d`;
+- admission validator CLI — `4a3cfb6ded590309a3dc346d24f2efdff080ae73`;
+- source register — `9254991c257b04bb26c15dc69d92cfcbf63660a5` unchanged.
 
 ## Validation findings and repairs
 
@@ -68,18 +76,25 @@ PR #751 added a pre-review fingerprint CLI, aligned the issue form/workflow/chec
 
 ### Pre-review state bypass — LEG-004
 
-Public pre-review fingerprinting now requires `PROJECT_CONTROLLED`; admission independently requires `INDEPENDENTLY_CHECKED` and verifies the same state-independent reviewed projection internally.
+Public pre-review fingerprinting requires `PROJECT_CONTROLLED`; admission independently requires `INDEPENDENTLY_CHECKED` and verifies the same state-independent reviewed projection internally.
 
 ### Reviewer independence was documentary only — LEG-005
 
-The checklist required the independent reviewer to be separate from the record author/preparer, but the executable admission object previously carried no preparer identity. A self-review could therefore satisfy the software contract using only a claimed reviewer field.
+`independentReview.preparer` is required and normalized preparer/reviewer collisions fail closed. This is string-level self-review prevention only, not identity or credential authentication.
 
-LEG-005 closes that explicit-contract gap:
+### Persisted admission provenance was not integrity-bound — LEG-006
 
-- `independentReview.preparer` is now required;
-- `independentReview.reviewer` must normalize to a different identity from `preparer`;
-- intake form, workflow and checklist carry the same requirement;
-- the software check is explicitly documented as string-level separation only, not identity/credential authentication.
+Before LEG-006, the sealed source record had a semantic hash, but the admitted envelope's independent-review provenance and authority flags had no retained machine-verifiable integrity hash. A persisted JSON admission could be edited after creation without invalidating the record semantic hash.
+
+LEG-006 adds:
+
+- `admissionSemanticHash` over the complete admission envelope except the hash field itself;
+- `validateFlangeFaceBindingSourceAdmission()` to reconstruct the admissible envelope and verify its retained hash;
+- `scripts/validate-flange-face-binding-source-admission.mjs` for persisted artifact validation;
+- negative coverage for review-evidence and authority-flag tampering;
+- workflow/checklist requirements to retain the exact admitted JSON and expected `admissionSemanticHash`.
+
+The admission hash is custody tamper evidence only when the expected hash is retained independently under project control. It is not a digital signature, identity authentication, or proof of historical authenticity if both an artifact and its hash are replaced together.
 
 ## Protected unchanged boundaries
 
