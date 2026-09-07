@@ -168,10 +168,21 @@ Then admit the reviewed submission:
 node scripts/admit-flange-face-binding-source.mjs <submission.json>
 ```
 
+Retain the exact admitted JSON and its `admissionSemanticHash`. The admission hash covers the complete envelope except itself: sealed source record, independent-review provenance, reviewed-submission fingerprint, source authority and false authority-promotion flags. It is custody tamper evidence when the retained expected hash is preserved; it is not an identity signature or credential proof.
+
+Validate any persisted admission artifact before relying on it:
+
+```bash
+node scripts/validate-flange-face-binding-source-admission.mjs <admission.json>
+```
+
 - [ ] focused exact-checkout test result is recorded as PASS, FAIL or NOT_RUN without relabeling;
 - [ ] admitted output preserves `PROJECT_SOURCE_CUSTODY_ONLY`;
 - [ ] sealed record semantic hash is retained with the controlled record;
-- [ ] a subsequent semantic modification produces a new review fingerprint, new review evidence where required, new record revision and final semantic hash;
+- [ ] `admissionSemanticHash` is retained separately with the controlled admission evidence;
+- [ ] persisted admission validation returns PASS before the artifact is used as retained custody evidence;
+- [ ] modifying review evidence, reviewer/preparer fields, sealed record content or authority flags invalidates the retained admission hash;
+- [ ] a subsequent semantic modification produces a new review fingerprint, new review evidence where required, new record revision and final semantic/admission hashes;
 - [ ] retired/superseded records cannot be mistaken for current source authority.
 
 ## K. Authority boundary after acceptance
