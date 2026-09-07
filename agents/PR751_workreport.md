@@ -17,48 +17,37 @@ Add one fail-closed source-submission admission boundary for issue #750 without 
 
 - `flange-face-binding-source-admission.js`
   - pre-review fingerprint requires `PROJECT_CONTROLLED`;
-  - admission requires `INDEPENDENTLY_CHECKED`;
-  - requires `ACCEPTED`, matching `reviewedSubmissionHash`, explicit `preparer`, reviewer identity/role/evidence/date;
-  - rejects explicit self-review when preparer/reviewer normalize to the same identity;
-  - reuses the existing v1 source-record sealer/register validator;
+  - admission requires `INDEPENDENTLY_CHECKED`, `ACCEPTED`, matching `reviewedSubmissionHash`, explicit preparer/reviewer provenance, and reviewer/preparer separation;
+  - emits `admissionSemanticHash` binding the full admitted custody envelope;
+  - exports persisted-envelope validation against the reconstructed admission contract;
   - preserves `PROJECT_SOURCE_CUSTODY_ONLY` and all non-authorizing flags.
 - `compute-flange-face-binding-source-review-hash.mjs`
   - fingerprints one exact project-controlled candidate before review.
 - `admit-flange-face-binding-source.mjs`
-  - applies the same fail-closed admission boundary to one JSON submission.
-- focused tests cover state gates, review replay, stale hashes, review dispositions, pre-review CLI, missing preparer, and normalized self-review rejection.
+  - admits one reviewed JSON submission and emits the sealed envelope hash.
+- `validate-flange-face-binding-source-admission.mjs`
+  - verifies a persisted admission artifact and fails closed on stale/tampered envelope state.
+- focused tests cover state gates, review replay, reviewer independence, stale record hashes, admission-envelope integrity, and CLI behavior.
 
 ## Source-governance workflow alignment
 
-The issue form, controlled-source workflow and independent-review checklist now require:
+The issue form/workflow/checklist retain the pre-review evidence contract and now require post-admission custody of the exact admitted JSON plus `admissionSemanticHash`.
 
-```text
-preparer
-reviewer
-reviewerRole
-reviewEvidenceId
-reviewedSubmissionHash
-disposition = ACCEPTED | REJECTED | NOT_RUN
-reviewDate
-```
-
-The preparer/reviewer string-separation check is not identity or credential authentication. Independent project review evidence remains mandatory.
+The envelope hash covers the sealed record, independent-review provenance, reviewed-submission fingerprint, source authority and false authority-promotion flags. It is custody tamper evidence when its expected value is retained independently; it is not a digital signature, identity authentication or proof of historical authenticity if the artifact and hash are both replaced.
 
 ## Protected invariants
 
 No geometry inference, automatic binding producer, master resolution, solver invocation, Code-compliance claim, design authority or governing eligibility was introduced. The existing generic source-register/sealer remains unchanged.
 
-The review fingerprint excludes only `recordState` and final `semanticHash`; project/model/joint/face/opening/mating/interface/provenance/tolerance semantics remain review-bound.
-
 ## Validation truth
 
 - exact authenticated repository focused Node tests: NOT_RUN;
-- prior supporting evidence: 24/24 reconstruction; 28/28 LEG-004 reproduction;
-- LEG-005 exact admission-module Git blob: `52b6f28a721d6acb89d148d6fc631e01620cacbd`, matching local `git hash-object`;
-- exact current admission blob syntax: PASS / Node v22.16.0;
-- LEG-005 focused supporting delta: PASS 3/3 — distinct identities admit; missing preparer rejects; normalized self-review rejects;
-- current admission test blob: `fc95063c5b77b0d9388b5085458a6d6a8a65dfd2`;
-- PR-triggered workflow runs: none observed;
+- prior supporting evidence: 24/24 reconstruction; 28/28 LEG-004 reproduction; 3/3 LEG-005 delta;
+- LEG-006 exact admission blob `c5b2af60daaa2f65391a1f47fb08cb8937cd2a47`: local Git blob match + `node --check` PASS;
+- exact validator CLI blob `4a3cfb6ded590309a3dc346d24f2efdff080ae73`: local Git blob match + `node --check` PASS;
+- LEG-006 focused supporting delta: PASS 5/5 — intact envelope, review-evidence tamper, authority-flag tamper, provenance hash change, validator CLI;
+- current admission test blob: `a53b9e7bf27b6df789ec2a2f38d7c1a692b11e8d`;
+- PR-triggered workflow runs: none observed before this progression;
 - independent PR review: NOT_RUN;
 - validation record: `ValidationRecords/BoltedJoints/P8-pr751-source-admission-validation.md`.
 
