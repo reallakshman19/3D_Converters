@@ -2,8 +2,8 @@
 
 ISSUE_BASIS_ID: IB-0001
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#750
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0008
-UPDATED_AT: 2026-09-07T12:32:14Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0009
+UPDATED_AT: 2026-09-07T14:01:46Z
 
 ## Original task / acceptance ledger
 
@@ -57,9 +57,9 @@ OWNER_QUALIFICATION_BASELINE_STATUS: NOT_APPLICABLE
 ## Protocol / progression state
 
 COMMON_PROTOCOL: engineering-pr-delivery-v2
-COMMON_PROTOCOL_BASIS: a5dda23c988ea2e800bb44c28768ec6b9d51e180
+COMMON_PROTOCOL_BASIS: a32af52584b6a87ce0c617b7dc7f8182044e93d4
 COMMON_PROTOCOL_STATUS: CURRENT
-PROTOCOL_DRIFT_FROM_PREVIOUS_BASIS: METADATA_ONLY — `3e21f0054ab8d80b7fe045e7c105a81643fcbbf7` to `a5dda23c988ea2e800bb44c28768ec6b9d51e180` changes only unrelated `books/**`; no `skills/engineering-pr-delivery-v2/**` file changed
+PROTOCOL_DRIFT_FROM_PREVIOUS_BASIS: METADATA_ONLY — `a5dda23c988ea2e800bb44c28768ec6b9d51e180` to `a32af52584b6a87ce0c617b7dc7f8182044e93d4` changes only unrelated `books/**`; no `skills/engineering-pr-delivery-v2/**` file changed
 OWNER_PROGRESSION_COMMAND: PROCEED_NEXT
 QUESTION_SET_ID: QS-ENGCALC-P8-750-0001
 QUESTION_SET_STATUS: CURRENT
@@ -70,6 +70,8 @@ QUESTION_DISPLAY: HIDE
 
 PR #751 remains ready for independent review but is not merge-ready. The generic source-record sealer is unchanged. The source-admission layer requires a valid `PROJECT_CONTROLLED` pre-review fingerprint, then `INDEPENDENTLY_CHECKED`, exact review provenance, `ACCEPTED`, matching `reviewedSubmissionHash`, and explicit preparer/reviewer separation.
 
-LEG-006 remains the latest engineering material leg and adds post-admission custody integrity through `admissionSemanticHash` plus persisted-envelope validation. EP-0008 adds no engineering code; it strengthens validation custody by executing the full 33-test focused suite from an exact 11-file GitHub-byte materialization with no dependency substitution.
+LEG-006 remains the latest engineering material leg and adds post-admission custody integrity through `admissionSemanticHash` plus persisted-envelope validation. EP-0008 added no engineering code and strengthened validation custody by executing the full 33-test focused suite from an exact 11-file GitHub-byte materialization with no dependency substitution.
 
-That supporting execution is stronger than prior reconstruction evidence but is not an authenticated Git checkout. The exact authenticated benchmark therefore remains NOT_RUN. The PR does not supply project facts, infer geometry, produce `FlangeFaceBinding.v1`, resolve masters, invoke solvers or promote engineering authority. The external real-source hard stop remains unchanged.
+EP-0009 is a no-material live-state checkpoint. At the observed PR head `772db9aee0dcd0ec5580430dcb3138edd1136a08`, PR #751 remained OPEN / MERGEABLE / ready for review with no submitted reviews, no review threads, no PR-triggered workflow runs and no commit status records. Issue #750 remained open with 10 comments and no new real controlled-source submission. `3D_Converters/main` remained `c5815ae827edc231b933f56554218e642e60c179`.
+
+The supporting 33/33 exact-file execution remains stronger than prior reconstruction evidence but is not an authenticated Git checkout. The exact authenticated benchmark therefore remains NOT_RUN. The PR does not supply project facts, infer geometry, produce `FlangeFaceBinding.v1`, resolve masters, invoke solvers or promote engineering authority. The external real-source hard stop remains unchanged.
