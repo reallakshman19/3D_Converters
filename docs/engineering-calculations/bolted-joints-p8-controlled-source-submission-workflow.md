@@ -11,20 +11,21 @@ A submission is eligible for review only when it represents exactly one real, re
 1. Open the **Engineering Calculations — controlled flange-face binding source** issue form.
 2. Submit one project/source-record identity only.
 3. Supply the exact model revision and global frame plus retained model evidence.
-4. Supply controlled declarations for the physical flange, selected calculation face/port, physical face reference point, positive opening direction and mating side.
+4. Supply controlled declarations for the physical flange, selected calculation face/port, physical flange-face reference point, positive opening direction and mating side.
 5. Supply the exact pinned `Advanced_Analysis` interface identities required by the source-register contract.
 6. Supply provenance IDs for every semantic declaration and explicit positional/orientation tolerance custody.
-7. Construct the exact candidate `FlangeFaceBindingSourceRecord.v1` with `recordState=PROJECT_CONTROLLED` and `semanticHash=""`.
-8. Compute the stable pre-review fingerprint:
+7. Identify the record `preparer`; the independent reviewer must be a different identified person.
+8. Construct the exact candidate `FlangeFaceBindingSourceRecord.v1` with `recordState=PROJECT_CONTROLLED` and `semanticHash=""`.
+9. Compute the stable pre-review fingerprint:
 
 ```bash
 node scripts/compute-flange-face-binding-source-review-hash.mjs <record.json>
 ```
 
-9. Give the exact candidate plus returned `recordId`, `recordRevisionId` and `reviewedSubmissionHash` to the independent engineering reviewer.
-10. Record independent engineering review as `ACCEPTED`, `REJECTED` or `NOT_RUN` with reviewer/evidence identity and the exact `reviewedSubmissionHash`.
-11. Only after `ACCEPTED`, transition the candidate to `recordState=INDEPENDENTLY_CHECKED`, keep `semanticHash=""`, and submit the record plus independent-review object through the admission CLI.
-12. Only an admitted real submission may proceed to retained final record sealing/custody and the exact focused test gate.
+10. Give the exact candidate plus returned `recordId`, `recordRevisionId` and `reviewedSubmissionHash` to the independent engineering reviewer.
+11. Record independent engineering review as `ACCEPTED`, `REJECTED` or `NOT_RUN` with `preparer`, reviewer/role/evidence identity and the exact `reviewedSubmissionHash`.
+12. Only after `ACCEPTED`, transition the candidate to `recordState=INDEPENDENTLY_CHECKED`, keep `semanticHash=""`, and submit the record plus independent-review object through the admission CLI.
+13. Only an admitted real submission may proceed to retained final record sealing/custody and the exact focused test gate.
 
 The `reviewedSubmissionHash` excludes only `recordState` and the final record `semanticHash`. It is therefore stable across the controlled `PROJECT_CONTROLLED -> INDEPENDENTLY_CHECKED` state transition, but any change to project/model/joint/face/opening/mating/interface/provenance/tolerance semantics invalidates the prior review fingerprint and requires a new review.
 
@@ -70,16 +71,18 @@ The reviewer must independently verify the retained evidence supporting:
 - exactly one admissible candidate;
 - the exact `reviewedSubmissionHash` for the reviewed candidate revision.
 
-A source-owner declaration and an independent engineering acceptance are separate evidence events. `NOT_RUN` review is not acceptance. A review must not be reused after any reviewed semantic changes.
+The admission contract requires explicit `preparer` and `reviewer` identities and rejects them when they normalize to the same string after Unicode normalization, trimming, whitespace collapse and case folding. This is a fail-closed separation check only; it does not authenticate a person, organization, credential or engineering qualification. Those remain controlled review evidence obligations.
+
+A source-owner/preparer declaration and an independent engineering acceptance are separate evidence events. `NOT_RUN` review is not acceptance. A review must not be reused after any reviewed semantic changes.
 
 ## Post-acceptance sequence
 
 Even an accepted submission remains `PROJECT_SOURCE_CUSTODY_ONLY` and non-authorizing. The permitted next sequence is:
 
 ```text
-project-controlled candidate
+project-controlled candidate + identified preparer
 → compute reviewedSubmissionHash
-→ independent review of exact candidate + hash
+→ independent review by a different identified reviewer
 → ACCEPTED review
 → transition recordState to INDEPENDENTLY_CHECKED
 → admit source submission with matching review hash
