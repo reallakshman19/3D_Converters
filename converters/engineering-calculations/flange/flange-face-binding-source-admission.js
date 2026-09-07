@@ -11,6 +11,7 @@ export const FLANGE_FACE_BINDING_SOURCE_ACCEPTED_REVIEW_DISPOSITION = 'ACCEPTED'
 export const FLANGE_FACE_BINDING_SOURCE_PRE_REVIEW_RECORD_STATE = 'PROJECT_CONTROLLED';
 
 const REVIEW_KEYS = Object.freeze([
+  'preparer',
   'reviewer',
   'reviewerRole',
   'reviewEvidenceId',
@@ -41,6 +42,10 @@ function requiredText(value, field, errors) {
   if (!String(value ?? '').trim()) errors.push(`${field} is required.`);
 }
 
+function normalizedIdentity(value) {
+  return String(value ?? '').normalize('NFKC').trim().replace(/\s+/gu, ' ').toLowerCase();
+}
+
 function validateIndependentReview(review = {}) {
   const errors = [];
   if (!exactKeys(review, REVIEW_KEYS, 'independentReview', errors)) return errors;
@@ -48,6 +53,12 @@ function validateIndependentReview(review = {}) {
     .forEach((key) => requiredText(review[key], `independentReview.${key}`, errors));
   if (review.disposition !== FLANGE_FACE_BINDING_SOURCE_ACCEPTED_REVIEW_DISPOSITION) {
     errors.push(`independentReview.disposition must equal ${FLANGE_FACE_BINDING_SOURCE_ACCEPTED_REVIEW_DISPOSITION}.`);
+  }
+  if (
+    normalizedIdentity(review.preparer)
+    && normalizedIdentity(review.preparer) === normalizedIdentity(review.reviewer)
+  ) {
+    errors.push('independentReview.reviewer must differ from independentReview.preparer.');
   }
   return errors;
 }
