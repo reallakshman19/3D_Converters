@@ -7,6 +7,7 @@ import {
   FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA,
   admitFlangeFaceBindingSourceSubmission,
   computeFlangeFaceBindingSourceSubmissionReviewHash,
+  validateFlangeFaceBindingSourceAdmission,
 } from '../converters/engineering-calculations/flange/flange-face-binding-source-admission.js';
 import {
   FLANGE_FACE_BINDING_SOURCE_AUTHORITY,
@@ -19,6 +20,7 @@ import {
 } from '../converters/engineering-calculations/flange/advanced-analysis-interface-adapter.js';
 import { admitFlangeFaceBindingSourceFile } from '../scripts/admit-flange-face-binding-source.mjs';
 import { computeFlangeFaceBindingSourceReviewHashFile } from '../scripts/compute-flange-face-binding-source-review-hash.mjs';
+import { validateFlangeFaceBindingSourceAdmissionFile } from '../scripts/validate-flange-face-binding-source-admission.mjs';
 
 function record(overrides = {}) {
   const value = {
@@ -126,13 +128,15 @@ for (const recordState of ['DRAFT', 'INDEPENDENTLY_CHECKED', 'RETIRED']) {
   });
 }
 
-test('admits only independently checked source custody and preserves non-authorizing flags', () => {
+test('admits only independently checked source custody and seals the admission envelope', () => {
   const admitted = admitFlangeFaceBindingSourceSubmission(submission());
   assert.equal(admitted.schema, FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA);
   assert.equal(admitted.sourceAuthority, FLANGE_FACE_BINDING_SOURCE_AUTHORITY);
   assert.equal(admitted.reviewedSubmissionHash, admitted.independentReview.reviewedSubmissionHash);
   assert.equal(admitted.independentReview.preparer, 'Source Record Preparer');
   assert.match(admitted.record.semanticHash, /^fnv1a64:[0-9a-f]{16}$/u);
+  assert.match(admitted.admissionSemanticHash, /^fnv1a64:[0-9a-f]{16}$/u);
+  assert.deepEqual(validateFlangeFaceBindingSourceAdmission(admitted), { ok: true, errors: [] });
   assert.equal(admitted.automaticBindingProducer, false);
   assert.equal(admitted.codeCompliance, false);
   assert.equal(admitted.designAuthority, false);
@@ -211,6 +215,25 @@ test('accepts a previously sealed independently checked record without changing 
   assert.equal(admitted.record.semanticHash, sealed.semanticHash);
 });
 
+test('detects persisted admission review-evidence tampering', () => {
+  const admitted = admitFlangeFaceBindingSourceSubmission(submission());
+  const tampered = {
+    ...admitted,
+    independentReview: { ...admitted.independentReview, reviewEvidenceId: 'ALTERED-EVIDENCE' },
+  };
+  const validation = validateFlangeFaceBindingSourceAdmission(tampered);
+  assert.equal(validation.ok, false);
+  assert.match(validation.errors.join(' '), /admissionSemanticHash|payload differs/u);
+});
+
+test('detects persisted admission authority-flag tampering', () => {
+  const admitted = admitFlangeFaceBindingSourceSubmission(submission());
+  const tampered = { ...admitted, governingEligible: true };
+  const validation = validateFlangeFaceBindingSourceAdmission(tampered);
+  assert.equal(validation.ok, false);
+  assert.match(validation.errors.join(' '), /admissionSemanticHash|payload differs/u);
+});
+
 test('pre-review CLI fingerprints the exact project-controlled candidate', () => {
   const directory = mkdtempSync(join(tmpdir(), 'ffbs-review-hash-'));
   const file = join(directory, 'record.json');
@@ -243,7 +266,7 @@ test('pre-review CLI rejects a draft candidate', () => {
   }
 });
 
-test('CLI file consumer applies the same admission boundary', () => {
+test('CLI file consumer applies the same admission boundary and emits envelope hash', () => {
   const directory = mkdtempSync(join(tmpdir(), 'ffbs-admission-'));
   const file = join(directory, 'submission.json');
   try {
@@ -252,6 +275,26 @@ test('CLI file consumer applies the same admission boundary', () => {
     assert.equal(admitted.record.recordId, 'FFBS-750-001');
     assert.equal(admitted.independentReview.disposition, 'ACCEPTED');
     assert.equal(admitted.reviewedSubmissionHash, admitted.independentReview.reviewedSubmissionHash);
+    assert.match(admitted.admissionSemanticHash, /^fnv1a64:[0-9a-f]{16}$/u);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('validation CLI accepts an intact persisted admission and rejects tampering', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'ffbs-admission-validation-'));
+  const file = join(directory, 'admission.json');
+  const admitted = admitFlangeFaceBindingSourceSubmission(submission());
+  try {
+    writeFileSync(file, JSON.stringify(admitted), 'utf8');
+    const validation = validateFlangeFaceBindingSourceAdmissionFile(file);
+    assert.equal(validation.ok, true);
+    assert.equal(validation.admissionSemanticHash, admitted.admissionSemanticHash);
+    writeFileSync(file, JSON.stringify({ ...admitted, designAuthority: true }), 'utf8');
+    assert.throws(
+      () => validateFlangeFaceBindingSourceAdmissionFile(file),
+      /admissionSemanticHash|payload differs/u,
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
