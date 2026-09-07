@@ -105,7 +105,8 @@ Before independent review:
 - [ ] set `recordState = PROJECT_CONTROLLED` only after project control evidence exists;
 - [ ] set `semanticHash = ""`;
 - [ ] confirm the candidate contains only the exact v1 record keys;
-- [ ] retain the exact candidate bytes/revision that are supplied to the reviewer.
+- [ ] retain the exact candidate bytes/revision that are supplied to the reviewer;
+- [ ] identify the record `preparer` in the review-control evidence.
 
 Compute the review fingerprint from that exact candidate:
 
@@ -126,6 +127,7 @@ The `reviewedSubmissionHash` intentionally excludes only `recordState` and final
 Record the independent reviewer separately from the record author/preparer.
 
 ```text
+preparer:                  ______________________________
 reviewer:                  ______________________________
 review organization/role: ______________________________
 review date:               ______________________________
@@ -135,14 +137,20 @@ disposition:               ACCEPTED | REJECTED | NOT_RUN
 comments/evidence ref:     ______________________________
 ```
 
-Admission is allowed only when disposition is exactly `ACCEPTED`, the `reviewedSubmissionHash` matches the exact candidate semantics, and all required checklist items above are satisfied. `REJECTED` and `NOT_RUN` remain blocked states.
+- [ ] `preparer` identifies the person who prepared the controlled candidate/review package.
+- [ ] `reviewer` identifies a different person from the preparer.
+- [ ] the reviewer-preparer separation is supported by retained project review evidence, not only by free-text labels.
+
+The admission helper requires both `preparer` and `reviewer` and rejects them when they normalize to the same text after Unicode normalization, trimming, whitespace collapse and case folding. That is a fail-closed software check against explicit self-review. It does **not** authenticate either identity, organization, credential or engineering qualification; those remain independent-review evidence obligations.
+
+Admission is allowed only when disposition is exactly `ACCEPTED`, the `reviewedSubmissionHash` matches the exact candidate semantics, the explicit preparer/reviewer identities differ, and all required checklist items above are satisfied. `REJECTED` and `NOT_RUN` remain blocked states.
 
 After an `ACCEPTED` review:
 
 - [ ] transition `recordState` to `INDEPENDENTLY_CHECKED`;
 - [ ] keep `semanticHash = ""` before final sealing;
-- [ ] construct the submission JSON with the exact independent-review fields required by `FlangeFaceBindingSourceAdmission.v1`;
-- [ ] verify the admission helper rejects any review-hash mismatch.
+- [ ] construct the submission JSON with the exact independent-review fields required by `FlangeFaceBindingSourceAdmission.v1`, including `preparer`;
+- [ ] verify the admission helper rejects any review-hash mismatch or explicit reviewer/preparer identity collision.
 
 ## J. Admission, sealing and validation
 
