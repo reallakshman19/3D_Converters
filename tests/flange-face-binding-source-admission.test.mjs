@@ -89,6 +89,7 @@ function projectControlledCandidate(candidate) {
 function review(candidate, overrides = {}) {
   const controlled = projectControlledCandidate(candidate);
   return {
+    preparer: 'Source Record Preparer',
     reviewer: 'Independent Reviewer',
     reviewerRole: 'Mechanical Engineer',
     reviewEvidenceId: 'REVIEW-EVIDENCE-750',
@@ -130,6 +131,7 @@ test('admits only independently checked source custody and preserves non-authori
   assert.equal(admitted.schema, FLANGE_FACE_BINDING_SOURCE_ADMISSION_SCHEMA);
   assert.equal(admitted.sourceAuthority, FLANGE_FACE_BINDING_SOURCE_AUTHORITY);
   assert.equal(admitted.reviewedSubmissionHash, admitted.independentReview.reviewedSubmissionHash);
+  assert.equal(admitted.independentReview.preparer, 'Source Record Preparer');
   assert.match(admitted.record.semanticHash, /^fnv1a64:[0-9a-f]{16}$/u);
   assert.equal(admitted.automaticBindingProducer, false);
   assert.equal(admitted.codeCompliance, false);
@@ -161,6 +163,23 @@ test('rejects incomplete independent-review provenance', () => {
   assert.throws(
     () => admitFlangeFaceBindingSourceSubmission(submission({}, { reviewEvidenceId: '' })),
     /reviewEvidenceId is required/u,
+  );
+});
+
+test('rejects missing preparer identity', () => {
+  assert.throws(
+    () => admitFlangeFaceBindingSourceSubmission(submission({}, { preparer: '' })),
+    /independentReview.preparer is required/u,
+  );
+});
+
+test('rejects reviewer matching preparer after identity normalization', () => {
+  assert.throws(
+    () => admitFlangeFaceBindingSourceSubmission(submission({}, {
+      preparer: '  INDEPENDENT   REVIEWER  ',
+      reviewer: 'Independent Reviewer',
+    })),
+    /reviewer must differ from independentReview.preparer/u,
   );
 });
 
