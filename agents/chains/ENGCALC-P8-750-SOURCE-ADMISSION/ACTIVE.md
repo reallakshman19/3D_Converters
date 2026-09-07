@@ -7,7 +7,7 @@ LATEST_MATERIAL_LEG: LEG-006
 LATEST_MATERIAL_LEG_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/material-legs/LEG-006.md
 BRANCH: work/engcalc-p8-750-source-admission-20260906
 BASE_MAIN: c5815ae827edc231b933f56554218e642e60c179
-HEAD: 6c46f6ad09c417015e1ee669be1b2fa4317e6294
+HEAD: a653b4feebeece6a26bffb9ab2aead02ee1b96e8
 MATERIAL_HEAD: 6fb9f91cb2a7420fe2173b117e399846332fa416
 PR: 751
 PR_STATE: OPEN_READY_FOR_REVIEW
@@ -29,7 +29,7 @@ WORK_ITEM_MODE: EXCLUSIVE
 AGENT_INSTANCE_ID: chatgpt:047b0b9d-98dd-48a3-ab0a-d00aec31aa9e
 ACTIVE_CUSTODIAN: ChatGPT GPT-5.6 Sol current conversation
 CUSTODY_EPOCH: 7
-COORDINATION_STATE: SAFE — main unchanged; related #722/#723 previously inspected; no exact material-file overlap observed
+COORDINATION_STATE: SAFE — main unchanged; LEG-006 / EP-0007 reconciled; post-endpoint connector commits d448c3d4, d4cfdbb7, e64778b3 and a653b4fe are backup-only non-material custody copies
 DEPENDENCIES: issue #721 P8; external real controlled source remains required for actual record admission
 AUTHORITY_DOMAIN: P8_FLANGE_FACE_SOURCE_SUBMISSION_ADMISSION_ONLY
 COMMON_PROTOCOL: engineering-pr-delivery-v2
