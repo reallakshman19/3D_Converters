@@ -25,9 +25,13 @@ node scripts/compute-flange-face-binding-source-review-hash.mjs <record.json>
 10. Give the exact candidate plus returned `recordId`, `recordRevisionId` and `reviewedSubmissionHash` to the independent engineering reviewer.
 11. Record independent engineering review as `ACCEPTED`, `REJECTED` or `NOT_RUN` with `preparer`, reviewer/role/evidence identity and the exact `reviewedSubmissionHash`.
 12. Only after `ACCEPTED`, transition the candidate to `recordState=INDEPENDENTLY_CHECKED`, keep `semanticHash=""`, and submit the record plus independent-review object through the admission CLI.
-13. Only an admitted real submission may proceed to retained final record sealing/custody and the exact focused test gate.
+13. Retain the exact admitted JSON and its `admissionSemanticHash`. This envelope hash binds the sealed record, review provenance, review fingerprint and non-authorizing authority flags.
+14. Validate any persisted/custodied admission JSON before relying on it as the retained admission artifact.
+15. Only an admitted and validated real submission may proceed to retained source custody and the exact focused test gate.
 
 The `reviewedSubmissionHash` excludes only `recordState` and the final record `semanticHash`. It is therefore stable across the controlled `PROJECT_CONTROLLED -> INDEPENDENTLY_CHECKED` state transition, but any change to project/model/joint/face/opening/mating/interface/provenance/tolerance semantics invalidates the prior review fingerprint and requires a new review.
+
+The `admissionSemanticHash` is a separate post-admission custody hash. It covers the complete admission envelope except itself, including the sealed record, independent-review fields, source authority and all false authority-promotion flags. It is tamper evidence when the retained expected hash is kept under project custody; it is not reviewer identity authentication or a digital signature.
 
 ## Fail-closed rules
 
@@ -86,7 +90,8 @@ project-controlled candidate + identified preparer
 → ACCEPTED review
 → transition recordState to INDEPENDENTLY_CHECKED
 → admit source submission with matching review hash
-→ retain sealed FlangeFaceBindingSourceRecord.v1
+→ retain sealed admission JSON + admissionSemanticHash
+→ validate retained admission envelope
 → run exact admission + source-register focused tests when an exact checkout is available
 → separately scope a fail-closed producer
 → producer verifies accepted record against actual model + qualified Advanced_Analysis objects
@@ -97,6 +102,12 @@ Admission command:
 
 ```bash
 node scripts/admit-flange-face-binding-source.mjs <submission.json>
+```
+
+Persisted admission validation command:
+
+```bash
+node scripts/validate-flange-face-binding-source-admission.mjs <admission.json>
 ```
 
 Focused test command:
@@ -111,4 +122,4 @@ Master resolution, flange/bolt/gasket solver execution, Code compliance, design 
 
 ## Validation truth
 
-This workflow is source-governance acquisition infrastructure. The review-fingerprint helper and admission helper validate custody contracts only; they perform no engineering calculation and grant no engineering authority. Exact-checkout execution must remain PASS/FAIL/NOT_RUN as actually observed and must not be inferred from documentation presence.
+This workflow is source-governance acquisition infrastructure. The review-fingerprint, admission and admission-envelope validation helpers validate custody contracts only; they perform no engineering calculation and grant no engineering authority. Exact-checkout execution must remain PASS/FAIL/NOT_RUN as actually observed and must not be inferred from documentation presence.
