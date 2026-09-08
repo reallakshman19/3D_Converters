@@ -10,6 +10,8 @@ body:
         This submission is source custody only. It does not grant Code compliance, design authority, governing eligibility, automatic model routing, master resolution, or solver authority.
 
         Do not infer missing engineering semantics from bounding boxes, primitive orientation, native-kind/text classification, EP1/EP2 ordering, PCF chain direction, nearest topology, or tolerance-based candidate selection. If a required controlled fact is unavailable, state that explicitly and leave the record unadmitted.
+
+        Before independent review, construct the exact candidate `FlangeFaceBindingSourceRecord.v1` with `recordState=PROJECT_CONTROLLED` and `semanticHash=""`, then compute its stable review fingerprint with `node scripts/compute-flange-face-binding-source-review-hash.mjs <record.json>`. The reviewer must retain that exact `reviewedSubmissionHash`; changing any reviewed semantic field requires a new fingerprint and review.
   - type: input
     id: project_id
     attributes:
@@ -110,11 +112,13 @@ body:
     id: independent_review
     attributes:
       label: Independent engineering review
-      description: Provide reviewer identity/role, review evidence reference, disposition, and review date. If not yet reviewed, write NOT_RUN and the submission remains blocked.
+      description: Provide the record preparer identity and a different reviewer identity/role, review evidence reference, exact reviewedSubmissionHash, disposition, and review date. If not yet reviewed, write NOT_RUN and the submission remains blocked.
       placeholder: |
+        preparer:
         reviewer:
         reviewerRole:
         reviewEvidenceId:
+        reviewedSubmissionHash: fnv1a64:...
         disposition: ACCEPTED | REJECTED | NOT_RUN
         reviewDate:
     validations:
@@ -127,6 +131,10 @@ body:
         - label: I confirm this submission represents one real controlled project source and does not contain synthetic project facts.
           required: true
         - label: I confirm no required engineering semantic was inferred from bounding boxes, primitive orientation, text/native-kind recognition, EP ordering, chain direction, nearest topology, or hidden tolerances.
+          required: true
+        - label: I confirm the independent reviewer is a different identified person from the record preparer; admission software checks explicit identity separation but does not authenticate either identity.
+          required: true
+        - label: I confirm the reviewedSubmissionHash identifies the exact candidate semantics supplied for independent review; if those semantics changed, the review fingerprint and review were repeated.
           required: true
         - label: I understand acceptance into source custody does not grant Code compliance, design authority, governing eligibility, or automatic solver execution.
           required: true

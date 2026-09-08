@@ -11,11 +11,27 @@ A submission is eligible for review only when it represents exactly one real, re
 1. Open the **Engineering Calculations — controlled flange-face binding source** issue form.
 2. Submit one project/source-record identity only.
 3. Supply the exact model revision and global frame plus retained model evidence.
-4. Supply controlled declarations for the physical flange, selected calculation face/port, physical face reference point, positive opening direction and mating side.
+4. Supply controlled declarations for the physical flange, selected calculation face/port, physical flange-face reference point, positive opening direction and mating side.
 5. Supply the exact pinned `Advanced_Analysis` interface identities required by the source-register contract.
 6. Supply provenance IDs for every semantic declaration and explicit positional/orientation tolerance custody.
-7. Record independent engineering review as `ACCEPTED`, `REJECTED` or `NOT_RUN` with reviewer/evidence identity.
-8. Only an independently accepted real submission may proceed to record sealing and the exact source-register gate.
+7. Identify the record `preparer`; the independent reviewer must be a different identified person.
+8. Construct the exact candidate `FlangeFaceBindingSourceRecord.v1` with `recordState=PROJECT_CONTROLLED` and `semanticHash=""`.
+9. Compute the stable pre-review fingerprint:
+
+```bash
+node scripts/compute-flange-face-binding-source-review-hash.mjs <record.json>
+```
+
+10. Give the exact candidate plus returned `recordId`, `recordRevisionId` and `reviewedSubmissionHash` to the independent engineering reviewer.
+11. Record independent engineering review as `ACCEPTED`, `REJECTED` or `NOT_RUN` with `preparer`, reviewer/role/evidence identity and the exact `reviewedSubmissionHash`.
+12. Only after `ACCEPTED`, transition the candidate to `recordState=INDEPENDENTLY_CHECKED`, keep `semanticHash=""`, and submit the record plus independent-review object through the admission CLI.
+13. Retain the exact admitted JSON and its `admissionSemanticHash`. This envelope hash binds the sealed record, review provenance, review fingerprint and non-authorizing authority flags.
+14. Validate any persisted/custodied admission JSON before relying on it as the retained admission artifact.
+15. Only an admitted and validated real submission may proceed to retained source custody and the exact focused test gate.
+
+The `reviewedSubmissionHash` excludes only `recordState` and the final record `semanticHash`. It is therefore stable across the controlled `PROJECT_CONTROLLED -> INDEPENDENTLY_CHECKED` state transition, but any change to project/model/joint/face/opening/mating/interface/provenance/tolerance semantics invalidates the prior review fingerprint and requires a new review.
+
+The `admissionSemanticHash` is a separate post-admission custody hash. It covers the complete admission envelope except itself, including the sealed record, independent-review fields, source authority and all false authority-promotion flags. It is tamper evidence when the retained expected hash is kept under project custody; it is not reviewer identity authentication or a digital signature.
 
 ## Fail-closed rules
 
@@ -56,26 +72,54 @@ The reviewer must independently verify the retained evidence supporting:
 - exact `Advanced_Analysis` interface-set/interface/frame/sign identities;
 - provenance for each declaration;
 - explicit tolerance basis;
-- exactly one admissible candidate.
+- exactly one admissible candidate;
+- the exact `reviewedSubmissionHash` for the reviewed candidate revision.
 
-A source-owner declaration and an independent engineering acceptance are separate evidence events. `NOT_RUN` review is not acceptance.
+The admission contract requires explicit `preparer` and `reviewer` identities and rejects them when they normalize to the same string after Unicode normalization, trimming, whitespace collapse and case folding. This is a fail-closed separation check only; it does not authenticate a person, organization, credential or engineering qualification. Those remain controlled review evidence obligations.
+
+A source-owner/preparer declaration and an independent engineering acceptance are separate evidence events. `NOT_RUN` review is not acceptance. A review must not be reused after any reviewed semantic changes.
 
 ## Post-acceptance sequence
 
 Even an accepted submission remains `PROJECT_SOURCE_CUSTODY_ONLY` and non-authorizing. The permitted next sequence is:
 
 ```text
-accepted real source submission
-→ construct candidate FlangeFaceBindingSourceRecord.v1
-→ verify and seal record with source-register helper
-→ run exact source-register focused test when an exact checkout is available
+project-controlled candidate + identified preparer
+→ compute reviewedSubmissionHash
+→ independent review by a different identified reviewer
+→ ACCEPTED review
+→ transition recordState to INDEPENDENTLY_CHECKED
+→ admit source submission with matching review hash
+→ retain sealed admission JSON + admissionSemanticHash
+→ validate retained admission envelope
+→ run exact admission + source-register focused tests when an exact checkout is available
 → separately scope a fail-closed producer
 → producer verifies accepted record against actual model + qualified Advanced_Analysis objects
 → emit FlangeFaceBinding.v1 only when every identity matches
+```
+
+Admission command:
+
+```bash
+node scripts/admit-flange-face-binding-source.mjs <submission.json>
+```
+
+Persisted admission validation command:
+
+```bash
+node scripts/validate-flange-face-binding-source-admission.mjs <admission.json>
+```
+
+Focused test command:
+
+```bash
+node --test \
+  tests/flange-face-binding-source-admission.test.mjs \
+  tests/flange-face-binding-source-register.test.mjs
 ```
 
 Master resolution, flange/bolt/gasket solver execution, Code compliance, design authority, governing eligibility, UI/registry routing and production release remain outside this workflow.
 
 ## Validation truth
 
-This workflow is documentation/administrative acquisition infrastructure. It changes no calculation code and requires no numerical execution. Its presence does not convert any prior `NOT_RUN` validation state to PASS.
+This workflow is source-governance acquisition infrastructure. The review-fingerprint, admission and admission-envelope validation helpers validate custody contracts only; they perform no engineering calculation and grant no engineering authority. Exact-checkout execution must remain PASS/FAIL/NOT_RUN as actually observed and must not be inferred from documentation presence.
