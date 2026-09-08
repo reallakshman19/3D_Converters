@@ -1,17 +1,20 @@
 CHAIN_STATE_VERSION: 3
 CHAIN_ID: ENGCALC-P8-750-SOURCE-ADMISSION
 MISSION: Add a fail-closed source-submission admission boundary for issue #750 without inventing project semantics or authorizing automatic flange binding.
-ACTIVE_ENDPOINT: EP-0010
-ACTIVE_ENDPOINT_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/endpoints/EP-0010.md
+ACTIVE_ENDPOINT: EP-0011
+ACTIVE_ENDPOINT_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/endpoints/EP-0011.md
 LATEST_MATERIAL_LEG: LEG-006
 LATEST_MATERIAL_LEG_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/material-legs/LEG-006.md
 BRANCH: work/engcalc-p8-750-source-admission-20260906
 BASE_MAIN: c5815ae827edc231b933f56554218e642e60c179
-HEAD: ebd9bbb7939df1f521f3586b0057a9ae8b4505af
+MAIN_MERGED_SHA: aa8374d797a5f14afebddea496537a6389e9687c
+PR_HEAD_AT_MERGE: 53347abcc11467e425e24e676f5f5af7d806389a
 MATERIAL_HEAD: 6fb9f91cb2a7420fe2173b117e399846332fa416
 PR: 751
-PR_STATE: OPEN_MERGE_AUTHORIZED
-MERGEABILITY: MERGEABLE
+PR_STATE: MERGED
+MERGE_METHOD: SQUASH
+MERGED_AT: 2026-09-08T17:33:33Z
+MERGEABILITY: NOT_APPLICABLE_MERGED
 REVIEWS: NOT_REQUIRED_BY_OWNER_FOR_PR751
 UNRESOLVED_REVIEW_THREADS: 0
 REQUIRED_CHECKS: EXACT_AUTHENTICATED_FOCUSED_NODE_NOT_RUN; SUPPORTING_EXACT_FILE_MATERIALIZATION_PASS_33_OF_33; PRODUCER_SELF_CHECK_PASS_SUPPORTING; PR_TRIGGERED_WORKFLOWS_0; COMMIT_STATUS_RECORDS_0
@@ -21,21 +24,21 @@ CUSTODY_STATE: HELD
 QUALIFICATION_STATE: NOT_REQUIRED
 WRITE_AUTHORITY: READ_ONLY
 AUTO_STATE: BLOCKED
-MERGE_AUTHORITY: AUTHORIZED
-MERGE_AUTHORIZED: TRUE
+MERGE_AUTHORITY: OWNER_ONLY
+MERGE_AUTHORIZED: FALSE
 WORK_ITEM_SOURCE: GITHUB_ISSUE
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#750
 WORK_ITEM_MODE: EXCLUSIVE
 AGENT_INSTANCE_ID: chatgpt:047b0b9d-98dd-48a3-ab0a-d00aec31aa9e
 ACTIVE_CUSTODIAN: ChatGPT GPT-5.6 Sol current conversation
-CUSTODY_EPOCH: 10
-COORDINATION_STATE: SAFE — Owner changed PR #751 delivery acceptance; producer self-check found no concrete defect; source engineering boundary unchanged
-DEPENDENCIES: issue #721 P8; external real independently accepted controlled source remains required for actual record admission
+CUSTODY_EPOCH: 11
+COORDINATION_STATE: SAFE — PR #751 merged; admission infrastructure on main; no producer/source admission permitted until external source gate
+DEPENDENCIES: issue #721 P8; one real independently accepted controlled source remains required
 AUTHORITY_DOMAIN: P8_FLANGE_FACE_SOURCE_SUBMISSION_ADMISSION_ONLY
 COMMON_PROTOCOL: engineering-pr-delivery-v2
 COMMON_PROTOCOL_BASIS: af4c5c73b87b26187aa6c930b60172cbb1f0f3e2
 COMMON_PROTOCOL_STATUS: CURRENT
-POST_BASIS_DRIFT: OWNER_ACCEPTANCE_CHANGE_WITHIN_PR_DELIVERY — independent GitHub PR review waived for #751; source-record independent review unchanged
+POST_BASIS_DRIFT: OWNER_ACCEPTANCE_CHANGE_EXECUTED — PR #751 review waiver consumed; source-record independent review unchanged
 HANDOVER_PROTOCOL_VERSION: 2
 QUALIFICATION_SCOPE_ID: QSCOPE-750-FLANGE-FACE-SOURCE-ADMISSION
 QUESTION_SET_ID: QS-ENGCALC-P8-750-0001
@@ -53,18 +56,18 @@ ISSUE_BASIS_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/issue-basis/IB-0
 ISSUE_BASIS_STATUS: CURRENT
 ISSUE_CURRENT_STATE_FILE: agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/issue-state/CURRENT.md
 ISSUE_CURRENT_STATE_BASIS: IB-0002
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0010
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0011
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5560334058
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5560332736
 ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5589231868
-ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
+ISSUE_HANDOVER_SYNC_STATUS: STALE_PENDING_EP0011_PUBLICATION
 ROADMAPS: NONE — issue #721 retained as governing programme issue / ISSUE_EXECUTION_PLAN
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ALIGNED
 ROADMAP_MUTATION_AUTHORITY: NONE
-ORIGINAL_TASK_STATUS: BLOCKED_EXTERNAL_SOURCE; PR #751 merge now Owner-authorized after self-check
-INPUT_STATUS: admission infrastructure ready; one real independently accepted project source UNRESOLVED
+ORIGINAL_TASK_STATUS: BLOCKED_EXTERNAL_SOURCE; admission infrastructure merged to main
+INPUT_STATUS: merged intake/register/checklist/review-fingerprint/admission/envelope-validator available; one real independently accepted project source UNRESOLVED
 BENCHMARK_STATUS: exact authenticated focused tests NOT_RUN; supporting 33/33 exact-file PASS; producer self-check PASS_SUPPORTING
-CURRENT_BLOCKER: one real independently accepted controlled source remains unavailable; authenticated exact-checkout test evidence also remains NOT_RUN but is no longer an Owner merge prerequisite for #751
-LEG_DIAGNOSIS: LEG-006 remains latest engineering material; EP-0010 changes PR-delivery acceptance only and does not alter source-admission semantics
-EXACT_NEXT_ACTION: Re-ground exact current PR #751 head and merge using Owner authorization. After merge keep #750 open; do not start a producer until one real independently accepted controlled source exists.
+CURRENT_BLOCKER: one real independently accepted controlled source remains unavailable
+LEG_DIAGNOSIS: LEG-006 remains latest engineering material; EP-0011 records successful #751 merge and preserves the external source hard stop
+EXACT_NEXT_ACTION: Obtain exactly one real project-controlled #750 source with complete retained evidence and independent engineering acceptance. Verify/seal/admit it using main@aa8374d797a5f14afebddea496537a6389e9687c. Do not start the separate producer until that gate is satisfied.
