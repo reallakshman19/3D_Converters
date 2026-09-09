@@ -2,8 +2,8 @@
 
 ISSUE_BASIS_ID: IB-0002
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#750
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0011
-UPDATED_AT: 2026-09-08T17:33:33Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0012
+UPDATED_AT: 2026-09-09T06:23:41Z
 
 ## Original task / acceptance ledger
 
@@ -21,6 +21,7 @@ OWNER-001 | Independent GitHub PR review is not required for PR #751. | COMPLETE
 OWNER-002 | Producer self-check is accepted for PR #751 merge disposition. | COMPLETE | PASS_SUPPORTING_SELF_REVIEW
 OWNER-003 | Fix merge blockers, merge #751, then proceed. | COMPLETE | squash merge `aa8374d797a5f14afebddea496537a6389e9687c`
 OWNER-004 | Source-record independent review remains required. | PROTECTED | issue #750 unchanged
+OWNER-005 | Create a detailed handover covering pending activity and future roadmap and sync it to the issue. | COMPLETE | EP-0012 + issue handover sync
 
 ## Input ledger
 
@@ -50,6 +51,27 @@ BM-010 | LEG-005 reviewer-independence gate. | PASS_SUPPORTING_DELTA | 3/3
 BM-011 | LEG-006 admission-envelope integrity. | PASS_SUPPORTING_DELTA | 5/5
 BM-012 | Full focused suite from exact GitHub-file materialization. | PASS_SUPPORTING_EXACT_FILE_MATERIALIZATION | 11/11 blobs; Node v22.16.0; 33/33; no stubs/reductions
 BM-013 | Owner-directed producer self-check of PR #751 material surface. | PASS_SUPPORTING_SELF_REVIEW | not independent review; not authenticated execution
+
+## Pending activity — immediate critical path
+
+1. Supply exactly one real project-controlled #750 flange-face source with every required exact identity, controlled physical-flange declaration, face/port, global point, opening direction, mating side, pinned Advanced_Analysis identities, provenance, `candidateCount=1`, and explicit controlled tolerances.
+2. Retain evidence for each declaration; missing facts remain blocked and must not be inferred from geometry, text, topology or hidden/default tolerance.
+3. Build the `PROJECT_CONTROLLED` candidate and compute `reviewedSubmissionHash` using merged admission infrastructure.
+4. Obtain independent engineering source acceptance from a reviewer distinct from the preparer.
+5. On ACCEPTED only, transition the controlled record state to `INDEPENDENTLY_CHECKED`, verify the review hash, seal/register/admit, and validate the persisted admission envelope.
+6. Retain exact admitted JSON plus expected `admissionSemanticHash` under project custody.
+
+## Future roadmap
+
+ROADMAP-01 | Separate P8 producer PR after source admission | PENDING_GATE | verify accepted source against actual model + pinned Advanced_Analysis; exact identifiers/fail closed; no inference
+ROADMAP-02 | P8 3D runtime integration | FUTURE | load-case/application point, global→local transform, `M_flange=M_input+r×F`, opening-only UG-44 where applicable, preserve shear/torsion
+ROADMAP-03 | Governed master binding | FUTURE | exact model identity to qualified flange/bolt/gasket masters; no nearest/silent fallback
+ROADMAP-04 | Solver orchestration and envelope | FUTURE | qualified methods + governing load-case/provenance retention
+ROADMAP-05 | P9 product/UI/reporting | FUTURE | joint workbench/report, qualification/authority flags, units, transforms, master revisions, evidence
+ROADMAP-06 | P10 controlled release | FUTURE | independent validation, cross-solver/benchmark, unit/sign/boundary tests, browser acceptance, separate authority promotion
+ROADMAP-07 | P3 method/source qualification | PARALLEL_OPEN | supplied `3427571_A Standard pipe supports Bolted.xls` is not arbitrary six-DOF bolt-group solver authority
+
+Issue #721 remains the governing programme backlog; this handover does not claim P0-P7 complete or waive their source/master/validation obligations.
 
 ## Roadmap ledger
 
