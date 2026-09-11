@@ -100,6 +100,7 @@ function calculate(input) {
     }],
     assessment: {
       status: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
+      outcome: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
       disposition: result.utilization.withinReferenceStress
         ? 'REFERENCE_STRESS_NOT_EXCEEDED'
         : 'REFERENCE_STRESS_EXCEEDED',

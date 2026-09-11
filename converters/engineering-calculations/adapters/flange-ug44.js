@@ -104,6 +104,7 @@ function calculate(input) {
     }],
     assessment: {
       status: result.pass ? 'PASS' : 'FAIL',
+      outcome: result.pass ? 'PASS' : 'FAIL',
       disposition: result.pass ? 'REFERENCE_RELATIONSHIP_SATISFIED' : 'REFERENCE_RELATIONSHIP_EXCEEDED',
       governingEligible: false,
       designAuthority: false,
