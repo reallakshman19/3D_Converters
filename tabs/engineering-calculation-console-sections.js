@@ -94,15 +94,23 @@ export function renderInputForm(definition, state) {
   return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
 
+function assessmentDisplay(status) {
+  return status === 'NOT_ASSESSED' ? 'NOT ASSESSED' : status;
+}
+
 function assessmentBanner(view) {
+  const disposition = view.assessment.disposition;
   if (view.assessment.status === 'FAIL') {
-    return `<div class="engineering-console-banner bad"><strong>Assessment failed.</strong>${view.assessment.disposition ? ` ${esc(view.assessment.disposition)}` : ''}</div>`;
+    return `<div class="engineering-console-banner bad"><strong>Assessment failed.</strong>${disposition ? ` ${esc(disposition)}` : ''}</div>`;
   }
   if (view.assessment.status === 'PASS') {
-    return `<div class="engineering-console-banner"><strong>Assessment passed.</strong>${view.assessment.disposition ? ` ${esc(view.assessment.disposition)}` : ''}</div>`;
+    return `<div class="engineering-console-banner"><strong>Assessment passed.</strong>${disposition ? ` ${esc(disposition)}` : ''}</div>`;
   }
-  if (view.assessment.status === 'NOT ASSESSED') {
-    return '<div class="engineering-console-banner warn"><strong>No qualified assessment returned.</strong> Numerical execution is not an engineering PASS.</div>';
+  if (view.assessment.status === 'NOT_ASSESSED') {
+    return `<div class="engineering-console-banner warn"><strong>No top-level acceptance decision.</strong>${disposition ? ` Disposition: ${esc(disposition)}.` : ''} Numerical execution is not an engineering PASS.</div>`;
+  }
+  if (view.assessment.status === 'INDETERMINATE') {
+    return `<div class="engineering-console-banner warn"><strong>Assessment indeterminate.</strong>${disposition ? ` Disposition: ${esc(disposition)}.` : ''} Review the checks and evidence before using the result.</div>`;
   }
   return '';
 }
@@ -117,7 +125,7 @@ export function renderResults(definition, result, validation) {
   const validationBanner = validation ? `<div class="engineering-console-banner ${validation.ok ? '' : 'bad'}">Validation: ${validation.ok ? 'PASS' : 'BLOCKED'} · ${(validation.errors||[]).length} errors · ${(validation.warnings||[]).length} warnings</div>` : '';
   if (!result) return `${validationBanner}<div class="engineering-console-empty">No calculation result yet.</div>`;
   const view = buildEngineeringResultViewModel(definition, result);
-  return `${validationBanner}${assessmentBanner(view)}<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Assessment</small><strong>${esc(view.assessment.status)}</strong></div><div class="engineering-console-card"><small>Authority</small><strong>${esc(view.authority.effective ?? '—')}</strong></div><div class="engineering-console-card"><small>Execution</small><strong>${esc(view.execution.status)}</strong></div><div class="engineering-console-card"><small>Design authority</small><strong>${yesNoUnknown(view.authority.designAuthority)}</strong></div><div class="engineering-console-card"><small>Code compliance</small><strong>${yesNoUnknown(view.authority.codeCompliance)}</strong></div><div class="engineering-console-card"><small>Governing eligible</small><strong>${yesNoUnknown(view.assessment.governingEligible)}</strong></div></div>${view.execution.errorCode ? `<div class="engineering-console-banner bad">${esc(view.execution.errorCode)}</div>` : ''}${(result.errors||[]).map((error)=>`<div class="engineering-console-banner bad">${esc(error.code)} — ${esc(error.message)}</div>`).join('')}${(result.warnings||[]).map((warning)=>`<div class="engineering-console-banner warn">${esc(warning.message || warning.code || warning)}</div>`).join('')}${view.outputs.length ? `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Output</th><th>Value</th><th>Unit</th></tr></thead><tbody>${view.outputs.map((output)=>`<tr><td>${esc(output.label)}</td><td>${scalar(output.value)}</td><td>${esc(output.unit ?? '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="engineering-console-empty">No authoritative outputs returned.</div>'}`;
+  return `${validationBanner}${assessmentBanner(view)}<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Assessment outcome</small><strong>${esc(assessmentDisplay(view.assessment.status))}</strong></div><div class="engineering-console-card"><small>Disposition</small><strong>${esc(view.assessment.disposition ?? '—')}</strong></div><div class="engineering-console-card"><small>Authority</small><strong>${esc(view.authority.effective ?? '—')}</strong></div><div class="engineering-console-card"><small>Execution</small><strong>${esc(view.execution.status)}</strong></div><div class="engineering-console-card"><small>Design authority</small><strong>${yesNoUnknown(view.authority.designAuthority)}</strong></div><div class="engineering-console-card"><small>Code compliance</small><strong>${yesNoUnknown(view.authority.codeCompliance)}</strong></div><div class="engineering-console-card"><small>Governing eligible</small><strong>${yesNoUnknown(view.assessment.governingEligible)}</strong></div></div>${view.execution.errorCode ? `<div class="engineering-console-banner bad">${esc(view.execution.errorCode)}</div>` : ''}${(result.errors||[]).map((error)=>`<div class="engineering-console-banner bad">${esc(error.code)} — ${esc(error.message)}</div>`).join('')}${(result.warnings||[]).map((warning)=>`<div class="engineering-console-banner warn">${esc(warning.message || warning.code || warning)}</div>`).join('')}${view.outputs.length ? `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Output</th><th>Value</th><th>Unit</th></tr></thead><tbody>${view.outputs.map((output)=>`<tr><td>${esc(output.label)}</td><td>${scalar(output.value)}</td><td>${esc(output.unit ?? '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="engineering-console-empty">No authoritative outputs returned.</div>'}`;
 }
 
 export function renderChecks(result) {
