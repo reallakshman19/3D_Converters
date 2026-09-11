@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildEngineeringConsoleRequest,
+  buildEngineeringResultViewModel,
   createEngineeringConsoleDraft,
   engineeringResultLabel,
   invalidateEngineeringConsoleExecution,
@@ -9,11 +10,11 @@ import {
   parseEngineeringBatchEditor,
   parseEngineeringConsoleField,
 } from '../tabs/engineering-calculation-console-model.js';
-import { renderInputForm } from '../tabs/engineering-calculation-console-sections.js';
+import { renderInputForm, renderResults } from '../tabs/engineering-calculation-console-sections.js';
 
 const definition = {
   id: 'TEST.CALC.ONE',
-  authority: { qualificationState: 'IMPLEMENTED' },
+  authority: { qualificationState: 'IMPLEMENTED', codeCompliance: false },
   inputs: [
     { key: 'p', label: 'Pressure', type: 'number', required: true, quantity: 'pressure', canonicalUnit: 'MPa' },
     { key: 'flag', type: 'boolean', engineeringDefault: false },
@@ -21,6 +22,9 @@ const definition = {
     { key: 'obj', type: 'object' },
     { key: 'arr', label: 'Attestations', type: 'array' },
     { key: 'optional', type: 'number' },
+  ],
+  outputs: [
+    { key: 'pressure', label: 'Calculated pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'MPa' },
   ],
 };
 
@@ -71,10 +75,47 @@ test('blocked state and batch parsing fail closed', () => {
   assert.equal(parseEngineeringBatchEditor('{bad').ok, false);
 });
 
-test('result label reflects API result without synthesizing assessment', () => {
-  assert.equal(engineeringResultLabel({ ok: true, assessment: null }), 'CALCULATED');
+test('result label never equates successful execution with engineering PASS', () => {
+  assert.equal(engineeringResultLabel({ ok: true, assessment: null }), 'NOT ASSESSED');
   assert.equal(engineeringResultLabel({ ok: true, assessment: { status: 'PASS' } }), 'PASS');
-  assert.equal(engineeringResultLabel({ ok: false, errors: [{ code: 'ENGINEERING_METHOD_BLOCKED' }] }), 'ENGINEERING_METHOD_BLOCKED');
+  assert.equal(engineeringResultLabel({ ok: true, checks: [{ satisfied: false }] }), 'FAIL');
+  assert.equal(engineeringResultLabel({ ok: false, errors: [{ code: 'ENGINEERING_METHOD_BLOCKED' }] }), 'NOT AVAILABLE');
+});
+
+test('result view model separates execution, assessment, authority, checks, and output metadata', () => {
+  const view = buildEngineeringResultViewModel(definition, {
+    ok: true,
+    outputs: { pressure: 12.5 },
+    checks: [{ id: 'LIMIT', satisfied: false, utilization: 1.25, designAuthority: false }],
+    assessment: { governingEligible: false, designAuthority: false, codeCompliance: false },
+    qualification: { effective: 'BENCHMARK_ONLY', designAuthority: false },
+    execution: { executionId: 'exec-1' },
+  });
+
+  assert.equal(view.execution.status, 'COMPLETED');
+  assert.equal(view.assessment.status, 'FAIL');
+  assert.equal(view.authority.effective, 'BENCHMARK_ONLY');
+  assert.equal(view.checks[0].status, 'FAIL');
+  assert.equal(view.checks[0].authority, 'BENCHMARK_ONLY');
+  assert.equal(view.outputs[0].label, 'Calculated pressure');
+  assert.equal(view.outputs[0].unit, 'MPa');
+});
+
+test('results renderer exposes failed assessment separately from execution and renders units', () => {
+  const html = renderResults(definition, {
+    ok: true,
+    outputs: { pressure: 12.5 },
+    checks: [{ id: 'LIMIT', status: 'FAIL', utilization: 1.25, authority: 'BENCHMARK_ONLY' }],
+    assessment: { status: 'FAIL', disposition: 'LIMIT_EXCEEDED', governingEligible: false, designAuthority: false, codeCompliance: false },
+    qualification: { effective: 'BENCHMARK_ONLY', designAuthority: false },
+    execution: { executionId: 'exec-1' },
+  }, null);
+
+  assert.match(html, /Assessment failed/);
+  assert.match(html, /<small>Execution<\/small><strong>COMPLETED<\/strong>/);
+  assert.match(html, /Calculated pressure/);
+  assert.match(html, /<td>MPa<\/td>/);
+  assert.doesNotMatch(html, />CALCULATED</);
 });
 
 test('input mutation invalidates stale single-calculation evidence', () => {
