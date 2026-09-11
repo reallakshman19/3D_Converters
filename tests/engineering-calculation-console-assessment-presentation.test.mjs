@@ -53,9 +53,9 @@ test('NOT_ASSESSED rendering distinguishes completed execution from engineering 
     execution: { executionId: 'exec-unassessed' },
   }, null);
 
-  assert.match(html, /No top-level assessment decision returned/);
+  assert.match(html, /No top-level acceptance decision/);
   assert.match(html, /Numerical execution is not an engineering PASS/);
-  assert.match(html, /<small>Assessment outcome<\/small><strong>NOT_ASSESSED<\/strong>/);
+  assert.match(html, /<small>Assessment outcome<\/small><strong>NOT ASSESSED<\/strong>/);
   assert.match(html, /<small>Disposition<\/small><strong>CALCULATED_REVIEW<\/strong>/);
   assert.match(html, /<small>Execution<\/small><strong>COMPLETED<\/strong>/);
 });
