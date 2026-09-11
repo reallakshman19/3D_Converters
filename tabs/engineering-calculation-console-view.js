@@ -1,5 +1,4 @@
 import {
-  buildEngineeringResultViewModel,
   canExecuteEngineeringCalculation,
   canResolveEngineeringCalculation,
   isEngineeringCalculationExecutable,
@@ -21,17 +20,6 @@ const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
 const FIT_PRODUCT_SURFACE = 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
 const AIV_QUALIFICATION_SURFACE = 'VIBRATION_AIV_QUALIFICATION_WORKSPACE';
-const VIEW_TABS = Object.freeze([
-  ['results', 'Results'],
-  ['checks', 'Checks'],
-  ['basis', 'Basis'],
-  ['evidence', 'Evidence'],
-  ['batch', 'Batch'],
-]);
-
-function idToken(value) {
-  return String(value ?? '').replace(/[^a-z0-9_-]/gi, '-');
-}
 
 function authorityPillKind(definition) {
   const state = definitionState(definition);
@@ -50,13 +38,10 @@ function isAivQualificationWorkspace(definition) {
 function renderCatalog(definitions, families, state) {
   return families.filter((family) => family.count > 0).map((family) => {
     const rows = definitions.filter((definition) => definition.family === family.id);
-    const expanded = state.selectedFamily === family.id;
-    const listId = `engineering-console-family-${idToken(family.id)}-list`;
-    const calculators = expanded ? `<div id="${listId}" class="engineering-console-calc-list">${rows.map((definition) => {
-      const active = state.selectedId === definition.id;
-      return `<button class="engineering-console-calc-btn ${active ? 'is-active' : ''}" data-calc-id="${definition.id}"${active ? ' aria-current="page"' : ''}><span>${esc(definition.shortName || definition.name)}</span>${pill(definitionState(definition), authorityPillKind(definition))}</button>`;
+    const calculators = state.selectedFamily === family.id ? `<div class="engineering-console-calc-list">${rows.map((definition) => {
+      return `<button class="engineering-console-calc-btn ${state.selectedId === definition.id ? 'is-active' : ''}" data-calc-id="${definition.id}"><span>${esc(definition.shortName || definition.name)}</span>${pill(definitionState(definition), authorityPillKind(definition))}</button>`;
     }).join('')}</div>` : '';
-    return `<div class="engineering-console-family"><button class="engineering-console-family-btn ${expanded ? 'is-active' : ''}" data-family-id="${family.id}" aria-expanded="${expanded ? 'true' : 'false'}" aria-controls="${listId}"><span>${esc(family.label)}</span><small>${rows.length}</small></button>${calculators}</div>`;
+    return `<div class="engineering-console-family"><button class="engineering-console-family-btn ${state.selectedFamily === family.id ? 'is-active' : ''}" data-family-id="${family.id}"><span>${esc(family.label)}</span><small>${rows.length}</small></button>${calculators}</div>`;
   }).join('');
 }
 
@@ -65,14 +50,7 @@ function activeView(definition, state) {
   if (state.activeView === 'basis') return renderBasis(definition, state.resolution);
   if (state.activeView === 'evidence') return renderEvidence(state.result);
   if (state.activeView === 'batch') return renderBatch(state, definition);
-  return renderResults(definition, state.result, state.validation);
-}
-
-function resultAnnouncement(definition, state) {
-  if (!state.result) return '';
-  const view = buildEngineeringResultViewModel(definition, state.result);
-  const authority = view.authority.effective ? ` Authority ${view.authority.effective}.` : '';
-  return `Calculation ${view.execution.status.toLowerCase()}. Assessment ${view.assessment.status}.${authority}`;
+  return renderResults(state.result, state.validation, definition);
 }
 
 function renderConsoleActions(definition, state) {
@@ -85,7 +63,7 @@ function renderConsoleActions(definition, state) {
   if (isAivQualificationWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
   }
-  return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${item === state.qualificationMode ? 'selected' : ''}>${item}</option>`).join('')}</select></label><button class="engineering-console-btn" data-action="export-audit" ${state.result ? '' : 'disabled'} title="Export calculation trace, authority, units, provenance, and evidence">Export audit</button></div>`;
+  return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${state.qualificationMode === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label><button type="button" class="engineering-console-btn" data-action="export-package" ${state.result ? '' : 'disabled'}>Export JSON</button></div>`;
 }
 
 function renderDefinitionBody(definition, state) {
@@ -97,22 +75,17 @@ function renderDefinitionBody(definition, state) {
   }
   const executable = canExecuteEngineeringCalculation(definition, state.qualificationMode);
   const resolvable = canResolveEngineeringCalculation(definition);
-  const activeTabId = `engineering-console-tab-${state.activeView}`;
-  const tabs = VIEW_TABS.map(([id,label]) => {
-    const active = state.activeView === id;
-    return `<button id="engineering-console-tab-${id}" class="engineering-console-view-btn ${active ? 'is-active' : ''}" data-view="${id}" role="tab" aria-selected="${active ? 'true' : 'false'}" aria-controls="engineering-console-view-panel" tabindex="${active ? '0' : '-1'}">${label}</button>`;
-  }).join('');
-  const announcement = resultAnnouncement(definition, state);
-  return `<section class="engineering-console-card"><h3>Inputs</h3>${renderInputForm(definition,state)}<div class="engineering-console-actions"><button class="engineering-console-btn" data-action="validate" ${resolvable ? '' : 'disabled'}>Validate</button><button class="engineering-console-btn" data-action="resolve" ${resolvable ? '' : 'disabled'}>Resolve</button><button class="engineering-console-btn primary" data-action="calculate" ${executable ? '' : 'disabled'}>Calculate</button></div></section><nav class="engineering-console-view-tabs" role="tablist" aria-label="Calculation result views">${tabs}</nav><div class="engineering-console-sr-only" role="status" aria-live="polite" aria-atomic="true">${esc(announcement)}</div><section id="engineering-console-view-panel" class="engineering-console-results" role="tabpanel" aria-labelledby="${activeTabId}" tabindex="0">${activeView(definition,state)}</section>`;
+  const tabs = [['results','Results'],['checks','Checks'],['basis','Basis'],['evidence','Evidence'],['batch','Batch']];
+  return `<section class="engineering-console-card"><h3>Inputs</h3>${renderInputForm(definition,state)}<div class="engineering-console-actions"><button class="engineering-console-btn" data-action="validate" ${resolvable ? '' : 'disabled'}>Validate</button><button class="engineering-console-btn" data-action="resolve" ${resolvable ? '' : 'disabled'}>Resolve</button><button class="engineering-console-btn primary" data-action="calculate" ${executable ? '' : 'disabled'}>Calculate</button></div></section><nav class="engineering-console-view-tabs" role="tablist" aria-label="Calculation output views">${tabs.map(([id,label]) => `<button role="tab" aria-selected="${state.activeView === id ? 'true' : 'false'}" aria-controls="engineering-console-tabpanel" class="engineering-console-view-btn ${state.activeView === id ? 'is-active' : ''}" data-view="${id}">${label}</button>`).join('')}</nav><section id="engineering-console-tabpanel" role="tabpanel" class="engineering-console-results" aria-live="polite">${activeView(definition,state)}</section>`;
 }
 
 function renderFamilyLanding(definitions, families, state) {
-  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div></header><div class="engineering-console-layout"><aside class="engineering-console-sidebar" aria-label="Calculation families">${renderCatalog(definitions, families, state)}</aside><main class="engineering-console-main">${renderVibrationFamilyLanding(definitions)}</main></div></div>`;
+  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div></header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions, families, state)}</aside><main class="engineering-console-main">${renderVibrationFamilyLanding(definitions)}</main></div></div>`;
 }
 
 export function renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state }) {
   if (state.familyLanding === 'VIB') return renderFamilyLanding(definitions, families, state);
 
   const issue = definition.qualificationIssue ? pill(`#${definition.qualificationIssue}`, 'warn') : '';
-  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div>${renderConsoleActions(definition,state)}</header><div class="engineering-console-layout"><aside class="engineering-console-sidebar" aria-label="Calculation families">${renderCatalog(definitions,families,state)}</aside><main class="engineering-console-main"><section class="engineering-console-definition"><div><h3>${esc(definition.name)}</h3><div class="engineering-console-id">${esc(definition.id)}</div></div><div>${pill(definitionState(definition), authorityPillKind(definition))} ${issue}</div></section>${renderDefinitionBody(definition,state)}</main></div></div>`;
+  return `<div class="engineering-console-root"><header class="engineering-console-header"><div><h2>Engineering Calculations</h2><p>Registry-driven execution console. Engineering equations and authority remain in the registered calculation APIs.</p></div>${renderConsoleActions(definition,state)}</header><div class="engineering-console-layout"><aside class="engineering-console-sidebar">${renderCatalog(definitions,families,state)}</aside><main class="engineering-console-main"><section class="engineering-console-definition"><div><h3>${esc(definition.name)}</h3><div class="engineering-console-id">${esc(definition.id)}</div></div><div>${pill(definitionState(definition), authorityPillKind(definition))} ${issue}</div></section>${renderDefinitionBody(definition,state)}</main></div></div>`;
 }

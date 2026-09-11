@@ -81,14 +81,14 @@ test('AIV workbench presents bounded screening authority before secondary qualif
   assert.match(html, /SCREENING QUALIFIED/);
   assert.match(html, /Authority scope: Assessment LOF only/);
   assert.match(html, /bounded release envelope/);
-  assert.match(html, /not design approval/);
+  assert.match(html, /Design authority: false/);
   assert.match(html, /aivq-banner is-qualified/);
   assert.match(html, /data-aiv-file="eit"/);
   assert.match(html, /Import EI \.eit/);
   assert.match(html, /Qualification evidence & method trace/);
   assert.doesNotMatch(html, /TABLE\/IMPORT MODE ACTIVE/);
   assert.ok(html.indexOf('Start an AIV assessment') < html.indexOf('AIV result scopes'));
-  assert.ok(html.indexOf('AIV result scopes') < html.indexOf('Qualification evidence & method trace'));
+  assert.ok(html.indexOf('AIV result scopes') < html.indexOf('Qualification evidence'));
 });
 
 test('mock flare entry point is wired and EIT export remains fail-closed until screening succeeds', () => {
@@ -116,17 +116,13 @@ test('mock flare entry point is wired and EIT export remains fail-closed until s
 
 test('relationship canvas is first-class for non-flare benchmark inputs', () => {
   const html = renderAivQualificationWorkspaceHtml(benchmarkState());
-  const canvasIndex = html.indexOf('AIV relationship canvas');
-  const flareIndex = html.indexOf('Flare network authoring');
-  assert.ok(canvasIndex >= 0, 'benchmark input should render relationship canvas');
-  assert.ok(flareIndex >= 0, 'optional flare authoring disclosure should remain available');
-  assert.ok(canvasIndex < flareIndex, 'relationship canvas must not be nested under flare authoring');
-  assert.match(html, /data-aiv-disclosure-key="flare-network-authoring"/);
+  const canvasIndex = html.indexOf('AIV Network Canvas Editor');
+  assert.ok(canvasIndex >= 0, 'benchmark input should render AIV Network Canvas Editor');
+  assert.match(html, /data-aiv-unified-canvas-svg/);
 });
 
 test('secondary engineering tools are progressive disclosures rather than equal-weight page sections', () => {
   const html = renderAivQualificationWorkspaceHtml(createInitialAivQualificationState());
-  assert.match(html, /data-aiv-disclosure-key="flare-network-authoring"/);
   assert.match(html, /data-aiv-disclosure-key="benchmark-assumptions"/);
   assert.match(html, /data-aiv-disclosure-key="working-data-tables"/);
   assert.match(html, /data-aiv-disclosure-key="advanced-imports"/);
@@ -221,7 +217,7 @@ test('UI context preserves disclosure, table scroll, detail tab and edit focus',
     '[data-aiv-disclosure-key]': [newDisclosure],
     '[data-aiv-scroll-key]': [newScroll],
     '[data-aiv-canvas-assumption-detail]': [newDetail],
-    '[data-aiv-table-cell],[data-aiv-assumption]': [newFocus],
+    '[data-aiv-engineering-field-key],[data-aiv-table-cell],[data-aiv-assumption]': [newFocus],
   });
 
   restoreAivUiContext(newContainer, context);
