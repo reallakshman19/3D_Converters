@@ -84,6 +84,8 @@ function calculate(input, runtime = {}) {
     checks: [],
     assessment: {
       status: result.referenceStatus,
+      outcome: 'NOT_ASSESSED',
+      disposition: result.referenceStatus,
       pass: null,
       authority: 'GOVERNED_PIPELINE_REFERENCE_ONLY',
       canUseForDesignAuthority: false,
