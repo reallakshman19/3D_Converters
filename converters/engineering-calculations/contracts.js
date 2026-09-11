@@ -39,6 +39,10 @@ export const ENGINEERING_CALCULATION_CHECK_STATUSES = Object.freeze([
   'PASS', 'FAIL', 'NOT_APPLICABLE', 'NOT_EVALUATED', 'INDETERMINATE',
 ]);
 
+export const ENGINEERING_CALCULATION_ASSESSMENT_OUTCOMES = Object.freeze([
+  'PASS', 'FAIL', 'NOT_ASSESSED', 'INDETERMINATE',
+]);
+
 const LEGACY_ENGINEERING_CHECK_STATUS_ALIASES = Object.freeze({
   NOT_CHECKED: 'NOT_EVALUATED',
 });
@@ -92,6 +96,28 @@ export function normalizeEngineeringCalculationCheck(check = {}) {
 export function normalizeEngineeringCalculationChecks(checks = []) {
   if (!Array.isArray(checks)) return [];
   return checks.map((check) => normalizeEngineeringCalculationCheck(check));
+}
+
+function canonicalEngineeringAssessmentOutcome(assessment) {
+  if (ENGINEERING_CALCULATION_ASSESSMENT_OUTCOMES.includes(assessment?.outcome)) return assessment.outcome;
+  if (assessment?.pass === true) return 'PASS';
+  if (assessment?.pass === false) return 'FAIL';
+  if (ENGINEERING_CALCULATION_ASSESSMENT_OUTCOMES.includes(assessment?.status)) return assessment.status;
+  return 'NOT_ASSESSED';
+}
+
+export function normalizeEngineeringCalculationAssessment(assessment = null) {
+  if (assessment === null || assessment === undefined) return null;
+  const copy = cloneEngineeringValue(assessment);
+  const outcome = canonicalEngineeringAssessmentOutcome(copy);
+  const legacyStatus = copy.status;
+  const disposition = copy.disposition
+    ?? (legacyStatus && !ENGINEERING_CALCULATION_ASSESSMENT_OUTCOMES.includes(legacyStatus) ? legacyStatus : null);
+  return {
+    ...copy,
+    outcome,
+    ...(disposition !== null ? { disposition } : {}),
+  };
 }
 
 export function deepFreezeEngineeringValue(value, seen = new WeakSet()) {
