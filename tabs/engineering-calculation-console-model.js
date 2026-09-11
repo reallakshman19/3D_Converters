@@ -1,10 +1,4 @@
-import {
-  normalizeEngineeringCalculationAssessment,
-  normalizeEngineeringCalculationCheck,
-} from '../converters/engineering-calculations/contracts.js';
-
 const NON_EXECUTABLE_STATES = new Set(['CONCEPT', 'SOURCE_INVENTORIED', 'METHOD_SPECIFIED', 'BLOCKED']);
-export const ENGINEERING_CONSOLE_VIEW_IDS = Object.freeze(['results', 'checks', 'basis', 'evidence', 'batch']);
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object ?? {}, key);
@@ -37,29 +31,6 @@ export function canExecuteEngineeringCalculation(definition, qualificationMode =
   return !required || required === qualificationMode;
 }
 
-export function selectInitialEngineeringDefinition(definitions = [], requestedDefinition = null) {
-  if (requestedDefinition) return requestedDefinition;
-  return definitions.find((row) => row.id === 'PIPE.B313.THICKNESS')
-    ?? definitions.find(isEngineeringCalculationExecutable)
-    ?? definitions[0]
-    ?? null;
-}
-
-export function toggleEngineeringConsoleFamily(state, familyId) {
-  state.selectedFamily = state.selectedFamily === familyId ? null : familyId;
-  return state;
-}
-
-export function engineeringConsoleViewForKey(currentView, key) {
-  const currentIndex = ENGINEERING_CONSOLE_VIEW_IDS.indexOf(currentView);
-  if (currentIndex < 0) return null;
-  if (key === 'Home') return ENGINEERING_CONSOLE_VIEW_IDS[0];
-  if (key === 'End') return ENGINEERING_CONSOLE_VIEW_IDS[ENGINEERING_CONSOLE_VIEW_IDS.length - 1];
-  if (key === 'ArrowRight') return ENGINEERING_CONSOLE_VIEW_IDS[(currentIndex + 1) % ENGINEERING_CONSOLE_VIEW_IDS.length];
-  if (key === 'ArrowLeft') return ENGINEERING_CONSOLE_VIEW_IDS[(currentIndex - 1 + ENGINEERING_CONSOLE_VIEW_IDS.length) % ENGINEERING_CONSOLE_VIEW_IDS.length];
-  return null;
-}
-
 export function createEngineeringConsoleDraft(definition, seed = {}) {
   const values = {};
   const units = {};
@@ -70,36 +41,6 @@ export function createEngineeringConsoleDraft(definition, seed = {}) {
     if (field.quantity && field.quantity !== 'dimensionless') units[field.key] = field.canonicalUnit ?? '';
   }
   return { values, units };
-}
-
-function objectDraftValue(raw) {
-  if (!raw) return {};
-  if (typeof raw === 'object' && !Array.isArray(raw)) return { ...raw };
-  try {
-    const parsed = JSON.parse(String(raw));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-export function readEngineeringConsoleObjectDraft(draft, fieldKey) {
-  return objectDraftValue(draft?.values?.[fieldKey]);
-}
-
-export function updateEngineeringConsoleObjectDraft(draft, fieldKey, property, rawValue, { number = false } = {}) {
-  const value = objectDraftValue(draft?.values?.[fieldKey]);
-  if (rawValue === '' || rawValue === undefined || rawValue === null) {
-    delete value[property];
-  } else if (number) {
-    const parsed = Number(rawValue);
-    value[property] = Number.isFinite(parsed) ? parsed : rawValue;
-  } else {
-    value[property] = rawValue;
-  }
-  if (property === 'basis' && rawValue !== 'absolute') delete value.unit;
-  draft.values[fieldKey] = Object.keys(value).length ? JSON.stringify(value, null, 2) : '';
-  return value;
 }
 
 function parseBoolean(raw) {
@@ -214,128 +155,31 @@ export function invalidateEngineeringConsoleExecution(state) {
   return state;
 }
 
-export function normalizeEngineeringCheck(check = {}, result = null) {
-  const normalized = normalizeEngineeringCalculationCheck(check);
-  return {
-    ...normalized,
-    authority: check.authority ?? result?.qualification?.effective ?? normalized.authority,
-  };
-}
-
-function normalizedAssessment(result) {
-  return normalizeEngineeringCalculationAssessment(result?.assessment ?? null);
-}
-
-function assessmentStatus(result, checks, assessment) {
-  if (!result) return 'NOT RUN';
-  if (!result.ok) return 'NOT AVAILABLE';
-  if (assessment?.outcome) return assessment.outcome;
-  if (checks.some((check) => check.status === 'FAIL')) return 'FAIL';
-  if (checks.some((check) => check.status === 'INDETERMINATE')) return 'INDETERMINATE';
-  const evaluated = checks.filter((check) => !['NOT_APPLICABLE', 'NOT_EVALUATED'].includes(check.status));
-  if (evaluated.length && evaluated.every((check) => check.status === 'PASS')) return 'PASS';
-  return 'NOT_ASSESSED';
-}
-
-export function buildEngineeringResultViewModel(definition, result) {
-  const checks = (result?.checks ?? []).map((check) => normalizeEngineeringCheck(check, result));
-  const assessment = normalizedAssessment(result);
-  const outputMetadata = new Map((definition?.outputs ?? []).map((output) => [output.key, output]));
-  const outputs = Object.entries(result?.outputs ?? {}).map(([key, value]) => {
-    const metadata = outputMetadata.get(key);
-    return {
-      key,
-      label: metadata?.label ?? key,
-      value,
-      unit: metadata?.canonicalUnit ?? null,
-      quantity: metadata?.quantity ?? null,
-    };
-  });
-  const executionStatus = !result ? 'NOT RUN' : result.ok ? 'COMPLETED' : 'FAILED';
-  return {
-    execution: {
-      status: executionStatus,
-      executionId: result?.execution?.executionId ?? null,
-      errorCode: result?.ok === false ? result.errors?.[0]?.code ?? 'CALCULATION_FAILED' : null,
-    },
-    assessment: {
-      status: assessmentStatus(result, checks, assessment),
-      disposition: assessment?.disposition ?? null,
-      governingEligible: assessment?.governingEligible ?? null,
-    },
-    authority: {
-      effective: result?.qualification?.effective
-        ?? definition?.authority?.qualificationState
-        ?? definition?.authority?.calculationState
-        ?? null,
-      designAuthority: assessment?.designAuthority ?? result?.qualification?.designAuthority ?? null,
-      codeCompliance: assessment?.codeCompliance ?? definition?.authority?.codeCompliance ?? null,
-    },
-    outputs,
-    checks,
-  };
-}
-
-function canonicalInputsFromResolved(resolvedInputs = {}) {
-  return Object.fromEntries(Object.entries(resolvedInputs).map(([key, item]) => [key, item?.canonicalValue]));
-}
-
-function inputTransformationsFromResolved(resolvedInputs = {}) {
-  return Object.fromEntries(Object.entries(resolvedInputs).map(([key, item]) => [key, {
-    inputValue: item?.value ?? null,
-    inputUnit: item?.unit ?? null,
-    canonicalValue: item?.canonicalValue ?? null,
-    canonicalUnit: item?.canonicalUnit ?? null,
-    transformation: item?.transformation ?? null,
-    source: item?.source ?? null,
-    overridden: Boolean(item?.overridden),
-  }]));
-}
-
-function qualificationRecordId(result) {
-  return result?.qualification?.recordId
-    ?? result?.provenance?.qualificationRecordId
-    ?? result?.evidence?.qualificationRecordId
-    ?? null;
-}
-
-export function buildEngineeringAuditManifest(definition, result) {
-  if (!definition || !result) return null;
-  return {
-    schemaVersion: 'engineering-calculation-audit/v1',
-    calculation: {
-      calculationId: definition.id,
-      family: definition.family ?? result.family ?? null,
-      name: definition.name ?? null,
-      methodRevision: result.methodRevision ?? definition.methodRevision ?? null,
-      solverRevision: result.execution?.implementationRevision ?? definition.implementationVersion ?? null,
-      definitionContractVersion: definition.contractVersion ?? null,
-      resultContractVersion: result.contractVersion ?? null,
-    },
-    execution: result.execution ?? null,
-    authority: definition.authority ?? null,
-    qualification: result.qualification ?? null,
-    qualificationRecordId: qualificationRecordId(result),
-    applicability: result.applicability ?? null,
-    inputs: result.inputs ?? {},
-    resolvedInputs: result.resolvedInputs ?? {},
-    canonicalInputs: canonicalInputsFromResolved(result.resolvedInputs ?? {}),
-    inputTransformations: inputTransformationsFromResolved(result.resolvedInputs ?? {}),
-    outputs: result.outputs ?? {},
-    intermediates: result.intermediates ?? {},
-    checks: result.checks ?? [],
-    assessment: result.assessment ?? null,
-    warnings: result.warnings ?? [],
-    errors: result.errors ?? [],
-    provenance: result.provenance ?? {},
-    evidence: result.evidence ?? {},
-  };
-}
-
-function displayAssessmentStatus(status) {
-  return status === 'NOT_ASSESSED' ? 'NOT ASSESSED' : status;
-}
-
 export function engineeringResultLabel(result) {
-  return displayAssessmentStatus(buildEngineeringResultViewModel(null, result).assessment.status);
+  if (!result) return 'NOT RUN';
+  if (!result.ok) return result.errors?.[0]?.code ?? 'FAILED';
+  if (result.assessment?.status) return result.assessment.status;
+  const disposition = String(result.assessment?.disposition || '').toUpperCase();
+  if (disposition.includes('NOT_EXCEEDED') || disposition.endsWith('_SATISFIED') || disposition === 'PASS') {
+    return 'PASS';
+  }
+  if (disposition.includes('EXCEEDED') || disposition === 'FAIL') {
+    return 'FAIL';
+  }
+  if (Array.isArray(result.checks) && result.checks.length > 0) {
+    const hasFail = result.checks.some((c) => c.satisfied === false || c.status === 'FAIL');
+    if (hasFail) return 'FAIL';
+    const allPass = result.checks.every((c) => c.satisfied === true || c.status === 'PASS');
+    if (allPass) return 'PASS';
+  }
+  return 'CALCULATED';
 }
+
+export function engineeringResultKind(result) {
+  const label = engineeringResultLabel(result);
+  if (label === 'PASS') return 'ok';
+  if (label === 'FAIL' || (!result?.ok && result !== null)) return 'bad';
+  if (label === 'CALCULATED') return 'ok';
+  return '';
+}
+

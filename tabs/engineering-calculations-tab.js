@@ -8,16 +8,11 @@ import {
   validateEngineeringCalculationInput,
 } from '../converters/engineering-calculations/index.js';
 import {
-  buildEngineeringAuditManifest,
   buildEngineeringConsoleRequest,
   createEngineeringConsoleDraft,
-  engineeringConsoleViewForKey,
   invalidateEngineeringConsoleExecution,
   isEngineeringCalculationExecutable,
   parseEngineeringBatchEditor,
-  selectInitialEngineeringDefinition,
-  toggleEngineeringConsoleFamily,
-  updateEngineeringConsoleObjectDraft,
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 import {
@@ -63,7 +58,11 @@ function ensureStylesheet() {
 
 function initialDefinition(definitions, context) {
   const requested = context?.calculationId ? getEngineeringCalculationDefinition(context.calculationId) : null;
-  return selectInitialEngineeringDefinition(definitions, requested);
+  if (requested) return requested;
+  return definitions.find((row) => row.id === 'PIPE.B313.THICKNESS')
+    ?? definitions.find((row) => row.id === 'PIPE.B313.MATERIAL_DESIGN')
+    ?? definitions.find(isEngineeringCalculationExecutable)
+    ?? definitions[0];
 }
 
 function validationOptions(request) {
@@ -200,6 +199,15 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     render();
   }
 
+  function openFamilyLanding(familyId) {
+    state.selectedFamily = familyId;
+    state.selectedId = null;
+    state.familyLanding = familyId;
+    state.editorErrors = [];
+    invalidateEngineeringConsoleExecution(state);
+    render();
+  }
+
   function buildRequest() {
     const built = buildEngineeringConsoleRequest(definition, state.draft, {
       executionMode: state.mode,
@@ -240,24 +248,6 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     state.result = calculateEngineering(built.request);
     state.activeView = 'results';
     render();
-  }
-
-  function exportAudit() {
-    const manifest = buildEngineeringAuditManifest(definition, state.result);
-    if (!manifest) return;
-    const doc = container.ownerDocument ?? globalThis.document;
-    const win = doc?.defaultView ?? globalThis;
-    const BlobCtor = win.Blob ?? globalThis.Blob;
-    const URLApi = win.URL ?? globalThis.URL;
-    if (!doc?.createElement || typeof BlobCtor !== 'function' || typeof URLApi?.createObjectURL !== 'function') return;
-    const blob = new BlobCtor([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
-    const url = URLApi.createObjectURL(blob);
-    const anchor = doc.createElement('a');
-    const timestamp = String(state.result?.execution?.timestamp ?? new Date().toISOString()).replace(/[:.]/g, '-');
-    anchor.href = url;
-    anchor.download = `engineering-audit-${definition.id.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}.json`;
-    anchor.click();
-    URLApi.revokeObjectURL(url);
   }
 
   function addCurrentToBatch() {
@@ -325,8 +315,19 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     }
     const family = event.target.closest('[data-family-id]');
     if (family) {
-      toggleEngineeringConsoleFamily(state, family.dataset.familyId);
-      render();
+      const familyId = family.dataset.familyId;
+      if (familyId === VIBRATION_FAMILY_ID) {
+        openFamilyLanding(familyId);
+        return;
+      }
+      if (state.selectedFamily === familyId && !state.familyLanding) {
+        return;
+      }
+      state.familyLanding = null;
+      state.selectedFamily = familyId;
+      const next = definitions.find((row) => row.family === familyId && isEngineeringCalculationExecutable(row))
+        ?? definitions.find((row) => row.family === familyId);
+      if (next) resetForDefinition(next); else render();
       return;
     }
     const view = event.target.closest('[data-view]');
@@ -335,40 +336,40 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     if (action === 'validate') runValidation();
     else if (action === 'resolve') runResolution();
     else if (action === 'calculate') runCalculation();
-    else if (action === 'export-audit') exportAudit();
     else if (action === 'add-current-batch') addCurrentToBatch();
     else if (action === 'run-batch') runBatch();
+    else if (action === 'export-package') exportAuditPackage();
   }
 
-  function onKeyDown(event) {
-    const tab = event.target.closest('[role="tab"][data-view]');
-    if (!tab) return;
-    const nextView = engineeringConsoleViewForKey(tab.dataset.view, event.key);
-    if (!nextView) return;
-    event.preventDefault();
-    state.activeView = nextView;
-    render();
-    container.querySelector(`[role="tab"][data-view="${nextView}"]`)?.focus();
+  function exportAuditPackage() {
+    if (!state.result) return;
+    const pkg = {
+      contractVersion: definition.contractVersion,
+      calculationId: definition.id,
+      methodRevision: definition.methodRevision,
+      timestamp: new Date().toISOString(),
+      qualification: state.result.qualification,
+      provenance: state.result.provenance,
+      authority: definition.authority,
+      draftInputs: state.draft.values,
+      draftUnits: state.draft.units,
+      intermediates: state.result.intermediates,
+      outputs: state.result.outputs,
+      checks: state.result.checks,
+      assessment: state.result.assessment,
+    };
+    const json = JSON.stringify(pkg, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${definition.id.toLowerCase()}-${Date.now()}.audit.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
   }
 
   function onInput(event) {
-    const objectField = event.target.dataset.objectField;
-    if (objectField) {
-      const property = event.target.dataset.objectProperty;
-      updateEngineeringConsoleObjectDraft(state.draft, objectField, property, event.target.value, {
-        number: event.target.dataset.objectType === 'number',
-      });
-      state.editorErrors = state.editorErrors.filter((item) => item.field !== objectField);
-      invalidateEngineeringConsoleExecution(state);
-      if (property === 'basis') {
-        const unitControl = event.target.closest('.engineering-console-object-editor')?.querySelector('[data-object-unit-control]');
-        if (unitControl) {
-          unitControl.disabled = event.target.value !== 'absolute';
-          if (event.target.value !== 'absolute') unitControl.value = '';
-        }
-      }
-      return;
-    }
     const field = event.target.dataset.field;
     if (field) {
       state.draft.values[field] = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
@@ -399,7 +400,6 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   container.addEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
   container.addEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
   container.addEventListener('click', onClick);
-  container.addEventListener('keydown', onKeyDown);
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);
   render();
@@ -412,7 +412,6 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     container.removeEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
     container.removeEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
     container.removeEventListener('click', onClick);
-    container.removeEventListener('keydown', onKeyDown);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
   };
