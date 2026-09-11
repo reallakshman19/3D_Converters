@@ -42,6 +42,15 @@ test('dedicated product workspaces are exempt from generic JSON-editor guidance 
   assert(aggregateInputs(aiv).length > 0);
 });
 
+test('structured aggregate editors do not receive irrelevant JSON-editor instructions', () => {
+  const definition = getEngineeringCalculationDefinition('PIPE.B313.THICKNESS');
+  const draft = createEngineeringConsoleDraft(definition);
+  const html = renderInputForm(definition, { draft, editorErrors: [] });
+  assert.match(html, /data-object-property="basis"/);
+  assert.doesNotMatch(html, /Enter a JSON object/);
+  assert.doesNotMatch(html, /No calculator-specific example shape/);
+});
+
 test('material-design examples render as placeholders without becoming engineering defaults', () => {
   const definition = getEngineeringCalculationDefinition('PIPE.B313.MATERIAL_DESIGN');
   const draft = createEngineeringConsoleDraft(definition);
