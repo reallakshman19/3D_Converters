@@ -106,7 +106,19 @@ test('installation-strength adapter converts units and reproduces independent so
   close(result.outputs.utilization, 0.30260902830846675, 1e-14);
   assert.equal(result.outputs.withinReferenceStress, true);
   assert.equal(result.intermediates.torquePath.transmittedTorqueComponent, 'THREAD_TORQUE_ONLY');
+  assert.equal(result.assessment.status, 'PASS');
   assert.equal(result.assessment.governingEligible, false);
+
+  const [check] = result.checks;
+  assert.equal(check.id, 'INSTALLATION_VON_MISES_REFERENCE_STRESS');
+  assert.equal(check.label, 'Installation von-Mises stress vs explicit reference stress');
+  close(check.actual, result.outputs.vonMisesStress, 1e-6);
+  close(check.allowable, 640e6, 1e-6);
+  assert.equal(check.comparator, '<=');
+  close(check.utilization, result.outputs.utilization, 1e-14);
+  assert.equal(check.status, 'PASS');
+  assert.equal(check.authority, 'BENCHMARK_ONLY');
+  assert.equal(check.basis, 'EXPLICIT_CALLER_REFERENCE_STRESS');
 });
 
 test('invalid nut-factor ordering fails closed through the central engine', () => {
