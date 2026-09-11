@@ -1,6 +1,6 @@
 import {
+  buildEngineeringResultViewModel,
   canExecuteEngineeringCalculation,
-  engineeringResultLabel,
   isEngineeringCalculationExecutable,
 } from './engineering-calculation-console-model.js';
 
@@ -52,17 +52,36 @@ export function renderInputForm(definition, state) {
   return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
 
-export function renderResults(result, validation) {
+function assessmentBanner(view) {
+  if (view.assessment.status === 'FAIL') {
+    return `<div class="engineering-console-banner bad"><strong>Assessment failed.</strong>${view.assessment.disposition ? ` ${esc(view.assessment.disposition)}` : ''}</div>`;
+  }
+  if (view.assessment.status === 'PASS') {
+    return `<div class="engineering-console-banner"><strong>Assessment passed.</strong>${view.assessment.disposition ? ` ${esc(view.assessment.disposition)}` : ''}</div>`;
+  }
+  if (view.assessment.status === 'NOT ASSESSED') {
+    return '<div class="engineering-console-banner warn"><strong>No qualified assessment returned.</strong> Numerical execution is not an engineering PASS.</div>';
+  }
+  return '';
+}
+
+function yesNoUnknown(value) {
+  if (value === true) return 'YES';
+  if (value === false) return 'NO';
+  return '—';
+}
+
+export function renderResults(definition, result, validation) {
   const validationBanner = validation ? `<div class="engineering-console-banner ${validation.ok ? '' : 'bad'}">Validation: ${validation.ok ? 'PASS' : 'BLOCKED'} · ${(validation.errors||[]).length} errors · ${(validation.warnings||[]).length} warnings</div>` : '';
   if (!result) return `${validationBanner}<div class="engineering-console-empty">No calculation result yet.</div>`;
-  const rows = Object.entries(result.outputs || {});
-  return `${validationBanner}<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Status</small><strong>${esc(engineeringResultLabel(result))}</strong></div><div class="engineering-console-card"><small>Qualification</small><strong>${esc(result.qualification?.effective ?? '—')}</strong></div><div class="engineering-console-card"><small>Design authority</small><strong>${result.qualification?.designAuthority === true ? 'YES' : 'NO'}</strong></div><div class="engineering-console-card"><small>Execution</small><strong>${esc(result.execution?.executionId ?? '—')}</strong></div></div>${(result.errors||[]).map((error)=>`<div class="engineering-console-banner bad">${esc(error.code)} — ${esc(error.message)}</div>`).join('')}${(result.warnings||[]).map((warning)=>`<div class="engineering-console-banner warn">${esc(warning.message || warning.code || warning)}</div>`).join('')}${rows.length ? `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Output</th><th>Value</th></tr></thead><tbody>${rows.map(([key,value])=>`<tr><td>${esc(key)}</td><td>${scalar(value)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="engineering-console-empty">No authoritative outputs returned.</div>'}`;
+  const view = buildEngineeringResultViewModel(definition, result);
+  return `${validationBanner}${assessmentBanner(view)}<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Assessment</small><strong>${esc(view.assessment.status)}</strong></div><div class="engineering-console-card"><small>Authority</small><strong>${esc(view.authority.effective ?? '—')}</strong></div><div class="engineering-console-card"><small>Execution</small><strong>${esc(view.execution.status)}</strong></div><div class="engineering-console-card"><small>Design authority</small><strong>${yesNoUnknown(view.authority.designAuthority)}</strong></div><div class="engineering-console-card"><small>Code compliance</small><strong>${yesNoUnknown(view.authority.codeCompliance)}</strong></div><div class="engineering-console-card"><small>Governing eligible</small><strong>${yesNoUnknown(view.assessment.governingEligible)}</strong></div></div>${view.execution.errorCode ? `<div class="engineering-console-banner bad">${esc(view.execution.errorCode)}</div>` : ''}${(result.errors||[]).map((error)=>`<div class="engineering-console-banner bad">${esc(error.code)} — ${esc(error.message)}</div>`).join('')}${(result.warnings||[]).map((warning)=>`<div class="engineering-console-banner warn">${esc(warning.message || warning.code || warning)}</div>`).join('')}${view.outputs.length ? `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Output</th><th>Value</th><th>Unit</th></tr></thead><tbody>${view.outputs.map((output)=>`<tr><td>${esc(output.label)}</td><td>${scalar(output.value)}</td><td>${esc(output.unit ?? '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="engineering-console-empty">No authoritative outputs returned.</div>'}`;
 }
 
 export function renderChecks(result) {
-  const checks = result?.checks || [];
+  const checks = buildEngineeringResultViewModel(null, result).checks;
   if (!checks.length) return '<div class="engineering-console-empty">No qualified assessment checks returned by the calculator.</div>';
-  return `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Check</th><th>Actual</th><th>Allowable</th><th>Utilization</th><th>Status</th><th>Authority</th></tr></thead><tbody>${checks.map((check)=>`<tr><td>${esc(check.label || check.id)}</td><td>${scalar(check.actual)}</td><td>${scalar(check.allowable)}</td><td>${scalar(check.utilization)}</td><td>${pill(check.status || '—', check.status === 'PASS' ? 'ok' : check.status === 'FAIL' ? 'bad' : '')}</td><td>${esc(check.authority || '—')}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Check</th><th>Actual</th><th>Allowable</th><th>Utilization</th><th>Status</th><th>Authority</th></tr></thead><tbody>${checks.map((check)=>`<tr><td>${esc(check.label)}</td><td>${scalar(check.actual)}</td><td>${scalar(check.allowable)}</td><td>${scalar(check.utilization)}</td><td>${pill(check.status, check.status === 'PASS' ? 'ok' : check.status === 'FAIL' ? 'bad' : 'warn')}</td><td>${esc(check.authority)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 export function renderBasis(definition, resolution) {
