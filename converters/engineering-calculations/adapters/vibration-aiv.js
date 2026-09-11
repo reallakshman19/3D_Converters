@@ -106,6 +106,7 @@ function calculate(input, runtime = {}) {
     engineeringInputRevision: input.engineeringInputRevision ?? null,
   });
   const screening = mode === 'screening';
+  const resultScope = screening ? 'ASSESSMENT_SCREENING' : 'BENCHMARK';
   return {
     ok: true,
     outputs: {
@@ -124,7 +125,9 @@ function calculate(input, runtime = {}) {
     },
     checks: [],
     assessment: {
-      resultScope: screening ? 'ASSESSMENT_SCREENING' : 'BENCHMARK',
+      outcome: 'NOT_ASSESSED',
+      disposition: resultScope,
+      resultScope,
       screeningAuthority: screening ? 'AUTHORIZED' : 'NOT_AUTHORIZED',
       lineCaseAggregationRuleQualification: result.lineCaseAggregationRuleQualification,
       lineCaseAssessmentInventoryCompleteness: result.lineCaseAssessmentInventoryCompleteness,
