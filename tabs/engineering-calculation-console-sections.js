@@ -4,6 +4,11 @@ import {
   isEngineeringCalculationExecutable,
   readEngineeringConsoleObjectDraft,
 } from './engineering-calculation-console-model.js';
+import {
+  engineeringConsoleJsonExampleText,
+  getEngineeringConsoleJsonGuidance,
+  isEngineeringConsoleAggregateField,
+} from './engineering-calculation-console-json-guidance.js';
 
 export function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
@@ -27,6 +32,28 @@ function accessibilityAttrs(id, errors) {
     : '';
 }
 
+function aggregatePlaceholder(definition, field) {
+  if (field.placeholder) return field.placeholder;
+  const example = engineeringConsoleJsonExampleText(definition, field);
+  if (example) return example;
+  return field.type === 'object' ? '{\n}' : '[\n]';
+}
+
+function aggregateGuidance(definition, field) {
+  if (!isEngineeringConsoleAggregateField(field) || field.ui?.editor) return '';
+  const declared = getEngineeringConsoleJsonGuidance(definition, field);
+  const shape = field.type === 'object'
+    ? 'Enter a JSON object'
+    : field.type === 'table'
+      ? 'Enter a JSON array of row objects'
+      : 'Enter a JSON array';
+  const example = engineeringConsoleJsonExampleText(definition, field);
+  const exampleNote = example
+    ? 'The empty editor shows an example shape; example values are not defaults and are not submitted.'
+    : 'No calculator-specific example shape is declared; consult the calculator basis/API contract before entry.';
+  return [shape, declared?.help, exampleNote].filter(Boolean).join(' · ');
+}
+
 function negativeMillToleranceControl(field, state, errors) {
   const id = fieldId(field);
   const value = readEngineeringConsoleObjectDraft(state.draft, field.key);
@@ -42,7 +69,7 @@ function negativeMillToleranceControl(field, state, errors) {
   </div>`;
 }
 
-function fieldControl(field, state, errors) {
+function fieldControl(definition, field, state, errors) {
   const value = state.draft.values[field.key];
   const id = fieldId(field);
   const attrs = accessibilityAttrs(id, errors);
@@ -51,7 +78,7 @@ function fieldControl(field, state, errors) {
     return `<label class="engineering-console-checkbox" for="${id}"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}${attrs}><span>${esc(field.label || field.key)}${field.required ? ' *' : ''}</span></label>`;
   }
   if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}"${attrs}>${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
-  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false" placeholder="${esc(field.placeholder || '')}"${attrs}>${esc(value)}</textarea>`;
+  if (isEngineeringConsoleAggregateField(field)) return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false" placeholder="${esc(aggregatePlaceholder(definition, field))}"${attrs}>${esc(value)}</textarea>`;
   const type = ['number','integer'].includes(field.type ?? 'number') ? 'number' : 'text';
   return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}"${attrs}>`;
 }
@@ -86,10 +113,12 @@ export function renderInputForm(definition, state) {
     const errorMarkup = errors.length
       ? `<div id="${errorId}" class="engineering-console-field-error">${errors.map((item)=>esc(item.message)).join(' · ')}</div>`
       : '';
-    const guidance = field.help
-      ? esc(field.help)
-      : `${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}`;
-    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}">${visibleLabel}<div class="engineering-console-control-row">${fieldControl(field,state,errors)}${unit}</div><div class="engineering-console-field-meta">${guidance}</div>${errorMarkup}</div>`;
+    const baseGuidance = field.help
+      ? field.help
+      : `${field.engineeringDefault !== undefined ? `Declared default: ${String(field.engineeringDefault)}` : 'No UI default'}${field.quantity ? ` · ${field.quantity}` : ''}`;
+    const jsonGuidance = aggregateGuidance(definition, field);
+    const guidance = [baseGuidance, jsonGuidance].filter(Boolean).map(esc).join(' · ');
+    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}">${visibleLabel}<div class="engineering-console-control-row">${fieldControl(definition,field,state,errors)}${unit}</div><div class="engineering-console-field-meta">${guidance}</div>${errorMarkup}</div>`;
   }).join('');
   return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
