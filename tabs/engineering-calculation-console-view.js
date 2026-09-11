@@ -85,7 +85,7 @@ function renderConsoleActions(definition, state) {
   if (isAivQualificationWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill(definitionState(definition), authorityPillKind(definition))}</div>`;
   }
-  return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${state.qualificationMode === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label></div>`;
+  return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${item === state.qualificationMode ? 'selected' : ''}>${item}</option>`).join('')}</select></label><button class="engineering-console-btn" data-action="export-audit" ${state.result ? '' : 'disabled'} title="Export calculation trace, authority, units, provenance, and evidence">Export audit</button></div>`;
 }
 
 function renderDefinitionBody(definition, state) {

@@ -29,6 +29,15 @@ const allowanceFields = [
   min: 0,
 }));
 
+const negativeMillToleranceField = Object.freeze({
+  key: 'negativeMillTolerance',
+  label: 'Negative mill tolerance',
+  type: 'object',
+  required: true,
+  help: 'Choose percentage tolerance or an absolute length deduction. Percentage values are entered as percent, for example 12.5 for 12.5%.',
+  ui: { editor: 'negative-mill-tolerance' },
+});
+
 function failureFragment(result, qualification) {
   return {
     ok: false,
@@ -133,7 +142,7 @@ function thicknessDefinition(deps) {
       { key: 'weldStrengthReductionW', label: 'Weld strength reduction W', type: 'number', required: true, quantity: 'dimensionless', canonicalUnit: null, minExclusive: 0, max: 1 },
       { key: 'coefficientY', label: 'Coefficient Y', type: 'number', required: true, quantity: 'dimensionless', canonicalUnit: null, min: 0, max: 1 },
       ...allowanceFields,
-      { key: 'negativeMillTolerance', label: 'Negative mill tolerance', type: 'object', required: true },
+      negativeMillToleranceField,
       { key: 'providedNominalThickness', label: 'Provided nominal wall', type: 'number', quantity: 'length', canonicalUnit: 'mm', minExclusive: 0 },
     ],
     outputs: [
@@ -192,7 +201,7 @@ function materialDefinition(deps) {
       { key: 'designPressure', label: 'Design pressure', type: 'number', required: true, quantity: 'pressure', canonicalUnit: 'MPa', pressureReference: 'gauge', minExclusive: 0 },
       { key: 'outsideDiameter', label: 'Outside diameter', type: 'number', required: true, quantity: 'length', canonicalUnit: 'mm', minExclusive: 0 },
       ...allowanceFields,
-      { key: 'negativeMillTolerance', label: 'Negative mill tolerance', type: 'object', required: true },
+      negativeMillToleranceField,
       { key: 'factorOverrides', label: 'Factor overrides', type: 'object' },
       { key: 'dn', label: 'DN', type: 'number', quantity: 'dimensionless', canonicalUnit: null, minExclusive: 0 },
       { key: 'nps', label: 'NPS', type: 'number', quantity: 'dimensionless', canonicalUnit: null, minExclusive: 0 },
