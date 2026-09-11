@@ -35,6 +35,9 @@ const OUTPUTS = Object.freeze([
   { key: 'margin', label: 'Pressure margin', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
   { key: 'bendingEquivalentPressure', label: 'Bending equivalent pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
   { key: 'axialEquivalentPressure', label: 'Axial equivalent pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
+  { key: 'externalEquivalentPressure', label: 'External equivalent pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
+  { key: 'availablePressure', label: 'Available pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
+  { key: 'demandPressure', label: 'Demand pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'Pa' },
 ]);
 
 function qualification() {
@@ -86,8 +89,21 @@ function calculate(input) {
       availablePressure: result.availablePressurePa,
       demandPressure: result.demandPressurePa,
     },
-    checks: [{ id: 'UG44B_REFERENCE_RELATIONSHIP', satisfied: result.pass, utilization: result.utilization, designAuthority: false }],
+    checks: [{
+      id: 'UG44B_REFERENCE_RELATIONSHIP',
+      label: 'UG-44(b) reference relationship',
+      actual: result.demandPressurePa,
+      allowable: result.availablePressurePa,
+      comparator: '<=',
+      utilization: result.utilization,
+      status: result.pass ? 'PASS' : 'FAIL',
+      authority: 'BENCHMARK_ONLY',
+      basis: 'PV_ELITE_C101_ROUNDED_INPUT_CROSS_SOLVER',
+      satisfied: result.pass,
+      designAuthority: false,
+    }],
     assessment: {
+      status: result.pass ? 'PASS' : 'FAIL',
       disposition: result.pass ? 'REFERENCE_RELATIONSHIP_SATISFIED' : 'REFERENCE_RELATIONSHIP_EXCEEDED',
       governingEligible: false,
       designAuthority: false,
