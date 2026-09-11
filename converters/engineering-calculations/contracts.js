@@ -35,6 +35,14 @@ export const ENGINEERING_ERROR_CODES = Object.freeze([
   'ENGINEERING_METHOD_NOT_QUALIFIED', 'CALCULATION_FAILED', 'ASSESSMENT_NOT_AVAILABLE',
 ]);
 
+export const ENGINEERING_CALCULATION_CHECK_STATUSES = Object.freeze([
+  'PASS', 'FAIL', 'NOT_APPLICABLE', 'NOT_EVALUATED', 'INDETERMINATE',
+]);
+
+const LEGACY_ENGINEERING_CHECK_STATUS_ALIASES = Object.freeze({
+  NOT_CHECKED: 'NOT_EVALUATED',
+});
+
 export function normalizeEngineeringCalculationId(value) {
   return String(value ?? '').trim().toUpperCase();
 }
@@ -54,6 +62,36 @@ export function cloneEngineeringValue(value, seen = new WeakMap()) {
   seen.set(value, copy);
   for (const [key, child] of Object.entries(value)) copy[key] = cloneEngineeringValue(child, seen);
   return copy;
+}
+
+function canonicalEngineeringCheckStatus(check) {
+  const declared = LEGACY_ENGINEERING_CHECK_STATUS_ALIASES[check?.status] ?? check?.status;
+  if (ENGINEERING_CALCULATION_CHECK_STATUSES.includes(declared)) return declared;
+  if (check?.satisfied === true) return 'PASS';
+  if (check?.satisfied === false) return 'FAIL';
+  return 'INDETERMINATE';
+}
+
+export function normalizeEngineeringCalculationCheck(check = {}) {
+  const copy = cloneEngineeringValue(check);
+  return {
+    ...copy,
+    id: copy.id ?? null,
+    label: copy.label ?? copy.id ?? 'Unnamed check',
+    actual: copy.actual ?? null,
+    allowable: copy.allowable ?? null,
+    comparator: copy.comparator ?? null,
+    utilization: copy.utilization ?? null,
+    status: canonicalEngineeringCheckStatus(copy),
+    authority: copy.authority
+      ?? (copy.designAuthority === true ? 'DESIGN_AUTHORITY' : copy.designAuthority === false ? 'NON_DESIGN' : 'UNDECLARED'),
+    basis: copy.basis ?? null,
+  };
+}
+
+export function normalizeEngineeringCalculationChecks(checks = []) {
+  if (!Array.isArray(checks)) return [];
+  return checks.map((check) => normalizeEngineeringCalculationCheck(check));
 }
 
 export function deepFreezeEngineeringValue(value, seen = new WeakSet()) {
