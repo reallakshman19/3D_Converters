@@ -40,7 +40,7 @@ function aggregatePlaceholder(definition, field) {
 }
 
 function aggregateGuidance(definition, field) {
-  if (!isEngineeringConsoleAggregateField(field)) return '';
+  if (!isEngineeringConsoleAggregateField(field) || field.ui?.editor) return '';
   const declared = getEngineeringConsoleJsonGuidance(definition, field);
   const shape = field.type === 'object'
     ? 'Enter a JSON object'
