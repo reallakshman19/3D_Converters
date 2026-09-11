@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  buildEngineeringAuditManifest,
   buildEngineeringConsoleRequest,
   buildEngineeringResultViewModel,
   createEngineeringConsoleDraft,
@@ -11,12 +12,16 @@ import {
   isEngineeringCalculationExecutable,
   parseEngineeringBatchEditor,
   parseEngineeringConsoleField,
+  readEngineeringConsoleObjectDraft,
+  selectInitialEngineeringDefinition,
   toggleEngineeringConsoleFamily,
+  updateEngineeringConsoleObjectDraft,
 } from '../tabs/engineering-calculation-console-model.js';
 import { renderInputForm, renderResults } from '../tabs/engineering-calculation-console-sections.js';
 import { renderEngineeringCalculationConsoleHtml } from '../tabs/engineering-calculation-console-view.js';
 
 const definition = {
+  contractVersion: 'engineering-calculation-contract/v1',
   id: 'TEST.CALC.ONE',
   family: 'TEST',
   name: 'Test Calculation',
@@ -37,6 +42,14 @@ const definition = {
     { key: 'pressure', label: 'Calculated pressure', type: 'number', quantity: 'pressure', canonicalUnit: 'MPa' },
   ],
 };
+
+test('startup prefers focused B31.3 thickness instead of material-design workflow', () => {
+  const material = { id: 'PIPE.B313.MATERIAL_DESIGN', authority: { qualificationState: 'IMPLEMENTED' } };
+  const thickness = { id: 'PIPE.B313.THICKNESS', authority: { qualificationState: 'IMPLEMENTED' } };
+  const other = { id: 'TEST.OTHER', authority: { qualificationState: 'IMPLEMENTED' } };
+  assert.equal(selectInitialEngineeringDefinition([material, other, thickness]), thickness);
+  assert.equal(selectInitialEngineeringDefinition([material, other, thickness], material), material);
+});
 
 test('draft uses declared defaults, JSON aggregate editing, and canonical units only', () => {
   const draft = createEngineeringConsoleDraft(definition, { p: 12, arr: [{ id: 'A1' }] });
@@ -64,6 +77,39 @@ test('array fields render as JSON textarea controls rather than scalar text inpu
   const html = renderInputForm(definition, { draft, editorErrors: [] });
   assert.match(html, /<textarea[^>]+data-field="arr"/);
   assert.match(html, /&quot;id&quot;: &quot;A1&quot;/);
+});
+
+test('structured mill-tolerance editor builds the domain object without requiring JSON syntax', () => {
+  const toleranceDefinition = {
+    ...definition,
+    inputs: [{
+      key: 'negativeMillTolerance',
+      label: 'Negative mill tolerance',
+      type: 'object',
+      required: true,
+      help: 'Choose percentage tolerance or an absolute length deduction.',
+      ui: { editor: 'negative-mill-tolerance' },
+    }],
+  };
+  const draft = createEngineeringConsoleDraft(toleranceDefinition);
+  updateEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance', 'basis', 'percent');
+  updateEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance', 'value', '12.5', { number: true });
+  assert.deepEqual(readEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance'), { basis: 'percent', value: 12.5 });
+
+  let html = renderInputForm(toleranceDefinition, { draft, editorErrors: [] });
+  assert.match(html, /data-object-property="basis"/);
+  assert.match(html, /data-object-property="value"/);
+  assert.match(html, /data-object-unit-control disabled/);
+  assert.doesNotMatch(html, /engineering-console-json-editor/);
+  assert.match(html, /value="12\.5"/);
+  assert.match(html, />%<\/option>/);
+
+  updateEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance', 'basis', 'absolute');
+  updateEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance', 'unit', 'mm');
+  assert.deepEqual(readEngineeringConsoleObjectDraft(draft, 'negativeMillTolerance'), { basis: 'absolute', value: 12.5, unit: 'mm' });
+  html = renderInputForm(toleranceDefinition, { draft, editorErrors: [] });
+  assert.doesNotMatch(html, /data-object-unit-control disabled/);
+  assert.match(html, /option value="mm" selected/);
 });
 
 test('form controls have explicit labels and validation descriptions', () => {
@@ -146,6 +192,43 @@ test('result view model separates execution, assessment, authority, checks, and 
   assert.equal(view.outputs[0].unit, 'MPa');
 });
 
+test('audit manifest retains solver revision, authority, qualification, and canonical input transforms', () => {
+  const result = {
+    contractVersion: 'engineering-calculation-result/v1',
+    ok: true,
+    calculationId: definition.id,
+    family: definition.family,
+    methodRevision: definition.methodRevision,
+    execution: { executionId: 'exec-1', timestamp: '2026-09-11T07:00:00Z', implementationRevision: 'abc123' },
+    inputs: { p: 25 },
+    resolvedInputs: {
+      p: {
+        key: 'p', value: 25, unit: 'bar', canonicalValue: 2.5, canonicalUnit: 'MPa',
+        transformation: 'bar->MPa', source: { type: 'CALLER' }, overridden: false,
+      },
+    },
+    outputs: { pressure: 2.5 },
+    checks: [],
+    assessment: null,
+    qualification: { effective: 'BENCHMARK_ONLY', designAuthority: false, recordId: 'QUAL-17' },
+    provenance: { masterRevision: 'R4' },
+    evidence: { source: 'fixture' },
+    applicability: { applicable: true, limitations: [] },
+    warnings: [], errors: [], intermediates: {},
+  };
+  const manifest = buildEngineeringAuditManifest(definition, result);
+  assert.equal(manifest.schemaVersion, 'engineering-calculation-audit/v1');
+  assert.equal(manifest.calculation.methodRevision, '1.0.0');
+  assert.equal(manifest.calculation.solverRevision, 'abc123');
+  assert.equal(manifest.qualificationRecordId, 'QUAL-17');
+  assert.equal(manifest.canonicalInputs.p, 2.5);
+  assert.equal(manifest.inputTransformations.p.inputUnit, 'bar');
+  assert.equal(manifest.inputTransformations.p.canonicalUnit, 'MPa');
+  assert.equal(manifest.inputTransformations.p.transformation, 'bar->MPa');
+  assert.deepEqual(manifest.inputTransformations.p.source, { type: 'CALLER' });
+  assert.deepEqual(manifest.provenance, { masterRevision: 'R4' });
+});
+
 test('results renderer exposes failed assessment separately from execution and renders units', () => {
   const html = renderResults(definition, {
     ok: true,
@@ -163,7 +246,7 @@ test('results renderer exposes failed assessment separately from execution and r
   assert.doesNotMatch(html, />CALCULATED</);
 });
 
-test('console view renders an ARIA tablist, tabpanel, family disclosure, and polite result status', () => {
+test('console view renders ARIA navigation, live status, and audit export availability', () => {
   const draft = createEngineeringConsoleDraft(definition, { p: 10 });
   const state = {
     selectedFamily: 'TEST',
@@ -199,13 +282,16 @@ test('console view renders an ARIA tablist, tabpanel, family disclosure, and pol
   assert.match(html, /role="tabpanel" aria-labelledby="engineering-console-tab-results" tabindex="0"/);
   assert.match(html, /data-family-id="TEST" aria-expanded="true" aria-controls="engineering-console-family-TEST-list"/);
   assert.match(html, /role="status" aria-live="polite" aria-atomic="true">Calculation completed\. Assessment FAIL\. Authority BENCHMARK_ONLY\.<\/div>/);
+  assert.match(html, /data-action="export-audit"[^>]*>Export audit<\/button>/);
+  assert.doesNotMatch(html, /data-action="export-audit" disabled/);
 });
 
-test('engineering console stylesheet exposes visible focus treatment', () => {
+test('engineering console stylesheet exposes visible focus treatment and structured object layout', () => {
   const css = readFileSync(new URL('../tabs/engineering-calculations.css', import.meta.url), 'utf8');
   assert.match(css, /engineering-console-view-btn:focus-visible/);
   assert.match(css, /engineering-console-input:focus-visible/);
   assert.match(css, /outline:2px solid/);
+  assert.match(css, /engineering-console-object-editor/);
 });
 
 test('input mutation invalidates stale single-calculation evidence', () => {

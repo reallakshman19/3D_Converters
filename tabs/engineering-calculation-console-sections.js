@@ -2,6 +2,7 @@ import {
   buildEngineeringResultViewModel,
   canExecuteEngineeringCalculation,
   isEngineeringCalculationExecutable,
+  readEngineeringConsoleObjectDraft,
 } from './engineering-calculation-console-model.js';
 
 export function esc(value) {
@@ -19,19 +20,40 @@ export function pill(text, kind='') { return `<span class="engineering-console-p
 function scalar(value) { return typeof value === 'object' && value !== null ? `<pre class="engineering-console-inline-json">${esc(pretty(value))}</pre>` : esc(value ?? '—'); }
 function fieldId(field) { return `engineering-console-${field.key.replace(/[^a-z0-9_-]/gi,'-')}`; }
 
+function accessibilityAttrs(id, errors) {
+  const errorId = `${id}-error`;
+  return errors.length
+    ? ` aria-invalid="true" aria-describedby="${errorId}"`
+    : '';
+}
+
+function negativeMillToleranceControl(field, state, errors) {
+  const id = fieldId(field);
+  const value = readEngineeringConsoleObjectDraft(state.draft, field.key);
+  const basis = value.basis ?? '';
+  const toleranceValue = value.value ?? '';
+  const unit = value.unit ?? '';
+  const attrs = accessibilityAttrs(id, errors);
+  const unitDisabled = basis === 'absolute' ? '' : ' disabled';
+  return `<div id="${id}" class="engineering-console-object-editor" role="group" aria-labelledby="${id}-label"${errors.length ? ` aria-describedby="${id}-error"` : ''}>
+    <label class="engineering-console-object-part" for="${id}-basis"><span>Basis</span><select id="${id}-basis" class="engineering-console-input" data-object-field="${field.key}" data-object-property="basis"${attrs}><option value="" ${basis === '' ? 'selected' : ''}>Select…</option><option value="percent" ${basis === 'percent' ? 'selected' : ''}>Percentage</option><option value="absolute" ${basis === 'absolute' ? 'selected' : ''}>Absolute length</option></select></label>
+    <label class="engineering-console-object-part" for="${id}-value"><span>Value</span><input id="${id}-value" class="engineering-console-input" type="number" step="any" min="0" data-object-field="${field.key}" data-object-property="value" data-object-type="number" value="${esc(toleranceValue)}"${attrs}></label>
+    <label class="engineering-console-object-part" for="${id}-unit"><span>Unit</span><select id="${id}-unit" class="engineering-console-input" data-object-field="${field.key}" data-object-property="unit" data-object-unit-control${unitDisabled}${attrs}><option value="" ${unit === '' ? 'selected' : ''}>${basis === 'percent' ? '%' : 'Select…'}</option><option value="mm" ${unit === 'mm' ? 'selected' : ''}>mm</option><option value="cm" ${unit === 'cm' ? 'selected' : ''}>cm</option><option value="m" ${unit === 'm' ? 'selected' : ''}>m</option><option value="in" ${unit === 'in' ? 'selected' : ''}>in</option></select></label>
+  </div>`;
+}
+
 function fieldControl(field, state, errors) {
   const value = state.draft.values[field.key];
   const id = fieldId(field);
-  const errorId = `${id}-error`;
-  const invalid = errors.length ? ' aria-invalid="true"' : '';
-  const describedBy = errors.length ? ` aria-describedby="${errorId}"` : '';
+  const attrs = accessibilityAttrs(id, errors);
+  if (field.ui?.editor === 'negative-mill-tolerance') return negativeMillToleranceControl(field, state, errors);
   if (field.type === 'boolean') {
-    return `<label class="engineering-console-checkbox" for="${id}"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}${invalid}${describedBy}><span>${esc(field.label || field.key)}${field.required ? ' *' : ''}</span></label>`;
+    return `<label class="engineering-console-checkbox" for="${id}"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}${attrs}><span>${esc(field.label || field.key)}${field.required ? ' *' : ''}</span></label>`;
   }
-  if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}"${invalid}${describedBy}>${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
-  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false"${invalid}${describedBy}>${esc(value)}</textarea>`;
+  if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}"${attrs}>${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
+  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false" placeholder="${esc(field.placeholder || '')}"${attrs}>${esc(value)}</textarea>`;
   const type = ['number','integer'].includes(field.type ?? 'number') ? 'number' : 'text';
-  return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}"${invalid}${describedBy}>`;
+  return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}"${attrs}>`;
 }
 
 function blockedDefinitionMessage(definition) {
@@ -52,16 +74,22 @@ export function renderInputForm(definition, state) {
     const errors = state.editorErrors.filter((item)=>item.field === field.key);
     const id = fieldId(field);
     const errorId = `${id}-error`;
+    const structuredObject = field.ui?.editor === 'negative-mill-tolerance';
     const unit = field.quantity && field.quantity !== 'dimensionless'
       ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">`
       : '';
     const visibleLabel = field.type === 'boolean'
       ? ''
-      : `<label for="${id}">${esc(field.label || field.key)}${field.required ? ' *' : ''}</label>`;
+      : structuredObject
+        ? `<div id="${id}-label" class="engineering-console-field-label">${esc(field.label || field.key)}${field.required ? ' *' : ''}</div>`
+        : `<label for="${id}">${esc(field.label || field.key)}${field.required ? ' *' : ''}</label>`;
     const errorMarkup = errors.length
       ? `<div id="${errorId}" class="engineering-console-field-error">${errors.map((item)=>esc(item.message)).join(' · ')}</div>`
       : '';
-    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}">${visibleLabel}<div class="engineering-console-control-row">${fieldControl(field,state,errors)}${unit}</div><div class="engineering-console-field-meta">${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}</div>${errorMarkup}</div>`;
+    const guidance = field.help
+      ? esc(field.help)
+      : `${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}`;
+    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}">${visibleLabel}<div class="engineering-console-control-row">${fieldControl(field,state,errors)}${unit}</div><div class="engineering-console-field-meta">${guidance}</div>${errorMarkup}</div>`;
   }).join('');
   return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }

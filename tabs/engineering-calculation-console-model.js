@@ -33,6 +33,14 @@ export function canExecuteEngineeringCalculation(definition, qualificationMode =
   return !required || required === qualificationMode;
 }
 
+export function selectInitialEngineeringDefinition(definitions = [], requestedDefinition = null) {
+  if (requestedDefinition) return requestedDefinition;
+  return definitions.find((row) => row.id === 'PIPE.B313.THICKNESS')
+    ?? definitions.find(isEngineeringCalculationExecutable)
+    ?? definitions[0]
+    ?? null;
+}
+
 export function toggleEngineeringConsoleFamily(state, familyId) {
   state.selectedFamily = state.selectedFamily === familyId ? null : familyId;
   return state;
@@ -58,6 +66,36 @@ export function createEngineeringConsoleDraft(definition, seed = {}) {
     if (field.quantity && field.quantity !== 'dimensionless') units[field.key] = field.canonicalUnit ?? '';
   }
   return { values, units };
+}
+
+function objectDraftValue(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object' && !Array.isArray(raw)) return { ...raw };
+  try {
+    const parsed = JSON.parse(String(raw));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function readEngineeringConsoleObjectDraft(draft, fieldKey) {
+  return objectDraftValue(draft?.values?.[fieldKey]);
+}
+
+export function updateEngineeringConsoleObjectDraft(draft, fieldKey, property, rawValue, { number = false } = {}) {
+  const value = objectDraftValue(draft?.values?.[fieldKey]);
+  if (rawValue === '' || rawValue === undefined || rawValue === null) {
+    delete value[property];
+  } else if (number) {
+    const parsed = Number(rawValue);
+    value[property] = Number.isFinite(parsed) ? parsed : rawValue;
+  } else {
+    value[property] = rawValue;
+  }
+  if (property === 'basis' && rawValue !== 'absolute') delete value.unit;
+  draft.values[fieldKey] = Object.keys(value).length ? JSON.stringify(value, null, 2) : '';
+  return value;
 }
 
 function parseBoolean(raw) {
@@ -237,6 +275,62 @@ export function buildEngineeringResultViewModel(definition, result) {
     },
     outputs,
     checks,
+  };
+}
+
+function canonicalInputsFromResolved(resolvedInputs = {}) {
+  return Object.fromEntries(Object.entries(resolvedInputs).map(([key, item]) => [key, item?.canonicalValue]));
+}
+
+function inputTransformationsFromResolved(resolvedInputs = {}) {
+  return Object.fromEntries(Object.entries(resolvedInputs).map(([key, item]) => [key, {
+    inputValue: item?.value ?? null,
+    inputUnit: item?.unit ?? null,
+    canonicalValue: item?.canonicalValue ?? null,
+    canonicalUnit: item?.canonicalUnit ?? null,
+    transformation: item?.transformation ?? null,
+    source: item?.source ?? null,
+    overridden: Boolean(item?.overridden),
+  }]));
+}
+
+function qualificationRecordId(result) {
+  return result?.qualification?.recordId
+    ?? result?.provenance?.qualificationRecordId
+    ?? result?.evidence?.qualificationRecordId
+    ?? null;
+}
+
+export function buildEngineeringAuditManifest(definition, result) {
+  if (!definition || !result) return null;
+  return {
+    schemaVersion: 'engineering-calculation-audit/v1',
+    calculation: {
+      calculationId: definition.id,
+      family: definition.family ?? result.family ?? null,
+      name: definition.name ?? null,
+      methodRevision: result.methodRevision ?? definition.methodRevision ?? null,
+      solverRevision: result.execution?.implementationRevision ?? definition.implementationVersion ?? null,
+      definitionContractVersion: definition.contractVersion ?? null,
+      resultContractVersion: result.contractVersion ?? null,
+    },
+    execution: result.execution ?? null,
+    authority: definition.authority ?? null,
+    qualification: result.qualification ?? null,
+    qualificationRecordId: qualificationRecordId(result),
+    applicability: result.applicability ?? null,
+    inputs: result.inputs ?? {},
+    resolvedInputs: result.resolvedInputs ?? {},
+    canonicalInputs: canonicalInputsFromResolved(result.resolvedInputs ?? {}),
+    inputTransformations: inputTransformationsFromResolved(result.resolvedInputs ?? {}),
+    outputs: result.outputs ?? {},
+    intermediates: result.intermediates ?? {},
+    checks: result.checks ?? [],
+    assessment: result.assessment ?? null,
+    warnings: result.warnings ?? [],
+    errors: result.errors ?? [],
+    provenance: result.provenance ?? {},
+    evidence: result.evidence ?? {},
   };
 }
 
