@@ -1,20 +1,30 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   buildEngineeringConsoleRequest,
   buildEngineeringResultViewModel,
   createEngineeringConsoleDraft,
+  engineeringConsoleViewForKey,
   engineeringResultLabel,
   invalidateEngineeringConsoleExecution,
   isEngineeringCalculationExecutable,
   parseEngineeringBatchEditor,
   parseEngineeringConsoleField,
+  toggleEngineeringConsoleFamily,
 } from '../tabs/engineering-calculation-console-model.js';
 import { renderInputForm, renderResults } from '../tabs/engineering-calculation-console-sections.js';
+import { renderEngineeringCalculationConsoleHtml } from '../tabs/engineering-calculation-console-view.js';
 
 const definition = {
   id: 'TEST.CALC.ONE',
+  family: 'TEST',
+  name: 'Test Calculation',
+  shortName: 'Test Calc',
+  methodRevision: '1.0.0',
+  purpose: 'Test the engineering calculation console.',
   authority: { qualificationState: 'IMPLEMENTED', codeCompliance: false },
+  applicability: { description: 'Test applicability.', limitations: [] },
   inputs: [
     { key: 'p', label: 'Pressure', type: 'number', required: true, quantity: 'pressure', canonicalUnit: 'MPa' },
     { key: 'flag', type: 'boolean', engineeringDefault: false },
@@ -56,6 +66,19 @@ test('array fields render as JSON textarea controls rather than scalar text inpu
   assert.match(html, /&quot;id&quot;: &quot;A1&quot;/);
 });
 
+test('form controls have explicit labels and validation descriptions', () => {
+  const draft = createEngineeringConsoleDraft(definition, { p: 10 });
+  const html = renderInputForm(definition, {
+    draft,
+    editorErrors: [{ field: 'p', message: 'Pressure is invalid' }],
+  });
+  assert.match(html, /<label for="engineering-console-p">Pressure \*<\/label>/);
+  assert.match(html, /id="engineering-console-p"[^>]+aria-invalid="true"[^>]+aria-describedby="engineering-console-p-error"/);
+  assert.match(html, /id="engineering-console-p-error"[^>]*>Pressure is invalid<\/div>/);
+  assert.match(html, /<label class="engineering-console-checkbox" for="engineering-console-flag">/);
+  assert.doesNotMatch(html, />Enabled<\/span>/);
+});
+
 test('request omits blank optional fields and enables sandbox explicitly', () => {
   const draft = createEngineeringConsoleDraft(definition, { p: 10, arr: [{ id: 'A1' }] });
   const built = buildEngineeringConsoleRequest(definition, draft, { executionMode: 'sandbox', qualificationMode: 'screening' });
@@ -73,6 +96,28 @@ test('blocked state and batch parsing fail closed', () => {
   assert.equal(isEngineeringCalculationExecutable({ id: 'VIB.FIV.X', authority: { qualificationState: 'BLOCKED' } }), false);
   assert.equal(parseEngineeringBatchEditor('[{"calculationId":"A.B.C"}]').batchRequest.requests.length, 1);
   assert.equal(parseEngineeringBatchEditor('{bad').ok, false);
+});
+
+test('family disclosure is non-destructive to calculator selection, draft, and result state', () => {
+  const draft = { values: { p: 12.5 }, units: { p: 'MPa' } };
+  const result = { ok: true };
+  const state = { selectedFamily: 'TEST', selectedId: definition.id, draft, result };
+  toggleEngineeringConsoleFamily(state, 'TEST');
+  assert.equal(state.selectedFamily, null);
+  assert.equal(state.selectedId, definition.id);
+  assert.equal(state.draft, draft);
+  assert.equal(state.result, result);
+  toggleEngineeringConsoleFamily(state, 'OTHER');
+  assert.equal(state.selectedFamily, 'OTHER');
+  assert.equal(state.selectedId, definition.id);
+});
+
+test('tab keyboard navigation wraps and supports Home and End', () => {
+  assert.equal(engineeringConsoleViewForKey('results', 'ArrowRight'), 'checks');
+  assert.equal(engineeringConsoleViewForKey('results', 'ArrowLeft'), 'batch');
+  assert.equal(engineeringConsoleViewForKey('checks', 'Home'), 'results');
+  assert.equal(engineeringConsoleViewForKey('checks', 'End'), 'batch');
+  assert.equal(engineeringConsoleViewForKey('checks', 'Enter'), null);
 });
 
 test('result label never equates successful execution with engineering PASS', () => {
@@ -116,6 +161,51 @@ test('results renderer exposes failed assessment separately from execution and r
   assert.match(html, /Calculated pressure/);
   assert.match(html, /<td>MPa<\/td>/);
   assert.doesNotMatch(html, />CALCULATED</);
+});
+
+test('console view renders an ARIA tablist, tabpanel, family disclosure, and polite result status', () => {
+  const draft = createEngineeringConsoleDraft(definition, { p: 10 });
+  const state = {
+    selectedFamily: 'TEST',
+    selectedId: definition.id,
+    familyLanding: null,
+    draft,
+    mode: 'single',
+    qualificationMode: 'strict',
+    activeView: 'results',
+    editorErrors: [],
+    validation: null,
+    resolution: null,
+    result: {
+      ok: true,
+      outputs: { pressure: 12.5 },
+      checks: [{ id: 'LIMIT', status: 'FAIL', authority: 'BENCHMARK_ONLY' }],
+      assessment: { status: 'FAIL', governingEligible: false, designAuthority: false, codeCompliance: false },
+      qualification: { effective: 'BENCHMARK_ONLY', designAuthority: false },
+      execution: { executionId: 'exec-1' },
+    },
+    batchText: '[]',
+    batchResult: null,
+    batchError: null,
+  };
+  const html = renderEngineeringCalculationConsoleHtml({
+    definitions: [definition],
+    families: [{ id: 'TEST', label: 'Test family', count: 1 }],
+    definition,
+    state,
+  });
+  assert.match(html, /role="tablist" aria-label="Calculation result views"/);
+  assert.match(html, /role="tab" aria-selected="true" aria-controls="engineering-console-view-panel" tabindex="0">Results<\/button>/);
+  assert.match(html, /role="tabpanel" aria-labelledby="engineering-console-tab-results" tabindex="0"/);
+  assert.match(html, /data-family-id="TEST" aria-expanded="true" aria-controls="engineering-console-family-TEST-list"/);
+  assert.match(html, /role="status" aria-live="polite" aria-atomic="true">Calculation completed\. Assessment FAIL\. Authority BENCHMARK_ONLY\.<\/div>/);
+});
+
+test('engineering console stylesheet exposes visible focus treatment', () => {
+  const css = readFileSync(new URL('../tabs/engineering-calculations.css', import.meta.url), 'utf8');
+  assert.match(css, /engineering-console-view-btn:focus-visible/);
+  assert.match(css, /engineering-console-input:focus-visible/);
+  assert.match(css, /outline:2px solid/);
 });
 
 test('input mutation invalidates stale single-calculation evidence', () => {

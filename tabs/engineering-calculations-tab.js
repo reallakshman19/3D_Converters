@@ -10,9 +10,11 @@ import {
 import {
   buildEngineeringConsoleRequest,
   createEngineeringConsoleDraft,
+  engineeringConsoleViewForKey,
   invalidateEngineeringConsoleExecution,
   isEngineeringCalculationExecutable,
   parseEngineeringBatchEditor,
+  toggleEngineeringConsoleFamily,
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 import {
@@ -198,15 +200,6 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     render();
   }
 
-  function openFamilyLanding(familyId) {
-    state.selectedFamily = familyId;
-    state.selectedId = null;
-    state.familyLanding = familyId;
-    state.editorErrors = [];
-    invalidateEngineeringConsoleExecution(state);
-    render();
-  }
-
   function buildRequest() {
     const built = buildEngineeringConsoleRequest(definition, state.draft, {
       executionMode: state.mode,
@@ -314,16 +307,8 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     }
     const family = event.target.closest('[data-family-id]');
     if (family) {
-      const familyId = family.dataset.familyId;
-      if (familyId === VIBRATION_FAMILY_ID) {
-        openFamilyLanding(familyId);
-        return;
-      }
-      state.familyLanding = null;
-      state.selectedFamily = familyId;
-      const next = definitions.find((row) => row.family === familyId && isEngineeringCalculationExecutable(row))
-        ?? definitions.find((row) => row.family === familyId);
-      if (next) resetForDefinition(next); else render();
+      toggleEngineeringConsoleFamily(state, family.dataset.familyId);
+      render();
       return;
     }
     const view = event.target.closest('[data-view]');
@@ -334,6 +319,17 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     else if (action === 'calculate') runCalculation();
     else if (action === 'add-current-batch') addCurrentToBatch();
     else if (action === 'run-batch') runBatch();
+  }
+
+  function onKeyDown(event) {
+    const tab = event.target.closest('[role="tab"][data-view]');
+    if (!tab) return;
+    const nextView = engineeringConsoleViewForKey(tab.dataset.view, event.key);
+    if (!nextView) return;
+    event.preventDefault();
+    state.activeView = nextView;
+    render();
+    container.querySelector(`[role="tab"][data-view="${nextView}"]`)?.focus();
   }
 
   function onInput(event) {
@@ -367,6 +363,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   container.addEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
   container.addEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
   container.addEventListener('click', onClick);
+  container.addEventListener('keydown', onKeyDown);
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);
   render();
@@ -379,6 +376,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     container.removeEventListener(VIBRATION_PROJECT_CHANGED_EVENT, onVibrationProjectChanged);
     container.removeEventListener(VIBRATION_PROJECT_LIFECYCLE_CHANGED_EVENT, onVibrationProjectLifecycleChanged);
     container.removeEventListener('click', onClick);
+    container.removeEventListener('keydown', onKeyDown);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
   };

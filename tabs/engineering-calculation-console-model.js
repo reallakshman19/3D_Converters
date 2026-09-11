@@ -1,5 +1,6 @@
 const NON_EXECUTABLE_STATES = new Set(['CONCEPT', 'SOURCE_INVENTORIED', 'METHOD_SPECIFIED', 'BLOCKED']);
 const CHECK_STATUSES = new Set(['PASS', 'FAIL', 'NOT_APPLICABLE', 'NOT_EVALUATED', 'INDETERMINATE']);
+export const ENGINEERING_CONSOLE_VIEW_IDS = Object.freeze(['results', 'checks', 'basis', 'evidence', 'batch']);
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object ?? {}, key);
@@ -30,6 +31,21 @@ export function canExecuteEngineeringCalculation(definition, qualificationMode =
   if (!isEngineeringCalculationExecutable(definition)) return false;
   const required = definition?.ui?.requiredQualificationMode;
   return !required || required === qualificationMode;
+}
+
+export function toggleEngineeringConsoleFamily(state, familyId) {
+  state.selectedFamily = state.selectedFamily === familyId ? null : familyId;
+  return state;
+}
+
+export function engineeringConsoleViewForKey(currentView, key) {
+  const currentIndex = ENGINEERING_CONSOLE_VIEW_IDS.indexOf(currentView);
+  if (currentIndex < 0) return null;
+  if (key === 'Home') return ENGINEERING_CONSOLE_VIEW_IDS[0];
+  if (key === 'End') return ENGINEERING_CONSOLE_VIEW_IDS[ENGINEERING_CONSOLE_VIEW_IDS.length - 1];
+  if (key === 'ArrowRight') return ENGINEERING_CONSOLE_VIEW_IDS[(currentIndex + 1) % ENGINEERING_CONSOLE_VIEW_IDS.length];
+  if (key === 'ArrowLeft') return ENGINEERING_CONSOLE_VIEW_IDS[(currentIndex - 1 + ENGINEERING_CONSOLE_VIEW_IDS.length) % ENGINEERING_CONSOLE_VIEW_IDS.length];
+  return null;
 }
 
 export function createEngineeringConsoleDraft(definition, seed = {}) {
