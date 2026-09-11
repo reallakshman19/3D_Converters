@@ -87,11 +87,19 @@ function calculate(input) {
     },
     checks: [{
       id: 'INSTALLATION_VON_MISES_REFERENCE_STRESS',
-      satisfied: result.utilization.withinReferenceStress,
+      label: 'Installation von-Mises stress vs explicit reference stress',
+      actual: result.combined.vonMisesStressPa,
+      allowable: input.referenceStress,
+      comparator: '<=',
       utilization: result.utilization.utilization,
+      status: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
+      authority: 'BENCHMARK_ONLY',
+      basis: 'EXPLICIT_CALLER_REFERENCE_STRESS',
+      satisfied: result.utilization.withinReferenceStress,
       designAuthority: false,
     }],
     assessment: {
+      status: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
       disposition: result.utilization.withinReferenceStress
         ? 'REFERENCE_STRESS_NOT_EXCEEDED'
         : 'REFERENCE_STRESS_EXCEEDED',
