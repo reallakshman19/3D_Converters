@@ -65,7 +65,8 @@ test('existing VIB family is the vibration landing entry and contains no enginee
   assert.match(vibrationFamily, /Vibration &amp; Dynamic Screening/);
   assert.match(vibrationFamily, /VIB\.FIV\.FLOW_TURBULENCE/);
   assert.match(vibrationFamily, /Open FIT workspace/);
-  assert.match(vibrationFamily, /TABLE DATA ONLY/);
+  assert.match(vibrationFamily, /TABLES \/ explicit engineering contracts = engineering facts/);
+  assert.match(vibrationFamily, /SVG \/ pixel geometry = presentation only/);
   assert.doesNotMatch(vibrationFamily, /calculateFit\s*\(/);
   assert.doesNotMatch(vibrationFamily, /calculateEngineering(?:Batch)?\s*\(/);
   assert.doesNotMatch(vibrationFamily, /<canvas|createElement\(['"]canvas/iu);
