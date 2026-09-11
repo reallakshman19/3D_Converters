@@ -246,7 +246,7 @@ function fatigueChecks(result) {
     allowable: row.saltCrossCheck.coreAlternatingStressIntensityMpa,
     comparator: row.saltCrossCheck.status === 'NOT_PROVIDED' ? 'NOT_PROVIDED' : 'RELATIVE_MATCH',
     status: row.saltCrossCheck.status === 'MISMATCH' ? 'FAIL'
-      : row.saltCrossCheck.status === 'MATCH' ? 'PASS' : 'NOT_CHECKED',
+      : row.saltCrossCheck.status === 'MATCH' ? 'PASS' : 'NOT_EVALUATED',
     authority: 'REPOSITORY_QA_CROSSCHECK_ONLY',
   }));
   rows.push({
