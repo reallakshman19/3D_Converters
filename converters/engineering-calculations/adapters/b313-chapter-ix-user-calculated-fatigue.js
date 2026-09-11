@@ -144,6 +144,7 @@ function calculate(input) {
   if (!result.ok) return domainFailure(result);
 
   const cycles = result.cycles.map(cycleOutput);
+  const disposition = result.damage.usageWithinUnity ? 'REVIEW_WITHIN_UNITY' : 'REVIEW_EXCEEDS_UNITY';
   return {
     ok: true,
     outputs: {
@@ -164,7 +165,9 @@ function calculate(input) {
     },
     checks: checks(result),
     assessment: {
-      status: result.damage.usageWithinUnity ? 'REVIEW_WITHIN_UNITY' : 'REVIEW_EXCEEDS_UNITY',
+      status: disposition,
+      outcome: result.damage.usageWithinUnity ? 'PASS' : 'FAIL',
+      disposition,
       pass: result.damage.usageWithinUnity,
       authority: 'EXTERNAL_KD3_REVIEW_ONLY',
     },

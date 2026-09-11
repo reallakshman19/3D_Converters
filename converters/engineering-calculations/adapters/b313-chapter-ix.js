@@ -119,6 +119,8 @@ function calculate(input, runtime = {}) {
     checks: checks(result),
     assessment: result.staticPass === undefined ? null : {
       status: result.staticPass ? 'REFERENCE_PASS' : 'REFERENCE_FAIL',
+      outcome: result.staticPass ? 'PASS' : 'FAIL',
+      disposition: result.staticPass ? 'REFERENCE_PASS' : 'REFERENCE_FAIL',
       pass: result.staticPass,
       authority: 'SOFTWARE_REGRESSION_ONLY',
     },

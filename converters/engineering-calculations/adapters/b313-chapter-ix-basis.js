@@ -84,6 +84,8 @@ function calculate(input, runtime = {}) {
     checks: [],
     assessment: {
       status: result.resolverState,
+      outcome: 'NOT_ASSESSED',
+      disposition: result.resolverState,
       pass: null,
       authority: 'MASTER_RESOLUTION_TRACE_ONLY',
       canUseForDesignAuthority: false,

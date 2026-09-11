@@ -153,6 +153,13 @@ function warning(mode) {
   };
 }
 
+function assessmentOutcome(mode, assessment) {
+  if (mode !== 'screening') return 'NOT_ASSESSED';
+  if (assessment.referenceThresholdExceeded === false) return 'PASS';
+  if (assessment.referenceThresholdExceeded === true) return 'FAIL';
+  return 'INDETERMINATE';
+}
+
 function calculate(input, runtime = {}) {
   const mode = runtime.options?.qualificationMode;
   if (!['benchmark', 'screening'].includes(mode)) return blockedByMode(mode);
@@ -183,6 +190,8 @@ function calculate(input, runtime = {}) {
     checks: [],
     assessment: {
       ...assessment,
+      outcome: assessmentOutcome(mode, assessment),
+      disposition: assessment.status,
       screeningAuthority: mode === 'screening' ? 'AUTHORIZED_BOUNDED' : 'NOT_AUTHORIZED',
       designAuthority: false,
     },
