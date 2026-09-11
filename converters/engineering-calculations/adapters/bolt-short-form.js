@@ -91,11 +91,19 @@ function calculate(input) {
     },
     checks: [{
       id: 'EXPLICIT_REFERENCE_STRESS',
+      label: 'Explicit reference stress',
+      actual: result.stress.tensileStressPa,
+      allowable: input.referenceStress,
+      comparator: '<=',
       satisfied: result.utilization.withinReferenceStress,
       utilization: result.utilization.utilization,
+      status: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
+      authority: 'BENCHMARK_ONLY',
       designAuthority: false,
+      basis: 'EXPLICIT_CALLER_REFERENCE_STRESS',
     }],
     assessment: {
+      status: result.utilization.withinReferenceStress ? 'PASS' : 'FAIL',
       disposition: result.utilization.withinReferenceStress
         ? 'REFERENCE_STRESS_NOT_EXCEEDED'
         : 'REFERENCE_STRESS_EXCEEDED',
