@@ -17,15 +17,21 @@ export function definitionState(definition) {
 }
 export function pill(text, kind='') { return `<span class="engineering-console-pill ${kind}">${esc(text)}</span>`; }
 function scalar(value) { return typeof value === 'object' && value !== null ? `<pre class="engineering-console-inline-json">${esc(pretty(value))}</pre>` : esc(value ?? '—'); }
+function fieldId(field) { return `engineering-console-${field.key.replace(/[^a-z0-9_-]/gi,'-')}`; }
 
-function fieldControl(field, state) {
+function fieldControl(field, state, errors) {
   const value = state.draft.values[field.key];
-  const id = `engineering-console-${field.key.replace(/[^a-z0-9_-]/gi,'-')}`;
-  if (field.type === 'boolean') return `<label class="engineering-console-checkbox"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}><span>Enabled</span></label>`;
-  if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}">${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
-  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false">${esc(value)}</textarea>`;
+  const id = fieldId(field);
+  const errorId = `${id}-error`;
+  const invalid = errors.length ? ' aria-invalid="true"' : '';
+  const describedBy = errors.length ? ` aria-describedby="${errorId}"` : '';
+  if (field.type === 'boolean') {
+    return `<label class="engineering-console-checkbox" for="${id}"><input id="${id}" type="checkbox" data-field="${field.key}" ${value === true ? 'checked' : ''}${invalid}${describedBy}><span>${esc(field.label || field.key)}${field.required ? ' *' : ''}</span></label>`;
+  }
+  if (field.type === 'enum') return `<select id="${id}" class="engineering-console-input" data-field="${field.key}"${invalid}${describedBy}>${value === '' ? '<option value="" selected disabled>Select…</option>' : ''}${(field.values||[]).map((item)=>`<option value="${esc(item)}" ${item === value ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>`;
+  if (field.type === 'object' || field.type === 'array' || field.type === 'table') return `<textarea id="${id}" class="engineering-console-input engineering-console-json-editor" data-field="${field.key}" spellcheck="false"${invalid}${describedBy}>${esc(value)}</textarea>`;
   const type = ['number','integer'].includes(field.type ?? 'number') ? 'number' : 'text';
-  return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}">`;
+  return `<input id="${id}" class="engineering-console-input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-field="${field.key}" value="${esc(value)}"${invalid}${describedBy}>`;
 }
 
 function blockedDefinitionMessage(definition) {
@@ -44,10 +50,18 @@ export function renderInputForm(definition, state) {
     : '';
   const fields = (definition.inputs||[]).map((field)=>{
     const errors = state.editorErrors.filter((item)=>item.field === field.key);
+    const id = fieldId(field);
+    const errorId = `${id}-error`;
     const unit = field.quantity && field.quantity !== 'dimensionless'
       ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">`
       : '';
-    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}"><label>${esc(field.label || field.key)}${field.required ? ' *' : ''}</label><div class="engineering-console-control-row">${fieldControl(field,state)}${unit}</div><div class="engineering-console-field-meta">${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}</div>${errors.map((item)=>`<div class="engineering-console-field-error">${esc(item.message)}</div>`).join('')}</div>`;
+    const visibleLabel = field.type === 'boolean'
+      ? ''
+      : `<label for="${id}">${esc(field.label || field.key)}${field.required ? ' *' : ''}</label>`;
+    const errorMarkup = errors.length
+      ? `<div id="${errorId}" class="engineering-console-field-error">${errors.map((item)=>esc(item.message)).join(' · ')}</div>`
+      : '';
+    return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}">${visibleLabel}<div class="engineering-console-control-row">${fieldControl(field,state,errors)}${unit}</div><div class="engineering-console-field-meta">${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}</div>${errorMarkup}</div>`;
   }).join('');
   return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
