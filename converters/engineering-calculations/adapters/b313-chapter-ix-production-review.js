@@ -117,6 +117,9 @@ function calculateStraightPressureReview(input) {
   if (!result.ok) {
     return domainFailure(result, 'Chapter IX straight-pipe engineering review failed.', 'calculateChapterIxStraightPressure');
   }
+  const disposition = result.staticPass === undefined
+    ? 'CALCULATED_REVIEW'
+    : result.staticPass ? 'ENGINEERING_REVIEW_PASS' : 'ENGINEERING_REVIEW_FAIL';
   return {
     ok: true,
     outputs: straightPressureOutputs(result),
@@ -126,11 +129,15 @@ function calculateStraightPressureReview(input) {
     },
     checks: straightPressureChecks(result),
     assessment: result.staticPass === undefined ? {
-      status: 'CALCULATED_REVIEW',
+      status: disposition,
+      outcome: 'NOT_ASSESSED',
+      disposition,
       pass: null,
       authority: 'ENGINEERING_REVIEW_ONLY',
     } : {
-      status: result.staticPass ? 'ENGINEERING_REVIEW_PASS' : 'ENGINEERING_REVIEW_FAIL',
+      status: disposition,
+      outcome: result.staticPass ? 'PASS' : 'FAIL',
+      disposition,
       pass: result.staticPass,
       authority: 'ENGINEERING_REVIEW_ONLY',
     },
@@ -191,6 +198,8 @@ function calculateWallStateReview(input) {
     checks: [],
     assessment: {
       status: 'CALCULATED_REVIEW',
+      outcome: 'NOT_ASSESSED',
+      disposition: 'CALCULATED_REVIEW',
       pass: null,
       authority: 'ENGINEERING_REVIEW_ONLY',
     },
@@ -284,6 +293,9 @@ function calculateUserFatigueReview(input) {
       message: `${result.evidenceIssueCount} external KD-3 provenance/checker item(s) are incomplete. Calculation is retained for engineering review; evidence completion is deferred.`,
     });
   }
+  const disposition = result.damage.usageWithinUnity
+    ? 'ENGINEERING_REVIEW_WITHIN_UNITY'
+    : 'ENGINEERING_REVIEW_EXCEEDS_UNITY';
   return {
     ok: true,
     outputs: {
@@ -307,7 +319,9 @@ function calculateUserFatigueReview(input) {
     },
     checks: fatigueChecks(result),
     assessment: {
-      status: result.damage.usageWithinUnity ? 'ENGINEERING_REVIEW_WITHIN_UNITY' : 'ENGINEERING_REVIEW_EXCEEDS_UNITY',
+      status: disposition,
+      outcome: result.damage.usageWithinUnity ? 'PASS' : 'FAIL',
+      disposition,
       pass: result.damage.usageWithinUnity,
       authority: 'EXTERNAL_KD3_ENGINEERING_REVIEW_ONLY',
     },
