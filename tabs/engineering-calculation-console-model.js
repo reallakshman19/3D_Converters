@@ -1,5 +1,6 @@
+import { normalizeEngineeringCalculationCheck } from '../converters/engineering-calculations/contracts.js';
+
 const NON_EXECUTABLE_STATES = new Set(['CONCEPT', 'SOURCE_INVENTORIED', 'METHOD_SPECIFIED', 'BLOCKED']);
-const CHECK_STATUSES = new Set(['PASS', 'FAIL', 'NOT_APPLICABLE', 'NOT_EVALUATED', 'INDETERMINATE']);
 export const ENGINEERING_CONSOLE_VIEW_IDS = Object.freeze(['results', 'checks', 'basis', 'evidence', 'batch']);
 
 function own(object, key) {
@@ -210,22 +211,11 @@ export function invalidateEngineeringConsoleExecution(state) {
   return state;
 }
 
-function normalizedCheckStatus(check) {
-  if (CHECK_STATUSES.has(check?.status)) return check.status;
-  if (check?.satisfied === true) return 'PASS';
-  if (check?.satisfied === false) return 'FAIL';
-  return 'INDETERMINATE';
-}
-
 export function normalizeEngineeringCheck(check = {}, result = null) {
-  const effectiveAuthority = result?.qualification?.effective;
+  const normalized = normalizeEngineeringCalculationCheck(check);
   return {
-    ...check,
-    label: check.label ?? check.id ?? 'Unnamed check',
-    status: normalizedCheckStatus(check),
-    authority: check.authority
-      ?? effectiveAuthority
-      ?? (check.designAuthority === true ? 'DESIGN_AUTHORITY' : check.designAuthority === false ? 'NON_DESIGN' : '—'),
+    ...normalized,
+    authority: check.authority ?? result?.qualification?.effective ?? normalized.authority,
   };
 }
 
