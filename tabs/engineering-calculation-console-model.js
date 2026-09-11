@@ -1,4 +1,7 @@
-import { normalizeEngineeringCalculationCheck } from '../converters/engineering-calculations/contracts.js';
+import {
+  normalizeEngineeringCalculationAssessment,
+  normalizeEngineeringCalculationCheck,
+} from '../converters/engineering-calculations/contracts.js';
 
 const NON_EXECUTABLE_STATES = new Set(['CONCEPT', 'SOURCE_INVENTORIED', 'METHOD_SPECIFIED', 'BLOCKED']);
 export const ENGINEERING_CONSOLE_VIEW_IDS = Object.freeze(['results', 'checks', 'basis', 'evidence', 'batch']);
@@ -219,19 +222,24 @@ export function normalizeEngineeringCheck(check = {}, result = null) {
   };
 }
 
-function assessmentStatus(result, checks) {
+function normalizedAssessment(result) {
+  return normalizeEngineeringCalculationAssessment(result?.assessment ?? null);
+}
+
+function assessmentStatus(result, checks, assessment) {
   if (!result) return 'NOT RUN';
   if (!result.ok) return 'NOT AVAILABLE';
-  if (result.assessment?.status) return result.assessment.status;
+  if (assessment?.outcome) return assessment.outcome;
   if (checks.some((check) => check.status === 'FAIL')) return 'FAIL';
   if (checks.some((check) => check.status === 'INDETERMINATE')) return 'INDETERMINATE';
   const evaluated = checks.filter((check) => !['NOT_APPLICABLE', 'NOT_EVALUATED'].includes(check.status));
   if (evaluated.length && evaluated.every((check) => check.status === 'PASS')) return 'PASS';
-  return result.assessment?.disposition ?? 'NOT ASSESSED';
+  return 'NOT_ASSESSED';
 }
 
 export function buildEngineeringResultViewModel(definition, result) {
   const checks = (result?.checks ?? []).map((check) => normalizeEngineeringCheck(check, result));
+  const assessment = normalizedAssessment(result);
   const outputMetadata = new Map((definition?.outputs ?? []).map((output) => [output.key, output]));
   const outputs = Object.entries(result?.outputs ?? {}).map(([key, value]) => {
     const metadata = outputMetadata.get(key);
@@ -251,17 +259,17 @@ export function buildEngineeringResultViewModel(definition, result) {
       errorCode: result?.ok === false ? result.errors?.[0]?.code ?? 'CALCULATION_FAILED' : null,
     },
     assessment: {
-      status: assessmentStatus(result, checks),
-      disposition: result?.assessment?.disposition ?? null,
-      governingEligible: result?.assessment?.governingEligible ?? null,
+      status: assessmentStatus(result, checks, assessment),
+      disposition: assessment?.disposition ?? null,
+      governingEligible: assessment?.governingEligible ?? null,
     },
     authority: {
       effective: result?.qualification?.effective
         ?? definition?.authority?.qualificationState
         ?? definition?.authority?.calculationState
         ?? null,
-      designAuthority: result?.assessment?.designAuthority ?? result?.qualification?.designAuthority ?? null,
-      codeCompliance: result?.assessment?.codeCompliance ?? definition?.authority?.codeCompliance ?? null,
+      designAuthority: assessment?.designAuthority ?? result?.qualification?.designAuthority ?? null,
+      codeCompliance: assessment?.codeCompliance ?? definition?.authority?.codeCompliance ?? null,
     },
     outputs,
     checks,
