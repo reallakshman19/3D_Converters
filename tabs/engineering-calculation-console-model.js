@@ -1,4 +1,5 @@
 const NON_EXECUTABLE_STATES = new Set(['CONCEPT', 'SOURCE_INVENTORIED', 'METHOD_SPECIFIED', 'BLOCKED']);
+const CHECK_STATUSES = new Set(['PASS', 'FAIL', 'NOT_APPLICABLE', 'NOT_EVALUATED', 'INDETERMINATE']);
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object ?? {}, key);
@@ -155,8 +156,74 @@ export function invalidateEngineeringConsoleExecution(state) {
   return state;
 }
 
-export function engineeringResultLabel(result) {
+function normalizedCheckStatus(check) {
+  if (CHECK_STATUSES.has(check?.status)) return check.status;
+  if (check?.satisfied === true) return 'PASS';
+  if (check?.satisfied === false) return 'FAIL';
+  return 'INDETERMINATE';
+}
+
+export function normalizeEngineeringCheck(check = {}, result = null) {
+  const effectiveAuthority = result?.qualification?.effective;
+  return {
+    ...check,
+    label: check.label ?? check.id ?? 'Unnamed check',
+    status: normalizedCheckStatus(check),
+    authority: check.authority
+      ?? effectiveAuthority
+      ?? (check.designAuthority === true ? 'DESIGN_AUTHORITY' : check.designAuthority === false ? 'NON_DESIGN' : '—'),
+  };
+}
+
+function assessmentStatus(result, checks) {
   if (!result) return 'NOT RUN';
-  if (result.ok) return result.assessment?.status ?? 'CALCULATED';
-  return result.errors?.[0]?.code ?? 'FAILED';
+  if (!result.ok) return 'NOT AVAILABLE';
+  if (result.assessment?.status) return result.assessment.status;
+  if (checks.some((check) => check.status === 'FAIL')) return 'FAIL';
+  if (checks.some((check) => check.status === 'INDETERMINATE')) return 'INDETERMINATE';
+  const evaluated = checks.filter((check) => !['NOT_APPLICABLE', 'NOT_EVALUATED'].includes(check.status));
+  if (evaluated.length && evaluated.every((check) => check.status === 'PASS')) return 'PASS';
+  return result.assessment?.disposition ?? 'NOT ASSESSED';
+}
+
+export function buildEngineeringResultViewModel(definition, result) {
+  const checks = (result?.checks ?? []).map((check) => normalizeEngineeringCheck(check, result));
+  const outputMetadata = new Map((definition?.outputs ?? []).map((output) => [output.key, output]));
+  const outputs = Object.entries(result?.outputs ?? {}).map(([key, value]) => {
+    const metadata = outputMetadata.get(key);
+    return {
+      key,
+      label: metadata?.label ?? key,
+      value,
+      unit: metadata?.canonicalUnit ?? null,
+      quantity: metadata?.quantity ?? null,
+    };
+  });
+  const executionStatus = !result ? 'NOT RUN' : result.ok ? 'COMPLETED' : 'FAILED';
+  return {
+    execution: {
+      status: executionStatus,
+      executionId: result?.execution?.executionId ?? null,
+      errorCode: result?.ok === false ? result.errors?.[0]?.code ?? 'CALCULATION_FAILED' : null,
+    },
+    assessment: {
+      status: assessmentStatus(result, checks),
+      disposition: result?.assessment?.disposition ?? null,
+      governingEligible: result?.assessment?.governingEligible ?? null,
+    },
+    authority: {
+      effective: result?.qualification?.effective
+        ?? definition?.authority?.qualificationState
+        ?? definition?.authority?.calculationState
+        ?? null,
+      designAuthority: result?.assessment?.designAuthority ?? result?.qualification?.designAuthority ?? null,
+      codeCompliance: result?.assessment?.codeCompliance ?? definition?.authority?.codeCompliance ?? null,
+    },
+    outputs,
+    checks,
+  };
+}
+
+export function engineeringResultLabel(result) {
+  return buildEngineeringResultViewModel(null, result).assessment.status;
 }
