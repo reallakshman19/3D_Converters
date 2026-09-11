@@ -332,6 +332,10 @@ export function buildEngineeringAuditManifest(definition, result) {
   };
 }
 
+function displayAssessmentStatus(status) {
+  return status === 'NOT_ASSESSED' ? 'NOT ASSESSED' : status;
+}
+
 export function engineeringResultLabel(result) {
-  return buildEngineeringResultViewModel(null, result).assessment.status;
+  return displayAssessmentStatus(buildEngineeringResultViewModel(null, result).assessment.status);
 }
