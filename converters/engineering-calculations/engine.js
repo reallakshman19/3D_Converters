@@ -5,6 +5,7 @@ import {
   cloneEngineeringValue,
   createEngineeringCalculationError,
   immutableEngineeringSnapshot,
+  normalizeEngineeringCalculationChecks,
   normalizeEngineeringCalculationId,
   normalizeThrownEngineeringError,
 } from './contracts.js';
@@ -143,7 +144,7 @@ export function createEngineeringCalculationEngine({
       resolvedInputs: cloneEngineeringValue(resolution.resolvedInputs),
       outputs: cloneEngineeringValue(fragment.outputs ?? {}),
       intermediates: cloneEngineeringValue(fragment.intermediates ?? {}),
-      checks: cloneEngineeringValue(fragment.checks ?? []),
+      checks: normalizeEngineeringCalculationChecks(fragment.checks ?? []),
       assessment: cloneEngineeringValue(fragment.assessment ?? null),
       warnings: cloneEngineeringValue([...resolution.warnings, ...(fragment.warnings ?? [])]),
       errors: [],
