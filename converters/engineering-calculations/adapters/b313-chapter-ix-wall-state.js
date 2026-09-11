@@ -97,6 +97,8 @@ function calculate(input, runtime = {}) {
     checks: [],
     assessment: {
       status: 'TRACE_ONLY',
+      outcome: 'NOT_ASSESSED',
+      disposition: 'TRACE_ONLY',
       pass: null,
       authority: 'INPUT_CUSTODY_ONLY',
     },
