@@ -50,7 +50,7 @@ function activeView(definition, state) {
   if (state.activeView === 'basis') return renderBasis(definition, state.resolution);
   if (state.activeView === 'evidence') return renderEvidence(state.result);
   if (state.activeView === 'batch') return renderBatch(state, definition);
-  return renderResults(state.result, state.validation);
+  return renderResults(definition, state.result, state.validation);
 }
 
 function renderConsoleActions(definition, state) {
