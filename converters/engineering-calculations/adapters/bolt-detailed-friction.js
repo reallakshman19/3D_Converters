@@ -93,6 +93,7 @@ function calculate(input) {
     },
     checks: [],
     assessment: {
+      outcome: 'NOT_ASSESSED',
       disposition: 'REFERENCE_TORQUE_RESOLVED',
       governingEligible: false,
       designAuthority: false,
