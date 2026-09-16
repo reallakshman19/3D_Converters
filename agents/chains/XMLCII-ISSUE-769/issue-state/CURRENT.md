@@ -2,8 +2,8 @@ ISSUE_CURRENT_STATE_VERSION: 1
 CHAIN_ID: XMLCII-ISSUE-769
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0011
-UPDATED_AT: 2026-09-16T12:40:00Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0012
+UPDATED_AT: 2026-09-16T13:02:00Z
 
 # Current cumulative state
 
@@ -20,7 +20,7 @@ TASK-008 | IMPLEMENTED_PENDING_VALIDATION | Versioned derived-cache migration/sh
 
 ## Input ledger
 
-INPUT-001 | AVAILABLE | main e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
+INPUT-001 | AVAILABLE | main e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f; rechecked unchanged during EP-0012
 INPUT-002 | AVAILABLE | Owner-reported multi-row line-list mapping requirements encoded into focused fixtures
 INPUT-003 | PARTIALLY_AVAILABLE | synthetic deterministic weight authority oracle 12.5 kg and stale legacy 125 kg encoded; representative user production fixture still not durable
 INPUT-004 | AVAILABLE | 10k+ master failure reproduction requirement; 11k fault test authored but NOT_RUN
@@ -52,14 +52,17 @@ BM-009 | NOT_RUN_ENVIRONMENT_BLOCKED | full standalone regression suite
 - B31.3 Preview distinguishes material identity authority from numeric factor authority and reports exact S/E/W/Y/T1/route/OD blockers without promoting BENCHMARK_ONLY/SCREENING data.
 - Standalone authority migration invalidates only derived Preview/Weight Match/rating caches once per schema and preserves masters, mappings, config, and legacy weight evidence unchanged.
 
-## Release qualification attempt
+## Release qualification state
 
-- `QS-XMLCII-769-RELEASE-001` is the current release/integration qualification pack.
-- A temporary branch-push workflow at `ea8bced58bbd6fc4415acee1a6eb5bba8972f425` produced zero workflow runs/status contexts.
-- A temporary `pull_request: reopened` workflow at `7d83d30b391906596a150def565d6d16a666f32e` also produced zero runs after PR #770 was closed and immediately reopened; it remains draft and unmerged.
-- Repository Actions is active globally, so the blocked path is connector/App event delivery for this branch, not repository-wide Actions disablement.
-- Both temporary workflow files were removed and are absent from the PR diff.
-- Final static qualification found no new concrete production defect, but inspection is not a substitute for execution.
+- `QS-XMLCII-769-RELEASE-001` remains the current release/integration qualification pack and was reused for this same technical boundary.
+- Prior branch-push and `pull_request: reopened` Actions qualification attempts both produced zero runs/status contexts for this branch; temporary workflows were removed.
+- Direct workflow dispatch is not exposed by the connected GitHub tooling.
+- Repository Actions is active globally, so the remaining blocker is the lack of an executable checkout/trusted run path in this session.
+- `scripts/verify-issue-769-xml-cii.mjs` is now the reproducible repository-native qualification entrypoint.
+- Focused mode selects 12 Issue #769 regression files plus six established XML→CII/B31.3 guards.
+- `--full` discovers every `tests/xml-cii-*.test.{mjs,js}` file and includes `tests/engineering-calculation-core.test.mjs`.
+- Independent `node --check` of the runner passed; this validates runner syntax only, not BM-001..BM-009.
+- Main remains exactly `e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f`; no rebase is required before qualification.
 
 ## PR / merge state
 
@@ -72,8 +75,8 @@ OWNER_PROGRESSION_COMMAND: proceed next
 QUALIFICATION_SCOPE_ID: QSCOPE-ISSUE769-RELEASE
 QUESTION_SET_ID: QS-XMLCII-769-RELEASE-001
 QUESTION_SET_STATUS: CURRENT
-QUESTION_PACK_ACTION: REFRESHED
-QUESTION_DISPLAY: SHOW
+QUESTION_PACK_ACTION: REUSED
+QUESTION_DISPLAY: HIDE
 TAKEOVER_QUALIFICATION_READY: TRUE
 CHAIN_HANDOVER_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
@@ -84,4 +87,4 @@ COMMON_PROTOCOL_STATUS: CURRENT
 
 ## Current exact next action
 
-Keep PR #770 draft and unmerged. Execute the focused Issue #769 tests plus established XML→CII/B31.3 regression guards in a real checkout or trusted CI. If green, record repository-native evidence and reconsider readiness; if any test fails, patch only the demonstrated first wrong boundary and rerun focused + affected regression suites. Do not promote lower-qualified B31.3 factor data to automatic design authority.
+Keep PR #770 draft and unmerged. In a real checkout or trusted CI run `node scripts/verify-issue-769-xml-cii.mjs`; if focused qualification is green, run `node scripts/verify-issue-769-xml-cii.mjs --full`. Record repository-native evidence before changing readiness. If either command fails, patch only the demonstrated first wrong boundary and rerun focused plus affected regression suites. Do not promote lower-qualified B31.3 factor data to automatic design authority.
