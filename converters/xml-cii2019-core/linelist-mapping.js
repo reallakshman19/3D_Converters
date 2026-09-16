@@ -15,7 +15,7 @@ export const FIELD_RULES = {
     ]
   },
   lineKey1: {
-    all: [['service', 'fluid']],
+    all: [['service', 'line key', 'key 1']],
     reject: [
       /piping\s*class/i,
       /pipe\s*class/i,
@@ -23,7 +23,8 @@ export const FIELD_RULES = {
       /rating/i,
       /pressure/i,
       /temp/i,
-      /density/i
+      /density/i,
+      /\bfluid\b/i
     ]
   },
   lineKey2: {
@@ -181,7 +182,7 @@ export const LINE_LIST_PROCESS_VALUE_ALIASES = Object.freeze({
   density: Object.freeze(['density', 'Density', 'DENSITY', 'FluidDensity', 'Fluid Density', 'Density kg/m3', 'kg/m3']),
   densityMixed: Object.freeze(['densityMixed', 'Density Mixed', 'Mixed Density', 'Mixed kg/m3', 'Density (Mixed)', 'Mixed']),
   densityGas: Object.freeze(['densityGas', 'Density Gas', 'Gas Density', 'Gas kg/m3', 'Density (Gas)', 'Gas']),
-  densityLiquid: Object.freeze(['densityLiquid', 'Density Liquid', 'Liquid Density', 'Liquid kg/m3', 'Density (Liquid)', 'Liquid', 'Liq Density']),
+  densityLiquid: Object.freeze(['densityLiquid', 'Density Liquid', 'Liquid kg/m3', 'Density (Liquid)', 'Liquid', 'Liq Density']),
   phase: Object.freeze(['phase', 'Phase', 'PHASE', 'Fluid Phase', 'Medium Phase', 'Medium', 'State'])
 });
 
