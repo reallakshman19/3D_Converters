@@ -94,12 +94,17 @@ test('equally ranked line keys are blocked as ambiguous', () => {
 });
 
 test('pattern and auto-suggest mutation paths target genuinely unmapped rows only', () => {
-  const source = fs.readFileSync(
+  const panelSource = fs.readFileSync(
     path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js'),
     'utf8',
   );
-  const unmappedSelectorMatches = source.match(/\.bulk-map-tr\[data-mapping-source=\\?"unmapped\\?"\]/g) || [];
+  const actionSource = fs.readFileSync(
+    path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js'),
+    'utf8',
+  );
+  const unmappedSelectorMatches = actionSource.match(/\.bulk-map-tr\[data-mapping-source=\\?"unmapped\\?"\]/g) || [];
   assert.ok(unmappedSelectorMatches.length >= 2, 'pattern and auto-suggest must both target unresolved rows');
-  assert.match(source, /source === 'resolved' && !hadExplicitOverride && !overrideEnabled/);
-  assert.match(source, /bulk-enable-override-btn/);
+  assert.match(panelSource, /source === 'resolved' && tr\.dataset\.hasExplicitOverride !== 'true' && tr\.dataset\.overrideEnabled !== 'true'/);
+  assert.match(panelSource, /bulk-enable-override-btn/);
+  assert.match(actionSource, /Not in Line List/);
 });
