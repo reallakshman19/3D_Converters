@@ -2,19 +2,19 @@ CHAIN_STATE_VERSION: 3
 HANDOVER_PROTOCOL_VERSION: 2
 CHAIN_ID: XMLCII-ISSUE-769
 MISSION: Root-cause and robust fixes for Issue #769 XML→CII 2019 Standalone mapping/import/weight/regex/branch/B31.3 defects
-ACTIVE_ENDPOINT: EP-0003
-ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0003.md
+ACTIVE_ENDPOINT: EP-0004
+ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0004.md
 PR: 770
 PR_STATUS: OPEN_DRAFT
 BRANCH: issue-769/xml-cii-standalone-fixes
-HEAD: PREWORK_RELAY_HEAD
+HEAD: EP0004_RELAY_HEAD
 MAIN: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 STATE: IN_PROGRESS
 ENGINEERING_STATE: IN_PROGRESS
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: NOT_REQUIRED_CURRENT_CUSTODIAN
-WRITE_AUTHORITY: WRITE_ALLOWED
-AUTO_STATE: NOT_APPLICABLE
+WRITE_AUTHORITY: WRITE_ALLOWED_AFTER_ISSUE_SYNC
+AUTO_STATE: BLOCKED
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
 MERGEABILITY: MERGEABLE
@@ -26,9 +26,9 @@ AGENT_INSTANCE_ID: chatgpt:e683bcab-eb0a-4b6c-8ab1-c29d79aff4b0
 WORK_ITEM_SOURCE: GITHUB_ISSUE
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 WORK_ITEM_MODE: EXCLUSIVE
-CUSTODY_EPOCH: 3
+CUSTODY_EPOCH: 4
 COORDINATION_STATE: EXCLUSIVE_CLEAR
-DEPENDENCIES: Owner roadmap and governing fix plan; weight/B31.3 require later refreshed qualification/oracles
+DEPENDENCIES: Owner roadmap and governing fix plan; weight requires refreshed qualification/arithmetic lifecycle oracle; B31.3 remains later separate scope
 COMMON_PROTOCOL: engineering-pr-delivery-v2
 COMMON_PROTOCOL_BASIS: fed57820909f4984a97d67437340df952b73a5ab
 COMMON_PROTOCOL_STATUS: CURRENT
@@ -37,11 +37,11 @@ ISSUE_BASIS_FILE: agents/chains/XMLCII-ISSUE-769/issue-basis/IB-0001.md
 ISSUE_BASIS_STATUS: CURRENT
 ISSUE_CURRENT_STATE_FILE: agents/chains/XMLCII-ISSUE-769/issue-state/CURRENT.md
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0003
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0004
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5695050767
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5695048450
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5695665061
-ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: PENDING_EP0004_SYNC
+ISSUE_HANDOVER_SYNC_STATUS: NOT_RUN
 ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9bba61b7ee702333e8f007579ed8
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ROADMAP_STATUS_STALE_BUT_SCOPE_ALIGNED
@@ -51,29 +51,28 @@ QUALIFICATION_SCOPE_ID: QSCOPE-ISSUE769-REGEX-BRANCH
 QUESTION_SET_ID: QS-XMLCII-769-REGEX-BRANCH-001
 QUESTION_SET_STATUS: CURRENT
 QUESTION_PACK_ACTION: REFRESHED
-QUESTION_DISPLAY: SHOW
+QUESTION_DISPLAY: HIDE
 OWNER_QUALIFICATION_BASELINE: QB-ISSUE-769-B
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 TAKEOVER_QUALIFICATION_READY: TRUE
-CHAIN_HANDOVER_READY: TRUE
+CHAIN_HANDOVER_READY: FALSE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: none; pre-material TASK-005/TASK-006 checkpoint
+HANDOVER_VALIDATION_EVIDENCE: independent focused reconstruction only; repository-native BM-006/BM-007/BM-009 NOT_RUN
 HANDOVER_READY: FALSE
 PREWORK_QUALIFICATION_READY: TRUE
 MATERIAL_HISTORY_ROOT_BASE: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
-MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0003.md
-LATEST_MATERIAL_LEG: LEG-001
-LATEST_MATERIAL_LEG_RECEIPT: agents/chains/XMLCII-ISSUE-769/material-legs/LEG-001.md
-MATERIAL_LEG_IN_PROGRESS: LEG-002
-MATERIAL_SCOPE: TASK-005 Regex confidence/sample bucketing + TASK-006 Branch→Line family/pattern authority
+MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0004.md
+LATEST_MATERIAL_LEG: LEG-002
+LATEST_MATERIAL_LEG_RECEIPT: agents/chains/XMLCII-ISSUE-769/material-legs/LEG-002.md
+MATERIAL_LEG_IN_PROGRESS: NONE
 
 # Active issue chain
 
 ## Current state
 
-EP-0003 is synchronized. LEG-002 is restricted to TASK-005/TASK-006. TASK-001/TASK-004 remain implemented pending validation. BM-006/BM-007 are NOT_RUN. Exact-current diagnosis for Regex and Branch→Line is recorded in EP-0003 and the refreshed qualification pack.
+LEG-002 is checkpointed. TASK-001/TASK-004/TASK-005/TASK-006 are implemented pending repository-native validation; none is promoted to PASS. BM-006/BM-007/BM-009 remain NOT_RUN. Draft PR #770 remains mergeable with no hosted status evidence.
 
 ## Exact next action
 
-Create exact pre-edit backups for LEG-002 production files, then implement focused Regex confidence/sample bucketing and Branch→Line family/pattern changes with regression tests. Do not enter weight, empirical, or B31.3 authority in this leg.
+Synchronize EP-0004 to Issue #769. Then establish a fresh bounded qualification/prework endpoint for TASK-002/TASK-003 (rigid-weight lifecycle/one kg→CII conversion authority and empirical validation-only ±30% health). Preserve the current writer scale until the authority trace and arithmetic oracle prove a writer-scale defect. B31.3 remains outside that leg.
