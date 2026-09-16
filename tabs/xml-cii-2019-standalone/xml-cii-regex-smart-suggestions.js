@@ -91,8 +91,13 @@ function boreCandidate(values, position) {
     const number = txt(value).replace(/[^0-9.]/g, '');
     return STANDARD_NPS.has(number) || STANDARD_DN.has(number);
   });
+  const explicitSyntaxRate = clamp(explicit + dn);
   const score = clamp(0.48 * explicit + 0.40 * dn + 0.25 * known + (explicit || dn ? 0.22 : 0));
-  return suggestion('bore', [position], score, explicit || dn ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values, [`${Math.round((explicit + dn) * 100)}% explicit size syntax`, `${Math.round(known * 100)}% standard NPS/DN values`]);
+  return suggestion(
+    'bore', [position], score, explicit || dn ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values,
+    [`${Math.round(explicitSyntaxRate * 100)}% explicit size syntax`, `${Math.round(known * 100)}% standard NPS/DN values`],
+    { explicitSyntaxRate, standardValueRate: known },
+  );
 }
 
 function classCandidate(values, position, masters, suffixPattern) {
@@ -102,7 +107,11 @@ function classCandidate(values, position, masters, suffixPattern) {
   const shape = coverage(values, (value) => /\d{3,}[A-Z0-9]*$/i.test(value));
   const score = clamp(0.65 * exact + 0.58 * normalized + 0.20 * shape);
   const authority = exact ? 'AUTHORIZED_MASTER' : normalized ? 'GOVERNED_NORMALIZED_MASTER' : 'HEURISTIC_ONLY';
-  return suggestion('pipingClass', [position], score, authority, values, [`${Math.round(exact * 100)}% exact master match`, `${Math.round(normalized * 100)}% governed normalized match`]);
+  return suggestion(
+    'pipingClass', [position], score, authority, values,
+    [`${Math.round(exact * 100)}% exact master match`, `${Math.round(normalized * 100)}% governed normalized match`],
+    { exactMasterRate: exact, normalizedMasterRate: normalized, shapeRate: shape },
+  );
 }
 
 function safePattern(pattern) {
@@ -121,7 +130,11 @@ function lineKeyCandidates(rows, lineMasters, maxTokens) {
       const unique = new Set(values.map(norm)).size / Math.max(1, values.length);
       const lineShape = coverage(values, (value) => /[A-Z]+\d{4,}/i.test(value));
       const score = clamp(0.72 * exact + 0.16 * unique + 0.18 * lineShape - (width - 1) * 0.03);
-      out.push(suggestion('lineKey', pos, score, exact ? 'AUTHORIZED_MASTER' : 'HEURISTIC_ONLY', values, [`${Math.round(exact * 100)}% exact line-list match`, `${Math.round(unique * 100)}% uniqueness`]));
+      out.push(suggestion(
+        'lineKey', pos, score, exact ? 'AUTHORIZED_MASTER' : 'HEURISTIC_ONLY', values,
+        [`${Math.round(exact * 100)}% exact line-list match`, `${Math.round(unique * 100)}% uniqueness`, `${Math.round(lineShape * 100)}% line-key shape`],
+        { exactMasterRate: exact, uniquenessRate: unique, shapeRate: lineShape },
+      ));
     }
   }
   return out.sort((a, b) => b.confidence - a.confidence || a.tokenPositions.length - b.tokenPositions.length);
@@ -130,11 +143,29 @@ function lineKeyCandidates(rows, lineMasters, maxTokens) {
 function ratingCandidate(values, position) {
   const explicit = coverage(values, (value) => STANDARD_RATINGS.has(txt(value).replace(/[^0-9]/g, '')));
   const score = clamp(explicit * 0.92);
-  return suggestion('rating', [position], score, explicit ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values, [`${Math.round(explicit * 100)}% standard rating values`]);
+  return suggestion(
+    'rating', [position], score, explicit ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values,
+    [`${Math.round(explicit * 100)}% standard rating values`],
+    { standardValueRate: explicit },
+  );
 }
 
-function suggestion(role, tokenPositions, confidence, authorityLevel, values, evidence) {
-  return { role, tokenPositions, confidence: Number(confidence.toFixed(4)), authorityLevel, coverage: values.length, evidence, conflict: false, safe: false, review: false };
+function suggestion(role, tokenPositions, confidence, authorityLevel, values, evidence, evidenceMetrics = {}) {
+  return {
+    role,
+    tokenPositions,
+    confidence: Number(confidence.toFixed(4)),
+    authorityLevel,
+    // Keep legacy `coverage` as sample-count compatibility; explicit rate evidence
+    // lives in evidenceMetrics so a count can no longer be mistaken for a rate.
+    coverage: values.length,
+    sampleCount: values.length,
+    evidenceMetrics: Object.freeze({ ...evidenceMetrics }),
+    evidence,
+    conflict: false,
+    safe: false,
+    review: false,
+  };
 }
 
 function bestByRole(candidates, thresholds) {
@@ -164,10 +195,18 @@ function derivedRatingSuggestion(suggestions, ratingSequence) {
   const pipingClass = suggestions.find((item) => item.role === 'pipingClass');
   if (!pipingClass || pipingClass.authorityLevel === 'HEURISTIC_ONLY') return null;
   return {
-    role: 'rating', tokenPositions: [], confidence: pipingClass.confidence,
-    authorityLevel: 'DERIVED_FROM_AUTHORIZED_CLASS', coverage: pipingClass.coverage,
+    role: 'rating',
+    tokenPositions: [],
+    confidence: pipingClass.confidence,
+    authorityLevel: 'DERIVED_FROM_AUTHORIZED_CLASS',
+    coverage: pipingClass.coverage,
+    sampleCount: pipingClass.sampleCount,
+    evidenceMetrics: pipingClass.evidenceMetrics,
     evidence: [`Derived from piping class by ${Array.isArray(ratingSequence) ? ratingSequence.length : 0} configured prefix rules`],
-    conflict: false, safe: pipingClass.safe, review: pipingClass.review, derived: true,
+    conflict: false,
+    safe: pipingClass.safe,
+    review: pipingClass.review,
+    derived: true,
   };
 }
 
@@ -200,12 +239,16 @@ export function buildRegexSuggestionPreflight(input = {}) {
   const candidates = [];
   for (let pos = 1; pos <= maxColumns; pos += 1) {
     const values = positionValues(selected.rows, pos);
-    candidates.push(boreCandidate(values, pos), classCandidate(values, pos, classMasters, profile.normalization.classSuffixPattern), ratingCandidate(values, pos));
+    candidates.push(
+      boreCandidate(values, pos),
+      classCandidate(values, pos, classMasters, profile.normalization.classSuffixPattern),
+      ratingCandidate(values, pos),
+    );
   }
   candidates.push(...lineKeyCandidates(selected.rows, lineMasters, profile.formatPolicy.maximumLineKeyTokens));
   let suggestions = markConflicts(bestByRole(candidates, profile.thresholds));
   const explicitRating = suggestions.find((item) => item.role === 'rating');
-  if ((!explicitRating || explicitRating.confidence < profile.thresholds.review)) {
+  if (!explicitRating || explicitRating.confidence < profile.thresholds.review) {
     suggestions = suggestions.filter((item) => item.role !== 'rating');
     const derived = derivedRatingSuggestion(suggestions, config.ratingSequence);
     if (derived) suggestions.push(derived);
@@ -214,12 +257,25 @@ export function buildRegexSuggestionPreflight(input = {}) {
   const blockers = [];
   if (!rows.length) blockers.push({ code: 'SOURCE_SAMPLE_SET_EMPTY', message: 'No branch samples are available.' });
   if (clusters.length > profile.formatPolicy.maximumFormats) blockers.push({ code: 'FORMAT_COUNT_EXCEEDS_PROFILE', message: `${clusters.length} formats exceed the configured maximum.` });
-  const status = blockers.length ? 'BLOCKED' : metrics.conflictCount ? 'REVIEW_REQUIRED' : metrics.safeCount ? (metrics.reviewCount ? 'REVIEW_REQUIRED' : 'READY_TO_APPLY') : 'REVIEW_REQUIRED';
+  const status = blockers.length
+    ? 'BLOCKED'
+    : metrics.conflictCount
+      ? 'REVIEW_REQUIRED'
+      : metrics.safeCount
+        ? (metrics.reviewCount ? 'REVIEW_REQUIRED' : 'READY_TO_APPLY')
+        : 'REVIEW_REQUIRED';
   return Object.freeze({
-    schema: 'regex-suggestion-preflight/v1', status, formatIndex, selectedSignature: selected.signature,
+    schema: 'regex-suggestion-preflight/v1',
+    status,
+    formatIndex,
+    selectedSignature: selected.signature,
     fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: input.masterContext?.rowCounts, profile }),
-    suggestions: Object.freeze(suggestions.map(Object.freeze)), clusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
-    metrics: Object.freeze(metrics), blockers: Object.freeze(blockers), canPreview: rows.length > 0, canApply: status === 'READY_TO_APPLY',
+    suggestions: Object.freeze(suggestions.map(Object.freeze)),
+    clusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
+    metrics: Object.freeze(metrics),
+    blockers: Object.freeze(blockers),
+    canPreview: rows.length > 0,
+    canApply: status === 'READY_TO_APPLY',
   });
 }
 
@@ -248,7 +304,9 @@ export function applyRegexSuggestions(extractionConfig = {}, receipt, options = 
     }
     next.formats[index][item.role] = {
       ...(next.formats[index][item.role] || {}),
-      tokenPosition: item.tokenPositions.join(','), regex: '', group: 1,
+      tokenPosition: item.tokenPositions.join(','),
+      regex: '',
+      group: 1,
     };
   }
   return next;
