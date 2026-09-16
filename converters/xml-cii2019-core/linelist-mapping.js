@@ -2,9 +2,7 @@ import { resolveLineListDensity } from './line-density-resolver.js';
 
 export const FIELD_RULES = {
   lineSeqNo: {
-    all: [
-      ['line number', 'line no', 'line no.', 'lineno', 'line', 'seq', 'sequence', 'no.']
-    ],
+    all: [['line number', 'line no', 'line no.', 'lineno', 'line', 'seq', 'sequence', 'no.']],
     reject: [
       /(piping|construction|pipe)\s*class/i,
       /\bspec\b/i,
@@ -16,11 +14,8 @@ export const FIELD_RULES = {
       /fluid/i
     ]
   },
-
   lineKey1: {
-    all: [
-      ['service', 'fluid']
-    ],
+    all: [['service', 'fluid']],
     reject: [
       /piping\s*class/i,
       /pipe\s*class/i,
@@ -31,11 +26,8 @@ export const FIELD_RULES = {
       /density/i
     ]
   },
-
   lineKey2: {
-    all: [
-      ['line number', 'line no', 'line no.', 'lineno', 'line', 'seq', 'sequence']
-    ],
+    all: [['line number', 'line no', 'line no.', 'lineno', 'line', 'seq', 'sequence']],
     reject: [
       /(piping|construction|pipe)\s*class/i,
       /\bspec\b/i,
@@ -51,12 +43,8 @@ export const FIELD_RULES = {
     ],
     requireHeaderMatch: true
   },
-
   pipingClass: {
-    all: [
-      ['piping', 'pipe'],
-      ['class', 'spec']
-    ],
+    all: [['piping', 'pipe'], ['class', 'spec']],
     reject: [
       /construction\s*class/i,
       /\bconstruction\b/i,
@@ -71,26 +59,12 @@ export const FIELD_RULES = {
       /insulation/i
     ]
   },
-
   rating: {
-    all: [
-      ['rating']
-    ],
-    reject: [
-      /piping\s*class/i,
-      /pipe\s*class/i,
-      /material/i,
-      /pressure/i,
-      /temp/i,
-      /density/i,
-      /line/i
-    ]
+    all: [['rating']],
+    reject: [/piping\s*class/i, /pipe\s*class/i, /material/i, /pressure/i, /temp/i, /density/i, /line/i]
   },
-
   material: {
-    all: [
-      ['material', 'mat', 'moc']
-    ],
+    all: [['material', 'mat', 'moc']],
     reject: [
       /material\s*code/i,
       /mat\.?\s*code/i,
@@ -106,27 +80,12 @@ export const FIELD_RULES = {
       /density/i
     ]
   },
-
   convertedBore: {
-    all: [
-      ['bore', 'size', 'dn', 'nb', 'nps', 'nominal pipe', 'nominal bore']
-    ],
-    reject: [
-      /class/i,
-      /spec/i,
-      /rating/i,
-      /pressure/i,
-      /temp/i,
-      /density/i,
-      /line/i
-    ]
+    all: [['bore', 'size', 'dn', 'nb', 'nps', 'nominal pipe', 'nominal bore']],
+    reject: [/class/i, /spec/i, /rating/i, /pressure/i, /temp/i, /density/i, /line/i]
   },
-
   p1: {
-    all: [
-      ['p1', 'pressure', 'pr'],
-      ['p1', 'max', 'design']
-    ],
+    all: [['p1', 'pressure', 'pr'], ['p1', 'max', 'design']],
     reject: [
       /test\s*pressure/i,
       /hydro/i,
@@ -140,145 +99,51 @@ export const FIELD_RULES = {
       /piping\s*class/i
     ]
   },
-
   t1: {
-    all: [
-      ['t1', 'temp', 'temperature'],
-      ['t1', 'max', 'design']
-    ],
-    reject: [
-      /min/i,
-      /pressure/i,
-      /test/i,
-      /hydro/i,
-      /density/i
-    ]
+    all: [['t1', 'temp', 'temperature'], ['t1', 'max', 'design']],
+    reject: [/min/i, /pressure/i, /test/i, /hydro/i, /density/i]
   },
-
   t2: {
-    all: [
-      ['t2', 'temp', 'temperature']
-    ],
-    optional: [
-      ['normal', 'operating']
-    ],
-    reject: [
-      /max/i,
-      /min/i,
-      /pressure/i,
-      /test/i,
-      /hydro/i,
-      /density/i
-    ]
+    all: [['t2', 'temp', 'temperature']],
+    optional: [['normal', 'operating']],
+    reject: [/max/i, /min/i, /pressure/i, /test/i, /hydro/i, /density/i]
   },
-
   t3: {
-    all: [
-      ['t3', 'temp', 'temperature'],
-      ['t3', 'min']
-    ],
-    reject: [
-      /max/i,
-      /pressure/i,
-      /test/i,
-      /hydro/i,
-      /density/i
-    ]
+    all: [['t3', 'temp', 'temperature'], ['t3', 'min']],
+    reject: [/max/i, /pressure/i, /test/i, /hydro/i, /density/i]
   },
-
   hydroPressure: {
-    all: [
-      ['pressure', 'pr'],
-      ['hydo', 'hydro', 'test']
-    ],
-    reject: [
-      /temp/i,
-      /temperature/i,
-      /density/i,
-      /line\s*(number|no\.?)/i,
-      /piping\s*class/i
-    ]
+    all: [['pressure', 'pr'], ['hydo', 'hydro', 'test']],
+    reject: [/temp/i, /temperature/i, /density/i, /line\s*(number|no\.?)/i, /piping\s*class/i]
   },
-
   insThk: {
-    all: [
-      ['insulation', 'ins'],
-      ['thickness', 'thk']
-    ],
-    reject: [
-      /insulation\s*type/i
-    ]
+    all: [['insulation', 'ins'], ['thickness', 'thk']],
+    reject: [/insulation\s*type/i]
   },
-
   density: {
-    all: [
-      ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']
-    ],
-    reject: [
-      /mixed/i,
-      /gas/i,
-      /liquid/i,
-      /\bliq\b/i,
-      /phase/i,
-      /pressure/i,
-      /temp/i
-    ]
+    all: [['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']],
+    reject: [/mixed/i, /gas/i, /liquid/i, /\bliq\b/i, /phase/i, /pressure/i, /temp/i]
   },
-
   densityMixed: {
-    all: [
-      ['mixed'],
-      ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']
-    ],
-    reject: [
-      /gas/i,
-      /liquid/i,
-      /\bliq\b/i
-    ]
+    all: [['mixed'], ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']],
+    reject: [/gas/i, /liquid/i, /\bliq\b/i]
   },
-
   densityGas: {
-    all: [
-      ['gas'],
-      ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']
-    ],
-    reject: [
-      /mixed/i,
-      /liquid/i,
-      /\bliq\b/i
-    ]
+    all: [['gas'], ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']],
+    reject: [/mixed/i, /liquid/i, /\bliq\b/i]
   },
-
   densityLiquid: {
-    all: [
-      ['liquid', 'liq'],
-      ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']
-    ],
-    reject: [
-      /mixed/i,
-      /gas/i
-    ]
+    all: [['liquid', 'liq'], ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']],
+    reject: [/mixed/i, /gas/i]
   },
-
-  phase: {
-    all: [
-      ['fluid', 'phase', 'medium']
-    ],
-    reject: []
-  },
-
+  phase: { all: [['fluid', 'phase', 'medium']], reject: [] },
   from: {
-    all: [
-      ['from', 'origin']
-    ],
+    all: [['from', 'origin']],
     exactSegments: ['from', 'from origin', 'origin', 'from equipment'],
     reject: []
   },
-
   to: {
-    all: [
-      ['to', 'destination']
-    ],
+    all: [['to', 'destination']],
     exactSegments: ['to', 'to destination', 'destination', 'to equipment'],
     reject: []
   }
@@ -287,6 +152,7 @@ export const FIELD_RULES = {
 export const DETECTION_ORDER = [
   'lineKey1',
   'lineKey2',
+  'lineSeqNo',
   'pipingClass',
   'rating',
   'material',
@@ -339,9 +205,7 @@ export function readRowValue(row, keys) {
   if (!row || !keys) return '';
   for (const k of keys) {
     const value = k ? (row[k] ?? row._raw?.[k]) : '';
-    if (value !== undefined && value !== null && String(value).trim() !== '') {
-      return String(value).trim();
-    }
+    if (value !== undefined && value !== null && String(value).trim() !== '') return String(value).trim();
   }
   return '';
 }
@@ -349,28 +213,22 @@ export function readRowValue(row, keys) {
 export function buildColumnProbe(key, rows) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const vals = [key];
-  for (let i = 0; i < Math.min(5, safeRows.length); i++) {
+  for (let i = 0; i < Math.min(5, safeRows.length); i += 1) {
     const v = safeRows[i]?.[key];
-    if (v !== undefined && v !== null && String(v).trim() !== '') {
-      vals.push(String(v).trim());
-    }
+    if (v !== undefined && v !== null && String(v).trim() !== '') vals.push(String(v).trim());
   }
   return vals.join(' | ');
 }
 
 export function getAllColumnKeys(rows) {
-  return Array.from(
-    new Set((Array.isArray(rows) ? rows : []).flatMap((row) => Object.keys(row || {})))
-  );
+  return Array.from(new Set((Array.isArray(rows) ? rows : []).flatMap((row) => Object.keys(row || {}))));
 }
 
 export function hasAlias(probe, alias) {
   const p = canon(probe);
   const a = canon(alias);
   if (!a) return false;
-  if (/^[a-z0-9]+$/.test(a) && a.length <= 4) {
-    return new RegExp(`\\b${a}\\b`, 'i').test(p);
-  }
+  if (/^[a-z0-9]+$/.test(a) && a.length <= 4) return new RegExp(`\\b${a}\\b`, 'i').test(p);
   return p.includes(a);
 }
 
@@ -396,10 +254,7 @@ function directProcessHeaderMatch(field, probe) {
 }
 
 export function splitPipeSegments(value) {
-  return String(value ?? '')
-    .split(/\s*\|\s*/g)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
+  return String(value ?? '').split(/\s*\|\s*/g).map((segment) => segment.trim()).filter(Boolean);
 }
 
 function exactSegmentMatchesField(field, value) {
@@ -412,28 +267,24 @@ function exactSegmentMatchesField(field, value) {
 export function pipeSegmentMatchesField(field, value) {
   const rule = FIELD_RULES[field];
   if (!rule) return false;
-  if (exactSegmentMatchesField(field, value)) return true;
+  if (rule.exactSegments?.length) return exactSegmentMatchesField(field, value);
   return splitPipeSegments(value).some((segment) => {
     if (!groupsMatch(segment, rule.all || [])) return false;
-    if (rejectMatch(segment, rule.reject || [])) return false;
-    return true;
+    return !rejectMatch(segment, rule.reject || []);
   });
 }
 
 export function isValidFieldMatch(field, probe, key) {
   const rule = FIELD_RULES[field];
-  if (!rule) return false;
-  if (rejectMatch(probe, rule.reject || [])) return false;
-  if (exactSegmentMatchesField(field, probe)) return true;
+  if (!rule || rejectMatch(probe, rule.reject || [])) return false;
+  if (rule.exactSegments?.length) return exactSegmentMatchesField(field, probe);
   if (directProcessHeaderMatch(field, probe)) return true;
   if (!groupsMatch(probe, rule.all || [])) return false;
-  if (rule.requireHeaderMatch && key !== undefined) {
-    const header = canon(key);
-    const headerMatches = groupsMatch(header, rule.all || []) && !rejectMatch(header, rule.reject || []);
-    const pipeHeaderMatches = field === 'lineKey2' && pipeSegmentMatchesField(field, probe);
-    if (!headerMatches && !pipeHeaderMatches) return false;
-  }
-  return true;
+  if (!rule.requireHeaderMatch || key === undefined) return true;
+  const header = canon(key);
+  const headerMatches = groupsMatch(header, rule.all || []) && !rejectMatch(header, rule.reject || []);
+  const pipeHeaderMatches = field === 'lineKey2' && pipeSegmentMatchesField(field, probe);
+  return headerMatches || pipeHeaderMatches;
 }
 
 export function scoreField(field, key, rows) {
@@ -461,35 +312,62 @@ export function scoreField(field, key, rows) {
 export function shouldKeepExisting(field, key, rows) {
   if (!key) return false;
   const probe = buildColumnProbe(key, rows);
-  if (!isValidFieldMatch(field, probe, key)) return false;
-  return scoreField(field, key, rows) >= 200;
+  return isValidFieldMatch(field, probe, key) && scoreField(field, key, rows) >= 200;
+}
+
+function fieldsMayShareColumn(left, right) {
+  return new Set([left, right]).size === 2
+    && ['lineKey2', 'lineSeqNo'].includes(left)
+    && ['lineKey2', 'lineSeqNo'].includes(right);
+}
+
+function columnAvailable(field, key, claimed) {
+  const owners = claimed.get(key);
+  if (!owners?.size) return true;
+  return [...owners].every((owner) => owner === field || fieldsMayShareColumn(field, owner));
+}
+
+function claimColumn(field, key, claimed) {
+  const owners = new Set(claimed.get(key) || []);
+  owners.add(field);
+  claimed.set(key, owners);
+}
+
+function validationFields(result) {
+  const known = new Set(DETECTION_ORDER);
+  return [...DETECTION_ORDER, ...Object.keys(result).filter((field) => FIELD_RULES[field] && !known.has(field))];
 }
 
 export function detectLineListFieldMap(rows, existingMap = {}, config = null) {
   const keys = getAllColumnKeys(rows);
   const result = { ...existingMap };
-  const claimed = new Set();
+  const claimed = new Map();
+  const customFields = new Set();
   const customAliases = config?.customMappingAliases || {};
 
   for (const field of DETECTION_ORDER) {
     const customAlias = customAliases[field];
     if (!customAlias) continue;
     for (const key of keys) {
-      if (claimed.has(key)) continue;
+      if (!columnAvailable(field, key, claimed)) continue;
       const headerText = String(key).trim();
-      const firstRowVal = rows[0]?.[key] !== undefined && rows[0]?.[key] !== null ? String(rows[0][key]).trim() : '';
-      if (headerText === customAlias || firstRowVal === customAlias) {
-        result[field] = key;
-        claimed.add(key);
-        break;
-      }
+      const firstRowVal = rows[0]?.[key] == null ? '' : String(rows[0][key]).trim();
+      if (headerText !== customAlias && firstRowVal !== customAlias) continue;
+      result[field] = key;
+      customFields.add(field);
+      claimColumn(field, key, claimed);
+      break;
     }
   }
 
-  for (const [field, key] of Object.entries(result)) {
-    if (claimed.has(key)) continue;
-    if (FIELD_RULES[field] && shouldKeepExisting(field, key, rows)) claimed.add(key);
-    else if (FIELD_RULES[field]) delete result[field];
+  for (const field of validationFields(result)) {
+    if (customFields.has(field)) continue;
+    const key = result[field];
+    if (!key || !shouldKeepExisting(field, key, rows) || !columnAvailable(field, key, claimed)) {
+      delete result[field];
+      continue;
+    }
+    claimColumn(field, key, claimed);
   }
 
   for (const field of DETECTION_ORDER) {
@@ -497,17 +375,16 @@ export function detectLineListFieldMap(rows, existingMap = {}, config = null) {
     let bestKey = '';
     let bestScore = 0;
     for (const key of keys) {
-      if (claimed.has(key) && result[field] !== key) continue;
+      if (!columnAvailable(field, key, claimed)) continue;
       const score = scoreField(field, key, rows);
       if (score > bestScore) {
         bestScore = score;
         bestKey = key;
       }
     }
-    if (bestKey && bestScore >= 200) {
-      result[field] = bestKey;
-      claimed.add(bestKey);
-    }
+    if (!bestKey || bestScore < 200) continue;
+    result[field] = bestKey;
+    claimColumn(field, bestKey, claimed);
   }
 
   if (result.p1 && result.hydroPressure && result.p1 === result.hydroPressure) delete result.p1;
