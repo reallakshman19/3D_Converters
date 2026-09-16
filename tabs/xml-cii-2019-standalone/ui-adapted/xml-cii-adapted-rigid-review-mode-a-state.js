@@ -1,3 +1,5 @@
+import { withXmlCiiRigidWeightFinal } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
@@ -41,7 +43,7 @@ export function applyModeAConsolidatedRigidReviewUpdates(state = {}, updates = {
   const sources = (batch.sources || []).map((source) => {
     const patch = updates?.[source.sourceId];
     if (!patch) return source;
-    const config = parseConfig(source.supportConfigJson || '{}');
+    let config = parseConfig(source.supportConfigJson || '{}');
     const overrides = object(config, 'overrides');
     const ratings = patch.ratingsByKey && typeof patch.ratingsByKey === 'object' ? patch.ratingsByKey : {};
     const weights = patch.weightsByKey && typeof patch.weightsByKey === 'object' ? patch.weightsByKey : {};
@@ -49,13 +51,7 @@ export function applyModeAConsolidatedRigidReviewUpdates(state = {}, updates = {
       const bucket = object(overrides, 'rating');
       for (const [key, value] of Object.entries(ratings)) if (text(key) && text(value)) bucket[key] = text(value);
     }
-    if (Object.keys(weights).length) {
-      const bucket = object(overrides, 'rigidWeight');
-      for (const [key, value] of Object.entries(weights)) {
-        const numeric = Number(value);
-        if (text(key) && Number.isFinite(numeric) && numeric > 0) bucket[key] = numeric;
-      }
-    }
+    if (Object.keys(weights).length) config = withXmlCiiRigidWeightFinal(config, weights);
     return { ...source, supportConfigJson: JSON.stringify(config, null, 2) };
   });
   const active = sources.find((source) => source.sourceId === batch.activeSourceId) || null;

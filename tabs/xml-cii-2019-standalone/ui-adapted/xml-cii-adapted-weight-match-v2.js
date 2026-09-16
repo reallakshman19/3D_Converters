@@ -1,4 +1,10 @@
+import './xml-cii-adapted-authority-migration.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
+import {
+  withXmlCiiEffectiveRigidWeightLegacyView,
+  withXmlCiiRigidWeightMatch1,
+  xmlCiiEffectiveRigidWeightMap,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,
@@ -52,6 +58,33 @@ function ensureOverrides(config) {
   return config.overrides;
 }
 
+function changedWeightMap(nextConfig, baseline) {
+  const bucket = nextConfig?.overrides?.rigidWeight;
+  if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) return {};
+  const changes = {};
+  for (const [key, rawValue] of Object.entries(bucket)) {
+    const value = Number(rawValue);
+    if (!key || !Number.isFinite(value) || value <= 0) continue;
+    if (Number(baseline?.[key]) !== value) changes[key] = value;
+  }
+  return changes;
+}
+
+function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline) {
+  const current = ensureWeightRows(
+    xmlCiiEnrichedConfigFromState(stateRef.current),
+    stateRef.current.masterContext,
+  );
+  const overrides = {
+    ...(nextConfig?.overrides || {}),
+    rigidWeight: { ...(current?.overrides?.rigidWeight || {}) },
+  };
+  const clean = { ...nextConfig, overrides };
+  const staged = withXmlCiiRigidWeightMatch1(clean, changedWeightMap(nextConfig, baseline));
+  persistConfig(stateRef, staged);
+  return staged;
+}
+
 export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
@@ -69,7 +102,9 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         throw new Error('Shared Weight Match renderer contract is incomplete.');
       }
       const state = stateRef.current;
-      const config = ensureWeightRows(xmlCiiEnrichedConfigFromState(state), state.masterContext);
+      const persistedConfig = ensureWeightRows(xmlCiiEnrichedConfigFromState(state), state.masterContext);
+      const rendererConfig = withXmlCiiEffectiveRigidWeightLegacyView(persistedConfig);
+      let baseline = xmlCiiEffectiveRigidWeightMap(persistedConfig);
       const xmlFile = state.sourceFile || (state.sourceText
         ? new File([state.sourceText], 'source.xml', { type: 'application/xml' })
         : null);
@@ -77,9 +112,12 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
       shared.bindXmlCiiWeightMatchPhase(card, {
         xmlFile,
         stagedJsonText: state.stagedJsonText || '',
-        config,
+        config: rendererConfig,
         enrichXmlForCii2019: shared.enrichXmlForCii2019,
-        onSaveConfig: (nextConfig) => persistConfig(stateRef, nextConfig),
+        onSaveConfig: (nextConfig) => {
+          const saved = persistSharedWeightMatchConfig(stateRef, nextConfig, baseline);
+          baseline = xmlCiiEffectiveRigidWeightMap(saved);
+        },
         ensureOverrides,
         resolveStagedJsonText: async () => ({
           text: stateRef.current.stagedJsonText || '',

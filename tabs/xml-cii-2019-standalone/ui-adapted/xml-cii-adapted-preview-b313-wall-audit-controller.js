@@ -117,18 +117,57 @@ function updatedRowHtml(row) {
   </tr>`;
 }
 
+function factorAvailabilityFrom(details = {}) {
+  return details?.factorAvailability
+    || details?.factorBasis?.factorAvailability
+    || details?.factorBasis?.details?.factorAvailability
+    || details?.result?.details?.factorAvailability
+    || null;
+}
+
+function factorBlockerText(details = {}) {
+  const availability = factorAvailabilityFrom(details);
+  if (!availability?.factors) return '';
+  const strictStatuses = Array.isArray(availability.strictAcceptedStatuses)
+    ? availability.strictAcceptedStatuses.join(' / ')
+    : 'VERIFIED / PROJECT_APPROVED';
+  const rows = [];
+  for (const factor of ['S', 'E', 'W', 'Y']) {
+    const item = availability.factors[factor];
+    if (!item || item.strictAvailable) continue;
+    const statuses = Array.isArray(item.candidateStatuses) ? item.candidateStatuses.filter(Boolean).join(' / ') : '';
+    const temperatures = Array.isArray(item.availableTemperaturesC) ? item.availableTemperaturesC.join(', ') : '';
+    const routes = Array.isArray(item.availableManufacturingRoutes) ? item.availableManufacturingRoutes.filter(Boolean).join(' / ') : '';
+    let detail = item.status || 'STRICT_RECORD_UNAVAILABLE';
+    if (item.status === 'QUALIFICATION_STATUS_REJECTED') detail = `candidate status ${statuses || 'unqualified'} excluded; strict accepts ${strictStatuses}`;
+    else if (item.status === 'MANUFACTURING_ROUTE_REQUIRED') detail = `manufacturing route required${routes ? `; available ${routes}` : ''}`;
+    else if (item.status === 'MANUFACTURING_ROUTE_NO_MATCH') detail = `route ${item.requestedManufacturingRoute || '?'} not matched${routes ? `; available ${routes}` : ''}`;
+    else if (item.status === 'NO_EXACT_TEMPERATURE_RECORD') detail = `no exact T1 record${temperatures ? `; available T °C: ${temperatures}` : ''}`;
+    rows.push(`${factor}: ${detail}`);
+  }
+  return rows.join(' · ');
+}
+
 function failedRowHtml(row) {
   const details = row?.details || {};
-  const identity = details.materialIdentity || details.factorBasis?.materialIdentity || null;
+  const identity = details.materialIdentity || details.factorBasis?.materialIdentity || details.factorBasis?.details?.materialIdentity || null;
   const factorBasis = details.factorBasis || null;
   const materialId = identity?.ok ? identity.material?.materialId : '';
+  const materialSource = text(identity?.materialSource || identity?.resolutionSource || identity?.requestMode);
   const factorMode = factorBasis?.ok ? authorityLabel(factorBasis.mode) : text(factorBasis?.code) || 'NOT RESOLVED';
   const reason = text(row.message || row.code || 'Row was not updated.');
+  const blockers = factorBlockerText(details);
+  const strictMissing = factorBasis?.details?.strictResult?.details?.missing || [];
+  const t1 = factorBasis?.details?.designTemperatureC ?? factorBasis?.designTemperatureC;
+  const odReference = details.referenceOd ?? details.referenceOdMm ?? details.odBasis?.referenceOdMm;
+  const odTolerance = details.toleranceMm ?? details.odBasis?.toleranceMm;
+  const odHint = finite(odReference) === null ? '' : `OD reference ${fixed(odReference, 3)} mm${finite(odTolerance) === null ? '' : ` · tolerance ±${fixed(odTolerance, 3)} mm`}`;
+  const factorHint = blockers || (strictMissing.length ? `Strict factors missing: ${strictMissing.join(', ')}` : '');
   return `<tr>
     <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-family:monospace;font-size:11px;color:#0f172a;">${esc(row.branchName || '—')}</div><div style="font-size:10px;color:#64748b;margin-top:2px;">Line ${esc(row.lineKey || '—')}</div></td>
-    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;">${esc(materialId || 'Material identity unresolved')}</div></td>
-    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;color:#92400e;">${esc(factorMode)}</div></td>
-    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;color:#991b1b;">${esc(row.code || 'B313_PREVIEW_NOT_UPDATED')}</div><div style="font-size:11px;color:#475569;margin-top:2px;">${esc(reason)}</div></td>
+    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;">${esc(materialId || 'Material identity unresolved')}</div>${materialSource ? `<div style="font-size:10px;color:#64748b;">identity source ${esc(materialSource)}${finite(t1) === null ? '' : ` · T1 ${esc(t1)} °C`}</div>` : ''}</td>
+    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;color:#92400e;">${esc(factorMode)}</div>${factorHint ? `<div style="font-size:10px;color:#92400e;margin-top:3px;">${esc(factorHint)}</div>` : ''}</td>
+    <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;"><div style="font-weight:700;color:#991b1b;">${esc(row.code || 'B313_PREVIEW_NOT_UPDATED')}</div><div style="font-size:11px;color:#475569;margin-top:2px;">${esc(reason)}</div>${odHint ? `<div style="font-size:10px;color:#64748b;margin-top:3px;">${esc(odHint)}</div>` : ''}</td>
     <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;white-space:nowrap;">${statusPill('NOT_UPDATED')}</td>
   </tr>`;
 }
@@ -148,11 +187,12 @@ export function renderPreviewB313WallAuditHtml(report = {}) {
 
   return `<details data-mc-b313-report open style="margin:10px 0;border:1px solid ${border};border-radius:8px;background:#ffffff;padding:10px;box-shadow:0 1px 2px rgba(15,23,42,.06);">
     <summary style="cursor:pointer;font-weight:800;color:${titleColor};">B31.3 wall update audit · Evaluated ${summary.evaluatedRows} · Updated ${summary.updatedRows} · Not updated ${summary.notUpdatedRows}</summary>
+    <div style="font-size:11px;color:#475569;margin:8px 0;">Line-list and Piping Class data may resolve the governed material identity. They do not invent numeric S/E/W/Y. Automatic factors must still come from strict VERIFIED / PROJECT_APPROVED B31.3 factor records at the row T1 and, where applicable, the manufacturing route.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px;">
       <span style="padding:4px 8px;border-radius:6px;background:#f1f5f9;color:#334155;font-size:10px;"><strong>Code basis</strong> ASME B31.3-2024 §304.1.2 Eq. (3a)</span>
       <span style="padding:4px 8px;border-radius:6px;background:#ecfdf5;color:#166534;font-size:10px;"><strong>Primary factors</strong> Preview Material → B31.3 identity → active strict S/E/W/Y at T1</span>
       <span style="padding:4px 8px;border-radius:6px;background:#fffbeb;color:#92400e;font-size:10px;"><strong>Fallback</strong> manual S/E/W/Y only when active master is incomplete; controlled source required</span>
-      <span style="padding:4px 8px;border-radius:6px;background:#f8fafc;color:#475569;font-size:10px;"><strong>Excluded</strong> BENCHMARK_ONLY factors</span>
+      <span style="padding:4px 8px;border-radius:6px;background:#f8fafc;color:#475569;font-size:10px;"><strong>Excluded</strong> BENCHMARK_ONLY / SCREENING factors</span>
       <span style="padding:4px 8px;border-radius:6px;background:#f8fafc;color:#475569;font-size:10px;"><strong>Mill tolerance</strong> 12.5% negative</span>
     </div>
     ${warning}

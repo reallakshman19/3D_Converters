@@ -1,6 +1,8 @@
 export * from './xml-cii-adapted-preview-dryrun-core.js';
 
+import './xml-cii-adapted-authority-migration.js';
 import { xmlCiiDryRunPreview as buildCorePreview } from './xml-cii-adapted-preview-dryrun-core.js';
+import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { applyPreviewBoreWallAuthority } from './xml-cii-adapted-preview-bore-wall-authority.js';
 import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-material-authority.js';
 import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js';
@@ -10,13 +12,6 @@ import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
-const LINE_AUTHORITY_MARKER_KEY = 'xml-cii-preview-line-authority-version';
-const PREVIEW_CACHE_KEYS = Object.freeze([
-  'xml-cii-pv-cache-v8-rating-policy',
-  'xml-cii-pv-cache-v8-dtxr',
-  'xml-cii-pv-cache-v7',
-  'xml-cii-pv-cache-v6',
-]);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -175,14 +170,6 @@ export function buildStrictLineAuthorityCorePreview(
   };
 }
 
-try {
-  if (typeof localStorage !== 'undefined'
-    && localStorage.getItem(LINE_AUTHORITY_MARKER_KEY) !== LINE_AUTHORITY_VERSION) {
-    for (const key of PREVIEW_CACHE_KEYS) localStorage.removeItem(key);
-    localStorage.setItem(LINE_AUTHORITY_MARKER_KEY, LINE_AUTHORITY_VERSION);
-  }
-} catch {}
-
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   import('../../xml-cii-effective-class-shard-hydrator.js')
     .then(({ installXmlCiiEffectiveClassShardHydrator }) => installXmlCiiEffectiveClassShardHydrator())
@@ -190,28 +177,34 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 }
 
 function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
+  const previewConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
   const sourceDocument = getSourceDocumentContext(xmlText).document;
   const coreResult = buildStrictLineAuthorityCorePreview(
-    xmlText, config, stagedJsonText, { sourceDocument },
+    xmlText, previewConfig, stagedJsonText, { sourceDocument },
   );
   const wallResult = applyPreviewBoreWallAuthority({
-    xmlText, config, stagedJsonText, result: coreResult, sourceDocument,
+    xmlText, config: previewConfig, stagedJsonText, result: coreResult, sourceDocument,
   });
-  const materialResult = applyPreviewMaterialCodeAuthority({ config, result: wallResult });
+  const materialResult = applyPreviewMaterialCodeAuthority({ config: previewConfig, result: wallResult });
   return applyPreviewRatingAuthority({
-    xmlText, config, stagedJsonText, result: materialResult, sourceDocument,
+    xmlText, config: previewConfig, stagedJsonText, result: materialResult, sourceDocument,
   });
 }
 
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
+  const previewConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
   return buildIncrementalPreview({
     xmlText,
     stagedJsonText,
-    config,
-    fullBuild: () => buildFullDryRunPreview(xmlText, config, stagedJsonText),
-    rerankWeight: rerankPreviewNodeRows,
+    config: previewConfig,
+    fullBuild: () => buildFullDryRunPreview(xmlText, previewConfig, stagedJsonText),
+    rerankWeight: (nodeRows, branchRows, nextConfig) => rerankPreviewNodeRows(
+      nodeRows,
+      branchRows,
+      withXmlCiiEffectiveRigidWeightLegacyView(nextConfig),
+    ),
     reapplyMaterial: (previousResult, nextConfig) => applyPreviewMaterialCodeAuthority({
-      config: nextConfig,
+      config: withXmlCiiEffectiveRigidWeightLegacyView(nextConfig),
       result: previousResult,
     }),
   }).result;
