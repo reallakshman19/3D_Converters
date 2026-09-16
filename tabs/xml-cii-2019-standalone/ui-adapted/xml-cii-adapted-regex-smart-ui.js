@@ -1,6 +1,6 @@
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
-import { buildRegexSampleBuckets } from '../xml-cii-regex-sample-buckets.js';
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
+import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
 import { applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js';
 
@@ -54,15 +54,9 @@ function showMessage(builder, text, bad = false) {
 function suggestionEvidenceText(item) {
   if (item?.derived) return (item.evidence || []).join(' · ') || 'Derived suggestion';
   const m = item?.evidenceMetrics || {};
-  if (item?.role === 'lineKey') {
-    return `Exact master ${percent(m.exactMasterRate)} · uniqueness ${percent(m.uniquenessRate)} · line shape ${percent(m.shapeRate)}`;
-  }
-  if (item?.role === 'pipingClass') {
-    return `Exact master ${percent(m.exactMasterRate)} · normalized master ${percent(m.normalizedMasterRate)} · class shape ${percent(m.shapeRate)}`;
-  }
-  if (item?.role === 'bore') {
-    return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)}`;
-  }
+  if (item?.role === 'lineKey') return `Exact master ${percent(m.exactMasterRate)} · uniqueness ${percent(m.uniquenessRate)} · line shape ${percent(m.shapeRate)}`;
+  if (item?.role === 'pipingClass') return `Exact master ${percent(m.exactMasterRate)} · normalized master ${percent(m.normalizedMasterRate)} · class shape ${percent(m.shapeRate)}`;
+  if (item?.role === 'bore') return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)}`;
   if (item?.role === 'rating') return `Standard rating evidence ${percent(m.standardValueRate)}`;
   return (item?.evidence || []).join(' · ');
 }
@@ -80,9 +74,8 @@ function actionMetrics(receipt) {
   ];
 }
 
-function installToolbar(builder, state, stateRef, render, receipt) {
-  const existing = builder.querySelector('[data-regex-smart-toolbar]');
-  if (existing) existing.remove();
+function installToolbar(builder, stateRef, render, receipt) {
+  builder.querySelector('[data-regex-smart-toolbar]')?.remove();
   const { bar, actions, metrics } = createSmartToolbar();
   bar.dataset.regexSmartToolbar = 'true';
   actions.append(
@@ -195,39 +188,6 @@ function decorateTokens(builder, receipt, stateRef, render) {
   });
 }
 
-function decorateSampleSelector(builder, state) {
-  const select = [...builder.querySelectorAll('select')]
-    .find((node) => /Select Sample Branch/i.test(node.parentElement?.textContent || ''));
-  if (!select) return;
-  const samples = resultOf(state).branchSamples || [];
-  const formats = state.regexTesterConfig?.formats || [];
-  const formatIndex = Number(state.regexTesterConfig?.activeFormatIndex || 0);
-  const delimiter = formats[formatIndex]?.tokenDelimiter || state.regexTesterConfig?.tokenDelimiter || '-';
-  const buckets = buildRegexSampleBuckets(samples, delimiter);
-  if (!buckets.length) return;
-
-  const previous = select.value;
-  select.innerHTML = '';
-  for (const bucket of buckets) {
-    const option = document.createElement('option');
-    const representative = bucket.members.includes(previous) ? previous : bucket.representative;
-    option.value = representative;
-    option.textContent = `${bucket.count}× · ${representative} · ${bucket.signature}`;
-    option.selected = bucket.members.includes(previous);
-    select.appendChild(option);
-  }
-  if (!select.value && select.options.length) select.options[0].selected = true;
-
-  let note = select.parentElement?.querySelector('[data-regex-sample-bucket-note]');
-  if (!note && select.parentElement) {
-    note = document.createElement('div');
-    note.dataset.regexSampleBucketNote = 'true';
-    Object.assign(note.style, { width: '100%', fontSize: '10px', color: '#94a3b8', marginTop: '3px' });
-    select.parentElement.appendChild(note);
-  }
-  if (note) note.textContent = `${buckets.length} representative structural bucket${buckets.length === 1 ? '' : 's'} from ${samples.length} branch samples. Extraction and coverage still evaluate the full sample set.`;
-}
-
 function applyOne(item, stateRef, render) {
   const state = current(stateRef, {});
   const receipt = { formatIndex: state.regexTesterConfig?.activeFormatIndex || 0, suggestions: [{ ...item, safe: true }] };
@@ -251,19 +211,15 @@ function decorateLocks(card, stateRef, render) {
       render?.();
     }, { active: Boolean(locks[role]), size: 13 });
     button.dataset.smartLock = role;
-    button.style.marginLeft = '7px';
-    button.style.width = '24px';
-    button.style.height = '24px';
+    button.style.marginLeft = '7px'; button.style.width = '24px'; button.style.height = '24px';
     heading.appendChild(button);
   });
 }
 
 function openPolicy(builder, stateRef, render) {
   builder.querySelector('[data-regex-smart-policy]')?.remove();
-  const state = current(stateRef, {});
-  const profile = profileOf(state);
-  const panel = document.createElement('div');
-  panel.dataset.regexSmartPolicy = 'true';
+  const state = current(stateRef, {}); const profile = profileOf(state);
+  const panel = document.createElement('div'); panel.dataset.regexSmartPolicy = 'true';
   Object.assign(panel.style, { position: 'absolute', right: '8px', top: '44px', zIndex: '20', width: '330px', maxWidth: '92%', padding: '14px', borderRadius: '8px', background: '#111827', border: '1px solid #334155', boxShadow: '0 18px 42px rgba(0,0,0,.42)', fontSize: '12px' });
   builder.style.position = 'relative';
   panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>Suggestion policy</strong><button type="button" data-close>×</button></div>
@@ -278,9 +234,7 @@ function openPolicy(builder, stateRef, render) {
   panel.querySelectorAll('label').forEach((label) => Object.assign(label.style, { display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '9px', alignItems: 'center' }));
   panel.querySelectorAll('input,select').forEach((input) => Object.assign(input.style, { width: '145px', background: '#0b1320', color: '#e5e7eb', border: '1px solid #475569', borderRadius: '4px', padding: '4px' }));
   panel.querySelector('[data-mode]').value = profile.operatingMode;
-  const close = () => panel.remove();
-  panel.querySelector('[data-close]').onclick = close;
-  panel.querySelector('[data-cancel]').onclick = close;
+  const close = () => panel.remove(); panel.querySelector('[data-close]').onclick = close; panel.querySelector('[data-cancel]').onclick = close;
   panel.querySelector('[data-save]').onclick = () => {
     const percentValue = (key) => Number(panel.querySelector(`[data-${key}]`).value) / 100;
     state.regexSuggestionProfile = Object.freeze({ ...profile,
@@ -289,22 +243,18 @@ function openPolicy(builder, stateRef, render) {
       normalization: Object.freeze({ ...profile.normalization, classSuffixPattern: panel.querySelector('[data-suffix]').value }),
       formatPolicy: Object.freeze({ maximumFormats: Number(panel.querySelector('[data-formats]').value), maximumLineKeyTokens: Number(panel.querySelector('[data-tokens]').value) }),
     });
-    state.regexSmartPreflight = null;
-    close();
-    render?.();
+    state.regexSmartPreflight = null; close(); render?.();
   };
   builder.appendChild(panel);
 }
 
 export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   if (typeof document === 'undefined') return;
-  const builder = findBuilder(card);
-  if (!builder) return;
-  const live = current(stateRef, state);
-  const receipt = receiptFor(live);
+  const builder = findBuilder(card); if (!builder) return;
+  const live = current(stateRef, state); const receipt = receiptFor(live);
   live.regexSmartPreflight = receipt;
-  installToolbar(builder, live, stateRef, render, receipt);
-  decorateSampleSelector(builder, live);
+  installToolbar(builder, stateRef, render, receipt);
+  decorateRegexSampleSelector(builder, resultOf(live).branchSamples || [], live.regexTesterConfig || {});
   decorateTokens(builder, receipt, stateRef, render);
   decorateLocks(card, stateRef, render);
   if (live.regexSmartStatus) showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
