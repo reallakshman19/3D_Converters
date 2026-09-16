@@ -7,14 +7,14 @@ ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0005.md
 PR: 770
 PR_STATUS: OPEN_DRAFT
 BRANCH: issue-769/xml-cii-standalone-fixes
-HEAD: EP0005_PREWORK_HEAD
+HEAD: EP0005_SYNC_HEAD
 MAIN: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 STATE: IN_PROGRESS
 ENGINEERING_STATE: IN_PROGRESS
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: NOT_REQUIRED_CURRENT_CUSTODIAN
-WRITE_AUTHORITY: WRITE_ALLOWED_AFTER_ISSUE_SYNC
-AUTO_STATE: BLOCKED
+WRITE_AUTHORITY: WRITE_ALLOWED
+AUTO_STATE: NOT_APPLICABLE
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
 MERGEABILITY: MERGEABLE
@@ -40,9 +40,9 @@ ISSUE_CURRENT_STATE_BASIS: IB-0001
 ISSUE_CURRENT_STATE_ENDPOINT: EP-0005
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5695050767
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5695048450
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: PENDING_EP0005_SYNC
-ISSUE_HANDOVER_SYNC_STATUS: NOT_RUN
-ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9ba61b7ee702333e8f007579ed8
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5696507642
+ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
+ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9bba61b7ee702333e8f007579ed8
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ROADMAP_STATUS_STALE_BUT_SCOPE_ALIGNED
 ROADMAP_MUTATION_AUTHORITY: NONE
@@ -55,7 +55,7 @@ QUESTION_DISPLAY: SHOW
 OWNER_QUALIFICATION_BASELINE: QB-ISSUE-769-C
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 TAKEOVER_QUALIFICATION_READY: TRUE
-CHAIN_HANDOVER_READY: FALSE
+CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
 HANDOVER_VALIDATION_EVIDENCE: BM-002/BM-003/BM-004/BM-009 NOT_RUN; arithmetic/lifecycle oracles defined in EP-0005
@@ -65,15 +65,15 @@ MATERIAL_HISTORY_ROOT_BASE: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0005.md
 LATEST_MATERIAL_LEG: LEG-002
 LATEST_MATERIAL_LEG_RECEIPT: agents/chains/XMLCII-ISSUE-769/material-legs/LEG-002.md
-MATERIAL_LEG_IN_PROGRESS: NONE
+MATERIAL_LEG_IN_PROGRESS: LEG-003
 MATERIAL_SCOPE: TASK-002 rigid-weight lifecycle/single kg→CII authority + TASK-003 empirical read-only ±30% health
 
 # Active issue chain
 
 ## Current state
 
-EP-0005 establishes the bounded weight/empirical scope. Exact-source tracing found a single writer scale and a pre-writer lifecycle ambiguity: Weight Match and final review share the legacy `rigidWeight` bucket. Existing writer scale remains protected.
+EP-0005 is synchronized. The leading weight RCA is pre-writer authority/lifecycle contamination, not a proven double writer conversion. Writer scale remains unchanged and protected.
 
 ## Exact next action
 
-Synchronize EP-0005 to Issue #769, then create exact pre-edit backups for LEG-003 production files and implement the shared weight authority lifecycle plus read-only per-row empirical health. B31.3 remains outside this leg.
+Create exact pre-edit backups for LEG-003 production files, then implement the shared weight authority lifecycle and empirical row-health integration with focused regressions. B31.3 remains outside this leg.
