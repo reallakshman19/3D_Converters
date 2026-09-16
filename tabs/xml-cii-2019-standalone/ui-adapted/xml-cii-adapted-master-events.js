@@ -20,7 +20,7 @@ import {
   effectiveDraftFieldMap,
   ensureMasterRuntime,
   masterMappingStatus,
-  persistChangedMaster,
+  persistChangedMasterDetailed,
   readSupportConfigOnce,
   stageMasterMappingDraft,
 } from './xml-cii-adapted-master-runtime.js';
@@ -57,9 +57,9 @@ async function parseMasterFileData(buffer, fileName, masterKey) {
     const readStart = perfNow();
     try {
       workbook = XLSX.read(data, { type: 'array', cellDates: false, raw: false });
-    } catch (e) {
-      console.error('[xlsx] XLSX.read failed for file:', fileName, e);
-      throw e;
+    } catch (error) {
+      console.error('[xlsx] XLSX.read failed for file:', fileName, error);
+      throw error;
     } finally {
       perfAddMs('masterXlsxReadMs', perfNow() - readStart);
     }
@@ -165,6 +165,18 @@ function refreshMappingCustodyDom(container, stateRef, key) {
   }
 }
 
+function persistenceStatus(baseMessage, persistence) {
+  if (persistence.failures.length) {
+    const restart = persistence.normalizedPersisted ? 'core rows were saved' : 'restart persistence was not saved';
+    const cause = persistence.quotaLimited ? 'browser storage quota' : 'browser storage error';
+    return `${baseMessage} Active session is usable; persistence is limited by ${cause} (${restart}).`;
+  }
+  if (persistence.compact) {
+    return `${baseMessage} Browser persistence uses compact mode; raw workbook copies remain session-only.`;
+  }
+  return baseMessage;
+}
+
 function applyFieldMapToContext(stateRef, key, fieldMap, rawRows, statusMessage, sourceMetadata = null) {
   const rows = Array.isArray(rawRows) ? rawRows : [];
   const config = configForState(stateRef);
@@ -182,14 +194,14 @@ function applyFieldMapToContext(stateRef, key, fieldMap, rawRows, statusMessage,
     normalizedRows: normalized,
     sourceMetadata,
   });
+  const persistence = persistChangedMasterDetailed(key, committed.context);
   stateRef.current = updateWorkflowState(stateRef.current, {
     masterContext: committed.context,
     supportConfigJson: JSON.stringify(committed.config, null, 2),
     importMastersLoading: false,
-    importMastersWriteBackStatus: statusMessage,
+    importMastersWriteBackStatus: persistenceStatus(statusMessage, persistence),
   });
-  persistChangedMaster(key, committed.context);
-  return committed;
+  return { ...committed, persistence };
 }
 
 function applyCurrentDraft(stateRef, key) {
@@ -213,26 +225,56 @@ function publishParsedWorkbookMetadata(stateRef, masterKey, parsed) {
   });
 }
 
+function reportMasterFailure(stateRef, render, boundary, error, alertPrefix) {
+  console.error(`[xml-cii] Master ${boundary.toLowerCase()} failed:`, error);
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    importMastersLoading: false,
+    importMastersWriteBackStatus: `${boundary} error: ${error?.message || String(error)}`,
+  });
+  requestMeasuredFullRender(render);
+  alert(`${alertPrefix}: ${translateError(error)}`);
+}
+
+async function readUploadFile(file, masterKey) {
+  const bufferStart = perfNow();
+  const buffer = await file.arrayBuffer();
+  perfAddMs('masterArrayBufferMs', perfNow() - bufferStart);
+  return parseMasterFileData(buffer, file.name, masterKey);
+}
+
+async function fetchMasterFile(url, fileName, masterKey) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+  const bufferStart = perfNow();
+  const buffer = await response.arrayBuffer();
+  perfAddMs('masterArrayBufferMs', perfNow() - bufferStart);
+  return parseMasterFileData(buffer, fileName, masterKey);
+}
+
+function commitParsedImport(stateRef, masterKey, parsed, sourcePath, fileName, render) {
+  stateRef.current = updateMasterLastLoadedPath(stateRef.current, masterKey, sourcePath);
+  publishParsedWorkbookMetadata(stateRef, masterKey, parsed);
+  importMasterRows(stateRef, masterKey, parsed.rawRows, fileName, render);
+}
+
 export function bindImportMastersEvents(container, stateRef, render) {
   container.querySelectorAll('[data-master-file]').forEach((input) => {
     input.addEventListener('change', async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
       const masterKey = input.dataset.masterFile;
+      stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
+      let parsed;
       try {
-        stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
-        const bufferStart = perfNow();
-        const buffer = await file.arrayBuffer();
-        perfAddMs('masterArrayBufferMs', perfNow() - bufferStart);
-        const parsed = await parseMasterFileData(buffer, file.name, masterKey);
-        stateRef.current = updateMasterLastLoadedPath(stateRef.current, masterKey, file.name);
-        publishParsedWorkbookMetadata(stateRef, masterKey, parsed);
-        importMasterRows(stateRef, masterKey, parsed.rawRows, file.name, render);
-      } catch (err) {
-        console.error('Failed to parse uploaded file:', err);
-        stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: `Parse error: ${err.message}` });
-        requestMeasuredFullRender(render);
-        alert(`Failed to parse file: ${translateError(err)}`);
+        parsed = await readUploadFile(file, masterKey);
+      } catch (error) {
+        reportMasterFailure(stateRef, render, 'Parse', error, 'Failed to parse file');
+        return;
+      }
+      try {
+        commitParsedImport(stateRef, masterKey, parsed, file.name, file.name, render);
+      } catch (error) {
+        reportMasterFailure(stateRef, render, 'Import', error, 'File parsed, but import failed');
       }
     });
   });
@@ -250,26 +292,22 @@ export function bindImportMastersEvents(container, stateRef, render) {
       }
       const resolvedUrl = resolvePathToUrl(pathValue);
       const fileName = pathValue.split(/[\\/]/).pop();
+      stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
+      let parsed;
       try {
-        stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
         const busterUrl = resolvedUrl + (resolvedUrl.includes('?') ? '&' : '?') + '_nocache=' + Date.now();
-        const response = await fetch(busterUrl, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
-        const bufferStart = perfNow();
-        const buffer = await response.arrayBuffer();
-        perfAddMs('masterArrayBufferMs', perfNow() - bufferStart);
-        const parsed = await parseMasterFileData(buffer, fileName, masterKey);
-        stateRef.current = updateMasterLastLoadedPath(stateRef.current, masterKey, pathValue);
-        publishParsedWorkbookMetadata(stateRef, masterKey, parsed);
-        importMasterRows(stateRef, masterKey, parsed.rawRows, fileName, render);
-      } catch (err) {
-        console.error('Failed to fetch/parse file:', err);
-        stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: `Fetch error: ${err.message}` });
-        requestMeasuredFullRender(render);
+        parsed = await fetchMasterFile(busterUrl, fileName, masterKey);
+      } catch (error) {
         const tips = /^[a-zA-Z]:/.test(pathValue)
           ? "\n\nNote: Local drive letters require browser file permissions. Use 'Choose File' instead or copy file to project workspace."
           : "\n\nTroubleshooting tips:\n1. If file is open in Excel, close it.\n2. Ensure web server is running and file path is relative/correct.";
-        alert(`Failed to fetch file: ${translateError(err)}${tips}`);
+        reportMasterFailure(stateRef, render, 'Fetch/parse', error, `Failed to fetch/parse file${tips}`);
+        return;
+      }
+      try {
+        commitParsedImport(stateRef, masterKey, parsed, pathValue, fileName, render);
+      } catch (error) {
+        reportMasterFailure(stateRef, render, 'Import', error, 'File parsed, but import failed');
       }
     });
   });
