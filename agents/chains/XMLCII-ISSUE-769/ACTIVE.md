@@ -13,8 +13,8 @@ STATE: IN_PROGRESS
 ENGINEERING_STATE: IN_PROGRESS
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: NOT_REQUIRED_CURRENT_CUSTODIAN
-WRITE_AUTHORITY: WRITE_ALLOWED_AFTER_ISSUE_SYNC
-AUTO_STATE: BLOCKED
+WRITE_AUTHORITY: WRITE_ALLOWED
+AUTO_STATE: NOT_APPLICABLE
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
 MERGEABILITY: MERGEABLE
@@ -40,8 +40,8 @@ ISSUE_CURRENT_STATE_BASIS: IB-0001
 ISSUE_CURRENT_STATE_ENDPOINT: EP-0003
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5695050767
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5695048450
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: PENDING_EP0003_COMMENT
-ISSUE_HANDOVER_SYNC_STATUS: STALE
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5695665061
+ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
 ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9bba61b7ee702333e8f007579ed8
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ROADMAP_STATUS_STALE_BUT_SCOPE_ALIGNED
@@ -55,7 +55,7 @@ QUESTION_DISPLAY: SHOW
 OWNER_QUALIFICATION_BASELINE: QB-ISSUE-769-B
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 TAKEOVER_QUALIFICATION_READY: TRUE
-CHAIN_HANDOVER_READY: FALSE
+CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
 HANDOVER_VALIDATION_EVIDENCE: none; pre-material TASK-005/TASK-006 checkpoint
@@ -72,8 +72,8 @@ MATERIAL_SCOPE: TASK-005 Regex confidence/sample bucketing + TASK-006 Branch→L
 
 ## Current state
 
-LEG-002 is authorized only after Issue synchronization. TASK-001/TASK-004 remain implemented pending validation. BM-006/BM-007 are NOT_RUN. Exact-current diagnosis for Regex and Branch→Line is recorded in EP-0003 and the refreshed qualification pack.
+EP-0003 is synchronized. LEG-002 is restricted to TASK-005/TASK-006. TASK-001/TASK-004 remain implemented pending validation. BM-006/BM-007 are NOT_RUN. Exact-current diagnosis for Regex and Branch→Line is recorded in EP-0003 and the refreshed qualification pack.
 
 ## Exact next action
 
-Publish immutable EP-0003 Issue comment, update the one mutable Active Handover comment, record synchronization IDs, then create exact pre-edit backups for LEG-002 production files. Do not enter weight, empirical, or B31.3 authority in this leg.
+Create exact pre-edit backups for LEG-002 production files, then implement focused Regex confidence/sample bucketing and Branch→Line family/pattern changes with regression tests. Do not enter weight, empirical, or B31.3 authority in this leg.
