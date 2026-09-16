@@ -8,6 +8,7 @@ export const MASTER_DEF_MAP = Object.freeze({
 });
 
 const EMPTY_RAW = Object.freeze({ lineList: [], pipingClass: [], materialMap: [], weight: [] });
+const COMPACT_PERSISTENCE_THRESHOLD_BYTES = 1_500_000;
 
 export function readSupportConfigOnce(state) {
   perfCount('configParseCount');
@@ -53,7 +54,6 @@ export function stageMasterMappingDraft(context, config, key, fieldMap) {
   const runtime = ensureMasterRuntime(context);
   const applied = appliedFieldMap(runtime, config, key);
   const nextMap = { ...(fieldMap || {}) };
-  const dirty = !sameMap(applied, nextMap);
   perfCount('masterMappingDraftChanges');
   return {
     ...runtime,
@@ -61,7 +61,7 @@ export function stageMasterMappingDraft(context, config, key, fieldMap) {
       ...runtime.mappingDrafts,
       [key]: {
         fieldMap: nextMap,
-        dirty,
+        dirty: !sameMap(applied, nextMap),
         basisAppliedRevision: runtime.appliedMappingRevision[key],
       },
     },
@@ -97,21 +97,18 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
     fieldMap: { ...(fieldMap || {}) },
     [def.rowsProperty]: normalizedRows,
   };
-  const nextRows = { [def.contextRowsKey]: normalizedRows };
   const nextRevision = Number(runtime.appliedMappingRevision[key] || 0) + 1;
   const drafts = { ...runtime.mappingDrafts };
   delete drafts[key];
   const next = {
     ...runtime,
-    ...nextRows,
+    [def.contextRowsKey]: normalizedRows,
     config: nextConfig,
     rawRows: { ...runtime.rawRows, [key]: Array.isArray(rawRows) ? rawRows : [] },
     appliedMappingRevision: { ...runtime.appliedMappingRevision, [key]: nextRevision },
     mappingDrafts: drafts,
   };
-  if (sourceMetadata) {
-    next.sourceMetadata = { ...(runtime.sourceMetadata || {}), [key]: sourceMetadata };
-  }
+  if (sourceMetadata) next.sourceMetadata = { ...(runtime.sourceMetadata || {}), [key]: sourceMetadata };
   next.rowCounts = {
     lineList: (next.lineRows || []).length,
     pipingClass: (next.pipingClassRows || []).length,
@@ -127,43 +124,111 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
   return { context: next, config: nextConfig, revision: nextRevision };
 }
 
-function storageSetIfChanged(key, value) {
-  if (typeof localStorage === 'undefined') return 0;
-  const next = value == null ? null : JSON.stringify(value);
-  const current = localStorage.getItem(key);
-  if (next === current) return 0;
-  if (next == null) localStorage.removeItem(key);
-  else localStorage.setItem(key, next);
-  return 1;
+function serialized(value) {
+  return value == null ? null : JSON.stringify(value);
 }
 
-export function persistChangedMaster(key, context) {
-  if (typeof localStorage === 'undefined') return 0;
+function byteLength(value) {
+  const json = serialized(value);
+  if (json == null) return 0;
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(json).byteLength;
+  return json.length * 2;
+}
+
+function quotaLike(error) {
+  const name = String(error?.name || '');
+  const message = String(error?.message || error || '');
+  return /QuotaExceededError/i.test(name) || /quota|storage.*full|setItem.*storage/i.test(message);
+}
+
+function storageSetIfChanged(key, value) {
+  if (typeof localStorage === 'undefined') return { writes: 0, error: null, attempted: false };
+  try {
+    const next = serialized(value);
+    const current = localStorage.getItem(key);
+    if (next === current) return { writes: 0, error: null, attempted: true };
+    if (next == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, next);
+    return { writes: 1, error: null, attempted: true };
+  } catch (error) {
+    return { writes: 0, error, attempted: true };
+  }
+}
+
+function persistEntry(key, value, failures) {
+  const result = storageSetIfChanged(key, value);
+  if (result.error) failures.push({ key, error: result.error });
+  return result;
+}
+
+function persistenceFailure(entry) {
+  return {
+    key: entry.key,
+    name: String(entry.error?.name || 'Error'),
+    message: String(entry.error?.message || entry.error || 'Unknown storage error'),
+  };
+}
+
+export function persistChangedMasterDetailed(key, context) {
+  if (typeof localStorage === 'undefined') {
+    return { writes: 0, failures: [], compact: false, quotaLimited: false, normalizedPersisted: false };
+  }
   const t0 = perfNow();
   const def = MASTER_DEF_MAP[key];
-  if (!def) return 0;
+  if (!def) return { writes: 0, failures: [], compact: false, quotaLimited: false, normalizedPersisted: false };
   const normalized = context?.[def.contextRowsKey] || [];
   const rawRows = context?.rawRows?.[key] || [];
+  const workbook = context?.workbookData?.[key] || {};
   const meta = context?.sourceMetadata?.[key] || {};
+  const duplicateBytes = byteLength(normalized) + byteLength(rawRows) + byteLength(workbook);
+  const compact = duplicateBytes >= COMPACT_PERSISTENCE_THRESHOLD_BYTES;
   const sourceCustody = {
     source: meta.source || null,
     fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
     appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
+    rowCount: normalized.length,
+    persistenceMode: compact ? 'compact' : 'full',
   };
+  const failures = [];
   let writes = 0;
-  // Backward-compatible Batch-A custody: only the changed master's authoritative
-  // rows and compact source/mapping metadata are touched. Cheap derived indexes
-  // are never persisted.
-  writes += storageSetIfChanged(`xml-cii-master-${key}`, normalized);
-  writes += storageSetIfChanged(`xml-cii-master-raw-${key}`, rawRows);
-  writes += storageSetIfChanged(`xml-cii-master-source-${key}`, sourceCustody);
-  writes += storageSetIfChanged(`xml-cii-master-sheetnames-${key}`, context?.sheetNames?.[key] || []);
-  writes += storageSetIfChanged(`xml-cii-master-activesheet-${key}`, context?.activeSheet?.[key] || '');
-  writes += storageSetIfChanged(`xml-cii-master-workbook-${key}`, context?.workbookData?.[key] || {});
+
+  if (compact) {
+    writes += persistEntry(`xml-cii-master-raw-${key}`, null, failures).writes;
+    writes += persistEntry(`xml-cii-master-workbook-${key}`, null, failures).writes;
+  }
+  const normalizedResult = persistEntry(`xml-cii-master-${key}`, normalized, failures);
+  writes += normalizedResult.writes;
+  if (!compact) writes += persistEntry(`xml-cii-master-raw-${key}`, rawRows, failures).writes;
+  writes += persistEntry(`xml-cii-master-source-${key}`, sourceCustody, failures).writes;
+  writes += persistEntry(`xml-cii-master-sheetnames-${key}`, context?.sheetNames?.[key] || [], failures).writes;
+  writes += persistEntry(`xml-cii-master-activesheet-${key}`, context?.activeSheet?.[key] || '', failures).writes;
+  if (!compact) writes += persistEntry(`xml-cii-master-workbook-${key}`, workbook, failures).writes;
+
+  const quotaLimited = failures.some((entry) => quotaLike(entry.error));
+  if (failures.length && typeof console !== 'undefined') {
+    console.warn(`[xml-cii] ${key} master remains loaded in memory; browser persistence is limited.`, {
+      compact,
+      quotaLimited,
+      failures: failures.map(persistenceFailure),
+    });
+  }
   perfCount('masterPersistCommitCount');
   perfCount('masterStorageWriteCount', writes);
+  if (failures.length) perfCount('masterStorageWriteFailureCount', failures.length);
+  if (compact) perfCount('masterCompactPersistenceCount');
   perfAddMs('masterPersistMs', perfNow() - t0);
-  return writes;
+  return {
+    writes,
+    failures: failures.map(persistenceFailure),
+    compact,
+    quotaLimited,
+    normalizedPersisted: !normalizedResult.error,
+    estimatedDuplicateBytes: duplicateBytes,
+  };
+}
+
+export function persistChangedMaster(key, context) {
+  return persistChangedMasterDetailed(key, context).writes;
 }
 
 export function clearPersistedMaster(key) {
@@ -175,5 +240,7 @@ export function clearPersistedMaster(key) {
     `xml-cii-master-sheetnames-${key}`,
     `xml-cii-master-activesheet-${key}`,
     `xml-cii-master-workbook-${key}`,
-  ]) localStorage.removeItem(suffix);
+  ]) {
+    try { localStorage.removeItem(suffix); } catch {}
+  }
 }
