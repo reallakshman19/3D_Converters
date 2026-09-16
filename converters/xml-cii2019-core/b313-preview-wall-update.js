@@ -1,5 +1,6 @@
 import { calculateB313Thickness } from '../b313-thickness/index.js';
 import {
+  B313_MATERIAL_FACTOR_MASTER,
   normalizeB313MaterialFamily,
   resolveB313DesignFactors,
   resolveB313MaterialIdentity,
@@ -9,6 +10,8 @@ import { selectPipeWallForCalculation } from '../pipe-wall-master/index.js';
 export const B313_PREVIEW_NEGATIVE_MILL_TOLERANCE_PCT = 12.5;
 export const B313_PREVIEW_WALL_UPDATE_SCHEMA = 'xml-cii-b313-preview-wall-update/v1';
 export const B313_PREVIEW_MATERIAL_FACTOR_SCHEMA = 'xml-cii-b313-preview-material-factor-basis/v1';
+
+const STRICT_FACTOR_STATUSES = new Set(['VERIFIED', 'PROJECT_APPROVED']);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -207,6 +210,74 @@ function manualFactorValidation(basis = {}) {
   return { ok: missing.length === 0, missing };
 }
 
+function uniqueSortedNumbers(values) {
+  return [...new Set(values.map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
+}
+
+function uniqueText(values) {
+  return [...new Set(values.map(text).filter(Boolean))];
+}
+
+function factorAvailability(factor, materialId, designTemperatureC, manufacturingRoute) {
+  const records = Array.isArray(B313_MATERIAL_FACTOR_MASTER?.factors?.[factor]?.records)
+    ? B313_MATERIAL_FACTOR_MASTER.factors[factor].records
+    : [];
+  const materialRows = records.filter((row) => row.materialId === materialId);
+  const exactTemperatureRows = materialRows.filter((row) => Math.abs(Number(row.temperatureC) - designTemperatureC) <= 1e-9);
+  const routeSensitive = exactTemperatureRows.some((row) => text(row.manufacturingRoute));
+  const requestedRoute = text(manufacturingRoute) || (materialId === 'CS-A106-B' ? 'SEAMLESS' : '');
+  let applicableRows = exactTemperatureRows;
+  if (routeSensitive) {
+    if (requestedRoute) {
+      const specific = exactTemperatureRows.filter((row) => normalizedToken(row.manufacturingRoute) === normalizedToken(requestedRoute));
+      const generic = exactTemperatureRows.filter((row) => !text(row.manufacturingRoute));
+      applicableRows = specific.length ? specific : generic;
+    } else {
+      applicableRows = exactTemperatureRows.filter((row) => !text(row.manufacturingRoute));
+    }
+  }
+  const strictRows = applicableRows.filter((row) => STRICT_FACTOR_STATUSES.has(text(row.status).toUpperCase()));
+  const rejectedRows = applicableRows.filter((row) => !STRICT_FACTOR_STATUSES.has(text(row.status).toUpperCase()));
+  let status = 'STRICT_AVAILABLE';
+  if (!strictRows.length) {
+    if (!exactTemperatureRows.length) status = 'NO_EXACT_TEMPERATURE_RECORD';
+    else if (routeSensitive && !requestedRoute && !applicableRows.length) status = 'MANUFACTURING_ROUTE_REQUIRED';
+    else if (routeSensitive && requestedRoute && !applicableRows.length) status = 'MANUFACTURING_ROUTE_NO_MATCH';
+    else if (rejectedRows.length) status = 'QUALIFICATION_STATUS_REJECTED';
+    else status = 'STRICT_RECORD_UNAVAILABLE';
+  }
+  return {
+    factor,
+    status,
+    strictAvailable: strictRows.length > 0,
+    materialRecordCount: materialRows.length,
+    exactTemperatureRecordCount: exactTemperatureRows.length,
+    applicableRecordCount: applicableRows.length,
+    availableTemperaturesC: uniqueSortedNumbers(materialRows.map((row) => row.temperatureC)),
+    requestedManufacturingRoute: requestedRoute,
+    availableManufacturingRoutes: uniqueText(exactTemperatureRows.map((row) => row.manufacturingRoute)),
+    candidateStatuses: uniqueText(exactTemperatureRows.map((row) => row.status)),
+    rejectedStatuses: uniqueText(rejectedRows.map((row) => row.status)),
+    candidateAuthorities: uniqueText(exactTemperatureRows.map((row) => row.sourceAuthority || row.basisId)),
+  };
+}
+
+export function explainPreviewB313FactorAvailability({ materialId, designTemperatureC, manufacturingRoute = '' } = {}) {
+  const temperature = Number(designTemperatureC);
+  if (!text(materialId) || !Number.isFinite(temperature)) return null;
+  const factors = Object.fromEntries(['S', 'E', 'W', 'Y'].map((factor) => [
+    factor,
+    factorAvailability(factor, text(materialId), temperature, manufacturingRoute),
+  ]));
+  return {
+    materialId: text(materialId),
+    designTemperatureC: temperature,
+    requestedManufacturingRoute: text(manufacturingRoute),
+    strictAcceptedStatuses: [...STRICT_FACTOR_STATUSES],
+    factors,
+  };
+}
+
 /**
  * Active, strict B31.3 Material Factors are always tried first. Manual Preview
  * factors are a fail-closed fallback only when the active catalog is incomplete;
@@ -226,8 +297,14 @@ export function resolvePreviewB313FactorBasis({
     return failure('B313_PREVIEW_T1_REQUIRED', 'Preview T1 must be a finite design temperature in °C.');
   }
 
+  const materialId = materialIdentity.material.materialId;
+  const factorAvailability = explainPreviewB313FactorAvailability({
+    materialId,
+    designTemperatureC: temperature,
+    manufacturingRoute,
+  });
   const strict = resolveB313DesignFactors({
-    material: { materialId: materialIdentity.material.materialId },
+    material: { materialId },
     designTemperature: temperature,
     temperatureUnit: 'C',
     manufacturingRoute: text(manufacturingRoute) || undefined,
@@ -248,6 +325,7 @@ export function resolvePreviewB313FactorBasis({
       weldStrengthReductionW: strict.factors.weldStrengthReductionW,
       coefficientY: strict.factors.coefficientY,
       factorSources: strict.factorSources,
+      factorAvailability,
       designAuthority: strict.designAuthority === true,
       strictResult: strict,
       manualBasisStatus: 'IGNORED_ACTIVE_MASTER_AVAILABLE',
@@ -257,9 +335,11 @@ export function resolvePreviewB313FactorBasis({
   const manual = manualFactorValidation(manualBasis);
   if (!manual.ok) {
     return failure('B313_PREVIEW_FACTOR_BASIS_UNAVAILABLE', 'Active B31.3 Material Factors are incomplete at Preview T1 and the explicit fallback basis is incomplete.', {
-      materialId: materialIdentity.material.materialId,
+      materialId,
       designTemperatureC: temperature,
+      manufacturingRoute: text(manufacturingRoute),
       strictResult: strict,
+      factorAvailability,
       manualMissing: manual.missing,
     });
   }
@@ -283,6 +363,7 @@ export function resolvePreviewB313FactorBasis({
       W: { authority: 'PREVIEW_MANUAL_FALLBACK', sourceReference: text(manualBasis.sourceReference) },
       Y: { authority: 'PREVIEW_MANUAL_FALLBACK', sourceReference: text(manualBasis.sourceReference) },
     },
+    factorAvailability,
     designAuthority: false,
     strictResult: strict,
     manualBasisStatus: 'USED_ACTIVE_MASTER_INCOMPLETE',
