@@ -74,6 +74,17 @@ export function xmlCiiEffectiveRigidWeightMap(config) {
   };
 }
 
+export function withXmlCiiEffectiveRigidWeightLegacyView(config) {
+  const base = plainObject(config);
+  return {
+    ...base,
+    overrides: {
+      ...plainObject(base.overrides),
+      rigidWeight: xmlCiiEffectiveRigidWeightMap(base),
+    },
+  };
+}
+
 function nextConfig(config) {
   const base = plainObject(config);
   return {
