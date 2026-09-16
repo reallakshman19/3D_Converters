@@ -2,17 +2,17 @@ CHAIN_STATE_VERSION: 3
 HANDOVER_PROTOCOL_VERSION: 2
 CHAIN_ID: XMLCII-ISSUE-769
 MISSION: Root-cause and robust fixes for Issue #769 XML→CII 2019 Standalone mapping/import/weight/regex/branch/B31.3 defects
-ACTIVE_ENDPOINT: EP-0013
-ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0013.md
+ACTIVE_ENDPOINT: EP-0014
+ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0014.md
 PR: 770
 PR_STATUS: OPEN_DRAFT
 BRANCH: issue-769/xml-cii-standalone-fixes
-HEAD: EP0013_SYNC_HEAD
+HEAD: EP0014_SYNC_HEAD
 MAIN: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 STATE: IMPLEMENTATION_COMPLETE_PENDING_VALIDATION
 ENGINEERING_STATE: IMPLEMENTATION_COMPLETE_PENDING_VALIDATION
 CUSTODY_STATE: HELD
-QUALIFICATION_STATE: NOT_RUN_ENVIRONMENT_BLOCKED
+QUALIFICATION_STATE: PARTIAL_PASS_REMAINDER_BLOCKED
 WRITE_AUTHORITY: WRITE_ALLOWED_FOR_VALIDATION_FIXES_ONLY
 AUTO_STATE: NOT_APPLICABLE
 MERGE_AUTHORITY: OWNER_ONLY
@@ -25,9 +25,9 @@ AGENT_INSTANCE_ID: chatgpt:e683bcab-eb0a-4b6c-8ab1-c29d79aff4b0
 WORK_ITEM_SOURCE: GITHUB_ISSUE
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 WORK_ITEM_MODE: EXCLUSIVE
-CUSTODY_EPOCH: 13
+CUSTODY_EPOCH: 14
 COORDINATION_STATE: EXCLUSIVE_CLEAR
-DEPENDENCIES: repository-native regression execution; governed B31.3 VERIFIED/PROJECT_APPROVED factor data for automatic eligibility where current strict records are absent
+DEPENDENCIES: remaining benchmark execution; repository-native focused/full regression execution; governed B31.3 VERIFIED/PROJECT_APPROVED factor data for automatic eligibility where current strict records are absent
 COMMON_PROTOCOL: engineering-pr-delivery-v2
 COMMON_PROTOCOL_BASIS: fed57820909f4984a97d67437340df952b73a5ab
 COMMON_PROTOCOL_STATUS: CURRENT
@@ -36,10 +36,10 @@ ISSUE_BASIS_FILE: agents/chains/XMLCII-ISSUE-769/issue-basis/IB-0001.md
 ISSUE_BASIS_STATUS: CURRENT
 ISSUE_CURRENT_STATE_FILE: agents/chains/XMLCII-ISSUE-769/issue-state/CURRENT.md
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0013
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0014
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5695050767
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5695048450
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5698431752
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5699467892
 ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
 ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9bba61b7ee702333e8f007579ed8
 ROADMAP_REVIEW_STATUS: COMPLETE
@@ -56,8 +56,8 @@ OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED_FOR_IMPLEMENTATION
 TAKEOVER_QUALIFICATION_READY: TRUE
 CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
-HANDOVER_VALIDATION_STATUS: NOT_RUN
-HANDOVER_VALIDATION_EVIDENCE: canonical runner committed; independent node --check PASS; main unchanged; corrected base-branch PR #771 opened/labeled events produced zero Actions runs; #771 closed unmerged and temporary base reset to main; BM-001..BM-009 remain NOT_RUN_ENVIRONMENT_BLOCKED
+HANDOVER_VALIDATION_STATUS: PARTIAL_PASS
+HANDOVER_VALIDATION_EVIDENCE: QE-XMLCII-769-EXACT-BLOB-001; BM-001 PASS 5/5; BM-006 PASS 6/6; BM-007 PASS 3/3; all executed from byte-identical GitHub branch blobs verified by git hash-object under Node v22.16.0; BM-002/003/004/005/008/009 remain NOT_RUN_ENVIRONMENT_BLOCKED
 HANDOVER_READY: FALSE
 PREWORK_QUALIFICATION_READY: TRUE
 MATERIAL_HISTORY_ROOT_BASE: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
@@ -65,13 +65,13 @@ MATERIAL_LEG_PREWORK_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-
 LATEST_MATERIAL_LEG: LEG-006
 LATEST_MATERIAL_LEG_RECEIPT: agents/chains/XMLCII-ISSUE-769/material-legs/LEG-006.md
 MATERIAL_LEG_IN_PROGRESS: NONE
-MATERIAL_SCOPE: TASK-001..TASK-008 IMPLEMENTED_PENDING_VALIDATION; release qualification runner available
+MATERIAL_SCOPE: TASK-001..TASK-008 IMPLEMENTED_PENDING_VALIDATION; BM-001/BM-006/BM-007 exact-blob PASS; release qualification remainder blocked
 
 # Active issue chain
 
 ## Current state
 
-EP-0013 is synchronized. All Issue #769 implementation tasks have bounded material-leg receipts. `scripts/verify-issue-769-xml-cii.mjs` remains the canonical repository-native qualification entrypoint. The corrected base-branch workflow experiment proved that the connected GitHub App/event path still produces zero Actions runs for both `opened` and `labeled` pull-request events. The disposable PR #771 is closed/unmerged and its temporary base branch was reset to main. BM-001..BM-009 therefore remain NOT_RUN_ENVIRONMENT_BLOCKED.
+EP-0014 is synchronized. Implementation remains complete pending validation. Connector-materialized exact-blob execution produced bounded PASS evidence for BM-001 (5/5), BM-006 (6/6), and BM-007 (3/3); every local dependency file was verified against its GitHub blob SHA before the committed test ran unchanged. BM-002/003/004/005/008/009 remain NOT_RUN_ENVIRONMENT_BLOCKED, so the overall release gate and BM-009 remain incomplete.
 
 ## Preserved safety/authority boundaries
 
@@ -84,4 +84,4 @@ EP-0013 is synchronized. All Issue #769 implementation tasks have bounded materi
 
 ## Exact next action
 
-Keep PR #770 draft and unmerged. In a real checkout or trusted CI run `node scripts/verify-issue-769-xml-cii.mjs`; if green, run `node scripts/verify-issue-769-xml-cii.mjs --full`. Record repository-native PASS evidence before changing readiness. If any test fails, patch only the demonstrated first wrong boundary and rerun focused plus affected regression suites.
+Keep PR #770 draft and unmerged. Continue qualification-only exact-blob execution for the next fully materializable benchmark, preferably BM-005 large-master persistence or BM-008 B31.3 provenance. Keep BM-009 and final readiness blocked until the canonical focused/full suite executes in a repository checkout or equivalent trusted environment. Patch production only if an executed test identifies a concrete first wrong boundary.
