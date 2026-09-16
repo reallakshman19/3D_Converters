@@ -48,18 +48,19 @@ function validationRowsFromResolvedIssues(issues, config) {
   const skipped = [];
   for (const issue of Array.isArray(issues) ? issues : []) {
     const resolved = resolvedWeight(issue, config);
+    const key = issue?.key || issue?.componentRefEndpoint || issue?.nodeNumber || '';
     if (resolved.weightKg === null) {
-      skipped.push({ key: issue?.key || '', nodeNumber: issue?.nodeNumber || '', reason: 'no-positive-resolved-weight' });
+      skipped.push({ key, nodeNumber: issue?.nodeNumber || '', reason: 'no-positive-resolved-weight' });
       continue;
     }
     const candidate = bestCandidate(issue);
     const typeDesc = text(candidate?.typeDesc || candidate?.valveType || candidate?.type);
     if (!typeDesc) {
-      skipped.push({ key: issue?.key || '', nodeNumber: issue?.nodeNumber || '', reason: 'no-empirical-type-description', observedWeightKg: resolved.weightKg });
+      skipped.push({ key, nodeNumber: issue?.nodeNumber || '', reason: 'no-empirical-type-description', observedWeightKg: resolved.weightKg });
       continue;
     }
     rows.push({
-      rowId: issue?.key || issue?.componentRefEndpoint || issue?.nodeNumber || `row-${rows.length + 1}`,
+      rowId: key || `row-${rows.length + 1}`,
       source: resolved.source,
       componentRefNo: issue?.componentRefNo || issue?.componentRefEndpoint || null,
       nodeNumber: issue?.nodeNumber || null,
@@ -90,6 +91,52 @@ function cell(value, digits = null) {
   const n = Number(value);
   if (digits !== null && Number.isFinite(n)) return n.toFixed(digits);
   return esc(value);
+}
+
+function validationDetail(row) {
+  if (!row) return 'Empirical validation unavailable.';
+  const line = (label, result) => result?.available
+    ? `${label}: ${Number(result.estimatedWeightKg).toFixed(3)} kg, Δ ${Number(result.deviationPct).toFixed(1)}%, ${result.status}`
+    : `${label}: ${result?.status || 'unavailable'}`;
+  return [
+    `Observed: ${Number(row.observedWeightKg).toFixed(3)} kg`,
+    `Threshold: ±${row.abnormalityThresholdPct}%`,
+    line('A1', row.approach1),
+    line('A2', row.approach2),
+    `Overall: ${row.status}`,
+    row.source ? `Source: ${row.source}` : '',
+  ].filter(Boolean).join(' | ');
+}
+
+function badgeFor(row, skipped) {
+  if (skipped) return { label: '?', title: `Empirical validation unavailable: ${skipped.reason}`, tone: 'unknown' };
+  if (!row) return { label: '?', title: 'Empirical validation has not produced a row for this component.', tone: 'unknown' };
+  if (row.reportableAbnormality) return { label: '⚠ >30%', title: validationDetail(row), tone: 'bad' };
+  if (row.status === 'UNVALIDATED') return { label: '?', title: validationDetail(row), tone: 'unknown' };
+  return { label: '✓ ±30%', title: validationDetail(row), tone: 'ok' };
+}
+
+function applyRowHealthBadges(card, report, skippedRows = []) {
+  card.querySelectorAll('[data-ewv-health]').forEach((node) => node.remove());
+  const byId = new Map((report?.rows || []).map((row) => [text(row.rowId), row]));
+  const skippedById = new Map((skippedRows || []).map((row) => [text(row.key), row]));
+  card.querySelectorAll('.mc-rigid-review-input[data-wm-key]').forEach((input) => {
+    const key = text(input.getAttribute('data-wm-key'));
+    const state = badgeFor(byId.get(key), skippedById.get(key));
+    const badge = document.createElement('span');
+    badge.dataset.ewvHealth = state.tone;
+    badge.textContent = state.label;
+    badge.title = state.title;
+    badge.setAttribute('aria-label', `Empirical weight health: ${state.title}`);
+    badge.style.cssText = [
+      'display:inline-flex', 'margin-left:6px', 'padding:2px 6px', 'border-radius:999px',
+      'font-size:10px', 'font-weight:700', 'cursor:help', 'white-space:nowrap',
+      state.tone === 'bad' ? 'color:#fecaca;background:#7f1d1d;border:1px solid #ef4444' : '',
+      state.tone === 'ok' ? 'color:#bbf7d0;background:#14532d;border:1px solid #22c55e' : '',
+      state.tone === 'unknown' ? 'color:#cbd5e1;background:#334155;border:1px solid #64748b' : '',
+    ].filter(Boolean).join(';');
+    input.insertAdjacentElement('afterend', badge);
+  });
 }
 
 function renderTable(host, report) {
@@ -125,14 +172,13 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
   const section = document.createElement('section');
   section.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid #334155;';
   section.innerHTML = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <strong style="color:#dbeafe;">Weight Validation Report — resolved components, A1/A2 abnormality &gt; ±30%</strong>
-    <button type="button" data-ewv-build style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1d4ed8;color:white;cursor:pointer;">Build report</button>
+    <strong style="color:#dbeafe;">Empirical Weight Health — A1/A2 abnormality &gt; ±30%</strong>
+    <button type="button" data-ewv-build style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1d4ed8;color:white;cursor:pointer;">Refresh health</button>
     <button type="button" data-ewv-csv disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save abnormal CSV</button>
     <button type="button" data-ewv-json disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save audit JSON</button>
     <button type="button" data-ewv-zip disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save validation evidence ZIP</button>
-    <span data-ewv-status style="font-size:12px;color:#94a3b8;">Read-only validation; accepted weight is never modified.</span>
-  </div>
-  <div data-ewv-table style="margin-top:10px;"></div>`;
+    <span data-ewv-status style="font-size:12px;color:#94a3b8;">Read-only validation. Build Weight Data also refreshes row badges.</span>
+  </div><div data-ewv-table style="margin-top:10px;"></div>`;
   card.appendChild(section);
 
   let report = null;
@@ -152,6 +198,7 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
     report.skippedRows = scope.skipped;
     report.skippedRowCount = scope.skipped.length;
     stateRef.current.empiricalWeightValidationReport = report;
+    applyRowHealthBadges(card, report, scope.skipped);
     renderTable(table, report);
     csvBtn.disabled = false;
     jsonBtn.disabled = false;
@@ -160,23 +207,19 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
   };
 
   card.addEventListener('xml-cii-weight-validator-ready', (event) => buildFromResolved(event.detail || {}));
+  card.addEventListener('click', (event) => {
+    if (event.target?.closest?.('#mc-wm-refresh') && typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
+  }, true);
 
   section.querySelector('[data-ewv-build]')?.addEventListener('click', () => {
     if (typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
-    if (status) status.textContent = 'Recomputing Weight Match rows and validating resolved component weights…';
+    if (status) status.textContent = 'Recomputing Weight Match rows and empirical health…';
     const refresh = card.querySelector('#mc-wm-refresh');
     if (refresh) refresh.click();
-    else if (status) status.textContent = 'Weight Match Build Weight Data control is unavailable; report not generated.';
+    else if (status) status.textContent = 'Weight Match Build Weight Data control is unavailable; health not generated.';
   });
-
-  csvBtn?.addEventListener('click', () => {
-    if (!report) return;
-    makeBlobDownload('empirical-weight-component-abnormalities.csv', empiricalWeightValidationReportToCsv(report, { abnormalOnly: true }), 'text/csv;charset=utf-8');
-  });
-  jsonBtn?.addEventListener('click', () => {
-    if (!report) return;
-    makeBlobDownload('empirical-weight-component-validation-report.json', `${JSON.stringify(report, null, 2)}\n`, 'application/json;charset=utf-8');
-  });
+  csvBtn?.addEventListener('click', () => report && makeBlobDownload('empirical-weight-component-abnormalities.csv', empiricalWeightValidationReportToCsv(report, { abnormalOnly: true }), 'text/csv;charset=utf-8'));
+  jsonBtn?.addEventListener('click', () => report && makeBlobDownload('empirical-weight-component-validation-report.json', `${JSON.stringify(report, null, 2)}\n`, 'application/json;charset=utf-8'));
   zipBtn?.addEventListener('click', () => {
     if (!report) return;
     const manifest = downloadEmpiricalWeightValidationEvidenceZip(report);
