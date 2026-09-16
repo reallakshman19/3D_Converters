@@ -1,0 +1,19 @@
+schema: AgentStatus.v1
+repository: reallaksh19/3D_Converters
+work_id: WIP-XMLCII-RCA-20260916
+pull_request: null
+branch: agent/xml-cii-standalone-rca-20260916
+base_main: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
+workstream: XML_CII_STANDALONE_RCA_AND_ROBUST_FIX
+stage: IMPLEMENTATION
+criticality: ENGINEERING_CRITICAL
+state: ACTIVE
+production_behavior_change: PLANNED
+merge_authority: NOT_GRANTED
+worker_admission: ADMITTED_BY_USER_REQUEST
+coordination: SAFE_WITH_CURRENT_OPEN_PRS
+validation:
+  source_inspection: PASS
+  browser_runtime: NOT_RUN
+  repository_tests: NOT_RUN
+exact_next_action: Implement line-list semantic mapping fixes and focused tests, then master persistence, empirical row health, branch-line inference, regex UX, and B31.3 blocker surfacing; do not merge.
