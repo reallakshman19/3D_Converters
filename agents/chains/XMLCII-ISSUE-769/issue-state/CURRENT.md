@@ -2,8 +2,8 @@ ISSUE_CURRENT_STATE_VERSION: 1
 CHAIN_ID: XMLCII-ISSUE-769
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0012
-UPDATED_AT: 2026-09-16T13:02:00Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0013
+UPDATED_AT: 2026-09-16T13:39:00Z
 
 # Current cumulative state
 
@@ -20,7 +20,7 @@ TASK-008 | IMPLEMENTED_PENDING_VALIDATION | Versioned derived-cache migration/sh
 
 ## Input ledger
 
-INPUT-001 | AVAILABLE | main e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f; rechecked unchanged during EP-0012
+INPUT-001 | AVAILABLE | main e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f; rechecked unchanged during EP-0013
 INPUT-002 | AVAILABLE | Owner-reported multi-row line-list mapping requirements encoded into focused fixtures
 INPUT-003 | PARTIALLY_AVAILABLE | synthetic deterministic weight authority oracle 12.5 kg and stale legacy 125 kg encoded; representative user production fixture still not durable
 INPUT-004 | AVAILABLE | 10k+ master failure reproduction requirement; 11k fault test authored but NOT_RUN
@@ -54,14 +54,14 @@ BM-009 | NOT_RUN_ENVIRONMENT_BLOCKED | full standalone regression suite
 
 ## Release qualification state
 
-- `QS-XMLCII-769-RELEASE-001` remains the current release/integration qualification pack and was reused for this same technical boundary.
-- Prior branch-push and `pull_request: reopened` Actions qualification attempts both produced zero runs/status contexts for this branch; temporary workflows were removed.
-- Direct workflow dispatch is not exposed by the connected GitHub tooling.
-- Repository Actions is active globally, so the remaining blocker is the lack of an executable checkout/trusted run path in this session.
-- `scripts/verify-issue-769-xml-cii.mjs` is now the reproducible repository-native qualification entrypoint.
-- Focused mode selects 12 Issue #769 regression files plus six established XML→CII/B31.3 guards.
-- `--full` discovers every `tests/xml-cii-*.test.{mjs,js}` file and includes `tests/engineering-calculation-core.test.mjs`.
+- `QS-XMLCII-769-RELEASE-001` remains the current release/integration qualification pack and is reused for this same technical boundary.
+- `scripts/verify-issue-769-xml-cii.mjs` is the canonical repository-native qualification entrypoint. Focused mode selects 12 Issue #769 regression files plus six established XML→CII/B31.3 guards; `--full` discovers every `tests/xml-cii-*.test.{mjs,js}` file and includes `tests/engineering-calculation-core.test.mjs`.
 - Independent `node --check` of the runner passed; this validates runner syntax only, not BM-001..BM-009.
+- Prior branch-push and PR-reopened trigger attempts produced zero workflow runs/status contexts.
+- EP-0013 corrected the pull-request workflow-placement hypothesis by creating a temporary base branch from main, placing the validation workflow on that base, and opening disposable draft PR #771 from the implementation branch into it.
+- The correctly based `opened` event produced zero pull-request runs. The base workflow was then expanded to accept `labeled`; applying an existing `bug` label to #771 also produced zero pull-request runs on 2026-09-16.
+- PR #771 was closed unmerged, its temporary label removed, and the temporary validation base branch was force-reset to main. No validation workflow remains reachable from that branch.
+- Direct workflow dispatch is not exposed by the connected GitHub tooling. The remaining blocker is therefore an executable/trusted run path, not stale base drift or workflow placement.
 - Main remains exactly `e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f`; no rebase is required before qualification.
 
 ## PR / merge state
