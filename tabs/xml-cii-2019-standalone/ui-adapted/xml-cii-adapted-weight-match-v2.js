@@ -1,3 +1,4 @@
+import './xml-cii-adapted-authority-migration.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import {
   withXmlCiiEffectiveRigidWeightLegacyView,
