@@ -2,6 +2,7 @@ const STANDARD_NPS = new Set(['0.5','0.75','1','1.25','1.5','2','2.5','3','3.5',
 const STANDARD_DN = new Set(['6','8','10','15','20','25','32','40','50','65','80','90','100','125','150','200','250','300','350','400','450','500','550','600','650','700','750','800','850','900','1000','1050','1200','1350','1500']);
 const STANDARD_RATINGS = new Set(['150','300','600','900','1500','2500','5000','10000','15000','20000']);
 const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
+const TRUSTED_AUTHORITIES = new Set(['AUTHORIZED_MASTER', 'GOVERNED_NORMALIZED_MASTER', 'EXPLICIT_SOURCE', 'DERIVED_FROM_AUTHORIZED_CLASS']);
 
 export function createDefaultRegexSuggestionProfile() {
   return Object.freeze({
@@ -93,8 +94,9 @@ function boreCandidate(values, position) {
   });
   const explicitSyntaxRate = clamp(explicit + dn);
   const score = clamp(0.48 * explicit + 0.40 * dn + 0.25 * known + (explicit || dn ? 0.22 : 0));
+  const authority = explicitSyntaxRate === 1 ? 'EXPLICIT_SOURCE' : explicitSyntaxRate > 0 ? 'PARTIAL_SOURCE_EVIDENCE' : 'HEURISTIC_ONLY';
   return suggestion(
-    'bore', [position], score, explicit || dn ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values,
+    'bore', [position], score, authority, values,
     [`${Math.round(explicitSyntaxRate * 100)}% explicit size syntax`, `${Math.round(known * 100)}% standard NPS/DN values`],
     { explicitSyntaxRate, standardValueRate: known },
   );
@@ -106,7 +108,13 @@ function classCandidate(values, position, masters, suffixPattern) {
   const normalized = coverage(values, (value) => masters.has(norm(txt(value).replace(suffix, ''))));
   const shape = coverage(values, (value) => /\d{3,}[A-Z0-9]*$/i.test(value));
   const score = clamp(0.65 * exact + 0.58 * normalized + 0.20 * shape);
-  const authority = exact ? 'AUTHORIZED_MASTER' : normalized ? 'GOVERNED_NORMALIZED_MASTER' : 'HEURISTIC_ONLY';
+  const authority = exact === 1
+    ? 'AUTHORIZED_MASTER'
+    : normalized === 1
+      ? 'GOVERNED_NORMALIZED_MASTER'
+      : exact > 0 || normalized > 0
+        ? 'PARTIAL_MASTER_EVIDENCE'
+        : 'HEURISTIC_ONLY';
   return suggestion(
     'pipingClass', [position], score, authority, values,
     [`${Math.round(exact * 100)}% exact master match`, `${Math.round(normalized * 100)}% governed normalized match`],
@@ -130,8 +138,9 @@ function lineKeyCandidates(rows, lineMasters, maxTokens) {
       const unique = new Set(values.map(norm)).size / Math.max(1, values.length);
       const lineShape = coverage(values, (value) => /[A-Z]+\d{4,}/i.test(value));
       const score = clamp(0.72 * exact + 0.16 * unique + 0.18 * lineShape - (width - 1) * 0.03);
+      const authority = exact === 1 ? 'AUTHORIZED_MASTER' : exact > 0 ? 'PARTIAL_MASTER_EVIDENCE' : 'HEURISTIC_ONLY';
       out.push(suggestion(
-        'lineKey', pos, score, exact ? 'AUTHORIZED_MASTER' : 'HEURISTIC_ONLY', values,
+        'lineKey', pos, score, authority, values,
         [`${Math.round(exact * 100)}% exact line-list match`, `${Math.round(unique * 100)}% uniqueness`, `${Math.round(lineShape * 100)}% line-key shape`],
         { exactMasterRate: exact, uniquenessRate: unique, shapeRate: lineShape },
       ));
@@ -143,8 +152,9 @@ function lineKeyCandidates(rows, lineMasters, maxTokens) {
 function ratingCandidate(values, position) {
   const explicit = coverage(values, (value) => STANDARD_RATINGS.has(txt(value).replace(/[^0-9]/g, '')));
   const score = clamp(explicit * 0.92);
+  const authority = explicit === 1 ? 'EXPLICIT_SOURCE' : explicit > 0 ? 'PARTIAL_SOURCE_EVIDENCE' : 'HEURISTIC_ONLY';
   return suggestion(
-    'rating', [position], score, explicit ? 'EXPLICIT_SOURCE' : 'HEURISTIC_ONLY', values,
+    'rating', [position], score, authority, values,
     [`${Math.round(explicit * 100)}% standard rating values`],
     { standardValueRate: explicit },
   );
@@ -156,8 +166,9 @@ function suggestion(role, tokenPositions, confidence, authorityLevel, values, ev
     tokenPositions,
     confidence: Number(confidence.toFixed(4)),
     authorityLevel,
-    // Keep legacy `coverage` as sample-count compatibility; explicit rate evidence
-    // lives in evidenceMetrics so a count can no longer be mistaken for a rate.
+    // Legacy `coverage` remains a sample-count compatibility field. Explicit
+    // evidence rates are named in `evidenceMetrics` and must not be inferred
+    // from this count.
     coverage: values.length,
     sampleCount: values.length,
     evidenceMetrics: Object.freeze({ ...evidenceMetrics }),
@@ -173,8 +184,12 @@ function bestByRole(candidates, thresholds) {
   for (const role of ROLE_ORDER) {
     const best = candidates.filter((item) => item.role === role).sort((a, b) => b.confidence - a.confidence)[0];
     if (!best || best.confidence < thresholds.display) continue;
-    best.safe = best.confidence >= thresholds.safe && best.authorityLevel !== 'HEURISTIC_ONLY';
-    best.review = !best.safe && best.confidence >= thresholds.review;
+    best.safe = best.confidence >= thresholds.safe && TRUSTED_AUTHORITIES.has(best.authorityLevel);
+    best.review = !best.safe && (
+      best.confidence >= thresholds.review
+      || best.authorityLevel === 'PARTIAL_MASTER_EVIDENCE'
+      || best.authorityLevel === 'PARTIAL_SOURCE_EVIDENCE'
+    );
     out.push(best);
   }
   return out;
@@ -193,7 +208,7 @@ function markConflicts(suggestions) {
 
 function derivedRatingSuggestion(suggestions, ratingSequence) {
   const pipingClass = suggestions.find((item) => item.role === 'pipingClass');
-  if (!pipingClass || pipingClass.authorityLevel === 'HEURISTIC_ONLY') return null;
+  if (!pipingClass || !TRUSTED_AUTHORITIES.has(pipingClass.authorityLevel)) return null;
   return {
     role: 'rating',
     tokenPositions: [],
