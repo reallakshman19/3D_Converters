@@ -41,7 +41,7 @@ const state = {
   sourceBatch: {
     activeSourceId: 'SRC-A',
     sources: [
-      { sourceId: 'SRC-A', supportConfigJson: JSON.stringify({ overrides: { other: { keep: 1 } } }) },
+      { sourceId: 'SRC-A', supportConfigJson: JSON.stringify({ overrides: { other: { keep: 1 }, rigidWeightMatch1: { '/SAME/B1::100': 20 } } }) },
       { sourceId: 'SRC-B', supportConfigJson: '{}' },
     ],
   },
@@ -52,8 +52,9 @@ const updated = applyModeAConsolidatedRigidReviewUpdates(state, {
 });
 const configA = JSON.parse(updated.sourceBatch.sources[0].supportConfigJson);
 const configB = JSON.parse(updated.sourceBatch.sources[1].supportConfigJson);
-assert.equal(configA.overrides.rigidWeight['/SAME/B1::100'], 24.3);
-assert.equal(configB.overrides.rigidWeight['/SAME/B1::100'], 31.7);
+assert.equal(configA.overrides.rigidWeightFinal['/SAME/B1::100'], 24.3);
+assert.equal(configB.overrides.rigidWeightFinal['/SAME/B1::100'], 31.7);
+assert.equal(configA.overrides.rigidWeightMatch1['/SAME/B1::100'], 20, 'final review must preserve Match-1 evidence');
 assert.equal(configA.overrides.rating['/SAME/B1::100'], '900');
 assert.equal(configB.overrides.rating['/SAME/B1::100'], '600');
 assert.equal(configA.overrides.other.keep, 1, 'unrelated source-local config must be preserved');
