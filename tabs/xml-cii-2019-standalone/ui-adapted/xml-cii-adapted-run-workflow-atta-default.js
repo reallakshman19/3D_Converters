@@ -1,6 +1,10 @@
 import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20260803-atta-default-rest-closure-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
+import {
+  withXmlCiiEffectiveRigidWeightLegacyView,
+  withXmlCiiRigidWeightFinal,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
 import {
   resolveStandaloneWeightReviewRating,
@@ -195,7 +199,8 @@ async function unresolvedRigidIssues(state, config) {
   const { collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
-  return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
+  const effectiveConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
+  return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', effectiveConfig).map((issue) => {
     const ratingAuthority = resolveStandaloneWeightReviewRating(issue, config);
     const rating = ratingAuthority.rating;
     const ranking = rating
@@ -219,13 +224,13 @@ async function reviewRigidWeights(stateRef, config) {
     const result = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
-      config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...result.weightsByKey } };
+      const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
       const current = stateRef.current;
       const masterContext = current.masterContext
-        ? { ...current.masterContext, config }
+        ? { ...current.masterContext, config: finalConfig }
         : current.masterContext;
       const routed = updateWorkflowState(current, {
-        supportConfigJson: JSON.stringify(config, null, 2),
+        supportConfigJson: JSON.stringify(finalConfig, null, 2),
       });
       stateRef.current = { ...routed, masterContext };
       if (masterContext) saveMasterContextToLocalStorage(masterContext);
