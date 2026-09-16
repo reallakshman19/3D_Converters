@@ -58,6 +58,11 @@ const rigidPayload = python.match(/def _build_rigid_payload[\s\S]*?(?=\ndef |\Z)
 assert(rigidPayload.includes('weight = _rigid_weight_for_edge(edge) * weight_scale'), 'Python rigid writer must apply the configured scale once');
 assert(!rigidPayload.includes('weight_scale * weight_scale'), 'Python rigid writer must not square the scale');
 
+const previewPath = fileURLToPath(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js', import.meta.url));
+const previewSource = await readFile(previewPath, 'utf8');
+assert(previewSource.includes('withXmlCiiEffectiveRigidWeightLegacyView'), 'Preview must consume the effective lifecycle projection');
+assert(previewSource.includes('config: previewConfig'), 'Preview authority layers must receive the transient effective view');
+
 const estimate100 = { ok: true, weightKg: 100, approach: 'test' };
 for (const observed of [70, 130]) {
   const result = compareObservedWeightToEmpiricalEstimate(observed, estimate100, 30);
