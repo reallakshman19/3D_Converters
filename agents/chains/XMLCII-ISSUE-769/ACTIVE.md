@@ -7,8 +7,8 @@ ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0017.md
 PR: 770
 PR_STATUS: OPEN_DRAFT_MERGE_AUTHORIZED
 BRANCH: issue-769/xml-cii-standalone-fixes
-HEAD: fab3644f0c20e81fd704cf03164f92f546f2b61b
-AUTHORIZED_MERGE_HEAD: fab3644f0c20e81fd704cf03164f92f546f2b61b
+HEAD: CURRENT_PR_HEAD_AT_MERGE
+AUTHORIZED_MERGE_HEAD: CURRENT_PR_HEAD_AT_MERGE
 MAIN: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 STATE: IMPLEMENTATION_COMPLETE_PENDING_VALIDATION
 ENGINEERING_STATE: IMPLEMENTATION_COMPLETE_PENDING_VALIDATION
@@ -74,7 +74,7 @@ MATERIAL_SCOPE: TASK-001..TASK-008 IMPLEMENTED_PENDING_VALIDATION; merge Owner-a
 
 ## Current state
 
-EP-0017 is synchronized. The Owner explicitly authorized merge of PR #770 with `merge proceed next`. Mergeability is clear and main has not drifted from the recorded base. The authorized merge head is pinned at `fab3644f0c20e81fd704cf03164f92f546f2b61b`. Validation remains PARTIAL_PASS_REMAINDER_BLOCKED and is not upgraded by authorization.
+EP-0017 is synchronized. The Owner explicitly authorized merge of PR #770 with `merge proceed next`. Mergeability is clear and main has not drifted from the recorded base. Authorization applies to the current reconciled PR head immediately before merge. Validation remains PARTIAL_PASS_REMAINDER_BLOCKED and is not upgraded by authorization.
 
 ## Preserved safety/authority boundaries
 
@@ -87,4 +87,4 @@ EP-0017 is synchronized. The Owner explicitly authorized merge of PR #770 with `
 
 ## Exact next action
 
-Mark PR #770 ready for review, then squash-merge only authorized head `fab3644f0c20e81fd704cf03164f92f546f2b61b`. Verify the merge and `main` afterward. Preserve BM-002 full writer E2E, BM-004, BM-005 50k/100k, BM-008 and BM-009 as post-merge validation debt. Keep Issue #769 open unless separately authorized for closure or the remaining acceptance/validation obligations are satisfied.
+Mark PR #770 ready for review, reconcile its current head once more, then squash-merge exactly that reconciled head under the Owner authorization. Verify the merge and `main` afterward. Preserve BM-002 full writer E2E, BM-004, BM-005 50k/100k, BM-008 and BM-009 as post-merge validation debt. Keep Issue #769 open unless separately authorized for closure or the remaining acceptance/validation obligations are satisfied.
