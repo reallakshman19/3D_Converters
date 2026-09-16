@@ -3,6 +3,7 @@ import {
   empiricalWeightValidationReportToCsv,
   downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
+import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
@@ -10,22 +11,11 @@ function positive(value) { const n = Number(value); return Number.isFinite(n) &&
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 
 function resolvedWeight(issue, config) {
-  const overrides = object(config?.overrides);
   const keys = [issue?.key, issue?.legacyKey, issue?.originalKey, issue?.componentRefEndpoint].map(text).filter(Boolean);
-  for (const [bucketName, label] of [
-    ['rigidWeightFinal', 'Rigidmatch2'],
-    ['rigidWeightMatch1', 'RigidMatch1'],
-    ['rigidWeight', 'effective/legacy override'],
-  ]) {
-    const bucket = object(overrides[bucketName]);
-    for (const key of keys) {
-      const value = positive(bucket[key]);
-      if (value !== null) return { weightKg: value, source: `${label}:${key}` };
-    }
-  }
-  const mapped = positive(issue?.weight);
-  if (mapped !== null) return { weightKg: mapped, source: issue?.weightSource || 'resolved Weight Match row' };
-  return { weightKg: null, source: 'unresolved' };
+  const resolved = resolveXmlCiiRigidWeight(config, keys, issue?.weight);
+  return resolved.weightKg === null
+    ? { weightKg: null, source: 'unresolved' }
+    : { weightKg: resolved.weightKg, source: `${resolved.source}${resolved.key ? `:${resolved.key}` : ''}` };
 }
 
 function bestCandidate(issue) {
@@ -47,19 +37,20 @@ function validationRowsFromResolvedIssues(issues, config) {
   const rows = [];
   const skipped = [];
   for (const issue of Array.isArray(issues) ? issues : []) {
+    const rowId = issue?.key || issue?.componentRefEndpoint || issue?.nodeNumber || `row-${rows.length + skipped.length + 1}`;
     const resolved = resolvedWeight(issue, config);
     if (resolved.weightKg === null) {
-      skipped.push({ key: issue?.key || '', nodeNumber: issue?.nodeNumber || '', reason: 'no-positive-resolved-weight' });
+      skipped.push({ key: rowId, nodeNumber: issue?.nodeNumber || '', reason: 'no-positive-resolved-weight' });
       continue;
     }
     const candidate = bestCandidate(issue);
     const typeDesc = text(candidate?.typeDesc || candidate?.valveType || candidate?.type);
     if (!typeDesc) {
-      skipped.push({ key: issue?.key || '', nodeNumber: issue?.nodeNumber || '', reason: 'no-empirical-type-description', observedWeightKg: resolved.weightKg });
+      skipped.push({ key: rowId, nodeNumber: issue?.nodeNumber || '', reason: 'no-empirical-type-description', observedWeightKg: resolved.weightKg, source: resolved.source });
       continue;
     }
     rows.push({
-      rowId: issue?.key || issue?.componentRefEndpoint || issue?.nodeNumber || `row-${rows.length + 1}`,
+      rowId,
       source: resolved.source,
       componentRefNo: issue?.componentRefNo || issue?.componentRefEndpoint || null,
       nodeNumber: issue?.nodeNumber || null,
@@ -92,10 +83,65 @@ function cell(value, digits = null) {
   return esc(value);
 }
 
-function renderTable(host, report) {
+function available(row) {
+  return Boolean(row?.approach1?.available || row?.approach2?.available);
+}
+
+function rowHealth(row, skipped = null) {
+  if (!row || !available(row)) return { label: '? Unvalidated', color: '#fbbf24', state: 'unvalidated', reason: skipped?.reason || 'A1/A2 estimate unavailable' };
+  if (row.approach1?.abnormal || row.approach2?.abnormal) return { label: '⚠ >30%', color: '#f87171', state: 'abnormal', reason: row.status };
+  return { label: '✓ ±30%', color: '#86efac', state: 'within', reason: row.status };
+}
+
+function approachTitle(label, value) {
+  if (!value?.available) return `${label}: unavailable (${value?.error?.code || value?.status || 'no estimate'})`;
+  const estimate = Number(value.estimatedWeightKg).toFixed(3);
+  const deviation = Number(value.deviationPct).toFixed(1);
+  return `${label}: ${estimate} kg, Δ ${deviation}% (${value.status})`;
+}
+
+function healthTitle(row, health, skipped) {
+  if (!row) return `Empirical validation: ${health.reason}. Accepted weight is unchanged.`;
+  return [
+    `Observed: ${Number(row.observedWeightKg).toFixed(3)} kg`,
+    `Source: ${row.source || 'resolved weight'}`,
+    approachTitle('A1', row.approach1),
+    approachTitle('A2', row.approach2),
+    `Threshold: ±30% (exact ±30% is within threshold)`,
+    skipped?.reason ? `Skipped: ${skipped.reason}` : '',
+    'Validation only — this indicator never changes the accepted weight.',
+  ].filter(Boolean).join(' · ');
+}
+
+function decorateWeightRows(card, report, skippedRows = []) {
+  const byId = new Map((report?.rows || []).map((row) => [text(row.rowId), row]));
+  const skipped = new Map((skippedRows || []).map((row) => [text(row.key), row]));
+  card.querySelectorAll('.mc-rigid-review-input[data-wm-key]').forEach((input) => {
+    const key = text(input.getAttribute('data-wm-key'));
+    const row = byId.get(key) || null;
+    const skippedRow = skipped.get(key) || null;
+    const health = rowHealth(row, skippedRow);
+    let badge = input.parentElement?.querySelector('[data-ewv-row-health]');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.dataset.ewvRowHealth = 'true';
+      badge.style.cssText = 'display:inline-block;margin-left:6px;font-size:10px;font-weight:700;white-space:nowrap;';
+      input.insertAdjacentElement('afterend', badge);
+    }
+    badge.textContent = health.label;
+    badge.style.color = health.color;
+    badge.title = healthTitle(row, health, skippedRow);
+    badge.dataset.health = health.state;
+  });
+}
+
+function renderTable(host, report, skippedCount = 0) {
   const rows = report?.abnormalities || [];
   if (!rows.length) {
-    host.innerHTML = '<div style="padding:12px;color:#86efac;border:1px solid #166534;background:#052e16;border-radius:6px;">No resolved component weight exceeds ±30% against the available Approach 1 / Approach 2 estimates.</div>';
+    const validated = (report?.rows || []).filter(available).length;
+    host.innerHTML = validated
+      ? `<div style="padding:12px;color:#86efac;border:1px solid #166534;background:#052e16;border-radius:6px;">${validated} empirically validated resolved component(s) are within ±30%. ${skippedCount} row(s) remain unvalidated/skipped.</div>`
+      : '<div style="padding:12px;color:#fde68a;border:1px solid #92400e;background:#451a03;border-radius:6px;">No resolved component has an available empirical A1/A2 estimate. Rows are UNVALIDATED; this is not an all-good result.</div>';
     return;
   }
   host.innerHTML = `<div style="overflow:auto;max-height:46vh;border:1px solid #334155;border-radius:6px;">
@@ -152,14 +198,19 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
     report.skippedRows = scope.skipped;
     report.skippedRowCount = scope.skipped.length;
     stateRef.current.empiricalWeightValidationReport = report;
-    renderTable(table, report);
+    renderTable(table, report, scope.skipped.length);
+    decorateWeightRows(card, report, scope.skipped);
     csvBtn.disabled = false;
     jsonBtn.disabled = false;
     zipBtn.disabled = false;
-    if (status) status.textContent = `${report.summary.abnormalRows} abnormal of ${report.summary.inputRows} resolved component(s); A1 ${report.summary.approach1Abnormal}, A2 ${report.summary.approach2Abnormal}; ${scope.skipped.length} skipped/unresolved.`;
+    const validated = (report.rows || []).filter(available).length;
+    if (status) status.textContent = `${report.summary.abnormalRows} abnormal of ${validated} empirically validated row(s); ${scope.skipped.length + Math.max(0, report.summary.inputRows - validated)} unvalidated/skipped; threshold > ±30%.`;
   };
 
   card.addEventListener('xml-cii-weight-validator-ready', (event) => buildFromResolved(event.detail || {}));
+  card.addEventListener('click', (event) => {
+    if (event.target?.closest?.('#mc-wm-refresh') && typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
+  }, true);
 
   section.querySelector('[data-ewv-build]')?.addEventListener('click', () => {
     if (typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
