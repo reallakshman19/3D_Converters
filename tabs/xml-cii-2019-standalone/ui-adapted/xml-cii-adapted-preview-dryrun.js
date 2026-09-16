@@ -1,6 +1,7 @@
 export * from './xml-cii-adapted-preview-dryrun-core.js';
 
 import { xmlCiiDryRunPreview as buildCorePreview } from './xml-cii-adapted-preview-dryrun-core.js';
+import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { applyPreviewBoreWallAuthority } from './xml-cii-adapted-preview-bore-wall-authority.js';
 import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-material-authority.js';
 import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js';
@@ -190,28 +191,34 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 }
 
 function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
+  const previewConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
   const sourceDocument = getSourceDocumentContext(xmlText).document;
   const coreResult = buildStrictLineAuthorityCorePreview(
-    xmlText, config, stagedJsonText, { sourceDocument },
+    xmlText, previewConfig, stagedJsonText, { sourceDocument },
   );
   const wallResult = applyPreviewBoreWallAuthority({
-    xmlText, config, stagedJsonText, result: coreResult, sourceDocument,
+    xmlText, config: previewConfig, stagedJsonText, result: coreResult, sourceDocument,
   });
-  const materialResult = applyPreviewMaterialCodeAuthority({ config, result: wallResult });
+  const materialResult = applyPreviewMaterialCodeAuthority({ config: previewConfig, result: wallResult });
   return applyPreviewRatingAuthority({
-    xmlText, config, stagedJsonText, result: materialResult, sourceDocument,
+    xmlText, config: previewConfig, stagedJsonText, result: materialResult, sourceDocument,
   });
 }
 
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
+  const previewConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
   return buildIncrementalPreview({
     xmlText,
     stagedJsonText,
-    config,
-    fullBuild: () => buildFullDryRunPreview(xmlText, config, stagedJsonText),
-    rerankWeight: rerankPreviewNodeRows,
+    config: previewConfig,
+    fullBuild: () => buildFullDryRunPreview(xmlText, previewConfig, stagedJsonText),
+    rerankWeight: (nodeRows, branchRows, nextConfig) => rerankPreviewNodeRows(
+      nodeRows,
+      branchRows,
+      withXmlCiiEffectiveRigidWeightLegacyView(nextConfig),
+    ),
     reapplyMaterial: (previousResult, nextConfig) => applyPreviewMaterialCodeAuthority({
-      config: nextConfig,
+      config: withXmlCiiEffectiveRigidWeightLegacyView(nextConfig),
       result: previousResult,
     }),
   }).result;
