@@ -7,14 +7,14 @@ ACTIVE_ENDPOINT_FILE: agents/chains/XMLCII-ISSUE-769/endpoints/EP-0004.md
 PR: 770
 PR_STATUS: OPEN_DRAFT
 BRANCH: issue-769/xml-cii-standalone-fixes
-HEAD: EP0004_RELAY_HEAD
+HEAD: EP0004_SYNC_HEAD
 MAIN: e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 STATE: IN_PROGRESS
 ENGINEERING_STATE: IN_PROGRESS
 CUSTODY_STATE: HELD
 QUALIFICATION_STATE: NOT_REQUIRED_CURRENT_CUSTODIAN
-WRITE_AUTHORITY: WRITE_ALLOWED_AFTER_ISSUE_SYNC
-AUTO_STATE: BLOCKED
+WRITE_AUTHORITY: WRITE_ALLOWED
+AUTO_STATE: NOT_APPLICABLE
 MERGE_AUTHORITY: OWNER_ONLY
 MERGE_AUTHORIZED: FALSE
 MERGEABILITY: MERGEABLE
@@ -40,8 +40,8 @@ ISSUE_CURRENT_STATE_BASIS: IB-0001
 ISSUE_CURRENT_STATE_ENDPOINT: EP-0004
 ISSUE_CHAIN_ROOT_COMMENT_ID: 5695050767
 ISSUE_ACTIVE_HANDOVER_COMMENT_ID: 5695048450
-ISSUE_LATEST_ENDPOINT_COMMENT_ID: PENDING_EP0004_SYNC
-ISSUE_HANDOVER_SYNC_STATUS: NOT_RUN
+ISSUE_LATEST_ENDPOINT_COMMENT_ID: 5696438311
+ISSUE_HANDOVER_SYNC_STATUS: IN_SYNC
 ROADMAPS: docs/Overall_roadmap.md@aaf0f2739a25a96b51ff193861b9b319b80f6c7f; docs/InputxmltoCII2019Fixplan.md@b2fd293775bc9bba61b7ee702333e8f007579ed8
 ROADMAP_REVIEW_STATUS: COMPLETE
 ROADMAP_ALIGNMENT: ROADMAP_STATUS_STALE_BUT_SCOPE_ALIGNED
@@ -55,7 +55,7 @@ QUESTION_DISPLAY: HIDE
 OWNER_QUALIFICATION_BASELINE: QB-ISSUE-769-B
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
 TAKEOVER_QUALIFICATION_READY: TRUE
-CHAIN_HANDOVER_READY: FALSE
+CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: NOT_RUN
 HANDOVER_VALIDATION_EVIDENCE: independent focused reconstruction only; repository-native BM-006/BM-007/BM-009 NOT_RUN
@@ -71,8 +71,8 @@ MATERIAL_LEG_IN_PROGRESS: NONE
 
 ## Current state
 
-LEG-002 is checkpointed. TASK-001/TASK-004/TASK-005/TASK-006 are implemented pending repository-native validation; none is promoted to PASS. BM-006/BM-007/BM-009 remain NOT_RUN. Draft PR #770 remains mergeable with no hosted status evidence.
+LEG-002 is checkpointed and synchronized. TASK-001/TASK-004/TASK-005/TASK-006 are implemented pending repository-native validation; none is promoted to PASS. Draft PR #770 remains mergeable with no hosted status evidence.
 
 ## Exact next action
 
-Synchronize EP-0004 to Issue #769. Then establish a fresh bounded qualification/prework endpoint for TASK-002/TASK-003 (rigid-weight lifecycle/one kg→CII conversion authority and empirical validation-only ±30% health). Preserve the current writer scale until the authority trace and arithmetic oracle prove a writer-scale defect. B31.3 remains outside that leg.
+Establish a fresh bounded qualification/prework endpoint for TASK-002/TASK-003 (rigid-weight lifecycle/one kg→CII conversion authority and empirical validation-only ±30% health). Preserve the current writer scale until the authority trace and arithmetic oracle prove a writer-scale defect. B31.3 remains outside that leg.
