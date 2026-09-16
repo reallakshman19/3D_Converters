@@ -186,9 +186,11 @@ export function persistChangedMasterDetailed(key, context) {
     source: meta.source || null,
     fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
     appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
-    rowCount: normalized.length,
-    persistenceMode: compact ? 'compact' : 'full',
   };
+  if (compact) {
+    sourceCustody.rowCount = normalized.length;
+    sourceCustody.persistenceMode = 'compact';
+  }
   const failures = [];
   let writes = 0;
 
