@@ -1,4 +1,5 @@
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
+import { buildRegexSampleBuckets } from '../xml-cii-regex-sample-buckets.js';
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
 import { applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js';
@@ -14,6 +15,7 @@ function current(stateRef, fallback) { return stateRef?.current || fallback; }
 function resultOf(state) { return state?.regexTesterResult || {}; }
 function profileOf(state) { return state?.regexSuggestionProfile || createDefaultRegexSuggestionProfile(); }
 function locksOf(state) { return state?.regexSmartManualLocks || {}; }
+function percent(value) { return `${Math.round(Number(value || 0) * 100)}%`; }
 
 function receiptFor(state) {
   return buildRegexSuggestionPreflight({
@@ -49,6 +51,22 @@ function showMessage(builder, text, bad = false) {
   node.style.border = `1px solid ${bad ? 'rgba(248,113,113,.35)' : 'rgba(74,222,128,.28)'}`;
 }
 
+function suggestionEvidenceText(item) {
+  if (item?.derived) return (item.evidence || []).join(' · ') || 'Derived suggestion';
+  const m = item?.evidenceMetrics || {};
+  if (item?.role === 'lineKey') {
+    return `Exact master ${percent(m.exactMasterRate)} · uniqueness ${percent(m.uniquenessRate)} · line shape ${percent(m.shapeRate)}`;
+  }
+  if (item?.role === 'pipingClass') {
+    return `Exact master ${percent(m.exactMasterRate)} · normalized master ${percent(m.normalizedMasterRate)} · class shape ${percent(m.shapeRate)}`;
+  }
+  if (item?.role === 'bore') {
+    return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)}`;
+  }
+  if (item?.role === 'rating') return `Standard rating evidence ${percent(m.standardValueRate)}`;
+  return (item?.evidence || []).join(' · ');
+}
+
 function actionMetrics(receipt) {
   const m = receipt.metrics;
   return [
@@ -58,7 +76,7 @@ function actionMetrics(receipt) {
     ['approximate', m.reviewCount, 'Review suggestions', '#fbbf24'],
     ['conflict', m.conflictCount, 'Conflicts', m.conflictCount ? '#f87171' : '#64748b'],
     ['rejected', m.rejectedCount, 'Rejected samples', m.rejectedCount ? '#f87171' : '#64748b'],
-    ['coverage', `${Math.round(m.coverage * 100)}%`, 'Coverage', m.coverage >= .95 ? '#4ade80' : m.coverage >= .8 ? '#fbbf24' : '#f87171'],
+    ['coverage', `${Math.round(m.coverage * 100)}%`, 'Extraction coverage (all samples)', m.coverage >= .95 ? '#4ade80' : m.coverage >= .8 ? '#fbbf24' : '#f87171'],
   ];
 }
 
@@ -133,17 +151,25 @@ function toggleEvidence(builder, receipt) {
   panel.dataset.regexSmartEvidence = 'true';
   Object.assign(panel.style, { padding: '9px', margin: '8px 0', borderRadius: '7px', background: 'rgba(15,23,42,.72)', border: '1px solid rgba(148,163,184,.22)', fontSize: '11px' });
   panel.innerHTML = `<strong style="color:${smartStatusColor(receipt.status)}">${receipt.status}</strong> · ${receipt.selectedSignature || 'No format signature'}`;
+  const explainer = document.createElement('div');
+  explainer.style.marginTop = '5px';
+  explainer.style.color = '#94a3b8';
+  explainer.textContent = 'Confidence is a composite suggestion score. Master/structural evidence rates are reported separately below.';
+  panel.appendChild(explainer);
   const list = document.createElement('div');
   list.style.marginTop = '7px';
   receipt.suggestions.forEach((item) => {
     const meta = ROLE_META[item.role];
     const row = document.createElement('div');
-    row.style.margin = '4px 0';
-    row.textContent = `${meta?.label || item.role}: ${item.derived ? 'derived' : `#${item.tokenPositions.join(',')}`} · ${Math.round(item.confidence * 100)}% · ${item.authorityLevel}${item.conflict ? ' · CONFLICT' : ''}`;
+    row.style.margin = '5px 0';
+    row.textContent = `${meta?.label || item.role}: ${item.derived ? 'derived' : `#${item.tokenPositions.join(',')}`} · Confidence ${percent(item.confidence)} · ${suggestionEvidenceText(item)} · ${item.authorityLevel}${item.conflict ? ' · CONFLICT' : ''}`;
     list.appendChild(row);
   });
   receipt.blockers.forEach((item) => {
-    const row = document.createElement('div'); row.style.color = '#fca5a5'; row.textContent = `${item.code}: ${item.message}`; list.appendChild(row);
+    const row = document.createElement('div');
+    row.style.color = '#fca5a5';
+    row.textContent = `${item.code}: ${item.message}`;
+    list.appendChild(row);
   });
   panel.appendChild(list);
   builder.appendChild(panel);
@@ -155,16 +181,51 @@ function decorateTokens(builder, receipt, stateRef, render) {
   receipt.suggestions.filter((item) => !item.derived).forEach((item) => {
     const meta = ROLE_META[item.role];
     item.tokenPositions.forEach((position) => {
-      const card = cards[position - 1]; if (!card) return;
+      const card = cards[position - 1];
+      if (!card) return;
       const badge = document.createElement('button');
-      badge.type = 'button'; badge.dataset.smartTokenBadge = item.role;
-      badge.title = `${meta.label}: ${Math.round(item.confidence * 100)}% · ${item.authorityLevel}`;
+      badge.type = 'button';
+      badge.dataset.smartTokenBadge = item.role;
+      badge.title = `${meta.label}: Confidence ${percent(item.confidence)} · ${suggestionEvidenceText(item)} · ${item.authorityLevel}`;
       Object.assign(badge.style, { border: `1px solid ${meta.color}55`, background: `${meta.color}18`, color: meta.color, borderRadius: '999px', padding: '2px 6px', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', gap: '4px', alignItems: 'center', justifyContent: 'center' });
-      badge.append(createSmartIcon(meta.icon, 12), document.createTextNode(`${Math.round(item.confidence * 100)}%`));
+      badge.append(createSmartIcon(meta.icon, 12), document.createTextNode(`C ${percent(item.confidence)}`));
       badge.addEventListener('click', () => applyOne(item, stateRef, render));
       card.querySelector('strong')?.insertAdjacentElement('afterend', badge);
     });
   });
+}
+
+function decorateSampleSelector(builder, state) {
+  const select = [...builder.querySelectorAll('select')]
+    .find((node) => /Select Sample Branch/i.test(node.parentElement?.textContent || ''));
+  if (!select) return;
+  const samples = resultOf(state).branchSamples || [];
+  const formats = state.regexTesterConfig?.formats || [];
+  const formatIndex = Number(state.regexTesterConfig?.activeFormatIndex || 0);
+  const delimiter = formats[formatIndex]?.tokenDelimiter || state.regexTesterConfig?.tokenDelimiter || '-';
+  const buckets = buildRegexSampleBuckets(samples, delimiter);
+  if (!buckets.length) return;
+
+  const previous = select.value;
+  select.innerHTML = '';
+  for (const bucket of buckets) {
+    const option = document.createElement('option');
+    const representative = bucket.members.includes(previous) ? previous : bucket.representative;
+    option.value = representative;
+    option.textContent = `${bucket.count}× · ${representative} · ${bucket.signature}`;
+    option.selected = bucket.members.includes(previous);
+    select.appendChild(option);
+  }
+  if (!select.value && select.options.length) select.options[0].selected = true;
+
+  let note = select.parentElement?.querySelector('[data-regex-sample-bucket-note]');
+  if (!note && select.parentElement) {
+    note = document.createElement('div');
+    note.dataset.regexSampleBucketNote = 'true';
+    Object.assign(note.style, { width: '100%', fontSize: '10px', color: '#94a3b8', marginTop: '3px' });
+    select.parentElement.appendChild(note);
+  }
+  if (note) note.textContent = `${buckets.length} representative structural bucket${buckets.length === 1 ? '' : 's'} from ${samples.length} branch samples. Extraction and coverage still evaluate the full sample set.`;
 }
 
 function applyOne(item, stateRef, render) {
@@ -179,23 +240,30 @@ function applyOne(item, stateRef, render) {
 }
 
 function decorateLocks(card, stateRef, render) {
-  const state = current(stateRef, {}); const locks = locksOf(state);
+  const state = current(stateRef, {});
+  const locks = locksOf(state);
   const labels = { 'Line key extraction': 'lineKey', 'Piping class extraction': 'pipingClass', 'Rating extraction': 'rating', 'Bore / size extraction': 'bore' };
   card.querySelectorAll('.xml-cii-regex-rule-card h4').forEach((heading) => {
-    const role = labels[(heading.textContent || '').trim()]; if (!role || heading.querySelector('[data-smart-lock]')) return;
+    const role = labels[(heading.textContent || '').trim()];
+    if (!role || heading.querySelector('[data-smart-lock]')) return;
     const button = createSmartIconButton(locks[role] ? 'lock' : 'unlock', `${locks[role] ? 'Unlock' : 'Lock'} ${ROLE_META[role].label}`, () => {
       state.regexSmartManualLocks = { ...locksOf(state), [role]: !locksOf(state)[role] };
       render?.();
     }, { active: Boolean(locks[role]), size: 13 });
-    button.dataset.smartLock = role; button.style.marginLeft = '7px'; button.style.width = '24px'; button.style.height = '24px';
+    button.dataset.smartLock = role;
+    button.style.marginLeft = '7px';
+    button.style.width = '24px';
+    button.style.height = '24px';
     heading.appendChild(button);
   });
 }
 
 function openPolicy(builder, stateRef, render) {
   builder.querySelector('[data-regex-smart-policy]')?.remove();
-  const state = current(stateRef, {}); const profile = profileOf(state);
-  const panel = document.createElement('div'); panel.dataset.regexSmartPolicy = 'true';
+  const state = current(stateRef, {});
+  const profile = profileOf(state);
+  const panel = document.createElement('div');
+  panel.dataset.regexSmartPolicy = 'true';
   Object.assign(panel.style, { position: 'absolute', right: '8px', top: '44px', zIndex: '20', width: '330px', maxWidth: '92%', padding: '14px', borderRadius: '8px', background: '#111827', border: '1px solid #334155', boxShadow: '0 18px 42px rgba(0,0,0,.42)', fontSize: '12px' });
   builder.style.position = 'relative';
   panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>Suggestion policy</strong><button type="button" data-close>×</button></div>
@@ -210,26 +278,33 @@ function openPolicy(builder, stateRef, render) {
   panel.querySelectorAll('label').forEach((label) => Object.assign(label.style, { display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '9px', alignItems: 'center' }));
   panel.querySelectorAll('input,select').forEach((input) => Object.assign(input.style, { width: '145px', background: '#0b1320', color: '#e5e7eb', border: '1px solid #475569', borderRadius: '4px', padding: '4px' }));
   panel.querySelector('[data-mode]').value = profile.operatingMode;
-  const close = () => panel.remove(); panel.querySelector('[data-close]').onclick = close; panel.querySelector('[data-cancel]').onclick = close;
+  const close = () => panel.remove();
+  panel.querySelector('[data-close]').onclick = close;
+  panel.querySelector('[data-cancel]').onclick = close;
   panel.querySelector('[data-save]').onclick = () => {
-    const percent = (key) => Number(panel.querySelector(`[data-${key}]`).value) / 100;
+    const percentValue = (key) => Number(panel.querySelector(`[data-${key}]`).value) / 100;
     state.regexSuggestionProfile = Object.freeze({ ...profile,
       operatingMode: panel.querySelector('[data-mode]').value,
-      thresholds: Object.freeze({ safe: percent('safe'), review: percent('review'), display: percent('display') }),
+      thresholds: Object.freeze({ safe: percentValue('safe'), review: percentValue('review'), display: percentValue('display') }),
       normalization: Object.freeze({ ...profile.normalization, classSuffixPattern: panel.querySelector('[data-suffix]').value }),
       formatPolicy: Object.freeze({ maximumFormats: Number(panel.querySelector('[data-formats]').value), maximumLineKeyTokens: Number(panel.querySelector('[data-tokens]').value) }),
     });
-    state.regexSmartPreflight = null; close(); render?.();
+    state.regexSmartPreflight = null;
+    close();
+    render?.();
   };
   builder.appendChild(panel);
 }
 
 export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   if (typeof document === 'undefined') return;
-  const builder = findBuilder(card); if (!builder) return;
-  const live = current(stateRef, state); const receipt = receiptFor(live);
+  const builder = findBuilder(card);
+  if (!builder) return;
+  const live = current(stateRef, state);
+  const receipt = receiptFor(live);
   live.regexSmartPreflight = receipt;
   installToolbar(builder, live, stateRef, render, receipt);
+  decorateSampleSelector(builder, live);
   decorateTokens(builder, receipt, stateRef, render);
   decorateLocks(card, stateRef, render);
   if (live.regexSmartStatus) showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
