@@ -2,8 +2,8 @@ ISSUE_CURRENT_STATE_VERSION: 1
 CHAIN_ID: XMLCII-ISSUE-769
 WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 ISSUE_CURRENT_STATE_BASIS: IB-0001
-ISSUE_CURRENT_STATE_ENDPOINT: EP-0002
-UPDATED_AT: 2026-09-16T09:34:00Z
+ISSUE_CURRENT_STATE_ENDPOINT: EP-0003
+UPDATED_AT: 2026-09-16T10:00:00Z
 
 # Current cumulative state
 
@@ -13,8 +13,8 @@ TASK-001 | IMPLEMENTED_PENDING_VALIDATION | Line-list semantic autodetection and
 TASK-002 | OPEN | Rigid-weight lifecycle / one kg→CII conversion authority
 TASK-003 | OPEN | Empirical row-level ±30% health, validation-only
 TASK-004 | IMPLEMENTED_PENDING_VALIDATION | Large-master parse/session/persistence separation; BM-005/BM-009 NOT_RUN; eager all-sheet JSON conversion remains residual
-TASK-005 | OPEN | Regex confidence/coverage separation and representative buckets
-TASK-006 | OPEN | Branch→Line unique-authority family resolver + Apply Pattern clarity
+TASK-005 | IN_PROGRESS | Regex confidence/coverage separation and representative structural buckets
+TASK-006 | IN_PROGRESS | Branch→Line unique-authority family resolver + Apply Pattern clarity
 TASK-007 | OPEN | B31.3 blocker transparency and governed factor resolution
 TASK-008 | OPEN | Persisted-state migration/cache invalidation/shared resolvers
 
@@ -24,8 +24,8 @@ INPUT-001 | AVAILABLE | main e16fe79fd0a2d542cc2475c9e4a40f9aa6fc701f
 INPUT-002 | AVAILABLE | Owner-reported multi-row line-list mapping requirements encoded into focused fixtures
 INPUT-003 | UNRESOLVED | representative durable weight fixture/value pair still to capture before weight leg
 INPUT-004 | AVAILABLE | 10k+ master failure reproduction requirement; 11k fault test authored but NOT_RUN
-INPUT-005 | AVAILABLE | branch-family examples
-INPUT-006 | AVAILABLE | Regex Tester behavior report
+INPUT-005 | AVAILABLE | branch-family examples including P4110010 and B4110004 cases
+INPUT-006 | AVAILABLE | Regex Tester confidence/sample-list behavior report
 INPUT-007 | UNRESOLVED | independent B31.3 material/code oracle required before eligibility changes
 
 ## Benchmark / oracle ledger
@@ -49,18 +49,22 @@ LEG-001 is recorded at `agents/chains/XMLCII-ISSUE-769/material-legs/LEG-001.md`
 
 ## PR / validation state
 
-PR-770 | OPEN_DRAFT | MERGEABLE | no reviews | no unresolved review threads | no workflow/status contexts observed
+PR-770 | OPEN_DRAFT | MERGEABLE at last reconciliation | no reviews | no unresolved review threads | no workflow/status contexts observed
 MERGE_AUTHORITY | OWNER_ONLY | MERGE_AUTHORIZED FALSE
 
 ## Qualification / custody
 
-QUALIFICATION_SCOPE_ID: QSCOPE-ISSUE769-MAPPING-MASTER-IMPORT
-QUESTION_SET_ID: QS-XMLCII-769-MAPPING-001
+OWNER_PROGRESSION_COMMAND: proceed next
+QUALIFICATION_SCOPE_ID: QSCOPE-ISSUE769-REGEX-BRANCH
+QUESTION_SET_ID: QS-XMLCII-769-REGEX-BRANCH-001
 QUESTION_SET_STATUS: CURRENT
-QUESTION_PACK_ACTION: REUSED
+QUESTION_PACK_ACTION: REFRESHED
+QUESTION_DISPLAY: SHOW
 TAKEOVER_QUALIFICATION_READY: TRUE
+OWNER_QUALIFICATION_BASELINE: QB-ISSUE-769-B
 OWNER_QUALIFICATION_BASELINE_STATUS: SATISFIED
+COMMON_PROTOCOL_BASIS: fed57820909f4984a97d67437340df952b73a5ab
 
 ## Current exact next action
 
-Synchronize EP-0002, then establish the next bounded scope for TASK-005/TASK-006 (Regex Tester + Branch→Line Auto Detect/Auto-Suggest/Apply Pattern). Do not enter weight or B31.3 authority until their own qualification/oracle gates are established.
+Synchronize EP-0003 and refreshed qualification scope to Issue #769. Then create exact pre-edit backups and execute LEG-002 restricted to TASK-005/TASK-006. Weight, empirical, and B31.3 remain outside this leg.
