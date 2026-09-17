@@ -48,10 +48,10 @@ progress:
   basis_revision: PB-769-0001
 status_planes:
   execution:
-    state: WAITING
+    state: READY
     can_continue: true
-    material_authority: READ_ONLY
-    next_action: Complete the qualified Python EffectiveOutsideDiameter consumer with a surgical/executable repository carrier, then run TEST-OD-JS and TEST-OD-PY; do not advance to orientation/length or WP-769-SUPPORT while this consumer/test gate is incomplete.
+    material_authority: WRITE
+    next_action: Apply the qualified Python EffectiveOutsideDiameter consumer using the exact current blob, immediately audit the resulting PR diff, then freeze READ_ONLY and run/seek TEST-OD-JS and TEST-OD-PY evidence.
   quality:
     state: NEEDS_ATTENTION
     findings:
@@ -60,7 +60,7 @@ status_planes:
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02 is Owner-qualified and partially implemented. Browser-side effective OD resolution and JS/Python regression contracts are committed; TEST-OD-SCOPE passes because changed paths remain disjoint from PR #417. The Python production consumer is incomplete and TEST-OD-JS/TEST-OD-PY remain NOT_RUN, so no geometry behavioral PASS is claimed.
+    summary: EP-769-02 is Owner-qualified and partially implemented. Exact current xml_to_cii2019.py blob was recovered through the GitHub connector, removing the prior carrier limitation; material WRITE is reopened solely for the qualified Python effective-OD consumer and immediate diff audit.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
@@ -69,7 +69,7 @@ status_planes:
       reason: Declared Node test has not executed from a repository checkout; isolated resolver reconstruction is supporting evidence only.
       cause: UNAVAILABLE_TOOL
     - id: TEST-OD-PY
-      reason: Python production consumer is not yet implemented and no executable private checkout is available through the connected tool surface.
+      reason: Python production consumer write is in progress; repository-native pytest has not executed.
       cause: DEPENDENCY_WAIT
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
@@ -104,6 +104,6 @@ relay_readiness:
   reasons:
   - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
   - EP-769-02 is Owner-qualified by ODR-769-0005 and admitted through DISC-769-02/QUAL-769-02/TC-769-02.
-  - Browser-side effective OD implementation exists, but the Python consumer and required repository-native tests remain incomplete; material authority is therefore frozen READ_ONLY.
+  - Exact current Python production blob is now available; WRITE is reopened only for the qualified effective-OD consumer plus immediate diff audit.
   - GitHub projection GHGEN-769-0002 remains pending publication/verification.
 chat_context_required: false
