@@ -1,0 +1,69 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-03
+route:
+  route_key: SERIAL:EP-769-03
+  mode: SERIAL
+  execution_ref: EP-769-03
+  ep_id: EP-769-03
+  ep_path: agents/relay/execution-packages/EP-769-03.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:23f1e73e4829c61733851202cd53d4d95d7a4508fc718ed57d39c06e1d3d6732
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - Edge-order authority differs from the completed effective-OD authority.
+  - Incorrect ordering can reverse CII element direction/topology.
+  - Verification changes to the reported reversed-length cases.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-GEOMETRY, INPUT-ORDER-AUTH]
+  prompt: Trace source node order through the contracted-direction production stack, base _build_edges, mapped deltas, and CII ELEMENTS serialization; identify each owner boundary.
+  required_output_keys: [production_entrypoint, source_order_owner, edge_order_owner, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [WP-769-GEOMETRY, BENCH-ORDER-769, AC-ORDER-01]
+  prompt: Reconstruct elements 2909-2920 and 2439-2450, explain why the 26.8 segment is reversed, and identify the first wrong boundary using source-case evidence rather than a node-number or coordinate heuristic.
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    source: Issue #769 reports
+    values:
+    - {elements: 2909-2920, reported_length_mm: 26.8, defect: reversed}
+    - {elements: 2439-2450, reported_length_mm: 26.8, defect: similar-reversed}
+  required_output_keys: [reconstruction_steps, first_wrong_boundary, expected_order, evidence_gap]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [WP-769-GEOMETRY, AC-ORDER-02]
+  prompt: State the permitted order/orientation mutation, protected topology invariant, PR #417 custody boundary, and a falsifier that would make the repair unsafe.
+  mutation:
+    condition: Change only the demonstrated first wrong order boundary after source provenance is established.
+    protected_invariant: Legitimate branch/reducer/tee/endpoint topology and PR #417 coordinate/origin behavior remain unchanged.
+    falsifier: A global NodeNumber sort, coordinate-sign reversal heuristic, PR #417 path edit, or valid topology regression is required.
+  required_output_keys: [mutation_effect, protected_invariant, custody_boundary, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [AC-ORDER-01, AC-ORDER-02, TEST-ORDER-PY, BENCH-ORDER-769]
+  prompt: Define an independent regression oracle for the two reported ranges plus negative controls that prove valid topology is not globally reordered.
+  oracle_refs: [BENCH-ORDER-769]
+  independence_requirement: Expected case order must come from issue/source evidence, not from the proposed implementation.
+  required_output_keys: [independent_method, predicted_result, negative_controls, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-ORDER-01, AC-ORDER-SCOPE]
+  prompt: State the first bounded write set, predicted before/after behavior, tests, and exact non-overlap boundary with current PR #417; if source evidence is insufficient, state the stop condition instead of proposing a heuristic.
+  step_refs: [STEP-ORDER-01]
+  required_output_keys: [first_change_or_stop, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-order-preparer-20260917
