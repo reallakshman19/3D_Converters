@@ -3,28 +3,28 @@ progress_basis:
   id: PB-769-0001
   roadmap_revision: RM-0001
 overall:
-  earned_weight: 3.75
+  earned_weight: 7.5
   total_weight: 100
-  percent: 3.75
+  percent: 7.5
 objectives:
 - id: OBJ-769
-  earned_weight: 3.75
+  earned_weight: 7.5
   total_weight: 100
-  percent: 3.75
+  percent: 7.5
 phases:
 - id: PHASE-769-POSTMERGE
-  earned_weight: 3.75
+  earned_weight: 7.5
   total_weight: 100
-  percent: 3.75
+  percent: 7.5
 work_packages:
 - id: WP-769-FBLI
   earned_weight: 3.75
   total_weight: 25
   percent: 15
 - id: WP-769-GEOMETRY
-  earned_weight: 0
+  earned_weight: 3.75
   total_weight: 25
-  percent: 0
+  percent: 15
 - id: WP-769-SUPPORT
   earned_weight: 0
   total_weight: 25
@@ -39,18 +39,18 @@ execution_packages:
   total_weight: 100
   percent: 15
 - id: EP-769-02
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 100
-  percent: 0
+  percent: 15
 implementation_steps:
 - id: STEP-FBLI-01
   earned_weight: 15
   total_weight: 100
   percent: 15
 - id: STEP-OD-01
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 100
-  percent: 0
+  percent: 15
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 0
@@ -80,20 +80,25 @@ acceptance_criteria:
   earned_weight: 0
   total_weight: 60
   percent: 0
-  status: NOT_STARTED
+  status: IN_PROGRESS
   basis:
-  - EP-769-02/QSET-769-02 prepared; material qualification is pending.
+  - converters/xml-cii2019-core/outside-diameter-resolver.js@afea9b9e3a48eb36714df9bbd1a94ba06e5839e3 implements additive EffectiveOutsideDiameter connectivity authority.
+  - tests/xml-cii-outside-diameter-effective-authority.test.js@735e1a753a6e9a1c83fe72510f8dad011d645315 defines the JS regression contract.
+  - converters/scripts/test_xml_to_cii2019_effective_od.py@ec342b5b608af116fec6dcd06ac95a114c99774d defines the Python consumer contract.
+  - converters/scripts/xml_to_cii2019.py is not yet modified to consume EffectiveOutsideDiameter; TEST-OD-JS and TEST-OD-PY remain NOT_RUN.
 - id: AC-OD-02
   earned_weight: 0
   total_weight: 25
   percent: 0
-  status: NOT_STARTED
+  status: IN_PROGRESS
   basis:
-  - No geometry production mutation has started.
+  - JS regression includes unpaired INST and REDU negative controls plus asymmetric outward-side OD authority.
+  - Python consumer remains incomplete and repository-native TEST-OD-JS/TEST-OD-PY remain NOT_RUN.
 - id: AC-OD-SCOPE
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 15
-  percent: 0
-  status: NOT_STARTED
+  percent: 100
+  status: COMPLETE
   basis:
-  - Proposed EP paths are disjoint from PR #417; final changed-path proof awaits implementation.
+  - Current EP-769-02 changed paths are disjoint from PR #417 changed-file inventory.
+  - No PR #417 coordinate/topology file has been modified on the geometry branch.
