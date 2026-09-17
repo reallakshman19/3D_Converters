@@ -48,12 +48,23 @@ status_planes:
     findings: []
   evidence:
     state: PARTIAL
-    summary: Legacy Issue #769 benchmarks BM-001/003/006/007/008 pass; BM-002/005 are partial and BM-004/009 are not run. FBLI repair is not yet executed under v2.5.
+    summary: Legacy Issue #769 benchmarks BM-001/003/006/007/008 pass; BM-002/005 are partial and BM-004/009 are not run. The v2.5 baton and GitHub handover projection are durable, but repository-native v2.5 validator execution and candidate takeover are NOT_RUN; FBLI production repair is not yet executed.
     not_run:
-    - {id: V25-TAKEOVER, reason: No independent candidate DISC/QUAL/TC has been prepared for EP-769-01., cause: NOT_SCHEDULED}
-    - {id: FBLI-IMPLEMENTATION, reason: Production mutation is withheld until MATERIAL_WRITE_READY passes., cause: DEPENDENCY_WAIT}
-    - {id: BM-004, reason: Legacy empirical exact execution remains environment-blocked., cause: UNAVAILABLE_TOOL}
-    - {id: BM-009, reason: Legacy full standalone regression remains environment-blocked., cause: UNAVAILABLE_TOOL}
+    - id: V25-CONFORMANCE
+      reason: No engineering-pr-delivery-v2.5 workflow exists in this repository and the connected tool surface does not expose an executable private checkout; exact Common validator entrypoints were not executed.
+      cause: UNAVAILABLE_TOOL
+    - id: V25-TAKEOVER
+      reason: No independent candidate DISC/QUAL/TC has been prepared for EP-769-01.
+      cause: NOT_SCHEDULED
+    - id: FBLI-IMPLEMENTATION
+      reason: Production mutation is withheld until MATERIAL_WRITE_READY passes.
+      cause: DEPENDENCY_WAIT
+    - id: BM-004
+      reason: Legacy empirical exact execution remains environment-blocked.
+      cause: UNAVAILABLE_TOOL
+    - id: BM-009
+      reason: Legacy full standalone regression remains environment-blocked.
+      cause: UNAVAILABLE_TOOL
   stop:
     active: false
     category: NONE
@@ -61,23 +72,32 @@ status_planes:
     basis: []
 projection:
   required: true
-  state: PENDING
+  state: IN_SYNC
   operation_id: GHGEN-769-0001
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
   plan: agents/relay/projection/generations/GHGEN-769-0001.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-01
-  receipt: null
+  receipt: github-generation:GHGEN-769-0001
   basis:
   - github:reallaksh19/3D_Converters#769 comment 5713341657
-  observed: null
+  - agents/relay/projection/generations/GHOBS-769-0001.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5713516480
+  observed:
+    operation_id: GHGEN-769-0001
+    target: github:reallaksh19/3D_Converters:issue:769
+    roadmap_revision: RM-0001
+    execution_ref: EP-769-01
+    receipt: issuecomment-5713516480
+    basis:
+    - agents/relay/projection/generations/GHOBS-769-0001.yaml
   superseded_operations: []
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - GitHub projection GHGEN-769-0001 is prepared but not converged.
-  - Candidate-specific takeover is intentionally absent; baton readiness is candidate-independent.
+  - Candidate-specific takeover is intentionally absent; handover readiness is candidate-independent and does not grant material WRITE.
+  - Exact repository-native v2.5 validator execution remains NOT_RUN and is recorded in the evidence plane.
 chat_context_required: false
