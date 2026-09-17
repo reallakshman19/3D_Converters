@@ -1,0 +1,53 @@
+schema_version: relay-v2.5-github-projection
+generation:
+  id: GHGEN-769-0003
+  repository: reallaksh19/3D_Converters
+  roadmap_revision: RM-0001
+  issue_graph_revision: IG-769-0001
+  execution_ref: EP-769-03
+  state: PREPARED
+  supersedes_generation: GHGEN-769-0002
+  basis:
+  - agents/relay/roadmap/OVERALL_ROADMAP.yaml
+  - agents/relay/checkpoints/CP-769-02.yaml
+  - agents/relay/execution-packages/EP-769-03.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0006.yaml
+operations:
+- id: GHOP-769-0003
+  kind: PUBLISH_HANDOVER
+  state: PREPARED
+  idempotency_key: relay:GHGEN-769-0003:GHOP-769-0003
+  depends_on: []
+  subject:
+    issue_node: ISSUE-769
+    related_nodes: []
+  preconditions:
+    repository_issue_state: OPEN
+    work_state: ACTIVE
+    required_relationships: []
+  desired:
+    title: '[XML→CII 2019 Standalone] RCA + robust fixes for mapping, rigid weights, large masters, regex/branch mapping, and B31.3 preview'
+    body_marker: '<!-- relay-operation:GHOP-769-0003 -->'
+    body_projection: 'Checkpoint EP-769-02 with formal TEST-OD-PY still deferred/not-PASS; keep WP-769-GEOMETRY active; advance to qualification-only EP-769-03 for the 2909-2920 / 2439-2450 reversed-length cases; production remains READ_ONLY and PR #417 coordinate-custody paths remain protected.'
+    github_state: OPEN
+    relationships: []
+  publication:
+    attempt_count: 0
+    last_attempt_basis: []
+    receipt: null
+    last_error: null
+  verification:
+    status: NOT_RUN
+    observed_issue_number: null
+    observed_issue_id: null
+    observed_github_state: null
+    observed_relationships: []
+    basis: []
+  reconciliation:
+    issue_graph_effects:
+    - node: ISSUE-769
+      set_github_state: OPEN
+    complete_when:
+    - issue identity verified
+    - relay-operation marker verified
+    - desired GitHub state verified
