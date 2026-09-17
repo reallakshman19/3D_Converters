@@ -1,0 +1,86 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-03
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-order-candidate-20260917T193746Z
+route:
+  route_key: SERIAL:EP-769-03
+  mode: SERIAL
+  execution_ref: EP-769-03
+  ep_id: EP-769-03
+  ep_path: agents/relay/execution-packages/EP-769-03.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+  ep_contract_digest: sha256:23f1e73e4829c61733851202cd53d4d95d7a4508fc718ed57d39c06e1d3d6732
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-02
+    path: agents/relay/checkpoints/CP-769-02.yaml
+    digest: sha256:b7d842ba8e7d8056071ec7ca4803bce759d96ecd2ddd430b3c2e657aa140adb1
+steps:
+- id: DSTEP-03-01
+  status: PASS
+  outputs:
+  - name: active_ep
+    value: EP-769-03
+    basis: [agents/relay/REPO_STATE.yaml]
+  - name: previous_checkpoint
+    value: CP-769-02
+    basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-02.yaml]
+  - name: roadmap_revision
+    value: RM-0001 / WP-769-GEOMETRY
+    basis: [agents/relay/REPO_STATE.yaml, agents/relay/roadmap/OVERALL_ROADMAP.yaml]
+  basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-02.yaml]
+- id: DSTEP-03-02
+  status: PASS
+  outputs:
+  - name: branch
+    value: agent/issue-769-geometry-order-20260917
+    basis: [GitHub branch creation readback]
+  - name: HEAD
+    value: 999a61092f60ea73a6f4f8fa40bd538f902cc4fc at branch creation; re-read immediately before any material write
+    basis: [GitHub branch creation readback]
+  - name: material_ancestry
+    value: EP material_ref fde8d567f7f4251b5e0c408e01d3432c6411bcf7 precedes the successor control-plane head and is inherited from CP-769-02.
+    basis: [agents/relay/execution-packages/EP-769-03.yaml, agents/relay/checkpoints/CP-769-02.yaml]
+  - name: base_drift
+    value: No successor production write has occurred; main/base drift must be re-read before MATERIAL_WRITE_READY.
+    basis: [agents/relay/execution-packages/EP-769-03.yaml]
+  basis: [agents/relay/execution-packages/EP-769-03.yaml, GitHub branch creation readback]
+- id: DSTEP-03-03
+  status: PASS
+  outputs:
+  - name: source_order_owner
+    value: XmlBranch.nodes order after parsing/short-node cleanup is the sequence supplied to edge construction.
+    basis: [converters/scripts/xml_to_cii2019.py]
+  - name: edge_order_owner
+    value: base._build_edges constructs each Edge strictly as branch.nodes[index] -> branch.nodes[index+1]; patched conversion also delegates to base._build_edges(document.branches).
+    basis: [converters/scripts/xml_to_cii2019.py, converters/scripts/xml_to_cii2019_patched.py]
+  - name: direction_owner
+    value: CII ELEMENTS signed dx/dy/dz are derived from the selected edge from_node/to_node after coordinate-frame mapping; the direction wrapper uses patched._build_conversion_model and does not establish an independent edge-order authority.
+    basis: [converters/scripts/xml_to_cii2019.py, converters/scripts/xml_to_cii2019_direction.py]
+  - name: first_wrong_boundary
+    value: Array order is accepted as topology orientation at base._build_edges with no endpoint/connectivity/provenance resolution. Issue #769 RCA-C records this as the reversed-short-element authority defect.
+    basis: [converters/scripts/xml_to_cii2019.py, 'Issue #769 RCA-C / issuecomment-5712580143']
+  basis: [converters/scripts/xml_to_cii2019.py, converters/scripts/xml_to_cii2019_patched.py, converters/scripts/xml_to_cii2019_direction.py, 'Issue #769 RCA-C / issuecomment-5712580143']
+- id: DSTEP-03-04
+  status: PASS
+  outputs:
+  - name: pr417_paths
+    value: converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py; converters/scripts/xml_to_cii2019_coordinate_custody.py; converters/xml-cii-2019-standalone/engine.js; converters/xml-cii-2019-standalone/invocation-builder.js; docs/Overall_roadmap.md; tests/xml-cii-standalone-x001-coordinate-custody.test.js
+    basis: [GitHub PR #417 changed-file readback at EP-769-03 creation]
+  - name: candidate_paths
+    value: converters/scripts/xml_to_cii2019.py plus a dedicated edge-order regression file, contingent on qualification.
+    basis: [agents/relay/execution-packages/EP-769-03.yaml]
+  - name: overlap
+    value: none on current path inventory
+    basis: [GitHub PR #417 changed-file readback, agents/relay/execution-packages/EP-769-03.yaml]
+  basis: [github:reallaksh19/3D_Converters#417, agents/relay/execution-packages/EP-769-03.yaml]
+result: PASS
+conversation_context_used: false
