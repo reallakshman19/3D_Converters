@@ -1,0 +1,53 @@
+schema_version: relay-v2.5-github-projection
+generation:
+  id: GHGEN-769-0004
+  repository: reallaksh19/3D_Converters
+  roadmap_revision: RM-0001
+  issue_graph_revision: IG-769-0001
+  execution_ref: EP-769-03
+  state: PREPARED
+  supersedes_generation: GHGEN-769-0003
+  basis:
+  - agents/relay/checkpoints/CP-769-02.yaml
+  - agents/relay/execution-packages/EP-769-03.yaml
+  - agents/relay/certifications/discovery/DISC-769-03.yaml
+  - agents/relay/certifications/qualification/QUAL-769-03.yaml
+operations:
+- id: GHOP-769-0004
+  kind: PUBLISH_HANDOVER
+  state: PREPARED
+  idempotency_key: relay:GHGEN-769-0004:GHOP-769-0004
+  depends_on: []
+  subject:
+    issue_node: ISSUE-769
+    related_nodes: []
+  preconditions:
+    repository_issue_state: OPEN
+    work_state: ACTIVE
+    required_relationships: []
+  desired:
+    title: '[XML→CII 2019 Standalone] RCA + robust fixes for mapping, rigid weights, large masters, regex/branch mapping, and B31.3 preview'
+    body_marker: '<!-- relay-operation:GHOP-769-0004 -->'
+    body_projection: 'EP-769-03 discovery passed but qualification failed because the reported generated labels 2909-2920 and 2439-2450 are not durably mapped to canonical source branch/component endpoint records. Execution is READ_ONLY with ESSENTIAL_INPUT_MISSING; no topology heuristic or production mutation is authorized.'
+    github_state: OPEN
+    relationships: []
+  publication:
+    attempt_count: 0
+    last_attempt_basis: []
+    receipt: null
+    last_error: null
+  verification:
+    status: NOT_RUN
+    observed_issue_number: null
+    observed_issue_id: null
+    observed_github_state: null
+    observed_relationships: []
+    basis: []
+  reconciliation:
+    issue_graph_effects:
+    - node: ISSUE-769
+      set_github_state: OPEN
+    complete_when:
+    - issue identity verified
+    - relay-operation marker verified
+    - desired GitHub state verified
