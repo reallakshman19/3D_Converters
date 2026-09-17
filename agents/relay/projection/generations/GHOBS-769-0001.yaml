@@ -1,0 +1,24 @@
+schema_version: relay-v2.5-github-observation
+generation_id: GHGEN-769-0001
+operation_id: GHOP-769-0001
+candidate_basis:
+- agent/issue-769-postmerge-repair-20260917@eb6db55ff837777b76fd20b7fa3d7024064d5464
+- github:reallaksh19/3D_Converters#769 issuecomment-5713516480
+publication:
+  attempted: true
+  receipt: issuecomment-5713516480
+  error: null
+readback:
+  performed: true
+  found: true
+  issue_number: 769
+  issue_id: I_kwDOTMpahs8AAAABRivUrA
+  github_state: OPEN
+  marker_present: true
+  relationships: []
+  body_digest: null
+  basis:
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5713516480
+  - https://api.github.com/repos/reallaksh19/3D_Converters/issues/769
+result: VERIFIED
+reason: Readback found the stable relay-operation marker on Issue #769 and verified the issue remains OPEN with the intended v2.5 outgoing baton.
