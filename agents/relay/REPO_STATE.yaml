@@ -31,7 +31,16 @@ predecessor_join:
 predecessor_replan:
   id: null
   path: null
-takeover_admissions: []
+takeover_admissions:
+- route_key: SERIAL:EP-769-02
+  candidate:
+    agent_instance_id: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
+  discovery_receipt:
+    id: DISC-769-02
+    path: agents/relay/certifications/discovery/DISC-769-02.yaml
+  certification:
+    id: TC-769-02
+    path: agents/relay/certifications/takeover/TC-769-02.yaml
 progress:
   overall_percent: 3.75
   phase_percent: 3.75
@@ -41,27 +50,24 @@ status_planes:
   execution:
     state: READY
     can_continue: true
-    material_authority: READ_ONLY
-    next_action: Owner qualification/evaluation of QSET-769-02 is required before candidate DISC/QUAL/TC and MATERIAL_WRITE_READY for the geometry OD slice.
+    material_authority: WRITE
+    next_action: Implement only EP-769-02 STEP-OD-01 on agent/issue-769-geometry-od-20260917, then run/record TEST-OD-JS, TEST-OD-PY and TEST-OD-SCOPE truthfully.
   quality:
     state: NEEDS_ATTENTION
     findings:
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02/QSET-769-02 are durable; X002 raw-versus-effective OD authority is grounded; proposed OD paths are disjoint from PR #417; no geometry production mutation has started.
+    summary: EP-769-02 has Owner qualification ODR-769-0005 and candidate DISC-769-02/QUAL-769-02/TC-769-02. Main remains at the qualified base, PR #417 is disjoint from the OD write set, and the bounded geometry OD slice is admitted for material write. No geometry behavioral PASS is claimed before tests execute.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
-    - id: GEOMETRY-TAKEOVER
-      reason: EP-769-02 has not received Owner qualification or candidate takeover certification.
-      cause: OWNER_DECISION_REQUIRED
     - id: TEST-OD-JS
-      reason: Implementation has not started.
+      reason: Production implementation has not yet been committed.
       cause: DEPENDENCY_WAIT
     - id: TEST-OD-PY
-      reason: Implementation has not started.
+      reason: Production implementation has not yet been committed.
       cause: DEPENDENCY_WAIT
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
@@ -87,7 +93,7 @@ projection:
   basis:
   - agents/relay/checkpoints/CP-769-01.yaml
   - agents/relay/execution-packages/EP-769-02.yaml
-  - agents/relay/roadmap/owner-decisions/ODR-769-0004.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0005.yaml
   superseded_operations: []
 relay_readiness:
   baton_ready: true
@@ -95,7 +101,7 @@ relay_readiness:
   handover_ready: false
   reasons:
   - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
-  - EP-769-02 and QSET-769-02 are durable and production remains READ_ONLY.
-  - GitHub projection GHGEN-769-0002 is prepared but not yet published/verified.
-  - EP-specific Owner qualification/takeover remains pending.
+  - EP-769-02 is Owner-qualified by ODR-769-0005 and admitted through DISC-769-02/QUAL-769-02/TC-769-02.
+  - Live main remains 9f0925454652cd963364c066c2bb7b8828275afd and PR #417 does not overlap the OD write set.
+  - GitHub projection GHGEN-769-0002 remains pending; this affects handover readiness but is not a material-write predicate.
 chat_context_required: false
