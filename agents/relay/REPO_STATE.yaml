@@ -51,23 +51,24 @@ status_planes:
     state: WAITING
     can_continue: true
     material_authority: READ_ONLY
-    next_action: Obtain executable evidence for TEST-OD-PY. TEST-OD-JS and TEST-OD-SCOPE are PASS; do not advance to orientation/length or WP-769-SUPPORT until TEST-OD-PY passes or the Owner explicitly defers it.
+    next_action: Execute formal TEST-OD-PY with committed production blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 and updated test blob 650b04e3991cab280b7dfede2d31cf90f235bff7. TEST-OD-JS and TEST-OD-SCOPE are PASS; do not advance to orientation/length or WP-769-SUPPORT until TEST-OD-PY passes or the Owner explicitly defers it.
   quality:
     state: NEEDS_ATTENTION
     findings:
     - EP-769-02 browser resolver and Python EffectiveOutsideDiameter consumer are implemented with diff-clean production changes.
     - TEST-OD-JS PASS was executed on an exact-byte carrier whose test/helper/resolver Git blob hashes match the branch blobs.
-    - TEST-OD-PY remains NOT_RUN because no private-checkout or Python CI carrier is exposed; no Python behavioral PASS is claimed.
+    - Python regression loader was repaired for Python 3.13 in commit 68b4cd58aeedc33665d521dfe5eea85d27bea56a; the updated exact test blob passes 3/3 assertions on a reconstruction whose exercised production sections were verified against committed blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1.
+    - Formal TEST-OD-PY remains NOT_RUN because the whole committed Python module has not executed byte-for-byte; no exact behavioral PASS is claimed.
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02 implementation is complete for the qualified effective-OD slice. Python commit 178d845fe6b1cad319e936e88e44bc3c27b0e940 passed a strict GitHub diff audit with only the intended additive field/parser/OD-authority helper changes. TEST-OD-JS and TEST-OD-SCOPE pass; TEST-OD-PY remains NOT_RUN, so AC-OD-01/02 are not credited complete.
+    summary: EP-769-02 implementation is complete for the qualified effective-OD slice. Python production diff is clean; TEST-OD-JS and TEST-OD-SCOPE pass. A Python 3.13 test-loader defect was fixed and the updated test passes 3/3 on a verified-section reconstruction, but formal TEST-OD-PY remains NOT_RUN until the full committed production blob executes.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
     - id: TEST-OD-PY
-      reason: No executable private Python checkout/workflow is exposed through the connected tool surface; implementation is present but declared pytest has not executed.
+      reason: Updated test blob 650b04e3991cab280b7dfede2d31cf90f235bff7 passes on a verified-section reconstruction, but the whole committed xml_to_cii2019.py blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 has not executed byte-for-byte in an authorized carrier.
       cause: UNAVAILABLE_TOOL
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
@@ -105,6 +106,6 @@ relay_readiness:
   reasons:
   - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
   - EP-769-02 is Owner-qualified by ODR-769-0005 and admitted through DISC-769-02/QUAL-769-02/TC-769-02.
-  - Qualified JS/Python production implementation is complete; TEST-OD-JS and scope pass, but TEST-OD-PY remains NOT_RUN, so material authority is frozen READ_ONLY.
+  - Qualified JS/Python production implementation is complete; TEST-OD-JS and scope pass. Python loader compatibility is fixed, but formal TEST-OD-PY remains NOT_RUN, so material authority is frozen READ_ONLY.
   - GitHub projection GHGEN-769-0002 is verified IN_SYNC by issuecomment-5718945767.
 chat_context_required: false
