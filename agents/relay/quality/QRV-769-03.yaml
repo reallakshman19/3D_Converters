@@ -1,0 +1,98 @@
+schema_version: relay-v2.5-quality-review
+quality_review_id: QRV-769-03
+ep:
+  id: EP-769-03
+  path: agents/relay/execution-packages/EP-769-03.yaml
+  contract_digest: sha256:da34080a54cd44f8b8c9f69ff553c8c61ef2bb4cd44085e7fd8e2fc25ed1af85
+roadmap_revision: RM-0001
+material_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+reviewer:
+  type: AGENT
+  identity: chatgpt:issue769-v25-order-provenance-write-candidate-20260917T200433Z
+router_snapshot:
+  applicable:
+  - blueprint: code-review
+    reason: Instrumentation-only repository change.
+    review_focus: [scope, heuristics]
+  - blueprint: coding
+    reason: New standalone diagnostic code.
+    review_focus: [read_only_behavior, failure]
+  - blueprint: github-delivery
+    reason: Issue/branch delivery under v2.5.
+    review_focus: [truth, merge_authority]
+  - blueprint: software-design
+    reason: Diagnostic authority must remain separate from conversion authority.
+    review_focus: [ownership, non_mutation]
+  - blueprint: testing
+    reason: Exact provenance and negative-control regression required.
+    review_focus: [exact_join, range_filter]
+  not_applicable:
+  - blueprint: accessibility
+    reason: No UI.
+    review_focus: []
+  - blueprint: engineering-numerics
+    reason: No engineering calculation or topology decision changes.
+    review_focus: []
+  - blueprint: migration
+    reason: No persisted data migration.
+    review_focus: []
+  - blueprint: performance
+    reason: Small on-demand diagnostic; no performance objective.
+    review_focus: []
+  - blueprint: ui-ux
+    reason: No UI.
+    review_focus: []
+procedure_results:
+- blueprint: code-review
+  result: CLEAR
+  evidence:
+  - Material diff from admission commit c9324c76af8e283e884ce2ec1aa9187354c84f11 contains exactly the standalone extractor and its focused test.
+  - Neither material path overlaps the current PR #417 changed-file inventory.
+  reason: null
+  cause: null
+- blueprint: coding
+  result: CLEAR
+  evidence:
+  - The extractor only parses XML, constructs exact identity keys, filters requested generated-node ranges, and emits JSON.
+  - Exact source joins require one match; zero matches remain NONE and duplicate exact keys remain AMBIGUOUS. No fuzzy or topology heuristic exists.
+  reason: null
+  cause: null
+- blueprint: github-delivery
+  result: CLEAR
+  evidence:
+  - Owner ODR-769-0007 authorizes only provenance instrumentation; QUAL-769-04 and TC-769-03 admit that bounded route.
+  - Historical QUAL-769-03 remains FAIL for topology repair and merge authority remains Owner-only.
+  reason: null
+  cause: null
+- blueprint: software-design
+  result: CLEAR
+  evidence:
+  - The new module is standalone and is not imported by converter/enrichment production code.
+  - Source identity is observational evidence only; generated node numbers are not promoted to topology authority.
+  reason: null
+  cause: null
+- blueprint: testing
+  result: CLEAR
+  evidence:
+  - Exact authored extractor/test bytes executed in an isolated pure-stdlib carrier with 3/3 PASS.
+  - 'Post-commit GitHub blob readback matches the executed bytes: extractor 987c866ca1225fe2024e19e95ba02474dbcccc82; test a5de4f588d852e69054933b61762a04338f22226.'
+  - Material changed-path compare from c9324c76af8e283e884ce2ec1aa9187354c84f11 to 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10 contains only the two admitted diagnostic files.
+  reason: null
+  cause: null
+findings: []
+overall_state: CLEAR
+execution_effect:
+  blocks_execution: false
+  blocking_findings: []
+owner_report:
+  summary: The provenance-instrumentation slice is complete, exact-blob tested, and scope-clean. It adds no converter behavior. The real enriched/output artifact containing generated labels 2909-2920 and 2439-2450 is still required before any topology repair can be qualified.
+  visible_risks:
+  - The real reported generated-label artifact has not yet been processed, so expected topology orientation remains unqualified.
+  - Exact repository-native v2.5 conformance remains NOT_RUN without an executable private checkout.
+  - Formal TEST-OD-PY and the earlier FBLI/legacy tests remain deferred validation debt.
+  decisions_required: []
+successor_handover:
+  unresolved_findings: []
+  follow_up:
+  - Run the provenance extractor on the exact enriched/output XML containing generated labels 2909-2920 and 2439-2450 together with the corresponding raw source XML.
+  - Bind the recovered records into a fresh topology qualification before any order/orientation production mutation.
