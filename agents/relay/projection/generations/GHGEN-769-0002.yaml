@@ -5,17 +5,18 @@ generation:
   roadmap_revision: RM-0001
   issue_graph_revision: IG-769-0001
   execution_ref: EP-769-02
-  state: PREPARED
+  state: IN_SYNC
   supersedes_generation: GHGEN-769-0001
   basis:
   - agents/relay/roadmap/OVERALL_ROADMAP.yaml
   - agents/relay/checkpoints/CP-769-01.yaml
   - agents/relay/execution-packages/EP-769-02.yaml
-  - agents/relay/roadmap/owner-decisions/ODR-769-0004.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0005.yaml
+  - agents/relay/quality/QRV-769-02.yaml
 operations:
 - id: GHOP-769-0002
   kind: PUBLISH_HANDOVER
-  state: PREPARED
+  state: VERIFIED
   idempotency_key: relay:GHGEN-769-0002:GHOP-769-0002
   depends_on: []
   subject:
@@ -28,21 +29,27 @@ operations:
   desired:
     title: '[XML→CII 2019 Standalone] RCA + robust fixes for mapping, rigid weights, large masters, regex/branch mapping, and B31.3 preview'
     body_marker: '<!-- relay-operation:GHOP-769-0002 -->'
-    body_projection: 'Publish the current v2.5 geometry frontier: CP-769-01 checkpointed FBLI with deferred validation debt; EP-769-02/QSET-769-02 isolate OD authority on a dedicated branch; production remains READ_ONLY pending EP-specific Owner qualification and takeover certification; PR #417 coordinate/topology files remain protected.'
+    body_projection: 'Publish the current v2.5 geometry frontier: EP-769-02 is Owner-qualified and implementation-complete for additive EffectiveOutsideDiameter authority; TEST-OD-JS and TEST-OD-SCOPE pass, TEST-OD-PY remains NOT_RUN, material authority is READ_ONLY, PR #773 is draft/mergeable, and PR #417 coordinate/topology custody remains protected.'
     github_state: OPEN
     relationships: []
   publication:
-    attempt_count: 0
-    last_attempt_basis: []
-    receipt: null
+    attempt_count: 1
+    last_attempt_basis:
+    - agent/issue-769-geometry-od-20260917@aa79ca1074f72b30b5adbf1c778824c0b0235959
+    - agents/relay/REPO_STATE.yaml
+    - agents/relay/quality/QRV-769-02.yaml
+    - https://github.com/reallaksh19/3D_Converters/pull/773
+    receipt: issuecomment-5718945767
     last_error: null
   verification:
-    status: NOT_RUN
-    observed_issue_number: null
-    observed_issue_id: null
-    observed_github_state: null
+    status: PASS
+    observed_issue_number: 769
+    observed_issue_id: I_kwDOTMpahs8AAAABRivUrA
+    observed_github_state: OPEN
     observed_relationships: []
-    basis: []
+    basis:
+    - GitHub issue comment readback contains relay-operation:GHOP-769-0002.
+    - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5718945767
   reconciliation:
     issue_graph_effects:
     - node: ISSUE-769
