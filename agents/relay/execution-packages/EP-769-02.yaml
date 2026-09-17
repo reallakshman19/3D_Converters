@@ -1,0 +1,283 @@
+schema_version: relay-v2.5
+identity:
+  ep_id: EP-769-02
+  branch: agent/issue-769-geometry-od-20260917
+  base_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  execution_state: EXECUTABLE
+  previous_checkpoint: CP-769-01
+  previous_join: null
+  previous_replan: null
+replan_inheritance: null
+git_basis:
+  expected_branch: agent/issue-769-geometry-od-20260917
+  material_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  base_branch: main
+  base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+  drift_policy: RECHECK_BEFORE_WRITE
+  drift_receipt: null
+roadmap_source:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  objective: OBJ-769
+  phase: PHASE-769-POSTMERGE
+  work_package: WP-769-GEOMETRY
+  generated_from_frontier: true
+outcome:
+  user_visible:
+  - Correct CII outside diameter for flange/valve/rigid endpoint discontinuities such as reported 26.7→60.3 and 114.3→60.3 cases without overwriting raw source OD.
+  engineering:
+  - Separate raw endpoint OutsideDiameter from EffectiveOutsideDiameter, resolve effective OD from the connected side of paired FLAN/VALV/RIGID component endpoints, and make the Python CII model prefer the qualified effective value.
+context_capsule:
+  product_goal: Close the OD-authority subset of Issue #769 without entering PR #417 coordinate/topology custody.
+  roadmap_position: WP-769-GEOMETRY is the single serial frontier after CP-769-01.
+  why_this_work_exists: The CII writer helper uses edge.from_node OutsideDiameter by default, while the source contains legitimate component endpoint ODs that are not the effective pipe-section OD. The owner roadmap explicitly requires raw and effective OD to remain separate.
+  current_architecture: Browser enrichment runs staged geometry then outside-diameter resolution before Python conversion. The existing resolver only fills zero/missing raw OutsideDiameter values. The base Python XmlNode stores only OutsideDiameter and _element_outside_diameter consumes it.
+  prior_owner_decisions: [ODR-769-0001, ODR-769-0002, ODR-769-0003]
+  current_implementation_state: FBLI slice is checkpointed with TEST-FBLI/TEST-LEGACY deferred. Geometry code is unchanged from main on this branch.
+  known_problems:
+  - FLAN endpoint pattern can carry raw endpoint1 OD 60.3 mm and endpoint2 OD 26.7 mm even when the following effective CII pipe section is 60.3 mm.
+  - Current outside-diameter resolver does not emit EffectiveOutsideDiameter.
+  - Python conversion does not consume EffectiveOutsideDiameter.
+  - Reported node pairs include 2766→2768, 2296→2298, 1826→1828 and 3556→3558 OD mismatches.
+  deliberate_non_goals:
+  - No Position/origin/topology changes owned by PR #417.
+  - No element orientation or reversed-length repair in this EP.
+  - No bore-unit/NPS mapping change in this first geometry slice.
+  - No support, weight, line-list, regex, B31.3, or large-master changes.
+  terminology:
+    sourceOutsideDiameter: Raw XML OutsideDiameter retained as source evidence.
+    effectiveOutsideDiameter: Governed pipe-section OD used for engineering/CII output when explicitly resolved.
+    component sibling: The other endpoint node with the same nonblank ComponentRefNo for a paired FLAN/VALV/RIGID component.
+repository_discovery:
+- id: DSTEP-02-01
+  action: VERIFY
+  target: agents/relay/REPO_STATE.yaml
+  question: Does state route to EP-769-02/WP-769-GEOMETRY with CP-769-01 as predecessor?
+  expected_outputs: [active EP, roadmap revision, work package, previous checkpoint]
+  receipt_required: true
+  on_failure: Reconcile relay custody before material work.
+- id: DSTEP-02-02
+  action: VERIFY_GIT
+  target: live checkout
+  question: Does live Git satisfy EP-769-02 branch/base/material ancestry and unchanged main basis?
+  expected_outputs: [branch, HEAD, material ancestry, base drift]
+  receipt_required: true
+  on_failure: Reconcile Git basis.
+- id: DSTEP-02-03
+  action: TRACE
+  targets:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - tabs/model-converters/converters/xmltocii2019_runner.js
+  - converters/scripts/xml_to_cii2019.py
+  question: Trace source OD through browser enrichment, effective-OD resolution opportunity, XmlNode parsing, and CII ELEMENTS OD serialization.
+  expected_outputs: [raw OD owner, resolver behavior, parser behavior, writer behavior]
+  receipt_required: true
+  on_failure: Do not edit production code.
+- id: DSTEP-02-04
+  action: COMPARE
+  targets:
+  - github:reallaksh19/3D_Converters#417
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  question: Is the proposed OD write scope disjoint from PR #417 coordinate/topology files?
+  expected_outputs: [PR paths, EP paths, overlap]
+  receipt_required: true
+  on_failure: Reconcile WRITE_COLLISION.
+inputs:
+- id: INPUT-OD-AUTH
+  name: Raw-versus-effective OD authority
+  description: For paired FLAN/VALV/RIGID endpoint discontinuities, preserve raw endpoint OutsideDiameter but derive engineering effective OD from the connected side; reducers/branches remain legitimate size-change authorities.
+  authority: Owner roadmap X002 and Issue #769 reported OD defects
+  source: docs/Overall_roadmap.md X002 at main 9f0925454652cd963364c066c2bb7b8828275afd plus Issue #769
+  resolution_method: Use component ref/endpoint pairing and outward connected positive OD; do not overwrite raw OutsideDiameter.
+  type: geometry-authority
+  units: mm
+  editable: false
+  applicability: CURRENT_EP_REQUIRED
+  resolution: READY
+  consumers: [STEP-OD-01, AC-OD-01, AC-OD-02]
+  validation:
+  - FLAN endpoint1=60.3 and endpoint2=26.7 with outward connected OD=60.3 resolves EffectiveOutsideDiameter=60.3 on the 26.7 endpoint while retaining raw 26.7.
+  - Unknown/unpaired components do not gain invented effective OD.
+  - A legitimate connected size transition remains capable of producing a different effective OD.
+  stale_if:
+  - Owner supersedes X002 authority.
+  - PR #417 begins changing the OD write paths.
+  - Main geometry authority changes before write.
+benchmarks:
+- id: BENCH-OD-769
+  name: Issue 769 endpoint OD discontinuity oracle
+  purpose: Prove raw component endpoint OD is distinct from effective CII section OD.
+  source: docs/Overall_roadmap.md X002 and Issue #769 node reports
+  oracle_class: REFERENCE_DATA
+  payload:
+    flange_pattern:
+      component_type: FLAN
+      endpoint1_od_mm: 60.3
+      endpoint2_od_mm: 26.7
+      connected_effective_od_mm: 60.3
+    reported_pairs:
+    - {from: 2766, to: 2768, observed_od_mm: 26.7, expected_od_mm: 60.3}
+    - {from: 2296, to: 2298, observed_od_mm: 26.7, expected_od_mm: 60.3}
+    - {from: 1826, to: 1828, observed_od_mm: 26.7, expected_od_mm: 60.3}
+    - {from: 3556, to: 3558, observed_od_mm: 114.3, expected_od_mm: 60.3}
+    legacy_x002_pairs: [596→598, 1036→1038, 1476→1478, 1916→1918, 2356→2358, 2796→2798]
+  expected: Raw endpoint values remain inspectable; effective connected OD drives CII output for non-size-changing FLAN/VALV/RIGID discontinuities. Legitimate reducer/branch transitions are not flattened.
+  tolerance: {absolute_mm: 1.0e-06}
+  independence: Expected 60.3 values come from Owner/roadmap source evidence, not from the new resolver.
+  applicability: CURRENT_EP_REQUIRED
+  resolution: READY
+  verifies: [AC-OD-01, AC-OD-02, TEST-OD-JS, TEST-OD-PY]
+  stale_if: [Owner supplies superseding source evidence.]
+scope:
+  allowed:
+  - {path: converters/xml-cii2019-core/outside-diameter-resolver.js, reason: Owns browser-side OD resolution before Python conversion.}
+  - {path: converters/scripts/xml_to_cii2019.py, reason: Owns XmlNode OD parsing and CII element OD authority helper.}
+  - {path: tests/xml-cii-outside-diameter-effective-authority.test.js, reason: New pure resolver regression.}
+  - {path: converters/scripts/test_xml_to_cii2019_effective_od.py, reason: New Python effective-OD parsing/writer regression.}
+  - {path: agents/relay, reason: v2.5 custody.}
+  - {path: agents/WIP-769-v25-postmerge-repair_workreport.md, reason: WIP report.}
+  allowed_reads:
+  - {path: tabs/model-converters/converters/xmltocii2019_runner.js, reason: Confirm resolver invocation order.}
+  - {path: converters/scripts/xml_to_cii2019_bend_radius_policy.py, reason: Existing EffectiveOutsideDiameter precedent.}
+  - {path: docs/Overall_roadmap.md, reason: X002 engineering authority.}
+  - {domain: GitHub PR #417, reason: Non-overlap check.}
+  protected:
+  - {invariant: Raw OutsideDiameter remains unchanged source evidence; EffectiveOutsideDiameter is additive authority., reason: Required by X002.}
+  - {invariant: Reducer/branch legitimate size changes are not flattened by flange/valve/rigid discontinuity handling., reason: Prevent unsafe geometry broadening.}
+  - {domain: PR #417 coordinate/topology custody, reason: Separate owner work.}
+  - {invariant: FBLI patch and deferred tests remain unchanged., reason: Prior checkpoint debt is not rewritten.}
+  prohibited:
+  - {domain: PR #417 files, reason: Separate coordinate/topology scope.}
+  - {domain: Element orientation/reversed-length repair, reason: Separate geometry sub-slice after OD.}
+  - {domain: Support/weight/line-list/regex/B31.3/large-master logic, reason: Later work.}
+  owner_reserved:
+  - {decision: Merge PR, reason: Owner-only merge.}
+  - {decision: Broaden geometry EP beyond OD authority, reason: Requires reconciliation.}
+anti_drift:
+  do_not:
+  - {id: ADR-OD-01, restriction: Do not overwrite raw OutsideDiameter to make CII output look correct., reason: Raw source evidence must remain auditable.}
+  - {id: ADR-OD-02, restriction: Do not apply a blanket previous-node or next-node OD rule., reason: Reducers/branches may legitimately change size.}
+  - {id: ADR-OD-03, restriction: Do not edit PR #417 coordinate/topology files., reason: Avoid collision.}
+  stale_if:
+  - {id: STALE-OD-01, condition: PR #417 overlaps an EP write path or changes OD authority semantics., effect: RECONCILE, rationale: Write/engineering authority changed.}
+  - {id: STALE-OD-02, condition: Main moves from 9f0925454652cd963364c066c2bb7b8828275afd without qualified drift evidence., effect: RECONCILE, rationale: Git basis changed.}
+implementation_plan:
+- id: STEP-OD-01
+  objective: Add explicit EffectiveOutsideDiameter resolution for paired FLAN/VALV/RIGID endpoint discontinuities and consume it in Python CII geometry without modifying raw OD.
+  targets:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - tests/xml-cii-outside-diameter-effective-authority.test.js
+  - converters/scripts/test_xml_to_cii2019_effective_od.py
+  reads:
+  - tabs/model-converters/converters/xmltocii2019_runner.js
+  - converters/scripts/xml_to_cii2019_bend_radius_policy.py
+  - docs/Overall_roadmap.md
+  - github:reallaksh19/3D_Converters#417
+  writes:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - tests/xml-cii-outside-diameter-effective-authority.test.js
+  - converters/scripts/test_xml_to_cii2019_effective_od.py
+  inputs: [INPUT-OD-AUTH]
+  acceptance: [AC-OD-01, AC-OD-02, AC-OD-SCOPE]
+  tests: [TEST-OD-JS, TEST-OD-PY, TEST-OD-SCOPE]
+  expected_state: Raw endpoint OD remains present, qualified effective OD follows connected-side authority for FLAN/VALV/RIGID discontinuities, and Python CII element OD uses the effective value.
+  stop_conditions:
+  - MATERIAL_WRITE_READY fails.
+  - PR #417 overlaps.
+  - Resolution would require flattening a reducer/branch transition.
+next_work:
+  phase_transition: false
+  steps:
+  - order: 1
+    action: After EP-specific takeover/write qualification, implement and regression-test effective OD authority only.
+    targets: [converters/xml-cii2019-core/outside-diameter-resolver.js, converters/scripts/xml_to_cii2019.py]
+    inputs: [INPUT-OD-AUTH]
+    tests: [TEST-OD-JS, TEST-OD-PY, TEST-OD-SCOPE]
+    benchmarks: [BENCH-OD-769]
+    acceptance: [AC-OD-01, AC-OD-02, AC-OD-SCOPE]
+    expected_result: Reported endpoint discontinuity family resolves to governed effective OD while raw source OD and legitimate size changes remain intact.
+    stop_if: [MATERIAL_WRITE_READY is false., PR #417 overlaps., Protected invariant fails.]
+qualification_boundary:
+  required: true
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - OD engineering authority changes from raw node-side selection to explicit raw-versus-effective semantics.
+  - Wrong resolution can change CII section geometry.
+  - Verification oracle changes to X002 endpoint/connectivity evidence.
+  question_set:
+    id: QSET-769-02
+    path: agents/relay/certifications/qualification/QSET-769-02.yaml
+quality:
+  applicable:
+  - {blueprint: coding, reason: Production JS/Python geometry authority changes., review_focus: [authority, fail-closed behavior]}
+  - {blueprint: testing, reason: Cross-language OD regressions required., review_focus: [raw/effective separation, negative controls]}
+  - {blueprint: software-design, reason: Geometry authority ownership changes., review_focus: [provenance, single authority]}
+  - {blueprint: code-review, reason: Engineering-critical geometry change., review_focus: [scope, unsafe flattening]}
+  - {blueprint: github-delivery, reason: Issue/PR delivery., review_focus: [truth, merge authority]}
+  not_applicable:
+  - {blueprint: ui-ux, reason: No UI change.}
+  - {blueprint: accessibility, reason: No UI change.}
+  - {blueprint: performance, reason: Linear branch scan only; no material performance objective in this slice.}
+  - {blueprint: migration, reason: No persisted product schema migration.}
+  review_contract:
+    required: true
+    required_before_checkpoint: true
+    receipt_namespace: QRV-
+    required_outputs: [procedure_results, findings, owner_report, successor_handover]
+  findings_policy: Findings block only through an existing acceptance/authority/invariant/safety stop.
+  ordinary_findings_are_hard_stops: false
+acceptance:
+- id: AC-OD-01
+  description: Paired FLAN/VALV/RIGID endpoint discontinuity preserves raw OutsideDiameter and resolves connected-side EffectiveOutsideDiameter used by CII.
+  weight: 60
+  verification: [TEST-OD-JS, TEST-OD-PY, BENCH-OD-769]
+- id: AC-OD-02
+  description: Unpaired/unknown components and legitimate reducer/branch size changes are not silently flattened or guessed.
+  weight: 25
+  verification: [TEST-OD-JS, TEST-OD-PY, BENCH-OD-769]
+- id: AC-OD-SCOPE
+  description: No PR #417 coordinate/topology file or unrelated subsystem is changed.
+  weight: 15
+  verification: [TEST-OD-SCOPE]
+validation:
+- id: TEST-OD-JS
+  class: MUST_PASS
+  method: node tests/xml-cii-outside-diameter-effective-authority.test.js
+  proves: [AC-OD-01, AC-OD-02]
+- id: TEST-OD-PY
+  class: MUST_PASS
+  method: python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py
+  proves: [AC-OD-01, AC-OD-02]
+- id: TEST-OD-SCOPE
+  class: MUST_PASS
+  method: Compare changed paths with PR #417; intersection must be empty.
+  proves: [AC-OD-SCOPE]
+failure_and_stop_conditions:
+  hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
+report_contract:
+  sections: [Executive state, Overall / phase / EP progress, Work completed, Files changed, Acceptance matrix, Tests and evidence, Quality findings, Known limitations, Owner decisions required, GitHub issue changes, Roadmap changes, Exact next actions, Successor EP]
+  payloads:
+  - {id: RPT-02-01, section: Executive state, sources: [REPO_STATE], required_fields: [basis]}
+  - {id: RPT-02-02, section: Overall / phase / EP progress, sources: [PROGRESS], required_fields: [basis]}
+  - {id: RPT-02-03, section: Work completed, sources: [EP], required_fields: [basis]}
+  - {id: RPT-02-04, section: Files changed, sources: [CP], required_fields: [basis]}
+  - {id: RPT-02-05, section: Acceptance matrix, sources: [EP], required_fields: [basis]}
+  - {id: RPT-02-06, section: Tests and evidence, sources: [EP], required_fields: [basis]}
+  - {id: RPT-02-07, section: Quality findings, sources: [QRV], required_fields: [basis]}
+  - {id: RPT-02-08, section: Known limitations, sources: [EP], required_fields: [basis]}
+  - {id: RPT-02-09, section: Owner decisions required, sources: [ODR], required_fields: [basis]}
+  - {id: RPT-02-10, section: GitHub issue changes, sources: [ISSUE_GRAPH], required_fields: [basis]}
+  - {id: RPT-02-11, section: Roadmap changes, sources: [OVERALL_ROADMAP], required_fields: [basis]}
+  - {id: RPT-02-12, section: Exact next actions, sources: [EP], required_fields: [basis]}
+  - {id: RPT-02-13, section: Successor EP, sources: [CP], required_fields: [basis]}
+checkpoint_contract: {required: true}
+successor_relay:
+  required: true
+  duties: [create checkpoint, update progress, compute next executable frontier, run cold-start check, update REPO_STATE]
+  required_outputs: [checkpoint, progress_reconciliation, next_frontier, successor_ep_or_terminal_disposition]
