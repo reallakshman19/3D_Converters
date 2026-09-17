@@ -20,7 +20,7 @@ execution_policy:
 active_ep:
   id: EP-769-01
   path: agents/relay/execution-packages/EP-769-01.yaml
-  state: EXECUTABLE
+  state: ACTIVE
   continuity_receipt: null
 last_checkpoint:
   id: NONE
@@ -42,29 +42,33 @@ takeover_admissions:
     id: TC-769-01
     path: agents/relay/certifications/takeover/TC-769-01.yaml
 progress:
-  overall_percent: 0
-  phase_percent: 0
-  ep_percent: 0
+  overall_percent: 3.75
+  phase_percent: 3.75
+  ep_percent: 15
   basis_revision: PB-769-0001
 status_planes:
   execution:
-    state: READY
+    state: WAITING
     can_continue: true
-    material_authority: WRITE
-    next_action: Derive the live MATERIAL_WRITE_READY predicate for chatgpt:issue769-v25-write-candidate-20260917T115517Z and, if true, implement only STEP-FBLI-01.
+    material_authority: READ_ONLY
+    next_action: Run TEST-FBLI and TEST-LEGACY in an executable checkout or authorized validation carrier; do not advance to WP-769-GEOMETRY or make more production edits until those required tests pass or produce a concrete failure to repair.
   quality:
-    state: CLEAR
-    findings: []
+    state: NEEDS_ATTENTION
+    findings:
+    - QRV-769-01 reports testing procedure NOT_RUN because no executable private checkout or matching GitHub workflow is available through the connected tool surface.
   evidence:
     state: PARTIAL
-    summary: Legacy Issue #769 benchmarks BM-001/003/006/007/008 pass; BM-002/005 are partial and BM-004/009 are not run. Owner-qualified v2.5 candidate DISC/QUAL/TC is now durable for EP-769-01; FBLI implementation/tests remain pending.
+    summary: FBLI production repair is implemented and scope isolation is proven. Legacy Issue #769 BM-001/003/006/007/008 remain PASS, BM-002/005 remain partial, BM-004/009 remain NOT_RUN. EP-769-01 TEST-FBLI and TEST-LEGACY are NOT_RUN; no behavioral PASS is claimed.
     not_run:
     - id: V25-CONFORMANCE
       reason: No engineering-pr-delivery-v2.5 workflow exists in this repository and the connected tool surface does not expose an executable private checkout; exact Common validator entrypoints were not executed.
       cause: UNAVAILABLE_TOOL
-    - id: FBLI-IMPLEMENTATION
-      reason: Production mutation has not yet been applied; live branch/base/write-scope gate must be rechecked immediately before the write.
-      cause: DEPENDENCY_WAIT
+    - id: TEST-FBLI
+      reason: Focused pytest command has no executable runner in the connected tool surface; branch/PR workflows did not run it.
+      cause: UNAVAILABLE_TOOL
+    - id: TEST-LEGACY
+      reason: Legacy patched-process pytest command has no executable runner in the connected tool surface; branch/PR workflows did not run it.
+      cause: UNAVAILABLE_TOOL
     - id: BM-004
       reason: Legacy empirical exact execution remains environment-blocked.
       cause: UNAVAILABLE_TOOL
@@ -105,5 +109,6 @@ relay_readiness:
   handover_ready: true
   reasons:
   - Candidate-specific takeover is admitted through DISC-769-01, QUAL-769-01 and TC-769-01 with Owner evaluation ODR-769-0002.
+  - FBLI implementation exists on draft PR #772; current execution is READ_ONLY pending TEST-FBLI and TEST-LEGACY.
   - Exact repository-native v2.5 validator execution remains NOT_RUN and is recorded in the evidence plane.
 chat_context_required: false
