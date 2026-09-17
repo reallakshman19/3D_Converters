@@ -1,0 +1,67 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-02
+route:
+  route_key: SERIAL:EP-769-02
+  mode: SERIAL
+  execution_ref: EP-769-02
+  ep_id: EP-769-02
+  ep_path: agents/relay/execution-packages/EP-769-02.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:985715fd7779d6c4446e2386ad62c46d2cf6bddf609a6575e65baad5cbb96574
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - OD authority changes from raw endpoint selection to explicit raw-versus-effective geometry.
+  - Incorrect resolution can change CII section geometry.
+  - Verification changes to Owner X002 connectivity evidence.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-GEOMETRY, INPUT-OD-AUTH]
+  prompt: Trace raw OutsideDiameter from browser enrichment through outside-diameter resolution, Python parsing, _element_outside_diameter, and CII ELEMENTS output.
+  required_output_keys: [production_entrypoint, state_owner, authority_source, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [WP-769-GEOMETRY, INPUT-OD-AUTH, AC-OD-01]
+  prompt: Reconstruct why a FLAN endpoint pair with raw 60.3/26.7 can produce CII 26.7 when the connected effective section is 60.3, and identify the first wrong authority boundary.
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    source: 'Owner roadmap X002 plus Issue #769 reports'
+    values: {endpoint1_od_mm: 60.3, endpoint2_od_mm: 26.7, connected_od_mm: 60.3}
+  required_output_keys: [reconstruction_steps, intermediate_result, expected_result]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [WP-769-GEOMETRY, AC-OD-02]
+  prompt: Apply additive EffectiveOutsideDiameter authority and state the protected invariant and falsifier.
+  mutation:
+    condition: Resolve paired FLAN/VALV/RIGID effective OD from the outward connected side while preserving raw OD.
+    protected_invariant: Reducer/branch legitimate size transitions remain intact and raw OutsideDiameter is never overwritten.
+    falsifier: Raw OD is replaced, an unpaired/unknown component is guessed, or a legitimate reducer/branch transition is flattened.
+  required_output_keys: [mutation_effect, protected_invariant, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [AC-OD-01, TEST-OD-JS, TEST-OD-PY, BENCH-OD-769]
+  prompt: Verify effective OD independently of the production resolver using Owner X002/report values and negative controls.
+  oracle_refs: [BENCH-OD-769]
+  independence_requirement: Expected 60.3 values and no-flattening behavior come from Owner/roadmap evidence, not from the implementation.
+  required_output_keys: [independent_method, predicted_result, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-OD-01, AC-OD-01]
+  prompt: State the first bounded implementation, predicted before/after behavior, tests, and non-overlap boundary with PR #417.
+  step_refs: [STEP-OD-01]
+  required_output_keys: [first_change, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-geometry-preparer-20260917
