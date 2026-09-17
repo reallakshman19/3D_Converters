@@ -26,15 +26,19 @@ outcome:
   user_visible:
   - Retain eligible negative FBLI blind-flange records through XML→CII.
   engineering:
-  - Canonicalize FBLI as flange-family before negative-node filtering without broadening unrelated tokens.
+  - Canonicalize FBLI as flange-family before negative-node filtering without broadening
+    unrelated tokens.
 context_capsule:
   product_goal: Prevent silent engineering-component loss in XML→CII 2019 Standalone.
   roadmap_position: WP-769-FBLI is the single serial frontier.
-  why_this_work_exists: Current wrapper renumbers negative raw FLAN/RIGID only; FBLI=-1 stays negative and base parsing discards it.
-  current_architecture: Patched enrichment/renumbering precedes a base parser that accepts positive NodeNumber records only.
+  why_this_work_exists: Current wrapper renumbers negative raw FLAN/RIGID only; FBLI=-1
+    stays negative and base parsing discards it.
+  current_architecture: Patched enrichment/renumbering precedes a base parser that
+    accepts positive NodeNumber records only.
   prior_owner_decisions:
   - ODR-769-0001
-  current_implementation_state: Production code is unchanged on this repair branch; only backups and v2.5 control-plane records exist.
+  current_implementation_state: Production code is unchanged on this repair branch;
+    only backups and v2.5 control-plane records exist.
   known_problems:
   - FBLI is outside current negative-node eligibility.
   - BM-002/BM-004/BM-005/BM-009 remain incomplete.
@@ -49,50 +53,75 @@ repository_discovery:
   action: VERIFY
   target: agents/relay/REPO_STATE.yaml
   question: Does state route to EP-769-01/WP-769-FBLI?
-  expected_outputs: [active EP, roadmap revision, work package]
+  expected_outputs:
+  - active EP
+  - roadmap revision
+  - work package
   receipt_required: true
   on_failure: Reconcile relay custody.
 - id: DSTEP-02
   action: VERIFY_GIT
   target: live checkout
   question: Does live Git satisfy the EP basis?
-  expected_outputs: [branch, HEAD, material ancestry, base drift]
+  expected_outputs:
+  - branch
+  - HEAD
+  - material ancestry
+  - base drift
   receipt_required: true
   on_failure: Reconcile Git basis.
 - id: DSTEP-03
   action: TRACE
-  targets: [converters/scripts/xml_to_cii2019_patched.py, converters/scripts/xml_to_cii2019.py]
+  targets:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/xml_to_cii2019.py
   question: Trace FBLI from renumber eligibility through positive-node filtering.
-  expected_outputs: [eligibility, renumber result, parser result, model result]
+  expected_outputs:
+  - eligibility
+  - renumber result
+  - parser result
+  - model result
   receipt_required: true
   on_failure: Do not edit production code.
 - id: DSTEP-04
   action: COMPARE
-  targets: ['github:reallaksh19/3D_Converters#417', converters/scripts/xml_to_cii2019_patched.py]
-  question: Is the write scope disjoint from PR #417?
-  expected_outputs: [PR paths, EP paths, overlap]
+  targets:
+  - github:reallaksh19/3D_Converters#417
+  - converters/scripts/xml_to_cii2019_patched.py
+  question: 'Is the write scope disjoint from PR #417?'
+  expected_outputs:
+  - PR paths
+  - EP paths
+  - overlap
   receipt_required: true
   on_failure: Reconcile WRITE_COLLISION.
 inputs:
 - id: INPUT-FBLI
   name: FBLI family authority
   description: FBLI is a blind flange sharing flange negative-node retention semantics.
-  authority: Issue #769 source semantics and current converter taxonomy
-  source: Issue #769 comments 5712580143/5713341657 and converters/scripts/xml_to_cii2019_patched.py
+  authority: 'Issue #769 source semantics and current converter taxonomy'
+  source: 'Issue #769 comments 5712580143/5713341657 and converters/scripts/xml_to_cii2019_patched.py'
   resolution_method: Read durable issue evidence and current renumber/filter code.
   type: component-taxonomy
   units: NA
   editable: false
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  consumers: [STEP-FBLI-01, AC-FBLI-01, AC-FBLI-02]
-  validation: [FBLI gains flange retention only; unrelated negatives do not.]
-  stale_if: [FBLI semantics change., Authoritative taxonomy supersedes this rule., PR #417 overlaps the write path.]
+  consumers:
+  - STEP-FBLI-01
+  - AC-FBLI-01
+  - AC-FBLI-02
+  validation:
+  - FBLI gains flange retention only; unrelated negatives do not.
+  stale_if:
+  - FBLI semantics change.
+  - Authoritative taxonomy supersedes this rule.
+  - 'PR #417 overlaps the write path.'
 benchmarks:
 - id: BENCH-FBLI
   name: Blind-flange boundary oracle
   purpose: Anchor the real FBLI defect and independent family boundary.
-  source: Issue #769 comment 5712580143
+  source: 'Issue #769 comment 5712580143'
   oracle_class: REFERENCE_DATA
   payload:
     record:
@@ -101,138 +130,358 @@ benchmarks:
       endpoint: 1
       component_type: FBLI
       outside_diameter_mm: 168.3
-      position_mm: [111348.13, 107175.33, 100916.75]
+      position_mm:
+      - 111348.13
+      - 107175.33
+      - 100916.75
     boundary:
-      flange: [FLAN, FBLI]
+      flange:
+      - FLAN
+      - FBLI
       legacy: RIGID
       negative_control: INST
       synthetic_length_mm: 25.0
-  expected: With existing length-bearing preconditions, FBLI is admitted before filtering; FLAN/RIGID remain stable and INST remains non-renumberable.
+  expected: With existing length-bearing preconditions, FBLI is admitted before filtering;
+    FLAN/RIGID remain stable and INST remains non-renumberable.
   tolerance: null
-  independence: Oracle family membership is declared from the source defect, not produced by the classifier.
+  independence: Oracle family membership is declared from the source defect, not produced
+    by the classifier.
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  verifies: [AC-FBLI-01, AC-FBLI-02, TEST-FBLI]
-  stale_if: [Owner supplies superseding taxonomy/source evidence.]
+  verifies:
+  - AC-FBLI-01
+  - AC-FBLI-02
+  - TEST-FBLI
+  stale_if:
+  - Owner supplies superseding taxonomy/source evidence.
 scope:
   allowed:
-  - {path: converters/scripts/xml_to_cii2019_patched.py, reason: Owns negative-node eligibility.}
-  - {path: converters/scripts/test_xml_to_cii2019_fbli_negative_node.py, reason: New regression.}
-  - {path: agents/relay, reason: v2.5 custody.}
-  - {path: agents/WIP-769-v25-postmerge-repair_workreport.md, reason: Required WIP report.}
+  - path: converters/scripts/xml_to_cii2019_patched.py
+    reason: Owns negative-node eligibility.
+  - path: converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+    reason: New regression.
+  - path: agents/relay
+    reason: v2.5 custody.
+  - path: agents/WIP-769-v25-postmerge-repair_workreport.md
+    reason: Required WIP report.
   allowed_reads:
-  - {path: converters/scripts/xml_to_cii2019.py, reason: Trace filter.}
-  - {path: agents/chains/XMLCII-ISSUE-769, reason: Historical evidence.}
-  - {domain: 'GitHub PR #417', reason: Non-overlap check.}
+  - path: converters/scripts/xml_to_cii2019.py
+    reason: Trace filter.
+  - path: agents/chains/XMLCII-ISSUE-769
+    reason: Historical evidence.
+  - domain: 'GitHub PR #417'
+    reason: Non-overlap check.
   protected:
-  - {invariant: FLAN/RIGID stay stable and unrelated negative types stay fail-closed., reason: Prevent overreach.}
-  - {domain: 'PR #417 coordinate/topology custody', reason: Prevent collision.}
-  - {invariant: Writer scale=10 and rigid-weight authority stay unchanged., reason: Outside WP.}
+  - invariant: FLAN/RIGID stay stable and unrelated negative types stay fail-closed.
+    reason: Prevent overreach.
+  - domain: 'PR #417 coordinate/topology custody'
+    reason: Prevent collision.
+  - invariant: Writer scale=10 and rigid-weight authority stay unchanged.
+    reason: Outside WP.
   prohibited:
-  - {domain: 'PR #417 files', reason: Separate scope.}
-  - {domain: Geometry/support/weight/line-list/regex/B31.3/large-master logic, reason: Later WPs.}
+  - domain: 'PR #417 files'
+    reason: Separate scope.
+  - domain: Geometry/support/weight/line-list/regex/B31.3/large-master logic
+    reason: Later WPs.
   owner_reserved:
-  - {decision: Merge PR, reason: Owner-only merge.}
-  - {decision: Broaden EP scope, reason: Requires roadmap reconciliation.}
+  - decision: Merge PR
+    reason: Owner-only merge.
+  - decision: Broaden EP scope
+    reason: Requires roadmap reconciliation.
 anti_drift:
   do_not:
-  - {id: ADR-01, restriction: Do not edit PR #417 files., reason: Avoid collision.}
-  - {id: ADR-02, restriction: Do not add a downstream FBLI exception after filtering., reason: Fix owning taxonomy boundary.}
-  - {id: ADR-03, restriction: Do not admit every negative node., reason: Unknown types fail closed.}
+  - id: ADR-01
+    restriction: 'Do not edit PR #417 files.'
+    reason: Avoid collision.
+  - id: ADR-02
+    restriction: Do not add a downstream FBLI exception after filtering.
+    reason: Fix owning taxonomy boundary.
+  - id: ADR-03
+    restriction: Do not admit every negative node.
+    reason: Unknown types fail closed.
   stale_if:
-  - {id: STALE-01, condition: PR #417 overlaps or authoritative taxonomy changes., effect: RECONCILE, rationale: Authority/write scope changed.}
-  - {id: STALE-02, condition: Base moves without qualified drift evidence., effect: RECONCILE, rationale: Git basis changed.}
+  - id: STALE-01
+    condition: 'PR #417 overlaps or authoritative taxonomy changes.'
+    effect: RECONCILE
+    rationale: Authority/write scope changed.
+  - id: STALE-02
+    condition: Base moves without qualified drift evidence.
+    effect: RECONCILE
+    rationale: Git basis changed.
 implementation_plan:
 - id: STEP-FBLI-01
-  objective: Canonicalize FBLI into existing flange-family eligibility and add exact regressions.
-  targets: [converters/scripts/xml_to_cii2019_patched.py, converters/scripts/test_xml_to_cii2019_fbli_negative_node.py]
-  reads: [converters/scripts/xml_to_cii2019.py, 'github:reallaksh19/3D_Converters#417']
-  writes: [converters/scripts/xml_to_cii2019_patched.py, converters/scripts/test_xml_to_cii2019_fbli_negative_node.py]
-  inputs: [INPUT-FBLI]
-  acceptance: [AC-FBLI-01, AC-FBLI-02, AC-SCOPE-01]
-  tests: [TEST-FBLI, TEST-LEGACY, TEST-SCOPE]
-  expected_state: Eligible FBLI is renumbered and retained; legacy boundaries stay stable.
-  stop_conditions: [MATERIAL_WRITE_READY fails., PR #417 overlaps., Source does not meet existing length-bearing preconditions.]
+  objective: Canonicalize FBLI into existing flange-family eligibility and add exact
+    regressions.
+  targets:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  reads:
+  - converters/scripts/xml_to_cii2019.py
+  - github:reallaksh19/3D_Converters#417
+  writes:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  inputs:
+  - INPUT-FBLI
+  acceptance:
+  - AC-FBLI-01
+  - AC-FBLI-02
+  - AC-SCOPE-01
+  tests:
+  - TEST-FBLI
+  - TEST-LEGACY
+  - TEST-SCOPE
+  expected_state: Eligible FBLI is renumbered and retained; legacy boundaries stay
+    stable.
+  stop_conditions:
+  - MATERIAL_WRITE_READY fails.
+  - 'PR #417 overlaps.'
+  - Source does not meet existing length-bearing preconditions.
 next_work:
   phase_transition: false
   steps:
   - order: 1
     action: After independent takeover, implement FBLI family normalization and regression.
-    targets: [converters/scripts/xml_to_cii2019_patched.py, converters/scripts/test_xml_to_cii2019_fbli_negative_node.py]
-    inputs: [INPUT-FBLI]
-    tests: [TEST-FBLI, TEST-LEGACY, TEST-SCOPE]
-    benchmarks: [BENCH-FBLI]
-    acceptance: [AC-FBLI-01, AC-FBLI-02, AC-SCOPE-01]
+    targets:
+    - converters/scripts/xml_to_cii2019_patched.py
+    - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+    inputs:
+    - INPUT-FBLI
+    tests:
+    - TEST-FBLI
+    - TEST-LEGACY
+    - TEST-SCOPE
+    benchmarks:
+    - BENCH-FBLI
+    acceptance:
+    - AC-FBLI-01
+    - AC-FBLI-02
+    - AC-SCOPE-01
     expected_result: FBLI survives the negative-node boundary with no unrelated changes.
-    stop_if: [MATERIAL_WRITE_READY is false., PR #417 overlaps., Protected invariant fails.]
+    stop_if:
+    - MATERIAL_WRITE_READY is false.
+    - 'PR #417 overlaps.'
+    - Protected invariant fails.
 qualification_boundary:
   required: true
   trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
   from_phase: PHASE-769-POSTMERGE
   to_phase: PHASE-769-POSTMERGE
-  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
-  basis: [Component admission authority changes., Wrong classification can remove/create a CII component., Verification oracle changes.]
+  changed_dimensions:
+  - ENGINEERING_AUTHORITY
+  - PROTECTED_INVARIANT
+  - VERIFICATION_ORACLE
+  basis:
+  - Component admission authority changes.
+  - Wrong classification can remove/create a CII component.
+  - Verification oracle changes.
   question_set:
     id: QSET-769-01
     path: agents/relay/certifications/qualification/QSET-769-01.yaml
 quality:
   applicable:
-  - {blueprint: coding, reason: Production Python changes., review_focus: [authority, failure]}
-  - {blueprint: testing, reason: Regression proof required., review_focus: [FBLI, negative control]}
-  - {blueprint: software-design, reason: Canonical family boundary changes., review_focus: [ownership, filtering]}
-  - {blueprint: code-review, reason: Engineering-critical retention., review_focus: [scope, broadening]}
-  - {blueprint: github-delivery, reason: Issue/PR delivery., review_focus: [truth, merge authority]}
+  - blueprint: coding
+    reason: Production Python changes.
+    review_focus:
+    - authority
+    - failure
+  - blueprint: testing
+    reason: Regression proof required.
+    review_focus:
+    - FBLI
+    - negative control
+  - blueprint: software-design
+    reason: Canonical family boundary changes.
+    review_focus:
+    - ownership
+    - filtering
+  - blueprint: code-review
+    reason: Engineering-critical retention.
+    review_focus:
+    - scope
+    - broadening
+  - blueprint: github-delivery
+    reason: Issue/PR delivery.
+    review_focus:
+    - truth
+    - merge authority
   not_applicable:
-  - {blueprint: ui-ux, reason: No UI.}
-  - {blueprint: engineering-numerics, reason: No numerical method.}
-  - {blueprint: accessibility, reason: No UI.}
-  - {blueprint: performance, reason: No material performance change.}
-  - {blueprint: migration, reason: No product data/schema migration.}
+  - blueprint: ui-ux
+    reason: No UI.
+  - blueprint: engineering-numerics
+    reason: No numerical method.
+  - blueprint: accessibility
+    reason: No UI.
+  - blueprint: performance
+    reason: No material performance change.
+  - blueprint: migration
+    reason: No product data/schema migration.
   review_contract:
     required: true
     required_before_checkpoint: true
     receipt_namespace: QRV-
-    required_outputs: [procedure_results, findings, owner_report, successor_handover]
-  findings_policy: Findings block only through an existing acceptance/authority/invariant/safety stop.
+    required_outputs:
+    - procedure_results
+    - findings
+    - owner_report
+    - successor_handover
+  findings_policy: Findings block only through an existing acceptance/authority/invariant/safety
+    stop.
   ordinary_findings_are_hard_stops: false
 acceptance:
 - id: AC-FBLI-01
-  description: Eligible negative FBLI is classified, positively renumbered, and retained in the base model.
+  description: Eligible negative FBLI is classified, positively renumbered, and retained
+    in the base model.
   weight: 60
-  verification: [TEST-FBLI, BENCH-FBLI]
+  verification:
+  - TEST-FBLI
+  - BENCH-FBLI
 - id: AC-FBLI-02
   description: FLAN/RIGID remain stable and negative INST remains non-renumberable.
   weight: 25
-  verification: [TEST-FBLI, TEST-LEGACY, BENCH-FBLI]
+  verification:
+  - TEST-FBLI
+  - TEST-LEGACY
+  - BENCH-FBLI
 - id: AC-SCOPE-01
-  description: No PR #417 or unrelated subsystem is changed.
+  description: 'No PR #417 or unrelated subsystem is changed.'
   weight: 15
-  verification: [TEST-SCOPE]
+  verification:
+  - TEST-SCOPE
 validation:
-- {id: TEST-FBLI, class: MUST_PASS, method: 'python -m pytest -q converters/scripts/test_xml_to_cii2019_fbli_negative_node.py', proves: [AC-FBLI-01, AC-FBLI-02]}
-- {id: TEST-LEGACY, class: MUST_PASS, method: 'python -m pytest -q converters/scripts/test_xml_to_cii2019_patched_process.py', proves: [AC-FBLI-02]}
-- {id: TEST-SCOPE, class: MUST_PASS, method: 'Compare changed paths with PR #417; intersection must be empty.', proves: [AC-SCOPE-01]}
+- id: TEST-FBLI
+  class: MUST_PASS
+  method: python -m pytest -q converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  proves:
+  - AC-FBLI-01
+  - AC-FBLI-02
+- id: TEST-LEGACY
+  class: MUST_PASS
+  method: python -m pytest -q converters/scripts/test_xml_to_cii2019_patched_process.py
+  proves:
+  - AC-FBLI-02
+- id: TEST-SCOPE
+  class: MUST_PASS
+  method: 'Compare changed paths with PR #417; intersection must be empty.'
+  proves:
+  - AC-SCOPE-01
 failure_and_stop_conditions:
-  hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
+  hard_stop_categories:
+  - OWNER_DECISION_REQUIRED
+  - ESSENTIAL_INPUT_MISSING
+  - AUTHORITY_VIOLATION
+  - PROTECTED_INVARIANT_FAILURE
+  - WRITE_COLLISION
+  - SUPERSEDED_EP
+  - ROADMAP_CONFLICT
+  - REPOSITORY_STATE_CONFLICT
+  - UNSAFE_ENGINEERING_RESULT
 report_contract:
-  sections: [Executive state, Overall / phase / EP progress, Work completed, Files changed, Acceptance matrix, Tests and evidence, Quality findings, Known limitations, Owner decisions required, GitHub issue changes, Roadmap changes, Exact next actions, Successor EP]
+  sections:
+  - Executive state
+  - Overall / phase / EP progress
+  - Work completed
+  - Files changed
+  - Acceptance matrix
+  - Tests and evidence
+  - Quality findings
+  - Known limitations
+  - Owner decisions required
+  - GitHub issue changes
+  - Roadmap changes
+  - Exact next actions
+  - Successor EP
   payloads:
-  - {id: RPT-01, section: Executive state, sources: [REPO_STATE], required_fields: [basis]}
-  - {id: RPT-02, section: Overall / phase / EP progress, sources: [PROGRESS], required_fields: [basis]}
-  - {id: RPT-03, section: Work completed, sources: [EP], required_fields: [basis]}
-  - {id: RPT-04, section: Files changed, sources: [CP], required_fields: [basis]}
-  - {id: RPT-05, section: Acceptance matrix, sources: [EP], required_fields: [basis]}
-  - {id: RPT-06, section: Tests and evidence, sources: [EP], required_fields: [basis]}
-  - {id: RPT-07, section: Quality findings, sources: [QRV], required_fields: [basis]}
-  - {id: RPT-08, section: Known limitations, sources: [EP], required_fields: [basis]}
-  - {id: RPT-09, section: Owner decisions required, sources: [ODR], required_fields: [basis]}
-  - {id: RPT-10, section: GitHub issue changes, sources: [ISSUE_GRAPH], required_fields: [basis]}
-  - {id: RPT-11, section: Roadmap changes, sources: [OVERALL_ROADMAP], required_fields: [basis]}
-  - {id: RPT-12, section: Exact next actions, sources: [EP], required_fields: [basis]}
-  - {id: RPT-13, section: Successor EP, sources: [CP], required_fields: [basis]}
+  - id: RPT-01
+    section: Executive state
+    sources:
+    - REPO_STATE
+    required_fields:
+    - basis
+  - id: RPT-02
+    section: Overall / phase / EP progress
+    sources:
+    - PROGRESS
+    required_fields:
+    - basis
+  - id: RPT-03
+    section: Work completed
+    sources:
+    - EP
+    required_fields:
+    - basis
+  - id: RPT-04
+    section: Files changed
+    sources:
+    - CP
+    required_fields:
+    - basis
+  - id: RPT-05
+    section: Acceptance matrix
+    sources:
+    - EP
+    required_fields:
+    - basis
+  - id: RPT-06
+    section: Tests and evidence
+    sources:
+    - EP
+    required_fields:
+    - basis
+  - id: RPT-07
+    section: Quality findings
+    sources:
+    - QRV
+    required_fields:
+    - basis
+  - id: RPT-08
+    section: Known limitations
+    sources:
+    - EP
+    required_fields:
+    - basis
+  - id: RPT-09
+    section: Owner decisions required
+    sources:
+    - ODR
+    required_fields:
+    - basis
+  - id: RPT-10
+    section: GitHub issue changes
+    sources:
+    - ISSUE_GRAPH
+    required_fields:
+    - basis
+  - id: RPT-11
+    section: Roadmap changes
+    sources:
+    - OVERALL_ROADMAP
+    required_fields:
+    - basis
+  - id: RPT-12
+    section: Exact next actions
+    sources:
+    - EP
+    required_fields:
+    - basis
+  - id: RPT-13
+    section: Successor EP
+    sources:
+    - CP
+    required_fields:
+    - basis
 checkpoint_contract:
   required: true
 successor_relay:
   required: true
-  duties: [create checkpoint, update progress, compute next executable frontier, run cold-start check, update REPO_STATE]
-  required_outputs: [checkpoint, progress_reconciliation, next_frontier, successor_ep_or_terminal_disposition]
+  duties:
+  - create checkpoint
+  - update progress
+  - compute next executable frontier
+  - run cold-start check
+  - update REPO_STATE
+  required_outputs:
+  - checkpoint
+  - progress_reconciliation
+  - next_frontier
+  - successor_ep_or_terminal_disposition
