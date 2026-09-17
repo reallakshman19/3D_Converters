@@ -1,0 +1,72 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-04
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-order-provenance-write-candidate-20260917T200433Z
+route:
+  route_key: SERIAL:EP-769-03
+  mode: SERIAL
+  execution_ref: EP-769-03
+  ep_id: EP-769-03
+  ep_path: agents/relay/execution-packages/EP-769-03.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+  ep_contract_digest: sha256:da34080a54cd44f8b8c9f69ff553c8c61ef2bb4cd44085e7fd8e2fc25ed1af85
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-02
+    path: agents/relay/checkpoints/CP-769-02.yaml
+    digest: sha256:b7d842ba8e7d8056071ec7ca4803bce759d96ecd2ddd430b3c2e657aa140adb1
+steps:
+- id: DSTEP-03P-01
+  status: PASS
+  outputs:
+  - {name: active_ep, value: EP-769-03, basis: [agents/relay/REPO_STATE.yaml]}
+  - {name: previous_checkpoint, value: CP-769-02, basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-02.yaml]}
+  - name: historical_failed_qualification
+    value: QUAL-769-03 remains FAIL historical evidence and is superseded only for the instrumentation boundary, not rewritten.
+    basis: [agents/relay/certifications/qualification/QUAL-769-03.yaml, ODR-769-0007]
+  basis: [agents/relay/REPO_STATE.yaml, agents/relay/certifications/qualification/QUAL-769-03.yaml, agents/relay/roadmap/owner-decisions/ODR-769-0007.yaml]
+- id: DSTEP-03P-02
+  status: PASS
+  outputs:
+  - name: renumber_owner
+    value: tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js::renumberLengthBearingNegativeNodes assigns positive node numbers after inline length annotation.
+    basis: [tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js]
+  - name: stable_join_key
+    value: branch name + ComponentRefNo + Endpoint + ComponentType + numeric Position; source branch-node index is recorded separately and exact duplicate keys remain ambiguous rather than guessed.
+    basis: [Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml, tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js]
+  - name: diagnostic_boundary
+    value: A standalone parser of raw/enriched XML can recover source identity without being imported or invoked by the converter.
+    basis: [agents/relay/execution-packages/EP-769-03.yaml]
+  basis: [tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js, Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml]
+- id: DSTEP-03P-03
+  status: PASS
+  outputs:
+  - name: pr417_paths
+    value: coordinate-custody Python/engine/invocation-builder/docs/X001 paths from current PR #417 readback; neither new diagnostic path is included.
+    basis: [github:reallaksh19/3D_Converters#417]
+  - name: candidate_paths
+    value: converters/scripts/xml_to_cii2019_order_provenance.py; converters/scripts/test_xml_to_cii2019_order_provenance.py
+    basis: [agents/relay/execution-packages/EP-769-03.yaml]
+  - {name: overlap, value: none, basis: [github:reallaksh19/3D_Converters#417, agents/relay/execution-packages/EP-769-03.yaml]}
+  basis: [github:reallaksh19/3D_Converters#417, agents/relay/execution-packages/EP-769-03.yaml]
+- id: DSTEP-03P-04
+  status: PASS
+  outputs:
+  - {name: branch, value: agent/issue-769-geometry-order-20260917, basis: [GitHub branch readback immediately before material write]}
+  - name: material_ancestry
+    value: EP material_ref remains an ancestor of the successor branch; control-plane commits are additive before the diagnostic write.
+    basis: [GitHub compare readback, agents/relay/execution-packages/EP-769-03.yaml]
+  - name: base_drift
+    value: GitHub compare immediately before admission observed current main 9f0925454652cd963364c066c2bb7b8828275afd, branch ahead 81 and behind 0; no base drift invalidated the bounded diagnostic write.
+    basis: [GitHub compare readback]
+  basis: [GitHub compare readback, agents/relay/execution-packages/EP-769-03.yaml]
+result: PASS
+conversation_context_used: false
