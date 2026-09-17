@@ -6,10 +6,9 @@ decision:
   statement: 'Continue Issue #769 post-merge repair work under engineering-pr-delivery-v2.5, after updating the parent issue with detailed RCA and benchmark status.'
   source: 'Owner directives dated 2026-09-17T10:06:41Z, 2026-09-17T10:23:27Z, and 2026-09-17T10:59:35Z; projected to GitHub Issue #769 comment 5713341657.'
 effects:
-  requirement_disposition: APPLIED
+  requirement_disposition: SATISFIED
   grants_material_write_authority: false
-  pending_items:
-  - Candidate-specific v2.5 takeover certification before production writes.
+  pending_items: []
 impact:
   class:
   - LOCAL
