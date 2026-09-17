@@ -1,0 +1,68 @@
+schema_version: relay-v2.5
+checkpoint_id: CP-769-03
+ep_id: EP-769-03
+roadmap_basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+execution_basis:
+  material_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+implementation_result:
+  completed_steps: [STEP-PROV-01]
+  files_changed:
+  - converters/scripts/xml_to_cii2019_order_provenance.py
+  - converters/scripts/test_xml_to_cii2019_order_provenance.py
+  commits:
+  - 72defe70da74260b9d7d46f907b86117a8f031a0
+  - 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+acceptance_results:
+- id: AC-PROV-01
+  status: PASS
+  earned_weight: 60
+  basis: Exact committed extractor/test blobs map declared generated labels 2909-2920 to exact raw source identities and source branch indexes in the independent synthetic fixture.
+- id: AC-PROV-02
+  status: PASS
+  earned_weight: 25
+  basis: Range filtering is inclusive and exact; deliberately changed source identity remains NONE rather than guessed.
+- id: AC-PROV-SCOPE
+  status: PASS
+  earned_weight: 15
+  basis: Material diff from admission commit c9324c76af8e283e884ce2ec1aa9187354c84f11 contains exactly the two new diagnostic files and no PR #417 path.
+validation_results:
+- id: TEST-PROV-PY
+  status: PASS
+  basis_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+  evidence: 'Exact authored bytes executed 3/3 PASS in an isolated pure-stdlib carrier; post-commit GitHub readback confirms identical blobs: extractor 987c866ca1225fe2024e19e95ba02474dbcccc82 and test a5de4f588d852e69054933b61762a04338f22226.'
+- id: TEST-PROV-SCOPE
+  status: PASS
+  basis_ref: fde8d567f7f4251b5e0c408e01d3432c6411bcf7
+  evidence: GitHub compare c9324c76af8e283e884ce2ec1aa9187354c84f11..2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10 contains only converters/scripts/xml_to_cii2019_order_provenance.py and its focused test; current PR #417 contains neither path.
+quality_review:
+  id: QRV-769-03
+  path: agents/relay/quality/QRV-769-03.yaml
+  digest: sha256:b68394bc7b7530ee57bf374fdc024c305f6870eac6f332aab14a5d806c562c16
+quality_findings: []
+known_limitations:
+- The real enriched/output artifact containing generated labels 2909-2920 and 2439-2450 has not been processed; topology/order repair remains unqualified.
+- Exact repository-native v2.5 conformance remains NOT_RUN without an executable private checkout.
+- Formal TEST-OD-PY and earlier TEST-FBLI/TEST-LEGACY validation debt remain pending under existing Owner deferrals.
+discoveries:
+- Exact branch/component endpoint identity plus numeric Position is sufficient to recover source identity without changing conversion authority; zero or duplicate matches can remain explicit.
+- The historical QUAL-769-03 failure is an essential-input/oracle gap, not justification for a heuristic topology mutation.
+roadmap_reconciliation:
+  result: STATUS_UPDATE
+  status_updates:
+  - EP-769-03 provenance instrumentation is COMPLETE and checkpointed.
+  - WP-769-GEOMETRY remains ACTIVE; EP-769-04 is the next serial frontier and is READ_ONLY/ESSENTIAL_INPUT_MISSING until real provenance is supplied.
+  proposals: []
+  owner_decisions_required: []
+remaining_work:
+- Run the provenance extractor on the exact enriched/output artifact containing 2909-2920 and 2439-2450 with the corresponding raw source XML.
+- Complete QSET-769-05 with a fresh PASS qualification/takeover before any topology/order production mutation.
+- Carry formal TEST-OD-PY and FBLI/legacy validation debt to release qualification unless superseded by Owner disposition.
+successor:
+  mode: SERIAL
+  frontier_work_package: WP-769-GEOMETRY
+  ep_id: EP-769-04
+  parallel_plan: null
+  lane_id: null
+  lanes: []
