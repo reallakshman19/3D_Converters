@@ -1,0 +1,69 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-04
+route:
+  route_key: SERIAL:EP-769-03
+  mode: SERIAL
+  execution_ref: EP-769-03
+  ep_id: EP-769-03
+  ep_path: agents/relay/execution-packages/EP-769-03.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:da34080a54cd44f8b8c9f69ff553c8c61ef2bb4cd44085e7fd8e2fc25ed1af85
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - The original topology mutation is still blocked; this boundary is observability-only.
+  - Source matching must be exact and non-mutating.
+  - The verification oracle is a declared synthetic source/enriched pair independent of the extractor.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-GEOMETRY, INPUT-PROV-AUTH]
+  prompt: Trace where length-bearing negative nodes are renumbered and where a standalone diagnostic can read enriched XML without becoming conversion authority.
+  required_output_keys: [production_entrypoint, renumber_owner, diagnostic_boundary, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [BENCH-PROV-769, AC-PROV-01]
+  prompt: 'Reconstruct the provenance problem with a concrete synthetic source/enriched pair: source nodes are -1 and enriched labels are 2909-2920. Show exact stable-field joining and state what remains unresolved.'
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    generated_start: 2909
+    generated_end: 2920
+    source_node_number: -1
+    join_fields: [branch_name, component_ref_no, endpoint, component_type, position]
+  required_output_keys: [reconstruction_steps, intermediate_result, expected_result, remaining_gap]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [AC-PROV-02, AC-PROV-SCOPE]
+  prompt: State the permitted diagnostic mutation, protected non-mutation invariant, PR #417 boundary, and exact falsifier.
+  mutation:
+    condition: Add only a standalone extractor/test and relay custody.
+    protected_invariant: No converter, enrichment, topology, coordinate, OD or serialized output behavior changes.
+    falsifier: Any converter-path edit, fuzzy source match, topology inference, or PR #417 path edit is required.
+  required_output_keys: [mutation_effect, protected_invariant, custody_boundary, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [BENCH-PROV-769, TEST-PROV-PY]
+  prompt: Define an independent regression proving generated labels 2909-2920 map to declared raw source identities and that unmatched records are never guessed.
+  oracle_refs: [BENCH-PROV-769]
+  independence_requirement: Fixture expectations are declared before execution and do not depend on implementation output.
+  required_output_keys: [independent_method, predicted_result, negative_controls, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-PROV-01, AC-PROV-SCOPE]
+  prompt: State the first bounded write set, predicted before/after behavior, tests, and how this slice enables later topology requalification without performing it.
+  step_refs: [STEP-PROV-01]
+  required_output_keys: [first_change, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-order-provenance-preparer-20260917
