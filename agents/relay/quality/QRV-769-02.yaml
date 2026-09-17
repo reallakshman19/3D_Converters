@@ -73,8 +73,10 @@ procedure_results:
   evidence:
   - TEST-OD-JS PASS executed with exact branch bytes: test 6b921c9b1762d5113a868026bf00d7ccef434069, helper c1a5e915d718ec6a1f3ba47bb490e423e1f8de00, resolver 12dcc2709a31c12c40ffa08369bdaf179ff02067; output was PASS xml-cii outside-diameter effective authority.
   - TEST-OD-SCOPE PASS: PR #773 paths have no intersection with PR #417 changed paths.
-  - TEST-OD-PY remains NOT_RUN; no executable private Python checkout/workflow is exposed by the connected tool surface.
-  reason: Cross-language testing is incomplete until the declared Python pytest executes.
+  - Initial Python 3.13 carrier exposed a regression-loader defect before OD assertions: importlib module was not registered in sys.modules before exec_module, causing dataclass collection failure. The allowed test file was repaired in commit 68b4cd58aeedc33665d521dfe5eea85d27bea56a; updated test blob is 650b04e3991cab280b7dfede2d31cf90f235bff7.
+  - The updated exact test blob executes 3/3 PASS on a reconstructed Python carrier. The exercised committed production sections were read back from blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 and match the reconstruction for XmlNode effective_outside_diameter, parser retention/nonpositive fallback, and _node_outside_diameter/_element_outside_diameter selection.
+  - Formal TEST-OD-PY remains NOT_RUN because the available carrier has not executed the whole committed production module byte-for-byte; no exact private checkout or Python CI workflow is exposed.
+  reason: Cross-language exact-byte testing remains incomplete until the declared pytest executes with the whole committed xml_to_cii2019.py blob.
   cause: UNAVAILABLE_TOOL
 findings: []
 overall_state: NEEDS_ATTENTION
@@ -82,13 +84,13 @@ execution_effect:
   blocks_execution: false
   blocking_findings: []
 owner_report:
-  summary: The qualified effective-OD implementation is complete and diff-clean. JS and scope verification pass; Python behavioral pytest remains NOT_RUN, so AC-OD-01/02 and the geometry checkpoint remain open.
+  summary: The qualified effective-OD implementation is complete and diff-clean. JS and scope verification pass. Python regression loading is repaired and 3/3 assertions pass on a verified-section reconstruction, but formal exact-byte Python pytest remains NOT_RUN; AC-OD-01/02 and the geometry checkpoint therefore remain open.
   visible_risks:
-  - TEST-OD-PY has not executed against the committed Python consumer.
+  - The whole committed Python module has not yet executed byte-for-byte under TEST-OD-PY.
   - Exact repository-native v2.5 conformance remains NOT_RUN without a private executable checkout.
   decisions_required: []
 successor_handover:
   unresolved_findings: []
   follow_up:
-  - Execute python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py in an exact checkout or authorized Python carrier.
+  - Execute python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py with committed xml_to_cii2019.py blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 and test blob 650b04e3991cab280b7dfede2d31cf90f235bff7.
   - Do not open orientation/length repair or WP-769-SUPPORT until TEST-OD-PY passes or the Owner explicitly defers that gate.
