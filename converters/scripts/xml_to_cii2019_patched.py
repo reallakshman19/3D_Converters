@@ -25,7 +25,12 @@ except Exception:  # pragma: no cover
 
 SENTINEL_TEMPERATURE = -100000.0
 NO_AUTO_WEIGHT_COMPONENT_TYPES = {"TEE", "REDU", "REE", "BEND", "ELBO"}
-RENUMBERABLE_NEGATIVE_TYPES = {"FLAN", "RIGID"}
+NEGATIVE_NODE_COMPONENT_FAMILIES = {
+    "FLAN": "FLANGE_FAMILY",
+    "FBLI": "FLANGE_FAMILY",
+    "RIGID": "RIGID",
+}
+RENUMBERABLE_NEGATIVE_FAMILIES = {"FLANGE_FAMILY", "RIGID"}
 
 DEFAULT_SUPPORT_CONFIG: dict[str, Any] = {
     "useFrictionSentinelForNonYSupports": True,
@@ -300,6 +305,10 @@ def _branch_nodes(branch: ET.Element, namespace: str) -> list[ET.Element]:
     return [node for node in list(branch) if _local_name(node.tag) == "Node"]
 
 
+def _negative_node_component_family(component_type: str) -> str | None:
+    return NEGATIVE_NODE_COMPONENT_FAMILIES.get(_safe_text(component_type).upper())
+
+
 def _kind_from_dtxr(text: str, support_config: dict[str, Any]) -> list[str]:
     normalized = _safe_text(text).upper()
     if not normalized:
@@ -366,8 +375,9 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
         for idx, node in enumerate(nodes):
             node_no = original_numbers.get(id(node))
             comp = _child_text(node, namespace, "ComponentType").upper()
+            comp_family = _negative_node_component_family(comp)
             elem_len = _numeric_text(_child_text(node, namespace, "ElementLengthMm"))
-            if node_no is None or int(round(node_no)) >= 0 or comp not in RENUMBERABLE_NEGATIVE_TYPES or elem_len is None or elem_len <= 0:
+            if node_no is None or int(round(node_no)) >= 0 or comp_family not in RENUMBERABLE_NEGATIVE_FAMILIES or elem_len is None or elem_len <= 0:
                 continue
             prev_num = next((int(round(v)) for p in reversed(nodes[:idx]) for v in [original_numbers.get(id(p))] if v is not None and v > 0), None)
             next_num = next((int(round(v)) for n in nodes[idx + 1:] for v in [original_numbers.get(id(n))] if v is not None and v > 0), None)
