@@ -1,0 +1,41 @@
+schema_version: relay-v2.5
+id: ODR-769-0007
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: write, proceed
+  source: Owner directive received 2026-09-17T20:04:33Z immediately after EP-769-03 was reported READ_ONLY/ESSENTIAL_INPUT_MISSING
+    because generated labels 2909-2920 and 2439-2450 were not durably mapped to source records.
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: true
+  interpretation: Authorize a bounded EP-769-03 replan to write provenance instrumentation that recovers generated-node/source-record
+    mappings. This does not authorize a topology/order correction, heuristic reordering, PR #417 overlap, merge, or release while
+    the original order oracle remains missing.
+  pending_items:
+  - The original topology/order repair remains unqualified until generated labels 2909-2920 and 2439-2450 are mapped to exact
+    source records and expected orientation is independently established.
+  - Existing deferred TEST-OD-PY, TEST-FBLI and TEST-LEGACY debt remains unchanged.
+impact:
+  class:
+  - LOCAL
+  - MATERIAL
+affected:
+  objectives:
+  - OBJ-769
+  phases:
+  - PHASE-769-POSTMERGE
+  work_packages:
+  - WP-769-GEOMETRY
+  execution_packages:
+  - EP-769-03
+  issues:
+  - ISSUE-769
+required_reconciliation:
+- Revise EP-769-03 to an instrumentation-first write boundary and issue a fresh QSET/QUAL/TC; the failed QUAL-769-03 remains
+  historical evidence and must not be rewritten to PASS.
+- Limit material writes to a non-mutating provenance extractor and focused regression; do not modify topology/order production
+  behavior.
+- Recheck live branch/main basis and PR #417 non-overlap immediately before material mutation.
+- Use recovered provenance to re-qualify the original reversed-order repair in a later material boundary.
+status: APPLIED
