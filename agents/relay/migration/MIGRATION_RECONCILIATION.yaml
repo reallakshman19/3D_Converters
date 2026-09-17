@@ -1,0 +1,51 @@
+schema_version: relay-v2.5-migration-reconciliation
+status: RECONCILED_FOR_CURRENT_FRONTIER
+source_inventory: agents/relay/migration/V2_INVENTORY.yaml
+owner_intent:
+  authoritative_sources:
+  - agents/relay/roadmap/owner-decisions/ODR-769-0001.yaml
+  unresolved_questions: []
+roadmap_mapping:
+  objectives:
+  - {legacy_scope: 'Issue #769 current owner-directed repair', v25: OBJ-769}
+  phases:
+  - {legacy_scope: 'Issue #769 post-merge validation/repair', v25: PHASE-769-POSTMERGE}
+  work_packages:
+  - {legacy_scope: Definite FBLI/-1 blind-flange defect, v25: WP-769-FBLI}
+  - {legacy_scope: OD/orientation/length node-specific cases, v25: WP-769-GEOMETRY}
+  - {legacy_scope: Support/fallback REST cases, v25: WP-769-SUPPORT}
+  - {legacy_scope: BM-002/BM-004/BM-005/BM-009 remainder, v25: WP-769-RELEASE}
+current_position: {objective: OBJ-769, phase: PHASE-769-POSTMERGE, work_package: WP-769-FBLI}
+durable_inputs:
+- github:reallaksh19/3D_Converters#769 comments 5712580143 and 5713341657
+- agents/chains/XMLCII-ISSUE-769/issue-state/CURRENT.md
+- agents/chains/XMLCII-ISSUE-769/endpoints/EP-0019.md
+- converters/scripts/xml_to_cii2019_patched.py
+- converters/scripts/xml_to_cii2019.py
+benchmarks:
+- {id: BM-001, status: PASS}
+- {id: BM-002, status: PARTIAL_PASS_SCALE_PATH}
+- {id: BM-003, status: PASS}
+- {id: BM-004, status: NOT_RUN_ENVIRONMENT_BLOCKED}
+- {id: BM-005, status: PARTIAL_PASS_11K}
+- {id: BM-006, status: PASS}
+- {id: BM-007, status: PASS}
+- {id: BM-008, status: PASS}
+- {id: BM-009, status: NOT_RUN_ENVIRONMENT_BLOCKED}
+history_to_preserve:
+  checkpoints: ['PR #770 squash merge commit 0ba752fbebcb55440815015bc87b687323d8caae']
+  evidence: [agents/chains/XMLCII-ISSUE-769/issue-state/CURRENT.md benchmark ledger]
+  decisions: [Writer scale=10; rigid precedence Final > Match-1 > legacy > source; empirical read-only; branch/B31.3 fail-closed boundaries.]
+unresolved_work:
+- FBLI negative blind-flange retention defect.
+- OD/orientation/length node-specific RCA/repair after non-overlap qualification.
+- Support/fallback REST node-specific cases.
+- BM-002 full writer E2E, BM-004 empirical exact execution, BM-005 50k/100k, BM-009 focused/full regression.
+- Legacy non-Issue-769 chains remain outside this current frontier and retain their recorded read-only/blocked/merged dispositions.
+first_v25_ep:
+  create_only_after: [owner intent reconciled, current roadmap revision established, executable frontier computed, scope and acceptance made self-contained, cold-start inputs complete]
+  ep_id: EP-769-01
+notes:
+- Legacy files are evidence/context only; no V2 endpoint is executable as V2.5.
+- 'Open PR #417 owns coordinate/topology custody and is excluded from EP-769-01 writes.'
+- Current preparer does not create candidate DISC/QUAL/TC; independent takeover remains required before material writes.
