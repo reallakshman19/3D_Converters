@@ -1,0 +1,95 @@
+schema_version: relay-v2.5-quality-review
+quality_review_id: QRV-769-01
+ep:
+  id: EP-769-01
+  path: agents/relay/execution-packages/EP-769-01.yaml
+  contract_digest: sha256:c87d66245989b8f195033ce274c190cfd141dec4c7d3cfcd3519fc56b7506937
+roadmap_revision: RM-0001
+material_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+reviewer:
+  type: AGENT
+  identity: chatgpt:issue769-v25-write-candidate-20260917T115517Z
+router_snapshot:
+  applicable:
+  - blueprint: code-review
+    reason: Engineering-critical retention.
+    review_focus: [scope, broadening]
+  - blueprint: coding
+    reason: Production Python changes.
+    review_focus: [authority, failure]
+  - blueprint: github-delivery
+    reason: Issue/PR delivery.
+    review_focus: [truth, merge authority]
+  - blueprint: software-design
+    reason: Canonical family boundary changes.
+    review_focus: [ownership, filtering]
+  - blueprint: testing
+    reason: Regression proof required.
+    review_focus: [FBLI, negative control]
+  not_applicable:
+  - blueprint: accessibility
+    reason: No UI.
+    review_focus: []
+  - blueprint: engineering-numerics
+    reason: No numerical method.
+    review_focus: []
+  - blueprint: migration
+    reason: No product data/schema migration.
+    review_focus: []
+  - blueprint: performance
+    reason: No material performance change.
+    review_focus: []
+  - blueprint: ui-ux
+    reason: No UI.
+    review_focus: []
+procedure_results:
+- blueprint: code-review
+  result: CLEAR
+  evidence:
+  - 'PR #772 production patch is confined to xml_to_cii2019_patched.py and changes the owning negative-node eligibility boundary only.'
+  - 'Production commit 7e534211b9f68faa663cf70b02a59c540e184f60 is 12 additions / 2 deletions in the intended classifier/eligibility path.'
+  reason: null
+  cause: null
+- blueprint: coding
+  result: CLEAR
+  evidence:
+  - 'FBLI and FLAN map to FLANGE_FAMILY; RIGID preserves its existing eligible family; unknown types return no family.'
+  - 'Existing positive-node, element-length > 0, collision-avoidance, and synthetic-node assignment logic is unchanged.'
+  reason: null
+  cause: null
+- blueprint: github-delivery
+  result: CLEAR
+  evidence:
+  - 'Draft PR #772 is open and mergeable; merge authority remains Owner-only.'
+  - 'PR head has no commit status contexts and no push/pull_request workflow runs; this absence is reported, not promoted to PASS.'
+  reason: null
+  cause: null
+- blueprint: software-design
+  result: CLEAR
+  evidence:
+  - 'The fix is applied before the base parser nonpositive-node filter, which is the demonstrated first wrong boundary.'
+  - 'No downstream FBLI exception or blanket negative-node admission was introduced.'
+  reason: null
+  cause: null
+- blueprint: testing
+  result: NOT_RUN
+  evidence:
+  - 'Focused regression file covers FBLI/FLAN/RIGID, INST negative control, zero-length FBLI, and reported FBLI retention through parser and conversion model.'
+  - 'GitHub Actions returned zero matching branch push runs and zero pull_request runs for PR #772; no generic focused pytest workflow exists for this slice.'
+  reason: The connected workspace does not expose an executable private checkout and repository workflows do not execute the required Python tests for this branch.
+  cause: UNAVAILABLE_TOOL
+findings: []
+overall_state: NEEDS_ATTENTION
+execution_effect:
+  blocks_execution: false
+  blocking_findings: []
+owner_report:
+  summary: The FBLI owning-boundary patch and scope review are clear, but required focused/legacy Python pytest execution remains NOT_RUN and blocks acceptance completion.
+  visible_risks:
+  - Focused TEST-FBLI has not executed in a repository checkout.
+  - Legacy TEST-LEGACY has not executed after the production change.
+  decisions_required: []
+successor_handover:
+  unresolved_findings: []
+  follow_up:
+  - Run TEST-FBLI and TEST-LEGACY in an executable checkout or an authorized validation carrier before checkpointing WP-769-FBLI.
