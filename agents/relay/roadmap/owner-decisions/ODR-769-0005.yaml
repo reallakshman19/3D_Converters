@@ -1,0 +1,24 @@
+schema_version: relay-v2.5
+id: ODR-769-0005
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: 'proceed now'
+  source: 'Owner directive received 2026-09-17T17:22:44Z immediately after the assistant stated that the remaining gate was EP-769-02-specific Owner qualification.'
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: true
+  interpretation: 'Owner accepts the EP-769-02 qualification gate and authorizes the bounded OD-authority slice defined by EP-769-02/QSET-769-02. This does not authorize scope broadening, PR #417 overlap, merge, or release.'
+impact:
+  class: [LOCAL, MATERIAL]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-GEOMETRY]
+  execution_packages: [EP-769-02]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Complete DISC-769-02, QUAL-769-02 and TC-769-02 for the current candidate against QSET-769-02.
+- Recheck live branch/main basis and PR #417 non-overlap immediately before production mutation.
+- Limit material writes to EP-769-02 STEP-OD-01 and preserve all protected invariants.
+status: APPLIED
