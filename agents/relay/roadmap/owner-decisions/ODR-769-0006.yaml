@@ -1,0 +1,27 @@
+schema_version: relay-v2.5
+id: ODR-769-0006
+decision:
+  authority: OWNER
+  kind: DEFERRAL
+  statement: 'ok proceed'
+  source: 'Owner directive received 2026-09-17T19:37:46Z after the local supporting OD Python check was reported 3/3 PASS while formal TEST-OD-PY remained NOT_RUN because the complete committed production blob had not executed byte-for-byte in an authorized repository carrier.'
+effects:
+  requirement_disposition: PENDING_NOT_SATISFIED
+  grants_material_write_authority: false
+  pending_items:
+  - TEST-OD-PY remains formally NOT_RUN and must execute against the committed production/test blobs before release/merge qualification unless superseded by a later Owner disposition.
+  - Exact repository-native v2.5 conformance remains NOT_RUN until the Common validators execute in a private checkout.
+impact:
+  class: [LOCAL, CONTROL_PLANE]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-GEOMETRY]
+  execution_packages: [EP-769-02, EP-769-03]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Checkpoint EP-769-02 without promoting TEST-OD-PY or AC-OD-01/AC-OD-02 to PASS.
+- Preserve TEST-OD-JS and TEST-OD-SCOPE PASS evidence and carry formal Python validation debt into release qualification.
+- Keep WP-769-GEOMETRY ACTIVE and advance only to a qualification-only successor for the reversed-length/orientation cases.
+- Do not grant successor material-write authority until its own qualification and takeover chain is complete.
+status: APPLIED
