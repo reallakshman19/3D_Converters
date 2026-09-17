@@ -18,13 +18,13 @@ current_position:
 execution_policy:
   mode: SERIAL
 active_ep:
-  id: EP-769-03
-  path: agents/relay/execution-packages/EP-769-03.yaml
+  id: EP-769-04
+  path: agents/relay/execution-packages/EP-769-04.yaml
   state: ACTIVE
   continuity_receipt: null
 last_checkpoint:
-  id: CP-769-02
-  path: agents/relay/checkpoints/CP-769-02.yaml
+  id: CP-769-03
+  path: agents/relay/checkpoints/CP-769-03.yaml
 predecessor_join:
   id: null
   path: null
@@ -57,51 +57,54 @@ progress:
   basis_revision: PB-769-0001
 status_planes:
   execution:
-    state: ACTIVE
-    can_continue: true
-    material_authority: WRITE
-    next_action: Implement only EP-769-03 STEP-PROV-01 by adding the standalone read-only provenance extractor and focused test. Do not modify topology/order conversion behavior or any PR #417 path.
+    state: WAITING
+    can_continue: false
+    material_authority: READ_ONLY
+    next_action: Supply the exact enriched/output XML containing generated labels 2909-2920 and 2439-2450 plus the corresponding raw source XML; run the committed provenance diagnostic and complete QSET-769-05 with fresh PASS qualification/takeover before any topology write.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - QUAL-769-04 and TC-769-03 admit only the provenance-instrumentation boundary authorized by ODR-769-0007.
-    - Historical QUAL-769-03 remains FAIL for the topology/order repair; no topology mutation is authorized until real generated-label provenance and an independent orientation oracle are recovered.
-    - Current PR #417 coordinate-custody paths remain protected and are disjoint from the two new diagnostic paths.
-    - CP-769-02 checkpoints effective OD with TEST-OD-JS/scope PASS while formal TEST-OD-PY remains deferred/not-PASS under ODR-769-0006.
-    - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
+    - CP-769-03 checkpoints the provenance instrumentation slice with TEST-PROV-PY PASS and TEST-PROV-SCOPE PASS; no converter behavior changed.
+    - EP-769-04 INPUT-ORDER-PROVENANCE is MISSING_BLOCKING because the exact enriched/output artifact containing the reported generated labels has not been supplied or captured.
+    - Historical QUAL-769-03 remains FAIL for the topology/order repair and must not be reused as write authority.
+    - Current PR #417 coordinate-custody paths remain protected; EP-769-04 has no material admission or write.
+    - Formal TEST-OD-PY remains Owner-deferred by ODR-769-0006; TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: Owner ODR-769-0007 authorizes a bounded instrumentation replan. DISC-769-04 and QUAL-769-04 pass; TC-769-03 certifies the candidate for two additive diagnostic files only. Local pure-stdlib supporting execution of the exact authored extractor/test bytes is 3/3 PASS; repository-native validation remains to be recorded after material commit.
+    summary: EP-769-03 provenance instrumentation is checkpointed with exact committed blobs tested 3/3 PASS and a two-file scope-clean material diff. EP-769-04 is the active serial successor, READ_ONLY and stopped pending real generated-label provenance and a fresh topology qualification.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
-    - id: TEST-PROV-PY
-      reason: Exact authored bytes passed 3/3 in an isolated local carrier before commit; formal repository-path execution has not yet occurred.
-      cause: PRECOMMIT_SUPPORTING_ONLY
-    - id: TEST-PROV-SCOPE
-      reason: Final material changed-path comparison will execute after the two diagnostic files are committed.
-      cause: NOT_SCHEDULED
-    - id: TEST-OD-PY
-      reason: Deferred by ODR-769-0006; local reconstructed-carrier evidence is supporting only and not a formal exact-byte PASS.
-      cause: OWNER_DEFERRAL
-    - id: TEST-ORDER-PY
-      reason: Historical topology QUAL-769-03 failed and remains superseded by the provenance-only boundary; no topology test exists yet.
+    - id: TEST-ORDER-REAL-PY
+      reason: EP-769-04 real provenance input is MISSING_BLOCKING and no topology implementation is authorized.
       cause: DEPENDENCY_WAIT
+    - id: TEST-ORDER-REAL-SCOPE
+      reason: No EP-769-04 material write has occurred.
+      cause: DEPENDENCY_WAIT
+    - id: TEST-OD-PY
+      reason: Deferred by ODR-769-0006; supporting reconstructed-carrier evidence is not a formal exact-byte production-module PASS.
+      cause: OWNER_DEFERRAL
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
       cause: OWNER_DEFERRAL
     - id: TEST-LEGACY
       reason: Deferred by ODR-769-0003 to release qualification.
       cause: OWNER_DEFERRAL
+    passed:
+    - id: TEST-PROV-PY
+      evidence: Exact committed blobs 987c866ca1225fe2024e19e95ba02474dbcccc82 and a5de4f588d852e69054933b61762a04338f22226 executed 3/3 PASS in the isolated pure-stdlib carrier.
+    - id: TEST-PROV-SCOPE
+      evidence: Material compare c9324c76..2f28f3df contains only the two admitted diagnostic files and no PR #417 path.
   stop:
-    active: false
-    category: NONE
-    reason: ''
+    active: true
+    category: ESSENTIAL_INPUT_MISSING
+    reason: The exact enriched/output XML carrying generated labels 2909-2920 and 2439-2450, together with the corresponding raw source XML, is required to establish source/component orientation independently; without it any topology repair would remain heuristic.
     basis:
-    - agents/relay/roadmap/owner-decisions/ODR-769-0007.yaml
-    - agents/relay/certifications/qualification/QUAL-769-04.yaml
-    - agents/relay/certifications/takeover/TC-769-03.yaml
+    - agents/relay/checkpoints/CP-769-03.yaml
+    - agents/relay/execution-packages/EP-769-04.yaml
+    - agents/relay/certifications/qualification/QSET-769-05.yaml
+    - converters/scripts/xml_to_cii2019_order_provenance.py@987c866ca1225fe2024e19e95ba02474dbcccc82
 projection:
   required: true
   state: STALE
@@ -110,15 +113,14 @@ projection:
   adapter: GITHUB_ISSUES
   plan: agents/relay/projection/generations/GHGEN-769-0004.yaml
   roadmap_revision: RM-0001
-  execution_ref: EP-769-03
+  execution_ref: EP-769-04
   receipt: issuecomment-5720401266
   basis:
-  - agents/relay/roadmap/owner-decisions/ODR-769-0007.yaml
-  - agents/relay/execution-packages/EP-769-03.yaml
-  - agents/relay/certifications/discovery/DISC-769-04.yaml
-  - agents/relay/certifications/qualification/QUAL-769-04.yaml
-  - agents/relay/certifications/takeover/TC-769-03.yaml
+  - agents/relay/checkpoints/CP-769-03.yaml
+  - agents/relay/execution-packages/EP-769-04.yaml
+  - agents/relay/certifications/qualification/QSET-769-05.yaml
   superseded_operations:
+  - GHGEN-769-0004
   - GHGEN-769-0003
   - GHGEN-769-0002
 relay_readiness:
@@ -126,8 +128,8 @@ relay_readiness:
   projection_ready: false
   handover_ready: false
   reasons:
-  - CP-769-02 links the serial successor to EP-769-03/WP-769-GEOMETRY.
-  - ODR-769-0007 authorizes only provenance instrumentation; fresh DISC/QUAL/TC admission exists for the current candidate.
-  - Material authority is WRITE only for STEP-PROV-01 and no topology/order mutation is admitted.
-  - Projection is STALE until the instrumentation commit and updated Issue #769 handover are published.
+  - CP-769-03 links the serial successor to EP-769-04/WP-769-GEOMETRY.
+  - EP-769-04 and QSET-769-05 are materialized, but INPUT-ORDER-PROVENANCE is MISSING_BLOCKING and no successor qualification/takeover admission exists.
+  - Material authority is READ_ONLY with ESSENTIAL_INPUT_MISSING; the provenance instrumentation does not authorize topology mutation.
+  - Projection is STALE until the EP-769-04 handover is published to Issue #769.
 chat_context_required: false
