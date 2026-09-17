@@ -5,7 +5,7 @@ generation:
   roadmap_revision: RM-0001
   issue_graph_revision: IG-769-0001
   execution_ref: EP-769-01
-  state: PREPARED
+  state: PUBLISHING
   supersedes_generation: null
   basis:
   - agents/relay/roadmap/OVERALL_ROADMAP.yaml
@@ -13,21 +13,42 @@ generation:
   - agents/relay/roadmap/owner-decisions/ODR-769-0001.yaml
 operations:
 - id: GHOP-769-0001
-  kind: UPDATE
-  state: PREPARED
+  kind: PUBLISH_HANDOVER
+  state: ATTEMPTED_UNCONFIRMED
   idempotency_key: relay:GHGEN-769-0001:GHOP-769-0001
   depends_on: []
-  subject: {issue_node: ISSUE-769, related_nodes: []}
-  preconditions: {repository_issue_state: OPEN, work_state: ACTIVE, required_relationships: []}
+  subject:
+    issue_node: ISSUE-769
+    related_nodes: []
+  preconditions:
+    repository_issue_state: OPEN
+    work_state: ACTIVE
+    required_relationships: []
   desired:
     title: '[XML→CII 2019 Standalone] RCA + robust fixes for mapping, rigid weights, large masters, regex/branch mapping, and B31.3 preview'
     body_marker: '<!-- relay-operation:GHOP-769-0001 -->'
-    body_projection: Publish the v2.5 FBLI repair checkpoint/handover after implementation evidence exists; preserve historical benchmark truth and the PR #417 non-overlap boundary.
+    body_projection: 'Publish the current v2.5 outgoing baton: roadmap RM-0001, EP-769-01/QSET-769-01, READ_ONLY pending independent takeover, FBLI-only first slice, PR #417 non-overlap, and historical benchmark debt preserved.'
     github_state: OPEN
     relationships: []
-  publication: {attempt_count: 0, last_attempt_basis: [], receipt: null, last_error: null}
-  verification: {status: NOT_RUN, observed_issue_number: 769, observed_issue_id: null, observed_github_state: OPEN, observed_relationships: [], basis: []}
+  publication:
+    attempt_count: 1
+    last_attempt_basis:
+    - agent/issue-769-postmerge-repair-20260917@d3f1f40b9ee454ec37e18e14a610890e46e90192
+    - agents/relay/REPO_STATE.yaml
+    receipt: null
+    last_error: null
+  verification:
+    status: NOT_RUN
+    observed_issue_number: 769
+    observed_issue_id: null
+    observed_github_state: OPEN
+    observed_relationships: []
+    basis: []
   reconciliation:
     issue_graph_effects:
-    - {node: ISSUE-769, set_github_state: OPEN, set_issue_number: OBSERVED, set_issue_id: OBSERVED}
-    complete_when: [issue identity verified, relay-operation marker verified, desired GitHub state verified]
+    - node: ISSUE-769
+      set_github_state: OPEN
+    complete_when:
+    - issue identity verified
+    - relay-operation marker verified
+    - desired GitHub state verified
