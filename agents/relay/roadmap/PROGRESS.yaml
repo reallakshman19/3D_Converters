@@ -1,0 +1,64 @@
+schema_version: relay-v2.5
+progress_basis:
+  id: PB-769-0001
+  roadmap_revision: RM-0001
+overall:
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
+objectives:
+- id: OBJ-769
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
+phases:
+- id: PHASE-769-POSTMERGE
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
+work_packages:
+- id: WP-769-FBLI
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+- id: WP-769-GEOMETRY
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+- id: WP-769-SUPPORT
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+- id: WP-769-RELEASE
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+execution_packages:
+- id: EP-769-01
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
+implementation_steps:
+- id: STEP-FBLI-01
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
+acceptance_criteria:
+- id: AC-FBLI-01
+  earned_weight: 0
+  total_weight: 60
+  percent: 0
+  status: NOT_STARTED
+  basis: []
+- id: AC-FBLI-02
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+  status: NOT_STARTED
+  basis: []
+- id: AC-SCOPE-01
+  earned_weight: 0
+  total_weight: 15
+  percent: 0
+  status: NOT_STARTED
+  basis: []
