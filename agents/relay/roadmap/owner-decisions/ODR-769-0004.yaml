@@ -1,0 +1,24 @@
+schema_version: relay-v2.5
+id: ODR-769-0004
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: 'proceed now'
+  source: 'Owner directive received 2026-09-17T14:28:02Z in the active Issue #769 delivery conversation.'
+effects:
+  requirement_disposition: PENDING_NOT_SATISFIED
+  grants_material_write_authority: false
+  pending_items:
+  - EP-769-02 requires its own Owner qualification/evaluation because geometry changes the material qualification boundary.
+impact:
+  class: [LOCAL, CONTROL_PLANE]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-GEOMETRY]
+  execution_packages: [EP-769-02]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Prepare EP-769-02/QSET-769-02 and route the geometry qualification without reusing EP-769-01 write authority.
+- Keep production material authority READ_ONLY until EP-769-02 qualification and takeover certification are satisfied.
+status: APPLIED
