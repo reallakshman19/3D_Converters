@@ -1,0 +1,36 @@
+schema_version: relay-v2.5
+id: ODR-769-0003
+decision:
+  authority: OWNER
+  kind: DEFERRAL
+  statement: 'proceed next'
+  source: 'Owner directive received 2026-09-17T14:11:54Z in the active Issue #769 delivery conversation after TEST-FBLI and TEST-LEGACY were explicitly reported NOT_RUN.'
+effects:
+  requirement_disposition: PENDING_NOT_SATISFIED
+  grants_material_write_authority: false
+  pending_items:
+  - TEST-FBLI
+  - TEST-LEGACY
+impact:
+  class:
+  - LOCAL
+  - CONTROL_PLANE
+affected:
+  objectives:
+  - OBJ-769
+  phases:
+  - PHASE-769-POSTMERGE
+  work_packages:
+  - WP-769-FBLI
+  - WP-769-GEOMETRY
+  - WP-769-RELEASE
+  execution_packages:
+  - EP-769-01
+  issues:
+  - ISSUE-769
+required_reconciliation:
+- Checkpoint EP-769-01 without converting TEST-FBLI or TEST-LEGACY to PASS.
+- Carry TEST-FBLI and TEST-LEGACY forward as deferred validation debt in WP-769-RELEASE.
+- Advance the serial frontier to WP-769-GEOMETRY and generate a new execution package.
+- Do not grant material write authority for the geometry package until its own qualification/takeover gate is satisfied.
+status: APPLIED
