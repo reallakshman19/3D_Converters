@@ -49,20 +49,20 @@ progress:
 status_planes:
   execution:
     state: WAITING
-    can_continue: true
+    can_continue: false
     material_authority: READ_ONLY
-    next_action: Complete EP-769-03 discovery/QSET qualification and recover authoritative source-order evidence for the 2909-2920 and 2439-2450 reversed-length cases. Do not mutate production geometry until a new qualification/takeover/write gate is complete.
+    next_action: Supply a durable mapping from reported generated labels 2909-2920 and 2439-2450 to exact source branch/component refs, endpoints, positions and pre/post-enrichment order (or an exact enriched XML/reproducible output containing those labels), then re-run EP-769-03 Q2/Q4 qualification. No production geometry mutation is authorized while QUAL-769-03 is FAIL.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - CP-769-02 checkpoints the effective-OD slice with TEST-OD-JS and scope PASS but formal TEST-OD-PY still NOT_RUN under Owner deferral ODR-769-0006.
-    - EP-769-03 changes engineering authority from OD selection to topology/order and therefore requires its own qualification before material write.
-    - Current PR #417 still owns coordinate-custody paths; no successor production edit may enter those files.
-    - Exact source records for the reported reversed-length ranges have not yet been reconstructed, so heuristic reordering is prohibited.
+    - QUAL-769-03 result is FAIL: Q2 and Q4 cannot bind the reported reversed-length labels to exact source records or an independent expected orientation.
+    - DISC-769-03 confirms array-order authority at base._build_edges, but that defect-class RCA is insufficient to justify a case-general topology mutation without source provenance.
+    - Current PR #417 coordinate-custody paths remain protected and no EP-769-03 production file has been changed.
+    - CP-769-02 checkpoints effective OD with TEST-OD-JS/scope PASS while formal TEST-OD-PY remains deferred/not-PASS under ODR-769-0006.
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02 is checkpointed without converting deferred formal Python validation into PASS. WP-769-GEOMETRY remains active and EP-769-03 is a qualification-only successor for reversed-length/orientation authority. No EP-769-03 production mutation has occurred.
+    summary: EP-769-03 discovery passed and established the generic order-authority boundary, but qualification failed because exact case provenance/oracle for 2909-2920 and 2439-2450 is missing. Execution is frozen READ_ONLY at ESSENTIAL_INPUT_MISSING; no heuristic ordering repair has been made.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
@@ -71,11 +71,11 @@ status_planes:
       reason: Deferred by ODR-769-0006; local reconstructed-carrier evidence is supporting only and not a formal exact-byte PASS.
       cause: OWNER_DEFERRAL
     - id: TEST-ORDER-PY
-      reason: EP-769-03 is not yet qualified and no production/order regression has been materialized.
-      cause: NOT_SCHEDULED
+      reason: QUAL-769-03 failed before implementation because the exact source-order oracle is missing.
+      cause: DEPENDENCY_WAIT
     - id: TEST-ORDER-SCOPE
-      reason: Successor changed-path scope verification will run after any qualified implementation; current candidate path is disjoint from PR #417 but no write is admitted yet.
-      cause: NOT_SCHEDULED
+      reason: No EP-769-03 production mutation exists; material write is not admitted while qualification is FAIL.
+      cause: DEPENDENCY_WAIT
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
       cause: OWNER_DEFERRAL
@@ -83,28 +83,33 @@ status_planes:
       reason: Deferred by ODR-769-0003 to release qualification.
       cause: OWNER_DEFERRAL
   stop:
-    active: false
-    category: NONE
-    reason: ''
-    basis: []
+    active: true
+    category: ESSENTIAL_INPUT_MISSING
+    reason: The reported generated labels 2909-2920 and 2439-2450 are not durably mapped to exact source branch/component endpoint records, so expected orientation cannot be independently established and any production repair would be heuristic.
+    basis:
+    - agents/relay/certifications/discovery/DISC-769-03.yaml
+    - agents/relay/certifications/qualification/QUAL-769-03.yaml
+    - Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml@8769ffe538ecacc621daf39919ca00ba27008211
+    - Issue #769 RCA-C / issuecomment-5712580143
 projection:
   required: true
   state: IN_SYNC
-  operation_id: GHGEN-769-0003
+  operation_id: GHGEN-769-0004
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0003.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0004.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-03
-  receipt: issuecomment-5720214995
+  receipt: issuecomment-5720401266
   basis:
   - agents/relay/checkpoints/CP-769-02.yaml
   - agents/relay/execution-packages/EP-769-03.yaml
-  - agents/relay/certifications/qualification/QSET-769-03.yaml
-  - agents/relay/roadmap/owner-decisions/ODR-769-0006.yaml
-  - agents/relay/projection/generations/GHGEN-769-0003.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5720214995
+  - agents/relay/certifications/discovery/DISC-769-03.yaml
+  - agents/relay/certifications/qualification/QUAL-769-03.yaml
+  - agents/relay/projection/generations/GHGEN-769-0004.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5720401266
   superseded_operations:
+  - GHGEN-769-0003
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
@@ -112,7 +117,7 @@ relay_readiness:
   handover_ready: false
   reasons:
   - CP-769-02 links the serial successor to EP-769-03/WP-769-GEOMETRY.
-  - EP-769-03 and QSET-769-03 are materialized but no EP-769-03 qualification/takeover certification exists yet.
-  - Material authority is READ_ONLY; source-order evidence must be established before any orientation/order repair.
-  - GitHub projection GHGEN-769-0003 is verified IN_SYNC by issuecomment-5720214995.
+  - DISC-769-03 passes, but QUAL-769-03 fails Q2/Q4 because exact reported-case source provenance and independent oracle are missing.
+  - Material authority remains READ_ONLY and stop category is ESSENTIAL_INPUT_MISSING; no TC/admission exists for EP-769-03.
+  - GitHub projection GHGEN-769-0004 is verified IN_SYNC by issuecomment-5720401266.
 chat_context_required: false
