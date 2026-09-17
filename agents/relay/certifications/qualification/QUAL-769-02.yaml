@@ -1,0 +1,108 @@
+schema_version: relay-v2.5-qualification
+id: QUAL-769-02
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
+question_set:
+  id: QSET-769-02
+  path: agents/relay/certifications/qualification/QSET-769-02.yaml
+route:
+  route_key: SERIAL:EP-769-02
+  mode: SERIAL
+  execution_ref: EP-769-02
+  ep_id: EP-769-02
+  ep_path: agents/relay/execution-packages/EP-769-02.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:985715fd7779d6c4446e2386ad62c46d2cf6bddf609a6575e65baad5cbb96574
+answers:
+- id: Q1
+  response: "The browser production path enriches XML, applies staged geometry, then invokes applyXmlCiiOutsideDiameterResolver before sending XML to Python. Positive raw OutsideDiameter is currently left unchanged. The base Python parser stores raw OutsideDiameter on XmlNode, and _element_outside_diameter selects raw node OD for ELEMENTS serialization."
+  outputs:
+    production_entrypoint: "tabs/model-converters/converters/xmltocii2019_runner.js enrichment path before Python conversion"
+    state_owner: "converters/xml-cii2019-core/outside-diameter-resolver.js for browser-side OD authority; converters/scripts/xml_to_cii2019.py for parsed/writer authority"
+    authority_source: "EP-769-02 INPUT-OD-AUTH and Owner roadmap X002 raw-versus-effective OD contract"
+    downstream_consumer: "Python XmlNode model, _element_outside_diameter, then CII ELEMENTS OD field"
+  evidence:
+  - tabs/model-converters/converters/xmltocii2019_runner.js
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - agents/relay/execution-packages/EP-769-02.yaml
+- id: Q2
+  response: "For a paired FLAN with raw endpoint ODs 60.3 and 26.7, the current resolver sees both as positive and therefore makes no correction. Python then has only the raw values; _element_outside_diameter normally selects edge.from_node.outside_diameter, so an edge owned by the 26.7 endpoint can serialize 26.7 although the connected pipe section is 60.3. The first wrong authority boundary is failure to separate raw endpoint evidence from effective connected-section OD before CII serialization."
+  outputs:
+    reconstruction_steps:
+    - "Read paired component endpoints carrying raw 60.3 mm and 26.7 mm OutsideDiameter."
+    - "Current browser resolver skips both because each raw value is positive."
+    - "No EffectiveOutsideDiameter authority is emitted."
+    - "Python parser retains only raw OutsideDiameter."
+    - "_element_outside_diameter selects a raw node-side OD for the element."
+    intermediate_result: "The component endpoint OD can be mistaken for the effective connected pipe-section OD."
+    expected_result: "Retain raw 26.7 as provenance while resolving EffectiveOutsideDiameter=60.3 from governed outward connectivity for the non-size-changing component endpoint and consuming that effective value in CII."
+  evidence:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - "docs/Overall_roadmap.md X002"
+  - "agents/relay/execution-packages/EP-769-02.yaml BENCH-OD-769"
+- id: Q3
+  response: "Add EffectiveOutsideDiameter as an additive authority only for paired FLAN/VALV/RIGID endpoint discontinuities when outward connected geometry supplies a positive governed OD. Never replace raw OutsideDiameter and never apply the rule to REDU/branch size-change authority."
+  outputs:
+    mutation_effect: "Qualified component endpoints gain additive EffectiveOutsideDiameter while raw OutsideDiameter remains unchanged; Python prefers effective OD when present."
+    protected_invariant: "Reducer/branch legitimate size transitions remain intact, raw OutsideDiameter stays auditable, and unpaired/unknown components are not guessed."
+    falsifier: "Any raw OD replacement, guessed effective OD on an unpaired/unknown component, or flattened legitimate reducer/branch transition falsifies the change."
+  evidence:
+  - agents/relay/certifications/qualification/QSET-769-02.yaml
+  - "agents/relay/execution-packages/EP-769-02.yaml AC-OD-02"
+- id: Q4
+  response: "Use Owner X002 values as the independent oracle: a non-size-changing FLAN 60.3/26.7 endpoint pattern connected to 60.3 pipe must retain raw 26.7 but yield effective/CII 60.3. Add negative controls for unknown/unpaired components and legitimate size-change components."
+  outputs:
+    independent_method: "Construct resolver/Python fixtures directly from BENCH-OD-769 values and assert raw tag preservation, effective tag creation, CII helper preference, and negative-control non-resolution."
+    predicted_result: "Qualified 26.7 endpoint retains raw 26.7 and resolves effective 60.3; unknown/unpaired and explicit size-change controls remain unchanged."
+    tolerance_or_exactness: "OD comparisons absolute tolerance 1e-6 mm; categorical preservation/non-resolution checks exact."
+  evidence:
+  - "agents/relay/execution-packages/EP-769-02.yaml BENCH-OD-769"
+  - "docs/Overall_roadmap.md X002"
+- id: Q5
+  response: "First change only the browser OD resolver and base Python OD authority path, plus dedicated JS/Python regressions. Do not modify coordinate/topology files, orientation/length logic, bore semantics, or any PR #417 path."
+  outputs:
+    first_change: "Emit additive EffectiveOutsideDiameter for qualified paired FLAN/VALV/RIGID discontinuities and make Python parse/prefer it for CII element OD."
+    predicted_before: "Positive endpoint discontinuity values are untouched and CII can serialize the wrong raw endpoint OD such as 26.7."
+    predicted_after: "Raw endpoint values remain present, qualified effective OD is 60.3 where connectivity proves it, and CII uses the effective value without flattening size-change components."
+    verification: "Run TEST-OD-JS, TEST-OD-PY and TEST-OD-SCOPE; compare EP write paths against PR #417."
+  evidence:
+  - "agents/relay/execution-packages/EP-769-02.yaml STEP-OD-01"
+  - agents/relay/certifications/discovery/DISC-769-02.yaml
+  - "GitHub PR #417 changed-file readback"
+evaluated_by:
+  type: OWNER
+  identity: reallaksh19
+  basis:
+  - agents/relay/roadmap/owner-decisions/ODR-769-0005.yaml
+  - "Owner directive 'proceed now' received 2026-09-17T17:22:44Z immediately after the explicit EP-769-02 qualification-gate prompt."
+evaluations:
+- id: Q1
+  status: PASS
+  basis:
+  - "Owner qualification ODR-769-0005 plus repository-only production-path reconstruction."
+- id: Q2
+  status: PASS
+  basis:
+  - "Raw-positive resolver behavior and Python raw-node OD selection demonstrate the authority gap."
+- id: Q3
+  status: PASS
+  basis:
+  - "Mutation is additive, preserves raw evidence, and explicitly excludes size-change authority."
+- id: Q4
+  status: PASS
+  basis:
+  - "BENCH-OD-769 supplies Owner/roadmap values and explicit negative controls independent of implementation."
+- id: Q5
+  status: PASS
+  basis:
+  - "First slice is restricted to OD authority/test paths and is disjoint from PR #417."
+self_evaluation:
+  allowed: false
+result: PASS
+conversation_context_used: false
