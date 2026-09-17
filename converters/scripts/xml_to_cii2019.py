@@ -98,6 +98,7 @@ class XmlNode:
     bend_type: int | None
     position: tuple[float, float, float]
     restraint_specs: tuple[RestraintSpec, ...]
+    effective_outside_diameter: float | None = None
 
 
 @dataclass(frozen=True)
@@ -571,6 +572,12 @@ def _parse_xml_document(path: Path) -> XmlDocument:
             )
             if outside_diameter_value is None:
                 outside_diameter_value = 0.0
+            effective_outside_diameter_value = _parse_optional_float(
+                _child_text(node_element, namespace, "EffectiveOutsideDiameter"),
+                "Node/EffectiveOutsideDiameter",
+            )
+            if effective_outside_diameter_value is not None and effective_outside_diameter_value <= 0.0:
+                effective_outside_diameter_value = None
             weight_value = _parse_optional_float(
                 _child_text(node_element, namespace, "Weight"),
                 "Node/Weight",
@@ -596,6 +603,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     bend_type=bend_type_value,
                     position=_parse_position(position_text),
                     restraint_specs=_parse_restraints(node_element, namespace),
+                    effective_outside_diameter=effective_outside_diameter_value,
                 )
             )
 
@@ -1083,10 +1091,16 @@ def _build_version_payload(metadata: XmlMetadata, version_header_line: str) -> l
     return payload
 
 
+def _node_outside_diameter(node: XmlNode) -> float:
+    if node.effective_outside_diameter is not None and node.effective_outside_diameter > 0.0:
+        return node.effective_outside_diameter
+    return node.outside_diameter
+
+
 def _element_outside_diameter(edge: Edge) -> float:
     if edge.to_node.component_type == "BRAN" and edge.to_node.endpoint == 2:
-        return edge.to_node.outside_diameter
-    return edge.from_node.outside_diameter
+        return _node_outside_diameter(edge.to_node)
+    return _node_outside_diameter(edge.from_node)
 
 
 def _element_line_number_field(name: str) -> str:
