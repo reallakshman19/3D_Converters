@@ -18,13 +18,13 @@ current_position:
 execution_policy:
   mode: SERIAL
 active_ep:
-  id: EP-769-02
-  path: agents/relay/execution-packages/EP-769-02.yaml
+  id: EP-769-03
+  path: agents/relay/execution-packages/EP-769-03.yaml
   state: ACTIVE
   continuity_receipt: null
 last_checkpoint:
-  id: CP-769-01
-  path: agents/relay/checkpoints/CP-769-01.yaml
+  id: CP-769-02
+  path: agents/relay/checkpoints/CP-769-02.yaml
 predecessor_join:
   id: null
   path: null
@@ -44,32 +44,38 @@ takeover_admissions:
 progress:
   overall_percent: 7.5
   phase_percent: 7.5
-  ep_percent: 15
+  ep_percent: 0
   basis_revision: PB-769-0001
 status_planes:
   execution:
     state: WAITING
     can_continue: true
     material_authority: READ_ONLY
-    next_action: Execute formal TEST-OD-PY with committed production blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 and updated test blob 650b04e3991cab280b7dfede2d31cf90f235bff7. TEST-OD-JS and TEST-OD-SCOPE are PASS; do not advance to orientation/length or WP-769-SUPPORT until TEST-OD-PY passes or the Owner explicitly defers it.
+    next_action: Complete EP-769-03 discovery/QSET qualification and recover authoritative source-order evidence for the 2909-2920 and 2439-2450 reversed-length cases. Do not mutate production geometry until a new qualification/takeover/write gate is complete.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - EP-769-02 browser resolver and Python EffectiveOutsideDiameter consumer are implemented with diff-clean production changes.
-    - TEST-OD-JS PASS was executed on an exact-byte carrier whose test/helper/resolver Git blob hashes match the branch blobs.
-    - Python regression loader was repaired for Python 3.13 in commit 68b4cd58aeedc33665d521dfe5eea85d27bea56a; the updated exact test blob passes 3/3 assertions on a reconstruction whose exercised production sections were verified against committed blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1.
-    - Formal TEST-OD-PY remains NOT_RUN because the whole committed Python module has not executed byte-for-byte; no exact behavioral PASS is claimed.
+    - CP-769-02 checkpoints the effective-OD slice with TEST-OD-JS and scope PASS but formal TEST-OD-PY still NOT_RUN under Owner deferral ODR-769-0006.
+    - EP-769-03 changes engineering authority from OD selection to topology/order and therefore requires its own qualification before material write.
+    - Current PR #417 still owns coordinate-custody paths; no successor production edit may enter those files.
+    - Exact source records for the reported reversed-length ranges have not yet been reconstructed, so heuristic reordering is prohibited.
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02 implementation is complete for the qualified effective-OD slice. Python production diff is clean; TEST-OD-JS and TEST-OD-SCOPE pass. A Python 3.13 test-loader defect was fixed and the updated test passes 3/3 on a verified-section reconstruction, but formal TEST-OD-PY remains NOT_RUN until the full committed production blob executes.
+    summary: EP-769-02 is checkpointed without converting deferred formal Python validation into PASS. WP-769-GEOMETRY remains active and EP-769-03 is a qualification-only successor for reversed-length/orientation authority. No EP-769-03 production mutation has occurred.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
     - id: TEST-OD-PY
-      reason: Updated test blob 650b04e3991cab280b7dfede2d31cf90f235bff7 passes on a verified-section reconstruction, but the whole committed xml_to_cii2019.py blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 has not executed byte-for-byte in an authorized carrier.
-      cause: UNAVAILABLE_TOOL
+      reason: Deferred by ODR-769-0006; local reconstructed-carrier evidence is supporting only and not a formal exact-byte PASS.
+      cause: OWNER_DEFERRAL
+    - id: TEST-ORDER-PY
+      reason: EP-769-03 is not yet qualified and no production/order regression has been materialized.
+      cause: NOT_SCHEDULED
+    - id: TEST-ORDER-SCOPE
+      reason: Successor changed-path scope verification will run after any qualified implementation; current candidate path is disjoint from PR #417 but no write is admitted yet.
+      cause: NOT_SCHEDULED
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
       cause: OWNER_DEFERRAL
@@ -83,29 +89,29 @@ status_planes:
     basis: []
 projection:
   required: true
-  state: IN_SYNC
-  operation_id: GHGEN-769-0002
+  state: PENDING
+  operation_id: GHGEN-769-0003
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0002.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0003.yaml
   roadmap_revision: RM-0001
-  execution_ref: EP-769-02
-  receipt: issuecomment-5718945767
+  execution_ref: EP-769-03
+  receipt: null
   basis:
-  - agents/relay/checkpoints/CP-769-01.yaml
-  - agents/relay/execution-packages/EP-769-02.yaml
-  - agents/relay/roadmap/owner-decisions/ODR-769-0005.yaml
-  - agents/relay/quality/QRV-769-02.yaml
-  - agents/relay/projection/generations/GHGEN-769-0002.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5718945767
-  superseded_operations: []
+  - agents/relay/checkpoints/CP-769-02.yaml
+  - agents/relay/execution-packages/EP-769-03.yaml
+  - agents/relay/certifications/qualification/QSET-769-03.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0006.yaml
+  - agents/relay/projection/generations/GHGEN-769-0003.yaml
+  superseded_operations:
+  - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
-  - EP-769-02 is Owner-qualified by ODR-769-0005 and admitted through DISC-769-02/QUAL-769-02/TC-769-02.
-  - Qualified JS/Python production implementation is complete; TEST-OD-JS and scope pass. Python loader compatibility is fixed, but formal TEST-OD-PY remains NOT_RUN, so material authority is frozen READ_ONLY.
-  - GitHub projection GHGEN-769-0002 is verified IN_SYNC by issuecomment-5718945767.
+  - CP-769-02 links the serial successor to EP-769-03/WP-769-GEOMETRY.
+  - EP-769-03 and QSET-769-03 are materialized but no EP-769-03 qualification/takeover certification exists yet.
+  - Material authority is READ_ONLY; source-order evidence must be established before any orientation/order repair.
+  - GHGEN-769-0003 is prepared but not yet published/verified.
 chat_context_required: false
