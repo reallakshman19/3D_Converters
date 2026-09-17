@@ -1,0 +1,32 @@
+schema_version: relay-v2.5
+revision:
+  id: RM-0001
+  from_revision: NONE
+  to_revision: RM-0001
+  classification: OWNER_INTENT_MUTATION
+  trigger:
+    type: OWNER_DECISION
+    ref: ODR-769-0001
+changes:
+  added:
+  - OBJ-769
+  - PHASE-769-POSTMERGE
+  - WP-769-FBLI
+  - WP-769-GEOMETRY
+  - WP-769-SUPPORT
+  - WP-769-RELEASE
+  removed: []
+  changed: []
+  unaffected: []
+invalidated_execution_packages: []
+issue_graph_reconciled: true
+progress_basis_change:
+  old_basis: NONE
+  new_basis: PB-769-0001
+  old_total_weight: 0
+  new_total_weight: 100
+frontier_after:
+- WP-769-FBLI
+notes:
+- 'Initial v2.5 roadmap established from Owner-directed Issue #769 continuation and migration evidence.'
+- Legacy v2 chains remain evidence; no legacy endpoint is auto-promoted.
