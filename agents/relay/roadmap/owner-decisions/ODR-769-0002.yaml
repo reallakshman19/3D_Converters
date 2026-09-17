@@ -1,0 +1,31 @@
+schema_version: relay-v2.5
+id: ODR-769-0002
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: 'qualified for write, proceed next'
+  source: 'Owner directive received 2026-09-17T11:55:17Z in the active Issue #769 delivery conversation.'
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: true
+  pending_items: []
+impact:
+  class:
+  - LOCAL
+  - CONTROL_PLANE
+affected:
+  objectives:
+  - OBJ-769
+  phases:
+  - PHASE-769-POSTMERGE
+  work_packages:
+  - WP-769-FBLI
+  execution_packages:
+  - EP-769-01
+  issues:
+  - ISSUE-769
+required_reconciliation:
+- Bind the Owner evaluation to a candidate qualification receipt for EP-769-01.
+- Create candidate repository-discovery and takeover-certification receipts from durable repository evidence.
+- Derive MATERIAL_WRITE_READY against the live branch and base before production mutation.
+status: APPLIED
