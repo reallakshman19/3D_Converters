@@ -1,0 +1,224 @@
+schema_version: relay-v2.5
+identity:
+  ep_id: EP-769-04
+  branch: agent/issue-769-geometry-order-20260917
+  base_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  execution_state: WAITING_INPUT
+  previous_checkpoint: CP-769-03
+  previous_join: null
+  previous_replan: null
+replan_inheritance: null
+git_basis:
+  expected_branch: agent/issue-769-geometry-order-20260917
+  material_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  base_branch: main
+  base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+  drift_policy: RECHECK_BEFORE_WRITE
+  drift_receipt: null
+roadmap_source:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  objective: OBJ-769
+  phase: PHASE-769-POSTMERGE
+  work_package: WP-769-GEOMETRY
+  generated_from_frontier: true
+outcome:
+  user_visible:
+  - Reconstruct the reported reversed 26.8 mm cases from exact generated-label provenance before any topology repair.
+  engineering:
+  - Use the real provenance capture for 2909-2920 and 2439-2450 to establish expected source/component orientation and qualify the smallest safe order-authority mutation, or remain stopped.
+context_capsule:
+  product_goal: Close the remaining non-coordinate geometry subset of Issue #769 without heuristic reordering.
+  roadmap_position: WP-769-GEOMETRY remains ACTIVE after the provenance instrumentation checkpoint.
+  why_this_work_exists: The provenance tool now exists, but the exact enriched/output artifact carrying the reported generated labels has not been supplied or captured.
+  current_architecture: Enrichment may synthesize positive node numbers; base _build_edges uses branch array order as edge orientation; PR #417 owns coordinate custody.
+  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007]
+  current_implementation_state: Provenance instrumentation is complete. No topology/order production mutation has occurred.
+  known_problems:
+  - Reported generated ranges 2909-2920 and 2439-2450 each include an apparent 26.8 mm reversed segment, but their exact source records and expected orientation are not yet durably bound.
+  deliberate_non_goals:
+  - No coordinate/origin repair or PR #417 path edit.
+  - No topology write before real provenance is READY and a fresh qualification/takeover chain passes.
+  - No support/weight/mapping/regex/B31.3/master-import/OD work.
+repository_discovery:
+- id: DSTEP-04-01
+  action: VERIFY
+  target: agents/relay/REPO_STATE.yaml
+  question: Does state route from CP-769-03 to EP-769-04/WP-769-GEOMETRY in READ_ONLY mode?
+  expected_outputs: [active_ep, previous_checkpoint, material_authority]
+  receipt_required: true
+  on_failure: Reconcile relay custody.
+- id: DSTEP-04-02
+  action: RESOLVE
+  targets: [exact enriched/output XML containing 2909-2920 and 2439-2450, corresponding raw source XML, converters/scripts/xml_to_cii2019_order_provenance.py]
+  question: Can every reported generated label be mapped to exact source branch/component endpoint records and source order?
+  expected_outputs: [provenance_capture, source_records, source_order]
+  receipt_required: true
+  on_failure: Stop with ESSENTIAL_INPUT_MISSING.
+- id: DSTEP-04-03
+  action: TRACE
+  targets: [converters/scripts/xml_to_cii2019.py, converters/scripts/xml_to_cii2019_direction.py, converters/scripts/xml_to_cii2019_contracted_direction.py]
+  question: Given recovered real source records, what is the first wrong order/orientation boundary and the independently expected element direction?
+  expected_outputs: [first_wrong_boundary, expected_order, direction_authority]
+  receipt_required: true
+  on_failure: Do not edit production code.
+- id: DSTEP-04-04
+  action: COMPARE
+  targets: [github:reallaksh19/3D_Converters#417, converters/scripts/xml_to_cii2019.py]
+  question: Is the qualified topology write set still disjoint from PR #417 coordinate custody immediately before mutation?
+  expected_outputs: [pr417_paths, candidate_paths, overlap]
+  receipt_required: true
+  on_failure: Stop with WRITE_COLLISION.
+inputs:
+- id: INPUT-ORDER-PROVENANCE
+  name: Real generated-label source provenance
+  description: Exact enriched/output XML containing generated labels 2909-2920 and 2439-2450 plus the corresponding raw source XML, joined by the provenance diagnostic to branch/component endpoint records and source branch order.
+  authority: Real reported-case artifact plus exact raw source identity; not inferred from node-number magnitude or coordinates.
+  source: Issue #769 reported ranges and provenance capture produced by xml_to_cii2019_order_provenance.py.
+  type: topology-provenance
+  units: mm
+  editable: false
+  applicability: CURRENT_EP_REQUIRED
+  resolution: MISSING_BLOCKING
+  consumers: [STEP-ORDER-02, AC-ORDER-REAL-01, AC-ORDER-REAL-02]
+  validation:
+  - Every repaired generated label must have an EXACT source match.
+  - Expected orientation must be established from source/component connectivity evidence.
+  - Any unmatched or ambiguous required label blocks the repair.
+  stale_if:
+  - The reported enriched/output artifact changes.
+  - The corresponding raw source XML changes.
+  - The enrichment numbering or source identity contract changes.
+benchmarks:
+- id: BENCH-ORDER-769
+  name: Real reversed-length provenance cases
+  purpose: Reconstruct the reported 26.8 mm reversed segments and provide an independent expected orientation for repair validation.
+  source: Issue #769 ranges plus the required real provenance capture.
+  oracle_class: REFERENCE_DATA
+  payload:
+    ranges:
+    - {elements: 2909-2920, reported_length_mm: 26.8, defect: reversed}
+    - {elements: 2439-2450, reported_length_mm: 26.8, defect: similar-reversed}
+  expected: Recovered source/component connectivity establishes the expected direction for each reported segment; proposed implementation output is not the oracle.
+  tolerance: {absolute_mm: 1.0e-06}
+  independence: Expected orientation must come from the recovered real source/component evidence, not from _build_edges or a proposed repair.
+  applicability: CURRENT_EP_REQUIRED
+  resolution: MISSING_BLOCKING
+  verifies: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, TEST-ORDER-REAL-PY]
+  stale_if:
+  - Real source/provenance capture changes.
+  - Any required generated label is unmatched or ambiguous.
+scope:
+  allowed:
+  - {path: converters/scripts/xml_to_cii2019.py, reason: Potential order-authority owner only after real provenance and fresh qualification identify it as the first wrong boundary.}
+  - {path: converters/scripts/test_xml_to_cii2019_edge_order_authority.py, reason: Future focused regression after qualification.}
+  - {path: agents/relay, reason: v2.5 custody.}
+  allowed_reads:
+  - {path: converters/scripts/xml_to_cii2019_order_provenance.py, reason: Capture exact generated-label provenance.}
+  - {path: converters/scripts/xml_to_cii2019_direction.py, reason: Trace direction handling.}
+  - {path: converters/scripts/xml_to_cii2019_contracted_direction.py, reason: Trace production wrapper.}
+  - {domain: GitHub PR #417, reason: Coordinate-custody non-overlap.}
+  protected:
+  - {invariant: Legitimate branch/reducer/tee/endpoint topology is preserved and no global numeric/coordinate heuristic is introduced., reason: Geometry safety.}
+  - {invariant: PR #417 coordinate/origin behavior is unchanged., reason: Separate custody.}
+  prohibited:
+  - {domain: Any material write before INPUT-ORDER-PROVENANCE is READY and QSET-769-05 has a PASS qualification/takeover chain., reason: Current essential-input gate.}
+  - {domain: PR #417 changed files, reason: Separate coordinate custody.}
+  - {domain: Global NodeNumber sorting or coordinate-sign reversal, reason: Unsafe heuristic.}
+  owner_reserved:
+  - {decision: Merge PR, reason: Owner-only merge.}
+  - {decision: Broaden into PR #417 coordinate custody, reason: Requires reconciliation.}
+anti_drift:
+  do_not:
+  - {id: ADR-ORDER-04, restriction: Do not infer expected order from generated node-number magnitude., reason: Identifiers are not a topology oracle.}
+  - {id: ADR-ORDER-05, restriction: Do not mutate production code until all required real source matches are exact., reason: Input authority.}
+  - {id: ADR-ORDER-06, restriction: Do not edit PR #417 paths., reason: Avoid custody collision.}
+  stale_if:
+  - PR #417 changes the candidate owner path.
+  - Main/base moves before write without a valid drift receipt.
+  - The real provenance capture changes.
+implementation_plan:
+- id: STEP-ORDER-02
+  objective: Recover real source provenance, establish the independent expected orientation, then implement only the qualified first wrong order boundary.
+  targets: [converters/scripts/xml_to_cii2019.py, converters/scripts/test_xml_to_cii2019_edge_order_authority.py]
+  reads: [converters/scripts/xml_to_cii2019_order_provenance.py, converters/scripts/xml_to_cii2019_direction.py, converters/scripts/xml_to_cii2019_contracted_direction.py, github:reallaksh19/3D_Converters#417]
+  writes: [converters/scripts/xml_to_cii2019.py, converters/scripts/test_xml_to_cii2019_edge_order_authority.py]
+  inputs: [INPUT-ORDER-PROVENANCE]
+  acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
+  tests: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
+  expected_state: Only a source-proven wrong orientation boundary changes; valid topology and coordinate custody remain unchanged.
+  stop_conditions:
+  - INPUT-ORDER-PROVENANCE is not READY.
+  - MATERIAL_WRITE_READY fails.
+  - Any required generated label is unmatched/ambiguous.
+  - PR #417 overlaps the demonstrated owner.
+  - Protected invariant fails.
+next_work:
+  phase_transition: false
+  steps:
+  - order: 1
+    action: Obtain the real generated-label artifact, produce the provenance capture, and complete fresh topology qualification before any material write.
+    targets: [converters/scripts/xml_to_cii2019_order_provenance.py, converters/scripts/xml_to_cii2019.py]
+    inputs: [INPUT-ORDER-PROVENANCE]
+    tests: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
+    benchmarks: [BENCH-ORDER-769]
+    acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
+    expected_result: Either the real cases establish an independently qualified topology repair or the EP remains stopped without heuristic mutation.
+    stop_if:
+    - The exact enriched/output artifact or raw source XML is unavailable.
+    - Any required provenance match is not exact.
+    - Fresh topology qualification is not PASS.
+qualification_boundary:
+  required: true
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - Real provenance is required to reopen the original topology/order mutation boundary.
+  - Expected orientation must be independent of implementation.
+  - PR #417 custody remains protected.
+  question_set: {id: QSET-769-05, path: agents/relay/certifications/qualification/QSET-769-05.yaml}
+quality:
+  applicable:
+  - {blueprint: coding, reason: Potential future production topology change., review_focus: [authority, failure]}
+  - {blueprint: testing, reason: Exact real-case topology regression required., review_focus: [order, negative_controls]}
+  - {blueprint: software-design, reason: Topology authority boundary must be explicit., review_focus: [ownership, provenance]}
+  - {blueprint: code-review, reason: Engineering-critical geometry change., review_focus: [scope, broadening]}
+  - {blueprint: github-delivery, reason: Issue/PR delivery., review_focus: [truth, merge_authority]}
+  not_applicable:
+  - {blueprint: ui-ux, reason: No UI., review_focus: []}
+  - {blueprint: accessibility, reason: No UI., review_focus: []}
+  - {blueprint: performance, reason: No performance objective., review_focus: []}
+  - {blueprint: migration, reason: No persisted data migration., review_focus: []}
+  review_contract:
+    required: true
+    required_before_checkpoint: true
+    receipt_namespace: QRV-
+    required_outputs: [procedure_results, findings, owner_report, successor_handover]
+  findings_policy: Findings block only through an acceptance/authority/invariant/safety stop.
+  ordinary_findings_are_hard_stops: false
+acceptance:
+- {id: AC-ORDER-REAL-01, description: Both reported generated ranges are mapped to exact source records and their reversed 26.8 mm segments are reproduced/corrected through documented source/topology authority., weight: 60, verification: [TEST-ORDER-REAL-PY, BENCH-ORDER-769]}
+- {id: AC-ORDER-REAL-02, description: Valid branch/reducer/tee/endpoint topology is preserved and no global numeric or coordinate heuristic reordering is introduced., weight: 25, verification: [TEST-ORDER-REAL-PY, BENCH-ORDER-769]}
+- {id: AC-ORDER-REAL-SCOPE, description: No PR #417 coordinate-custody path or unrelated subsystem changes., weight: 15, verification: [TEST-ORDER-REAL-SCOPE]}
+validation:
+- {id: TEST-ORDER-REAL-PY, class: MUST_PASS, method: python -m pytest -q converters/scripts/test_xml_to_cii2019_edge_order_authority.py, proves: [AC-ORDER-REAL-01, AC-ORDER-REAL-02]}
+- {id: TEST-ORDER-REAL-SCOPE, class: MUST_PASS, method: Compare changed paths with PR #417; intersection must be empty., proves: [AC-ORDER-REAL-SCOPE]}
+failure_and_stop_conditions:
+  hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
+report_contract:
+  sections: [Executive state, Work completed, Files changed, Acceptance matrix, Tests and evidence, Known limitations, Owner decisions required, Exact next actions]
+  payloads: [material_ref, provenance_capture, validation_results, successor_boundary]
+checkpoint_contract:
+  required: true
+  acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
+  validation: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
+  carry_forward:
+  - Formal TEST-OD-PY and earlier FBLI/legacy validation debt remain pending unless superseded by Owner disposition.
+successor_relay:
+  required: true
+  duties:
+  - Preserve the real provenance capture and independent expected orientation in any successor.
+  - Do not claim topology completion without the declared real-case regressions.
+  required_outputs: [provenance_capture, qualified_topology_result, validation_status]
