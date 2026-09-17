@@ -5,7 +5,7 @@ generation:
   roadmap_revision: RM-0001
   issue_graph_revision: IG-769-0001
   execution_ref: EP-769-03
-  state: PREPARED
+  state: IN_SYNC
   supersedes_generation: GHGEN-769-0003
   basis:
   - agents/relay/checkpoints/CP-769-02.yaml
@@ -15,7 +15,7 @@ generation:
 operations:
 - id: GHOP-769-0004
   kind: PUBLISH_HANDOVER
-  state: PREPARED
+  state: VERIFIED
   idempotency_key: relay:GHGEN-769-0004:GHOP-769-0004
   depends_on: []
   subject:
@@ -32,17 +32,21 @@ operations:
     github_state: OPEN
     relationships: []
   publication:
-    attempt_count: 0
-    last_attempt_basis: []
-    receipt: null
+    attempt_count: 1
+    last_attempt_basis:
+    - agents/relay/certifications/discovery/DISC-769-03.yaml
+    - agents/relay/certifications/qualification/QUAL-769-03.yaml
+    receipt: issuecomment-5720401266
     last_error: null
   verification:
-    status: NOT_RUN
-    observed_issue_number: null
-    observed_issue_id: null
-    observed_github_state: null
+    status: PASS
+    observed_issue_number: 769
+    observed_issue_id: I_kwDOTMpahs8AAAABRivUrA
+    observed_github_state: OPEN
     observed_relationships: []
-    basis: []
+    basis:
+    - GitHub issue comment creation receipt 5720401266 contains relay-operation:GHOP-769-0004.
+    - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5720401266
   reconciliation:
     issue_graph_effects:
     - node: ISSUE-769
