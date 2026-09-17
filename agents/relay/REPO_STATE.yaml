@@ -13,68 +13,62 @@ roadmap:
 current_position:
   objective: OBJ-769
   phase: PHASE-769-POSTMERGE
-  work_package: WP-769-FBLI
+  work_package: WP-769-GEOMETRY
   work_packages: []
 execution_policy:
   mode: SERIAL
 active_ep:
-  id: EP-769-01
-  path: agents/relay/execution-packages/EP-769-01.yaml
-  state: ACTIVE
+  id: EP-769-02
+  path: agents/relay/execution-packages/EP-769-02.yaml
+  state: EXECUTABLE
   continuity_receipt: null
 last_checkpoint:
-  id: NONE
-  path: null
+  id: CP-769-01
+  path: agents/relay/checkpoints/CP-769-01.yaml
 predecessor_join:
   id: null
   path: null
 predecessor_replan:
   id: null
   path: null
-takeover_admissions:
-- route_key: SERIAL:EP-769-01
-  candidate:
-    agent_instance_id: chatgpt:issue769-v25-write-candidate-20260917T115517Z
-  discovery_receipt:
-    id: DISC-769-01
-    path: agents/relay/certifications/discovery/DISC-769-01.yaml
-  certification:
-    id: TC-769-01
-    path: agents/relay/certifications/takeover/TC-769-01.yaml
+takeover_admissions: []
 progress:
   overall_percent: 3.75
   phase_percent: 3.75
-  ep_percent: 15
+  ep_percent: 0
   basis_revision: PB-769-0001
 status_planes:
   execution:
-    state: WAITING
+    state: READY
     can_continue: true
     material_authority: READ_ONLY
-    next_action: Run TEST-FBLI and TEST-LEGACY in an executable checkout or authorized validation carrier; do not advance to WP-769-GEOMETRY or make more production edits until those required tests pass or produce a concrete failure to repair.
+    next_action: Owner qualification/evaluation of QSET-769-02 is required before candidate DISC/QUAL/TC and MATERIAL_WRITE_READY for the geometry OD slice.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - QRV-769-01 reports testing procedure NOT_RUN because no executable private checkout or matching GitHub workflow is available through the connected tool surface.
+    - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: FBLI production repair is implemented and scope isolation is proven. Legacy Issue #769 BM-001/003/006/007/008 remain PASS, BM-002/005 remain partial, BM-004/009 remain NOT_RUN. EP-769-01 TEST-FBLI and TEST-LEGACY are NOT_RUN; no behavioral PASS is claimed.
+    summary: EP-769-02/QSET-769-02 are durable; X002 raw-versus-effective OD authority is grounded; proposed OD paths are disjoint from PR #417; no geometry production mutation has started.
     not_run:
     - id: V25-CONFORMANCE
-      reason: No engineering-pr-delivery-v2.5 workflow exists in this repository and the connected tool surface does not expose an executable private checkout; exact Common validator entrypoints were not executed.
+      reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
+    - id: GEOMETRY-TAKEOVER
+      reason: EP-769-02 has not received Owner qualification or candidate takeover certification.
+      cause: OWNER_DECISION_REQUIRED
+    - id: TEST-OD-JS
+      reason: Implementation has not started.
+      cause: DEPENDENCY_WAIT
+    - id: TEST-OD-PY
+      reason: Implementation has not started.
+      cause: DEPENDENCY_WAIT
     - id: TEST-FBLI
-      reason: Focused pytest command has no executable runner in the connected tool surface; branch/PR workflows did not run it.
-      cause: UNAVAILABLE_TOOL
+      reason: Deferred by ODR-769-0003 to release qualification.
+      cause: OWNER_DEFERRAL
     - id: TEST-LEGACY
-      reason: Legacy patched-process pytest command has no executable runner in the connected tool surface; branch/PR workflows did not run it.
-      cause: UNAVAILABLE_TOOL
-    - id: BM-004
-      reason: Legacy empirical exact execution remains environment-blocked.
-      cause: UNAVAILABLE_TOOL
-    - id: BM-009
-      reason: Legacy full standalone regression remains environment-blocked.
-      cause: UNAVAILABLE_TOOL
+      reason: Deferred by ODR-769-0003 to release qualification.
+      cause: OWNER_DEFERRAL
   stop:
     active: false
     category: NONE
@@ -82,33 +76,26 @@ status_planes:
     basis: []
 projection:
   required: true
-  state: IN_SYNC
-  operation_id: GHGEN-769-0001
+  state: PENDING
+  operation_id: GHGEN-769-0002
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0001.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0002.yaml
   roadmap_revision: RM-0001
-  execution_ref: EP-769-01
-  receipt: github-generation:GHGEN-769-0001
+  execution_ref: EP-769-02
+  receipt: null
   basis:
-  - github:reallaksh19/3D_Converters#769 comment 5713341657
-  - agents/relay/projection/generations/GHOBS-769-0001.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5713516480
-  observed:
-    operation_id: GHGEN-769-0001
-    target: github:reallaksh19/3D_Converters:issue:769
-    roadmap_revision: RM-0001
-    execution_ref: EP-769-01
-    receipt: issuecomment-5713516480
-    basis:
-    - agents/relay/projection/generations/GHOBS-769-0001.yaml
+  - agents/relay/checkpoints/CP-769-01.yaml
+  - agents/relay/execution-packages/EP-769-02.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0004.yaml
   superseded_operations: []
 relay_readiness:
   baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - Candidate-specific takeover is admitted through DISC-769-01, QUAL-769-01 and TC-769-01 with Owner evaluation ODR-769-0002.
-  - FBLI implementation exists on draft PR #772; current execution is READ_ONLY pending TEST-FBLI and TEST-LEGACY.
-  - Exact repository-native v2.5 validator execution remains NOT_RUN and is recorded in the evidence plane.
+  - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
+  - EP-769-02 and QSET-769-02 are durable and production remains READ_ONLY.
+  - GitHub projection GHGEN-769-0002 is prepared but not yet published/verified.
+  - EP-specific Owner qualification/takeover remains pending.
 chat_context_required: false
