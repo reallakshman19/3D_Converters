@@ -31,7 +31,16 @@ predecessor_join:
 predecessor_replan:
   id: null
   path: null
-takeover_admissions: []
+takeover_admissions:
+- route_key: SERIAL:EP-769-01
+  candidate:
+    agent_instance_id: chatgpt:issue769-v25-write-candidate-20260917T115517Z
+  discovery_receipt:
+    id: DISC-769-01
+    path: agents/relay/certifications/discovery/DISC-769-01.yaml
+  certification:
+    id: TC-769-01
+    path: agents/relay/certifications/takeover/TC-769-01.yaml
 progress:
   overall_percent: 0
   phase_percent: 0
@@ -41,23 +50,20 @@ status_planes:
   execution:
     state: READY
     can_continue: true
-    material_authority: READ_ONLY
-    next_action: Independent candidate must execute repository-only DISC/Q1-Q5 qualification and takeover certification for SERIAL:EP-769-01; only then run MATERIAL_WRITE_READY before production edits.
+    material_authority: WRITE
+    next_action: Derive the live MATERIAL_WRITE_READY predicate for chatgpt:issue769-v25-write-candidate-20260917T115517Z and, if true, implement only STEP-FBLI-01.
   quality:
     state: CLEAR
     findings: []
   evidence:
     state: PARTIAL
-    summary: Legacy Issue #769 benchmarks BM-001/003/006/007/008 pass; BM-002/005 are partial and BM-004/009 are not run. The v2.5 baton and GitHub handover projection are durable, but repository-native v2.5 validator execution and candidate takeover are NOT_RUN; FBLI production repair is not yet executed.
+    summary: Legacy Issue #769 benchmarks BM-001/003/006/007/008 pass; BM-002/005 are partial and BM-004/009 are not run. Owner-qualified v2.5 candidate DISC/QUAL/TC is now durable for EP-769-01; FBLI implementation/tests remain pending.
     not_run:
     - id: V25-CONFORMANCE
       reason: No engineering-pr-delivery-v2.5 workflow exists in this repository and the connected tool surface does not expose an executable private checkout; exact Common validator entrypoints were not executed.
       cause: UNAVAILABLE_TOOL
-    - id: V25-TAKEOVER
-      reason: No independent candidate DISC/QUAL/TC has been prepared for EP-769-01.
-      cause: NOT_SCHEDULED
     - id: FBLI-IMPLEMENTATION
-      reason: Production mutation is withheld until MATERIAL_WRITE_READY passes.
+      reason: Production mutation has not yet been applied; live branch/base/write-scope gate must be rechecked immediately before the write.
       cause: DEPENDENCY_WAIT
     - id: BM-004
       reason: Legacy empirical exact execution remains environment-blocked.
@@ -98,6 +104,6 @@ relay_readiness:
   projection_ready: true
   handover_ready: true
   reasons:
-  - Candidate-specific takeover is intentionally absent; handover readiness is candidate-independent and does not grant material WRITE.
+  - Candidate-specific takeover is admitted through DISC-769-01, QUAL-769-01 and TC-769-01 with Owner evaluation ODR-769-0002.
   - Exact repository-native v2.5 validator execution remains NOT_RUN and is recorded in the evidence plane.
 chat_context_required: false
