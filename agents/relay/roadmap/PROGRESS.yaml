@@ -3,24 +3,24 @@ progress_basis:
   id: PB-769-0001
   roadmap_revision: RM-0001
 overall:
-  earned_weight: 0
+  earned_weight: 3.75
   total_weight: 100
-  percent: 0
+  percent: 3.75
 objectives:
 - id: OBJ-769
-  earned_weight: 0
+  earned_weight: 3.75
   total_weight: 100
-  percent: 0
+  percent: 3.75
 phases:
 - id: PHASE-769-POSTMERGE
-  earned_weight: 0
+  earned_weight: 3.75
   total_weight: 100
-  percent: 0
+  percent: 3.75
 work_packages:
 - id: WP-769-FBLI
-  earned_weight: 0
+  earned_weight: 3.75
   total_weight: 25
-  percent: 0
+  percent: 15
 - id: WP-769-GEOMETRY
   earned_weight: 0
   total_weight: 25
@@ -35,30 +35,37 @@ work_packages:
   percent: 0
 execution_packages:
 - id: EP-769-01
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 100
-  percent: 0
+  percent: 15
 implementation_steps:
 - id: STEP-FBLI-01
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 100
-  percent: 0
+  percent: 15
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 0
   total_weight: 60
   percent: 0
-  status: NOT_STARTED
-  basis: []
+  status: NOT_RUN
+  basis:
+  - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
+  - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py@92360d5de50234091278c5d5609e75fadc3e347c
+  - Required TEST-FBLI execution is NOT_RUN.
 - id: AC-FBLI-02
   earned_weight: 0
   total_weight: 25
   percent: 0
-  status: NOT_STARTED
-  basis: []
+  status: NOT_RUN
+  basis:
+  - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
+  - Required TEST-FBLI and TEST-LEGACY execution is NOT_RUN.
 - id: AC-SCOPE-01
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 15
-  percent: 0
-  status: NOT_STARTED
-  basis: []
+  percent: 100
+  status: COMPLETE
+  basis:
+  - PR #772 changed-file inventory contains no path changed by PR #417.
+  - Production patch is confined to converters/scripts/xml_to_cii2019_patched.py; focused regression is a new file.
