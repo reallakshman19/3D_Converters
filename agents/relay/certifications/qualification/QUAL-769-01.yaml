@@ -1,0 +1,101 @@
+schema_version: relay-v2.5-qualification
+id: QUAL-769-01
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-write-candidate-20260917T115517Z
+question_set:
+  id: QSET-769-01
+  path: agents/relay/certifications/qualification/QSET-769-01.yaml
+route:
+  route_key: SERIAL:EP-769-01
+  mode: SERIAL
+  execution_ref: EP-769-01
+  ep_id: EP-769-01
+  ep_path: agents/relay/execution-packages/EP-769-01.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-FBLI
+  ep_contract_digest: sha256:c87d66245989b8f195033ce274c190cfd141dec4c7d3cfcd3519fc56b7506937
+answers:
+- id: Q1
+  response: The active production path enters through the patched XML→CII wrapper, where negative-node eligibility is decided before the base parser. The wrapper currently owns this admission decision through RENUMBERABLE_NEGATIVE_TYPES; the base parser then consumes only positive node numbers and later model/CII serialization consumes the parsed nodes.
+  outputs:
+    production_entrypoint: converters/scripts/xml_to_cii2019_patched.py negative-node renumbering, reached by the contracted-direction wrapper in the production invocation path
+    state_owner: RENUMBERABLE_NEGATIVE_TYPES and the wrapper negative-node renumber pass
+    authority_source: EP-769-01 INPUT-FBLI plus current converter taxonomy/source
+    downstream_consumer: converters/scripts/xml_to_cii2019.py _parse_xml_document, conversion model construction, then CII serialization
+  evidence:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/xml_to_cii2019.py
+  - agents/relay/execution-packages/EP-769-01.yaml
+- id: Q2
+  response: A -1 FBLI reaches the wrapper with a length-bearing blind-flange record. Because FBLI is not in {FLAN,RIGID}, the wrapper leaves NodeNumber negative. The base parser rejects node_number <= 0 before model construction, so the blind flange disappears. The first wrong authority boundary is component-family admission in the wrapper, not CII serialization.
+  outputs:
+    reconstruction_steps:
+    - Read ComponentType=FBLI, NodeNumber=-1 and ElementLengthMm in the wrapper.
+    - Evaluate existing negative-node eligibility; FBLI is absent from RENUMBERABLE_NEGATIVE_TYPES.
+    - Node remains negative.
+    - Base _parse_xml_document rejects node_number <= 0.
+    - No model/CII record can be produced for that node.
+    intermediate_result: The record is lost before model creation because negative FBLI never receives a positive synthetic node number.
+    expected_result: Classifying FBLI into the existing flange retention family causes eligible FBLI to be positively renumbered before the base parser and therefore retained.
+  evidence:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/xml_to_cii2019.py
+  - agents/relay/execution-packages/EP-769-01.yaml BENCH-FBLI
+- id: Q3
+  response: Extend only the flange-family admission so FBLI receives the same existing negative-node treatment as FLAN. Preserve all existing length-bearing preconditions and do not generalize unknown negative component types.
+  outputs:
+    mutation_effect: FBLI is admitted to the existing flange-family negative-node renumber path; no downstream exception is added.
+    protected_invariant: FLAN and RIGID behavior stays unchanged, and unrelated negative component types remain non-renumberable/fail-closed.
+    falsifier: Any regression in FLAN/RIGID or any negative INST becoming renumberable falsifies the change.
+  evidence:
+  - agents/relay/certifications/qualification/QSET-769-01.yaml
+  - agents/relay/execution-packages/EP-769-01.yaml AC-FBLI-02
+- id: Q4
+  response: Use the source-reported blind-flange record and declared family boundary as the expected oracle, independently of the production classifier. Exercise FBLI, FLAN, RIGID and INST with equivalent eligible length-bearing inputs and compare admission/retention outcomes exactly.
+  outputs:
+    independent_method: Construct a focused XML fixture from BENCH-FBLI and explicit FLAN/RIGID/INST controls, run the wrapper/base parse boundary, and inspect positive-node retention.
+    predicted_result: FBLI, FLAN and RIGID eligible negative records survive via positive renumbering; negative INST remains excluded.
+    tolerance_or_exactness: Exact categorical outcome; no numerical tolerance.
+  evidence:
+  - agents/relay/execution-packages/EP-769-01.yaml BENCH-FBLI
+  - Issue #769 durable FBLI record represented in BENCH-FBLI
+- id: Q5
+  response: Make the smallest owning-boundary change in xml_to_cii2019_patched.py so FBLI maps into flange-family negative-node eligibility, then add a dedicated regression file. Do not touch PR #417 coordinate/topology paths or other Issue #769 subsystems.
+  outputs:
+    first_change: Introduce canonical negative-node family classification including FBLI as flange-family and use it for the existing renumber eligibility check.
+    predicted_before: Eligible NodeNumber=-1 FBLI remains negative and is discarded by the base parser.
+    predicted_after: Eligible NodeNumber=-1 FBLI receives a positive node number and is retained; FLAN/RIGID remain stable and INST remains excluded.
+    verification: Run TEST-FBLI, TEST-LEGACY and TEST-SCOPE from EP-769-01 and compare changed paths against PR #417.
+  evidence:
+  - agents/relay/execution-packages/EP-769-01.yaml STEP-FBLI-01
+  - GitHub PR #417 changed-file readback
+  - agents/relay/certifications/discovery/DISC-769-01.yaml
+evaluated_by:
+  type: OWNER
+  identity: reallaksh19
+  basis:
+  - agents/relay/roadmap/owner-decisions/ODR-769-0002.yaml
+  - 'Owner directive: qualified for write, proceed next, received 2026-09-17T11:55:17Z.'
+evaluations:
+- id: Q1
+  status: PASS
+  basis: [Owner qualification ODR-769-0002 and repository-only production-path reconstruction.]
+- id: Q2
+  status: PASS
+  basis: [First wrong boundary is demonstrated by wrapper eligibility plus base positive-node filter.]
+- id: Q3
+  status: PASS
+  basis: [Mutation is bounded to flange-family admission and retains explicit negative controls.]
+- id: Q4
+  status: PASS
+  basis: [BENCH-FBLI supplies an independent source record and exact family/control outcomes.]
+- id: Q5
+  status: PASS
+  basis: [First slice matches EP-769-01 and excludes PR #417 paths.]
+self_evaluation:
+  allowed: false
+result: PASS
+conversation_context_used: false
