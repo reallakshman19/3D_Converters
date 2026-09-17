@@ -1,0 +1,53 @@
+schema_version: relay-v2.5
+roadmap:
+  id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+  title: 'Issue #769 XML→CII 2019 Standalone post-merge repair and qualification'
+objectives:
+- id: OBJ-769
+  title: 'Close Issue #769 with bounded robust repairs and executable evidence'
+  state: ACTIVE
+  definition: DETAILED
+  weight: 100
+  phases:
+  - id: PHASE-769-POSTMERGE
+    title: Post-merge defect repair and release qualification
+    state: ACTIVE
+    definition: DETAILED
+    weight: 100
+    work_packages:
+    - id: WP-769-FBLI
+      title: Canonical blind-flange family retention for negative FBLI nodes
+      state: ACTIVE
+      definition: DETAILED
+      execution_status: ACTIVE
+      weight: 25
+      depends_on: []
+      issue: ISSUE-769
+    - id: WP-769-GEOMETRY
+      title: OD/orientation/length node-case qualification and non-overlapping repair
+      state: PLANNED
+      definition: DETAILED
+      execution_status: WAITING
+      weight: 25
+      depends_on:
+      - WP-769-FBLI
+      issue: ISSUE-769
+    - id: WP-769-SUPPORT
+      title: Fallback REST/support provenance qualification and repair
+      state: PLANNED
+      definition: DETAILED
+      execution_status: WAITING
+      weight: 25
+      depends_on:
+      - WP-769-GEOMETRY
+      issue: ISSUE-769
+    - id: WP-769-RELEASE
+      title: Outstanding BM-002/BM-004/BM-005/BM-009 release qualification
+      state: PLANNED
+      definition: DETAILED
+      execution_status: WAITING
+      weight: 25
+      depends_on:
+      - WP-769-SUPPORT
+      issue: ISSUE-769
