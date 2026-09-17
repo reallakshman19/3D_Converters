@@ -1,0 +1,50 @@
+schema_version: relay-v2.5
+id: ODR-769-0001
+decision:
+  authority: OWNER
+  kind: INTENT_MUTATION
+  statement: 'Continue Issue #769 post-merge repair work under engineering-pr-delivery-v2.5, after updating the parent issue with detailed RCA and benchmark status.'
+  source: 'Owner directives dated 2026-09-17T10:06:41Z, 2026-09-17T10:23:27Z, and 2026-09-17T10:59:35Z; projected to GitHub Issue #769 comment 5713341657.'
+effects:
+  requirement_disposition: APPLIED
+  grants_material_write_authority: false
+  pending_items:
+  - Candidate-specific v2.5 takeover certification before production writes.
+impact:
+  class:
+  - LOCAL
+  - CONTROL_PLANE
+affected:
+  objectives:
+  - OBJ-769
+  phases:
+  - PHASE-769-POSTMERGE
+  work_packages:
+  - WP-769-FBLI
+  - WP-769-GEOMETRY
+  - WP-769-SUPPORT
+  - WP-769-RELEASE
+  execution_packages:
+  - EP-769-01
+  issues:
+  - ISSUE-769
+change_intake:
+  previous_concept: 'Legacy v2 Issue #769 chain was merged and restricted to validation-only continuation.'
+  requested_concept: Use v2.5 custody and continue bounded post-merge repair work, beginning with the demonstrated blind-flange classification defect.
+  retained_behavior:
+  - Historical benchmark outcomes remain evidence and are not rewritten.
+  - kg-to-CII writer scale remains 10.
+  - Rigid-weight precedence remains Final > Match-1 > legacy > source XML.
+  - Empirical validation remains read-only.
+  - Branch ambiguity/designator mutation and B31.3 authority remain fail-closed.
+  invalidated_behavior:
+  - The legacy v2 endpoint is not executable authority under v2.5.
+  - The old validation-only next-action restriction is superseded by the Owner's explicit coding continuation, subject to v2.5 write readiness.
+  new_scope:
+  - 'First material slice: canonical FBLI blind-flange family retention before negative-node filtering.'
+  - 'Coordinate/topology custody owned by open PR #417 is excluded from the first slice.'
+required_reconciliation:
+- Create repository v2.5 roadmap, profile, progress, semantic EP and QSET.
+- Preserve legacy v2 chain files as migration evidence only.
+- Obtain independent candidate DISC/QUAL/TC and runtime MATERIAL_WRITE_READY before editing production code.
+status: APPLIED
