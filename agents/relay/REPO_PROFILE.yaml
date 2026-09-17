@@ -1,0 +1,35 @@
+schema_version: relay-v2.5
+repository_type: application
+default_branch: main
+important_paths:
+  source:
+  - converters/scripts
+  - converters/xml-cii-2019-standalone
+  - converters/xml-cii2019-core
+  tests:
+  - converters/scripts/test_xml_to_cii2019_patched_process.py
+  - tests
+  documentation:
+  - AGENTS.md
+  - .agents/AGENTS.md
+  - docs
+  engineering_specs:
+  - agents/chains/XMLCII-ISSUE-769
+  - agents/relay
+commands:
+  unit_test: python -m pytest -q converters/scripts/test_xml_to_cii2019_patched_process.py
+  e2e_test: ''
+  lint: ''
+  typecheck: ''
+  build: ''
+protected_domains:
+- domain: CII engineering semantics
+  rule: Fail closed on uncertain component/topology/support authority; do not weaken validation to obtain output.
+- domain: Coordinate/topology custody
+  rule: 'Open PR #417 owns the current coordinate/topology repair slice; Issue #769 first WP must not edit its files.'
+generated_paths:
+- .backups
+repository_rules:
+- AGENTS.md
+- .agents/AGENTS.md
+- Squash-only merge history; merge only with explicit Owner authorization.
