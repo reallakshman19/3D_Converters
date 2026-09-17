@@ -1,0 +1,75 @@
+schema_version: relay-v2.5
+checkpoint_id: CP-769-01
+ep_id: EP-769-01
+roadmap_basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+execution_basis:
+  material_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+implementation_result:
+  completed_steps:
+  - STEP-FBLI-01
+  files_changed:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  commits:
+  - 7e534211b9f68faa663cf70b02a59c540e184f60
+  - 92360d5de50234091278c5d5609e75fadc3e347c
+acceptance_results:
+- id: AC-FBLI-01
+  status: NOT_RUN
+  basis:
+  - FBLI implementation and exact regression exist, but TEST-FBLI was not executed.
+  disposition: OWNER_DEFERRED_BY_ODR-769-0003
+- id: AC-FBLI-02
+  status: NOT_RUN
+  basis:
+  - FLAN/RIGID stability and INST fail-closed behavior are encoded in the regression, but TEST-FBLI/TEST-LEGACY were not executed.
+  disposition: OWNER_DEFERRED_BY_ODR-769-0003
+- id: AC-SCOPE-01
+  status: PASS
+  basis:
+  - PR #772 changed-path audit is disjoint from PR #417 coordinate/topology files.
+  - Production patch is confined to converters/scripts/xml_to_cii2019_patched.py.
+validation_results:
+- id: TEST-FBLI
+  status: NOT_RUN
+  basis_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+  reason: No executable private checkout or matching GitHub workflow is available through the connected tool surface; Owner deferred this validation via ODR-769-0003.
+- id: TEST-LEGACY
+  status: NOT_RUN
+  basis_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+  reason: No executable private checkout or matching GitHub workflow is available through the connected tool surface; Owner deferred this validation via ODR-769-0003.
+- id: TEST-SCOPE
+  status: PASS
+  basis_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+  evidence:
+  - PR #772 changed-file inventory contains no PR #417 path.
+quality_review:
+  id: QRV-769-01
+  path: agents/relay/quality/QRV-769-01.yaml
+  digest: sha256:7f14233f126fa7201b791cef9818757c7ead06845f56a3a00c86cd4fab2d9efc
+quality_findings: []
+known_limitations:
+- TEST-FBLI and TEST-LEGACY remain NOT_RUN and must be executed before final release/issue closure.
+- Exact repository-native v2.5 conformance remains NOT_RUN because no executable private checkout is exposed.
+discoveries:
+- FBLI loss occurs before the base parser positive-node gate and is repaired at the negative-node family eligibility boundary.
+- The base converter has a separate FLAN-specific rigid-index condition, but it is not the reported non-rigid FBLI loss boundary.
+roadmap_reconciliation:
+  result: STATUS_UPDATE
+  status_updates:
+  - WP-769-FBLI lifecycle closes with validation debt explicitly deferred to WP-769-RELEASE by ODR-769-0003.
+  - WP-769-GEOMETRY becomes the next serial frontier.
+  proposals: []
+  owner_decisions_required: []
+remaining_work:
+- Execute TEST-FBLI and TEST-LEGACY during WP-769-RELEASE.
+- Qualify and execute WP-769-GEOMETRY without modifying PR #417 coordinate/topology custody.
+successor:
+  mode: SERIAL
+  frontier_work_package: WP-769-GEOMETRY
+  ep_id: EP-769-02
+  parallel_plan: null
+  lane_id: null
+  lanes: []
