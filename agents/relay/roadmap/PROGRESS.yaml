@@ -38,11 +38,19 @@ execution_packages:
   earned_weight: 15
   total_weight: 100
   percent: 15
+- id: EP-769-02
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
 implementation_steps:
 - id: STEP-FBLI-01
   earned_weight: 15
   total_weight: 100
   percent: 15
+- id: STEP-OD-01
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 0
@@ -52,7 +60,7 @@ acceptance_criteria:
   basis:
   - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
   - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py@92360d5de50234091278c5d5609e75fadc3e347c
-  - Required TEST-FBLI execution is NOT_RUN.
+  - TEST-FBLI remains Owner-deferred by ODR-769-0003.
 - id: AC-FBLI-02
   earned_weight: 0
   total_weight: 25
@@ -60,12 +68,32 @@ acceptance_criteria:
   status: NOT_RUN
   basis:
   - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
-  - Required TEST-FBLI and TEST-LEGACY execution is NOT_RUN.
+  - TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
 - id: AC-SCOPE-01
   earned_weight: 15
   total_weight: 15
   percent: 100
   status: COMPLETE
   basis:
-  - PR #772 changed-file inventory contains no path changed by PR #417.
-  - Production patch is confined to converters/scripts/xml_to_cii2019_patched.py; focused regression is a new file.
+  - PR #772 changed-file inventory is disjoint from PR #417.
+- id: AC-OD-01
+  earned_weight: 0
+  total_weight: 60
+  percent: 0
+  status: NOT_STARTED
+  basis:
+  - EP-769-02/QSET-769-02 prepared; material qualification is pending.
+- id: AC-OD-02
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+  status: NOT_STARTED
+  basis:
+  - No geometry production mutation has started.
+- id: AC-OD-SCOPE
+  earned_weight: 0
+  total_weight: 15
+  percent: 0
+  status: NOT_STARTED
+  basis:
+  - Proposed EP paths are disjoint from PR #417; final changed-path proof awaits implementation.
