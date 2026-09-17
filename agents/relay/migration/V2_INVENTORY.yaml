@@ -1,0 +1,33 @@
+schema_version: relay-v2.5-migration-inventory
+source_protocol: engineering-pr-delivery-v2
+source_root: .
+categories:
+  active_chain_state:
+  - agents/chains/AIV-EIT-IMPORT-STATUS-CHROMIUM/ACTIVE.md
+  - agents/chains/ENGCALC-P8-750-SOURCE-ADMISSION/ACTIVE.md
+  - agents/chains/FIV-LIFECYCLE-MODULE-COMPAT/ACTIVE.md
+  - agents/chains/PR720-VIBRATION-PROJECT-V2-LIFECYCLE/ACTIVE.md
+  - agents/chains/VIBRATION-PROJECT-EIT-REGEX-QUALIFICATION/ACTIVE.md
+  - agents/chains/XMLCII-ISSUE-769/ACTIVE.md
+  issue_basis:
+  - agents/chains/XMLCII-ISSUE-769/issue-basis/IB-0001.md
+  issue_current:
+  - agents/chains/XMLCII-ISSUE-769/issue-state/CURRENT.md
+  endpoints:
+  - agents/chains/XMLCII-ISSUE-769/endpoints/EP-0019.md
+  material_legs:
+  - agents/chains/XMLCII-ISSUE-769/material-legs/LEG-006.md
+  qualifications:
+  - agents/chains/XMLCII-ISSUE-769/qualification-baselines/QB-ISSUE-769-C.json
+counts:
+  active_chain_state: 6
+  issue_basis: 1
+  issue_current: 1
+  endpoints: 1
+  material_legs: 1
+  qualifications: 1
+migration_rules:
+- Inventory is evidence discovery only; no listed artifact is automatically authoritative V2.5 state.
+- The five non-Issue-769 chain states observed on this branch are read-only/blocked or merged; their unresolved facts remain legacy evidence and are not marked technically satisfied.
+- 'Issue #769 ACTIVE.md and CURRENT.md disagree on EP-0018 versus EP-0019; the inconsistency is preserved as migration evidence and CURRENT.md/EP-0019 cumulative benchmark truth is used only as historical evidence.'
+- Progress is recalculated from PB-769-0001 and not copied from v2 narrative estimates.
