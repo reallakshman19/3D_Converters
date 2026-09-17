@@ -1,0 +1,98 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-02
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
+route:
+  route_key: SERIAL:EP-769-02
+  mode: SERIAL
+  execution_ref: EP-769-02
+  ep_id: EP-769-02
+  ep_path: agents/relay/execution-packages/EP-769-02.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  ep_contract_digest: sha256:985715fd7779d6c4446e2386ad62c46d2cf6bddf609a6575e65baad5cbb96574
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-01
+    path: agents/relay/checkpoints/CP-769-01.yaml
+    digest: sha256:1cc41bedb5a23b92f5d51d2d3c1d67388b3886258f97413f14c44bdb1cb3daa5
+steps:
+- id: DSTEP-02-01
+  status: PASS
+  outputs:
+  - name: active EP
+    value: EP-769-02
+    basis: [agents/relay/REPO_STATE.yaml]
+  - name: roadmap revision
+    value: RM-0001
+    basis: [agents/relay/REPO_STATE.yaml, agents/relay/roadmap/OVERALL_ROADMAP.yaml]
+  - name: work package
+    value: WP-769-GEOMETRY
+    basis: [agents/relay/REPO_STATE.yaml, agents/relay/execution-packages/EP-769-02.yaml]
+  - name: previous checkpoint
+    value: CP-769-01
+    basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-01.yaml]
+  basis:
+  - agents/relay/REPO_STATE.yaml
+  - agents/relay/checkpoints/CP-769-01.yaml
+- id: DSTEP-02-02
+  status: PASS
+  outputs:
+  - name: branch
+    value: agent/issue-769-geometry-od-20260917
+    basis: [GitHub branch readback]
+  - name: HEAD
+    value: 7d06e1f2432bd5ebf861cf7cacd370cd18ccf19b before qualification-control-plane commits; live head will be re-read immediately before material write
+    basis: [GitHub branch readback]
+  - name: material ancestry
+    value: material_ref 4e37e97929ddb5af0c7f5765545646454a20ca84 is the branch creation base and ancestor of the geometry branch
+    basis: [agents/relay/execution-packages/EP-769-02.yaml, GitHub branch creation/readback]
+  - name: base drift
+    value: none observed at route creation; main remained 9f0925454652cd963364c066c2bb7b8828275afd and must be re-read before write
+    basis: [GitHub main branch readback, agents/relay/execution-packages/EP-769-02.yaml]
+  basis:
+  - agents/relay/execution-packages/EP-769-02.yaml
+  - GitHub branch refs
+- id: DSTEP-02-03
+  status: PASS
+  outputs:
+  - name: raw OD owner
+    value: XML Node OutsideDiameter is source evidence; browser enrichment currently leaves positive raw values unchanged.
+    basis: [converters/xml-cii2019-core/outside-diameter-resolver.js, docs/Overall_roadmap.md]
+  - name: resolver behavior
+    value: current resolver only fills zero/missing OutsideDiameter from nearest branch neighbors and does not emit EffectiveOutsideDiameter for positive endpoint discontinuities.
+    basis: [converters/xml-cii2019-core/outside-diameter-resolver.js]
+  - name: parser behavior
+    value: base Python XmlNode parsing currently records OutsideDiameter but has no explicit EffectiveOutsideDiameter authority field.
+    basis: [converters/scripts/xml_to_cii2019.py]
+  - name: writer behavior
+    value: _element_outside_diameter uses to-node raw OD only for BRAN endpoint 2 and otherwise from-node raw OD, so a component endpoint raw value can become the CII section OD.
+    basis: [converters/scripts/xml_to_cii2019.py]
+  basis:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - docs/Overall_roadmap.md
+- id: DSTEP-02-04
+  status: PASS
+  outputs:
+  - name: PR paths
+    value: PR #417 changes coordinate-custody test/module, engine.js, invocation-builder.js, docs/Overall_roadmap.md, and standalone coordinate-custody test.
+    basis: [GitHub PR #417 changed-file readback at 2026-09-17T17:22:44Z route continuation]
+  - name: EP paths
+    value: converters/xml-cii2019-core/outside-diameter-resolver.js; converters/scripts/xml_to_cii2019.py; tests/xml-cii-outside-diameter-effective-authority.test.js; converters/scripts/test_xml_to_cii2019_effective_od.py
+    basis: [agents/relay/execution-packages/EP-769-02.yaml]
+  - name: overlap
+    value: none
+    basis: [GitHub PR #417 changed-file readback, agents/relay/execution-packages/EP-769-02.yaml]
+  basis:
+  - github:reallaksh19/3D_Converters#417
+  - agents/relay/execution-packages/EP-769-02.yaml
+result: PASS
+conversation_context_used: false
