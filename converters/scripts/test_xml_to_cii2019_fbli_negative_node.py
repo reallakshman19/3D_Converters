@@ -72,7 +72,7 @@ def test_negative_fbli_without_element_length_remains_fail_closed():
     assert int(target.findtext("NodeNumber")) == -1
 
 
-def test_reported_fbli_record_survives_enrichment_and_base_parser(tmp_path):
+def test_reported_fbli_record_survives_enrichment_parser_and_conversion_model(tmp_path):
     xml = tmp_path / "fbli.xml"
     xml.write_text(
         textwrap.dedent(
@@ -107,3 +107,10 @@ def test_reported_fbli_record_survives_enrichment_and_base_parser(tmp_path):
     assert len(fbli_nodes) == 1
     assert fbli_nodes[0].node_number == 19
     assert fbli_nodes[0].outside_diameter == pytest.approx(168.3)
+
+    model = mod._build_conversion_model(document, {}, {})
+    assert len(model.edges) == 2
+    assert any(
+        edge.from_node.component_type == "FBLI" or edge.to_node.component_type == "FBLI"
+        for edge in model.edges
+    )
