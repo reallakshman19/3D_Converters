@@ -1,0 +1,94 @@
+schema_version: relay-v2.5-quality-review
+quality_review_id: QRV-769-02
+ep:
+  id: EP-769-02
+  path: agents/relay/execution-packages/EP-769-02.yaml
+  contract_digest: sha256:985715fd7779d6c4446e2386ad62c46d2cf6bddf609a6575e65baad5cbb96574
+roadmap_revision: RM-0001
+material_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+reviewer:
+  type: AGENT
+  identity: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
+router_snapshot:
+  applicable:
+  - blueprint: code-review
+    reason: Engineering-critical change.
+    review_focus: [scope, broadening]
+  - blueprint: coding
+    reason: Production geometry authority changes.
+    review_focus: [authority, failure]
+  - blueprint: github-delivery
+    reason: Issue/PR delivery.
+    review_focus: [truth, merge authority]
+  - blueprint: software-design
+    reason: Authority boundary changes.
+    review_focus: [provenance, ownership]
+  - blueprint: testing
+    reason: Cross-language regression required.
+    review_focus: [effective OD, negative controls]
+  not_applicable:
+  - blueprint: accessibility
+    reason: No UI.
+    review_focus: []
+  - blueprint: migration
+    reason: No persisted data migration.
+    review_focus: []
+  - blueprint: performance
+    reason: No material performance change.
+    review_focus: []
+  - blueprint: ui-ux
+    reason: No UI.
+    review_focus: []
+procedure_results:
+- blueprint: code-review
+  result: CLEAR
+  evidence:
+  - Python production commit 178d845fe6b1cad319e936e88e44bc3c27b0e940 was audited through GitHub and changes only the additive EffectiveOutsideDiameter field/parser/helper selection path.
+  - PR #773 changed paths remain disjoint from PR #417 coordinate/topology paths.
+  reason: null
+  cause: null
+- blueprint: coding
+  result: CLEAR
+  evidence:
+  - Browser resolver preserves raw OutsideDiameter and writes additive EffectiveOutsideDiameter only for paired FLAN/VALV/RIGID endpoint discontinuities with outward connected-side authority.
+  - Python parser retains raw OD, treats nonpositive effective OD as absent, and _element_outside_diameter prefers positive effective OD with raw fallback; existing BRAN endpoint2 side selection is preserved.
+  reason: null
+  cause: null
+- blueprint: github-delivery
+  result: CLEAR
+  evidence:
+  - Draft stacked PR #773 is open and GitHub reports mergeable; base remains the PR #772 branch and merge authority remains Owner-only.
+  - Commit status contexts and pull-request workflow runs are absent for the Python head; that absence is reported rather than promoted to validation PASS.
+  reason: null
+  cause: null
+- blueprint: software-design
+  result: CLEAR
+  evidence:
+  - Raw source OD and governed effective OD are separate authorities; no raw OD overwrite was introduced for the new component discontinuity rule.
+  - REDU and unknown/unpaired component negative controls remain outside effective-OD propagation, avoiding blanket size flattening.
+  reason: null
+  cause: null
+- blueprint: testing
+  result: NOT_RUN
+  evidence:
+  - TEST-OD-JS PASS executed with exact branch bytes: test 6b921c9b1762d5113a868026bf00d7ccef434069, helper c1a5e915d718ec6a1f3ba47bb490e423e1f8de00, resolver 12dcc2709a31c12c40ffa08369bdaf179ff02067; output was PASS xml-cii outside-diameter effective authority.
+  - TEST-OD-SCOPE PASS: PR #773 paths have no intersection with PR #417 changed paths.
+  - TEST-OD-PY remains NOT_RUN; no executable private Python checkout/workflow is exposed by the connected tool surface.
+  reason: Cross-language testing is incomplete until the declared Python pytest executes.
+  cause: UNAVAILABLE_TOOL
+findings: []
+overall_state: NEEDS_ATTENTION
+execution_effect:
+  blocks_execution: false
+  blocking_findings: []
+owner_report:
+  summary: The qualified effective-OD implementation is complete and diff-clean. JS and scope verification pass; Python behavioral pytest remains NOT_RUN, so AC-OD-01/02 and the geometry checkpoint remain open.
+  visible_risks:
+  - TEST-OD-PY has not executed against the committed Python consumer.
+  - Exact repository-native v2.5 conformance remains NOT_RUN without a private executable checkout.
+  decisions_required: []
+successor_handover:
+  unresolved_findings: []
+  follow_up:
+  - Execute python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py in an exact checkout or authorized Python carrier.
+  - Do not open orientation/length repair or WP-769-SUPPORT until TEST-OD-PY passes or the Owner explicitly defers that gate.
