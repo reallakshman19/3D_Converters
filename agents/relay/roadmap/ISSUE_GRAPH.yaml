@@ -1,0 +1,14 @@
+schema_version: relay-v2.5
+graph_revision: IG-769-0001
+nodes:
+- id: ISSUE-769
+  state: ACTIVE
+  github_state: OPEN
+  github:
+    issue_number: 769
+    url: https://github.com/reallaksh19/3D_Converters/issues/769
+  roadmap_node: WP-769-FBLI
+  notes:
+  - Issue remains open for post-merge repair and qualification debt.
+  - 'Current serial frontier is WP-769-FBLI; later Issue #769 work packages remain dependent.'
+relationships: []
