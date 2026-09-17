@@ -42,6 +42,10 @@ execution_packages:
   earned_weight: 15
   total_weight: 100
   percent: 15
+- id: EP-769-03
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
 implementation_steps:
 - id: STEP-FBLI-01
   earned_weight: 15
@@ -51,6 +55,10 @@ implementation_steps:
   earned_weight: 15
   total_weight: 100
   percent: 15
+- id: STEP-ORDER-01
+  earned_weight: 0
+  total_weight: 100
+  percent: 0
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 0
@@ -59,7 +67,6 @@ acceptance_criteria:
   status: NOT_RUN
   basis:
   - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
-  - converters/scripts/test_xml_to_cii2019_fbli_negative_node.py@92360d5de50234091278c5d5609e75fadc3e347c
   - TEST-FBLI remains Owner-deferred by ODR-769-0003.
 - id: AC-FBLI-02
   earned_weight: 0
@@ -67,7 +74,6 @@ acceptance_criteria:
   percent: 0
   status: NOT_RUN
   basis:
-  - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
   - TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
 - id: AC-SCOPE-01
   earned_weight: 15
@@ -80,25 +86,44 @@ acceptance_criteria:
   earned_weight: 0
   total_weight: 60
   percent: 0
-  status: IN_PROGRESS
+  status: NOT_RUN
   basis:
-  - converters/xml-cii2019-core/outside-diameter-resolver.js@afea9b9e3a48eb36714df9bbd1a94ba06e5839e3 preserves raw OutsideDiameter and emits connected-side EffectiveOutsideDiameter for qualified component families.
-  - converters/scripts/xml_to_cii2019.py@178d845fe6b1cad319e936e88e44bc3c27b0e940 parses optional EffectiveOutsideDiameter and makes CII OD selection prefer it with raw fallback.
-  - TEST-OD-JS PASS on exact-byte carrier: test blob 6b921c9b1762d5113a868026bf00d7ccef434069, helper blob c1a5e915d718ec6a1f3ba47bb490e423e1f8de00, resolver blob 12dcc2709a31c12c40ffa08369bdaf179ff02067; command emitted PASS xml-cii outside-diameter effective authority.
-  - TEST-OD-PY remains NOT_RUN, so the behavioral criterion is not credited complete.
+  - Effective-OD implementation is complete and TEST-OD-JS passes.
+  - Formal TEST-OD-PY remains NOT_RUN and is Owner-deferred by ODR-769-0006; CP-769-02 does not promote it to PASS.
 - id: AC-OD-02
   earned_weight: 0
   total_weight: 25
   percent: 0
-  status: IN_PROGRESS
+  status: NOT_RUN
   basis:
-  - TEST-OD-JS PASS covers asymmetric outward-side authority plus INST and REDU negative controls without raw OD overwrite.
-  - Python consumer diff audit is clean and retains raw fallback, but TEST-OD-PY remains NOT_RUN.
+  - JS negative controls pass and raw/effective authority remains separated.
+  - Formal TEST-OD-PY remains NOT_RUN under ODR-769-0006.
 - id: AC-OD-SCOPE
   earned_weight: 15
   total_weight: 15
   percent: 100
   status: COMPLETE
   basis:
-  - PR #773 changed paths are disjoint from PR #417 changed-file inventory.
-  - Python production commit 178d845fe6b1cad319e936e88e44bc3c27b0e940 modifies only converters/scripts/xml_to_cii2019.py with the intended additive effective-OD delta.
+  - PR #773 paths remain disjoint from PR #417 changed-file inventory.
+  - CP-769-02 checkpoints the OD slice with deferred Python validation debt.
+- id: AC-ORDER-01
+  earned_weight: 0
+  total_weight: 60
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - EP-769-03 is qualification-only until the reported source/order boundary is reproduced.
+- id: AC-ORDER-02
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - No order/orientation production mutation is authorized yet.
+- id: AC-ORDER-SCOPE
+  earned_weight: 0
+  total_weight: 15
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - Current PR #417 path inventory is known, but successor changed-path verification will run after any qualified implementation.
