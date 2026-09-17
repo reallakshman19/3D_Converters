@@ -31,7 +31,7 @@ WORK_ITEM_KEY: github:reallaksh19/3D_Converters#769
 WORK_ITEM_MODE: EXCLUSIVE
 CUSTODY_EPOCH: 18
 COORDINATION_STATE: EXCLUSIVE_CLEAR
-DEPENDENCIES: BM-002 full XML→CII writer E2E; BM-004 empirical exact execution; BM-005 50k/100k capacity; BM-008 B31.3 exact execution; BM-009 focused/full regression; governed B31.3 VERIFIED/PROJECT_APPROVED factor data where automatic eligibility is desired
+DEPENDENCIES: BM-002 full XML→CII writer E2E; BM-004 empirical exact execution; BM-005 50k/100k capacity; BM-009 focused/full regression; governed B31.3 VERIFIED/PROJECT_APPROVED factor data where automatic eligibility is desired
 COMMON_PROTOCOL: engineering-pr-delivery-v2
 COMMON_PROTOCOL_BASIS: fed57820909f4984a97d67437340df952b73a5ab
 COMMON_PROTOCOL_STATUS: CURRENT
@@ -61,18 +61,18 @@ TAKEOVER_QUALIFICATION_READY: TRUE
 CHAIN_HANDOVER_READY: TRUE
 HANDOVER_CONTENT_READY: TRUE
 HANDOVER_VALIDATION_STATUS: PARTIAL_PASS
-HANDOVER_VALIDATION_EVIDENCE: QE-XMLCII-769-EXACT-BLOB-001/-002/-003; BM-001/BM-003/BM-006/BM-007 PASS; BM-002 PARTIAL_PASS_SCALE_PATH; BM-005 PARTIAL_PASS_11K; BM-004/BM-008/BM-009 NOT_RUN_ENVIRONMENT_BLOCKED
+HANDOVER_VALIDATION_EVIDENCE: QE-XMLCII-769-EXACT-BLOB-001/-002/-003/-004; BM-001/BM-003/BM-006/BM-007/BM-008 PASS; BM-002 PARTIAL_PASS_SCALE_PATH; BM-005 PARTIAL_PASS_11K; BM-004/BM-009 NOT_RUN_ENVIRONMENT_BLOCKED
 HANDOVER_READY: FALSE
 PREWORK_QUALIFICATION_READY: TRUE
 LATEST_MATERIAL_LEG: LEG-006
 MATERIAL_LEG_IN_PROGRESS: NONE
-MATERIAL_SCOPE: TASK-001..TASK-008 merged; qualification remainder remains open
+MATERIAL_SCOPE: TASK-001..TASK-008 merged; BM-008 now PASS; qualification remainder remains open
 
 # Active issue chain
 
 ## Current state
 
-PR #770 was squash-merged under explicit Owner authorization. Merge commit: `0ba752fbebcb55440815015bc87b687323d8caae`. Implementation is now on main. Validation remains PARTIAL_PASS_REMAINDER_BLOCKED and Issue #769 remains open because several acceptance/qualification obligations have not executed.
+PR #770 was squash-merged under explicit Owner authorization. Merge commit: `0ba752fbebcb55440815015bc87b687323d8caae`. BM-008 now has exact-blob executable PASS evidence. Validation remains PARTIAL_PASS_REMAINDER_BLOCKED and Issue #769 remains open because BM-002 full writer E2E, BM-004, BM-005 50k/100k and BM-009 remain incomplete.
 
 ## Preserved boundaries
 
@@ -80,9 +80,9 @@ PR #770 was squash-merged under explicit Owner authorization. Merge commit: `0ba
 - Rigid-weight precedence remains Final > Match-1 > legacy > source.
 - Empirical validation remains read-only; BM-004 remains unexecuted.
 - Branch→Line ambiguity and designator mutation remain fail-closed.
-- B31.3 automatic Preview remains fail-closed unless strict VERIFIED/PROJECT_APPROVED factor authority or complete controlled manual fallback exists.
+- B31.3 strict-factor and ambiguity gates now have BM-008 executable PASS evidence; automatic Preview remains fail-closed unless strict VERIFIED/PROJECT_APPROVED factor authority or complete controlled manual fallback exists.
 - Authority migration clears only derived caches and preserves user/source evidence.
 
 ## Exact next action
 
-No further production mutation is authorized by the completed merge progression. On a new Owner progression, continue validation-only with BM-002 full writer E2E, BM-004 empirical exact execution, BM-005 50k/100k capacity, BM-008 B31.3 exact execution, and BM-009 focused/full regression. Keep Issue #769 open until those obligations are resolved or the Owner separately authorizes closure.
+No production mutation is authorized. On a new Owner progression, continue validation-only with BM-004 empirical exact execution or BM-002 full writer E2E, then BM-005 50k/100k capacity and BM-009 focused/full regression. Keep Issue #769 open until those obligations are resolved or the Owner separately authorizes closure.
