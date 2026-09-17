@@ -17,48 +17,21 @@ phases:
   total_weight: 100
   percent: 7.5
 work_packages:
-- id: WP-769-FBLI
-  earned_weight: 3.75
-  total_weight: 25
-  percent: 15
-- id: WP-769-GEOMETRY
-  earned_weight: 3.75
-  total_weight: 25
-  percent: 15
-- id: WP-769-SUPPORT
-  earned_weight: 0
-  total_weight: 25
-  percent: 0
-- id: WP-769-RELEASE
-  earned_weight: 0
-  total_weight: 25
-  percent: 0
+- {id: WP-769-FBLI, earned_weight: 3.75, total_weight: 25, percent: 15}
+- {id: WP-769-GEOMETRY, earned_weight: 3.75, total_weight: 25, percent: 15}
+- {id: WP-769-SUPPORT, earned_weight: 0, total_weight: 25, percent: 0}
+- {id: WP-769-RELEASE, earned_weight: 0, total_weight: 25, percent: 0}
 execution_packages:
-- id: EP-769-01
-  earned_weight: 15
-  total_weight: 100
-  percent: 15
-- id: EP-769-02
-  earned_weight: 15
-  total_weight: 100
-  percent: 15
-- id: EP-769-03
-  earned_weight: 0
-  total_weight: 100
-  percent: 0
+- {id: EP-769-01, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: EP-769-02, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: EP-769-03, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: EP-769-04, earned_weight: 0, total_weight: 100, percent: 0}
 implementation_steps:
-- id: STEP-FBLI-01
-  earned_weight: 15
-  total_weight: 100
-  percent: 15
-- id: STEP-OD-01
-  earned_weight: 15
-  total_weight: 100
-  percent: 15
-- id: STEP-ORDER-01
-  earned_weight: 0
-  total_weight: 100
-  percent: 0
+- {id: STEP-FBLI-01, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: STEP-OD-01, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: STEP-ORDER-01, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: STEP-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: STEP-ORDER-02, earned_weight: 0, total_weight: 100, percent: 0}
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 0
@@ -73,15 +46,13 @@ acceptance_criteria:
   total_weight: 25
   percent: 0
   status: NOT_RUN
-  basis:
-  - TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
+  basis: [TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.]
 - id: AC-SCOPE-01
   earned_weight: 15
   total_weight: 15
   percent: 100
   status: COMPLETE
-  basis:
-  - PR #772 changed-file inventory is disjoint from PR #417.
+  basis: [PR #772 changed-file inventory is disjoint from PR #417.]
 - id: AC-OD-01
   earned_weight: 0
   total_weight: 60
@@ -111,19 +82,52 @@ acceptance_criteria:
   total_weight: 60
   percent: 0
   status: NOT_RUN
-  basis:
-  - EP-769-03 is qualification-only until the reported source/order boundary is reproduced.
+  basis: [Historical QUAL-769-03 failed for the original topology boundary; no topology mutation was made.]
 - id: AC-ORDER-02
   earned_weight: 0
   total_weight: 25
   percent: 0
   status: NOT_RUN
-  basis:
-  - No order/orientation production mutation is authorized yet.
+  basis: [Historical topology boundary remains unqualified.]
 - id: AC-ORDER-SCOPE
   earned_weight: 0
   total_weight: 15
   percent: 0
   status: NOT_RUN
-  basis:
-  - Current PR #417 path inventory is known, but successor changed-path verification will run after any qualified implementation.
+  basis: [Historical topology implementation did not occur.]
+- id: AC-PROV-01
+  earned_weight: 60
+  total_weight: 60
+  percent: 100
+  status: COMPLETE
+  basis: [CP-769-03 TEST-PROV-PY PASS against exact committed blobs 987c866ca1225fe2024e19e95ba02474dbcccc82 and a5de4f588d852e69054933b61762a04338f22226.]
+- id: AC-PROV-02
+  earned_weight: 25
+  total_weight: 25
+  percent: 100
+  status: COMPLETE
+  basis: [Exact range and no-guess negative controls pass in TEST-PROV-PY.]
+- id: AC-PROV-SCOPE
+  earned_weight: 15
+  total_weight: 15
+  percent: 100
+  status: COMPLETE
+  basis: [Material compare c9324c76..2f28f3df contains only the two diagnostic files and no PR #417 path.]
+- id: AC-ORDER-REAL-01
+  earned_weight: 0
+  total_weight: 60
+  percent: 0
+  status: NOT_RUN
+  basis: [EP-769-04 INPUT-ORDER-PROVENANCE is MISSING_BLOCKING; real reported-case provenance has not been captured.]
+- id: AC-ORDER-REAL-02
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+  status: NOT_RUN
+  basis: [No successor topology mutation is authorized before real provenance and fresh qualification.]
+- id: AC-ORDER-REAL-SCOPE
+  earned_weight: 0
+  total_weight: 15
+  percent: 0
+  status: NOT_RUN
+  basis: [No EP-769-04 material write has occurred.]
