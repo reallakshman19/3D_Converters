@@ -20,7 +20,7 @@ execution_policy:
 active_ep:
   id: EP-769-02
   path: agents/relay/execution-packages/EP-769-02.yaml
-  state: EXECUTABLE
+  state: ACTIVE
   continuity_receipt: null
 last_checkpoint:
   id: CP-769-01
@@ -42,32 +42,34 @@ takeover_admissions:
     id: TC-769-02
     path: agents/relay/certifications/takeover/TC-769-02.yaml
 progress:
-  overall_percent: 3.75
-  phase_percent: 3.75
-  ep_percent: 0
+  overall_percent: 7.5
+  phase_percent: 7.5
+  ep_percent: 15
   basis_revision: PB-769-0001
 status_planes:
   execution:
-    state: READY
+    state: WAITING
     can_continue: true
-    material_authority: WRITE
-    next_action: Implement only EP-769-02 STEP-OD-01 on agent/issue-769-geometry-od-20260917, then run/record TEST-OD-JS, TEST-OD-PY and TEST-OD-SCOPE truthfully.
+    material_authority: READ_ONLY
+    next_action: Complete the qualified Python EffectiveOutsideDiameter consumer with a surgical/executable repository carrier, then run TEST-OD-JS and TEST-OD-PY; do not advance to orientation/length or WP-769-SUPPORT while this consumer/test gate is incomplete.
   quality:
     state: NEEDS_ATTENTION
     findings:
+    - EP-769-02 browser-side EffectiveOutsideDiameter resolution is implemented, but converters/scripts/xml_to_cii2019.py still lacks the qualified effective-OD consumer.
+    - TEST-OD-JS and TEST-OD-PY are NOT_RUN; the isolated resolver reconstruction is supporting evidence only and is not promoted to a repository-native PASS.
     - FBLI TEST-FBLI and TEST-LEGACY remain Owner-deferred to release qualification by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-02 has Owner qualification ODR-769-0005 and candidate DISC-769-02/QUAL-769-02/TC-769-02. Main remains at the qualified base, PR #417 is disjoint from the OD write set, and the bounded geometry OD slice is admitted for material write. No geometry behavioral PASS is claimed before tests execute.
+    summary: EP-769-02 is Owner-qualified and partially implemented. Browser-side effective OD resolution and JS/Python regression contracts are committed; TEST-OD-SCOPE passes because changed paths remain disjoint from PR #417. The Python production consumer is incomplete and TEST-OD-JS/TEST-OD-PY remain NOT_RUN, so no geometry behavioral PASS is claimed.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
       cause: UNAVAILABLE_TOOL
     - id: TEST-OD-JS
-      reason: Production implementation has not yet been committed.
-      cause: DEPENDENCY_WAIT
+      reason: Declared Node test has not executed from a repository checkout; isolated resolver reconstruction is supporting evidence only.
+      cause: UNAVAILABLE_TOOL
     - id: TEST-OD-PY
-      reason: Production implementation has not yet been committed.
+      reason: Python production consumer is not yet implemented and no executable private checkout is available through the connected tool surface.
       cause: DEPENDENCY_WAIT
     - id: TEST-FBLI
       reason: Deferred by ODR-769-0003 to release qualification.
@@ -102,6 +104,6 @@ relay_readiness:
   reasons:
   - CP-769-01 links the serial successor to EP-769-02/WP-769-GEOMETRY.
   - EP-769-02 is Owner-qualified by ODR-769-0005 and admitted through DISC-769-02/QUAL-769-02/TC-769-02.
-  - Live main remains 9f0925454652cd963364c066c2bb7b8828275afd and PR #417 does not overlap the OD write set.
-  - GitHub projection GHGEN-769-0002 remains pending; this affects handover readiness but is not a material-write predicate.
+  - Browser-side effective OD implementation exists, but the Python consumer and required repository-native tests remain incomplete; material authority is therefore frozen READ_ONLY.
+  - GitHub projection GHGEN-769-0002 remains pending publication/verification.
 chat_context_required: false
