@@ -1,0 +1,76 @@
+schema_version: relay-v2.5
+checkpoint_id: CP-769-02
+ep_id: EP-769-02
+roadmap_basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+execution_basis:
+  material_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+implementation_result:
+  completed_steps:
+  - STEP-OD-01
+  files_changed:
+  - converters/xml-cii2019-core/outside-diameter-resolver.js
+  - converters/scripts/xml_to_cii2019.py
+  - tests/xml-cii-outside-diameter-effective-authority.test.js
+  - converters/scripts/test_xml_to_cii2019_effective_od.py
+  commits:
+  - afea9b9e3a48eb36714df9bbd1a94ba06e5839e3
+  - 735e1a753a6e9a1c83fe72510f8dad011d645315
+  - 178d845fe6b1cad319e936e88e44bc3c27b0e940
+  - 68b4cd58aeedc33665d521dfe5eea85d27bea56a
+acceptance_results:
+- id: AC-OD-01
+  status: NOT_RUN
+  earned_weight: 0
+  basis: Implementation is complete and TEST-OD-JS passes, but formal TEST-OD-PY is Owner-deferred by ODR-769-0006 and is not a behavioral PASS.
+- id: AC-OD-02
+  status: NOT_RUN
+  earned_weight: 0
+  basis: JS negative controls pass and raw/effective authority is preserved, but formal TEST-OD-PY is Owner-deferred by ODR-769-0006.
+- id: AC-OD-SCOPE
+  status: PASS
+  earned_weight: 15
+  basis: PR #773 paths remain disjoint from the current PR #417 coordinate-custody path inventory.
+validation_results:
+- id: TEST-OD-JS
+  status: PASS
+  basis_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  evidence: Exact-byte carrier matched Git blobs 6b921c9b1762d5113a868026bf00d7ccef434069, c1a5e915d718ec6a1f3ba47bb490e423e1f8de00, and 12dcc2709a31c12c40ffa08369bdaf179ff02067 and emitted PASS xml-cii outside-diameter effective authority.
+- id: TEST-OD-PY
+  status: NOT_RUN
+  basis_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  reason: The complete committed production blob has not executed byte-for-byte in an authorized repository carrier. A local reconstructed carrier passed 3/3 assertions, but that remains supporting evidence only. Owner deferred the formal gate via ODR-769-0006.
+- id: TEST-OD-SCOPE
+  status: PASS
+  basis_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  evidence: Current PR #417 changed-file inventory has no intersection with the EP-769-02 production/test write set.
+quality_review:
+  id: QRV-769-02
+  path: agents/relay/quality/QRV-769-02.yaml
+  digest: sha256:e3f708406c36f76603e89b1a1a3a6af9be52998ea7c8d2c323050c499e78ceff
+quality_findings: []
+known_limitations:
+- Formal TEST-OD-PY remains deferred validation debt, not PASS.
+- Exact repository-native v2.5 conformance remains NOT_RUN.
+- Reversed-length/orientation cases 2909-2920 and 2439-2450 are not repaired by this EP.
+discoveries:
+- Current PR #417 still owns coordinate-custody files only; converters/scripts/xml_to_cii2019.py::_build_edges is not a PR #417 changed path, but topology semantics must be qualified before any successor write.
+- The OD slice can be checkpointed independently while WP-769-GEOMETRY remains active for the remaining orientation/length cases.
+roadmap_reconciliation:
+  result: STATUS_UPDATE
+  status_updates:
+  - EP-769-02 is checkpointed with formal TEST-OD-PY validation debt carried forward.
+  - WP-769-GEOMETRY remains ACTIVE because orientation/reversed-length qualification is still outstanding.
+  proposals: []
+  owner_decisions_required: []
+remaining_work:
+- Execute formal TEST-OD-PY before release/merge qualification unless superseded by a later Owner decision.
+- Qualify the reported reversed-length/orientation cases without entering PR #417 coordinate custody.
+successor:
+  mode: SERIAL
+  frontier_work_package: WP-769-GEOMETRY
+  ep_id: EP-769-03
+  parallel_plan: null
+  lane_id: null
+  lanes: []
