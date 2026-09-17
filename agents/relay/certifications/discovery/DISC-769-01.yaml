@@ -1,0 +1,72 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-01
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-write-candidate-20260917T115517Z
+route:
+  route_key: SERIAL:EP-769-01
+  mode: SERIAL
+  execution_ref: EP-769-01
+  ep_id: EP-769-01
+  ep_path: agents/relay/execution-packages/EP-769-01.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: 57fb8105885e6f7693b203da9951ca1aae66dbee
+  ep_contract_digest: sha256:c87d66245989b8f195033ce274c190cfd141dec4c7d3cfcd3519fc56b7506937
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: NONE
+    id: NONE
+    path: null
+    digest: null
+steps:
+- id: DSTEP-01
+  status: PASS
+  outputs:
+  - name: active_route
+    value: SERIAL:EP-769-01 / WP-769-FBLI / RM-0001
+    basis:
+    - agents/relay/REPO_STATE.yaml
+    - agents/relay/execution-packages/EP-769-01.yaml
+  basis:
+  - agents/relay/REPO_STATE.yaml
+  - agents/relay/roadmap/OVERALL_ROADMAP.yaml
+- id: DSTEP-02
+  status: PASS
+  outputs:
+  - name: git_basis
+    value: branch agent/issue-769-postmerge-repair-20260917 at dd85f4c16e76253aefbe17b1ee2337528cc3d2e9; main remains 9f0925454652cd963364c066c2bb7b8828275afd; material_ref 57fb8105885e6f7693b203da9951ca1aae66dbee is in branch ancestry
+    basis:
+    - GitHub branch readback 2026-09-17T11:56:57Z
+    - agents/relay/execution-packages/EP-769-01.yaml
+  basis:
+  - agents/relay/execution-packages/EP-769-01.yaml
+  - GitHub branch refs for main and agent/issue-769-postmerge-repair-20260917
+- id: DSTEP-03
+  status: PASS
+  outputs:
+  - name: fbli_trace
+    value: RENUMBERABLE_NEGATIVE_TYPES is {FLAN,RIGID}; negative FBLI therefore is not renumbered, and base _parse_xml_document discards node_number <= 0 before model creation.
+    basis:
+    - converters/scripts/xml_to_cii2019_patched.py
+    - converters/scripts/xml_to_cii2019.py
+  basis:
+  - converters/scripts/xml_to_cii2019_patched.py
+  - converters/scripts/xml_to_cii2019.py
+- id: DSTEP-04
+  status: PASS
+  outputs:
+  - name: pr417_overlap
+    value: none; PR #417 changes coordinate-custody files, engine.js, invocation-builder.js, roadmap, and coordinate tests; EP-769-01 writes only xml_to_cii2019_patched.py plus a new FBLI regression file.
+    basis:
+    - GitHub PR #417 changed-file readback
+    - agents/relay/execution-packages/EP-769-01.yaml
+  basis:
+  - github:reallaksh19/3D_Converters#417
+  - agents/relay/execution-packages/EP-769-01.yaml
+result: PASS
+conversation_context_used: false
