@@ -1,0 +1,70 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-01
+route:
+  route_key: SERIAL:EP-769-01
+  mode: SERIAL
+  execution_ref: EP-769-01
+  ep_id: EP-769-01
+  ep_path: agents/relay/execution-packages/EP-769-01.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-FBLI
+  ep_contract_digest: sha256:c87d66245989b8f195033ce274c190cfd141dec4c7d3cfcd3519fc56b7506937
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions:
+  - ENGINEERING_AUTHORITY
+  - PROTECTED_INVARIANT
+  - VERIFICATION_ORACLE
+  basis:
+  - Component admission authority changes.
+  - Wrong classification can silently remove/create a CII component.
+  - Verification oracle changes.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-FBLI, INPUT-FBLI]
+  prompt: Trace FBLI from patched enrichment through negative-node renumbering, positive-node parsing, model creation, and CII serialization.
+  required_output_keys: [production_entrypoint, state_owner, authority_source, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [WP-769-FBLI, INPUT-FBLI, AC-FBLI-01]
+  prompt: Reconstruct why NodeNumber=-1 FBLI disappears and identify the first wrong authority boundary.
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    source: 'Issue #769 comments 5712580143/5713341657 plus current converter source'
+    values: {component_type: FBLI, node_number: -1, endpoint: 1, outside_diameter_mm: 168.3}
+  required_output_keys: [reconstruction_steps, intermediate_result, expected_result]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [WP-769-FBLI, AC-FBLI-02]
+  prompt: Apply FBLI family admission and state the protected invariant and exact falsifier.
+  mutation:
+    condition: Treat FBLI as flange-family for existing negative-node renumber eligibility.
+    protected_invariant: FLAN/RIGID stay stable and unrelated negative types stay non-renumberable.
+    falsifier: INST is renumbered or FLAN/RIGID behavior regresses.
+  required_output_keys: [mutation_effect, protected_invariant, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [AC-FBLI-01, TEST-FBLI, BENCH-FBLI]
+  prompt: Verify FBLI retention independently of the production classifier.
+  oracle_refs: [BENCH-FBLI]
+  independence_requirement: Use the owner-reported record and declared family boundary, not the production classifier, to form expected results.
+  required_output_keys: [independent_method, predicted_result, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-FBLI-01, AC-FBLI-01]
+  prompt: State the first bounded code change with predicted before/after behavior and verification.
+  step_refs: [STEP-FBLI-01]
+  required_output_keys: [first_change, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-migration-preparer-20260917
