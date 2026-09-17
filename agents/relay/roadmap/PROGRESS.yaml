@@ -82,23 +82,23 @@ acceptance_criteria:
   percent: 0
   status: IN_PROGRESS
   basis:
-  - converters/xml-cii2019-core/outside-diameter-resolver.js@afea9b9e3a48eb36714df9bbd1a94ba06e5839e3 implements additive EffectiveOutsideDiameter connectivity authority.
-  - tests/xml-cii-outside-diameter-effective-authority.test.js@735e1a753a6e9a1c83fe72510f8dad011d645315 defines the JS regression contract.
-  - converters/scripts/test_xml_to_cii2019_effective_od.py@ec342b5b608af116fec6dcd06ac95a114c99774d defines the Python consumer contract.
-  - converters/scripts/xml_to_cii2019.py is not yet modified to consume EffectiveOutsideDiameter; TEST-OD-JS and TEST-OD-PY remain NOT_RUN.
+  - converters/xml-cii2019-core/outside-diameter-resolver.js@afea9b9e3a48eb36714df9bbd1a94ba06e5839e3 preserves raw OutsideDiameter and emits connected-side EffectiveOutsideDiameter for qualified component families.
+  - converters/scripts/xml_to_cii2019.py@178d845fe6b1cad319e936e88e44bc3c27b0e940 parses optional EffectiveOutsideDiameter and makes CII OD selection prefer it with raw fallback.
+  - TEST-OD-JS PASS on exact-byte carrier: test blob 6b921c9b1762d5113a868026bf00d7ccef434069, helper blob c1a5e915d718ec6a1f3ba47bb490e423e1f8de00, resolver blob 12dcc2709a31c12c40ffa08369bdaf179ff02067; command emitted PASS xml-cii outside-diameter effective authority.
+  - TEST-OD-PY remains NOT_RUN, so the behavioral criterion is not credited complete.
 - id: AC-OD-02
   earned_weight: 0
   total_weight: 25
   percent: 0
   status: IN_PROGRESS
   basis:
-  - JS regression includes unpaired INST and REDU negative controls plus asymmetric outward-side OD authority.
-  - Python consumer remains incomplete and repository-native TEST-OD-JS/TEST-OD-PY remain NOT_RUN.
+  - TEST-OD-JS PASS covers asymmetric outward-side authority plus INST and REDU negative controls without raw OD overwrite.
+  - Python consumer diff audit is clean and retains raw fallback, but TEST-OD-PY remains NOT_RUN.
 - id: AC-OD-SCOPE
   earned_weight: 15
   total_weight: 15
   percent: 100
   status: COMPLETE
   basis:
-  - Current EP-769-02 changed paths are disjoint from PR #417 changed-file inventory.
-  - No PR #417 coordinate/topology file has been modified on the geometry branch.
+  - PR #773 changed paths are disjoint from PR #417 changed-file inventory.
+  - Python production commit 178d845fe6b1cad319e936e88e44bc3c27b0e940 modifies only converters/scripts/xml_to_cii2019.py with the intended additive effective-OD delta.
