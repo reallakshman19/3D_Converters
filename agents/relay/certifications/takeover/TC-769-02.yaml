@@ -1,0 +1,53 @@
+schema_version: relay-v2.5-takeover-certification
+id: TC-769-02
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-geometry-preparer-20260917
+evaluated_by:
+  type: OWNER
+  identity: reallaksh19
+  basis:
+  - agents/relay/roadmap/owner-decisions/ODR-769-0005.yaml
+  - agents/relay/certifications/qualification/QUAL-769-02.yaml
+self_certification:
+  allowed: false
+route:
+  route_key: SERIAL:EP-769-02
+  mode: SERIAL
+  execution_ref: EP-769-02
+  ep_id: EP-769-02
+  ep_path: agents/relay/execution-packages/EP-769-02.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: 4e37e97929ddb5af0c7f5765545646454a20ca84
+  ep_contract_digest: sha256:985715fd7779d6c4446e2386ad62c46d2cf6bddf609a6575e65baad5cbb96574
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-01
+    path: agents/relay/checkpoints/CP-769-01.yaml
+    digest: sha256:1cc41bedb5a23b92f5d51d2d3c1d67388b3886258f97413f14c44bdb1cb3daa5
+discovery_receipt:
+  id: DISC-769-02
+  path: agents/relay/certifications/discovery/DISC-769-02.yaml
+qualification:
+  required: true
+  status: PASS
+  receipt_id: QUAL-769-02
+  receipt_path: agents/relay/certifications/qualification/QUAL-769-02.yaml
+  receipt_digest: sha256:09c9237314bdc8827b01641da4d2c334937b91337aa58168b808732779402f69
+checks:
+  baton_semantics: PASS
+  repository_discovery: PASS
+  route_grounding: PASS
+  input_oracle_readiness: PASS
+  scope_understood: PASS
+  report_successor_contract: PASS
+result: PASS
+conversation_context_used: false
