@@ -5,7 +5,7 @@ generation:
   roadmap_revision: RM-0001
   issue_graph_revision: IG-769-0001
   execution_ref: EP-769-01
-  state: PUBLISHING
+  state: IN_SYNC
   supersedes_generation: null
   basis:
   - agents/relay/roadmap/OVERALL_ROADMAP.yaml
@@ -14,7 +14,7 @@ generation:
 operations:
 - id: GHOP-769-0001
   kind: PUBLISH_HANDOVER
-  state: ATTEMPTED_UNCONFIRMED
+  state: VERIFIED
   idempotency_key: relay:GHGEN-769-0001:GHOP-769-0001
   depends_on: []
   subject:
@@ -35,15 +35,17 @@ operations:
     last_attempt_basis:
     - agent/issue-769-postmerge-repair-20260917@d3f1f40b9ee454ec37e18e14a610890e46e90192
     - agents/relay/REPO_STATE.yaml
-    receipt: null
+    receipt: issuecomment-5713516480
     last_error: null
   verification:
-    status: NOT_RUN
+    status: PASS
     observed_issue_number: 769
-    observed_issue_id: null
+    observed_issue_id: I_kwDOTMpahs8AAAABRivUrA
     observed_github_state: OPEN
     observed_relationships: []
-    basis: []
+    basis:
+    - agents/relay/projection/generations/GHOBS-769-0001.yaml
+    - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5713516480
   reconciliation:
     issue_graph_effects:
     - node: ISSUE-769
