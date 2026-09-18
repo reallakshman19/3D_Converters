@@ -1,5 +1,5 @@
 {
-  "lastId": 41,
+  "lastId": 44,
   "entries": [
     {"id":1,"timestamp":"2026-09-02 06:52:52","file":"agents/agentchain.md","context":"Promote ENGCALC-BOLTED-JOINTS to PR706 post-validation endpoint","backupFile":"1_agents_agentchain_md.bak"},
     {"id":2,"timestamp":"2026-09-02 08:51:54","file":"converters/engineering-calculations/bolts/detailed-friction.js","context":"Constrain legacy Bolt Torque Calc geometry helper to qualified 60-degree included-angle applicability before edit","backupFile":"2_converters_engineering-calculations_bolts_detailed-friction_js.bak"},
@@ -41,6 +41,9 @@
     {"id":38,"timestamp":"2026-09-03 15:00:00","file":".backups/log.json","context":"Protect backup registry before registering FIV lifecycle module compatibility backups (connector-reconstructed backup)","backupFile":"38__backups_log_json.bak"},
     {"id":39,"timestamp":"2026-09-03 15:14:00","file":"agents/chains/FIV-LIFECYCLE-MODULE-COMPAT/ACTIVE.md","context":"Protect FIV lifecycle compatibility baton before post-validation handover update (connector-reconstructed backup)","backupFile":"39_agents_chains_FIV_LIFECYCLE_MODULE_COMPAT_ACTIVE_md.bak"},
     {"id":40,"timestamp":"2026-09-03 15:14:00","file":".backups/log.json","context":"Protect backup registry before registering final FIV lifecycle compatibility handover backup (connector-reconstructed backup)","backupFile":"40__backups_log_json.bak"},
-    {"id":41,"timestamp":"2026-09-03 15:33:00","file":"agents/chains/FIV-LIFECYCLE-MODULE-COMPAT/ACTIVE.md","context":"Advance FIV lifecycle compatibility chain on main after Owner-authorized PR726 squash merge while preserving release qualification gaps (connector-reconstructed backup)","backupFile":"41_agents_chains_FIV_LIFECYCLE_MODULE_COMPAT_ACTIVE_md.bak"}
+    {"id":41,"timestamp":"2026-09-03 15:33:00","file":"agents/chains/FIV-LIFECYCLE-MODULE-COMPAT/ACTIVE.md","context":"Advance FIV lifecycle compatibility chain on main after Owner-authorized PR726 squash merge while preserving release qualification gaps (connector-reconstructed backup)","backupFile":"41_agents_chains_FIV_LIFECYCLE_MODULE_COMPAT_ACTIVE_md.bak"},
+    {"id":42,"timestamp":"2026-09-18 10:08:10","file":"tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js","context":"Issue 769 support relationship authority repair before existing JavaScript edit (connector-reconstructed backup)","backupFile":"42_tabs_xml_cii_2019_standalone_xml_cii_trace_resolution_ledger_js.bak"},
+    {"id":43,"timestamp":"2026-09-18 10:08:10","file":".backups/log.json","context":"Protect backup registry before registering Issue 769 support repair backup (connector-reconstructed backup)","backupFile":"43__backups_log_json.bak"},
+    {"id":44,"timestamp":"2026-09-18 11:07:54","file":"tests/xml-cii-standalone-trace-ledger.test.js","context":"Issue 769: repair stale raw-vs-decorated ledger regression assertion","backupFile":"44_tests_xml_cii_standalone_trace_ledger_test_js.bak"}
   ]
 }

@@ -32,7 +32,41 @@ const STAGED_JSON = JSON.stringify([{ type: 'BRANCH', name: BASE_BRANCH, childre
 
   assert.strictEqual(direct.schema, 'xml-cii-trace-resolution-ledger/v1');
   assert.strictEqual(direct.records.length, 2, 'one authoritative record is required per XML node');
-  assert.deepStrictEqual(resolver.resolutionLedger, direct.records, 'Resolver UI must consume the authoritative ledger without recomputing matches');
+  const authoritativeResolution = (row) => ({
+    schema: row.schema,
+    xmlIndex: row.xmlIndex,
+    xmlNodeNumber: row.xmlNodeNumber,
+    xmlNodeName: row.xmlNodeName,
+    componentType: row.componentType,
+    componentRefNo: row.componentRefNo,
+    xmlBranch: row.xmlBranch,
+    xmlPosition: row.xmlPosition,
+    sourceBranch: row.sourceBranch,
+    branchRelationship: row.branchRelationship,
+    matchedPosition: row.matchedPosition,
+    positionDistanceMm: row.positionDistanceMm,
+    maxInternalDistanceMm: row.maxInternalDistanceMm,
+    dtxrPosNodeNumbers: row.dtxrPosNodeNumbers,
+    dtxrPsNodeNumbers: row.dtxrPsNodeNumbers,
+    dtxrPosValue: row.dtxrPosValue,
+    dtxrPsName: row.dtxrPsName,
+    dtxrPsValue: row.dtxrPsValue,
+    effectiveDtxr: row.effectiveDtxr,
+    effectiveSource: row.effectiveSource,
+    fallbackUsed: row.fallbackUsed,
+    fallbackAuthority: row.fallbackAuthority || '',
+    fallbackReason: row.fallbackReason || '',
+    matchType: row.matchType,
+    status: row.status,
+    candidateCount: row.candidateCount,
+    groupId: row.groupId,
+  });
+
+  assert.deepStrictEqual(
+    resolver.resolutionLedger.map(authoritativeResolution),
+    direct.records.map(authoritativeResolution),
+    'Resolver decoration must preserve the authoritative ledger matching decision',
+  );
 
   const node1020 = direct.records.find((row) => row.xmlNodeNumber === '1020');
   assert.strictEqual(node1020.status, 'RESOLVED_POS_PS');
