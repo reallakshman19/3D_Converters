@@ -99,6 +99,8 @@ class XmlNode:
     position: tuple[float, float, float]
     restraint_specs: tuple[RestraintSpec, ...]
     effective_outside_diameter: float | None = None
+    component_ref_no: str = ""
+    source_blind_flange_closure: bool = False
 
 
 @dataclass(frozen=True)
@@ -521,8 +523,15 @@ def _parse_xml_document(path: Path) -> XmlDocument:
         )
         branch_temperatures = _parse_branch_temperatures(branch_element, namespace)
         branch_pressures = _parse_branch_pressures(branch_element, namespace)
+        node_elements = branch_element.findall(_q(namespace, "Node"))
+        blind_flange_component_refs = {
+            _child_text(node_element, namespace, "ComponentRefNo")
+            for node_element in node_elements
+            if _child_text(node_element, namespace, "ComponentType").upper() == "FBLI"
+            and _child_text(node_element, namespace, "ComponentRefNo")
+        }
         parsed_nodes: list[XmlNode] = []
-        for node_element in branch_element.findall(_q(namespace, "Node")):
+        for node_element in node_elements:
             node_number = _parse_optional_int(
                 _child_text(node_element, namespace, "NodeNumber"), "Node/NodeNumber"
             )
@@ -535,6 +544,8 @@ def _parse_xml_document(path: Path) -> XmlDocument:
 
             endpoint = _parse_optional_int(_child_text(node_element, namespace, "Endpoint"), "Node/Endpoint")
             rigid = _parse_optional_int(_child_text(node_element, namespace, "Rigid"), "Node/Rigid")
+            component_type = _child_text(node_element, namespace, "ComponentType").upper()
+            component_ref_no = _child_text(node_element, namespace, "ComponentRefNo")
             alpha_angle = _parse_optional_float(
                 _child_text(node_element, namespace, "AlphaAngle"), "Node/AlphaAngle"
             )
@@ -590,7 +601,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     node_number=node_number,
                     node_name=_child_text(node_element, namespace, "NodeName"),
                     endpoint=endpoint,
-                    component_type=_child_text(node_element, namespace, "ComponentType").upper(),
+                    component_type=component_type,
                     rigid=rigid,
                     weight=weight_value,
                     material_code=_parse_node_material_code(node_element, namespace),
@@ -604,6 +615,12 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     position=_parse_position(position_text),
                     restraint_specs=_parse_restraints(node_element, namespace),
                     effective_outside_diameter=effective_outside_diameter_value,
+                    component_ref_no=component_ref_no,
+                    source_blind_flange_closure=(
+                        component_type == "RIGID"
+                        and bool(component_ref_no)
+                        and component_ref_no in blind_flange_component_refs
+                    ),
                 )
             )
 
@@ -624,6 +641,15 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     if not branches:
         raise ValueError("Input XML does not contain any positive NodeNumber nodes.")
 
+    # Normalize the narrow source-proven terminal blind-flange/branch-junction
+    # case before short-span cleanup.  The protected terminal RIGID is withheld
+    # from whichever cleanup implementation is currently installed (the
+    # production contracted-direction wrapper replaces _drop_short_element_nodes
+    # at runtime), then restored after its exact FLAN anchor.  This keeps the
+    # behavior consistent for every XmlDocument consumer without teaching the
+    # generic short-span cleaner about one component-specific topology rule.
+    branches_for_cleanup, protected_terminals = _normalize_terminal_branch_junctions(branches)
+
     # Applied here (rather than in _build_conversion_model) so every
     # consumer of XmlDocument.branches sees the same already-cleaned list —
     # including xml_to_cii2019_patched.py's own _build_conversion_model
@@ -632,9 +658,169 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     # Cleaning at any single downstream call site risked those staying out
     # of sync with each other (e.g. restraints keyed by a node number that
     # a not-yet-cleaned edge list had already dropped).
-    branches = _drop_short_element_nodes(branches)
+    branches = _drop_short_element_nodes(branches_for_cleanup)
+    branches = _restore_source_semantic_terminals(branches, protected_terminals)
 
     return XmlDocument(metadata=metadata, branches=branches)
+
+
+BRANCH_JUNCTION_HOST_TOLERANCE_MM: Final[float] = 1.0e-6
+TOPOLOGY_NORMALIZATION_EVENTS: list[str] = []
+
+
+def _point_strictly_inside_segment(
+    point: tuple[float, float, float],
+    start: tuple[float, float, float],
+    end: tuple[float, float, float],
+    tolerance_mm: float = BRANCH_JUNCTION_HOST_TOLERANCE_MM,
+) -> bool:
+    """Return True only when point lies in the interior of one finite segment."""
+
+    vector = tuple(end[index] - start[index] for index in range(3))
+    length_squared = sum(value * value for value in vector)
+    if length_squared <= tolerance_mm * tolerance_mm:
+        return False
+
+    offset = tuple(point[index] - start[index] for index in range(3))
+    fraction = sum(offset[index] * vector[index] for index in range(3)) / length_squared
+    if fraction <= 0.0 or fraction >= 1.0:
+        return False
+
+    closest = tuple(start[index] + fraction * vector[index] for index in range(3))
+    distance = math.sqrt(sum((point[index] - closest[index]) ** 2 for index in range(3)))
+    return distance <= tolerance_mm
+
+
+def _normalize_terminal_branch_junctions(
+    branches: list[XmlBranch],
+) -> tuple[list[XmlBranch], dict[int, tuple[int, XmlNode]]]:
+    """Normalize only source-proven blind-flange tails with one BRAN host.
+
+    PSI116 can append a BRAN endpoint-2 connection record after a terminal
+    blind-flange pair even though that connection point lies inside an earlier
+    host segment.  Treating the array tail as serial topology makes the terminal
+    FLAN point connect backwards to BRAN after short-span cleanup.
+
+    Eligibility is deliberately narrow:
+    - trailing BRAN endpoint 2;
+    - immediately preceded by a RIGID whose ComponentRefNo is also present on
+      an FBLI source record in the same branch;
+    - immediately preceded by FLAN endpoint 2; and
+    - BRAN position lies strictly inside exactly one pre-terminal host segment.
+
+    Qualified branches are reordered to put BRAN inside that host segment.  The
+    terminal RIGID is temporarily withheld from generic short-span cleanup and
+    returned to the caller for exact restoration after its FLAN anchor.
+    Ambiguous/no-host cases are left byte-for-byte in their original node order.
+    """
+
+    normalized: list[XmlBranch] = []
+    protected_terminals: dict[int, tuple[int, XmlNode]] = {}
+
+    for branch_index, branch in enumerate(branches):
+        nodes = list(branch.nodes)
+        if len(nodes) < 4:
+            normalized.append(branch)
+            continue
+
+        junction = nodes[-1]
+        terminal_rigid = nodes[-2]
+        terminal_flange = nodes[-3]
+        if not (
+            junction.component_type == "BRAN"
+            and junction.endpoint == 2
+            and terminal_rigid.component_type == "RIGID"
+            and terminal_rigid.source_blind_flange_closure
+            and terminal_flange.component_type == "FLAN"
+            and terminal_flange.endpoint == 2
+        ):
+            normalized.append(branch)
+            continue
+
+        host_nodes = nodes[:-2]
+        host_indices = [
+            index
+            for index in range(len(host_nodes) - 1)
+            if _point_strictly_inside_segment(
+                junction.position,
+                host_nodes[index].position,
+                host_nodes[index + 1].position,
+            )
+        ]
+        if len(host_indices) != 1:
+            TOPOLOGY_NORMALIZATION_EVENTS.append(
+                f"Branch '{branch.branch_name}' NodeNumber {junction.node_number}: "
+                f"BRAN endpoint-2 host resolution returned {len(host_indices)} segments; "
+                "source order retained"
+            )
+            normalized.append(branch)
+            continue
+
+        host_index = host_indices[0]
+        nodes.pop()
+        nodes.insert(host_index + 1, junction)
+
+        # The source-proven terminal closure is intentionally absent while the
+        # generic cleaner runs.  Production may install a different short-span
+        # cleaner; withholding here prevents either implementation from
+        # collapsing the qualified FLAN/RIGID pair.
+        if nodes[-1].node_number != terminal_rigid.node_number:
+            raise ValueError(
+                f"Topology normalization lost terminal RIGID NodeNumber "
+                f"{terminal_rigid.node_number} in branch '{branch.branch_name}'."
+            )
+        cleanup_nodes = nodes[:-1]
+        protected_terminals[branch_index] = (terminal_flange.node_number, terminal_rigid)
+        normalized.append(replace(branch, nodes=cleanup_nodes))
+        TOPOLOGY_NORMALIZATION_EVENTS.append(
+            f"Branch '{branch.branch_name}' NodeNumber {junction.node_number}: "
+            f"inserted BRAN endpoint-2 into host "
+            f"{host_nodes[host_index].node_number}->{host_nodes[host_index + 1].node_number}; "
+            f"protected blind-flange terminal RIGID NodeNumber {terminal_rigid.node_number}"
+        )
+
+    return normalized, protected_terminals
+
+
+def _restore_source_semantic_terminals(
+    branches: list[XmlBranch],
+    protected_terminals: dict[int, tuple[int, XmlNode]],
+) -> list[XmlBranch]:
+    """Restore blind-flange terminal RIGIDs withheld from short-span cleanup."""
+
+    if not protected_terminals:
+        return branches
+
+    restored: list[XmlBranch] = []
+    for branch_index, branch in enumerate(branches):
+        protection = protected_terminals.get(branch_index)
+        if protection is None:
+            restored.append(branch)
+            continue
+
+        flange_node_number, terminal_rigid = protection
+        nodes = list(branch.nodes)
+        if any(node.node_number == terminal_rigid.node_number for node in nodes):
+            raise ValueError(
+                f"Protected terminal RIGID NodeNumber {terminal_rigid.node_number} "
+                f"already exists after cleanup in branch '{branch.branch_name}'."
+            )
+
+        anchor_indices = [
+            index for index, node in enumerate(nodes) if node.node_number == flange_node_number
+        ]
+        if len(anchor_indices) != 1:
+            raise ValueError(
+                f"Protected terminal RIGID NodeNumber {terminal_rigid.node_number} "
+                f"cannot be restored: FLAN anchor {flange_node_number} occurs "
+                f"{len(anchor_indices)} times in branch '{branch.branch_name}'."
+            )
+
+        insert_at = anchor_indices[0] + 1
+        nodes.insert(insert_at, terminal_rigid)
+        restored.append(replace(branch, nodes=nodes))
+
+    return restored
 
 
 SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
