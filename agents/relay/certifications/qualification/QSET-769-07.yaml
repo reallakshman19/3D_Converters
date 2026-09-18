@@ -1,0 +1,66 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-07
+route:
+  route_key: SERIAL:EP-769-05
+  mode: SERIAL
+  execution_ref: EP-769-05
+  ep_id: EP-769-05
+  ep_path: agents/relay/execution-packages/EP-769-05.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-SUPPORT
+  ep_contract_digest: sha256:7428a9e04809b7f1e6154811ec5df888d097ed10518cdd70b6a6a41543286584
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - Support fallback authority is distinct from completed geometry authority.
+  - Exact staged records for all reported support tags must be reconstructed before mutation.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-SUPPORT, INPUT-SUPPORT-RESOLVER]
+  prompt: Trace the production support path from staged source identity/relationship/coordinate evidence through DTXR resolution/enrichment, Python restraint mapping and CII serialization; identify the state owner and authority source.
+  required_output_keys: [production_entrypoint, state_owner, authority_source, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [BENCH-SUPPORT-769, AC-SUPPORT-PROV-01]
+  prompt: Reconstruct PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 from exact staged source evidence and identify the first divergent intermediate resolver result.
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    source: INPUT-SUPPORT-SOURCE
+    cases: [PS00608.1, PS00571.1, PS00572.1, PS00573.1]
+  required_output_keys: [reconstruction_steps, intermediate_result, expected_result]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [AC-SUPPORT-PROV-02]
+  prompt: State the smallest source-semantic support rule that could repair the demonstrated cases while preserving conflict/ambiguity rejection, or state that no safe shared rule exists.
+  mutation:
+    condition: Exact source identity plus authorized relationship/coordinate/support-kind evidence uniquely resolves the reported case.
+    protected_invariant: Ambiguous or conflicting support evidence does not auto-commit a REST or restraint kind.
+    falsifier: The repair requires PS/tag syntax, coordinate-only guessing across relationship conflict, or a case-specific exception.
+  required_output_keys: [mutation_effect, protected_invariant, custody_boundary, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [BENCH-SUPPORT-769, TEST-SUPPORT-PROV]
+  prompt: Define an independent oracle comparing the three missing/feasibility cases with working PS00573.1 and negative ambiguity/conflict controls.
+  oracle_refs: [BENCH-SUPPORT-769]
+  independence_requirement: Expected support kind and owner must come from staged source evidence and current resolver policy, not proposed repair output.
+  required_output_keys: [independent_method, predicted_result, negative_controls, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-SUPPORT-PROV-01, AC-SUPPORT-PROV-SCOPE]
+  prompt: State whether the next safe action is a bounded production repair or a stop, with exact candidate paths and verification; EP-769-05 itself must remain provenance-only.
+  step_refs: [STEP-SUPPORT-PROV-01]
+  required_output_keys: [first_change, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-support-successor-preparer-20260918
