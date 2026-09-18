@@ -1,0 +1,51 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0004
+kind: SYNCHRONIZED_TOPOLOGY_AND_REGRESSION_VALIDATION
+captured_at_utc: '2026-09-18T04:39:07Z'
+repository: reallaksh19/3D_Converters
+branch: agent/issue-769-geometry-order-20260917
+git_basis:
+  head: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  expected_head: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  branch_match: true
+  tracked_worktree: CLEAN
+  untracked_entries:
+  - 3D_Converters/
+  interpretation: The untracked nested directory is outside the tracked branch delta; all executed tests used the synchronized tracked checkout at the exact expected HEAD.
+validation:
+- id: TEST-ORDER-REAL-PY
+  status: PASS
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+  output: 7 passed in 0.39s
+  exact_blobs:
+    converters/scripts/xml_to_cii2019.py: 797b4471a44e8e38e5d3b0655541ea47f5903d48
+    converters/scripts/test_xml_to_cii2019_edge_order_authority.py: 23d60f452dca3c6db901bece9038ca3adc1105b3
+  proves:
+  - Both reported 2439/2450 and 2909/2920 source-semantic topology cases.
+  - Terminal blind-flange RIGID preservation.
+  - Production contracted-direction subprocess behavior.
+  - No-host and multi-host fail-closed behavior.
+  - Negative-coordinate, reducer and tee ordering controls.
+- id: REGRESSION-OD-FBLI-LEGACY
+  status: PASS
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py converters/scripts/test_xml_to_cii2019_fbli_negative_node.py converters/scripts/test_xml_to_cii2019_patched_process.py
+  output: 12 passed in 0.24s
+  suites:
+  - TEST-OD-PY
+  - TEST-FBLI
+  - TEST-LEGACY
+aggregate:
+  passed: 19
+  failed: 0
+  errors: 0
+scope:
+  TEST-ORDER-REAL-SCOPE: PASS
+  basis: EVD-769-0003 exact Git compare changed only the admitted production and focused regression files, with no PR 417 overlap.
+acceptance_effect:
+  AC-ORDER-REAL-01: PASS
+  AC-ORDER-REAL-02: PASS
+  AC-ORDER-REAL-SCOPE: PASS
+truth_constraints:
+- Historical checkpoints remain immutable.
+- Full post-material repository-native v2.5 validator-suite conformance is not claimed by these pytest results.
+- No merge has been performed.
