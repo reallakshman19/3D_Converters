@@ -1,0 +1,26 @@
+schema_version: relay-v2.5
+id: ODR-769-0010
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: "authorized, fix it"
+  source: "owner-chat-message:2026-09-18T06:08:10Z"
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: true
+  pending_items: []
+impact:
+  class: [LOCAL]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-SUPPORT]
+  execution_packages: [EP-769-06]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Execute only the bounded support relationship repair defined by EP-769-06.
+- Preserve fail-closed relationship conflict and ambiguity handling.
+- Do not infer REST from PS syntax or add tag-specific exceptions.
+- Preserve Owner-only merge authority; this authorization does not authorize merge.
+- Record any connector-only deviation from zero-conversation takeover honestly in checkpoint/quality evidence.
+status: APPLIED
