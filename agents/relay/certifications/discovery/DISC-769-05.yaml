@@ -1,0 +1,82 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-05
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-order-real-candidate-20260918T015141Z
+route:
+  route_key: SERIAL:EP-769-04
+  mode: SERIAL
+  execution_ref: EP-769-04
+  ep_id: EP-769-04
+  ep_path: agents/relay/execution-packages/EP-769-04.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  ep_contract_digest: sha256:a14e8cc467c3fcd5029ada772d5fad479623ebdcbc4cfc1021427224dffeb44e
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-03
+    path: agents/relay/checkpoints/CP-769-03.yaml
+    digest: sha256:e6fd297ea70a2002996bf4c044716a48751610e53908ea170113544804d386eb
+steps:
+- id: DSTEP-04-01
+  status: PASS
+  outputs:
+  - {name: active_ep, value: EP-769-04, basis: [agents/relay/REPO_STATE.yaml]}
+  - {name: previous_checkpoint, value: CP-769-03, basis: [agents/relay/checkpoints/CP-769-03.yaml]}
+  - {name: material_authority, value: READ_ONLY, basis: [agents/relay/REPO_STATE.yaml]}
+  basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-03.yaml]
+- id: DSTEP-04-02
+  status: FAIL
+  outputs:
+  - name: provenance_capture
+    value: UNAVAILABLE
+    basis: [Issue #769 issuecomment-5720736621, Benchmarks/XML to CII 2019 directory inventory]
+  - name: source_records
+    value: Canonical raw GLRD XML exists, but no exact enriched/output artifact containing generated labels 2909-2920 and 2439-2450 was found in conversation files, Issue #769 comments, the current benchmark directory, or inspected prior Issue #769 branches.
+    basis:
+    - Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml@8769ffe538ecacc621daf39919ca00ba27008211
+    - Issue #769 issuecomment-5712580143
+    - Issue #769 issuecomment-5720401266
+    - Issue #769 issuecomment-5720736621
+  - name: source_order
+    value: UNRESOLVED because the generated labels cannot be joined to exact source branch/component endpoint records without the missing enriched/output artifact.
+    basis: [converters/scripts/xml_to_cii2019_order_provenance.py@987c866ca1225fe2024e19e95ba02474dbcccc82, agents/relay/execution-packages/EP-769-04.yaml]
+  basis:
+  - Issue #769 comment-history search for 2909, 2920, 2439, 2450 and 26.8
+  - Benchmarks/XML to CII 2019 directory inventory
+  - Prior branch inventories for issue-769/xml-cii-standalone-fixes, agent/xml-cii-standalone-rca-20260916, agent/issue-769-postmerge-repair-20260917, and agent/issue-769-geometry-od-20260917
+  - scripts/verify-issue-769-xml-cii.mjs contains no reported generated-label fixture
+  - agents/WIP-XMLCII-RCA-20260916_workreport.md contains no reported generated-label mapping
+  - Benchmarks/GLRD-1000-PI-01.zip@014b93542c4706979d3157febc45c4952e0ce6fa exists, but binary content is not inspectable through the connected UTF-8-only GitHub interface
+- id: DSTEP-04-03
+  status: FAIL
+  outputs:
+  - name: first_wrong_boundary
+    value: Generic defect-class boundary remains base._build_edges accepting branch array order as topology orientation; the case-specific first wrong boundary cannot be proven without real generated-label provenance.
+    basis: [agents/relay/certifications/discovery/DISC-769-03.yaml, Issue #769 issuecomment-5712580143]
+  - name: expected_order
+    value: UNRESOLVED for both reported ranges because source/component connectivity records are not bound to the generated labels.
+    basis: [agents/relay/execution-packages/EP-769-04.yaml]
+  - name: direction_authority
+    value: BLOCKED_PENDING_INPUT_ORDER_PROVENANCE
+    basis: [agents/relay/certifications/qualification/QSET-769-05.yaml]
+  basis: [agents/relay/certifications/discovery/DISC-769-03.yaml, agents/relay/execution-packages/EP-769-04.yaml, agents/relay/certifications/qualification/QSET-769-05.yaml]
+- id: DSTEP-04-04
+  status: PASS
+  outputs:
+  - name: pr417_paths
+    value: Current six coordinate-custody paths from PR #417; neither future declared topology path is currently changed by EP-769-04.
+    basis: [github:reallaksh19/3D_Converters#417]
+  - name: candidate_paths
+    value: converters/scripts/xml_to_cii2019.py and converters/scripts/test_xml_to_cii2019_edge_order_authority.py only after fresh qualification; no EP-769-04 material mutation exists.
+    basis: [agents/relay/execution-packages/EP-769-04.yaml]
+  - {name: overlap, value: none on current declared candidate path inventory, basis: [github:reallaksh19/3D_Converters#417, agents/relay/execution-packages/EP-769-04.yaml]}
+  basis: [github:reallaksh19/3D_Converters#417, agents/relay/execution-packages/EP-769-04.yaml]
+result: FAIL
+conversation_context_used: false
