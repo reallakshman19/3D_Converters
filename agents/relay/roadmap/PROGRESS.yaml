@@ -1,37 +1,37 @@
 schema_version: relay-v2.5
 progress_basis:
-  id: PB-769-0002
+  id: PB-769-0003
   roadmap_revision: RM-0001
 overall:
-  earned_weight: 28.75
+  earned_weight: 50
   total_weight: 100
-  percent: 28.75
+  percent: 50
 objectives:
 - id: OBJ-769
-  earned_weight: 28.75
+  earned_weight: 50
   total_weight: 100
-  percent: 28.75
+  percent: 50
 phases:
 - id: PHASE-769-POSTMERGE
-  earned_weight: 28.75
+  earned_weight: 50
   total_weight: 100
-  percent: 28.75
+  percent: 50
 work_packages:
 - {id: WP-769-FBLI, earned_weight: 25, total_weight: 25, percent: 100}
-- {id: WP-769-GEOMETRY, earned_weight: 3.75, total_weight: 25, percent: 15}
+- {id: WP-769-GEOMETRY, earned_weight: 25, total_weight: 25, percent: 100}
 - {id: WP-769-SUPPORT, earned_weight: 0, total_weight: 25, percent: 0}
 - {id: WP-769-RELEASE, earned_weight: 0, total_weight: 25, percent: 0}
 execution_packages:
 - {id: EP-769-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-02, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-03, earned_weight: 100, total_weight: 100, percent: 100}
-- {id: EP-769-04, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: EP-769-04, earned_weight: 100, total_weight: 100, percent: 100}
 implementation_steps:
 - {id: STEP-FBLI-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-OD-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-01, earned_weight: 0, total_weight: 100, percent: 0}
 - {id: STEP-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
-- {id: STEP-ORDER-02, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: STEP-ORDER-02, earned_weight: 100, total_weight: 100, percent: 100}
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 60
@@ -119,20 +119,27 @@ acceptance_criteria:
   status: COMPLETE
   basis: [Material compare c9324c76..2f28f3df contains only the two diagnostic files and no PR #417 path.]
 - id: AC-ORDER-REAL-01
-  earned_weight: 0
+  earned_weight: 60
   total_weight: 60
-  percent: 0
-  status: NOT_RUN
-  basis: [EP-769-04 INPUT-ORDER-PROVENANCE is MISSING_BLOCKING; real reported-case provenance has not been captured.]
+  percent: 100
+  status: COMPLETE
+  basis:
+  - EVD-769-0002 provides 8/8 exact raw/enriched provenance and the independent expected topology.
+  - EVD-769-0004 records TEST-ORDER-REAL-PY PASS, 7 passed in 0.39s on synchronized head aa5659f334f780c1a0ecd381872ee64a2e5ac60e.
 - id: AC-ORDER-REAL-02
-  earned_weight: 0
+  earned_weight: 25
   total_weight: 25
-  percent: 0
-  status: NOT_RUN
-  basis: [No successor topology mutation is authorized before real provenance and fresh qualification.]
+  percent: 100
+  status: COMPLETE
+  basis:
+  - Focused regression covers fail-closed zero/multiple-host cases and negative-coordinate/reducer/tee controls.
+  - Production contracted-direction subprocess is included in TEST-ORDER-REAL-PY.
+  - EVD-769-0004
 - id: AC-ORDER-REAL-SCOPE
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 15
-  percent: 0
-  status: NOT_RUN
-  basis: [No EP-769-04 material write has occurred.]
+  percent: 100
+  status: COMPLETE
+  basis:
+  - EVD-769-0003 records exact changed-path scope limited to xml_to_cii2019.py and test_xml_to_cii2019_edge_order_authority.py.
+  - Current PR 417 path intersection is empty.
