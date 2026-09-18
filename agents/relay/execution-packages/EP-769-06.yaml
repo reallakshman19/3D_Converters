@@ -10,7 +10,9 @@ identity:
 replan_inheritance: null
 git_basis:
   expected_branch: agent/issue-769-support-repair-20260918
-  material_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  material_ref: 56730b8935fe38c7489f30aba61f186c7cb6a0b7
+  delivery_branch: fix/issue-769-support-relationship
+  delivery_pr: 775
   base_branch: main
   base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
   drift_policy: RECHECK_BEFORE_WRITE
@@ -33,8 +35,8 @@ context_capsule:
   roadmap_position: OBJ-769 / PHASE-769-POSTMERGE / WP-769-SUPPORT after CP-769-05.
   why_this_work_exists: EVD-769-0005 proves PS00608.1 is explicit REST and explicitly attached to the XML branch containing node 3140, but the standalone ledger rejects it because fallback uses staged container-branch compatibility and ignores that explicit attachment.
   current_architecture: The standalone trace ledger owns position groups and legacy PS fallback; shared source-schema adapters expose COMPRE and ATTACHED_COMPONENT_REF relationship evidence, and the shared DTXR resolver can index exact support identities when an explicit sourceSchema profile is enabled.
-  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007, ODR-769-0008, ODR-769-0009]
-  current_implementation_state: CP-769-05 closed read-only support provenance. No production support file has changed since geometry material head aa5659f334f780c1a0ecd381872ee64a2e5ac60e.
+  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007, ODR-769-0008, ODR-769-0009, ODR-769-0010]
+  current_implementation_state: Material repair is implemented on clean PR 775 at 56730b8935fe38c7489f30aba61f186c7cb6a0b7 and exact-head Node support/ledger/enrichment/source-schema tests pass; however the required zero-conversation DISC/QUAL/TC and live MATERIAL_WRITE_READY were not established before write, so this EP remains WAITING_QUALIFICATION for conformance reconciliation rather than claiming retroactive admission.
   known_problems:
   - globalPsFallback in xml-cii-trace-resolution-ledger.js requires staged container branch compatibility, so PS00608.1 is rejected despite its exact tag and COMPRE / ATTACHED_COMPONENT_REF matching the XML branch.
   - The standalone default trace config leaves sourceSchema empty; simply calling shared resolver APIs would otherwise preserve legacy behavior.
