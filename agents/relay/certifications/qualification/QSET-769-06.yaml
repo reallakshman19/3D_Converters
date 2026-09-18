@@ -1,0 +1,69 @@
+schema_version: relay-v2.5-question-set
+id: QSET-769-06
+route:
+  route_key: SERIAL:EP-769-04
+  mode: SERIAL
+  execution_ref: EP-769-04
+  ep_id: EP-769-04
+  ep_path: agents/relay/execution-packages/EP-769-04.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:0dff36c2d4d275ebba58b45c7a316892aabc19471f3a573fefbbcecd965c6e70
+boundary:
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - EVD-769-0002 supplies production-enriched generated-label provenance with 8/8 exact joins.
+  - Expected topology is source/component-semantic and independent of the proposed implementation.
+  - The qualified two-file write boundary remains disjoint from PR 417 coordinate custody.
+questions:
+- id: Q1
+  focus: PRODUCTION_PATH
+  anchors: [WP-769-GEOMETRY, INPUT-ORDER-PROVENANCE]
+  prompt: Trace the production path from real source/enrichment through topology normalization, short-node pruning, edge construction, direction mapping and CII serialization; identify the state owner and authority source.
+  required_output_keys: [production_entrypoint, state_owner, authority_source, downstream_consumer]
+  evidence_required: true
+- id: Q2
+  focus: ENGINEERING_PROBLEM
+  anchors: [BENCH-ORDER-769, AC-ORDER-REAL-01]
+  prompt: Reconstruct both reported 26.8 mm reversed cases from EVD-769-0002, including the intermediate pruning/adjacency result and the independently expected topology result.
+  reconstruction_mode: LOGIC_RECONSTRUCTION
+  payload:
+    source: agents/relay/evidence/EVD-769-0002.yaml
+    ranges:
+    - {elements: 2909-2920, reported_length_mm: 26.8}
+    - {elements: 2439-2450, reported_length_mm: 26.8}
+  required_output_keys: [reconstruction_steps, intermediate_result, expected_result]
+  evidence_required: true
+- id: Q3
+  focus: BOUNDARIES_INVARIANTS
+  anchors: [AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
+  prompt: State the smallest permitted order/topology mutation, the protected topology invariant, the custody boundary, and a falsifier that would make the repair unsafe.
+  mutation:
+    condition: Change only the source-proven first wrong boundary after all required real provenance matches are exact.
+    protected_invariant: Legitimate branch/reducer/tee/endpoint topology and PR 417 coordinate/origin behavior remain unchanged.
+    falsifier: A global NodeNumber sort, coordinate-sign reversal, unmatched or ambiguous provenance, PR 417 edit, or valid-topology regression is required.
+  required_output_keys: [mutation_effect, protected_invariant, custody_boundary, falsifier]
+  evidence_required: true
+- id: Q4
+  focus: VERIFICATION
+  anchors: [BENCH-ORDER-769, TEST-ORDER-REAL-PY]
+  prompt: Define an independent regression oracle from EVD-769-0002 for both reported cases plus negative controls proving valid topology is not globally reordered.
+  oracle_refs: [BENCH-ORDER-769]
+  independence_requirement: Expected order is frozen from source/component evidence before the proposed repair executes.
+  required_output_keys: [independent_method, predicted_result, negative_controls, tolerance_or_exactness]
+  evidence_required: true
+- id: Q5
+  focus: FIRST_SAFE_SLICE
+  anchors: [STEP-ORDER-02, AC-ORDER-REAL-SCOPE]
+  prompt: State the first bounded two-file topology write, predicted before/after behavior and exact verification; stop instead of proposing a heuristic if host resolution is absent or ambiguous.
+  step_refs: [STEP-ORDER-02]
+  required_output_keys: [first_change, predicted_before, predicted_after, verification]
+  evidence_required: true
+prepared_by:
+  agent_instance_id: chatgpt:issue769-v25-order-successor-preparer-20260917
