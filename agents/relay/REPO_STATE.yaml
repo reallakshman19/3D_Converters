@@ -18,13 +18,13 @@ current_position:
 execution_policy:
   mode: SERIAL
 active_ep:
-  id: EP-769-05
-  path: agents/relay/execution-packages/EP-769-05.yaml
-  state: WAITING_INPUT
+  id: EP-769-07
+  path: agents/relay/execution-packages/EP-769-07.yaml
+  state: WAITING_QUALIFICATION
   continuity_receipt: null
 last_checkpoint:
-  id: CP-769-04
-  path: agents/relay/checkpoints/CP-769-04.yaml
+  id: CP-769-05
+  path: agents/relay/checkpoints/CP-769-05.yaml
 predecessor_join:
   id: null
   path: null
@@ -66,57 +66,58 @@ progress:
   basis_revision: PB-769-0004
 status_planes:
   execution:
-    state: WAITING
+    state: WAITING_QUALIFICATION
     can_continue: true
     material_authority: READ_ONLY
-    next_action: Extract and hash Benchmarks/STF_2026Sep16-0859_managed_stage.zip; reconstruct PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 through source-schema, relationship, coordinate, DTXR and restraint authority. No production support write is authorized in EP-769-05.
+    next_action: Fresh zero-context candidate checks out agent/issue-769-support-replay-v25-20260918, executes EP-769-07 repository discovery without consulting PR 775 implementation, then completes QSET-769-09 qualification and takeover certification. No material write is authorized before live MATERIAL_WRITE_READY.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - QRV-769-04 is CLEAR and CP-769-04 checkpoints geometry with TEST-ORDER-REAL-PY 7/7 PASS, regression gate 12/12 PASS and scope PASS.
-    - WP-769-GEOMETRY is COMPLETE; WP-769-SUPPORT is the active roadmap frontier.
-    - EP-769-05 is provenance-only and has no material write authority.
-    - Exact STF source records for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 are not yet bound into a durable resolver trace.
-    - Full post-material repository-native v2.5 validator-suite conformance remains release debt; MATERIAL_WRITE_READY did pass before the completed geometry mutation.
+    - CP-769-05 checkpoints support provenance/RCA complete and identifies the standalone trace ledger as the first wrong boundary.
+    - Prior PR 775 is functionally green but is not accepted as v2.5 material custody because pre-write DISC/QUAL/TC and MATERIAL_WRITE_READY were absent.
+    - EP-769-07 is a fresh replay contract rooted before the support mutation; qualification must be independent of PR 775 output.
+    - Merge remains Owner-only.
   evidence:
     state: PARTIAL
-    summary: Geometry is checkpointed complete at CP-769-04 with all EP-769-04 acceptance PASS. Support provenance now becomes the active serial frontier. The current support source input remains MISSING_BLOCKING for material qualification, but read-only extraction and tracing can continue.
+    summary: Support provenance is checkpointed complete at CP-769-05. EP-769-07 is prepared for a strict pre-write qualification replay; no EP-769-07 material test has run and material authority is READ_ONLY.
     not_run:
-    - id: TEST-SUPPORT-PROV
-      reason: The exact STF managed-stage archive has not yet been extracted/hash-bound and the four reported support cases have not been traced through the production resolver.
-      cause: OTHER
-    - id: TEST-SUPPORT-PROV-SCOPE
-      reason: The support provenance branch has not yet executed its changed-path scope audit.
+    - id: DISC-769-08
+      reason: Fresh zero-context candidate has not yet executed repository discovery.
       cause: DEPENDENCY_WAIT
-    - id: V25-CONFORMANCE
-      reason: Full post-material repository-native v2.5 validator suite remains not run; geometry checkpoint truth is based on declared EP tests plus QRV-769-04.
-      cause: NOT_SCHEDULED
+    - id: QUAL-769-07
+      reason: Qualification cannot run until DISC-769-08 and QSET-769-09 are current.
+      cause: DEPENDENCY_WAIT
+    - id: TC-769-06
+      reason: Takeover certification cannot run until discovery and qualification pass.
+      cause: DEPENDENCY_WAIT
+    - id: MATERIAL-WRITE-READY-EP07
+      reason: Runtime predicate is intentionally withheld until candidate takeover is certified.
+      cause: DEPENDENCY_WAIT
+    - id: TEST-SUPPORT-REAL
+      reason: EP-769-07 material implementation has not begun.
+      cause: DEPENDENCY_WAIT
     passed:
-    - id: TEST-ORDER-REAL-PY
-      evidence: EVD-769-0004 records 7 passed in 0.39s on synchronized head aa5659f334f780c1a0ecd381872ee64a2e5ac60e.
-    - id: TEST-ORDER-REAL-SCOPE
-      evidence: EVD-769-0003 records the exact two-file material diff with zero PR 417 overlap.
-    - id: REGRESSION-OD-FBLI-LEGACY
-      evidence: EVD-769-0004 records 12 passed in 0.24s; aggregate geometry plus regression result is 19/19 PASS.
-    - id: MATERIAL-WRITE-READY
-      evidence: EVD-769-0003 records repository-native PASS/material_write_ready true before the geometry mutation.
+    - id: TEST-SUPPORT-PROV
+      evidence: CP-769-05 / EVD-769-0005 hash-bind exact STF/GLRD evidence and first wrong boundary.
+    - id: TEST-SUPPORT-PROV-SCOPE
+      evidence: CP-769-05 records relay-only provenance scope with no production support mutation.
   stop:
     active: false
     category: null
     reason: null
     basis:
-    - agents/relay/checkpoints/CP-769-04.yaml
-    - agents/relay/execution-packages/EP-769-05.yaml
-    - agents/relay/certifications/qualification/QSET-769-07.yaml
+    - agents/relay/checkpoints/CP-769-05.yaml
+    - agents/relay/execution-packages/EP-769-07.yaml
+    - agents/relay/roadmap/owner-decisions/ODR-769-0011.yaml
 projection:
   required: true
-  state: IN_SYNC
+  state: STALE
   operation_id: GHGEN-769-0012
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
   plan: agents/relay/projection/generations/GHGEN-769-0012.yaml
   roadmap_revision: RM-0001
-  execution_ref: EP-769-05
+  execution_ref: EP-769-07
   receipt: issuecomment-5725332365
   basis:
   - agents/relay/checkpoints/CP-769-04.yaml
@@ -138,13 +139,12 @@ projection:
   - GHGEN-769-0003
   - GHGEN-769-0002
 relay_readiness:
-  baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  baton_ready: false
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - CP-769-04 checkpoints geometry complete with 19/19 synchronized Python assertions passing and QRV-769-04 CLEAR.
-  - WP-769-SUPPORT / EP-769-05 is the active serial successor on agent/issue-769-support-20260918.
-  - Material authority is READ_ONLY; only exact source extraction and resolver tracing may proceed.
-  - INPUT-SUPPORT-SOURCE remains MISSING_BLOCKING for material qualification.
-  - GitHub projection GHGEN-769-0012 is verified IN_SYNC by issuecomment-5725332365.
+  - CP-769-05 is the current predecessor checkpoint and EP-769-07 is the active serial replay contract.
+  - Material authority is READ_ONLY pending fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
+  - QSET-769-09 must exist and validate against the exact EP-769-07 digest before BATON_READY can become true.
+  - GitHub Issue 769 projection is STALE until replay setup is published and read back.
 chat_context_required: false
