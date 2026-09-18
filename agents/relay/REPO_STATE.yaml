@@ -110,26 +110,41 @@ status_planes:
     - agents/relay/certifications/qualification/QSET-769-07.yaml
 projection:
   required: true
-  state: STALE
-  operation_id: GHGEN-769-0011
+  state: IN_SYNC
+  operation_id: GHGEN-769-0012
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0011.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0012.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-05
-  receipt: issuecomment-5725160840
+  receipt: issuecomment-5725332365
   basis:
   - agents/relay/checkpoints/CP-769-04.yaml
-  - agents/relay/execution-packages/EP-769-05.yaml
   - agents/relay/quality/QRV-769-04.yaml
   - agents/relay/evidence/EVD-769-0004.yaml
+  - agents/relay/execution-packages/EP-769-05.yaml
+  - agents/relay/certifications/qualification/QSET-769-07.yaml
+  - agents/relay/projection/generations/GHGEN-769-0012.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5725332365
+  superseded_operations:
+  - GHGEN-769-0011
+  - GHGEN-769-0010
+  - GHGEN-769-0009
+  - GHGEN-769-0008
+  - GHGEN-769-0007
+  - GHGEN-769-0006
+  - GHGEN-769-0005
+  - GHGEN-769-0004
+  - GHGEN-769-0003
+  - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - CP-769-04 checkpoints geometry complete with all EP-769-04 acceptance PASS and QRV-769-04 CLEAR.
-  - EP-769-05 is the serial successor for WP-769-SUPPORT with material authority READ_ONLY.
-  - Read-only support discovery may continue, but INPUT-SUPPORT-SOURCE remains MISSING_BLOCKING for any material qualification.
-  - GitHub projection is stale until the support-frontier handover is published.
+  - CP-769-04 checkpoints geometry complete with 19/19 synchronized Python assertions passing and QRV-769-04 CLEAR.
+  - WP-769-SUPPORT / EP-769-05 is the active serial successor on agent/issue-769-support-20260918.
+  - Material authority is READ_ONLY; only exact source extraction and resolver tracing may proceed.
+  - INPUT-SUPPORT-SOURCE remains MISSING_BLOCKING for material qualification.
+  - GitHub projection GHGEN-769-0012 is verified IN_SYNC by issuecomment-5725332365.
 chat_context_required: false
