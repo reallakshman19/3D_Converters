@@ -26,14 +26,17 @@ execution_packages:
 - {id: EP-769-02, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-03, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-04, earned_weight: 100, total_weight: 100, percent: 100}
-- {id: EP-769-05, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: EP-769-05, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: EP-769-07, earned_weight: 0, total_weight: 100, percent: 0}
 implementation_steps:
 - {id: STEP-FBLI-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-OD-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-01, earned_weight: 0, total_weight: 100, percent: 0}
 - {id: STEP-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-02, earned_weight: 100, total_weight: 100, percent: 100}
-- {id: STEP-SUPPORT-PROV-01, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: STEP-SUPPORT-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: STEP-SUPPORT-REPLAY-01, earned_weight: 0, total_weight: 100, percent: 0}
+- {id: STEP-SUPPORT-REPLAY-02, earned_weight: 0, total_weight: 100, percent: 0}
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 60
@@ -147,23 +150,24 @@ acceptance_criteria:
   - Current PR 417 path intersection is empty.
 
 - id: AC-SUPPORT-PROV-01
-  earned_weight: 0
+  earned_weight: 60
   total_weight: 60
-  percent: 0
-  status: NOT_RUN
-  basis:
-  - EP-769-05 INPUT-SUPPORT-SOURCE is MISSING_BLOCKING until the exact STF staged source is extracted and the four reported tags are reconstructed.
+  percent: 100
+  status: COMPLETE
+  basis: [CP-769-05 and EVD-769-0005 prove exact staged/XML support provenance.]
 - id: AC-SUPPORT-PROV-02
-  earned_weight: 0
+  earned_weight: 25
   total_weight: 25
-  percent: 0
-  status: NOT_RUN
-  basis:
-  - No source-semantic support fallback rule is qualified until exact working/missing resolver traces exist.
+  percent: 100
+  status: COMPLETE
+  basis: [CP-769-05 identifies the standalone trace ledger first wrong boundary and fail-closed source-semantic repair rule.]
 - id: AC-SUPPORT-PROV-SCOPE
-  earned_weight: 0
+  earned_weight: 15
   total_weight: 15
-  percent: 0
-  status: NOT_RUN
-  basis:
-  - EP-769-05 has not executed its provenance/scope validation yet.
+  percent: 100
+  status: COMPLETE
+  basis: [CP-769-05 records relay-only provenance scope with no production support mutation.]
+- {id: AC-SUPPORT-REPLAY-01, earned_weight: 0, total_weight: 40, percent: 0, status: NOT_RUN, basis: [EP-769-07 is waiting for fresh qualification.]}
+- {id: AC-SUPPORT-REPLAY-02, earned_weight: 0, total_weight: 20, percent: 0, status: NOT_RUN, basis: [No EP-769-07 material validation has run.]}
+- {id: AC-SUPPORT-REPLAY-03, earned_weight: 0, total_weight: 25, percent: 0, status: NOT_RUN, basis: [No EP-769-07 negative-control execution has run.]}
+- {id: AC-SUPPORT-REPLAY-SCOPE, earned_weight: 0, total_weight: 15, percent: 0, status: NOT_RUN, basis: [Material replay has not begun.]}
