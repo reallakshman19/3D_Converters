@@ -66,10 +66,10 @@ progress:
   basis_revision: PB-769-0002
 status_planes:
   execution:
-    state: WAITING
-    can_continue: false
-    material_authority: READ_ONLY
-    next_action: Obtain fresh Owner authorization for the QUAL-769-05 bounded two-file topology repair. After authorization, recheck live Git/main and PR 417, set WRITE only if the route remains current, and run MATERIAL_WRITE_READY before any production mutation.
+    state: EXECUTABLE
+    can_continue: true
+    material_authority: WRITE
+    next_action: Run repository-native MATERIAL_WRITE_READY for candidate chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z on the live EP-769-04 checkout. If PASS, implement only the qualified two-file topology repair and run TEST-ORDER-REAL-PY plus TEST-ORDER-REAL-SCOPE.
   quality:
     state: NEEDS_ATTENTION
     findings:
@@ -78,20 +78,21 @@ status_planes:
     - DISC-769-06 and QUAL-769-05 are PASS; TC-769-04 certifies the current EP-769-04 candidate and route.
     - The original ESSENTIAL_INPUT_MISSING stop is resolved. Historical QUAL-769-03 remains FAIL evidence and is not reused as authority.
     - Current PR 417 coordinate-custody paths remain disjoint from the qualified two-file EP-769-04 write set.
-    - No fresh Owner authorization exists for the topology/order material mutation; historical ODR-769-0007 authorized provenance instrumentation only and explicitly excluded the topology correction.
+    - ODR-769-0008 grants fresh Owner authorization for the qualified EP-769-04 two-file topology repair.
+    - Repository-native MATERIAL_WRITE_READY has not yet executed on a private/live checkout after ODR-769-0008; production mutation must wait for that runtime-derived PASS.
   evidence:
     state: PARTIAL
-    summary: Real production enrichment generated 2439/2909 and the provenance diagnostic returned 8/8 EXACT joins. The two 26.8 mm failures are reconstructed to short-node pruning of terminal RIGID 2440/2910 followed by adjacency-based edge construction. DISC-769-06, QUAL-769-05 and TC-769-04 pass for the bounded topology design. Material execution remains READ_ONLY pending fresh Owner authorization and live MATERIAL_WRITE_READY.
+    summary: Real production enrichment generated 2439/2909 and the provenance diagnostic returned 8/8 EXACT joins. The two 26.8 mm failures are reconstructed to short-node pruning of terminal RIGID 2440/2910 followed by adjacency-based edge construction. DISC-769-06, QUAL-769-05 and TC-769-04 pass for the bounded topology design, and ODR-769-0008 grants Owner material authorization. Runtime-derived MATERIAL_WRITE_READY remains the final pre-mutation gate.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not yet executed in the private checkout for the current refreshed control-plane basis.
       cause: UNAVAILABLE_TOOL
     - id: TEST-ORDER-REAL-PY
-      reason: The qualified topology implementation has not been written; fresh Owner material authorization and MATERIAL_WRITE_READY are still required.
-      cause: OWNER_DECISION_REQUIRED
+      reason: The qualified topology implementation has not been written; repository-native MATERIAL_WRITE_READY must PASS first.
+      cause: DEPENDENCY_WAIT
     - id: TEST-ORDER-REAL-SCOPE
-      reason: No EP-769-04 topology material write has occurred yet.
-      cause: OWNER_DECISION_REQUIRED
+      reason: No EP-769-04 topology material write has occurred yet; scope validation follows the material implementation.
+      cause: DEPENDENCY_WAIT
     passed:
     - id: TEST-OD-PY
       evidence: Synchronized local checkout PASS, 3 passed in 0.08s; exact production/test blobs 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 / 650b04e3991cab280b7dfede2d31cf90f235bff7. See agents/relay/evidence/EVD-769-0001.yaml.
@@ -104,15 +105,15 @@ status_planes:
     - id: TEST-PROV-SCOPE
       evidence: Provenance instrumentation material diff was limited to the two admitted diagnostic files and no PR 417 path.
   stop:
-    active: true
-    category: OWNER_DECISION_REQUIRED
-    reason: EP-769-04 now has READY real provenance, PASS discovery, PASS independent qualification and PASS takeover certification, but no current Owner decision grants material-write authority for the qualified topology correction. ODR-769-0007 was limited to provenance instrumentation and explicitly excluded topology/order repair.
+    active: false
+    category: null
+    reason: null
     basis:
     - agents/relay/evidence/EVD-769-0002.yaml
     - agents/relay/certifications/discovery/DISC-769-06.yaml
     - agents/relay/certifications/qualification/QUAL-769-05.yaml
     - agents/relay/certifications/takeover/TC-769-04.yaml
-    - agents/relay/roadmap/owner-decisions/ODR-769-0007.yaml
+    - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
 projection:
   required: true
   state: IN_SYNC
@@ -140,11 +141,12 @@ projection:
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - EVD-769-0002 provides the exact real generated-label provenance and independent topology oracle.
-  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on the refreshed EP-769-04 contract.
-  - Material authority remains READ_ONLY under OWNER_DECISION_REQUIRED; no topology mutation is permitted until a fresh Owner authorization is durably captured and live MATERIAL_WRITE_READY passes.
-  - GitHub projection GHGEN-769-0008 is verified IN_SYNC by issuecomment-5724464544.
+  - EVD-769-0002 provides exact real generated-label provenance and the independent topology oracle.
+  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on EP-769-04.
+  - ODR-769-0008 grants material authorization for the bounded two-file topology repair.
+  - Runtime-derived MATERIAL_WRITE_READY must still PASS on the live checkout before production bytes change.
+  - GitHub projection is stale after Owner authorization and must be refreshed.
 chat_context_required: false
