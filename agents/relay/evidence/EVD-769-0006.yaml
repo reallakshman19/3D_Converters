@@ -1,0 +1,108 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0006
+issue: 769
+work_package: WP-769-SUPPORT
+ep: EP-769-06
+evidence_class: EXACT_MATERIAL_VALIDATION
+material:
+  repository: reallaksh19/3D_Converters
+  delivery_branch: fix/issue-769-support-relationship
+  pull_request: 775
+  head: 56730b8935fe38c7489f30aba61f186c7cb6a0b7
+  base_branch: main
+  base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+executor:
+  type: OWNER_LOCAL_AGENT
+  source: owner-chat-message:2026-09-18T07:16:48Z
+  environment: C:\Users\reall\3D_Converters
+  note: Results below were executed by the Owner's local agent, not by the GitHub connector session.
+git_state:
+  exact_head_verified: true
+  rev_parse_head: 56730b8935fe38c7489f30aba61f186c7cb6a0b7
+  tracked_worktree_clean: true
+  untracked:
+  - 3D_Converters/
+  untracked_disposition: explicitly left unadded
+validation:
+- id: TEST-SUPPORT-REAL
+  command: node tests/xml-cii-standalone-support-relationship-authority.test.js
+  status: PASS
+  exit_code: 0
+  output: XML CII standalone support relationship authority checks passed.
+  proves:
+  - reported PS00608.1 / XML node 3140 resolves from explicit source-semantic attachment authority
+  - working PS00573.1 comparator remains resolved
+  - explicit attachment mismatch fails closed despite coordinate proximity
+  - duplicate compatible explicit attachments remain ambiguous
+- id: TEST-SUPPORT-TRACE-LEDGER
+  command: node tests/xml-cii-standalone-trace-ledger.test.js
+  status: PASS
+  exit_code: 0
+  output: XML CII standalone authoritative trace ledger checks passed.
+  note: Existing regression assertion was corrected test-only to compare authoritative matching-decision fields across raw and decorated ledger records; resolver decoration is intentionally richer.
+- id: TEST-SUPPORT-DTXR-ENRICHMENT
+  command: node tests/xml-cii-standalone-dtxr-enrichment.test.js
+  status: PASS
+  exit_code: 0
+  output: XML CII standalone DTXR enrichment checks passed.
+- id: TEST-SUPPORT-SOURCE-SCHEMA-GUARDS
+  command: node tests/xml-cii-source-schema-authority-guards.test.mjs
+  status: PASS
+  exit_code: 0
+  counts: {passed: 7, failed: 0}
+  assertions:
+  - omitted explicit-profile field does not fall back to legacy alias
+  - object name is identity but not group authority
+  - identity cannot exceed configured depth or token boundary
+  - relationship root conflict rejects all group authority
+  - object-valued position aliases are compared structurally and conflicting coordinates fail closed
+  - equivalent object-valued aliases with different property order do not create a false conflict
+  - invalid explicit grammar fails qualification rather than widening defaults
+scope:
+  command: git diff --name-only origin/main...HEAD
+  status: OBSERVED
+  changed_path_count: 7
+  changed_paths:
+  - .backups/42_tabs_xml_cii_2019_standalone_xml_cii_trace_resolution_ledger_js.bak
+  - .backups/43__backups_log_json.bak
+  - .backups/44_tests_xml_cii_standalone_trace_ledger_test_js.bak
+  - .backups/log.json
+  - tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
+  - tests/xml-cii-standalone-support-relationship-authority.test.js
+  - tests/xml-cii-standalone-trace-ledger.test.js
+  pr_417_overlap:
+    status: PASS
+    overlap_count: 0
+    command: git diff --name-only origin/main...HEAD piped through PR-417-owned path filter
+prior_regression_evidence:
+  geometry_head: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  status: PASS
+  counts: {passed: 17, failed: 0}
+  note: These Python OD/FBLI/edge-order tests were executed on the geometry branch because the clean support branch does not contain those test files. They are retained as prior regression evidence and are not represented as exact-head execution for PR 775.
+acceptance_effect:
+  AC-SUPPORT-REPAIR-01: PASS
+  AC-SUPPORT-REPAIR-02: FUNCTIONAL_PASS_WITH_CONTRACTED_EXACT_HEAD_REGRESSION_GAP
+  AC-SUPPORT-REPAIR-03: PASS
+  AC-SUPPORT-REPAIR-SCOPE: FUNCTIONAL_SCOPE_CLEAN_WITH_EP_SCOPE_RECONCILIATION_REQUIRED
+process_conformance:
+  zero_conversation_discovery_qualification_takeover:
+    status: NOT_SATISFIED_PRE_WRITE
+    basis: EP-769-06 required repository-only DISC / QSET / QUAL / TC before material mutation; this conversation session cannot truthfully assert conversation_context_used false.
+  live_material_write_ready:
+    status: NOT_PROVEN_PRE_WRITE
+  repository_backup:
+    production_js:
+      status: CONNECTOR_RECONSTRUCTED_BACKUP
+      artifacts:
+      - .backups/42_tabs_xml_cii_2019_standalone_xml_cii_trace_resolution_ledger_js.bak
+      - .backups/43__backups_log_json.bak
+      note: The repository's established connector-reconstructed backup pattern was used because the connector session had no shell checkout.
+    regression_test_js:
+      status: LOCAL_BACKUP_COMMAND_CONFIRMED
+      backup_id: 44
+      command: node utils/backup.js save tests/xml-cii-standalone-trace-ledger.test.js "Issue 769: repair stale raw-vs-decorated ledger regression assertion"
+truth_constraints:
+- Functional exact-head Node validation is PASS for PR 775 head 56730b8935fe38c7489f30aba61f186c7cb6a0b7.
+- The prior geometry Python 17/17 result is not exact-head evidence for PR 775.
+- No zero-conversation DISC/QUAL/TC or pre-write MATERIAL_WRITE_READY claim is made.
+- This evidence does not authorize merge; merge remains Owner-only.
