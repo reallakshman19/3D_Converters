@@ -1,0 +1,78 @@
+schema_version: relay-v2.5-quality-review
+quality_review_id: QRV-769-05
+ep:
+  id: EP-769-05
+  path: agents/relay/execution-packages/EP-769-05.yaml
+  contract_digest: sha256:7a0dad18f24e76110deeaade39a864de49d4dcb6ef2220ecc6186c67a12ee5da
+roadmap_revision: RM-0001
+material_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+reviewer:
+  type: AGENT
+  identity: chatgpt:issue769-v25-support-provenance-quality-20260918
+router_snapshot:
+  applicable:
+  - {blueprint: software-design, reason: Support identity/relationship/coordinate authority must be explicit., review_focus: [authority, ownership]}
+  - {blueprint: coding, reason: Any successor support repair must be fail-closed and non-heuristic., review_focus: [fallback, ambiguity]}
+  - {blueprint: testing, reason: Reported missing and working support cases require exact regression evidence., review_focus: [reported_cases, negative_controls]}
+  - {blueprint: code-review, reason: Support behavior is engineering-significant., review_focus: [scope, authority]}
+  - {blueprint: github-delivery, reason: Issue/branch delivery under v2.5., review_focus: [truth, merge_authority]}
+  not_applicable:
+  - {blueprint: ui-ux, reason: No UI change is authorized in this provenance EP., review_focus: []}
+  - {blueprint: accessibility, reason: No UI., review_focus: []}
+  - {blueprint: engineering-numerics, reason: No new numerical engineering calculation is authorized; coordinate evidence is resolver provenance only., review_focus: []}
+  - {blueprint: performance, reason: No performance objective., review_focus: []}
+  - {blueprint: migration, reason: No persisted data migration., review_focus: []}
+procedure_results:
+- blueprint: software-design
+  result: CLEAR
+  evidence:
+  - EVD-769-0005 identifies the first wrong boundary as the standalone trace ledger, which uses staged container branch compatibility while failing to consume the explicit COMPRE / ATTACHED_COMPONENT_REF relationship carried by PS00608.1.
+  - The proposed authority rule remains shared and source-semantic: unique identity plus authorized relationship evidence; ambiguity and relationship conflict remain fail-closed.
+  reason: null
+  cause: null
+- blueprint: coding
+  result: CLEAR
+  evidence:
+  - EP-769-05 prohibited production mutation and Git compare confirms no production path changed.
+  - No PS-prefix-to-REST, tag-specific exception or coordinate-only conflict override was introduced.
+  reason: null
+  cause: null
+- blueprint: testing
+  result: CLEAR
+  evidence:
+  - EVD-769-0005 hash-binds both committed ZIPs and extracted members, explicitly searches all four support identities, and records complete present objects and explicit absences.
+  - Working PS00573.1 and missing PS00608.1 both exhibit the approximately +100000 mm XML Z-frame offset, while only PS00608.1 has a staged-container/explicit-attachment branch divergence.
+  reason: null
+  cause: null
+- blueprint: code-review
+  result: CLEAR
+  evidence:
+  - The provenance conclusions distinguish source presence, XML presence, staged support kind and relationship evidence; no unavailable PS00572.1 feasibility is claimed.
+  - AC-SUPPORT-PROV-SCOPE is supported by an ahead-only compare whose changed paths are all under agents/relay/**.
+  reason: null
+  cause: null
+- blueprint: github-delivery
+  result: CLEAR
+  evidence:
+  - ODR-769-0009 records the Owner authorization to pursue the bounded support fix under engineering-pr-delivery-v2.5 but does not grant merge authority or bypass live write admission.
+  - No merge occurred and no support production PR was opened from this provenance EP.
+  reason: null
+  cause: null
+findings: []
+overall_state: CLEAR
+execution_effect:
+  blocks_execution: false
+  blocking_findings: []
+owner_report:
+  summary: EP-769-05 is provenance-complete and scope-clean; the exact PS00608.1 first divergence is established without heuristic REST inference.
+  visible_risks:
+  - PS00572.1 is absent from both exact benchmark members and remains unproven rather than inferred.
+  - PS00571.1 has explicit staged REST semantics but no same-tag node in the committed GLRD XML benchmark, so only its staged-side feasibility is established here.
+  - Production repair still requires a fresh material EP, zero-conversation candidate admission/qualification/takeover, live MATERIAL_WRITE_READY and the repository-mandated JavaScript backup command before editing an existing JS file.
+  decisions_required: []
+successor_handover:
+  unresolved_findings: []
+  follow_up:
+  - Checkpoint EP-769-05 as provenance complete.
+  - Generate EP-769-06 for the bounded standalone-ledger/shared-source-schema repair.
+  - Keep EP-769-06 non-executable until fresh candidate qualification/takeover and live write readiness are valid.
