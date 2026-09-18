@@ -108,21 +108,23 @@ status_planes:
 projection:
   required: true
   state: IN_SYNC
-  operation_id: GHGEN-769-0006
+  operation_id: GHGEN-769-0007
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0006.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0007.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5723899112
+  receipt: issuecomment-5724109959
   basis:
-  - agents/relay/checkpoints/CP-769-03.yaml
+  - agents/relay/evidence/EVD-769-0001.yaml
+  - agents/relay/roadmap/PROGRESS.yaml
   - agents/relay/execution-packages/EP-769-04.yaml
   - agents/relay/certifications/discovery/DISC-769-05.yaml
   - agents/relay/certifications/qualification/QSET-769-05.yaml
-  - agents/relay/projection/generations/GHGEN-769-0006.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5723899112
+  - agents/relay/projection/generations/GHGEN-769-0007.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5724109959
   superseded_operations:
+  - GHGEN-769-0006
   - GHGEN-769-0005
   - GHGEN-769-0004
   - GHGEN-769-0003
@@ -135,6 +137,7 @@ relay_readiness:
   - CP-769-03 links the serial successor to EP-769-04/WP-769-GEOMETRY.
   - EP-769-04 and QSET-769-05 are materialized, but INPUT-ORDER-PROVENANCE is MISSING_BLOCKING and no successor qualification/takeover admission exists.
   - Material authority is READ_ONLY with ESSENTIAL_INPUT_MISSING; the provenance instrumentation does not authorize topology mutation.
-  - DISC-769-05 records the exhaustive failed search for the missing real generated-label artifact.
-  - GitHub projection GHGEN-769-0006 is verified IN_SYNC by issuecomment-5723899112.
+  - EVD-769-0001 closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY as late PASS evidence without rewriting historical checkpoints.
+  - The newer ZIP raw XML narrows the reported topology cases, but exact enriched/generated-label provenance remains missing and blocks topology write admission.
+  - GitHub projection GHGEN-769-0007 is verified IN_SYNC by issuecomment-5724109959.
 chat_context_required: false
