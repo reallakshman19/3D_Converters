@@ -120,14 +120,14 @@ status_planes:
     - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
 projection:
   required: true
-  state: STALE
-  operation_id: GHGEN-769-0010
+  state: IN_SYNC
+  operation_id: GHGEN-769-0011
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0010.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0011.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5725019548
+  receipt: issuecomment-5725160840
   basis:
   - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
   - agents/relay/evidence/EVD-769-0002.yaml
@@ -137,13 +137,25 @@ projection:
   - agents/relay/certifications/discovery/DISC-769-07.yaml
   - agents/relay/certifications/qualification/QUAL-769-06.yaml
   - agents/relay/certifications/takeover/TC-769-05.yaml
+  - agents/relay/projection/generations/GHGEN-769-0011.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5725160840
+  superseded_operations:
+  - GHGEN-769-0010
+  - GHGEN-769-0009
+  - GHGEN-769-0008
+  - GHGEN-769-0007
+  - GHGEN-769-0006
+  - GHGEN-769-0005
+  - GHGEN-769-0004
+  - GHGEN-769-0003
+  - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - Corrected MATERIAL_WRITE_READY returned PASS on the authorized live checkout.
-  - Qualified implementation is committed in exactly the two admitted material paths and TEST-ORDER-REAL-SCOPE is PASS.
-  - TEST-ORDER-REAL-PY and existing Python regression reruns remain pending; no acceptance completion is credited yet.
-  - GitHub projection is stale after material implementation and evidence capture.
+  - MATERIAL_WRITE_READY passed before mutation on the authorized exact checkout.
+  - The qualified topology implementation is committed in exactly the two admitted material paths; TEST-ORDER-REAL-SCOPE is PASS.
+  - TEST-ORDER-REAL-PY and the existing OD/FBLI/legacy Python regression reruns remain pending on the synchronized checkout.
+  - GitHub projection GHGEN-769-0011 is verified IN_SYNC by issuecomment-5725160840.
 chat_context_required: false
