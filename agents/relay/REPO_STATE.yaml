@@ -116,22 +116,23 @@ status_planes:
 projection:
   required: true
   state: IN_SYNC
-  operation_id: GHGEN-769-0007
+  operation_id: GHGEN-769-0008
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0007.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0008.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5724109959
+  receipt: issuecomment-5724464544
   basis:
-  - agents/relay/evidence/EVD-769-0001.yaml
-  - agents/relay/roadmap/PROGRESS.yaml
+  - agents/relay/evidence/EVD-769-0002.yaml
   - agents/relay/execution-packages/EP-769-04.yaml
-  - agents/relay/certifications/discovery/DISC-769-05.yaml
-  - agents/relay/certifications/qualification/QSET-769-05.yaml
-  - agents/relay/projection/generations/GHGEN-769-0007.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5724109959
+  - agents/relay/certifications/discovery/DISC-769-06.yaml
+  - agents/relay/certifications/qualification/QUAL-769-05.yaml
+  - agents/relay/certifications/takeover/TC-769-04.yaml
+  - agents/relay/projection/generations/GHGEN-769-0008.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5724464544
   superseded_operations:
+  - GHGEN-769-0007
   - GHGEN-769-0006
   - GHGEN-769-0005
   - GHGEN-769-0004
@@ -139,11 +140,11 @@ projection:
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - EP-769-04 input/oracle is READY through EVD-769-0002 with 8/8 EXACT joins.
-  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on the refreshed EP contract.
-  - Material authority remains READ_ONLY because the remaining gate is fresh Owner authorization for the topology mutation.
-  - Required GitHub projection must be refreshed from GHGEN-769-0007 before handover is IN_SYNC.
+  - EVD-769-0002 provides the exact real generated-label provenance and independent topology oracle.
+  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on the refreshed EP-769-04 contract.
+  - Material authority remains READ_ONLY under OWNER_DECISION_REQUIRED; no topology mutation is permitted until a fresh Owner authorization is durably captured and live MATERIAL_WRITE_READY passes.
+  - GitHub projection GHGEN-769-0008 is verified IN_SYNC by issuecomment-5724464544.
 chat_context_required: false
