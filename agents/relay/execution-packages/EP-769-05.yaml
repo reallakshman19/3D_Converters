@@ -1,0 +1,259 @@
+schema_version: relay-v2.5
+identity:
+  ep_id: EP-769-05
+  branch: agent/issue-769-support-20260918
+  base_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  execution_state: WAITING_INPUT
+  previous_checkpoint: CP-769-04
+  previous_join: null
+  previous_replan: null
+replan_inheritance: null
+git_basis:
+  expected_branch: agent/issue-769-support-20260918
+  material_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  base_branch: main
+  base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+  drift_policy: RECHECK_BEFORE_WRITE
+  drift_receipt: null
+roadmap_source:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  objective: OBJ-769
+  phase: PHASE-769-POSTMERGE
+  work_package: WP-769-SUPPORT
+  generated_from_frontier: true
+outcome:
+  user_visible:
+  - Explain and repair the missing REST/support fallback only when the reported support tags resolve uniquely from authoritative staged source evidence.
+  engineering:
+  - Reconstruct PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 through the source-schema, relationship and coordinate resolver chain before any support mutation.
+context_capsule:
+  product_goal: Close the Issue 769 support fallback defect without tag-based guessing or duplicate restraint authority.
+  roadmap_position: WP-769-SUPPORT is the next serial frontier after geometry checkpoint CP-769-04.
+  why_this_work_exists: Issue 769 reports missing fallback for PS00608.1 and asks whether PS00571.1/PS00572.1 can resolve like working PS00573.1; the answer must come from exact JSON identity/relationship/coordinate evidence.
+  current_architecture: XML→CII support evidence flows through source-schema identity/relationship policy, DTXR resolution/enrichment, Python restraint parsing/kind mapping and CII restraint serialization.
+  prior_owner_decisions: [ODR-769-0008]
+  current_implementation_state: Geometry is complete; no support-fallback production mutation is authorized or performed in this EP.
+  known_problems:
+  - PS00608.1 is reported missing its expected REST/support fallback.
+  - PS00571.1 and PS00572.1 require feasibility proof against the same authority used by working PS00573.1.
+  deliberate_non_goals:
+  - No PS-prefix-to-REST rule.
+  - No tag-specific support exceptions.
+  - No coordinate/origin work owned by PR 417.
+  - No weight, mapping, regex, large-master or B31.3 changes.
+repository_discovery:
+- id: DSTEP-05-01
+  action: VERIFY
+  target: agents/relay/REPO_STATE.yaml
+  question: Does custody route from CP-769-04 to EP-769-05/WP-769-SUPPORT in READ_ONLY mode?
+  expected_outputs: [active_ep, previous_checkpoint, material_authority]
+  receipt_required: true
+  on_failure: Reconcile relay custody.
+- id: DSTEP-05-02
+  action: RESOLVE
+  targets: [Benchmarks/STF_2026Sep16-0859_managed_stage.zip, reported support tags PS00608.1 PS00571.1 PS00572.1 PS00573.1]
+  question: What exact staged records, identities, relationships, positions and support-kind evidence exist for all four reported cases?
+  expected_outputs: [source_archive_identity, support_records, positions, relationship_groups, support_kind_evidence]
+  receipt_required: true
+  on_failure: Stop with ESSENTIAL_INPUT_MISSING.
+- id: DSTEP-05-03
+  action: TRACE
+  targets: [converters/xml-cii2019-core/source-schema-adapter.js, converters/xml-cii2019-core/dtxr-resolver.js, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js, converters/scripts/xml_to_cii2019_direction.py, converters/scripts/xml_to_cii2019_patched.py]
+  question: Where does each reported support case first diverge from the working PS00573.1 authority path?
+  expected_outputs: [identity_result, relationship_result, coordinate_result, dtxr_result, restraint_result, first_wrong_boundary]
+  receipt_required: true
+  on_failure: Remain read-only; do not invent fallback semantics.
+- id: DSTEP-05-04
+  action: COMPARE
+  targets: [PS00608.1, PS00571.1, PS00572.1, PS00573.1]
+  question: Is there one source-semantic unique-evidence rule that fixes the missing cases while preserving ambiguous/conflicting cases as unresolved?
+  expected_outputs: [shared_authority_rule, working_case_comparison, ambiguity_controls, candidate_owner_paths]
+  receipt_required: true
+  on_failure: Stop without production mutation.
+inputs:
+- id: INPUT-SUPPORT-SOURCE
+  name: Exact reported staged support source
+  description: Extracted and hash-bound STF managed-stage source records for PS00608.1, PS00571.1, PS00572.1 and PS00573.1, including identity, hierarchy/relationship, coordinates and support-kind attributes.
+  authority: Exact benchmark/report source JSON; not tag-name inference.
+  source: Benchmarks/STF_2026Sep16-0859_managed_stage.zip plus Issue 769 RCA-F.
+  type: support-provenance
+  units: mm
+  editable: false
+  applicability: CURRENT_EP_REQUIRED
+  resolution: MISSING_BLOCKING
+  consumers: [STEP-SUPPORT-PROV-01, AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, TEST-SUPPORT-PROV]
+  validation:
+  - Archive and extracted JSON identities must be hash-bound.
+  - All four reported support identities must be searched explicitly.
+  - Missing or ambiguous records remain unresolved.
+  stale_if:
+  - Benchmark archive changes.
+  - Extracted source hash changes.
+  - Reported support identity changes.
+- id: INPUT-SUPPORT-RESOLVER
+  name: Current support resolver authority
+  description: Source-schema identity normalization, hierarchy/relationship policy, coordinate authority policy, DTXR resolution/enrichment and Python restraint conversion behavior.
+  authority: Current repository production source.
+  source: converters/xml-cii2019-core/source-schema-adapter.js and downstream resolver/writer files.
+  type: code-authority
+  units: null
+  editable: false
+  applicability: CURRENT_EP_REQUIRED
+  resolution: READY
+  resolution_method: Repository paths are present and are the current XML→CII support-resolution chain.
+  consumers: [STEP-SUPPORT-PROV-01, AC-SUPPORT-PROV-02]
+  validation:
+  - Trace exact policy/config values used by the standalone route.
+  - Distinguish identity, relationship and coordinate evidence.
+  - Preserve relationship-conflict rejection and ambiguity fail-closed behavior.
+  stale_if:
+  - Resolver source or support policy changes.
+  - Standalone invocation route changes.
+benchmarks:
+- id: BENCH-SUPPORT-769
+  name: Reported support fallback comparison
+  purpose: Compare missing/feasibility cases with working PS00573.1 using the same authoritative resolver inputs.
+  source: INPUT-SUPPORT-SOURCE
+  oracle_class: REFERENCE_DATA
+  payload:
+    missing: [PS00608.1]
+    feasibility: [PS00571.1, PS00572.1]
+    working: [PS00573.1]
+  expected: A fallback is eligible only when the staged evidence uniquely establishes support identity/relationship/coordinate semantics and support kind; ambiguous or conflicting evidence remains unresolved.
+  tolerance: {coordinate_mm: to-be-derived-from-current-config}
+  independence: Expected support kind/ownership must come from staged source evidence, not from the proposed repair.
+  applicability: CURRENT_EP_REQUIRED
+  resolution: MISSING_BLOCKING
+  verifies: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, TEST-SUPPORT-PROV]
+  stale_if:
+  - INPUT-SUPPORT-SOURCE changes.
+  - Resolver policy/config changes.
+scope:
+  allowed:
+  - {path: agents/relay, reason: v2.5 discovery, evidence, qualification and custody only.}
+  allowed_reads:
+  - {path: Benchmarks/STF_2026Sep16-0859_managed_stage.zip, reason: Exact reported staged support source.}
+  - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Support identity/relationship/coordinate authority.}
+  - {path: converters/xml-cii2019-core/dtxr-resolver.js, reason: DTXR resolution authority.}
+  - {path: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, reason: Standalone relationship/fallback trace.}
+  - {path: tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js, reason: Standalone DTXR projection.}
+  - {path: converters/scripts/xml_to_cii2019_direction.py, reason: Restraint direction/kind conversion.}
+  - {path: converters/scripts/xml_to_cii2019_patched.py, reason: Staged-json/addon and support config route.}
+  protected:
+  - {invariant: Support fallback is source-evidence-driven and unique; ambiguous/conflicting support evidence is not auto-committed., reason: Engineering authority.}
+  - {invariant: PR 417 coordinate custody and completed geometry topology behavior remain unchanged., reason: Separate custody.}
+  prohibited:
+  - {domain: Production support mutation in EP-769-05, reason: This EP is provenance/qualification-only.}
+  - {domain: PS-prefix-to-REST or tag-specific fallback, reason: Unsafe heuristic.}
+  - {domain: PR 417 changed files, reason: Separate coordinate custody.}
+  owner_reserved:
+  - {decision: Authorize a successor material support repair after exact provenance and qualification., reason: Fresh write boundary.}
+  - {decision: Merge any PR., reason: Owner-only merge.}
+anti_drift:
+  do_not:
+  - {id: ADR-SUPPORT-01, restriction: Do not infer REST from PS tag syntax., reason: Identity is not support-kind authority.}
+  - {id: ADR-SUPPORT-02, restriction: Do not let coordinate proximity override relationship conflicts., reason: Existing fail-closed policy.}
+  - {id: ADR-SUPPORT-03, restriction: Do not edit production files in this provenance EP., reason: Fresh qualification required after RCA.}
+  stale_if:
+  - {id: STALE-SUPPORT-01, condition: STF benchmark source changes., effect: STOP, rationale: Reported-case oracle changes.}
+  - {id: STALE-SUPPORT-02, condition: Resolver policy/source changes before qualification., effect: RECONCILE, rationale: Authority trace would be stale.}
+  - {id: STALE-SUPPORT-03, condition: PR 417 begins owning any candidate support path., effect: STOP, rationale: Custody collision.}
+implementation_plan:
+- id: STEP-SUPPORT-PROV-01
+  objective: Extract exact reported support records and trace them through current resolver authority without modifying production code.
+  targets: [agents/relay/evidence]
+  reads: [Benchmarks/STF_2026Sep16-0859_managed_stage.zip, converters/xml-cii2019-core/source-schema-adapter.js, converters/xml-cii2019-core/dtxr-resolver.js, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js, converters/scripts/xml_to_cii2019_direction.py, converters/scripts/xml_to_cii2019_patched.py]
+  writes: [agents/relay]
+  inputs: [INPUT-SUPPORT-SOURCE, INPUT-SUPPORT-RESOLVER]
+  acceptance: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, AC-SUPPORT-PROV-SCOPE]
+  tests: [TEST-SUPPORT-PROV, TEST-SUPPORT-PROV-SCOPE]
+  expected_state: Exact working/missing support authority comparison is durable and either qualifies a successor repair or remains explicitly blocked.
+  stop_conditions:
+  - INPUT-SUPPORT-SOURCE remains unavailable or ambiguous.
+  - Working PS00573.1 cannot be reconstructed from the same production resolver chain.
+  - Any proposed fallback requires tag syntax rather than source evidence.
+next_work:
+  phase_transition: false
+  steps:
+  - order: 1
+    action: Extract and hash the STF managed-stage benchmark; reconstruct all four reported support cases and trace the first divergent resolver boundary.
+    targets: [Benchmarks/STF_2026Sep16-0859_managed_stage.zip, converters/xml-cii2019-core/source-schema-adapter.js, converters/xml-cii2019-core/dtxr-resolver.js]
+    inputs: [INPUT-SUPPORT-SOURCE, INPUT-SUPPORT-RESOLVER]
+    tests: [TEST-SUPPORT-PROV, TEST-SUPPORT-PROV-SCOPE]
+    benchmarks: [BENCH-SUPPORT-769]
+    acceptance: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, AC-SUPPORT-PROV-SCOPE]
+    expected_result: A durable source-evidence comparison and first wrong boundary, or a safe stop with no production mutation.
+    stop_if:
+    - Any reported case cannot be bound to exact staged source records.
+    - A unique support-kind/ownership oracle cannot be established.
+qualification_boundary:
+  required: true
+  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
+  from_phase: PHASE-769-POSTMERGE
+  to_phase: PHASE-769-POSTMERGE
+  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
+  basis:
+  - Support fallback authority differs from completed geometry topology authority.
+  - Reported support tags require exact staged source reconstruction before any material repair.
+  - Ambiguous/conflicting support evidence must remain fail-closed.
+  question_set: {id: QSET-769-07, path: agents\relay\certifications\qualification\QSET-769-07.yaml}
+quality:
+  applicable:
+  - {blueprint: software-design, reason: Support identity/relationship/coordinate authority must be explicit., review_focus: [authority, ownership]}
+  - {blueprint: coding, reason: Any successor support repair must be fail-closed and non-heuristic., review_focus: [fallback, ambiguity]}
+  - {blueprint: testing, reason: Reported missing and working support cases require exact regression evidence., review_focus: [reported_cases, negative_controls]}
+  - {blueprint: code-review, reason: Support behavior is engineering-significant., review_focus: [scope, authority]}
+  - {blueprint: github-delivery, reason: Issue/branch delivery under v2.5., review_focus: [truth, merge_authority]}
+  not_applicable:
+  - {blueprint: ui-ux, reason: No UI change is authorized in this provenance EP., review_focus: []}
+  - {blueprint: accessibility, reason: No UI., review_focus: []}
+  - {blueprint: engineering-numerics, reason: No new numerical engineering calculation is authorized; coordinate evidence is resolver provenance only., review_focus: []}
+  - {blueprint: performance, reason: No performance objective., review_focus: []}
+  - {blueprint: migration, reason: No persisted data migration., review_focus: []}
+  review_contract:
+    required: true
+    required_before_checkpoint: true
+    receipt_namespace: QRV-
+    required_outputs: [procedure_results, findings, owner_report, successor_handover]
+  findings_policy: Findings block only through an acceptance/authority/invariant/safety stop.
+  ordinary_findings_are_hard_stops: false
+acceptance:
+- {id: AC-SUPPORT-PROV-01, description: Exact staged source records and resolver outcomes are reconstructed for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1., weight: 60, verification: [TEST-SUPPORT-PROV, BENCH-SUPPORT-769]}
+- {id: AC-SUPPORT-PROV-02, description: The first divergent support boundary and one source-semantic unique-evidence rule or explicit impossibility are established without PS/tag heuristics., weight: 25, verification: [TEST-SUPPORT-PROV, BENCH-SUPPORT-769]}
+- {id: AC-SUPPORT-PROV-SCOPE, description: EP-769-05 changes only relay/evidence artifacts and no production or PR 417 path., weight: 15, verification: [TEST-SUPPORT-PROV-SCOPE]}
+validation:
+- {id: TEST-SUPPORT-PROV, class: MUST_PASS, method: Read-only extraction/hash plus exact resolver trace for all four reported tags; zero/ambiguous source joins remain explicit., proves: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02]}
+- {id: TEST-SUPPORT-PROV-SCOPE, class: MUST_PASS, method: Git changed-path comparison from CP-769-04 successor branch base; production-path intersection must be empty., proves: [AC-SUPPORT-PROV-SCOPE]}
+failure_and_stop_conditions:
+  hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
+report_contract:
+  sections: [Executive state, Overall / phase / EP progress, Work completed, Files changed, Acceptance matrix, Tests and evidence, Quality findings, Known limitations, Owner decisions required, GitHub issue changes, Roadmap changes, Exact next actions, Successor EP]
+  payloads:
+  - {id: REPORT-EXEC, section: Executive state, sources: [agents/relay/REPO_STATE.yaml], required_fields: [relay_state, active_ep, execution_plane, stop_plane]}
+  - {id: REPORT-PROGRESS, section: Overall / phase / EP progress, sources: [agents/relay/roadmap/PROGRESS.yaml], required_fields: [overall_percent, phase_percent, ep_percent, basis_revision]}
+  - {id: REPORT-WORK, section: Work completed, sources: [agents/relay/execution-packages/EP-769-05.yaml], required_fields: [completed_steps, current_step, material_ref]}
+  - {id: REPORT-FILES, section: Files changed, sources: [agents/relay/execution-packages/EP-769-05.yaml], required_fields: [allowed_writes, observed_changes, protected_paths]}
+  - {id: REPORT-AC, section: Acceptance matrix, sources: [agents/relay/execution-packages/EP-769-05.yaml, agents/relay/roadmap/PROGRESS.yaml], required_fields: [acceptance_ids, status, evidence]}
+  - {id: REPORT-TESTS, section: Tests and evidence, sources: [agents/relay/REPO_STATE.yaml], required_fields: [validation_ids, status, exact_evidence]}
+  - {id: REPORT-QUALITY, section: Quality findings, sources: [agents/relay/REPO_STATE.yaml], required_fields: [quality_state, findings, blocking_findings]}
+  - {id: REPORT-LIMITS, section: Known limitations, sources: [agents/relay/REPO_STATE.yaml, agents/relay/execution-packages/EP-769-05.yaml], required_fields: [not_run, protected_scope, unresolved_items]}
+  - {id: REPORT-OWNER, section: Owner decisions required, sources: [agents/relay/REPO_STATE.yaml], required_fields: [owner_decisions, pending_owner_items]}
+  - {id: REPORT-GITHUB, section: GitHub issue changes, sources: [agents/relay/REPO_STATE.yaml], required_fields: [projection_state, operation_id, receipt]}
+  - {id: REPORT-ROADMAP, section: Roadmap changes, sources: [agents/relay/roadmap/OVERALL_ROADMAP.yaml, agents/relay/roadmap/PROGRESS.yaml], required_fields: [roadmap_revision, current_frontier, progress_basis]}
+  - {id: REPORT-NEXT, section: Exact next actions, sources: [agents/relay/execution-packages/EP-769-05.yaml], required_fields: [next_action, stop_conditions, required_tests]}
+  - {id: REPORT-SUCCESSOR, section: Successor EP, sources: [agents/relay/execution-packages/EP-769-05.yaml], required_fields: [checkpoint, next_frontier, successor_ep_or_terminal_disposition]}
+checkpoint_contract:
+  required: true
+  acceptance: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, AC-SUPPORT-PROV-SCOPE]
+  validation: [TEST-SUPPORT-PROV, TEST-SUPPORT-PROV-SCOPE]
+  carry_forward:
+  - A material support repair, if any, requires a fresh successor EP, qualification/takeover and Owner write authorization.
+successor_relay:
+  required: true
+  duties:
+  - Preserve exact staged support provenance and ambiguity outcomes.
+  - Compute the next executable frontier after support provenance checkpoint.
+  - Run cold-start check.
+  - Update REPO_STATE.
+  required_outputs: [checkpoint, next_frontier, successor_ep_or_terminal_disposition, support_provenance, validation_status]
