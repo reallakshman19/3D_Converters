@@ -1,3 +1,5 @@
+import { sourceFieldEvidence } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
+
 const LEDGER_SCHEMA = 'xml-cii-trace-resolution-ledger/v1';
 
 function text(value) {
@@ -178,7 +180,7 @@ function descriptionParts(value, attrs, type, hasChildren) {
   const description = explicitDtxrPos || (hasChildren ? '' : text(value?.name || type));
   const dtxrPs = text(attrValue(attrs, ['DTXR_PS', 'DTXRPS']));
   const name = text(attrValue(attrs, ['NAME', 'NodeName', 'SupportTag']));
-  const componentRef = text(attrValue(attrs, ['ComponentRefNo', 'COMPONENTREFNO', 'REF', 'RefNo']));
+  const componentRef = text(attrValue(attrs, ['ComponentRefNo', 'COMPONENTREFNO', 'COMPRE', 'ATTACHED_COMPONENT_REF', 'REF', 'RefNo']));
   const labeled = description && name && !description.toUpperCase().includes('NAME=')
     ? `${description}(NAME=${name})`
     : description;
@@ -409,14 +411,58 @@ function groupCandidate(xmlBranch, xmlPoint, xmlTag, groups, toleranceMm) {
   return { best: ambiguous ? null : best, ambiguous, candidates };
 }
 
+function explicitComponentBranch(entry) {
+  const evidence = sourceFieldEvidence(entry?.raw || {}, 'componentRef', {});
+  if (evidence.conflict) return { state: 'CONFLICT', evidence };
+  const rawValue = text(evidence.selected?.value || entry?.componentRef);
+  const branch = canonicalStandaloneDtxrBranch(rawValue);
+  if (!rawValue || !branch.suffix) return { state: 'NONE', evidence };
+  return { state: 'BRANCH', evidence, rawValue, branch };
+}
+
+function explicitPsAuthority(xmlBranch, xmlTag, groups) {
+  if (!xmlTag) return null;
+  const compatible = [];
+  let authoritative = 0;
+  let conflict = false;
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      if (!entry.tags.includes(xmlTag)) continue;
+      const attachment = explicitComponentBranch(entry);
+      if (attachment.state === 'CONFLICT') {
+        authoritative += 1;
+        conflict = true;
+        continue;
+      }
+      if (attachment.state !== 'BRANCH') continue;
+      authoritative += 1;
+      const relationship = standaloneDtxrBranchRelationship(xmlBranch, attachment.rawValue);
+      if (relationship.compatible) compatible.push({ group, entry, relationship, attachment });
+    }
+  }
+  if (!authoritative) return null;
+  if (conflict) {
+    return { entry: null, group: null, relationship: null, authority: 'explicit-component-ref', blocked: true, ambiguous: true, reason: 'component-ref-conflict' };
+  }
+  if (compatible.length === 1) {
+    return { ...compatible[0], authority: 'explicit-component-ref', blocked: false, ambiguous: false, reason: '' };
+  }
+  if (compatible.length > 1) {
+    return { entry: null, group: null, relationship: null, authority: 'explicit-component-ref', blocked: true, ambiguous: true, reason: 'multiple-compatible-explicit-attachments' };
+  }
+  return { entry: null, group: null, relationship: null, authority: 'explicit-component-ref', blocked: true, ambiguous: false, reason: 'explicit-attachment-mismatch' };
+}
+
 function globalPsFallback(xmlBranch, xmlTag, groups) {
   if (!xmlTag) return null;
+  const explicit = explicitPsAuthority(xmlBranch, xmlTag, groups);
+  if (explicit) return explicit;
   const hits = [];
   for (const group of groups) {
     const relationship = standaloneDtxrBranchRelationship(xmlBranch, group.branch.full);
     if (!relationship.compatible) continue;
     for (const entry of group.entries) {
-      if (entry.tags.includes(xmlTag)) hits.push({ group, entry, relationship });
+      if (entry.tags.includes(xmlTag)) hits.push({ group, entry, relationship, authority: 'container-branch', blocked: false, ambiguous: false, reason: '' });
     }
   }
   hits.sort((a, b) => b.relationship.score - a.relationship.score
@@ -440,31 +486,38 @@ function supportKinds(value) {
 
 function recordForNode(node, groups, toleranceMm) {
   const xmlTag = normalizeSupportTag(node.xmlNodeName || node.psKey || node.componentRefNo);
-  const selected = node.xmlPoint
+  const explicitAuthority = explicitPsAuthority(node.xmlBranch, xmlTag, groups);
+  const candidate = node.xmlPoint
     ? groupCandidate(node.xmlBranch, node.xmlPoint, xmlTag, groups, toleranceMm)
     : { best: null, ambiguous: false, candidates: [] };
-  const positional = selected.best;
+  const selected = explicitAuthority?.blocked
+    ? { ...candidate, best: null, ambiguous: explicitAuthority.ambiguous === true }
+    : candidate;
+  const positional = explicitAuthority?.entry && selected.best?.group !== explicitAuthority.group
+    ? null
+    : selected.best;
   const group = positional?.group || null;
   const dtxrPosValues = group ? uniqueValues(group.entries.map((entry) => entry.labeled || entry.description)) : [];
   const psEntry = group?.entries.find((entry) => xmlTag && entry.tags.includes(xmlTag)) || null;
-  const fallback = !psEntry ? globalPsFallback(node.xmlBranch, xmlTag, groups) : null;
-  const effectivePsEntry = psEntry || fallback?.entry || null;
+  const fallback = explicitAuthority?.entry ? explicitAuthority : (!psEntry ? globalPsFallback(node.xmlBranch, xmlTag, groups) : null);
+  const effectivePsEntry = explicitAuthority?.entry || psEntry || fallback?.entry || null;
   const dtxrPsValue = effectivePsEntry ? text(effectivePsEntry.dtxrPs || effectivePsEntry.description) : '';
   const dtxrPosValue = dtxrPosValues.join(' | ');
   const effectiveDtxr = dtxrPosValue || dtxrPsValue;
   const effectiveSource = dtxrPosValue ? 'DTXR_POS' : (dtxrPsValue ? 'DTXR_PS_FALLBACK' : 'NONE');
   const fallbackUsed = effectiveSource === 'DTXR_PS_FALLBACK';
-  const matchType = selected.ambiguous
-    ? 'POS_AMBIGUOUS'
+  const fallbackAmbiguous = explicitAuthority?.ambiguous === true || fallback?.ambiguous === true;
+  const matchType = selected.ambiguous || fallbackAmbiguous
+    ? (fallbackAmbiguous ? 'PS_AMBIGUOUS' : 'POS_AMBIGUOUS')
     : (dtxrPosValue && dtxrPsValue ? 'POS_PS' : (dtxrPosValue ? 'POS' : (dtxrPsValue ? 'PS_FALLBACK' : 'NONE')));
-  const status = selected.ambiguous
+  const status = selected.ambiguous || fallbackAmbiguous
     ? 'AMBIGUOUS_REVIEW'
     : (matchType === 'POS_PS' ? 'RESOLVED_POS_PS'
       : (matchType === 'POS' ? 'RESOLVED_POS'
         : (matchType === 'PS_FALLBACK' ? 'RESOLVED_PS_FALLBACK' : 'UNRESOLVED')));
-  const relationship = positional?.relationship || fallback?.relationship || null;
-  const selectedGroup = group || fallback?.group || null;
-  const members = group?.entries || (fallback ? [fallback.entry] : []);
+  const relationship = explicitAuthority?.relationship || positional?.relationship || fallback?.relationship || null;
+  const selectedGroup = group || explicitAuthority?.group || fallback?.group || null;
+  const members = group?.entries || (effectivePsEntry ? [effectivePsEntry] : []);
   return {
     schema: LEDGER_SCHEMA,
     xmlIndex: node.xmlIndex,
@@ -512,6 +565,8 @@ function recordForNode(node, groups, toleranceMm) {
     effectiveDtxr,
     effectiveSource,
     fallbackUsed,
+    fallbackAuthority: explicitAuthority?.authority || fallback?.authority || '',
+    fallbackReason: explicitAuthority?.reason || fallback?.reason || '',
     derivedSupportTypes: supportKinds(effectiveDtxr),
     matchType,
     status,
