@@ -131,7 +131,7 @@ benchmarks:
   - Resolver policy/config changes.
 scope:
   allowed:
-  - {path: agents/relay, reason: v2.5 discovery, evidence, qualification and custody only.}
+  - {path: agents/relay, reason: 'v2.5 discovery, evidence, qualification and custody only.'}
   allowed_reads:
   - {path: Benchmarks/STF_2026Sep16-0859_managed_stage.zip, reason: Exact reported staged support source.}
   - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Support identity/relationship/coordinate authority.}
@@ -219,7 +219,7 @@ quality:
   findings_policy: Findings block only through an acceptance/authority/invariant/safety stop.
   ordinary_findings_are_hard_stops: false
 acceptance:
-- {id: AC-SUPPORT-PROV-01, description: Exact staged source records and resolver outcomes are reconstructed for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1., weight: 60, verification: [TEST-SUPPORT-PROV, BENCH-SUPPORT-769]}
+- {id: AC-SUPPORT-PROV-01, description: 'Exact staged source records and resolver outcomes are reconstructed for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1.', weight: 60, verification: [TEST-SUPPORT-PROV, BENCH-SUPPORT-769]}
 - {id: AC-SUPPORT-PROV-02, description: The first divergent support boundary and one source-semantic unique-evidence rule or explicit impossibility are established without PS/tag heuristics., weight: 25, verification: [TEST-SUPPORT-PROV, BENCH-SUPPORT-769]}
 - {id: AC-SUPPORT-PROV-SCOPE, description: EP-769-05 changes only relay/evidence artifacts and no production or PR 417 path., weight: 15, verification: [TEST-SUPPORT-PROV-SCOPE]}
 validation:
