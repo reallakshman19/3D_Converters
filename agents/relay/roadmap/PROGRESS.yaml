@@ -1,6 +1,6 @@
 schema_version: relay-v2.5
 progress_basis:
-  id: PB-769-0003
+  id: PB-769-0004
   roadmap_revision: RM-0001
 overall:
   earned_weight: 50
@@ -26,12 +26,14 @@ execution_packages:
 - {id: EP-769-02, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-03, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-04, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: EP-769-05, earned_weight: 0, total_weight: 100, percent: 0}
 implementation_steps:
 - {id: STEP-FBLI-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-OD-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-01, earned_weight: 0, total_weight: 100, percent: 0}
 - {id: STEP-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-02, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: STEP-SUPPORT-PROV-01, earned_weight: 0, total_weight: 100, percent: 0}
 acceptance_criteria:
 - id: AC-FBLI-01
   earned_weight: 60
@@ -143,3 +145,25 @@ acceptance_criteria:
   basis:
   - EVD-769-0003 records exact changed-path scope limited to xml_to_cii2019.py and test_xml_to_cii2019_edge_order_authority.py.
   - Current PR 417 path intersection is empty.
+
+- id: AC-SUPPORT-PROV-01
+  earned_weight: 0
+  total_weight: 60
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - EP-769-05 INPUT-SUPPORT-SOURCE is MISSING_BLOCKING until the exact STF staged source is extracted and the four reported tags are reconstructed.
+- id: AC-SUPPORT-PROV-02
+  earned_weight: 0
+  total_weight: 25
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - No source-semantic support fallback rule is qualified until exact working/missing resolver traces exist.
+- id: AC-SUPPORT-PROV-SCOPE
+  earned_weight: 0
+  total_weight: 15
+  percent: 0
+  status: NOT_RUN
+  basis:
+  - EP-769-05 has not executed its provenance/scope validation yet.
