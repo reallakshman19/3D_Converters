@@ -1,0 +1,26 @@
+schema_version: relay-v2.5
+id: ODR-769-0009
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: 'of fix it , follow https://github.com/reallaksh19/Common/tree/feae969b860b83ee3df230fef1a162d4a4e7968e/skills/engineering-pr-delivery-v2.5'
+  source: 'owner-chat-message:2026-09-18T05:21:56Z'
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: false
+  pending_items: []
+impact:
+  class: [LOCAL]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-SUPPORT]
+  execution_packages: [EP-769-05, EP-769-06]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Complete EP-769-05 provenance checkpoint before any production mutation.
+- Generate a fresh successor material-repair EP for the source-semantic support association defect.
+- Require repository-only candidate discovery, qualification/takeover certification and live MATERIAL_WRITE_READY before engineering writes.
+- Preserve repository mandatory backup-before-edit policy for existing JavaScript files.
+- Keep merge authority Owner-only; this authorization does not authorize merge.
+status: APPLIED
