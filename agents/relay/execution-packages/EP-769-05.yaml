@@ -3,7 +3,7 @@ identity:
   ep_id: EP-769-05
   branch: agent/issue-769-support-20260918
   base_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
-  execution_state: WAITING_INPUT
+  execution_state: QUALIFICATION_READY
   previous_checkpoint: CP-769-04
   previous_join: null
   previous_replan: null
@@ -33,10 +33,10 @@ context_capsule:
   why_this_work_exists: Issue 769 reports missing fallback for PS00608.1 and asks whether PS00571.1/PS00572.1 can resolve like working PS00573.1; the answer must come from exact JSON identity/relationship/coordinate evidence.
   current_architecture: XML→CII support evidence flows through source-schema identity/relationship policy, DTXR resolution/enrichment, Python restraint parsing/kind mapping and CII restraint serialization.
   prior_owner_decisions: [ODR-769-0008]
-  current_implementation_state: Geometry is complete; no support-fallback production mutation is authorized or performed in this EP.
+  current_implementation_state: Support provenance is complete at EVD-769-0005; no support-fallback production mutation is authorized or performed in this EP.
   known_problems:
   - PS00608.1 is reported missing its expected REST/support fallback.
-  - PS00571.1 and PS00572.1 require feasibility proof against the same authority used by working PS00573.1.
+  - PS00571.1 has explicit staged REST semantics but no same-tag node in the committed GLRD XML benchmark; PS00572.1 is absent from both exact benchmark members, so those feasibility questions remain bounded by available evidence.
   deliberate_non_goals:
   - No PS-prefix-to-REST rule.
   - No tag-specific support exceptions.
@@ -81,7 +81,8 @@ inputs:
   units: mm
   editable: false
   applicability: CURRENT_EP_REQUIRED
-  resolution: MISSING_BLOCKING
+  resolution: READY
+  resolution_method: EVD-769-0005 hash-binds both benchmark archives and extracted members, records full present support objects, and records PS00572.1 as explicitly absent rather than inferred.
   consumers: [STEP-SUPPORT-PROV-01, AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, TEST-SUPPORT-PROV]
   validation:
   - Archive and extracted JSON identities must be hash-bound.
@@ -124,7 +125,8 @@ benchmarks:
   tolerance: {coordinate_mm: to-be-derived-from-current-config}
   independence: Expected support kind/ownership must come from staged source evidence, not from the proposed repair.
   applicability: CURRENT_EP_REQUIRED
-  resolution: MISSING_BLOCKING
+  resolution: READY
+  resolution_method: EVD-769-0005 provides the exact four-case matrix, working PS00573.1 comparison, first wrong boundary, and safe shared authority rule while preserving absent cases as unproven.
   verifies: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, TEST-SUPPORT-PROV]
   stale_if:
   - INPUT-SUPPORT-SOURCE changes.
@@ -184,7 +186,7 @@ next_work:
     tests: [TEST-SUPPORT-PROV, TEST-SUPPORT-PROV-SCOPE]
     benchmarks: [BENCH-SUPPORT-769]
     acceptance: [AC-SUPPORT-PROV-01, AC-SUPPORT-PROV-02, AC-SUPPORT-PROV-SCOPE]
-    expected_result: A durable source-evidence comparison and first wrong boundary, or a safe stop with no production mutation.
+    expected_result: EVD-769-0005 durably records the source-evidence comparison and first wrong boundary with no production mutation.
     stop_if:
     - Any reported case cannot be bound to exact staged source records.
     - A unique support-kind/ownership oracle cannot be established.
