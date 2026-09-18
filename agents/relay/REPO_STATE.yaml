@@ -50,6 +50,15 @@ takeover_admissions:
   certification:
     id: TC-769-03
     path: agents/relay/certifications/takeover/TC-769-03.yaml
+- route_key: SERIAL:EP-769-04
+  candidate:
+    agent_instance_id: chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z
+  discovery_receipt:
+    id: DISC-769-06
+    path: agents/relay/certifications/discovery/DISC-769-06.yaml
+  certification:
+    id: TC-769-04
+    path: agents/relay/certifications/takeover/TC-769-04.yaml
 progress:
   overall_percent: 28.75
   phase_percent: 28.75
@@ -60,29 +69,29 @@ status_planes:
     state: WAITING
     can_continue: false
     material_authority: READ_ONLY
-    next_action: Generate or supply the exact enriched/generated GLRD artifact that contains 2439/2909 and 2450/2920 from the newer ZIP raw XML, then run the committed provenance diagnostic against that artifact and complete QSET-769-05 with fresh PASS qualification/takeover before any topology write.
+    next_action: Obtain fresh Owner authorization for the QUAL-769-05 bounded two-file topology repair. After authorization, recheck live Git/main and PR 417, set WRITE only if the route remains current, and run MATERIAL_WRITE_READY before any production mutation.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - CP-769-03 checkpoints the provenance instrumentation slice with TEST-PROV-PY PASS and TEST-PROV-SCOPE PASS; no converter behavior changed.
-    - EP-769-04 INPUT-ORDER-PROVENANCE is MISSING_BLOCKING because the exact enriched/output artifact containing the reported generated labels has not been supplied or captured.
-    - Historical QUAL-769-03 remains FAIL for the topology/order repair and must not be reused as write authority.
-    - Current PR #417 coordinate-custody paths remain protected; EP-769-04 has no material admission or write.
-    - Late local checkout evidence EVD-769-0001 closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY as PASS (12/12 total); historical CP-769-01/02 NOT_RUN entries remain immutable checkpoint truth.
-    - The extracted GLRD ZIP contains only a newer raw XML, not an enriched/generated artifact; its raw branch structures narrow the 2439/2909 reconstruction but do not by themselves satisfy QSET-769-05's exact enriched-label provenance requirement.
+    - CP-769-03 remains the immutable checkpoint for provenance instrumentation; no topology converter behavior has changed since it.
+    - EVD-769-0002 records a production-enriched GLRD artifact and 8/8 EXACT raw-source provenance joins for the reported 2439/2450 and 2909/2920 cases.
+    - DISC-769-06 and QUAL-769-05 are PASS; TC-769-04 certifies the current EP-769-04 candidate and route.
+    - The original ESSENTIAL_INPUT_MISSING stop is resolved. Historical QUAL-769-03 remains FAIL evidence and is not reused as authority.
+    - Current PR 417 coordinate-custody paths remain disjoint from the qualified two-file EP-769-04 write set.
+    - No fresh Owner authorization exists for the topology/order material mutation; historical ODR-769-0007 authorized provenance instrumentation only and explicitly excluded the topology correction.
   evidence:
     state: PARTIAL
-    summary: Late synchronized-checkout evidence closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY with 12/12 pytest assertions passing. EP-769-03 provenance instrumentation remains checkpointed. The extracted GLRD ZIP contains only raw XML; it exposes the two reported raw branch structures and deterministic candidate numbering, but the provenance diagnostic was run on raw XML and returned source_match NONE for all six range records. EP-769-04 therefore remains READ_ONLY pending exact enriched/generated-label provenance and fresh topology qualification.
+    summary: Real production enrichment generated 2439/2909 and the provenance diagnostic returned 8/8 EXACT joins. The two 26.8 mm failures are reconstructed to short-node pruning of terminal RIGID 2440/2910 followed by adjacency-based edge construction. DISC-769-06, QUAL-769-05 and TC-769-04 pass for the bounded topology design. Material execution remains READ_ONLY pending fresh Owner authorization and live MATERIAL_WRITE_READY.
     not_run:
     - id: V25-CONFORMANCE
-      reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
+      reason: Exact repository-native Common validator entrypoints have not yet executed in the private checkout for the current refreshed control-plane basis.
       cause: UNAVAILABLE_TOOL
     - id: TEST-ORDER-REAL-PY
-      reason: EP-769-04 real provenance input is MISSING_BLOCKING and no topology implementation is authorized.
-      cause: DEPENDENCY_WAIT
+      reason: The qualified topology implementation has not been written; fresh Owner material authorization and MATERIAL_WRITE_READY are still required.
+      cause: OWNER_DECISION_REQUIRED
     - id: TEST-ORDER-REAL-SCOPE
-      reason: No EP-769-04 material write has occurred.
-      cause: DEPENDENCY_WAIT
+      reason: No EP-769-04 topology material write has occurred yet.
+      cause: OWNER_DECISION_REQUIRED
     passed:
     - id: TEST-OD-PY
       evidence: Synchronized local checkout PASS, 3 passed in 0.08s; exact production/test blobs 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 / 650b04e3991cab280b7dfede2d31cf90f235bff7. See agents/relay/evidence/EVD-769-0001.yaml.
@@ -91,20 +100,19 @@ status_planes:
     - id: TEST-LEGACY
       evidence: Synchronized local checkout PASS, 2 passed in 0.08s; exact patched/test blobs d0256ab0ab08d11819716642e0587ec50d518e4d / d24e6b6686daeb0c00924ab227e92cc7a30f3593. See agents/relay/evidence/EVD-769-0001.yaml.
     - id: TEST-PROV-PY
-      evidence: Exact committed blobs 987c866ca1225fe2024e19e95ba02474dbcccc82 and a5de4f588d852e69054933b61762a04338f22226 executed 3/3 PASS in the isolated pure-stdlib carrier.
+      evidence: Exact committed provenance-instrumentation blobs executed 3/3 PASS; CP-769-03 preserves this evidence.
     - id: TEST-PROV-SCOPE
-      evidence: Material compare c9324c76..2f28f3df contains only the two admitted diagnostic files and no PR #417 path.
+      evidence: Provenance instrumentation material diff was limited to the two admitted diagnostic files and no PR 417 path.
   stop:
     active: true
-    category: ESSENTIAL_INPUT_MISSING
-    reason: The local ZIP inspection now provides the newer raw GLRD branch structures and deterministically explains candidate synthetic labels 2439/2909, but the ZIP contains no enriched/generated output and the provenance diagnostic was run on raw XML with source_match NONE for all six records. Exact enriched/generated-label provenance or an independently regenerated equivalent is still required before topology mutation.
+    category: OWNER_DECISION_REQUIRED
+    reason: EP-769-04 now has READY real provenance, PASS discovery, PASS independent qualification and PASS takeover certification, but no current Owner decision grants material-write authority for the qualified topology correction. ODR-769-0007 was limited to provenance instrumentation and explicitly excluded topology/order repair.
     basis:
-    - agents/relay/checkpoints/CP-769-03.yaml
-    - agents/relay/execution-packages/EP-769-04.yaml
-    - agents/relay/certifications/qualification/QSET-769-05.yaml
-    - agents/relay/certifications/discovery/DISC-769-05.yaml
-    - agents/relay/evidence/EVD-769-0001.yaml
-    - converters/scripts/xml_to_cii2019_order_provenance.py@987c866ca1225fe2024e19e95ba02474dbcccc82
+    - agents/relay/evidence/EVD-769-0002.yaml
+    - agents/relay/certifications/discovery/DISC-769-06.yaml
+    - agents/relay/certifications/qualification/QUAL-769-05.yaml
+    - agents/relay/certifications/takeover/TC-769-04.yaml
+    - agents/relay/roadmap/owner-decisions/ODR-769-0007.yaml
 projection:
   required: true
   state: IN_SYNC
@@ -131,13 +139,11 @@ projection:
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - CP-769-03 links the serial successor to EP-769-04/WP-769-GEOMETRY.
-  - EP-769-04 and QSET-769-05 are materialized, but INPUT-ORDER-PROVENANCE is MISSING_BLOCKING and no successor qualification/takeover admission exists.
-  - Material authority is READ_ONLY with ESSENTIAL_INPUT_MISSING; the provenance instrumentation does not authorize topology mutation.
-  - EVD-769-0001 closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY as late PASS evidence without rewriting historical checkpoints.
-  - The newer ZIP raw XML narrows the reported topology cases, but exact enriched/generated-label provenance remains missing and blocks topology write admission.
-  - GitHub projection GHGEN-769-0007 is verified IN_SYNC by issuecomment-5724109959.
+  - EP-769-04 input/oracle is READY through EVD-769-0002 with 8/8 EXACT joins.
+  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on the refreshed EP contract.
+  - Material authority remains READ_ONLY because the remaining gate is fresh Owner authorization for the topology mutation.
+  - Required GitHub projection must be refreshed from GHGEN-769-0007 before handover is IN_SYNC.
 chat_context_required: false
