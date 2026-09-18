@@ -24,316 +24,298 @@ roadmap_source:
   generated_from_frontier: true
 outcome:
   user_visible:
-  - XML→CII 2019 Standalone restores the missing REST restraint for reported PS00608.1 / XML node 3140 from authoritative staged support identity and attachment evidence.
+  - Restore missing REST for PS00608.1 / node 3140 from authoritative staged support identity and attachment evidence.
   engineering:
-  - Support association uses one shared source-semantic authority: exact normalized identity plus unique compatible explicit relationship evidence; ambiguity and relationship conflict fail closed and coordinates never override them.
-  - Working PS00573.1 remains resolved, PS00572.1 remains unclaimed without evidence, and no PS-prefix-to-REST or tag-specific exception is introduced.
+  - Support identity plus one compatible explicit attachment may authorize staged REST semantics; conflicts, missing authority and ambiguity fail closed.
 context_capsule:
-  product_goal: Close Issue 769 support fallback with a source-semantic repair rather than a tag or coordinate heuristic.
+  product_goal: Re-execute the Issue 769 support repair under fully pre-write-qualified v2.5 custody.
   roadmap_position: OBJ-769 / PHASE-769-POSTMERGE / WP-769-SUPPORT after CP-769-05.
-  why_this_work_exists: EVD-769-0005 proves PS00608.1 is explicit REST and explicitly attached to the XML branch containing node 3140, but the standalone ledger rejects it because fallback uses staged container-branch compatibility and ignores that explicit attachment.
-  current_architecture: The standalone trace ledger owns position groups and legacy PS fallback; shared source-schema adapters expose COMPRE and ATTACHED_COMPONENT_REF relationship evidence, and the shared DTXR resolver can index exact support identities when an explicit sourceSchema profile is enabled.
-  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007, ODR-769-0008, ODR-769-0009, ODR-769-0011]
-  current_implementation_state: This replay branch is rooted at CP-769-05 before the support production mutation. A prior functionally green attempt exists on PR 775, but EP-769-07 must independently reconstruct and qualify the repair before consulting that implementation diff; no material write is authorized until fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY pass.
+  why_this_work_exists: EVD-769-0005 proves the first wrong boundary; PR 775 is functionally green but missed required pre-write zero-context qualification and MATERIAL_WRITE_READY.
+  current_architecture: Standalone trace-ledger association owns staged position groups and PS fallback; source-schema-adapter owns semantic source-field evidence; downstream enrichment consumes the resolved ledger.
+  prior_owner_decisions: [ODR-769-0009, ODR-769-0011]
+  current_implementation_state: This replay branch starts from CP-769-05 before the support production mutation; no material write is authorized before fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
   known_problems:
-  - globalPsFallback in xml-cii-trace-resolution-ledger.js requires staged container branch compatibility, so PS00608.1 is rejected despite its exact tag and COMPRE / ATTACHED_COMPONENT_REF matching the XML branch.
-  - The standalone default trace config leaves sourceSchema empty; simply calling shared resolver APIs would otherwise preserve legacy behavior.
-  - The current shared support-restraint resolver rejects internal staged relationship conflicts but does not by itself prove cross-source attachment-to-XML-branch agreement or uniqueness across unrelated relationship roots.
+  - PS00608.1 staged container branch differs from XML while explicit COMPRE / ATTACHED_COMPONENT_REF matches the XML branch.
+  - Legacy global PS fallback gates on staged container branch and drops the stronger explicit attachment.
   deliberate_non_goals:
-  - No PS* => REST inference or PS00608.1 special case.
-  - No coordinate-only support authority and no coordinate override of relationship conflicts.
-  - No changes to PR 417 coordinate-custody paths, geometry topology, rigid weights, line-list mapping, regex/branch mapping, B31.3 or large-master import.
-  - No claim that PS00572.1 is feasible from the current benchmark; it is absent from both exact benchmark members.
+  - No PS-prefix-to-REST or tag-specific rule.
+  - No coordinate-only authority or PR 417 coordinate-custody change.
+  - Do not use PR 775 implementation output as qualification evidence.
   terminology:
-    explicit_attachment: Staged relationship field such as COMPRE / ATTACHED_COMPONENT_REF that names the attached XML component or branch.
-    unique_compatible_evidence: Exactly one qualified support relationship family agrees with normalized support identity and the XML branch; zero remains unresolved and more than one remains ambiguous.
+    explicit_attachment: Branch-shaped staged component relationship compatible with the XML branch.
 repository_discovery:
 - id: DSTEP-769-07-01
   action: VERIFY
   target: agents/relay/REPO_STATE.yaml
-  question: Does repository state route to EP-769-07 on RM-0001 after CP-769-05?
-  expected_outputs: [active EP id and path, last checkpoint CP-769-05, current work package WP-769-SUPPORT]
+  question: Does state route to EP-769-07 with predecessor CP-769-05 and WP-769-SUPPORT?
+  expected_outputs: [active_ep, last_checkpoint, work_package, material_authority]
   receipt_required: true
-  on_failure: Reconcile repository custody before material execution.
+  on_failure: Stop and reconcile repository custody.
 - id: DSTEP-769-07-02
   action: VERIFY_GIT
   target: live checkout
-  question: Does the live checkout remain on agent/issue-769-support-replay-v25-20260918 with material ancestry from aa5659 and base main still observed at 9f0925?
-  expected_outputs: [checked-out branch, current HEAD, material-ref ancestry result, main drift result]
+  question: Does live Git match the replay branch/material/base basis with no overlapping drift?
+  expected_outputs: [checked_out_branch, current_head, material_ref_ancestry, base_drift_result]
   receipt_required: true
-  on_failure: Drop material WRITE authority and reconcile branch or base drift.
+  on_failure: Remain READ_ONLY and reconcile Git basis.
 - id: DSTEP-769-07-03
   action: VERIFY
   target: agents/relay/evidence/EVD-769-0005.yaml
-  question: Do exact PS00608.1 and PS00573.1 source/XML facts and archive hashes still match this repair contract?
-  expected_outputs: [EVD digest or content identity, PS00608 staged path, PS00608 explicit attachment, XML node 3140 branch, PS00573 comparator]
+  question: Do exact archive hashes and PS00608.1 / PS00573.1 source/XML facts still match?
+  expected_outputs: [archive_identity, reported_case, explicit_attachment, comparator]
   receipt_required: true
-  on_failure: Stop because the engineering oracle is stale.
+  on_failure: Stop because the oracle changed.
 - id: DSTEP-769-07-04
-  action: VERIFY
+  action: TRACE
   target: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
-  question: Is the first wrong boundary still container-branch-gated global PS fallback, and is shared source-schema authority still available without a second engineering authority?
-  expected_outputs: [current fallback implementation, current shared resolver/adapter API, exact minimum write set]
+  question: Without consulting PR 775, trace the first wrong association boundary, state owner, authority source and downstream consumer.
+  expected_outputs: [first_wrong_boundary, state_owner, authority_source, downstream_consumer, minimum_write_set]
   receipt_required: true
-  on_failure: Re-qualify if the production architecture changed.
+  on_failure: Re-qualify if source contradicts EVD-769-0005.
 - id: DSTEP-769-07-05
   action: VERIFY
-  target: live checkout
-  question: Before each existing JavaScript edit, has node utils/backup.js save <file> "<context>" completed successfully as required by .agents/AGENTS.md?
-  expected_outputs: [backup command, backup artifact or receipt, target file]
+  target: utils/backup.js
+  question: Can repository-native pre-edit JavaScript backup custody be executed for every existing JS target?
+  expected_outputs: [backup_command, backup_receipt, backup_artifact]
   receipt_required: true
-  on_failure: Do not edit the existing JavaScript file.
+  on_failure: Do not edit the existing JavaScript target.
 inputs:
 - id: INPUT-SUPPORT-PROVENANCE
-  name: Exact support provenance and first-divergence evidence
-  description: Hash-bound staged/XML evidence for reported missing, feasibility and working support cases.
+  name: Exact support provenance
+  description: Hash-bound staged/XML source facts and first-divergence evidence.
   authority: CP-769-05 / EVD-769-0005
   source: agents/relay/evidence/EVD-769-0005.yaml
-  resolution_method: Read the exact archive/member hashes, full source objects, XML case matrix and first wrong boundary.
+  resolution_method: Re-open EVD-769-0005 and verify exact source/XML identities.
   type: evidence
   units: NA
   editable: false
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  consumers: [STEP-SUPPORT-REPAIR-01, STEP-SUPPORT-REPAIR-02, AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02]
+  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-03]
   validation:
-  - PS00608.1 staged SUPPORT_KIND and SUPPORT_MAPPER_KIND are REST.
-  - PS00608.1 COMPRE and ATTACHED_COMPONENT_REF exactly name the XML branch containing node 3140.
-  - PS00573.1 remains the working comparator; PS00572.1 remains explicitly absent.
+  - PS00608.1 is explicit REST and its explicit attachment names the XML node-3140 branch.
+  - PS00573.1 is the working comparator.
   stale_if:
-  - Either benchmark archive/member hash changes.
-  - Reported source/XML identity changes.
+  - Benchmark or source identity changes.
 - id: INPUT-SUPPORT-OWNER-AUTH
-  name: Owner authorization for successor material repair
-  description: Owner authorized the strict v2.5 conformance replay after the prior implementation was identified as functionally green but pre-write nonconformant.
+  name: Owner replay authorization
+  description: Owner authorized the strict v2.5 replay but not merge or bypass of runtime predicates.
   authority: OWNER
   source: agents/relay/roadmap/owner-decisions/ODR-769-0011.yaml
-  resolution_method: Read ODR-769-0011 and preserve its requirement for fresh pre-write DISC/QUAL/TC plus live MATERIAL_WRITE_READY; merge remains Owner-only.
+  resolution_method: Read ODR-769-0011.
   type: authorization
   units: NA
   editable: false
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  consumers: [STEP-SUPPORT-REPAIR-01, STEP-SUPPORT-REPAIR-02]
+  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02]
   validation:
-  - ODR-769-0011 status is APPLIED and affected work package is WP-769-SUPPORT.
-  - Merge remains Owner-only.
+  - ODR-769-0011 is APPLIED to EP-769-07.
   stale_if:
-  - Owner supersedes or revokes the authorization.
-- id: INPUT-SUPPORT-RESOLVER
-  name: Current shared source-schema and standalone resolver authority
-  description: Source-schema field/identity/relationship policy plus shared DTXR resolver and standalone ledger/enrichment behavior.
-  authority: Current repository production source
-  source: converters/xml-cii2019-core/source-schema-adapter.js; converters/xml-cii2019-core/dtxr-resolver.js; converters/xml-cii2019-core/dtxr-resolver-core.js; tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
-  resolution_method: Fresh candidate must re-read exact production source and prove the smallest authority reuse before editing.
+  - Owner revokes or supersedes authorization.
+- id: INPUT-SUPPORT-SOURCE
+  name: Current support resolver source
+  description: Pre-repair production source that owns support association and source semantic evidence.
+  authority: repository production source
+  source: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js; converters/xml-cii2019-core/source-schema-adapter.js
+  resolution_method: Candidate reads source directly before qualification.
   type: code-authority
   units: NA
   editable: false
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  consumers: [STEP-SUPPORT-REPAIR-01, STEP-SUPPORT-REPAIR-02, AC-SUPPORT-REPAIR-03]
+  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03]
   validation:
-  - source-schema-adapter exposes COMPRE under componentRef and relationship evidence with conflict policy.
-  - explicit sourceSchema is opt-in; no repair may assume sourceSchema is enabled when it is not.
-  - cross-source attachment agreement and unique relationship-family cardinality must be tested explicitly.
+  - Trace-ledger remains the first wrong boundary.
+  - Shared adapter remains source-field/conflict authority.
   stale_if:
-  - Resolver, adapter, ledger, support policy or standalone invocation configuration changes before execution.
+  - Listed source changes before write.
 - id: INPUT-JS-BACKUP
-  name: Mandatory backup receipt for existing JavaScript edits
-  description: Repository policy requires node utils/backup.js save before editing any existing JavaScript file.
+  name: Existing JavaScript backup custody
+  description: Repository-native backup is required immediately before editing existing JS.
   authority: .agents/AGENTS.md
-  source: live checkout backup command
-  resolution_method: After TAKEOVER_CERTIFIED and live MATERIAL_WRITE_READY, run node utils/backup.js save for each existing JS target immediately before its first edit and retain the generated backup path/receipt.
+  source: node utils/backup.js save
+  resolution_method: Execute after takeover/write readiness and before first edit.
   type: repository-safety
   units: NA
   editable: false
   applicability: CURRENT_STEP_REQUIRED
   resolution: READY
-  consumers: [STEP-SUPPORT-REPAIR-02]
+  consumers: [STEP-SUPPORT-REPLAY-02]
   validation:
-  - Every existing JavaScript target has a successful pre-edit backup receipt.
+  - Each existing JS target has a successful backup receipt before edit.
   stale_if:
-  - Target file changes after backup and before edit.
+  - Target changes after backup and before edit.
 benchmarks:
-- id: BENCH-SUPPORT-REPAIR-769
-  name: Real missing/working support relationship benchmark
-  purpose: Prove PS00608.1 resolves from exact staged relationship authority while working PS00573.1 remains unchanged and unavailable feasibility cases are not fabricated.
-  source: agents/relay/evidence/EVD-769-0005.yaml plus Benchmarks/STF_2026Sep16-0859_managed_stage.zip plus Benchmarks/GLRD-1000-PI-01.zip
+- id: BENCH-SUPPORT-REPLAY
+  name: Real support relationship benchmark
+  purpose: Prove PS00608.1 resolves from source relationship authority while PS00573.1 remains correct.
+  source: EVD-769-0005 plus committed STF/GLRD benchmark archives
   oracle_class: REFERENCE_DATA
   payload:
-    missing: {tag: PS00608.1, xml_node: 3140, expected_kind: REST, expected_xml_branch: '/GLRD-1000-2"-B4110001-93833-01/B2'}
-    working: {tag: PS00573.1, xml_node: 3420, expected_kind: REST, expected_xml_branch: '/GLRD-1000-8"-B4110003-13451-01/B1'}
-    staged_only: [PS00571.1]
-    absent: [PS00572.1]
-  expected: PS00608.1 obtains governed REST/+Y only from a unique exact source-semantic relationship match; PS00573.1 remains resolved; PS00572.1 remains absent/unclaimed.
-  tolerance: {coordinate_mm: corroboration_only, reported_frame_offset_z_mm: approximately_100000}
-  independence: Expected identity, kind and attachment come from hash-bound source/XML records captured before the repair.
+    reported: {tag: PS00608.1, xml_node: 3140, expected_kind: REST}
+    comparator: {tag: PS00573.1, xml_node: 3420, expected_kind: REST}
+  expected: PS00608.1 resolves only from unique compatible explicit attachment; PS00573.1 remains resolved.
+  tolerance: {coordinates: corroboration_only}
+  independence: Expected identity, kind and attachment were captured before this EP.
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  verifies: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02, TEST-SUPPORT-REAL]
+  verifies: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, TEST-SUPPORT-REAL]
   stale_if:
-  - EVD-769-0005 or either benchmark archive identity changes.
-- id: BENCH-SUPPORT-NEGATIVE-769
-  name: Relationship conflict and ambiguity negative controls
-  purpose: Prove exact tag identity cannot override an explicit attachment conflict and duplicate/unrelated qualified families do not auto-resolve.
-  source: Existing source-schema authority tests plus new focused regression fixtures derived from the policy, not the reported tag.
+  - EVD-769-0005 or benchmark identity changes.
+- id: BENCH-SUPPORT-NEGATIVE
+  name: Fail-closed relationship controls
+  purpose: Prove identity/coordinates cannot override conflicting, missing or ambiguous relationship authority.
+  source: source-schema authority invariants plus synthetic controls
   oracle_class: INVARIANT
-  payload: [attachment-conflict, duplicate-identity-unrelated-roots, zero-authoritative-relationship, coordinate-near-but-relationship-conflict]
-  expected: Every negative case remains unresolved or explicitly ambiguous; no REST is materialized.
+  payload: [attachment-mismatch, component-ref-conflict, duplicate-qualified-relationship, missing-authority, coordinate-near-conflict]
+  expected: No negative case silently materializes REST.
   tolerance: null
-  independence: The negative oracle is the protected fail-closed relationship policy, not the PS00608 expected output.
+  independence: Fail-closed policy is defined before implementation.
   applicability: CURRENT_EP_REQUIRED
   resolution: READY
-  verifies: [AC-SUPPORT-REPAIR-03, TEST-SUPPORT-NEGATIVE]
+  verifies: [AC-SUPPORT-REPLAY-03, TEST-SUPPORT-NEGATIVE]
   stale_if:
-  - Source-schema conflict/relationship policy changes.
+  - Source relationship policy changes.
 scope:
   allowed:
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, reason: First wrong support-association boundary proven by EVD-769-0005.}
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js, reason: Only if an explicit standalone sourceSchema profile is required to activate shared authority; must remain minimal and validated.}
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-support-relationship-authority.js, reason: Optional new small helper only if needed to keep existing files bounded and reuse shared source-schema functions without duplicating policy.}
-  - {path: tests/xml-cii-standalone-trace-ledger.test.js, reason: Authoritative ledger regression; only a test-contract correction is allowed if current raw/decorated behavior proves the assertion stale.}
-  - {path: tests/xml-cii-standalone-support-relationship-authority.test.js, reason: Focused real-benchmark and fail-closed support relationship regression.}
-  - {path: .backups/**, reason: Repository-mandated pre-edit custody for existing JavaScript files.}
-  - {path: tests/xml-cii-standalone-dtxr-enrichment.test.js, reason: End-to-end standalone enrichment/restraint regression.}
-  - {path: tests/xml-cii-source-schema-authority-guards.test.mjs, reason: Only if a generic shared authority guard must be strengthened; no benchmark-specific behavior.}
+  - {path: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, reason: Proven first wrong boundary.}
+  - {path: tests/xml-cii-standalone-support-relationship-authority.test.js, reason: Focused real/negative regression.}
+  - {path: tests/xml-cii-standalone-trace-ledger.test.js, reason: Test-only contract correction if raw/decorated assertion is stale.}
+  - {path: .backups/**, reason: Mandatory pre-edit custody.}
   allowed_reads:
-  - {path: agents/relay/evidence/EVD-769-0005.yaml, reason: Exact RCA/oracle.}
-  - {path: Benchmarks/STF_2026Sep16-0859_managed_stage.zip, reason: Exact staged benchmark.}
-  - {path: Benchmarks/GLRD-1000-PI-01.zip, reason: Exact XML benchmark.}
-  - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Shared field/identity/relationship authority.}
-  - {path: converters/xml-cii2019-core/dtxr-resolver.js, reason: Public shared resolver boundary.}
-  - {path: converters/xml-cii2019-core/dtxr-resolver-core.js, reason: Verify exact identity/relationship cardinality and candidate behavior.}
-  - {path: converters/xml-cii2019-core/support-mapping.js, reason: Verify support-kind materialization remains source-driven.}
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js, reason: Verify governed REST materialization consumes resolved ledger evidence.}
+  - {path: agents/relay/evidence/EVD-769-0005.yaml, reason: Independent pre-repair oracle.}
+  - {path: Benchmarks/**, reason: Exact benchmark input.}
+  - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Shared semantic authority.}
+  - {path: tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js, reason: Downstream ledger consumer.}
+  - {path: tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js, reason: Raw/decorated contract ownership.}
+  - {path: tests/xml-cii-standalone-dtxr-enrichment.test.js, reason: Exact-head regression.}
+  - {path: tests/xml-cii-source-schema-authority-guards.test.mjs, reason: Exact-head authority regression.}
+  - {path: converters/scripts/test_xml_to_cii2019_edge_order_authority.py, reason: Exact-head geometry regression.}
+  - {path: converters/scripts/test_xml_to_cii2019_effective_od.py, reason: Exact-head OD regression.}
+  - {path: converters/scripts/test_xml_to_cii2019_fbli_negative_node.py, reason: Exact-head FBLI regression.}
   protected:
-  - {invariant: Exact support tag is identity evidence only; REST kind must come from staged support semantics., reason: Prevent tag-to-kind heuristic.}
-  - {invariant: Explicit attachment/relationship conflicts and ambiguous unrelated families fail closed., reason: Engineering safety.}
-  - {invariant: Coordinates are corroboration only for this repair and cannot override relationship authority., reason: Preserve fail-closed source semantics.}
-  - {invariant: Working PS00573.1 behavior and completed geometry/FBLI behavior remain unchanged., reason: Regression safety.}
+  - {invariant: Support identity does not imply support kind., reason: Prevent PS-to-REST heuristic.}
+  - {invariant: Relationship conflict or ambiguity is never overridden by coordinates., reason: Fail closed.}
+  - {invariant: PR 417 coordinate-custody paths remain untouched., reason: Separate ownership.}
   prohibited:
-  - {domain: converters/xml-cii2019-core/dtxr-resolver-core.js production mutation unless fresh discovery proves the shared core itself is the first wrong boundary and qualification is regenerated., reason: Current evidence localizes first divergence to standalone ledger integration.}
-  - {domain: Python PS/tag restraint heuristics, reason: Downstream symptom patch would duplicate authority.}
-  - {domain: PR 417 coordinate-custody files, reason: Separate ownership.}
-  - {domain: Unrelated Issue 769 work packages, reason: One-WP-per-EP.}
+  - {domain: converters/xml-cii2019-core/dtxr-resolver-core.js production mutation, reason: Requires fresh requalification if discovery moves the first wrong boundary.}
+  - {domain: Python support/tag heuristics, reason: Downstream symptom patch duplicates authority.}
+  - {domain: PR 417 paths, reason: Separate ownership.}
   owner_reserved:
-  - {decision: Merge any support repair PR., reason: Owner-only merge authority remains reserved by ODR-769-0009 and repository policy.}
+  - {decision: Merge or close the final support delivery PR., reason: Owner-only authority.}
 anti_drift:
   do_not:
-  - {id: ADR-SUPPORT-REPAIR-01, restriction: Do not infer REST from PS tag syntax or add tag-specific cases., reason: Identity is not support-kind authority.}
-  - {id: ADR-SUPPORT-REPAIR-02, restriction: Do not accept an exact tag when its explicit staged attachment disagrees with the XML branch or when multiple unrelated relationship families qualify., reason: Cross-source relationship authority must be unique and compatible.}
-  - {id: ADR-SUPPORT-REPAIR-03, restriction: Do not use coordinate proximity or the approximately 100000 mm frame offset as authority., reason: Coordinates are corroboration only.}
-  - {id: ADR-SUPPORT-REPAIR-04, restriction: Do not create a second parser/relationship grammar when source-schema-adapter can express the evidence., reason: Preserve one engineering authority.}
-  - {id: ADR-SUPPORT-REPAIR-05, restriction: Do not edit an existing JavaScript file before its mandatory repository backup command succeeds., reason: Repository safety policy.}
-  - {id: ADR-SUPPORT-REPAIR-06, restriction: Do not inspect or copy the PR 775 implementation diff while producing DISC/Q1-Q5/QUAL; PR 775 is informational only until qualification completes., reason: Preserve independent zero-context reconstruction and a non-circular oracle.}
-  - {id: ADR-SUPPORT-REPAIR-07, restriction: Do not perform any material mutation unless the exact candidate has current DISC PASS, QUAL PASS, TC PASS and live MATERIAL_WRITE_READY., reason: EP-769-07 exists specifically to restore the required pre-write admission order.}
+  - {id: ADR-769-07-01, restriction: Do not inspect/copy PR 775 implementation before qualification completes., reason: Preserve independent reconstruction.}
+  - {id: ADR-769-07-02, restriction: Do not mutate material files before DISC/QUAL/TC PASS and live MATERIAL_WRITE_READY., reason: Restore required pre-write admission order.}
+  - {id: ADR-769-07-03, restriction: Do not infer REST from PS syntax or coordinate proximity., reason: Preserve source authority.}
+  - {id: ADR-769-07-04, restriction: Do not edit existing JS before repository-native backup succeeds., reason: Repository safety.}
   stale_if:
-  - {id: STALE-SUPPORT-REPAIR-01, condition: EVD-769-0005 source hashes or reported case identities change., effect: STOP, rationale: Oracle changed.}
-  - {id: STALE-SUPPORT-REPAIR-02, condition: source-schema/resolver/ledger production source changes before write., effect: STOP, rationale: Qualified architecture changed.}
-  - {id: STALE-SUPPORT-REPAIR-03, condition: main advances into an overlapping support authority path or another active PR claims the same production path., effect: STOP, rationale: Potential collision/drift.}
+  - {id: STALE-769-07-01, condition: EVD-769-0005 source/benchmark identity changes., effect: STOP, rationale: Oracle changed.}
+  - {id: STALE-769-07-02, condition: Main or resolver source changes in an overlapping support path., effect: RECONCILE, rationale: Material drift.}
+  - {id: STALE-769-07-03, condition: PR 417 overlaps an admitted replay path., effect: STOP, rationale: Ownership collision.}
 implementation_plan:
-- id: STEP-SUPPORT-REPAIR-01
-  objective: Re-ground the exact authority and prove one minimal implementation design before writes.
-  targets: [agents/relay/evidence/EVD-769-0005.yaml, converters/xml-cii2019-core/source-schema-adapter.js, converters/xml-cii2019-core/dtxr-resolver.js, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js]
-  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-RESOLVER, BENCH-SUPPORT-REPAIR-769, BENCH-SUPPORT-NEGATIVE-769]
-  writes: [agents/relay]
-  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-RESOLVER]
-  acceptance: [AC-SUPPORT-REPAIR-03, AC-SUPPORT-REPAIR-SCOPE]
+- id: STEP-SUPPORT-REPLAY-01
+  objective: Independently reconstruct and certify the support authority boundary.
+  targets: [agents/relay/evidence/EVD-769-0005.yaml, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js]
+  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
+  writes: [agents/relay/certifications/discovery, agents/relay/certifications/qualification, agents/relay/certifications/takeover]
+  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-SOURCE]
+  acceptance: [AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
   tests: [TEST-SUPPORT-SCOPE]
-  expected_state: Fresh zero-context discovery either confirms the standalone integration boundary and exact write set or stops/re-qualifies before material mutation.
+  expected_state: Fresh repository-only DISC/QUAL/TC PASS is bound to this exact EP; otherwise execution remains READ_ONLY.
   stop_conditions:
-  - Shared core or standalone invocation semantics differ materially from this EP.
-  - Unique compatible relationship authority cannot be expressed without a new engineering-policy decision.
-- id: STEP-SUPPORT-REPAIR-02
-  objective: After takeover/write admission and mandatory backups, implement the smallest shared source-semantic relationship repair.
-  targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-trace-ledger.test.js, tests/xml-cii-standalone-dtxr-enrichment.test.js]
-  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-RESOLVER]
-  writes: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js, tabs/xml-cii-2019-standalone/xml-cii-support-relationship-authority.js, tests/xml-cii-standalone-trace-ledger.test.js, tests/xml-cii-standalone-dtxr-enrichment.test.js, tests/xml-cii-source-schema-authority-guards.test.mjs]
-  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-RESOLVER, INPUT-JS-BACKUP]
-  acceptance: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02, AC-SUPPORT-REPAIR-03, AC-SUPPORT-REPAIR-SCOPE]
+  - Candidate used conversation context or PR 775 implementation during qualification.
+  - Candidate self-prepared or self-certified required independent evidence.
+  - Any Q1-Q5 evaluation fails.
+- id: STEP-SUPPORT-REPLAY-02
+  objective: After live write admission, implement and validate the bounded repair.
+  targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js]
+  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
+  writes: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js, .backups/**]
+  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE, INPUT-JS-BACKUP]
+  acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
   tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-  expected_state: Node 3140 receives governed REST/+Y from unique source-semantic evidence; comparator and negative controls remain correct; no heuristic authority is added.
+  expected_state: Exact-head support behavior, negatives, regressions and scope all pass.
   stop_conditions:
-  - Backup receipt is missing for an existing JS target.
-  - Candidate DISC/QUAL/TC or live MATERIAL_WRITE_READY is not valid for the exact EP digest and route.
-  - Repair needs a production path outside the allowed scope or weakens a protected invariant.
+  - Live MATERIAL_WRITE_READY is false.
+  - Backup, protected invariant, test or scope gate fails.
 next_work:
   phase_transition: false
   steps:
   - order: 1
-    action: Fresh zero-conversation candidate checks out the EP-769-07 replay branch, reads CP-769-05, EP-769-07, EVD-769-0005 and current production source without consulting PR 775 implementation output, then emits DISC-769-08 with conversation_context_used false.
-    targets: [agents/relay/checkpoints/CP-769-05.yaml, agents/relay/execution-packages/EP-769-07.yaml, agents/relay/evidence/EVD-769-0005.yaml, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, converters/xml-cii2019-core/source-schema-adapter.js, converters/xml-cii2019-core/dtxr-resolver.js]
-    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-RESOLVER]
+    action: Fresh zero-context candidate checks out the replay branch, executes all DSTEP-769-07 discovery from repository state only and writes DISC-769-08 with conversation_context_used false.
+    targets: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-05.yaml, agents/relay/execution-packages/EP-769-07.yaml, agents/relay/evidence/EVD-769-0005.yaml]
+    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-SOURCE]
     tests: [TEST-SUPPORT-SCOPE]
-    benchmarks: [BENCH-SUPPORT-REPAIR-769, BENCH-SUPPORT-NEGATIVE-769]
-    acceptance: [AC-SUPPORT-REPAIR-03, AC-SUPPORT-REPAIR-SCOPE]
-    expected_result: Repository-only discovery confirms the exact authority boundary, branch state, collision state, test commands and minimal write set.
+    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
+    acceptance: [AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
+    expected_result: DISC is complete and bound to the exact route/basis without conversation context.
     stop_if:
-    - Discovery requires conversation history.
+    - Conversation context or PR 775 implementation is used.
     - Repository state contradicts this EP.
   - order: 2
-    action: Candidate answers QSET-769-09 from repository-only evidence; a distinct evaluator issues QUAL and TC only if all five qualification challenges pass and the certification validators accept the exact route/digests.
+    action: Candidate answers QSET-769-09 from repository only; a distinct evaluator issues QUAL and TC only if all five questions pass and validators accept exact digests/basis.
     targets: [agents/relay/certifications/qualification/QSET-769-09.yaml]
-    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-RESOLVER]
+    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
     tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE]
-    benchmarks: [BENCH-SUPPORT-REPAIR-769, BENCH-SUPPORT-NEGATIVE-769]
-    acceptance: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-03]
-    expected_result: Exact EP route is takeover-qualified or remains READ_ONLY with explicit failed challenge(s).
+    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
+    acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-03]
+    expected_result: TAKEOVER_CERTIFIED is true for the exact candidate/route or material execution stops.
     stop_if:
-    - Candidate self-prepared the QSET.
-    - Any challenge is under 17/20 or total is under 92/100.
+    - Candidate/evaluator independence is invalid.
+    - Any qualification question fails.
   - order: 3
-    action: On the live takeover-certified checkout, run material_write_ready.py for the exact candidate; only on PASS run mandatory JS backups, implement the bounded repair, run all exact-head focused/regression/scope suites, QRV/checkpoint the material head, then project an equivalent clean main-based delivery branch that can supersede PR 775.
-    targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-trace-ledger.test.js, tests/xml-cii-standalone-dtxr-enrichment.test.js]
-    inputs: [INPUT-JS-BACKUP, INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-RESOLVER]
+    action: Run material_write_ready.py for the exact candidate; only on PASS run backups, implement, run all exact-head tests/scope, create QRV/checkpoint, then project an equivalent clean main-based delivery PR.
+    targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js]
+    inputs: [INPUT-JS-BACKUP, INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
     tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-    benchmarks: [BENCH-SUPPORT-REPAIR-769, BENCH-SUPPORT-NEGATIVE-769]
-    acceptance: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02, AC-SUPPORT-REPAIR-03, AC-SUPPORT-REPAIR-SCOPE]
-    expected_result: Robust support fix is implemented and independently evidenced without broadening authority.
+    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
+    acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
+    expected_result: Fully admitted support repair is checkpointed and clean delivery can supersede PR 775.
     stop_if:
-    - Live write readiness is not MATERIAL_WRITE_READY.
-    - Any reported/comparator/negative/regression acceptance fails.
+    - Live MATERIAL_WRITE_READY is false.
+    - Any exact-head validation or scope audit fails.
 qualification_boundary:
   required: true
   trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
   from_phase: PHASE-769-POSTMERGE
   to_phase: PHASE-769-POSTMERGE
-  changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE, PRODUCTION_PATH]
+  changed_dimensions: [PRODUCTION_PATH, ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
   basis:
-  - EP-769-07 introduces a material source-association rule at an engineering-significant support boundary.
-  - Exact tag identity, explicit attachment compatibility and ambiguity cardinality must be proven without weakening fail-closed behavior.
-  - The prior PR 775 implementation is not a qualification oracle; the incoming candidate must independently reconstruct the boundary from CP-769-05 / EVD-769-0005 and current source before any replay comparison.
+  - Support relationship authority changes at an engineering-significant production boundary.
+  - The prior functionally green implementation cannot substitute for fresh pre-write qualification.
   question_set: {id: QSET-769-09, path: agents/relay/certifications/qualification/QSET-769-09.yaml}
 quality:
   applicable:
-  - {blueprint: software-design, reason: Consolidates standalone support association onto shared source-semantic authority., review_focus: [single_authority, relationship_ownership, failure_semantics]}
-  - {blueprint: coding, reason: Production JavaScript support-resolution behavior changes., review_focus: [bounded_change, maintainability, explicit_errors]}
-  - {blueprint: testing, reason: Reported missing case, working comparator and negative ambiguity/conflict controls are mandatory., review_focus: [oracle_independence, regression, fail_closed]}
-  - {blueprint: code-review, reason: Engineering-significant restraint behavior requires independent review., review_focus: [authority, scope, unintended_fallback]}
-  - {blueprint: github-delivery, reason: Successor branch/PR must preserve v2.5 custody and Owner-only merge., review_focus: [branch_truth, issue_projection, merge_authority]}
+  - {blueprint: software-design, reason: Support relationship authority changes., review_focus: [authority, failure_semantics]}
+  - {blueprint: coding, reason: Production JavaScript resolver behavior changes., review_focus: [bounded_change, maintainability]}
+  - {blueprint: testing, reason: Real and negative exact-head validation is mandatory., review_focus: [oracle_independence, regression]}
+  - {blueprint: code-review, reason: Engineering-significant restraint resolution requires review., review_focus: [scope, unintended_fallback]}
+  - {blueprint: github-delivery, reason: Replay requires v2.5 custody and clean PR projection., review_focus: [branch_truth, checkpoint, merge_authority]}
   not_applicable:
   - {blueprint: ui-ux, reason: No UI change., review_focus: []}
-  - {blueprint: accessibility, reason: No UI/accessibility change., review_focus: []}
-  - {blueprint: engineering-numerics, reason: No new numerical engineering calculation; coordinate values are corroborating resolver evidence only., review_focus: []}
-  - {blueprint: performance, reason: No performance objective; report if implementation materially changes resolver complexity., review_focus: []}
-  - {blueprint: migration, reason: No persisted schema/data migration., review_focus: []}
+  - {blueprint: engineering-numerics, reason: No numerical engineering calculation changes., review_focus: []}
+  - {blueprint: accessibility, reason: No accessibility change., review_focus: []}
+  - {blueprint: performance, reason: No performance objective., review_focus: []}
+  - {blueprint: migration, reason: No migration., review_focus: []}
   review_contract:
     required: true
     required_before_checkpoint: true
     receipt_namespace: QRV-
     required_outputs: [procedure_results, findings, owner_report, successor_handover]
-  findings_policy: Findings block only when mapped to existing acceptance, authority, protected-invariant or safety stop.
+  findings_policy: Findings block only when mapped to acceptance, authority, protected invariants or safety stops.
   ordinary_findings_are_hard_stops: false
 acceptance:
-- {id: AC-SUPPORT-REPAIR-01, description: 'Reported PS00608.1 at XML node 3140 resolves governed REST/+Y from exact staged REST semantics plus unique compatible explicit attachment authority, with no tag-specific or PS-prefix heuristic.', weight: 40, verification: [TEST-SUPPORT-REAL, BENCH-SUPPORT-REPAIR-769]}
-- {id: AC-SUPPORT-REPAIR-02, description: 'Working PS00573.1 remains resolved and existing supported standalone restraint behavior is regression-clean.', weight: 20, verification: [TEST-SUPPORT-REAL, TEST-SUPPORT-REGRESSION, BENCH-SUPPORT-REPAIR-769]}
-- {id: AC-SUPPORT-REPAIR-03, description: 'Explicit attachment conflict, duplicate identity across unrelated relationship families, missing authority and coordinate-near/relationship-conflict cases fail closed or remain explicitly ambiguous.', weight: 25, verification: [TEST-SUPPORT-NEGATIVE, BENCH-SUPPORT-NEGATIVE-769]}
-- {id: AC-SUPPORT-REPAIR-SCOPE, description: 'Only qualified support-association/test paths change; PR 417 and unrelated Issue 769 domains remain untouched; every existing JS edit has a repository backup receipt.', weight: 15, verification: [TEST-SUPPORT-SCOPE]}
+- {id: AC-SUPPORT-REPLAY-01, description: PS00608.1/node 3140 resolves governed REST from exact staged semantics plus compatible explicit attachment without tag heuristic., weight: 40, verification: [TEST-SUPPORT-REAL, BENCH-SUPPORT-REPLAY]}
+- {id: AC-SUPPORT-REPLAY-02, description: PS00573.1 remains correct and exact-head standalone plus geometry/OD/FBLI regressions pass., weight: 20, verification: [TEST-SUPPORT-REAL, TEST-SUPPORT-REGRESSION, BENCH-SUPPORT-REPLAY]}
+- {id: AC-SUPPORT-REPLAY-03, description: Conflict, missing authority, ambiguity and coordinate-near conflict controls fail closed without silent REST., weight: 25, verification: [TEST-SUPPORT-NEGATIVE, BENCH-SUPPORT-NEGATIVE]}
+- {id: AC-SUPPORT-REPLAY-SCOPE, description: Writes stay within admitted paths, PR 417 overlap is zero and existing JS edits have pre-edit backup custody., weight: 15, verification: [TEST-SUPPORT-SCOPE]}
 validation:
-- {id: TEST-SUPPORT-REAL, class: MUST_PASS, method: 'Focused real-benchmark test extracts the committed STF/GLRD members and asserts PS00608.1 node 3140 receives one governed REST/+Y through source-semantic relationship evidence while PS00573.1 remains correct.', proves: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02]}
-- {id: TEST-SUPPORT-NEGATIVE, class: MUST_PASS, method: 'Focused unit/integration tests cover attachment conflict, duplicate exact identity on unrelated roots, no authoritative relationship, and coordinate-near relationship conflict; each must fail closed/ambiguous with no generated restraint.', proves: [AC-SUPPORT-REPAIR-03]}
-- {id: TEST-SUPPORT-REGRESSION, class: MUST_PASS, method: 'Run standalone trace-ledger, standalone DTXR enrichment, staged-restraint fallback/source-schema authority suites plus the prior OD/FBLI/geometry regression gates on the exact material head.', proves: [AC-SUPPORT-REPAIR-02]}
-- {id: TEST-SUPPORT-SCOPE, class: MUST_PASS, method: 'Git changed-path comparison from 069f7015 branch point; require allowed-path-only intersection, zero PR 417 path intersection, and durable backup receipts for every existing JS edit.', proves: [AC-SUPPORT-REPAIR-SCOPE]}
+- {id: TEST-SUPPORT-REAL, class: MUST_PASS, method: Run focused real-benchmark support relationship regression on exact material head., proves: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02]}
+- {id: TEST-SUPPORT-NEGATIVE, class: MUST_PASS, method: Run focused fail-closed relationship controls plus source-schema authority guards on exact material head., proves: [AC-SUPPORT-REPLAY-03]}
+- {id: TEST-SUPPORT-REGRESSION, class: MUST_PASS, method: Run trace-ledger, DTXR enrichment, source-schema guards, edge-order, effective-OD and FBLI regressions on exact material head., proves: [AC-SUPPORT-REPLAY-02]}
+- {id: TEST-SUPPORT-SCOPE, class: MUST_PASS, method: Audit non-relay diff from material basis, PR 417 overlap and backup receipts., proves: [AC-SUPPORT-REPLAY-SCOPE]}
 failure_and_stop_conditions:
   hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
 report_contract:
@@ -354,16 +336,12 @@ report_contract:
   - {id: RPT-SUCCESSOR, section: Successor EP, sources: [CP, OVERALL_ROADMAP, REPO_STATE], required_fields: [successor_mode, next_frontier, ep_or_terminal_disposition]}
 checkpoint_contract:
   required: true
-  acceptance: [AC-SUPPORT-REPAIR-01, AC-SUPPORT-REPAIR-02, AC-SUPPORT-REPAIR-03, AC-SUPPORT-REPAIR-SCOPE]
+  acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
   validation: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-  carry_forward:
-  - Full post-material v2.5 release/conformance suite remains WP-769-RELEASE after support checkpoint.
 successor_relay:
   required: true
   duties:
-  - Preserve source-semantic authority and negative-control outcomes.
-  - Create checkpoint with exact material head and quality review.
-  - Update progress and issue projection.
-  - Compute next frontier, expected WP-769-RELEASE only after support acceptance passes.
-  - Project a clean main-based delivery PR only after checkpointed material equivalence is verified; prior PR 775 remains unmerged until Owner decision.
+  - Create exact-head QRV/checkpoint and update roadmap/progress/Issue 769.
+  - Project an equivalent clean main-based delivery PR after checkpointed material equivalence.
+  - Advance to WP-769-RELEASE only when support replay acceptance is PASS.
   required_outputs: [checkpoint, progress_reconciliation, issue_projection_disposition, next_frontier, successor_ep_or_terminal_disposition]
