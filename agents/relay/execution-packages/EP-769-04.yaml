@@ -3,7 +3,7 @@ identity:
   ep_id: EP-769-04
   branch: agent/issue-769-geometry-order-20260917
   base_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
-  execution_state: WAITING_INPUT
+  execution_state: QUALIFICATION_READY
   previous_checkpoint: CP-769-03
   previous_join: null
   previous_replan: null
@@ -28,16 +28,16 @@ outcome:
   engineering:
   - Use the real provenance capture for 2909-2920 and 2439-2450 to establish expected source/component orientation and qualify the smallest safe order-authority mutation, or remain stopped.
 context_capsule:
-  product_goal: Close the remaining non-coordinate geometry subset of Issue #769 without heuristic reordering.
+  product_goal: Close the remaining non-coordinate geometry subset of Issue 769 without heuristic reordering.
   roadmap_position: WP-769-GEOMETRY remains ACTIVE after the provenance instrumentation checkpoint.
-  why_this_work_exists: The provenance tool now exists, but the exact enriched/output artifact carrying the reported generated labels has not been supplied or captured.
-  current_architecture: Enrichment may synthesize positive node numbers; base _build_edges uses branch array order as edge orientation; PR #417 owns coordinate custody.
+  why_this_work_exists: Exact production-enriched provenance is now available for the reported generated labels through EVD-769-0002; the active work is fresh topology qualification before any material repair.
+  current_architecture: Enrichment may synthesize positive node numbers; base _build_edges uses branch array order as edge orientation; PR 417 owns coordinate custody.
   prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007]
-  current_implementation_state: Provenance instrumentation is complete. No topology/order production mutation has occurred.
+  current_implementation_state: Provenance instrumentation is complete; EVD-769-0002 records 8/8 exact real-case source joins. No topology/order production mutation has occurred.
   known_problems:
-  - Reported generated ranges 2909-2920 and 2439-2450 each include an apparent 26.8 mm reversed segment, but their exact source records and expected orientation are not yet durably bound.
+  - Production enrichment reproduces 2909-2920 and 2439-2450 as 26.8 mm reversed serial edges after short-node pruning; EVD-769-0002 binds their generated nodes to exact source records and terminal/branch semantics.
   deliberate_non_goals:
-  - No coordinate/origin repair or PR #417 path edit.
+  - No coordinate/origin repair or PR 417 path edit.
   - No topology write before real provenance is READY and a fresh qualification/takeover chain passes.
   - No support/weight/mapping/regex/B31.3/master-import/OD work.
 repository_discovery:
@@ -65,7 +65,7 @@ repository_discovery:
 - id: DSTEP-04-04
   action: COMPARE
   targets: [github:reallaksh19/3D_Converters#417, converters/scripts/xml_to_cii2019.py]
-  question: Is the qualified topology write set still disjoint from PR #417 coordinate custody immediately before mutation?
+  question: Is the qualified topology write set still disjoint from PR 417 coordinate custody immediately before mutation?
   expected_outputs: [pr417_paths, candidate_paths, overlap]
   receipt_required: true
   on_failure: Stop with WRITE_COLLISION.
@@ -74,12 +74,13 @@ inputs:
   name: Real generated-label source provenance
   description: Exact enriched/output XML containing generated labels 2909-2920 and 2439-2450 plus the corresponding raw source XML, joined by the provenance diagnostic to branch/component endpoint records and source branch order.
   authority: Real reported-case artifact plus exact raw source identity; not inferred from node-number magnitude or coordinates.
-  source: Issue #769 reported ranges and provenance capture produced by xml_to_cii2019_order_provenance.py.
+  source: agents/relay/evidence/EVD-769-0002.yaml
   type: topology-provenance
   units: mm
   editable: false
   applicability: CURRENT_EP_REQUIRED
-  resolution: MISSING_BLOCKING
+  resolution: READY
+  resolution_method: EVD-769-0002 records the production-enriched artifact SHA256, raw ZIP XML SHA256, and 8/8 EXACT provenance joins for both reported ranges.
   consumers: [STEP-ORDER-02, AC-ORDER-REAL-01, AC-ORDER-REAL-02]
   validation:
   - Every repaired generated label must have an EXACT source match.
@@ -93,7 +94,7 @@ benchmarks:
 - id: BENCH-ORDER-769
   name: Real reversed-length provenance cases
   purpose: Reconstruct the reported 26.8 mm reversed segments and provide an independent expected orientation for repair validation.
-  source: Issue #769 ranges plus the required real provenance capture.
+  source: agents/relay/evidence/EVD-769-0002.yaml
   oracle_class: REFERENCE_DATA
   payload:
     ranges:
@@ -103,7 +104,7 @@ benchmarks:
   tolerance: {absolute_mm: 1.0e-06}
   independence: Expected orientation must come from the recovered real source/component evidence, not from _build_edges or a proposed repair.
   applicability: CURRENT_EP_REQUIRED
-  resolution: MISSING_BLOCKING
+  resolution: READY
   verifies: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, TEST-ORDER-REAL-PY]
   stale_if:
   - Real source/provenance capture changes.
@@ -117,24 +118,24 @@ scope:
   - {path: converters/scripts/xml_to_cii2019_order_provenance.py, reason: Capture exact generated-label provenance.}
   - {path: converters/scripts/xml_to_cii2019_direction.py, reason: Trace direction handling.}
   - {path: converters/scripts/xml_to_cii2019_contracted_direction.py, reason: Trace production wrapper.}
-  - {domain: GitHub PR #417, reason: Coordinate-custody non-overlap.}
+  - {domain: GitHub PR 417, reason: Coordinate-custody non-overlap.}
   protected:
   - {invariant: Legitimate branch/reducer/tee/endpoint topology is preserved and no global numeric/coordinate heuristic is introduced., reason: Geometry safety.}
-  - {invariant: PR #417 coordinate/origin behavior is unchanged., reason: Separate custody.}
+  - {invariant: PR 417 coordinate/origin behavior is unchanged., reason: Separate custody.}
   prohibited:
-  - {domain: Any material write before INPUT-ORDER-PROVENANCE is READY and QSET-769-05 has a PASS qualification/takeover chain., reason: Current essential-input gate.}
-  - {domain: PR #417 changed files, reason: Separate coordinate custody.}
+  - {domain: Any material write before QSET-769-05 has a fresh PASS qualification/takeover chain and live MATERIAL_WRITE_READY., reason: Qualification and runtime write readiness remain mandatory.}
+  - {domain: PR 417 changed files, reason: Separate coordinate custody.}
   - {domain: Global NodeNumber sorting or coordinate-sign reversal, reason: Unsafe heuristic.}
   owner_reserved:
   - {decision: Merge PR, reason: Owner-only merge.}
-  - {decision: Broaden into PR #417 coordinate custody, reason: Requires reconciliation.}
+  - {decision: Broaden into PR 417 coordinate custody, reason: Requires reconciliation.}
 anti_drift:
   do_not:
   - {id: ADR-ORDER-04, restriction: Do not infer expected order from generated node-number magnitude., reason: Identifiers are not a topology oracle.}
   - {id: ADR-ORDER-05, restriction: Do not mutate production code until all required real source matches are exact., reason: Input authority.}
-  - {id: ADR-ORDER-06, restriction: Do not edit PR #417 paths., reason: Avoid custody collision.}
+  - {id: ADR-ORDER-06, restriction: Do not edit PR 417 paths., reason: Avoid custody collision.}
   stale_if:
-  - PR #417 changes the candidate owner path.
+  - PR 417 changes the candidate owner path.
   - Main/base moves before write without a valid drift receipt.
   - The real provenance capture changes.
 implementation_plan:
@@ -151,13 +152,13 @@ implementation_plan:
   - INPUT-ORDER-PROVENANCE is not READY.
   - MATERIAL_WRITE_READY fails.
   - Any required generated label is unmatched/ambiguous.
-  - PR #417 overlaps the demonstrated owner.
+  - PR 417 overlaps the demonstrated owner.
   - Protected invariant fails.
 next_work:
   phase_transition: false
   steps:
   - order: 1
-    action: Obtain the real generated-label artifact, produce the provenance capture, and complete fresh topology qualification before any material write.
+    action: Complete fresh QSET-769-05 qualification/takeover from EVD-769-0002 before any topology material write.
     targets: [converters/scripts/xml_to_cii2019_order_provenance.py, converters/scripts/xml_to_cii2019.py]
     inputs: [INPUT-ORDER-PROVENANCE]
     tests: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
@@ -165,9 +166,9 @@ next_work:
     acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
     expected_result: Either the real cases establish an independently qualified topology repair or the EP remains stopped without heuristic mutation.
     stop_if:
-    - The exact enriched/output artifact or raw source XML is unavailable.
-    - Any required provenance match is not exact.
+    - Any required provenance match becomes unmatched or ambiguous.
     - Fresh topology qualification is not PASS.
+    - Live MATERIAL_WRITE_READY is not PASS.
 qualification_boundary:
   required: true
   trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
@@ -177,7 +178,7 @@ qualification_boundary:
   basis:
   - Real provenance is required to reopen the original topology/order mutation boundary.
   - Expected orientation must be independent of implementation.
-  - PR #417 custody remains protected.
+  - PR 417 custody remains protected.
   question_set: {id: QSET-769-05, path: agents/relay/certifications/qualification/QSET-769-05.yaml}
 quality:
   applicable:
@@ -201,10 +202,10 @@ quality:
 acceptance:
 - {id: AC-ORDER-REAL-01, description: Both reported generated ranges are mapped to exact source records and their reversed 26.8 mm segments are reproduced/corrected through documented source/topology authority., weight: 60, verification: [TEST-ORDER-REAL-PY, BENCH-ORDER-769]}
 - {id: AC-ORDER-REAL-02, description: Valid branch/reducer/tee/endpoint topology is preserved and no global numeric or coordinate heuristic reordering is introduced., weight: 25, verification: [TEST-ORDER-REAL-PY, BENCH-ORDER-769]}
-- {id: AC-ORDER-REAL-SCOPE, description: No PR #417 coordinate-custody path or unrelated subsystem changes., weight: 15, verification: [TEST-ORDER-REAL-SCOPE]}
+- {id: AC-ORDER-REAL-SCOPE, description: No PR 417 coordinate-custody path or unrelated subsystem changes., weight: 15, verification: [TEST-ORDER-REAL-SCOPE]}
 validation:
 - {id: TEST-ORDER-REAL-PY, class: MUST_PASS, method: python -m pytest -q converters/scripts/test_xml_to_cii2019_edge_order_authority.py, proves: [AC-ORDER-REAL-01, AC-ORDER-REAL-02]}
-- {id: TEST-ORDER-REAL-SCOPE, class: MUST_PASS, method: Compare changed paths with PR #417; intersection must be empty., proves: [AC-ORDER-REAL-SCOPE]}
+- {id: TEST-ORDER-REAL-SCOPE, class: MUST_PASS, method: Compare changed paths with PR 417; intersection must be empty., proves: [AC-ORDER-REAL-SCOPE]}
 failure_and_stop_conditions:
   hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
 report_contract:
@@ -215,7 +216,7 @@ checkpoint_contract:
   acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
   validation: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
   carry_forward:
-  - Formal TEST-OD-PY and earlier FBLI/legacy validation debt remain pending unless superseded by Owner disposition.
+  - Exact repository-native v2.5 conformance remains pending; TEST-OD-PY, TEST-FBLI and TEST-LEGACY are closed by EVD-769-0001 late PASS evidence without rewriting historical checkpoints.
 successor_relay:
   required: true
   duties:
