@@ -1,0 +1,76 @@
+schema_version: relay-v2.5-quality-review
+quality_review_id: QRV-769-04
+ep:
+  id: EP-769-04
+  path: agents/relay/execution-packages/EP-769-04.yaml
+  contract_digest: sha256:0dff36c2d4d275ebba58b45c7a316892aabc19471f3a573fefbbcecd965c6e70
+roadmap_revision: RM-0001
+material_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+reviewer:
+  type: AGENT
+  identity: chatgpt:issue769-v25-order-quality-reviewer-20260918
+router_snapshot:
+  applicable:
+  - {blueprint: code-review, reason: Engineering-critical geometry change., review_focus: [scope, broadening]}
+  - {blueprint: coding, reason: Potential future production topology change., review_focus: [authority, failure]}
+  - {blueprint: github-delivery, reason: Issue/PR delivery., review_focus: [truth, merge_authority]}
+  - {blueprint: software-design, reason: Topology authority boundary must be explicit., review_focus: [ownership, provenance]}
+  - {blueprint: testing, reason: Exact real-case topology regression required., review_focus: [order, negative_controls]}
+  not_applicable:
+  - {blueprint: accessibility, reason: No UI., review_focus: []}
+  - {blueprint: migration, reason: No persisted data migration., review_focus: []}
+  - {blueprint: performance, reason: No performance objective., review_focus: []}
+  - {blueprint: ui-ux, reason: No UI., review_focus: []}
+procedure_results:
+- blueprint: code-review
+  result: CLEAR
+  evidence:
+  - EVD-769-0003 records the material diff as exactly xml_to_cii2019.py plus test_xml_to_cii2019_edge_order_authority.py with zero PR 417 overlap.
+  - The implementation is limited to explicit FBLI/RIGID provenance, trailing BRAN endpoint-2 semantics and unique host-segment containment; no global NodeNumber or coordinate-sign ordering heuristic is introduced.
+  reason: null
+  cause: null
+- blueprint: coding
+  result: CLEAR
+  evidence:
+  - Terminal RIGID protection is activated only when its ComponentRefNo is source-proven by an FBLI record in the same branch.
+  - Zero-host and multi-host BRAN cases retain original order; the production contracted-direction short-span override is exercised by subprocess regression.
+  reason: null
+  cause: null
+- blueprint: github-delivery
+  result: CLEAR
+  evidence:
+  - ODR-769-0008 authorized the qualified two-file mutation after DISC-769-07 / QUAL-769-06 / TC-769-05 and MATERIAL_WRITE_READY PASS.
+  - Issue 769 projection is synchronized through GHGEN-769-0011; merge authority remains Owner-only and no merge occurred.
+  reason: null
+  cause: null
+- blueprint: software-design
+  result: CLEAR
+  evidence:
+  - EVD-769-0002 establishes source component/endpoint semantics as topology authority before implementation.
+  - The parser normalizes only the qualified source-semantic tail while preserving generic cleanup ownership and the contracted production wrapper.
+  reason: null
+  cause: null
+- blueprint: testing
+  result: CLEAR
+  evidence:
+  - EVD-769-0004 records TEST-ORDER-REAL-PY PASS: 7 passed in 0.39s on synchronized head aa5659f334f780c1a0ecd381872ee64a2e5ac60e.
+  - EVD-769-0004 records the OD/FBLI/legacy regression gate PASS: 12 passed in 0.24s; aggregate 19/19 PASS.
+  - TEST-ORDER-REAL-SCOPE remains PASS from EVD-769-0003.
+  reason: null
+  cause: null
+findings: []
+overall_state: CLEAR
+execution_effect:
+  blocks_execution: false
+  blocking_findings: []
+owner_report:
+  summary: EP-769-04 is scope-clean and behaviorally complete; both source-proven reversed-order cases, production wrapper behavior and negative controls pass on the synchronized checkout, with no regression in OD/FBLI/legacy Python suites.
+  visible_risks:
+  - The full post-material repository-native v2.5 validator suite has not yet been executed; this is release/conformance debt, not an EP acceptance failure.
+  - Issue 769 still has support-fallback and release-benchmark work after geometry.
+  decisions_required: []
+successor_handover:
+  unresolved_findings: []
+  follow_up:
+  - Checkpoint EP-769-04 and close WP-769-GEOMETRY.
+  - Open WP-769-SUPPORT as read-only provenance work; prove exact support identity/relationship/coordinate authority for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 before any production mutation.
