@@ -1,0 +1,78 @@
+schema_version: relay-v2.5-discovery
+id: DISC-769-06
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z
+route:
+  route_key: SERIAL:EP-769-04
+  mode: SERIAL
+  execution_ref: EP-769-04
+  ep_id: EP-769-04
+  ep_path: agents/relay/execution-packages/EP-769-04.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  roadmap_revision: RM-0001
+  relay_protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  material_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  ep_contract_digest: sha256:4b05ba9ead983b1af1229d8ab7b351e43f677daa07df821b5aacf6179c916f0d
+  repo_profile_digest: sha256:82f39ad4c08a65369bf9aad53a469f36c4438897306ac15186332be4e8f7ac53
+  predecessor_baton:
+    type: CHECKPOINT
+    id: CP-769-03
+    path: agents/relay/checkpoints/CP-769-03.yaml
+    digest: sha256:e6fd297ea70a2002996bf4c044716a48751610e53908ea170113544804d386eb
+steps:
+- id: DSTEP-04-01
+  status: PASS
+  outputs:
+  - {name: active_ep, value: EP-769-04, basis: [agents/relay/REPO_STATE.yaml]}
+  - {name: previous_checkpoint, value: CP-769-03, basis: [agents/relay/checkpoints/CP-769-03.yaml]}
+  - {name: material_authority, value: READ_ONLY, basis: [agents/relay/REPO_STATE.yaml]}
+  basis: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-03.yaml]
+- id: DSTEP-04-02
+  status: PASS
+  outputs:
+  - name: provenance_capture
+    value: Production enrichment SHA256 9DD2ADBA85D47055738621580C076362C3834AFEEB1C8B4ACAA977704FB5318B joined to raw ZIP XML SHA256 6BCC477860FDBE9A80159839BF476A8C1E6CE7A966587A25BC62498709843151; diagnostic returned 8/8 EXACT.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml]
+  - name: source_records
+    value: Generated 2439 maps exactly to raw FLAN endpoint 2 ref =134234934/25983 at branch 18/source index 78; 2909 maps exactly to raw FLAN endpoint 2 ref =134234934/26047 at branch 22/source index 78; 2440/2450 and 2910/2920 also map EXACT.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml]
+  - name: source_order
+    value: Both source branches terminate through FLAN -> FBLI/RIGID while BRAN endpoint-2 connection records are appended at the branch-array tail and must not be treated as serial successors of the terminal flange faces.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml]
+  basis:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - converters/scripts/xml_to_cii2019_order_provenance.py
+- id: DSTEP-04-03
+  status: PASS
+  outputs:
+  - name: first_wrong_boundary
+    value: _drop_short_element_nodes removes terminal RIGID 2440/2910 because the FLAN-to-RIGID span is 3.2 mm <= 6.0 mm; _build_edges then treats the resulting 2439->2450 and 2909->2920 adjacency as topology.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml, converters/scripts/xml_to_cii2019.py]
+  - name: expected_order
+    value: 2439/2909 are terminal FLAN endpoint-2 records leading into blind-flange closure 2440/2910; 2450/2920 are branch-connection records and are not serial downstream successors of those terminal flange faces.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml]
+  - name: direction_authority
+    value: Source component/endpoint provenance and branch-connection semantics from the exact raw/enriched join; not generated NodeNumber magnitude and not coordinate sign.
+    basis: [agents/relay/evidence/EVD-769-0002.yaml]
+  basis:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - converters/scripts/xml_to_cii2019.py
+- id: DSTEP-04-04
+  status: PASS
+  outputs:
+  - name: pr417_paths
+    value: converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py; converters/scripts/xml_to_cii2019_coordinate_custody.py; converters/xml-cii-2019-standalone/engine.js; converters/xml-cii-2019-standalone/invocation-builder.js; docs/Overall_roadmap.md; tests/xml-cii-standalone-x001-coordinate-custody.test.js
+    basis: [GitHub PR 417 changed-file readback]
+  - name: candidate_paths
+    value: converters/scripts/xml_to_cii2019.py; converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+    basis: [agents/relay/execution-packages/EP-769-04.yaml]
+  - {name: overlap, value: none, basis: [GitHub PR 417 changed-file readback, agents/relay/execution-packages/EP-769-04.yaml]}
+  basis:
+  - GitHub compare main..agent/issue-769-geometry-order-20260917 observed branch ahead 112 and behind 0 at qualification discovery.
+  - GitHub PR 417 changed-file readback
+result: PASS
+conversation_context_used: false
