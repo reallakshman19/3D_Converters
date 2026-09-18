@@ -76,7 +76,7 @@ inputs:
   name: Exact reported staged support source
   description: Extracted and hash-bound STF managed-stage source records for PS00608.1, PS00571.1, PS00572.1 and PS00573.1, including identity, hierarchy/relationship, coordinates and support-kind attributes.
   authority: Exact benchmark/report source JSON; not tag-name inference.
-  source: Benchmarks/STF_2026Sep16-0859_managed_stage.zip plus Issue 769 RCA-F.
+  source: Benchmarks/STF_2026Sep16-0859_managed_stage.zip plus Benchmarks/GLRD-1000-PI-01.zip plus Issue 769 RCA-F.
   type: support-provenance
   units: mm
   editable: false
@@ -88,7 +88,7 @@ inputs:
   - All four reported support identities must be searched explicitly.
   - Missing or ambiguous records remain unresolved.
   stale_if:
-  - Benchmark archive changes.
+  - STF or GLRD benchmark archive changes.
   - Extracted source hash changes.
   - Reported support identity changes.
 - id: INPUT-SUPPORT-RESOLVER
@@ -134,6 +134,7 @@ scope:
   - {path: agents/relay, reason: 'v2.5 discovery, evidence, qualification and custody only.'}
   allowed_reads:
   - {path: Benchmarks/STF_2026Sep16-0859_managed_stage.zip, reason: Exact reported staged support source.}
+  - {path: Benchmarks/GLRD-1000-PI-01.zip, reason: Exact committed XML benchmark containing reported node 3140 / PS00608.1 for cross-source provenance comparison.}
   - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Support identity/relationship/coordinate authority.}
   - {path: converters/xml-cii2019-core/dtxr-resolver.js, reason: DTXR resolution authority.}
   - {path: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, reason: Standalone relationship/fallback trace.}
