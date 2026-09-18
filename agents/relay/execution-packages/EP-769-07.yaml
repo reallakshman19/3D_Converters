@@ -1,347 +1,1040 @@
-schema_version: relay-v2.5
-identity:
-  ep_id: EP-769-07
-  branch: agent/issue-769-support-replay-v25-20260918
-  base_ref: 069f70150490b7a599cbf534b08007ac915c2371
-  execution_state: WAITING_QUALIFICATION
-  previous_checkpoint: CP-769-05
-  previous_join: null
-  previous_replan: null
-replan_inheritance: null
-git_basis:
-  expected_branch: agent/issue-769-support-replay-v25-20260918
-  material_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
-  base_branch: main
-  base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
-  drift_policy: RECHECK_BEFORE_WRITE
-  drift_receipt: null
-roadmap_source:
-  roadmap_id: RM-XMLCII-769-POSTMERGE
-  roadmap_revision: RM-0001
-  objective: OBJ-769
-  phase: PHASE-769-POSTMERGE
-  work_package: WP-769-SUPPORT
-  generated_from_frontier: true
-outcome:
-  user_visible:
-  - Restore missing REST for PS00608.1 / node 3140 from authoritative staged support identity and attachment evidence.
-  engineering:
-  - Support identity plus one compatible explicit attachment may authorize staged REST semantics; conflicts, missing authority and ambiguity fail closed.
-context_capsule:
-  product_goal: Re-execute the Issue 769 support repair under fully pre-write-qualified v2.5 custody.
-  roadmap_position: OBJ-769 / PHASE-769-POSTMERGE / WP-769-SUPPORT after CP-769-05.
-  why_this_work_exists: EVD-769-0005 proves the first wrong boundary; PR 775 is functionally green but missed required pre-write zero-context qualification and MATERIAL_WRITE_READY.
-  current_architecture: Standalone trace-ledger association owns staged position groups and PS fallback; source-schema-adapter owns semantic source-field evidence; downstream enrichment consumes the resolved ledger.
-  prior_owner_decisions: [ODR-769-0009, ODR-769-0011]
-  current_implementation_state: This replay branch starts from CP-769-05 before the support production mutation; no material write is authorized before fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
-  known_problems:
-  - PS00608.1 staged container branch differs from XML while explicit COMPRE / ATTACHED_COMPONENT_REF matches the XML branch.
-  - Legacy global PS fallback gates on staged container branch and drops the stronger explicit attachment.
-  deliberate_non_goals:
-  - No PS-prefix-to-REST or tag-specific rule.
-  - No coordinate-only authority or PR 417 coordinate-custody change.
-  - Do not use PR 775 implementation output as qualification evidence.
-  terminology:
-    explicit_attachment: Branch-shaped staged component relationship compatible with the XML branch.
-repository_discovery:
-- id: DSTEP-769-07-01
-  action: VERIFY
-  target: agents/relay/REPO_STATE.yaml
-  question: Does state route to EP-769-07 with predecessor CP-769-05 and WP-769-SUPPORT?
-  expected_outputs: [active_ep, last_checkpoint, work_package, material_authority]
-  receipt_required: true
-  on_failure: Stop and reconcile repository custody.
-- id: DSTEP-769-07-02
-  action: VERIFY_GIT
-  target: live checkout
-  question: Does live Git match the replay branch/material/base basis with no overlapping drift?
-  expected_outputs: [checked_out_branch, current_head, material_ref_ancestry, base_drift_result]
-  receipt_required: true
-  on_failure: Remain READ_ONLY and reconcile Git basis.
-- id: DSTEP-769-07-03
-  action: VERIFY
-  target: agents/relay/evidence/EVD-769-0005.yaml
-  question: Do exact archive hashes and PS00608.1 / PS00573.1 source/XML facts still match?
-  expected_outputs: [archive_identity, reported_case, explicit_attachment, comparator]
-  receipt_required: true
-  on_failure: Stop because the oracle changed.
-- id: DSTEP-769-07-04
-  action: TRACE
-  target: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
-  question: Without consulting PR 775, trace the first wrong association boundary, state owner, authority source and downstream consumer.
-  expected_outputs: [first_wrong_boundary, state_owner, authority_source, downstream_consumer, minimum_write_set]
-  receipt_required: true
-  on_failure: Re-qualify if source contradicts EVD-769-0005.
-- id: DSTEP-769-07-05
-  action: VERIFY
-  target: utils/backup.js
-  question: Can repository-native pre-edit JavaScript backup custody be executed for every existing JS target?
-  expected_outputs: [backup_command, backup_receipt, backup_artifact]
-  receipt_required: true
-  on_failure: Do not edit the existing JavaScript target.
-inputs:
-- id: INPUT-SUPPORT-PROVENANCE
-  name: Exact support provenance
-  description: Hash-bound staged/XML source facts and first-divergence evidence.
-  authority: CP-769-05 / EVD-769-0005
-  source: agents/relay/evidence/EVD-769-0005.yaml
-  resolution_method: Re-open EVD-769-0005 and verify exact source/XML identities.
-  type: evidence
-  units: NA
-  editable: false
-  applicability: CURRENT_EP_REQUIRED
-  resolution: READY
-  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-03]
-  validation:
-  - PS00608.1 is explicit REST and its explicit attachment names the XML node-3140 branch.
-  - PS00573.1 is the working comparator.
-  stale_if:
-  - Benchmark or source identity changes.
-- id: INPUT-SUPPORT-OWNER-AUTH
-  name: Owner replay authorization
-  description: Owner authorized the strict v2.5 replay but not merge or bypass of runtime predicates.
-  authority: OWNER
-  source: agents/relay/roadmap/owner-decisions/ODR-769-0011.yaml
-  resolution_method: Read ODR-769-0011.
-  type: authorization
-  units: NA
-  editable: false
-  applicability: CURRENT_EP_REQUIRED
-  resolution: READY
-  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02]
-  validation:
-  - ODR-769-0011 is APPLIED to EP-769-07.
-  stale_if:
-  - Owner revokes or supersedes authorization.
-- id: INPUT-SUPPORT-SOURCE
-  name: Current support resolver source
-  description: Pre-repair production source that owns support association and source semantic evidence.
-  authority: repository production source
-  source: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js; converters/xml-cii2019-core/source-schema-adapter.js
-  resolution_method: Candidate reads source directly before qualification.
-  type: code-authority
-  units: NA
-  editable: false
-  applicability: CURRENT_EP_REQUIRED
-  resolution: READY
-  consumers: [STEP-SUPPORT-REPLAY-01, STEP-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03]
-  validation:
-  - Trace-ledger remains the first wrong boundary.
-  - Shared adapter remains source-field/conflict authority.
-  stale_if:
-  - Listed source changes before write.
-- id: INPUT-JS-BACKUP
-  name: Existing JavaScript backup custody
-  description: Repository-native backup is required immediately before editing existing JS.
-  authority: .agents/AGENTS.md
-  source: node utils/backup.js save
-  resolution_method: Execute after takeover/write readiness and before first edit.
-  type: repository-safety
-  units: NA
-  editable: false
-  applicability: CURRENT_STEP_REQUIRED
-  resolution: READY
-  consumers: [STEP-SUPPORT-REPLAY-02]
-  validation:
-  - Each existing JS target has a successful backup receipt before edit.
-  stale_if:
-  - Target changes after backup and before edit.
-benchmarks:
-- id: BENCH-SUPPORT-REPLAY
-  name: Real support relationship benchmark
-  purpose: Prove PS00608.1 resolves from source relationship authority while PS00573.1 remains correct.
-  source: EVD-769-0005 plus committed STF/GLRD benchmark archives
-  oracle_class: REFERENCE_DATA
-  payload:
-    reported: {tag: PS00608.1, xml_node: 3140, expected_kind: REST}
-    comparator: {tag: PS00573.1, xml_node: 3420, expected_kind: REST}
-  expected: PS00608.1 resolves only from unique compatible explicit attachment; PS00573.1 remains resolved.
-  tolerance: {coordinates: corroboration_only}
-  independence: Expected identity, kind and attachment were captured before this EP.
-  applicability: CURRENT_EP_REQUIRED
-  resolution: READY
-  verifies: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, TEST-SUPPORT-REAL]
-  stale_if:
-  - EVD-769-0005 or benchmark identity changes.
-- id: BENCH-SUPPORT-NEGATIVE
-  name: Fail-closed relationship controls
-  purpose: Prove identity/coordinates cannot override conflicting, missing or ambiguous relationship authority.
-  source: source-schema authority invariants plus synthetic controls
-  oracle_class: INVARIANT
-  payload: [attachment-mismatch, component-ref-conflict, duplicate-qualified-relationship, missing-authority, coordinate-near-conflict]
-  expected: No negative case silently materializes REST.
-  tolerance: null
-  independence: Fail-closed policy is defined before implementation.
-  applicability: CURRENT_EP_REQUIRED
-  resolution: READY
-  verifies: [AC-SUPPORT-REPLAY-03, TEST-SUPPORT-NEGATIVE]
-  stale_if:
-  - Source relationship policy changes.
-scope:
-  allowed:
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, reason: Proven first wrong boundary.}
-  - {path: tests/xml-cii-standalone-support-relationship-authority.test.js, reason: Focused real/negative regression.}
-  - {path: tests/xml-cii-standalone-trace-ledger.test.js, reason: Test-only contract correction if raw/decorated assertion is stale.}
-  - {path: .backups/**, reason: Mandatory pre-edit custody.}
-  allowed_reads:
-  - {path: agents/relay/evidence/EVD-769-0005.yaml, reason: Independent pre-repair oracle.}
-  - {path: Benchmarks/**, reason: Exact benchmark input.}
-  - {path: converters/xml-cii2019-core/source-schema-adapter.js, reason: Shared semantic authority.}
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js, reason: Downstream ledger consumer.}
-  - {path: tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js, reason: Raw/decorated contract ownership.}
-  - {path: tests/xml-cii-standalone-dtxr-enrichment.test.js, reason: Exact-head regression.}
-  - {path: tests/xml-cii-source-schema-authority-guards.test.mjs, reason: Exact-head authority regression.}
-  - {path: converters/scripts/test_xml_to_cii2019_edge_order_authority.py, reason: Exact-head geometry regression.}
-  - {path: converters/scripts/test_xml_to_cii2019_effective_od.py, reason: Exact-head OD regression.}
-  - {path: converters/scripts/test_xml_to_cii2019_fbli_negative_node.py, reason: Exact-head FBLI regression.}
-  protected:
-  - {invariant: Support identity does not imply support kind., reason: Prevent PS-to-REST heuristic.}
-  - {invariant: Relationship conflict or ambiguity is never overridden by coordinates., reason: Fail closed.}
-  - {invariant: PR 417 coordinate-custody paths remain untouched., reason: Separate ownership.}
-  prohibited:
-  - {domain: converters/xml-cii2019-core/dtxr-resolver-core.js production mutation, reason: Requires fresh requalification if discovery moves the first wrong boundary.}
-  - {domain: Python support/tag heuristics, reason: Downstream symptom patch duplicates authority.}
-  - {domain: PR 417 paths, reason: Separate ownership.}
-  owner_reserved:
-  - {decision: Merge or close the final support delivery PR., reason: Owner-only authority.}
-anti_drift:
-  do_not:
-  - {id: ADR-769-07-01, restriction: Do not inspect/copy PR 775 implementation before qualification completes., reason: Preserve independent reconstruction.}
-  - {id: ADR-769-07-02, restriction: Do not mutate material files before DISC/QUAL/TC PASS and live MATERIAL_WRITE_READY., reason: Restore required pre-write admission order.}
-  - {id: ADR-769-07-03, restriction: Do not infer REST from PS syntax or coordinate proximity., reason: Preserve source authority.}
-  - {id: ADR-769-07-04, restriction: Do not edit existing JS before repository-native backup succeeds., reason: Repository safety.}
-  stale_if:
-  - {id: STALE-769-07-01, condition: EVD-769-0005 source/benchmark identity changes., effect: STOP, rationale: Oracle changed.}
-  - {id: STALE-769-07-02, condition: Main or resolver source changes in an overlapping support path., effect: RECONCILE, rationale: Material drift.}
-  - {id: STALE-769-07-03, condition: PR 417 overlaps an admitted replay path., effect: STOP, rationale: Ownership collision.}
-implementation_plan:
-- id: STEP-SUPPORT-REPLAY-01
-  objective: Independently reconstruct and certify the support authority boundary.
-  targets: [agents/relay/evidence/EVD-769-0005.yaml, tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js]
-  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
-  writes: [agents/relay/certifications/discovery, agents/relay/certifications/qualification, agents/relay/certifications/takeover]
-  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-SOURCE]
-  acceptance: [AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
-  tests: [TEST-SUPPORT-SCOPE]
-  expected_state: Fresh repository-only DISC/QUAL/TC PASS is bound to this exact EP; otherwise execution remains READ_ONLY.
-  stop_conditions:
-  - Candidate used conversation context or PR 775 implementation during qualification.
-  - Candidate self-prepared or self-certified required independent evidence.
-  - Any Q1-Q5 evaluation fails.
-- id: STEP-SUPPORT-REPLAY-02
-  objective: After live write admission, implement and validate the bounded repair.
-  targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js]
-  reads: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
-  writes: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js, .backups/**]
-  inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE, INPUT-JS-BACKUP]
-  acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
-  tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-  expected_state: Exact-head support behavior, negatives, regressions and scope all pass.
-  stop_conditions:
-  - Live MATERIAL_WRITE_READY is false.
-  - Backup, protected invariant, test or scope gate fails.
-next_work:
-  phase_transition: false
-  steps:
-  - order: 1
-    action: Fresh zero-context candidate checks out the replay branch, executes all DSTEP-769-07 discovery from repository state only and writes DISC-769-08 with conversation_context_used false.
-    targets: [agents/relay/REPO_STATE.yaml, agents/relay/checkpoints/CP-769-05.yaml, agents/relay/execution-packages/EP-769-07.yaml, agents/relay/evidence/EVD-769-0005.yaml]
-    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-OWNER-AUTH, INPUT-SUPPORT-SOURCE]
-    tests: [TEST-SUPPORT-SCOPE]
-    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
-    acceptance: [AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
-    expected_result: DISC is complete and bound to the exact route/basis without conversation context.
-    stop_if:
-    - Conversation context or PR 775 implementation is used.
-    - Repository state contradicts this EP.
-  - order: 2
-    action: Candidate answers QSET-769-09 from repository only; a distinct evaluator issues QUAL and TC only if all five questions pass and validators accept exact digests/basis.
-    targets: [agents/relay/certifications/qualification/QSET-769-09.yaml]
-    inputs: [INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
-    tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE]
-    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
-    acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-03]
-    expected_result: TAKEOVER_CERTIFIED is true for the exact candidate/route or material execution stops.
-    stop_if:
-    - Candidate/evaluator independence is invalid.
-    - Any qualification question fails.
-  - order: 3
-    action: Run material_write_ready.py for the exact candidate; only on PASS run backups, implement, run all exact-head tests/scope, create QRV/checkpoint, then project an equivalent clean main-based delivery PR.
-    targets: [tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js, tests/xml-cii-standalone-support-relationship-authority.test.js, tests/xml-cii-standalone-trace-ledger.test.js]
-    inputs: [INPUT-JS-BACKUP, INPUT-SUPPORT-PROVENANCE, INPUT-SUPPORT-SOURCE]
-    tests: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-    benchmarks: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
-    acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
-    expected_result: Fully admitted support repair is checkpointed and clean delivery can supersede PR 775.
-    stop_if:
-    - Live MATERIAL_WRITE_READY is false.
-    - Any exact-head validation or scope audit fails.
-qualification_boundary:
-  required: true
-  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
-  from_phase: PHASE-769-POSTMERGE
-  to_phase: PHASE-769-POSTMERGE
-  changed_dimensions: [PRODUCTION_PATH, ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
-  basis:
-  - Support relationship authority changes at an engineering-significant production boundary.
-  - The prior functionally green implementation cannot substitute for fresh pre-write qualification.
-  question_set: {id: QSET-769-09, path: agents/relay/certifications/qualification/QSET-769-09.yaml}
-quality:
-  applicable:
-  - {blueprint: software-design, reason: Support relationship authority changes., review_focus: [authority, failure_semantics]}
-  - {blueprint: coding, reason: Production JavaScript resolver behavior changes., review_focus: [bounded_change, maintainability]}
-  - {blueprint: testing, reason: Real and negative exact-head validation is mandatory., review_focus: [oracle_independence, regression]}
-  - {blueprint: code-review, reason: Engineering-significant restraint resolution requires review., review_focus: [scope, unintended_fallback]}
-  - {blueprint: github-delivery, reason: Replay requires v2.5 custody and clean PR projection., review_focus: [branch_truth, checkpoint, merge_authority]}
-  not_applicable:
-  - {blueprint: ui-ux, reason: No UI change., review_focus: []}
-  - {blueprint: engineering-numerics, reason: No numerical engineering calculation changes., review_focus: []}
-  - {blueprint: accessibility, reason: No accessibility change., review_focus: []}
-  - {blueprint: performance, reason: No performance objective., review_focus: []}
-  - {blueprint: migration, reason: No migration., review_focus: []}
-  review_contract:
-    required: true
-    required_before_checkpoint: true
-    receipt_namespace: QRV-
-    required_outputs: [procedure_results, findings, owner_report, successor_handover]
-  findings_policy: Findings block only when mapped to acceptance, authority, protected invariants or safety stops.
-  ordinary_findings_are_hard_stops: false
-acceptance:
-- {id: AC-SUPPORT-REPLAY-01, description: PS00608.1/node 3140 resolves governed REST from exact staged semantics plus compatible explicit attachment without tag heuristic., weight: 40, verification: [TEST-SUPPORT-REAL, BENCH-SUPPORT-REPLAY]}
-- {id: AC-SUPPORT-REPLAY-02, description: PS00573.1 remains correct and exact-head standalone plus geometry/OD/FBLI regressions pass., weight: 20, verification: [TEST-SUPPORT-REAL, TEST-SUPPORT-REGRESSION, BENCH-SUPPORT-REPLAY]}
-- {id: AC-SUPPORT-REPLAY-03, description: Conflict, missing authority, ambiguity and coordinate-near conflict controls fail closed without silent REST., weight: 25, verification: [TEST-SUPPORT-NEGATIVE, BENCH-SUPPORT-NEGATIVE]}
-- {id: AC-SUPPORT-REPLAY-SCOPE, description: Writes stay within admitted paths, PR 417 overlap is zero and existing JS edits have pre-edit backup custody., weight: 15, verification: [TEST-SUPPORT-SCOPE]}
-validation:
-- {id: TEST-SUPPORT-REAL, class: MUST_PASS, method: Run focused real-benchmark support relationship regression on exact material head., proves: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02]}
-- {id: TEST-SUPPORT-NEGATIVE, class: MUST_PASS, method: Run focused fail-closed relationship controls plus source-schema authority guards on exact material head., proves: [AC-SUPPORT-REPLAY-03]}
-- {id: TEST-SUPPORT-REGRESSION, class: MUST_PASS, method: Run trace-ledger, DTXR enrichment, source-schema guards, edge-order, effective-OD and FBLI regressions on exact material head., proves: [AC-SUPPORT-REPLAY-02]}
-- {id: TEST-SUPPORT-SCOPE, class: MUST_PASS, method: Audit non-relay diff from material basis, PR 417 overlap and backup receipts., proves: [AC-SUPPORT-REPLAY-SCOPE]}
-failure_and_stop_conditions:
-  hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
-report_contract:
-  sections: [Executive state, Overall / phase / EP progress, Work completed, Files changed, Acceptance matrix, Tests and evidence, Quality findings, Known limitations, Owner decisions required, GitHub issue changes, Roadmap changes, Exact next actions, Successor EP, Qualification Q1-Q5 when applicable]
-  payloads:
-  - {id: RPT-STATE, section: Executive state, sources: [REPO_STATE], required_fields: [relay_state, current_position, execution_state, material_authority, stop]}
-  - {id: RPT-PROGRESS, section: Overall / phase / EP progress, sources: [PROGRESS, OVERALL_ROADMAP, EP], required_fields: [progress_basis, overall, phase, work_package, step, acceptance]}
-  - {id: RPT-WORK, section: Work completed, sources: [EP, CP], required_fields: [completed_steps, implementation_result]}
-  - {id: RPT-FILES, section: Files changed, sources: [CP], required_fields: [files_changed]}
-  - {id: RPT-AC, section: Acceptance matrix, sources: [EP, PROGRESS, CP], required_fields: [criterion, status, percent, basis]}
-  - {id: RPT-EVIDENCE, section: Tests and evidence, sources: [EP, CP, REPO_STATE], required_fields: [validation_id, obligation_class, status, basis_ref, not_run_reason]}
-  - {id: RPT-QUALITY, section: Quality findings, sources: [EP, QRV, CP, REPO_STATE], required_fields: [quality_review, procedures, findings, disposition, execution_effect]}
-  - {id: RPT-LIMITS, section: Known limitations, sources: [EP, CP, REPO_STATE], required_fields: [limitations, evidence_gaps, deferred_items]}
-  - {id: RPT-OWNER, section: Owner decisions required, sources: [ODR, REPO_STATE], required_fields: [decision_required, pending_items, authority_effect]}
-  - {id: RPT-ISSUES, section: GitHub issue changes, sources: [ISSUE_GRAPH, REPO_STATE], required_fields: [operations, relationships, projection_state]}
-  - {id: RPT-ROADMAP, section: Roadmap changes, sources: [OVERALL_ROADMAP, ROADMAP_REVISION, PROGRESS], required_fields: [revision, topology_or_status_change, frontier_after, progress_basis_effect]}
-  - {id: RPT-NEXT, section: Exact next actions, sources: [EP], required_fields: [ordered_actions, targets, inputs, tests, benchmarks, acceptance, expected_result, stop_conditions]}
-  - {id: RPT-SUCCESSOR, section: Successor EP, sources: [CP, OVERALL_ROADMAP, REPO_STATE], required_fields: [successor_mode, next_frontier, ep_or_terminal_disposition]}
-checkpoint_contract:
-  required: true
-  acceptance: [AC-SUPPORT-REPLAY-01, AC-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-03, AC-SUPPORT-REPLAY-SCOPE]
-  validation: [TEST-SUPPORT-REAL, TEST-SUPPORT-NEGATIVE, TEST-SUPPORT-REGRESSION, TEST-SUPPORT-SCOPE]
-successor_relay:
-  required: true
-  duties:
-  - Create exact-head QRV/checkpoint and update roadmap/progress/Issue 769.
-  - Project an equivalent clean main-based delivery PR after checkpointed material equivalence.
-  - Advance to WP-769-RELEASE only when support replay acceptance is PASS.
-  required_outputs: [checkpoint, progress_reconciliation, issue_projection_disposition, next_frontier, successor_ep_or_terminal_disposition]
+{
+  "schema_version": "relay-v2.5",
+  "identity": {
+    "ep_id": "EP-769-07",
+    "branch": "agent/issue-769-support-replay-v25-20260918",
+    "base_ref": "aa5659f334f780c1a0ecd381872ee64a2e5ac60e",
+    "execution_state": "EXECUTABLE",
+    "previous_checkpoint": "CP-769-05",
+    "previous_join": null,
+    "previous_replan": null
+  },
+  "replan_inheritance": null,
+  "git_basis": {
+    "expected_branch": "agent/issue-769-support-replay-v25-20260918",
+    "material_ref": "aa5659f334f780c1a0ecd381872ee64a2e5ac60e",
+    "base_branch": "main",
+    "base_observed_ref": "9f0925454652cd963364c066c2bb7b8828275afd",
+    "drift_policy": "RECHECK_BEFORE_WRITE",
+    "drift_receipt": null
+  },
+  "roadmap_source": {
+    "roadmap_id": "RM-XMLCII-769-POSTMERGE",
+    "roadmap_revision": "RM-0001",
+    "objective": "OBJ-769",
+    "phase": "PHASE-769-POSTMERGE",
+    "work_package": "WP-769-SUPPORT",
+    "generated_from_frontier": true
+  },
+  "outcome": {
+    "user_visible": [
+      "Restore missing REST for PS00608.1 / XML node 3140 from authoritative staged support identity and attachment evidence."
+    ],
+    "engineering": [
+      "Use exact support identity plus unique compatible explicit relationship authority; conflicts, missing authority and ambiguity fail closed."
+    ]
+  },
+  "context_capsule": {
+    "product_goal": "Re-execute the Issue 769 support repair under fully pre-write-qualified v2.5 custody.",
+    "roadmap_position": "OBJ-769 / PHASE-769-POSTMERGE / WP-769-SUPPORT after CP-769-05.",
+    "why_this_work_exists": "EVD-769-0005 proves PS00608.1 staged REST semantics and an explicit attachment to the XML node-3140 branch, while legacy standalone fallback rejects the record because its staged container branch differs.",
+    "current_architecture": "Standalone trace-ledger association owns staged grouping and fallback; source-schema-adapter owns semantic source-field evidence; downstream enrichment consumes the authoritative ledger.",
+    "prior_owner_decisions": [
+      "ODR-769-0009",
+      "ODR-769-0011"
+    ],
+    "current_implementation_state": "Replay starts from CP-769-05 before support mutation. Material execution requires fresh repository-only DISC/QUAL/TC and live MATERIAL_WRITE_READY.",
+    "known_problems": [
+      "Legacy global PS fallback compares XML branch with staged container branch instead of stronger explicit attachment authority.",
+      "The prior PR 775 implementation is informational only and cannot be qualification evidence."
+    ],
+    "deliberate_non_goals": [
+      "No PS-prefix-to-REST or tag-specific rule.",
+      "No coordinate-only authority.",
+      "No PR 417 coordinate-custody mutation."
+    ],
+    "terminology": {
+      "explicit_attachment": "Branch-shaped staged component relationship evidence compatible with the XML branch."
+    }
+  },
+  "repository_discovery": [
+    {
+      "id": "DSTEP-769-07-01",
+      "action": "VERIFY",
+      "target": "agents/relay/REPO_STATE.yaml",
+      "question": "Does state route to EP-769-07 with predecessor CP-769-05 and WP-769-SUPPORT?",
+      "expected_outputs": [
+        "active_ep",
+        "last_checkpoint",
+        "work_package",
+        "material_authority"
+      ],
+      "receipt_required": true,
+      "on_failure": "Stop and reconcile repository custody."
+    },
+    {
+      "id": "DSTEP-769-07-02",
+      "action": "VERIFY_GIT",
+      "target": "live checkout",
+      "question": "Does live Git match replay branch/material/base basis with no overlapping drift?",
+      "expected_outputs": [
+        "checked_out_branch",
+        "current_head",
+        "material_ref_ancestry",
+        "base_drift_result"
+      ],
+      "receipt_required": true,
+      "on_failure": "Remain READ_ONLY and reconcile Git basis."
+    },
+    {
+      "id": "DSTEP-769-07-03",
+      "action": "VERIFY",
+      "target": "agents/relay/evidence/EVD-769-0005.yaml",
+      "question": "Do exact archive hashes and PS00608.1 / PS00573.1 source/XML facts still match?",
+      "expected_outputs": [
+        "archive_identity",
+        "reported_case",
+        "explicit_attachment",
+        "comparator"
+      ],
+      "receipt_required": true,
+      "on_failure": "Stop because the oracle changed."
+    },
+    {
+      "id": "DSTEP-769-07-04",
+      "action": "TRACE",
+      "target": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "question": "Without consulting PR 775 implementation, trace the first wrong association boundary, state owner, authority source and downstream consumer.",
+      "expected_outputs": [
+        "first_wrong_boundary",
+        "state_owner",
+        "authority_source",
+        "downstream_consumer",
+        "minimum_write_set"
+      ],
+      "receipt_required": true,
+      "on_failure": "Re-qualify if source contradicts EVD-769-0005."
+    },
+    {
+      "id": "DSTEP-769-07-05",
+      "action": "VERIFY",
+      "target": "utils/backup.js",
+      "question": "Can repository-native pre-edit JavaScript backup custody be executed for every existing JS target?",
+      "expected_outputs": [
+        "backup_command",
+        "backup_receipt",
+        "backup_artifact"
+      ],
+      "receipt_required": true,
+      "on_failure": "Do not edit the existing JavaScript target."
+    }
+  ],
+  "inputs": [
+    {
+      "id": "INPUT-SUPPORT-PROVENANCE",
+      "name": "Exact support provenance",
+      "description": "Hash-bound staged/XML source facts and first-divergence evidence.",
+      "authority": "CP-769-05 / EVD-769-0005",
+      "source": "agents/relay/evidence/EVD-769-0005.yaml",
+      "resolution_method": "Re-open EVD-769-0005 and verify exact source/XML identities.",
+      "type": "evidence",
+      "units": "NA",
+      "editable": false,
+      "applicability": "CURRENT_EP_REQUIRED",
+      "resolution": "READY",
+      "consumers": [
+        "STEP-SUPPORT-REPLAY-01",
+        "STEP-SUPPORT-REPLAY-02",
+        "AC-SUPPORT-REPLAY-01",
+        "AC-SUPPORT-REPLAY-03"
+      ],
+      "validation": [
+        "PS00608.1 is explicit REST and its explicit attachment names the XML node-3140 branch.",
+        "PS00573.1 is the working comparator."
+      ],
+      "stale_if": [
+        "Benchmark or source identity changes."
+      ]
+    },
+    {
+      "id": "INPUT-SUPPORT-OWNER-AUTH",
+      "name": "Owner replay authorization",
+      "description": "Owner authorized strict v2.5 material replay after admission gates; merge remains Owner-only.",
+      "authority": "OWNER",
+      "source": "agents/relay/roadmap/owner-decisions/ODR-769-0011.yaml",
+      "resolution_method": "Read ODR-769-0011.",
+      "type": "authorization",
+      "units": "NA",
+      "editable": false,
+      "applicability": "CURRENT_EP_REQUIRED",
+      "resolution": "READY",
+      "consumers": [
+        "STEP-SUPPORT-REPLAY-01",
+        "STEP-SUPPORT-REPLAY-02"
+      ],
+      "validation": [
+        "ODR-769-0011 is APPLIED to EP-769-07."
+      ],
+      "stale_if": [
+        "Owner revokes or supersedes authorization."
+      ]
+    },
+    {
+      "id": "INPUT-SUPPORT-SOURCE",
+      "name": "Current support resolver source",
+      "description": "Pre-repair production source owning support association and source semantic evidence.",
+      "authority": "repository production source",
+      "source": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js; converters/xml-cii2019-core/source-schema-adapter.js",
+      "resolution_method": "Candidate reads source directly before qualification.",
+      "type": "code-authority",
+      "units": "NA",
+      "editable": false,
+      "applicability": "CURRENT_EP_REQUIRED",
+      "resolution": "READY",
+      "consumers": [
+        "STEP-SUPPORT-REPLAY-01",
+        "STEP-SUPPORT-REPLAY-02",
+        "AC-SUPPORT-REPLAY-03"
+      ],
+      "validation": [
+        "Trace-ledger remains the first wrong boundary.",
+        "Shared adapter remains source-field/conflict authority."
+      ],
+      "stale_if": [
+        "Listed source changes before write."
+      ]
+    },
+    {
+      "id": "INPUT-JS-BACKUP",
+      "name": "Existing JavaScript backup custody",
+      "description": "Repository-native backup is required immediately before editing existing JS.",
+      "authority": ".agents/AGENTS.md",
+      "source": "node utils/backup.js save",
+      "resolution_method": "Execute after takeover/write readiness and before first edit.",
+      "type": "repository-safety",
+      "units": "NA",
+      "editable": false,
+      "applicability": "CURRENT_STEP_REQUIRED",
+      "resolution": "READY",
+      "consumers": [
+        "STEP-SUPPORT-REPLAY-02"
+      ],
+      "validation": [
+        "Each existing JS target has a successful backup receipt before edit."
+      ],
+      "stale_if": [
+        "Target changes after backup and before edit."
+      ]
+    }
+  ],
+  "benchmarks": [
+    {
+      "id": "BENCH-SUPPORT-REPLAY",
+      "name": "Real support relationship benchmark",
+      "purpose": "Prove PS00608.1 resolves from source relationship authority while PS00573.1 remains correct.",
+      "source": "EVD-769-0005 plus committed STF/GLRD benchmark archives",
+      "oracle_class": "REFERENCE_DATA",
+      "payload": {
+        "reported": {
+          "tag": "PS00608.1",
+          "xml_node": 3140,
+          "expected_kind": "REST"
+        },
+        "comparator": {
+          "tag": "PS00573.1",
+          "xml_node": 3420,
+          "expected_kind": "REST"
+        }
+      },
+      "expected": "PS00608.1 resolves only from unique compatible explicit attachment; PS00573.1 remains resolved.",
+      "tolerance": {
+        "coordinates": "corroboration_only"
+      },
+      "independence": "Expected identity, kind and attachment were captured before this EP.",
+      "applicability": "CURRENT_EP_REQUIRED",
+      "resolution": "READY",
+      "verifies": [
+        "AC-SUPPORT-REPLAY-01",
+        "AC-SUPPORT-REPLAY-02",
+        "TEST-SUPPORT-REAL"
+      ],
+      "stale_if": [
+        "EVD-769-0005 or benchmark identity changes."
+      ]
+    },
+    {
+      "id": "BENCH-SUPPORT-NEGATIVE",
+      "name": "Fail-closed relationship controls",
+      "purpose": "Prove identity or coordinates cannot override conflicting, missing or ambiguous relationship authority.",
+      "source": "source-schema authority invariants plus synthetic controls",
+      "oracle_class": "ANALYTICAL",
+      "payload": [
+        "attachment-mismatch",
+        "component-ref-conflict",
+        "duplicate-qualified-relationship",
+        "missing-authority",
+        "coordinate-near-conflict"
+      ],
+      "expected": "No negative case silently materializes REST.",
+      "tolerance": null,
+      "independence": "Fail-closed policy is defined before implementation.",
+      "applicability": "CURRENT_EP_REQUIRED",
+      "resolution": "READY",
+      "verifies": [
+        "AC-SUPPORT-REPLAY-03",
+        "TEST-SUPPORT-NEGATIVE"
+      ],
+      "stale_if": [
+        "Source relationship policy changes."
+      ]
+    }
+  ],
+  "scope": {
+    "allowed": [
+      {
+        "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+        "reason": "Proven first wrong boundary."
+      },
+      {
+        "path": "tests/xml-cii-standalone-support-relationship-authority.test.js",
+        "reason": "Focused real/negative regression."
+      },
+      {
+        "path": "tests/xml-cii-standalone-trace-ledger.test.js",
+        "reason": "Test-only contract correction if raw/decorated assertion is stale."
+      },
+      {
+        "path": ".backups/**",
+        "reason": "Mandatory pre-edit custody."
+      }
+    ],
+    "allowed_reads": [
+      {
+        "path": "agents/relay/evidence/EVD-769-0005.yaml",
+        "reason": "Independent pre-repair oracle."
+      },
+      {
+        "path": "Benchmarks/**",
+        "reason": "Exact benchmark input."
+      },
+      {
+        "path": "converters/xml-cii2019-core/source-schema-adapter.js",
+        "reason": "Shared semantic authority."
+      },
+      {
+        "path": "tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js",
+        "reason": "Downstream ledger consumer."
+      },
+      {
+        "path": "tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js",
+        "reason": "Raw/decorated contract ownership."
+      },
+      {
+        "path": "tests/xml-cii-standalone-dtxr-enrichment.test.js",
+        "reason": "Exact-head regression."
+      },
+      {
+        "path": "tests/xml-cii-source-schema-authority-guards.test.mjs",
+        "reason": "Exact-head authority regression."
+      },
+      {
+        "path": "converters/scripts/test_xml_to_cii2019_edge_order_authority.py",
+        "reason": "Exact-head geometry regression."
+      },
+      {
+        "path": "converters/scripts/test_xml_to_cii2019_effective_od.py",
+        "reason": "Exact-head OD regression."
+      },
+      {
+        "path": "converters/scripts/test_xml_to_cii2019_fbli_negative_node.py",
+        "reason": "Exact-head FBLI regression."
+      }
+    ],
+    "protected": [
+      {
+        "invariant": "Support identity does not imply support kind.",
+        "reason": "Prevent PS-to-REST heuristic."
+      },
+      {
+        "invariant": "Relationship conflict or ambiguity is never overridden by coordinates.",
+        "reason": "Fail closed."
+      },
+      {
+        "invariant": "PR 417 coordinate-custody paths remain untouched.",
+        "reason": "Separate ownership."
+      }
+    ],
+    "prohibited": [
+      {
+        "domain": "converters/xml-cii2019-core/dtxr-resolver-core.js production mutation",
+        "reason": "Requires fresh requalification if discovery moves the first wrong boundary."
+      },
+      {
+        "domain": "Python support/tag heuristics",
+        "reason": "Downstream symptom patch duplicates authority."
+      },
+      {
+        "domain": "PR 417 paths",
+        "reason": "Separate ownership."
+      }
+    ],
+    "owner_reserved": [
+      {
+        "decision": "Merge or close the final support delivery PR.",
+        "reason": "Owner-only authority."
+      }
+    ]
+  },
+  "anti_drift": {
+    "do_not": [
+      {
+        "id": "ADR-769-07-01",
+        "restriction": "Do not inspect or copy PR 775 implementation before qualification completes.",
+        "reason": "Preserve independent reconstruction."
+      },
+      {
+        "id": "ADR-769-07-02",
+        "restriction": "Do not mutate material files before DISC/QUAL/TC PASS and live MATERIAL_WRITE_READY.",
+        "reason": "Restore required pre-write admission order."
+      },
+      {
+        "id": "ADR-769-07-03",
+        "restriction": "Do not infer REST from PS syntax or coordinate proximity.",
+        "reason": "Preserve source authority."
+      },
+      {
+        "id": "ADR-769-07-04",
+        "restriction": "Do not edit existing JS before repository-native backup succeeds.",
+        "reason": "Repository safety."
+      }
+    ],
+    "stale_if": [
+      {
+        "id": "STALE-769-07-01",
+        "condition": "EVD-769-0005 source or benchmark identity changes.",
+        "effect": "STOP",
+        "rationale": "Oracle changed."
+      },
+      {
+        "id": "STALE-769-07-02",
+        "condition": "Main or resolver source changes in an overlapping support path.",
+        "effect": "RECONCILE",
+        "rationale": "Material drift."
+      },
+      {
+        "id": "STALE-769-07-03",
+        "condition": "PR 417 overlaps an admitted replay path.",
+        "effect": "STOP",
+        "rationale": "Ownership collision."
+      }
+    ]
+  },
+  "implementation_plan": [
+    {
+      "id": "STEP-SUPPORT-REPLAY-01",
+      "objective": "Independently reconstruct and certify the support authority boundary.",
+      "targets": [
+        "agents/relay/evidence/EVD-769-0005.yaml",
+        "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js"
+      ],
+      "reads": [
+        "INPUT-SUPPORT-PROVENANCE",
+        "INPUT-SUPPORT-SOURCE"
+      ],
+      "writes": [
+        "agents/relay/certifications/discovery",
+        "agents/relay/certifications/qualification",
+        "agents/relay/certifications/takeover"
+      ],
+      "inputs": [
+        "INPUT-SUPPORT-PROVENANCE",
+        "INPUT-SUPPORT-OWNER-AUTH",
+        "INPUT-SUPPORT-SOURCE"
+      ],
+      "acceptance": [
+        "AC-SUPPORT-REPLAY-03",
+        "AC-SUPPORT-REPLAY-SCOPE"
+      ],
+      "tests": [
+        "TEST-SUPPORT-SCOPE"
+      ],
+      "expected_state": "Fresh repository-only DISC/QUAL/TC PASS is bound to this exact EP; otherwise execution remains read-only.",
+      "stop_conditions": [
+        "Candidate used conversation context or PR 775 implementation during qualification.",
+        "Candidate self-prepared or self-certified required independent evidence.",
+        "Any Q1-Q5 evaluation fails."
+      ]
+    },
+    {
+      "id": "STEP-SUPPORT-REPLAY-02",
+      "objective": "After live write admission, implement and validate the bounded repair.",
+      "targets": [
+        "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+        "tests/xml-cii-standalone-support-relationship-authority.test.js",
+        "tests/xml-cii-standalone-trace-ledger.test.js"
+      ],
+      "reads": [
+        "INPUT-SUPPORT-PROVENANCE",
+        "INPUT-SUPPORT-SOURCE"
+      ],
+      "writes": [
+        "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+        "tests/xml-cii-standalone-support-relationship-authority.test.js",
+        "tests/xml-cii-standalone-trace-ledger.test.js",
+        ".backups/**"
+      ],
+      "inputs": [
+        "INPUT-SUPPORT-PROVENANCE",
+        "INPUT-SUPPORT-SOURCE",
+        "INPUT-JS-BACKUP"
+      ],
+      "acceptance": [
+        "AC-SUPPORT-REPLAY-01",
+        "AC-SUPPORT-REPLAY-02",
+        "AC-SUPPORT-REPLAY-03",
+        "AC-SUPPORT-REPLAY-SCOPE"
+      ],
+      "tests": [
+        "TEST-SUPPORT-REAL",
+        "TEST-SUPPORT-NEGATIVE",
+        "TEST-SUPPORT-REGRESSION",
+        "TEST-SUPPORT-SCOPE"
+      ],
+      "expected_state": "Exact-head support behavior, negatives, regressions and scope all pass.",
+      "stop_conditions": [
+        "Live MATERIAL_WRITE_READY is false.",
+        "Backup, protected invariant, test or scope gate fails."
+      ]
+    }
+  ],
+  "next_work": {
+    "phase_transition": false,
+    "steps": [
+      {
+        "order": 1,
+        "action": "Fresh zero-context candidate executes all DSTEP-769-07 discovery from repository state only and writes DISC-769-08 with conversation_context_used false.",
+        "targets": [
+          "agents/relay/REPO_STATE.yaml",
+          "agents/relay/checkpoints/CP-769-05.yaml",
+          "agents/relay/execution-packages/EP-769-07.yaml",
+          "agents/relay/evidence/EVD-769-0005.yaml"
+        ],
+        "inputs": [
+          "INPUT-SUPPORT-PROVENANCE",
+          "INPUT-SUPPORT-OWNER-AUTH",
+          "INPUT-SUPPORT-SOURCE"
+        ],
+        "tests": [
+          "TEST-SUPPORT-SCOPE"
+        ],
+        "benchmarks": [
+          "BENCH-SUPPORT-REPLAY",
+          "BENCH-SUPPORT-NEGATIVE"
+        ],
+        "acceptance": [
+          "AC-SUPPORT-REPLAY-03",
+          "AC-SUPPORT-REPLAY-SCOPE"
+        ],
+        "expected_result": "DISC is complete and bound to exact route and basis without conversation context.",
+        "stop_if": [
+          "Conversation context or PR 775 implementation is used.",
+          "Repository state contradicts this EP."
+        ]
+      },
+      {
+        "order": 2,
+        "action": "Candidate answers QSET-769-09 from repository only; a distinct evaluator issues QUAL and TC only if all five questions pass and validators accept exact digests and basis.",
+        "targets": [
+          "agents/relay/certifications/qualification/QSET-769-09.yaml"
+        ],
+        "inputs": [
+          "INPUT-SUPPORT-PROVENANCE",
+          "INPUT-SUPPORT-SOURCE"
+        ],
+        "tests": [
+          "TEST-SUPPORT-REAL",
+          "TEST-SUPPORT-NEGATIVE"
+        ],
+        "benchmarks": [
+          "BENCH-SUPPORT-REPLAY",
+          "BENCH-SUPPORT-NEGATIVE"
+        ],
+        "acceptance": [
+          "AC-SUPPORT-REPLAY-01",
+          "AC-SUPPORT-REPLAY-03"
+        ],
+        "expected_result": "TAKEOVER_CERTIFIED is true for exact candidate and route or material execution stops.",
+        "stop_if": [
+          "Candidate or evaluator independence is invalid.",
+          "Any qualification question fails."
+        ]
+      },
+      {
+        "order": 3,
+        "action": "Run material_write_ready.py for the exact candidate; only on PASS run backups, implement, execute exact-head tests and scope audit, create QRV and checkpoint, then project an equivalent clean main-based delivery PR.",
+        "targets": [
+          "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+          "tests/xml-cii-standalone-support-relationship-authority.test.js",
+          "tests/xml-cii-standalone-trace-ledger.test.js"
+        ],
+        "inputs": [
+          "INPUT-JS-BACKUP",
+          "INPUT-SUPPORT-PROVENANCE",
+          "INPUT-SUPPORT-SOURCE"
+        ],
+        "tests": [
+          "TEST-SUPPORT-REAL",
+          "TEST-SUPPORT-NEGATIVE",
+          "TEST-SUPPORT-REGRESSION",
+          "TEST-SUPPORT-SCOPE"
+        ],
+        "benchmarks": [
+          "BENCH-SUPPORT-REPLAY",
+          "BENCH-SUPPORT-NEGATIVE"
+        ],
+        "acceptance": [
+          "AC-SUPPORT-REPLAY-01",
+          "AC-SUPPORT-REPLAY-02",
+          "AC-SUPPORT-REPLAY-03",
+          "AC-SUPPORT-REPLAY-SCOPE"
+        ],
+        "expected_result": "Fully admitted support repair is checkpointed and clean delivery can supersede PR 775.",
+        "stop_if": [
+          "Live MATERIAL_WRITE_READY is false.",
+          "Any exact-head validation or scope audit fails."
+        ]
+      }
+    ]
+  },
+  "qualification_boundary": {
+    "required": true,
+    "trigger": "MATERIAL_QUALIFICATION_BOUNDARY_CHANGED",
+    "from_phase": "PHASE-769-POSTMERGE",
+    "to_phase": "PHASE-769-POSTMERGE",
+    "changed_dimensions": [
+      "PRODUCTION_PATH",
+      "ENGINEERING_AUTHORITY",
+      "PROTECTED_INVARIANT",
+      "VERIFICATION_ORACLE"
+    ],
+    "basis": [
+      "Support relationship authority changes at an engineering-significant production boundary.",
+      "Prior functionally green implementation cannot substitute for fresh pre-write qualification."
+    ],
+    "question_set": {
+      "id": "QSET-769-09",
+      "path": "agents\\relay\\certifications\\qualification\\QSET-769-09.yaml"
+    }
+  },
+  "quality": {
+    "applicable": [
+      {
+        "blueprint": "software-design",
+        "reason": "Support relationship authority changes.",
+        "review_focus": [
+          "authority",
+          "failure_semantics"
+        ]
+      },
+      {
+        "blueprint": "coding",
+        "reason": "Production JavaScript resolver behavior changes.",
+        "review_focus": [
+          "bounded_change",
+          "maintainability"
+        ]
+      },
+      {
+        "blueprint": "testing",
+        "reason": "Real and negative exact-head validation is mandatory.",
+        "review_focus": [
+          "oracle_independence",
+          "regression"
+        ]
+      },
+      {
+        "blueprint": "code-review",
+        "reason": "Engineering-significant restraint resolution requires review.",
+        "review_focus": [
+          "scope",
+          "unintended_fallback"
+        ]
+      },
+      {
+        "blueprint": "github-delivery",
+        "reason": "Replay requires v2.5 custody and clean PR projection.",
+        "review_focus": [
+          "branch_truth",
+          "checkpoint",
+          "merge_authority"
+        ]
+      }
+    ],
+    "not_applicable": [
+      {
+        "blueprint": "ui-ux",
+        "reason": "No UI change.",
+        "review_focus": []
+      },
+      {
+        "blueprint": "engineering-numerics",
+        "reason": "No numerical engineering calculation changes.",
+        "review_focus": []
+      },
+      {
+        "blueprint": "accessibility",
+        "reason": "No accessibility change.",
+        "review_focus": []
+      },
+      {
+        "blueprint": "performance",
+        "reason": "No performance objective.",
+        "review_focus": []
+      },
+      {
+        "blueprint": "migration",
+        "reason": "No migration.",
+        "review_focus": []
+      }
+    ],
+    "review_contract": {
+      "required": true,
+      "required_before_checkpoint": true,
+      "receipt_namespace": "QRV-",
+      "required_outputs": [
+        "procedure_results",
+        "findings",
+        "owner_report",
+        "successor_handover"
+      ]
+    },
+    "findings_policy": "Findings block only when mapped to acceptance, authority, protected invariants or safety stops.",
+    "ordinary_findings_are_hard_stops": false
+  },
+  "acceptance": [
+    {
+      "id": "AC-SUPPORT-REPLAY-01",
+      "description": "PS00608.1/node 3140 resolves governed REST from exact staged semantics plus compatible explicit attachment without tag heuristic.",
+      "weight": 40,
+      "verification": [
+        "TEST-SUPPORT-REAL",
+        "BENCH-SUPPORT-REPLAY"
+      ]
+    },
+    {
+      "id": "AC-SUPPORT-REPLAY-02",
+      "description": "PS00573.1 remains correct and exact-head standalone plus geometry, OD and FBLI regressions pass.",
+      "weight": 20,
+      "verification": [
+        "TEST-SUPPORT-REAL",
+        "TEST-SUPPORT-REGRESSION",
+        "BENCH-SUPPORT-REPLAY"
+      ]
+    },
+    {
+      "id": "AC-SUPPORT-REPLAY-03",
+      "description": "Conflict, missing authority, ambiguity and coordinate-near conflict controls fail closed without silent REST.",
+      "weight": 25,
+      "verification": [
+        "TEST-SUPPORT-NEGATIVE",
+        "BENCH-SUPPORT-NEGATIVE"
+      ]
+    },
+    {
+      "id": "AC-SUPPORT-REPLAY-SCOPE",
+      "description": "Writes stay within admitted paths, PR 417 overlap is zero and existing JS edits have pre-edit backup custody.",
+      "weight": 15,
+      "verification": [
+        "TEST-SUPPORT-SCOPE"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "id": "TEST-SUPPORT-REAL",
+      "class": "MUST_PASS",
+      "method": "Run focused real-benchmark support relationship regression on exact material head.",
+      "proves": [
+        "AC-SUPPORT-REPLAY-01",
+        "AC-SUPPORT-REPLAY-02"
+      ]
+    },
+    {
+      "id": "TEST-SUPPORT-NEGATIVE",
+      "class": "MUST_PASS",
+      "method": "Run focused fail-closed relationship controls plus source-schema authority guards on exact material head.",
+      "proves": [
+        "AC-SUPPORT-REPLAY-03"
+      ]
+    },
+    {
+      "id": "TEST-SUPPORT-REGRESSION",
+      "class": "MUST_PASS",
+      "method": "Run trace-ledger, DTXR enrichment, source-schema guards, edge-order, effective-OD and FBLI regressions on exact material head.",
+      "proves": [
+        "AC-SUPPORT-REPLAY-02"
+      ]
+    },
+    {
+      "id": "TEST-SUPPORT-SCOPE",
+      "class": "MUST_PASS",
+      "method": "Audit non-relay diff from material basis, PR 417 overlap and backup receipts.",
+      "proves": [
+        "AC-SUPPORT-REPLAY-SCOPE"
+      ]
+    }
+  ],
+  "failure_and_stop_conditions": {
+    "hard_stop_categories": [
+      "OWNER_DECISION_REQUIRED",
+      "ESSENTIAL_INPUT_MISSING",
+      "AUTHORITY_VIOLATION",
+      "PROTECTED_INVARIANT_FAILURE",
+      "WRITE_COLLISION",
+      "SUPERSEDED_EP",
+      "ROADMAP_CONFLICT",
+      "REPOSITORY_STATE_CONFLICT",
+      "UNSAFE_ENGINEERING_RESULT"
+    ]
+  },
+  "report_contract": {
+    "sections": [
+      "Executive state",
+      "Overall / phase / EP progress",
+      "Work completed",
+      "Files changed",
+      "Acceptance matrix",
+      "Tests and evidence",
+      "Quality findings",
+      "Known limitations",
+      "Owner decisions required",
+      "GitHub issue changes",
+      "Roadmap changes",
+      "Exact next actions",
+      "Successor EP",
+      "Qualification Q1-Q5 when applicable"
+    ],
+    "payloads": [
+      {
+        "id": "RPT-STATE",
+        "section": "Executive state",
+        "sources": [
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "relay_state",
+          "current_position",
+          "execution_state",
+          "material_authority",
+          "stop"
+        ]
+      },
+      {
+        "id": "RPT-PROGRESS",
+        "section": "Overall / phase / EP progress",
+        "sources": [
+          "PROGRESS",
+          "OVERALL_ROADMAP",
+          "EP"
+        ],
+        "required_fields": [
+          "progress_basis",
+          "overall",
+          "phase",
+          "work_package",
+          "step",
+          "acceptance"
+        ]
+      },
+      {
+        "id": "RPT-WORK",
+        "section": "Work completed",
+        "sources": [
+          "EP",
+          "CP"
+        ],
+        "required_fields": [
+          "completed_steps",
+          "implementation_result"
+        ]
+      },
+      {
+        "id": "RPT-FILES",
+        "section": "Files changed",
+        "sources": [
+          "CP"
+        ],
+        "required_fields": [
+          "files_changed"
+        ]
+      },
+      {
+        "id": "RPT-AC",
+        "section": "Acceptance matrix",
+        "sources": [
+          "EP",
+          "PROGRESS",
+          "CP"
+        ],
+        "required_fields": [
+          "criterion",
+          "status",
+          "percent",
+          "basis"
+        ]
+      },
+      {
+        "id": "RPT-EVIDENCE",
+        "section": "Tests and evidence",
+        "sources": [
+          "EP",
+          "CP",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "validation_id",
+          "obligation_class",
+          "status",
+          "basis_ref",
+          "not_run_reason"
+        ]
+      },
+      {
+        "id": "RPT-QUALITY",
+        "section": "Quality findings",
+        "sources": [
+          "EP",
+          "QRV",
+          "CP",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "quality_review",
+          "procedures",
+          "findings",
+          "disposition",
+          "execution_effect"
+        ]
+      },
+      {
+        "id": "RPT-LIMITS",
+        "section": "Known limitations",
+        "sources": [
+          "EP",
+          "CP",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "limitations",
+          "evidence_gaps",
+          "deferred_items"
+        ]
+      },
+      {
+        "id": "RPT-OWNER",
+        "section": "Owner decisions required",
+        "sources": [
+          "ODR",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "decision_required",
+          "pending_items",
+          "authority_effect"
+        ]
+      },
+      {
+        "id": "RPT-ISSUES",
+        "section": "GitHub issue changes",
+        "sources": [
+          "ISSUE_GRAPH",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "operations",
+          "relationships",
+          "projection_state"
+        ]
+      },
+      {
+        "id": "RPT-ROADMAP",
+        "section": "Roadmap changes",
+        "sources": [
+          "OVERALL_ROADMAP",
+          "ROADMAP_REVISION",
+          "PROGRESS"
+        ],
+        "required_fields": [
+          "revision",
+          "topology_or_status_change",
+          "frontier_after",
+          "progress_basis_effect"
+        ]
+      },
+      {
+        "id": "RPT-NEXT",
+        "section": "Exact next actions",
+        "sources": [
+          "EP"
+        ],
+        "required_fields": [
+          "ordered_actions",
+          "targets",
+          "inputs",
+          "tests",
+          "benchmarks",
+          "acceptance",
+          "expected_result",
+          "stop_conditions"
+        ]
+      },
+      {
+        "id": "RPT-SUCCESSOR",
+        "section": "Successor EP",
+        "sources": [
+          "CP",
+          "OVERALL_ROADMAP",
+          "REPO_STATE"
+        ],
+        "required_fields": [
+          "successor_mode",
+          "next_frontier",
+          "ep_or_terminal_disposition"
+        ]
+      }
+    ]
+  },
+  "checkpoint_contract": {
+    "required": true,
+    "acceptance": [
+      "AC-SUPPORT-REPLAY-01",
+      "AC-SUPPORT-REPLAY-02",
+      "AC-SUPPORT-REPLAY-03",
+      "AC-SUPPORT-REPLAY-SCOPE"
+    ],
+    "validation": [
+      "TEST-SUPPORT-REAL",
+      "TEST-SUPPORT-NEGATIVE",
+      "TEST-SUPPORT-REGRESSION",
+      "TEST-SUPPORT-SCOPE"
+    ]
+  },
+  "successor_relay": {
+    "required": true,
+    "duties": [
+      "Create exact-head QRV and checkpoint.",
+      "Update progress and issue projection.",
+      "Compute next executable frontier.",
+      "Run cold-start check.",
+      "Update REPO_STATE.",
+      "Project a clean main-based delivery PR after checkpointed material equivalence."
+    ],
+    "required_outputs": [
+      "checkpoint",
+      "progress_reconciliation",
+      "issue_projection_disposition",
+      "next_frontier",
+      "successor_ep_or_terminal_disposition"
+    ]
+  }
+}
