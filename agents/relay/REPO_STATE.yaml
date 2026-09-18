@@ -13,18 +13,18 @@ roadmap:
 current_position:
   objective: OBJ-769
   phase: PHASE-769-POSTMERGE
-  work_package: WP-769-GEOMETRY
+  work_package: WP-769-SUPPORT
   work_packages: []
 execution_policy:
   mode: SERIAL
 active_ep:
-  id: EP-769-04
-  path: agents/relay/execution-packages/EP-769-04.yaml
-  state: ACTIVE
+  id: EP-769-05
+  path: agents/relay/execution-packages/EP-769-05.yaml
+  state: WAITING_INPUT
   continuity_receipt: null
 last_checkpoint:
-  id: CP-769-03
-  path: agents/relay/checkpoints/CP-769-03.yaml
+  id: CP-769-04
+  path: agents/relay/checkpoints/CP-769-04.yaml
 predecessor_join:
   id: null
   path: null
@@ -60,102 +60,76 @@ takeover_admissions:
     id: TC-769-05
     path: agents/relay/certifications/takeover/TC-769-05.yaml
 progress:
-  overall_percent: 28.75
-  phase_percent: 28.75
+  overall_percent: 50
+  phase_percent: 50
   ep_percent: 0
-  basis_revision: PB-769-0002
+  basis_revision: PB-769-0004
 status_planes:
   execution:
-    state: ACTIVE
+    state: WAITING
     can_continue: true
-    material_authority: WRITE
-    next_action: Pull the current branch and run TEST-ORDER-REAL-PY plus the existing OD/FBLI/legacy regression set against production blob 797b4471a44e8e38e5d3b0655541ea47f5903d48 and test blob 23d60f452dca3c6db901bece9038ca3adc1105b3.
+    material_authority: READ_ONLY
+    next_action: Extract and hash Benchmarks/STF_2026Sep16-0859_managed_stage.zip; reconstruct PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 through source-schema, relationship, coordinate, DTXR and restraint authority. No production support write is authorized in EP-769-05.
   quality:
     state: NEEDS_ATTENTION
     findings:
-    - CP-769-03 remains the immutable checkpoint for provenance instrumentation; no topology converter behavior has changed since it.
-    - EVD-769-0002 records a production-enriched GLRD artifact and 8/8 EXACT raw-source provenance joins for the reported 2439/2450 and 2909/2920 cases.
-    - Corrected conformance chain DISC-769-07 / QUAL-769-06 / TC-769-05 is PASS for the current EP-769-04 candidate and Windows checkout.
-    - The original ESSENTIAL_INPUT_MISSING stop is resolved. Historical QUAL-769-03 remains FAIL evidence and is not reused as authority.
-    - Current PR 417 coordinate-custody paths remain disjoint from the qualified two-file EP-769-04 write set.
-    - ODR-769-0008 grants fresh Owner authorization for the qualified EP-769-04 two-file topology repair.
-    - Repository-native MATERIAL_WRITE_READY rerun on head 9993f7c6c2de10731577bdfcfec518c6f546044c returned PASS with material_write_ready true and zero errors.
-    - The qualified topology implementation is committed in exactly two admitted material paths; EVD-769-0003 records blobs, commits and scope PASS.
-    - TEST-ORDER-REAL-PY and existing Python regression reruns are still pending on a synchronized checkout.
+    - QRV-769-04 is CLEAR and CP-769-04 checkpoints geometry with TEST-ORDER-REAL-PY 7/7 PASS, regression gate 12/12 PASS and scope PASS.
+    - WP-769-GEOMETRY is COMPLETE; WP-769-SUPPORT is the active roadmap frontier.
+    - EP-769-05 is provenance-only and has no material write authority.
+    - Exact STF source records for PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 are not yet bound into a durable resolver trace.
+    - Full post-material repository-native v2.5 validator-suite conformance remains release debt; MATERIAL_WRITE_READY did pass before the completed geometry mutation.
   evidence:
     state: PARTIAL
-    summary: Real production enrichment generated 2439/2909 with 8/8 EXACT joins. The corrected runtime MATERIAL_WRITE_READY gate passed on 9993f7c6. The qualified two-file topology repair is now implemented: exact FBLI/RIGID source provenance marks the blind-flange closure, a unique trailing BRAN junction is inserted into its host segment, and the terminal RIGID is shielded from generic short-span cleanup. Scope validation is PASS; formal Python behavior/regression execution remains pending.
+    summary: Geometry is checkpointed complete at CP-769-04 with all EP-769-04 acceptance PASS. Support provenance now becomes the active serial frontier. The current support source input remains MISSING_BLOCKING for material qualification, but read-only extraction and tracing can continue.
     not_run:
-    - id: V25-CONFORMANCE
-      reason: material_write_ready now passes, but the full repository-native v2.5 validator suite has not yet been executed on the post-material current head.
-      cause: NOT_SCHEDULED
-    - id: TEST-ORDER-REAL-PY
-      reason: The qualified topology implementation has not been written; repository-native MATERIAL_WRITE_READY must PASS first.
+    - id: TEST-SUPPORT-PROV
+      reason: The exact STF managed-stage archive has not yet been extracted/hash-bound and the four reported support cases have not been traced through the production resolver.
+      cause: ESSENTIAL_INPUT_PENDING
+    - id: TEST-SUPPORT-PROV-SCOPE
+      reason: The support provenance branch has not yet executed its changed-path scope audit.
       cause: DEPENDENCY_WAIT
-
+    - id: V25-CONFORMANCE
+      reason: Full post-material repository-native v2.5 validator suite remains not run; geometry checkpoint truth is based on declared EP tests plus QRV-769-04.
+      cause: NOT_SCHEDULED
     passed:
+    - id: TEST-ORDER-REAL-PY
+      evidence: EVD-769-0004 records 7 passed in 0.39s on synchronized head aa5659f334f780c1a0ecd381872ee64a2e5ac60e.
     - id: TEST-ORDER-REAL-SCOPE
-      evidence: Exact Git compare 9993f7c6..31a3841a changes only converters/scripts/xml_to_cii2019.py and converters/scripts/test_xml_to_cii2019_edge_order_authority.py; intersection with current PR 417 paths is empty. See agents/relay/evidence/EVD-769-0003.yaml.
+      evidence: EVD-769-0003 records the exact two-file material diff with zero PR 417 overlap.
+    - id: REGRESSION-OD-FBLI-LEGACY
+      evidence: EVD-769-0004 records 12 passed in 0.24s; aggregate geometry plus regression result is 19/19 PASS.
     - id: MATERIAL-WRITE-READY
-      evidence: Repository-native Common feae969 material_write_ready.py returned PASS/material_write_ready true with Git context PASS and zero errors on head 9993f7c6. See agents/relay/evidence/EVD-769-0003.yaml.
-    - id: TEST-OD-PY
-      evidence: Synchronized local checkout PASS, 3 passed in 0.08s; exact production/test blobs 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 / 650b04e3991cab280b7dfede2d31cf90f235bff7. See agents/relay/evidence/EVD-769-0001.yaml.
-    - id: TEST-FBLI
-      evidence: Synchronized local checkout PASS, 7 passed in 0.08s; exact patched/test blobs d0256ab0ab08d11819716642e0587ec50d518e4d / 44169f68d8392dc9c2dd566a0af79139560a4115. See agents/relay/evidence/EVD-769-0001.yaml.
-    - id: TEST-LEGACY
-      evidence: Synchronized local checkout PASS, 2 passed in 0.08s; exact patched/test blobs d0256ab0ab08d11819716642e0587ec50d518e4d / d24e6b6686daeb0c00924ab227e92cc7a30f3593. See agents/relay/evidence/EVD-769-0001.yaml.
-    - id: TEST-PROV-PY
-      evidence: Exact committed provenance-instrumentation blobs executed 3/3 PASS; CP-769-03 preserves this evidence.
-    - id: TEST-PROV-SCOPE
-      evidence: Provenance instrumentation material diff was limited to the two admitted diagnostic files and no PR 417 path.
+      evidence: EVD-769-0003 records repository-native PASS/material_write_ready true before the geometry mutation.
   stop:
     active: false
     category: null
     reason: null
     basis:
-    - agents/relay/evidence/EVD-769-0002.yaml
-    - agents/relay/certifications/discovery/DISC-769-07.yaml
-    - agents/relay/certifications/qualification/QUAL-769-06.yaml
-    - agents/relay/certifications/takeover/TC-769-05.yaml
-    - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
+    - agents/relay/checkpoints/CP-769-04.yaml
+    - agents/relay/execution-packages/EP-769-05.yaml
+    - agents/relay/certifications/qualification/QSET-769-07.yaml
 projection:
   required: true
-  state: IN_SYNC
+  state: STALE
   operation_id: GHGEN-769-0011
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
   plan: agents/relay/projection/generations/GHGEN-769-0011.yaml
   roadmap_revision: RM-0001
-  execution_ref: EP-769-04
+  execution_ref: EP-769-05
   receipt: issuecomment-5725160840
   basis:
-  - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
-  - agents/relay/evidence/EVD-769-0002.yaml
-  - agents/relay/evidence/EVD-769-0003.yaml
-  - agents/relay/execution-packages/EP-769-04.yaml
-  - agents/relay/certifications/qualification/QSET-769-06.yaml
-  - agents/relay/certifications/discovery/DISC-769-07.yaml
-  - agents/relay/certifications/qualification/QUAL-769-06.yaml
-  - agents/relay/certifications/takeover/TC-769-05.yaml
-  - agents/relay/projection/generations/GHGEN-769-0011.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5725160840
-  superseded_operations:
-  - GHGEN-769-0010
-  - GHGEN-769-0009
-  - GHGEN-769-0008
-  - GHGEN-769-0007
-  - GHGEN-769-0006
-  - GHGEN-769-0005
-  - GHGEN-769-0004
-  - GHGEN-769-0003
-  - GHGEN-769-0002
+  - agents/relay/checkpoints/CP-769-04.yaml
+  - agents/relay/execution-packages/EP-769-05.yaml
+  - agents/relay/quality/QRV-769-04.yaml
+  - agents/relay/evidence/EVD-769-0004.yaml
 relay_readiness:
   baton_ready: true
-  projection_ready: true
-  handover_ready: true
+  projection_ready: false
+  handover_ready: false
   reasons:
-  - MATERIAL_WRITE_READY passed before mutation on the authorized exact checkout.
-  - The qualified topology implementation is committed in exactly the two admitted material paths; TEST-ORDER-REAL-SCOPE is PASS.
-  - TEST-ORDER-REAL-PY and the existing OD/FBLI/legacy Python regression reruns remain pending on the synchronized checkout.
-  - GitHub projection GHGEN-769-0011 is verified IN_SYNC by issuecomment-5725160840.
+  - CP-769-04 checkpoints geometry complete with all EP-769-04 acceptance PASS and QRV-769-04 CLEAR.
+  - EP-769-05 is the serial successor for WP-769-SUPPORT with material authority READ_ONLY.
+  - Read-only support discovery may continue, but INPUT-SUPPORT-SOURCE remains MISSING_BLOCKING for any material qualification.
+  - GitHub projection is stale until the support-frontier handover is published.
 chat_context_required: false
