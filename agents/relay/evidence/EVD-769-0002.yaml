@@ -1,0 +1,90 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0002
+kind: REAL_ORDER_PROVENANCE_AND_LOCAL_RECONSTRUCTION
+captured_at_utc: '2026-09-18T02:38:49Z'
+repository: reallaksh19/3D_Converters
+branch: agent/issue-769-geometry-order-20260917
+git_basis:
+  observed_head: 209184ff234773e36600e7999fba815d48f4c2bf
+  worktree: CLEAN
+  note: Local agent reported no tracked modifications and no GitHub write.
+raw_input:
+  zip_path: Benchmarks/GLRD-1000-PI-01.zip
+  zip_sha256: 3A0290B08213D84AE1C08931E16CE47795D36E1BD9165CF1D8A98443DFFB3150
+  extracted_xml_size_bytes: 629889
+  extracted_xml_sha256: 6BCC477860FDBE9A80159839BF476A8C1E6CE7A966587A25BC62498709843151
+  identity: Newer 2026-09-15 AVEVA PSI export; differs from the older uncompressed benchmark XML already committed under Benchmarks/XML to CII 2019.
+enrichment:
+  production_entrypoint: tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js::enrichXmlForCii2019
+  carrier: Playwright headless Chromium using browser-native DOMParser/XMLSerializer and exact production ES module
+  staged_json_text: ''
+  options:
+    splitCondensedValveFlange: true
+    dropGasketNodes: true
+    dropGasketsInEnrichment: true
+    condenseRigidXsd: false
+  runtime:
+    node: v26.3.0
+    python: 3.11.9
+    playwright: 1.42.0
+    chromium: 123.0.6312.4
+  stats:
+    gasketNodesDropped: 202
+    inlineElementLengthAnnotations: 166
+    splitCondensedRigidNodes: 166
+    resolvedRigidMarkers: 166
+    condensedValveFlangeBlocks: 43
+    ratingAnnotations: 994
+    processAnnotations: 186
+    previewRunParityBranches: 31
+    previewRunParityProcessFields: 186
+    previewRunParityNodeFacts: 994
+enriched_artifact:
+  local_name: GLRD-1000-PI-01_enriched.xml
+  size_bytes: 594479
+  sha256: 9DD2ADBA85D47055738621580C076362C3834AFEEB1C8B4ACAA977704FB5318B
+  required_labels_present: [2439, 2440, 2450, 2909, 2910, 2920]
+provenance:
+  diagnostic: converters/scripts/xml_to_cii2019_order_provenance.py
+  record_count: 8
+  source_match_counts: {EXACT: 8}
+  ambiguous: 0
+  unmatched: 0
+  records:
+  - {generated: 2439, branch_index: 18, branch_node_index: 68, branch_name: '/GLRD-1000-2"-P4110023-93833-01/B4', component_ref_no: '=134234934/25983', component_type: FLAN, endpoint: 2, position: '104000.00 106912.93 101229.30', source_branch_index: 18, source_branch_node_index: 78, source_node_number: -1, source_match: EXACT}
+  - {generated: 2440, branch_index: 18, branch_node_index: 70, component_ref_no: '=134234934/25985', component_type: RIGID, endpoint: 2, position: '104000.00 106916.13 101229.30', source_branch_index: 18, source_branch_node_index: 82, source_node_number: 2440, source_match: EXACT}
+  - {generated: 2450, branch_index: 18, branch_node_index: 71, component_ref_no: '=134234934/25955', component_type: BRAN, endpoint: 2, position: '104000.00 106886.13 101229.30', source_branch_index: 18, source_branch_node_index: 83, source_node_number: 2450, source_match: EXACT}
+  - {generated: 2909, branch_index: 22, branch_node_index: 68, branch_name: '/GLRD-1000-2"-P4110028-93833-01/B4', component_ref_no: '=134234934/26047', component_type: FLAN, endpoint: 2, position: '102600.00 106912.93 101229.30', source_branch_index: 22, source_branch_node_index: 78, source_node_number: -1, source_match: EXACT}
+  - {generated: 2910, branch_index: 22, branch_node_index: 70, component_ref_no: '=134234934/26049', component_type: RIGID, endpoint: 2, position: '102600.00 106916.13 101229.30', source_branch_index: 22, source_branch_node_index: 82, source_node_number: 2910, source_match: EXACT}
+  - {generated: 2920, branch_index: 22, branch_node_index: 71, component_ref_no: '=134234934/26019', component_type: BRAN, endpoint: 2, position: '102600.00 106886.13 101229.30', source_branch_index: 22, source_branch_node_index: 83, source_node_number: 2920, source_match: EXACT}
+case_reconstruction:
+  case_2439_2450:
+    observed_vector_mm: [0.0, -26.8, 0.0]
+    distance_mm: 26.8
+    source_semantics: Node 2439 is FLAN endpoint 2 leading into the terminal blind-flange body represented by FBLI/RIGID 2440; 2450 is a BRAN connection record appended at the branch-array tail.
+    expected_topology: 2450 is a branch connection and must not be treated as a serial successor of terminal FLAN 2439; the terminal chain is 2430 -> 2439 -> 2440.
+  case_2909_2920:
+    observed_vector_mm: [0.0, -26.8, 0.0]
+    distance_mm: 26.8
+    source_semantics: Node 2909 is FLAN endpoint 2 leading into the terminal blind-flange body represented by FBLI/RIGID 2910; 2920 is a BRAN connection record appended at the branch-array tail.
+    expected_topology: 2920 is a branch connection and must not be treated as a serial successor of terminal FLAN 2909; the terminal chain is 2900 -> 2909 -> 2910.
+first_wrong_boundary:
+  pruning: converters/scripts/xml_to_cii2019.py::_drop_short_element_nodes removes RIGID 2440/2910 because the FLAN-to-RIGID distance is 3.2 mm <= 6.0 mm.
+  edge_construction: converters/scripts/xml_to_cii2019.py::_build_edges then treats the resulting array adjacency as topology, emitting 2439 -> 2450 and 2909 -> 2920.
+negative_controls:
+- Legitimate negative-coordinate or reversing physical runs must remain unchanged.
+- Normal reducers must preserve source-semantic order regardless of coordinate sign or diameter change.
+- TEE/OLET multi-endpoint topology must not be globally reordered.
+- Valid terminal flange/equipment pairs without appended BRAN tail records must remain unchanged.
+qualification:
+  result: READY_FOR_QSET_769_05_REQUALIFICATION
+  basis:
+  - Exact production enrichment produced the required generated labels.
+  - Provenance diagnostic returned 8/8 EXACT joins with no ambiguous or unmatched records.
+  - Both reported 26.8 mm cases were reproduced and bound to exact source component refs and branch/node indexes.
+  - First wrong boundary is localized to short-node pruning followed by adjacency-based edge construction.
+constraints:
+- No global NodeNumber sort.
+- No coordinate-sign reversal heuristic.
+- No PR 417 coordinate-custody path mutation.
+- This evidence does not itself grant material write authority.
