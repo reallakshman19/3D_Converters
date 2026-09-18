@@ -84,7 +84,7 @@ status_planes:
     not_run:
     - id: TEST-SUPPORT-PROV
       reason: The exact STF managed-stage archive has not yet been extracted/hash-bound and the four reported support cases have not been traced through the production resolver.
-      cause: ESSENTIAL_INPUT_PENDING
+      cause: OTHER
     - id: TEST-SUPPORT-PROV-SCOPE
       reason: The support provenance branch has not yet executed its changed-path scope audit.
       cause: DEPENDENCY_WAIT
