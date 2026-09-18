@@ -10,7 +10,7 @@ context:
   protocol_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
 effects:
   requirement_disposition: SATISFIED
-  grants_material_write_authority: false
+  grants_material_write_authority: true
   pending_items: []
 impact:
   class: [LOCAL]
@@ -21,7 +21,7 @@ affected:
   execution_packages: [EP-769-07]
   issues: [ISSUE-769]
 required_reconciliation:
-- Prepare EP-769-07 and its QSET before the incoming candidate begins.
+- Prepare EP-769-07 and its QSET before the incoming candidate begins; Owner material authorization remains conditional on runtime v2.5 admission.
 - Require a fresh repository-only candidate with conversation_context_used false.
 - Require DISC, QUAL and TC PASS bound to the exact EP-769-07 route before material execution.
 - Require live MATERIAL_WRITE_READY before the first material edit.
