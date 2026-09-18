@@ -51,16 +51,16 @@ takeover_admissions:
     id: TC-769-03
     path: agents/relay/certifications/takeover/TC-769-03.yaml
 progress:
-  overall_percent: 7.5
-  phase_percent: 7.5
+  overall_percent: 28.75
+  phase_percent: 28.75
   ep_percent: 0
-  basis_revision: PB-769-0001
+  basis_revision: PB-769-0002
 status_planes:
   execution:
     state: WAITING
     can_continue: false
     material_authority: READ_ONLY
-    next_action: Supply the exact enriched/output XML containing generated labels 2909-2920 and 2439-2450 plus the corresponding raw source XML; run the committed provenance diagnostic and complete QSET-769-05 with fresh PASS qualification/takeover before any topology write.
+    next_action: Generate or supply the exact enriched/generated GLRD artifact that contains 2439/2909 and 2450/2920 from the newer ZIP raw XML, then run the committed provenance diagnostic against that artifact and complete QSET-769-05 with fresh PASS qualification/takeover before any topology write.
   quality:
     state: NEEDS_ATTENTION
     findings:
@@ -68,10 +68,11 @@ status_planes:
     - EP-769-04 INPUT-ORDER-PROVENANCE is MISSING_BLOCKING because the exact enriched/output artifact containing the reported generated labels has not been supplied or captured.
     - Historical QUAL-769-03 remains FAIL for the topology/order repair and must not be reused as write authority.
     - Current PR #417 coordinate-custody paths remain protected; EP-769-04 has no material admission or write.
-    - Formal TEST-OD-PY remains Owner-deferred by ODR-769-0006; TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
+    - Late local checkout evidence EVD-769-0001 closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY as PASS (12/12 total); historical CP-769-01/02 NOT_RUN entries remain immutable checkpoint truth.
+    - The extracted GLRD ZIP contains only a newer raw XML, not an enriched/generated artifact; its raw branch structures narrow the 2439/2909 reconstruction but do not by themselves satisfy QSET-769-05's exact enriched-label provenance requirement.
   evidence:
     state: PARTIAL
-    summary: EP-769-03 provenance instrumentation is checkpointed with exact committed blobs tested 3/3 PASS and a two-file scope-clean material diff. DISC-769-05 exhaustively searched currently accessible conversation, Issue, benchmark-text and prior-branch evidence and failed to recover the real generated-label artifact. EP-769-04 remains READ_ONLY and stopped pending real generated-label provenance and fresh topology qualification.
+    summary: Late synchronized-checkout evidence closes TEST-OD-PY, TEST-FBLI and TEST-LEGACY with 12/12 pytest assertions passing. EP-769-03 provenance instrumentation remains checkpointed. The extracted GLRD ZIP contains only raw XML; it exposes the two reported raw branch structures and deterministic candidate numbering, but the provenance diagnostic was run on raw XML and returned source_match NONE for all six range records. EP-769-04 therefore remains READ_ONLY pending exact enriched/generated-label provenance and fresh topology qualification.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
@@ -82,16 +83,13 @@ status_planes:
     - id: TEST-ORDER-REAL-SCOPE
       reason: No EP-769-04 material write has occurred.
       cause: DEPENDENCY_WAIT
-    - id: TEST-OD-PY
-      reason: Deferred by ODR-769-0006; supporting reconstructed-carrier evidence is not a formal exact-byte production-module PASS.
-      cause: OWNER_DEFERRAL
-    - id: TEST-FBLI
-      reason: Deferred by ODR-769-0003 to release qualification.
-      cause: OWNER_DEFERRAL
-    - id: TEST-LEGACY
-      reason: Deferred by ODR-769-0003 to release qualification.
-      cause: OWNER_DEFERRAL
     passed:
+    - id: TEST-OD-PY
+      evidence: Synchronized local checkout PASS, 3 passed in 0.08s; exact production/test blobs 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 / 650b04e3991cab280b7dfede2d31cf90f235bff7. See agents/relay/evidence/EVD-769-0001.yaml.
+    - id: TEST-FBLI
+      evidence: Synchronized local checkout PASS, 7 passed in 0.08s; exact patched/test blobs d0256ab0ab08d11819716642e0587ec50d518e4d / 44169f68d8392dc9c2dd566a0af79139560a4115. See agents/relay/evidence/EVD-769-0001.yaml.
+    - id: TEST-LEGACY
+      evidence: Synchronized local checkout PASS, 2 passed in 0.08s; exact patched/test blobs d0256ab0ab08d11819716642e0587ec50d518e4d / d24e6b6686daeb0c00924ab227e92cc7a30f3593. See agents/relay/evidence/EVD-769-0001.yaml.
     - id: TEST-PROV-PY
       evidence: Exact committed blobs 987c866ca1225fe2024e19e95ba02474dbcccc82 and a5de4f588d852e69054933b61762a04338f22226 executed 3/3 PASS in the isolated pure-stdlib carrier.
     - id: TEST-PROV-SCOPE
@@ -99,12 +97,13 @@ status_planes:
   stop:
     active: true
     category: ESSENTIAL_INPUT_MISSING
-    reason: The exact enriched/output XML carrying generated labels 2909-2920 and 2439-2450, together with the corresponding raw source XML, is required to establish source/component orientation independently; without it any topology repair would remain heuristic.
+    reason: The local ZIP inspection now provides the newer raw GLRD branch structures and deterministically explains candidate synthetic labels 2439/2909, but the ZIP contains no enriched/generated output and the provenance diagnostic was run on raw XML with source_match NONE for all six records. Exact enriched/generated-label provenance or an independently regenerated equivalent is still required before topology mutation.
     basis:
     - agents/relay/checkpoints/CP-769-03.yaml
     - agents/relay/execution-packages/EP-769-04.yaml
     - agents/relay/certifications/qualification/QSET-769-05.yaml
     - agents/relay/certifications/discovery/DISC-769-05.yaml
+    - agents/relay/evidence/EVD-769-0001.yaml
     - converters/scripts/xml_to_cii2019_order_provenance.py@987c866ca1225fe2024e19e95ba02474dbcccc82
 projection:
   required: true
