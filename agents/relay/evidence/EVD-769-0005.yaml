@@ -405,6 +405,33 @@ cross_source_comparison:
     staged_position_mm: '{"x":101331.874,"y":108862.03,"z":1479.205}'
     xml_position_mm: '101331.87 108862.03 101479.21'
     delta_mm_approx: {x: -0.004, y: 0.0, z: 100000.005}
+xml_case_matrix:
+  PS00571.1:
+    xml_state: ABSENT
+    staged_state: PRESENT
+    interpretation: Staged evidence explicitly says REST, but this GLRD XML provides no same-tag node on which to prove materialization feasibility.
+  PS00572.1:
+    xml_state: ABSENT
+    staged_state: ABSENT
+    interpretation: No feasibility claim is possible from these exact benchmark members.
+  PS00573.1:
+    xml_state: PRESENT
+    staged_state: PRESENT
+    xml_node_number: 3420
+    xml_branch: '/GLRD-1000-8"-B4110003-13451-01/B1'
+    staged_container_branch: '/GLRD-1000-8"-B4110003-13451-01/B1'
+    xml_position_mm: '117503.96 114999.98 101360.73'
+    staged_position_mm: '{"x":117503.965,"y":114999.978,"z":1360.732}'
+    position_delta_mm_approx: {x: -0.005, y: 0.002, z: 99999.998}
+    comparison_result: WORKING_SAME_CONTAINER_BRANCH_WITH_100000_MM_Z_FRAME_OFFSET
+  PS00608.1:
+    xml_state: PRESENT
+    staged_state: PRESENT
+    xml_node_number: 3140
+    xml_branch: '/GLRD-1000-2"-B4110001-93833-01/B2'
+    staged_container_branch: '/GLRD-1000-2"-P4110028-93833-01/B4'
+    staged_explicit_attachment: '/GLRD-1000-2"-B4110001-93833-01/B2'
+    comparison_result: MISSING_CASE_CONTAINER_BRANCH_DIVERGES_WHILE_EXPLICIT_ATTACHMENT_MATCHES
 production_trace:
   source_schema_adapter:
     observation: Existing adapter has semantic roles for support identity/kind and componentRef including COMPRE.
@@ -429,10 +456,19 @@ shared_authority_rule:
   - Do not special-case PS00608.1.
   - Do not allow coordinate proximity to override relationship conflict.
   - Do not treat the staged container branch as stronger than an explicit support attachment relationship without source-schema policy.
+validation:
+  TEST-SUPPORT-PROV:
+    status: PASS
+    observation: Both committed ZIP members were decoded and hash-bound; all four reported support identities were explicitly searched; present records and absent cases are recorded without inference.
+    oracle: Exact benchmark bytes plus repository production-source inspection.
+  TEST-SUPPORT-PROV-SCOPE:
+    status: PASS
+    observation: Git compare aa5659f334f780c1a0ecd381872ee64a2e5ac60e..agent/issue-769-support-20260918 is ahead-only and all changed paths are under agents/relay/**.
+    oracle: GitHub compare.
 acceptance_effect:
-  AC-SUPPORT-PROV-01: PARTIAL
-  AC-SUPPORT-PROV-02: PASS_FOR_RCA_RULE
-  AC-SUPPORT-PROV-SCOPE: PENDING_GIT_COMPARE
+  AC-SUPPORT-PROV-01: PASS
+  AC-SUPPORT-PROV-02: PASS
+  AC-SUPPORT-PROV-SCOPE: PASS
 truth_constraints:
 - PS00572.1 is absent from this exact STF archive; its requested feasibility cannot be established from this source.
 - This evidence is read-only provenance/RCA and does not authorize production mutation.
