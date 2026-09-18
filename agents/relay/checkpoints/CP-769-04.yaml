@@ -1,0 +1,79 @@
+schema_version: relay-v2.5
+checkpoint_id: CP-769-04
+ep_id: EP-769-04
+roadmap_basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+execution_basis:
+  material_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+implementation_result:
+  completed_steps: [STEP-ORDER-02]
+  material_head: 31a3841a68615ce6ad116c65280ee4fcbe64056f
+  synchronized_test_head: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  files_changed:
+  - converters/scripts/xml_to_cii2019.py
+  - converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+  commits:
+  - bcac22701ae27edcdf279d45efbb443d95db5531
+  - c2fbc64db0421e96eeaa4751d4ba19f32f055f83
+  - 31a3841a68615ce6ad116c65280ee4fcbe64056f
+  blobs:
+    converters/scripts/xml_to_cii2019.py: 797b4471a44e8e38e5d3b0655541ea47f5903d48
+    converters/scripts/test_xml_to_cii2019_edge_order_authority.py: 23d60f452dca3c6db901bece9038ca3adc1105b3
+acceptance_results:
+- id: AC-ORDER-REAL-01
+  status: PASS
+  earned_weight: 60
+  basis: EVD-769-0002 provides exact real-case provenance and EVD-769-0004 records TEST-ORDER-REAL-PY 7/7 PASS on the synchronized checkout, including both reported reversed-order cases and production contracted-direction execution.
+- id: AC-ORDER-REAL-02
+  status: PASS
+  earned_weight: 25
+  basis: EVD-769-0004 covers zero/multi-host fail-closed behavior plus negative-coordinate, reducer and tee controls with no global NodeNumber or coordinate-sign reorder.
+- id: AC-ORDER-REAL-SCOPE
+  status: PASS
+  earned_weight: 15
+  basis: EVD-769-0003 exact Git comparison changes only the two admitted files and has zero intersection with current PR 417 paths.
+validation_results:
+- id: TEST-ORDER-REAL-PY
+  status: PASS
+  basis_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  evidence: Synchronized checkout at aa5659f334f780c1a0ecd381872ee64a2e5ac60e executed converters/scripts/test_xml_to_cii2019_edge_order_authority.py with 7 passed in 0.39s; exact production/test blobs are 797b4471a44e8e38e5d3b0655541ea47f5903d48 and 23d60f452dca3c6db901bece9038ca3adc1105b3.
+- id: TEST-ORDER-REAL-SCOPE
+  status: PASS
+  basis_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  evidence: Exact compare from authorized material base changes only xml_to_cii2019.py and test_xml_to_cii2019_edge_order_authority.py; current PR 417 intersection is empty.
+- id: REGRESSION-OD-FBLI-LEGACY
+  status: PASS
+  basis_ref: 2f28f3df06a1e3b9f4c2a1dcee2788410dc4dc10
+  evidence: Same synchronized checkout executed effective-OD, FBLI negative-node and patched-process suites with 12 passed in 0.24s; aggregate topology plus regression result is 19/19 PASS.
+quality_review:
+  id: QRV-769-04
+  path: agents/relay/quality/QRV-769-04.yaml
+  digest: sha256:77b4f59f03e39837c7eee77bfe9f1149c7f4b3ad213e1b774abacb28dc6ca712
+quality_findings: []
+known_limitations:
+- Full post-material repository-native v2.5 validator-suite conformance is not yet executed; MATERIAL_WRITE_READY itself passed before mutation.
+- Issue 769 still has the support-fallback work package and release-benchmark debt after geometry.
+discoveries:
+- The reported 2439/2450 and 2909/2920 failures are caused by source-significant terminal RIGID removal followed by adjacency-based edge construction, not by coordinate sign or node-number magnitude.
+- Exact FBLI/RIGID ComponentRefNo provenance plus a unique interior BRAN host segment is sufficient to repair the demonstrated topology without global reordering.
+- Runtime short-span override compatibility requires protecting the source-proven terminal RIGID outside the generic cleaner and restoring it after its exact FLAN anchor.
+roadmap_reconciliation:
+  result: STATUS_UPDATE
+  status_updates:
+  - EP-769-04 is COMPLETE and checkpointed with all three acceptance criteria PASS.
+  - WP-769-GEOMETRY is COMPLETE / TERMINAL.
+  - WP-769-SUPPORT is ACTIVE and EP-769-05 is the next serial frontier in provenance-only READ_ONLY mode.
+  proposals: []
+  owner_decisions_required: []
+remaining_work:
+- Extract/hash the STF managed-stage source and reconstruct PS00608.1, PS00571.1, PS00572.1 and working PS00573.1 through the current support resolver chain.
+- Do not perform a support production mutation until a successor repair is independently qualified and Owner-authorized.
+- Carry full v2.5 conformance and outstanding BM-002/BM-004/BM-005/BM-009 release obligations to WP-769-RELEASE unless closed earlier by executed evidence.
+successor:
+  mode: SERIAL
+  frontier_work_package: WP-769-SUPPORT
+  ep_id: EP-769-05
+  parallel_plan: null
+  lane_id: null
+  lanes: []
