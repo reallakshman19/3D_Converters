@@ -1,52 +1,55 @@
 schema_version: relay-v2.5
 progress_basis:
-  id: PB-769-0001
+  id: PB-769-0002
   roadmap_revision: RM-0001
 overall:
-  earned_weight: 7.5
+  earned_weight: 28.75
   total_weight: 100
-  percent: 7.5
+  percent: 28.75
 objectives:
 - id: OBJ-769
-  earned_weight: 7.5
+  earned_weight: 28.75
   total_weight: 100
-  percent: 7.5
+  percent: 28.75
 phases:
 - id: PHASE-769-POSTMERGE
-  earned_weight: 7.5
+  earned_weight: 28.75
   total_weight: 100
-  percent: 7.5
+  percent: 28.75
 work_packages:
-- {id: WP-769-FBLI, earned_weight: 3.75, total_weight: 25, percent: 15}
+- {id: WP-769-FBLI, earned_weight: 25, total_weight: 25, percent: 100}
 - {id: WP-769-GEOMETRY, earned_weight: 3.75, total_weight: 25, percent: 15}
 - {id: WP-769-SUPPORT, earned_weight: 0, total_weight: 25, percent: 0}
 - {id: WP-769-RELEASE, earned_weight: 0, total_weight: 25, percent: 0}
 execution_packages:
-- {id: EP-769-01, earned_weight: 15, total_weight: 100, percent: 15}
-- {id: EP-769-02, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: EP-769-01, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: EP-769-02, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-03, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: EP-769-04, earned_weight: 0, total_weight: 100, percent: 0}
 implementation_steps:
-- {id: STEP-FBLI-01, earned_weight: 15, total_weight: 100, percent: 15}
-- {id: STEP-OD-01, earned_weight: 15, total_weight: 100, percent: 15}
+- {id: STEP-FBLI-01, earned_weight: 100, total_weight: 100, percent: 100}
+- {id: STEP-OD-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-01, earned_weight: 0, total_weight: 100, percent: 0}
 - {id: STEP-PROV-01, earned_weight: 100, total_weight: 100, percent: 100}
 - {id: STEP-ORDER-02, earned_weight: 0, total_weight: 100, percent: 0}
 acceptance_criteria:
 - id: AC-FBLI-01
-  earned_weight: 0
+  earned_weight: 60
   total_weight: 60
-  percent: 0
-  status: NOT_RUN
+  percent: 100
+  status: COMPLETE
   basis:
-  - converters/scripts/xml_to_cii2019_patched.py@7e534211b9f68faa663cf70b02a59c540e184f60
-  - TEST-FBLI remains Owner-deferred by ODR-769-0003.
+  - TEST-FBLI PASS on synchronized local checkout; 7 passed in 0.08s.
+  - Exact blobs: xml_to_cii2019_patched.py d0256ab0ab08d11819716642e0587ec50d518e4d and test 44169f68d8392dc9c2dd566a0af79139560a4115.
+  - agents/relay/evidence/EVD-769-0001.yaml records the late validation without rewriting CP-769-01.
 - id: AC-FBLI-02
-  earned_weight: 0
+  earned_weight: 25
   total_weight: 25
-  percent: 0
-  status: NOT_RUN
-  basis: [TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.]
+  percent: 100
+  status: COMPLETE
+  basis:
+  - TEST-FBLI PASS (7/7) and TEST-LEGACY PASS (2/2) on the synchronized local checkout.
+  - agents/relay/evidence/EVD-769-0001.yaml
 - id: AC-SCOPE-01
   earned_weight: 15
   total_weight: 15
@@ -54,21 +57,23 @@ acceptance_criteria:
   status: COMPLETE
   basis: [PR #772 changed-file inventory is disjoint from PR #417.]
 - id: AC-OD-01
-  earned_weight: 0
+  earned_weight: 60
   total_weight: 60
-  percent: 0
-  status: NOT_RUN
+  percent: 100
+  status: COMPLETE
   basis:
-  - Effective-OD implementation is complete and TEST-OD-JS passes.
-  - Formal TEST-OD-PY remains NOT_RUN and is Owner-deferred by ODR-769-0006; CP-769-02 does not promote it to PASS.
+  - TEST-OD-JS remains PASS from CP-769-02.
+  - TEST-OD-PY PASS on synchronized local checkout; 3 passed in 0.08s against production blob 737ce2d9d762e0eb7569b86a6f48f46719fa97f1 and test blob 650b04e3991cab280b7dfede2d31cf90f235bff7.
+  - agents/relay/evidence/EVD-769-0001.yaml records the late validation without rewriting CP-769-02.
 - id: AC-OD-02
-  earned_weight: 0
+  earned_weight: 25
   total_weight: 25
-  percent: 0
-  status: NOT_RUN
+  percent: 100
+  status: COMPLETE
   basis:
-  - JS negative controls pass and raw/effective authority remains separated.
-  - Formal TEST-OD-PY remains NOT_RUN under ODR-769-0006.
+  - TEST-OD-JS negative controls remain PASS.
+  - TEST-OD-PY PASS on the synchronized local checkout; raw/effective fallback assertions passed 3/3.
+  - agents/relay/evidence/EVD-769-0001.yaml
 - id: AC-OD-SCOPE
   earned_weight: 15
   total_weight: 15
