@@ -1,0 +1,74 @@
+schema_version: relay-v2.5
+checkpoint_id: CP-769-05
+ep_id: EP-769-05
+roadmap_basis:
+  roadmap_id: RM-XMLCII-769-POSTMERGE
+  revision: RM-0001
+execution_basis:
+  material_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  provenance_evidence_head: 7408314920bcbfa7775dd448bfad0f91e1b1a609
+implementation_result:
+  completed_steps: [STEP-SUPPORT-PROV-01]
+  files_changed:
+  - agents/relay/evidence/EVD-769-0005.yaml
+  - agents/relay/execution-packages/EP-769-05.yaml
+  - agents/relay/roadmap/owner-decisions/ODR-769-0009.yaml
+  - agents/relay/quality/QRV-769-05.yaml
+  production_files_changed: []
+acceptance_results:
+- id: AC-SUPPORT-PROV-01
+  status: PASS
+  earned_weight: 60
+  basis: EVD-769-0005 hash-binds the exact STF and GLRD archives/members, records full present staged objects for PS00608.1, PS00571.1 and PS00573.1, records PS00572.1 as absent, and records the XML-side presence/absence matrix without inference.
+- id: AC-SUPPORT-PROV-02
+  status: PASS
+  earned_weight: 25
+  basis: EVD-769-0005 identifies the standalone trace ledger as the first wrong boundary and establishes a source-semantic unique-evidence repair rule; no PS/tag-to-REST or coordinate-only conflict override is used.
+- id: AC-SUPPORT-PROV-SCOPE
+  status: PASS
+  earned_weight: 15
+  basis: GitHub compare from aa5659f334f780c1a0ecd381872ee64a2e5ac60e shows the support branch remains relay/control-plane only with no production-path intersection.
+validation_results:
+- id: TEST-SUPPORT-PROV
+  status: PASS
+  basis_ref: EVD-769-0005
+  evidence: Exact committed ZIP bytes were decoded and hash-bound; all four support identities were explicitly searched; working PS00573.1 and missing PS00608.1 were compared across staged and XML sources; unavailable cases remain explicit.
+- id: TEST-SUPPORT-PROV-SCOPE
+  status: PASS
+  basis_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
+  evidence: Ahead-only Git compare contains only agents/relay/** paths; no production support or PR 417 path changed.
+quality_review:
+  id: QRV-769-05
+  path: agents/relay/quality/QRV-769-05.yaml
+  digest: sha256:3018c586e6115f1c022c33c45cd5b96251ab2cbe7d19eed125fef7ee48709691
+quality_findings: []
+known_limitations:
+- PS00572.1 is absent from both exact benchmark members; its feasibility remains unproven.
+- PS00571.1 is explicit REST in staged evidence but has no same-tag node in the exact GLRD XML benchmark, so this checkpoint does not claim end-to-end materialization for it.
+- No production fix was executed in EP-769-05.
+- Any existing-JavaScript repair requires the repository backup command before edit.
+discoveries:
+- PS00608.1 is explicitly REST in staged source and COMPRE / ATTACHED_COMPONENT_REF both point to the exact XML branch containing node 3140.
+- PS00608.1 staged container branch differs from that explicit attachment branch; the standalone trace ledger uses container-branch compatibility for global PS fallback and does not consume COMPRE there.
+- Working PS00573.1 has staged container branch equal to its XML branch; both PS00573.1 and PS00608.1 show the same approximately +100000 mm XML Z-frame offset, so coordinate frame offset is not the differentiator.
+- The smallest repair boundary is shared source-schema relationship authority at ledger association; Python REST heuristics and tag-specific exceptions are unsupported.
+roadmap_reconciliation:
+  result: STATUS_UPDATE
+  status_updates:
+  - EP-769-05 is COMPLETE and provenance-checkpointed with all acceptance criteria PASS.
+  - WP-769-SUPPORT remains ACTIVE because the bounded production repair is still pending.
+  - Owner authorization for the bounded successor repair is recorded in ODR-769-0009; merge remains Owner-only.
+  proposals: []
+  owner_decisions_required: []
+remaining_work:
+- Generate EP-769-06 for the bounded standalone ledger/shared source-schema relationship repair.
+- Require a fresh zero-conversation candidate DISC / QUAL / TC and live MATERIAL_WRITE_READY before production mutation.
+- Run node utils/backup.js save for every existing JavaScript file before editing it, per repository policy.
+- Add reported-case and negative conflict/ambiguity regressions, then checkpoint the exact material head.
+successor:
+  mode: SERIAL
+  frontier_work_package: WP-769-SUPPORT
+  ep_id: EP-769-06
+  parallel_plan: null
+  lane_id: null
+  lanes: []
