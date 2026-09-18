@@ -117,22 +117,23 @@ status_planes:
 projection:
   required: true
   state: IN_SYNC
-  operation_id: GHGEN-769-0008
+  operation_id: GHGEN-769-0009
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0008.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0009.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5724464544
+  receipt: issuecomment-5724785909
   basis:
+  - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
   - agents/relay/evidence/EVD-769-0002.yaml
-  - agents/relay/execution-packages/EP-769-04.yaml
   - agents/relay/certifications/discovery/DISC-769-06.yaml
   - agents/relay/certifications/qualification/QUAL-769-05.yaml
   - agents/relay/certifications/takeover/TC-769-04.yaml
-  - agents/relay/projection/generations/GHGEN-769-0008.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5724464544
+  - agents/relay/projection/generations/GHGEN-769-0009.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5724785909
   superseded_operations:
+  - GHGEN-769-0008
   - GHGEN-769-0007
   - GHGEN-769-0006
   - GHGEN-769-0005
@@ -141,12 +142,12 @@ projection:
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - EVD-769-0002 provides exact real generated-label provenance and the independent topology oracle.
-  - DISC-769-06, QUAL-769-05 and TC-769-04 pass on EP-769-04.
-  - ODR-769-0008 grants material authorization for the bounded two-file topology repair.
-  - Runtime-derived MATERIAL_WRITE_READY must still PASS on the live checkout before production bytes change.
-  - GitHub projection is stale after Owner authorization and must be refreshed.
+  - EVD-769-0002 supplies exact real-case provenance; DISC-769-06, QUAL-769-05 and TC-769-04 pass.
+  - ODR-769-0008 grants Owner material authorization for the qualified two-file topology repair.
+  - REPO_STATE is EXECUTABLE with material_authority WRITE and no hard stop.
+  - Runtime-derived MATERIAL_WRITE_READY must still PASS on the actual checkout before production mutation.
+  - GitHub projection GHGEN-769-0009 is verified IN_SYNC by issuecomment-5724785909.
 chat_context_required: false
