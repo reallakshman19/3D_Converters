@@ -1,0 +1,54 @@
+schema_version: relay-v2.5-github-projection
+generation:
+  id: GHGEN-769-0012
+  repository: reallaksh19/3D_Converters
+  roadmap_revision: RM-0001
+  issue_graph_revision: IG-769-0001
+  execution_ref: EP-769-05
+  state: PREPARED
+  supersedes_generation: GHGEN-769-0011
+  basis:
+  - agents/relay/checkpoints/CP-769-04.yaml
+  - agents/relay/quality/QRV-769-04.yaml
+  - agents/relay/evidence/EVD-769-0004.yaml
+  - agents/relay/execution-packages/EP-769-05.yaml
+  - agents/relay/certifications/qualification/QSET-769-07.yaml
+operations:
+- id: GHOP-769-0012
+  kind: PUBLISH_HANDOVER
+  state: PREPARED
+  idempotency_key: relay:GHGEN-769-0012:GHOP-769-0012
+  depends_on: []
+  subject:
+    issue_node: ISSUE-769
+    related_nodes: []
+  preconditions:
+    repository_issue_state: OPEN
+    work_state: ACTIVE
+    required_relationships: []
+  desired:
+    title: '[XML→CII 2019 Standalone] RCA + robust fixes for mapping, rigid weights, large masters, regex/branch mapping, and B31.3 preview'
+    body_marker: '<!-- relay-operation:GHOP-769-0012 -->'
+    body_projection: 'EP-769-04 geometry is checkpointed COMPLETE at CP-769-04 with 7/7 topology PASS, 12/12 OD-FBLI-legacy regression PASS, scope PASS and QRV-769-04 CLEAR. Overall post-merge progress is 50%. WP-769-SUPPORT / EP-769-05 is the next serial frontier on agent/issue-769-support-20260918, READ_ONLY and WAITING_INPUT for exact STF staged support provenance.'
+    github_state: OPEN
+    relationships: []
+  publication:
+    attempt_count: 0
+    last_attempt_basis: []
+    receipt: null
+    last_error: null
+  verification:
+    status: NOT_RUN
+    observed_issue_number: null
+    observed_issue_id: null
+    observed_github_state: null
+    observed_relationships: []
+    basis: []
+  reconciliation:
+    issue_graph_effects:
+    - node: ISSUE-769
+      set_github_state: OPEN
+    complete_when:
+    - issue identity verified
+    - relay-operation marker verified
+    - desired GitHub state verified
