@@ -139,12 +139,12 @@ projection:
   - GHGEN-769-0003
   - GHGEN-769-0002
 relay_readiness:
-  baton_ready: false
+  baton_ready: true
   projection_ready: false
   handover_ready: false
   reasons:
   - CP-769-05 is the current predecessor checkpoint and EP-769-07 is the active serial replay contract.
-  - Material authority is READ_ONLY pending fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
-  - QSET-769-09 must exist and validate against the exact EP-769-07 digest before BATON_READY can become true.
-  - GitHub Issue 769 projection is STALE until replay setup is published and read back.
+  - QSET-769-09 is prepared against EP-769-07 contract digest sha256:93090ff842fd5a5edb6f4e631e145d186bbc09c78e093d6e4a462b85892a7d6f.
+  - Material authority remains READ_ONLY pending fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
+  - GitHub Issue 769 projection is STALE; projection readiness is separate from takeover/write readiness.
 chat_context_required: false
