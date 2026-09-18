@@ -1,0 +1,85 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0001
+kind: LATE_LOCAL_VALIDATION_AND_SOURCE_RECONSTRUCTION
+captured_at_utc: '2026-09-18T02:11:29Z'
+repository: reallaksh19/3D_Converters
+branch: agent/issue-769-geometry-order-20260917
+git_basis:
+  pre_evidence_head: bb61d7df9bc7d36bfec9d7656a24ca2fae0b9939
+  synchronization:
+  - git fetch --all --prune
+  - git switch agent/issue-769-geometry-order-20260917
+  - git pull --ff-only
+  observed_pull_result: Already up to date.
+  github_readback: Branch compared identical to bb61d7df9bc7d36bfec9d7656a24ca2fae0b9939 before this evidence record was committed.
+validation:
+- id: TEST-OD-PY
+  status: PASS
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py
+  output: 3 passed in 0.08s
+  exact_blobs:
+    converters/scripts/xml_to_cii2019.py: 737ce2d9d762e0eb7569b86a6f48f46719fa97f1
+    converters/scripts/test_xml_to_cii2019_effective_od.py: 650b04e3991cab280b7dfede2d31cf90f235bff7
+- id: TEST-FBLI
+  status: PASS
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  output: 7 passed in 0.08s
+  exact_blobs:
+    converters/scripts/xml_to_cii2019_patched.py: d0256ab0ab08d11819716642e0587ec50d518e4d
+    converters/scripts/test_xml_to_cii2019_fbli_negative_node.py: 44169f68d8392dc9c2dd566a0af79139560a4115
+- id: TEST-LEGACY
+  status: PASS
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_patched_process.py
+  output: 2 passed in 0.08s
+  exact_blobs:
+    converters/scripts/xml_to_cii2019_patched.py: d0256ab0ab08d11819716642e0587ec50d518e4d
+    converters/scripts/test_xml_to_cii2019_patched_process.py: d24e6b6686daeb0c00924ab227e92cc7a30f3593
+  aggregate: 12 passed / 0 failed / 0 errors
+historical_checkpoint_policy:
+  CP-769-01: Immutable; retains NOT_RUN truth as of checkpoint issuance.
+  CP-769-02: Immutable; retains NOT_RUN truth as of checkpoint issuance.
+  current_effect: Late evidence closes the current validation debt without rewriting historical checkpoint records.
+source_archive:
+  path: Benchmarks/GLRD-1000-PI-01.zip
+  git_blob: 014b93542c4706979d3157febc45c4952e0ce6fa
+  archive_listing:
+  - name: GLRD-1000-PI-01.xml
+    size_bytes: 629889
+  contains_enriched_or_generated_output: false
+reported_case_reconstruction:
+  range_2439_2450:
+    branch: '/GLRD-1000-2"-P4110023-93833-01/B4'
+    raw_sequence:
+    - '2430 / FLAN Endpoint1 / Y=106803.93'
+    - '-1 / FLAN Endpoint2 / Y=106912.93'
+    - '-1 / GASK Endpoint1 / Y=106912.93'
+    - '-1 / GASK Endpoint2 / Y=106916.13'
+    - '-1 / FBLI Endpoint1 / Y=106916.13 / ComponentRefNo =134234934/25985'
+    - '2440 / RIGID Endpoint2 / Y=106916.13 / ComponentRefNo =134234934/25985'
+    - '2450 / BRAN Endpoint2 / Y=106886.13 / ComponentRefNo =134234934/25955'
+    observed_span_mm: 26.8
+  range_2909_2920:
+    branch: '/GLRD-1000-2"-P4110028-93833-01/B4'
+    raw_sequence:
+    - '2900 / FLAN Endpoint1 / Y=106803.93'
+    - '-1 / FLAN Endpoint2 / Y=106912.93'
+    - '-1 / GASK Endpoint1 / Y=106912.93'
+    - '-1 / GASK Endpoint2 / Y=106916.13'
+    - '-1 / FBLI Endpoint1 / Y=106916.13 / ComponentRefNo =134234934/26049'
+    - '2910 / RIGID Endpoint2 / Y=106916.13 / ComponentRefNo =134234934/26049'
+    - '2920 / BRAN Endpoint2 / Y=106886.13 / ComponentRefNo =134234934/26019'
+    observed_span_mm: 26.8
+  deterministic_numbering_basis:
+  - Enrichment drops GASK nodes before inline-length annotation and split-condensed renumbering.
+  - Current RENUMBERABLE_NEGATIVE_TYPES contains FLAN, VALV, RIGID and INST, not FBLI.
+  - For a single eligible length-bearing negative FLAN before next positive 2440/2910, allocateContiguousNumbers assigns next-1, yielding 2439/2909 when the split-condensed path is active.
+provenance_diagnostic:
+  input_used_as_enriched_xml: Extracted raw ZIP XML, not a real enriched/generated XML.
+  ranges: ['2909:2920', '2439:2450']
+  record_count: 6
+  source_match_counts: {NONE: 6}
+  interpretation: The report materially narrows the source structures and deterministically explains candidate synthetic numbers, but does not provide an exact real enriched-label-to-source join. INPUT-ORDER-PROVENANCE therefore remains blocking for the topology mutation.
+truth_constraints:
+- Do not promote CP-769-01 or CP-769-02 historical NOT_RUN entries retroactively.
+- Do not treat the raw-XML provenance diagnostic as an exact enriched-label capture.
+- Do not authorize topology mutation from the deterministic numbering reconstruction alone unless QSET-769-05 is revised/qualified against an independent orientation oracle.
