@@ -31,7 +31,7 @@ acceptance_results:
 validation_results:
 - id: TEST-SUPPORT-PROV
   status: PASS
-  basis_ref: EVD-769-0005
+  basis_ref: aa5659f334f780c1a0ecd381872ee64a2e5ac60e
   evidence: Exact committed ZIP bytes were decoded and hash-bound; all four support identities were explicitly searched; working PS00573.1 and missing PS00608.1 were compared across staged and XML sources; unavailable cases remain explicit.
 - id: TEST-SUPPORT-PROV-SCOPE
   status: PASS
@@ -61,14 +61,14 @@ roadmap_reconciliation:
   proposals: []
   owner_decisions_required: []
 remaining_work:
-- Generate EP-769-06 for the bounded standalone ledger/shared source-schema relationship repair.
-- Require a fresh zero-conversation candidate DISC / QUAL / TC and live MATERIAL_WRITE_READY before production mutation.
+- Execute EP-769-07 as the strict pre-write-qualified replay for the bounded standalone ledger/source-semantic relationship repair.
+- Require fresh repository-only DISC / QUAL / TC and live MATERIAL_WRITE_READY before EP-769-07 production mutation.
 - Run node utils/backup.js save for every existing JavaScript file before editing it, per repository policy.
 - Add reported-case and negative conflict/ambiguity regressions, then checkpoint the exact material head.
 successor:
   mode: SERIAL
   frontier_work_package: WP-769-SUPPORT
-  ep_id: EP-769-06
+  ep_id: EP-769-07
   parallel_plan: null
   lane_id: null
   lanes: []
