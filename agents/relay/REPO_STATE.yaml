@@ -116,22 +116,24 @@ status_planes:
     - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
 projection:
   required: true
-  state: STALE
-  operation_id: GHGEN-769-0009
+  state: IN_SYNC
+  operation_id: GHGEN-769-0010
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0009.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0010.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5724785909
+  receipt: issuecomment-5725019548
   basis:
   - agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml
   - agents/relay/evidence/EVD-769-0002.yaml
   - agents/relay/execution-packages/EP-769-04.yaml
-  - agents/relay/certifications/discovery/DISC-769-07.yaml
   - agents/relay/certifications/qualification/QSET-769-06.yaml
+  - agents/relay/certifications/discovery/DISC-769-07.yaml
   - agents/relay/certifications/qualification/QUAL-769-06.yaml
   - agents/relay/certifications/takeover/TC-769-05.yaml
+  - agents/relay/projection/generations/GHGEN-769-0010.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5725019548
   superseded_operations:
   - GHGEN-769-0009
   - GHGEN-769-0008
@@ -143,12 +145,12 @@ projection:
   - GHGEN-769-0002
 relay_readiness:
   baton_ready: true
-  projection_ready: false
-  handover_ready: false
+  projection_ready: true
+  handover_ready: true
   reasons:
-  - EP-769-04 v2.5 structural conformance defects identified by the live Windows gate are corrected.
-  - Fresh DISC-769-07, QUAL-769-06 and TC-769-05 bind the corrected EP contract.
-  - ODR-769-0008 still grants the bounded two-file material authorization.
-  - Material authority is WRITE and execution state is READY, but production mutation waits for a fresh repository-native MATERIAL_WRITE_READY PASS.
-  - GitHub projection is stale until the corrected-gate result is projected.
+  - First live MATERIAL_WRITE_READY run passed Git context and isolated control-plane conformance defects only.
+  - EP-769-04, QSET-769-06, DISC-769-07, QUAL-769-06, TC-769-05 and execution state now satisfy the reported v2.5 structural requirements.
+  - ODR-769-0008 grants the bounded two-file material authorization; material_authority is WRITE and execution state is READY with no hard stop.
+  - Production mutation remains blocked operationally until the corrected live checkout returns MATERIAL_WRITE_READY PASS.
+  - GitHub projection GHGEN-769-0010 is verified IN_SYNC by issuecomment-5725019548.
 chat_context_required: false
