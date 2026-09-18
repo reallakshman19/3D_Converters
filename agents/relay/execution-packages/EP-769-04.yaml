@@ -32,7 +32,7 @@ context_capsule:
   roadmap_position: WP-769-GEOMETRY remains ACTIVE after the provenance instrumentation checkpoint.
   why_this_work_exists: Exact production-enriched provenance is now available for the reported generated labels through EVD-769-0002; the active work is fresh topology qualification before any material repair.
   current_architecture: Enrichment may synthesize positive node numbers; base _build_edges uses branch array order as edge orientation; PR 417 owns coordinate custody.
-  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007]
+  prior_owner_decisions: [ODR-769-0003, ODR-769-0005, ODR-769-0006, ODR-769-0007, ODR-769-0008]
   current_implementation_state: Provenance instrumentation is complete; EVD-769-0002 records 8/8 exact real-case source joins. No topology/order production mutation has occurred.
   known_problems:
   - Production enrichment reproduces 2909-2920 and 2439-2450 as 26.8 mm reversed serial edges after short-node pruning; EVD-769-0002 binds their generated nodes to exact source records and terminal/branch semantics.
@@ -44,7 +44,7 @@ repository_discovery:
 - id: DSTEP-04-01
   action: VERIFY
   target: agents/relay/REPO_STATE.yaml
-  question: Does state route from CP-769-03 to EP-769-04/WP-769-GEOMETRY in READ_ONLY mode?
+  question: Does state route from CP-769-03 to EP-769-04/WP-769-GEOMETRY with the current Owner-authorized material authority and certified candidate?
   expected_outputs: [active_ep, previous_checkpoint, material_authority]
   receipt_required: true
   on_failure: Reconcile relay custody.
@@ -123,7 +123,7 @@ scope:
   - {invariant: Legitimate branch/reducer/tee/endpoint topology is preserved and no global numeric/coordinate heuristic is introduced., reason: Geometry safety.}
   - {invariant: PR 417 coordinate/origin behavior is unchanged., reason: Separate custody.}
   prohibited:
-  - {domain: Any material write before QSET-769-05 has a fresh PASS qualification/takeover chain and live MATERIAL_WRITE_READY., reason: Qualification and runtime write readiness remain mandatory.}
+  - {domain: Any material write before QSET-769-06 has a fresh PASS qualification/takeover chain and live MATERIAL_WRITE_READY., reason: Qualification and runtime write readiness remain mandatory.}
   - {domain: PR 417 changed files, reason: Separate coordinate custody.}
   - {domain: Global NodeNumber sorting or coordinate-sign reversal, reason: Unsafe heuristic.}
   owner_reserved:
@@ -135,9 +135,9 @@ anti_drift:
   - {id: ADR-ORDER-05, restriction: Do not mutate production code until all required real source matches are exact., reason: Input authority.}
   - {id: ADR-ORDER-06, restriction: Do not edit PR 417 paths., reason: Avoid custody collision.}
   stale_if:
-  - PR 417 changes the candidate owner path.
-  - Main/base moves before write without a valid drift receipt.
-  - The real provenance capture changes.
+  - {id: STALE-ORDER-01, condition: PR 417 changes or begins writing either qualified candidate path., effect: STOP, rationale: Coordinate/topology custody would overlap and require reconciliation.}
+  - {id: STALE-ORDER-02, condition: Main/base moves before write without a valid drift receipt., effect: RECONCILE, rationale: Live Git basis must remain qualified before mutation.}
+  - {id: STALE-ORDER-03, condition: The real provenance capture or its raw/enriched SHA256 identity changes., effect: STOP, rationale: The topology oracle would no longer match the qualified evidence.}
 implementation_plan:
 - id: STEP-ORDER-02
   objective: Recover real source provenance, establish the independent expected orientation, then implement only the qualified first wrong order boundary.
@@ -158,7 +158,7 @@ next_work:
   phase_transition: false
   steps:
   - order: 1
-    action: Complete fresh QSET-769-05 qualification/takeover from EVD-769-0002 before any topology material write.
+    action: Complete fresh QSET-769-06 qualification/takeover from EVD-769-0002 before any topology material write.
     targets: [converters/scripts/xml_to_cii2019_order_provenance.py, converters/scripts/xml_to_cii2019.py]
     inputs: [INPUT-ORDER-PROVENANCE]
     tests: [TEST-ORDER-REAL-PY, TEST-ORDER-REAL-SCOPE]
@@ -179,7 +179,7 @@ qualification_boundary:
   - Real provenance is required to reopen the original topology/order mutation boundary.
   - Expected orientation must be independent of implementation.
   - PR 417 custody remains protected.
-  question_set: {id: QSET-769-05, path: agents/relay/certifications/qualification/QSET-769-05.yaml}
+  question_set: {id: QSET-769-06, path: agents\relay\certifications\qualification\QSET-769-06.yaml}
 quality:
   applicable:
   - {blueprint: coding, reason: Potential future production topology change., review_focus: [authority, failure]}
@@ -209,8 +209,34 @@ validation:
 failure_and_stop_conditions:
   hard_stop_categories: [OWNER_DECISION_REQUIRED, ESSENTIAL_INPUT_MISSING, AUTHORITY_VIOLATION, PROTECTED_INVARIANT_FAILURE, WRITE_COLLISION, SUPERSEDED_EP, ROADMAP_CONFLICT, REPOSITORY_STATE_CONFLICT, UNSAFE_ENGINEERING_RESULT]
 report_contract:
-  sections: [Executive state, Work completed, Files changed, Acceptance matrix, Tests and evidence, Known limitations, Owner decisions required, Exact next actions]
-  payloads: [material_ref, provenance_capture, validation_results, successor_boundary]
+  sections:
+  - Executive state
+  - Overall / phase / EP progress
+  - Work completed
+  - Files changed
+  - Acceptance matrix
+  - Tests and evidence
+  - Quality findings
+  - Known limitations
+  - Owner decisions required
+  - GitHub issue changes
+  - Roadmap changes
+  - Exact next actions
+  - Successor EP
+  payloads:
+  - {id: REPORT-EXEC, section: Executive state, sources: [agents/relay/REPO_STATE.yaml], required_fields: [relay_state, active_ep, execution_plane, stop_plane]}
+  - {id: REPORT-PROGRESS, section: Overall / phase / EP progress, sources: [agents/relay/roadmap/PROGRESS.yaml], required_fields: [overall_percent, phase_percent, ep_percent, basis_revision]}
+  - {id: REPORT-WORK, section: Work completed, sources: [agents/relay/execution-packages/EP-769-04.yaml, agents/relay/checkpoints/CP-769-03.yaml], required_fields: [completed_steps, current_step, material_ref]}
+  - {id: REPORT-FILES, section: Files changed, sources: [agents/relay/execution-packages/EP-769-04.yaml], required_fields: [allowed_writes, observed_changes, protected_paths]}
+  - {id: REPORT-AC, section: Acceptance matrix, sources: [agents/relay/execution-packages/EP-769-04.yaml, agents/relay/roadmap/PROGRESS.yaml], required_fields: [acceptance_ids, status, evidence]}
+  - {id: REPORT-TESTS, section: Tests and evidence, sources: [agents/relay/evidence/EVD-769-0002.yaml, agents/relay/REPO_STATE.yaml], required_fields: [validation_ids, status, exact_evidence]}
+  - {id: REPORT-QUALITY, section: Quality findings, sources: [agents/relay/REPO_STATE.yaml], required_fields: [quality_state, findings, blocking_findings]}
+  - {id: REPORT-LIMITS, section: Known limitations, sources: [agents/relay/REPO_STATE.yaml, agents/relay/execution-packages/EP-769-04.yaml], required_fields: [not_run, protected_scope, unresolved_items]}
+  - {id: REPORT-OWNER, section: Owner decisions required, sources: [agents/relay/roadmap/owner-decisions/ODR-769-0008.yaml, agents/relay/REPO_STATE.yaml], required_fields: [owner_decisions, pending_owner_items]}
+  - {id: REPORT-GITHUB, section: GitHub issue changes, sources: [agents/relay/REPO_STATE.yaml], required_fields: [projection_state, operation_id, receipt]}
+  - {id: REPORT-ROADMAP, section: Roadmap changes, sources: [agents/relay/roadmap/OVERALL_ROADMAP.yaml, agents/relay/roadmap/PROGRESS.yaml], required_fields: [roadmap_revision, current_frontier, progress_basis]}
+  - {id: REPORT-NEXT, section: Exact next actions, sources: [agents/relay/execution-packages/EP-769-04.yaml, agents/relay/REPO_STATE.yaml], required_fields: [next_action, stop_conditions, required_tests]}
+  - {id: REPORT-SUCCESSOR, section: Successor EP, sources: [agents/relay/execution-packages/EP-769-04.yaml], required_fields: [checkpoint, next_frontier, successor_ep_or_terminal_disposition]}
 checkpoint_contract:
   required: true
   acceptance: [AC-ORDER-REAL-01, AC-ORDER-REAL-02, AC-ORDER-REAL-SCOPE]
@@ -222,4 +248,7 @@ successor_relay:
   duties:
   - Preserve the real provenance capture and independent expected orientation in any successor.
   - Do not claim topology completion without the declared real-case regressions.
-  required_outputs: [provenance_capture, qualified_topology_result, validation_status]
+  - Compute next executable frontier from the reconciled roadmap after checkpoint.
+  - Run cold-start check so a zero-chat replacement can reconstruct the active route and evidence.
+  - Update REPO_STATE with checkpoint linkage, next frontier, material authority and projection truth.
+  required_outputs: [checkpoint, next_frontier, successor_ep_or_terminal_disposition, provenance_capture, qualified_topology_result, validation_status]
