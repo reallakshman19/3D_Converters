@@ -31,34 +31,7 @@ predecessor_join:
 predecessor_replan:
   id: null
   path: null
-takeover_admissions:
-- route_key: SERIAL:EP-769-02
-  candidate:
-    agent_instance_id: chatgpt:issue769-v25-geometry-write-candidate-20260917T172244Z
-  discovery_receipt:
-    id: DISC-769-02
-    path: agents/relay/certifications/discovery/DISC-769-02.yaml
-  certification:
-    id: TC-769-02
-    path: agents/relay/certifications/takeover/TC-769-02.yaml
-- route_key: SERIAL:EP-769-03
-  candidate:
-    agent_instance_id: chatgpt:issue769-v25-order-provenance-write-candidate-20260917T200433Z
-  discovery_receipt:
-    id: DISC-769-04
-    path: agents/relay/certifications/discovery/DISC-769-04.yaml
-  certification:
-    id: TC-769-03
-    path: agents/relay/certifications/takeover/TC-769-03.yaml
-- route_key: SERIAL:EP-769-04
-  candidate:
-    agent_instance_id: chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z
-  discovery_receipt:
-    id: DISC-769-07
-    path: agents/relay/certifications/discovery/DISC-769-07.yaml
-  certification:
-    id: TC-769-05
-    path: agents/relay/certifications/takeover/TC-769-05.yaml
+takeover_admissions: []
 progress:
   overall_percent: 50
   phase_percent: 50
@@ -66,9 +39,9 @@ progress:
   basis_revision: PB-769-0004
 status_planes:
   execution:
-    state: WAITING_QUALIFICATION
+    state: WAITING
     can_continue: true
-    material_authority: READ_ONLY
+    material_authority: WRITE
     next_action: Fresh zero-context candidate checks out agent/issue-769-support-replay-v25-20260918, executes EP-769-07 repository discovery without consulting PR 775 implementation, then completes QSET-769-09 qualification and takeover certification. No material write is authorized before live MATERIAL_WRITE_READY.
   quality:
     state: NEEDS_ATTENTION
@@ -145,6 +118,6 @@ relay_readiness:
   reasons:
   - CP-769-05 is the current predecessor checkpoint and EP-769-07 is the active serial replay contract.
   - QSET-769-09 is prepared against EP-769-07 contract digest sha256:93090ff842fd5a5edb6f4e631e145d186bbc09c78e093d6e4a462b85892a7d6f.
-  - Material authority remains READ_ONLY pending fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY.
+  - Owner material authority is WRITE for the bounded replay, but runtime mutation remains blocked until fresh DISC/QUAL/TC and live MATERIAL_WRITE_READY pass.
   - GitHub Issue 769 projection is STALE; projection readiness is separate from takeover/write readiness.
 chat_context_required: false
