@@ -1,0 +1,114 @@
+schema_version: relay-v2.5-qualification
+id: QUAL-769-05
+candidate:
+  agent_instance_id: chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z
+question_set:
+  id: QSET-769-05
+  path: agents/relay/certifications/qualification/QSET-769-05.yaml
+route:
+  route_key: SERIAL:EP-769-04
+  mode: SERIAL
+  execution_ref: EP-769-04
+  ep_id: EP-769-04
+  ep_path: agents/relay/execution-packages/EP-769-04.yaml
+  plan_id: null
+  plan_path: null
+  lane_id: null
+  roadmap_revision: RM-0001
+  work_package: WP-769-GEOMETRY
+  ep_contract_digest: sha256:4b05ba9ead983b1af1229d8ab7b351e43f677daa07df821b5aacf6179c916f0d
+answers:
+- id: Q1
+  response: The production browser path enriches the raw ZIP XML through enrichment-run-parity.js::enrichXmlForCii2019, including gasket removal and split-condensed renumbering. The Python converter then parses positive nodes, applies _drop_short_element_nodes, and _build_edges serializes consecutive retained nodes. Direction/contracted-direction wrappers consume that same base edge topology downstream.
+  outputs:
+    production_entrypoint: tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js::enrichXmlForCii2019 -> converters/scripts/xml_to_cii2019.py::_parse_xml_document
+    source_order_owner: Exact AVEVA raw branch/component endpoint records joined to the production-enriched artifact by EVD-769-0002.
+    edge_order_owner: converters/scripts/xml_to_cii2019.py::_drop_short_element_nodes followed by _build_edges.
+    downstream_consumer: Direction/contracted-direction conversion model and CII ELEMENTS serialization.
+  evidence:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - agents/relay/certifications/discovery/DISC-769-06.yaml
+  - converters/scripts/xml_to_cii2019.py
+- id: Q2
+  response: Both real cases are exact and symmetric. Generated 2439 is raw FLAN endpoint 2 ref =134234934/25983 at Y=106912.93; terminal RIGID 2440 is at Y=106916.13; BRAN connection 2450 is at Y=106886.13. Generated 2909/2910/2920 have the same topology at X=102600 with refs =134234934/26047, /26049 and /26019. _drop_short_element_nodes removes 2440/2910 because each terminal span is 3.2 mm, then _build_edges converts the new adjacency into the reported 2439->2450 / 2909->2920 vectors of -26.8 mm. Source/component semantics establish that the BRAN records are junctions, not terminal successors, while the blind-flange RIGID records are terminal closures.
+  outputs:
+    reconstruction_steps:
+    - Production enrichment creates 2439/2909 from exact raw FLAN endpoint-2 records and retains 2440/2910 RIGID plus 2450/2920 BRAN.
+    - Provenance diagnostic returns 8/8 EXACT joins.
+    - Short-node pruning removes 2440/2910 at 3.2 mm.
+    - Consecutive-edge construction emits 2439->2450 and 2909->2920, each vector [0,-26.8,0] mm.
+    first_wrong_boundary: Short-node pruning erases source-significant terminal closure, after which adjacency-based _build_edges mistakes an appended branch-connection record for the terminal successor.
+    expected_order: The branch junction belongs in the unique host span before the terminal flange face; the terminal suffix remains junction -> FLAN endpoint2 -> blind-flange RIGID. For the reported local geometry this is 2450 -> 2439 -> 2440 and 2920 -> 2909 -> 2910, with the upstream host edge split at the junction.
+    provenance_basis: EVD-769-0002 exact raw/enriched joins and source component/endpoint semantics.
+  evidence:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - agents/relay/certifications/discovery/DISC-769-06.yaml
+- id: Q3
+  response: The smallest permitted mutation is topology normalization inside xml_to_cii2019.py before short-node pruning/edge construction. It may act only when explicit source semantics identify a trailing BRAN connection and a source-proven blind-flange terminal closure, and the BRAN point resolves to exactly one host segment. It must not sort NodeNumbers, reverse on coordinate sign, touch coordinate custody, or alter ordinary reducer/tee/run ordering.
+  outputs:
+    mutation_effect: Move only a uniquely resolved trailing BRAN connection into its host segment before edge construction and preserve the source-proven terminal blind-flange RIGID from short-node pruning; otherwise leave branch order unchanged/fail closed.
+    protected_invariant: Legitimate PIPE/reducer/tee/olet/endpoint topology, valid negative-coordinate runs, restraints, and PR 417 coordinate/origin behavior remain unchanged.
+    custody_boundary: Writes limited to converters/scripts/xml_to_cii2019.py and converters/scripts/test_xml_to_cii2019_edge_order_authority.py; current PR 417 paths are excluded.
+    falsifier: Multiple/no host segments, ambiguous junction identity, need for global NodeNumber sort or coordinate-sign reversal, PR 417 overlap, or any negative-control topology change makes the repair unsafe.
+  evidence:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - agents/relay/execution-packages/EP-769-04.yaml
+  - GitHub PR 417 changed-file readback
+- id: Q4
+  response: The oracle is the frozen real provenance in EVD-769-0002, declared before implementation. The focused test must reproduce both exact terminal/junction cases and assert junction insertion, terminal RIGID preservation, absence of 2439->2450 and 2909->2920, and the positive 26.8 mm junction-to-flange span. Negative controls must prove ordinary negative-coordinate runs, reducers, tees/olets, non-junction BRAN records, ambiguous/no-host junction candidates and terminal flange pairs without appended BRAN tails are not globally reordered.
+  outputs:
+    independent_method: Construct fixtures from the exact component types/endpoints/positions and expected topology declared in EVD-769-0002; compare normalized branch/edge pairs independently of the proposed implementation.
+    predicted_result: Real cases normalize to host -> BRAN junction -> terminal FLAN -> blind-flange RIGID, with junction-to-FLAN scalar distance 26.8 mm and no reversed serial edge; all negative controls retain their original semantic ordering.
+    negative_controls:
+    - legitimate negative-coordinate physical run
+    - standard reducer transition
+    - TEE/OLET multi-endpoint topology
+    - BRAN candidate with zero or multiple possible host segments
+    - terminal flange/equipment pair without appended BRAN tail
+    tolerance_or_exactness: Component identity, endpoint, edge-pair and no-reorder assertions exact; position/length comparisons absolute tolerance 1e-6 mm.
+  evidence:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - agents/relay/execution-packages/EP-769-04.yaml
+- id: Q5
+  response: First bounded write is one topology-normalization helper plus parser provenance needed to identify the blind-flange terminal, invoked before _drop_short_element_nodes, and one focused regression file. A trailing BRAN endpoint-2 record is eligible only when it is an explicit shared branch junction and its position lies on exactly one existing host segment; it is inserted into that segment. A terminal RIGID is protected from short-node removal only when raw source adjacency/provenance identifies it as the closure of an FBLI component. All other cases preserve existing order/pruning. No coordinate frame mapping is changed.
+  outputs:
+    first_change_or_stop: Modify converters/scripts/xml_to_cii2019.py only within parse/topology-normalization/short-prune ownership, plus converters/scripts/test_xml_to_cii2019_edge_order_authority.py; stop instead of guessing on zero/multiple junction hosts or missing blind-flange provenance.
+    predicted_before: 2440/2910 are pruned, then _build_edges emits 2439->2450 and 2909->2920 at -26.8 mm.
+    predicted_after: Junction records split their unique host segments and precede the terminal FLAN face; 2440/2910 remain terminal closure nodes, yielding 2450->2439 and 2920->2909 at +26.8 mm and FLAN->RIGID terminal edges, without global reordering.
+    verification: TEST-ORDER-REAL-PY covers both real fixtures and all negative controls; TEST-ORDER-REAL-SCOPE requires zero intersection with PR 417.
+  evidence:
+  - agents/relay/evidence/EVD-769-0002.yaml
+  - agents/relay/certifications/discovery/DISC-769-06.yaml
+  - converters/scripts/xml_to_cii2019.py
+  - GitHub PR 417 changed-file readback
+evaluated_by:
+  type: INDEPENDENT_AGENT
+  identity: chatgpt:issue769-v25-order-real-independent-reviewer-20260918
+  basis:
+  - Repository-only review of EVD-769-0002, refreshed EP-769-04/QSET-769-05, DISC-769-06, current xml_to_cii2019.py topology code and current PR 417 paths.
+  - Candidate, QSET preparer and evaluator identities are distinct.
+evaluations:
+- id: Q1
+  status: PASS
+  basis:
+  - Production enrichment, pruning, edge ownership and downstream consumer are explicitly traced from current repository source and EVD-769-0002.
+- id: Q2
+  status: PASS
+  basis:
+  - Both 26.8 mm cases have exact generated-to-raw provenance, quantitative positions and a demonstrated first wrong boundary.
+- id: Q3
+  status: PASS
+  basis:
+  - Mutation is limited to explicit terminal/junction semantics with fail-closed host resolution; prohibited global ordering heuristics and PR 417 custody remain protected.
+- id: Q4
+  status: PASS
+  basis:
+  - Independent expected topology is frozen in EVD-769-0002 before implementation and includes exact real cases plus broad negative controls.
+- id: Q5
+  status: PASS
+  basis:
+  - The first two-file write is explicit, predicts before/after edge behavior and has deterministic stop conditions for ambiguity.
+self_evaluation:
+  allowed: false
+result: PASS
+conversation_context_used: false
