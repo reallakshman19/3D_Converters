@@ -493,7 +493,9 @@ function recordForNode(node, groups, toleranceMm) {
   const selected = explicitAuthority?.blocked
     ? { ...candidate, best: null, ambiguous: explicitAuthority.ambiguous === true }
     : candidate;
-  const positional = selected.best;
+  const positional = explicitAuthority?.entry && selected.best?.group !== explicitAuthority.group
+    ? null
+    : selected.best;
   const group = positional?.group || null;
   const dtxrPosValues = group ? uniqueValues(group.entries.map((entry) => entry.labeled || entry.description)) : [];
   const psEntry = group?.entries.find((entry) => xmlTag && entry.tags.includes(xmlTag)) || null;
