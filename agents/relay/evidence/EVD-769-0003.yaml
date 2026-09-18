@@ -1,0 +1,67 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0003
+kind: MATERIAL_WRITE_GATE_AND_TOPOLOGY_IMPLEMENTATION
+captured_at_utc: '2026-09-18T04:21:01Z'
+repository: reallaksh19/3D_Converters
+branch: agent/issue-769-geometry-order-20260917
+prewrite_runtime_gate:
+  checkout_head: 9993f7c6c2de10731577bdfcfec518c6f546044c
+  common_checkout: D:\Code3\Common
+  common_basis_ref: feae969b860b83ee3df230fef1a162d4a4e7968e
+  command: material_write_ready.py . --candidate-id chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z
+  result: PASS
+  material_write_ready: true
+  git:
+    status: PASS
+    branch: agent/issue-769-geometry-order-20260917
+    base_branch: main
+    base_observed_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+    current_base_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+    base_drift: UNCHANGED
+  errors: []
+  worktree_note: Local checkout reported one untracked nested 3D_Converters/ entry but no tracked modifications; the repository-native gate still returned PASS.
+implementation:
+  production_commit: bcac22701ae27edcdf279d45efbb443d95db5531
+  regression_commits:
+  - c2fbc64db0421e96eeaa4751d4ba19f32f055f83
+  - 31a3841a68615ce6ad116c65280ee4fcbe64056f
+  production_blob:
+    path: converters/scripts/xml_to_cii2019.py
+    sha: 797b4471a44e8e38e5d3b0655541ea47f5903d48
+  test_blob:
+    path: converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+    sha: 23d60f452dca3c6db901bece9038ca3adc1105b3
+  behavior:
+  - Parser records ComponentRefNo provenance and identifies positive RIGID nodes whose ref is also present on an FBLI source record in the same branch.
+  - Only a trailing BRAN endpoint-2 + source-proven blind-flange RIGID + FLAN endpoint-2 pattern is eligible.
+  - BRAN is inserted only when its position lies strictly inside exactly one pre-terminal host segment.
+  - The source-proven terminal RIGID is withheld from the generic short-span cleaner, including the production contracted-direction override, then restored after its exact FLAN anchor.
+  - Zero-host, multi-host and ordinary non-tail cases retain existing ordering; no NodeNumber sort or coordinate-sign reversal is introduced.
+scope_validation:
+  id: TEST-ORDER-REAL-SCOPE
+  status: PASS
+  material_base: 9993f7c6c2de10731577bdfcfec518c6f546044c
+  material_head: 31a3841a68615ce6ad116c65280ee4fcbe64056f
+  changed_paths:
+  - converters/scripts/xml_to_cii2019.py
+  - converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+  pr417_overlap: []
+  current_main_relation:
+    behind_by: 0
+    base_ref: 9f0925454652cd963364c066c2bb7b8828275afd
+behavior_validation:
+  id: TEST-ORDER-REAL-PY
+  status: NOT_RUN
+  reason: Formal synchronized-checkout pytest has not yet executed against production blob 797b4471a44e8e38e5d3b0655541ea47f5903d48 and test blob 23d60f452dca3c6db901bece9038ca3adc1105b3.
+  command: python -m pytest -q converters/scripts/test_xml_to_cii2019_edge_order_authority.py
+regression_validation:
+  status: NOT_RUN
+  reason: Existing OD/FBLI/legacy Python regressions should be rerun after the additive XmlNode/parser topology change.
+  commands:
+  - python -m pytest -q converters/scripts/test_xml_to_cii2019_effective_od.py
+  - python -m pytest -q converters/scripts/test_xml_to_cii2019_fbli_negative_node.py
+  - python -m pytest -q converters/scripts/test_xml_to_cii2019_patched_process.py
+truth_constraints:
+- TEST-ORDER-REAL-SCOPE is PASS from exact Git changed-path evidence.
+- TEST-ORDER-REAL-PY remains NOT_RUN until executed on a synchronized checkout.
+- No merge has been performed.
