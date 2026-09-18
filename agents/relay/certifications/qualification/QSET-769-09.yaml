@@ -1,66 +1,137 @@
-schema_version: relay-v2.5-question-set
-id: QSET-769-09
-route:
-  route_key: SERIAL:EP-769-07
-  mode: SERIAL
-  execution_ref: EP-769-07
-  ep_id: EP-769-07
-  ep_path: agents/relay/execution-packages/EP-769-07.yaml
-  plan_id: null
-  plan_path: null
-  lane_id: null
-  roadmap_revision: RM-0001
-  work_package: WP-769-SUPPORT
-  ep_contract_digest: sha256:93090ff842fd5a5edb6f4e631e145d186bbc09c78e093d6e4a462b85892a7d6f
-boundary:
-  trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
-  from_phase: PHASE-769-POSTMERGE
-  to_phase: PHASE-769-POSTMERGE
-  changed_dimensions: [PRODUCTION_PATH, ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
-  basis:
-  - Support relationship authority changes at an engineering-significant production boundary.
-  - The prior functionally green implementation cannot substitute for fresh pre-write qualification.
-questions:
-- id: Q1
-  focus: PRODUCTION_PATH
-  anchors: [WP-769-SUPPORT, INPUT-SUPPORT-SOURCE]
-  prompt: Without consulting PR 775 implementation output, trace the current production path from staged support fields through standalone ledger association to the downstream resolver/restraint consumer; identify the state owner and semantic authority source.
-  required_output_keys: [production_entrypoint, state_owner, authority_source, downstream_consumer]
-  evidence_required: true
-- id: Q2
-  focus: ENGINEERING_PROBLEM
-  anchors: [BENCH-SUPPORT-REPLAY, AC-SUPPORT-REPLAY-01]
-  prompt: Reconstruct PS00608.1 and comparator PS00573.1 from EVD-769-0005 and current pre-repair source. Explain why the reported case fails while the comparator succeeds and identify the first wrong intermediate decision.
-  reconstruction_mode: LOGIC_RECONSTRUCTION
-  payload:
-    source: agents/relay/evidence/EVD-769-0005.yaml
-    cases: [PS00608.1, PS00573.1]
-  required_output_keys: [reconstruction_steps, intermediate_result, expected_result]
-  evidence_required: true
-- id: Q3
-  focus: BOUNDARIES_INVARIANTS
-  anchors: [AC-SUPPORT-REPLAY-03, INPUT-SUPPORT-SOURCE]
-  prompt: State the smallest generic mutation that repairs the demonstrated association while preserving fail-closed conflict/ambiguity behavior and coordinate non-authority. State the exact condition that would falsify the proposed rule.
-  mutation:
-    condition: Exact normalized support identity has authoritative explicit attachment evidence compatible with the XML branch.
-    protected_invariant: Identity does not imply support kind and relationship conflict or ambiguity cannot be overridden by coordinates.
-    falsifier: The repair requires tag-specific logic, PS-prefix inference, coordinate-only guessing, or acceptance of conflicting/ambiguous relationship authority.
-  required_output_keys: [mutation_effect, protected_invariant, custody_boundary, falsifier]
-  evidence_required: true
-- id: Q4
-  focus: VERIFICATION
-  anchors: [BENCH-SUPPORT-REPLAY, TEST-SUPPORT-NEGATIVE]
-  prompt: Define an independent verification method using the pre-repair real benchmark and fail-closed negative controls. Include exact expected reported/comparator behavior and the negative cases that must not silently resolve.
-  oracle_refs: [BENCH-SUPPORT-REPLAY, BENCH-SUPPORT-NEGATIVE]
-  independence_requirement: Expected identity, kind and attachment must come from EVD-769-0005/source authority and protected invariants, never from PR 775 or proposed repair output.
-  required_output_keys: [independent_method, predicted_result, negative_controls, tolerance_or_exactness]
-  evidence_required: true
-- id: Q5
-  focus: FIRST_SAFE_SLICE
-  anchors: [STEP-SUPPORT-REPLAY-02, AC-SUPPORT-REPLAY-SCOPE]
-  prompt: State the exact first bounded material change after takeover certification and live MATERIAL_WRITE_READY, including mandatory backup custody, allowed files, predicted before/after behavior, tests and stop conditions. Qualification must be complete before any PR 775 comparison.
-  step_refs: [STEP-SUPPORT-REPLAY-02]
-  required_output_keys: [first_change, predicted_before, predicted_after, verification]
-  evidence_required: true
-prepared_by:
-  agent_instance_id: chatgpt:issue769-v25-support-replay-preparer-20260918T080116Z
+{
+  "schema_version": "relay-v2.5-question-set",
+  "id": "QSET-769-09",
+  "route": {
+    "route_key": "SERIAL:EP-769-07",
+    "mode": "SERIAL",
+    "execution_ref": "EP-769-07",
+    "ep_id": "EP-769-07",
+    "ep_path": "agents/relay/execution-packages/EP-769-07.yaml",
+    "plan_id": null,
+    "plan_path": null,
+    "lane_id": null,
+    "roadmap_revision": "RM-0001",
+    "work_package": "WP-769-SUPPORT",
+    "ep_contract_digest": "sha256:b185ad2373aeec034e3977deb957e9cf4e5fe385d8308ab027653a9101b99985"
+  },
+  "boundary": {
+    "trigger": "MATERIAL_QUALIFICATION_BOUNDARY_CHANGED",
+    "from_phase": "PHASE-769-POSTMERGE",
+    "to_phase": "PHASE-769-POSTMERGE",
+    "changed_dimensions": [
+      "PRODUCTION_PATH",
+      "ENGINEERING_AUTHORITY",
+      "PROTECTED_INVARIANT",
+      "VERIFICATION_ORACLE"
+    ],
+    "basis": [
+      "Support relationship authority changes at an engineering-significant production boundary.",
+      "Prior functionally green implementation cannot substitute for fresh pre-write qualification."
+    ]
+  },
+  "questions": [
+    {
+      "id": "Q1",
+      "focus": "PRODUCTION_PATH",
+      "anchors": [
+        "WP-769-SUPPORT",
+        "INPUT-SUPPORT-SOURCE"
+      ],
+      "prompt": "Without consulting PR 775 implementation output, trace current production path from staged support fields through standalone ledger association to downstream resolver/restraint consumer; identify state owner and semantic authority source.",
+      "required_output_keys": [
+        "production_entrypoint",
+        "state_owner",
+        "authority_source",
+        "downstream_consumer"
+      ],
+      "evidence_required": true
+    },
+    {
+      "id": "Q2",
+      "focus": "ENGINEERING_PROBLEM",
+      "anchors": [
+        "BENCH-SUPPORT-REPLAY",
+        "AC-SUPPORT-REPLAY-01"
+      ],
+      "prompt": "Reconstruct PS00608.1 and comparator PS00573.1 from EVD-769-0005 and current pre-repair source. Explain why reported case fails while comparator succeeds and identify first wrong intermediate decision.",
+      "reconstruction_mode": "LOGIC_RECONSTRUCTION",
+      "payload": {
+        "source": "agents/relay/evidence/EVD-769-0005.yaml",
+        "cases": [
+          "PS00608.1",
+          "PS00573.1"
+        ]
+      },
+      "required_output_keys": [
+        "reconstruction_steps",
+        "intermediate_result",
+        "expected_result"
+      ],
+      "evidence_required": true
+    },
+    {
+      "id": "Q3",
+      "focus": "BOUNDARIES_INVARIANTS",
+      "anchors": [
+        "AC-SUPPORT-REPLAY-03",
+        "INPUT-SUPPORT-SOURCE"
+      ],
+      "prompt": "State smallest generic mutation repairing demonstrated association while preserving fail-closed conflict/ambiguity behavior and coordinate non-authority. State exact falsifier.",
+      "mutation": {
+        "condition": "Exact normalized support identity has authoritative explicit attachment evidence compatible with XML branch.",
+        "protected_invariant": "Identity does not imply support kind and relationship conflict or ambiguity cannot be overridden by coordinates.",
+        "falsifier": "Repair requires tag-specific logic, PS-prefix inference, coordinate-only guessing, or acceptance of conflicting or ambiguous relationship authority."
+      },
+      "required_output_keys": [
+        "mutation_effect",
+        "protected_invariant",
+        "custody_boundary",
+        "falsifier"
+      ],
+      "evidence_required": true
+    },
+    {
+      "id": "Q4",
+      "focus": "VERIFICATION",
+      "anchors": [
+        "BENCH-SUPPORT-REPLAY",
+        "TEST-SUPPORT-NEGATIVE"
+      ],
+      "prompt": "Define independent verification using pre-repair real benchmark and fail-closed negative controls, including exact reported/comparator behavior and negative cases that must not silently resolve.",
+      "oracle_refs": [
+        "BENCH-SUPPORT-REPLAY",
+        "BENCH-SUPPORT-NEGATIVE"
+      ],
+      "independence_requirement": "Expected identity, kind and attachment come from EVD-769-0005/source authority and protected invariants, never PR 775 or proposed repair output.",
+      "required_output_keys": [
+        "independent_method",
+        "predicted_result",
+        "negative_controls",
+        "tolerance_or_exactness"
+      ],
+      "evidence_required": true
+    },
+    {
+      "id": "Q5",
+      "focus": "FIRST_SAFE_SLICE",
+      "anchors": [
+        "STEP-SUPPORT-REPLAY-02",
+        "AC-SUPPORT-REPLAY-SCOPE"
+      ],
+      "prompt": "State exact first bounded material change after takeover certification and live MATERIAL_WRITE_READY, including mandatory backup custody, allowed files, predicted before/after behavior, tests and stop conditions.",
+      "step_refs": [
+        "STEP-SUPPORT-REPLAY-02"
+      ],
+      "required_output_keys": [
+        "first_change",
+        "predicted_before",
+        "predicted_after",
+        "verification"
+      ],
+      "evidence_required": true
+    }
+  ],
+  "prepared_by": {
+    "agent_instance_id": "chatgpt:issue769-v25-support-replay-preparer-20260918T080116Z"
+  }
+}
