@@ -1,0 +1,30 @@
+schema_version: relay-v2.5
+id: ODR-769-0008
+decision:
+  authority: OWNER
+  kind: AUTHORIZATION
+  statement: write, proceed
+  source: Owner directive received 2026-09-18T03:33:17Z after EVD-769-0002, DISC-769-06, QUAL-769-05 and TC-769-04 established the bounded EP-769-04 topology repair.
+effects:
+  requirement_disposition: SATISFIED
+  grants_material_write_authority: true
+  interpretation: Authorize the qualified EP-769-04 topology repair only within converters/scripts/xml_to_cii2019.py and converters/scripts/test_xml_to_cii2019_edge_order_authority.py, subject to live MATERIAL_WRITE_READY and declared tests/oracles.
+  pending_items:
+  - TEST-ORDER-REAL-PY must PASS after implementation.
+  - TEST-ORDER-REAL-SCOPE must PASS with no PR 417 overlap.
+  - Exact repository-native v2.5 conformance remains required before merge-ready qualification.
+impact:
+  class: [LOCAL, MATERIAL]
+affected:
+  objectives: [OBJ-769]
+  phases: [PHASE-769-POSTMERGE]
+  work_packages: [WP-769-GEOMETRY]
+  execution_packages: [EP-769-04]
+  issues: [ISSUE-769]
+required_reconciliation:
+- Recheck live branch/main basis and PR 417 non-overlap immediately before material mutation.
+- Set EP-769-04 material authority to WRITE only for the qualified two-file boundary.
+- Run MATERIAL_WRITE_READY for candidate chatgpt:issue769-v25-order-real-write-candidate-20260918T023849Z before production mutation.
+- Do not use global NodeNumber sorting, coordinate-sign reversal, or any PR 417 coordinate-custody path.
+- Stop on ambiguous/no unique branch-junction host or any protected-invariant regression.
+status: APPLIED
