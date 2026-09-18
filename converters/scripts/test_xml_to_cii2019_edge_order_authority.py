@@ -1,6 +1,7 @@
 import importlib.util
 import math
 import pathlib
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
@@ -137,6 +138,22 @@ def _edge_pairs(branches: list[mod.XmlBranch]) -> list[tuple[int, int]]:
     ]
 
 
+def _cii_element_pairs(path: pathlib.Path) -> list[tuple[int, int]]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = lines.index("#$ ELEMENTS") + 1
+    payload: list[str] = []
+    for line in lines[start:]:
+        if line.startswith("#$ "):
+            break
+        payload.append(line)
+    assert len(payload) % 15 == 0
+    pairs: list[tuple[int, int]] = []
+    for index in range(0, len(payload), 15):
+        fields = payload[index].split()
+        pairs.append((int(float(fields[0])), int(float(fields[1]))))
+    return pairs
+
+
 def test_reported_2439_and_2909_cases_use_source_semantic_topology(tmp_path):
     mod.TOPOLOGY_NORMALIZATION_EVENTS.clear()
     root = _new_root()
@@ -227,6 +244,48 @@ def test_protected_terminal_is_withheld_from_runtime_short_span_override(tmp_pat
 
     assert seen == [[2430, 2450, 2439]]
     assert [node.node_number for node in document.branches[0].nodes] == [2430, 2450, 2439, 2440]
+
+
+def test_contracted_production_entrypoint_keeps_source_semantic_terminal(tmp_path):
+    root = _new_root()
+    branch = _add_branch(root, '/GLRD-1000-2"-P4110023-93833-01/B4')
+    _add_reported_case(
+        branch,
+        x=104000.0,
+        start_number=2430,
+        flange_number=2439,
+        rigid_number=2440,
+        junction_number=2450,
+        flange_ref="=134234934/25983",
+        blind_ref="=134234934/25985",
+        junction_ref="=134234934/25955",
+    )
+    xml_path = _write_xml(tmp_path, root, "contracted.xml")
+    cii_path = tmp_path / "contracted.cii"
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "xml_to_cii2019_contracted_direction.py"),
+            "--input",
+            str(xml_path),
+            "--output",
+            str(cii_path),
+            "--coords-mode",
+            "first",
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stdout + "\n" + completed.stderr
+
+    pairs = _cii_element_pairs(cii_path)
+    assert (2439, 2450) not in pairs
+    assert (2430, 2450) in pairs
+    assert (2450, 2439) in pairs
+    assert (2439, 2440) in pairs
 
 
 @pytest.mark.parametrize(
