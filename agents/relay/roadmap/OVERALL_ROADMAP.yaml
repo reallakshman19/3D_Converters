@@ -26,18 +26,18 @@ objectives:
       issue: ISSUE-769
     - id: WP-769-GEOMETRY
       title: OD/orientation/length node-case qualification and non-overlapping repair
-      state: ACTIVE
+      state: COMPLETE
       definition: DETAILED
-      execution_status: ACTIVE
+      execution_status: TERMINAL
       weight: 25
       depends_on:
       - WP-769-FBLI
       issue: ISSUE-769
     - id: WP-769-SUPPORT
       title: Fallback REST/support provenance qualification and repair
-      state: PLANNED
+      state: ACTIVE
       definition: DETAILED
-      execution_status: WAITING
+      execution_status: ACTIVE
       weight: 25
       depends_on:
       - WP-769-GEOMETRY
