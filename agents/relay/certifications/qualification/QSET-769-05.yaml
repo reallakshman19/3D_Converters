@@ -11,14 +11,14 @@ route:
   lane_id: null
   roadmap_revision: RM-0001
   work_package: WP-769-GEOMETRY
-  ep_contract_digest: sha256:a14e8cc467c3fcd5029ada772d5fad479623ebdcbc4cfc1021427224dffeb44e
+  ep_contract_digest: sha256:4b05ba9ead983b1af1229d8ab7b351e43f677daa07df821b5aacf6179c916f0d
 boundary:
   trigger: MATERIAL_QUALIFICATION_BOUNDARY_CHANGED
   from_phase: PHASE-769-POSTMERGE
   to_phase: PHASE-769-POSTMERGE
   changed_dimensions: [ENGINEERING_AUTHORITY, PROTECTED_INVARIANT, VERIFICATION_ORACLE]
   basis:
-  - The real generated-label provenance must be available before topology mutation is evaluated.
+  - EVD-769-0002 now supplies the real production-enriched generated-label provenance required before topology mutation is evaluated.
   - Expected orientation must come from recovered source/component connectivity, not from the proposed implementation.
   - The candidate write boundary remains disjoint from PR #417 coordinate custody.
 questions:
