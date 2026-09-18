@@ -1,0 +1,439 @@
+schema_version: relay-v2.5
+evidence_id: EVD-769-0005
+kind: SUPPORT_SOURCE_PROVENANCE_AND_FIRST_DIVERGENCE
+captured_at_utc: '2026-09-18T05:21:56Z'
+repository: reallaksh19/3D_Converters
+branch: agent/issue-769-support-20260918
+git_basis:
+  branch_head_before_evidence: da0f6a56474d9b4cbda6abc3e65a7e448f74a629
+sources:
+  staged_archive:
+    path: Benchmarks/STF_2026Sep16-0859_managed_stage.zip
+    git_blob_sha: 7ac01e497d9d92a6dd73db381319441f9c5d66b8
+    archive_sha256: e5d5924345e8cbfffc50700e7ce585b07be21be041ae36af75c220114e348cdd
+    archive_bytes: 83861
+    member: STF_2026Sep16-0859_managed_stage.json
+    member_bytes: 1703676
+    member_crc32: 1a611149
+    member_sha256: 61e3d5aad4eac463b3519bd78a17e37856a1623145804cfd3dd1876ea2a00cb4
+  xml_archive:
+    path: Benchmarks/GLRD-1000-PI-01.zip
+    git_blob_sha: 014b93542c4706979d3157febc45c4952e0ce6fa
+    archive_sha256: 3a0290b08213d84ae1c08931e16ce47795d36e1bd9165cf1d8a98443dffb3150
+    archive_bytes: 17927
+    member: GLRD-1000-PI-01.xml
+    member_bytes: 629889
+    member_crc32: cc64d49b
+    member_sha256: 6bcc477860fdbe9a80159839bf476a8c1e6ce7a966587a25bc62498709843151
+reported_cases:
+  PS00571.1:
+    source_state: PRESENT
+    source_path: '$[15].children[5]'
+    parent_name: '/GLRD-1000-8"-B4110003-13451-01/B1'
+    exact_support_semantics:
+      support_tag: 'PS00571.1'
+      object_name: '/PS00571.1'
+      object_type: 'ANCI'
+      owner: '/PS00571/B1'
+      component_ref: '=134234934/28792'
+      support_function: 'PIPE-REST'
+      support_type: 'PIPE-REST'
+      dtxr: 'REST'
+      support_kind: 'REST'
+      mapper_kind: 'REST'
+    full_record_json: |
+      {
+        "name": "SUPPORT PS00571.1",
+        "type": "SUPPORT",
+        "attributes": {
+          "NAME": "/PS00571.1",
+          "TYPE": "ANCI",
+          "LOCK": "false",
+          "OWNER": "/PS00571/B1",
+          "MTOL": "( 0 mm )",
+          "POS": {
+            "x": 112849.974,
+            "y": 109369.457,
+            "z": 1413.058
+          },
+          "ORI": "Y is N 0.1146 D and Z is N 89.8854 U",
+          "DESP": "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+          "BUIL": "false",
+          "SHOP": "false",
+          "ISOH": "false",
+          "SPRE": "/MDS-Ancillaries/ANCI/PIPE-REST-100mm",
+          "ARRI": "1",
+          "LEAV": "2",
+          "POSI": "E 112849.974mm N 109369.457mm U 1413.058mm",
+          "COMPRE": "=134234934/28792",
+          "LAXE": "Y is N and Z is U",
+          "LEND": "false",
+          "ANGL": "180degree",
+          "HEIG": "0mm",
+          "NLOA": "0",
+          "CSFBR": "false",
+          "TSFBR": "false",
+          "ASFBR": "false",
+          "LSFBR": "false",
+          "PTNO": "0",
+          "PTNT": "0",
+          "MTOC": "ON",
+          "DPGRID": "0",
+          "NWELDS": "0",
+          "STEX": "PS00571",
+          "DELDSG": "FALSE",
+          "SPKBRK": "true",
+          "LOFF": "false",
+          "AEXCES": "0mm",
+          "LEXCES": "0mm",
+          "LOOS": "false",
+          "CMPSUPREFU": "false",
+          "PSIWEIGHT": "0kg",
+          "MDSAEE": "0",
+          "MDSAEN": "0",
+          "MDSATE": "0",
+          "MDSATN": "0",
+          "MDSCPLWEIGHT": "0",
+          "MDSDESITEMP": "-100000",
+          "MDSFORCEX": "0",
+          "MDSFORCEY": "0",
+          "MDSFORCEZ": "0",
+          "MDSHLOAD": "0",
+          "MDSELOAD": "0",
+          "MDSFLOAD": "0",
+          "MDSLOAD": "0",
+          "MDSMOVEX": "0",
+          "MDSMOVEY": "0",
+          "MDSMOVEZ": "0",
+          "MDSNUDGEDIST": "0mm",
+          "MDSPOSNUMMAX": "0",
+          "MDSREM": "0",
+          "MDSROTATED": "false",
+          "MDSSUPPFUNC": "PIPE-REST",
+          "MDSSUPPTYPE": "PIPE-REST",
+          "MDSSWASHER": "false",
+          "MDSTRIMMER": "false",
+          "MDSVENDORCFG": "0",
+          "MDSVIEWFLIP": "false",
+          "MDSVPRMMTO": "true",
+          "MDSWELDSIZE": "0",
+          "MDSX": "0",
+          "MDSY": "0",
+          "MDSZ": "0",
+          "RAW_TYPE": "ANCI",
+          "SUPPORT_TAG": "PS00571.1",
+          "SUPPORT_TYPE": "REST",
+          "DTXR": "REST",
+          "CMPSUPREFN": "PS00571.1",
+          "CMPSUPTYPE": "REST",
+          "APOS": null,
+          "LPOS": null,
+          "BPOS": null,
+          "HPOS": null,
+          "TPOS": null,
+          "ROUTE_SPLIT_POINT": "true",
+          "ATTACHED_COMPONENT_REF": "=134234934/28792",
+          "SUPPORT_KIND": "REST",
+          "SUPPORT_MAPPER_KIND": "REST"
+        }
+      }
+  PS00572.1:
+    source_state: ABSENT
+    explicit_search_result: No occurrence exists in the extracted STF managed-stage JSON.
+    feasibility: UNPROVEN_FROM_THIS_ARCHIVE
+  PS00573.1:
+    source_state: PRESENT
+    role: WORKING_COMPARATOR
+    source_path: '$[15].children[6]'
+    parent_name: '/GLRD-1000-8"-B4110003-13451-01/B1'
+    exact_support_semantics:
+      support_tag: 'PS00573.1'
+      object_name: '/PS00573.1'
+      object_type: 'ANCI'
+      owner: '/PS00573/B1'
+      component_ref: '=134234934/27489'
+      support_function: 'PIPE-REST'
+      support_type: 'PIPE-REST'
+      dtxr: 'REST'
+      support_kind: 'REST'
+      mapper_kind: 'REST'
+    full_record_json: |
+      {
+        "name": "SUPPORT PS00573.1",
+        "type": "SUPPORT",
+        "attributes": {
+          "NAME": "/PS00573.1",
+          "TYPE": "ANCI",
+          "LOCK": "false",
+          "OWNER": "/PS00573/B1",
+          "MTOL": "( 0 mm )",
+          "POS": {
+            "x": 117503.965,
+            "y": 114999.978,
+            "z": 1360.732
+          },
+          "ORI": "Y is E 0.2865 D and Z is E 89.7135 U",
+          "DESP": "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+          "BUIL": "false",
+          "SHOP": "false",
+          "ISOH": "false",
+          "SPRE": "/MDS-Ancillaries/ANCI/PIPE-REST-100mm",
+          "ARRI": "1",
+          "LEAV": "2",
+          "POSI": "E 117503.965mm N 114999.978mm U 1360.732mm",
+          "COMPRE": "=134234934/27489",
+          "LAXE": "Y is N and Z is U",
+          "LEND": "false",
+          "ANGL": "180degree",
+          "HEIG": "0mm",
+          "NLOA": "0",
+          "CSFBR": "false",
+          "TSFBR": "false",
+          "ASFBR": "false",
+          "LSFBR": "false",
+          "PTNO": "0",
+          "PTNT": "0",
+          "MTOC": "ON",
+          "DPGRID": "0",
+          "NWELDS": "0",
+          "STEX": "PS00573",
+          "DELDSG": "FALSE",
+          "SPKBRK": "true",
+          "LOFF": "false",
+          "AEXCES": "0mm",
+          "LEXCES": "0mm",
+          "LOOS": "false",
+          "CMPSUPREFU": "false",
+          "PSIWEIGHT": "0kg",
+          "MDSAEE": "0",
+          "MDSAEN": "0",
+          "MDSATE": "0",
+          "MDSATN": "0",
+          "MDSCPLWEIGHT": "0",
+          "MDSDESITEMP": "-100000",
+          "MDSFORCEX": "0",
+          "MDSFORCEY": "0",
+          "MDSFORCEZ": "0",
+          "MDSHLOAD": "0",
+          "MDSELOAD": "0",
+          "MDSFLOAD": "0",
+          "MDSLOAD": "0",
+          "MDSMOVEX": "0",
+          "MDSMOVEY": "0",
+          "MDSMOVEZ": "0",
+          "MDSNUDGEDIST": "0mm",
+          "MDSPOSNUMMAX": "0",
+          "MDSREM": "0",
+          "MDSROTATED": "false",
+          "MDSSUPPFUNC": "PIPE-REST",
+          "MDSSUPPTYPE": "PIPE-REST",
+          "MDSSWASHER": "false",
+          "MDSTRIMMER": "false",
+          "MDSVENDORCFG": "0",
+          "MDSVIEWFLIP": "false",
+          "MDSVPRMMTO": "true",
+          "MDSWELDSIZE": "0",
+          "MDSX": "0",
+          "MDSY": "0",
+          "MDSZ": "0",
+          "RAW_TYPE": "ANCI",
+          "SUPPORT_TAG": "PS00573.1",
+          "SUPPORT_TYPE": "REST",
+          "DTXR": "REST",
+          "CMPSUPREFN": "PS00573.1",
+          "CMPSUPTYPE": "REST",
+          "APOS": null,
+          "LPOS": null,
+          "BPOS": null,
+          "HPOS": null,
+          "TPOS": null,
+          "ROUTE_SPLIT_POINT": "true",
+          "ATTACHED_COMPONENT_REF": "=134234934/27489",
+          "SUPPORT_KIND": "REST",
+          "SUPPORT_MAPPER_KIND": "REST"
+        }
+      }
+  PS00608.1:
+    source_state: PRESENT
+    role: REPORTED_MISSING_REST
+    source_path: '$[37].children[44]'
+    staged_container_branch: '/GLRD-1000-2"-P4110028-93833-01/B4'
+    exact_support_semantics:
+      support_tag: 'PS00608.1'
+      object_name: '/PS00608.1'
+      object_type: 'ANCI'
+      owner: '/PS00608/B1'
+      component_ref: '/GLRD-1000-2"-B4110001-93833-01/B2'
+      attached_component_ref: '/GLRD-1000-2"-B4110001-93833-01/B2'
+      support_function: 'PIPE-REST'
+      support_type: 'PIPE-REST'
+      dtxr: 'REST'
+      support_kind: 'REST'
+      mapper_kind: 'REST'
+      staged_position: '{"x":101331.874,"y":108862.03,"z":1479.205}'
+    full_record_json: |
+      {
+        "name": "SUPPORT PS00608.1",
+        "type": "SUPPORT",
+        "attributes": {
+          "NAME": "/PS00608.1",
+          "TYPE": "ANCI",
+          "LOCK": "false",
+          "OWNER": "/PS00608/B1",
+          "MTOL": "( 0 mm )",
+          "POS": {
+            "x": 101331.874,
+            "y": 108862.03,
+            "z": 1479.205
+          },
+          "ORI": "Y is W 0.2865 U and Z is E 89.7135 U",
+          "DESP": "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+          "BUIL": "false",
+          "SHOP": "false",
+          "ISOH": "false",
+          "SPRE": "/MDS-Ancillaries/ANCI/PIPE-REST-50mm",
+          "ARRI": "1",
+          "LEAV": "2",
+          "POSI": "E 101331.874mm N 108862.03mm U 1479.205mm",
+          "COMPRE": "/GLRD-1000-2\"-B4110001-93833-01/B2",
+          "LAXE": "Y is N and Z is U",
+          "LEND": "false",
+          "ANGL": "180degree",
+          "HEIG": "0mm",
+          "NLOA": "0",
+          "CSFBR": "false",
+          "TSFBR": "false",
+          "ASFBR": "false",
+          "LSFBR": "false",
+          "PTNO": "0",
+          "PTNT": "0",
+          "MTOC": "ON",
+          "DPGRID": "0",
+          "NWELDS": "0",
+          "STEX": "PS00608",
+          "DELDSG": "FALSE",
+          "SPKBRK": "true",
+          "LOFF": "false",
+          "AEXCES": "0mm",
+          "LEXCES": "0mm",
+          "LOOS": "false",
+          "CMPSUPREFU": "false",
+          "PSIWEIGHT": "0kg",
+          "MDSAEE": "0",
+          "MDSAEN": "0",
+          "MDSATE": "0",
+          "MDSATN": "0",
+          "MDSCPLWEIGHT": "0",
+          "MDSDESITEMP": "-100000",
+          "MDSFORCEX": "0",
+          "MDSFORCEY": "0",
+          "MDSFORCEZ": "0",
+          "MDSHLOAD": "0",
+          "MDSELOAD": "0",
+          "MDSFLOAD": "0",
+          "MDSLOAD": "0",
+          "MDSMOVEX": "0",
+          "MDSMOVEY": "0",
+          "MDSMOVEZ": "0",
+          "MDSNUDGEDIST": "0mm",
+          "MDSPOSNUMMAX": "0",
+          "MDSREM": "0",
+          "MDSROTATED": "false",
+          "MDSSUPPFUNC": "PIPE-REST",
+          "MDSSUPPTYPE": "PIPE-REST",
+          "MDSSWASHER": "false",
+          "MDSTRIMMER": "false",
+          "MDSVENDORCFG": "0",
+          "MDSVIEWFLIP": "false",
+          "MDSVPRMMTO": "true",
+          "MDSWELDSIZE": "0",
+          "MDSX": "0",
+          "MDSY": "0",
+          "MDSZ": "0",
+          "RAW_TYPE": "ANCI",
+          "SUPPORT_TAG": "PS00608.1",
+          "SUPPORT_TYPE": "REST",
+          "DTXR": "REST",
+          "CMPSUPREFN": "PS00608.1",
+          "CMPSUPTYPE": "REST",
+          "APOS": null,
+          "LPOS": null,
+          "BPOS": null,
+          "HPOS": null,
+          "TPOS": null,
+          "ROUTE_SPLIT_POINT": "true",
+          "ATTACHED_COMPONENT_REF": "/GLRD-1000-2\"-B4110001-93833-01/B2",
+          "SUPPORT_KIND": "REST",
+          "SUPPORT_MAPPER_KIND": "REST"
+        }
+      }
+xml_reported_node:
+  node_number: 3140
+  node_name: PS00608.1
+  component_type: ANCI
+  xml_branch: '/GLRD-1000-2"-B4110001-93833-01/B2'
+  xml_position: '101331.87 108862.03 101479.21'
+  exact_node_xml: |
+    <Node>
+    <NodeNumber>3140</NodeNumber>
+    <NodeName>PS00608.1</NodeName>
+    <Endpoint>0</Endpoint>
+    <ComponentType>ANCI</ComponentType>
+    <Weight>0</Weight>
+    <ComponentRefNo>=134234934/30538</ComponentRefNo>
+    <ConnectionType></ConnectionType>
+    <OutsideDiameter>60.3</OutsideDiameter>
+    <WallThickness>0</WallThickness>
+    <CorrosionAllowance>0</CorrosionAllowance>
+    <InsulationThickness>0</InsulationThickness>
+    <Position>101331.87 108862.03 101479.21</Position>
+    <BendRadius>0</BendRadius>
+    <SIF>0</SIF>
+    </Node>
+cross_source_comparison:
+  identity:
+    result: MATCH
+    basis: XML NodeName PS00608.1 equals authoritative staged SUPPORT_TAG PS00608.1 after existing normalization.
+  support_kind:
+    result: REST_EXPLICIT
+    basis: Staged MDSSUPPFUNC=PIPE-REST, MDSSUPPTYPE=PIPE-REST, DTXR=REST, SUPPORT_KIND=REST and SUPPORT_MAPPER_KIND=REST agree.
+  attachment_relationship:
+    result: EXACT_XML_BRANCH_REFERENCE
+    basis: Staged COMPRE and ATTACHED_COMPONENT_REF both equal the XML branch /GLRD-1000-2"-B4110001-93833-01/B2.
+  coordinate_frame:
+    result: CONSISTENT_WITH_100000_MM_Z_OFFSET
+    staged_position_mm: '{"x":101331.874,"y":108862.03,"z":1479.205}'
+    xml_position_mm: '101331.87 108862.03 101479.21'
+    delta_mm_approx: {x: -0.004, y: 0.0, z: 100000.005}
+production_trace:
+  source_schema_adapter:
+    observation: Existing adapter has semantic roles for support identity/kind and componentRef including COMPRE.
+    status: PRESENT
+  shared_dtxr_resolver:
+    observation: Source-schema mode indexes exact support identities and rejects explicit relationship conflicts; coordinate-only fallback is separately governed.
+    status: PRESENT
+  standalone_trace_ledger:
+    observation: walkStaged reads ComponentRefNo/COMPONENTREFNO/REF/RefNo but not COMPRE; globalPsFallback requires compatibility with the staged container branch rather than the support record's explicit attached component reference.
+    status: FIRST_WRONG_BOUNDARY
+    effect_on_PS00608_1: Staged container /GLRD-1000-2"-P4110028-93833-01/B4 and XML branch /GLRD-1000-2"-B4110001-93833-01/B2 have different roots, so the exact support-tag fallback is rejected even though COMPRE explicitly names the XML branch.
+  standalone_enrichment:
+    observation: Missing-REST materialization already uses the shared REST profile and ANCI/ATTA fail-closed policy, but it can only materialize staged kinds exposed on the resolved ledger record.
+    status: DOWNSTREAM_OF_DIVERGENCE
+  python_restraint_mapping:
+    observation: Existing XML restraint parsing/writer path consumes materialized restraint entries; no evidence supports a Python PS-tag heuristic.
+    status: DOWNSTREAM_OF_DIVERGENCE
+shared_authority_rule:
+  candidate: An exact support identity may use authoritative staged support semantics only when a unique staged record/family is established by the shared source-schema relationship authority; explicit relationship conflicts remain rejected and coordinates are corroboration, not an override.
+  forbidden:
+  - Do not infer REST from PS syntax.
+  - Do not special-case PS00608.1.
+  - Do not allow coordinate proximity to override relationship conflict.
+  - Do not treat the staged container branch as stronger than an explicit support attachment relationship without source-schema policy.
+acceptance_effect:
+  AC-SUPPORT-PROV-01: PARTIAL
+  AC-SUPPORT-PROV-02: PASS_FOR_RCA_RULE
+  AC-SUPPORT-PROV-SCOPE: PENDING_GIT_COMPARE
+truth_constraints:
+- PS00572.1 is absent from this exact STF archive; its requested feasibility cannot be established from this source.
+- This evidence is read-only provenance/RCA and does not authorize production mutation.
+- No production support file was changed while creating this evidence.
