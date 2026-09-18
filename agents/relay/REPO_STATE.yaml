@@ -71,7 +71,7 @@ status_planes:
     - Formal TEST-OD-PY remains Owner-deferred by ODR-769-0006; TEST-FBLI and TEST-LEGACY remain Owner-deferred by ODR-769-0003.
   evidence:
     state: PARTIAL
-    summary: EP-769-03 provenance instrumentation is checkpointed with exact committed blobs tested 3/3 PASS and a two-file scope-clean material diff. EP-769-04 is the active serial successor, READ_ONLY and stopped pending real generated-label provenance and a fresh topology qualification.
+    summary: EP-769-03 provenance instrumentation is checkpointed with exact committed blobs tested 3/3 PASS and a two-file scope-clean material diff. DISC-769-05 exhaustively searched currently accessible conversation, Issue, benchmark-text and prior-branch evidence and failed to recover the real generated-label artifact. EP-769-04 remains READ_ONLY and stopped pending real generated-label provenance and fresh topology qualification.
     not_run:
     - id: V25-CONFORMANCE
       reason: Exact repository-native Common validator entrypoints have not executed in a private checkout.
@@ -104,25 +104,27 @@ status_planes:
     - agents/relay/checkpoints/CP-769-03.yaml
     - agents/relay/execution-packages/EP-769-04.yaml
     - agents/relay/certifications/qualification/QSET-769-05.yaml
+    - agents/relay/certifications/discovery/DISC-769-05.yaml
     - converters/scripts/xml_to_cii2019_order_provenance.py@987c866ca1225fe2024e19e95ba02474dbcccc82
 projection:
   required: true
   state: IN_SYNC
-  operation_id: GHGEN-769-0005
+  operation_id: GHGEN-769-0006
   target: github:reallaksh19/3D_Converters:issue:769
   adapter: GITHUB_ISSUES
-  plan: agents/relay/projection/generations/GHGEN-769-0005.yaml
+  plan: agents/relay/projection/generations/GHGEN-769-0006.yaml
   roadmap_revision: RM-0001
   execution_ref: EP-769-04
-  receipt: issuecomment-5720736621
+  receipt: issuecomment-5723899112
   basis:
   - agents/relay/checkpoints/CP-769-03.yaml
   - agents/relay/execution-packages/EP-769-04.yaml
+  - agents/relay/certifications/discovery/DISC-769-05.yaml
   - agents/relay/certifications/qualification/QSET-769-05.yaml
-  - agents/relay/quality/QRV-769-03.yaml
-  - agents/relay/projection/generations/GHGEN-769-0005.yaml
-  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5720736621
+  - agents/relay/projection/generations/GHGEN-769-0006.yaml
+  - https://github.com/reallaksh19/3D_Converters/issues/769#issuecomment-5723899112
   superseded_operations:
+  - GHGEN-769-0005
   - GHGEN-769-0004
   - GHGEN-769-0003
   - GHGEN-769-0002
@@ -134,5 +136,6 @@ relay_readiness:
   - CP-769-03 links the serial successor to EP-769-04/WP-769-GEOMETRY.
   - EP-769-04 and QSET-769-05 are materialized, but INPUT-ORDER-PROVENANCE is MISSING_BLOCKING and no successor qualification/takeover admission exists.
   - Material authority is READ_ONLY with ESSENTIAL_INPUT_MISSING; the provenance instrumentation does not authorize topology mutation.
-  - GitHub projection GHGEN-769-0005 is verified IN_SYNC by issuecomment-5720736621.
+  - DISC-769-05 records the exhaustive failed search for the missing real generated-label artifact.
+  - GitHub projection GHGEN-769-0006 is verified IN_SYNC by issuecomment-5723899112.
 chat_context_required: false
