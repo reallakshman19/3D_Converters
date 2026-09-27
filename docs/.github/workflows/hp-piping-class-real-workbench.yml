@@ -1,0 +1,62 @@
+name: HP Piping Class Real Workbench
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/hp-ui-real-workspace-recovery
+  pull_request:
+    paths:
+      - 'tabs/hp-piping-class-workbench-tab.js'
+      - 'tabs/hp-piping-class-workbench-state.js'
+      - 'tabs/hp-piping-class-reference-samples.js'
+      - 'tabs/hp-piping-class-intake-package.js'
+      - 'tabs/hp-piping-class-intake-package-review.js'
+      - 'tabs/hp-piping-class-intake-package-enhancer.js'
+      - 'tabs/hp-piping-class-intake-package-roundtrip.js'
+      - 'tabs/hp-piping-class-engineering-review-report.js'
+      - 'tabs/hp-piping-class-engineering-review-report-enhancer.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-enhancer.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-v2.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-package-v2.js'
+      - 'tabs/hp-piping-class-engineering-review-disposition-v2-enhancer.js'
+      - 'tabs/hp-piping-class-review-disposition-chain-v2.js'
+      - 'tabs/hp-piping-class-review-package-verifier.js'
+      - 'tabs/hp-piping-class-review-package-verifier-tab.js'
+      - 'tabs/hp-piping-class-product-bulk-input.js'
+      - 'tabs/hp-piping-class-transient-bulk-input.js'
+      - 'tabs/hp-piping-class-kd-bulk-input.js'
+      - 'tabs/engineering-workspace-tab.js'
+      - 'tests/hp-piping-class-real-workbench.test.mjs'
+      - 'tests/hp-piping-class-native-editors.test.mjs'
+      - 'tests/hp-piping-class-intake-package*.test.mjs'
+      - 'tests/hp-piping-class-engineering-review-report*.test.mjs'
+      - 'tests/hp-piping-class-engineering-review-disposition*.test.mjs'
+      - 'tests/hp-piping-class-review-package-verifier*.test.mjs'
+      - 'scripts/verify-hp-piping-class-real-workbench.mjs'
+      - 'scripts/validate-hp-piping-class-intake-roundtrip-browser.mjs'
+      - '.github/workflows/hp-piping-class-real-workbench.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  hp-real-workbench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify HP Piping Class real workbench
+        run: node scripts/verify-hp-piping-class-real-workbench.mjs
+      - name: Verify HP class intake package
+        run: node --test tests/hp-piping-class-intake-package.test.mjs tests/hp-piping-class-intake-package-failclosed.test.mjs tests/hp-piping-class-intake-package-ui.test.mjs tests/hp-piping-class-intake-package-roundtrip.test.mjs tests/hp-piping-class-intake-package-browser.test.mjs
+      - name: Verify HP engineering review report
+        run: node --test tests/hp-piping-class-engineering-review-report.test.mjs tests/hp-piping-class-engineering-review-report-ui.test.mjs
+      - name: Verify HP engineering review disposition custody
+        run: node --test tests/hp-piping-class-engineering-review-disposition.test.mjs tests/hp-piping-class-engineering-review-disposition-ui.test.mjs tests/hp-piping-class-engineering-review-disposition-v2.test.mjs tests/hp-piping-class-engineering-review-disposition-v2-ui.test.mjs
+      - name: Verify HP review package verifier
+        run: node --test tests/hp-piping-class-review-package-verifier.test.mjs tests/hp-piping-class-review-package-verifier-ui.test.mjs tests/hp-piping-class-review-package-verifier-receipt.test.mjs tests/hp-piping-class-review-package-verifier-v2.test.mjs

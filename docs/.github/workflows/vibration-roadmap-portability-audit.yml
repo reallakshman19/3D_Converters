@@ -1,0 +1,50 @@
+name: Vibration Roadmap Portability Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/vibration-roadmap-portability-audit.yml'
+      - 'scripts/run-vibration-roadmap-portability-audit.mjs'
+      - 'tests/browser/vibration-roadmap-viewport-audit.html'
+      - 'tabs/vibration-roadmap-*.js'
+      - 'tabs/vibration-roadmap-panel.css'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portability-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install portability audit dependencies
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0 axe-core@4.10.3
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/vibration-roadmap-portability-http.log 2>&1 &
+          echo $! > /tmp/vibration-roadmap-portability-http.pid
+
+      - name: Run portability audit
+        run: node scripts/run-vibration-roadmap-portability-audit.mjs
+
+      - name: Upload portability screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibration-roadmap-portability-evidence
+          path: audit-output/vibration-ui-portability
+          if-no-files-found: error
+          retention-days: 14

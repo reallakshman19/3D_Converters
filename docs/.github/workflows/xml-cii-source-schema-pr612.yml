@@ -1,0 +1,43 @@
+name: XML CII Source Schema PR612 Qualification
+
+on:
+  push:
+    branches:
+      - agent/xml-cii-source-schema-links
+    paths:
+      - 'converters/xml-cii2019-core/**'
+      - 'tabs/model-converters/converters/xmltocii2019_helper/**'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-source-schema-*.test.mjs'
+      - '.github/workflows/xml-cii-source-schema-pr612.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/xml-cii-source-schema-links
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run and persist source-schema qualification
+        shell: bash
+        run: |
+          set +e
+          mkdir -p ValidationRecords
+          node --test tests/xml-cii-source-schema-*.test.mjs \
+            > ValidationRecords/pr612-source-schema-run.log 2>&1
+          rc=$?
+          printf '\nEXIT_CODE=%s\nHEAD=%s\n' "$rc" "$(git rev-parse HEAD)" >> ValidationRecords/pr612-source-schema-run.log
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ValidationRecords/pr612-source-schema-run.log
+          git commit -m 'test(xml-cii): record PR612 source-schema qualification' || true
+          git push origin HEAD:agent/xml-cii-source-schema-links
+          exit "$rc"

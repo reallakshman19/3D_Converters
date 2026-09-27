@@ -1,0 +1,57 @@
+name: CategorizedInputXML Authority Pin
+
+on:
+  pull_request:
+    paths:
+      - 'xml-compare/CategorizedInputXmlConverter.js'
+      - 'xml-compare/XmlCompareCoordinateSideload.js'
+      - 'xml-compare/XmlCompareCoordinateDiagnostics.js'
+      - 'xml-compare/CategorizedInputXmlConverter.pin.json'
+      - 'tests/categorized-inputxml-authority-pin.test.mjs'
+      - '.github/workflows/categorized-inputxml-authority-pin.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'xml-compare/CategorizedInputXmlConverter.js'
+      - 'xml-compare/XmlCompareCoordinateSideload.js'
+      - 'xml-compare/XmlCompareCoordinateDiagnostics.js'
+      - 'xml-compare/CategorizedInputXmlConverter.pin.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout 3D Converters
+        uses: actions/checkout@v6
+
+      - name: Checkout pinned XML Utilities authority
+        uses: actions/checkout@v6
+        with:
+          repository: reallaksh19/XML_Compare_Utilities
+          ref: dd7e62c2dc879d0ac4916303f9c41ff863b50cbc
+          path: XML_Compare_Utilities
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Verify exact vendored bytes
+        shell: bash
+        run: |
+          cmp xml-compare/CategorizedInputXmlConverter.js XML_Compare_Utilities/xml-compare/CategorizedInputXmlConverter.js
+          cmp xml-compare/XmlCompareCoordinateSideload.js XML_Compare_Utilities/xml-compare/XmlCompareCoordinateSideload.js
+          cmp xml-compare/XmlCompareCoordinateDiagnostics.js XML_Compare_Utilities/xml-compare/XmlCompareCoordinateDiagnostics.js
+
+      - name: Run pinned authority regression
+        run: |
+          node --experimental-default-type=module tests/categorized-inputxml-authority-pin.test.mjs
+          node tests/xml-builder-inputxml-ui.test.js
+          git diff --check

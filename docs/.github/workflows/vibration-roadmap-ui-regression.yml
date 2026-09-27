@@ -1,0 +1,51 @@
+name: Vibration Roadmap UI Regression
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/vibration-roadmap-ui-regression.yml'
+      - 'tabs/vibration-roadmap-*.js'
+      - 'tabs/vibration-roadmap-panel.css'
+      - 'tests/vibration-roadmap-*.test.mjs'
+      - 'tests/browser/vibration-roadmap-interaction.html'
+      - 'scripts/run-vibration-roadmap-browser-regression.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  roadmap-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run focused roadmap Node contracts
+        run: >-
+          node --test
+          tests/vibration-roadmap-view-state.test.mjs
+          tests/vibration-roadmap-navigation-contract.test.mjs
+          tests/vibration-roadmap-accessibility-contract.test.mjs
+          tests/vibration-roadmap-presentation-preference.test.mjs
+          tests/vibration-roadmap-measurement-panel.test.mjs
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/vibration-roadmap-http.log 2>&1 &
+          echo $! > /tmp/vibration-roadmap-http.pid
+
+      - name: Run rendered roadmap interaction regression
+        run: node scripts/run-vibration-roadmap-browser-regression.mjs
