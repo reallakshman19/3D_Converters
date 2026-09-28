@@ -3,7 +3,7 @@ import { installModeASmartMapUiV2 } from './xml-cii-adapted-mode-a-smart-map-ui-
 import { installModeASmartMapSelectAll } from './xml-cii-adapted-mode-a-smart-map-select-all.js?v=20260814-preview-restore-1';
 import { installModeAProcessFromUi } from './xml-cii-adapted-mode-a-process-from-ui.js?v=20260814-process-from-1';
 import { repairModeAExactMappedProcessAuthority } from './xml-cii-adapted-mode-a-process-authority.js?v=20260814-preview-restore-1';
-import { installModeAConsolidatedDtxrTools } from './xml-cii-adapted-mode-a-consolidated-dtxr.js?v=20260814-preview-restore-1';
+import { installModeAConsolidatedDtxrTools } from './xml-cii-adapted-mode-a-consolidated-dtxr.js?v=20260928-issue776-authority-1';
 import { installModeAIndividualPreviewToolVisibility } from './xml-cii-adapted-mode-a-individual-preview-tools.js?v=20260814-preview-restore-1';
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-bulk-1';
 

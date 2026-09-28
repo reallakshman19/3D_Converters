@@ -7,7 +7,7 @@ import {
   normalizeModeABatchState,
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
-import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260813-mode-a-full-propagation-2';
+import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js?v=20260813-mode-a-full-propagation-2';
 import {
