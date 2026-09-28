@@ -1,4 +1,5 @@
 import {
+  buildXmlCiiRigidWeightMatch1Provenance,
   withXmlCiiRigidWeightMatch1,
   xmlCiiRigidWeightLifecycleSnapshot,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
@@ -25,6 +26,7 @@ function restoreLifecycle(config, lifecycle = {}) {
   for (const [bucket, values] of [
     ['rigidWeight', lifecycle.legacy],
     ['rigidWeightMatch1', lifecycle.match1],
+    ['rigidWeightMatch1Provenance', lifecycle.match1Provenance],
     ['rigidWeightFinal', lifecycle.final],
   ]) {
     if (values && Object.keys(values).length) next.overrides[bucket] = clone(values) || {};
@@ -38,16 +40,23 @@ export function applyModeAWeightChanges(stateRef, changes = [], label = 'Weight 
   const before = snapshots(stateRef, changes.map((row) => row.sourceId));
   const bySource = new Map();
   for (const change of changes) {
-    if (!bySource.has(change.sourceId)) bySource.set(change.sourceId, {});
-    if (text(change.key) && Number(change.weight) > 0) {
-      bySource.get(change.sourceId)[change.key] = Number(change.weight);
-    }
+    if (!bySource.has(change.sourceId)) bySource.set(change.sourceId, []);
+    if (text(change.key) && Number(change.weight) > 0) bySource.get(change.sourceId).push(change);
   }
-  for (const [sourceId, weightsByKey] of bySource.entries()) {
+  for (const [sourceId, sourceChanges] of bySource.entries()) {
     const ref = createModeASourceProcessingRef(stateRef, sourceId);
     const current = ref.current;
     const config = parseConfig(current.supportConfigJson);
-    const next = withXmlCiiRigidWeightMatch1(config, weightsByKey);
+    const weightsByKey = {};
+    const provenanceByKey = {};
+    for (const change of sourceChanges) {
+      weightsByKey[change.key] = Number(change.weight);
+      provenanceByKey[change.key] = buildXmlCiiRigidWeightMatch1Provenance(change, config, change.candidate || null, {
+        weightKg: change.weight,
+        acceptanceMethod: change.acceptanceMethod || (change.candidate ? 'candidate' : 'manual'),
+      });
+    }
+    const next = withXmlCiiRigidWeightMatch1(config, weightsByKey, provenanceByKey);
     ref.current = { ...current, supportConfigJson: JSON.stringify(next, null, 2) };
   }
   const rawRef = modeARawRef(stateRef);

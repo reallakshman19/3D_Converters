@@ -123,10 +123,12 @@ function compactWeightRow(source, row) {
     nodeName: row?.nodeName || '',
     componentType: row?.componentType || '',
     componentRefNo: row?.componentRefNo || '',
+    endpoint: row?.endpoint || '',
     boreMm: row?.boreMm,
     rating: row?.rating || '',
     resolvedPipingClass: row?.resolvedPipingClass || row?.requestedPipingClass || '',
     lengthMm: row?.lengthMm,
+    elementLengthSource: row?.elementLengthSource || '',
     weight: row?.weight,
     originalWeight: row?.originalWeight,
     overrideWeight: row?.overrideWeight,
@@ -138,6 +140,7 @@ function compactWeightRow(source, row) {
     bestWeight: candidateWeight(best),
     bestScore: candidateScore(best),
     bestDescription: candidateDescription(best),
+    bestCandidate: best,
     candidateCount: Array.isArray(row?.candidates) ? row.candidates.length : 0,
   };
 }

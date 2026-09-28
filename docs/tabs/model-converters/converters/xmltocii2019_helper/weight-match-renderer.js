@@ -15,6 +15,10 @@ import {
   valveHintMappingRows,
 } from '../../../../converters/xml-cii2019-core/weight-valve-hints.js?v=20260626-weight-factor-1';
 import { getXmlCiiPreviewRuntimeConfig } from '../../shared/preview-filldown.js?v=20260620-rating-runtime-1';
+import {
+  buildXmlCiiRigidWeightMatch1Provenance,
+  buildXmlCiiValidatedRigidWeightLegacyView,
+} from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 function t(value) { return value === null || value === undefined ? '' : String(value); }
 function clean(value) { return t(value).replace(/\s+/g, ' ').trim(); }
@@ -319,7 +323,19 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     if (!key || !Number.isFinite(value) || value <= 0) return;
     const cfg = activeConfig();
     const overrides = ensureOverrides(cfg);
+    const rowIndex = Number(input.getAttribute('data-wm-row-index'));
+    const issue = Number.isInteger(rowIndex) ? localIssues[rowIndex] : null;
+    const candidate = (issue?.candidates || []).find((entry) => Math.abs(Number(selectedWeight(entry)) - value) <= 0.0005) || null;
     overrides.rigidWeight = { ...(overrides.rigidWeight || {}), [key]: value };
+    if (issue) {
+      overrides.rigidWeightProposalMeta = {
+        ...(overrides.rigidWeightProposalMeta || {}),
+        [key]: buildXmlCiiRigidWeightMatch1Provenance(issue, cfg, candidate, {
+          weightKg: value,
+          acceptanceMethod: candidate ? 'candidate' : 'manual',
+        }),
+      };
+    }
     onSaveConfig(cfg);
     input.dataset.wmAccepted = 'true';
     const row = input.closest('tr');
@@ -344,7 +360,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const refEndpoint = issue.componentRefEndpoint || componentRefEndpoint(issue.componentRefNo, issue.endpoint);
       const nodeDisplay = issue.nodeNumberDisplay || issue.nodeNumber;
       const ratingInfo = ratingDisplayInfo(issue);
-      return `<tr style="${rowStyle}"><td data-wm-status-cell>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}">${esc(ratingInfo.shownRating || '')}</td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason, ratingInfo.dtxrRating ? `DTXR Rating ${ratingInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" data-wm-accepted="${issue.mapped ? 'true' : 'false'}" value="${attr(initial)}" placeholder="kg" title="${attr(issue.mapped ? 'Accepted/resolved weight.' : (hasProposal ? 'Proposed value only. Select the candidate or edit/confirm this field to accept it into Match-1 authority.' : 'Enter a positive weight to accept it into Match-1 authority.'))}" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
+      return `<tr style="${rowStyle}"><td data-wm-status-cell>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}">${esc(ratingInfo.shownRating || '')}</td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason, ratingInfo.dtxrRating ? `DTXR Rating ${ratingInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" data-wm-row-index="${rowIndex}" data-wm-accepted="${issue.mapped ? 'true' : 'false'}" value="${attr(initial)}" placeholder="kg" title="${attr(issue.mapped ? 'Accepted/resolved weight.' : (hasProposal ? 'Proposed value only. Select the candidate or edit/confirm this field to accept it into Match-1 authority.' : 'Enter a positive weight to accept it into Match-1 authority.'))}" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
     }).join('');
     const cfg = activeConfig();
     const authorityText = ratingMode === 'dtxr' ? 'Explicit DTXR Rating mode' : 'Exact Rating shown in Preview';
@@ -360,7 +376,8 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     liveConfig = await ensureWeightMasterRows(liveConfig);
     if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
     const snapshot = readXmlCiiPreviewRatingSnapshot();
-    if (!opts.force) {
+    const hasMatch1Provenance = Object.keys(liveConfig?.overrides?.rigidWeightMatch1Provenance || {}).length > 0;
+    if (!opts.force && !hasMatch1Provenance) {
       const stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
       const jsonLenForFp = clean(stagedSourceForFp?.text ?? stagedSourceForFp).length;
       const fingerprint = wmCacheFingerprint(file, jsonLenForFp, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides, ratingMode, snapshot.revision);
@@ -386,7 +403,13 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
       if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
       const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
-      localIssues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, cfg, { ratingMode, snapshot }), cfg));
+      const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg);
+      const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
+      const validatedConfig = validated.config;
+      localIssues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, validatedConfig, { ratingMode, snapshot }), validatedConfig));
+      if (validated.validation.staleCount > 0) {
+        status(`${validated.validation.staleCount} stale Match-1 value(s) require re-acceptance because geometry/rating/master basis changed.`, 'bad');
+      }
       const mapped = localIssues.filter((row) => row.mapped).length;
       const suggested = localIssues.filter((row) => row.candidates?.[0]?.preferred).length;
       const flange = localIssues.filter((row) => row.candidates?.[0]?.flangeWeightFallback).length;

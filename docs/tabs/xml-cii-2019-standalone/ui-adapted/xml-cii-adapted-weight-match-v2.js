@@ -75,12 +75,19 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline) {
     xmlCiiEnrichedConfigFromState(stateRef.current),
     stateRef.current.masterContext,
   );
+  const proposalMeta = { ...(nextConfig?.overrides?.rigidWeightProposalMeta || {}) };
   const overrides = {
     ...(nextConfig?.overrides || {}),
     rigidWeight: { ...(current?.overrides?.rigidWeight || {}) },
   };
+  delete overrides.rigidWeightProposalMeta;
   const clean = { ...nextConfig, overrides };
-  const staged = withXmlCiiRigidWeightMatch1(clean, changedWeightMap(nextConfig, baseline));
+  const changes = changedWeightMap(nextConfig, baseline);
+  for (const [key, provenance] of Object.entries(proposalMeta)) {
+    const value = Number(nextConfig?.overrides?.rigidWeight?.[key]);
+    if (key && Number.isFinite(value) && value > 0 && provenance && typeof provenance === 'object') changes[key] = value;
+  }
+  const staged = withXmlCiiRigidWeightMatch1(clean, changes, proposalMeta);
   persistConfig(stateRef, staged);
   return staged;
 }

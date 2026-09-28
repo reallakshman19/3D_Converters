@@ -103,6 +103,7 @@ function setDtxrRatingMode(panel, result, stateRef, enabled) {
     row.bestWeight = reranked.bestWeight;
     row.bestScore = reranked.bestScore;
     row.bestDescription = reranked.bestDescription;
+    row.bestCandidate = reranked.best;
     row._modeAWeightDtxrBest = reranked.best;
     updateRowDom(panel, row);
     changed += 1;
