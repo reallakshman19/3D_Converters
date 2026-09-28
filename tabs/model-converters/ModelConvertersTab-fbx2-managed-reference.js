@@ -28,5 +28,8 @@ async function loadBaseModelConvertersTab() {
 export function renderModelConvertersTab(container, ctx) {
   installFbxLiveUi(container);
   return loadBaseModelConvertersTab()
-    .then((renderBaseModelConvertersTab) => renderBaseModelConvertersTab(container, ctx));
+    .then((renderBaseModelConvertersTab) => {
+      if (container?.dataset.activeTab !== 'model-converters') return null;
+      return renderBaseModelConvertersTab(container, ctx);
+    });
 }

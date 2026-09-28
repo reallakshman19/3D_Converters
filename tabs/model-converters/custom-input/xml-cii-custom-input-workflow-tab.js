@@ -9,11 +9,13 @@ function mount(root=document){
   bindXmlCiiCustomInputPanel(body,modalRoot,{phaseId:'custom-input',modal:null});
   return true;
 }
-function schedule(root){requestAnimationFrame(()=>{mount(root)||setTimeout(()=>mount(root),40);});}
+function schedule(root){requestAnimationFrame(()=>{if(root.isConnected)mount(root)||setTimeout(()=>{if(root.isConnected)mount(root);},40);});}
 export function installXmlCiiCustomInputWorkflowTab(container=document){
   const root=container?.querySelector?.('.model-converters-root')||container||document;
   if(!root||root.dataset?.[FLAG]==='true')return; root.dataset[FLAG]='true';
-  root.addEventListener('click',(event)=>{const tab=event.target?.closest?.('[data-modal-tab="custom-input"]'); if(!tab)return; schedule(root);},true);
-  document.addEventListener('click',(event)=>{const tab=event.target?.closest?.('[data-modal-tab="custom-input"]'); if(!tab)return; schedule(root);},true);
+  const onClick=(event)=>{const tab=event.target?.closest?.('[data-modal-tab="custom-input"]'); if(!tab)return; schedule(root);};
+  root.addEventListener('click',onClick,true);
+  document.addEventListener('click',onClick,true);
   if(document.querySelector('[data-modal-tab="custom-input"].is-active,[data-modal-tab="custom-input"][aria-selected="true"]')) schedule(root);
+  return ()=>{root.removeEventListener('click',onClick,true);document.removeEventListener('click',onClick,true);delete root.dataset[FLAG];};
 }

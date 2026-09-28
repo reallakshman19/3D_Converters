@@ -84,7 +84,13 @@ function installJsonTraceBuildPatch() {
     runJsonTraceBuildButton(button);
   }, true);
   if (typeof MutationObserver !== 'undefined') {
-    const observer = new MutationObserver(scan);
+    const observer = new MutationObserver((mutations) => {
+      const affectsDashboard = mutations.some(({ target, addedNodes }) =>
+        target.closest?.('.json-trace-dashboard')
+        || [...addedNodes].some((node) => node.nodeType === 1
+          && (node.matches?.('.json-trace-dashboard') || node.querySelector?.('.json-trace-dashboard'))));
+      if (affectsDashboard) scan();
+    });
     observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
   }
   setTimeout(scan, 0);

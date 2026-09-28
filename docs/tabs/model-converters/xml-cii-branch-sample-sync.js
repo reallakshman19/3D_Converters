@@ -220,4 +220,9 @@ export function installXmlCiiBranchSampleSync(container = document) {
   bindWorkflowTabRefresh(root, state);
   applyXmlCiiBranchSample(root, undefined, { persistConfig: true });
   syncLoadedXmlCiiBranchSample(root).catch(() => {});
+  return () => {
+    state.primaryInput?.removeEventListener?.('change', state.onPrimaryChange);
+    document.removeEventListener('click', state.onTabRefresh, true);
+    window[FLAG]?.stateByRoot.delete(root);
+  };
 }

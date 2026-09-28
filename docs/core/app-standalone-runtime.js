@@ -76,6 +76,7 @@ const TAB_GROUPS = Object.freeze([
 ]);
 let activeTabDestroy = null;
 let appDestroy = null;
+let renderGeneration = 0;
 
 function cleanupActiveTab() {
   if (!activeTabDestroy) return;
@@ -230,10 +231,13 @@ function readPersistedActiveTab(tabs) {
 function requestTabSwitch(tabId) {
   const normalized = normalizeTabId(tabId);
   if (!normalized) return;
+  if (normalized === state.activeTabId
+    && document.querySelector('.app-content')?.dataset.activeTab === normalized) return;
   setActiveTab(normalized);
 }
 
 async function renderActiveTab(content, nav, tabs) {
+  const generation = ++renderGeneration;
   cleanupActiveTab();
   const active = tabs.find((tab) => tab.id === state.activeTabId) || tabs[0];
   if (!active) return;
@@ -244,11 +248,17 @@ async function renderActiveTab(content, nav, tabs) {
   content.innerHTML = '<div class="tab-loading">Loading...</div>';
   try {
     const renderer = await active.load();
+    if (generation !== renderGeneration) return;
     content.innerHTML = '';
-    const maybeDestroy = renderer(content, { state, emit, on, setActiveTab: requestTabSwitch });
+    const maybeDestroy = await renderer(content, { state, emit, on, setActiveTab: requestTabSwitch });
+    if (generation !== renderGeneration) {
+      if (typeof maybeDestroy === 'function') maybeDestroy();
+      return;
+    }
     activeTabDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
     emit(RuntimeEvents.TAB_RENDERED, { id: active.id });
   } catch (error) {
+    if (generation !== renderGeneration) return;
     console.error(`Failed to render tab ${active.id}`, error);
     content.innerHTML = `<div class="tab-error"><h2>Could not load ${active.label}</h2><pre>${String(error?.message || error)}</pre></div>`;
   }
@@ -260,26 +270,38 @@ export async function init(root) {
   const { nav, content } = createAppShell(root);
   const tabs = await visibleTabs();
   const persisted = readPersistedActiveTab(tabs);
+  let deferredEngineeringTab = false;
+  try { deferredEngineeringTab = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY) === 'engineering-calculations'; } catch {}
   if (persisted) state.activeTabId = persisted;
-  if (!state.activeTabId || !tabs.some((tab) => tab.id === state.activeTabId)) state.activeTabId = tabs[0]?.id || STANDALONE_APP.defaultTab;
+  else if (deferredEngineeringTab) state.activeTabId = 'engineering-calculations';
+  if (!deferredEngineeringTab && (!state.activeTabId || !tabs.some((tab) => tab.id === state.activeTabId))) state.activeTabId = tabs[0]?.id || STANDALONE_APP.defaultTab;
   renderNav(nav, tabs, content);
   hideStartupOverlay();
   initDevDebugWindow();
   const offChanged = on(RuntimeEvents.TAB_CHANGED, (payload = {}) => {
     const tabId = normalizeTabId(payload?.tabId || payload?.id);
-    if (tabId && tabs.some((tab) => tab.id === tabId)) state.activeTabId = tabId;
+    if (!tabId) return;
+    if (!tabs.some((tab) => tab.id === tabId)) {
+      ++renderGeneration;
+      cleanupActiveTab();
+      state.activeTabId = tabId;
+      return;
+    }
+    if (tabId === state.activeTabId && content.dataset.activeTab === tabId) return;
+    state.activeTabId = tabId;
     renderActiveTab(content, nav, tabs);
   });
   const offRequested = on(RuntimeEvents.TAB_CHANGE_REQUESTED, (payload = {}) => requestTabSwitch(payload?.tabId || payload?.id));
   const onWindowSwitch = (event) => requestTabSwitch(event?.detail?.tabId || event?.detail?.id);
   window.addEventListener('app:switch-tab', onWindowSwitch);
   appDestroy = () => {
+    ++renderGeneration;
     offChanged?.();
     offRequested?.();
     window.removeEventListener('app:switch-tab', onWindowSwitch);
     cleanupActiveTab();
   };
-  await renderActiveTab(content, nav, tabs);
+  if (!deferredEngineeringTab) await renderActiveTab(content, nav, tabs);
 }
 
 export function destroy() {

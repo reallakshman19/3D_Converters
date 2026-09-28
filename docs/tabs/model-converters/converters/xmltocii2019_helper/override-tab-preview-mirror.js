@@ -168,6 +168,7 @@ export function installXmlCiiPreviewOverrideTabMirror() {
   if (installed || typeof document === 'undefined') return;
   installed = true;
   const schedule = () => {
+    if (!document.querySelector('.model-converters-workflow-master-card')) return;
     if (scheduled) return;
     scheduled = true;
     const run = () => {

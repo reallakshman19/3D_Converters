@@ -129,6 +129,7 @@ export function installInputXmlPropertyTransferUi(root = globalThis.document) {
     root.querySelector('#model-converters-run')?.removeEventListener('click', onSelectOrClick, true);
     hostObserver.disconnect();
     bodyObserver.disconnect();
+    delete root.dataset.inputxmlPropertyTransferPopupUiV4;
     if (typeof cleanupV3 === 'function') cleanupV3();
   };
 }
