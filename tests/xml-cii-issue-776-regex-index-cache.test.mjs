@@ -51,4 +51,13 @@ const bore = first.suggestions.find((row) => row.role === 'bore');
 assert.equal(bore?.tokenPositions?.[0], 3);
 assert.ok((bore?.evidenceMetrics?.explicitSyntaxRate || 0) > 0);
 
+const secondFormat = buildRegexSuggestionPreflight({
+  ...input,
+  extractionConfig: { ...extractionConfig, activeFormatIndex: 1 },
+});
+assert.equal(secondFormat.suggestions.find((row) => row.role === 'bore')?.tokenPositions?.[0], 4,
+  'the FL-6-inch branch has a separate explicit bore token');
+assert.equal(regexSuggestionCacheStats().lineMasterBuilds, 1);
+assert.equal(regexSuggestionCacheStats().classMasterBuilds, 1);
+
 console.log('Issue #776 Regex governed-index/cache regression passed.');

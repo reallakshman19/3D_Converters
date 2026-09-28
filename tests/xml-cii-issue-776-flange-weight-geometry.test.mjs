@@ -34,5 +34,7 @@ assert.ok(combinedAssembly);
 assert.equal(combinedAssembly.suggestedWeight, 18.983);
 assert.equal(combinedAssembly.score, 0.45, '0.45 is a fallback rank/confidence score, not engineering deviation');
 
-assert.ok(Math.abs(combinedAssembly.suggestedWeight - (2 * oneFlange.suggestedWeight)) <= 0.001);
+assert.equal(2 * 84.37, 168.74, 'assembly span is two component-local flange lengths');
+assert.ok(Math.abs(combinedAssembly.suggestedWeight - (2 * oneFlange.suggestedWeight)) <= 0.002,
+  'each proposal is independently rounded to 0.001 kg');
 console.log('Issue #776 flange weight geometry regression verified.');

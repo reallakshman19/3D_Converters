@@ -39,9 +39,9 @@ assert.doesNotMatch(adapter, /JSON\.stringify\(withXmlCiiEffectiveRigidWeightLeg
 
 const runner = await readFile(new URL('../tabs/model-converters/converters/xmltocii2019_runner.js', import.meta.url), 'utf8');
 assert.match(runner, /buildXmlCiiValidatedRigidWeightLegacyView\(enriched\.config, weightBasisRows\)/);
+const releaseIndex = runner.indexOf('enriched.config = validatedWeightView.config');
 assert.ok(
-  runner.indexOf('buildXmlCiiValidatedRigidWeightLegacyView(enriched.config, weightBasisRows)')
-    < runner.indexOf('applySavedRigidWeightOverridesToEnriched(enriched)'),
+  releaseIndex >= 0 && releaseIndex < runner.indexOf('applySavedRigidWeightOverridesToEnriched(enriched)', releaseIndex),
   'stale Match-1 must be rejected before saved weights are written into enriched XML',
 );
 

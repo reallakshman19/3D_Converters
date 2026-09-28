@@ -23,10 +23,10 @@ test('consolidated Mode A Preview restores DTXR and governed B31.3 actions sourc
   assert.match(source, /modeAExecutionRows/u);
   assert.match(source, /__dtxrWallKeys/u);
   assert.match(source, /applyPreviewDtxrRatingOverrides/u);
-  assert.match(source, /Update wall thickness as per B31\.3 Sec II/u);
+  assert.match(source, /B313_PREVIEW_ACTION_LABEL/u);
   assert.match(source, /buildPreviewB313WallUpdateReport/u);
   assert.match(source, /applyModeAConsolidatedB313Wall/u);
-  assert.match(source, /current\.sourceText \|\| entry\.state\.sourceText/u);
+  assert.match(source, /current\.sourceText \|\| entry\.state\.sourceText \|\| ''/u);
   assert.match(source, /blocked\/skipped/u);
 });
 
