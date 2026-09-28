@@ -4,6 +4,7 @@ import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -11,8 +12,11 @@ const text = (value) => value === undefined || value === null ? '' : String(valu
 
 export async function collectModeARigidWeightReviewIssues(state = {}, config = {}) {
   const effectiveConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
-  return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', effectiveConfig).map((issue) => {
-    const authority = resolveStandaloneWeightReviewRating(issue, config);
+  const prepared = await prepareStandaloneWeightReviewXml(state, effectiveConfig);
+  if (prepared.error) throw new Error(prepared.error);
+  const authorityConfig = prepared.config || effectiveConfig;
+  return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
+    const authority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
     const rating = authority.rating;
     const ranking = rating
       ? rankXmlCiiWeightCandidates({
@@ -23,7 +27,7 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
           componentType: issue.componentType,
           componentRefNo: issue.componentRefNo,
           dtxr: issue.dtxr,
-        }, config, { includeRejected: true })
+        }, authorityConfig, { includeRejected: true })
       : { candidates: [], rejectedCandidates: [] };
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
@@ -34,7 +38,7 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
       branchRating: issue.rating,
       candidates: ranking.candidates.slice(0, 5),
       rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
-    }, config);
+    }, authorityConfig);
   }).filter((issue) => !issue.mapped);
 }
 
@@ -53,8 +57,13 @@ function candidateButtons(issue, rowIndex) {
     const weight = candidate.suggestedWeight ?? candidate.selectedWeight ?? candidate.weight;
     const rawScore = Number(candidate.totalScore ?? candidate.score ?? 0);
     const score = Math.round((rawScore <= 1 ? rawScore * 100 : rawScore));
-    const method = candidate.preferred ? 'exact' : (candidate.weightMethod || (candidate.inferredWeight ? 'inferred' : 'review'));
-    return `<button type="button" class="mc-rigid-review-candidate${candidate.preferred ? ' best' : ''}" data-mode-a-rigid-candidate="${rowIndex}" data-mode-a-rigid-weight="${attr(weight)}" title="${attr(`${method} · ${score}% · ${candidate.typeDesc || candidate.valveType || candidate.type || ''}`)}" style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '★ ' : ''}${esc(weight)} kg · ${score}%</button>`;
+    const fallback = candidate.flangeWeightFallback === true;
+    const method = fallback
+      ? 'Flange length-scaled fallback'
+      : (candidate.preferred ? 'Exact master match' : (candidate.weightMethod || (candidate.inferredWeight ? 'Inferred' : 'Review')));
+    const scoreText = fallback ? '' : ` · confidence ${score}%`;
+    const details = [method, fallback ? candidate.weightWarning : `confidence/rank score ${score}%`, candidate.typeDesc || candidate.valveType || candidate.type || ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="mc-rigid-review-candidate${candidate.preferred ? ' best' : ''}" data-mode-a-rigid-candidate="${rowIndex}" data-mode-a-rigid-weight="${attr(weight)}" title="${attr(details)}" style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '★ ' : ''}${esc(weight)} kg · ${esc(method)}${scoreText}</button>`;
   }).join('');
 }
 
@@ -72,7 +81,7 @@ function rowMarkup(issue, rowIndex) {
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="text" class="mc-rigid-review-rating-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(info.shownRating)}" title="${attr(info.title)}" style="width:64px;background:#101827;color:#fff;border:1px solid ${info.conflict || info.missingWithDtxr ? '#ef4444' : '#31455f'};border-radius:4px;padding:4px;font-size:11px;">${badge}</td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td title="${attr(issue.dtxrSourcePath || '')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:180px;">${esc(issue.dtxr || 'Not found')}</td>
-    <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
+    <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(best ? (best.suggestedWeight ?? best.selectedWeight ?? best.weight ?? '') : '')}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:300px;">${candidateButtons(issue, rowIndex) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;

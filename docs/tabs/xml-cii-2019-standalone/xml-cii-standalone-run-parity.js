@@ -9,6 +9,7 @@
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
+import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 
 const PARITY_MODULE_URL = new URL(
   '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
@@ -192,6 +193,31 @@ export function standaloneParityOptions(supportConfigJson, options = {}) {
     splitCondensedValveFlange: split,
     split_condensed_valve_flange: split,
     condenseRigidXsd: config.condenseRigidXsd === true || config.condense_rigid_xsd === true,
+  };
+}
+
+export async function prepareStandaloneWeightReviewXml(state = {}, config = {}) {
+  const sourceText = text(state?.sourceText);
+  const stagedJsonText = text(state?.stagedJsonText);
+  if (!sourceText.trim()) return { xmlText: sourceText, config, diagnostics: [], stats: {}, error: 'Weight review requires non-empty XML source text.' };
+  const parity = await import(PARITY_MODULE_URL.href);
+  const supportConfigJson = JSON.stringify(config && typeof config === 'object' ? config : {});
+  const options = standaloneParityOptions(supportConfigJson, state?.options || {});
+  const enriched = await parity.enrichXmlForCii2019(sourceText, stagedJsonText, options);
+  const preparedConfig = enriched?.config && typeof enriched.config === 'object'
+    ? { ...enriched.config, ...config, overrides: { ...(enriched.config.overrides || {}), ...(config?.overrides || {}) } }
+    : config;
+  const geometry = applyXmlCiiStagedGeometryAuthority(
+    enriched?.xmlText || sourceText,
+    stagedJsonText,
+    { config: preparedConfig },
+  );
+  return {
+    xmlText: geometry.xmlText,
+    config: preparedConfig,
+    diagnostics: [...(enriched?.diagnostics || []), ...(geometry?.diagnostics || [])],
+    stats: { ...(enriched?.stats || {}), ...(geometry?.stats || {}) },
+    error: null,
   };
 }
 

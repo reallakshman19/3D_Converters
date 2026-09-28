@@ -10,7 +10,7 @@ import {
   updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
-import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js';
+import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -90,8 +90,8 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   void (async () => {
     try {
       const [renderer, parity] = await Promise.all([
-        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'),
-        import('../xml-cii-standalone-run-parity.js'),
+        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260928-issue776-authority-1'),
+        import('../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1'),
       ]);
       const shared = await parity.loadParentWeightMatchModules();
       if (
