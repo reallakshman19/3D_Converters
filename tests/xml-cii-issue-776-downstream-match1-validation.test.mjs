@@ -31,7 +31,8 @@ assert.equal(valid.config.overrides.rigidWeight[key], 9.492, 'valid Match-1 must
 
 const stale = buildXmlCiiValidatedRigidWeightLegacyView(accepted, [{ ...issue, lengthMm: 168.74 }]);
 assert.equal(stale.validation.stale[key].reason, 'basis-changed');
-assert.equal(stale.config.overrides.rigidWeight[key], 77, 'stale Match-1 must fall back to persisted legacy evidence, never masquerade as valid Match-1');
+assert.equal(stale.config.overrides.rigidWeight[key], undefined, 'stale Match-1 must force review instead of silently falling back to weaker legacy evidence');
+assert.deepEqual(stale.validation.suppressedLegacyKeys, [key]);
 
 const adapter = await readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js', import.meta.url), 'utf8');
 assert.doesNotMatch(adapter, /JSON\.stringify\(withXmlCiiEffectiveRigidWeightLegacyView\(config\)/);

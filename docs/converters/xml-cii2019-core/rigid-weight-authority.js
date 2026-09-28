@@ -198,8 +198,17 @@ export function buildXmlCiiValidatedRigidWeightLegacyView(config = {}, issues = 
   const base = plainObject(config);
   const overrides = plainObject(base.overrides);
   const validation = validateXmlCiiRigidWeightMatch1(base, issues);
+  const legacy = positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]);
+
+  // A stale/current Match-1 record means this component has entered the
+  // governed lifecycle. Never silently fall back to an older legacy override
+  // for the same key: doing so can hide a changed geometry/master basis and
+  // skip the required engineering review. Final remains higher authority
+  // because it is an explicit downstream acceptance.
+  for (const key of Object.keys(validation.stale)) delete legacy[key];
+
   const effective = {
-    ...positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]),
+    ...legacy,
     ...validation.validWeights,
     ...positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.final]),
   };
@@ -211,7 +220,10 @@ export function buildXmlCiiValidatedRigidWeightLegacyView(config = {}, issues = 
         rigidWeight: effective,
       },
     },
-    validation,
+    validation: {
+      ...validation,
+      suppressedLegacyKeys: Object.keys(validation.stale).filter((key) => positive(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]?.[key]) !== null),
+    },
   };
 }
 
