@@ -35,6 +35,7 @@ jobs:
             tests/xml-cii-issue-776-weight-acceptance-validation.test.mjs \
             tests/xml-cii-issue-776-regex-index-cache.test.mjs \
             tests/xml-cii-issue-776-b313-central-api-parity.test.mjs \
+            tests/xml-cii-issue-776-weight-unit-custody.test.mjs \
             tests/xml-cii-mode-a-preview-restoration.test.mjs 2>&1 | tee issue-776-focused.log
           status=${PIPESTATUS[0]}
           echo "status=${status}" >> "${GITHUB_OUTPUT}"
