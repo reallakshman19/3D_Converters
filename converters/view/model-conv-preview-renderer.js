@@ -283,6 +283,7 @@ export class ModelConverters_3DModelConv_PreviewRenderer {
     if (this._3DModelConv_raf) cancelAnimationFrame(this._3DModelConv_raf);
     this._3DModelConv_raf = 0;
     try { this._3DModelConv_resizeObserver?.disconnect(); } catch {}
+    try { this.controls?.dispose?.(); } catch {}
     this._3DModelConv_clear();
     this._3DModelConv_clearStp();
     try { this.renderer?.dispose?.(); } catch {}

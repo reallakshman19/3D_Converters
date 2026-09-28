@@ -28,7 +28,7 @@ test('app shell provides generic vertical scrolling to all module surfaces inclu
   assert.match(scrollCss, /scrollbar-gutter:\s*stable;/u);
 
   // All normal standalone renderers receive the same app-content container.
-  assert.match(runtimeJs, /const maybeDestroy = renderer\(content,/u);
+  assert.match(runtimeJs, /const maybeDestroy = await renderer\(content,/u);
   assert.match(engineeringExtensionJs, /const content = root\?\.querySelector\('\.app-content'\)/u);
 
   // Both requested vibration product surfaces are nested under that generic scroll owner.

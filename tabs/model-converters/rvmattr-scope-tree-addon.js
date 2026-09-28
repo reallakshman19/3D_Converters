@@ -253,14 +253,21 @@ function inspectAddedNode(node) {
 export function installRvmAttrScopeTreeAddon() {
   if (installed || typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
   installed = true;
-  document.addEventListener('change', (event) => {
+  const onFileChange = (event) => {
     if (event.target?.matches?.('input[type="file"]')) rememberInputFiles(event.target);
-  }, true);
+  };
+  document.addEventListener('change', onFileChange, true);
   scanAttributeInputs();
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) for (const node of mutation.addedNodes) inspectAddedNode(node);
   });
   observer.observe(document.body, { childList: true, subtree: true });
   for (const tree of document.querySelectorAll('[data-scope-tree]')) enhanceScopeCard(tree.parentElement);
+  return () => {
+    observer.disconnect();
+    document.removeEventListener('change', onFileChange, true);
+    latestAttributeFile = null;
+    installed = false;
+  };
 }
 export const __RVMATTR_SCOPE_TREE_ADDON_VERSION__ = VERSION;

@@ -1,5 +1,6 @@
 import { RuntimeEvents } from '../contracts/runtime-events.js';
 import { emit, on } from './event-bus.js';
+import { setActiveTab } from './state.js';
 
 const ACTIVE_TAB_STORAGE_KEY = 'format-converters.activeTabId';
 const ENGINEERING_TABS = Object.freeze([
@@ -57,6 +58,7 @@ export function installEngineeringTabs(root) {
     const token = ++renderToken;
     cleanupActive();
     activeId = tab.id;
+    setActiveTab(tab.id);
     try { localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tab.id); } catch {}
     setActiveButton(nav, tab.id);
     content.dataset.activeTab = tab.id;
@@ -65,16 +67,21 @@ export function installEngineeringTabs(root) {
       const renderer = await tab.load();
       if (token !== renderToken || activeId !== tab.id) return true;
       content.innerHTML = '';
-      const maybeDestroy = renderer(content, {
+      const maybeDestroy = await renderer(content, {
         emit,
         on,
         context,
         setActiveTab: (nextId, nextContext) => renderEngineeringTab(nextId, nextContext),
       });
+      if (token !== renderToken || activeId !== tab.id) {
+        if (typeof maybeDestroy === 'function') maybeDestroy();
+        return true;
+      }
       activeDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
       pendingExternalSwitch = null;
       emit(RuntimeEvents.TAB_RENDERED, { id: tab.id, extension: 'engineering' });
     } catch (error) {
+      if (token !== renderToken || activeId !== tab.id) return true;
       console.error(`Failed to render engineering tab ${tab.id}`, error);
       content.innerHTML = `<div class="tab-error"><h2>Could not load ${tab.label}</h2><pre>${String(error?.message || error)}</pre></div>`;
     }

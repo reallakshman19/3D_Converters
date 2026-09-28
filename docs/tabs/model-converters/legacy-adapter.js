@@ -3,7 +3,7 @@ import { state } from '../../core/state.js';
 import { RuntimeEvents } from '../../contracts/runtime-events.js';
 import { notify } from '../../diagnostics/notification-center.js';
 import { pickImportAdapter } from '../../interchange/source/adapter-registry.js';
-import { ModelConverters_3DModelConv_PreviewRenderer } from '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1';
+import { ModelConverters_3DModelConv_PreviewRenderer } from '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1-tabperf1';
 import { buildInputXmlCiiGeometryPreviewProject } from './inputxml-cii-geometry-preview.js?v=20260710-inputxml-cii-geometry-preview-2';
 import {
   buildFbxSourceGraphPreviewProject,

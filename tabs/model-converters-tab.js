@@ -1,6 +1,6 @@
 const MODEL_CONVERTERS_SHIM_VERSION = '20260928-rvm-full-scope-core-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260928-rvm-full-scope-core-1';
-const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260928-rvm-full-scope-core-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260928-rvm-full-scope-core-1-tabperf1';
+const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260928-rvm-full-scope-core-1-tabperf1';
 const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260928-rvm-full-scope-core-1';
 const CII_V11_V14_DROPDOWN_INTEGRATION = './model-converters/cii-v11-v14-dropdown-integration.js?v=20260928-rvm-full-scope-core-1';
 
@@ -15,6 +15,7 @@ function renderDiagnostic(container, title, primaryError, fallbackError) {
 }
 function callRenderer(renderer, container, ctx) {
   if (typeof renderer !== 'function') throw new Error('Model Converters renderer export is missing.');
+  if (container?.dataset.activeTab !== 'model-converters') return null;
   return renderer(container, ctx);
 }
 async function installRenderedCiiV11V14Dropdown(container) {
@@ -50,7 +51,7 @@ async function installCiiV11V14Addon() {
 }
 export function renderModelConvertersTab(container, ctx) {
   if (container?.dataset) container.dataset.modelConvertersShim = MODEL_CONVERTERS_SHIM_VERSION;
-  installCiiV11V14Addon()
+  return installCiiV11V14Addon()
     .then(() => import(CANONICAL_MODULE)
       .then((module) => callRenderer(module.renderModelConvertersTab, container, ctx))
       .catch((error) => {
@@ -62,6 +63,5 @@ export function renderModelConvertersTab(container, ctx) {
       renderDiagnostic(container, 'Could not load Model Converters', error, null);
       return null;
     });
-  return null;
 }
 export const __MODEL_CONVERTERS_TAB_SHIM_VERSION__ = MODEL_CONVERTERS_SHIM_VERSION;

@@ -288,5 +288,6 @@ export function installInputXmlPropertyTransferUi(root = globalThis.document) {
   return () => {
     select.removeEventListener('change', onSelectChange, true);
     runButton.removeEventListener('click', onRun, true);
+    delete root.dataset.inputxmlPropertyTransferPopupUiV3;
   };
 }
