@@ -454,9 +454,27 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
     const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
     if (!hasWeightMasterRows(cfg)) return null;
     const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
+    const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg);
+    const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
+    const authorityConfig = validated.config;
     const snapshot = readXmlCiiPreviewRatingSnapshot();
-    const issues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, cfg, { ratingMode: 'preview', snapshot }), cfg));
-    return { issues, masterRows: cfg.weight?.masterRows || [], config: cfg, previewRatingSnapshot: snapshot };
+    const issues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, authorityConfig), geometryXml)
+      .map(cleanRow)
+      .filter(Boolean)
+      .map((row) => applyXmlCiiFlangeWeightFallbackToIssue(
+        rerankWithRating({
+          ...row,
+          staleMatch1: validated.validation.stale?.[row.key] || null,
+        }, authorityConfig, { ratingMode: 'preview', snapshot }),
+        authorityConfig,
+      ));
+    return {
+      issues,
+      masterRows: authorityConfig.weight?.masterRows || [],
+      config: authorityConfig,
+      previewRatingSnapshot: snapshot,
+      match1Validation: validated.validation,
+    };
   } catch (error) {
     console.warn('XML→CII standalone weight computation failed:', error);
     return null;
