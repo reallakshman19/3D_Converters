@@ -1,8 +1,8 @@
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
-import { collectXmlCiiZeroRigidWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-model.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
 import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1';
 
@@ -11,11 +11,14 @@ const attr = (value) => esc(value).replace(/'/g, '&#39;');
 const text = (value) => value === undefined || value === null ? '' : String(value).trim();
 
 export async function collectModeARigidWeightReviewIssues(state = {}, config = {}) {
-  const effectiveConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
-  const prepared = await prepareStandaloneWeightReviewXml(state, effectiveConfig);
+  const prepared = await prepareStandaloneWeightReviewXml(state, config);
   if (prepared.error) throw new Error(prepared.error);
-  const authorityConfig = prepared.config || effectiveConfig;
+  const preparedConfig = prepared.config || config;
+  const basisRows = collectXmlCiiWeightMatchRows(prepared.xmlText, state.stagedJsonText || '', preparedConfig);
+  const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
+  const authorityConfig = validated.config;
   return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
+    const staleMatch1 = validated.validation.stale?.[issue.key] || null;
     const authority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
     const rating = authority.rating;
     const ranking = rating
@@ -31,6 +34,7 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
       : { candidates: [], rejectedCandidates: [] };
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
+      staleMatch1,
       rating,
       dtxrRating: authority.dtxrRating,
       ratingAuthority: authority,

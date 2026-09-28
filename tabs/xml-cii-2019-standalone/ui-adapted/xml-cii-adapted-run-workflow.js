@@ -7,7 +7,10 @@ import {
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
 import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js';
-import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import {
+  buildXmlCiiValidatedRigidWeightLegacyView,
+  withXmlCiiRigidWeightFinal,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -196,14 +199,17 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
 }
 
 async function unresolvedRigidIssues(state, config) {
-  const { collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
+  const { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
-  const effectiveConfig = withXmlCiiEffectiveRigidWeightLegacyView(config);
-  const prepared = await prepareStandaloneWeightReviewXml(state, effectiveConfig);
+  const prepared = await prepareStandaloneWeightReviewXml(state, config);
   if (prepared.error) throw new Error(prepared.error);
-  const authorityConfig = prepared.config || effectiveConfig;
+  const preparedConfig = prepared.config || config;
+  const basisRows = collectXmlCiiWeightMatchRows(prepared.xmlText, state.stagedJsonText || '', preparedConfig);
+  const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
+  const authorityConfig = validated.config;
   return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
+    const staleMatch1 = validated.validation.stale?.[issue.key] || null;
     const ratingAuthority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
     const rating = ratingAuthority.rating;
     const ranking = rating
@@ -211,6 +217,7 @@ async function unresolvedRigidIssues(state, config) {
       : { candidates: [], rejectedCandidates: [] };
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
+      staleMatch1,
       rating,
       dtxrRating: ratingAuthority.dtxrRating,
       ratingAuthority,
@@ -227,10 +234,10 @@ async function reviewRigidWeights(stateRef, config) {
     const result = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
-      config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...result.weightsByKey } };
-      stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
+      const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
+      stateRef.current.supportConfigJson = JSON.stringify(finalConfig, null, 2);
       if (stateRef.current.masterContext) {
-        stateRef.current.masterContext.config = config;
+        stateRef.current.masterContext.config = finalConfig;
         saveMasterContextToLocalStorage(stateRef.current.masterContext);
       }
     }

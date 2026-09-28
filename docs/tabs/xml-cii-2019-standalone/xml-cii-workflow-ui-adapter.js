@@ -1,4 +1,3 @@
-import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
@@ -58,7 +57,7 @@ function enrichSupportConfigJson(state, branchScope = null) {
     config.weight.masterRows = weightMasterRows;
   }
   if (branchScope?.manifest) config.branchSelection = branchScope.manifest;
-  return JSON.stringify(withXmlCiiEffectiveRigidWeightLegacyView(config), null, 2);
+  return JSON.stringify(config, null, 2);
 }
 
 function parseJsonOrDefault(text, fallback) {
