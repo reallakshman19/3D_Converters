@@ -2,7 +2,7 @@ const SUBTABS = Object.freeze([
   {
     id: 'calculations',
     label: 'Calculations',
-    load: () => import('./engineering-calculations-tab.js?v=20260819-sbc-connection-authoring-1').then((module) => module.renderEngineeringCalculationsTab),
+    load: () => import('./engineering-calculations-tab.js?v=20260928-illegal-return-fix-1').then((module) => module.renderEngineeringCalculationsTab),
   },
   {
     id: 'b313-material-factors',
