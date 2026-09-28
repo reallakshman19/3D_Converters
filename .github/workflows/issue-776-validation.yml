@@ -71,3 +71,32 @@ jobs:
           echo "focused=${{ steps.focused.outputs.status }} adjacent=${{ steps.adjacent.outputs.status }}"
           test "${{ steps.focused.outputs.status }}" = "0"
           test "${{ steps.adjacent.outputs.status }}" = "0"
+
+  wsw-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-776-http.log 2>&1 &
+      - name: Run exact-head WSW browser conversion
+        run: node scripts/run-xml-cii-issue-776-wsw-e2e.mjs
+      - name: Upload WSW exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-776-wsw-e2e
+          path: |
+            ValidationRecords/xml-cii-issue-776-wsw-e2e.json
+            /tmp/issue-776-http.log
+          if-no-files-found: warn
