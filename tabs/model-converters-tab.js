@@ -1,8 +1,8 @@
-const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-dropdown-release-4';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-v11-v14-dropdown-release-4';
-const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260816-cii-v11-v14-dropdown-release-4';
-const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260816-cii-v11-v14-dropdown-release-4';
-const CII_V11_V14_DROPDOWN_INTEGRATION = './model-converters/cii-v11-v14-dropdown-integration.js?v=20260816-cii-v11-v14-dropdown-release-4';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260928-rvm-full-scope-core-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260928-rvm-full-scope-core-1';
+const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260928-rvm-full-scope-core-1';
+const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260928-rvm-full-scope-core-1';
+const CII_V11_V14_DROPDOWN_INTEGRATION = './model-converters/cii-v11-v14-dropdown-integration.js?v=20260928-rvm-full-scope-core-1';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]);

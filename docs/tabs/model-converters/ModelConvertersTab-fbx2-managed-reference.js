@@ -5,7 +5,7 @@ import { installFbxPreviewZoneSelector } from './fbx-preview-zone-selector.js?v=
 import { installFbxSelectedZonePreviewBridge } from './fbx-selected-zone-preview-bridge.js?v=20260804-fbx-multifamily-release-1';
 import { installFbxZoneGeometryToolbar } from './converters/fbx/zone-geometry/zone-toolbar.js?v=20260804-fbx-multifamily-release-1';
 
-const VERSION = '20260816-cii-v11-v14-dropdown-release-4';
+const VERSION = '20260928-rvm-full-scope-core-1';
 
 function installFbxLiveUi(container) {
   installFbxReviewUiAddon();
@@ -18,7 +18,7 @@ function installFbxLiveUi(container) {
 }
 
 async function loadBaseModelConvertersTab() {
-  const module = await import('./ModelConvertersTab.js?v=20260816-cii-v11-v14-dropdown-release-4');
+  const module = await import('./ModelConvertersTab.js?v=20260928-rvm-full-scope-core-1');
   if (typeof module?.renderModelConvertersTab !== 'function') {
     throw new Error('Base Model Converters renderer export is missing.');
   }

@@ -5100,6 +5100,7 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
       </div>
       <div data-scope-tree style="padding:10px 18px;overflow:auto;min-height:260px;max-height:52vh;font-size:13px;"></div>
       <div style="padding:12px 18px;border-top:1px solid #303848;display:flex;justify-content:flex-end;gap:8px;">
+        <button type="button" data-scope-convert-full class="model-converters-run-btn">Convert full scope</button>
         <button type="button" data-scope-cancel class="model-converters-download-btn">Cancel</button>
         <button type="button" data-scope-convert class="model-converters-run-btn">Convert selected scope</button>
       </div>
@@ -5183,6 +5184,11 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
       overlay.remove();
       resolve(result);
     };
+    card.querySelector('[data-scope-convert-full]').addEventListener('click', () => close({
+      cancelled: false,
+      wildcard: '',
+      selectedIds: [],
+    }));
     card.querySelector('[data-scope-cancel]').addEventListener('click', () => close({ cancelled: true, wildcard: '', selectedIds: [] }));
     card.querySelector('[data-scope-convert]').addEventListener('click', () => close({
       cancelled: false,
