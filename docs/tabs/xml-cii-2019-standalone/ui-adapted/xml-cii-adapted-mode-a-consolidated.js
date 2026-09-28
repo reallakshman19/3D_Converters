@@ -1,5 +1,7 @@
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import { collectXmlCiiWeightMatchRows } from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1';
 import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
@@ -221,10 +223,19 @@ export async function buildModeAConsolidatedWeightMatch(stateOrRef = {}, runtime
     runtime.onProgress?.({ index, total: executionRows.length, source: entry.source });
     try {
       const config = ensureWeightMasterRows(configBuilder(entry.state), entry.state);
-      const sourceRows = collector(
-        entry.state.sourceText || '',
+      const prepared = await prepareStandaloneWeightReviewXml(entry.state, config);
+      if (prepared.error) throw new Error(prepared.error);
+      const preparedConfig = ensureWeightMasterRows(prepared.config || config, entry.state);
+      const basisRows = collector(
+        prepared.xmlText,
         entry.state.stagedJsonText || '',
-        config,
+        preparedConfig,
+      ) || [];
+      const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
+      const sourceRows = collector(
+        prepared.xmlText,
+        entry.state.stagedJsonText || '',
+        validated.config,
       ) || [];
       rows.push(...sourceRows.map((row) => compactWeightRow(entry.source, row)));
       sources.push({
@@ -232,6 +243,7 @@ export async function buildModeAConsolidatedWeightMatch(stateOrRef = {}, runtime
         fileName: entry.source.fileName,
         rowCount: sourceRows.length,
         unresolvedCount: sourceRows.filter((row) => row?.mapped !== true).length,
+        staleMatch1Count: validated.validation.staleCount,
       });
     } catch (error) {
       errors.push({
