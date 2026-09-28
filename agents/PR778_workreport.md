@@ -1,8 +1,8 @@
-# WIP-776q28 — Issue #776 qualification closeout
+# PR778 — Issue #776 qualification closeout
 
 - **Mission:** Audit merged PR #777 and complete the executable qualification closeout for issue #776.
 - **Classification:** ENGINEERING_CRITICAL. **Decision:** CONTINUE with a narrow follow-up; no weight, topology, unit, workflow, or engineering master authority change.
-- **Base:** `main` at `1db85c2a1443dde2510f34bc387ffce56163f420` (PR #777 squash merge). Work branch: `agent/issue-776-qualification-closeout`.
+- **Base:** `main` at `1db85c2a1443dde2510f34bc387ffce56163f420` (PR #777 squash merge). Work branch: `agent/issue-776-qualification-closeout`. Draft PR: #778. Initial PR head: `16210270`.
 - **Issue / predecessor:** #776 is closed; #777 is merged. Follow-up plan posted on #776. No active PR claims the exact changed files; older XML/CII PRs #773/#772 and scale/performance PRs remain open and may overlap in authority if later rebased.
 - **Initial finding:** GitHub job `108945066276` reports `steps=[]`, so its failure provides no assertion output. Local execution on the merge commit found 7/24 focused failures. The real WSW browser conversion passed 70→80 non-rigid, junction continuity at 360/770, and one COORDS anchor.
 - **Production trace:** Regex preflight tokenizes branch samples, groups them by structural signature, and selects `clusters[activeFormatIndex]`. Equal-size groups were sorted alphabetically, assigning the FL-6-inch cluster before the first 3-inch branch despite source order. The patch preserves first-seen order for equal-size groups. Its source and `docs/` runtime copies are synchronized, with a focused import cache chain suffix `-regex1` from HTML through the smart suggestion module.
@@ -10,4 +10,4 @@
 - **Validation:** Focused suite PASS 24/24 locally after repair. Adjacent XML/CII-only tests PASS 7/7. Real WSW browser E2E PASS on this branch: 70→80 RIGID pointer 0, connected 360/770, one COORDS anchor. The synthetic Python runtime regression also verifies a 9.492 kg XML flange emits 94.92 in its CII RIGID payload with `--weight-scale 10`. Full adjacent suite FAIL 6/23 due to unrelated `engineering-calculation-core` assertions; that file and its implementation were unchanged by PR #777. GitHub Actions execution remains NOT_RUN for this branch.
 - **Changed-file ledger:** Regex suggestion module and `docs/` mirror; eight source/`docs` import-chain pairs; focused tests for Match-1 source-order assertions, flange rounding, Regex two-format evidence, Python path, weight-scale tolerance, Mode A label; deployment parity test; this report. `.backups/log.json` is backup-tool metadata and will be restored before commit.
 - **Highest risk:** A live hosted runner may still fail before checkout; the issue workflow's full adjacent job also contains pre-existing unrelated engineering calculation failures. Neither is a passing test result.
-- **EXACT_NEXT_ACTION:** Inspect diff and restore backup metadata; commit the repair and evidence, create a draft PR, push, and record exact-head evidence and any red CI classification.
+- **EXACT_NEXT_ACTION:** Inspect PR #778 exact-head checks and review state. Post the local execution evidence and any runner/pre-existing failure classification on #776 and the PR. Keep the draft open for owner review; do not merge without explicit authorization.
