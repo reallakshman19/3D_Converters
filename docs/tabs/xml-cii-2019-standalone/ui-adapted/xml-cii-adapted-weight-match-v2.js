@@ -4,7 +4,7 @@ import {
   withXmlCiiEffectiveRigidWeightLegacyView,
   withXmlCiiRigidWeightMatch1,
   xmlCiiEffectiveRigidWeightMap,
-} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,

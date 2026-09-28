@@ -3,7 +3,7 @@ import {
   empiricalWeightValidationReportToCsv,
   downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
-import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }

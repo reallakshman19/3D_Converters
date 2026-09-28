@@ -2,7 +2,7 @@ import {
   buildXmlCiiRigidWeightMatch1Provenance,
   withXmlCiiRigidWeightMatch1,
   xmlCiiRigidWeightLifecycleSnapshot,
-} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
 import { createModeASourceProcessingRef, modeARawRef, modeARawState } from './xml-cii-adapted-mode-a-propagation.js';
 

@@ -5,7 +5,7 @@ import {
 } from '../../tabs/model-converters/fbx-selected-zone-preview-bridge.js';
 
 const root = new URL('../../', import.meta.url);
-const appShellKey = '20260928-issue776-authority-1';
+const appShellKey = '20260928-issue776-authority-2';
 const modelConvertersKey = '20260928-rvm-full-scope-core-1';
 const key = '20260804-fbx-multifamily-release-1';
 const obsoleteKeys = [

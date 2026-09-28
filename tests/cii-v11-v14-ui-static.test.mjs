@@ -20,7 +20,7 @@ const runner = read('tabs/model-converters/converters/cii-v11-v14.js');
 const worker = read('converters/cii-v11-v14-worker.js');
 const legacyAdapter = read('tabs/model-converters/legacy-adapter.js');
 
-const appShellKey = '20260928-issue776-authority-1';
+const appShellKey = '20260928-issue776-authority-2';
 const modelConvertersKey = '20260928-rvm-full-scope-core-1';
 const releaseKey = '20260816-cii-v11-v14-dropdown-release-4';
 const workerReleaseKey = '20260816-cii-v11-v14-import-rca-1';
