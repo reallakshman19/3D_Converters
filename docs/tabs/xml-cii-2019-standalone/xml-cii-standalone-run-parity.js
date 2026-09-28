@@ -11,10 +11,10 @@ import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enric
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { collectXmlCiiWeightMatchRows } from '../../converters/xml-cii2019-core/weight-match-model.js';
-import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 const PARITY_MODULE_URL = new URL(
-  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
+  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260928-issue776-authority-2',
   import.meta.url,
 );
 

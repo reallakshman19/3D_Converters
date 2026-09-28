@@ -18,7 +18,7 @@ import { getXmlCiiPreviewRuntimeConfig } from '../../shared/preview-filldown.js?
 import {
   buildXmlCiiRigidWeightMatch1Provenance,
   buildXmlCiiValidatedRigidWeightLegacyView,
-} from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+} from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function t(value) { return value === null || value === undefined ? '' : String(value); }
 function clean(value) { return t(value).replace(/\s+/g, ' ').trim(); }

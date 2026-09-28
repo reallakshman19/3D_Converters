@@ -10,7 +10,7 @@ import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-pari
 import {
   buildXmlCiiValidatedRigidWeightLegacyView,
   withXmlCiiRigidWeightFinal,
-} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');

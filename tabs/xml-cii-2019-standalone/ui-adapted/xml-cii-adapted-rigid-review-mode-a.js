@@ -2,9 +2,9 @@ import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo }
 import { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-model.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
