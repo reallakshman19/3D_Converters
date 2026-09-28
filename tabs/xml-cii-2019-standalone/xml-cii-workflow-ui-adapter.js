@@ -55,6 +55,8 @@ function enrichSupportConfigJson(state, branchScope = null) {
   if (weightMasterRows.length) {
     if (!config.weight) config.weight = {};
     config.weight.masterRows = weightMasterRows;
+    const appliedWeightRevision = Number(state.masterContext?.appliedMappingRevision?.weight || 0);
+    if (appliedWeightRevision > 0) config.weight.masterRevision = appliedWeightRevision;
   }
   if (branchScope?.manifest) config.branchSelection = branchScope.manifest;
   return JSON.stringify(config, null, 2);
