@@ -15,7 +15,7 @@ test('Smart Map Unmapped Lines exposes literal Select All without inventing Map 
   assert.match(source, /rowIsVisible/u);
 });
 
-test('consolidated Mode A Preview restores both DTXR actions source-locally', () => {
+test('consolidated Mode A Preview restores DTXR and governed B31.3 actions source-locally', () => {
   const source = read('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-dtxr.js');
   assert.match(source, /Update Wall thickness based on DTXR/u);
   assert.match(source, /Fetch Rating as per DTXR/u);
@@ -23,7 +23,11 @@ test('consolidated Mode A Preview restores both DTXR actions source-locally', ()
   assert.match(source, /modeAExecutionRows/u);
   assert.match(source, /__dtxrWallKeys/u);
   assert.match(source, /applyPreviewDtxrRatingOverrides/u);
-  assert.match(source, /B31\.3 wall update remains source-specific/u);
+  assert.match(source, /Update wall thickness as per B31\.3 Sec II/u);
+  assert.match(source, /buildPreviewB313WallUpdateReport/u);
+  assert.match(source, /applyModeAConsolidatedB313Wall/u);
+  assert.match(source, /current\.sourceText \|\| entry\.state\.sourceText/u);
+  assert.match(source, /blocked\/skipped/u);
 });
 
 test('individual Mode A Preview auto-build exposes native DTXR and B31.3 actions only after explicit expansion', () => {
