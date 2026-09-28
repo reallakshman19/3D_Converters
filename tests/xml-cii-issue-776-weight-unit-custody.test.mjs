@@ -21,7 +21,7 @@ function scales(invocation) {
 assert.deepEqual(scales(defaultInvocation), [10]);
 assert.deepEqual(scales(onInvocation), [10]);
 assert.deepEqual(scales(offInvocation), []);
-assert.equal(9.492 * scales(onInvocation)[0], 94.92);
+assert.ok(Math.abs(9.492 * scales(onInvocation)[0] - 94.92) < 1e-9);
 
 assert.match(writer, /_rigid_weight_for_edge\(edge\) \* weight_scale/);
 assert.match(configUi, /kg → N weight conversion \(×10\)/);

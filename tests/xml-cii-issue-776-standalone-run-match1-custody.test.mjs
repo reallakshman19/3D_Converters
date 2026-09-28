@@ -12,7 +12,7 @@ assert.match(source, /validMatch1Weights: validated\.validation\.validCount/);
 assert.match(source, /staleMatch1Weights: validated\.validation\.staleCount/);
 
 const validationIndex = source.indexOf('buildXmlCiiValidatedRigidWeightLegacyView(config, basisRows)');
-const processIndex = source.indexOf('applyStandaloneProcessParity(\n      geometry.xmlText');
+const processIndex = source.search(/applyStandaloneProcessParity\(\s*geometry\.xmlText/s);
 assert.ok(validationIndex >= 0 && processIndex > validationIndex, 'Match-1 must be validated against canonical geometry before Weight is written into the standalone engine input');
 
 console.log('Issue #776 standalone run validates Match-1 before CII engine release.');

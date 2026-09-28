@@ -3,14 +3,15 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../', import.meta.url));
 const dir = await mkdtemp(join(tmpdir(), 'xml-cii-776-topology-'));
 const input = join(dir, 'input.xml');
 const output = join(dir, 'output.cii');
 
-function node(no, type, rigid, ref, x) {
-  return `<Node><NodeNumber>${no}</NodeNumber><NodeName></NodeName><Endpoint>0</Endpoint>${rigid ? `<Rigid>${rigid}</Rigid>` : ''}<ComponentType>${type}</ComponentType><Weight>0</Weight><ComponentRefNo>=${ref}</ComponentRefNo><OutsideDiameter>88.9</OutsideDiameter><WallThickness>0</WallThickness><CorrosionAllowance>0</CorrosionAllowance><InsulationThickness>0</InsulationThickness><Position>${x} 0 0</Position><BendRadius>0</BendRadius><SIF>0</SIF></Node>`;
+function node(no, type, rigid, ref, x, weightKg = 0) {
+  return `<Node><NodeNumber>${no}</NodeNumber><NodeName></NodeName><Endpoint>0</Endpoint>${rigid ? `<Rigid>${rigid}</Rigid>` : ''}<ComponentType>${type}</ComponentType><Weight>${weightKg}</Weight><ComponentRefNo>=${ref}</ComponentRefNo><OutsideDiameter>88.9</OutsideDiameter><WallThickness>0</WallThickness><CorrosionAllowance>0</CorrosionAllowance><InsulationThickness>0</InsulationThickness><Position>${x} 0 0</Position><BendRadius>0</BendRadius><SIF>0</SIF></Node>`;
 }
 
 const xml = `<PipeStressExport>
@@ -18,7 +19,7 @@ const xml = `<PipeStressExport>
 <Units><DistanceUnits>mm</DistanceUnits></Units><RestrainOpenEnds>No</RestrainOpenEnds><AmbientTemperature>21</AmbientTemperature><Pipe><FullName>/TEST</FullName><Ref>=TEST</Ref>
 <Branch><Branchname>/A</Branchname><Temperature><Temperature1>20</Temperature1></Temperature><Pressure><Pressure1>0</Pressure1></Pressure><MaterialNumber>0</MaterialNumber><InsulationDensity>0</InsulationDensity><FluidDensity>0</FluidDensity>
 ${node(60,'FLAN',1,'211',0)}
-${node(68,'FLAN',2,'211',84.37)}
+${node(68,'FLAN',2,'211',84.37,9.492)}
 ${node(70,'RIGID',2,'210',168.74)}
 ${node(80,'FLAN',1,'209',1453.74)}
 ${node(88,'FLAN',2,'209',1538.11)}
@@ -41,11 +42,12 @@ ${node(780,'FLAN',2,'17',5613.84)}
 </Pipe></PipeStressExport>`;
 await writeFile(input, xml);
 
-const run = spawnSync(process.env.PYTHON || 'python3', [
+const run = spawnSync(process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), [
   'converters/scripts/xml_to_cii2019_runtime_custody.py',
   '--input', input,
   '--output', output,
   '--coords-mode', 'first',
+  '--weight-scale', '10',
 ], { cwd: root, encoding: 'utf8' });
 assert.equal(run.status, 0, run.stderr || run.stdout);
 const cii = await readFile(output, 'utf8');
@@ -63,6 +65,11 @@ for (let index = 0; index + 14 < rows.length; index += 15) {
 }
 const byPair = new Map(elements.map((row) => [`${row.from}->${row.to}`, row]));
 assert.equal(byPair.get('70->80')?.rigid, 0, 'different-component 70→80 pipe must not inherit RIGID');
+const flangeRigidIndex = byPair.get('60->68')?.rigid;
+assert.ok(flangeRigidIndex > 0, 'the accepted flange edge must own a RIGID payload');
+const rigidRows = section('RIGID').split(/\r?\n/).filter((line) => line.trim());
+assert.ok(Math.abs(Number(rigidRows[flangeRigidIndex - 1].trim().split(/\s+/)[0]) - 94.92) < 1e-9,
+  '9.492 kg must be scaled exactly once at the final CII writer');
 assert.ok(byPair.has('359->360') === false, 'generated helper 359 must collapse into canonical junction 360');
 assert.ok(byPair.has('350->360'), 'incoming branch must terminate on canonical junction 360');
 assert.ok(byPair.has('360->370'), 'outgoing branch must start from canonical junction 360');
