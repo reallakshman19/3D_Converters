@@ -10,12 +10,12 @@ import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolv
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
 import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20260727-cache-v7';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260708-v8';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20260928-issue776-authority-2';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260928-issue776-authority-2';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
-import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
+import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20260928-issue776-authority-2';
 
 export function renderActivePhase(root, stateRef, render) {
   const state = stateRef.current;

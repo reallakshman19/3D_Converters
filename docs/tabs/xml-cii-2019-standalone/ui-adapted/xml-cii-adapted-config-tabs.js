@@ -1,6 +1,6 @@
 import { DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS, DEFAULT_PIPING_CLASS_MATERIAL_CODE_SOURCE } from '../../../converters/xml-cii2019-core/default-piping-class-material-code-rows.js';
 import { createElement } from './xml-cii-adapted-dom.js';
-import { saveMasterContextToLocalStorage, updateWorkflowOptions } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowOptions } from './xml-cii-adapted-state.js?v=20260928-issue776-authority-2';
 import { renderAdaptedConfigPanel as renderGeneralConfigPanel } from './xml-cii-adapted-config.js';
 
 const TABS=[['general','General'],['autoMapFields','Auto Map Fields'],['pipingClassActiveSet','Piping Class Active Set'],['pipingClassMaterialCodes','Piping Class ↔ Material Code'],['smartRegex','Smart Regex']];

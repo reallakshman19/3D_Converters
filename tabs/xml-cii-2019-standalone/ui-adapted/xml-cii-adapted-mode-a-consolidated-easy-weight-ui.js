@@ -1,6 +1,6 @@
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js';
-import { applyModeAWeightChanges, undoModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js';
-import { buildModeAWeightFillPlan, buildModeAWeightProjectMatchPlan, buildModeAWeightUsePlan, modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js';
+import { applyModeAWeightChanges, undoModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js?v=20260928-issue776-authority-2';
+import { buildModeAWeightFillPlan, buildModeAWeightProjectMatchPlan, buildModeAWeightUsePlan, modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function styleButton(button, primary = false, warning = false) {

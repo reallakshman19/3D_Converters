@@ -1,7 +1,7 @@
 // Standalone app shell runtime delegate.
 import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v=standalone-3';
 import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260819-sbc-connection-authoring-1';
-import * as runtime from './app-standalone-runtime.js?v=20260928-issue776-authority-1';
+import * as runtime from './app-standalone-runtime.js?v=20260928-issue776-authority-2';
 
 const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260928-rvm-full-scope-core-1';
 let destroyEngineeringTabs = null;
@@ -38,4 +38,4 @@ export function destroy() {
 
 export const __FBX_LIVE_UI_CACHE_KEY__ = '20260804-fbx-multifamily-release-1';
 export const __MODEL_CONVERTERS_CACHE_KEY__ = '20260928-rvm-full-scope-core-1';
-export const __XML_CII_ISSUE_776_CACHE_KEY__ = '20260928-issue776-authority-1';
+export const __XML_CII_ISSUE_776_CACHE_KEY__ = '20260928-issue776-authority-2';
