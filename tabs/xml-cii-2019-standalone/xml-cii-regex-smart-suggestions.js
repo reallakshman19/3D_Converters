@@ -1,4 +1,4 @@
-import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js';
+import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js?v=20260928-issue776-authority-1';
 import { computeLineNoKey } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildPipingClassIndex, normalizePipingClass } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 

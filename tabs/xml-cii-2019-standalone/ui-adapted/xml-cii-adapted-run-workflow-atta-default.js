@@ -10,7 +10,7 @@ import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-1';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
