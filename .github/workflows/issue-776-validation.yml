@@ -36,6 +36,20 @@ jobs:
             tests/xml-cii-issue-776-regex-index-cache.test.mjs \
             tests/xml-cii-issue-776-b313-central-api-parity.test.mjs \
             tests/xml-cii-issue-776-weight-unit-custody.test.mjs \
+            tests/xml-cii-issue-776-match1-provenance.test.mjs \
+            tests/xml-cii-issue-776-match1-acceptance-paths.test.mjs \
+            tests/xml-cii-issue-776-downstream-match1-validation.test.mjs \
+            tests/xml-cii-issue-776-mode-a-weight-canonical-geometry.test.mjs \
+            tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs \
+            tests/xml-cii-issue-776-stale-match1-review-ux.test.mjs \
+            tests/xml-cii-issue-776-post-run-weight-authority.test.mjs \
+            tests/xml-cii-issue-776-standalone-run-match1-custody.test.mjs \
+            tests/xml-cii-issue-776-workflow-weight-master-revision.test.mjs \
+            tests/xml-cii-issue-776-junction-enrichment-authority.test.mjs \
+            tests/xml-cii-issue-776-mode-a-acceptance-label.test.mjs \
+            tests/xml-cii-issue-776-mode-a-weight-canonical-geometry.test.mjs \
+            tests/xml-cii-issue-776-flange-weight-geometry.test.mjs \
+            tests/xml-cii-issue-776-deployment-parity.test.mjs \
             tests/xml-cii-mode-a-preview-restoration.test.mjs 2>&1 | tee issue-776-focused.log
           status=${PIPESTATUS[0]}
           echo "status=${status}" >> "${GITHUB_OUTPUT}"
