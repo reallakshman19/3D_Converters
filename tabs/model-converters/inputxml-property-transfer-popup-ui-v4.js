@@ -1,4 +1,4 @@
-import { installInputXmlPropertyTransferUi as installPopupV3InputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v3.js?v=20260615-inputxml-property-transfer-popup-guarded-mock-1';
+import { installInputXmlPropertyTransferUi as installPopupV3InputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v3.js?v=20260615-inputxml-property-transfer-popup-guarded-mock-1-tabperf1';
 
 const CONVERTER_ID = 'inputxml_property_transfer';
 const STYLE_ID = 'inputxml-property-transfer-popup-v4-style';

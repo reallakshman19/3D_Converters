@@ -1,4 +1,4 @@
-﻿import './converters/xmltocii2019_helper/override-tab-preview-mirror.js?v=20260620-preview-override-mirror-1';
+﻿import './converters/xmltocii2019_helper/override-tab-preview-mirror.js?v=20260620-preview-override-mirror-1-tabperf1';
 
 /**
  * WorkflowShell â€” canonical XMLâ†’CII(2019) workflow phase registry.

@@ -348,7 +348,6 @@ function installDisplayedPreviewObserver() {
       });
     };
     const observer = new MutationObserver(() => {
-      if (!document.querySelector('table[data-resizable-table="branch-preview"] tbody tr.mc-preview-row, table.mc-preview-table tbody tr.mc-preview-row')) return;
       if (scheduled) return;
       scheduled = true;
       const enqueue = typeof queueMicrotask === 'function'

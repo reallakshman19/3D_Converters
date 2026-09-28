@@ -3,24 +3,24 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260729-inputxml-live-release-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260928-rvm-full-scope-core-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260928-rvm-full-scope-core-1-tabperf1';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260729-fbx2-direct-pipe-1';
-import { installFbxPreviewZoneSelector } from './fbx-preview-zone-selector.js?v=20260729-fbx2-direct-pipe-1';
+import { installFbxPreviewZoneSelector } from './fbx-preview-zone-selector.js?v=20260729-fbx2-direct-pipe-1-tabperf1';
 import { installFbxZoneGeometryToolbar } from './converters/fbx/zone-geometry/zone-toolbar.js?v=20260729-fbx2-direct-pipe-1';
 import { installFbxZonePackageExport } from './fbx-zone-package-export.js?v=20260731-fbx-taya-support-qualification-1';
 import { installBmCiiSupportAnnotationPopup } from './bm-cii-support-annotation-popup.js?v=20260617-bmcii-open-basic-handoff-2';
-import { installInputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v4.js?v=20260615-inputxml-property-transfer-popup-host-hide-1';
+import { installInputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v4.js?v=20260615-inputxml-property-transfer-popup-host-hide-1-tabperf1';
 import { installRvmAttrUxmlAddon } from './rvmattr-uxml-addon.js?v=20260618-port-bore-contract-1';
-import { installRvmAttrScopeTreeAddon } from './rvmattr-scope-tree-addon.js?v=20260802-rvm-full-scope-tree-1';
+import { installRvmAttrScopeTreeAddon } from './rvmattr-scope-tree-addon.js?v=20260802-rvm-full-scope-tree-1-tabperf1';
 import { installXmlCiiWorkflowButtonScope } from './xml-cii-workflow-button-scope.js?v=20260624-unified-wf2-1';
 import { installXmlCiiWorkflowLauncherHotfix } from './xml-cii-workflow-launcher-hotfix.js?v=20260708-workflow-bridge-align-1';
 import { installXmlCiiSimpleWorkflowController } from './xml-cii-simple-workflow-controller.js?v=20260624-workflow-consolidation-1';
 import { installXmlCiiWorkflowOpenRegex } from './xml-cii-workflow-open-regex.js?v=20260625-open-regex-1';
 import { installXmlCiiWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260708-workflow-bridge-align-1';
-import { installXmlCiiCustomInputWorkflowTab } from './custom-input/xml-cii-custom-input-workflow-tab.js?v=20260625-custom-input-2';
-import { installXmlCiiBranchSampleSync } from './xml-cii-branch-sample-sync.js?v=20260624-workflow-consolidation-1';
+import { installXmlCiiCustomInputWorkflowTab } from './custom-input/xml-cii-custom-input-workflow-tab.js?v=20260625-custom-input-2-tabperf1';
+import { installXmlCiiBranchSampleSync } from './xml-cii-branch-sample-sync.js?v=20260624-workflow-consolidation-1-tabperf1';
 import { installXmlCiiFinaliseRunButton } from './xml-cii-finalise-run-button.js?v=20260625-model-converters-finalise-run-owner-1';
 import { installXmlCiiShortElementToggle } from './xml-cii-short-element-toggle.js?v=20260625-short-element-drop-1';
 import { installXmlCiiWeightSemanticInfo } from './xml-cii-weight-semantic-info.js?v=20260625-weight-semantic-info-1';

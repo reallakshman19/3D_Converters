@@ -1,5 +1,5 @@
 import { ModelConverters_3DModelConv_PreviewRenderer } from
-  '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1';
+  '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1-tabperf1';
 import { buildFbxSourceGraphPreviewProject } from './fbx-source-graph-preview.js';
 import { buildFbxSourceGraphZoneExport } from './fbx-source-graph-zone-export.js';
 import { buildFbxStagedJsonZoneExport } from './fbx-staged-json-zone-export.js';
