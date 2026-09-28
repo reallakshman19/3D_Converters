@@ -367,7 +367,6 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
-  }
 
   function onInput(event) {
     const field = event.target.dataset.field;
