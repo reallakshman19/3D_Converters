@@ -75,10 +75,11 @@ function recordExpected(entries, {
 
 const WEIGHT_BEARING_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
 
-function mappedNodeWeights(nodeRows, config) {
+function mappedNodeWeights(nodeRows, config, blockedWeightKeys = new Set()) {
   const weights = new Map();
   for (const nr of nodeRows || []) {
     if (!WEIGHT_BEARING_TYPES.has(text(nr.componentType).toUpperCase())) continue;
+    if (blockedWeightKeys.has(text(nr.key))) continue;
     const override = Number(config?.overrides?.rigidWeight?.[nr.key]);
     const auto = nr.weightMatch && !nr.weightMatch.zeroFallback ? Number(nr.weightMatch.weight) : NaN;
     const weight = Number.isFinite(override) && override > 0 ? override : (Number.isFinite(auto) && auto > 0 ? auto : null);
@@ -87,7 +88,7 @@ function mappedNodeWeights(nodeRows, config) {
   return weights;
 }
 
-async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
+async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics, options = {}) {
   const result = { xmlText, branchRows: [], nodeRows: [], expectedEntries: [], appliedFields: 0 };
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
@@ -98,7 +99,11 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
   if (!result.branchRows.length) return result;
 
-  const nodeWeights = mappedNodeWeights(result.nodeRows, config);
+  const nodeWeights = mappedNodeWeights(
+    result.nodeRows,
+    config,
+    options.blockedWeightKeys instanceof Set ? options.blockedWeightKeys : new Set(options.blockedWeightKeys || []),
+  );
   const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
@@ -295,11 +300,13 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
       staleMatch1Weights: validated.validation.staleCount,
     };
 
+    const staleMatch1Keys = new Set(Object.keys(validated.validation.stale));
     const process = await applyStandaloneProcessParity(
       geometry.xmlText,
       authorityConfig,
       text(job.stagedJsonText),
       out.diagnostics,
+      { blockedWeightKeys: staleMatch1Keys },
     );
     out.xmlText = process.xmlText;
     out.branchRows = process.branchRows;
