@@ -338,6 +338,7 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
       // Auto-save: token builder changes are written straight into the
       // standalone config instead of waiting for a manual "Save to config".
       stateRef.current = applyStandaloneRegexTesterResult(stateRef.current, nextResult);
+      stateRef.current.regexSmartManualLocks = { ...(stateRef.current.regexSmartManualLocks || {}), [key]: true };
     } else {
       const statePatch = updateRegexTesterConfig(state, field, val);
       Object.assign(state, statePatch);
@@ -347,6 +348,7 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
         extractionConfig: state.regexTesterConfig
       });
       Object.assign(state, applyStandaloneRegexTesterResult(state, nextResult));
+      state.regexSmartManualLocks = { ...(state.regexSmartManualLocks || {}), [key]: true };
     }
     if (render) render();
   };

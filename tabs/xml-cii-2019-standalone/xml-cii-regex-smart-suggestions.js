@@ -5,8 +5,8 @@ const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
 export function createDefaultRegexSuggestionProfile() {
   return Object.freeze({
     schema: 'regex-suggestion-profile/v1',
-    profileIdentity: 'xml-cii-regex-suggestion-default-v1',
-    operatingMode: 'SUGGEST_ONLY',
+    profileIdentity: 'xml-cii-regex-suggestion-default-v2',
+    operatingMode: 'AUTO_PREVIEW_SAFE',
     thresholds: Object.freeze({ safe: 0.90, review: 0.75, display: 0.50 }),
     validation: Object.freeze({ preserveManualLocks: true, rejectCoverageRegression: true, validateAllSamples: true }),
     formatPolicy: Object.freeze({ maximumFormats: 4, maximumLineKeyTokens: 3 }),
@@ -136,6 +136,21 @@ export function buildRegexSuggestionPreflight(input = {}) {
     blockers: Object.freeze(blockers),
     canPreview: rows.length > 0,
     canApply: status === 'READY_TO_APPLY',
+  });
+}
+
+export function applyHighestSafeSuggestions(extractionConfig = {}, receipt, options = {}) {
+  const index = Number(extractionConfig?.activeFormatIndex || receipt?.formatIndex || 0);
+  const format = extractionConfig?.formats?.[index] || extractionConfig || {};
+  const manualLocks = { ...(options.manualLocks || {}) };
+  for (const role of ROLE_ORDER) {
+    const current = format?.[role] || {};
+    if (positions(current.tokenPosition).length || txt(current.regex)) manualLocks[role] = true;
+  }
+  return applyRegexSuggestions(extractionConfig, receipt, {
+    ...options,
+    safeOnly: true,
+    manualLocks,
   });
 }
 

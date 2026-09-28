@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260928-rvm-full-scope-core-1');
+  const module = await import('./core/app.js?v=20260928-regex-auto-safe-1');
   await module.init(startupMount());
 }
 

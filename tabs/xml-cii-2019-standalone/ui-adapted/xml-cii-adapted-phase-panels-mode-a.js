@@ -3,8 +3,8 @@ import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-p
 import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20260813-mode-a-full-propagation-2';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
-import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260813-mode-a-full-propagation-2';
-import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20260813-mode-a-full-propagation-2';
+import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260928-regex-auto-safe-1';
+import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20260928-regex-auto-safe-1';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
 import {
   renderStandaloneDiagnosticsReportPanel,

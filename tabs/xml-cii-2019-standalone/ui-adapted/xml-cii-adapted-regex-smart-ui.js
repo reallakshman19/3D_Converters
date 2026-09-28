@@ -2,7 +2,7 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260928-regex-auto-safe-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
@@ -88,6 +88,24 @@ function installToolbar(builder, stateRef, render, receipt) {
   );
   actionMetrics(receipt).forEach(([icon, value, label, color]) => metrics.appendChild(createSmartMetricChip(icon, value, label, { color, onClick: () => toggleEvidence(builder, receipt) })));
   builder.querySelector('h4')?.insertAdjacentElement('afterend', bar);
+}
+
+function autoApplyHighestSafe(stateRef, render, receipt) {
+  const state = current(stateRef, {});
+  if (!stateRef?.current || profileOf(state).operatingMode !== 'AUTO_PREVIEW_SAFE' || receipt.status === 'BLOCKED') return false;
+  const proposed = applyHighestSafeSuggestions(state.regexTesterConfig, receipt, { manualLocks: locksOf(state) });
+  if (JSON.stringify(proposed) === JSON.stringify(state.regexTesterConfig)) return false;
+  const index = Number(proposed.activeFormatIndex || receipt.formatIndex || 0);
+  const before = state.regexTesterConfig?.formats?.[index] || state.regexTesterConfig || {};
+  const after = proposed.formats?.[index] || proposed || {};
+  const changed = Object.keys(ROLE_META).filter((role) => String(before?.[role]?.tokenPosition || '') !== String(after?.[role]?.tokenPosition || ''));
+  const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
+  state.regexTesterConfig = proposed;
+  stateRef.current = applyStandaloneRegexTesterResult(state, result);
+  stateRef.current.regexSmartPreflight = receiptFor(stateRef.current);
+  stateRef.current.regexSmartStatus = `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.`;
+  queueMicrotask(() => render?.());
+  return true;
 }
 
 function analyze(stateRef, render) {
@@ -253,6 +271,7 @@ export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   const builder = findBuilder(card); if (!builder) return;
   const live = current(stateRef, state); const receipt = receiptFor(live);
   live.regexSmartPreflight = receipt;
+  if (autoApplyHighestSafe(stateRef, render, receipt)) return;
   installToolbar(builder, stateRef, render, receipt);
   decorateRegexSampleSelector(builder, resultOf(live).branchSamples || [], live.regexTesterConfig || {});
   decorateTokens(builder, receipt, stateRef, render);

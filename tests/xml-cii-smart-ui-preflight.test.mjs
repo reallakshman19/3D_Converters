@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {
+  applyHighestSafeSuggestions,
   applyRegexSuggestions,
   buildRegexSuggestionPreflight,
+  createDefaultRegexSuggestionProfile,
 } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 import {
   buildRigidSmartFillPreflight,
@@ -43,6 +45,25 @@ assert.deepEqual(regexReceipt.suggestions.find((row) => row.role === 'pipingClas
 const appliedRegex = applyRegexSuggestions(regexConfig, regexReceipt, { safeOnly: false });
 assert.equal(appliedRegex.formats[0].bore.tokenPosition, '3');
 assert.equal(appliedRegex.formats[0].lineKey.tokenPosition, '4');
+
+assert.equal(createDefaultRegexSuggestionProfile().operatingMode, 'AUTO_PREVIEW_SAFE');
+const bwwaConfig = structuredClone(regexConfig);
+const bwwaSamples = [
+  { branchName: '/BWWA-1000-3"-W1410201-31422R5-01/B1' },
+  { branchName: '/BWWA-1000-FL-6"-W1610005(FL-03)/B1' },
+];
+const bwwaReceipt = buildRegexSuggestionPreflight({
+  branchSamples: bwwaSamples,
+  extractionConfig: bwwaConfig,
+  masterContext: { lineRows: [], pipingClassRows: [], rowCounts: { lineList: 0, pipingClass: 0 } },
+  currentResult: { matchedRows: [], rejectedRows: bwwaSamples },
+});
+const bwwaBore = bwwaReceipt.suggestions.find((row) => row.role === 'bore');
+assert.equal(bwwaBore?.confidence, 0.95);
+assert.equal(bwwaBore?.safe, true);
+const bwwaAuto = applyHighestSafeSuggestions(bwwaConfig, bwwaReceipt);
+assert.equal(bwwaAuto.formats[0].bore.tokenPosition, '3');
+assert.equal(bwwaAuto.formats[0].lineKey.tokenPosition, '', 'review/heuristic roles must not auto-promote');
 
 const rigidRows = [
   {
