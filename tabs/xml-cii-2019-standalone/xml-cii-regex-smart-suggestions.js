@@ -62,8 +62,8 @@ function clusterRows(rows) {
     bySignature.set(row.signature, list);
   }
   return [...bySignature.entries()]
-    .map(([signature, items]) => ({ signature, rows: items, count: items.length }))
-    .sort((a, b) => b.count - a.count || a.signature.localeCompare(b.signature));
+    .map(([signature, items], order) => ({ signature, rows: items, count: items.length, order }))
+    .sort((a, b) => b.count - a.count || a.order - b.order);
 }
 
 function cachedLineMasterEvidence(rows, fieldMap = {}) {

@@ -4,7 +4,7 @@ import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-a
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260928-issue776-authority-2';
-import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20260928-issue776-authority-2';
+import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20260928-issue776-authority-2-regex1';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
 import {
   renderStandaloneDiagnosticsReportPanel,
