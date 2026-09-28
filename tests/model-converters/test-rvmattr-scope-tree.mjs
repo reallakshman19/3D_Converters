@@ -52,6 +52,10 @@ const indexSource = await readFile(new URL(
 const shim = await readFile(new URL('tabs/model-converters-tab.js', root), 'utf8');
 
 assert.match(addon, /Convert full scope/);
+const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js', root), 'utf8');
+assert.match(legacy, /data-scope-convert-full/);
+assert.match(legacy, /Convert full scope/);
+assert.match(legacy, /wildcard:\s*''[\s\S]*selectedIds:\s*\[\]/);
 assert.match(addon, /data-rvm-tree-toggle/);
 assert.match(addon, /parseRmssAttributes/);
 assert.match(addon, /buildRvmAttributeScopeTree/);

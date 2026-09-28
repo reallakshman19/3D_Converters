@@ -3,7 +3,7 @@ import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v
 import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260819-sbc-connection-authoring-1';
 import * as runtime from './app-standalone-runtime.js?v=20260804-fbx-multifamily-release-1';
 
-const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260816-cii-v11-v14-dropdown-release-4';
+const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260928-rvm-full-scope-core-1';
 let destroyEngineeringTabs = null;
 
 function loadLiveModelConverters() {
@@ -37,4 +37,4 @@ export function destroy() {
 }
 
 export const __FBX_LIVE_UI_CACHE_KEY__ = '20260804-fbx-multifamily-release-1';
-export const __MODEL_CONVERTERS_CACHE_KEY__ = '20260816-cii-v11-v14-dropdown-release-4';
+export const __MODEL_CONVERTERS_CACHE_KEY__ = '20260928-rvm-full-scope-core-1';
