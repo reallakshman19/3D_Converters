@@ -4,11 +4,12 @@ pr_or_wip: PR779
 mission: "Shared app tab lifecycle performance and cleanup"
 workstream: APP_TAB_LIFECYCLE
 branch: agent/app-tab-lifecycle-performance
-base_pr: PR778
-base_head: 61e988e3db4c56a632abd14dd3b3de9ca0b8ddef
+predecessor_pr: PR778_MERGED
+base_branch: main
+base_head: 0dab845662c479921838dc292b3ccde1cabca44c
 criticality: ENGINEERING_CRITICAL
 agent_state: READY_FOR_REVIEW
-pr_recovery_state: STACKED_ON_PR778
+pr_recovery_state: REBASED_ON_MERGED_PR778
 handover_readiness: READY
 report_path: agents/PR779_workreport.md
 validation:
@@ -18,6 +19,6 @@ validation:
   issue_776_regressions: PASS_20_OF_20
   hosted_actions: FAIL_BEFORE_STEPS_NO_RUNNER
 highest_risk: "Three.js 0.160.1 OrbitControls retains its document keydown closure after dispose."
-merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR779
-exact_next_action: "Review after PR778, then rerun hosted checks when runners execute jobs; do not merge without owner authorization."
-last_updated: 2026-09-28T21:34:00+04:00
+merge_authority: OWNER_AUTHORIZED_20260928
+exact_next_action: "Confirm the rebased PR diff and mergeability, squash merge PR779, then verify main and post merge evidence."
+last_updated: 2026-09-28T21:42:00+04:00

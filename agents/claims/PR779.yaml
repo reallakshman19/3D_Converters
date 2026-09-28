@@ -1,8 +1,9 @@
 schema: AgentClaim.v1
 pr_or_wip: PR779
-claim_state: ACTIVE_REVIEW
+claim_state: ACTIVE_MERGE_AUTHORIZED
 branch: agent/app-tab-lifecycle-performance
-base_pr: PR778
+predecessor_pr: PR778_MERGED
+base_branch: main
 files:
   exact:
     - core/app-standalone-runtime.js
@@ -27,8 +28,8 @@ authority_domains:
   - APP_TAB_LIFECYCLE
   - MODEL_CONVERTERS_UI_RESOURCE_CLEANUP
 claim_modes:
-  - COORDINATION_REQUIRED_WITH_PR778_CACHE_CHAIN
+  - PREDECESSOR_PR778_MERGED
 notes:
-  - "PR779 is stacked on PR778 to retain its issue #776 cache chain."
+  - "PR779 was rebased onto the squash merge of PR778 to retain its issue #776 cache chain."
   - "No engineering calculation, topology, mapping, or converter export authority changes."
-merge_authority: OWNER_ONLY_NOT_GRANTED_FOR_PR779
+merge_authority: OWNER_AUTHORIZED_20260928
