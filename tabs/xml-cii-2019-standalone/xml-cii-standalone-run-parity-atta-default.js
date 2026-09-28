@@ -2,7 +2,7 @@ import {
   enrichStandaloneXmlForRun as enrichStandaloneXmlForRunBase,
   loadParentWeightMatchModules,
   standaloneParityOptions,
-} from './xml-cii-standalone-run-parity.js?v=20260803-atta-default-rest-closure-1';
+} from './xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20260803-atta-default-rest-closure-1';
 import { closeGovernedAttaDefaultRestraintsXml } from '../../converters/xml-cii2019-core/atta-default-restraint-closure.js?v=20260803-atta-default-rest-closure-1';
 

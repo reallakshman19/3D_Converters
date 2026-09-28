@@ -5,7 +5,8 @@ import {
 } from '../../tabs/model-converters/fbx-selected-zone-preview-bridge.js';
 
 const root = new URL('../../', import.meta.url);
-const shellKey = '20260815-aiv-pf01-cache-1';
+const appShellKey = '20260928-issue776-authority-2';
+const modelConvertersKey = '20260928-rvm-full-scope-core-1';
 const key = '20260804-fbx-multifamily-release-1';
 const obsoleteKeys = [
   '20260802-fbx-live-ui-3',
@@ -39,12 +40,12 @@ function requires(path, fragment) {
   assert.equal(files[path].includes(fragment), true, `${path} lacks ${fragment}`);
 }
 
-requires('index.html', `main-rhbg-fitguard.js?v=${shellKey}`);
-requires('main-rhbg-fitguard.js', `core/app.js?v=${shellKey}`);
-requires('core/app.js', `app-standalone-runtime.js?v=${key}`);
-requires('core/app.js', `model-converters-tab.js?v=${key}`);
-requires('tabs/model-converters-tab.js', `model-converters/index.js?v=${key}`);
-requires('tabs/model-converters/index.js', `ModelConvertersTab-fbx2-managed-reference.js?v=${key}`);
+requires('index.html', `main-rhbg-fitguard.js?v=${appShellKey}`);
+requires('main-rhbg-fitguard.js', `core/app.js?v=${appShellKey}`);
+requires('core/app.js', `app-standalone-runtime.js?v=${appShellKey}`);
+requires('core/app.js', `model-converters-tab.js?v=${modelConvertersKey}`);
+requires('tabs/model-converters-tab.js', `model-converters/index.js?v=${modelConvertersKey}`);
+requires('tabs/model-converters/index.js', `ModelConvertersTab-fbx2-managed-reference.js?v=${modelConvertersKey}`);
 
 const wrapper = files['tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'];
 for (const dependency of [
@@ -78,7 +79,7 @@ assert.deepEqual(
 );
 requires(
   'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js',
-  `import('./ModelConvertersTab.js?v=${key}')`,
+  `import('./ModelConvertersTab.js?v=${modelConvertersKey}')`,
 );
 const renderFunctionStart = wrapper.indexOf('export function renderModelConvertersTab(container, ctx)');
 const installCallIndex = wrapper.indexOf('installFbxLiveUi(container);', renderFunctionStart);

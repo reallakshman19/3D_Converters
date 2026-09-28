@@ -1,5 +1,6 @@
 import { decodeTextUtf8, encodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
-import { collectXmlCiiZeroRigidWeightIssues, applyXmlCiiRigidWeightOverrides } from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
+import { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues, applyXmlCiiRigidWeightOverrides } from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
+import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { applyXmlCiiFlangeWeightFallbackToIssues } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260620-flange-fallback-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-length-auto-weight-1';
 import { applyXmlCiiOutsideDiameterResolver } from '../../../converters/xml-cii2019-core/outside-diameter-resolver.js?v=20260708-od-resolver-1';
@@ -9,7 +10,7 @@ import { buildXmlCiiNodeResolverIndex } from '../../../converters/xml-cii2019-co
 import { resolveManualRestraintRows } from '../../../converters/xml-cii2019-core/sideload-restraints.js';
 import { mergeXmlCiiMatchedFacts, matchedFactsFromEnrichmentDiagnostics } from '../../../converters/xml-cii2019-core/sideload-ledger.js';
 import { applyManualMatchedFactsToEnrichedXml } from '../../../converters/xml-cii2019-core/sideload-apply.js';
-import { enrichXmlForCii2019 } from './xmltocii2019_helper/enrichment-run-parity.js?v=20260623-preview-run-parity-2';
+import { enrichXmlForCii2019 } from './xmltocii2019_helper/enrichment-run-parity.js?v=20260928-issue776-authority-2';
 
 const XML_CII_STAGE_TIMEOUT_MS = 120000;
 const MATCHED_PREVIEW_STORAGE_KEY = 'xmlCii2019.matchedPreview.lastDiagnostics.v1';
@@ -205,6 +206,21 @@ export async function run(context) {
   enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
   enriched.diagnostics.push(...(outsideDiameter.diagnostics || []));
   const rigidReviewLogLines = [];
+  const weightBasisRows = collectXmlCiiWeightMatchRows(enriched.xmlText, stagedJsonText, enriched.config);
+  const validatedWeightView = buildXmlCiiValidatedRigidWeightLegacyView(enriched.config, weightBasisRows);
+  enriched.config = validatedWeightView.config;
+  if (validatedWeightView.validation.staleCount > 0) {
+    const staleRows = Object.entries(validatedWeightView.validation.stale).map(([key, item]) => ({
+      type: 'rigid-weight-match1-stale',
+      key,
+      weight: item.weightKg,
+      reason: item.reason,
+      changedFields: item.changedFields || [],
+      message: `Match-1 weight ${item.weightKg} kg was not applied because its accepted geometry/rating/master basis is stale (${item.reason}${item.changedFields?.length ? `: ${item.changedFields.join(', ')}` : ''}).`,
+    }));
+    enriched.diagnostics.push(...staleRows);
+    rigidReviewLogLines.push(`Stale Match-1 values rejected before CII write: ${validatedWeightView.validation.staleCount}.`);
+  }
   const savedRigidWeights = applySavedRigidWeightOverridesToEnriched(enriched);
   rigidReviewLogLines.push(...savedRigidWeights.stdout);
   const rigidWeightIssues = applyXmlCiiFlangeWeightFallbackToIssues(collectXmlCiiZeroRigidWeightIssues(enriched.xmlText, stagedJsonText, enriched.config), enriched.config);

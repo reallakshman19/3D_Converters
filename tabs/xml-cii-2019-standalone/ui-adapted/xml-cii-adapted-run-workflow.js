@@ -6,6 +6,11 @@ import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js';
+import {
+  buildXmlCiiValidatedRigidWeightLegacyView,
+  withXmlCiiRigidWeightFinal,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -37,10 +42,16 @@ function rigidCandidateButtons(issue, index) {
   return (issue.candidates || []).map((candidate) => {
     const value = candidate.suggestedWeight ?? candidate.weight;
     const scoreValue = Math.round((candidate.totalScore || candidate.score || 0) * 100);
+    const fallback = candidate.flangeWeightFallback === true;
+    const method = fallback ? 'Flange length-scaled fallback' : (candidate.preferred ? 'Exact master match' : (candidate.weightMethod || 'Review'));
+    const scoreText = fallback ? '' : ` · confidence ${scoreValue}%`;
+    const title = fallback
+      ? (candidate.weightWarning || method)
+      : `Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || issue.rating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | confidence/rank score ${scoreValue}%`;
     return `<button type="button" class="mc-rigid-review-candidate${candidate.preferred ? ' best' : ''}"
       data-rigid-review-candidate="${index}" data-rigid-review-weight="${esc(value)}"
-      title="Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || issue.rating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | Score ${scoreValue}%"
-      style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '* ' : ''}${esc(value)} kg - ${scoreValue}%</button>`;
+      title="${attr(title)}"
+      style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '* ' : ''}${esc(value)} kg · ${esc(method)}${scoreText}</button>`;
   }).join('');
 }
 
@@ -56,7 +67,7 @@ function rigidReviewRow(issue, index) {
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(info.shownRating)}" placeholder="Rating" title="${attr(info.title)}" style="${info.style}">${ratingBadge}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, info.dtxrRating ? `DTXR rating ${info.dtxrRating}# (evidence only)` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
+    <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" value="${esc(best ? (best.suggestedWeight ?? best.weight) : '')}" placeholder="kg" style="width:72px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
     <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;
@@ -188,17 +199,25 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
 }
 
 async function unresolvedRigidIssues(state, config) {
-  const { collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
+  const { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
-  return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
-    const ratingAuthority = resolveStandaloneWeightReviewRating(issue, config);
+  const prepared = await prepareStandaloneWeightReviewXml(state, config);
+  if (prepared.error) throw new Error(prepared.error);
+  const preparedConfig = prepared.config || config;
+  const basisRows = collectXmlCiiWeightMatchRows(prepared.xmlText, state.stagedJsonText || '', preparedConfig);
+  const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
+  const authorityConfig = validated.config;
+  return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
+    const staleMatch1 = validated.validation.stale?.[issue.key] || null;
+    const ratingAuthority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
     const rating = ratingAuthority.rating;
     const ranking = rating
-      ? rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true })
+      ? rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, authorityConfig, { includeRejected: true })
       : { candidates: [], rejectedCandidates: [] };
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
+      staleMatch1,
       rating,
       dtxrRating: ratingAuthority.dtxrRating,
       ratingAuthority,
@@ -206,7 +225,7 @@ async function unresolvedRigidIssues(state, config) {
       branchRating: issue.rating,
       candidates: ranking.candidates.slice(0, 5),
       rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
-    }, config);
+    }, authorityConfig);
   }).filter((issue) => !issue.mapped);
 }
 
@@ -215,10 +234,10 @@ async function reviewRigidWeights(stateRef, config) {
     const result = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
-      config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...result.weightsByKey } };
-      stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
+      const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
+      stateRef.current.supportConfigJson = JSON.stringify(finalConfig, null, 2);
       if (stateRef.current.masterContext) {
-        stateRef.current.masterContext.config = config;
+        stateRef.current.masterContext.config = finalConfig;
         saveMasterContextToLocalStorage(stateRef.current.masterContext);
       }
     }

@@ -376,6 +376,51 @@ function ensureResolvedRigidMarker(document, node, componentType) {
   return false;
 }
 
+function canonicalSharedJunctionNumbers(nodesByBranch, toleranceMm = 0.01) {
+  const occurrences = new Map();
+  nodesByBranch.forEach((nodes, branchIndex) => {
+    for (const node of nodes) {
+      const number = numericValue(childText(node, 'NodeNumber'));
+      if (number === null || number <= 0) continue;
+      const key = Math.round(number);
+      if (!occurrences.has(key)) occurrences.set(key, []);
+      occurrences.get(key).push({ branchIndex, node });
+    }
+  });
+  const out = new Set();
+  for (const [number, rows] of occurrences.entries()) {
+    if (new Set(rows.map((row) => row.branchIndex)).size < 2) continue;
+    const anchorPosition = childText(rows[0].node, 'Position');
+    const coincident = rows.every((row) => {
+      const distance = distanceBetweenPositions(anchorPosition, childText(row.node, 'Position'));
+      return distance !== null && distance <= toleranceMm;
+    });
+    if (coincident) out.add(number);
+  }
+  return out;
+}
+
+function collapseCoincidentPreJunctionHelpers(document, nodesByBranch) {
+  const canonical = canonicalSharedJunctionNumbers(nodesByBranch);
+  let collapsed = 0;
+  for (const nodes of nodesByBranch) {
+    for (let index = 1; index < nodes.length; index += 1) {
+      const junction = nodes[index];
+      const junctionNumber = numericValue(childText(junction, 'NodeNumber'));
+      if (junctionNumber === null || !canonical.has(Math.round(junctionNumber))) continue;
+      const helper = nodes[index - 1];
+      const helperNumber = numericValue(childText(helper, 'NodeNumber'));
+      const helperType = childText(helper, 'ComponentType').toUpperCase();
+      if (helperNumber === null || helperNumber >= 0 || !INLINE_LENGTH_COMPONENT_TYPES.has(helperType)) continue;
+      const distance = distanceBetweenPositions(childText(helper, 'Position'), childText(junction, 'Position'));
+      if (distance === null || distance > 0.01) continue;
+      helper.parentNode?.removeChild(helper);
+      collapsed += 1;
+    }
+  }
+  return collapsed;
+}
+
 function negativeNodeEligible(originalNumbers, node) {
   const nodeNumber = originalNumbers.get(node);
   const componentType = childText(node, 'ComponentType').toUpperCase();
@@ -408,6 +453,8 @@ function allocateContiguousNumbers(nodes, start, end, originalNumbers, used, fal
 
 function renumberLengthBearingNegativeNodes(document) {
   const branches = [...document.getElementsByTagName('Branch')];
+  const initialNodesByBranch = branches.map(branchNodes);
+  const collapsedJunctionHelpers = collapseCoincidentPreJunctionHelpers(document, initialNodesByBranch);
   const nodesByBranch = branches.map(branchNodes);
   const originalNumbers = new Map();
   const used = new Set();
@@ -441,7 +488,7 @@ function renumberLengthBearingNegativeNodes(document) {
       });
     }
   }
-  return { renumberedNodes: changed, rigidMarkers, condensedValveFlangeBlocks: blocks };
+  return { renumberedNodes: changed, rigidMarkers, condensedValveFlangeBlocks: blocks, collapsedJunctionHelpers };
 }
 
 function applyCondenseRigidOption(enriched, document, options = {}) {
@@ -457,6 +504,7 @@ function applyCondenseRigidOption(enriched, document, options = {}) {
   enriched.stats.instRigid2Annotations = result.rigidMarkers;
   enriched.stats.resolvedRigidMarkers = result.rigidMarkers;
   enriched.stats.condensedValveFlangeBlocks = result.condensedValveFlangeBlocks;
+  enriched.stats.collapsedCanonicalJunctionHelpers = result.collapsedJunctionHelpers || 0;
   enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
   enriched.diagnostics.push({
     type: 'split-condensed-valve-flange-resolved',
@@ -465,7 +513,8 @@ function applyCondenseRigidOption(enriched, document, options = {}) {
     renumberedNodes: result.renumberedNodes,
     instRigid2Annotations: result.rigidMarkers,
     condensedValveFlangeBlocks: result.condensedValveFlangeBlocks,
-    message: 'Resolved Condense Rigid option applied: contiguous negative FLAN/VALV/RIGID/INST inline blocks are length-annotated, assigned stable positive node numbers in order, and resolved rigid/inline components are marked with Rigid after Endpoint before CII conversion. GASK nodes are dropped before this step.',
+    collapsedCanonicalJunctionHelpers: result.collapsedJunctionHelpers || 0,
+    message: 'Resolved Condense Rigid option applied: contiguous negative FLAN/VALV/RIGID/INST inline blocks are length-annotated and assigned stable positive node numbers, while zero-length helpers immediately before repeated positive branch junctions are collapsed into the canonical source junction before renumbering.',
   });
   return result.renumberedNodes;
 }

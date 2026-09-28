@@ -45,7 +45,9 @@ test('simple consolidated Weight Match acceptance persists in place instead of r
   const source = read('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js');
   assert.match(source, /function markAppliedRows/u);
   assert.match(source, /row\.mapped=true/u);
-  assert.match(source, /row\.weightSource='override'/u);
+  assert.match(source, /row\.weightSource='weight-match-1'/u);
+  assert.match(source, /textContent='Match-1'/u);
+  assert.match(source, /textContent='ACCEPTED'/u);
   const applyStart = source.indexOf('function apply(panel,result,stateRef,changes,label)');
   const addRowsStart = source.indexOf('function addRowActions', applyStart);
   assert.ok(applyStart >= 0 && addRowsStart > applyStart);

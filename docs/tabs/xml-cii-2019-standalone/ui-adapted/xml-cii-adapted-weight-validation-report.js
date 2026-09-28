@@ -3,7 +3,7 @@ import {
   empiricalWeightValidationReportToCsv,
   downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
-import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
@@ -87,10 +87,39 @@ function available(row) {
   return Boolean(row?.approach1?.available || row?.approach2?.available);
 }
 
+function unavailableCodes(row) {
+  return [...new Set([
+    row?.approach1?.error?.code,
+    row?.approach2?.error?.code,
+    row?.approach1?.status === 'ESTIMATE_UNAVAILABLE' ? row?.approach1?.error?.code : '',
+    row?.approach2?.status === 'ESTIMATE_UNAVAILABLE' ? row?.approach2?.error?.code : '',
+  ].map(text).filter(Boolean))];
+}
+
+function unavailableLabel(reason, codes = []) {
+  if (reason === 'no-positive-resolved-weight') return '○ Proposed — not accepted';
+  if (reason === 'no-empirical-type-description') return '? TypeDesc missing';
+  const first = codes[0] || '';
+  const labels = {
+    UNKNOWN_TYPE_DESC: '? Type unknown',
+    INVALID_RATING: '? Rating invalid',
+    INVALID_SIZE: '? Size invalid',
+    A1_MODEL_NOT_FOUND: '? No A1 model',
+    A2_MODEL_NOT_FOUND: '? No A2 model',
+    OUTSIDE_VALIDATED_SIZE_RANGE: '? Outside range',
+    INSUFFICIENT_SUPPORT: '? Insufficient support',
+  };
+  return labels[first] || '? A1/A2 unavailable';
+}
+
 function rowHealth(row, skipped = null) {
-  if (!row || !available(row)) return { label: '? Unvalidated', color: '#fbbf24', state: 'unvalidated', reason: skipped?.reason || 'A1/A2 estimate unavailable' };
-  if (row.approach1?.abnormal || row.approach2?.abnormal) return { label: '⚠ >30%', color: '#f87171', state: 'abnormal', reason: row.status };
-  return { label: '✓ ±30%', color: '#86efac', state: 'within', reason: row.status };
+  if (!row || !available(row)) {
+    const reason = skipped?.reason || 'A1/A2 estimate unavailable';
+    const codes = unavailableCodes(row);
+    return { label: unavailableLabel(reason, codes), color: '#fbbf24', state: reason === 'no-positive-resolved-weight' ? 'proposed' : 'unvalidated', reason, codes };
+  }
+  if (row.approach1?.abnormal || row.approach2?.abnormal) return { label: '⚠ >30%', color: '#f87171', state: 'abnormal', reason: row.status, codes: [] };
+  return { label: '✓ ±30%', color: '#86efac', state: 'within', reason: row.status, codes: [] };
 }
 
 function approachTitle(label, value) {
@@ -101,7 +130,7 @@ function approachTitle(label, value) {
 }
 
 function healthTitle(row, health, skipped) {
-  if (!row) return `Empirical validation: ${health.reason}. Accepted weight is unchanged.`;
+  if (!row) return `Empirical validation: ${health.reason}${health.codes?.length ? ` (${health.codes.join(', ')})` : ''}. A displayed proposal is not accepted weight authority until explicitly accepted. Accepted weight is unchanged.`;
   return [
     `Observed: ${Number(row.observedWeightKg).toFixed(3)} kg`,
     `Source: ${row.source || 'resolved weight'}`,
@@ -109,6 +138,7 @@ function healthTitle(row, health, skipped) {
     approachTitle('A2', row.approach2),
     `Threshold: ±30% (exact ±30% is within threshold)`,
     skipped?.reason ? `Skipped: ${skipped.reason}` : '',
+    health.codes?.length ? `Unavailable code(s): ${health.codes.join(', ')}` : '',
     'Validation only — this indicator never changes the accepted weight.',
   ].filter(Boolean).join(' · ');
 }

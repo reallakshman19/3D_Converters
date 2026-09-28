@@ -5,6 +5,10 @@ import {
   xmlCiiDryRunPreview,
 } from './xml-cii-adapted-preview-dryrun.js';
 import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
+import {
+  B313_PREVIEW_ACTION_LABEL,
+  buildPreviewB313WallUpdateReport,
+} from './xml-cii-adapted-preview-b313-wall-update.js?v=20260928-issue776-authority-1';
 import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
 import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
 import {
@@ -110,6 +114,48 @@ export function applyModeAConsolidatedDtxrWall(stateRef) {
   return { changed: applied > 0, applied, available, sourceCount };
 }
 
+export function applyModeAConsolidatedB313Wall(stateRef) {
+  const executions = modeAExecutionRows(stateRef);
+  const snapshots = sourceSnapshots(stateRef, executions.map((entry) => entry.source.sourceId));
+  let updated = 0;
+  let skipped = 0;
+  let sourceCount = 0;
+  const reports = [];
+
+  for (const entry of executions) {
+    const rows = previewRowsForExecution(entry);
+    const sourceRef = createModeASourceProcessingRef(stateRef, entry.source.sourceId);
+    const current = sourceRef.current;
+    const config = parseConfig(current.supportConfigJson);
+    const report = buildPreviewB313WallUpdateReport({
+      rows,
+      config,
+      xmlText: current.sourceText || entry.state.sourceText || '',
+      host: null,
+    });
+    const sourceUpdated = Number(report?.summary?.updatedRows || 0);
+    const sourceSkipped = Number(report?.summary?.skippedRows || 0);
+    reports.push({
+      sourceId: entry.source.sourceId,
+      fileName: entry.source.fileName || entry.source.name || entry.source.sourceId,
+      report,
+    });
+    updated += sourceUpdated;
+    skipped += sourceSkipped;
+    if (sourceUpdated > 0) {
+      sourceRef.current = {
+        ...current,
+        supportConfigJson: JSON.stringify(config, null, 2),
+        b313WallUpdateReport: report,
+      };
+      sourceCount += 1;
+    }
+  }
+
+  if (updated) setUndo(stateRef, `B31.3 Wall (${updated} override${updated === 1 ? '' : 's'})`, snapshots);
+  return { changed: updated > 0, updated, skipped, sourceCount, reports };
+}
+
 export function applyModeAConsolidatedDtxrRating(stateRef) {
   const executions = modeAExecutionRows(stateRef);
   const snapshots = sourceSnapshots(stateRef, executions.map((entry) => entry.source.sourceId));
@@ -184,12 +230,18 @@ export function installModeAConsolidatedDtxrTools(panel, stateRef) {
   rating.title = 'Fetch only unambiguous DTXR ratings as source-local branch overrides. Manual Preview ratings remain protected.';
   styleButton(rating);
 
+  const b313 = document.createElement('button');
+  b313.type = 'button';
+  b313.textContent = B313_PREVIEW_ACTION_LABEL;
+  b313.title = 'Run the existing governed B31.3 Preview wall-update authority independently for each enabled XML source. Design basis and overrides remain source-local.';
+  styleButton(b313);
+
   const individualNote = document.createElement('span');
   individualNote.className = 'xml-cii-phase-help';
-  individualNote.textContent = 'B31.3 wall update remains source-specific under Individual Preview / Review.';
+  individualNote.textContent = 'B31.3 uses each XML source independently; blocked rows remain NOT_UPDATED with their source-local reason.';
 
   const rightNote = [...toolbar.querySelectorAll('.xml-cii-phase-help')].find((node) => node.style.marginLeft === 'auto');
-  for (const node of [label, wall, rating, individualNote]) {
+  for (const node of [label, wall, rating, b313, individualNote]) {
     if (rightNote) toolbar.insertBefore(node, rightNote);
     else toolbar.appendChild(node);
   }
@@ -209,6 +261,16 @@ export function installModeAConsolidatedDtxrTools(panel, stateRef) {
     const result = applyModeAConsolidatedDtxrRating(stateRef);
     const status = statusNode(toolbar);
     status.textContent = `DTXR Rating: ${result.applied} applied · ${result.cleared} stale cleared · ${result.conflicts} conflict · ${result.manualProtected} manual protected.`;
+    if (result.changed) requestRebuild(panel);
+  });
+
+  b313.addEventListener('click', () => {
+    if (typeof confirm === 'function' && !confirm('Run the governed B31.3 wall-thickness update independently for all enabled Mode A XML sources? Blocked rows will remain unchanged.')) return;
+    const result = applyModeAConsolidatedB313Wall(stateRef);
+    const status = statusNode(toolbar);
+    status.textContent = result.changed
+      ? `B31.3 Wall: ${result.updated} updated · ${result.skipped} blocked/skipped across ${result.sourceCount} changed XML source(s).`
+      : `B31.3 Wall: no row updated · ${result.skipped} blocked/skipped. Expand Individual Preview / Review for detailed source-local blocker evidence.`;
     if (result.changed) requestRebuild(panel);
   });
 

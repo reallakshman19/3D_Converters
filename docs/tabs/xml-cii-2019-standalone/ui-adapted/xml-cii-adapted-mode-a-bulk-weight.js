@@ -17,7 +17,23 @@ export function modeAWeightGroupKey(row = {}) {
 }
 
 function changeForRow(row) {
-  return { sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, key: row.key, nodeNumber: row.nodeNumber, componentRefNo: row.componentRefNo, weight: number(row.bestWeight) };
+  return {
+    sourceId: row.sourceId,
+    fileName: row.fileName,
+    branchName: row.branchName,
+    key: row.key,
+    nodeNumber: row.nodeNumber,
+    endpoint: row.endpoint,
+    componentType: row.componentType,
+    componentRefNo: row.componentRefNo,
+    boreMm: row.boreMm,
+    rating: row.rating,
+    lengthMm: row.lengthMm,
+    elementLengthSource: row.elementLengthSource,
+    weight: number(row.bestWeight),
+    candidate: row._modeAWeightDtxrBest || row.bestCandidate || null,
+    acceptanceMethod: 'candidate',
+  };
 }
 
 export function buildModeAWeightProjectMatchPlan(rows = []) {

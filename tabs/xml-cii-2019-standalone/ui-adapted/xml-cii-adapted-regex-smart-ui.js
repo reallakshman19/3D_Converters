@@ -1,8 +1,8 @@
-import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
+import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260928-regex-auto-safe-1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260928-issue776-authority-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },

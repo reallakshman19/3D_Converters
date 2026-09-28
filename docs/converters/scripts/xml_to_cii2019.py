@@ -86,6 +86,7 @@ class XmlNode:
     node_name: str
     endpoint: int | None
     component_type: str
+    component_ref_no: str
     rigid: int | None
     weight: float
     material_code: int | None
@@ -584,6 +585,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     node_name=_child_text(node_element, namespace, "NodeName"),
                     endpoint=endpoint,
                     component_type=_child_text(node_element, namespace, "ComponentType").upper(),
+                    component_ref_no=_child_text(node_element, namespace, "ComponentRefNo"),
                     rigid=rigid,
                     weight=weight_value,
                     material_code=_parse_node_material_code(node_element, namespace),
@@ -646,19 +648,41 @@ def _merge_restraint_specs(
     return tuple(merged)
 
 
+def _distance_between_nodes(left: XmlNode, right: XmlNode) -> float:
+    return math.sqrt(sum((right.position[index] - left.position[index]) ** 2 for index in range(3)))
+
+
+def _canonical_shared_junctions(
+    branches: list[XmlBranch], tolerance_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
+) -> set[int]:
+    occurrences: dict[int, list[XmlNode]] = {}
+    branch_hits: dict[int, set[int]] = {}
+    for branch_index, branch in enumerate(branches):
+        for node in branch.nodes:
+            occurrences.setdefault(node.node_number, []).append(node)
+            branch_hits.setdefault(node.node_number, set()).add(branch_index)
+
+    protected: set[int] = set()
+    for node_number, rows in occurrences.items():
+        if len(branch_hits.get(node_number, set())) < 2 or len(rows) < 2:
+            continue
+        anchor = rows[0]
+        if all(_distance_between_nodes(anchor, row) <= tolerance_mm for row in rows[1:]):
+            protected.add(node_number)
+    return protected
+
+
 def _drop_short_element_nodes(
     branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
 ) -> list[XmlBranch]:
-    """Drop node blocks whose segment length is <= threshold_mm.
+    """Collapse short hops while preserving repeated positive branch junctions.
 
-    Mirrors the JS-side xml-cii-node-block-cleanup.js invariant used by the
-    standalone XML->CII(2019) preview/weight-match tooling: a full "Node
-    block" (the arriving node of a too-short segment) is removed outright
-    rather than merged, collapsing that hop so the branch connects straight
-    through to whatever node follows. Length is always recomputed fresh from
-    node positions (this engine never reads a stale ElementLengthMm
-    attribute), so the check is inherently against up-to-date geometry.
+    A source-positive node repeated across branches at the same coordinate is
+    a topology junction. If split/enrichment creates a coincident helper just
+    before that junction, discard the helper and retain the canonical source
+    node; otherwise retain the historical arriving-node drop behavior.
     """
+    protected = _canonical_shared_junctions(branches, threshold_mm)
     new_branches: list[XmlBranch] = []
     for branch in branches:
         if len(branch.nodes) < 2:
@@ -667,12 +691,17 @@ def _drop_short_element_nodes(
         kept: list[XmlNode] = [branch.nodes[0]]
         for node in branch.nodes[1:]:
             previous = kept[-1]
-            length = math.sqrt(
-                (node.position[0] - previous.position[0]) ** 2
-                + (node.position[1] - previous.position[1]) ** 2
-                + (node.position[2] - previous.position[2]) ** 2
-            )
+            length = _distance_between_nodes(previous, node)
             if length <= threshold_mm:
+                if node.node_number in protected and previous.node_number not in protected:
+                    merged_specs = _merge_restraint_specs(node.restraint_specs, previous.restraint_specs)
+                    kept[-1] = replace(node, restraint_specs=merged_specs)
+                    DROPPED_SHORT_ELEMENT_NODES.append(
+                        f"Branch '{branch.branch_name}' NodeNumber {previous.node_number}: "
+                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
+                        f"coincident helper collapsed into canonical junction NodeNumber {node.node_number}"
+                    )
+                    continue
                 if node.restraint_specs:
                     kept[-1] = replace(
                         previous,
@@ -693,9 +722,6 @@ def _drop_short_element_nodes(
                 continue
             kept.append(node)
         if len(kept) < 2:
-            # Dropping every intermediate node would leave no segments at
-            # all in this branch; keep the original nodes rather than
-            # discarding the branch outright.
             new_branches.append(branch)
             continue
         new_branches.append(replace(branch, nodes=kept))
@@ -814,13 +840,31 @@ def _build_bend_indices(edges: list[Edge]) -> tuple[list[Edge], dict[int, int]]:
     return bend_edges, edge_to_index
 
 
+def _normalized_component_ref(value: str) -> str:
+    return _safe_text(value).lstrip("=").replace(" ", "").upper()
+
+
+def _same_component_ref(left: XmlNode, right: XmlNode) -> bool:
+    left_ref = _normalized_component_ref(left.component_ref_no)
+    right_ref = _normalized_component_ref(right.component_ref_no)
+    return bool(left_ref and right_ref and left_ref == right_ref)
+
+
+def _edge_is_rigid(edge: Edge) -> bool:
+    if edge.to_node.rigid == 2:
+        return True
+    return (
+        edge.from_node.rigid == 2
+        and edge.to_node.component_type == "FLAN"
+        and _same_component_ref(edge.from_node, edge.to_node)
+    )
+
+
 def _build_rigid_indices(edges: list[Edge]) -> tuple[list[Edge], dict[int, int]]:
     rigid_edges: list[Edge] = []
     edge_to_index: dict[int, int] = {}
     for edge_index, edge in enumerate(edges):
-        if edge.to_node.rigid == 2 or (
-            edge.from_node.rigid == 2 and edge.to_node.component_type == "FLAN"
-        ):
+        if _edge_is_rigid(edge):
             rigid_edges.append(edge)
             edge_to_index[edge_index] = len(rigid_edges)
     return rigid_edges, edge_to_index
@@ -1281,7 +1325,7 @@ def _rigid_weight_for_edge(edge: Edge) -> float:
     """
     if edge.to_node.rigid == 2:
         return edge.to_node.weight
-    if edge.from_node.rigid == 2 and edge.to_node.component_type == "FLAN":
+    if _edge_is_rigid(edge):
         return edge.to_node.weight
     return 0.0
 

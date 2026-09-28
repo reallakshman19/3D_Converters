@@ -1,6 +1,10 @@
 const STANDARD_NPS = new Set(['0.5','0.75','1','1.25','1.5','2','2.5','3','3.5','4','5','6','8','10','12','14','16','18','20','22','24','26','28','30','32','34','36','40','42','48','54','60']);
 const STANDARD_DN = new Set(['6','8','10','15','20','25','32','40','50','65','80','90','100','125','150','200','250','300','350','400','450','500','550','600','650','700','750','800','850','900','1000','1050','1200','1350','1500']);
 const STANDARD_RATINGS = new Set(['150','300','600','900','1500','2500','5000','10000','15000','20000']);
+const NPS_TO_DN = new Map([
+  ['0.5',15],['0.75',20],['1',25],['1.25',32],['1.5',40],['2',50],['2.5',65],['3',80],['3.5',90],['4',100],
+  ['5',125],['6',150],['8',200],['10',250],['12',300],['14',350],['16',400],['18',450],['20',500],['22',550],['24',600],
+]);
 const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
 const TRUSTED_AUTHORITIES = new Set(['AUTHORIZED_MASTER', 'GOVERNED_NORMALIZED_MASTER', 'EXPLICIT_SOURCE', 'DERIVED_FROM_AUTHORIZED_CLASS']);
 
@@ -30,19 +34,48 @@ function suggestion(role, tokenPositions, confidence, authorityLevel, values, ev
   };
 }
 
-function boreCandidate(values, position) {
-  const explicit = coverage(values, (value) => /^\d+(?:\.\d+)?\s*(?:"|IN|NPS)$/i.test(value));
+function boreDn(value) {
+  const source = txt(value).toUpperCase();
+  const number = source.replace(/[^0-9.]/g, '');
+  if (!number) return null;
+  if (/^DN\s*/i.test(source)) return Number(number);
+  if (/("|\bIN(?:CH)?\b|\bNPS\b)/i.test(source)) return NPS_TO_DN.get(number) ?? null;
+  return null;
+}
+
+function rowClassKey(row, classMasters) {
+  for (const value of row?.values || []) {
+    const key = norm(value);
+    if (classMasters.has(key)) return key.replace(/[^A-Z0-9]/g, '');
+  }
+  return '';
+}
+
+function boreCandidate(values, position, rows, classMasters, classBoresByClass) {
+  const explicit = coverage(values, (value) => /^\d+(?:\.\d+)?\s*(?:"|IN|INCH|NPS)$/i.test(value));
   const dn = coverage(values, (value) => /^DN\s*\d+(?:\.\d+)?$/i.test(value));
   const known = coverage(values, (value) => {
     const number = txt(value).replace(/[^0-9.]/g, '');
     return STANDARD_NPS.has(number) || STANDARD_DN.has(number);
   });
+  let comparable = 0;
+  let classBoreMatches = 0;
+  for (const row of rows || []) {
+    const token = row?.values?.[position - 1] || '';
+    const dnValue = boreDn(token);
+    const classKey = rowClassKey(row, classMasters);
+    const bores = classBoresByClass?.get(classKey);
+    if (dnValue === null || !bores?.size) continue;
+    comparable += 1;
+    if ([...bores].some((bore) => Math.abs(Number(bore) - dnValue) <= 1)) classBoreMatches += 1;
+  }
+  const classBoreRate = comparable ? classBoreMatches / comparable : 0;
   const explicitSyntaxRate = clamp(explicit + dn);
-  const score = clamp(0.48 * explicit + 0.40 * dn + 0.25 * known + (explicit || dn ? 0.22 : 0));
+  const score = clamp(0.48 * explicit + 0.40 * dn + 0.25 * known + 0.12 * classBoreRate + (explicit || dn ? 0.22 : 0));
   const authority = explicitSyntaxRate === 1 ? 'EXPLICIT_SOURCE' : explicitSyntaxRate > 0 ? 'PARTIAL_SOURCE_EVIDENCE' : 'HEURISTIC_ONLY';
   return suggestion('bore', [position], score, authority, values,
-    [`${Math.round(explicitSyntaxRate * 100)}% explicit size syntax`, `${Math.round(known * 100)}% standard NPS/DN values`],
-    { explicitSyntaxRate, standardValueRate: known });
+    [`${Math.round(explicitSyntaxRate * 100)}% explicit size syntax`, `${Math.round(known * 100)}% standard NPS/DN values`, `${Math.round(classBoreRate * 100)}% piping-class bore corroboration`],
+    { explicitSyntaxRate, standardValueRate: known, classBoreRate, classBoreComparableSamples: comparable });
 }
 
 function safePattern(pattern) {
@@ -140,13 +173,13 @@ function derivedRatingSuggestion(suggestions, ratingSequence) {
   };
 }
 
-export function buildRegexRoleSuggestions({ rows = [], lineMasters = new Set(), classMasters = new Set(), profile, ratingSequence = [] } = {}) {
+export function buildRegexRoleSuggestions({ rows = [], lineMasters = new Set(), classMasters = new Set(), classBoresByClass = new Map(), profile, ratingSequence = [] } = {}) {
   const maxColumns = Math.max(0, ...rows.map((row) => row.values.length));
   const candidates = [];
   for (let pos = 1; pos <= maxColumns; pos += 1) {
     const values = positionValues(rows, pos);
     candidates.push(
-      boreCandidate(values, pos),
+      boreCandidate(values, pos, rows, classMasters, classBoresByClass),
       classCandidate(values, pos, classMasters, profile.normalization.classSuffixPattern),
       ratingCandidate(values, pos),
     );

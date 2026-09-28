@@ -1,5 +1,5 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
-import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats } from '../xml-cii-regex-tester.js';
+import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics } from './xml-cii-adapted-regex-results.js';
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js';
 import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';

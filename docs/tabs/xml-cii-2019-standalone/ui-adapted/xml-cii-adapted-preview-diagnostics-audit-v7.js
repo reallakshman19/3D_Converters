@@ -7,7 +7,7 @@ import {
   xmlCiiRenderPreviewPhase,
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
-import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js';
+import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,

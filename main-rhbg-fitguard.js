@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260928-regex-auto-safe-1');
+  const module = await import('./core/app.js?v=20260928-issue776-authority-2');
   await module.init(startupMount());
 }
 

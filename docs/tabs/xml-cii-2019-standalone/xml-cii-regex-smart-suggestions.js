@@ -1,6 +1,21 @@
-import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js';
+import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js?v=20260928-issue776-authority-1';
+import { computeLineNoKey } from '../../converters/xml-cii2019-core/linelist-mapping.js';
+import { buildPipingClassIndex, normalizePipingClass } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 
 const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
+
+let lineMasterCache = new WeakMap();
+let classMasterCache = new WeakMap();
+let preflightCache = new WeakMap();
+const cacheStats = { lineMasterBuilds: 0, classMasterBuilds: 0, preflightHits: 0, preflightMisses: 0 };
+
+export function regexSuggestionCacheStats() { return { ...cacheStats }; }
+export function resetRegexSuggestionCachesForTests() {
+  lineMasterCache = new WeakMap();
+  classMasterCache = new WeakMap();
+  preflightCache = new WeakMap();
+  Object.assign(cacheStats, { lineMasterBuilds: 0, classMasterBuilds: 0, preflightHits: 0, preflightMisses: 0 });
+}
 
 export function createDefaultRegexSuggestionProfile() {
   return Object.freeze({
@@ -51,26 +66,41 @@ function clusterRows(rows) {
     .sort((a, b) => b.count - a.count || a.signature.localeCompare(b.signature));
 }
 
-function stringValues(row) {
-  return Object.entries(row || {})
-    .filter(([key, value]) => /line|key|number|class|spec|code|name/i.test(key) && ['string','number'].includes(typeof value))
-    .map(([, value]) => txt(value)).filter(Boolean);
-}
-
-function masterSet(rows) {
+function cachedLineMasterEvidence(rows, fieldMap = {}) {
+  if (!Array.isArray(rows)) return new Set();
+  const mapKey = stableStringify(fieldMap || {});
+  const cached = lineMasterCache.get(rows);
+  if (cached?.key === mapKey) return cached.set;
   const set = new Set();
-  for (const row of rows || []) stringValues(row).forEach((value) => set.add(norm(value)));
-  return set;
-}
-
-function classMasterSet(rows) {
-  const set = new Set();
-  for (const row of rows || []) {
-    for (const [key, value] of Object.entries(row || {})) {
-      if (/class|spec|code|name/i.test(key) && ['string','number'].includes(typeof value)) set.add(norm(value));
-    }
+  for (const row of rows) {
+    const value = computeLineNoKey(row || {}, fieldMap || {});
+    if (txt(value)) set.add(norm(value));
   }
+  lineMasterCache.set(rows, { key: mapKey, set });
+  cacheStats.lineMasterBuilds += 1;
   return set;
+}
+
+function cachedClassMasterEvidence(rows, fieldMap = {}) {
+  if (!Array.isArray(rows)) return { classes: new Set(), boresByClass: new Map() };
+  const mapKey = stableStringify(fieldMap || {});
+  const cached = classMasterCache.get(rows);
+  if (cached?.key === mapKey) return cached.evidence;
+  const index = buildPipingClassIndex(rows, fieldMap || {});
+  const classes = new Set((index.knownClasses || []).map((value) => norm(value)).filter(Boolean));
+  const boresByClass = new Map();
+  for (const row of index.rows || []) {
+    const rawClass = row?.pipingClass ?? row?.['Piping Class'] ?? row?.PIPING_CLASS ?? row?.Class ?? row?.SPEC ?? row?.Spec ?? '';
+    const classKey = normalizePipingClass(rawClass);
+    const bore = Number(row?.convertedBore ?? row?.boreMm ?? row?.DN ?? row?.dn);
+    if (!classKey || !Number.isFinite(bore) || bore <= 0) continue;
+    if (!boresByClass.has(classKey)) boresByClass.set(classKey, new Set());
+    boresByClass.get(classKey).add(Number(bore));
+  }
+  const evidence = { classes, boresByClass };
+  classMasterCache.set(rows, { key: mapKey, evidence });
+  cacheStats.classMasterBuilds += 1;
+  return evidence;
 }
 
 function stableStringify(value) {
@@ -101,15 +131,39 @@ function summarize(suggestions, sampleCount, formatCount, currentResult) {
 export function buildRegexSuggestionPreflight(input = {}) {
   const profile = input.profile || createDefaultRegexSuggestionProfile();
   const config = input.extractionConfig || {};
+  const samples = Array.isArray(input.branchSamples) ? input.branchSamples : [];
+  const masterContext = input.masterContext || {};
+  const cacheKey = configFingerprint({
+    config,
+    profile,
+    appliedMappingRevision: masterContext.appliedMappingRevision || null,
+    rowCounts: masterContext.rowCounts || null,
+    currentCoverage: {
+      matched: input.currentResult?.matchedRows?.length || 0,
+      rejected: input.currentResult?.rejectedRows?.length || 0,
+    },
+  });
+  if (samples && typeof samples === 'object') {
+    const cached = preflightCache.get(samples);
+    if (cached?.has(cacheKey)) {
+      cacheStats.preflightHits += 1;
+      return cached.get(cacheKey);
+    }
+  }
+  cacheStats.preflightMisses += 1;
   const formatIndex = Number(config.activeFormatIndex || input.activeFormatIndex || 0);
   const format = activeFormat(config, formatIndex);
-  const rows = tokenize(input.branchSamples || [], format.tokenDelimiter || '-');
+  const rows = tokenize(samples, format.tokenDelimiter || '-');
   const clusters = clusterRows(rows);
   const selected = clusters[formatIndex] || clusters[0] || { rows: [], count: 0, signature: '' };
+  const lineFieldMap = masterContext?.config?.linelist?.fieldMap || masterContext?.lineListFieldMap || {};
+  const classFieldMap = masterContext?.config?.pipingClass?.fieldMap || masterContext?.pipingClassFieldMap || {};
+  const classEvidence = cachedClassMasterEvidence(masterContext.pipingClassRows || [], classFieldMap);
   const suggestions = buildRegexRoleSuggestions({
     rows: selected.rows,
-    lineMasters: masterSet(input.masterContext?.lineRows || []),
-    classMasters: classMasterSet(input.masterContext?.pipingClassRows || []),
+    lineMasters: cachedLineMasterEvidence(masterContext.lineRows || [], lineFieldMap),
+    classMasters: classEvidence.classes,
+    classBoresByClass: classEvidence.boresByClass,
     profile,
     ratingSequence: config.ratingSequence,
   });
@@ -124,12 +178,12 @@ export function buildRegexSuggestionPreflight(input = {}) {
       : metrics.safeCount
         ? (metrics.reviewCount ? 'REVIEW_REQUIRED' : 'READY_TO_APPLY')
         : 'REVIEW_REQUIRED';
-  return Object.freeze({
+  const receipt = Object.freeze({
     schema: 'regex-suggestion-preflight/v1',
     status,
     formatIndex,
     selectedSignature: selected.signature,
-    fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: input.masterContext?.rowCounts, profile }),
+    fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: masterContext?.rowCounts, profile }),
     suggestions: Object.freeze(suggestions.map(Object.freeze)),
     clusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
     metrics: Object.freeze(metrics),
@@ -137,6 +191,13 @@ export function buildRegexSuggestionPreflight(input = {}) {
     canPreview: rows.length > 0,
     canApply: status === 'READY_TO_APPLY',
   });
+  if (samples && typeof samples === 'object') {
+    const bucket = preflightCache.get(samples) || new Map();
+    bucket.set(cacheKey, receipt);
+    if (bucket.size > 8) bucket.delete(bucket.keys().next().value);
+    preflightCache.set(samples, bucket);
+  }
+  return receipt;
 }
 
 export function applyHighestSafeSuggestions(extractionConfig = {}, receipt, options = {}) {

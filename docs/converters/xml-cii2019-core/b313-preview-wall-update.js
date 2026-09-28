@@ -1,4 +1,4 @@
-import { calculateB313Thickness } from '../b313-thickness/index.js';
+import { calculateEngineering } from '../engineering-calculations/index.js';
 import {
   B313_MATERIAL_FACTOR_MASTER,
   normalizeB313MaterialFamily,
@@ -405,28 +405,37 @@ export function calculateAndSelectPreviewB313Wall({
   if (normalizedY === null || normalizedY > 1) return failure('B313_PREVIEW_COEFFICIENT_Y_REQUIRED', 'Coefficient Y must be >= 0 and <= 1.');
   if (!String(dimensionStandard || '').trim()) return failure('B313_PREVIEW_DIMENSION_STANDARD_REQUIRED', 'Pipe dimension standard is required.');
 
-  const calculation = calculateB313Thickness({
-    edition,
-    pressureMode: 'internal',
-    designPressure: normalizedPressure,
-    pressureUnit,
-    outsideDiameter: normalizedOd,
-    lengthUnit: 'mm',
-    allowableStress: normalizedAllowableStress,
-    stressUnit,
-    qualityFactorE: normalizedE,
-    weldStrengthReductionW: normalizedW,
-    coefficientY: normalizedY,
-    corrosionAllowance: normalizedCorrosion,
-    allowanceUnit: 'mm',
-    negativeMillTolerance: {
-      basis: 'percent',
-      value: B313_PREVIEW_NEGATIVE_MILL_TOLERANCE_PCT,
+  const engineeringResult = calculateEngineering({
+    calculationId: 'PIPE.B313.THICKNESS',
+    inputs: {
+      designPressure: normalizedPressure,
+      outsideDiameter: normalizedOd,
+      allowableStress: normalizedAllowableStress,
+      qualityFactorE: normalizedE,
+      weldStrengthReductionW: normalizedW,
+      coefficientY: normalizedY,
+      corrosionAllowance: normalizedCorrosion,
+      negativeMillTolerance: {
+        basis: 'percent',
+        value: B313_PREVIEW_NEGATIVE_MILL_TOLERANCE_PCT,
+      },
     },
+    inputUnits: {
+      designPressure: String(pressureUnit),
+      outsideDiameter: 'mm',
+      allowableStress: String(stressUnit),
+      corrosionAllowance: 'mm',
+    },
+    options: { includeEvidence: true },
   });
 
-  if (!calculation.ok) {
-    return failure('B313_PREVIEW_CALCULATION_FAILED', calculation.message || calculation.code, { calculation });
+  if (!engineeringResult?.ok) {
+    const first = engineeringResult?.errors?.[0] || {};
+    return failure('B313_PREVIEW_CALCULATION_FAILED', first.message || first.code || 'Central B31.3 thickness calculation failed.', { engineeringResult });
+  }
+  const calculation = engineeringResult?.evidence?.domainResult;
+  if (!calculation?.ok) {
+    return failure('B313_PREVIEW_CALCULATION_FAILED', 'Central B31.3 calculation did not return a domain result.', { engineeringResult, calculation });
   }
 
   const selection = selectPipeWallForCalculation({
@@ -450,6 +459,12 @@ export function calculateAndSelectPreviewB313Wall({
     negativeMillTolerancePct: B313_PREVIEW_NEGATIVE_MILL_TOLERANCE_PCT,
     dimensionStandard: selection.selected.dimensionStandard,
     calculation,
+    engineeringCalculation: {
+      calculationId: engineeringResult.calculationId || 'PIPE.B313.THICKNESS',
+      contractVersion: engineeringResult.contractVersion || '',
+      qualification: engineeringResult.qualification || null,
+      provenance: engineeringResult.provenance || null,
+    },
     selection,
     selectedNominalWallMm: selection.selected.nominalWallMm,
     selectedSchedule: selection.selected.schedule,

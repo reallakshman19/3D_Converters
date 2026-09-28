@@ -20,19 +20,21 @@ const runner = read('tabs/model-converters/converters/cii-v11-v14.js');
 const worker = read('converters/cii-v11-v14-worker.js');
 const legacyAdapter = read('tabs/model-converters/legacy-adapter.js');
 
+const appShellKey = '20260928-issue776-authority-2';
+const modelConvertersKey = '20260928-rvm-full-scope-core-1';
 const releaseKey = '20260816-cii-v11-v14-dropdown-release-4';
 const workerReleaseKey = '20260816-cii-v11-v14-import-rca-1';
 const registryQuery = 'v=20260617-basic-glb-3';
 
 // Full browser cache-custody chain. Every parent URL must advance or a browser
 // can legally keep executing the pre-RCA child module even when Python changed.
-assert.match(indexHtml, new RegExp(`main-rhbg-fitguard\\.js\\?v=${releaseKey}`));
-assert.match(startup, new RegExp(`core/app\\.js\\?v=${releaseKey}`));
-assert.match(app, new RegExp(`model-converters-tab\\.js\\?v=${releaseKey}`));
-assert.match(app, new RegExp(`__MODEL_CONVERTERS_CACHE_KEY__ = '${releaseKey}'`));
-assert.match(shim, new RegExp(`model-converters/index\\.js\\?v=${releaseKey}`));
-assert.match(canonicalIndex, new RegExp(`ModelConvertersTab-fbx2-managed-reference\\.js\\?v=${releaseKey}`));
-assert.match(managedReference, new RegExp(`ModelConvertersTab\\.js\\?v=${releaseKey}`));
+assert.match(indexHtml, new RegExp(`main-rhbg-fitguard\\.js\\?v=${appShellKey}`));
+assert.match(startup, new RegExp(`core/app\\.js\\?v=${appShellKey}`));
+assert.match(app, new RegExp(`model-converters-tab\\.js\\?v=${modelConvertersKey}`));
+assert.match(app, new RegExp(`__MODEL_CONVERTERS_CACHE_KEY__ = '${modelConvertersKey}'`));
+assert.match(shim, new RegExp(`model-converters/index\\.js\\?v=${modelConvertersKey}`));
+assert.match(canonicalIndex, new RegExp(`ModelConvertersTab-fbx2-managed-reference\\.js\\?v=${modelConvertersKey}`));
+assert.match(managedReference, new RegExp(`ModelConvertersTab\\.js\\?v=${modelConvertersKey}`));
 assert.match(tab, new RegExp(`legacy-adapter\\.js\\?v=${releaseKey}`));
 assert.match(tab, new RegExp(`cii-v11-v14-dropdown-integration\\.js\\?v=${releaseKey}`));
 assert.match(tab, new RegExp(`cii-merge-dropdown-integration\\.js\\?v=${releaseKey}`));
@@ -41,8 +43,8 @@ assert.match(tab, new RegExp(`cii-merge-dropdown-integration\\.js\\?v=${releaseK
 // merges. Keep this as a hard syntax-structure guard.
 assert.equal((shim.match(/const MODEL_CONVERTERS_SHIM_VERSION/g) || []).length, 1);
 assert.equal((shim.match(/const CANONICAL_MODULE/g) || []).length, 1);
-assert.match(shim, new RegExp(`cii-v11-v14-addon\\.js\\?v=${releaseKey}`));
-assert.match(shim, new RegExp(`cii-v11-v14-dropdown-integration\\.js\\?v=${releaseKey}`));
+assert.match(shim, new RegExp(`cii-v11-v14-addon\\.js\\?v=${modelConvertersKey}`));
+assert.match(shim, new RegExp(`cii-v11-v14-dropdown-integration\\.js\\?v=${modelConvertersKey}`));
 assert.match(shim, /installCiiV11V14Addon/);
 assert.match(shim, /installRenderedCiiV11V14Dropdown/);
 assert.match(shim, /dropdown addon did not register the converter/);

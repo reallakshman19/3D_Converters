@@ -1,4 +1,4 @@
-import { withXmlCiiRigidWeightFinal } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { withXmlCiiRigidWeightFinal } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

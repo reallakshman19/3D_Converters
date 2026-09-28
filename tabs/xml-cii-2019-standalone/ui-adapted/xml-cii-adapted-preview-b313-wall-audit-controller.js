@@ -3,7 +3,7 @@ import {
   B313_PREVIEW_REPORT_SCHEMA,
   buildPreviewB313WallUpdateReport,
   installPreviewB313WallUpdateController,
-} from './xml-cii-adapted-preview-b313-wall-update.js';
+} from './xml-cii-adapted-preview-b313-wall-update.js?v=20260928-issue776-authority-1';
 import { XML_CII_PREVIEW_LEGACY_CACHE_KEY } from './xml-cii-adapted-preview-cache-v7.js';
 
 function text(value) {

@@ -1,6 +1,16 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 
 const SAMPLE_LIMIT = 2000;
+const SAMPLE_CACHE_LIMIT = 3;
+const sampleCache = new Map();
+const testerCacheStats = { parses: 0, hits: 0 };
+
+export function regexTesterCacheStats() { return { ...testerCacheStats, entries: sampleCache.size }; }
+export function resetRegexTesterCacheForTests() {
+  sampleCache.clear();
+  testerCacheStats.parses = 0;
+  testerCacheStats.hits = 0;
+}
 
 export function createDefaultRegexTesterConfig() {
   const defaultFormat = {
@@ -60,40 +70,53 @@ function uniqueSamples(samples) {
   return out.slice(0, SAMPLE_LIMIT);
 }
 
+function elementsByLocalName(doc, localName) {
+  if (typeof doc.getElementsByTagNameNS === 'function') {
+    const rows = [...doc.getElementsByTagNameNS('*', localName)];
+    if (rows.length) return rows;
+  }
+  return [...doc.getElementsByTagName(localName)];
+}
+
 export function parseStandaloneRegexBranchSamples(sourceText) {
+  const source = String(sourceText || '');
+  if (sampleCache.has(source)) {
+    testerCacheStats.hits += 1;
+    const cached = sampleCache.get(source);
+    sampleCache.delete(source);
+    sampleCache.set(source, cached);
+    return cached;
+  }
   try {
-    const doc = new DOMParser().parseFromString(sourceText || '', 'application/xml');
+    testerCacheStats.parses += 1;
+    const doc = new DOMParser().parseFromString(source, 'application/xml');
     if (!doc.querySelector('parsererror')) {
       const rows = [];
       const seen = new Set();
-      
       const addRow = (src, name, ref) => {
-         const key = text(name || ref);
-         if (key && !seen.has(key)) {
-           seen.add(key);
-           rows.push({ source: src, branchName: name, lineReference: ref });
-         }
-      };
-
-      const allElements = doc.querySelectorAll('*');
-      for (const el of allElements) {
-        const tag = (el.localName || '').toLowerCase();
-        
-        if (tag === 'branch') {
-          const name = el.getAttribute('NAME') || el.getAttribute('name') || Array.from(el.children).find(c => (c.localName || '').toLowerCase() === 'branchname')?.textContent || '';
-          addRow('Branch', name, name);
-        } else if (tag === 'branchname') {
-          addRow('Branchname', el.textContent, el.textContent);
-        } else if (tag === 'pipingelement') {
-          const lineId = el.getAttribute('LINE_ID') || el.getAttribute('LineId') || '';
-          addRow('PipingElement', lineId, lineId);
-        } else if (tag === 'pipeline') {
-          const name = el.getAttribute('Name') || el.getAttribute('NAME') || '';
-          addRow('Pipeline', name, name);
+        const key = text(name || ref);
+        if (key && !seen.has(key) && rows.length < SAMPLE_LIMIT) {
+          seen.add(key);
+          rows.push({ source: src, branchName: name, lineReference: ref, sampleIndex: rows.length + 1 });
         }
+      };
+      for (const el of elementsByLocalName(doc, 'Branch')) {
+        const name = el.getAttribute('NAME') || el.getAttribute('name')
+          || Array.from(el.children || []).find((child) => (child.localName || '').toLowerCase() === 'branchname')?.textContent || '';
+        addRow('Branch', name, name);
       }
-
-      return rows.map((r, i) => ({ ...r, sampleIndex: i + 1 })).slice(0, SAMPLE_LIMIT);
+      for (const el of elementsByLocalName(doc, 'Branchname')) addRow('Branchname', el.textContent, el.textContent);
+      for (const el of elementsByLocalName(doc, 'PipingElement')) {
+        const lineId = el.getAttribute('LINE_ID') || el.getAttribute('LineId') || '';
+        addRow('PipingElement', lineId, lineId);
+      }
+      for (const el of elementsByLocalName(doc, 'Pipeline')) {
+        const name = el.getAttribute('Name') || el.getAttribute('NAME') || '';
+        addRow('Pipeline', name, name);
+      }
+      sampleCache.set(source, rows);
+      while (sampleCache.size > SAMPLE_CACHE_LIMIT) sampleCache.delete(sampleCache.keys().next().value);
+      return rows;
     }
   } catch (err) {
     console.warn('DOMParser failed in regex extraction', err);

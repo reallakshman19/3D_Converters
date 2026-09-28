@@ -1,12 +1,12 @@
 import { extractXmlCiiRatingFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-rating-resolver.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { applyModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js';
-import { modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js';
+import { applyModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js?v=20260928-issue776-authority-2';
+import { modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js?v=20260928-issue776-authority-2';
 import {
   createModeABatchSharedRef,
   createModeASourceProcessingRef,
 } from './xml-cii-adapted-mode-a-propagation.js';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function parse(value) { try { const out = JSON.parse(String(value || '{}')); return out && typeof out === 'object' && !Array.isArray(out) ? out : {}; } catch { return {}; } }
@@ -103,6 +103,7 @@ function setDtxrRatingMode(panel, result, stateRef, enabled) {
     row.bestWeight = reranked.bestWeight;
     row.bestScore = reranked.bestScore;
     row.bestDescription = reranked.bestDescription;
+    row.bestCandidate = reranked.best;
     row._modeAWeightDtxrBest = reranked.best;
     updateRowDom(panel, row);
     changed += 1;

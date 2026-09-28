@@ -4,13 +4,13 @@ import {
   withXmlCiiEffectiveRigidWeightLegacyView,
   withXmlCiiRigidWeightMatch1,
   xmlCiiEffectiveRigidWeightMap,
-} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
-import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js';
+import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -75,12 +75,19 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline) {
     xmlCiiEnrichedConfigFromState(stateRef.current),
     stateRef.current.masterContext,
   );
+  const proposalMeta = { ...(nextConfig?.overrides?.rigidWeightProposalMeta || {}) };
   const overrides = {
     ...(nextConfig?.overrides || {}),
     rigidWeight: { ...(current?.overrides?.rigidWeight || {}) },
   };
+  delete overrides.rigidWeightProposalMeta;
   const clean = { ...nextConfig, overrides };
-  const staged = withXmlCiiRigidWeightMatch1(clean, changedWeightMap(nextConfig, baseline));
+  const changes = changedWeightMap(nextConfig, baseline);
+  for (const [key, provenance] of Object.entries(proposalMeta)) {
+    const value = Number(nextConfig?.overrides?.rigidWeight?.[key]);
+    if (key && Number.isFinite(value) && value > 0 && provenance && typeof provenance === 'object') changes[key] = value;
+  }
+  const staged = withXmlCiiRigidWeightMatch1(clean, changes, proposalMeta);
   persistConfig(stateRef, staged);
   return staged;
 }
@@ -90,8 +97,8 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   void (async () => {
     try {
       const [renderer, parity] = await Promise.all([
-        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'),
-        import('../xml-cii-standalone-run-parity.js'),
+        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260928-issue776-authority-2'),
+        import('../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2'),
       ]);
       const shared = await parity.loadParentWeightMatchModules();
       if (

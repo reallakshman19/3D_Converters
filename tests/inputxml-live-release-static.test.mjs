@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const VERSION = '20260729-inputxml-live-release-1';
-const SHELL_VERSION = '20260729-fbx2-direct-pipe-1';
+const SHELL_VERSION = '20260928-rvm-full-scope-core-1';
 const WORKER = `py-worker.js?v=${VERSION}`;
 
 async function read(path) {

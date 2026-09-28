@@ -1,6 +1,6 @@
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js';
-import { applyModeAWeightChanges, undoModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js';
-import { buildModeAWeightFillPlan, buildModeAWeightProjectMatchPlan, buildModeAWeightUsePlan, modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js';
+import { applyModeAWeightChanges, undoModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js?v=20260928-issue776-authority-2';
+import { buildModeAWeightFillPlan, buildModeAWeightProjectMatchPlan, buildModeAWeightUsePlan, modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function styleButton(button, primary = false, warning = false) {
@@ -14,13 +14,13 @@ function markAppliedRows(panel,result,changes=[]) {
   const tableRows=[...panel.querySelectorAll('[data-mode-a-weight-consolidated-row]')];
   for(const row of result.rows||[]){
     const change=byIdentity.get(`${row.sourceId}::${row.key}`); if(!change) continue;
-    row.mapped=true; row.weight=Number(change.weight); row.weightSource='override';
+    row.mapped=true; row.weight=Number(change.weight); row.weightSource='weight-match-1';
     const tr=tableRows.find((item)=>item.dataset.sourceId===String(row.sourceId||'')&&item.dataset.issueKey===String(row.key||''));
     if(!tr) continue;
     tr.dataset.weightClass='mapped';
     if(tr.children[9]) tr.children[9].textContent=`${Number(change.weight)} kg`;
-    if(tr.children[10]) tr.children[10].textContent='override';
-    if(tr.children[11]) tr.children[11].textContent='MAPPED';
+    if(tr.children[10]) tr.children[10].textContent='Match-1';
+    if(tr.children[11]) tr.children[11].textContent='ACCEPTED';
     tr.children[12]?.querySelectorAll('button')?.forEach((button)=>button.remove());
   }
 }
