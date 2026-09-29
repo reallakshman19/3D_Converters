@@ -1,5 +1,5 @@
 {
-  "lastId": 82,
+  "lastId": 83,
   "entries": [
     {
       "id": 1,
@@ -574,6 +574,13 @@
       "file": "docs/core/app-standalone-runtime.js",
       "context": "PR780 worker Preview search top-cache pre-edit backup: docs/core/app-standalone-runtime.js",
       "backupFile": "82_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 83,
+      "timestamp": "2026-09-29 11:17:05",
+      "file": "tests/xml-cii-master-worker-integration.test.mjs",
+      "context": "PR780 worker Preview search integration-test pre-edit backup: shared coordinator assertion",
+      "backupFile": "83_tests_xml_cii_master_worker_integration_test_mjs.bak"
     }
   ]
 }
