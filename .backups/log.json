@@ -1,5 +1,5 @@
 {
-  "lastId": 85,
+  "lastId": 110,
   "entries": [
     {
       "id": 1,
@@ -595,6 +595,181 @@
       "file": "tests/fbx/test-fbx2-runtime-cache-chain.mjs",
       "context": "PR780 app-shell cache contract test pre-edit backup: FBX cache contract",
       "backupFile": "85_tests_fbx_test_fbx2_runtime_cache_chain_mjs.bak"
+    },
+    {
+      "id": 86,
+      "timestamp": "2026-09-29 12:00:19",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "86_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_render_scope_js.bak"
+    },
+    {
+      "id": 87,
+      "timestamp": "2026-09-29 12:00:19",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "87_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_render_scope_js.bak"
+    },
+    {
+      "id": 88,
+      "timestamp": "2026-09-29 12:00:19",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "88_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 89,
+      "timestamp": "2026-09-29 12:00:19",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "89_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 90,
+      "timestamp": "2026-09-29 12:00:20",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "90_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 91,
+      "timestamp": "2026-09-29 12:00:20",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "91_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 92,
+      "timestamp": "2026-09-29 12:00:20",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "92_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 93,
+      "timestamp": "2026-09-29 12:00:20",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "93_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 94,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "94_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 95,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "95_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 96,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "96_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 97,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "97_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 98,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tabs/xml-cii-2019-standalone-tab.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "98_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 99,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/tabs/xml-cii-2019-standalone-tab.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "99_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 100,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "core/app-standalone-runtime.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "100_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 101,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/core/app-standalone-runtime.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "101_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 102,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "core/app.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "102_core_app_js.bak"
+    },
+    {
+      "id": 103,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/core/app.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "103_docs_core_app_js.bak"
+    },
+    {
+      "id": 104,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "main-rhbg-fitguard.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "104_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 105,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/main-rhbg-fitguard.js",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "105_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 106,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "index.html",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "106_index_html.bak"
+    },
+    {
+      "id": 107,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "docs/index.html",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "107_docs_index_html.bak"
+    },
+    {
+      "id": 108,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tests/xml-cii-standalone-render-scope.test.mjs",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "108_tests_xml_cii_standalone_render_scope_test_mjs.bak"
+    },
+    {
+      "id": 109,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "109_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 110,
+      "timestamp": "2026-09-29 12:00:21",
+      "file": "tests/cii-v11-v14-ui-static.test.mjs",
+      "context": "PR780 metadata consumer slice before edit",
+      "backupFile": "110_tests_cii_v11_v14_ui_static_test_mjs.bak"
     }
   ]
 }
