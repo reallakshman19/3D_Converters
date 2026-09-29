@@ -118,6 +118,82 @@ function configFingerprint(input) {
   return `fnv1a:${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
 
+function evidenceDescriptor(masterContext = {}) {
+  const lineRows = Array.isArray(masterContext.lineRows) ? masterContext.lineRows : [];
+  const pipingClassRows = Array.isArray(masterContext.pipingClassRows) ? masterContext.pipingClassRows : [];
+  const refs = masterContext.datasetRefs || {};
+  const lineExpected = Math.max(0, Number(refs?.lineList?.rowCount ?? masterContext?.rowCounts?.lineList) || 0);
+  const classExpected = Math.max(0, Number(refs?.pipingClass?.rowCount ?? masterContext?.rowCounts?.pipingClass) || 0);
+  const mode = lineRows.length && pipingClassRows.length
+    ? 'MASTER_BACKED'
+    : lineRows.length || pipingClassRows.length
+      ? 'PARTIAL_MASTER_EVIDENCE'
+      : 'HEURISTIC_ONLY';
+  return {
+    mode,
+    lineRowsLoaded: lineRows.length,
+    pipingClassRowsLoaded: pipingClassRows.length,
+    lineRowsExpected: lineExpected,
+    pipingClassRowsExpected: classExpected,
+    lineDatasetId: txt(refs?.lineList?.datasetId),
+    pipingClassDatasetId: txt(refs?.pipingClass?.datasetId),
+  };
+}
+
+function masterFieldMaps(masterContext = {}) {
+  return {
+    lineFieldMap: masterContext?.config?.linelist?.fieldMap || masterContext?.lineListFieldMap || masterContext?.datasetRefs?.lineList?.fieldMap || {},
+    classFieldMap: masterContext?.config?.pipingClass?.fieldMap || masterContext?.pipingClassFieldMap || masterContext?.datasetRefs?.pipingClass?.fieldMap || {},
+  };
+}
+
+function boreMatchesClass(boreValue, pipingClass, classEvidence) {
+  const bore = Number(boreValue);
+  if (!Number.isFinite(bore) || bore <= 0) return { applicable: false, matched: true };
+  const classKey = normalizePipingClass(pipingClass);
+  const known = classEvidence.boresByClass.get(classKey);
+  if (!known?.size) return { applicable: false, matched: true };
+  const matched = [...known].some((value) => Math.abs(Number(value) - bore) <= 1e-6);
+  return { applicable: true, matched };
+}
+
+export function classifyRegexExtractionRows(rows = [], masterContext = {}) {
+  const sourceRows = Array.isArray(rows) ? rows : [];
+  const { lineFieldMap, classFieldMap } = masterFieldMaps(masterContext);
+  const lineMasters = cachedLineMasterEvidence(masterContext.lineRows || [], lineFieldMap);
+  const classEvidence = cachedClassMasterEvidence(masterContext.pipingClassRows || [], classFieldMap);
+  const evidence = evidenceDescriptor(masterContext);
+  const hasAnyMasterEvidence = lineMasters.size > 0 || classEvidence.classes.size > 0;
+  const hasCompleteMasterEvidence = lineMasters.size > 0 && classEvidence.classes.size > 0;
+
+  return sourceRows.map((row) => {
+    const lineKey = txt(row?.lineKey);
+    const pipingClass = txt(row?.pipingClass);
+    if (!lineKey || !pipingClass) {
+      return { ...row, status: 'REJECTED', semanticValidation: { evidenceMode: evidence.mode, lineKnown: false, classKnown: false, boreApplicable: false, boreKnown: false } };
+    }
+    if (!hasAnyMasterEvidence) {
+      return { ...row, status: 'EXTRACTED', semanticValidation: { evidenceMode: evidence.mode, lineKnown: null, classKnown: null, boreApplicable: false, boreKnown: null } };
+    }
+
+    const lineKnown = lineMasters.size ? lineMasters.has(norm(lineKey)) : null;
+    const classKnown = classEvidence.classes.size ? classEvidence.classes.has(norm(pipingClass)) : null;
+    const bore = boreMatchesClass(row?.bore, pipingClass, classEvidence);
+    const fullyValidated = hasCompleteMasterEvidence && lineKnown === true && classKnown === true && bore.matched;
+    return {
+      ...row,
+      status: fullyValidated ? 'MASTER_VALIDATED' : 'REVIEW_REQUIRED',
+      semanticValidation: {
+        evidenceMode: evidence.mode,
+        lineKnown,
+        classKnown,
+        boreApplicable: bore.applicable,
+        boreKnown: bore.applicable ? bore.matched : null,
+      },
+    };
+  });
+}
+
 function summarize(suggestions, sampleCount, formatCount, currentResult) {
   const safeCount = suggestions.filter((item) => item.safe && !item.conflict).length;
   const reviewCount = suggestions.filter((item) => item.review || item.authorityLevel === 'HEURISTIC_ONLY').length;
@@ -133,11 +209,13 @@ export function buildRegexSuggestionPreflight(input = {}) {
   const config = input.extractionConfig || {};
   const samples = Array.isArray(input.branchSamples) ? input.branchSamples : [];
   const masterContext = input.masterContext || {};
+  const masterEvidence = evidenceDescriptor(masterContext);
   const cacheKey = configFingerprint({
     config,
     profile,
     appliedMappingRevision: masterContext.appliedMappingRevision || null,
     rowCounts: masterContext.rowCounts || null,
+    masterEvidence,
     currentCoverage: {
       matched: input.currentResult?.matchedRows?.length || 0,
       rejected: input.currentResult?.rejectedRows?.length || 0,
@@ -156,8 +234,7 @@ export function buildRegexSuggestionPreflight(input = {}) {
   const rows = tokenize(samples, format.tokenDelimiter || '-');
   const clusters = clusterRows(rows);
   const selected = clusters[formatIndex] || clusters[0] || { rows: [], count: 0, signature: '' };
-  const lineFieldMap = masterContext?.config?.linelist?.fieldMap || masterContext?.lineListFieldMap || {};
-  const classFieldMap = masterContext?.config?.pipingClass?.fieldMap || masterContext?.pipingClassFieldMap || {};
+  const { lineFieldMap, classFieldMap } = masterFieldMaps(masterContext);
   const classEvidence = cachedClassMasterEvidence(masterContext.pipingClassRows || [], classFieldMap);
   const suggestions = buildRegexRoleSuggestions({
     rows: selected.rows,
@@ -183,7 +260,8 @@ export function buildRegexSuggestionPreflight(input = {}) {
     status,
     formatIndex,
     selectedSignature: selected.signature,
-    fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: masterContext?.rowCounts, profile }),
+    fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: masterContext?.rowCounts, masterEvidence, profile }),
+    masterEvidence: Object.freeze({ ...masterEvidence }),
     suggestions: Object.freeze(suggestions.map(Object.freeze)),
     clusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
     metrics: Object.freeze(metrics),

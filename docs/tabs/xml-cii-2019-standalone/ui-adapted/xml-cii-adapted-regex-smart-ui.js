@@ -2,7 +2,15 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, buildRegexSuggestionPreflight, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260928-issue776-authority-1-regex1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260929-issue781-master-evidence-1';
+import {
+  buildRegexSmartEvidenceReceipt,
+  classifyRegexSmartTesterResult,
+  regexSmartHasDatasetEvidence,
+  regexSmartReceiptIsCurrent,
+  regexSmartReceiptRequestBasis,
+  resolveRegexSmartEvidence,
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20260929-issue781-master-evidence-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
@@ -18,13 +26,58 @@ function locksOf(state) { return state?.regexSmartManualLocks || {}; }
 function percent(value) { return `${Math.round(Number(value || 0) * 100)}%`; }
 
 function receiptFor(state) {
-  return buildRegexSuggestionPreflight({
-    branchSamples: resultOf(state).branchSamples || [],
-    extractionConfig: state.regexTesterConfig,
-    masterContext: state.masterContext,
-    currentResult: resultOf(state),
-    profile: profileOf(state),
-  });
+  if (regexSmartReceiptIsCurrent(state)) return state.regexSmartPreflight;
+  return buildRegexSmartEvidenceReceipt(state, state.masterContext);
+}
+
+function commitEvidenceBundle(stateRef, bundle) {
+  const state = current(stateRef, {});
+  state.regexTesterResult = bundle.regexTesterResult;
+  state.regexSmartPreflight = bundle.receipt;
+  state.regexSmartEvidenceBasis = bundle.evidenceBasis;
+  state.regexSmartPreflightRequestBasis = regexSmartReceiptRequestBasis(state);
+  return bundle.receipt;
+}
+
+async function resolveActionEvidence(stateRef) {
+  const state = current(stateRef, {});
+  const startBasis = regexSmartReceiptRequestBasis(state);
+  if (!regexSmartHasDatasetEvidence(state)) {
+    const classified = classifyRegexSmartTesterResult(resultOf(state), state.masterContext || {});
+    state.regexTesterResult = classified;
+    const receipt = buildRegexSmartEvidenceReceipt(state, state.masterContext || {});
+    const bundle = {
+      receipt,
+      masterContext: state.masterContext || {},
+      regexTesterResult: classified,
+      evidenceBasis: 'resident-or-heuristic',
+      receiptRequestBasis: startBasis,
+    };
+    commitEvidenceBundle(stateRef, bundle);
+    return bundle;
+  }
+
+  const bundle = await resolveRegexSmartEvidence(state);
+  if (regexSmartReceiptRequestBasis(current(stateRef, {})) !== startBasis) {
+    throw new Error('Regex samples, configuration, or master basis changed while evidence was loading. Analyze again.');
+  }
+  commitEvidenceBundle(stateRef, bundle);
+  return bundle;
+}
+
+function refreshReceiptWithContext(stateRef, masterContext, evidenceBasis = '') {
+  const state = current(stateRef, {});
+  const receipt = buildRegexSmartEvidenceReceipt(state, masterContext);
+  state.regexSmartPreflight = receipt;
+  state.regexSmartEvidenceBasis = evidenceBasis;
+  state.regexSmartPreflightRequestBasis = regexSmartReceiptRequestBasis(state);
+  return receipt;
+}
+
+function applyClassifiedTesterResult(stateRef, rawResult, masterContext) {
+  const classified = classifyRegexSmartTesterResult(rawResult, masterContext);
+  stateRef.current = applyStandaloneRegexTesterResult(current(stateRef, {}), classified);
+  return stateRef.current;
 }
 
 function findBuilder(card) {
@@ -56,7 +109,7 @@ function suggestionEvidenceText(item) {
   const m = item?.evidenceMetrics || {};
   if (item?.role === 'lineKey') return `Exact master ${percent(m.exactMasterRate)} · uniqueness ${percent(m.uniquenessRate)} · line shape ${percent(m.shapeRate)}`;
   if (item?.role === 'pipingClass') return `Exact master ${percent(m.exactMasterRate)} · normalized master ${percent(m.normalizedMasterRate)} · class shape ${percent(m.shapeRate)}`;
-  if (item?.role === 'bore') return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)}`;
+  if (item?.role === 'bore') return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)} · class bore ${percent(m.classBoreRate)}`;
   if (item?.role === 'rating') return `Standard rating evidence ${percent(m.standardValueRate)}`;
   return (item?.evidence || []).join(' · ');
 }
@@ -74,15 +127,16 @@ function actionMetrics(receipt) {
   ];
 }
 
-function installToolbar(builder, stateRef, render, receipt) {
+function installToolbar(builder, stateRef, render, receipt, options = {}) {
+  const evidencePending = Boolean(options.evidencePending);
   builder.querySelector('[data-regex-smart-toolbar]')?.remove();
   const { bar, actions, metrics } = createSmartToolbar();
   bar.dataset.regexSmartToolbar = 'true';
   actions.append(
-    createSmartIconButton('analyze', 'Analyze token suggestions', () => analyze(stateRef, render)),
-    createSmartIconButton('preview', 'Preview suggested configuration', () => preview(builder, stateRef)),
-    createSmartIconButton('apply', 'Apply safe suggestions', () => applySafe(builder, stateRef, render), { disabled: receipt.metrics.safeCount === 0 }),
-    createSmartIconButton('shield', `Pre-flight: ${receipt.status}`, () => toggleEvidence(builder, receipt), { color: smartStatusColor(receipt.status) }),
+    createSmartIconButton('analyze', evidencePending ? 'Analyze with authoritative master evidence' : 'Analyze token suggestions', () => { void analyze(stateRef, render); }),
+    createSmartIconButton('preview', 'Preview suggested configuration', () => { void preview(builder, stateRef); }),
+    createSmartIconButton('apply', evidencePending ? 'Analyze master evidence before applying' : 'Apply safe suggestions', () => { void applySafe(builder, stateRef, render); }, { disabled: evidencePending || receipt.metrics.safeCount === 0 }),
+    createSmartIconButton('shield', evidencePending ? 'Pre-flight: MASTER EVIDENCE REQUIRED' : `Pre-flight: ${receipt.status}`, () => toggleEvidence(builder, receipt), { color: evidencePending ? '#fbbf24' : smartStatusColor(receipt.status) }),
     createSmartIconButton('reset', 'Reset suggestion preview', () => resetSmart(builder, stateRef, render)),
     createSmartIconButton('settings', 'Suggestion policy', () => openPolicy(builder, stateRef, render)),
   );
@@ -92,6 +146,7 @@ function installToolbar(builder, stateRef, render, receipt) {
 
 function autoApplyHighestSafe(stateRef, render, receipt) {
   const state = current(stateRef, {});
+  if (regexSmartHasDatasetEvidence(state)) return false;
   if (!stateRef?.current || profileOf(state).operatingMode !== 'AUTO_PREVIEW_SAFE' || receipt.status === 'BLOCKED') return false;
   const proposed = applyHighestSafeSuggestions(state.regexTesterConfig, receipt, { manualLocks: locksOf(state) });
   if (JSON.stringify(proposed) === JSON.stringify(state.regexTesterConfig)) return false;
@@ -101,54 +156,78 @@ function autoApplyHighestSafe(stateRef, render, receipt) {
   const changed = Object.keys(ROLE_META).filter((role) => String(before?.[role]?.tokenPosition || '') !== String(after?.[role]?.tokenPosition || ''));
   const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
   state.regexTesterConfig = proposed;
-  stateRef.current = applyStandaloneRegexTesterResult(state, result);
-  stateRef.current.regexSmartPreflight = receiptFor(stateRef.current);
+  applyClassifiedTesterResult(stateRef, result, state.masterContext || {});
+  refreshReceiptWithContext(stateRef, state.masterContext || {}, 'resident-or-heuristic');
   stateRef.current.regexSmartStatus = `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.`;
   queueMicrotask(() => render?.());
   return true;
 }
 
-function analyze(stateRef, render) {
+async function analyze(stateRef, render) {
   const state = current(stateRef, {});
-  state.regexSmartPreflight = receiptFor(state);
-  state.regexSmartPreview = null;
-  state.regexSmartStatus = `Analyzed ${state.regexSmartPreflight.metrics.sampleCount} samples.`;
+  state.regexSmartStatus = regexSmartHasDatasetEvidence(state) ? 'Loading Line List and Piping Class evidence…' : 'Analyzing token suggestions…';
   render?.();
-}
-
-function preview(builder, stateRef) {
-  const state = current(stateRef, {});
-  const receipt = receiptFor(state);
-  const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
-  const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
-  state.regexSmartPreview = { receipt, proposed, result };
-  const before = resultOf(state).matchedRows?.length || 0;
-  const after = result.matchedRows?.length || 0;
-  const rejected = result.rejectedRows?.length || 0;
-  showMessage(builder, `Preview only — matched ${before} → ${after}; rejected ${rejected}. Configuration is unchanged.`, false);
-}
-
-function applySafe(builder, stateRef, render) {
-  const state = current(stateRef, {});
-  const stored = state.regexSmartPreflight;
-  const fresh = receiptFor(state);
-  if (stored && stored.fingerprint !== fresh.fingerprint) {
-    state.regexSmartPreflight = { ...fresh, status: 'STALE' };
-    showMessage(builder, 'Samples, masters, or configuration changed. Analyze again before applying.', true);
-    return;
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    const live = current(stateRef, {});
+    live.regexSmartPreview = null;
+    live.regexSmartStatus = `Analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'heuristic'} evidence.`;
+  } catch (error) {
+    current(stateRef, {}).regexSmartStatus = `Evidence analysis failed: ${error?.message || String(error)}`;
   }
-  const proposed = applyRegexSuggestions(state.regexTesterConfig, fresh, { safeOnly: true, manualLocks: locksOf(state) });
-  const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
-  state.regexTesterConfig = proposed;
-  stateRef.current = applyStandaloneRegexTesterResult(state, result);
-  stateRef.current.regexSmartPreflight = receiptFor(stateRef.current);
-  stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s).`;
   render?.();
+}
+
+async function preview(builder, stateRef) {
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    const state = current(stateRef, {});
+    const receipt = bundle.receipt;
+    const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
+    const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
+    const result = classifyRegexSmartTesterResult(rawResult, bundle.masterContext);
+    state.regexSmartPreview = { receipt, proposed, result };
+    const before = resultOf(state).matchedRows?.length || 0;
+    const after = result.matchedRows?.length || 0;
+    const rejected = result.rejectedRows?.length || 0;
+    showMessage(builder, `Preview only — extracted ${before} → ${after}; rejected ${rejected}. Configuration is unchanged.`, false);
+  } catch (error) {
+    showMessage(builder, `Preview failed: ${error?.message || String(error)}`, true);
+  }
+}
+
+async function applySafe(builder, stateRef, render) {
+  const beforeState = current(stateRef, {});
+  const stored = beforeState.regexSmartPreflight;
+  const storedBasis = beforeState.regexSmartPreflightRequestBasis;
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    const state = current(stateRef, {});
+    const fresh = bundle.receipt;
+    if (!stored || storedBasis !== bundle.receiptRequestBasis || stored.fingerprint !== fresh.fingerprint) {
+      state.regexSmartPreflight = { ...fresh, status: 'STALE' };
+      state.regexSmartPreflightRequestBasis = regexSmartReceiptRequestBasis(state);
+      showMessage(builder, 'Samples, masters, or configuration changed. Analyze again before applying.', true);
+      render?.();
+      return;
+    }
+    const proposed = applyRegexSuggestions(state.regexTesterConfig, fresh, { safeOnly: true, manualLocks: locksOf(state) });
+    const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
+    state.regexTesterConfig = proposed;
+    applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
+    refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
+    stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s) using ${fresh.masterEvidence?.mode || 'heuristic'} evidence.`;
+    render?.();
+  } catch (error) {
+    showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
+  }
 }
 
 function resetSmart(builder, stateRef, render) {
   const state = current(stateRef, {});
   state.regexSmartPreflight = null;
+  state.regexSmartPreflightRequestBasis = '';
+  state.regexSmartEvidenceBasis = '';
   state.regexSmartPreview = null;
   state.regexSmartStatus = 'Suggestion preview cleared. Existing mappings were preserved.';
   builder.querySelector('[data-regex-smart-evidence]')?.remove();
@@ -161,11 +240,12 @@ function toggleEvidence(builder, receipt) {
   const panel = document.createElement('div');
   panel.dataset.regexSmartEvidence = 'true';
   Object.assign(panel.style, { padding: '9px', margin: '8px 0', borderRadius: '7px', background: 'rgba(15,23,42,.72)', border: '1px solid rgba(148,163,184,.22)', fontSize: '11px' });
-  panel.innerHTML = `<strong style="color:${smartStatusColor(receipt.status)}">${receipt.status}</strong> · ${receipt.selectedSignature || 'No format signature'}`;
+  const mode = receipt.masterEvidence?.mode || 'HEURISTIC_ONLY';
+  panel.innerHTML = `<strong style="color:${smartStatusColor(receipt.status)}">${receipt.status}</strong> · ${receipt.selectedSignature || 'No format signature'} · ${mode}`;
   const explainer = document.createElement('div');
   explainer.style.marginTop = '5px';
   explainer.style.color = '#94a3b8';
-  explainer.textContent = 'Confidence is a composite suggestion score. Master/structural evidence rates are reported separately below.';
+  explainer.textContent = 'Confidence is a composite suggestion score. Master/structural evidence rates are reported separately below; full master rows are not retained in UI state.';
   panel.appendChild(explainer);
   const list = document.createElement('div');
   list.style.marginTop = '7px';
@@ -200,21 +280,42 @@ function decorateTokens(builder, receipt, stateRef, render) {
       badge.title = `${meta.label}: Confidence ${percent(item.confidence)} · ${suggestionEvidenceText(item)} · ${item.authorityLevel}`;
       Object.assign(badge.style, { border: `1px solid ${meta.color}55`, background: `${meta.color}18`, color: meta.color, borderRadius: '999px', padding: '2px 6px', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', gap: '4px', alignItems: 'center', justifyContent: 'center' });
       badge.append(createSmartIcon(meta.icon, 12), document.createTextNode(`C ${percent(item.confidence)}`));
-      badge.addEventListener('click', () => applyOne(item, stateRef, render));
+      badge.addEventListener('click', () => { void applyOne(item, stateRef, render, builder); });
       card.querySelector('strong')?.insertAdjacentElement('afterend', badge);
     });
   });
 }
 
-function applyOne(item, stateRef, render) {
-  const state = current(stateRef, {});
-  const receipt = { formatIndex: state.regexTesterConfig?.activeFormatIndex || 0, suggestions: [{ ...item, safe: true }] };
-  const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
-  const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
-  state.regexTesterConfig = proposed;
-  stateRef.current = applyStandaloneRegexTesterResult(state, result);
-  stateRef.current.regexSmartManualLocks = { ...locksOf(state), [item.role]: true };
-  render?.();
+async function applyOne(item, stateRef, render, builder) {
+  const beforeState = current(stateRef, {});
+  const stored = beforeState.regexSmartPreflight;
+  const storedBasis = beforeState.regexSmartPreflightRequestBasis;
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    const state = current(stateRef, {});
+    if (!stored || storedBasis !== bundle.receiptRequestBasis || stored.fingerprint !== bundle.receipt.fingerprint) {
+      showMessage(builder, 'Suggestion evidence changed. Analyze again before applying this token.', true);
+      render?.();
+      return;
+    }
+    const freshItem = bundle.receipt.suggestions.find((candidate) => candidate.role === item.role
+      && candidate.tokenPositions.join(',') === item.tokenPositions.join(','));
+    if (!freshItem || freshItem.conflict) {
+      showMessage(builder, 'This suggestion is no longer valid under current master evidence.', true);
+      render?.();
+      return;
+    }
+    const receipt = { formatIndex: state.regexTesterConfig?.activeFormatIndex || 0, suggestions: [{ ...freshItem, safe: true }] };
+    const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
+    const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
+    state.regexTesterConfig = proposed;
+    applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
+    stateRef.current.regexSmartManualLocks = { ...locksOf(stateRef.current), [item.role]: true };
+    refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
+    render?.();
+  } catch (error) {
+    showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
+  }
 }
 
 function decorateLocks(card, stateRef, render) {
@@ -226,6 +327,8 @@ function decorateLocks(card, stateRef, render) {
     if (!role || heading.querySelector('[data-smart-lock]')) return;
     const button = createSmartIconButton(locks[role] ? 'lock' : 'unlock', `${locks[role] ? 'Unlock' : 'Lock'} ${ROLE_META[role].label}`, () => {
       state.regexSmartManualLocks = { ...locksOf(state), [role]: !locksOf(state)[role] };
+      state.regexSmartPreflight = null;
+      state.regexSmartPreflightRequestBasis = '';
       render?.();
     }, { active: Boolean(locks[role]), size: 13 });
     button.dataset.smartLock = role;
@@ -261,7 +364,10 @@ function openPolicy(builder, stateRef, render) {
       normalization: Object.freeze({ ...profile.normalization, classSuffixPattern: panel.querySelector('[data-suffix]').value }),
       formatPolicy: Object.freeze({ maximumFormats: Number(panel.querySelector('[data-formats]').value), maximumLineKeyTokens: Number(panel.querySelector('[data-tokens]').value) }),
     });
-    state.regexSmartPreflight = null; close(); render?.();
+    state.regexSmartPreflight = null;
+    state.regexSmartPreflightRequestBasis = '';
+    close();
+    render?.();
   };
   builder.appendChild(panel);
 }
@@ -269,12 +375,25 @@ function openPolicy(builder, stateRef, render) {
 export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   if (typeof document === 'undefined') return;
   const builder = findBuilder(card); if (!builder) return;
-  const live = current(stateRef, state); const receipt = receiptFor(live);
-  live.regexSmartPreflight = receipt;
-  if (autoApplyHighestSafe(stateRef, render, receipt)) return;
-  installToolbar(builder, stateRef, render, receipt);
+  const live = current(stateRef, state);
+  const evidencePending = regexSmartHasDatasetEvidence(live) && !regexSmartReceiptIsCurrent(live);
+
+  if (!regexSmartHasDatasetEvidence(live) && !regexSmartReceiptIsCurrent(live)) {
+    live.regexTesterResult = classifyRegexSmartTesterResult(resultOf(live), live.masterContext || {});
+    live.regexSmartPreflight = buildRegexSmartEvidenceReceipt(live, live.masterContext || {});
+    live.regexSmartPreflightRequestBasis = regexSmartReceiptRequestBasis(live);
+    live.regexSmartEvidenceBasis = 'resident-or-heuristic';
+  }
+
+  const receipt = receiptFor(live);
+  if (!evidencePending && autoApplyHighestSafe(stateRef, render, receipt)) return;
+  installToolbar(builder, stateRef, render, receipt, { evidencePending });
   decorateRegexSampleSelector(builder, resultOf(live).branchSamples || [], live.regexTesterConfig || {});
-  decorateTokens(builder, receipt, stateRef, render);
+  decorateTokens(builder, evidencePending ? { ...receipt, suggestions: [] } : receipt, stateRef, render);
   decorateLocks(card, stateRef, render);
-  if (live.regexSmartStatus) showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
+  if (evidencePending) {
+    showMessage(builder, 'Authoritative Line List / Piping Class datasets are available. Click Analyze to load their evidence transiently; heuristic-only suggestions will not be auto-applied.', false);
+  } else if (live.regexSmartStatus) {
+    showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
+  }
 }
