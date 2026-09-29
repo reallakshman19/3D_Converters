@@ -6,18 +6,26 @@ workstream: XML_CII_STANDALONE_ISSUE_781_P0
 branch: agent/issue-781-p0-b313-rest-20260929
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
-pr_recovery_state: WIP
-handover_readiness: RECOVERABLE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
 report_path: agents/WIP-781-P0-20260929_workreport.md
-current_stage: PRE_EDIT_BACKUP_AND_B313_LIVE_ROW_PATCH
+current_stage: PR_REVIEW_HANDOFF
 blocker: NONE
+protocol_basis:
+  protocol: V3.1
+  common_sha: 1ced68258afeaf50df113b1d38a4ceb9193587e3
+  two_pass_revision: TPG-2P-2026-09-28-R3
 validation:
-  source_trace: PASS_CURRENT_HEAD_INSPECTION
-  appendix_a: PASS_99_OF_100
+  validated_material_head: d369d59318919f644f08383828ab3079258b85aa
+  issue_781_p0_workflow: PASS_RUN_36606373500
+  issue_776_authority_workflow: PASS_RUN_36606373345
+  semantic_core_timing: PASS_RUN_36606373338
+  b313_live_row_custody: PASS
+  explicit_restraint_source_to_final_cii: PASS
+  pr780_dataset_regressions: PASS
+  browser_scale: PASS
   native_backup_utility: NOT_RUN_ENVIRONMENT_BLOCKED
-  connector_exact_blob_backups: IN_PROGRESS
-  focused_tests: NOT_RUN
-  browser: NOT_RUN
+  connector_exact_blob_backups: COMPLETE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Complete exact pre-edit backups, patch live Preview row handoff, and add focused B31.3 regression.
+exact_next_action: Publish TASK_RESULT for STEP-781-01, refresh PR #782 description, mark it ready for Owner review, and leave merge authority with the Owner.
 last_updated: 2026-09-29
