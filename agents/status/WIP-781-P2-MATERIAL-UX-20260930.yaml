@@ -1,0 +1,25 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-P2-MATERIAL-UX-20260930
+mission: Surface existing material-code candidate evidence in Preview without promoting it to engineering authority.
+workstream: XML_CII_STANDALONE_ISSUE_781_P2_MATERIAL_UX
+branch: agent/issue-781-p2-material-ux-20260930
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: NOT_READY
+report_path: agents/WIP-781-P2-MATERIAL-UX-20260930_workreport.md
+current_stage: IMPLEMENTATION
+blocker: NONE
+protocol_basis:
+  protocol: V3.1
+  common_sha: 1ced68258afeaf50df113b1d38a4ceb9193587e3
+  two_pass_revision: TPG-2P-2026-09-28-R3
+plan:
+  issue: 781
+  step: STEP-781-05
+  publication: IMPLEMENTATION_PLAN rev 1
+  issue_comment_id: 5893573324
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: Back up editable Preview table, render existing materialCodeCandidates as review-only suggestions, add focused material/B31.3 authority regressions, then open a draft PR.
+last_updated: 2026-09-30
