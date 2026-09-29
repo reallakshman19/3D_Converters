@@ -1,4 +1,5 @@
 import { prepareXmlCiiMasterContext } from '../../converters/xml-cii2019-core/master-context.js';
+import { compactMasterConfig, assertMetadataOnlyMasterConfig } from './workers/master-dataset-config.js';
 
 const PREVIEW_LIMIT = 150;
 
@@ -97,14 +98,17 @@ function writeRows(config, context) {
   const next = { ...safeObject(config) };
   for (const def of STANDALONE_IMPORT_MASTER_DEFS) {
     const section = { ...safeObject(next[def.configKey]) };
-    section[def.rowConfigKey] = cloneRows(context[def.rowsKey]);
+    if (context?.datasetRefs?.[def.key]?.datasetId) delete section[def.rowConfigKey];
+    else section[def.rowConfigKey] = cloneRows(context[def.rowsKey]);
     next[def.configKey] = section;
   }
   return next;
 }
 
 export function serializeStandaloneImportMastersConfig(masterContext) {
-  const nextConfig = writeRows(masterContext?.config, masterContext || {});
+  const withRows = writeRows(masterContext?.config, masterContext || {});
+  const nextConfig = masterContext?.datasetRefs ? compactMasterConfig(withRows) : withRows;
+  if (masterContext?.datasetRefs) assertMetadataOnlyMasterConfig(nextConfig);
   return JSON.stringify(nextConfig, null, 2);
 }
 
