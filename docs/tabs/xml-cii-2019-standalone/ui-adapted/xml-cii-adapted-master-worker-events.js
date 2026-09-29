@@ -1,11 +1,10 @@
 import {
   updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, findSmartMatchingMapping,
 } from './xml-cii-adapted-state.js';
-import {
-  appliedFieldMap, commitAppliedMaster, ensureMasterRuntime, persistChangedMasterDetailed,
-} from './xml-cii-adapted-master-runtime.js';
+import { appliedFieldMap, ensureMasterRuntime } from './xml-cii-adapted-master-runtime.js';
 import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js';
-import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
+import { perfCount, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
+import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20260929-pr780-metadata-import-1';
 import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
 
@@ -60,8 +59,8 @@ function setWorkbookState(stateRef, key, sheetNames, activeSheet = '') {
   });
 }
 
-function commitHydrated(stateRef, key, hydrated, source, settings) {
-  const metadata = hydrated.metadata;
+function commitReady(stateRef, key, ready, source, settings) {
+  const metadata = ready?.metadata || {};
   const sourceMetadata = {
     key,
     source: source.fileName,
@@ -69,37 +68,30 @@ function commitHydrated(stateRef, key, hydrated, source, settings) {
     status: metadata.rowCount ? 'loaded' : 'empty',
     rowCount: metadata.rowCount,
   };
-  const committed = commitAppliedMaster({
+  const committed = commitDatasetReadyMaster({
     context: stateRef.current.masterContext || {},
     config: masterConfigForState(stateRef),
     key,
-    fieldMap: metadata.fieldMap,
-    rawRows: hydrated.rawRows,
-    normalizedRows: hydrated.rows,
+    ready,
     sourceMetadata,
-    datasetMetadata: metadata,
-    previewRows: hydrated.previewRows,
   });
-  const persistence = persistChangedMasterDetailed(key, committed.context);
   const mappingText = settings.matchedKey ? ` using saved mapping from ${settings.matchedKey}` : ' with worker auto-mapping';
   stateRef.current = updateWorkflowState(stateRef.current, {
     masterContext: committed.context,
     supportConfigJson: JSON.stringify(committed.config, null, 2),
     importMastersLoading: false,
     importMastersWriteBackStatus: masterPersistenceStatus(
-      `Imported ${source.fileName} (${metadata.rowCount} rows)${mappingText}.`, persistence,
+      `Imported ${source.fileName} (${metadata.rowCount} rows)${mappingText}.`, committed.persistence,
     ),
   });
   return committed;
 }
 
 async function finalizeReady(stateRef, render, key, generation, ready, source, settings) {
-  const hydrateStart = perfNow();
-  const hydrated = await coordinator.materialize(ready);
-  perfAddMs('masterWorkerHydrateMs', perfNow() - hydrateStart);
   if (!isCurrent(key, generation)) return false;
-  commitHydrated(stateRef, key, hydrated, source, settings);
+  commitReady(stateRef, key, ready, source, settings);
   perfCount('masterWorkerImportCount');
+  perfCount('masterWorkerMetadataOnlyCommitCount');
   requestMeasuredFullRender(render);
   return true;
 }

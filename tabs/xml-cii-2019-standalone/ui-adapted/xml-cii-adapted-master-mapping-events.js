@@ -13,6 +13,7 @@ import {
   stageMasterMappingDraft,
 } from './xml-cii-adapted-master-runtime.js';
 import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
+import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20260929-pr780-metadata-import-1';
 
 export function masterConfigForState(stateRef) {
   return stateRef.current.masterContext?.config || readSupportConfigOnce(stateRef.current);
@@ -34,7 +35,12 @@ export function autoMapStandaloneMasterFields(masterKey, rawRows, currentMap = {
 }
 
 export function rawRowsForMaster(stateRef, key) {
-  const current = stateRef.current.masterContext?.rawRows?.[key];
+  const context = stateRef.current.masterContext || {};
+  if (context.datasetRefs?.[key]?.datasetId) {
+    const sample = context.mappingRows?.[key];
+    return Array.isArray(sample) ? sample : [];
+  }
+  const current = context.rawRows?.[key];
   if (Array.isArray(current) && current.length) return current;
   return getStoredJson(`xml-cii-master-raw-${key}`, []);
 }
@@ -95,11 +101,28 @@ function applyFieldMapToContext(stateRef, key, fieldMap, rawRows, statusMessage,
   return { ...committed, persistence };
 }
 
-function applyCurrentDraft(stateRef, key) {
+export async function applyCurrentDraft(stateRef, key, options = {}) {
+  const context = ensureMasterRuntime(stateRef.current.masterContext || {});
+  const config = masterConfigForState(stateRef);
+  const map = effectiveDraftFieldMap(context, config, key);
+  perfCount('masterMappingApplyCount');
+  if (context.datasetRefs?.[key]?.datasetId) {
+    const committed = await remapDatasetBackedMasterDraft({
+      stateRef, key, config, fieldMap: map, remapDataset: options.remapDataset,
+    });
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      masterContext: committed.context,
+      supportConfigJson: JSON.stringify(committed.config, null, 2),
+      importMastersLoading: false,
+      importMastersWriteBackStatus: masterPersistenceStatus(
+        `Applied ${key} mapping through worker dataset remap. Downstream basis advanced exactly once.`,
+        committed.persistence,
+      ),
+    });
+    return committed;
+  }
   const rows = rawRowsForMaster(stateRef, key);
   if (!rows.length) throw new Error(`No ${key} source rows are loaded.`);
-  const map = effectiveDraftFieldMap(stateRef.current.masterContext || {}, masterConfigForState(stateRef), key);
-  perfCount('masterMappingApplyCount');
   return applyFieldMapToContext(stateRef, key, map, rows, `Applied ${key} mapping. Downstream basis advanced exactly once.`);
 }
 
@@ -148,8 +171,8 @@ function bindSavedMappingEvents(container, stateRef, render) {
 
 function bindDraftCommitEvents(container, stateRef, render) {
   container.querySelectorAll('[data-action="apply-master-mapping"]').forEach((button) => {
-    button.addEventListener('click', () => {
-      try { applyCurrentDraft(stateRef, button.dataset.masterKey); requestMeasuredFullRender(render); }
+    button.addEventListener('click', async () => {
+      try { await applyCurrentDraft(stateRef, button.dataset.masterKey); requestMeasuredFullRender(render); }
       catch (error) { alert(error?.message || String(error)); }
     });
   });

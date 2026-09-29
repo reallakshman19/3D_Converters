@@ -16,7 +16,8 @@ test('master event facade contains no main-thread workbook parser', async () => 
 test('worker import binding preserves atomic dataset commit and sheet selection', async () => {
   const source = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js');
   assert.match(source, /masterDatasetCoordinator as coordinator/);
-  assert.match(source, /datasetMetadata:\s*metadata/);
+  assert.match(source, /commitDatasetReadyMaster/);
+  assert.doesNotMatch(source, /coordinator\.materialize\(ready\)/);
   assert.match(source, /if \(!isCurrent\(key, generation\)\) return false/);
   assert.match(source, /coordinator\.selectSheet/);
   assert.match(source, /coordinator\.openBuffer/);
