@@ -5,14 +5,17 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 CONVERTER_PATH = ROOT / "converters" / "scripts" / "xml_to_cii2019.py"
+MODULE_NAME = "xml_to_cii2019_issue781"
 
-SPEC = importlib.util.spec_from_file_location("xml_to_cii2019_issue781", CONVERTER_PATH)
+SPEC = importlib.util.spec_from_file_location(MODULE_NAME, CONVERTER_PATH)
 assert SPEC and SPEC.loader
 converter = importlib.util.module_from_spec(SPEC)
+sys.modules[MODULE_NAME] = converter
 SPEC.loader.exec_module(converter)
 
 CASES = (
