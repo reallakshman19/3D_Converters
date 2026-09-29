@@ -9,7 +9,9 @@ authority_domains:
   - XML_CII_WEIGHT_MATCH_PRESENTATION
   - XML_CII_MATCH1_ACCEPTANCE_UX
 protected_paths:
-  - tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
-  - docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+  - tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-authority-ui.js
+  - docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+  - docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-authority-ui.js
 merge_authority: OWNER_ONLY_NOT_GRANTED
-last_updated: 2026-09-29
+last_updated: 2026-09-30
