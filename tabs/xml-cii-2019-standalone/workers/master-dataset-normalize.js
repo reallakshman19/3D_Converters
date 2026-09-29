@@ -11,7 +11,10 @@ function headersFromRows(rows) {
   return row ? Object.keys(row).filter((key) => key !== '_rowIndex') : [];
 }
 
-export function resolveMasterFieldMap(masterKey, rawRows, currentMap = {}, config = {}) {
+export function resolveMasterFieldMap(masterKey, rawRows, currentMap = {}, config = {}, fieldMapOverride = null) {
+  if (fieldMapOverride && typeof fieldMapOverride === 'object' && !Array.isArray(fieldMapOverride)) {
+    return { ...fieldMapOverride };
+  }
   const fields = MASTER_FIELDS[masterKey]?.fields || [];
   const headers = headersFromRows(rawRows);
   const fuzzy = fuzzyAutoMapFields(headers, fields, rawRows);
@@ -61,8 +64,8 @@ export function searchCorpusIndexes(searchCorpus, query) {
   return matches;
 }
 
-export function prepareNormalizedDataset(masterKey, rawRows, currentMap = {}, config = {}) {
-  const fieldMap = resolveMasterFieldMap(masterKey, rawRows, currentMap, config);
+export function prepareNormalizedDataset(masterKey, rawRows, currentMap = {}, config = {}, fieldMapOverride = null) {
+  const fieldMap = resolveMasterFieldMap(masterKey, rawRows, currentMap, config, fieldMapOverride);
   const rows = normalizeMasterRows(rawRows, fieldMap, masterKey);
   return { fieldMap, rows, searchCorpus: buildSearchCorpus(rows) };
 }
