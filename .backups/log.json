@@ -1,5 +1,5 @@
 {
-  "lastId": 214,
+  "lastId": 224,
   "entries": [
     {
       "id": 1,
@@ -1498,6 +1498,76 @@
       "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js",
       "context": "PR780 phase E-A metadata-only startup restore before edit",
       "backupFile": "214_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_startup_hydration_js.bak"
+    },
+    {
+      "id": 215,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "215_tabs_xml_cii_2019_standalone_workers_master_dataset_protocol_js.bak"
+    },
+    {
+      "id": 216,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "216_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_protocol_js.bak"
+    },
+    {
+      "id": 217,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-client.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "217_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 218,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-client.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "218_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 219,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-service.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "219_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 220,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-service.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "220_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 221,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "221_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 222,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "222_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 223,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "223_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 224,
+      "timestamp": "2026-09-29 14:23:13",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js",
+      "context": "PR780 phase E-B1 worker atomic remap capability before edit",
+      "backupFile": "224_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
     }
   ]
 }
