@@ -87,41 +87,59 @@ export function masterMappingStatus(context, config, key) {
   };
 }
 
-export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, normalizedRows, sourceMetadata = null }) {
+function committedConfig(config, def, fieldMap, normalizedRows, datasetRef) {
+  const next = { ...(config || {}) };
+  const section = { ...(next[def.configKey] || {}), fieldMap: { ...(fieldMap || {}) } };
+  if (datasetRef) delete section[def.rowsProperty];
+  else section[def.rowsProperty] = normalizedRows;
+  next[def.configKey] = section;
+  if (datasetRef && Array.isArray(next?.[def.configKey]?.[def.rowsProperty])) {
+    throw new Error(`Dataset-backed ${def.configKey} config cannot contain ${def.rowsProperty}.`);
+  }
+  return next;
+}
+
+function datasetDescriptor(metadata, fieldMap) {
+  if (!metadata?.datasetId) return null;
+  return Object.freeze({
+    datasetId: String(metadata.datasetId),
+    rowCount: Number(metadata.rowCount || 0),
+    masterKey: String(metadata.masterKey || ''),
+    fileName: String(metadata.fileName || ''),
+    sheetName: String(metadata.sheetName || ''),
+    fieldMap: { ...(fieldMap || metadata.fieldMap || {}) },
+    persistence: 'indexeddb',
+  });
+}
+
+function rowCountFor(next, key, def) {
+  const datasetCount = Number(next.datasetRefs?.[key]?.rowCount);
+  return Number.isFinite(datasetCount) && datasetCount >= 0 ? datasetCount : (next?.[def.contextRowsKey] || []).length;
+}
+
+export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, normalizedRows, sourceMetadata = null, datasetMetadata = null, previewRows = null }) {
   const def = MASTER_DEF_MAP[key];
   if (!def) throw new Error(`Unknown master key: ${key}`);
   const runtime = ensureMasterRuntime(context);
-  const nextConfig = { ...(config || runtime.config || {}) };
-  nextConfig[def.configKey] = {
-    ...(nextConfig[def.configKey] || {}),
-    fieldMap: { ...(fieldMap || {}) },
-    [def.rowsProperty]: normalizedRows,
-  };
+  const datasetRef = datasetDescriptor(datasetMetadata, fieldMap);
+  const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
+  const nextConfig = committedConfig(config || runtime.config || {}, def, fieldMap, rows, datasetRef);
   const nextRevision = Number(runtime.appliedMappingRevision[key] || 0) + 1;
   const drafts = { ...runtime.mappingDrafts };
   delete drafts[key];
   const next = {
     ...runtime,
-    [def.contextRowsKey]: normalizedRows,
+    [def.contextRowsKey]: rows,
     config: nextConfig,
     rawRows: { ...runtime.rawRows, [key]: Array.isArray(rawRows) ? rawRows : [] },
+    datasetRefs: { ...(runtime.datasetRefs || {}), ...(datasetRef ? { [key]: datasetRef } : {}) },
     appliedMappingRevision: { ...runtime.appliedMappingRevision, [key]: nextRevision },
     mappingDrafts: drafts,
   };
   if (sourceMetadata) next.sourceMetadata = { ...(runtime.sourceMetadata || {}), [key]: sourceMetadata };
-  next.rowCounts = {
-    lineList: (next.lineRows || []).length,
-    pipingClass: (next.pipingClassRows || []).length,
-    materialMap: (next.materialMapRows || []).length,
-    weight: (next.weightMasterRows || []).length,
-  };
-  next.previewRows = {
-    lineList: (next.lineRows || []).slice(0, 150),
-    pipingClass: (next.pipingClassRows || []).slice(0, 150),
-    materialMap: (next.materialMapRows || []).slice(0, 150),
-    weight: (next.weightMasterRows || []).slice(0, 150),
-  };
-  return { context: next, config: nextConfig, revision: nextRevision };
+  next.rowCounts = Object.fromEntries(Object.entries(MASTER_DEF_MAP).map(([masterKey, masterDef]) => [masterKey, rowCountFor(next, masterKey, masterDef)]));
+  next.previewRows = { ...(runtime.previewRows || {}), [key]: Array.isArray(previewRows) ? previewRows.slice(0, 150) : rows.slice(0, 150) };
+  return { context: next, config: nextConfig, revision: nextRevision, datasetRef };
 }
 
 function serialized(value) {
@@ -180,14 +198,16 @@ export function persistChangedMasterDetailed(key, context) {
   const rawRows = context?.rawRows?.[key] || [];
   const workbook = context?.workbookData?.[key] || {};
   const meta = context?.sourceMetadata?.[key] || {};
-  const duplicateBytes = byteLength(normalized) + byteLength(rawRows) + byteLength(workbook);
-  const compact = duplicateBytes >= COMPACT_PERSISTENCE_THRESHOLD_BYTES;
+  const datasetRef = context?.datasetRefs?.[key] || null;
+  const duplicateBytes = datasetRef ? 0 : byteLength(normalized) + byteLength(rawRows) + byteLength(workbook);
+  const compact = !!datasetRef || duplicateBytes >= COMPACT_PERSISTENCE_THRESHOLD_BYTES;
   const sourceCustody = {
     source: meta.source || null,
     fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
     appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
+    ...(datasetRef ? { datasetId: datasetRef.datasetId, rowCount: datasetRef.rowCount, persistenceMode: 'indexeddb' } : {}),
   };
-  if (compact) {
+  if (compact && !datasetRef) {
     sourceCustody.rowCount = normalized.length;
     sourceCustody.persistenceMode = 'compact';
   }
@@ -198,7 +218,9 @@ export function persistChangedMasterDetailed(key, context) {
     writes += persistEntry(`xml-cii-master-raw-${key}`, null, failures).writes;
     writes += persistEntry(`xml-cii-master-workbook-${key}`, null, failures).writes;
   }
-  const normalizedResult = persistEntry(`xml-cii-master-${key}`, normalized, failures);
+  const normalizedResult = datasetRef
+    ? persistEntry(`xml-cii-master-${key}`, null, failures)
+    : persistEntry(`xml-cii-master-${key}`, normalized, failures);
   writes += normalizedResult.writes;
   if (!compact) writes += persistEntry(`xml-cii-master-raw-${key}`, rawRows, failures).writes;
   writes += persistEntry(`xml-cii-master-source-${key}`, sourceCustody, failures).writes;
@@ -224,7 +246,8 @@ export function persistChangedMasterDetailed(key, context) {
     failures: failures.map(persistenceFailure),
     compact,
     quotaLimited,
-    normalizedPersisted: !normalizedResult.error,
+    normalizedPersisted: datasetRef ? true : !normalizedResult.error,
+    indexedDbBacked: !!datasetRef,
     estimatedDuplicateBytes: duplicateBytes,
   };
 }
