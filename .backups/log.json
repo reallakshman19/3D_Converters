@@ -1,5 +1,5 @@
 {
-  "lastId": 177,
+  "lastId": 181,
   "entries": [
     {
       "id": 1,
@@ -1239,6 +1239,34 @@
       "file": "tests/xml-cii-issue-776-match1-provenance.test.mjs",
       "context": "PR780 phase C-A Weight master fingerprint authority before edit",
       "backupFile": "177_tests_xml_cii_issue_776_match1_provenance_test_mjs.bak"
+    },
+    {
+      "id": 178,
+      "timestamp": "2026-09-29 13:09:54",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js",
+      "context": "PR780 phase C-B compact Weight Match persistence before edit",
+      "backupFile": "178_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_runtime_js.bak"
+    },
+    {
+      "id": 179,
+      "timestamp": "2026-09-29 13:09:54",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js",
+      "context": "PR780 phase C-B compact Weight Match persistence before edit",
+      "backupFile": "179_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_runtime_js.bak"
+    },
+    {
+      "id": 180,
+      "timestamp": "2026-09-29 13:09:54",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
+      "context": "PR780 phase C-B compact Weight Match persistence before edit",
+      "backupFile": "180_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 181,
+      "timestamp": "2026-09-29 13:09:54",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
+      "context": "PR780 phase C-B compact Weight Match persistence before edit",
+      "backupFile": "181_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
     }
   ]
 }
