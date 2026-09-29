@@ -8,6 +8,8 @@ import {
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,
@@ -15,6 +17,14 @@ import {
 } from './xml-cii-adapted-state.js';
 
 export { renderStandaloneDiagnosticsReportPanel };
+
+export async function previewConfigFromState(state, options = {}) {
+  return materializeXmlCiiDatasetBackedConfig(
+    xmlCiiEnrichedConfigFromState(state),
+    state,
+    options,
+  );
+}
 
 function esc(value) {
   return String(value ?? '')
@@ -27,7 +37,7 @@ function esc(value) {
 
 export async function renderStandalonePreviewReportPanel(card, stateRef, render) {
   const state = stateRef && stateRef.current !== undefined ? stateRef.current : stateRef;
-  const config = xmlCiiEnrichedConfigFromState(state);
+  const config = await previewConfigFromState(state);
   const traceResult = state.resolverJsonTraceResult;
   const traceDataPresent = (Array.isArray(traceResult?.resolvedFacts) && traceResult.resolvedFacts.length > 0)
     || (Array.isArray(traceResult?.matchedFacts) && traceResult.matchedFacts.length > 0);
@@ -45,14 +55,13 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   const persistConfig = (newCfg, { clearPreview = true } = {}) => {
     if (clearPreview) clearPreviewCachesV7();
-    const nextJson = JSON.stringify(newCfg, null, 2);
     if (stateRef && stateRef.current !== undefined) {
-      const context = stateRef.current.masterContext || {};
-      context.config = newCfg;
+      const currentContext = stateRef.current.masterContext || {};
+      const compactConfig = compactDatasetBackedConfig(newCfg, currentContext);
       const routed = updateWorkflowState(stateRef.current, {
-        supportConfigJson: nextJson,
+        supportConfigJson: JSON.stringify(compactConfig, null, 2),
       });
-      stateRef.current = { ...routed, masterContext: { ...context, config: newCfg } };
+      stateRef.current = { ...routed, masterContext: { ...currentContext, config: compactConfig } };
       saveMasterContextToLocalStorage(stateRef.current.masterContext);
     }
   };

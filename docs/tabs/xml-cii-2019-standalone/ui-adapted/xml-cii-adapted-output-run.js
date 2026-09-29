@@ -1,12 +1,39 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
-import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
+import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
+
+function supportConfigForReadiness(state) {
+  try {
+    const parsed = JSON.parse(String(state?.supportConfigJson || '{}'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function masterRowCount(state, masterKey, contextRowsKey, configRows) {
+  const ref = state?.masterContext?.datasetRefs?.[masterKey];
+  const datasetCount = Number(ref?.rowCount);
+  if (ref?.datasetId && Number.isFinite(datasetCount) && datasetCount >= 0) return datasetCount;
+  const contextRows = state?.masterContext?.[contextRowsKey];
+  if (Array.isArray(contextRows) && contextRows.length) return contextRows.length;
+  return Array.isArray(configRows) ? configRows.length : 0;
+}
+
+export function outputRunReadinessMasterCounts(state, config = supportConfigForReadiness(state)) {
+  return {
+    linelist: masterRowCount(state, 'lineList', 'lineRows', config?.linelist?.masterRows),
+    pipingClass: masterRowCount(state, 'pipingClass', 'pipingClassRows', config?.pipingClass?.masterRows),
+    material: masterRowCount(state, 'materialMap', 'materialMapRows', config?.material?.mapRows),
+    weight: masterRowCount(state, 'weight', 'weightMasterRows', config?.weight?.masterRows),
+  };
+}
 
 function section(parent, title) {
   const el = createElement('section', '', 'xml-cii-weight-panel');
@@ -142,15 +169,10 @@ function runStatusRow(ok, label, value) {
   return rowEl;
 }
 
-function renderReadinessCard(parent, config) {
+function renderReadinessCard(parent, config, state) {
   const readyCard = createElement('div', '', 'model-converters-workflow-master-card');
   readyCard.appendChild(createElement('div', 'Readiness', 'model-converters-workflow-section-title'));
-  const counts = {
-    linelist: Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows.length : 0,
-    pipingClass: Array.isArray(config.pipingClass?.masterRows) ? config.pipingClass.masterRows.length : 0,
-    material: Array.isArray(config.material?.mapRows) ? config.material.mapRows.length : 0,
-    weight: Array.isArray(config.weight?.masterRows) ? config.weight.masterRows.length : 0,
-  };
+  const counts = outputRunReadinessMasterCounts(state, config);
   readyCard.append(
     runStatusRow(counts.linelist > 0, 'Line List', counts.linelist ? `${counts.linelist} row(s)` : 'not loaded'),
     runStatusRow(counts.pipingClass > 1, 'Piping Class Master', counts.pipingClass > 1 ? `${counts.pipingClass} row(s)` : 'not loaded'),
@@ -270,14 +292,14 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
   const state = stateRef.current;
   const report = reportFromState(state);
-  const config = xmlCiiEnrichedConfigFromState(state);
+  const config = supportConfigForReadiness(state);
   card.innerHTML = '';
   const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
   const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
   card.append(title, desc);
   renderSummary(card, report);
   renderChecklist(card, report);
-  renderReadinessCard(card, config);
+  renderReadinessCard(card, config, state);
   renderRunOptions(card, stateRef, state, render);
   renderRunControls(card, stateRef, state, report, render);
   renderArtifacts(card, state, report);
