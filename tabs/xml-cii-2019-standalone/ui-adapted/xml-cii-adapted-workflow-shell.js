@@ -9,6 +9,7 @@ import { syncMasterDraftDom } from './xml-cii-adapted-master-dom-sync.js?v=20260
 import { classifyXmlCiiRenderScope } from './xml-cii-adapted-render-scope.js?v=20260818-perf-c1';
 import { renderXmlCiiPerfEvidencePanel, syncXmlCiiPerfEvidencePanel } from './xml-cii-adapted-perf-evidence.js?v=20260818-perf-c1';
 import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
+import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260929-dataworker-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -38,6 +39,19 @@ function restoreScrollStates(container, scrollStates) {
   }
 }
 
+function hydratePersistedMasters(stateRef, render) {
+  void hydratePersistedMasterDatasets(stateRef)
+    .then((changed) => { if (changed) render(); })
+    .catch((error) => {
+      console.error('[xml-cii] IndexedDB master restore failed:', error);
+      stateRef.current = {
+        ...stateRef.current,
+        importMastersWriteBackStatus: `Persisted master restore failed: ${error?.message || String(error)}`,
+      };
+      render();
+    });
+}
+
 export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   const stateRef = createStateRef(initialState);
   let renderedState = null;
@@ -63,6 +77,7 @@ export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
     restoreScrollStates(container, scrollStates);
   };
   render();
+  hydratePersistedMasters(stateRef, render);
   return () => clearElement(container);
 }
 
