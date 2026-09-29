@@ -1,5 +1,4 @@
 import { prepareXmlCiiMasterContext } from '../../converters/xml-cii2019-core/master-context.js';
-import { compactMasterConfig, assertMetadataOnlyMasterConfig } from './workers/master-dataset-config.js';
 
 const PREVIEW_LIMIT = 150;
 
@@ -106,9 +105,7 @@ function writeRows(config, context) {
 }
 
 export function serializeStandaloneImportMastersConfig(masterContext) {
-  const withRows = writeRows(masterContext?.config, masterContext || {});
-  const nextConfig = masterContext?.datasetRefs ? compactMasterConfig(withRows) : withRows;
-  if (masterContext?.datasetRefs) assertMetadataOnlyMasterConfig(nextConfig);
+  const nextConfig = writeRows(masterContext?.config, masterContext || {});
   return JSON.stringify(nextConfig, null, 2);
 }
 
