@@ -1,4 +1,4 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 
 function datasetIdFor(jobId, masterKey, sheetName = '') {
@@ -10,7 +10,7 @@ function response(type, requestId, payload = {}) {
 }
 
 function publicMetadata(metadata) {
-  const { config, currentMap, ...safe } = metadata;
+  const { config, currentMap, fieldMapOverride, ...safe } = metadata;
   return safe;
 }
 
@@ -24,7 +24,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
   const datasets = new Map();
 
   async function finalizeDataset(source, rawRows, sheetName = '') {
-    const prepared = prepareDataset(source.masterKey, rawRows, source.currentMap, source.config);
+    const prepared = prepareDataset(source.masterKey, rawRows, source.currentMap, source.config, source.fieldMapOverride);
     const metadata = {
       datasetId: datasetIdFor(source.jobId, source.masterKey, sheetName),
       jobId: source.jobId,
@@ -36,10 +36,20 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       sourceType: 'worker-import',
       config: source.config,
       currentMap: source.currentMap,
+      fieldMapOverride: source.fieldMapOverride,
     };
-    datasets.set(metadata.datasetId, { metadata, rows: prepared.rows, searchCorpus: prepared.searchCorpus });
+    datasets.set(metadata.datasetId, {
+      metadata,
+      rows: prepared.rows,
+      rawRows,
+      searchCorpus: prepared.searchCorpus,
+    });
     await store.persistDataset(publicMetadata(metadata), prepared.rows);
-    return { metadata: publicMetadata(metadata), previewRows: prepared.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS) };
+    return {
+      metadata: publicMetadata(metadata),
+      previewRows: prepared.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+      mappingRows: rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+    };
   }
 
   async function openSource(message) {
@@ -50,6 +60,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       buffer: message.buffer,
       config: message.config || {},
       currentMap: message.currentMap || {},
+      fieldMapOverride: message.fieldMapOverride || null,
     };
     if (!(source.buffer instanceof ArrayBuffer)) throw new Error('OPEN_SOURCE requires a transferred ArrayBuffer.');
     sources.set(source.jobId, source);
@@ -75,7 +86,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     const metadata = await store.getMetadata?.(datasetId);
     const rows = await store.getRows(datasetId);
     if (!metadata || !rows) throw new Error(`Unknown dataset: ${datasetId}`);
-    const dataset = { metadata, rows, searchCorpus: buildSearchCorpus(rows) };
+    const dataset = { metadata, rows, rawRows: null, searchCorpus: buildSearchCorpus(rows) };
     datasets.set(datasetId, dataset);
     return dataset;
   }
@@ -91,15 +102,18 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     });
   }
 
-  async function getRows(message) {
+  async function rowsResult(message, raw = false) {
     const dataset = await ensureDataset(message.datasetId);
+    const sourceRows = raw ? dataset.rawRows : dataset.rows;
+    if (raw && !Array.isArray(sourceRows)) throw new Error(`Raw rows are session-only and unavailable for dataset: ${message.datasetId}`);
     const offset = Math.max(0, Number(message.offset) || 0);
-    const limit = Math.max(1, Math.min(1000, Number(message.limit) || MASTER_DATASET_PREVIEW_ROWS));
+    const limit = Math.max(1, Math.min(MASTER_DATASET_CHUNK_ROWS, Number(message.limit) || MASTER_DATASET_PREVIEW_ROWS));
     return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
       datasetId: message.datasetId,
       offset,
-      rows: dataset.rows.slice(offset, offset + limit),
-      rowCount: dataset.rows.length,
+      raw,
+      rows: sourceRows.slice(offset, offset + limit),
+      rowCount: sourceRows.length,
     });
   }
 
@@ -115,7 +129,8 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.OPEN_SOURCE: return openSource(message);
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
-      case MASTER_DATASET_COMMAND.GET_ROWS: return getRows(message);
+      case MASTER_DATASET_COMMAND.GET_ROWS: return rowsResult(message, false);
+      case MASTER_DATASET_COMMAND.GET_RAW_ROWS: return rowsResult(message, true);
       case MASTER_DATASET_COMMAND.RELEASE_SOURCE:
       case MASTER_DATASET_COMMAND.RELEASE_DATASET: return release(message);
       default: throw new Error(`Unsupported worker command: ${message.type}`);
