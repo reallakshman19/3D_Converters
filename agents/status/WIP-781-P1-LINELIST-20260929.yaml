@@ -1,0 +1,24 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-P1-LINELIST-20260929
+mission: Implement Issue 781 STEP-781-02 semantic line-list worksheet selection without breaking the PR780 worker/dataset boundary.
+workstream: XML_CII_STANDALONE_ISSUE_781_P1_LINELIST
+branch: agent/issue-781-p1-linelist-sheet-20260929
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: NOT_READY
+report_path: agents/WIP-781-P1-LINELIST-20260929_workreport.md
+current_stage: IMPLEMENTATION
+blocker: NONE
+protocol_basis:
+  protocol: V3.1
+  common_sha: 1ced68258afeaf50df113b1d38a4ceb9193587e3
+  two_pass_revision: TPG-2P-2026-09-28-R3
+plan:
+  issue: 781
+  publication: IMPLEMENTATION_PLAN rev 1
+  issue_comment_id: 5893573324
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: Add bounded worker-side worksheet sampling/semantic selection, wire suggestedSheet into existing SHEETS response, and qualify fallbacks plus manual selection.
+last_updated: 2026-09-29
