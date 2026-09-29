@@ -1,4 +1,5 @@
 import { buildPipingClassIndex } from '../../../converters/xml-cii2019-core/piping-class-resolver.js';
+import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createIndexedDbDatasetStore } from './master-dataset-store.js';
 
 const MASTER_DEFS = Object.freeze({
@@ -36,6 +37,7 @@ function datasetCustody(masterKey) {
     source: String(custody.source || ''),
     fieldMap: custody.fieldMap && typeof custody.fieldMap === 'object' ? { ...custody.fieldMap } : {},
     appliedRevision: Number(custody.appliedRevision || 0),
+    masterFingerprint: String(custody.masterFingerprint || ''),
   };
 }
 
@@ -73,6 +75,9 @@ function applyLoadedDatasets(state, loaded) {
   };
   for (const item of loaded) {
     const def = MASTER_DEFS[item.masterKey];
+    const masterFingerprint = item.masterKey === 'weight'
+      ? String(item.custody.masterFingerprint || item.metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(item.rows))
+      : '';
     context[def.rowsKey] = item.rows;
     context.rawRows[item.masterKey] = [];
     context.mappingRows[item.masterKey] = Array.isArray(item.metadata.mappingRows) ? item.metadata.mappingRows.slice(0, 150) : [];
@@ -83,6 +88,7 @@ function applyLoadedDatasets(state, loaded) {
       fileName: item.metadata.fileName || item.custody.source,
       sheetName: item.metadata.sheetName || '',
       fieldMap: { ...item.custody.fieldMap },
+      ...(masterFingerprint ? { masterFingerprint } : {}),
       persistence: 'indexeddb',
     });
     context.rowCounts[item.masterKey] = item.rows.length;
@@ -96,6 +102,14 @@ function applyLoadedDatasets(state, loaded) {
     };
     context.appliedMappingRevision[item.masterKey] = item.custody.appliedRevision;
     config = compactConfigSection(config, def, item.custody.fieldMap);
+    if (item.masterKey === 'weight') {
+      config.weight = {
+        ...(config.weight || {}),
+        masterRevision: item.custody.appliedRevision,
+        masterFingerprint,
+      };
+      delete config.weight.masterRows;
+    }
   }
   context.config = config;
   if (loaded.some((item) => item.masterKey === 'pipingClass')) {

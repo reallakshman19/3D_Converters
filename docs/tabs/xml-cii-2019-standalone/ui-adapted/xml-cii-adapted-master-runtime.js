@@ -1,4 +1,5 @@
 import { perfAddMs, perfCount, perfNow } from './xml-cii-adapted-perf.js';
+import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 export const MASTER_DEF_MAP = Object.freeze({
   lineList: Object.freeze({ configKey: 'linelist', rowsProperty: 'masterRows', contextRowsKey: 'lineRows' }),
@@ -100,7 +101,7 @@ function committedConfig(config, def, fieldMap, normalizedRows, datasetRef) {
   return next;
 }
 
-function datasetDescriptor(metadata, fieldMap) {
+function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
   if (!metadata?.datasetId) return null;
   return Object.freeze({
     datasetId: String(metadata.datasetId),
@@ -109,6 +110,9 @@ function datasetDescriptor(metadata, fieldMap) {
     fileName: String(metadata.fileName || ''),
     sheetName: String(metadata.sheetName || ''),
     fieldMap: { ...(fieldMap || metadata.fieldMap || {}) },
+    ...(key === 'weight' ? {
+      masterFingerprint: String(metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(rows)),
+    } : {}),
     persistence: 'indexeddb',
   });
 }
@@ -122,10 +126,18 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
   const def = MASTER_DEF_MAP[key];
   if (!def) throw new Error(`Unknown master key: ${key}`);
   const runtime = ensureMasterRuntime(context);
-  const datasetRef = datasetDescriptor(datasetMetadata, fieldMap);
   const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
+  const datasetRef = datasetDescriptor(datasetMetadata, fieldMap, rows, key);
   const nextConfig = committedConfig(config || runtime.config || {}, def, fieldMap, rows, datasetRef);
   const nextRevision = Number(runtime.appliedMappingRevision[key] || 0) + 1;
+  if (datasetRef && key === 'weight') {
+    nextConfig.weight = {
+      ...(nextConfig.weight || {}),
+      masterRevision: nextRevision,
+      masterFingerprint: datasetRef.masterFingerprint,
+    };
+    delete nextConfig.weight.masterRows;
+  }
   const drafts = { ...runtime.mappingDrafts };
   delete drafts[key];
   const next = {
@@ -207,7 +219,12 @@ export function persistChangedMasterDetailed(key, context) {
     source: meta.source || null,
     fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
     appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
-    ...(datasetRef ? { datasetId: datasetRef.datasetId, rowCount: datasetRef.rowCount, persistenceMode: 'indexeddb' } : {}),
+    ...(datasetRef ? {
+      datasetId: datasetRef.datasetId,
+      rowCount: datasetRef.rowCount,
+      persistenceMode: 'indexeddb',
+      ...(datasetRef.masterFingerprint ? { masterFingerprint: datasetRef.masterFingerprint } : {}),
+    } : {}),
   };
   if (compact && !datasetRef) {
     sourceCustody.rowCount = normalized.length;
