@@ -9,7 +9,7 @@ agent_state: ACTIVE
 pr_recovery_state: HEALTHY
 handover_readiness: NOT_READY
 report_path: agents/WIP-787-MODEB-01-20260930_workreport.md
-current_stage: IMPLEMENTATION
+current_stage: VALIDATION
 blocker: NONE
 protocol_basis:
   protocol: V3.1
@@ -21,6 +21,11 @@ plan:
   step: MODEB-01
   publication: IMPLEMENTATION_PLAN rev 1
   issue_comment_id: 5900333050
+implementation:
+  schema: xml-cii-mode-b-observation/v1
+  authority: READ_ONLY_OBSERVATION
+  accepted_joins: NONE
+  composite_numbering: NONE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Implement the read-only benchmark observation schema, freeze 10 deterministic combined-reference witnesses, and validate existing topology regressions.
+exact_next_action: Open a draft PR and validate real-corpus observations, 10 continuous witnesses, ambiguity preservation, deterministic output, and existing single-document topology behavior.
 last_updated: 2026-09-30
