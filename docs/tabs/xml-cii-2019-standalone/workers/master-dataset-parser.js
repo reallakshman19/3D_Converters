@@ -13,7 +13,7 @@ export function listWorkbookSheets(buffer, xlsx) {
   return sheetNames;
 }
 
-export function parseWorkbookSheet(buffer, sheetName, xlsx) {
+function readWorkbookSheet(buffer, sheetName, xlsx) {
   const workbook = xlsx.read(dataView(buffer), {
     type: 'array',
     sheets: sheetName,
@@ -22,7 +22,29 @@ export function parseWorkbookSheet(buffer, sheetName, xlsx) {
   });
   const sheet = workbook?.Sheets?.[sheetName];
   if (!sheet) throw new Error(`Worksheet not found: ${sheetName}`);
+  return sheet;
+}
+
+export function parseWorkbookSheet(buffer, sheetName, xlsx) {
+  const sheet = readWorkbookSheet(buffer, sheetName, xlsx);
   return xlsx.utils.sheet_to_json(sheet, { defval: '', raw: false });
+}
+
+function boundedSheetRange(sheet, xlsx, maxRows) {
+  const requested = Math.max(1, Math.min(100, Number(maxRows) || 25));
+  if (sheet?.['!ref'] && typeof xlsx?.utils?.decode_range === 'function') {
+    const range = xlsx.utils.decode_range(sheet['!ref']);
+    range.e.r = Math.min(range.e.r, range.s.r + requested);
+    return range;
+  }
+  return { s: { r: 0, c: 0 }, e: { r: requested, c: 255 } };
+}
+
+export function parseWorkbookSheetSample(buffer, sheetName, xlsx, maxRows = 25) {
+  const sheet = readWorkbookSheet(buffer, sheetName, xlsx);
+  const range = boundedSheetRange(sheet, xlsx, maxRows);
+  const rows = xlsx.utils.sheet_to_json(sheet, { defval: '', raw: false, range });
+  return Array.isArray(rows) ? rows.slice(0, Math.max(1, Number(maxRows) || 25)) : [];
 }
 
 function parseCsv(text) {

@@ -1,5 +1,6 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
-import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, sourceNeedsSheetSelection } from './master-dataset-parser.js';
+import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
+import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
@@ -73,8 +74,30 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     if (!(source.buffer instanceof ArrayBuffer)) throw new Error('OPEN_SOURCE requires a transferred ArrayBuffer.');
     sources.set(source.jobId, source);
     if (sourceNeedsSheetSelection(source.fileName)) {
-      const sheetNames = listWorkbookSheets(source.buffer, await getXlsx());
+      const xlsx = await getXlsx();
+      const sheetNames = listWorkbookSheets(source.buffer, xlsx);
       source.sheetNames = sheetNames;
+      if (source.masterKey === 'lineList') {
+        const suggestion = suggestWorkbookSheet({
+          masterKey: source.masterKey,
+          sheetNames,
+          sampleSheet: (sheetName, sampleRows) => parseWorkbookSheetSample(source.buffer, sheetName, xlsx, sampleRows),
+          prepareDataset,
+          currentMap: source.currentMap,
+          config: source.config,
+          fieldMapOverride: source.fieldMapOverride,
+        });
+        source.suggestedSheet = suggestion.sheetName;
+        return response(MASTER_DATASET_EVENT.SHEETS, message.requestId, {
+          jobId: source.jobId,
+          sheetNames,
+          suggestedSheet: suggestion.sheetName,
+          suggestionBasis: suggestion.basis,
+          suggestionScore: suggestion.score,
+          suggestionEvidence: suggestion.evidence,
+          sampledRows: suggestion.sampledRows,
+        });
+      }
       return response(MASTER_DATASET_EVENT.SHEETS, message.requestId, { jobId: source.jobId, sheetNames });
     }
     const rows = parseTextSource(source.buffer, source.fileName, source.masterKey);

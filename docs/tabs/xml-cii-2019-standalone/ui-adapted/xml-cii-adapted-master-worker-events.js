@@ -96,13 +96,20 @@ async function finalizeReady(stateRef, render, key, generation, ready, source, s
   return true;
 }
 
+function selectedWorkbookSheet(response) {
+  const sheetNames = Array.isArray(response?.sheetNames) ? response.sheetNames : [];
+  const firstSheet = sheetNames[0] || '';
+  const suggested = String(response?.suggestedSheet || '');
+  return suggested && sheetNames.includes(suggested) ? suggested : firstSheet;
+}
+
 async function handleOpenResponse(stateRef, render, key, generation, response, source, settings) {
   if (!isCurrent(key, generation)) return;
   if (response.type === MASTER_DATASET_EVENT.SHEETS) {
-    const firstSheet = response.sheetNames?.[0] || '';
-    setWorkbookState(stateRef, key, response.sheetNames || [], firstSheet);
-    if (!firstSheet) throw new Error('Workbook contains no sheets.');
-    const ready = await coordinator.selectSheet(key, firstSheet);
+    const selectedSheet = selectedWorkbookSheet(response);
+    setWorkbookState(stateRef, key, response.sheetNames || [], selectedSheet);
+    if (!selectedSheet) throw new Error('Workbook contains no sheets.');
+    const ready = await coordinator.selectSheet(key, selectedSheet);
     return finalizeReady(stateRef, render, key, generation, ready, source, settings);
   }
   return finalizeReady(stateRef, render, key, generation, response, source, settings);
