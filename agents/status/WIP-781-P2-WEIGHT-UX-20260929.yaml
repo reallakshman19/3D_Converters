@@ -9,7 +9,7 @@ agent_state: ACTIVE
 pr_recovery_state: HEALTHY
 handover_readiness: NOT_READY
 report_path: agents/WIP-781-P2-WEIGHT-UX-20260929_workreport.md
-current_stage: RCA_COMPLETE_IMPLEMENTATION_NEXT
+current_stage: VALIDATION
 blocker: NONE
 protocol_basis:
   protocol: V3.1
@@ -20,6 +20,10 @@ plan:
   step: STEP-781-04
   publication: IMPLEMENTATION_PLAN rev 1
   issue_comment_id: 5893573324
+implementation:
+  presentation_helper: tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-authority-ui.js
+  acceptance_authority_path: EXISTING_WITH_XML_CII_RIGID_WEIGHT_MATCH1_UNCHANGED
+  numerical_authority_change: NONE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Back up the shared Weight Match renderer and docs mirror, then implement presentation-only Candidate matched / NOT ACCEPTED / Accepted Match-1 states with explicit acceptance affordance.
-last_updated: 2026-09-29
+exact_next_action: Open a draft PR, run the focused Weight Match UX regression plus rigid-weight lifecycle and inherited Issue 776 authority/browser qualification, then publish TASK_RESULT if exact-head validation is green.
+last_updated: 2026-09-30
