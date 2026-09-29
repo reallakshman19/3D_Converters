@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260929-pr780-worker-search-1');
+  const module = await import('./core/app.js?v=20260929-pr780-metadata-1');
   await module.init(startupMount());
 }
 

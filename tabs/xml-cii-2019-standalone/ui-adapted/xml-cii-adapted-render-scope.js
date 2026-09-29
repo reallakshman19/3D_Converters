@@ -10,12 +10,37 @@ function sameTopLevelOutsideDraft(previous, next) {
   return true;
 }
 
+const MASTER_ROW_KEYS = Object.freeze({
+  lineList: 'lineRows',
+  pipingClass: 'pipingClassRows',
+  materialMap: 'materialMapRows',
+  weight: 'weightMasterRows',
+});
+
+function datasetIdentity(context, key) {
+  const ref = context?.datasetRefs?.[key];
+  if (!ref?.datasetId) return '';
+  return [
+    String(ref.datasetId),
+    Number(ref.rowCount || context?.rowCounts?.[key] || 0),
+    String(ref.fileName || ''),
+    String(ref.sheetName || ''),
+    String(ref.persistence || ''),
+  ].join('|');
+}
+
 function sameMasterRows(previous, next) {
-  for (const key of ['lineRows', 'pipingClassRows', 'materialMapRows', 'weightMasterRows']) {
-    if (previous?.[key] !== next?.[key]) return false;
-  }
   for (const key of MASTER_KEYS) {
-    if (previous?.rawRows?.[key] !== next?.rawRows?.[key]) return false;
+    const previousDataset = datasetIdentity(previous, key);
+    const nextDataset = datasetIdentity(next, key);
+    if (previousDataset || nextDataset) {
+      if (!previousDataset || previousDataset !== nextDataset) return false;
+      if (Number(previous?.rowCounts?.[key] || 0) !== Number(next?.rowCounts?.[key] || 0)) return false;
+    } else {
+      const rowsKey = MASTER_ROW_KEYS[key];
+      if (previous?.[rowsKey] !== next?.[rowsKey]) return false;
+      if (previous?.rawRows?.[key] !== next?.rawRows?.[key]) return false;
+    }
     if (Number(previous?.appliedMappingRevision?.[key] || 0) !== Number(next?.appliedMappingRevision?.[key] || 0)) return false;
   }
   return true;

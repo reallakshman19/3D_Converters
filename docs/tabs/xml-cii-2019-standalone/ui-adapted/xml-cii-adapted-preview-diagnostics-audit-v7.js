@@ -1,7 +1,7 @@
 import {
   _xmlCiiOpenPreviewOverridePopup,
   renderStandaloneDiagnosticsReportPanel,
-} from './xml-cii-adapted-preview-diagnostics-audit.js';
+} from './xml-cii-adapted-preview-diagnostics-audit.js?v=20260929-pr780-metadata-1';
 import {
   xmlCiiBuildAndRenderPreview,
   xmlCiiRenderPreviewPhase,

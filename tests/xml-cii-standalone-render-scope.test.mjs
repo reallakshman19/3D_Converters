@@ -102,3 +102,24 @@ test('initial and no-op render requests remain full', () => {
   assert.equal(classifyXmlCiiRenderScope(null, state).kind, 'full');
   assert.equal(classifyXmlCiiRenderScope(state, state).kind, 'full');
 });
+
+test('dataset-backed authority ignores full row-array identity while preserving dataset/revision changes', () => {
+  const previous = basis();
+  previous.masterContext.datasetRefs = {
+    lineList: { datasetId: 'ds-line-1', rowCount: 1, fileName: 'line.xlsx', sheetName: 'Line List', persistence: 'indexeddb' },
+  };
+  const next = draftOnlyNext(previous);
+  next.masterContext.lineRows = [];
+  next.masterContext.rawRows.lineList = [];
+  assert.deepEqual(classifyXmlCiiRenderScope(previous, next), { kind: 'master-draft', masterKey: 'lineList' });
+
+  const changedDataset = draftOnlyNext(previous);
+  changedDataset.masterContext.datasetRefs = {
+    ...previous.masterContext.datasetRefs,
+    lineList: { ...previous.masterContext.datasetRefs.lineList, datasetId: 'ds-line-2' },
+  };
+  changedDataset.masterContext.lineRows = [];
+  changedDataset.masterContext.rawRows.lineList = [];
+  assert.equal(classifyXmlCiiRenderScope(previous, changedDataset).kind, 'full');
+});
+
