@@ -1,8 +1,8 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 
-function datasetIdFor(jobId, masterKey, sheetName = '') {
-  return `${jobId}:${masterKey}:${sheetName || 'rows'}`;
+function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
+  return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;
 }
 
 function response(type, requestId, payload = {}) {
@@ -25,8 +25,10 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
 
   async function finalizeDataset(source, rawRows, sheetName = '') {
     const prepared = prepareDataset(source.masterKey, rawRows, source.currentMap, source.config, source.fieldMapOverride);
+    source.datasetRevision = Number(source.datasetRevision || 0) + 1;
     const metadata = {
-      datasetId: datasetIdFor(source.jobId, source.masterKey, sheetName),
+      datasetId: datasetIdFor(source.jobId, source.masterKey, sheetName, source.datasetRevision),
+      datasetRevision: source.datasetRevision,
       jobId: source.jobId,
       masterKey: source.masterKey,
       fileName: source.fileName,
@@ -61,6 +63,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       config: message.config || {},
       currentMap: message.currentMap || {},
       fieldMapOverride: message.fieldMapOverride || null,
+      datasetRevision: 0,
     };
     if (!(source.buffer instanceof ArrayBuffer)) throw new Error('OPEN_SOURCE requires a transferred ArrayBuffer.');
     sources.set(source.jobId, source);
