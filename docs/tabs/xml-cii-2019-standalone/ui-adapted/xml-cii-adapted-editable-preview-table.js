@@ -77,6 +77,21 @@ function formatRatingConflictDetail(row) {
   return parts.join('\n');
 }
 
+export function previewMaterialCodeSuggestionEvidence(row) {
+  if (String(row?.materialCode || '').trim() || row?.materialCodeNeedsReview !== true) return null;
+  const candidates = Array.isArray(row?.materialCodeCandidates) ? row.materialCodeCandidates : [];
+  const best = candidates.find((candidate) => String(candidate?.materialCode || '').trim());
+  if (!best) return null;
+  const confidence = Number(best.score ?? best.confidence ?? row?.materialCodeConfidence);
+  return {
+    materialCode: String(best.materialCode || '').trim(),
+    matchedMaterial: String(best.matchedMaterial || row?.materialCodeMatchedMaterial || '').trim(),
+    confidence: Number.isFinite(confidence) ? confidence : null,
+    method: String(best.method || row?.materialCodeResolutionMethod || row?.materialCodeMethod || '').trim(),
+    reasons: Array.isArray(best.reasons) ? best.reasons.filter(Boolean) : (Array.isArray(row?.materialCodeMatchReasons) ? row.materialCodeMatchReasons.filter(Boolean) : []),
+  };
+}
+
 export class XmlCiiAdaptedEditablePreviewTable {
   constructor({ branchRows, nodesByBranch, onCellEditClick, onFillDownClick, onProcessInputChange, onProcessFillDownClick, onWeightCandidateSelect, processInputHtmlRenderer, matchBadgeHtmlRenderer }) {
     this.branchRows = branchRows;
@@ -105,7 +120,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
   _renderBranchRow(row, ri) {
     const pipingClassTitle = this._pipingClassTitle(row);
     const pcBadge = this.matchBadgeHtmlRenderer ? this.matchBadgeHtmlRenderer(row.pipingClassMethod, row.pipingClassConfidence, row.pipingClassNeedsReview, row.pipingClass, row.pipingClassDerived) : `<span class="mc-preview-editable-val">${this._escape(row.pipingClass || '')}</span>`;
-    const mcBadge = this.matchBadgeHtmlRenderer ? this.matchBadgeHtmlRenderer(row.materialCodeMethod, null, row.materialCodeNeedsReview, row.materialCode, row.material) : `<span class="mc-preview-editable-val">${this._escape(row.materialCode || '')}</span>`;
+    const mcBadge = this._renderMaterialCodeCell(row);
     const tdApprox = (needs, attrs = '') => needs ? `class="mc-preview-td mc-preview-approx" ${attrs}` : `class="mc-preview-td" ${attrs}`;
     const fillDownBtn = (field, fromRow) => `<button type="button" class="mc-preview-filldown-btn" data-mc-fill-field="${this._escape(field)}" data-mc-fill-from="${fromRow}" title="Smart fill by field key: wall thickness by piping class + size; corrosion/material code by piping class; process data by line key.">↓</button>`;
     const renderProcessField = (fieldKey, val, src, pcKey = '') => this.processInputHtmlRenderer ? this.processInputHtmlRenderer(fieldKey, row.lineKey, val, src, ri, pcKey) : `<input type="text" value="${this._escape(val)}" data-mc-pd-field="${this._escape(fieldKey)}" data-mc-pd-linekey="${this._escape(row.lineKey)}" data-mc-pd-row="${ri}">`;
@@ -160,6 +175,21 @@ export class XmlCiiAdaptedEditablePreviewTable {
     hostEl.querySelectorAll('.mc-preview-filldown-btn[data-mc-fill-field]:not(.mc-pd-filldown)').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const field = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const sourceTd = btn.closest('[data-mc-edit-type]'); const currentVal = sourceTd?.querySelector('.mc-preview-editable-val')?.textContent?.trim() || ''; if (typeof this.onFillDownClick === 'function') this.onFillDownClick({ field, fromRow, currentVal, sourceTd, btn }); }));
     hostEl.querySelectorAll('[data-mc-pd-field]').forEach(input => input.addEventListener('change', () => { const fieldKey = input.dataset.mcPdField; const lineKey = input.dataset.mcPdLinekey; const rowIndex = Number(input.dataset.mcPdRow || input.dataset.mcRow || 0); const value = input.value; if (typeof this.onProcessInputChange === 'function') this.onProcessInputChange({ fieldKey, lineKey, value, rowIndex, input }); }));
     hostEl.querySelectorAll('.mc-pd-filldown[data-mc-fill-field]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const fieldKey = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const cell = btn.closest('.mc-preview-pd-cell'); const input = cell?.querySelector('.mc-preview-pd-input'); const value = input ? input.value : ''; const pipingClassKey = input?.dataset?.mcPdPckey || ''; if (typeof this.onProcessFillDownClick === 'function') this.onProcessFillDownClick({ fieldKey, fromRow, value, btn, pipingClassKey }); }));
+  }
+
+  _renderMaterialCodeCell(row) {
+    const suggestion = previewMaterialCodeSuggestionEvidence(row);
+    if (!suggestion) {
+      return this.matchBadgeHtmlRenderer
+        ? this.matchBadgeHtmlRenderer(row.materialCodeMethod, null, row.materialCodeNeedsReview, row.materialCode, row.material)
+        : `<span class="mc-preview-editable-val">${this._escape(row.materialCode || '')}</span>`;
+    }
+    const pct = Number.isFinite(suggestion.confidence) ? `${Math.round(suggestion.confidence * 100)}%` : '';
+    const materialSuffix = suggestion.matchedMaterial ? ` / ${suggestion.matchedMaterial}` : '';
+    const reasons = suggestion.reasons.length ? ` Reasons: ${suggestion.reasons.join(', ')}.` : '';
+    const method = suggestion.method ? ` Method: ${suggestion.method}.` : '';
+    const title = `Suggestion only; authoritative Material Code remains blank until explicitly resolved or overridden.${method}${reasons}`;
+    return `<span class="mc-preview-editable-val">—</span><div data-mc-material-code-suggestion style="margin-top:3px;color:#b45309;font-size:10px;font-weight:700;white-space:nowrap;" title="${this._escapeAttr(title)}">Suggested: ${this._escape(suggestion.materialCode)}${this._escape(materialSuffix)}</div> <span data-mc-material-code-review class="mc-preview-badge orange" title="${this._escapeAttr(title)}">review required${pct ? ` · ${pct}` : ''}</span>`;
   }
 
   _renderLineKeyCell(row) {
