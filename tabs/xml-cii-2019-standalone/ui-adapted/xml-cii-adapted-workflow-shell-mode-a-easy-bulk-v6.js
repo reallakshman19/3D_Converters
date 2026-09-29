@@ -11,10 +11,25 @@ import { installModeAConsolidatedPreviewEasyUiFromWorkspace } from './xml-cii-ad
 import { installModeAConsolidatedWeightEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js?v=20260928-issue776-authority-2';
 import { installModeAConsolidatedRigidReviewTools } from './xml-cii-adapted-mode-a-rigid-review-tools.js?v=20260814-rigid-tools-1';
 import { installModeACompactMultiUi } from './xml-cii-adapted-mode-a-compact-ui.js?v=20260814-compact-multi-1';
+import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260929-dataworker-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 installRigidReviewActionsEnhancement();
 installJsonTraceFieldUiEnhancement();
+
+function hydratePersistedMasters(stateRef, render) {
+  void hydratePersistedMasterDatasets(stateRef)
+    .then((changed) => { if (changed) render(); })
+    .catch((error) => {
+      console.error('[xml-cii] Mode-A IndexedDB master restore failed:', error);
+      const rawRef = modeARawRef(stateRef);
+      rawRef.current = {
+        ...rawRef.current,
+        importMastersWriteBackStatus: `Persisted master restore failed: ${error?.message || String(error)}`,
+      };
+      render();
+    });
+}
 
 export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   installRigidReviewActionsEnhancement();
@@ -43,6 +58,7 @@ export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
     });
   };
   render();
+  hydratePersistedMasters(stateRef, render);
   return () => clearElement(container);
 }
 
