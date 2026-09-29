@@ -1,0 +1,23 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-P0-20260929
+mission: Implement Issue 781 STEP-781-01 B31.3 live Preview row custody and explicit restraint preservation trace.
+workstream: XML_CII_STANDALONE_ISSUE_781_P0
+branch: agent/issue-781-p0-b313-rest-20260929
+criticality: ENGINEERING_CRITICAL
+agent_state: ACTIVE
+pr_recovery_state: WIP
+handover_readiness: RECOVERABLE
+report_path: agents/WIP-781-P0-20260929_workreport.md
+current_stage: PRE_EDIT_BACKUP_AND_B313_LIVE_ROW_PATCH
+blocker: NONE
+validation:
+  source_trace: PASS_CURRENT_HEAD_INSPECTION
+  appendix_a: PASS_99_OF_100
+  native_backup_utility: NOT_RUN_ENVIRONMENT_BLOCKED
+  connector_exact_blob_backups: IN_PROGRESS
+  focused_tests: NOT_RUN
+  browser: NOT_RUN
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: Complete exact pre-edit backups, patch live Preview row handoff, and add focused B31.3 regression.
+last_updated: 2026-09-29
