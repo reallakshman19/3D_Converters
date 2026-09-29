@@ -43,6 +43,15 @@ function writeCache(key, fp, data) {
   } catch {}
 }
 
+function publishPreviewResult(host, branchRows = [], nodeRows = []) {
+  const result = {
+    branchRows: Array.isArray(branchRows) ? branchRows : [],
+    nodeRows: Array.isArray(nodeRows) ? nodeRows : [],
+  };
+  if (host) host.__xmlCiiPreviewResult = result;
+  return result;
+}
+
 function _overrideSource(overrides, bucket, key) {
   return _hasOwn(overrides?.[bucket], key) ? 'override' : 'auto';
 }
@@ -250,15 +259,16 @@ export function xmlCiiRenderPreviewPhase(xmlFile, config) {
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const { onSaveConfig, openOverridePopup, ensureOverrides, forceBuild = false } = options;
   const host = rootEl?.querySelector('#mc-preview-table-host');
-  if (!host) return;
+  if (!host) return { branchRows: [], nodeRows: [] };
 
   const _pvFp = pvCacheFingerprint(xmlText, config);
   const _pvCached = !forceBuild ? readCache(PV_CACHE_KEY) : null;
   const _pvFromCache = _pvCached?.fp === _pvFp && Array.isArray(_pvCached?.data?.branchRows) && _pvCached.data.branchRows.length > 0;
 
   if (!forceBuild && !_pvFromCache) {
+    const previewResult = publishPreviewResult(host);
     _renderManualPreviewIdle(host, rootEl, xmlText, config, options);
-    return;
+    return previewResult;
   }
 
   let stagedSource, branchRows, nodeRows;
@@ -270,12 +280,13 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     stagedSource = await _resolvePreviewStagedJsonText(options, config);
     ({ branchRows, nodeRows } = xmlCiiDryRunPreview(xmlText, config, stagedSource.text));
   }
+  const previewResult = publishPreviewResult(host, branchRows, nodeRows);
 
   if (!branchRows.length) {
     host.innerHTML = `${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note">No branches found in XML.</div>`;
     _bindManualPreviewButton(host, rootEl, xmlText, config, options);
     _bindParsedCustomSourceToggle(host, config, options);
-    return;
+    return previewResult;
   }
 
   const nodesByBranch = new Map();
@@ -435,4 +446,5 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
 
   table.bind(host);
   _bindDtxrWallUpdateButton({ host, branchRows, config, ensureOverrides, onSaveConfig, stagedSourceLabel: stagedSource.label });
+  return previewResult;
 }

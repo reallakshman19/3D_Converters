@@ -65,6 +65,17 @@ function legacyBridgePresent() {
   return Boolean(readLegacyPayload());
 }
 
+function currentPreviewResult(host, result = null) {
+  if (Array.isArray(result?.branchRows)) return result;
+  const live = host?.__xmlCiiPreviewResult;
+  if (Array.isArray(live?.branchRows)) return live;
+  const legacy = readLegacyPayload();
+  return {
+    branchRows: legacy?.data?.branchRows || [],
+    nodeRows: legacy?.data?.nodeRows || [],
+  };
+}
+
 function addNotice(host, message, bad = false) {
   if (!host) return;
   const existing = host.querySelector?.('[data-mc-dtxr-rating-notice]');
@@ -144,17 +155,17 @@ function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
     if (timer) clearTimeout(timer);
     timer = setTimeout(async () => {
       timer = null;
-      if (running || !previewRendered(host) || !legacyBridgePresent()) return;
+      const current = currentPreviewResult(host);
+      if (running || !previewRendered(host) || (!current.branchRows.length && !legacyBridgePresent())) return;
       running = true;
       try {
-        const legacy = readLegacyPayload();
         installDtxrRatingAction({
           host,
           rootEl,
           xmlText,
           config,
           options,
-          branchRows: legacy?.data?.branchRows || [],
+          branchRows: currentPreviewResult(host).branchRows,
         });
         const stagedSource = await resolveStagedSource(options, config);
         const authority = await createPreviewCacheAuthority({
@@ -186,7 +197,7 @@ function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
 
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const host = rootEl?.querySelector?.('#mc-preview-table-host');
-  if (!host) return;
+  if (!host) return { branchRows: [], nodeRows: [] };
   installInternalRebuildCapture(host, rootEl, xmlText, config, options);
 
   const stagedSource = await resolveStagedSource(options, config);
@@ -213,7 +224,8 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     clearPreviewCacheBridge();
   }
 
-  await buildLegacyPreview(rootEl, xmlText, config, delegatedOptions);
+  const legacyResult = await buildLegacyPreview(rootEl, xmlText, config, delegatedOptions);
+  const previewResult = currentPreviewResult(host, legacyResult);
 
   const rendered = previewRendered(host);
   if (!authority) {
@@ -223,7 +235,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
       authority,
       reason: text(digestError?.message || digestError),
     });
-    return;
+    return previewResult;
   }
 
   if (!rendered) {
@@ -234,17 +246,16 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
       authority,
       reason: restored.restored ? 'legacy fingerprint rejected; rebuild required' : restored.reason,
     });
-    return;
+    return previewResult;
   }
 
-  const legacy = readLegacyPayload();
   installDtxrRatingAction({
     host,
     rootEl,
     xmlText,
     config,
     options,
-    branchRows: legacy?.data?.branchRows || [],
+    branchRows: previewResult.branchRows,
   });
   const captured = capturePreviewCacheV7(authority);
   const status = options.forceBuild === true
@@ -255,4 +266,5 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     authority,
     reason: captured.stored ? '' : captured.reason,
   });
+  return previewResult;
 }
