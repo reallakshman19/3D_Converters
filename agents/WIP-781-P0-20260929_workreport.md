@@ -1,4 +1,4 @@
-# WIP-781-P0-20260929 — Issue #781 P0 B31.3 live-row custody + explicit REST preservation trace
+# WIP-781-P0-20260929 — Issue #781 P0 B31.3 live-row custody + explicit REST preservation
 
 ## Recovery state
 
@@ -7,130 +7,161 @@ ISSUE = #781
 PLAN = IMPLEMENTATION_PLAN rev 1 / issuecomment-5893573324
 BASE_MAIN = 7057e3d031663fbe92c22f4a3b8c98cc32d06e7b
 BRANCH = agent/issue-781-p0-b313-rest-20260929
+PR = #782
 CRITICALITY = ENGINEERING_CRITICAL
 EXECUTION_SCOPE = STEP-781-01 only
+HANDOVER_READINESS = READY
+PR_RECOVERY_STATE = HEALTHY
 MERGE_AUTHORITY = OWNER_ONLY_NOT_GRANTED
 ```
 
-## Mission
-
-Implement only the approved P0 slice:
-
-1. remove B31.3 Preview action availability/evaluation dependence on the legacy Preview localStorage row cache by threading current in-memory Preview `branchRows` into the controller path;
-2. retain legacy cache strictly as backward-compatible fallback;
-3. add focused regression coverage proving the action remains available with live rows while legacy cache is empty;
-4. trace explicit `+Y` restraint custody for `PS-14292.1` and `PS-14259.4` end-to-end before any support fallback or production support logic is changed.
-
-No lower-priority #781 slice is owned by this WIP.
-
-## Live grounding
-
-- `main`: `7057e3d031663fbe92c22f4a3b8c98cc32d06e7b`
-- post-#780 worker/dataset architecture: `2b6c38f47d547fe8e2d35f89b0d636d91ed77860`
-- Common V3.1 basis: `1ced68258afeaf50df113b1d38a4ceb9193587e3`
-- Two-Pass revision: `TPG-2P-2026-09-28-R3`
-- no existing #781 branch or PR was present at start.
-
-## Coordination
+## Protocol basis — refreshed at PR-ready boundary
 
 ```text
-B31.3 target-file overlap = SAFE from inspected open XML/CII PR scopes
-REST/support production authority = COORDINATION_REQUIRED if trace proves a production support mutation is necessary
+V3.1
+Common@1ced68258afeaf50df113b1d38a4ceb9193587e3
+TPG-2P-2026-09-28-R3
 ```
 
-Open PR #773 explicitly excludes support/B31.3 work; PR #772 likewise excludes support/B31.3. Older support/gap PRs remain relevant historical evidence but do not justify changing current-head support logic without a reproduced loss stage.
+The live Common basis is unchanged from the implementation-plan basis.
 
-## Production trace / current failure isolation
+## Owned outcome
 
-Current Preview path:
+STEP-781-01 is implemented and qualified on the validated material head `d369d59318919f644f08383828ab3079258b85aa`.
+
+### B31.3 Preview action custody
+
+The defect was an API/custody break, not a calculation defect:
 
 ```text
-renderStandalonePreviewReportPanel()
-  -> xmlCiiBuildAndRenderPreview(v7)
-     -> buildLegacyPreview()
-        -> xmlCiiDryRunPreview()
-        -> branchRows in memory
-        -> render table
-     -> v7 currently discards build result
-  -> installPreviewB313WallUpdateAuditController()
-     -> B31.3 update controller reads legacy localStorage cache
-     -> action creation returns early when cache rows are absent
+live Preview branchRows
+  -> rendered successfully
+  -> discarded at renderer boundary
+  -> B31.3 controller re-read legacy localStorage
+  -> empty legacy cache suppressed action creation
 ```
 
-The base Preview renderer already owns the exact current `branchRows`. The P0 defect is the custody/API boundary, not B31.3 numerical calculation logic.
-
-## Authority / preserve invariants
-
-- B31.3 remains an explicit Preview action, never automatic wall authority.
-- S/E/W/Y and material-factor qualification remain fail-closed.
-- No wall value is applied merely because the action becomes visible.
-- #780 master dataset worker/IndexedDB custody remains unchanged; do not reintroduce persistent master arrays into UI state.
-- Preview `branchRows` are bounded current Preview result data, not master-data authority.
-- Legacy cache may remain compatibility fallback but must not gate action existence.
-- No new REST fallback may be added for the cited nodes while source explicit `+Y` exists.
-
-## Appendix A — implementation qualification
-
-### A1 Production Trace — 20/20
-Traced the current source from standalone Preview entry through V7/base renderer to the B31.3 controllers. Confirmed current in-memory `branchRows` are rendered, then discarded at the API boundary, while B31.3 action creation re-reads the legacy cache.
-
-### A2 Current Failure Isolation — 20/20
-Exact defect: `installAction()` obtains only `readLegacyBranchRows()` and returns on `!rows.length`; audit controller also initializes/refreshes retained rows from the same cache. Therefore an empty compatibility cache suppresses a valid action even when the Preview table was built from live rows.
-
-### A3 Authority / Invariant — 20/20
-Patch changes row transport/action availability only. It does not alter B31.3 equations, factor authority, material resolution, pressure/unit handling, corrosion, OD parity, wall selection, or explicit-action semantics.
-
-### A4 Independent Validation — 19/20
-Focused source and behavioral regression will independently force `localStorage` Preview cache empty while supplying live Preview rows and assert action visibility/evaluation input. Browser full-app execution remains pending until hosted/native environment provides it.
-
-### A5 Next-Commit / Minimal Patch — 20/20
-Minimal production patch: return/currently expose Preview result rows; pass them into B31.3 install; prefer live host/supplied rows and fall back to legacy cache. Add focused regression. No support production change until custody trace proves exact loss stage.
+Correction:
 
 ```text
-TOTAL = 99/100
-DISPOSITION = QUALIFIED_FOR_BOUNDED_STEP_781_01_IMPLEMENTATION
+live Preview rows
+  -> explicit Preview result
+  -> V7 result preservation
+  -> B31.3 install rows
+  -> precedence: live Preview -> supplied snapshot -> legacy cache fallback
 ```
+
+Preserved invariants:
+- B31.3 remains explicit-action-only.
+- No S/E/W/Y, pressure, OD, corrosion, material-factor, or wall-selection equation was changed.
+- Legacy cache remains compatibility fallback only.
+- #780 worker/IndexedDB master-data architecture is unchanged.
+
+### Explicit REST custody RCA
+
+The cited benchmark nodes already contain explicit `+Y` restraints:
+- `PS-14292.1` in `SYS-6-S8810011-01.xml`;
+- `PS-14259.4` in `SYS-6-S8810010-01.xml`.
+
+The first observed identity change is the existing short-element cleanup. Each cited ATTA support is coincident with a preceding retained OLET node and is collapsed by the <=6 mm cleanup rule. The cleanup merges the incoming restraint specs into the retained node, so numerical restraint authority survives while the original support-node identity no longer exists as a standalone engineering node.
+
+For `PS-14292.1`, the trace also exposed a multi-support stack at the same retained node: source nodes 110/120/130/140 carry different support identities but collapse onto retained Node 100. Therefore overwriting the retained OLET with one source `NodeName` would be incorrect.
+
+Correction is deliberately non-destructive:
+- no new REST fallback was added;
+- no `+Y -> REST` reverse inference was introduced (`+Y` can also represent SHOE authority);
+- no retained component/ref/geometry authority is replaced;
+- runtime custody records each explicit source support identity -> retained engineering node relationship using branch, position tolerance, and restraint-type evidence;
+- ambiguous/unresolved custody remains diagnostic rather than guessed.
+
+Focused acceptance proves for both reported identities:
+
+```text
+source explicit +Y
+-> runtime custody transfer evidence
+-> retained OLET restraint_specs contains CII type 14
+-> conversion model assignment contains type 14
+-> RESTRANT writer input contains retained node + type 14
+-> final CII RESTRANT section contains retained node + type 14
+```
+
+## Material changed surfaces
+
+Production/runtime:
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-update.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js`
+- `converters/scripts/xml_to_cii2019_runtime_custody.py`
+
+Mirrors:
+- corresponding `docs/` runtime mirrors.
+
+Qualification:
+- `tests/xml-cii-issue-781-b313-live-row-custody.test.js`
+- `tests/xml-cii-issue-781-explicit-restraint-custody.test.py`
+- `.github/workflows/issue-781-p0-validation.yml`
+
+Recovery/coordination:
+- `.backups/issue-781/p0/*`
+- `agents/claims/WIP-781-P0-20260929.yaml`
+- `agents/status/WIP-781-P0-20260929.yaml`
+- this report.
+
+## Validation evidence
+
+Validated material head: `d369d59318919f644f08383828ab3079258b85aa`.
+
+| Evidence | Result |
+|---|---|
+| Issue 781 P0 XML-CII Validation, run `36606373500` | PASS |
+| B31.3 live Preview row custody | PASS |
+| Explicit REST source -> final CII custody for `PS-14292.1` and `PS-14259.4` | PASS |
+| Adjacent B31.3/restraint tests and baseline classification | PASS |
+| Issue 776 XML-CII Authority Validation, run `36606373345` | PASS |
+| Issue 776 focused authority regressions | PASS |
+| PR780 master dataset regressions | PASS |
+| Exact-head WSW browser conversion + dataset browser scale | PASS |
+| XML CII Browser Semantic Core Timing, run `36606373338` | PASS |
+
+The final relay/report-only commits after the material head do not alter production or test behavior; GitHub automatically re-runs the same workflows on the final PR head.
 
 ## Backup truth
 
-Repository policy requires `node utils/backup.js save <file> ...` before editing existing files. This connector environment has no GitHub DNS/native checkout, so the native command is:
+Repository policy requested the native `node utils/backup.js save ...` mechanism. The connector-only execution environment could not truthfully execute that native command.
 
 ```text
-NOT_RUN / ENVIRONMENT_BLOCKED
-```
-
-Before any production edit, exact pre-edit Git blobs are copied on this branch under `.backups/issue-781/p0/`. These are byte-identical connector-side recovery copies and are not misrepresented as execution of the native backup utility.
-
-## Validation plan
-
-1. static/API contract test: Preview renderer returns/exposes current branch rows;
-2. B31.3 controller test/static regression: live rows + empty legacy cache -> action available;
-3. audit path uses supplied/current live rows for report evaluation;
-4. existing `tests/xml-cii-b313-preview-ui-static.test.js` remains passing;
-5. source restraint fixtures: prove explicit `+Y` at cited benchmark identities;
-6. trace parsed/enriched/Preview/writer/final CII custody and record exact first failing stage before support mutation;
-7. no regression to #780 metadata-only master custody.
-
-## Current validation truth
-
-```text
-source trace = PASS / CURRENT_HEAD_INSPECTION
-failure isolation = PASS / CURRENT_HEAD_INSPECTION
-open-PR overlap = SAFE for B31.3 target files; support trace may require later coordination
 native backup utility = NOT_RUN / ENVIRONMENT_BLOCKED
-connector exact-blob backups = IN_PROGRESS before production edit
-focused tests = NOT_RUN
-browser = NOT_RUN
+connector exact pre-edit Git blob backups = COMPLETE
 ```
 
-## Changed-file ledger
+Exact recovery copies are under `.backups/issue-781/p0/` and this limitation is not represented as a native backup execution.
 
-Pre-edit: recovery records + exact connector backup copies only. No production file changed yet.
+## Falsifiers / do-not-reopen guidance
 
-## Highest risk
+Reopen STEP-781-01 only if one of these is observed on a current head:
+- live Preview has rows but the B31.3 action is absent solely because the legacy cache is empty;
+- B31.3 evaluates legacy/cache rows instead of the current Preview result when live rows exist;
+- either cited explicit `+Y` benchmark loses type 14 before final CII;
+- custody audit changes retained component/ref/geometry authority;
+- a new inferred REST fallback is required by evidence not covered by the explicit-source cases.
 
-Accidentally replacing fail-closed B31.3 engineering authority with UI state or stale row data. Mitigation: current host/live rows first, supplied snapshot second, legacy cache fallback last; no numerical authority changes.
+Do **not** reinterpret disappearance of the standalone ATTA node number/name after the <=6 mm collapse as proof that the numerical restraint vanished; inspect retained-node restraint custody and final CII first.
+
+## Remaining #781 work — not owned by this P0 PR
+
+The following remain separate plan slices:
+1. semantic line-list worksheet selection and current-head manual-refresh reproduction;
+2. post-#780 Regex/Token Builder master-evidence plumbing and semantic result taxonomy;
+3. Weight Match presentation clarification only;
+4. material candidate/suggestion presentation using existing evidence;
+5. Mode B semantic multi-XML topology compositor as a separate substantial workstream.
+
+## Handoff contract
+
+PR #782 is the review surface for STEP-781-01 only. It must not be expanded to the lower-priority slices above. Merge authority remains with the Owner.
 
 ## EXACT_NEXT_ACTION
 
-Create exact pre-edit blob backups, then patch the Preview result handoff and B31.3 live-row selection with a focused regression proving AC-781-01 through AC-781-04.
+Publish `TASK_RESULT` on #781 for STEP-781-01, refresh PR #782 description with the resolved RCA/evidence, mark PR #782 ready for Owner review, and begin the next approved #781 slice on a separate bounded delivery surface rather than widening this PR.
