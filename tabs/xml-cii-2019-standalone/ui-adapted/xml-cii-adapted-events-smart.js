@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20260804-mds-position-restraints-1';
+import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20260929-pr780-worker-search-1';
 import { installRigidSmartFillDashboard } from './xml-cii-adapted-rigid-smart-fill-ui.js?v=20260804-mds-position-restraints-1';
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260804-mds-position-restraints-1';
 

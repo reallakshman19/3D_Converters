@@ -4,6 +4,7 @@ import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
+import { searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-worker-search-1';
 import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
@@ -117,6 +118,38 @@ function replaceVirtualPreviewRows(tbody, columns, rows, indexes, scrollTop) {
   return window;
 }
 
+function bindPreviewSearch({ searchInput, masterKey, state, allRows, scrollContainer, setIndexes, renderWindow, countText }) {
+  const datasetId = state.masterContext?.datasetRefs?.[masterKey]?.datasetId || '';
+  let generation = 0;
+  searchInput.addEventListener('input', async () => {
+    const query = searchInput.value;
+    const requestGeneration = ++generation;
+    scrollContainer.scrollTop = 0;
+    if (!query.trim()) {
+      setIndexes(null);
+      renderWindow();
+      return;
+    }
+    if (!datasetId) {
+      setIndexes(buildMatchingRowIndexes(allRows, query, previewSearchText));
+      renderWindow();
+      return;
+    }
+    try {
+      const result = await searchMasterDatasetRows(masterKey, datasetId, query);
+      if (requestGeneration !== generation || searchInput.value !== query) return;
+      setIndexes(Array.isArray(result?.indexes) ? result.indexes : []);
+      renderWindow();
+    } catch (error) {
+      if (requestGeneration !== generation) return;
+      console.error(`[xml-cii] Worker Preview search failed for ${masterKey}:`, error);
+      setIndexes([]);
+      renderWindow();
+      countText.textContent = `Search failed: ${error?.message || String(error)}`;
+    }
+  });
+}
+
 function appendPreview(parent, master, state, config) {
   const masterKey = master.key;
   const schemaRows = master.previewRows || [];
@@ -166,10 +199,10 @@ function appendPreview(parent, master, state, config) {
     else renderWindow();
   };
 
-  searchInput.addEventListener('input', () => {
-    indexes = buildMatchingRowIndexes(allRows, searchInput.value, previewSearchText);
-    scrollContainer.scrollTop = 0;
-    renderWindow();
+  bindPreviewSearch({
+    searchInput, masterKey, state, allRows, scrollContainer,
+    setIndexes: (nextIndexes) => { indexes = nextIndexes; },
+    renderWindow, countText,
   });
   scrollContainer.addEventListener('scroll', scheduleWindow);
   renderWindow();

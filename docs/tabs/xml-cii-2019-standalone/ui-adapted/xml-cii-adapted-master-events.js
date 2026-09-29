@@ -1,4 +1,4 @@
-import { bindMasterWorkerImportEvents } from './xml-cii-adapted-master-worker-events.js';
+import { bindMasterWorkerImportEvents } from './xml-cii-adapted-master-worker-events.js?v=20260929-pr780-worker-search-1';
 import { bindMasterMappingEvents } from './xml-cii-adapted-master-mapping-events.js';
 
 export {

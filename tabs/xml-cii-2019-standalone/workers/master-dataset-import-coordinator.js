@@ -70,8 +70,8 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     if (datasetId) await client.releaseDataset(datasetId);
   }
 
-  function search(masterKey, query) {
-    const datasetId = activeDatasets.get(masterKey);
+  function search(masterKey, query, datasetIdOverride = '') {
+    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
     if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
     return client.search(datasetId, query);
   }

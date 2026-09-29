@@ -6,10 +6,9 @@ import {
 } from './xml-cii-adapted-master-runtime.js';
 import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js';
 import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js';
+import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-worker-search-1';
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
 
-const coordinator = createMasterDatasetImportCoordinator();
 const generations = new Map();
 const importSources = new Map();
 
