@@ -51,6 +51,7 @@ jobs:
             tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js \
             docs/tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js \
             tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
             scripts/_pr780_phase_e_a_apply.py \
             scripts/_pr780_phase_e_a_fix.py
           if git diff --cached --quiet; then exit 0; fi
