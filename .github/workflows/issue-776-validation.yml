@@ -6,51 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  # PR780_APPLY_JOB_START
-  pr780-apply-worker-search:
-    if: github.event.pull_request.number == 780 && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout PR head branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Apply deterministic worker-search patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          sed -i 's/requestGeneration != generation/requestGeneration !== generation/' scripts/pr780-apply-worker-search.py
-          python3 scripts/pr780-apply-worker-search.py
-          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js
-          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js
-          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js
-          node --test \
-            tests/xml-cii-master-dataset-config.test.mjs \
-            tests/xml-cii-master-dataset-coordinator.test.mjs \
-            tests/xml-cii-master-dataset-persistence.test.mjs \
-            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
-            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
-            tests/xml-cii-master-dataset-worker.test.mjs \
-            tests/xml-cii-master-preview-worker-search.test.mjs \
-            tests/xml-cii-master-worker-integration.test.mjs \
-            tests/xml-cii-issue-776-deployment-parity.test.mjs
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git restore --source=HEAD -- .github/workflows
-          git add -A
-          git commit -m "perf(xml-cii): move dataset Preview search off main thread"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
-  # PR780_APPLY_JOB_END
-
   focused-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -109,6 +67,7 @@ jobs:
             tests/xml-cii-master-dataset-rollback-custody.test.mjs \
             tests/xml-cii-master-dataset-startup-hydration.test.mjs \
             tests/xml-cii-master-dataset-worker.test.mjs \
+            tests/xml-cii-master-preview-worker-search.test.mjs \
             tests/xml-cii-master-worker-integration.test.mjs 2>&1 | tee issue-776-dataset-worker.log
           status=${PIPESTATUS[0]}
           echo "status=${status}" >> "${GITHUB_OUTPUT}"
@@ -243,6 +202,8 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-776-http.log 2>&1 &
       - name: Run exact-head WSW browser conversion
         run: node scripts/run-xml-cii-issue-776-wsw-e2e.mjs
+      - name: Run 10k / 50k / 100k master dataset browser scale
+        run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
       - name: Upload WSW exact-head evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -250,5 +211,6 @@ jobs:
           name: issue-776-wsw-e2e
           path: |
             ValidationRecords/xml-cii-issue-776-wsw-e2e.json
+            ValidationRecords/xml-cii-master-dataset-scale-e2e.json
             /tmp/issue-776-http.log
           if-no-files-found: warn
