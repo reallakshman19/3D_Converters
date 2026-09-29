@@ -7,9 +7,9 @@ branch: agent/issue-781-p1-linelist-sheet-20260929
 criticality: ENGINEERING_CRITICAL
 agent_state: ACTIVE
 pr_recovery_state: HEALTHY
-handover_readiness: NOT_READY
+handover_readiness: READY
 report_path: agents/WIP-781-P1-LINELIST-20260929_workreport.md
-current_stage: IMPLEMENTATION
+current_stage: PR_REVIEW_HANDOFF
 blocker: NONE
 protocol_basis:
   protocol: V3.1
@@ -19,6 +19,16 @@ plan:
   issue: 781
   publication: IMPLEMENTATION_PLAN rev 1
   issue_comment_id: 5893573324
+validation:
+  validated_material_head: 27e171e92513e52918ca3ed793eaf356ca8dd6ad
+  issue_781_linelist_workflow: PASS_RUN_36608097910
+  focused_sheet_selection: PASS
+  pr780_dataset_regressions: PASS
+  issue_776_authority_workflow: PASS_RUN_36608097822
+  exact_head_wsw_browser: PASS
+  browser_dataset_scale_10k_50k_100k: PASS
+  native_backup_utility: NOT_RUN_ENVIRONMENT_BLOCKED
+  connector_exact_blob_backups: COMPLETE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Add bounded worker-side worksheet sampling/semantic selection, wire suggestedSheet into existing SHEETS response, and qualify fallbacks plus manual selection.
+exact_next_action: Publish TASK_RESULT for STEP-781-02, refresh PR #783, mark it ready after final-head CI, and begin the Token Builder evidence-transport slice on a separate delivery surface.
 last_updated: 2026-09-29
