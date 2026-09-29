@@ -14,7 +14,21 @@ appendix_a:
   total: 96
   minimum: 18
   disposition: QUALIFIED_FOR_BOUNDED_XMLCII_DATASET_WORKER_IMPLEMENTATION
-current_stage: ADDITIVE_WORKER_INFRASTRUCTURE
-highest_risk: APPLIED master authority drift or duplicate 100k-row main-thread custody
-existing_file_backup_gate: REQUIRED_NOT_RUN
-next_action: implement new worker protocol/client/store/worker modules and focused tests only
+current_stage: ACCEPTANCE_QUALIFIED_METADATA_ONLY_DATASET_CUSTODY
+qualified_code_head: 29abbd32fb72be7474e8581bdc044eeddb4e27ad
+qualified_issue_776_run: 36585914273
+qualified_issue_776_run_number: 205
+qualified_semantic_timing_run: 36585914237
+qualified_semantic_timing_run_number: 126
+highest_risk: confusing transient operation materialization with retained main-thread authority or expanding into unrelated CI baselines
+existing_file_backup_gate: SATISFIED_FOR_EDITED_EXISTING_FILES
+acceptance:
+  metadata_only_dataset_backed_retained_custody: PASS
+  retained_full_normalized_rows: 0
+  retained_full_raw_rows: 0
+  retained_preview_sample_limit: 150
+  retained_mapping_sample_limit: 150
+  browser_scale_10k_50k_100k: PASS
+  wsw_parity: PASS_694_COMPARISONS_0_MISMATCHES
+  semantic_timing: PASS
+next_action: OWNER_REVIEW_OR_MERGE_DECISION_ONLY_NO_MERGE_WITHOUT_EXPLICIT_AUTHORITY
