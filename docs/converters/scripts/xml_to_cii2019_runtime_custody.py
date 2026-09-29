@@ -7,14 +7,13 @@ Adds three narrow mechanics on top of xml_to_cii2019_direction:
    number is a branch/continuation occurrence and is not auto-anchored.
 2. Bend-radius field authority follows the app toggle. OFF writes zero in the
    CII BEND radius slot; ON writes 1.5 * OD.
-3. When short-node cleanup collapses an explicit restraint-bearing source node
-   onto an unnamed retained node at the same position, preserve the unambiguous
-   source support NodeName without changing retained geometry/component authority.
+3. Explicit restraint identities collapsed by short-node cleanup are audited
+   against the retained engineering node without inventing one replacement
+   NodeName when several physical support identities share the same position.
 """
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import replace
 import math
 import sys
 import xml.etree.ElementTree as ET
@@ -30,6 +29,7 @@ EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM = 0.5
 _ORIGINAL_PARSE_XML_DOCUMENT = base._parse_xml_document
 _ORIGINAL_BUILD_RESTRAINTS = base._build_restraints
 _PUBLISH_BEND_RADIUS_1_5D = False
+EXPLICIT_RESTRAINT_CUSTODY_EVENTS: list[dict] = []
 
 
 def _distance(left, right) -> float:
@@ -107,44 +107,79 @@ def _node_restraint_type_codes(node: base.XmlNode) -> set[int]:
     return {int(round(float(spec.type_code))) for spec in node.restraint_specs}
 
 
-def _restore_collapsed_explicit_restraint_identity(document: base.XmlDocument, source_rows: list[dict]) -> base.XmlDocument:
-    if not source_rows:
-        return document
+def _retained_candidates_for_source(document: base.XmlDocument, source: dict) -> list[base.XmlNode]:
+    candidates: list[base.XmlNode] = []
+    source_codes = set(source.get('typeCodes') or ())
     for branch in document.branches:
-        for index, node in enumerate(branch.nodes):
-            if str(node.node_name or '').strip() or not node.restraint_specs:
+        if branch.branch_name != source.get('branchName'):
+            continue
+        for node in branch.nodes:
+            if not node.restraint_specs:
                 continue
-            node_codes = _node_restraint_type_codes(node)
-            candidates = [
-                row for row in source_rows
-                if row['branchName'] == branch.branch_name
-                and _distance(row['position'], node.position) <= EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM
-                and set(row['typeCodes']).issubset(node_codes)
-            ]
-            if len(candidates) != 1:
-                if len(candidates) > 1:
-                    print(
-                        'EXPLICIT_RESTRAINT_IDENTITY_AMBIGUOUS '
-                        f"retained_node={node.node_number} branch={branch.branch_name} "
-                        f"candidates={','.join(str(row['sourceNodeNumber']) for row in candidates)}",
-                        file=sys.stderr,
-                    )
+            if _distance(source['position'], node.position) > EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM:
                 continue
-            source = candidates[0]
-            branch.nodes[index] = replace(node, node_name=source['nodeName'])
-            print(
-                'EXPLICIT_RESTRAINT_IDENTITY_TRANSFER '
-                f"source_node={source['sourceNodeNumber']} retained_node={node.node_number} "
-                f"name={source['nodeName']} tol_mm={EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM}",
-                file=sys.stderr,
-            )
+            if not source_codes.issubset(_node_restraint_type_codes(node)):
+                continue
+            candidates.append(node)
+    return candidates
+
+
+def _audit_collapsed_explicit_restraint_identity(document: base.XmlDocument, source_rows: list[dict]) -> base.XmlDocument:
+    EXPLICIT_RESTRAINT_CUSTODY_EVENTS.clear()
+    for source in source_rows:
+        candidates = _retained_candidates_for_source(document, source)
+        if len(candidates) == 1:
+            retained = candidates[0]
+            status = 'retained' if (
+                retained.node_number == source.get('sourceNodeNumber')
+                and str(retained.node_name or '').strip() == str(source.get('nodeName') or '').strip()
+            ) else 'transferred'
+            event = {
+                'status': status,
+                'branchName': source.get('branchName'),
+                'sourceNodeNumber': source.get('sourceNodeNumber'),
+                'retainedNodeNumber': int(retained.node_number),
+                'sourceNodeName': source.get('nodeName'),
+                'typeCodes': tuple(source.get('typeCodes') or ()),
+                'position': tuple(source.get('position') or ()),
+            }
+            EXPLICIT_RESTRAINT_CUSTODY_EVENTS.append(event)
+            if status == 'transferred':
+                print(
+                    'EXPLICIT_RESTRAINT_CUSTODY_TRANSFER '
+                    f"source_node={event['sourceNodeNumber']} retained_node={event['retainedNodeNumber']} "
+                    f"source_name={event['sourceNodeName']} "
+                    f"type_codes={','.join(map(str, event['typeCodes']))} "
+                    f"tol_mm={EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM}",
+                    file=sys.stderr,
+                )
+            continue
+
+        status = 'unresolved' if not candidates else 'ambiguous'
+        event = {
+            'status': status,
+            'branchName': source.get('branchName'),
+            'sourceNodeNumber': source.get('sourceNodeNumber'),
+            'retainedNodeNumbers': tuple(int(node.node_number) for node in candidates),
+            'sourceNodeName': source.get('nodeName'),
+            'typeCodes': tuple(source.get('typeCodes') or ()),
+            'position': tuple(source.get('position') or ()),
+        }
+        EXPLICIT_RESTRAINT_CUSTODY_EVENTS.append(event)
+        print(
+            f"EXPLICIT_RESTRAINT_CUSTODY_{status.upper()} "
+            f"source_node={event['sourceNodeNumber']} source_name={event['sourceNodeName']} "
+            f"type_codes={','.join(map(str, event['typeCodes']))} "
+            f"candidates={','.join(map(str, event['retainedNodeNumbers']))}",
+            file=sys.stderr,
+        )
     return document
 
 
 def _runtime_parse_xml_document(path) -> base.XmlDocument:
     source_rows = _source_explicit_restraint_identity_rows(path)
     document = _ORIGINAL_PARSE_XML_DOCUMENT(path)
-    return _restore_collapsed_explicit_restraint_identity(document, source_rows)
+    return _audit_collapsed_explicit_restraint_identity(document, source_rows)
 
 
 def _unique_edge_nodes(edges: list[base.Edge]) -> list[base.XmlNode]:
