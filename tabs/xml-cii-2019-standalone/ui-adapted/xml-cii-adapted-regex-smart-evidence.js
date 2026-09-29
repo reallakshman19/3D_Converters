@@ -1,4 +1,9 @@
 import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
+import {
+  buildRegexSuggestionPreflight,
+  classifyRegexExtractionRows,
+  createDefaultRegexSuggestionProfile,
+} from '../xml-cii-regex-smart-suggestions.js?v=20260929-issue781-master-evidence-1';
 
 const REGEX_MASTER_DEFS = Object.freeze({
   lineList: Object.freeze({ rowsKey: 'lineRows' }),
@@ -108,9 +113,47 @@ export async function materializeRegexSmartMasterContext(state = {}, options = {
   });
 }
 
+export function buildRegexSmartEvidenceReceipt(state = {}, masterContext = state.masterContext) {
+  return buildRegexSuggestionPreflight({
+    branchSamples: rows(state?.regexTesterResult?.branchSamples),
+    extractionConfig: state.regexTesterConfig,
+    masterContext,
+    currentResult: object(state.regexTesterResult),
+    profile: state.regexSuggestionProfile || createDefaultRegexSuggestionProfile(),
+  });
+}
+
+export function classifyRegexSmartTesterResult(result = {}, masterContext = {}) {
+  return {
+    ...object(result),
+    matchedRows: classifyRegexExtractionRows(rows(result?.matchedRows), masterContext),
+    rejectedRows: classifyRegexExtractionRows(rows(result?.rejectedRows), masterContext),
+  };
+}
+
+export async function resolveRegexSmartEvidence(state = {}, options = {}) {
+  const hydrated = await materializeRegexSmartMasterContext(state, options);
+  const classifiedResult = classifyRegexSmartTesterResult(state.regexTesterResult, hydrated.masterContext);
+  const receipt = buildRegexSmartEvidenceReceipt({ ...state, regexTesterResult: classifiedResult }, hydrated.masterContext);
+  return Object.freeze({
+    ...hydrated,
+    receipt,
+    regexTesterResult: classifiedResult,
+    receiptRequestBasis: regexSmartReceiptRequestBasis(state),
+  });
+}
+
 export function regexSmartHasDatasetEvidence(state = {}) {
   const refs = object(state?.masterContext?.datasetRefs);
   return Boolean(refs?.lineList?.datasetId || refs?.pipingClass?.datasetId);
+}
+
+export function regexSmartReceiptIsCurrent(state = {}) {
+  const receipt = state.regexSmartPreflight;
+  if (!receipt) return false;
+  if (state.regexSmartPreflightRequestBasis !== regexSmartReceiptRequestBasis(state)) return false;
+  if (!regexSmartHasDatasetEvidence(state)) return true;
+  return receipt?.masterEvidence?.mode === 'MASTER_BACKED' || receipt?.masterEvidence?.mode === 'PARTIAL_MASTER_EVIDENCE';
 }
 
 export const REGEX_SMART_MASTER_KEYS = Object.freeze(Object.keys(REGEX_MASTER_DEFS));
