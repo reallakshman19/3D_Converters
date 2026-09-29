@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """Runtime custody wrapper for standalone PSI116 XML -> CII 2019.
 
-Adds two narrow mechanics on top of xml_to_cii2019_direction:
+Adds three narrow mechanics on top of xml_to_cii2019_direction:
 1. Synthetic RestrainOpenEnds ANC restraints are allowed only at true physical
    open ends. A degree-1 engineering node coincident with another retained node
    number is a branch/continuation occurrence and is not auto-anchored.
 2. Bend-radius field authority follows the app toggle. OFF writes zero in the
    CII BEND radius slot; ON writes 1.5 * OD.
+3. When short-node cleanup collapses an explicit restraint-bearing source node
+   onto an unnamed retained node at the same position, preserve the unambiguous
+   source support NodeName without changing retained geometry/component authority.
 """
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 import math
 import sys
+import xml.etree.ElementTree as ET
 
 import xml_to_cii2019 as base
 import xml_to_cii2019_patched as patched
@@ -21,12 +26,125 @@ from xml_to_cii2019_bend_radius_policy import apply_bend_radius_policy, publish_
 
 
 OPEN_END_COINCIDENT_TOLERANCE_MM = 0.5
+EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM = 0.5
+_ORIGINAL_PARSE_XML_DOCUMENT = base._parse_xml_document
 _ORIGINAL_BUILD_RESTRAINTS = base._build_restraints
 _PUBLISH_BEND_RADIUS_1_5D = False
 
 
 def _distance(left, right) -> float:
     return math.sqrt(sum((float(left[i]) - float(right[i])) ** 2 for i in range(3)))
+
+
+def _xml_local_name(tag: str) -> str:
+    return str(tag or '').split('}', 1)[-1]
+
+
+def _xml_child_text(parent: ET.Element, name: str) -> str:
+    for child in list(parent):
+        if _xml_local_name(child.tag) == name:
+            return (child.text or '').strip()
+    return ''
+
+
+def _source_position(value: str) -> tuple[float, float, float] | None:
+    parts = str(value or '').split()
+    if len(parts) != 3:
+        return None
+    try:
+        values = tuple(float(part) for part in parts)
+    except ValueError:
+        return None
+    if not all(math.isfinite(value) for value in values):
+        return None
+    return values
+
+
+def _source_node_number(value: str) -> int | None:
+    try:
+        return int(str(value or '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _source_explicit_restraint_identity_rows(path) -> list[dict]:
+    rows: list[dict] = []
+    try:
+        root = ET.parse(path).getroot()
+    except Exception:
+        return rows
+    for branch in root.iter():
+        if _xml_local_name(branch.tag) != 'Branch':
+            continue
+        branch_name = _xml_child_text(branch, 'Branchname')
+        for node in list(branch):
+            if _xml_local_name(node.tag) != 'Node':
+                continue
+            node_name = _xml_child_text(node, 'NodeName')
+            position = _source_position(_xml_child_text(node, 'Position'))
+            restraints = [child for child in list(node) if _xml_local_name(child.tag) == 'Restraint']
+            if not node_name or position is None or not restraints:
+                continue
+            type_codes: list[int] = []
+            for restraint in restraints:
+                restraint_type = _xml_child_text(restraint, 'Type')
+                if not restraint_type:
+                    continue
+                type_codes.append(int(base._restraint_type_to_code(restraint_type)))
+            if not type_codes:
+                continue
+            rows.append({
+                'branchName': branch_name,
+                'sourceNodeNumber': _source_node_number(_xml_child_text(node, 'NodeNumber')),
+                'nodeName': node_name,
+                'position': position,
+                'typeCodes': tuple(sorted(type_codes)),
+            })
+    return rows
+
+
+def _node_restraint_type_codes(node: base.XmlNode) -> set[int]:
+    return {int(round(float(spec.type_code))) for spec in node.restraint_specs}
+
+
+def _restore_collapsed_explicit_restraint_identity(document: base.XmlDocument, source_rows: list[dict]) -> base.XmlDocument:
+    if not source_rows:
+        return document
+    for branch in document.branches:
+        for index, node in enumerate(branch.nodes):
+            if str(node.node_name or '').strip() or not node.restraint_specs:
+                continue
+            node_codes = _node_restraint_type_codes(node)
+            candidates = [
+                row for row in source_rows
+                if row['branchName'] == branch.branch_name
+                and _distance(row['position'], node.position) <= EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM
+                and set(row['typeCodes']).issubset(node_codes)
+            ]
+            if len(candidates) != 1:
+                if len(candidates) > 1:
+                    print(
+                        'EXPLICIT_RESTRAINT_IDENTITY_AMBIGUOUS '
+                        f"retained_node={node.node_number} branch={branch.branch_name} "
+                        f"candidates={','.join(str(row['sourceNodeNumber']) for row in candidates)}",
+                        file=sys.stderr,
+                    )
+                continue
+            source = candidates[0]
+            branch.nodes[index] = replace(node, node_name=source['nodeName'])
+            print(
+                'EXPLICIT_RESTRAINT_IDENTITY_TRANSFER '
+                f"source_node={source['sourceNodeNumber']} retained_node={node.node_number} "
+                f"name={source['nodeName']} tol_mm={EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM}",
+                file=sys.stderr,
+            )
+    return document
+
+
+def _runtime_parse_xml_document(path) -> base.XmlDocument:
+    source_rows = _source_explicit_restraint_identity_rows(path)
+    document = _ORIGINAL_PARSE_XML_DOCUMENT(path)
+    return _restore_collapsed_explicit_restraint_identity(document, source_rows)
 
 
 def _unique_edge_nodes(edges: list[base.Edge]) -> list[base.XmlNode]:
@@ -144,6 +262,7 @@ def install_runtime_custody_patch() -> None:
     # direction imported above has already installed its direction-cosine and
     # tolerant-restraint patches. Wrap that active implementation rather than
     # reverting to the older base builder.
+    base._parse_xml_document = _runtime_parse_xml_document  # type: ignore[assignment]
     base._build_restraints = _topology_aware_build_restraints  # type: ignore[assignment]
     base._build_bend_payload = _runtime_bend_payload  # type: ignore[assignment]
 
