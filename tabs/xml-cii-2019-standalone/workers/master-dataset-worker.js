@@ -3,6 +3,7 @@ import { createIndexedDbDatasetStore } from './master-dataset-store.js';
 import { createMasterDatasetService } from './master-dataset-service.js';
 import { buildSearchCorpus, prepareNormalizedDataset, searchCorpusIndexes } from './master-dataset-normalize.js';
 
+const SHEETJS_ESM_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 let xlsxPromise = null;
 
 export async function getWorkerXlsxModule() {
@@ -10,7 +11,7 @@ export async function getWorkerXlsxModule() {
   xlsxPromise = (async () => {
     const attempts = [
       () => import('xlsx'),
-      () => import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs'),
+      () => import(SHEETJS_ESM_URL),
     ];
     const failures = [];
     for (const load of attempts) {
