@@ -1,5 +1,5 @@
 {
-  "lastId": 83,
+  "lastId": 85,
   "entries": [
     {
       "id": 1,
@@ -581,6 +581,20 @@
       "file": "tests/xml-cii-master-worker-integration.test.mjs",
       "context": "PR780 worker Preview search integration-test pre-edit backup: shared coordinator assertion",
       "backupFile": "83_tests_xml_cii_master_worker_integration_test_mjs.bak"
+    },
+    {
+      "id": 84,
+      "timestamp": "2026-09-29 11:25:38",
+      "file": "tests/cii-v11-v14-ui-static.test.mjs",
+      "context": "PR780 app-shell cache contract test pre-edit backup: CAESAR cache contract",
+      "backupFile": "84_tests_cii_v11_v14_ui_static_test_mjs.bak"
+    },
+    {
+      "id": 85,
+      "timestamp": "2026-09-29 11:25:39",
+      "file": "tests/fbx/test-fbx2-runtime-cache-chain.mjs",
+      "context": "PR780 app-shell cache contract test pre-edit backup: FBX cache contract",
+      "backupFile": "85_tests_fbx_test_fbx2_runtime_cache_chain_mjs.bak"
     }
   ]
 }
