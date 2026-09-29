@@ -1,0 +1,370 @@
+{
+  "schema": "XMLCII_BROWSER_SEMANTIC_TIMING_V1",
+  "benchmark": "Benchmarks/css/SYS-0010.xml",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+  "hardwareConcurrency": 2,
+  "generatedAt": "2026-09-29T15:11:57.602Z",
+  "cases": [
+    {
+      "name": "SYS0010_0_MASTERS",
+      "factor": 1,
+      "masterRows": 0,
+      "repetitions": 5,
+      "xmlCounts": {
+        "branches": 3,
+        "nodes": 127
+      },
+      "resultRows": {
+        "branchRows": 3,
+        "nodeRows": 0
+      },
+      "cold": {
+        "samples": [
+          68.6,
+          38.4,
+          34.1,
+          34.9,
+          33.2
+        ],
+        "minMs": 33.2,
+        "medianMs": 34.9,
+        "p95Ms": 68.6,
+        "maxMs": 68.6
+      },
+      "semanticDomReuse": {
+        "samples": [
+          39.1,
+          33.3,
+          33.7,
+          31.5,
+          30.7
+        ],
+        "minMs": 30.7,
+        "medianMs": 33.3,
+        "p95Ms": 39.1,
+        "maxMs": 39.1
+      },
+      "materialOnly": {
+        "samples": [
+          0.2,
+          0.1,
+          0.1,
+          0.1,
+          0
+        ],
+        "minMs": 0,
+        "medianMs": 0.1,
+        "p95Ms": 0.2,
+        "maxMs": 0.2
+      },
+      "weightOnly": {
+        "samples": [
+          0.2,
+          0,
+          0,
+          0,
+          0
+        ],
+        "minMs": 0,
+        "medianMs": 0,
+        "p95Ms": 0.2,
+        "maxMs": 0.2
+      },
+      "lastPerf": {
+        "configParseCount": 0,
+        "masterImportCount": 0,
+        "masterPersistCommitCount": 0,
+        "masterStorageWriteCount": 0,
+        "masterRowsNormalized": 0,
+        "masterMappingDraftChanges": 0,
+        "masterMappingApplyCount": 0,
+        "masterPartialDomUpdateCount": 0,
+        "masterRequestedFullRenderCount": 0,
+        "workspaceFullRenderCount": 0,
+        "workspacePartialRenderCount": 0,
+        "sourceParseCount": 1,
+        "sourceParseCacheHitCount": 1,
+        "masterArrayBufferMs": 0,
+        "masterXlsxReadMs": 0,
+        "masterSheetToJsonMs": 0,
+        "masterNormalizeMs": 0,
+        "masterPersistMs": 0,
+        "sourceParseMs": 2
+      },
+      "lastRuntime": {
+        "fullBuilds": 2,
+        "weightOnlyBuilds": 1,
+        "branchRowsReused": 3,
+        "nodeRowsRecomputed": 0,
+        "materialOnlyBuilds": 1,
+        "branchRowsRecomputed": 3,
+        "nodeRowsReused": 0,
+        "hasCachedPreview": true
+      }
+    },
+    {
+      "name": "SYS0010_250_MASTERS",
+      "factor": 1,
+      "masterRows": 250,
+      "repetitions": 3,
+      "xmlCounts": {
+        "branches": 3,
+        "nodes": 127
+      },
+      "resultRows": {
+        "branchRows": 3,
+        "nodeRows": 0
+      },
+      "cold": {
+        "samples": [
+          53.1,
+          46.3,
+          40.9
+        ],
+        "minMs": 40.9,
+        "medianMs": 46.3,
+        "p95Ms": 53.1,
+        "maxMs": 53.1
+      },
+      "semanticDomReuse": {
+        "samples": [
+          55.5,
+          39.3,
+          41.2
+        ],
+        "minMs": 39.3,
+        "medianMs": 41.2,
+        "p95Ms": 55.5,
+        "maxMs": 55.5
+      },
+      "materialOnly": {
+        "samples": [
+          3.4,
+          2.9,
+          3.1
+        ],
+        "minMs": 2.9,
+        "medianMs": 3.1,
+        "p95Ms": 3.4,
+        "maxMs": 3.4
+      },
+      "weightOnly": {
+        "samples": [
+          1.5,
+          1.2,
+          1
+        ],
+        "minMs": 1,
+        "medianMs": 1.2,
+        "p95Ms": 1.5,
+        "maxMs": 1.5
+      },
+      "lastPerf": {
+        "configParseCount": 0,
+        "masterImportCount": 0,
+        "masterPersistCommitCount": 0,
+        "masterStorageWriteCount": 0,
+        "masterRowsNormalized": 0,
+        "masterMappingDraftChanges": 0,
+        "masterMappingApplyCount": 0,
+        "masterPartialDomUpdateCount": 0,
+        "masterRequestedFullRenderCount": 0,
+        "workspaceFullRenderCount": 0,
+        "workspacePartialRenderCount": 0,
+        "sourceParseCount": 1,
+        "sourceParseCacheHitCount": 1,
+        "masterArrayBufferMs": 0,
+        "masterXlsxReadMs": 0,
+        "masterSheetToJsonMs": 0,
+        "masterNormalizeMs": 0,
+        "masterPersistMs": 0,
+        "sourceParseMs": 1.8000000000029104
+      },
+      "lastRuntime": {
+        "fullBuilds": 2,
+        "weightOnlyBuilds": 1,
+        "branchRowsReused": 3,
+        "nodeRowsRecomputed": 0,
+        "materialOnlyBuilds": 1,
+        "branchRowsRecomputed": 3,
+        "nodeRowsReused": 0,
+        "hasCachedPreview": true
+      }
+    },
+    {
+      "name": "SYS0010_1000_MASTERS",
+      "factor": 1,
+      "masterRows": 1000,
+      "repetitions": 2,
+      "xmlCounts": {
+        "branches": 3,
+        "nodes": 127
+      },
+      "resultRows": {
+        "branchRows": 3,
+        "nodeRows": 0
+      },
+      "cold": {
+        "samples": [
+          71.6,
+          63.6
+        ],
+        "minMs": 63.6,
+        "medianMs": 67.6,
+        "p95Ms": 71.6,
+        "maxMs": 71.6
+      },
+      "semanticDomReuse": {
+        "samples": [
+          68.1,
+          71.4
+        ],
+        "minMs": 68.1,
+        "medianMs": 69.75,
+        "p95Ms": 71.4,
+        "maxMs": 71.4
+      },
+      "materialOnly": {
+        "samples": [
+          14.6,
+          11.3
+        ],
+        "minMs": 11.3,
+        "medianMs": 12.95,
+        "p95Ms": 14.6,
+        "maxMs": 14.6
+      },
+      "weightOnly": {
+        "samples": [
+          5.1,
+          4.7
+        ],
+        "minMs": 4.7,
+        "medianMs": 4.9,
+        "p95Ms": 5.1,
+        "maxMs": 5.1
+      },
+      "lastPerf": {
+        "configParseCount": 0,
+        "masterImportCount": 0,
+        "masterPersistCommitCount": 0,
+        "masterStorageWriteCount": 0,
+        "masterRowsNormalized": 0,
+        "masterMappingDraftChanges": 0,
+        "masterMappingApplyCount": 0,
+        "masterPartialDomUpdateCount": 0,
+        "masterRequestedFullRenderCount": 0,
+        "workspaceFullRenderCount": 0,
+        "workspacePartialRenderCount": 0,
+        "sourceParseCount": 1,
+        "sourceParseCacheHitCount": 1,
+        "masterArrayBufferMs": 0,
+        "masterXlsxReadMs": 0,
+        "masterSheetToJsonMs": 0,
+        "masterNormalizeMs": 0,
+        "masterPersistMs": 0,
+        "sourceParseMs": 2.2999999999883585
+      },
+      "lastRuntime": {
+        "fullBuilds": 2,
+        "weightOnlyBuilds": 1,
+        "branchRowsReused": 3,
+        "nodeRowsRecomputed": 0,
+        "materialOnlyBuilds": 1,
+        "branchRowsRecomputed": 3,
+        "nodeRowsReused": 0,
+        "hasCachedPreview": true
+      }
+    },
+    {
+      "name": "SYS0010_X3_250_MASTERS",
+      "factor": 3,
+      "masterRows": 250,
+      "repetitions": 2,
+      "xmlCounts": {
+        "branches": 9,
+        "nodes": 381
+      },
+      "resultRows": {
+        "branchRows": 9,
+        "nodeRows": 0
+      },
+      "cold": {
+        "samples": [
+          118.1,
+          124.6
+        ],
+        "minMs": 118.1,
+        "medianMs": 121.35,
+        "p95Ms": 124.6,
+        "maxMs": 124.6
+      },
+      "semanticDomReuse": {
+        "samples": [
+          110.7,
+          98
+        ],
+        "minMs": 98,
+        "medianMs": 104.35,
+        "p95Ms": 110.7,
+        "maxMs": 110.7
+      },
+      "materialOnly": {
+        "samples": [
+          3.8,
+          3
+        ],
+        "minMs": 3,
+        "medianMs": 3.4,
+        "p95Ms": 3.8,
+        "maxMs": 3.8
+      },
+      "weightOnly": {
+        "samples": [
+          3.4,
+          1
+        ],
+        "minMs": 1,
+        "medianMs": 2.2,
+        "p95Ms": 3.4,
+        "maxMs": 3.4
+      },
+      "lastPerf": {
+        "configParseCount": 0,
+        "masterImportCount": 0,
+        "masterPersistCommitCount": 0,
+        "masterStorageWriteCount": 0,
+        "masterRowsNormalized": 0,
+        "masterMappingDraftChanges": 0,
+        "masterMappingApplyCount": 0,
+        "masterPartialDomUpdateCount": 0,
+        "masterRequestedFullRenderCount": 0,
+        "workspaceFullRenderCount": 0,
+        "workspacePartialRenderCount": 0,
+        "sourceParseCount": 1,
+        "sourceParseCacheHitCount": 1,
+        "masterArrayBufferMs": 0,
+        "masterXlsxReadMs": 0,
+        "masterSheetToJsonMs": 0,
+        "masterNormalizeMs": 0,
+        "masterPersistMs": 0,
+        "sourceParseMs": 12.80000000000291
+      },
+      "lastRuntime": {
+        "fullBuilds": 2,
+        "weightOnlyBuilds": 1,
+        "branchRowsReused": 9,
+        "nodeRowsRecomputed": 0,
+        "materialOnlyBuilds": 1,
+        "branchRowsRecomputed": 9,
+        "nodeRowsReused": 0,
+        "hasCachedPreview": true
+      }
+    }
+  ],
+  "worker": {
+    "decision": "NOT_ADMITTED_INDEX_FIRST",
+    "reason": "Only the 1000-row master stress case crosses 50 ms; scaling implicates master lookup/indexing before thread offload.",
+    "longTaskMs": 50
+  }
+}
