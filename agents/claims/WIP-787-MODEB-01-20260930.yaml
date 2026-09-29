@@ -1,0 +1,17 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-787-MODEB-01-20260930
+claim_state: ACTIVE
+branch: agent/issue-787-modeb-01-observation-20260930
+workstream: XML_CII_MODE_B_01_OBSERVATION
+criticality: ENGINEERING_CRITICAL
+authority_domains:
+  - XML_CII_MODE_B_BENCHMARK_OBSERVATION
+  - XML_CII_CROSS_DOCUMENT_TOPOLOGY_EVIDENCE
+protected_paths:
+  - converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js
+  - docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js
+  - scripts/xml-cii-mode-b-observe.mjs
+  - tests/xml-cii-issue-787-mode-b-observation.test.mjs
+merge_authority: OWNER_ONLY_NOT_GRANTED
+last_updated: 2026-09-30
