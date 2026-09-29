@@ -8,6 +8,8 @@ on:
       - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
       - 'scripts/xml-cii-mode-b-observe.mjs'
       - 'tests/xml-cii-issue-787-mode-b-observation.test.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-fixture.test.mjs'
+      - 'tests/fixtures/xml-cii-mode-b-observation-v1.json'
       - '.github/workflows/issue-787-modeb-01-observation.yml'
       - 'Benchmarks/XML-CII-2019/**'
   workflow_dispatch:
@@ -27,8 +29,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run MODEB-01 real-corpus observation regressions
-        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs
+      - name: Run MODEB-01 real-corpus observation and pinned-fixture regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
       - name: Preserve existing single-document topology behavior
         run: node tests/seljson-to-inputxml-topology-element-length.test.js
       - name: Generate deterministic observation evidence
