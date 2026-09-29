@@ -49,7 +49,9 @@ test('startup hydration preserves non-master support config when masterContext i
   try {
     const changed = await hydratePersistedMasterDatasets(stateRef, { store });
     assert.equal(changed, true);
-    assert.equal(stateRef.current.masterContext.lineRows.length, 2);
+    assert.equal(stateRef.current.masterContext.lineRows.length, 0);
+    assert.equal(stateRef.current.masterContext.rowCounts.lineList, 2);
+    assert.equal(stateRef.current.masterContext.previewRows.lineList.length, 2);
     assert.equal(stateRef.current.masterContext.datasetRefs.lineList.datasetId, 'applied-line-ds');
     const config = JSON.parse(stateRef.current.supportConfigJson);
     assert.equal(config.supportPositionMatch.enabled, true);
