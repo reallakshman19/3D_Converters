@@ -91,8 +91,14 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
   };
 
   try {
-    await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
-    installPreviewB313WallUpdateAuditController({ host, config, xmlText, options });
+    const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    installPreviewB313WallUpdateAuditController({
+      host,
+      config,
+      xmlText,
+      rows: previewResult?.branchRows || [],
+      options,
+    });
   } catch (error) {
     console.error('Failed to build standalone preview table:', error);
     host.innerHTML = `<div class="xml-cii-phase-help" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">⚠ Build failed: ${esc(error?.message || error)}</div>`;
