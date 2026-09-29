@@ -121,6 +121,26 @@ function readLegacyBranchRows() {
   }
 }
 
+function normalizePreviewRows(rows) {
+  return Array.isArray(rows) ? rows.filter((row) => row && typeof row === 'object') : [];
+}
+
+export function selectPreviewB313ActionRows({ host, suppliedRows = [], legacyRows = [] } = {}) {
+  const liveRows = normalizePreviewRows(host?.__xmlCiiPreviewResult?.branchRows);
+  if (liveRows.length) return liveRows;
+  const supplied = normalizePreviewRows(suppliedRows);
+  if (supplied.length) return supplied;
+  return normalizePreviewRows(legacyRows);
+}
+
+function currentPreviewB313Rows(host, suppliedRows) {
+  return selectPreviewB313ActionRows({
+    host,
+    suppliedRows,
+    legacyRows: readLegacyBranchRows(),
+  });
+}
+
 function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
 function childText(parent, name) {
   for (const child of [...(parent?.childNodes || [])]) if (child?.nodeType === 1 && localName(child) === name) return text(child.textContent);
@@ -557,8 +577,8 @@ export function buildPreviewB313WallUpdateReport({ rows, config, xmlText, host }
   };
 }
 
-function installAction(host, config, xmlText, options) {
-  const rows = readLegacyBranchRows();
+function installAction(host, config, xmlText, options, suppliedRows) {
+  const rows = currentPreviewB313Rows(host, suppliedRows);
   const buildButton = host?.querySelector?.('[data-mc-preview-build]');
   const actionBar = buildButton?.parentElement;
   if (!actionBar || !rows.length) return;
@@ -574,8 +594,8 @@ function installAction(host, config, xmlText, options) {
   actionBar.appendChild(button);
   button.addEventListener('click', async () => {
     button.disabled = true;
+    const currentRows = currentPreviewB313Rows(host, suppliedRows);
     try {
-      const currentRows = readLegacyBranchRows();
       const report = buildPreviewB313WallUpdateReport({ rows: currentRows, config, xmlText, host });
       await options?.onSaveConfig?.(config);
       await options?.onB313WallUpdateReport?.(report);
@@ -588,7 +608,7 @@ function installAction(host, config, xmlText, options) {
         schema: B313_PREVIEW_REPORT_SCHEMA,
         action: B313_PREVIEW_ACTION_LABEL,
         authority: 'EXPLICIT_PREVIEW_ACTION_NOT_AUTOMATIC_WALL_AUTHORITY',
-        summary: { inputRows: rows.length, updatedRows: 0, skippedRows: rows.length },
+        summary: { inputRows: currentRows.length, updatedRows: 0, skippedRows: currentRows.length },
         rows: [{ branchName: '', status: 'NOT_UPDATED', code: 'B313_PREVIEW_ACTION_EXCEPTION', message: text(error?.message || error) }],
       };
       await options?.onB313WallUpdateReport?.(report);
@@ -600,7 +620,7 @@ function installAction(host, config, xmlText, options) {
   });
 }
 
-export function installPreviewB313WallUpdateController({ host, config, xmlText, options = {} } = {}) {
+export function installPreviewB313WallUpdateController({ host, config, xmlText, rows = [], options = {} } = {}) {
   if (!host || !config) return;
   host.__xmlCiiB313WallObserver?.disconnect?.();
   let scheduled = false;
@@ -609,7 +629,7 @@ export function installPreviewB313WallUpdateController({ host, config, xmlText, 
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
-      installAction(host, config, xmlText, options);
+      installAction(host, config, xmlText, options, rows);
     });
   };
   refresh();
