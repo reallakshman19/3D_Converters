@@ -1,0 +1,20 @@
+pr: 780
+state: OPEN_DRAFT
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+repository: reallaksh19/3D_Converters
+base_branch: main
+base_sha: cd8e32d97f0a52d3ec40ed6b3a7112f16b8db520
+branch: agent/xml-cii-master-dataset-worker-20260929
+source_issue: 776
+merge_authority: OWNER_ONLY_NOT_GRANTED
+mutation_authority: WRITE_ALLOWED
+coordination: COORDINATION_REQUIRED_NOT_BLOCKED
+appendix_a:
+  total: 96
+  minimum: 18
+  disposition: QUALIFIED_FOR_BOUNDED_XMLCII_DATASET_WORKER_IMPLEMENTATION
+current_stage: ADDITIVE_WORKER_INFRASTRUCTURE
+highest_risk: APPLIED master authority drift or duplicate 100k-row main-thread custody
+existing_file_backup_gate: REQUIRED_NOT_RUN
+next_action: implement new worker protocol/client/store/worker modules and focused tests only
