@@ -6,9 +6,50 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  # PR780_APPLY_JOB_START
+  pr780-apply-worker-search:
+    if: github.event.pull_request.number == 780 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply deterministic worker-search patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/requestGeneration != generation/requestGeneration !== generation/' scripts/pr780-apply-worker-search.py
+          python3 scripts/pr780-apply-worker-search.py
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js
+          node --test \
+            tests/xml-cii-master-dataset-config.test.mjs \
+            tests/xml-cii-master-dataset-coordinator.test.mjs \
+            tests/xml-cii-master-dataset-persistence.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-worker.test.mjs \
+            tests/xml-cii-master-preview-worker-search.test.mjs \
+            tests/xml-cii-master-worker-integration.test.mjs \
+            tests/xml-cii-issue-776-deployment-parity.test.mjs
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "perf(xml-cii): move dataset Preview search off main thread"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+  # PR780_APPLY_JOB_END
+
   focused-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 15
