@@ -1,5 +1,5 @@
 {
-  "lastId": 74,
+  "lastId": 82,
   "entries": [
     {
       "id": 1,
@@ -518,6 +518,62 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js",
       "context": "PR780 worker Preview search event-chain pre-edit backup: docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js",
       "backupFile": "74_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 75,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "index.html",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: index.html",
+      "backupFile": "75_index_html.bak"
+    },
+    {
+      "id": 76,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "docs/index.html",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: docs/index.html",
+      "backupFile": "76_docs_index_html.bak"
+    },
+    {
+      "id": 77,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "main-rhbg-fitguard.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: main-rhbg-fitguard.js",
+      "backupFile": "77_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 78,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "docs/main-rhbg-fitguard.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: docs/main-rhbg-fitguard.js",
+      "backupFile": "78_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 79,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "core/app.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: core/app.js",
+      "backupFile": "79_core_app_js.bak"
+    },
+    {
+      "id": 80,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "docs/core/app.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: docs/core/app.js",
+      "backupFile": "80_docs_core_app_js.bak"
+    },
+    {
+      "id": 81,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "core/app-standalone-runtime.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: core/app-standalone-runtime.js",
+      "backupFile": "81_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 82,
+      "timestamp": "2026-09-29 11:09:03",
+      "file": "docs/core/app-standalone-runtime.js",
+      "context": "PR780 worker Preview search top-cache pre-edit backup: docs/core/app-standalone-runtime.js",
+      "backupFile": "82_docs_core_app_standalone_runtime_js.bak"
     }
   ]
 }
