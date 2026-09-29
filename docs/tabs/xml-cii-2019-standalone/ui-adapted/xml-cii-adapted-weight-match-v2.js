@@ -11,6 +11,9 @@ import {
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
+import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
+import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -29,12 +32,32 @@ function hasWeightRows(config) {
   return Array.isArray(config?.weight?.masterRows) && config.weight.masterRows.length > 0;
 }
 
-function ensureWeightRows(config, masterContext) {
+async function ensureWeightRows(config, masterContext, materializeRows = materializeMasterDatasetRows) {
   const out = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
-  if (hasWeightRows(out)) return out;
-  const rows = Array.isArray(masterContext?.weightMasterRows) && masterContext.weightMasterRows.length
+  const residentRows = Array.isArray(masterContext?.weightMasterRows) && masterContext.weightMasterRows.length
     ? masterContext.weightMasterRows
-    : DEFAULT_WEIGHT_MASTER_ROWS;
+    : null;
+  const datasetRef = masterContext?.datasetRefs?.weight;
+
+  // Dataset custody is authoritative. If compatibility hydration has been removed,
+  // fetch only this master for the current operation instead of accepting defaults.
+  if (datasetRef?.datasetId && !residentRows && !hasWeightRows(out)) {
+    const rows = await materializeRows('weight', datasetRef);
+    if (rows.length !== Number(datasetRef.rowCount || 0)) {
+      throw new Error(`Weight dataset materialization mismatch: expected ${Number(datasetRef.rowCount || 0)}, received ${rows.length}.`);
+    }
+    out.weight = out.weight && typeof out.weight === 'object' && !Array.isArray(out.weight)
+      ? { ...out.weight }
+      : {};
+    out.weight.masterRows = rows;
+    const revision = Number(masterContext?.appliedMappingRevision?.weight || out.weight.masterRevision || 0);
+    if (revision > 0) out.weight.masterRevision = revision;
+    if (datasetRef.masterFingerprint) out.weight.masterFingerprint = datasetRef.masterFingerprint;
+    return out;
+  }
+
+  if (hasWeightRows(out)) return out;
+  const rows = residentRows || DEFAULT_WEIGHT_MASTER_ROWS;
   out.weight = out.weight && typeof out.weight === 'object' && !Array.isArray(out.weight)
     ? { ...out.weight }
     : {};
@@ -42,10 +65,21 @@ function ensureWeightRows(config, masterContext) {
   return out;
 }
 
+export async function weightMatchConfigFromState(state, options = {}) {
+  const materializeRows = options.materializeRows || materializeMasterDatasetRows;
+  const operationConfig = await materializeXmlCiiDatasetBackedConfig(
+    xmlCiiEnrichedConfigFromState(state),
+    state,
+    { materializeRows },
+  );
+  return ensureWeightRows(operationConfig, state?.masterContext, materializeRows);
+}
+
 function persistConfig(stateRef, config) {
-  const masterContext = { ...(stateRef.current.masterContext || {}), config };
+  const compactConfig = compactDatasetBackedConfig(config, stateRef.current.masterContext || {});
+  const masterContext = { ...(stateRef.current.masterContext || {}), config: compactConfig };
   stateRef.current = updateWorkflowState(stateRef.current, {
-    supportConfigJson: JSON.stringify(config, null, 2),
+    supportConfigJson: JSON.stringify(compactConfig, null, 2),
     masterContext,
   });
   saveMasterContextToLocalStorage(stateRef.current.masterContext);
@@ -70,18 +104,21 @@ function changedWeightMap(nextConfig, baseline) {
   return changes;
 }
 
-function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline) {
-  const current = ensureWeightRows(
-    xmlCiiEnrichedConfigFromState(stateRef.current),
-    stateRef.current.masterContext,
-  );
+function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculationBasis) {
+  const current = calculationBasis && hasWeightRows(calculationBasis)
+    ? calculationBasis
+    : nextConfig;
   const proposalMeta = { ...(nextConfig?.overrides?.rigidWeightProposalMeta || {}) };
   const overrides = {
     ...(nextConfig?.overrides || {}),
     rigidWeight: { ...(current?.overrides?.rigidWeight || {}) },
   };
   delete overrides.rigidWeightProposalMeta;
-  const clean = { ...nextConfig, overrides };
+  const clean = {
+    ...nextConfig,
+    weight: { ...(nextConfig?.weight || {}), masterRows: [...(current?.weight?.masterRows || [])] },
+    overrides,
+  };
   const changes = changedWeightMap(nextConfig, baseline);
   for (const [key, provenance] of Object.entries(proposalMeta)) {
     const value = Number(nextConfig?.overrides?.rigidWeight?.[key]);
@@ -109,9 +146,9 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         throw new Error('Shared Weight Match renderer contract is incomplete.');
       }
       const state = stateRef.current;
-      const persistedConfig = ensureWeightRows(xmlCiiEnrichedConfigFromState(state), state.masterContext);
-      const rendererConfig = withXmlCiiEffectiveRigidWeightLegacyView(persistedConfig);
-      let baseline = xmlCiiEffectiveRigidWeightMap(persistedConfig);
+      let calculationBasis = await weightMatchConfigFromState(state);
+      const rendererConfig = withXmlCiiEffectiveRigidWeightLegacyView(calculationBasis);
+      let baseline = xmlCiiEffectiveRigidWeightMap(calculationBasis);
       const xmlFile = state.sourceFile || (state.sourceText
         ? new File([state.sourceText], 'source.xml', { type: 'application/xml' })
         : null);
@@ -122,7 +159,8 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         config: rendererConfig,
         enrichXmlForCii2019: shared.enrichXmlForCii2019,
         onSaveConfig: (nextConfig) => {
-          const saved = persistSharedWeightMatchConfig(stateRef, nextConfig, baseline);
+          const saved = persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculationBasis);
+          calculationBasis = saved;
           baseline = xmlCiiEffectiveRigidWeightMap(saved);
         },
         ensureOverrides,

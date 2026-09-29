@@ -2,6 +2,7 @@ import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
 } from './xml-cii-branch-scope.js?v=20260804-branch-scope-v1';
+import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
@@ -27,18 +28,28 @@ function getStoredMaster(key) {
   return getStoredJson(`xml-cii-master-${key}`);
 }
 
-function enrichSupportConfigJson(state, branchScope = null) {
+export async function enrichSupportConfigJson(state, branchScope = null, options = {}) {
   let config = {};
   try {
     config = JSON.parse(state.supportConfigJson || '{}');
   } catch {}
 
-  const lineRows = state.masterContext?.lineRows || getStoredMaster('lineList') || [];
-  const materialMapRows = state.masterContext?.materialMapRows || getStoredMaster('materialMap') || [];
-  const weightMasterRows = state.masterContext?.weightMasterRows || getStoredMaster('weight') || [];
-  const pipingClassRows = state.masterContext?.pipingClassRows?.length
-    ? state.masterContext.pipingClassRows
-    : (config.pipingClass?.masterRows || []);
+  config = await materializeXmlCiiDatasetBackedConfig(config, state, options);
+  const datasetRefs = state.masterContext?.datasetRefs || {};
+  const lineRows = datasetRefs.lineList?.datasetId
+    ? (config.linelist?.masterRows || [])
+    : (state.masterContext?.lineRows || getStoredMaster('lineList') || []);
+  const materialMapRows = datasetRefs.materialMap?.datasetId
+    ? (config.material?.mapRows || [])
+    : (state.masterContext?.materialMapRows || getStoredMaster('materialMap') || []);
+  const weightMasterRows = datasetRefs.weight?.datasetId
+    ? (config.weight?.masterRows || [])
+    : (state.masterContext?.weightMasterRows || getStoredMaster('weight') || []);
+  const pipingClassRows = datasetRefs.pipingClass?.datasetId
+    ? (config.pipingClass?.masterRows || [])
+    : (state.masterContext?.pipingClassRows?.length
+      ? state.masterContext.pipingClassRows
+      : (config.pipingClass?.masterRows || []));
 
   if (lineRows.length) {
     if (!config.linelist) config.linelist = {};
@@ -104,7 +115,7 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     sourceName: sourceNameFromState(state),
     stagedJsonText: branchScope.filteredStagedJsonText,
     elementSideLoadText: state.elementSideLoadText || null,
-    supportConfigJson: enrichSupportConfigJson(state, branchScope),
+    supportConfigJson: await enrichSupportConfigJson(state, branchScope),
     options: workflowOptionsFromState(state),
     previewFacts: state.previewDiagnosticsAuditReport?.matchedFacts || [],
     manualFacts: state.manualElementSideloadResult?.matchedFacts || [],

@@ -265,8 +265,11 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 export function renderStandaloneDiagnosticsReportPanel(card, state) {
   renderActions(card, state);
   const report = state.previewDiagnosticsAuditReport || {}, allLogs = rows(report.diagnostics);
-  const llCount = state.masterContext?.lineRows?.length || 0, pcCount = state.masterContext?.pipingClassRows?.length || 0;
-  const matCount = state.masterContext?.materialMapRows?.length || 0, wtCount = state.masterContext?.weightMasterRows?.length || 0;
+  const masterCounts = state.masterContext?.rowCounts || {};
+  const llCount = Number(masterCounts.lineList ?? state.masterContext?.lineRows?.length ?? 0);
+  const pcCount = Number(masterCounts.pipingClass ?? state.masterContext?.pipingClassRows?.length ?? 0);
+  const matCount = Number(masterCounts.materialMap ?? state.masterContext?.materialMapRows?.length ?? 0);
+  const wtCount = Number(masterCounts.weight ?? state.masterContext?.weightMasterRows?.length ?? 0);
 
   const auditCard = createElement('div');
   auditCard.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:#cbd5e1;';

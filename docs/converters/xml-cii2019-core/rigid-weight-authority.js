@@ -66,7 +66,7 @@ function rounded(value, digits = 3) {
   return Math.round(numeric * scale) / scale;
 }
 
-function masterRowsFingerprint(rows) {
+export function xmlCiiWeightMasterRowsFingerprint(rows) {
   if (!Array.isArray(rows) || !rows.length) return 'none:0';
   const cached = weightMasterFingerprintCache.get(rows);
   if (cached) return cached;
@@ -84,7 +84,11 @@ export function xmlCiiWeightMasterRevision(config = {}) {
       ?? weight.masterSourceRevision,
   );
   const rows = Array.isArray(weight.masterRows) ? weight.masterRows : [];
-  return `${explicit || 'implicit'}|${masterRowsFingerprint(rows)}`;
+  const persistedFingerprint = text(weight.masterFingerprint ?? weight.masterRowsFingerprint);
+  const fingerprint = rows.length
+    ? xmlCiiWeightMasterRowsFingerprint(rows)
+    : (persistedFingerprint || 'none:0');
+  return `${explicit || 'implicit'}|${fingerprint}`;
 }
 
 export function xmlCiiRigidWeightProposalBasis(issue = {}, config = {}) {

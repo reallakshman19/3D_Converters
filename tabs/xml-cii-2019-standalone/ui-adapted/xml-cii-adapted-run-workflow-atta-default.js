@@ -6,6 +6,8 @@ import {
   withXmlCiiRigidWeightFinal,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
@@ -14,6 +16,22 @@ import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-pari
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
+
+function persistRunConfig(stateRef, config) {
+  if (!stateRef?.current) return config;
+  const current = stateRef.current;
+  const compactConfig = compactDatasetBackedConfig(config, current.masterContext || {});
+  const masterContext = current.masterContext
+    ? { ...current.masterContext, config: compactConfig }
+    : current.masterContext;
+  const routed = updateWorkflowState(current, {
+    supportConfigJson: JSON.stringify(compactConfig, null, 2),
+  });
+  stateRef.current = { ...routed, masterContext };
+  if (masterContext) saveMasterContextToLocalStorage(masterContext);
+  return compactConfig;
+}
+
 
 export function standaloneRunReviewRatingFromConfig(row, config) {
   return resolveStandaloneWeightReviewRating(row, config).rating;
@@ -145,17 +163,7 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
     if (Object.keys(newRatings).length > 0) {
       config.overrides = { ...(config.overrides || {}) };
       config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
-      if (stateRef?.current) {
-        const current = stateRef.current;
-        const masterContext = current.masterContext
-          ? { ...current.masterContext, config }
-          : current.masterContext;
-        const routed = updateWorkflowState(current, {
-          supportConfigJson: JSON.stringify(config, null, 2),
-        });
-        stateRef.current = { ...routed, masterContext };
-        if (masterContext) saveMasterContextToLocalStorage(masterContext);
-      }
+      if (stateRef?.current) persistRunConfig(stateRef, config);
     }
     const currentWeights = {};
     overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
@@ -250,15 +258,7 @@ async function reviewRigidWeights(stateRef, config) {
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
       const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
-      const current = stateRef.current;
-      const masterContext = current.masterContext
-        ? { ...current.masterContext, config: finalConfig }
-        : current.masterContext;
-      const routed = updateWorkflowState(current, {
-        supportConfigJson: JSON.stringify(finalConfig, null, 2),
-      });
-      stateRef.current = { ...routed, masterContext };
-      if (masterContext) saveMasterContextToLocalStorage(masterContext);
+      persistRunConfig(stateRef, finalConfig);
     }
     return true;
   } catch (error) {
@@ -275,7 +275,11 @@ export async function runWorkflowFromUi(stateRef, render) {
     render();
     return;
   }
-  if (!await reviewRigidWeights(stateRef, xmlCiiEnrichedConfigFromState(stateRef.current))) return;
+  const reviewConfig = await materializeXmlCiiDatasetBackedConfig(
+    xmlCiiEnrichedConfigFromState(stateRef.current),
+    stateRef.current,
+  );
+  if (!await reviewRigidWeights(stateRef, reviewConfig)) return;
   stateRef.current = updateWorkflowState(stateRef.current, { running: true, result: null });
   render();
   try {

@@ -4,6 +4,7 @@ import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
+import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
 import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
@@ -117,13 +118,51 @@ function replaceVirtualPreviewRows(tbody, columns, rows, indexes, scrollTop) {
   return window;
 }
 
+function bindPreviewSearch({ searchInput, masterKey, state, allRows, scrollContainer, setIndexes, renderWindow, countText }) {
+  const datasetId = state.masterContext?.datasetRefs?.[masterKey]?.datasetId || '';
+  let generation = 0;
+  searchInput.addEventListener('input', async () => {
+    const query = searchInput.value;
+    const requestGeneration = ++generation;
+    scrollContainer.scrollTop = 0;
+    if (!query.trim()) {
+      setIndexes(null);
+      renderWindow();
+      return;
+    }
+    if (!datasetId) {
+      setIndexes(buildMatchingRowIndexes(allRows, query, previewSearchText));
+      renderWindow();
+      return;
+    }
+    try {
+      const result = await searchMasterDatasetRows(masterKey, datasetId, query);
+      if (requestGeneration !== generation || searchInput.value !== query) return;
+      setIndexes(Array.isArray(result?.indexes) ? result.indexes : []);
+      renderWindow();
+    } catch (error) {
+      if (requestGeneration !== generation) return;
+      console.error(`[xml-cii] Worker Preview search failed for ${masterKey}:`, error);
+      setIndexes([]);
+      renderWindow();
+      countText.textContent = `Search failed: ${error?.message || String(error)}`;
+    }
+  });
+}
+
 function appendPreview(parent, master, state, config) {
   const masterKey = master.key;
   const schemaRows = master.previewRows || [];
-  const allRows = buildPreviewSearchRows(master, state);
+  const datasetRef = state.masterContext?.datasetRefs?.[masterKey] || null;
+  const datasetId = datasetRef?.datasetId || '';
+  const datasetRowCount = datasetId
+    ? Math.max(0, Number(state.masterContext?.rowCounts?.[masterKey] ?? datasetRef?.rowCount ?? master.rowCount ?? 0) || 0)
+    : 0;
+  const allRows = datasetId ? [] : buildPreviewSearchRows(master, state);
+  const availableRowCount = datasetId ? datasetRowCount : allRows.length;
   const wrap = createElement('div', '', 'xml-cii-master-preview');
   wrap.appendChild(createElement('h4', 'Preview'));
-  if (!allRows.length) {
+  if (!availableRowCount) {
     wrap.appendChild(createElement('div', 'No rows loaded.', 'xml-cii-phase-help'));
     parent.appendChild(wrap);
     return;
@@ -151,7 +190,46 @@ function appendPreview(parent, master, state, config) {
 
   let indexes = null;
   let scheduled = false;
-  const renderWindow = () => {
+  let renderGeneration = 0;
+
+  const renderDatasetWindow = async () => {
+    scheduled = false;
+    const requestGeneration = ++renderGeneration;
+    const total = Array.isArray(indexes) ? indexes.length : datasetRowCount;
+    const window = virtualRowWindow(total, scrollContainer.scrollTop);
+    try {
+      const requestedIndexes = Array.isArray(indexes) ? indexes.slice(window.start, window.end) : null;
+      const result = requestedIndexes
+        ? await getMasterDatasetRowsByIndexes(masterKey, datasetId, requestedIndexes)
+        : await getMasterDatasetRows(masterKey, datasetId, window.start, Math.max(1, window.end - window.start));
+      if (requestGeneration !== renderGeneration) return;
+      tbodyEl.innerHTML = '';
+      if (window.topSpacerPx > 0) tbodyEl.appendChild(virtualSpacerRow(columns, window.topSpacerPx));
+      const rows = Array.isArray(result?.rows) ? result.rows : [];
+      const sourceIndexes = Array.isArray(result?.indexes) ? result.indexes : null;
+      for (let index = 0; index < rows.length; index += 1) {
+        const tr = createElement('tr');
+        const sourceIndex = sourceIndexes?.[index] ?? requestedIndexes?.[index] ?? (window.start + index);
+        tr.dataset.sourceRowIndex = String(sourceIndex);
+        for (const col of columns) tr.appendChild(createElement('td', text(rows[index]?.[col])));
+        tbodyEl.appendChild(tr);
+      }
+      if (window.bottomSpacerPx > 0) tbodyEl.appendChild(virtualSpacerRow(columns, window.bottomSpacerPx));
+      tbodyEl.dataset.virtualStart = String(window.start);
+      tbodyEl.dataset.virtualEnd = String(window.end);
+      tbodyEl.dataset.virtualTotal = String(total);
+      countText.textContent = total
+        ? `Rows ${window.start + 1}-${window.end} of ${total.toLocaleString('en-US')} (worker-backed virtualized)`
+        : 'No matching rows.';
+    } catch (error) {
+      if (requestGeneration !== renderGeneration) return;
+      console.error(`[xml-cii] Worker Preview row fetch failed for ${masterKey}:`, error);
+      tbodyEl.innerHTML = '';
+      countText.textContent = `Preview load failed: ${error?.message || String(error)}`;
+    }
+  };
+
+  const renderLegacyWindow = () => {
     scheduled = false;
     const window = replaceVirtualPreviewRows(tbodyEl, columns, allRows, indexes, scrollContainer.scrollTop);
     const total = logicalRowCount(allRows, indexes);
@@ -159,20 +237,23 @@ function appendPreview(parent, master, state, config) {
       ? `Rows ${window.start + 1}-${window.end} of ${total.toLocaleString('en-US')} (virtualized)`
       : 'No matching rows.';
   };
+
+  const renderWindow = datasetId ? renderDatasetWindow : renderLegacyWindow;
   const scheduleWindow = () => {
     if (scheduled) return;
     scheduled = true;
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(renderWindow);
-    else renderWindow();
+    const invoke = () => { void renderWindow(); };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(invoke);
+    else invoke();
   };
 
-  searchInput.addEventListener('input', () => {
-    indexes = buildMatchingRowIndexes(allRows, searchInput.value, previewSearchText);
-    scrollContainer.scrollTop = 0;
-    renderWindow();
+  bindPreviewSearch({
+    searchInput, masterKey, state, allRows, scrollContainer,
+    setIndexes: (nextIndexes) => { indexes = nextIndexes; },
+    renderWindow, countText,
   });
   scrollContainer.addEventListener('scroll', scheduleWindow);
-  renderWindow();
+  void renderWindow();
   parent.appendChild(wrap);
 }
 
@@ -253,8 +334,16 @@ function mappingButton(label, action, masterKey, enabled, positive = false) {
 function renderColumnMapping(master, state, config) {
   const masterKey = master.key;
   const fields = MASTER_FIELDS[masterKey]?.fields || [];
-  const rawRows = state.masterContext?.rawRows?.[masterKey] || [];
-  if (!rawRows.length) return createElement('div', 'Import rows/file to configure field mapping.', 'xml-cii-phase-help');
+  const datasetId = state.masterContext?.datasetRefs?.[masterKey]?.datasetId || '';
+  const rawRows = datasetId
+    ? (state.masterContext?.mappingRows?.[masterKey] || [])
+    : (state.masterContext?.rawRows?.[masterKey] || []);
+  if (!rawRows.length) {
+    const message = datasetId
+      ? 'Bounded mapping sample unavailable. Re-import this master to refresh mapping samples.'
+      : 'Import rows/file to configure field mapping.';
+    return createElement('div', message, 'xml-cii-phase-help');
+  }
 
   const headers = [];
   for (const k of Object.keys(rawRows[0] || {})) if (k !== '_rowIndex' && !headers.includes(k)) headers.push(k);

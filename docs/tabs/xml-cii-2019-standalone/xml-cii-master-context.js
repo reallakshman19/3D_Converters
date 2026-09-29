@@ -97,7 +97,8 @@ function writeRows(config, context) {
   const next = { ...safeObject(config) };
   for (const def of STANDALONE_IMPORT_MASTER_DEFS) {
     const section = { ...safeObject(next[def.configKey]) };
-    section[def.rowConfigKey] = cloneRows(context[def.rowsKey]);
+    if (context?.datasetRefs?.[def.key]?.datasetId) delete section[def.rowConfigKey];
+    else section[def.rowConfigKey] = cloneRows(context[def.rowsKey]);
     next[def.configKey] = section;
   }
   return next;
