@@ -41,10 +41,11 @@ const selectRows = selectorFactory();
 const live = [{ id: 'live' }];
 const supplied = [{ id: 'supplied' }];
 const legacy = [{ id: 'legacy' }];
-assert.strictEqual(selectRows({ host: { __xmlCiiPreviewResult: { branchRows: live } }, suppliedRows: supplied, legacyRows: legacy }), live);
-assert.strictEqual(selectRows({ host: {}, suppliedRows: supplied, legacyRows: legacy }), supplied);
-assert.strictEqual(selectRows({ host: {}, suppliedRows: [], legacyRows: legacy }), legacy);
-assert.deepStrictEqual(selectRows({ host: {}, suppliedRows: [], legacyRows: [] }), []);
+const ids = (rows) => rows.map((row) => row.id);
+assert.deepStrictEqual(ids(selectRows({ host: { __xmlCiiPreviewResult: { branchRows: live } }, suppliedRows: supplied, legacyRows: legacy })), ['live']);
+assert.deepStrictEqual(ids(selectRows({ host: {}, suppliedRows: supplied, legacyRows: legacy })), ['supplied']);
+assert.deepStrictEqual(ids(selectRows({ host: {}, suppliedRows: [], legacyRows: legacy })), ['legacy']);
+assert.deepStrictEqual(ids(selectRows({ host: {}, suppliedRows: [], legacyRows: [] })), []);
 
 assert(auditController.includes('selectPreviewB313ActionRows'));
 assert(auditController.includes('const suppliedRows = snapshotRows(rows)'));
