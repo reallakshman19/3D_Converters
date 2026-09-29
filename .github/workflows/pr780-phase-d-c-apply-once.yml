@@ -1,0 +1,59 @@
+name: PR780 phase D-C apply
+
+on:
+  push:
+    branches:
+      - agent/xml-cii-master-dataset-worker-20260929
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/xml-cii-master-dataset-worker-20260929
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply read-only consumer dataset materialization
+        run: python3 scripts/_pr780_phase_d_c_apply.py
+      - name: Syntax checks
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js
+      - name: Run applicable Phase D-C regressions
+        run: |
+          node --test \
+            tests/xml-cii-readonly-consumer-dataset-config.test.mjs \
+            tests/xml-cii-workflow-job-dataset-materialization.test.mjs \
+            tests/xml-cii-weight-match-dataset-materialization.test.mjs \
+            tests/xml-cii-master-config-compaction.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs \
+            tests/xml-cii-issue-776-standalone-run-match1-custody.test.mjs \
+            tests/xml-cii-issue-776-post-run-weight-authority.test.mjs \
+            tests/xml-cii-issue-776-weight-review-authority.test.mjs \
+            tests/xml-cii-issue-776-workflow-weight-master-revision.test.mjs
+      - name: Commit protected Phase D-C result
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f scripts/_pr780_phase_d_c_apply.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js \
+            docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js \
+            tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js \
+            docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js \
+            tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js \
+            docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js \
+            tests/xml-cii-readonly-consumer-dataset-config.test.mjs \
+            scripts/_pr780_phase_d_c_apply.py
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'perf(xml-cii): detach Weight Match and Run review from resident masters'
+          git push origin HEAD:agent/xml-cii-master-dataset-worker-20260929
