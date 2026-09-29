@@ -1,6 +1,6 @@
-import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js';
+import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
 import { createIndexedDbDatasetStore } from './master-dataset-store.js';
-import { createMasterDatasetService } from './master-dataset-service.js';
+import { createMasterDatasetService } from './master-dataset-service.js?v=20260929-pr780-bounded-ui-1';
 import { buildSearchCorpus, prepareNormalizedDataset, searchCorpusIndexes } from './master-dataset-normalize.js';
 
 const SHEETJS_ESM_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';

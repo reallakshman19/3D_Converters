@@ -27,6 +27,7 @@ export function ensureMasterRuntime(context = {}) {
   return {
     ...context,
     rawRows: { ...EMPTY_RAW, ...(context.rawRows || {}) },
+    mappingRows: { ...(context.mappingRows || {}) },
     appliedMappingRevision: applied,
     mappingDrafts: drafts,
   };
@@ -132,6 +133,7 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
     [def.contextRowsKey]: rows,
     config: nextConfig,
     rawRows: { ...runtime.rawRows, [key]: Array.isArray(rawRows) ? rawRows : [] },
+    mappingRows: { ...runtime.mappingRows, [key]: Array.isArray(rawRows) ? rawRows.slice(0, 150) : [] },
     datasetRefs: { ...(runtime.datasetRefs || {}), ...(datasetRef ? { [key]: datasetRef } : {}) },
     appliedMappingRevision: { ...runtime.appliedMappingRevision, [key]: nextRevision },
     mappingDrafts: drafts,

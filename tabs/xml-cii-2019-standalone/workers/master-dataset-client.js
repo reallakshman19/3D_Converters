@@ -1,7 +1,7 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20260929-dataset-worker-2', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20260929-pr780-bounded-ui-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
@@ -80,6 +80,13 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.GET_ROWS, { datasetId, offset, limit });
   }
 
+  function getRowsByIndexes(datasetId, indexes = []) {
+    return request(MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES, {
+      datasetId,
+      indexes: Array.isArray(indexes) ? indexes : [],
+    });
+  }
+
   function getRawRows(datasetId, offset = 0, limit = 150) {
     return request(MASTER_DATASET_COMMAND.GET_RAW_ROWS, { datasetId, offset, limit });
   }
@@ -108,7 +115,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, search, getRows, getRawRows,
+    openBuffer, openFile, selectSheet, search, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }

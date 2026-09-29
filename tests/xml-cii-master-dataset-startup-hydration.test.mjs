@@ -24,7 +24,7 @@ test('startup hydration restores IndexedDB-backed master rows without rebuilding
   });
   const rows = Array.from({ length: 50000 }, (_, index) => ({ lineNo: `L-${index + 1}`, _rowIndex: index + 1 }));
   const store = {
-    async getMetadata(id) { return id === 'line-ds' ? { datasetId: id, rowCount: rows.length, fileName: 'large-lines.xlsx' } : null; },
+    async getMetadata(id) { return id === 'line-ds' ? { datasetId: id, rowCount: rows.length, fileName: 'large-lines.xlsx', mappingRows: [{ Line: 'L-1' }] } : null; },
     async getRows(id) { return id === 'line-ds' ? rows : null; },
   };
   const stateRef = {
@@ -43,6 +43,7 @@ test('startup hydration restores IndexedDB-backed master rows without rebuilding
     assert.equal(stateRef.current.masterContext.lineRows.length, 50000);
     assert.equal(stateRef.current.masterContext.rowCounts.lineList, 50000);
     assert.equal(stateRef.current.masterContext.previewRows.lineList.length, 150);
+    assert.deepEqual(stateRef.current.masterContext.mappingRows.lineList, [{ Line: 'L-1' }]);
     assert.equal(stateRef.current.masterContext.datasetRefs.lineList.datasetId, 'line-ds');
     assert.equal(stateRef.current.masterContext.appliedMappingRevision.lineList, 7);
     assert.equal(stateRef.current.masterContext.sourceMetadata.lineList.sourceType, 'indexeddb');

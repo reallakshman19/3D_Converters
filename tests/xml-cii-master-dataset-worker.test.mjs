@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { listWorkbookSheets, parseWorkbookSheet, parseTextSource } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-parser.js';
-import { MASTER_DATASET_EVENT } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
 import { createMasterDatasetClient } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-client.js';
 import { createMasterDatasetService } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-service.js';
 
@@ -82,6 +82,17 @@ test('dataset service returns metadata + bounded preview and keeps full rows beh
   assert.equal(search.type, MASTER_DATASET_EVENT.SEARCH_RESULT);
   assert.equal(search.matchCount, 1);
   assert.deepEqual(search.indexes, [198]);
+  assert.equal(ready.mappingRows.length, 150);
+  const selected = await service.handle({
+    type: MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES,
+    requestId: 'r4',
+    datasetId: ready.metadata.datasetId,
+    indexes: [198, 0, 199],
+  });
+  assert.equal(selected.type, MASTER_DATASET_EVENT.ROWS_RESULT);
+  assert.deepEqual(selected.indexes, [198, 0, 199]);
+  assert.equal(selected.rows[0].Description, 'Row 199');
+  assert.equal(selected.rows[1].Description, 'Row 1');
 });
 
 class FakeWorker {

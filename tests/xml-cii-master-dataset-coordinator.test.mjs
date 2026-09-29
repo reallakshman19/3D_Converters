@@ -71,6 +71,10 @@ test('coordinator hydrates normalized and raw rows in bounded chunks', async () 
       const count = Math.min(limit, rowCount - offset);
       return { rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
     },
+    async getRowsByIndexes(_id, indexes) {
+      calls.push(['indexes', ...indexes]);
+      return { indexes: [...indexes], rows: indexes.map((index) => ({ n: index })), rowCount };
+    },
     async getRawRows(_id, offset, limit) {
       calls.push(['raw', offset, limit]);
       const count = Math.min(limit, rowCount - offset);
@@ -89,5 +93,8 @@ test('coordinator hydrates normalized and raw rows in bounded chunks', async () 
   assert.equal(hydrated.rawRows.length, rowCount);
   assert.deepEqual(calls.filter(([kind]) => kind === 'normal').map(([, offset]) => offset), [0, 2000, 4000]);
   assert.deepEqual(calls.filter(([kind]) => kind === 'raw').map(([, offset]) => offset), [0, 2000, 4000]);
-  assert.equal(Math.max(...calls.map(([, , limit]) => limit)), 2000);
+  assert.equal(Math.max(...calls.filter(([kind]) => kind !== 'indexes').map(([, , limit]) => limit)), 2000);
+  const indexed = await coordinator.getRowsByIndexes('lineList', [4, 1], 'ds-1');
+  assert.deepEqual(indexed.indexes, [4, 1]);
+  assert.deepEqual(indexed.rows, [{ n: 4 }, { n: 1 }]);
 });

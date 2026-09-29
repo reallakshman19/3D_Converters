@@ -1,5 +1,5 @@
-import { createMasterDatasetClient } from './master-dataset-client.js';
-import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js';
+import { createMasterDatasetClient } from './master-dataset-client.js?v=20260929-pr780-bounded-ui-1';
+import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
 
 function assertDatasetMessage(message) {
   if (message?.type !== MASTER_DATASET_EVENT.DATASET_READY || !message?.metadata?.datasetId) {
@@ -76,11 +76,23 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return client.search(datasetId, query);
   }
 
+  function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = '') {
+    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
+    if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
+    return client.getRows(datasetId, offset, limit);
+  }
+
+  function getRowsByIndexes(masterKey, indexes = [], datasetIdOverride = '') {
+    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
+    if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
+    return client.getRowsByIndexes(datasetId, indexes);
+  }
+
   function dispose() {
     jobs.clear();
     activeDatasets.clear();
     client.dispose();
   }
 
-  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, materialize, releaseMaster, search, dispose });
+  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, materialize, releaseMaster, search, getRows, getRowsByIndexes, dispose });
 }

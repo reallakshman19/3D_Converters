@@ -64,6 +64,7 @@ function applyLoadedDatasets(state, loaded) {
   const context = {
     ...base,
     rawRows: { ...(base.rawRows || {}) },
+    mappingRows: { ...(base.mappingRows || {}) },
     datasetRefs: { ...(base.datasetRefs || {}) },
     rowCounts: { ...(base.rowCounts || {}) },
     previewRows: { ...(base.previewRows || {}) },
@@ -74,6 +75,7 @@ function applyLoadedDatasets(state, loaded) {
     const def = MASTER_DEFS[item.masterKey];
     context[def.rowsKey] = item.rows;
     context.rawRows[item.masterKey] = [];
+    context.mappingRows[item.masterKey] = Array.isArray(item.metadata.mappingRows) ? item.metadata.mappingRows.slice(0, 150) : [];
     context.datasetRefs[item.masterKey] = Object.freeze({
       datasetId: item.custody.datasetId,
       rowCount: item.rows.length,

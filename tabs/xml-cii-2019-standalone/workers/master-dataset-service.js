@@ -1,4 +1,4 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
@@ -46,11 +46,12 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       rawRows,
       searchCorpus: prepared.searchCorpus,
     });
-    await store.persistDataset(publicMetadata(metadata), prepared.rows);
+    const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
+    await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, prepared.rows);
     return {
       metadata: publicMetadata(metadata),
       previewRows: prepared.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
-      mappingRows: rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+      mappingRows,
     };
   }
 
@@ -120,6 +121,26 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     });
   }
 
+  async function indexedRowsResult(message) {
+    const dataset = await ensureDataset(message.datasetId);
+    const requested = Array.isArray(message.indexes) ? message.indexes.slice(0, MASTER_DATASET_CHUNK_ROWS) : [];
+    const indexes = [];
+    const rows = [];
+    for (const value of requested) {
+      const index = Number(value);
+      if (!Number.isInteger(index) || index < 0 || index >= dataset.rows.length) continue;
+      indexes.push(index);
+      rows.push(dataset.rows[index]);
+    }
+    return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
+      datasetId: message.datasetId,
+      indexes,
+      rows,
+      rowCount: dataset.rows.length,
+      raw: false,
+    });
+  }
+
   async function release(message) {
     if (message.jobId) sources.delete(message.jobId);
     if (message.datasetId) datasets.delete(message.datasetId);
@@ -133,6 +154,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
       case MASTER_DATASET_COMMAND.GET_ROWS: return rowsResult(message, false);
+      case MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES: return indexedRowsResult(message);
       case MASTER_DATASET_COMMAND.GET_RAW_ROWS: return rowsResult(message, true);
       case MASTER_DATASET_COMMAND.RELEASE_SOURCE:
       case MASTER_DATASET_COMMAND.RELEASE_DATASET: return release(message);

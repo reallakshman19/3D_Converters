@@ -1,15 +1,15 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260708-v8';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260708-v8';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260708-v8';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260802-smart-ui-v1';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260929-pr780-bounded-ui-1';
 import { renderOutputPanel } from './xml-cii-adapted-output-panel.js?v=20260708-v8';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260802-smart-ui-v1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260929-pr780-bounded-ui-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260708-v8';
 import { syncMasterDraftDom } from './xml-cii-adapted-master-dom-sync.js?v=20260818-perf-c1';
 import { classifyXmlCiiRenderScope } from './xml-cii-adapted-render-scope.js?v=20260929-pr780-metadata-1';
 import { renderXmlCiiPerfEvidencePanel, syncXmlCiiPerfEvidencePanel } from './xml-cii-adapted-perf-evidence.js?v=20260818-perf-c1';
 import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
-import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260929-dataworker-1';
+import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260929-pr780-bounded-ui-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
