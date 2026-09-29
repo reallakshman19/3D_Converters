@@ -61,6 +61,21 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return { rows, rawRows, metadata: ready.metadata, previewRows: ready.previewRows || [], mappingRows: ready.mappingRows || [] };
   }
 
+  async function materializeRows(masterKey, rowCount = 0, datasetIdOverride = '') {
+    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
+    if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
+    const expected = Math.max(0, Number(rowCount) || 0);
+    const rows = [];
+    for (let offset = 0; offset < expected; offset += MASTER_DATASET_CHUNK_ROWS) {
+      const result = await client.getRows(datasetId, offset, MASTER_DATASET_CHUNK_ROWS);
+      rows.push(...(result?.rows || []));
+    }
+    if (rows.length !== expected) {
+      throw new Error(`Dataset materialization mismatch for ${masterKey}: expected ${expected}, received ${rows.length}.`);
+    }
+    return { datasetId, rowCount: expected, rows };
+  }
+
   async function releaseMaster(masterKey) {
     const job = jobs.get(masterKey);
     const datasetId = activeDatasets.get(masterKey);
@@ -94,5 +109,5 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     client.dispose();
   }
 
-  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, materialize, releaseMaster, search, getRows, getRowsByIndexes, dispose });
+  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, materialize, materializeRows, releaseMaster, search, getRows, getRowsByIndexes, dispose });
 }

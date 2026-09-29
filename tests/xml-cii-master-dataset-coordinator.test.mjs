@@ -98,3 +98,23 @@ test('coordinator hydrates normalized and raw rows in bounded chunks', async () 
   assert.deepEqual(indexed.indexes, [4, 1]);
   assert.deepEqual(indexed.rows, [{ n: 4 }, { n: 1 }]);
 });
+
+
+test('coordinator materializes a persisted dataset in bounded normalized chunks', async () => {
+  const calls = [];
+  const rowCount = 4500;
+  const client = {
+    async getRows(id, offset, limit) {
+      calls.push([id, offset, limit]);
+      const count = Math.min(limit, rowCount - offset);
+      return { rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
+    },
+    async releaseSource() {}, async releaseDataset() {}, search() {}, dispose() {},
+  };
+  const coordinator = createMasterDatasetImportCoordinator({ client });
+  const result = await coordinator.materializeRows('weight', rowCount, 'weight-persisted');
+  assert.equal(result.datasetId, 'weight-persisted');
+  assert.equal(result.rows.length, rowCount);
+  assert.deepEqual(calls.map(([, offset]) => offset), [0, 2000, 4000]);
+  assert.equal(Math.max(...calls.map(([, , limit]) => limit)), 2000);
+});

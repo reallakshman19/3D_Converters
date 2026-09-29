@@ -13,3 +13,12 @@ export function getMasterDatasetRows(masterKey, datasetId, offset = 0, limit = 1
 export function getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes = []) {
   return masterDatasetCoordinator.getRowsByIndexes(masterKey, indexes, datasetId);
 }
+
+
+export async function materializeMasterDatasetRows(masterKey, datasetRef = {}) {
+  const datasetId = String(datasetRef?.datasetId || '');
+  const rowCount = Math.max(0, Number(datasetRef?.rowCount) || 0);
+  if (!datasetId) throw new Error(`Dataset id is required to materialize ${masterKey}.`);
+  const result = await masterDatasetCoordinator.materializeRows(masterKey, rowCount, datasetId);
+  return Array.isArray(result?.rows) ? result.rows : [];
+}
