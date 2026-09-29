@@ -72,6 +72,11 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.SELECT_SHEET, { jobId, sheetName });
   }
 
+  function remapDataset(datasetId, fieldMap = {}) {
+    if (!datasetId) throw new Error('datasetId is required.');
+    return request(MASTER_DATASET_COMMAND.REMAP_DATASET, { datasetId, fieldMap: { ...(fieldMap || {}) } });
+  }
+
   function search(datasetId, query) {
     return request(MASTER_DATASET_COMMAND.SEARCH, { datasetId, query });
   }
@@ -115,7 +120,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, search, getRows, getRowsByIndexes, getRawRows,
+    openBuffer, openFile, selectSheet, remapDataset, search, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }

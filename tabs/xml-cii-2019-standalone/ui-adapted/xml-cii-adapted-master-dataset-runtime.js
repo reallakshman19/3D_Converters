@@ -14,6 +14,10 @@ export function getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes = []
   return masterDatasetCoordinator.getRowsByIndexes(masterKey, indexes, datasetId);
 }
 
+export function remapMasterDataset(masterKey, datasetId, fieldMap = {}) {
+  return masterDatasetCoordinator.remapDataset(masterKey, datasetId, fieldMap);
+}
+
 
 export async function materializeMasterDatasetRows(masterKey, datasetRef = {}) {
   const datasetId = String(datasetRef?.datasetId || '');

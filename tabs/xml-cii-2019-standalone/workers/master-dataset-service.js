@@ -1,5 +1,6 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, sourceNeedsSheetSelection } from './master-dataset-parser.js';
+import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;
@@ -25,7 +26,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
 
   async function finalizeDataset(source, rawRows, sheetName = '') {
     const prepared = prepareDataset(source.masterKey, rawRows, source.currentMap, source.config, source.fieldMapOverride);
-    source.datasetRevision = Number(source.datasetRevision || 0) + 1;
+    let nextRevision = Number(source.datasetRevision || 0) + 1;
+    while (datasets.has(datasetIdFor(source.jobId, source.masterKey, sheetName, nextRevision))) nextRevision += 1;
+    source.datasetRevision = nextRevision;
     const metadata = {
       datasetId: datasetIdFor(source.jobId, source.masterKey, sheetName, source.datasetRevision),
       datasetRevision: source.datasetRevision,
@@ -39,6 +42,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       config: source.config,
       currentMap: source.currentMap,
       fieldMapOverride: source.fieldMapOverride,
+      ...(source.masterKey === 'weight' ? { masterFingerprint: xmlCiiWeightMasterRowsFingerprint(prepared.rows) } : {}),
     };
     datasets.set(metadata.datasetId, {
       metadata,
@@ -83,6 +87,30 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     if (!source.sheetNames?.includes(message.sheetName)) throw new Error(`Unknown worksheet: ${message.sheetName}`);
     const rows = parseWorkbookSheet(source.buffer, message.sheetName, await getXlsx());
     return response(MASTER_DATASET_EVENT.DATASET_READY, message.requestId, await finalizeDataset(source, rows, message.sheetName));
+  }
+
+  async function remapDataset(message) {
+    const dataset = await ensureDataset(message.datasetId);
+    if (!Array.isArray(dataset.rawRows)) {
+      throw new Error(`Raw rows are session-only and unavailable for dataset remap: ${message.datasetId}`);
+    }
+    if (!message.fieldMap || typeof message.fieldMap !== 'object' || Array.isArray(message.fieldMap)) {
+      throw new Error('REMAP_DATASET requires a fieldMap object.');
+    }
+    const base = dataset.metadata || {};
+    const source = sources.get(base.jobId) || {
+      jobId: base.jobId,
+      fileName: base.fileName,
+      masterKey: base.masterKey,
+      config: base.config || {},
+      currentMap: base.currentMap || {},
+      fieldMapOverride: null,
+      datasetRevision: Number(base.datasetRevision || 0),
+    };
+    source.datasetRevision = Math.max(Number(source.datasetRevision || 0), Number(base.datasetRevision || 0));
+    source.fieldMapOverride = { ...message.fieldMap };
+    const ready = await finalizeDataset(source, dataset.rawRows, base.sheetName || '');
+    return response(MASTER_DATASET_EVENT.DATASET_READY, message.requestId, ready);
   }
 
   async function ensureDataset(datasetId) {
@@ -152,6 +180,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     switch (message.type) {
       case MASTER_DATASET_COMMAND.OPEN_SOURCE: return openSource(message);
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
+      case MASTER_DATASET_COMMAND.REMAP_DATASET: return remapDataset(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
       case MASTER_DATASET_COMMAND.GET_ROWS: return rowsResult(message, false);
       case MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES: return indexedRowsResult(message);
