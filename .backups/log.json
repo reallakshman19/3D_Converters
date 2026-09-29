@@ -1,5 +1,5 @@
 {
-  "lastId": 228,
+  "lastId": 229,
   "entries": [
     {
       "id": 1,
@@ -1596,6 +1596,13 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js",
       "context": "PR780 phase E-B2 metadata-only import custody and worker remap UI before edit",
       "backupFile": "228_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 229,
+      "timestamp": "2026-09-29 14:50:41",
+      "file": "tests/browser/xml-cii-master-dataset-scale-e2e.html",
+      "context": "PR780 closure evidence: qualify metadata-only dataset-backed import custody at 10k/50k/100k before edit",
+      "backupFile": "229_tests_browser_xml_cii_master_dataset_scale_e2e_html.bak"
     }
   ]
 }
