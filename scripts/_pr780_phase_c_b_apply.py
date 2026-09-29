@@ -103,10 +103,9 @@ test('dataset-backed config compaction removes only worker-owned row payloads', 
 
 test('Weight Match persistence compacts enriched config before supportConfigJson write', async () => {
   const source = await fs.readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
-  assert.match(source, /compactDatasetBackedConfig\(config, stateRef\.current\.masterContext \|\| \{\}\)/);
-  assert.match(source, /supportConfigJson:\s*JSON\.stringify\(compactConfig, null, 2\)/);
-  const persistBlock = source.match(/function persistConfig\([\s\S]*?\n\}/)?.[0] || '';
-  assert.doesNotMatch(persistBlock, /JSON\.stringify\(config, null, 2\)/);
+  assert.ok(source.includes("compactDatasetBackedConfig(config, stateRef.current.masterContext || {})"));
+  assert.ok(source.includes("supportConfigJson: JSON.stringify(compactConfig, null, 2)"));
+  assert.equal(source.includes("supportConfigJson: JSON.stringify(config, null, 2)"), false);
 });
 """)
 
