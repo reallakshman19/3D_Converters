@@ -3,6 +3,7 @@ import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readine
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
@@ -263,7 +264,11 @@ export async function runWorkflowFromUi(stateRef, render) {
     render();
     return;
   }
-  if (!await reviewRigidWeights(stateRef, xmlCiiEnrichedConfigFromState(stateRef.current))) return;
+  const reviewConfig = await materializeXmlCiiDatasetBackedConfig(
+    xmlCiiEnrichedConfigFromState(stateRef.current),
+    stateRef.current,
+  );
+  if (!await reviewRigidWeights(stateRef, reviewConfig)) return;
   stateRef.current = updateWorkflowState(stateRef.current, { running: true, result: null });
   render();
   try {

@@ -13,6 +13,7 @@ import {
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -40,7 +41,7 @@ async function ensureWeightRows(config, masterContext, materializeRows = materia
 
   // Dataset custody is authoritative. If compatibility hydration has been removed,
   // fetch only this master for the current operation instead of accepting defaults.
-  if (datasetRef?.datasetId && !residentRows) {
+  if (datasetRef?.datasetId && !residentRows && !hasWeightRows(out)) {
     const rows = await materializeRows('weight', datasetRef);
     if (rows.length !== Number(datasetRef.rowCount || 0)) {
       throw new Error(`Weight dataset materialization mismatch: expected ${Number(datasetRef.rowCount || 0)}, received ${rows.length}.`);
@@ -65,11 +66,13 @@ async function ensureWeightRows(config, masterContext, materializeRows = materia
 }
 
 export async function weightMatchConfigFromState(state, options = {}) {
-  return ensureWeightRows(
+  const materializeRows = options.materializeRows || materializeMasterDatasetRows;
+  const operationConfig = await materializeXmlCiiDatasetBackedConfig(
     xmlCiiEnrichedConfigFromState(state),
-    state?.masterContext,
-    options.materializeRows || materializeMasterDatasetRows,
+    state,
+    { materializeRows },
   );
+  return ensureWeightRows(operationConfig, state?.masterContext, materializeRows);
 }
 
 function persistConfig(stateRef, config) {
