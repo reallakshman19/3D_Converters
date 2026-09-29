@@ -6,7 +6,7 @@
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: RECOVERABLE
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
-REPORT_BASIS_CODE_HEAD: 2175e38252359ef823dd0ba3738ff547e8343333
+REPORT_BASIS_CODE_HEAD: 29abbd32fb72be7474e8581bdc044eeddb4e27ad
 MAIN_HEAD_LAST_CHECKED: cd8e32d97f0a52d3ec40ed6b3a7112f16b8db520
 MERGE_BASE: cd8e32d97f0a52d3ec40ed6b3a7112f16b8db520
 PR: 780
@@ -15,131 +15,147 @@ GROUNDING_EPOCH: GE-XMLCII-DATAWORKER-20260929-03
 PROTOCOL: ENGINEERING_PR_DELIVERY_V3.1
 COMMON_BASIS: 1ced68258afeaf50df113b1d38a4ceb9193587e3
 TWO_PASS_REVISION: TPG-2P-2026-09-28-R3
-CURRENT_STAGE: worker-search slice qualified; full-row compatibility hydration remains
-CURRENT_BLOCKER: strict metadata-only main-thread runtime authority requires migration of synchronous engineering consumers
-HIGHEST_RISK: removing full row arrays before dependent calculation/runtime consumers are migrated
-EXACT_NEXT_ACTION: treat full normalized/raw row hydration as a separate compatibility-boundary plan; do not fold it into the qualified worker-search slice without new tracing and owner-approved scope
+CURRENT_STAGE: ACCEPTANCE_QUALIFIED_METADATA_ONLY_DATASET_CUSTODY
+CURRENT_BLOCKER: NONE_APPLICABLE_WITHIN_PR780_SCOPE; MERGE_AUTHORITY_REMAINS_OWNER_ONLY_NOT_GRANTED
+HIGHEST_RISK: confusing transient operation materialization with retained main-thread authority, or expanding into unrelated CI baselines
+EXACT_NEXT_ACTION: owner review / merge decision only; do not merge or expand scope without explicit owner authority
 ```
 
 Source issue: #776. Branch: `agent/xml-cii-master-dataset-worker-20260929`.
 
-## Delivered architecture
+## Final architecture state
 
-PR780 now has an active dedicated Master Dataset Worker boundary with:
+PR780 now implements the large-master architecture for XML→CII 2019 Standalone with:
 
-- transferable file `ArrayBuffer` ownership;
+- transferable file `ArrayBuffer` ownership in a dedicated Master Dataset Worker;
 - two-stage XLSX sheet discovery and selected-sheet parsing;
-- worker mapping / normalization / validation / search corpus;
-- IndexedDB large-dataset persistence;
-- metadata-only `supportConfigJson` for worker-backed datasets;
-- atomic current-generation APPLIED commit and cancellation/stale-job protection;
-- startup IndexedDB hydration;
-- one shared coordinator / one worker for import and Preview search;
-- dataset-backed non-empty Preview search executed by worker SEARCH;
-- persisted `datasetId` search support after reload;
-- stale/out-of-order search-response suppression;
-- fail-closed worker-search error handling with no 100k synchronous UI fallback;
-- source/docs deployment parity and warm-cache release token `20260929-pr780-worker-search-1`.
+- worker-owned mapping, normalization, validation, Preview search corpus, and dataset remap;
+- IndexedDB persistence for large normalized datasets;
+- metadata-only retained main-thread custody for dataset-backed masters: `datasetId`, row count, field map/revision/fingerprint, source metadata, and bounded Preview/mapping samples;
+- no retained full normalized/raw dataset arrays in `masterContext` after worker-backed import, remap, or normal startup restore;
+- `supportConfigJson` compaction for dataset-backed masters;
+- no large dataset copies in localStorage;
+- worker-backed virtualized Preview rows and worker SEARCH for non-empty Preview search;
+- stale/cancelled import protection and stale/out-of-order search protection;
+- atomic dataset remap for APPLIED mapping changes, with stale-result rejection;
+- operation-specific transient row materialization for existing synchronous engineering calculation consumers;
+- source/docs deployment parity for changed deployed modules.
 
-Protected engineering authority remains unchanged: DRAFT mapping is non-authoritative; APPLIED revisions advance at the existing successful commit boundary; support/GAP, XML/CII topology, geometry, units, Weight Match, B31.3, and writer/runtime numerical semantics were not changed by this slice.
+Important definition: **metadata-only custody describes retained/authoritative application state.** Some synchronous engineering operations still materialize normalized rows transiently on the main thread for the duration of that calculation/review. Those transient rows are not committed back into `masterContext`, `supportConfigJson`, or localStorage and are not persistent authority.
 
-## Protocol / plan evidence
+Legacy compatibility exception: an older persisted Weight dataset that predates fingerprint metadata may be fully read once during startup solely to reconstruct the governed Weight fingerprint. New custody stores the fingerprint and follows the bounded startup path.
 
-Engineering PR Delivery V3.1 was re-grounded against:
+## Delivered phases
 
 ```text
-Common@1ced68258afeaf50df113b1d38a4ceb9193587e3
-Two-Pass TPG-2P-2026-09-28-R3
+D-A  Weight Match transient dataset materialization                 QUALIFIED
+D-B  workflow job transient dataset hydration                       QUALIFIED
+D-C  Run/Weight review detached from resident master arrays         QUALIFIED
+D-D  Preview diagnostics transient basis + metadata Output readiness QUALIFIED
+E-A  metadata-only IndexedDB startup restore                        QUALIFIED
+E-B1 atomic worker dataset remap                                     QUALIFIED
+E-B2 metadata-only import/remap retained custody                     QUALIFIED
+CLOSE browser scale evidence updated to custody-vs-transient model   QUALIFIED
 ```
 
-Parent issue #776 contains `PLAN_UPDATE — rev 2` before the worker-search implementation and final measured evidence comment `5889359664`.
+The previous workreport statement that `master-dataset-import-coordinator.materialize()` was still called by the import integration is obsolete. The helper remains available for explicit transient operation use, but worker-backed import no longer calls it and no longer retains the returned full arrays.
 
-All existing production/test files edited in the worker-search and cache-chain slices received repository-native pre-edit backup evidence via:
+## Exact-head acceptance evidence
+
+Qualified closure code/evidence head:
+
+```text
+29abbd32fb72be7474e8581bdc044eeddb4e27ad
+```
+
+Issue #776 validation run #205 (`36585914273`) — **SUCCESS**:
+
+```text
+Issue #776 focused regressions          PASS
+PR780 master dataset regressions        PASS
+adjacent PR/base differential           PASS
+applicable enforcement                  PASS
+WSW exact-head browser conversion       PASS
+WSW parity comparisons                  694
+WSW parity mismatches                   0
+10k / 50k / 100k browser scale          PASS
+```
+
+XML CII Browser Semantic Core Timing run #126 (`36585914237`) — **SUCCESS**.
+
+WSW/scale evidence artifact from run #205:
+
+```text
+name: issue-776-wsw-e2e.zip
+artifact_id: 11041049568
+sha256: be1ae4e59e3995ad97eee92afc9b028477d3480ce480e1ef67ca9569bbfcf71b
+```
+
+## Chromium 10k / 50k / 100k closure evidence
+
+Scale evidence schema: `XMLCII_MASTER_DATASET_SCALE_E2E_V2`.
+Responsiveness threshold: maximum animation-frame gap <= 250 ms. Synthetic fixture preparation is excluded from product timing.
+
+| Rows | Worker import | Metadata-only commit | Retained normalized/raw | Preview / mapping samples | Transient operation materialization | Worker search | Worst frame gap | Last match |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 10,000 | 133.9 ms | 2.2 ms | 0 / 0 | 150 / 150 | 18.2 ms | 2.1 ms | 16.7 ms | 9,999 |
+| 50,000 | 261.4 ms | 0.2 ms | 0 / 0 | 150 / 150 | 47.0 ms | 2.9 ms | 16.7 ms | 49,999 |
+| 100,000 | 277.6 ms | 0.4 ms | 0 / 0 | 150 / 150 | 94.0 ms | 3.2 ms | 16.8 ms | 99,999 |
+
+All three scales report `metadataOnlyCustody: true` and `responsive: true`.
+
+The transient-operation column is intentionally measured separately from retained custody. It demonstrates the compatibility boundary still used by synchronous engineering operations without misclassifying those temporary rows as application-state authority.
+
+## Acceptance ledger
+
+```text
+main-thread large XLSX.read                         PASS = 0
+main-thread large sheet_to_json                     PASS = 0
+eager all-sheet materialization                     PASS = 0
+supportConfigJson dataset payload                   PASS = 0
+large-master localStorage dataset writes            PASS = 0
+100k Preview full sync scan on main thread          PASS = 0 for dataset-backed search
+stale/cancelled import authority mutation           PASS = 0
+stale worker search replaces newer query            PASS = 0
+stale dataset remap replaces newer APPLIED basis    PASS = 0
+dataset-backed retained full normalized rows        PASS = 0
+dataset-backed retained full raw rows               PASS = 0
+startup retained full dataset rows                  PASS = 0 normal path
+retained Preview/mapping sample bound                PASS <= 150 each
+10k / 50k / 100k browser responsiveness            PASS
+qualified WSW engineering-result parity             PASS = 694 comparisons / 0 mismatches
+metadata-only dataset-backed main-thread custody     PASS
+```
+
+## Protected authority
+
+No intended change was made to:
+
+- APPLIED vs DRAFT mapping semantics;
+- support/GAP interpretation;
+- XML/CII topology, geometry, or units;
+- CII writer/runtime numerical authority;
+- Weight Match acceptance semantics;
+- B31.3 calculation authority.
+
+Dataset-backed mapping changes remain DRAFT until explicitly applied. Applying a dataset-backed draft uses worker `REMAP_DATASET`; the old APPLIED dataset remains authoritative during the asynchronous remap, and the result is rejected if the basis dataset ID, applied revision, or submitted draft map changed before completion.
+
+## Repository-native backup / recovery evidence
+
+Existing files edited during production and closure slices were protected with repository-native pre-edit backups using:
 
 ```bash
 node utils/backup.js save <file> "<context>"
 ```
 
-Temporary backup/apply workflows were removed after use.
+Temporary backup/apply workflows were removed after use. Recovery copies remain under `.backups/` according to repository policy.
 
-## Exact-head authority evidence
+## Repo-wide CI outside PR780 authority
 
-Qualified code head:
-
-```text
-2175e38252359ef823dd0ba3738ff547e8343333
-```
-
-Issue #776 workflow run #102 (`36561810999`):
-
-```text
-Issue #776 focused regressions         24/24 PASS
-PR780 master dataset regressions       24/24 PASS
-worker-owned Preview search tests       3/3 PASS (included above)
-deployment mirror/cache chain          PASS
-WSW exact-head browser conversion      PASS
-WSW parity comparisons                 694
-WSW parity mismatches                  0
-adjacent authority on PR head          17 PASS / 6 FAIL
-adjacent authority on base             17 PASS / 6 FAIL
-adjacent classification                baseline-only-failures
-new adjacent failure identities        0
-applicable enforcement                 PASS
-Issue #776 workflow conclusion         SUCCESS
-```
-
-The six adjacent `engineering-calculation-core.test.mjs` failures are identical on the PR merge ref and base `cd8e32d97f0a52d3ec40ed6b3a7112f16b8db520` and remain classified as baseline-only.
-
-## Chromium 10k / 50k / 100k evidence
-
-Responsiveness threshold: max animation-frame gap <= 250 ms. Synthetic fixture preparation is excluded from product timing.
-
-| Rows | Payload bytes | Worker import | Import max frame gap | Compatibility hydration | Hydration max frame gap | Worker search | Search max frame gap | Last-row match | Result |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 10,000 | 966,754 | 141.1 ms | 16.7 ms | 33.7 ms | 16.7 ms | 1.4 ms | 16.2 ms | 9,999 | PASS |
-| 50,000 | 4,922,633 | 271.9 ms | 16.7 ms | 95.4 ms | 16.7 ms | 2.6 ms | 16.3 ms | 49,999 | PASS |
-| 100,000 | 9,867,486 | 273.5 ms | 16.8 ms | 198.2 ms | 16.7 ms | 3.5 ms | 16.2 ms | 99,999 | PASS |
-
-Every scale found exactly one synthetic needle at the final source-row index, so worker search is not truncated to the Preview window. Worst observed frame gap was 16.8 ms.
-
-Evidence artifact:
-
-```text
-name: issue-776-wsw-e2e.zip
-artifact_id: 11030521137
-sha256: bc1ea554d0d529935b878083e6eeb836cbfd93e01b85fe505cc5271f569a7242
-```
-
-## Acceptance ledger
-
-```text
-main-thread large XLSX.read                  PASS = 0
-main-thread large sheet_to_json              PASS = 0
-eager all-sheet materialization              PASS = 0
-supportConfigJson dataset payload            PASS = 0
-large-master localStorage dataset writes     PASS = 0
-100k Preview full sync scan on main thread   PASS = 0 for dataset-backed search
-stale/cancelled import authority mutation    PASS = 0
-stale search result replaces newer query     PASS = 0
-10k / 50k / 100k browser responsiveness     PASS
-qualified WSW engineering-result parity      PASS / 694 comparisons / 0 mismatches
-strict metadata-only main-thread row custody OPEN COMPATIBILITY BOUNDARY
-```
-
-## Remaining compatibility boundary
-
-`master-dataset-import-coordinator.materialize()` still retrieves all normalized/raw chunks and the integration commits those arrays into `masterContext`. This remains because current engineering consumers synchronously read the row arrays.
-
-Real Chromium evidence quantifies the compatibility cost at 33.7 / 95.4 / 198.2 ms for 10k / 50k / 100k rows, with ~16.7 ms maximum frame gap. The current path is responsive, but strict metadata-only main-thread runtime authority is therefore not yet complete.
-
-Do not remove those arrays as an opportunistic optimization. The next slice requires a fresh production-consumer trace, authority plan, and migration design for synchronous calculation/runtime readers.
-
-## Repo-wide CI classification outside PR780 authority
-
-PR780's top app-shell cache token was reconciled in CAESAR/FBX cache-contract tests. Their remaining failures advance to older Model Converter cache assertions that this PR did not change. StagedJSON/InputXML also retains independent runtime/offline asset-contract failures outside the XML→CII worker-search changed paths. Do not expand PR780 to repair those unrelated baselines without a separate plan.
+CAESAR, FBX, FBX2, and StagedJSON workflows have independent historical failures outside this XML→CII dataset-worker authority. PR780 acceptance is governed by the Issue #776 applicable differential gate, exact-head WSW conversion/scale evidence, and XML CII semantic timing. Do not expand PR780 to repair unrelated baselines without a separate plan and authority.
 
 ## Merge boundary
 
-PR780 remains Draft. `MERGE_AUTHORITY = OWNER_ONLY / NOT_GRANTED`.
+PR780 remains **Draft**. `MERGE_AUTHORITY = OWNER_ONLY / NOT_GRANTED`.
 
-No merge action has been taken.
+No merge action has been taken. The bounded implementation and acceptance mission is qualified; the next action is an owner review/merge decision, not additional production mutation unless new evidence identifies a scoped defect.
