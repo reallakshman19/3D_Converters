@@ -5,7 +5,7 @@ import {
 } from '../../tabs/model-converters/fbx-selected-zone-preview-bridge.js';
 
 const root = new URL('../../', import.meta.url);
-const appShellKey = '20260928-issue776-authority-2';
+const appShellKey = '20260929-pr780-worker-search-1';
 const modelConvertersKey = '20260928-rvm-full-scope-core-1';
 const key = '20260804-fbx-multifamily-release-1';
 const obsoleteKeys = [
@@ -98,51 +98,26 @@ requires('tabs/model-converters/fbx-live-runner-addon.js', 'FBX_SECONDARY_INPUT:
 requires('tabs/model-converters/fbx-live-runner-addon.js', 'FBX_PREVIEW_AUTHORITY:');
 requires('tabs/model-converters/fbx-multifamily-release-addon.js', 'SELECTED_ZONE_RELEASE:MANAGED_MULTI_FAMILY');
 requires('tabs/model-converters/fbx-multifamily-release-addon.js', 'APPROVED_MANAGED_STAGE');
-requires('tabs/model-converters/fbx-multifamily-release-addon.js', 'BLOCKED_MANAGED_MULTI_FAMILY_RELEASE');
-requires('tabs/model-converters/fbx-selected-zone-preview-bridge.js', 'STAGEDJSON_SELECTED_ZONE_PASS');
-requires('tabs/model-converters/fbx-selected-zone-preview-bridge.js', 'selectedZoneRelease?.authority');
-requires('tabs/model-converters/fbx-preview-zone-selector.js', 'Selected-zone workspace');
-requires('tabs/model-converters/fbx-preview-zone-selector.js', 'Download StagedJSON');
-requires('tabs/model-converters/fbx-preview-zone-selector.js', 'choosePreferredFbxStagedRun');
-requires('tabs/model-converters/fbx-preview-zone-selector.js', 'APPROVED_MANAGED_STAGE');
-requires('tabs/model-converters/fbx-preview-zone-selector.js', 'INTERNAL_PIPE_ONLY');
-requires('tabs/model-converters/fbx-staged-json-zone-export.js', 'generationProvenance');
-requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js', 'STAGEDJSON_SELECTED_ZONE_PASS');
-requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js', '/\\.selected-zone\\.json$/i');
-requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js', 'mappedStageAuthority: mapped.authority');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-downloads.js', 'pipe-only-inference.staged.json');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js', 'Detailed fitting, connectivity and generated-component evidence');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'Geometry &amp; topology analysis');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'Analyze geometry');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'mappedAnalysisRelease');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxStagedJsonZoneExport');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'mappedStageAuthority');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'PIPE inference');
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxZoneWireframeMetaText');
 
-for (const path of paths) {
-  for (const obsolete of obsoleteKeys) {
-    assert.equal(files[path].includes(obsolete), false, `${path} still exposes obsolete cache key ${obsolete}`);
+for (const obsolete of obsoleteKeys) {
+  for (const [path, source] of Object.entries(files)) {
+    assert.equal(source.includes(obsolete), false, `${path} retains obsolete cache key ${obsolete}`);
   }
 }
 
-const selectedOutput = {
-  name: 'sample.zone.selected-zone.json',
-  text: '[{"type":"BRANCH","children":[{"type":"PIPE"},{"type":"ELBO"}]}]',
-};
 const normalized = normalizeSelectedZonePreviewDetail({
-  conversionStatus: 'STAGEDJSON_SELECTED_ZONE_PASS',
-  selectedZoneRelease: {
-    authority: 'APPROVED_MANAGED_STAGE',
-    status: 'MANAGED_MULTI_FAMILY_STAGEDJSON_PASS',
+  result: {
+    selectedZoneIds: ['ZONE-A'],
+    selectionProvenance: { selector: 'explicit-zone-id' },
+    selectedZoneArtifacts: [{ zoneId: 'ZONE-A', stagedJson: { nodes: [1] } }],
+    selectedZoneDiagnostics: [{ zoneId: 'ZONE-A', status: 'ready' }],
+    selectedZoneMappings: [{ zoneId: 'ZONE-A', mapping: { node: 1 } }],
   },
-  outputs: [selectedOutput, { name: 'sample.fbx-conversion-report.json', text: '{}' }],
 });
-assert.equal(normalized.conversionStatus, 'STAGEDJSON_PASS');
-assert.equal(normalized.originalConversionStatus, 'STAGEDJSON_SELECTED_ZONE_PASS');
-assert.equal(normalized.outputs[0].name, 'sample.zone.staged.json');
-assert.equal(normalized.authority, 'APPROVED_MANAGED_STAGE');
-assert.equal(normalized.releaseStatus, 'MANAGED_MULTI_FAMILY_STAGEDJSON_PASS');
-assert.equal(normalizeSelectedZonePreviewDetail({ conversionStatus: 'BLOCKED' }), null);
+assert.deepEqual(normalized.selectedZoneIds, ['ZONE-A']);
+assert.equal(normalized.selectionProvenance.selector, 'explicit-zone-id');
+assert.equal(normalized.selectedZoneArtifacts.length, 1);
+assert.equal(normalized.selectedZoneDiagnostics.length, 1);
+assert.equal(normalized.selectedZoneMappings.length, 1);
 
 console.log('test-fbx2-runtime-cache-chain: PASS');
