@@ -341,18 +341,23 @@ function buildBoundaryCandidates(splitNodes, options = {}) {
   return { candidates: [...unique, ...ambiguous].sort((a, b) => a.candidateId.localeCompare(b.candidateId)), unique, ambiguous };
 }
 
-function witnessScore(window) {
+function witnessScore(window, splitRefSet = new Set()) {
   const types = new Set(window.flatMap((segment) => [segment.fromNode.componentType, segment.toNode.componentType]).filter(Boolean));
   const tee = window.some((segment) => segment.fromNode.role === 'tee' || segment.toNode.role === 'tee');
   const restraint = window.some((segment) => segment.fromNode.hasRestraint || segment.toNode.hasRestraint);
   const positiveGeometry = window.filter((segment) => Number(segment.distanceMm) > 0).length;
-  return (types.size * 10) + (tee ? 20 : 0) + (restraint ? 10 : 0) + positiveGeometry;
+  const refs = new Set(window.flatMap((segment) => [segment.fromNode.normalizedComponentRefNo, segment.toNode.normalizedComponentRefNo]).filter(Boolean));
+  const splitRefOverlap = [...refs].filter((ref) => splitRefSet.has(ref)).length;
+  return (splitRefOverlap * 100) + (types.size * 10) + (tee ? 20 : 0) + (restraint ? 10 : 0) + positiveGeometry;
 }
 
-function buildCombinedReferenceWitnesses(combinedNodes, count = 10) {
+function buildCombinedReferenceWitnesses(combinedNodes, count = 10, coverage = {}) {
+  const allowedBranchNames = coverage.branchNames instanceof Set ? coverage.branchNames : new Set();
+  const splitRefSet = coverage.splitRefSet instanceof Set ? coverage.splitRefSet : new Set();
   const byBranch = new Map();
   for (const node of combinedNodes) {
     if (!node.point) continue;
+    if (allowedBranchNames.size && !allowedBranchNames.has(node.branchName)) continue;
     if (!byBranch.has(node.branchId)) byBranch.set(node.branchId, []);
     byBranch.get(node.branchId).push(node);
   }
@@ -370,7 +375,7 @@ function buildCombinedReferenceWitnesses(combinedNodes, count = 10) {
         const distanceMm = distancePoints(fromNode.point, toNode.point);
         segments.push({ fromNode, toNode, distanceMm: distanceMm === null ? null : Number(distanceMm.toFixed(6)) });
       }
-      const score = witnessScore(segments);
+      const score = witnessScore(segments, splitRefSet);
       const tie = `${branchId}::${String(start).padStart(6, '0')}`;
       if (!best || score > best.score || (score === best.score && tie.localeCompare(best.tie) < 0)) best = { score, tie, branchId, start, segments };
     }
@@ -399,6 +404,10 @@ function buildCombinedReferenceWitnesses(combinedNodes, count = 10) {
     restraintFrom: segment.fromNode.restraints,
     restraintTo: segment.toNode.restraints,
     distanceMm: segment.distanceMm,
+    splitRefEvidence: {
+      fromRefPresentInSplit: splitRefSet.has(segment.fromNode.normalizedComponentRefNo),
+      toRefPresentInSplit: splitRefSet.has(segment.toNode.normalizedComponentRefNo),
+    },
   }));
 }
 
@@ -431,8 +440,19 @@ export function buildXmlCiiModeBObservation({ splitDocuments = [], combinedRefer
   const combinedNodes = parsedCombined?.nodes || [];
   const splitBranches = parsedSplit.flatMap((entry) => entry.branches);
   const combinedBranches = parsedCombined?.branches || [];
+  const splitBranchNames = [...new Set(splitBranches.map((row) => row.branchName))].sort();
+  const combinedBranchNames = [...new Set(combinedBranches.map((row) => row.branchName))].sort();
+  const splitBranchSet = new Set(splitBranchNames);
+  const combinedBranchSet = new Set(combinedBranchNames);
+  const sharedBranchNames = splitBranchNames.filter((name) => combinedBranchSet.has(name));
+  const splitOnlyBranchNames = splitBranchNames.filter((name) => !combinedBranchSet.has(name));
+  const combinedOnlyBranchNames = combinedBranchNames.filter((name) => !splitBranchSet.has(name));
+  const splitRefSet = new Set(splitNodes.map((node) => node.normalizedComponentRefNo).filter(Boolean));
   const boundary = buildBoundaryCandidates(splitNodes, { ...options, positionToleranceMm });
-  const witnesses = buildCombinedReferenceWitnesses(combinedNodes, Number(options.witnessSegmentCount || 10));
+  const witnesses = buildCombinedReferenceWitnesses(combinedNodes, Number(options.witnessSegmentCount || 10), {
+    branchNames: new Set(sharedBranchNames),
+    splitRefSet,
+  });
   const samePositionClusters = buildSamePositionClusters(splitNodes, positionToleranceMm);
   const duplicateSourceNodeNumbers = buildDuplicateSourceNodeNumbers(splitNodes);
   const branchSegments = buildBranchSegments(splitNodes);
@@ -460,6 +480,15 @@ export function buildXmlCiiModeBObservation({ splitDocuments = [], combinedRefer
     position: node.position,
     restraints: node.restraints,
   }));
+  const corpusCoverage = {
+    splitBranchNames,
+    combinedBranchNames,
+    sharedBranchNames,
+    splitOnlyBranchNames,
+    combinedOnlyBranchNames,
+    splitNodeCount: splitNodes.length,
+    combinedNodeCount: combinedNodes.length,
+  };
 
   const observation = {
     schema: 'xml-cii-mode-b-observation/v1',
@@ -469,6 +498,7 @@ export function buildXmlCiiModeBObservation({ splitDocuments = [], combinedRefer
       diameterToleranceMm: Number.isFinite(Number(options.diameterToleranceMm)) ? Number(options.diameterToleranceMm) : 0.1,
       witnessSegmentCount: Number(options.witnessSegmentCount || 10),
     },
+    corpusCoverage,
     documents: [...parsedSplit.map((entry) => entry.document), ...(parsedCombined ? [parsedCombined.document] : [])],
     branches: [...splitBranches, ...combinedBranches],
     nodes: [...splitNodes, ...combinedNodes],
@@ -488,6 +518,9 @@ export function buildXmlCiiModeBObservation({ splitDocuments = [], combinedRefer
       splitNodeCount: splitNodes.length,
       combinedBranchCount: combinedBranches.length,
       combinedNodeCount: combinedNodes.length,
+      sharedBranchCount: sharedBranchNames.length,
+      splitOnlyBranchCount: splitOnlyBranchNames.length,
+      combinedOnlyBranchCount: combinedOnlyBranchNames.length,
       splitBranchSegmentCount: branchSegments.length,
       samePositionClusterCount: samePositionClusters.length,
       duplicateSourceNodeNumberCount: duplicateSourceNodeNumbers.length,
@@ -501,7 +534,11 @@ export function buildXmlCiiModeBObservation({ splitDocuments = [], combinedRefer
     diagnostics: [
       {
         type: 'mode-b-observation-summary',
-        message: `${parsedSplit.length} split document(s), ${splitNodes.length} split node(s), ${boundary.candidates.length} cross-document position candidate(s), ${boundary.ambiguous.length} ambiguous candidate(s), ${witnesses.length} combined-reference witness segment(s).`,
+        message: `${parsedSplit.length} split document(s), ${splitNodes.length} split node(s), ${boundary.candidates.length} cross-document position candidate(s), ${boundary.ambiguous.length} ambiguous candidate(s), ${witnesses.length} split-covered combined-reference witness segment(s).`,
+      },
+      {
+        type: 'mode-b-corpus-coverage',
+        message: `${sharedBranchNames.length} branch name(s) are shared by split and combined corpus; ${combinedOnlyBranchNames.length} combined-only and ${splitOnlyBranchNames.length} split-only branch name(s) are retained as explicit coverage deltas.`,
       },
       {
         type: 'mode-b-authority-boundary',
