@@ -1,0 +1,79 @@
+{
+  "schema": "xml-cii-mode-b-observation-fixture/v1",
+  "observationFingerprint": "fnv1a32:d7f8a61c",
+  "stats": {
+    "splitDocumentCount": 3,
+    "splitBranchCount": 7,
+    "splitNodeCount": 452,
+    "combinedBranchCount": 9,
+    "combinedNodeCount": 541,
+    "sharedBranchCount": 6,
+    "splitOnlyBranchCount": 1,
+    "combinedOnlyBranchCount": 3,
+    "samePositionClusterCount": 120,
+    "duplicateSourceNodeNumberCount": 76,
+    "teeFactCount": 8,
+    "restraintFactCount": 253,
+    "boundaryCandidateCount": 3,
+    "uniqueBoundaryCandidateCount": 1,
+    "ambiguousBoundaryCandidateCount": 2,
+    "witnessSegmentCount": 10
+  },
+  "corpusCoverage": {
+    "sharedBranchNames": [
+      "/ASIM-1836-2\"-D8810083-91261M7-PP-01/B1",
+      "/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1",
+      "/ASIM-1836-6\"-S8810011-91261M7-HC-01/B1",
+      "/ASIM-1836-6\"-S8810011-91261M7-HC-01/B6",
+      "/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1",
+      "/ASIM-1836-6\"-S8811956-91261M7-HC-01/B6"
+    ],
+    "splitOnlyBranchNames": [
+      "/ASIM-1836-6\"-S8811956-91261M7-HC-01/B2"
+    ],
+    "combinedOnlyBranchNames": [
+      "/ASIM-1836-2\"-D8810086-91261M7-PP-01/B1",
+      "/ASIM-1836-2\"-D8810183-91261M7-PP-01/B1",
+      "/ASIM-1836-2\"-D8810184-91261M7-PP-01/B1"
+    ]
+  },
+  "boundaryCandidates": [
+    {
+      "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::81::-1::1006657924/45726::3<=>split-2-SYS-6-S8810011-01.xml::/ASIM-1836-6\"-S8810011-91261M7-HC-01/B1::1::0::10::1006657924/45557::1",
+      "evidenceClass": "POSITION_ONLY",
+      "observationDisposition": "UNIQUE_CANDIDATE_OBSERVATION",
+      "distanceMm": 0,
+      "corroborationCount": 1,
+      "teeInvolved": true
+    },
+    {
+      "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2<=>split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::0::-1::1006649732/121345::1",
+      "evidenceClass": "CORROBORATED",
+      "observationDisposition": "AMBIGUOUS_CANDIDATE_OBSERVATION",
+      "distanceMm": 0,
+      "corroborationCount": 3,
+      "teeInvolved": false
+    },
+    {
+      "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2<=>split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::1::10::1006649732/121346::1",
+      "evidenceClass": "POSITION_ONLY",
+      "observationDisposition": "AMBIGUOUS_CANDIDATE_OBSERVATION",
+      "distanceMm": 0,
+      "corroborationCount": 1,
+      "teeInvolved": false
+    }
+  ],
+  "witnessBranchName": "/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1",
+  "witnesses": [
+    { "witnessId": "W01", "fromNodeNumber": "20", "toNodeNumber": "30", "fromComponentType": "RIGID", "toComponentType": "ATTA", "distanceMm": 353 },
+    { "witnessId": "W02", "fromNodeNumber": "30", "toNodeNumber": "40", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 1318.36 },
+    { "witnessId": "W03", "fromNodeNumber": "40", "toNodeNumber": "50", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W04", "fromNodeNumber": "50", "toNodeNumber": "60", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W05", "fromNodeNumber": "60", "toNodeNumber": "70", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W06", "fromNodeNumber": "70", "toNodeNumber": "80", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W07", "fromNodeNumber": "80", "toNodeNumber": "90", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 3202.82 },
+    { "witnessId": "W08", "fromNodeNumber": "90", "toNodeNumber": "100", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W09", "fromNodeNumber": "100", "toNodeNumber": "110", "fromComponentType": "ATTA", "toComponentType": "ATTA", "distanceMm": 0 },
+    { "witnessId": "W10", "fromNodeNumber": "110", "toNodeNumber": "-1", "fromComponentType": "ATTA", "toComponentType": "ELBO", "distanceMm": 523.8 }
+  ]
+}
