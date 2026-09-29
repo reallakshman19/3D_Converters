@@ -2,6 +2,7 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
@@ -14,6 +15,22 @@ import {
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
+
+function persistRunConfig(stateRef, config) {
+  if (!stateRef?.current) return config;
+  const current = stateRef.current;
+  const compactConfig = compactDatasetBackedConfig(config, current.masterContext || {});
+  const masterContext = current.masterContext
+    ? { ...current.masterContext, config: compactConfig }
+    : current.masterContext;
+  const routed = updateWorkflowState(current, {
+    supportConfigJson: JSON.stringify(compactConfig, null, 2),
+  });
+  stateRef.current = { ...routed, masterContext };
+  if (masterContext) saveMasterContextToLocalStorage(masterContext);
+  return compactConfig;
+}
+
 
 export function standaloneRunReviewRatingFromConfig(row, config) {
   return resolveStandaloneWeightReviewRating(row, config).rating;
@@ -134,13 +151,7 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
     if (Object.keys(newRatings).length > 0) {
       config.overrides = { ...(config.overrides || {}) };
       config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
-      if (stateRef?.current) {
-        stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
-        if (stateRef.current.masterContext) {
-          stateRef.current.masterContext.config = config;
-          saveMasterContextToLocalStorage(stateRef.current.masterContext);
-        }
-      }
+      if (stateRef?.current) persistRunConfig(stateRef, config);
     }
     const currentWeights = {};
     overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
@@ -235,11 +246,7 @@ async function reviewRigidWeights(stateRef, config) {
     if (result.cancelled) return false;
     if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
       const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
-      stateRef.current.supportConfigJson = JSON.stringify(finalConfig, null, 2);
-      if (stateRef.current.masterContext) {
-        stateRef.current.masterContext.config = finalConfig;
-        saveMasterContextToLocalStorage(stateRef.current.masterContext);
-      }
+      persistRunConfig(stateRef, finalConfig);
     }
     return true;
   } catch (error) {
