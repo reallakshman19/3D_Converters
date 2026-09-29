@@ -117,6 +117,25 @@ function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
   });
 }
 
+export function compactDatasetBackedConfig(config, context = {}) {
+  const next = { ...(config || {}) };
+  for (const [key, def] of Object.entries(MASTER_DEF_MAP)) {
+    const datasetRef = context?.datasetRefs?.[key];
+    if (!datasetRef?.datasetId) continue;
+    const section = { ...(next[def.configKey] || {}) };
+    delete section[def.rowsProperty];
+    if (!section.fieldMap && datasetRef.fieldMap) section.fieldMap = { ...datasetRef.fieldMap };
+    if (key === 'weight') {
+      const revision = Number(context?.appliedMappingRevision?.weight ?? section.masterRevision ?? 0);
+      const fingerprint = String(datasetRef.masterFingerprint || section.masterFingerprint || '');
+      if (Number.isFinite(revision) && revision > 0) section.masterRevision = revision;
+      if (fingerprint) section.masterFingerprint = fingerprint;
+    }
+    next[def.configKey] = section;
+  }
+  return next;
+}
+
 function rowCountFor(next, key, def) {
   const datasetCount = Number(next.datasetRefs?.[key]?.rowCount);
   return Number.isFinite(datasetCount) && datasetCount >= 0 ? datasetCount : (next?.[def.contextRowsKey] || []).length;

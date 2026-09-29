@@ -11,6 +11,7 @@ import {
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
+import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -43,9 +44,10 @@ function ensureWeightRows(config, masterContext) {
 }
 
 function persistConfig(stateRef, config) {
-  const masterContext = { ...(stateRef.current.masterContext || {}), config };
+  const compactConfig = compactDatasetBackedConfig(config, stateRef.current.masterContext || {});
+  const masterContext = { ...(stateRef.current.masterContext || {}), config: compactConfig };
   stateRef.current = updateWorkflowState(stateRef.current, {
-    supportConfigJson: JSON.stringify(config, null, 2),
+    supportConfigJson: JSON.stringify(compactConfig, null, 2),
     masterContext,
   });
   saveMasterContextToLocalStorage(stateRef.current.masterContext);
