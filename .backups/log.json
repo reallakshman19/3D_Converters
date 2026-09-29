@@ -1,5 +1,5 @@
 {
-  "lastId": 110,
+  "lastId": 111,
   "entries": [
     {
       "id": 1,
@@ -770,6 +770,13 @@
       "file": "tests/cii-v11-v14-ui-static.test.mjs",
       "context": "PR780 metadata consumer slice before edit",
       "backupFile": "110_tests_cii_v11_v14_ui_static_test_mjs.bak"
+    },
+    {
+      "id": 111,
+      "timestamp": "2026-09-29 12:02:41",
+      "file": "tests/fbx/test-fbx2-runtime-cache-chain.mjs",
+      "context": "PR780 shared app-shell cache token advance before edit",
+      "backupFile": "111_tests_fbx_test_fbx2_runtime_cache_chain_mjs.bak"
     }
   ]
 }
