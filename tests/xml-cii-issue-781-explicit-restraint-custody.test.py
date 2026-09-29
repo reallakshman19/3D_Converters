@@ -58,17 +58,31 @@ def source_position(node: ET.Element) -> tuple[float, float, float]:
     return values
 
 
-def restraint_section_rows(cii_text: str) -> list[tuple[str, ...]]:
+def restraint_section_lines(cii_text: str) -> list[str]:
     lines = cii_text.splitlines()
     start = lines.index("#$ RESTRANT") + 1
-    rows: list[tuple[str, ...]] = []
+    rows: list[str] = []
     for line in lines[start:]:
         if line.startswith("#$ "):
             break
-        tokens = tuple(line.split())
-        if tokens:
-            rows.append(tokens)
+        if line.strip():
+            rows.append(line)
     return rows
+
+
+def numeric_restraint_pairs(lines: list[str]) -> list[tuple[int, int]]:
+    pairs: list[tuple[int, int]] = []
+    for line in lines:
+        tokens = line.split()
+        if len(tokens) < 2:
+            continue
+        try:
+            node_number = int(round(float(tokens[0])))
+            type_code = int(round(float(tokens[1])))
+        except ValueError:
+            continue
+        pairs.append((node_number, type_code))
+    return pairs
 
 
 def assert_case(path: Path, node_name: str) -> None:
@@ -128,10 +142,10 @@ def assert_case(path: Path, node_name: str) -> None:
         f"{node_name}: explicit +Y restraint was not assigned into conversion model"
     )
 
-    expected_prefix = (str(retained_node_number), "14")
+    expected_pair = (retained_node_number, 14)
     payload = converter._build_restraint_payload(model, {})
-    writer_rows = [tuple(line.split()[:2]) for line in payload if len(line.split()) >= 2]
-    assert expected_prefix in writer_rows, (
+    writer_pairs = numeric_restraint_pairs(payload)
+    assert expected_pair in writer_pairs, (
         f"{node_name}: RESTRANT writer input lacks node {retained_node_number} type 14 row"
     )
 
@@ -142,8 +156,8 @@ def assert_case(path: Path, node_name: str) -> None:
         1.0,
         {},
     )
-    final_rows = restraint_section_rows(cii_text)
-    assert any(row[:2] == expected_prefix for row in final_rows if len(row) >= 2), (
+    final_pairs = numeric_restraint_pairs(restraint_section_lines(cii_text))
+    assert expected_pair in final_pairs, (
         f"{node_name}: final CII RESTRANT section lacks node {retained_node_number} type 14"
     )
 
