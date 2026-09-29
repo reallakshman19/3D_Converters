@@ -1,0 +1,52 @@
+name: PR780 Top Cache Chain Pre-Edit Backup
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr780-native-backup-top-cache.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  native-backup:
+    if: github.event.pull_request.number == 780 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Run repository-native top-cache backups
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker='PR780 worker Preview search top-cache pre-edit backup'
+          if grep -Fq "${marker}" .backups/log.json; then
+            echo "Native top-cache backup marker already present; nothing to do."
+            exit 0
+          fi
+          files=(
+            index.html
+            docs/index.html
+            main-rhbg-fitguard.js
+            docs/main-rhbg-fitguard.js
+            core/app.js
+            docs/core/app.js
+            core/app-standalone-runtime.js
+            docs/core/app-standalone-runtime.js
+          )
+          for file in "${files[@]}"; do
+            node utils/backup.js save "$file" "${marker}: $file"
+          done
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f .backups
+          if git diff --cached --quiet; then
+            echo "No backup changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(pr780): record top cache-chain backups"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
