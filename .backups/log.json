@@ -1,5 +1,5 @@
 {
-  "lastId": 210,
+  "lastId": 214,
   "entries": [
     {
       "id": 1,
@@ -1470,6 +1470,34 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
       "context": "PR780 phase D-D Preview transient hydration and Output metadata-only readiness before edit",
       "backupFile": "210_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 211,
+      "timestamp": "2026-09-29 14:10:06",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-store.js",
+      "context": "PR780 phase E-A metadata-only startup restore before edit",
+      "backupFile": "211_tabs_xml_cii_2019_standalone_workers_master_dataset_store_js.bak"
+    },
+    {
+      "id": 212,
+      "timestamp": "2026-09-29 14:10:06",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-store.js",
+      "context": "PR780 phase E-A metadata-only startup restore before edit",
+      "backupFile": "212_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_store_js.bak"
+    },
+    {
+      "id": 213,
+      "timestamp": "2026-09-29 14:10:06",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js",
+      "context": "PR780 phase E-A metadata-only startup restore before edit",
+      "backupFile": "213_tabs_xml_cii_2019_standalone_workers_master_dataset_startup_hydration_js.bak"
+    },
+    {
+      "id": 214,
+      "timestamp": "2026-09-29 14:10:06",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js",
+      "context": "PR780 phase E-A metadata-only startup restore before edit",
+      "backupFile": "214_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_startup_hydration_js.bak"
     }
   ]
 }
