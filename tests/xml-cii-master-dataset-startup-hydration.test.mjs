@@ -15,7 +15,7 @@ function installStorage(entries = {}) {
   return () => { globalThis.localStorage = previous; };
 }
 
-test('startup hydration restores IndexedDB-backed master rows without rebuilding supportConfig arrays', async () => {
+test('startup restore keeps IndexedDB-backed masters metadata-only with a bounded preview', async () => {
   const restore = installStorage({
     'xml-cii-master-source-lineList': JSON.stringify({
       source: 'large-lines.xlsx', datasetId: 'line-ds', rowCount: 50000,
@@ -23,9 +23,12 @@ test('startup hydration restores IndexedDB-backed master rows without rebuilding
     }),
   });
   const rows = Array.from({ length: 50000 }, (_, index) => ({ lineNo: `L-${index + 1}`, _rowIndex: index + 1 }));
+  let fullReads = 0;
+  let rangeReads = 0;
   const store = {
     async getMetadata(id) { return id === 'line-ds' ? { datasetId: id, rowCount: rows.length, fileName: 'large-lines.xlsx', mappingRows: [{ Line: 'L-1' }] } : null; },
-    async getRows(id) { return id === 'line-ds' ? rows : null; },
+    async getRowsRange(id, offset, limit) { rangeReads += 1; return id === 'line-ds' ? rows.slice(offset, offset + limit) : null; },
+    async getRows() { fullReads += 1; throw new Error('full dataset read must not occur'); },
   };
   const stateRef = {
     current: {
@@ -40,7 +43,9 @@ test('startup hydration restores IndexedDB-backed master rows without rebuilding
   try {
     const changed = await hydratePersistedMasterDatasets(stateRef, { store });
     assert.equal(changed, true);
-    assert.equal(stateRef.current.masterContext.lineRows.length, 50000);
+    assert.equal(stateRef.current.masterContext.lineRows.length, 0);
+    assert.equal(fullReads, 0);
+    assert.equal(rangeReads, 1);
     assert.equal(stateRef.current.masterContext.rowCounts.lineList, 50000);
     assert.equal(stateRef.current.masterContext.previewRows.lineList.length, 150);
     assert.deepEqual(stateRef.current.masterContext.mappingRows.lineList, [{ Line: 'L-1' }]);

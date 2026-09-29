@@ -1,4 +1,3 @@
-import { buildPipingClassIndex } from '../../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createIndexedDbDatasetStore } from './master-dataset-store.js';
 
@@ -8,6 +7,8 @@ const MASTER_DEFS = Object.freeze({
   materialMap: Object.freeze({ rowsKey: 'materialMapRows', configKey: 'material', rowsProperty: 'mapRows' }),
   weight: Object.freeze({ rowsKey: 'weightMasterRows', configKey: 'weight', rowsProperty: 'masterRows' }),
 });
+
+const STARTUP_PREVIEW_ROWS = 150;
 
 function storedJson(key) {
   if (typeof localStorage === 'undefined') return null;
@@ -51,12 +52,37 @@ function compactConfigSection(config, def, fieldMap) {
 
 async function loadDataset(store, masterKey, custody) {
   const metadata = await store.getMetadata(custody.datasetId);
-  const rows = await store.getRows(custody.datasetId);
-  if (!metadata || !Array.isArray(rows)) throw new Error(`Persisted ${masterKey} dataset is unavailable.`);
-  if (Number(custody.rowCount) !== rows.length) {
-    throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${rows.length}.`);
+  if (!metadata) throw new Error(`Persisted ${masterKey} dataset is unavailable.`);
+  const metadataCount = metadata.rowCount == null ? Number(custody.rowCount || 0) : Number(metadata.rowCount || 0);
+  if (metadataCount !== Number(custody.rowCount || 0)) {
+    throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`);
   }
-  return { masterKey, custody, metadata, rows };
+
+  let fullRows = null;
+  let previewRows;
+  if (typeof store.getRowsRange === 'function') {
+    previewRows = await store.getRowsRange(custody.datasetId, 0, STARTUP_PREVIEW_ROWS);
+  } else {
+    fullRows = await store.getRows(custody.datasetId);
+    previewRows = Array.isArray(fullRows) ? fullRows.slice(0, STARTUP_PREVIEW_ROWS) : null;
+  }
+  if (!Array.isArray(previewRows)) throw new Error(`Persisted ${masterKey} preview is unavailable.`);
+
+  const needsLegacyWeightFingerprint = masterKey === 'weight'
+    && !custody.masterFingerprint
+    && !metadata.masterFingerprint;
+  if (needsLegacyWeightFingerprint && !Array.isArray(fullRows)) fullRows = await store.getRows(custody.datasetId);
+  if (needsLegacyWeightFingerprint && (!Array.isArray(fullRows) || fullRows.length !== metadataCount)) {
+    throw new Error(`Persisted Weight fingerprint migration requires ${metadataCount} rows.`);
+  }
+
+  return {
+    masterKey,
+    custody,
+    metadata,
+    previewRows,
+    fingerprintRows: needsLegacyWeightFingerprint ? fullRows : null,
+  };
 }
 
 function applyLoadedDatasets(state, loaded) {
@@ -76,14 +102,14 @@ function applyLoadedDatasets(state, loaded) {
   for (const item of loaded) {
     const def = MASTER_DEFS[item.masterKey];
     const masterFingerprint = item.masterKey === 'weight'
-      ? String(item.custody.masterFingerprint || item.metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(item.rows))
+      ? String(item.custody.masterFingerprint || item.metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(item.fingerprintRows || []))
       : '';
-    context[def.rowsKey] = item.rows;
+    context[def.rowsKey] = [];
     context.rawRows[item.masterKey] = [];
-    context.mappingRows[item.masterKey] = Array.isArray(item.metadata.mappingRows) ? item.metadata.mappingRows.slice(0, 150) : [];
+    context.mappingRows[item.masterKey] = Array.isArray(item.metadata.mappingRows) ? item.metadata.mappingRows.slice(0, STARTUP_PREVIEW_ROWS) : [];
     context.datasetRefs[item.masterKey] = Object.freeze({
       datasetId: item.custody.datasetId,
-      rowCount: item.rows.length,
+      rowCount: item.custody.rowCount,
       masterKey: item.masterKey,
       fileName: item.metadata.fileName || item.custody.source,
       sheetName: item.metadata.sheetName || '',
@@ -91,14 +117,14 @@ function applyLoadedDatasets(state, loaded) {
       ...(masterFingerprint ? { masterFingerprint } : {}),
       persistence: 'indexeddb',
     });
-    context.rowCounts[item.masterKey] = item.rows.length;
-    context.previewRows[item.masterKey] = item.rows.slice(0, 150);
+    context.rowCounts[item.masterKey] = item.custody.rowCount;
+    context.previewRows[item.masterKey] = item.previewRows.slice(0, STARTUP_PREVIEW_ROWS);
     context.sourceMetadata[item.masterKey] = {
       key: item.masterKey,
       source: item.custody.source || item.metadata.fileName || 'IndexedDB',
       sourceType: 'indexeddb',
       status: 'loaded',
-      rowCount: item.rows.length,
+      rowCount: item.custody.rowCount,
     };
     context.appliedMappingRevision[item.masterKey] = item.custody.appliedRevision;
     config = compactConfigSection(config, def, item.custody.fieldMap);
@@ -110,16 +136,14 @@ function applyLoadedDatasets(state, loaded) {
       };
       delete config.weight.masterRows;
     }
+    if (item.masterKey === 'pipingClass') context.pipingClassIndex = null;
   }
   context.config = config;
-  if (loaded.some((item) => item.masterKey === 'pipingClass')) {
-    context.pipingClassIndex = buildPipingClassIndex(context.pipingClassRows || [], config.pipingClass || {});
-  }
   return {
     ...state,
     masterContext: context,
     supportConfigJson: JSON.stringify(config, null, 2),
-    importMastersWriteBackStatus: `Restored ${loaded.length} large master dataset${loaded.length === 1 ? '' : 's'} from IndexedDB.`,
+    importMastersWriteBackStatus: `Restored ${loaded.length} large master dataset${loaded.length === 1 ? '' : 's'} from IndexedDB as metadata-only custody.`,
   };
 }
 

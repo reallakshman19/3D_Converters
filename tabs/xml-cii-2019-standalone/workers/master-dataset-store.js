@@ -69,6 +69,31 @@ export function createIndexedDbDatasetStore(options = {}) {
     return rows;
   }
 
+  async function getRowsRange(datasetId, offset = 0, limit = 150) {
+    const metadata = await getMetadata(datasetId);
+    if (!metadata) return null;
+    const rowCount = Math.max(0, Number(metadata.rowCount || 0));
+    const start = Math.max(0, Math.min(rowCount, Number(offset) || 0));
+    const count = Math.max(0, Math.min(rowCount - start, Number(limit) || 0));
+    if (!count) return [];
+    const end = start + count;
+    const firstChunk = Math.floor(start / chunkRows);
+    const lastChunk = Math.floor((end - 1) / chunkRows);
+    const database = await db();
+    const tx = database.transaction(CHUNKS);
+    const store = tx.objectStore(CHUNKS);
+    const rows = [];
+    for (let index = firstChunk; index <= lastChunk; index += 1) {
+      const chunk = await requestResult(store.get(`${datasetId}:${index}`));
+      const chunkRowsValue = Array.isArray(chunk?.rows) ? chunk.rows : [];
+      const chunkStart = index * chunkRows;
+      const from = Math.max(0, start - chunkStart);
+      const to = Math.min(chunkRowsValue.length, end - chunkStart);
+      if (to > from) rows.push(...chunkRowsValue.slice(from, to));
+    }
+    return rows;
+  }
+
   async function deleteDataset(datasetId) {
     const metadata = await getMetadata(datasetId);
     if (!metadata) return false;
@@ -82,5 +107,5 @@ export function createIndexedDbDatasetStore(options = {}) {
     return true;
   }
 
-  return Object.freeze({ persistDataset, getMetadata, getRows, deleteDataset });
+  return Object.freeze({ persistDataset, getMetadata, getRows, getRowsRange, deleteDataset });
 }
