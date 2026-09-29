@@ -43,8 +43,18 @@ const summary = {
   schema: observation.schema,
   fingerprint: observation.fingerprint,
   stats: observation.stats,
+  corpusCoverage: observation.corpusCoverage,
   splitDocuments: observation.documents.filter((row) => row.documentRole === 'split-source'),
   combinedReference: observation.documents.find((row) => row.documentRole === 'combined-reference') || null,
+  boundaryCandidates: observation.boundaryCandidates.map((row) => ({
+    candidateId: row.candidateId,
+    documentA: row.documentA,
+    documentB: row.documentB,
+    distanceMm: row.distanceMm,
+    evidenceClass: row.evidenceClass,
+    observationDisposition: row.observationDisposition,
+    evidence: row.evidence,
+  })),
   witnesses: observation.combinedReferenceWitnesses.map((row) => ({
     witnessId: row.witnessId,
     branchName: row.branchName,
@@ -53,6 +63,7 @@ const summary = {
     fromComponentType: row.fromComponentType,
     toComponentType: row.toComponentType,
     distanceMm: row.distanceMm,
+    splitRefEvidence: row.splitRefEvidence,
   })),
   boundaryEvidenceClasses: Object.fromEntries(
     [...new Set(observation.boundaryCandidates.map((row) => row.evidenceClass))]
