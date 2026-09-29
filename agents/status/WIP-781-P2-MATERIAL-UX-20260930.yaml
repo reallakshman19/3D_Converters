@@ -9,7 +9,7 @@ agent_state: ACTIVE
 pr_recovery_state: HEALTHY
 handover_readiness: NOT_READY
 report_path: agents/WIP-781-P2-MATERIAL-UX-20260930_workreport.md
-current_stage: IMPLEMENTATION
+current_stage: VALIDATION
 blocker: NONE
 protocol_basis:
   protocol: V3.1
@@ -20,6 +20,10 @@ plan:
   step: STEP-781-05
   publication: IMPLEMENTATION_PLAN rev 1
   issue_comment_id: 5893573324
+implementation:
+  candidate_source: EXISTING_materialCodeCandidates
+  authoritative_field: materialCode_UNCHANGED
+  parallel_suggestion_field: NONE
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Back up editable Preview table, render existing materialCodeCandidates as review-only suggestions, add focused material/B31.3 authority regressions, then open a draft PR.
+exact_next_action: Open a draft PR and validate review-only candidate presentation, existing material authority, B31.3 fail-closed behavior, and inherited Issue 776 authority/browser qualification.
 last_updated: 2026-09-30
