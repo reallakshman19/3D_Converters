@@ -18,6 +18,15 @@ function storedJson(key) {
   }
 }
 
+function supportConfigFrom(state) {
+  try {
+    const parsed = JSON.parse(state?.supportConfigJson || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function datasetCustody(masterKey) {
   const custody = storedJson(`xml-cii-master-source-${masterKey}`);
   if (!custody || custody.persistenceMode !== 'indexeddb' || !custody.datasetId) return null;
@@ -49,8 +58,9 @@ async function loadDataset(store, masterKey, custody) {
 }
 
 function applyLoadedDatasets(state, loaded) {
-  const base = state.masterContext || { config: {} };
-  let config = { ...(base.config || {}) };
+  const persistedConfig = supportConfigFrom(state);
+  const base = state.masterContext || { config: persistedConfig };
+  let config = { ...persistedConfig, ...(base.config || {}) };
   const context = {
     ...base,
     rawRows: { ...(base.rawRows || {}) },
