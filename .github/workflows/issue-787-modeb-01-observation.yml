@@ -1,0 +1,42 @@
+name: Issue 787 Mode B Observation Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'scripts/xml-cii-mode-b-observe.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-observation.test.mjs'
+      - '.github/workflows/issue-787-modeb-01-observation.yml'
+      - 'Benchmarks/XML-CII-2019/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modeb-observation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run MODEB-01 real-corpus observation regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs
+      - name: Preserve existing single-document topology behavior
+        run: node tests/seljson-to-inputxml-topology-element-length.test.js
+      - name: Generate deterministic observation evidence
+        run: node scripts/xml-cii-mode-b-observe.mjs --out modeb-observation.json | tee modeb-observation-summary.json
+      - name: Upload MODEB-01 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-787-modeb-01-observation
+          path: |
+            modeb-observation.json
+            modeb-observation-summary.json
