@@ -1,5 +1,4 @@
 import { perfAddMs, perfCount, perfNow } from './xml-cii-adapted-perf.js';
-import { compactMasterConfig, assertMetadataOnlyMasterConfig } from '../workers/master-dataset-config.js';
 
 export const MASTER_DEF_MAP = Object.freeze({
   lineList: Object.freeze({ configKey: 'linelist', rowsProperty: 'masterRows', contextRowsKey: 'lineRows' }),
@@ -94,7 +93,10 @@ function committedConfig(config, def, fieldMap, normalizedRows, datasetRef) {
   if (datasetRef) delete section[def.rowsProperty];
   else section[def.rowsProperty] = normalizedRows;
   next[def.configKey] = section;
-  return datasetRef ? assertMetadataOnlyMasterConfig(compactMasterConfig(next)) : next;
+  if (datasetRef && Array.isArray(next?.[def.configKey]?.[def.rowsProperty])) {
+    throw new Error(`Dataset-backed ${def.configKey} config cannot contain ${def.rowsProperty}.`);
+  }
+  return next;
 }
 
 function datasetDescriptor(metadata, fieldMap) {
