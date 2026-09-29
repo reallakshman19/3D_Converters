@@ -1,7 +1,7 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20260929-dataset-worker-1', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20260929-dataset-worker-2', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
@@ -54,14 +54,18 @@ export function createMasterDatasetClient(options = {}) {
     });
   }
 
-  async function openFile(file, { masterKey, config = {}, currentMap = {}, jobId = makeRequestId('import') } = {}) {
-    if (!file?.arrayBuffer) throw new Error('File with arrayBuffer() is required.');
+  function openBuffer(buffer, { fileName = 'master.dat', masterKey, config = {}, currentMap = {}, fieldMapOverride = null, jobId = makeRequestId('import') } = {}) {
+    if (!(buffer instanceof ArrayBuffer)) throw new Error('ArrayBuffer is required.');
     if (!masterKey) throw new Error('masterKey is required.');
-    const buffer = await file.arrayBuffer();
-    const message = await request(MASTER_DATASET_COMMAND.OPEN_SOURCE, {
-      jobId, fileName: file.name || 'master.dat', masterKey, config, currentMap, buffer,
+    return request(MASTER_DATASET_COMMAND.OPEN_SOURCE, {
+      jobId, fileName, masterKey, config, currentMap, fieldMapOverride, buffer,
     }, [buffer]);
-    return message;
+  }
+
+  async function openFile(file, options = {}) {
+    if (!file?.arrayBuffer) throw new Error('File with arrayBuffer() is required.');
+    const buffer = await file.arrayBuffer();
+    return openBuffer(buffer, { ...options, fileName: file.name || options.fileName || 'master.dat' });
   }
 
   function selectSheet(jobId, sheetName) {
@@ -74,6 +78,10 @@ export function createMasterDatasetClient(options = {}) {
 
   function getRows(datasetId, offset = 0, limit = 150) {
     return request(MASTER_DATASET_COMMAND.GET_ROWS, { datasetId, offset, limit });
+  }
+
+  function getRawRows(datasetId, offset = 0, limit = 150) {
+    return request(MASTER_DATASET_COMMAND.GET_RAW_ROWS, { datasetId, offset, limit });
   }
 
   function releaseSource(jobId) {
@@ -100,7 +108,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openFile, selectSheet, search, getRows, releaseSource, releaseDataset,
-    cancelActiveImport, dispose,
+    openBuffer, openFile, selectSheet, search, getRows, getRawRows,
+    releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }
