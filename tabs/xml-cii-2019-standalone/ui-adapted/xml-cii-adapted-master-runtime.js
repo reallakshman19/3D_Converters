@@ -131,7 +131,7 @@ export function commitAppliedMaster({ context, config, key, fieldMap, rawRows, n
     ...runtime,
     [def.contextRowsKey]: rows,
     config: nextConfig,
-    rawRows: { ...runtime.rawRows, [key]: datasetRef ? [] : (Array.isArray(rawRows) ? rawRows : []) },
+    rawRows: { ...runtime.rawRows, [key]: Array.isArray(rawRows) ? rawRows : [] },
     datasetRefs: { ...(runtime.datasetRefs || {}), ...(datasetRef ? { [key]: datasetRef } : {}) },
     appliedMappingRevision: { ...runtime.appliedMappingRevision, [key]: nextRevision },
     mappingDrafts: drafts,
