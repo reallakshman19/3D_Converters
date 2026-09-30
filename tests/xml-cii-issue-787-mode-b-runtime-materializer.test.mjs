@@ -79,9 +79,10 @@ test('MODEB-04 canonicalizes source order and reproduces frozen split topology/n
   assert.equal(prepared.numbering.stats.nonPositiveSentinelCount, 218);
   assert.deepEqual(mapping(prepared.numbering), mapping(frozen.numbering), 'combined reference must not be needed to reproduce the frozen source→output numbering map');
   assert.equal(prepared.evidence.junctionAliasCount, 1);
+  assert.equal(prepared.sourceJunctions.incompatibleGroups.length, 0, 'real split corpus must not contain incompatible same-document canonical-junction groups');
 });
 
-test('MODEB-04 renders exactly one accepted helper alias and never promotes the weaker coincident identity', async () => {
+test('MODEB-04 renders accepted cross-document helper alias without promoting the weaker coincident identity', async () => {
   const prepared = prepareXmlCiiModeBRuntimeSource({ splitDocuments: await loadSplit(), sourceName: 'mode-b-real.xml' });
   assert.equal(prepared.aliases.length, 1);
   const alias = prepared.aliases[0];
@@ -100,9 +101,32 @@ test('MODEB-04 renders exactly one accepted helper alias and never promotes the 
   assert.notEqual(Number(weakRow.renderedNodeNumber), alias.renderedNodeNumber);
   assert.equal(Number(tagValue(weakCoincident, 'NodeNumber')), Number(weakRow.renderedNodeNumber));
 
-  assert.equal(prepared.evidence.materializationStats.aliasRewriteCount, 1);
-  assert.equal(prepared.evidence.materializationStats.positiveRewriteCount, 234);
-  assert.equal(prepared.evidence.materializationStats.sentinelPreservedCount, 217);
+  const stats = prepared.evidence.materializationStats;
+  assert.equal(stats.aliasRewriteCount, 1);
+  assert.equal(stats.sourceJunctionAliasRewriteCount, 10);
+  assert.equal(stats.positiveRewriteCount, 224);
+  assert.equal(stats.positiveRewriteCount + stats.sourceJunctionAliasRewriteCount, 234, 'render aliases must account for every frozen positive MODEB-03 ledger row exactly once');
+  assert.equal(stats.sentinelPreservedCount, 217);
+  assert.equal(prepared.evidence.sourceJunctionAliasCount, 10);
+});
+
+test('MODEB-04 preserves native-writer same-document Node 430 junction across S8810011 branch occurrences', async () => {
+  const prepared = prepareXmlCiiModeBRuntimeSource({ splitDocuments: await loadSplit() });
+  const group = prepared.sourceJunctions.groups.find((row) => row.sourceDocumentId.includes('SYS-6-S8810011-01.xml') && row.sourceNodeNumber === 430);
+  assert.ok(group, 'S8810011 source Node 430 must be recognized as a canonical shared junction');
+  assert.equal(group.memberCount, 2);
+  assert.equal(group.maxAnchorDistanceMm, 0);
+  const aliases = prepared.sourceJunctions.aliases.filter((row) => row.groupId === group.groupId);
+  assert.equal(aliases.length, 2);
+  assert.ok(aliases.some((row) => row.sourceIdentity.includes('1006657924/45557')));
+  assert.ok(aliases.some((row) => row.sourceIdentity.includes('1006657924/45669')));
+  assert.equal(new Set(aliases.map((row) => row.renderedNodeNumber)).size, 1);
+  assert.ok(new Set(aliases.map((row) => row.originalOutputNodeNumber)).size > 1, 'MODEB-03 occurrence ledger must remain distinct while runtime render restores the source junction');
+  for (const alias of aliases) {
+    const custody = prepared.custodyRows.find((row) => row.sourceIdentity === alias.sourceIdentity);
+    assert.equal(custody?.renderedAuthority, 'SOURCE_JUNCTION_ALIAS');
+    assert.equal(Number(custody?.renderedNodeNumber), group.renderedNodeNumber);
+  }
 });
 
 test('MODEB-04 preserves explicit +Y REST authority for the two issue witnesses through XML materialization', async () => {
@@ -111,7 +135,7 @@ test('MODEB-04 preserves explicit +Y REST authority for the two issue witnesses 
     const block = nodeBlockByName(prepared.sourceText, name);
     assert.ok(block, `${name} must remain in the materialized source`);
     assert.match(block, /<Restraint\b[\s\S]*?<Type>\+Y<\/Type>[\s\S]*?<\/Restraint>/i, `${name} must preserve explicit +Y restraint authority`);
-    assert.ok(Number(tagValue(block, 'NodeNumber')) > 0, `${name} must retain a positive MODEB-03 output number before native short-node cleanup`);
+    assert.ok(Number(tagValue(block, 'NodeNumber')) > 0, `${name} must retain a positive governed runtime NodeNumber before native short-node cleanup`);
   }
 });
 
@@ -149,12 +173,10 @@ test('MODEB-04 preserves the 10 combined-reference witness segment semantics ins
       .sort((a, b) => a.nodeIndex - b.nodeIndex);
     const fromIndex = branchNodes.findIndex((row) => row.normalizedComponentRefNo === fromRef.toUpperCase() && row.endpoint === witness.fromEndpoint);
     assert.ok(fromIndex >= 0, `${witness.witnessId} from endpoint must exist in split coverage`);
-    const from = branchNodes[fromIndex];
     const to = branchNodes[fromIndex + 1];
     assert.ok(to, `${witness.witnessId} must have a consecutive split endpoint`);
     assert.equal(to.normalizedComponentRefNo, toRef.toUpperCase(), `${witness.witnessId} to ComponentRefNo must match`);
     assert.equal(to.endpoint, witness.toEndpoint, `${witness.witnessId} to Endpoint must match`);
-    assert.deepEqual(from.point, witness.fromPosition ? from.point : from.point);
   }
 });
 
@@ -197,6 +219,7 @@ test('MODEB-04 runtime API delegates the prepared PSI XML through the unchanged 
   assert.equal(result.diagnostics.modeB.runtimeBound, true);
   assert.equal(result.diagnostics.modeB.productionDefault, false);
   assert.equal(result.diagnostics.modeB.junctionAliasCount, 1);
+  assert.equal(result.diagnostics.modeB.sourceJunctionAliasCount, 10);
   assert.match(result.logs[0], /^MODE_B_RUNTIME /);
 });
 
@@ -218,11 +241,14 @@ test('MODEB-04 leaves the normal single-file workflow API on its original source
   assert.equal(result.diagnostics.modeB, undefined);
 });
 
-test('MODEB-04 runtime/docs materializer and API remain byte-identical', async () => {
+test('MODEB-04 runtime/docs materializer, source-junction helper and API remain byte-identical', async () => {
   const runtimeCore = await readFile(new URL('../converters/xml-cii2019-core/topology/xml-cii-mode-b-runtime.js', import.meta.url), 'utf8');
   const docsCore = await readFile(new URL('../docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-runtime.js', import.meta.url), 'utf8');
+  const runtimeJunctions = await readFile(new URL('../converters/xml-cii2019-core/topology/xml-cii-mode-b-runtime-junctions.js', import.meta.url), 'utf8');
+  const docsJunctions = await readFile(new URL('../docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-runtime-junctions.js', import.meta.url), 'utf8');
   const runtimeApi = await readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js', import.meta.url), 'utf8');
   const docsApi = await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js', import.meta.url), 'utf8');
   assert.equal(docsCore, runtimeCore);
+  assert.equal(docsJunctions, runtimeJunctions);
   assert.equal(docsApi, runtimeApi);
 });
