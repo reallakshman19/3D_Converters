@@ -310,7 +310,7 @@ function writeCache(storageKey, fingerprint, data) { try { const payload = JSON.
 export function invalidateXmlCiiWeightCache() { try { localStorage.removeItem(WM_CACHE_KEY); } catch {} }
 export function invalidateXmlCiiPreviewCache() { try { localStorage.removeItem(PV_CACHE_KEY); } catch {} }
 
-export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, resolveWeightValidationMasterRows = null }) {
+export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, prepareWeightBasis = null, resolveWeightValidationMasterRows = null }) {
   if (!detailEl) return;
   const contentEl = detailEl.querySelector('#mc-wm-content');
   const statusEl = detailEl.querySelector('#mc-wm-status');
@@ -321,6 +321,17 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   let localIssues = [];
   let ratingMode = 'preview';
   const status = (message, tone) => { if (statusEl) { statusEl.textContent = message || ''; statusEl.className = `mc-diag-run-status ${tone || ''}`.trim(); } };
+  const basisProgressStatus = (event = {}) => {
+    const labels = {
+      'hydrating-applied-masters': 'Loading applied masters in Weight worker…',
+      'loading-runtime': 'Loading Weight basis runtime…',
+      'preparing-geometry': 'Preparing split/inline geometry in Weight worker…',
+      'applying-staged-geometry': 'Applying staged geometry in Weight worker…',
+      'collecting-weight-basis': 'Collecting Weight basis in worker…',
+      'validating-match1': `Validating Match-1 in worker${Number.isFinite(Number(event.issueCount)) ? ` · ${Number(event.issueCount)} component(s)` : ''}…`,
+    };
+    status(labels[event.stage] || 'Preparing Weight Match basis in worker…');
+  };
   const activeConfig = () => mergeRuntimeOverrides(mergeRuntimeOverrides(mergeRuntimeOverrides(config, currentDomSupportConfig()), getXmlCiiPreviewRuntimeConfig()), currentDomSupportConfig());
   const syncToggle = () => { if (!toggleEl) return; const on = convOn(activeConfig()); toggleEl.textContent = `⇄ in→mm: ${on ? 'ON' : 'OFF'}`; toggleEl.style.borderColor = on ? '#2f9e63' : ''; toggleEl.style.color = on ? '#fff' : ''; toggleEl.style.background = on ? '#14532d' : ''; };
   const syncRatingMode = () => {
@@ -438,35 +449,64 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         : stagedText(stagedJsonText).then((text) => ({ text, label: '' }));
       const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
       const jsonText = xmlCiiWeightRawPayloadText(stagedSource?.text ?? stagedSource);
-      status('Preparing Weight Match basis…');
-      await yieldWeightStatus();
-      const prepared = prepareXmlCiiWeightMatchGeometry(
-        xmlText,
-        jsonText,
-        enrichedOptionsForWeightMatch(liveConfig),
-      );
-      let preparedConfig = prepared.config || liveConfig;
-      let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
-      if (workerBackedWeight) {
-        cfg = { ...cfg, weight: { ...(cfg?.weight || {}) } };
-        delete cfg.weight.masterRows;
-        if (weightDatasetRef.masterFingerprint) cfg.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
-        const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? cfg.weight.masterRevision ?? 0);
-        if (revision > 0) cfg.weight.masterRevision = revision;
+      let cfg = liveConfig;
+      let validation = { stale: {}, staleCount: 0 };
+      let issueRows = [];
+      if (typeof prepareWeightBasis === 'function') {
+        status('Preparing Weight Match basis in worker…');
+        const basis = await prepareWeightBasis({
+          xmlText,
+          stagedJsonText: jsonText,
+          config: liveConfig,
+          ratingMode,
+          snapshot,
+          onProgress: basisProgressStatus,
+        });
+        if (!Array.isArray(basis?.issues)) throw new Error('Weight basis worker did not return issue rows.');
+        validation = basis.match1Validation || validation;
+        cfg = {
+          ...liveConfig,
+          overrides: {
+            ...(liveConfig?.overrides || {}),
+            rigidWeight: { ...(basis.effectiveRigidWeight || {}) },
+          },
+        };
+        issueRows = basis.issues
+          .map(cleanRow).filter(Boolean)
+          .map((row) => ({ ...row, staleMatch1: validation.stale?.[row.key] || null }));
       } else {
-        preparedConfig = await ensureWeightMasterRows(preparedConfig);
-        cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
-        if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+        status('Preparing Weight Match basis…');
+        await yieldWeightStatus();
+        const prepared = prepareXmlCiiWeightMatchGeometry(
+          xmlText,
+          jsonText,
+          enrichedOptionsForWeightMatch(liveConfig),
+        );
+        let preparedConfig = prepared.config || liveConfig;
+        cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
+        if (workerBackedWeight) {
+          cfg = { ...cfg, weight: { ...(cfg?.weight || {}) } };
+          delete cfg.weight.masterRows;
+          if (weightDatasetRef.masterFingerprint) cfg.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
+          const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? cfg.weight.masterRevision ?? 0);
+          if (revision > 0) cfg.weight.masterRevision = revision;
+        } else {
+          preparedConfig = await ensureWeightMasterRows(preparedConfig);
+          cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+          if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+        }
+        const geometryXml = applyXmlCiiStagedGeometryAuthority(prepared.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
+        const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg)
+          .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot));
+        const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
+        cfg = validated.config;
+        validation = validated.validation;
+        issueRows = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg), geometryXml)
+          .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot))
+          .map(cleanRow).filter(Boolean)
+          .map((row) => ({ ...row, staleMatch1: validation.stale?.[row.key] || null }));
       }
-      const geometryXml = applyXmlCiiStagedGeometryAuthority(prepared.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
-      const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg)
-        .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot));
-      const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
-      const validatedConfig = validated.config;
-      const issueRows = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml)
-        .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot))
-        .map(cleanRow).filter(Boolean)
-        .map((row) => ({ ...row, staleMatch1: validated.validation.stale?.[row.key] || null }));
+      const validatedConfig = cfg;
       if (workerBackedWeight) {
         status(`Ranking ${issueRows.length} component(s) with ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'}…`);
         const result = await rankWeightIssues(issueRows, { config: validatedConfig, ratingMode, snapshot });
@@ -476,8 +516,8 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       } else {
         localIssues = issueRows.map((row) => rerankWithRating(row, validatedConfig, { ratingMode, snapshot }));
       }
-      if (validated.validation.staleCount > 0) {
-        status(`${validated.validation.staleCount} stale Match-1 value(s) require re-acceptance because geometry/rating/master basis changed.`, 'bad');
+      if (validation.staleCount > 0) {
+        status(`${validation.staleCount} stale Match-1 value(s) require re-acceptance because geometry/rating/master basis changed.`, 'bad');
       }
       const mapped = localIssues.filter((row) => row.mapped).length;
       const suggested = localIssues.filter((row) => row.candidates?.[0]?.preferred).length;

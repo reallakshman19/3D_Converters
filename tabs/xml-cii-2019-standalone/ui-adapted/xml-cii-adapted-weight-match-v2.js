@@ -12,7 +12,7 @@ import {
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-weight-liveness-cache-1';
+import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-weight-liveness-cache-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-weight-ux-1';
 
 function text(value) {
@@ -170,6 +170,18 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
           previewRatingSnapshot: request.snapshot || {},
         });
       } : null,
+      prepareWeightBasis: async (request = {}) => {
+        const currentContext = stateRef.current.masterContext || {};
+        const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, currentContext);
+        return prepareMasterDatasetWeightBasis({
+          xmlText: request.xmlText || '',
+          stagedJsonText: request.stagedJsonText || '',
+          config: compactConfig,
+          datasetRefs: { ...(currentContext.datasetRefs || {}) },
+          ratingMode: request.ratingMode || 'preview',
+          previewRatingSnapshot: request.snapshot || {},
+        }, { onProgress: request.onProgress });
+      },
       resolveWeightValidationMasterRows: weightDatasetRef?.datasetId
         ? async () => materializeMasterDatasetRows('weight', weightDatasetRef)
         : async () => calculationBasis?.weight?.masterRows || [],
