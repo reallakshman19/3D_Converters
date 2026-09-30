@@ -8,6 +8,7 @@ import {
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
+import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20260930-issue781-a106-route-1';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
@@ -92,13 +93,15 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   try {
     const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    const branchRows = previewResult?.branchRows || [];
     installPreviewB313WallUpdateAuditController({
       host,
       config,
       xmlText,
-      rows: previewResult?.branchRows || [],
+      rows: branchRows,
       options,
     });
+    installPreviewB313AutoBasisPanel({ host, config, rows: branchRows });
   } catch (error) {
     console.error('Failed to build standalone preview table:', error);
     host.innerHTML = `<div class="xml-cii-phase-help" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">⚠ Build failed: ${esc(error?.message || error)}</div>`;
