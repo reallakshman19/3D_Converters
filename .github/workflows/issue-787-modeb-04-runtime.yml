@@ -48,9 +48,15 @@ jobs:
       - name: Run MODEB-04 materialization and workflow API regressions
         run: node --test tests/xml-cii-issue-787-mode-b-runtime-materializer.test.mjs
       - name: Materialize real three-source Mode B runtime evidence
-        run: node scripts/xml-cii-mode-b-runtime-materialize.mjs --xml-out /tmp/modeb-runtime.xml --evidence-out /tmp/modeb-runtime-evidence.json | tee modeb04-materialization-summary.json
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/xml-cii-mode-b-runtime-materialize.mjs --xml-out /tmp/modeb-runtime.xml --evidence-out /tmp/modeb-runtime-evidence.json | tee modeb04-materialization-summary.json
       - name: Prove shared junction in native XML-to-CII writer model
-        run: python3 tests/xml-cii-issue-787-mode-b-native-writer.test.py /tmp/modeb-runtime.xml /tmp/modeb-runtime-evidence.json | tee modeb04-native-writer-summary.json
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tests/xml-cii-issue-787-mode-b-native-writer.test.py /tmp/modeb-runtime.xml /tmp/modeb-runtime-evidence.json | tee modeb04-native-writer-summary.json
       - name: Preserve frozen MODEB-03 numbering authority
         run: node --test tests/xml-cii-issue-787-mode-b-numbering.test.mjs tests/xml-cii-issue-787-mode-b-numbering-fixture.test.mjs
       - name: Preserve frozen MODEB-02 graph authority
