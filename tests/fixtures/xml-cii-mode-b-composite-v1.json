@@ -1,0 +1,43 @@
+{
+  "schema": "xml-cii-mode-b-composite/v1",
+  "sourceObservationFingerprint": "fnv1a32:d7f8a61c",
+  "fingerprint": "fnv1a32:d5104931",
+  "stats": {
+    "vertexCount": 452,
+    "sourceEdgeCount": 445,
+    "observedCandidateCount": 3,
+    "acceptedCrossDocumentEdgeCount": 1,
+    "ambiguousCandidateCount": 0,
+    "rejectedCandidateCount": 0,
+    "insufficientEvidenceCandidateCount": 2,
+    "connectedComponentCount": 6
+  },
+  "accepted": {
+    "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2<=>split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::0::-1::1006649732/121345::1",
+    "score": 10,
+    "routeCompatibility": "MATCH",
+    "originalEvidenceClass": "CORROBORATED"
+  },
+  "insufficient": [
+    {
+      "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::81::-1::1006657924/45726::3<=>split-2-SYS-6-S8810011-01.xml::/ASIM-1836-6\"-S8810011-91261M7-HC-01/B1::1::0::10::1006657924/45557::1",
+      "score": 6,
+      "routeCompatibility": "MATCH",
+      "originalEvidenceClass": "POSITION_ONLY"
+    },
+    {
+      "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2<=>split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::1::10::1006649732/121346::1",
+      "score": 6,
+      "routeCompatibility": "MATCH",
+      "originalEvidenceClass": "POSITION_ONLY"
+    }
+  ],
+  "componentSummary": [
+    { "vertexCount": 183, "sourceDocumentCount": 2 },
+    { "vertexCount": 36, "sourceDocumentCount": 1 },
+    { "vertexCount": 98, "sourceDocumentCount": 1 },
+    { "vertexCount": 43, "sourceDocumentCount": 1 },
+    { "vertexCount": 40, "sourceDocumentCount": 1 },
+    { "vertexCount": 52, "sourceDocumentCount": 1 }
+  ]
+}
