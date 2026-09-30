@@ -1,5 +1,5 @@
 import { bindMasterWorkerImportEvents } from './xml-cii-adapted-master-worker-events.js?v=20260929-pr780-bounded-ui-1';
-import { bindMasterMappingEvents } from './xml-cii-adapted-master-mapping-events.js';
+import { bindMasterMappingEvents } from './xml-cii-adapted-master-mapping-events.js?v=20260930-issue781-weight-liveness-1';
 
 export {
   autoMapStandaloneMasterFields,
@@ -8,7 +8,7 @@ export {
   loadImportMastersFromUi,
   mapRowsWithFieldMap,
   updateMasterFieldMap,
-} from './xml-cii-adapted-master-mapping-events.js';
+} from './xml-cii-adapted-master-mapping-events.js?v=20260930-issue781-weight-liveness-1';
 
 export function bindImportMastersEvents(container, stateRef, render) {
   bindMasterWorkerImportEvents(container, stateRef, render);
