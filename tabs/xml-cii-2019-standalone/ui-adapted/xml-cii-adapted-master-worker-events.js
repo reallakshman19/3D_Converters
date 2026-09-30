@@ -175,13 +175,23 @@ function bindPathEvents(container, stateRef, render) {
   });
 }
 
+function reportMissingWorkbookSource(select, stateRef, key, render) {
+  const activeSheet = stateRef.current.masterContext?.activeSheet?.[key] || '';
+  if (activeSheet) select.value = activeSheet;
+  const sourceName = stateRef.current.masterContext?.sourceMetadata?.[key]?.source || 'the workbook';
+  const message = `Re-import ${sourceName} before switching worksheets. Workbook bytes are session-only after reload; the current applied dataset and Preview remain unchanged.`;
+  stateRef.current = updateWorkflowState(stateRef.current, { importMastersWriteBackStatus: message });
+  requestMeasuredFullRender(render);
+  alert(message);
+}
+
 function bindSheetEvents(container, stateRef, render) {
   container.querySelectorAll('[data-master-sheet-select]').forEach((select) => {
     select.addEventListener('change', async () => {
       const key = select.dataset.masterSheetSelect;
-      const generation = nextGeneration(key);
       const source = importSources.get(key);
-      if (!source) return;
+      if (!source) return reportMissingWorkbookSource(select, stateRef, key, render);
+      const generation = nextGeneration(key);
       try {
         const ready = await coordinator.selectSheet(key, select.value);
         if (!isCurrent(key, generation)) return;
