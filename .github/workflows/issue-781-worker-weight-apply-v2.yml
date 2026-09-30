@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Replay guarded architectural repair against actual dispatch shape
+      - name: Replay guarded architectural repair against actual service contracts
         shell: bash
         run: |
           python3 <<'PY'
@@ -35,15 +35,34 @@ jobs:
               raise SystemExit('Could not recover guarded apply script.')
           script = textwrap.dedent(match.group('body'))
           lines = script.splitlines()
-          replaced = 0
+          dispatch_replaced = 0
+          request_id_replaced = 0
           for index, line in enumerate(lines):
               if 'replace_once(svc' in line and 'MASTER_DATASET_COMMAND.SEARCH' in line:
                   lines[index] = "replace_once(svc, \"      case MASTER_DATASET_COMMAND.SEARCH: return search(message);\", \"      case MASTER_DATASET_COMMAND.SEARCH: return search(message);\\n      case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);\")"
-                  replaced += 1
-          if replaced != 1:
-              raise SystemExit(f'Expected one worker dispatch patch anchor, found {replaced}.')
+                  dispatch_replaced += 1
+              if 'return response(MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT, message, {' in line:
+                  lines[index] = line.replace('WEIGHT_MATCH_RESULT, message, {', 'WEIGHT_MATCH_RESULT, message.requestId, {')
+                  request_id_replaced += 1
+          if dispatch_replaced != 1:
+              raise SystemExit(f'Expected one worker dispatch patch anchor, found {dispatch_replaced}.')
+          if request_id_replaced != 1:
+              raise SystemExit(f'Expected one Weight response requestId correction, found {request_id_replaced}.')
           script = '\n'.join(lines) + '\n'
           exec(compile(script, '<issue-781-worker-weight-apply-v2>', 'exec'), {'__name__': '__main__'})
+
+          test_path = Path('tests/xml-cii-issue-781-worker-weight-api.test.mjs')
+          test_source = test_path.read_text()
+          old_search = "              searchDataset: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
+          new_search = "              buildSearchCorpus: (rows) => rows.map((row) => Object.values(row).join(' ').toLowerCase()),\n              searchCorpusIndexes: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
+          if old_search not in test_source:
+              raise SystemExit('Synthetic service search dependency anchor missing.')
+          test_source = test_source.replace(old_search, new_search, 1)
+          old_reject = "            const result = await svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} });\n            assert.equal(result.type, MASTER_DATASET_EVENT.ERROR);\n            assert.match(result.error.message, /requires a weight dataset/i);"
+          new_reject = "            await assert.rejects(\n              () => svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} }),\n              /requires a weight dataset/i,\n            );"
+          if old_reject not in test_source:
+              raise SystemExit('Synthetic non-weight rejection assertion anchor missing.')
+          test_path.write_text(test_source.replace(old_reject, new_reject, 1))
           PY
       - name: Syntax-check touched runtime files
         run: |
