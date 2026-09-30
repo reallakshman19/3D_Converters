@@ -3,6 +3,7 @@ import {
   B313_PREVIEW_REPORT_SCHEMA,
   buildPreviewB313WallUpdateReport,
   installPreviewB313WallUpdateController,
+  selectPreviewB313ActionRows,
 } from './xml-cii-adapted-preview-b313-wall-update.js?v=20260928-issue776-authority-1';
 import { XML_CII_PREVIEW_LEGACY_CACHE_KEY } from './xml-cii-adapted-preview-cache-v7.js';
 
@@ -52,6 +53,14 @@ function readLegacyBranchRows() {
   } catch {
     return [];
   }
+}
+
+function currentPreviewRows(host, suppliedRows = []) {
+  return selectPreviewB313ActionRows({
+    host,
+    suppliedRows,
+    legacyRows: readLegacyBranchRows(),
+  });
 }
 
 export function selectPreviewB313AuditRows(snapshot = [], live = []) {
@@ -236,7 +245,7 @@ function renderReport(host, report) {
   actionBar?.parentElement?.insertAdjacentHTML?.('afterend', renderPreviewB313WallAuditHtml(report));
 }
 
-function bindAuditButton(host, config, xmlText, options, getSnapshotRows) {
+function bindAuditButton(host, config, xmlText, options, getSnapshotRows, getLiveRows) {
   const button = host?.querySelector?.('[data-mc-b313-wall-update]');
   if (!button || button.dataset.mcB313AuditV2Bound === 'true') return;
   button.dataset.mcB313AuditV2Bound = 'true';
@@ -244,7 +253,7 @@ function bindAuditButton(host, config, xmlText, options, getSnapshotRows) {
     event.preventDefault();
     event.stopImmediatePropagation();
     button.disabled = true;
-    const liveRows = readLegacyBranchRows();
+    const liveRows = normalizeRows(getLiveRows?.());
     const rows = selectPreviewB313AuditRows(getSnapshotRows(), liveRows);
     try {
       const report = rows.length
@@ -276,16 +285,18 @@ function bindAuditButton(host, config, xmlText, options, getSnapshotRows) {
   }, { capture: true });
 }
 
-export function installPreviewB313WallUpdateAuditController({ host, config, xmlText, options = {} } = {}) {
+export function installPreviewB313WallUpdateAuditController({ host, config, xmlText, rows = [], options = {} } = {}) {
   if (!host || !config) return;
-  installPreviewB313WallUpdateController({ host, config, xmlText, options });
+  const suppliedRows = snapshotRows(rows);
+  installPreviewB313WallUpdateController({ host, config, xmlText, rows: suppliedRows, options });
 
   host.__xmlCiiB313WallAuditObserver?.disconnect?.();
-  let retainedRows = snapshotRows(readLegacyBranchRows());
+  let retainedRows = snapshotRows(currentPreviewRows(host, suppliedRows));
+  const getLiveRows = () => currentPreviewRows(host, suppliedRows);
   const refresh = () => {
-    const liveRows = readLegacyBranchRows();
+    const liveRows = getLiveRows();
     if (liveRows.length) retainedRows = snapshotRows(liveRows);
-    bindAuditButton(host, config, xmlText, options, () => retainedRows);
+    bindAuditButton(host, config, xmlText, options, () => retainedRows, getLiveRows);
   };
   refresh();
   if (typeof MutationObserver !== 'undefined') {

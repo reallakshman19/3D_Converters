@@ -1,0 +1,123 @@
+name: Issue 781 P0 XML-CII Validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p0-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate B31.3 live Preview row custody
+        run: node tests/xml-cii-issue-781-b313-live-row-custody.test.js
+
+      - name: Validate explicit REST custody to CII writer
+        run: python3 tests/xml-cii-issue-781-explicit-restraint-custody.test.py
+
+      - name: Run adjacent B31.3 and restraint regressions on PR head
+        id: adjacent_head
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-b313-preview-ui-static.test.js \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs 2>&1 | tee issue-781-adjacent-head.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Checkout PR base for adjacent baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          path: __issue781_base
+
+      - name: Run adjacent B31.3 and restraint regressions on PR base
+        id: adjacent_base
+        shell: bash
+        working-directory: __issue781_base
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-b313-preview-ui-static.test.js \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs 2>&1 | tee ../issue-781-adjacent-base.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Classify adjacent regressions against baseline
+        id: adjacent_diff
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          head_status="${{ steps.adjacent_head.outputs.status }}"
+          base_status="${{ steps.adjacent_base.outputs.status }}"
+
+          normalize_failures() {
+            sed -nE 's/^[[:space:]]*not ok [0-9]+ - (.*)$/\1/p' "$1" \
+              | sed -E 's/[[:space:]]+#.*$//' \
+              | sort
+          }
+
+          normalize_failures issue-781-adjacent-head.log > issue-781-adjacent-head.failures.txt
+          normalize_failures issue-781-adjacent-base.log > issue-781-adjacent-base.failures.txt
+          comm -23 issue-781-adjacent-head.failures.txt issue-781-adjacent-base.failures.txt \
+            > issue-781-adjacent-new.failures.txt
+
+          status=0
+          classification="head-pass"
+          if [ "${head_status}" != "0" ]; then
+            if [ ! -s issue-781-adjacent-head.failures.txt ]; then
+              status=1
+              classification="unclassified-head-failure"
+            elif [ "${base_status}" = "0" ]; then
+              status=1
+              classification="new-head-failure"
+            elif [ -s issue-781-adjacent-new.failures.txt ]; then
+              status=1
+              classification="new-failure-identity"
+            else
+              classification="baseline-only-failures"
+            fi
+          fi
+
+          echo "Adjacent applicability: head=${head_status} base=${base_status} classification=${classification}"
+          if [ -s issue-781-adjacent-new.failures.txt ]; then
+            echo "New adjacent failures introduced by PR head:"
+            cat issue-781-adjacent-new.failures.txt
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          echo "classification=${classification}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Enforce applicable P0 regression result
+        if: always()
+        shell: bash
+        run: |
+          echo "adjacent=${{ steps.adjacent_diff.outputs.status }} classification=${{ steps.adjacent_diff.outputs.classification }}"
+          test "${{ steps.adjacent_diff.outputs.status }}" = "0"
