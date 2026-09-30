@@ -57,7 +57,7 @@ function stageMapping(stateRef, key, fieldMap, statusMessage) {
 
 function mappingStatusText(status) {
   return status.dirty
-    ? `Mapping status: MODIFIED — NOT APPLIED. Current calculation basis: Applied mapping revision ${status.revision}. Preview uses applied mapping revision ${status.revision}.`
+    ? `Mapping changed — click Apply mapping to use this selection in Preview. Current calculation basis remains applied mapping revision ${status.revision}.`
     : `Mapping status: APPLIED. Revision: ${status.revision}. Preview uses applied mapping revision ${status.revision}.`;
 }
 
