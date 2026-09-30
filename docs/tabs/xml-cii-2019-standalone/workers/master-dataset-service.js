@@ -1,5 +1,5 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-worker-weight-api-1';
-import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-worker-weight-api-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-weight-liveness-cache-1';
+import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-weight-liveness-cache-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';

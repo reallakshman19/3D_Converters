@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindSmartWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260929-pr780-bounded-ui-1';
+import { bindAdaptedWorkflowEvents as bindSmartWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260930-issue781-weight-liveness-cache-1';
 import { downloadTextFile } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { activateModeASource, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
 import {

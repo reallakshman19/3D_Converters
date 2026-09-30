@@ -1,6 +1,6 @@
 import { MASTER_FIELDS } from '../ui-adapted/xml-cii-adapted-fields-config.js';
 import { fuzzyAutoMapFields } from '../ui-adapted/xml-cii-adapted-fuzzy-mapper.js';
-import { detectLineListFieldMap, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js?v=20260930-issue781-worker-weight-api-1';
+import { detectLineListFieldMap, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js?v=20260930-issue781-weight-liveness-cache-1';
 import { refineLineListFieldMap } from '../xml-cii-linelist-header-band.js?v=20260930-issue781-linelist-integration-2';
 
 function text(value) {
