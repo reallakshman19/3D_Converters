@@ -23,6 +23,10 @@ export function rankMasterDatasetWeightIssues(masterKey, datasetId, issues = [],
   return masterDatasetCoordinator.rankWeightIssues(masterKey, issues, config, options, datasetId);
 }
 
+export function prepareMasterDatasetWeightBasis(payload = {}, options = {}) {
+  return masterDatasetCoordinator.prepareWeightBasis(payload, options);
+}
+
 export async function materializeMasterDatasetRows(masterKey, datasetRef = {}) {
   const datasetId = String(datasetRef?.datasetId || '');
   const rowCount = Math.max(0, Number(datasetRef?.rowCount) || 0);
