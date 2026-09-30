@@ -1,9 +1,13 @@
 import { deriveLineKeyFromBranchName, tokenAtPosition } from './regex-line-key.js';
 import { computeLineNoKey } from './linelist-mapping.js';
-import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-basis-linear-1';
+import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { resolveBranchProcessData } from './branch-process-resolver.js';
 import { buildDtxrContext, resolveDtxrForXmlNode } from './dtxr-resolver.js';
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
+import {
+  buildXmlCiiStagedGeometryIndex,
+  resolveXmlCiiStagedGeometryForNode,
+} from './staged-geometry-authority.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 function toText(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -541,7 +545,11 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
   if (document.getElementsByTagName('parsererror').length) return [];
   const lightweightBasis = options.lightweightBasis === true;
   let dtxrContext = null;
+  let stagedGeometryIndex = null;
   const getDtxrContext = () => (dtxrContext ||= buildDtxrContext(stagedJsonText, config));
+  const getStagedGeometryIndex = () => (
+    stagedGeometryIndex ||= buildXmlCiiStagedGeometryIndex(stagedJsonText)
+  );
   const pipingClassIndex = lightweightBasis ? null : buildPipingClassIndex(config.pipingClass?.masterRows || []);
   const lineListIndex = lightweightBasis ? null : buildWeightLineListIndex(config);
   const rows = [];
@@ -563,17 +571,27 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       const dtxrText = dtxrResult?.suppressed ? '' : toText(dtxrResult?.canonicalText);
       const dtxrSourcePath = dtxrResult?._sourcePath || '';
       const reviewNode = isXmlCiiWeightReviewNode(node, dtxrText);
-      const explicitLength = xmlText(node, 'ElementLengthMm') ? xmlCiiNumberText(xmlText(node, 'ElementLengthMm')) : null;
-      const lengthMm = explicitLength !== null ? explicitLength : forwardLengths[nodeIdx];
+      const reviewEndpoint = isXmlCiiWeightReviewEndpoint(node);
+      if (!reviewNode || !reviewEndpoint) return;
+      const stagedGeometry = options.resolveStagedGeometryLazily === true
+        ? resolveXmlCiiStagedGeometryForNode(node, getStagedGeometryIndex())
+        : null;
+      const stagedLength = xmlCiiNumberText(stagedGeometry?.lengthMm);
+      const explicitLength = xmlText(node, 'ElementLengthMm')
+        ? xmlCiiNumberText(xmlText(node, 'ElementLengthMm'))
+        : null;
+      const lengthMm = stagedLength !== null
+        ? stagedLength
+        : (explicitLength !== null ? explicitLength : forwardLengths[nodeIdx]);
       const weight = xmlCiiNumberText(xmlText(node, 'Weight'));
       const overrideWeight = xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
       const mappedWeight = overrideWeight ?? weight;
       const isMapped = mappedWeight !== null && mappedWeight > 0;
-      const reviewEndpoint = isXmlCiiWeightReviewEndpoint(node);
       if (mode === 'all-review-nodes') {
-        if (!reviewNode || !reviewEndpoint || lengthMm === null || lengthMm <= 6) return;
-      } else if (!reviewNode || !reviewEndpoint || lengthMm === null || (weight !== null && Math.abs(weight) > 1e-12)) return;
-      let boreMm = xmlCiiNumberText(xmlText(node, 'BoreMm'));
+        if (lengthMm === null || lengthMm <= 6) return;
+      } else if (lengthMm === null || (weight !== null && Math.abs(weight) > 1e-12)) return;
+      let boreMm = xmlCiiNumberText(stagedGeometry?.boreMm);
+      if (boreMm === null) boreMm = xmlCiiNumberText(xmlText(node, 'BoreMm'));
       if (boreMm === null) {
         const od = xmlCiiNumberText(xmlText(node, 'OutsideDiameter'));
         if (od !== null) boreMm = nominalDnFromOd(od);
@@ -602,7 +620,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
         : (nearestNumberedDisplays[nodeIdx]
           || xmlCiiWeightReviewNodeFallbackId(node, nodeIdx)
           || nodeNumber);
-      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
+      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: stagedLength !== null || explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
     });
   }
   return rows;
@@ -618,6 +636,7 @@ export function collectXmlCiiWeightMatchBasisRows(xmlTextVal, stagedJsonText, co
       rankCandidates: false,
       lightweightBasis: true,
       skipKnownNonReviewDtxr: true,
+      resolveStagedGeometryLazily: true,
     },
   );
 }
