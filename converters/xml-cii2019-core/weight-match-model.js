@@ -392,13 +392,21 @@ function lineListRowKey(row, config) {
   return rowText(row, ['lineNoKey', 'lineNo', 'lineKey', 'LineNo', 'Line No', 'Line Number', 'PipelineReference']);
 }
 
-function lineListRowForBranch(branchName, config) {
+function buildWeightLineListIndex(config) {
   const rows = Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows : [];
+  const index = new Map();
+  for (const row of rows) {
+    const key = normalizeLineKey(lineListRowKey(row, config));
+    if (key && !index.has(key)) index.set(key, row);
+  }
+  return index;
+}
+
+function lineListRowForBranch(branchName, config, lineListIndex) {
   const lineKey = deriveLineKeyFromBranchName(branchName, config);
   const wanted = normalizeLineKey(lineKey);
   if (!wanted) return { lineKey: '', row: null };
-  for (const row of rows) if (normalizeLineKey(lineListRowKey(row, config)) === wanted) return { lineKey, row };
-  return { lineKey, row: null };
+  return { lineKey, row: lineListIndex?.get(wanted) || null };
 }
 
 function looksLikeNpsToken(value) {
@@ -461,9 +469,9 @@ function ratingOverrideForBranch(config, { lineKey, branchName, lineRow, request
   return toText(config?.rating?.defaultRating || config?.defaultRating || '').trim();
 }
 
-function resolveRigidWeightBranchContext(branch, config, pipingClassIndex) {
+function resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex) {
   const branchName = xmlText(branch, 'Branchname');
-  const { lineKey, row: lineRow } = lineListRowForBranch(branchName, config);
+  const { lineKey, row: lineRow } = lineListRowForBranch(branchName, config, lineListIndex);
   const derivedClass = derivePipingClassFromBranchName(branchName, config);
   const requestedPipingClass = rowText(lineRow, ['pipingClass', 'Piping Class', 'PIPING_CLASS']) || derivedClass;
   const manualRating = ratingOverrideForBranch(config, { lineKey, branchName, lineRow, requestedPipingClass });
@@ -489,9 +497,10 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
   if (document.getElementsByTagName('parsererror').length) return [];
   const dtxrContext = buildDtxrContext(stagedJsonText, config);
   const pipingClassIndex = buildPipingClassIndex(config.pipingClass?.masterRows || []);
+  const lineListIndex = buildWeightLineListIndex(config);
   const rows = [];
   for (const branch of [...document.getElementsByTagName('Branch')]) {
-    const branchContext = resolveRigidWeightBranchContext(branch, config, pipingClassIndex);
+    const branchContext = resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex);
     const branchName = branchContext.branchName;
     const branchNodeList = xmlChildrenByName(branch, 'Node');
     const forwardLengths = xmlCiiForwardElementLengths(branchNodeList);
