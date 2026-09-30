@@ -1,0 +1,27 @@
+schema: AgentTaskClaim.v1
+repository: reallaksh19/3D_Converters
+issue: 787
+parent_issue: 781
+workstream: XML_CII_MODE_B_04_RUNTIME_HANDOFF
+step: MODEB-04
+branch: agent/issue-787-modeb-04-runtime-handoff-20260930
+criticality: ENGINEERING_CRITICAL
+owned_outcome: Materialize frozen Mode B topology/numbering into existing XML-CII writer input and prove whole-system authority/parity without changing upstream join or numbering decisions.
+dependency_head: 7e2739597868bc39bba2594bca3528ee0d03a6e7
+frozen_authority:
+  observation: fnv1a32:d7f8a61c
+  composite: fnv1a32:d5104931
+  numbering: fnv1a32:2eb8628d
+allowed_changes:
+  - Mode B source materializer / runtime handoff core and docs mirror
+  - runtime binding limited to Mode B path after explicit selection
+  - whole-system benchmark and authority tests
+  - governing InputxmltoCII2019Fixplan programme update required by runtime binding
+  - MODEB-04 CI and recovery/status records
+forbidden_changes:
+  - MODEB-01 candidate generation semantics
+  - MODEB-02 scoring/acceptance or accepted edge identity
+  - MODEB-03 traversal/numbering semantics
+  - Mode A conversion semantics
+  - default Mode B enablement or UI selection (MODEB-05)
+merge_authority: OWNER_ONLY_NOT_GRANTED
