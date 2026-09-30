@@ -11,11 +11,15 @@ import {
   xmlCiiWeightRawPayloadText,
 } from '../../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { publishXmlCiiPreviewRatingSnapshot } from '../../converters/xml-cii2019-core/preview-rating-snapshot.js';
-import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js?v=20260930-issue781-screenshot-repair-1';
 
 const MAX_WALL_MS = 5000;
 const MAX_FRAME_GAP_MS = 250;
-const PIPE_COUNT = 1654;
+const BRANCH_COUNT = 41;
+const TARGET_PIPE_COUNT = 53;
+const OTHER_BRANCH_PIPE_COUNT = 40;
+const PIPE_COUNT = TARGET_PIPE_COUNT + (BRANCH_COUNT - 1) * OTHER_BRANCH_PIPE_COUNT;
+const TOTAL_XML_NODES = PIPE_COUNT + 1;
 const STAGED_FILLER_COUNT = 8000;
 const DTXR_RAW = 'GATE   VALVE';
 const SOURCE_NOTE_PADDING = 'X'.repeat(384);
@@ -26,17 +30,24 @@ const UNRELATED_DATASET_REFS = {
   materialMap: { datasetId: 'must-not-hydrate-material-map', rowCount: AUTHORITY_DATASET_ROWS },
 };
 
-function pipeNodes() {
-  return Array.from({ length: PIPE_COUNT }, (_, index) => {
+function pipeNodes(count) {
+  return Array.from({ length: count }, (_, index) => {
     const nodeNo = (index + 1) * 10;
     const x = index * 10;
     return `<Node><NodeNumber>${nodeNo}</NodeNumber><NodeName>P-${nodeNo}</NodeName><ComponentType>PIPE</ComponentType><Position>${x} 0 0</Position><SourceNote>${SOURCE_NOTE_PADDING}</SourceNote></Node>`;
   }).join('');
 }
 
+function targetX() {
+  return (TARGET_PIPE_COUNT - 1) * 10 + 100;
+}
+
 function sourceXml() {
-  const x = (PIPE_COUNT - 1) * 10 + 100;
-  return `<Model><Branch><Branchname>B1</Branchname>${pipeNodes()}<Node><NodeNumber>-1</NodeNumber><NodeName>GATE VALVE</NodeName><ComponentType>VALV</ComponentType><ComponentRefNo>V-FAST-1</ComponentRefNo><Endpoint>2</Endpoint><Position>${x} 0 0</Position></Node></Branch></Model>`;
+  const target = `<Branch><Branchname>B1</Branchname>${pipeNodes(TARGET_PIPE_COUNT)}<Node><NodeNumber>-1</NodeNumber><NodeName>GATE VALVE</NodeName><ComponentType>VALV</ComponentType><ComponentRefNo>V-FAST-1</ComponentRefNo><Endpoint>2</Endpoint><Position>${targetX()} 0 0</Position></Node></Branch>`;
+  const others = Array.from({ length: BRANCH_COUNT - 1 }, (_, index) => (
+    `<Branch><Branchname>B${index + 2}</Branchname>${pipeNodes(OTHER_BRANCH_PIPE_COUNT)}</Branch>`
+  )).join('');
+  return `<Model>${target}${others}</Model>`;
 }
 
 function stagedPayload() {
@@ -49,7 +60,7 @@ function stagedPayload() {
       DTXR_POS: 'PIPE',
     },
   }));
-  const x = (PIPE_COUNT - 1) * 10 + 100;
+  const x = targetX();
   filler.push({
     type: 'VALV',
     attributes: {
@@ -164,6 +175,7 @@ async function build() {
     && elapsedMs < MAX_WALL_MS
     && maxFrameGapMs <= MAX_FRAME_GAP_MS
     && status !== 'Error'
+    && !/Loading Weight basis runtime/i.test(status)
     && !/Preparing Weight Match basis/i.test(status)
     && !statusHistory.some((value) => /Applying staged geometry/i.test(value))
     && rows === 1
@@ -173,13 +185,15 @@ async function build() {
 
   coordinator.dispose();
   return {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V3',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V4',
     ok,
     elapsedMs,
     maxWallMs: MAX_WALL_MS,
     maxFrameGapMs,
     maxFrameGapLimitMs: MAX_FRAME_GAP_MS,
+    branchCount: BRANCH_COUNT,
     pipeNodes: PIPE_COUNT,
+    totalXmlNodes: TOTAL_XML_NODES,
     sourceBytes: sourceXmlText.length,
     stagedRows: STAGED_FILLER_COUNT + 1,
     stagedBytes: stagedJson.length,
@@ -204,7 +218,7 @@ try {
   document.querySelector('#out').textContent = JSON.stringify(result, null, 2);
 } catch (error) {
   const result = {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V3',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V4',
     ok: false,
     error: String(error?.stack || error),
   };
