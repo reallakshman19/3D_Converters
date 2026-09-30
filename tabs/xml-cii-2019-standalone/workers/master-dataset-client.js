@@ -1,7 +1,7 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-worker-weight-api-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20260929-pr780-bounded-ui-1', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20260930-issue781-worker-weight-api-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
@@ -81,6 +81,17 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.SEARCH, { datasetId, query });
   }
 
+  function rankWeightIssues(datasetId, issues = [], config = {}, options = {}) {
+    if (!datasetId) throw new Error('datasetId is required.');
+    return request(MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, {
+      datasetId,
+      issues: Array.isArray(issues) ? issues : [],
+      config: config && typeof config === 'object' ? config : {},
+      ratingMode: options.ratingMode || 'preview',
+      previewRatingSnapshot: options.previewRatingSnapshot || {},
+    });
+  }
+
   function getRows(datasetId, offset = 0, limit = 150) {
     return request(MASTER_DATASET_COMMAND.GET_ROWS, { datasetId, offset, limit });
   }
@@ -120,7 +131,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, remapDataset, search, getRows, getRowsByIndexes, getRawRows,
+    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }

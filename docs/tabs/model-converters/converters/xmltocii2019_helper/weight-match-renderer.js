@@ -1,4 +1,5 @@
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
+import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-worker-weight-api-1';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
 import {
@@ -175,30 +176,7 @@ function ratingDisplayInfo(issue) {
 function emptyRanking() { return { nodeHint: null, semanticSource: null, candidates: [], rejectedCandidates: [] }; }
 
 function rerankWithRating(row, config, { ratingMode = 'preview', snapshot = readXmlCiiPreviewRatingSnapshot() } = {}) {
-  const authority = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot });
-  const rating = authority.rating;
-  const ranking = rating
-    ? rankXmlCiiWeightCandidates({ boreMm: row.boreMm, rating, lengthMm: row.lengthMm, nodeName: row.nodeName, componentType: row.componentType, componentRefNo: row.componentRefNo, dtxr: row.dtxr }, config, { includeRejected: true })
-    : emptyRanking();
-  const derivedValveHint = formatValveHint(ranking.nodeHint) || (() => {
-    const best = ranking.candidates?.[0];
-    if (best?.specialFactorRule && best?.specialFactorCode) return (best.typeDesc || '').split(':')[0].trim() || best.specialFactorCode;
-    const semantic = ranking.semanticSource;
-    return semantic?.matches?.[0] ? `${semantic.matches[0].label} (keyword)` : '';
-  })();
-  return {
-    ...row,
-    rating,
-    ratingSource: authority.source,
-    ratingMode: authority.mode,
-    previewRatingSnapshotRevision: authority.snapshotRevision,
-    dtxrRating: authority.dtxrRating,
-    valveHint: derivedValveHint,
-    nodeHint: ranking.nodeHint,
-    candidates: ranking.candidates.slice(0, 5),
-    rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
-    ranking,
-  };
+  return rankXmlCiiWeightIssue(row, config, { ratingMode, snapshot });
 }
 
 function xmlLocalName(node) { return clean(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -287,7 +265,7 @@ function writeCache(storageKey, fingerprint, data) { try { const payload = JSON.
 export function invalidateXmlCiiWeightCache() { try { localStorage.removeItem(WM_CACHE_KEY); } catch {} }
 export function invalidateXmlCiiPreviewCache() { try { localStorage.removeItem(PV_CACHE_KEY); } catch {} }
 
-export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, enrichXmlForCii2019, onSaveConfig, ensureOverrides, resolveStagedJsonText }) {
+export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, enrichXmlForCii2019, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, resolveWeightValidationMasterRows = null }) {
   if (!detailEl) return;
   const contentEl = detailEl.querySelector('#mc-wm-content');
   const statusEl = detailEl.querySelector('#mc-wm-status');
@@ -309,12 +287,15 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     ratingModeButton.style.color = dtxr ? '#bbf7d0' : '';
   };
   const drawPanel = () => { if (panelEl) panelEl.innerHTML = enhancedHintPanel(activeConfig()); };
-  const publishValidation = (cfg) => {
+  const publishValidation = async (cfg) => {
     if (!detailEl || !localIssues.length) return;
+    let masterRows = Array.isArray(cfg?.weight?.masterRows) ? cfg.weight.masterRows : [];
+    if (!masterRows.length && typeof resolveWeightValidationMasterRows === 'function') masterRows = await resolveWeightValidationMasterRows();
+    detailEl.dataset.wmValidationActive = 'true';
     detailEl.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', {
       bubbles: true,
       cancelable: true,
-      detail: { issues: localIssues, masterRows: cfg?.weight?.masterRows || [], config: cfg },
+      detail: { issues: localIssues, masterRows, config: cfg },
     }));
   };
   const saveInput = (input) => {
@@ -341,7 +322,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     const row = input.closest('tr');
     const statusCell = row?.querySelector('[data-wm-status-cell]');
     if (statusCell) statusCell.textContent = 'Accepted · Match-1';
-    queueMicrotask(() => publishValidation(cfg));
+    if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });
   };
   const drawRows = (issues) => {
     if (!issues.length) { contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">No actual RIGID / FLAN* / VALVE / INST nodes with ElementLengthMm &gt; 6 mm were found.</div>'; return; }
@@ -373,23 +354,32 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     syncToggle(); syncRatingMode(); drawPanel();
     const file = currentXmlFile(xmlFile);
     if (!file) { localIssues = []; contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">No XML source loaded. Import an XML file first.</div>'; status('No input', 'bad'); return; }
-    liveConfig = await ensureWeightMasterRows(liveConfig);
-    if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+    const workerBackedWeight = Boolean(weightDatasetRef?.datasetId && typeof rankWeightIssues === 'function');
+    if (workerBackedWeight) {
+      liveConfig = { ...liveConfig, weight: { ...(liveConfig?.weight || {}) } };
+      delete liveConfig.weight.masterRows;
+      if (weightDatasetRef.masterFingerprint) liveConfig.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
+      const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? liveConfig.weight.masterRevision ?? 0);
+      if (revision > 0) liveConfig.weight.masterRevision = revision;
+    } else {
+      liveConfig = await ensureWeightMasterRows(liveConfig);
+      if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+    }
     const snapshot = readXmlCiiPreviewRatingSnapshot();
     const hasMatch1Provenance = Object.keys(liveConfig?.overrides?.rigidWeightMatch1Provenance || {}).length > 0;
     if (!opts.force && !hasMatch1Provenance) {
       const stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
       const jsonLenForFp = clean(stagedSourceForFp?.text ?? stagedSourceForFp).length;
-      const fingerprint = wmCacheFingerprint(file, jsonLenForFp, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides, ratingMode, snapshot.revision);
+      const fingerprint = wmCacheFingerprint(file, jsonLenForFp, workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (liveConfig?.weight?.masterRows?.length || 0), liveConfig?.overrides, ratingMode, snapshot.revision);
       const cached = readCache(WM_CACHE_KEY);
       if (cached?.fp === fingerprint && Array.isArray(cached?.data) && cached.data.length) {
-        localIssues = cached.data.map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, liveConfig, { ratingMode, snapshot }), liveConfig));
+        localIssues = workerBackedWeight ? cached.data : cached.data.map((row) => rerankWithRating(row, liveConfig, { ratingMode, snapshot }));
         const mapped = localIssues.filter((row) => row.mapped).length;
         const zero = localIssues.filter((row) => row.candidates?.[0]?.zeroFallback).length;
         const unresolved = localIssues.length - mapped - localIssues.filter((row) => row.candidates?.[0]?.preferred || row.candidates?.[0]?.flangeWeightFallback || (row.candidates?.[0]?.inferredWeight && !row.candidates?.[0]?.zeroFallback)).length - zero;
         status(`${mapped} mapped · restored · ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'} · ${localIssues.length} shown`, (zero || unresolved) ? 'bad' : 'ok');
         drawRows(localIssues);
-        if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; detailEl?.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: liveConfig.weight?.masterRows || [], config: liveConfig } })); }
+        if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(liveConfig); }
         return;
       }
     }
@@ -399,14 +389,34 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const stagedSource = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig) : { text: await stagedText(stagedJsonText), label: '' };
       const jsonText = clean(stagedSource?.text ?? stagedSource);
       const enriched = await enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig));
-      const enrichedConfig = await ensureWeightMasterRows(enriched.config || liveConfig);
-      const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
-      if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+      let enrichedConfig = enriched.config || liveConfig;
+      let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
+      if (workerBackedWeight) {
+        cfg = { ...cfg, weight: { ...(cfg?.weight || {}) } };
+        delete cfg.weight.masterRows;
+        if (weightDatasetRef.masterFingerprint) cfg.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
+        const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? cfg.weight.masterRevision ?? 0);
+        if (revision > 0) cfg.weight.masterRevision = revision;
+      } else {
+        enrichedConfig = await ensureWeightMasterRows(enrichedConfig);
+        cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+        if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+      }
       const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
       const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg);
       const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
       const validatedConfig = validated.config;
-      localIssues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, validatedConfig, { ratingMode, snapshot }), validatedConfig));
+      const issueRows = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml)
+        .map(cleanRow).filter(Boolean)
+        .map((row) => ({ ...row, staleMatch1: validated.validation.stale?.[row.key] || null }));
+      if (workerBackedWeight) {
+        const result = await rankWeightIssues(issueRows, { config: validatedConfig, ratingMode, snapshot });
+        if (String(result?.datasetId || '') !== String(weightDatasetRef.datasetId)) throw new Error('Weight worker returned a mismatched dataset result.');
+        if (!Array.isArray(result?.issues)) throw new Error('Weight worker did not return ranked issues.');
+        localIssues = result.issues;
+      } else {
+        localIssues = issueRows.map((row) => rerankWithRating(row, validatedConfig, { ratingMode, snapshot }));
+      }
       if (validated.validation.staleCount > 0) {
         status(`${validated.validation.staleCount} stale Match-1 value(s) require re-acceptance because geometry/rating/master basis changed.`, 'bad');
       }
@@ -420,9 +430,9 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       status(`${mapped} mapped · ${suggested} exact · ${flange} flange fallback · ${inferred} inferred · ${missingRatings} missing Rating · ${unresolved} unresolved · ${localIssues.length} shown${stagedSource?.label ? ` · ${stagedSource.label}` : ''}`, (zero || unresolved || missingRatings) ? 'bad' : 'ok');
       drawRows(localIssues);
       const cacheable = localIssues.map((row) => { const { ranking, ...rest } = row; return rest; });
-      const fingerprint = wmCacheFingerprint(file, jsonText.length, cfg?.weight?.masterRows?.length || 0, cfg?.overrides, ratingMode, snapshot.revision);
+      const fingerprint = wmCacheFingerprint(file, jsonText.length, workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (cfg?.weight?.masterRows?.length || 0), cfg?.overrides, ratingMode, snapshot.revision);
       writeCache(WM_CACHE_KEY, fingerprint, cacheable);
-      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; detailEl?.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: cfg.weight?.masterRows || [], config: cfg } })); }
+      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(cfg); }
     } catch (error) {
       localIssues = [];
       contentEl.innerHTML = `<div class="model-converters-workflow-detail-note">Could not compute weight matches: ${esc(error?.message || error)}</div>`;
