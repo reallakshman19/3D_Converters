@@ -1,5 +1,5 @@
-import * as core from './xml-cii-mode-a-batch-core.js';
-export * from './xml-cii-mode-a-batch-core.js';
+import * as core from './xml-cii-mode-a-batch-core.js?v=20260930-issue781-branch-scope-1';
+export * from './xml-cii-mode-a-batch-core.js?v=20260930-issue781-branch-scope-1';
 
 const DUPLICATE_CODES = new Set([
   'DUPLICATE_NODE_WITHIN_BRANCH',

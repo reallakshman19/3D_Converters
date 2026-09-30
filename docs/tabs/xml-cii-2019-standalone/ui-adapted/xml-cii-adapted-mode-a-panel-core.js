@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js?v=20260804-mode-a-v1';
-import { buildModeAPreflight, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
+import { buildModeAPreflight, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 
 function text(value) { return value === undefined || value === null ? '' : String(value); }
 

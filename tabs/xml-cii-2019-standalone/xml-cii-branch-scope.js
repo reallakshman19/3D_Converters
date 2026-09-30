@@ -84,8 +84,22 @@ function branchOccurrenceId(sourceDigest, index) {
   return `${sourceDigest}::BR-${String(Number(index) + 1).padStart(4, '0')}`;
 }
 
+const BRANCH_OCCURRENCE_CACHE_LIMIT = 4;
+const branchOccurrenceCache = new Map();
+
+function cloneBranchOccurrences(rows) {
+  return rows.map((row) => ({ ...row }));
+}
+
 export function buildXmlCiiBranchOccurrences(sourceText) {
   const source = String(sourceText ?? '');
+  const parser = typeof DOMParser === 'function' ? DOMParser : null;
+  const cached = branchOccurrenceCache.get(source);
+  if (cached?.parser === parser) {
+    branchOccurrenceCache.delete(source);
+    branchOccurrenceCache.set(source, cached);
+    return cloneBranchOccurrences(cached.rows);
+  }
   const sourceDigest = xmlCiiSourceDigest(source);
   const records = extractXmlCiiBranchRecords(source);
   const counts = new Map();
@@ -94,7 +108,7 @@ export function buildXmlCiiBranchOccurrences(sourceText) {
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   const seen = new Map();
-  return records.map((record) => {
+  const rows = records.map((record) => {
     const key = normalize(record.branchName);
     const duplicateCount = counts.get(key) || 1;
     const duplicateOrdinal = (seen.get(key) || 0) + 1;
@@ -109,6 +123,13 @@ export function buildXmlCiiBranchOccurrences(sourceText) {
       duplicateCount,
     };
   });
+  const stored = Object.freeze(rows.map((row) => Object.freeze({ ...row })));
+  branchOccurrenceCache.delete(source);
+  branchOccurrenceCache.set(source, { parser, rows: stored });
+  if (branchOccurrenceCache.size > BRANCH_OCCURRENCE_CACHE_LIMIT) {
+    branchOccurrenceCache.delete(branchOccurrenceCache.keys().next().value);
+  }
+  return cloneBranchOccurrences(stored);
 }
 
 export function buildXmlCiiBranchGroups(branchNames = []) {

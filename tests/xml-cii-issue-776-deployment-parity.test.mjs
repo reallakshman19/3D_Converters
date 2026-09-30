@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 
 const release = '20260930-issue781-weight-no-staged-rewrite-1';
 const screenshotRepairRelease = '20260930-issue781-screenshot-repair-1';
-const regexEvidenceRelease = screenshotRepairRelease;
+const liveAcceptanceRelease = '20260930-issue781-live-acceptance-1';
+const regexEvidenceRelease = liveAcceptanceRelease;
 const pairs = [["converters/xml-cii2019-core/b313-preview-wall-update.js","docs/converters/xml-cii2019-core/b313-preview-wall-update.js"],["core/app-standalone-runtime.js","docs/core/app-standalone-runtime.js"],["core/app.js","docs/core/app.js"],["index.html","docs/index.html"],["main-rhbg-fitguard.js","docs/main-rhbg-fitguard.js"],["tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js","docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js"],["tabs/xml-cii-2019-standalone-tab.js","docs/tabs/xml-cii-2019-standalone-tab.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-dtxr.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-dtxr.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-propagation.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-propagation.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-update.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-update.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-render-scope.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js"],["tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js","docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js"],["tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js","docs/tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js"],["tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js","docs/tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js"],["tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js","docs/tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js"],["tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js","docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js"]];
 
 const boundedUiPairs = [
@@ -37,6 +38,42 @@ for (const [sourcePath, docsPath] of [...pairs, ...boundedUiPairs]) {
   assert.equal(docs, source, `docs mirror drift: ${sourcePath}`);
 }
 
+const branchScopeRelease = '20260930-issue781-branch-scope-1';
+const branchRoot = 'tabs/xml-cii-2019-standalone/';
+const branchUi = `${branchRoot}ui-adapted/`;
+const branchScopeCacheEdges = new Map([
+  [`${branchRoot}xml-cii-mode-a-batch-core.js`, ['xml-cii-branch-scope.js']],
+  [`${branchRoot}xml-cii-mode-a-batch.js`, ['xml-cii-mode-a-batch-core.js']],
+  [`${branchRoot}xml-cii-workflow-ui-adapter.js`, ['xml-cii-branch-scope.js']],
+  [`${branchUi}xml-cii-adapted-branch-scope.js`, ['xml-cii-branch-scope.js']],
+  [`${branchUi}xml-cii-adapted-branch-scope-state.js`, ['xml-cii-adapted-branch-scope.js', 'xml-cii-branch-scope.js']],
+  [`${branchUi}xml-cii-adapted-branch-scope-panel-v2.js`, ['xml-cii-branch-scope.js', 'xml-cii-adapted-branch-scope-state.js']],
+  [`${branchUi}xml-cii-adapted-mode-a-state.js`, ['xml-cii-mode-a-batch.js']],
+  [`${branchUi}xml-cii-adapted-mode-a-propagation.js`, ['xml-cii-mode-a-batch.js', 'xml-cii-adapted-mode-a-state.js']],
+  [`${branchUi}xml-cii-adapted-mode-a-panel-core.js`, ['xml-cii-mode-a-batch.js']],
+  [`${branchUi}xml-cii-adapted-mode-a-batch-scope-panel.js`, ['xml-cii-mode-a-batch.js', 'xml-cii-adapted-mode-a-state.js']],
+  [`${branchUi}xml-cii-adapted-mode-a-panel.js`, ['xml-cii-mode-a-batch.js', 'xml-cii-adapted-mode-a-panel-core.js', 'xml-cii-adapted-mode-a-batch-scope-panel.js']],
+  [`${branchUi}xml-cii-adapted-controls.js`, ['xml-cii-workflow-ui-adapter.js']],
+  [`${branchUi}xml-cii-adapted-source-mode.js`, ['xml-cii-adapted-controls.js']],
+  [`${branchUi}xml-cii-adapted-phase-panels.js`, ['xml-cii-workflow-ui-adapter.js', 'xml-cii-adapted-controls.js', 'xml-cii-adapted-source-mode.js']],
+  [`${branchUi}xml-cii-adapted-phase-panels-smart.js`, ['xml-cii-adapted-phase-panels.js']],
+  [`${branchUi}xml-cii-adapted-phase-panels-branch-scope.js`, ['xml-cii-adapted-branch-scope-state.js', 'xml-cii-adapted-branch-scope.js', 'xml-cii-adapted-branch-scope-panel-v2.js', 'xml-cii-adapted-phase-panels-smart.js']],
+  [`${branchUi}xml-cii-adapted-phase-panels-mode-a.js`, ['xml-cii-adapted-phase-panels-branch-scope.js', 'xml-cii-adapted-phase-panels-smart.js', 'xml-cii-adapted-mode-a-panel.js', 'xml-cii-adapted-mode-a-propagation.js']],
+  [`${branchUi}xml-cii-adapted-workflow-shell-mode-a-core.js`, ['xml-cii-adapted-branch-scope-state.js', 'xml-cii-branch-scope.js', 'xml-cii-mode-a-batch.js', 'xml-cii-adapted-mode-a-state.js', 'xml-cii-adapted-phase-panels-mode-a.js']],
+  [`${branchUi}xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js`, ['xml-cii-adapted-workflow-shell-mode-a-core.js', 'xml-cii-adapted-branch-scope-state.js', 'xml-cii-adapted-mode-a-state.js']],
+]);
+for (const sourcePath of [`${branchRoot}xml-cii-branch-scope.js`, ...branchScopeCacheEdges.keys()]) {
+  const [source, docs] = await Promise.all([
+    readFile(new URL('../' + sourcePath, import.meta.url), 'utf8'),
+    readFile(new URL('../docs/' + sourcePath, import.meta.url), 'utf8'),
+  ]);
+  assert.equal(docs, source, `branch-scope cache docs mirror drift: ${sourcePath}`);
+  for (const importedFile of branchScopeCacheEdges.get(sourcePath) || []) {
+    assert.ok(source.includes(`${importedFile}?v=${branchScopeRelease}`),
+      `branch-scope cache release edge missing: ${sourcePath} -> ${importedFile}`);
+  }
+}
+
 const screenshotRepairPaths = [
   'index.html',
   'main-rhbg-fitguard.js',
@@ -55,7 +92,8 @@ const screenshotRepairPaths = [
 ];
 for (const path of screenshotRepairPaths) {
   const source = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-  assert.ok(source.includes(screenshotRepairRelease), `screenshot repair cache chain missing ${screenshotRepairRelease}: ${path}`);
+  const expectedRelease = path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease;
+  assert.ok(source.includes(expectedRelease), `live acceptance cache chain missing ${expectedRelease}: ${path}`);
 }
 
 const appSource = await readFile(new URL('../core/app.js', import.meta.url), 'utf8');

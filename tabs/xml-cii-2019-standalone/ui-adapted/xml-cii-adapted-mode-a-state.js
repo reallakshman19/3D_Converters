@@ -3,7 +3,7 @@ import {
   createModeASourceEntry,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+} from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-2';
 import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-consolidated-1';
 

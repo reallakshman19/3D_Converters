@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { applyRegexSuggestions } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 
 const release = '20260930-issue781-screenshot-repair-1';
+const liveAcceptanceRelease = '20260930-issue781-live-acceptance-1';
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
 function regexConfig() {
@@ -54,7 +55,7 @@ const weightService = await read('tabs/xml-cii-2019-standalone/workers/weight-ba
 const installAt = weightService.indexOf('installWeightBasisXmlDom(globalThis);');
 const modulesAt = weightService.indexOf('const modulesPromise = Promise.all([');
 assert.ok(installAt >= 0 && modulesAt > installAt, 'Weight runtime modules must start loading when worker module initializes');
-assert.ok(weightService.includes('async function basisModules() {\n  return modulesPromise;\n}'));
+assert.match(weightService, /async function basisModules\(\) \{\r?\n  return modulesPromise;\r?\n\}/);
 assert.ok(!weightService.includes('if (!modulesPromise)'), 'Weight click path must not lazily create the module-import promise');
 
 const releasePaths = [
@@ -74,7 +75,8 @@ const releasePaths = [
   'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
 ];
 for (const path of releasePaths) {
-  assert.ok((await read(path)).includes(release), `screenshot repair cache release missing from ${path}`);
+  const expectedRelease = path.includes('master-dataset') || path.includes('/workers/') ? release : liveAcceptanceRelease;
+  assert.ok((await read(path)).includes(expectedRelease), `live acceptance cache release missing from ${path}`);
 }
 
 const mirrorPairs = [

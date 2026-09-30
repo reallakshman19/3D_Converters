@@ -3,7 +3,7 @@ import {
   buildXmlCiiBranchOccurrences,
   normalizeXmlCiiBranchSelection,
   xmlCiiSourceDigest,
-} from './xml-cii-branch-scope.js';
+} from './xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

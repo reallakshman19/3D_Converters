@@ -1,6 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { buildXmlCiiBranchOccurrenceGroups, xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js';
-import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js';
+import { buildXmlCiiBranchOccurrenceGroups, xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
+import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

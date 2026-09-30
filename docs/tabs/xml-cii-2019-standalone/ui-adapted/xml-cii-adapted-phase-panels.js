@@ -1,8 +1,8 @@
 import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
 import { createElement, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
-import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
-import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js';
+import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20260930-issue781-branch-scope-1';
+import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20260930-issue781-branch-scope-1';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20260930-issue781-weight-liveness-cache-1';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260708-v8';
@@ -15,7 +15,7 @@ import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-suppor
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260928-issue776-authority-2';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
-import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20260928-issue776-authority-2';
+import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20260930-issue781-branch-scope-1';
 
 export function renderActivePhase(root, stateRef, render) {
   const state = stateRef.current;

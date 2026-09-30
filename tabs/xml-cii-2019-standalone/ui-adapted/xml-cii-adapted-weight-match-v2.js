@@ -13,7 +13,8 @@ import {
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-screenshot-repair-1';
-import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-weight-ux-1';
+import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-live-acceptance-1';
+import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -30,6 +31,42 @@ function escapeHtml(value) {
 
 function hasWeightRows(config) {
   return Array.isArray(config?.weight?.masterRows) && config.weight.masterRows.length > 0;
+}
+
+function weightBuildAuthority(stateRef, sourceId) {
+  const raw = (stateRef.modeABaseRef || stateRef).current || {};
+  const batch = raw.sourceBatch;
+  const source = sourceId && batch?.activeSourceId !== sourceId
+    ? batch.sources?.find((row) => row.sourceId === sourceId)
+    : raw;
+  const context = raw.masterContext || {};
+  return {
+    activeSourceId: batch?.activeSourceId || '',
+    sourceId: source?.sourceId || sourceId || '',
+    sourceText: source?.sourceText || '',
+    sourceFile: source?.sourceFile || null,
+    stagedJsonText: source?.stagedJsonText || '',
+    stagedJsonFile: source?.stagedJsonFile || null,
+    branchSelection: JSON.stringify(source?.branchSelection || {}),
+    supportConfigJson: source?.supportConfigJson || '',
+    sharedSupportConfigJson: batch?.sharedSupportConfigJson || '',
+    weightMatchOverridesJson: raw.weightMatchOverridesJson || '',
+    masterContext: context,
+    masterDatasetRefs: JSON.stringify(context.datasetRefs || {}),
+    masterRevisions: JSON.stringify(context.appliedMappingRevision || {}),
+  };
+}
+
+function sameWeightBuildAuthority(left, right) {
+  return Object.keys(left).every((key) => Object.is(left[key], right[key]));
+}
+
+function sameWeightSourceAndMaster(left, right) {
+  return [
+    'activeSourceId', 'sourceId', 'sourceText', 'sourceFile',
+    'stagedJsonText', 'stagedJsonFile', 'branchSelection',
+    'masterDatasetRefs', 'masterRevisions',
+  ].every((key) => Object.is(left[key], right[key]));
 }
 
 async function ensureWeightRows(config, masterContext, materializeRows = materializeMasterDatasetRows) {
@@ -139,6 +176,8 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
 export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.__xmlCiiWeightAuthorityPresentationCleanup?.();
   card.__xmlCiiWeightAuthorityPresentationCleanup = null;
+  card.__xmlCiiWeightBuildSnapshotCleanup?.();
+  card.__xmlCiiWeightBuildSnapshotCleanup = null;
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
@@ -151,6 +190,32 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
       }
       const state = stateRef.current;
       const weightDatasetRef = state?.masterContext?.datasetRefs?.weight || null;
+      let renderedAuthority = weightBuildAuthority(stateRef, state.modeASourceId);
+      let buildSnapshot = null;
+      const currentBuild = () => {
+        if (buildSnapshot) return buildSnapshot;
+        const authority = weightBuildAuthority(stateRef, state.modeASourceId);
+        // The filtered Mode A scope is deterministic for this raw source authority.
+        // Reuse the rendered scope only while every relevant input still matches.
+        if (!sameWeightBuildAuthority(authority, renderedAuthority)) {
+          throw new Error('Weight Match source, selection, staged JSON, or master changed. Reopen Weight Match and build again.');
+        }
+        buildSnapshot = {
+          state: { ...state, masterContext: authority.masterContext },
+          authority,
+          ratingRevision: readXmlCiiPreviewRatingSnapshot().revision,
+        };
+        return buildSnapshot;
+      };
+      const assertCurrentBuild = (request = {}) => {
+        const snapshot = currentBuild();
+        if (!sameWeightBuildAuthority(snapshot.authority, weightBuildAuthority(stateRef, snapshot.state.modeASourceId))
+          || readXmlCiiPreviewRatingSnapshot().revision !== snapshot.ratingRevision
+          || (request.snapshot && request.snapshot.revision !== snapshot.ratingRevision)) {
+          throw new Error('Weight Match authority changed during this build. Reopen Weight Match and build again.');
+        }
+        return snapshot.state;
+      };
       let calculationBasis = await weightMatchConfigFromState(state);
       const rendererConfig = withXmlCiiEffectiveRigidWeightLegacyView(calculationBasis);
       let baseline = xmlCiiEffectiveRigidWeightMap(calculationBasis);
@@ -158,22 +223,32 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         ? new File([state.sourceText], 'source.xml', { type: 'application/xml' })
         : null);
       card.innerHTML = renderer.xmlCiiRenderWeightMatchPhase();
+      const resetBuildSnapshot = (event) => {
+        if (!event.target.closest?.('#mc-wm-refresh, #mc-wm-use-dtxr-rating')) return;
+        if (card.querySelector('#mc-wm-refresh')?.dataset.wmBusy === 'true') return;
+        buildSnapshot = null;
+      };
+      card.addEventListener('click', resetBuildSnapshot, true);
+      card.__xmlCiiWeightBuildSnapshotCleanup = () => card.removeEventListener('click', resetBuildSnapshot, true);
       renderer.bindXmlCiiWeightMatchPhase(card, {
         xmlFile,
         stagedJsonText: state.stagedJsonText || '',
         config: rendererConfig,
         weightDatasetRef,
         rankWeightIssues: weightDatasetRef?.datasetId ? async (issues, request = {}) => {
-          const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, stateRef.current.masterContext || {});
-          return rankMasterDatasetWeightIssues('weight', weightDatasetRef.datasetId, issues, compactConfig, {
+          const currentContext = assertCurrentBuild(request).masterContext || {};
+          const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, currentContext);
+          const result = await rankMasterDatasetWeightIssues('weight', weightDatasetRef.datasetId, issues, compactConfig, {
             ratingMode: request.ratingMode || 'preview',
             previewRatingSnapshot: request.snapshot || {},
           });
+          assertCurrentBuild(request);
+          return result;
         } : null,
         prepareWeightBasis: async (request = {}) => {
-          const currentContext = stateRef.current.masterContext || {};
+          const currentContext = assertCurrentBuild(request).masterContext || {};
           const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, currentContext);
-          return prepareMasterDatasetWeightBasis({
+          const result = await prepareMasterDatasetWeightBasis({
             xmlText: request.xmlText || '',
             stagedJsonText: request.stagedJsonText || '',
             config: compactConfig,
@@ -181,6 +256,8 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
             ratingMode: request.ratingMode || 'preview',
             previewRatingSnapshot: request.snapshot || {},
           }, { onProgress: request.onProgress });
+          assertCurrentBuild(request);
+          return result;
         },
         resolveWeightValidationMasterRows: weightDatasetRef?.datasetId
           ? async () => materializeMasterDatasetRows('weight', weightDatasetRef)
@@ -189,11 +266,17 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
           const saved = persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculationBasis);
           calculationBasis = saved;
           baseline = xmlCiiEffectiveRigidWeightMap(saved);
+          const nextAuthority = weightBuildAuthority(stateRef, state.modeASourceId);
+          if (card.querySelector('#mc-wm-refresh')?.dataset.wmBusy !== 'true'
+            && sameWeightSourceAndMaster(renderedAuthority, nextAuthority)) {
+            renderedAuthority = nextAuthority;
+            buildSnapshot = null;
+          }
         },
         ensureOverrides,
         resolveStagedJsonText: async () => ({
-          text: stateRef.current.stagedJsonText || '',
-          label: stateRef.current.stagedJsonFile?.name || '',
+          text: assertCurrentBuild().stagedJsonText || '',
+          label: assertCurrentBuild().stagedJsonFile?.name || '',
         }),
       });
       card.__xmlCiiWeightAuthorityPresentationCleanup = installWeightMatchAuthorityPresentation(card);

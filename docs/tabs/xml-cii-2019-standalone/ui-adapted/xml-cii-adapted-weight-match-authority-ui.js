@@ -65,14 +65,20 @@ function statusMarkup(presentation) {
   return `<div data-wm-authority-state="${presentation.state}" style="font-weight:700;color:${mainColor};white-space:nowrap;">${presentation.statusLabel}</div>${suggested}<div data-wm-engineering-status style="margin-top:2px;color:${detailColor};font-size:10px;font-weight:700;white-space:nowrap;">${presentation.detailLabel}</div>`;
 }
 
+const renderedStatusMarkup = new WeakMap();
+
 function decorateCandidateButton(button, presentation) {
   if (!button) return;
   if (!button.dataset.wmOriginalLabel) button.dataset.wmOriginalLabel = text(button.textContent);
+  if (!('wmOriginalTitle' in button.dataset)) button.dataset.wmOriginalTitle = button.title || '';
   const original = button.dataset.wmOriginalLabel;
   const next = presentation.actionPrefix ? `${presentation.actionPrefix} · ${original}` : original;
   if (text(button.textContent) !== next) button.textContent = next;
+  const nextTitle = presentation.actionPrefix
+    ? `${presentation.actionPrefix}. ${text(button.dataset.wmOriginalTitle)}`.trim()
+    : button.dataset.wmOriginalTitle;
+  if (button.title !== nextTitle) button.title = nextTitle;
   if (presentation.actionPrefix) {
-    button.title = `${presentation.actionPrefix}. ${text(button.title)}`.trim();
     button.dataset.wmAuthorityAction = 'accept-match1';
   } else {
     delete button.dataset.wmAuthorityAction;
@@ -85,8 +91,9 @@ function decorateRow(row) {
   if (!statusCell || !input) return;
   const buttons = [...(row.querySelectorAll?.('[data-wm-candidate]') || [])];
   const primary = buttons[0] || null;
-  const rawStatus = text(statusCell.dataset.wmSourceStatus || statusCell.textContent);
-  if (!statusCell.dataset.wmSourceStatus || !statusCell.querySelector('[data-wm-authority-state]')) {
+  const decorated = statusCell.querySelector('[data-wm-authority-state]');
+  const rawStatus = text(decorated ? (statusCell.dataset.wmSourceStatus || statusCell.textContent) : statusCell.textContent);
+  if (!decorated || statusCell.dataset.wmSourceStatus !== rawStatus) {
     statusCell.dataset.wmSourceStatus = rawStatus;
   }
   const accepted = input.dataset.wmAccepted === 'true' || /^accepted\b/i.test(rawStatus);
@@ -98,7 +105,10 @@ function decorateRow(row) {
     candidateMethod: methodFromButton(primary),
   });
   const markup = statusMarkup(presentation);
-  if (statusCell.innerHTML !== markup) statusCell.innerHTML = markup;
+  if (!decorated || renderedStatusMarkup.get(statusCell) !== markup) {
+    statusCell.innerHTML = markup;
+    renderedStatusMarkup.set(statusCell, markup);
+  }
   input.title = accepted
     ? (presentation.state === 'MATCH1_ACCEPTED' ? 'Accepted Match-1 engineering authority.' : 'Accepted/resolved engineering weight authority.')
     : (positive(candidateWeight)

@@ -1,11 +1,11 @@
-import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260804-branch-scope-v1';
+import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260930-issue781-branch-scope-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260804-branch-scope-v1';
-import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260804-branch-scope-v1';
+import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import {
   extendXmlCiiBranchScopeReadiness,
   prependXmlCiiBranchScopeBanner,
-} from './xml-cii-adapted-branch-scope.js?v=20260804-branch-scope-v1';
-import { renderXmlCiiBranchSelectionPanelV2 } from './xml-cii-adapted-branch-scope-panel-v2.js?v=20260804-branch-scope-v1';
+} from './xml-cii-adapted-branch-scope.js?v=20260930-issue781-branch-scope-1';
+import { renderXmlCiiBranchSelectionPanelV2 } from './xml-cii-adapted-branch-scope-panel-v2.js?v=20260930-issue781-branch-scope-1';
 
 function phaseCard(root, phaseId) {
   return root.querySelector?.(`[data-active-phase="${phaseId}"]`) || root;

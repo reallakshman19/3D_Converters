@@ -1,16 +1,16 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-full-propagation-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20260813-mode-a-full-propagation-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20260930-issue781-branch-scope-1';
 import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20260813-mode-a-full-propagation-2';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
 import {
   createXmlCiiBranchScopedStateRef,
   ensureXmlCiiBranchSelectionInRef,
-} from './xml-cii-adapted-branch-scope-state.js?v=20260813-mode-a-full-propagation-2';
-import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
-import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260813-mode-a-full-propagation-2';
-import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+} from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
+import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20260930-issue781-branch-scope-1';
+import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
+import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 

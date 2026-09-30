@@ -4,7 +4,7 @@ import {
   buildXmlCiiBranchGroups,
   normalizeXmlCiiBranchSelection,
   xmlCiiBranchScopeFromState,
-} from '../xml-cii-branch-scope.js';
+} from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 
 const PROCESSING_PHASES = new Set([
   'regex', 'json-trace', 'preview', 'diagnostics', 'matched-audit',
