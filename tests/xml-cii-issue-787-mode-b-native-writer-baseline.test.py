@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 
 TARGET_REF = "1006657924/45669"
+TARGET_JUNCTION_POSITION = (432523.22, -1477750.00, 101184.15)
 
 
 def load_writer(root: Path):
@@ -128,6 +129,10 @@ def restraint_summary(writer, path: Path):
     return result
 
 
+def same_position(row, expected, tolerance=0.001):
+    return all(abs(float(row["position"][index]) - expected[index]) <= tolerance for index in range(3))
+
+
 def main():
     if len(sys.argv) != 2:
         raise SystemExit("usage: baseline.test.py <materialized.xml>")
@@ -144,20 +149,21 @@ def main():
     results = [restraint_summary(writer, path) for path in cases]
     print(json.dumps(results, indent=2, sort_keys=True))
 
-    for baseline in results[:-1]:
-        assert baseline["modelStatus"] == "PASS", f"baseline native writer must pass: {baseline}"
+    for row in results:
+        assert row["modelStatus"] == "PASS", f"native writer must pass after governed Mode B runtime aliases: {row}"
+
     source_0011 = next(row for row in results if row["path"] == "SYS-6-S8810011-01.xml")
-    assert len(source_0011["targetOccurrences"]) >= 2, source_0011["targetOccurrences"]
-    assert len({row["nodeNumber"] for row in source_0011["targetOccurrences"]}) == 1, source_0011["targetOccurrences"]
-    assert all(row["degree"] > 1 for row in source_0011["targetOccurrences"]), source_0011["targetOccurrences"]
+    source_joint = next(row for row in source_0011["targetOccurrences"] if same_position(row, TARGET_JUNCTION_POSITION))
+    assert source_joint["nodeNumber"] == 430
+    assert source_joint["degree"] > 1
 
     modeb = results[-1]
-    assert modeb["modelStatus"] == "FAIL", "diagnostic currently expects the reproduced Mode B native-writer failure"
-    assert "multiple restraints" in modeb.get("error", "").lower()
-    assert modeb.get("collisions"), "must identify the concrete restraint/edge collision behind the failure"
-    assert any(row["edgeNumber"] == 58 for row in modeb["collisions"]), modeb["collisions"]
-    assert len({row["nodeNumber"] for row in modeb["targetOccurrences"]}) > 1, modeb["targetOccurrences"]
-    assert any(row["degree"] == 1 for row in modeb["targetOccurrences"]), modeb["targetOccurrences"]
+    modeb_joint = next(row for row in modeb["targetOccurrences"] if same_position(row, TARGET_JUNCTION_POSITION))
+    assert modeb_joint["degree"] > 1, modeb["targetOccurrences"]
+    split_open_end_total = sum(row["generatedOpenEndNodeCount"] for row in results[:3])
+    assert modeb["generatedOpenEndNodeCount"] <= split_open_end_total, (
+        modeb["generatedOpenEndNodeCount"], split_open_end_total
+    )
 
 
 if __name__ == "__main__":
