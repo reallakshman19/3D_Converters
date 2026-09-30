@@ -1,4 +1,3 @@
-import './xml-cii-issue-781-linelist-integration.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
