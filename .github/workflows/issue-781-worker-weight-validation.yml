@@ -53,6 +53,7 @@ jobs:
         run: |
           node --test \
             tests/xml-cii-issue-781-worker-weight-api.test.mjs \
+            tests/xml-cii-issue-781-weight-liveness.test.mjs \
             tests/xml-cii-issue-781-weight-build-performance.test.mjs \
             tests/xml-cii-master-worker-metadata-import.test.mjs \
             tests/xml-cii-master-preview-worker-search.test.mjs
