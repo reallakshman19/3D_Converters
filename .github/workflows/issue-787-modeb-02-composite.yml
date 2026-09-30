@@ -12,6 +12,7 @@ on:
       - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-composite.js'
       - 'scripts/xml-cii-mode-b-compose-observe.mjs'
       - 'tests/xml-cii-issue-787-mode-b-composite.test.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs'
       - 'Benchmarks/XML-CII-2019/**'
       - '.github/workflows/issue-787-modeb-02-composite.yml'
   workflow_dispatch:
@@ -22,6 +23,7 @@ permissions:
 jobs:
   modeb-composite:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
@@ -31,12 +33,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Run MODEB-02 synthetic + real-corpus composite regressions
-        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs
+        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs
       - name: Preserve MODEB-01 observation contract
         run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
       - name: Preserve existing single-document topology behavior
         run: node tests/seljson-to-inputxml-topology-element-length.test.js
+      - name: Run inherited Issue 776 focused authority regressions
+        run: node --test tests/xml-cii-issue-776-*.test.mjs tests/xml-cii-mode-a-preview-restoration.test.mjs
+      - name: Run inherited PR780 master-dataset regressions
+        run: node --test tests/xml-cii-master-dataset-*.test.mjs tests/xml-cii-master-preview-worker-search.test.mjs tests/xml-cii-master-worker-integration.test.mjs
+      - name: Run inherited adjacent authority regressions
+        run: node --test tests/xml-cii-smart-ui-preflight.test.mjs tests/xml-cii-regex-confidence-buckets.test.mjs tests/xml-cii-b313-preview-od-selection.test.mjs tests/xml-cii-b313-preview-pressure-unit.test.mjs tests/xml-cii-b313-preview-blocker-ui-static.test.mjs tests/engineering-calculation-core.test.mjs
       - name: Generate deterministic MODEB-02 composite evidence
         run: node scripts/xml-cii-mode-b-compose-observe.mjs --out modeb-composite.json | tee modeb-composite-summary.json
       - name: Upload MODEB-02 evidence
