@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { normalizeLineListRow } from '../converters/xml-cii2019-core/linelist-mapping.js';
 import { rankXmlCiiWeightIssues } from '../converters/xml-cii2019-core/weight-match-ranking-service.js';
 import { createMasterDatasetService } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-service.js';
+import { createMasterDatasetClient } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-client.js';
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
 
 test('APPLIED line-list mapping projects Key1/Key2/Line Seq into normalized worker rows', () => {
@@ -75,6 +76,95 @@ test('Weight Match worker rejects a non-weight dataset', async () => {
     );
 });
 
+class FakeWorker {
+  constructor(mode = 'reply') {
+    this.mode = mode;
+    this.listeners = new Map();
+    this.terminated = false;
+  }
+  addEventListener(type, listener) { this.listeners.set(type, listener); }
+  terminate() { this.terminated = true; }
+  postMessage(message) {
+    if (this.mode === 'drop') return;
+    if (this.mode === 'messageerror') {
+      queueMicrotask(() => this.listeners.get('messageerror')?.({}));
+      return;
+    }
+    queueMicrotask(() => this.listeners.get('message')?.({ data: {
+      type: MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT,
+      requestId: message.requestId,
+      datasetId: message.datasetId,
+      issues: message.issues,
+    } }));
+  }
+}
+
+async function exerciseWorkerRecovery(firstMode) {
+  const workers = [];
+  const client = createMasterDatasetClient({
+    weightRequestTimeoutMs: 20,
+    workerFactory: () => {
+      const worker = new FakeWorker(workers.length ? 'reply' : firstMode);
+      workers.push(worker);
+      return worker;
+    },
+  });
+  const result = await client.rankWeightIssues('dataset-1', [issue], {}, { ratingMode: 'preview' });
+  client.dispose();
+  return { result, workers };
+}
+
+test('Weight Match retries once on a fresh worker when a ranking reply is lost', async () => {
+  const { result, workers } = await exerciseWorkerRecovery('drop');
+  assert.equal(workers.length, 2);
+  assert.equal(workers[0].terminated, true);
+  assert.equal(result.datasetId, 'dataset-1');
+  assert.deepEqual(result.issues, [issue]);
+});
+
+test('Weight Match retries once after worker message transport failure', async () => {
+  const { result, workers } = await exerciseWorkerRecovery('messageerror');
+  assert.equal(workers.length, 2);
+  assert.equal(workers[0].terminated, true);
+  assert.equal(result.datasetId, 'dataset-1');
+});
+
+test('mapping drafts explicitly remind the user to Apply mapping', async () => {
+  const source = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js', import.meta.url), 'utf8');
+  assert.match(source, /Mapping changed — click Apply mapping to use this selection in Preview/);
+  assert.match(source, /refreshMappingCustodyDom\(container, stateRef, select\.dataset\.masterKey\)/);
+});
+
+test('Weight Match reports bounded stages instead of an indefinite generic computing state', async () => {
+  const renderer = await readFile(new URL('../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js', import.meta.url), 'utf8');
+  assert.match(renderer, /Reading Weight Match inputs/);
+  assert.match(renderer, /Preparing Weight Match geometry/);
+  assert.match(renderer, /Ranking \$\{issueRows\.length\} component\(s\)/);
+  assert.match(renderer, /withWeightStageTimeout/);
+});
+
+test('standalone module cache chain advances to Weight liveness revision', async () => {
+  const token = '20260930-issue781-weight-liveness-1';
+  const checks = [
+    ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', 'master-dataset-client.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', 'master-dataset-import-coordinator.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', 'xml-cii-adapted-master-dataset-runtime.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', 'xml-cii-adapted-weight-match-v2.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js', 'xml-cii-adapted-master-mapping-events.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js', 'xml-cii-adapted-master-events.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js', 'xml-cii-adapted-events.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js', 'xml-cii-adapted-events-smart.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js', 'xml-cii-adapted-events-mode-a.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js', 'xml-cii-adapted-events-mode-a-cii-zip.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', 'xml-cii-adapted-phase-panels-mode-a.js'],
+    ['tabs/xml-cii-2019-standalone-tab.js', 'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'],
+  ];
+  for (const [file, dependency] of checks) {
+    const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    assert.match(source, new RegExp(`${dependency.replaceAll('.', '\\.') }\\?v=${token}`), file);
+  }
+});
+
 test('standalone dataset-backed Weight Build has no all-master materializer dependency', async () => {
   const source = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /materializeXmlCiiDatasetBackedConfig/);
@@ -97,6 +187,16 @@ test('source/docs mirrors are exact for changed runtime modules', async () => {
     'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+    'tabs/xml-cii-2019-standalone-tab.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
   ];
   for (const path of paths) {
