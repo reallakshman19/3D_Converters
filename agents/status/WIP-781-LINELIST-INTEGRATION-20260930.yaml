@@ -1,0 +1,15 @@
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-LINELIST-INTEGRATION-20260930
+mission: Repair post-merge Line List mapping/apply/preview integration and restored-session custody defects from Issue 781.
+branch: agent/issue-781-linelist-custody-mapping-integration-20260930
+base_sha: 3976929fd0d012fae5c3bf4014eb10af7e8ab332
+criticality: ENGINEERING_CRITICAL
+work_intent: IMPLEMENT
+mutation_authority: WRITE_ALLOWED
+state: BASELINE_BACKUP_GATE
+issue: 781
+plan_revision: 2
+protocol: engineering-pr-delivery-v3.1
+common_sha: 1ced68258afeaf50df113b1d38a4ceb9193587e3
+coordination: SAFE
+merge_authority: OWNER_GRANTED_AFTER_GREEN
