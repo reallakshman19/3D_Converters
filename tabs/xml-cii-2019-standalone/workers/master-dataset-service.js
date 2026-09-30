@@ -2,6 +2,7 @@ import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_RO
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
+import { recoverMasterDatasetRawRows } from './master-dataset-remap-custody.js?v=20260930-issue781-linelist-integration-1';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;
@@ -114,8 +115,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
 
   async function remapDataset(message) {
     const dataset = await ensureDataset(message.datasetId);
-    if (!Array.isArray(dataset.rawRows)) {
-      throw new Error(`Raw rows are session-only and unavailable for dataset remap: ${message.datasetId}`);
+    const rawRows = recoverMasterDatasetRawRows(dataset);
+    if (!rawRows) {
+      throw new Error(`Raw rows are unavailable for dataset remap: ${message.datasetId}`);
     }
     if (!message.fieldMap || typeof message.fieldMap !== 'object' || Array.isArray(message.fieldMap)) {
       throw new Error('REMAP_DATASET requires a fieldMap object.');
@@ -132,7 +134,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     };
     source.datasetRevision = Math.max(Number(source.datasetRevision || 0), Number(base.datasetRevision || 0));
     source.fieldMapOverride = { ...message.fieldMap };
-    const ready = await finalizeDataset(source, dataset.rawRows, base.sheetName || '');
+    const ready = await finalizeDataset(source, rawRows, base.sheetName || '');
     return response(MASTER_DATASET_EVENT.DATASET_READY, message.requestId, ready);
   }
 
