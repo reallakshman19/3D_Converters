@@ -45,7 +45,7 @@ const autoAt = previewSource.indexOf('queueMicrotask(() => installPreviewB313Aut
 assert.ok(auditAt >= 0 && autoAt > auditAt, 'automatic B31.3 basis must run after legacy controller microtask is scheduled');
 assert.ok(autoBasisSource.includes('B31.3 automatic basis'));
 assert.ok(autoBasisSource.includes('data-b313-auto-refresh'));
-assert.ok(autoBasisSource.includes('data-b313-auto-info'));
+assert.ok(autoBasisSource.includes('data-b313-factor-info-button'));
 assert.ok(autoBasisSource.includes('[data-mc-b313-basis-editor]'));
 assert.ok(autoBasisSource.includes('legacy.hidden = true'));
 assert.ok(autoBasisSource.includes("legacy.style.display = 'none'"));
