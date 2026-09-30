@@ -11,15 +11,38 @@ function workerError(message) {
   return error;
 }
 
+function transportError(message) {
+  const error = new Error(message || 'Master dataset worker transport failed.');
+  error.name = 'WorkerTransportError';
+  return error;
+}
+
+function timeoutError(type, timeoutMs) {
+  const error = new Error(`Master dataset worker timed out during ${type} after ${Math.round(timeoutMs / 1000)}s.`);
+  error.name = 'TimeoutError';
+  return error;
+}
+
 export function createMasterDatasetClient(options = {}) {
   const workerFactory = options.workerFactory || defaultWorkerFactory;
+  const weightRequestTimeoutMs = Math.max(1000, Number(options.weightRequestTimeoutMs) || 15000);
   let worker = null;
   const pending = new Map();
   let generation = 0;
 
   function rejectPending(reason) {
-    for (const { reject } of pending.values()) reject(reason);
+    for (const entry of pending.values()) {
+      if (entry.timer) clearTimeout(entry.timer);
+      entry.reject(reason);
+    }
     pending.clear();
+  }
+
+  function restartWorker(reason = new Error('Master dataset worker restarted.')) {
+    generation += 1;
+    worker?.terminate?.();
+    worker = null;
+    rejectPending(reason instanceof Error ? reason : new Error(String(reason)));
   }
 
   function attachWorker(nextWorker) {
@@ -28,11 +51,15 @@ export function createMasterDatasetClient(options = {}) {
       const entry = pending.get(message.requestId);
       if (!entry) return;
       pending.delete(message.requestId);
+      if (entry.timer) clearTimeout(entry.timer);
       if (message.type === MASTER_DATASET_EVENT.ERROR) entry.reject(workerError(message));
       else entry.resolve(message);
     });
     nextWorker.addEventListener('error', (event) => {
-      rejectPending(new Error(event?.message || 'Master dataset worker crashed.'));
+      restartWorker(transportError(event?.message || 'Master dataset worker crashed.'));
+    });
+    nextWorker.addEventListener('messageerror', () => {
+      restartWorker(transportError('Master dataset worker returned an unreadable message.'));
     });
     return nextWorker;
   }
@@ -42,15 +69,27 @@ export function createMasterDatasetClient(options = {}) {
     return worker;
   }
 
-  function request(type, payload = {}, transfer = []) {
+  function request(type, payload = {}, transfer = [], timeoutMs = 0) {
     const requestId = makeRequestId(type.toLowerCase());
     const requestGeneration = generation;
     return new Promise((resolve, reject) => {
-      pending.set(requestId, {
+      const entry = {
         resolve: (message) => requestGeneration === generation ? resolve(message) : reject(new Error('Worker response is stale.')),
         reject,
-      });
-      ensureWorker().postMessage({ type, requestId, ...payload }, transfer);
+        timer: null,
+      };
+      if (timeoutMs > 0) {
+        entry.timer = setTimeout(() => {
+          if (!pending.has(requestId)) return;
+          restartWorker(timeoutError(type, timeoutMs));
+        }, timeoutMs);
+      }
+      pending.set(requestId, entry);
+      try {
+        ensureWorker().postMessage({ type, requestId, ...payload }, transfer);
+      } catch (error) {
+        restartWorker(transportError(error?.message || String(error)));
+      }
     });
   }
 
@@ -81,15 +120,24 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.SEARCH, { datasetId, query });
   }
 
-  function rankWeightIssues(datasetId, issues = [], config = {}, options = {}) {
+  async function rankWeightIssues(datasetId, issues = [], config = {}, options = {}) {
     if (!datasetId) throw new Error('datasetId is required.');
-    return request(MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, {
+    const payload = {
       datasetId,
       issues: Array.isArray(issues) ? issues : [],
       config: config && typeof config === 'object' ? config : {},
       ratingMode: options.ratingMode || 'preview',
       previewRatingSnapshot: options.previewRatingSnapshot || {},
-    });
+    };
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await request(MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, payload, [], weightRequestTimeoutMs);
+      } catch (error) {
+        const recoverable = error?.name === 'TimeoutError' || error?.name === 'WorkerTransportError';
+        if (!recoverable || attempt > 0) throw error;
+      }
+    }
+    throw new Error('Weight Match worker recovery exhausted.');
   }
 
   function getRows(datasetId, offset = 0, limit = 150) {
@@ -115,19 +163,12 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.RELEASE_DATASET, { datasetId });
   }
 
-  function restartWorker(reason = 'Master dataset worker restarted.') {
-    generation += 1;
-    worker?.terminate?.();
-    worker = null;
-    rejectPending(new Error(reason));
-  }
-
   function cancelActiveImport() {
-    restartWorker('Master import cancelled.');
+    restartWorker(new Error('Master import cancelled.'));
   }
 
   function dispose() {
-    restartWorker('Master dataset client disposed.');
+    restartWorker(new Error('Master dataset client disposed.'));
   }
 
   return Object.freeze({
