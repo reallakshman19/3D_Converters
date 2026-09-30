@@ -91,7 +91,7 @@ jobs:
           node --test tests/xml-cii-issue-781-worker-weight-api.test.mjs
           node --test tests/xml-cii-master-worker-metadata-import.test.mjs
           node --test tests/xml-cii-master-preview-worker-search.test.mjs
-          node --test tests/xml-cii-weight-build-runaway-regression.test.mjs
+          node --test tests/xml-cii-issue-781-weight-build-performance.test.mjs
       - name: Commit qualified implementation
         shell: bash
         run: |
