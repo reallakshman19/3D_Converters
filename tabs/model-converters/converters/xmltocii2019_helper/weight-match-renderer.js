@@ -4,6 +4,7 @@ import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/x
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
 import {
   readXmlCiiPreviewRatingSnapshot,
+  resolveXmlCiiPreviewRating,
   resolveXmlCiiWeightMatchRating,
 } from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 import {
@@ -20,6 +21,7 @@ import {
   buildXmlCiiRigidWeightMatch1Provenance,
   buildXmlCiiValidatedRigidWeightLegacyView,
 } from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
+import { prepareXmlCiiWeightMatchGeometry } from './enrichment-run-parity.js?v=20260930-issue781-weight-basis-fastpath-1';
 
 function t(value) { return value === null || value === undefined ? '' : String(value); }
 function clean(value) { return t(value).replace(/\s+/g, ' ').trim(); }
@@ -38,8 +40,8 @@ function componentRefEndpoint(componentRefNo, endpoint) { const ref = normalizeC
 function truthy(value) { if (value === true) return true; if (value === false || value == null) return false; return /^(1|true|yes|on)$/i.test(clean(value)); }
 function desc(candidate) { return clean(candidate?.typeDesc || candidate?.valveType || candidate?.type || 'Unknown') || 'Unknown'; }
 function plainObject(value) { return value && typeof value === 'object' && !Array.isArray(value); }
-const WEIGHT_ENRICH_TIMEOUT_MS = 60000;
-function withWeightStageTimeout(promise, stage, timeoutMs = WEIGHT_ENRICH_TIMEOUT_MS) {
+const WEIGHT_ASYNC_TIMEOUT_MS = 15000;
+function withWeightStageTimeout(promise, stage, timeoutMs = WEIGHT_ASYNC_TIMEOUT_MS) {
   let timeoutId = null;
   const timeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -191,6 +193,28 @@ function rerankWithRating(row, config, { ratingMode = 'preview', snapshot = read
   return rankXmlCiiWeightIssue(row, config, { ratingMode, snapshot });
 }
 
+function withWeightRatingAuthority(row, ratingMode, snapshot) {
+  const preview = resolveXmlCiiPreviewRating(row, snapshot);
+  const resolved = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot });
+  const previewBore = Number(preview?.record?.sizeMm);
+  return {
+    ...row,
+    lineKey: row?.lineKey || preview?.record?.lineKey || '',
+    requestedPipingClass: row?.requestedPipingClass || preview?.record?.pipingClass || '',
+    resolvedPipingClass: row?.resolvedPipingClass || preview?.record?.pipingClass || '',
+    boreMm: Number.isFinite(previewBore) && previewBore > 0 ? previewBore : row?.boreMm,
+    rating: resolved.rating,
+    ratingSource: resolved.source,
+    dtxrRating: resolved.dtxrRating,
+    ratingMode: resolved.mode,
+    ratingSnapshotRevision: resolved.snapshotRevision || '',
+  };
+}
+
+function yieldWeightStatus() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function xmlLocalName(node) { return clean(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
 function xmlChildText(node, name) { const child = [...(node?.childNodes || [])].find((item) => item.nodeType === 1 && xmlLocalName(item) === name); return clean(child?.textContent); }
 function regexXmlValue(block, name) { return clean(block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.replace(/<[^>]+>/g, '')); }
@@ -277,7 +301,7 @@ function writeCache(storageKey, fingerprint, data) { try { const payload = JSON.
 export function invalidateXmlCiiWeightCache() { try { localStorage.removeItem(WM_CACHE_KEY); } catch {} }
 export function invalidateXmlCiiPreviewCache() { try { localStorage.removeItem(PV_CACHE_KEY); } catch {} }
 
-export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, enrichXmlForCii2019, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, resolveWeightValidationMasterRows = null }) {
+export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, resolveWeightValidationMasterRows = null }) {
   if (!detailEl) return;
   const contentEl = detailEl.querySelector('#mc-wm-content');
   const statusEl = detailEl.querySelector('#mc-wm-status');
@@ -404,13 +428,15 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         : stagedText(stagedJsonText).then((text) => ({ text, label: '' }));
       const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
       const jsonText = clean(stagedSource?.text ?? stagedSource);
-      status('Preparing Weight Match geometry…');
-      const enriched = await withWeightStageTimeout(
-        enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig)),
-        'XML enrichment',
+      status('Preparing Weight Match basis…');
+      await yieldWeightStatus();
+      const prepared = prepareXmlCiiWeightMatchGeometry(
+        xmlText,
+        jsonText,
+        enrichedOptionsForWeightMatch(liveConfig),
       );
-      let enrichedConfig = enriched.config || liveConfig;
-      let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
+      let preparedConfig = prepared.config || liveConfig;
+      let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
       if (workerBackedWeight) {
         cfg = { ...cfg, weight: { ...(cfg?.weight || {}) } };
         delete cfg.weight.masterRows;
@@ -418,15 +444,17 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? cfg.weight.masterRevision ?? 0);
         if (revision > 0) cfg.weight.masterRevision = revision;
       } else {
-        enrichedConfig = await ensureWeightMasterRows(enrichedConfig);
-        cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+        preparedConfig = await ensureWeightMasterRows(preparedConfig);
+        cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
         if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
       }
-      const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
-      const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg);
+      const geometryXml = applyXmlCiiStagedGeometryAuthority(prepared.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
+      const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg)
+        .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot));
       const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
       const validatedConfig = validated.config;
       const issueRows = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml)
+        .map((row) => withWeightRatingAuthority(row, ratingMode, snapshot))
         .map(cleanRow).filter(Boolean)
         .map((row) => ({ ...row, staleMatch1: validated.validation.stale?.[row.key] || null }));
       if (workerBackedWeight) {
@@ -491,7 +519,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   else status('Ready to build with Preview Rating');
 }
 
-export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText, stagedJsonText, config, enrichXmlForCii2019 }) {
+export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText, stagedJsonText, config }) {
   let liveConfig = await ensureWeightMasterRows(config || {});
   if (!hasWeightMasterRows(liveConfig)) return null;
   const file = currentXmlFile(xmlFile);
@@ -503,19 +531,22 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
       : stagedText(stagedJsonText || '').then((text) => ({ text })).catch(() => ({ text: '' }));
     const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
     const jsonText = clean(stagedSource?.text ?? stagedSource ?? '');
-    const enriched = await withWeightStageTimeout(
-      enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig)),
-      'XML enrichment',
+    const prepared = prepareXmlCiiWeightMatchGeometry(
+      xmlText,
+      jsonText,
+      enrichedOptionsForWeightMatch(liveConfig),
     );
-    const enrichedConfig = await ensureWeightMasterRows(enriched.config || liveConfig);
-    const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+    const preparedConfig = await ensureWeightMasterRows(prepared.config || liveConfig);
+    const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(preparedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
     if (!hasWeightMasterRows(cfg)) return null;
-    const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
-    const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg);
+    const geometryXml = applyXmlCiiStagedGeometryAuthority(prepared.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
+    const snapshot = readXmlCiiPreviewRatingSnapshot();
+    const basisRows = collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg)
+      .map((row) => withWeightRatingAuthority(row, 'preview', snapshot));
     const validated = buildXmlCiiValidatedRigidWeightLegacyView(cfg, basisRows);
     const authorityConfig = validated.config;
-    const snapshot = readXmlCiiPreviewRatingSnapshot();
     const issues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, authorityConfig), geometryXml)
+      .map((row) => withWeightRatingAuthority(row, 'preview', snapshot))
       .map(cleanRow)
       .filter(Boolean)
       .map((row) => applyXmlCiiFlangeWeightFallbackToIssue(

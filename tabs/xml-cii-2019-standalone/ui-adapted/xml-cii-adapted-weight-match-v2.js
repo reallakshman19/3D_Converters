@@ -142,15 +142,10 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
-      const [renderer, parity] = await Promise.all([
-        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-liveness-cache-1'),
-        import('../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2'),
-      ]);
-      const shared = await parity.loadParentWeightMatchModules();
+      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-basis-fastpath-1');
       if (
         typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
-        || typeof shared.bindXmlCiiWeightMatchPhase !== 'function'
-        || typeof shared.enrichXmlForCii2019 !== 'function'
+        || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function'
       ) {
         throw new Error('Shared Weight Match renderer contract is incomplete.');
       }
@@ -163,11 +158,10 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         ? new File([state.sourceText], 'source.xml', { type: 'application/xml' })
         : null);
       card.innerHTML = renderer.xmlCiiRenderWeightMatchPhase();
-      shared.bindXmlCiiWeightMatchPhase(card, {
+      renderer.bindXmlCiiWeightMatchPhase(card, {
         xmlFile,
         stagedJsonText: state.stagedJsonText || '',
         config: rendererConfig,
-        enrichXmlForCii2019: shared.enrichXmlForCii2019,
       weightDatasetRef,
       rankWeightIssues: weightDatasetRef?.datasetId ? async (issues, request = {}) => {
         const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, stateRef.current.masterContext || {});

@@ -352,20 +352,17 @@ export function xmlCiiForwardElementLengths(nodes) {
     const point = normalizePoint(positionText);
     return point ? [point.x, point.z, -point.y] : null;
   };
+  let previousPositivePosition = null;
   for (let j = 0; j < nodes.length; j += 1) {
     const toNumber = Number(xmlText(nodes[j], 'NodeNumber'));
     if (!Number.isFinite(toNumber) || toNumber <= 0) continue;
     const toPosition = xmlText(nodes[j], 'Position');
-    if (!toPosition) continue;
-    let fromPosition = null;
-    for (let i = j - 1; i >= 0; i -= 1) {
-      const fromNumber = Number(xmlText(nodes[i], 'NodeNumber'));
-      if (Number.isFinite(fromNumber) && fromNumber > 0) { fromPosition = xmlText(nodes[i], 'Position'); break; }
-    }
-    const from = mapPositionToCii(fromPosition);
+    const from = mapPositionToCii(previousPositivePosition);
     const to = mapPositionToCii(toPosition);
-    if (!from || !to) continue;
-    out[j] = Math.sqrt(((to[0] - from[0]) ** 2) + ((to[1] - from[1]) ** 2) + ((to[2] - from[2]) ** 2));
+    if (from && to) {
+      out[j] = Math.sqrt(((to[0] - from[0]) ** 2) + ((to[1] - from[1]) ** 2) + ((to[2] - from[2]) ** 2));
+    }
+    previousPositivePosition = toPosition || null;
   }
   return out;
 }

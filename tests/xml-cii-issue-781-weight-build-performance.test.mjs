@@ -114,10 +114,42 @@ test('shared Weight Match compute is single-flight and exposes busy state', () =
   assert.match(renderer, /refreshEl\.disabled = false;/);
 });
 
+
+test('Weight Build uses the lightweight basis path and never invokes full conversion enrichment', () => {
+  const enrichment = fs.readFileSync('tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js', 'utf8');
+  const renderer = fs.readFileSync('tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js', 'utf8');
+  const adapter = fs.readFileSync('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', 'utf8');
+  const start = enrichment.indexOf('export function prepareXmlCiiWeightMatchGeometry');
+  const end = enrichment.indexOf('export async function enrichXmlForCii2019', start);
+  const fastPath = enrichment.slice(start, end);
+
+  assert.ok(start >= 0 && end > start, 'Weight fast-path export must exist');
+  assert.match(fastPath, /annotateInlineElementLengths/);
+  assert.match(fastPath, /applyCondenseRigidOption/);
+  assert.doesNotMatch(fastPath, /enrichXmlForCii2019Base|buildStagedSupportIndex|loadXmlCiiWeightMasterRows/);
+  assert.match(renderer, /prepareXmlCiiWeightMatchGeometry/);
+  assert.match(renderer, /withWeightRatingAuthority/);
+  assert.match(renderer, /resolveXmlCiiPreviewRating/);
+  assert.doesNotMatch(adapter, /loadParentWeightMatchModules/);
+  assert.match(adapter, /renderer\.bindXmlCiiWeightMatchPhase/);
+});
+
+test('Weight forward element length scan is linear rather than backward rescanning', () => {
+  const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
+  const start = model.indexOf('export function xmlCiiForwardElementLengths');
+  const end = model.indexOf('\nconst OD_TO_DN', start);
+  const scan = model.slice(start, end);
+  assert.match(scan, /previousPositivePosition/);
+  assert.doesNotMatch(scan, /for \(let i = j - 1/);
+});
+
 test('modified Weight Build runtime files remain byte-identical to docs mirrors', () => {
   for (const path of [
     'converters/xml-cii2019-core/weight-valve-hints.js',
+    'converters/xml-cii2019-core/weight-match-model.js',
+    'tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js',
   ]) {
     assert.equal(fs.readFileSync(path, 'utf8'), fs.readFileSync(`docs/${path}`, 'utf8'), path);

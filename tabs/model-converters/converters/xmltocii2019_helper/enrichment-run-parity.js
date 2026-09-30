@@ -590,6 +590,38 @@ function applyPreviewRunParity(enriched, sourceXmlText, stagedJsonText, options 
   return enriched;
 }
 
+export function prepareXmlCiiWeightMatchGeometry(xmlTextVal, stagedJsonText, options = {}) {
+  const config = configWithRuntimeOptions(
+    parseXmlCiiEnrichmentConfig(options.supportConfigJson || '{}'),
+    options,
+  );
+  const prepared = { xmlText: text(xmlTextVal), config, stats: {}, diagnostics: [] };
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    const fallback = dropGasketNodesFromXmlText(prepared.xmlText, options);
+    prepared.xmlText = fallback.xmlText;
+    prepared.stats = { ...(fallback.stats || {}) };
+    prepared.diagnostics = [...(fallback.diagnostics || [])];
+    return prepared;
+  }
+
+  const document = new DOMParser().parseFromString(prepared.xmlText, 'application/xml');
+  if (document.getElementsByTagName('parsererror').length) return prepared;
+  if (shouldDropGasketNodes(config, options)) {
+    const dropped = dropGasketNodesFromDocument(document, prepared.stats, prepared.diagnostics, 'weight-match-fast-path');
+    if (dropped > 0) prepared.stats.gasketNodesDropped = dropped;
+  }
+  annotateInlineElementLengths(document, prepared);
+  applyCondenseRigidOption(prepared, document, options);
+  prepared.xmlText = new XMLSerializer().serializeToString(document);
+  prepared.stats.weightMatchGeometryFastPath = 1;
+  prepared.diagnostics.push({
+    type: 'weight-match-geometry-fast-path',
+    status: 'applied',
+    message: 'Weight Match geometry prepared without full conversion enrichment.',
+  });
+  return prepared;
+}
+
 export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = {}) {
   const preparedSource = dropGasketNodesFromXmlText(xmlTextVal, options);
   const enriched = await enrichXmlForCii2019Base(preparedSource.xmlText, stagedJsonText, options);
