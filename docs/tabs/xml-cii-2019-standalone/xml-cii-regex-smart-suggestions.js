@@ -1,8 +1,8 @@
-import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js?v=20260928-issue776-authority-1';
+import { buildRegexRoleSuggestions } from './xml-cii-regex-suggestion-candidates.js?v=20260930-issue781-auto-authority-1';
 import { computeLineNoKey } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildPipingClassIndex, normalizePipingClass } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 
-const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
+const ROLE_ORDER = ['lineKey', 'pipingClass', 'bore'];
 
 let lineMasterCache = new WeakMap();
 let classMasterCache = new WeakMap();
@@ -20,7 +20,7 @@ export function resetRegexSuggestionCachesForTests() {
 export function createDefaultRegexSuggestionProfile() {
   return Object.freeze({
     schema: 'regex-suggestion-profile/v1',
-    profileIdentity: 'xml-cii-regex-suggestion-default-v2',
+    profileIdentity: 'xml-cii-regex-suggestion-default-v3-no-rating',
     operatingMode: 'AUTO_PREVIEW_SAFE',
     thresholds: Object.freeze({ safe: 0.90, review: 0.75, display: 0.50 }),
     validation: Object.freeze({ preserveManualLocks: true, rejectCoverageRegression: true, validateAllSamples: true }),
@@ -242,7 +242,6 @@ export function buildRegexSuggestionPreflight(input = {}) {
     classMasters: classEvidence.classes,
     classBoresByClass: classEvidence.boresByClass,
     profile,
-    ratingSequence: config.ratingSequence,
   });
   const metrics = summarize(suggestions, rows.length, clusters.length, input.currentResult);
   const blockers = [];
@@ -279,17 +278,10 @@ export function buildRegexSuggestionPreflight(input = {}) {
 }
 
 export function applyHighestSafeSuggestions(extractionConfig = {}, receipt, options = {}) {
-  const index = Number(extractionConfig?.activeFormatIndex || receipt?.formatIndex || 0);
-  const format = extractionConfig?.formats?.[index] || extractionConfig || {};
-  const manualLocks = { ...(options.manualLocks || {}) };
-  for (const role of ROLE_ORDER) {
-    const current = format?.[role] || {};
-    if (positions(current.tokenPosition).length || txt(current.regex)) manualLocks[role] = true;
-  }
   return applyRegexSuggestions(extractionConfig, receipt, {
     ...options,
     safeOnly: true,
-    manualLocks,
+    manualLocks: { ...(options.manualLocks || {}) },
   });
 }
 
@@ -300,12 +292,8 @@ export function applyRegexSuggestions(extractionConfig = {}, receipt, options = 
   next.formats[index] = { ...(next.formats[index] || {}) };
   const locks = options.manualLocks || {};
   for (const item of receipt?.suggestions || []) {
-    if (item.conflict || locks[item.role]) continue;
+    if (!ROLE_ORDER.includes(item.role) || item.conflict || locks[item.role]) continue;
     if (options.safeOnly && !item.safe) continue;
-    if (item.derived) {
-      next.formats[index].rating = { ...(next.formats[index].rating || {}), tokenPosition: '' };
-      continue;
-    }
     next.formats[index][item.role] = {
       ...(next.formats[index][item.role] || {}),
       tokenPosition: item.tokenPositions.join(','),

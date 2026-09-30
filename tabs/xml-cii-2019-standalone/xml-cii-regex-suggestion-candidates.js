@@ -1,12 +1,11 @@
 const STANDARD_NPS = new Set(['0.5','0.75','1','1.25','1.5','2','2.5','3','3.5','4','5','6','8','10','12','14','16','18','20','22','24','26','28','30','32','34','36','40','42','48','54','60']);
 const STANDARD_DN = new Set(['6','8','10','15','20','25','32','40','50','65','80','90','100','125','150','200','250','300','350','400','450','500','550','600','650','700','750','800','850','900','1000','1050','1200','1350','1500']);
-const STANDARD_RATINGS = new Set(['150','300','600','900','1500','2500','5000','10000','15000','20000']);
 const NPS_TO_DN = new Map([
   ['0.5',15],['0.75',20],['1',25],['1.25',32],['1.5',40],['2',50],['2.5',65],['3',80],['3.5',90],['4',100],
   ['5',125],['6',150],['8',200],['10',250],['12',300],['14',350],['16',400],['18',450],['20',500],['22',550],['24',600],
 ]);
-const ROLE_ORDER = ['lineKey', 'pipingClass', 'rating', 'bore'];
-const TRUSTED_AUTHORITIES = new Set(['AUTHORIZED_MASTER', 'GOVERNED_NORMALIZED_MASTER', 'EXPLICIT_SOURCE', 'DERIVED_FROM_AUTHORIZED_CLASS']);
+const ROLE_ORDER = ['lineKey', 'pipingClass', 'bore'];
+const TRUSTED_AUTHORITIES = new Set(['AUTHORIZED_MASTER', 'GOVERNED_NORMALIZED_MASTER', 'EXPLICIT_SOURCE']);
 
 const txt = (value) => String(value ?? '').trim();
 const norm = (value) => txt(value).toUpperCase().replace(/[^A-Z0-9.]/g, '');
@@ -121,15 +120,6 @@ function lineKeyCandidates(rows, lineMasters, maxTokens) {
   return out.sort((a, b) => b.confidence - a.confidence || a.tokenPositions.length - b.tokenPositions.length);
 }
 
-function ratingCandidate(values, position) {
-  const explicit = coverage(values, (value) => STANDARD_RATINGS.has(txt(value).replace(/[^0-9]/g, '')));
-  const score = clamp(explicit * 0.92);
-  const authority = explicit === 1 ? 'EXPLICIT_SOURCE' : explicit > 0 ? 'PARTIAL_SOURCE_EVIDENCE' : 'HEURISTIC_ONLY';
-  return suggestion('rating', [position], score, authority, values,
-    [`${Math.round(explicit * 100)}% standard rating values`],
-    { standardValueRate: explicit });
-}
-
 function positionValues(rows, position) {
   return rows.map((row) => row.values[position - 1] || '').filter(Boolean);
 }
@@ -161,19 +151,7 @@ function markConflicts(suggestions) {
   return suggestions;
 }
 
-function derivedRatingSuggestion(suggestions, ratingSequence) {
-  const pipingClass = suggestions.find((item) => item.role === 'pipingClass');
-  if (!pipingClass || !TRUSTED_AUTHORITIES.has(pipingClass.authorityLevel)) return null;
-  return {
-    role: 'rating', tokenPositions: [], confidence: pipingClass.confidence,
-    authorityLevel: 'DERIVED_FROM_AUTHORIZED_CLASS', coverage: pipingClass.coverage,
-    sampleCount: pipingClass.sampleCount, evidenceMetrics: pipingClass.evidenceMetrics,
-    evidence: [`Derived from piping class by ${Array.isArray(ratingSequence) ? ratingSequence.length : 0} configured prefix rules`],
-    conflict: false, safe: pipingClass.safe, review: pipingClass.review, derived: true,
-  };
-}
-
-export function buildRegexRoleSuggestions({ rows = [], lineMasters = new Set(), classMasters = new Set(), classBoresByClass = new Map(), profile, ratingSequence = [] } = {}) {
+export function buildRegexRoleSuggestions({ rows = [], lineMasters = new Set(), classMasters = new Set(), classBoresByClass = new Map(), profile } = {}) {
   const maxColumns = Math.max(0, ...rows.map((row) => row.values.length));
   const candidates = [];
   for (let pos = 1; pos <= maxColumns; pos += 1) {
@@ -181,16 +159,8 @@ export function buildRegexRoleSuggestions({ rows = [], lineMasters = new Set(), 
     candidates.push(
       boreCandidate(values, pos, rows, classMasters, classBoresByClass),
       classCandidate(values, pos, classMasters, profile.normalization.classSuffixPattern),
-      ratingCandidate(values, pos),
     );
   }
   candidates.push(...lineKeyCandidates(rows, lineMasters, profile.formatPolicy.maximumLineKeyTokens));
-  let suggestions = markConflicts(bestByRole(candidates, profile.thresholds));
-  const explicitRating = suggestions.find((item) => item.role === 'rating');
-  if (!explicitRating || explicitRating.confidence < profile.thresholds.review) {
-    suggestions = suggestions.filter((item) => item.role !== 'rating');
-    const derived = derivedRatingSuggestion(suggestions, ratingSequence);
-    if (derived) suggestions.push(derived);
-  }
-  return suggestions;
+  return markConflicts(bestByRole(candidates, profile.thresholds));
 }

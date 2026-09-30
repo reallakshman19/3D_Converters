@@ -16,8 +16,11 @@ const a106 = derivePreviewB313AutoBasisRow(a106Row, {});
 assert.equal(a106.materialId, 'CS-A106-B');
 assert.equal(a106.route, 'SEAMLESS');
 assert.equal(a106.routeSource, 'A106 carbon-steel default');
-assert.equal(a106.statusCode, 'REVIEW_REQUIRED');
-assert.match(a106.factorSummary, /BENCHMARK_ONLY/);
+assert.equal(a106.statusCode, 'FALLBACK_SEED_READY');
+assert.equal(a106.statusLabel, 'FALLBACK SEED — REFRESH TO ACCEPT');
+assert.equal(a106.fallback?.seedTemperatureC, 0);
+assert.equal(a106.fallback?.designAuthority, false);
+assert.match(a106.factorSummary, /CANDIDATE SEED @ 0 °C/);
 assert.deepEqual(a106.tableContext, { materialId: 'CS-A106-B', temperatureC: 0 });
 
 const a106BlankT1 = derivePreviewB313AutoBasisRow({
@@ -66,7 +69,16 @@ assert.match(runtimeSource, /data-b313-auto-open-material/);
 assert.match(runtimeSource, />▦<\/button>/);
 assert.match(runtimeSource, /A106 carbon steel defaults to SEAMLESS/);
 assert.match(runtimeSource, /Blank T1 is never treated as 0 °C/);
+assert.match(runtimeSource, /data-b313-auto-field="\$\{field\}"/);
+assert.match(runtimeSource, /fallbackInputCell\(model, 'S', 'allowableStress'/);
+assert.match(runtimeSource, /fallbackInputCell\(model, 'E', 'qualityFactorE'/);
+assert.match(runtimeSource, /fallbackInputCell\(model, 'W', 'weldStrengthReductionW'/);
+assert.match(runtimeSource, /fallbackInputCell\(model, 'Y', 'coefficientY'/);
+assert.match(runtimeSource, /data-b313-auto-field="stressUnit"/);
+assert.match(runtimeSource, /data-b313-factor-info-button/);
+assert.match(runtimeSource, /data-b313-auto-refresh/);
+assert.match(runtimeSource, /USER_ACCEPTED_PREVIEW_FALLBACK/);
+assert.match(runtimeSource, /no interpolation/i);
 assert.match(diagnosticsSource, /installPreviewB313AutoBasisPanel/);
-assert.doesNotMatch(runtimeSource, /data-b313-field=/, 'automatic panel must not expose editable B31.3 basis fields');
 
-console.log('Issue 781 B31.3 automatic-basis/A106 route UI checks passed.');
+console.log('Issue 781 B31.3 automatic-basis/A106 route controlled-fallback checks passed.');
