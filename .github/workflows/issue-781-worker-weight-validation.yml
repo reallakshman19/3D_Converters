@@ -1,4 +1,5 @@
 name: Issue 781 Worker Weight API Validation
+# Final literal-head qualification for the worker-resident Weight API + applied Line List projection.
 
 on:
   push:
