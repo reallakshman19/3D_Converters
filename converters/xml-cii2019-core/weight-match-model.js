@@ -483,7 +483,7 @@ function ratingForRigidWeightIssue(node, branchContext, config) {
   return overrideText(config, 'rating', [branchContext.lineKey, branchContext.branchName, nodeNumber]) || nodeRating;
 }
 
-function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigid') {
+function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigid', options = {}) {
   if (typeof DOMParser === 'undefined') return [];
   const document = new DOMParser().parseFromString(toText(xmlTextVal), 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return [];
@@ -521,7 +521,13 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       }
       if (boreMm === null) boreMm = branchContext.boreMm;
       const rating = ratingForRigidWeightIssue(node, branchContext, config);
-      const ranking = rankXmlCiiWeightCandidates({ boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText }, config, { includeRejected: true });
+      const ranking = options.rankCandidates === false
+        ? { nodeHint: null, candidates: [], rejectedCandidates: [] }
+        : rankXmlCiiWeightCandidates(
+          { boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText },
+          config,
+          { includeRejected: true },
+        );
       // NodeNumber can be the literal "-1" sentinel for FLAN/VALV/RIGID/INST
       // nodes whose synthetic ≥10000 fallback number was intentionally
       // suppressed upstream (see staged-geometry-authority.js), and VALV/INST
@@ -541,6 +547,16 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
     });
   }
   return rows;
+}
+
+export function collectXmlCiiWeightMatchBasisRows(xmlTextVal, stagedJsonText, config) {
+  return collectWeightRows(
+    xmlTextVal,
+    stagedJsonText,
+    config,
+    'all-review-nodes',
+    { rankCandidates: false },
+  );
 }
 
 export function collectXmlCiiWeightMatchRows(xmlTextVal, stagedJsonText, config) {
