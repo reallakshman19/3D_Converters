@@ -368,7 +368,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (!input) return; input.value = button.dataset.wmWeight || ''; input.dispatchEvent(new Event('change', { bubbles: true })); }));
   };
   const fillBest = () => { let count = 0; contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => { const best = localIssues[index]?.candidates?.[0]; if (!best || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return; input.value = String(selectedWeight(best)); saveInput(input); count += 1; }); return count; };
-  const compute = async (opts = {}) => {
+  const computeCore = async (opts = {}) => {
     let liveConfig = activeConfig();
     syncToggle(); syncRatingMode(); drawPanel();
     const file = currentXmlFile(xmlFile);
@@ -429,7 +429,27 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       status('Error', 'bad');
     }
   };
-  detailEl.querySelector('#mc-wm-refresh')?.addEventListener('click', () => compute({ force: true }));
+  const refreshEl = detailEl.querySelector('#mc-wm-refresh');
+  let activeComputePromise = null;
+  const compute = (opts = {}) => {
+    if (activeComputePromise) {
+      status('Weight Match build already running…');
+      return activeComputePromise;
+    }
+    if (refreshEl) {
+      refreshEl.disabled = true;
+      refreshEl.dataset.wmBusy = 'true';
+    }
+    activeComputePromise = computeCore(opts).finally(() => {
+      activeComputePromise = null;
+      if (refreshEl) {
+        refreshEl.disabled = false;
+        delete refreshEl.dataset.wmBusy;
+      }
+    });
+    return activeComputePromise;
+  };
+  refreshEl?.addEventListener('click', () => compute({ force: true }));
   ratingModeButton?.addEventListener('click', () => { ratingMode = ratingMode === 'preview' ? 'dtxr' : 'preview'; invalidateXmlCiiWeightCache(); syncRatingMode(); compute({ force: true }); });
   toggleEl?.addEventListener('click', () => { invalidateXmlCiiWeightCache(); const cfg = activeConfig(); cfg.weight = plainObject(cfg.weight) ? cfg.weight : {}; cfg.weight.convertSmallLengthsInToMm = cfg.weight.convertSmallLengthsInToMm !== true; onSaveConfig(cfg); contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">Length conversion changed. Click <strong>Build Weight Data</strong> to recompute.</div>'; localIssues = []; syncToggle(); });
   detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => { const count = fillBest(); status(`Applied ${count} preferred weight(s)`, count ? 'ok' : 'bad'); });

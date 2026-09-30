@@ -238,10 +238,6 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
   };
 
   card.addEventListener('xml-cii-weight-validator-ready', (event) => buildFromResolved(event.detail || {}));
-  card.addEventListener('click', (event) => {
-    if (event.target?.closest?.('#mc-wm-refresh') && typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
-  }, true);
-
   section.querySelector('[data-ewv-build]')?.addEventListener('click', () => {
     if (typeof window !== 'undefined') window.__xmlCiiPendingValidation = true;
     if (status) status.textContent = 'Recomputing Weight Match rows and validating resolved component weights…';
