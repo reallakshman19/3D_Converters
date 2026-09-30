@@ -14,6 +14,8 @@ on:
       - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-numbering.js'
       - 'scripts/xml-cii-mode-b-numbering-observe.mjs'
       - 'tests/xml-cii-issue-787-mode-b-numbering.test.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-numbering-fixture.test.mjs'
+      - 'tests/fixtures/xml-cii-mode-b-numbering-v1.json'
       - 'tests/fixtures/xml-cii-mode-b-composite-v1.json'
       - 'Benchmarks/XML-CII-2019/**'
       - '.github/workflows/issue-787-modeb-03-numbering.yml'
@@ -39,8 +41,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run MODEB-03 synthetic + real-corpus numbering regressions
-        run: node --test tests/xml-cii-issue-787-mode-b-numbering.test.mjs
+      - name: Run MODEB-03 synthetic + real-corpus + pinned-fixture numbering regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-numbering.test.mjs tests/xml-cii-issue-787-mode-b-numbering-fixture.test.mjs
       - name: Preserve frozen MODEB-02 graph authority
         run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs tests/xml-cii-issue-787-mode-b-composite-fixture.test.mjs
       - name: Preserve MODEB-01 observation authority
