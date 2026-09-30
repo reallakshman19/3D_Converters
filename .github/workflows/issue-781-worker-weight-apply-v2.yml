@@ -53,16 +53,28 @@ jobs:
 
           test_path = Path('tests/xml-cii-issue-781-worker-weight-api.test.mjs')
           test_source = test_path.read_text()
-          old_search = "              searchDataset: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
-          new_search = "              buildSearchCorpus: (rows) => rows.map((row) => Object.values(row).join(' ').toLowerCase()),\n              searchCorpusIndexes: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
-          if old_search not in test_source:
-              raise SystemExit('Synthetic service search dependency anchor missing.')
-          test_source = test_source.replace(old_search, new_search, 1)
-          old_reject = "            const result = await svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} });\n            assert.equal(result.type, MASTER_DATASET_EVENT.ERROR);\n            assert.match(result.error.message, /requires a weight dataset/i);"
-          new_reject = "            await assert.rejects(\n              () => svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} }),\n              /requires a weight dataset/i,\n            );"
-          if old_reject not in test_source:
-              raise SystemExit('Synthetic non-weight rejection assertion anchor missing.')
-          test_path.write_text(test_source.replace(old_reject, new_reject, 1))
+          test_source, count = re.subn(
+              r"searchDataset:\s*\(corpus, query\)\s*=>\s*corpus\.map\(\(value, index\)\s*=>\s*value\.includes\(query\)\s*\?\s*index\s*:\s*-1\)\.filter\(\(index\)\s*=>\s*index\s*>=\s*0\),",
+              "buildSearchCorpus: (rows) => rows.map((row) => Object.values(row).join(' ').toLowerCase()),\n    searchCorpusIndexes: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),",
+              test_source,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'Synthetic service search dependency replacement count={count}.')
+
+          reject_pattern = re.compile(
+              r"const result = await svc\.handle\(\{ type: MASTER_DATASET_COMMAND\.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready\.metadata\.datasetId, issues: \[issue\], config: \{\} \}\);\s*"
+              r"assert\.equal\(result\.type, MASTER_DATASET_EVENT\.ERROR\);\s*"
+              r"assert\.match\(result\.error\.message, /requires a weight dataset/i\);"
+          )
+          test_source, count = reject_pattern.subn(
+              "await assert.rejects(\n      () => svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} }),\n      /requires a weight dataset/i,\n    );",
+              test_source,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'Synthetic non-weight rejection assertion replacement count={count}.')
+          test_path.write_text(test_source)
           PY
       - name: Syntax-check touched runtime files
         run: |
