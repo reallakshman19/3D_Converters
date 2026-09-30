@@ -1,5 +1,5 @@
-import { createMasterDatasetClient } from './master-dataset-client.js?v=20260930-issue781-weight-liveness-cache-1';
-import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-liveness-cache-1';
+import { createMasterDatasetClient } from './master-dataset-client.js?v=20260930-issue781-weight-basis-worker-1';
+import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-worker-1';
 
 function assertDatasetMessage(message) {
   if (message?.type !== MASTER_DATASET_EVENT.DATASET_READY || !message?.metadata?.datasetId) {
