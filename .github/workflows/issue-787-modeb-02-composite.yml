@@ -13,6 +13,8 @@ on:
       - 'scripts/xml-cii-mode-b-compose-observe.mjs'
       - 'tests/xml-cii-issue-787-mode-b-composite.test.mjs'
       - 'tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-composite-fixture.test.mjs'
+      - 'tests/fixtures/xml-cii-mode-b-composite-v1.json'
       - 'Benchmarks/XML-CII-2019/**'
       - '.github/workflows/issue-787-modeb-02-composite.yml'
   workflow_dispatch:
@@ -37,8 +39,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run MODEB-02 synthetic + real-corpus composite regressions
-        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs
+      - name: Run MODEB-02 synthetic + real-corpus + pinned-fixture regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs tests/xml-cii-issue-787-mode-b-composite-fixture.test.mjs
       - name: Preserve MODEB-01 observation contract
         run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
       - name: Preserve existing single-document topology behavior
