@@ -100,12 +100,12 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       rows: previewResult?.branchRows || [],
       options,
     });
-    installPreviewB313AutoBasisPanel({
+    queueMicrotask(() => installPreviewB313AutoBasisPanel({
       host,
       config,
       rows: previewResult?.branchRows || [],
       options,
-    });
+    }));
   } catch (error) {
     console.error('Failed to build standalone preview table:', error);
     host.innerHTML = `<div class="xml-cii-phase-help" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">⚠ Build failed: ${esc(error?.message || error)}</div>`;

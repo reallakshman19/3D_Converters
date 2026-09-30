@@ -285,15 +285,35 @@ export function applyHighestSafeSuggestions(extractionConfig = {}, receipt, opti
   });
 }
 
+function applicableSuggestions(receipt, options, locks) {
+  return (receipt?.suggestions || []).filter((item) => {
+    if (!ROLE_ORDER.includes(item.role) || item.conflict || locks[item.role]) return false;
+    return !options.safeOnly || item.safe;
+  });
+}
+
+function clearClaimedPositions(format, item, locks, replacingRoles) {
+  const claimed = new Set(item.tokenPositions || []);
+  for (const role of ROLE_ORDER) {
+    if (role === item.role || locks[role] || replacingRoles.has(role)) continue;
+    const field = format[role] || {};
+    const current = positions(field.tokenPosition);
+    if (!current.some((position) => claimed.has(position))) continue;
+    const kept = current.filter((position) => !claimed.has(position));
+    format[role] = { ...field, tokenPosition: kept.join(','), regex: '' };
+  }
+}
+
 export function applyRegexSuggestions(extractionConfig = {}, receipt, options = {}) {
   const next = structuredCloneSafe(extractionConfig);
   const index = Number(next.activeFormatIndex || receipt?.formatIndex || 0);
   next.formats = Array.isArray(next.formats) ? next.formats : [{}, {}];
   next.formats[index] = { ...(next.formats[index] || {}) };
   const locks = options.manualLocks || {};
-  for (const item of receipt?.suggestions || []) {
-    if (!ROLE_ORDER.includes(item.role) || item.conflict || locks[item.role]) continue;
-    if (options.safeOnly && !item.safe) continue;
+  const items = applicableSuggestions(receipt, options, locks);
+  const replacingRoles = new Set(items.map((item) => item.role));
+  for (const item of items) {
+    clearClaimedPositions(next.formats[index], item, locks, replacingRoles);
     next.formats[index][item.role] = {
       ...(next.formats[index][item.role] || {}),
       tokenPosition: item.tokenPositions.join(','),

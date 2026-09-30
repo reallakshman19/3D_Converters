@@ -1,6 +1,12 @@
 import { installWeightBasisXmlDom } from './weight-basis-xml-dom.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
-let modulesPromise = null;
+installWeightBasisXmlDom(globalThis);
+const modulesPromise = Promise.all([
+  import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
+  import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
+  import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
+  import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
+]);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -17,15 +23,6 @@ function truthy(value) {
 }
 
 async function basisModules() {
-  if (!modulesPromise) {
-    installWeightBasisXmlDom(globalThis);
-    modulesPromise = Promise.all([
-      import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
-      import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
-      import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
-      import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
-    ]);
-  }
   return modulesPromise;
 }
 
