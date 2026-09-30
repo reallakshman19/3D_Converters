@@ -85,9 +85,10 @@ test('Weight Match bounds async I/O and exposes the lightweight basis/ranking st
     'utf8',
   );
   assert.match(source, /withWeightStageTimeout/);
-  assert.match(source, /rawPayloadText/);
+  assert.match(source, /xmlCiiWeightRawPayloadText/);
   assert.doesNotMatch(source, /clean\(stagedJsonText\)/);
   assert.doesNotMatch(source, /clean\(stagedSource/);
+  assert.match(source, /export function xmlCiiWeightRawPayloadText/);
   assert.match(source, /Reading XML source/);
   assert.match(source, /Resolving staged JSON/);
   assert.match(source, /Preparing Weight Match basis/);
