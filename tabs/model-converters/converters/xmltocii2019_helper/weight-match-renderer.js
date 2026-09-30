@@ -1,4 +1,4 @@
-import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
+import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-basis-worker-1';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-weight-liveness-cache-1';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
@@ -21,7 +21,7 @@ import {
   buildXmlCiiRigidWeightMatch1Provenance,
   buildXmlCiiValidatedRigidWeightLegacyView,
 } from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { prepareXmlCiiWeightMatchGeometry } from './enrichment-run-parity.js?v=20260930-issue781-weight-input-raw-1';
+import { prepareXmlCiiWeightMatchGeometry } from './enrichment-run-parity.js?v=20260930-issue781-weight-basis-worker-1';
 
 function t(value) { return value === null || value === undefined ? '' : String(value); }
 function clean(value) { return t(value).replace(/\s+/g, ' ').trim(); }
