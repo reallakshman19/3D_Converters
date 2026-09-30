@@ -1,4 +1,4 @@
-# WIP-781-LIVE-ACCEPTANCE-20260930 — Issue #781 live screenshot acceptance
+# PR810 — Issue #781 live screenshot acceptance
 
 # CURRENT RECOVERY STATE — READ FIRST
 
@@ -15,27 +15,28 @@ PHASE_PROGRESSION: MANUAL
 MERGE_AUTHORITY: OWNER_ONLY
 REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Issue #781 and user-supplied Sep 30 live screenshots
-PR_OR_WIP: WIP-781-LIVE-ACCEPTANCE-20260930
+PR_OR_WIP: PR810
+PR_URL: https://github.com/reallaksh19/3D_Converters/pull/810
 BRANCH: agent/issue-781-live-acceptance-20260930
-PR_HEAD_OBSERVED: NOT_ALLOCATED
-REPORT_BASIS_HEAD: d81ed7a84a6c8bfbbf5530dd662671eef69b27ec
+PR_HEAD_OBSERVED: 988cdf3bf42429a49d8de43fe2e108c5ec17e4f4
+REPORT_BASIS_HEAD: 988cdf3bf42429a49d8de43fe2e108c5ec17e4f4
 MAIN_HEAD_LAST_CHECKED: d81ed7a84a6c8bfbbf5530dd662671eef69b27ec
 MERGE_BASE: d81ed7a84a6c8bfbbf5530dd662671eef69b27ec
-REPORT_SYNC: CURRENT at GE-20260930-04; pending static parity and PR allocation
+REPORT_SYNC: CURRENT at GE-20260930-05 before PR-identity follow-up commit; final-head checks pending
 APPENDIX_A_STATUS: Regex PASS 96/100; B31 PASS 97/100; Weight PASS 97/100; Preview continuation PASS 96/100; branch cache PASS 95/100
-GROUNDING_EPOCH: GE-20260930-04
-CURRENT_TAKEOVER: Merged #809 aftermath; new repair WIP
-CURRENT_STAGE: FINAL RECONCILIATION / PR ALLOCATION
-LAST_COMPLETED_STAGE: ALL THREE P0 PATHS PASS COMBINED 41-BRANCH BROWSER HEARTBEAT; ACTIVE IMPORT URL PARITY PASS
-CURRENT_BLOCKER: No reproduced P0 remains; PR allocation and final-head CI pending
+GROUNDING_EPOCH: GE-20260930-05
+CURRENT_TAKEOVER: Merged #809 aftermath; PR810 review handover
+CURRENT_STAGE: PR810 OWNER REVIEW HANDOVER
+LAST_COMPLETED_STAGE: ALL THREE P0 PATHS PASS COMBINED 41-BRANCH BROWSER HEARTBEAT; ACTIVE IMPORT URL PARITY PASS; PR ALLOCATED
+CURRENT_BLOCKER: CAESAR dropdown and FBX cache-chain jobs fail on current main/#809 from stale test cache-key assertions; a separate test-only correction is needed if branch protection requires green checks
 HIGHEST_RISK: GitHub Pages after owner-authorized merge is not yet deployed or retested
 LAST_DURABLE_CHECKPOINT: This work report and matching status/claim
-EXACT_NEXT_ACTION: Commit the reconciled diff, push branch, create owner-review PR, rename report/status/claim to PR identity, then inspect final-head checks and hand over without merge.
+EXACT_NEXT_ACTION: Run `gh pr checks 810` on the final PR head and record results; preserve owner-only merge and route inherited CAESAR/FBX cache-custody assertions to separate test-only correction if green checks are required.
 ```
 
 ## Handover in 60 seconds
 
-The three user screenshots are hard acceptance witnesses, created after #809 merged and after current Pages build. #809's green screenshot test did not prove the observed UI. The Git-less user folder C:\CodeA\3DC_809 contains current-main code and the exact 41-branch fixture. Current Git work is at C:\CodeA\3DC_live_acceptance on d81ed7a, with sparse checkout excluding Benchmarks because tracked `Benchmarks/XML->CII2019` is an invalid Windows path. Use the fixture at C:\CodeA\3DC_809\Benchmarks\EF-05-PRO.TEST.xml. Do not merge without owner authorization.
+The three user screenshots are hard acceptance witnesses, created after #809 merged and after current Pages build. #809's green screenshot test did not prove the observed UI. The Git-less user folder C:\CodeA\3DC_809 contains the exact 41-branch fixture. PR810 work is at C:\CodeA\3DC_live_acceptance, branched from main d81ed7a, with sparse checkout excluding Benchmarks because tracked `Benchmarks/XML->CII2019` is an invalid Windows path. Use the fixture at C:\CodeA\3DC_809\Benchmarks\EF-05-PRO.TEST.xml. Do not merge without owner authorization.
 
 The bounded repairs now pass the combined docs-path Chromium witness with APPLIED Piping, Line and Weight masters: stale token `8"` ends Bore only; Preview shows the auto B31 panel while hiding the legacy editor; Weight phase entry and Build remain under the 250 ms frame-gap limit with 180/180 rows and no page errors. The valid-T1 B31 fallback is separately exercised through full docs Mode A; actual fixture T1 is -100000, so normal Preview remains fail-closed. Remaining work: finish the active branch-scope cache import URLs, independently rerun focused/full browser checks, reconcile the changed-file ledger, create a review PR, and keep merge owner-only. Root causes and earlier failures are preserved below as historical evidence.
 
@@ -168,6 +169,10 @@ All `tabs/` changes have byte-identical `docs/tabs/` mirrors; root SHA256 check 
 Root cache ancestors: `index.html`, `main-rhbg-fitguard.js`, `core/app.js`, and `tabs/xml-cii-2019-standalone-tab.js`, each with `docs/` mirror, bump only release URLs. Existing tests changed only release assertions: `tests/xml-cii-issue-776-deployment-parity.test.mjs`, `tests/xml-cii-issue-781-auto-authority-followup.test.mjs`, `tests/xml-cii-issue-781-postmerge-screenshot-repair.test.mjs`; all PASS. New 41-branch tests/runners: `tests/xml-cii-issue-781-live-regex-acceptance.test.mjs`, `tests/xml-cii-issue-781-live-regex-browser.mjs`, `tests/browser/xml-cii-issue-781-live-regex-acceptance.html`, `tests/xml-cii-branch-occurrence-cache.test.mjs`, `tests/browser/xml-cii-issue-781-mode-a-live-e2e.mjs`, `tests/browser/xml-cii-issue-781-mode-a-b313-live-e2e.mjs`, `tests/browser/xml-cii-live-weight-authority-e2e.mjs`, `tests/browser/xml-cii-b313-live-preview-e2e.html`, and `scripts/run-xml-cii-b313-live-preview-e2e.mjs`. `.backups/log.json` records mandatory native pre-edit backups #281–386; individual backup copies are local/ignored. This report and matching status/claim YAML carry handover state.
 
 Residual: dormant `ui-adapted/xml-cii-adapted-workflow-shell-branch-scope-core.js` retains its historical branch-scope URL; the combined active Mode-A browser session did not request it. The local `/docs/` app is verified; GitHub Pages after owner-authorized merge remains NOT_RUN. The actual 41-branch fixture has invalid T1 sentinel, so controlled T1=82 demonstrates UI fallback controls, not independent numerical ASME authority. Positive Weight candidate click is NOT_RUN because no Preview Rating was available; two manual Match-1 accepts persisted independently in a real browser check.
+
+## PR810 initial check snapshot — GE-20260930-05
+
+PR #810 was created from commit `988cdf3bf42429a49d8de43fe2e108c5ec17e4f4` against main `d81ed7a84a6c8bfbbf5530dd662671eef69b27ec`. It is open, non-draft, mergeable, and has no review decision yet. Focused XML/CII, B31, Regex, Weight, screenshot, release parity, Chromium Timing and WSW browser checks PASS; browser-worker-scale was still running at the latest read. CAESAR v11–v14 Dropdown Qualification `qualify` and FBX Live UI Cache Chain `live-ui` FAIL. Their exact failure is inherited from merged #809: #809's same jobs failed on the same first stale key assertions (`tests/cii-v11-v14-ui-static.test.mjs:23,31`; `tests/fbx/test-fbx2-runtime-cache-chain.mjs:8,40,43`). Those tests expect `20260929-pr780-metadata-1` at the root; #809 deployed `20260930-issue781-screenshot-repair-1`, and #810 intentionally advances the shell to `20260930-issue781-live-acceptance-1`. Neither test nor its workflow changed here. A test-only follow-up needs to distinguish shell, runtime, model-tab and addon keys based on independently traced import ownership, not replace one expected constant with current output. No production or workflow edit is indicated for these failures. The local 41-branch browser oracle and active import URL assertion PASS.
 
 ## Exact continuation
 

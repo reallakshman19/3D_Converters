@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
-pr_or_wip: WIP-781-LIVE-ACCEPTANCE-20260930
+pr_or_wip: PR810
 claim_state: ACTIVE
 branch: agent/issue-781-live-acceptance-20260930
 workstream: XML_CII_ISSUE_781_LIVE_ACCEPTANCE
