@@ -2,7 +2,7 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260929-issue781-master-evidence-1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-auto-authority-1';
 import {
   buildRegexSmartEvidenceReceipt,
   classifyRegexSmartTesterResult,
@@ -18,6 +18,7 @@ const ROLE_META = Object.freeze({
   rating: { icon: 'rating', label: 'Rating', color: '#facc15' },
   bore: { icon: 'diameter', label: 'Bore', color: '#fb923c' },
 });
+const SMART_AUTO_ROLES = Object.freeze(['lineKey', 'pipingClass', 'bore']);
 
 function current(stateRef, fallback) { return stateRef?.current || fallback; }
 function resultOf(state) { return state?.regexTesterResult || {}; }
@@ -105,12 +106,10 @@ function showMessage(builder, text, bad = false) {
 }
 
 function suggestionEvidenceText(item) {
-  if (item?.derived) return (item.evidence || []).join(' · ') || 'Derived suggestion';
   const m = item?.evidenceMetrics || {};
   if (item?.role === 'lineKey') return `Exact master ${percent(m.exactMasterRate)} · uniqueness ${percent(m.uniquenessRate)} · line shape ${percent(m.shapeRate)}`;
   if (item?.role === 'pipingClass') return `Exact master ${percent(m.exactMasterRate)} · normalized master ${percent(m.normalizedMasterRate)} · class shape ${percent(m.shapeRate)}`;
   if (item?.role === 'bore') return `Explicit size syntax ${percent(m.explicitSyntaxRate)} · standard NPS/DN ${percent(m.standardValueRate)} · class bore ${percent(m.classBoreRate)}`;
-  if (item?.role === 'rating') return `Standard rating evidence ${percent(m.standardValueRate)}`;
   return (item?.evidence || []).join(' · ');
 }
 
@@ -133,15 +132,22 @@ function installToolbar(builder, stateRef, render, receipt, options = {}) {
   const { bar, actions, metrics } = createSmartToolbar();
   bar.dataset.regexSmartToolbar = 'true';
   actions.append(
-    createSmartIconButton('analyze', evidencePending ? 'Analyze with authoritative master evidence' : 'Analyze token suggestions', () => { void analyze(stateRef, render); }),
+    createSmartIconButton('analyze', evidencePending ? 'Authoritative evidence is loading automatically; click to retry' : 'Analyze token suggestions', () => { void analyze(stateRef, render); }),
     createSmartIconButton('preview', 'Preview suggested configuration', () => { void preview(builder, stateRef); }),
-    createSmartIconButton('apply', evidencePending ? 'Analyze master evidence before applying' : 'Apply safe suggestions', () => { void applySafe(builder, stateRef, render); }, { disabled: evidencePending || receipt.metrics.safeCount === 0 }),
-    createSmartIconButton('shield', evidencePending ? 'Pre-flight: MASTER EVIDENCE REQUIRED' : `Pre-flight: ${receipt.status}`, () => toggleEvidence(builder, receipt), { color: evidencePending ? '#fbbf24' : smartStatusColor(receipt.status) }),
+    createSmartIconButton('apply', evidencePending ? 'Authoritative evidence is loading automatically' : 'Apply safe suggestions', () => { void applySafe(builder, stateRef, render); }, { disabled: evidencePending || receipt.metrics.safeCount === 0 }),
+    createSmartIconButton('shield', evidencePending ? 'Pre-flight: AUTO-LOADING MASTER EVIDENCE' : `Pre-flight: ${receipt.status}`, () => toggleEvidence(builder, receipt), { color: evidencePending ? '#fbbf24' : smartStatusColor(receipt.status) }),
     createSmartIconButton('reset', 'Reset suggestion preview', () => resetSmart(builder, stateRef, render)),
     createSmartIconButton('settings', 'Suggestion policy', () => openPolicy(builder, stateRef, render)),
   );
   actionMetrics(receipt).forEach(([icon, value, label, color]) => metrics.appendChild(createSmartMetricChip(icon, value, label, { color, onClick: () => toggleEvidence(builder, receipt) })));
   builder.querySelector('h4')?.insertAdjacentElement('afterend', bar);
+}
+
+function changedSmartRoles(before, after) {
+  return SMART_AUTO_ROLES.filter((role) => (
+    String(before?.[role]?.tokenPosition || '') !== String(after?.[role]?.tokenPosition || '')
+    || String(before?.[role]?.regex || '') !== String(after?.[role]?.regex || '')
+  ));
 }
 
 function autoApplyHighestSafe(stateRef, render, receipt) {
@@ -153,13 +159,64 @@ function autoApplyHighestSafe(stateRef, render, receipt) {
   const index = Number(proposed.activeFormatIndex || receipt.formatIndex || 0);
   const before = state.regexTesterConfig?.formats?.[index] || state.regexTesterConfig || {};
   const after = proposed.formats?.[index] || proposed || {};
-  const changed = Object.keys(ROLE_META).filter((role) => String(before?.[role]?.tokenPosition || '') !== String(after?.[role]?.tokenPosition || ''));
+  const changed = changedSmartRoles(before, after);
   const result = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
   state.regexTesterConfig = proposed;
   applyClassifiedTesterResult(stateRef, result, state.masterContext || {});
   refreshReceiptWithContext(stateRef, state.masterContext || {}, 'resident-or-heuristic');
-  stateRef.current.regexSmartStatus = `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.`;
+  stateRef.current.regexSmartStatus = changed.length
+    ? `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.`
+    : 'Automatic token analysis completed; no unlocked safe mapping changed.';
   queueMicrotask(() => render?.());
+  return true;
+}
+
+async function autoAnalyzeDatasetEvidence(stateRef, render) {
+  const state = current(stateRef, {});
+  if (!stateRef?.current || !regexSmartHasDatasetEvidence(state)) return false;
+  if (profileOf(state).operatingMode === 'OFF') return false;
+  const requestBasis = regexSmartReceiptRequestBasis(state);
+  if (!requestBasis) return false;
+  if (state.regexSmartAutoAnalysisPendingBasis === requestBasis || state.regexSmartAutoAnalysisCompletedBasis === requestBasis) return false;
+
+  state.regexSmartAutoAnalysisPendingBasis = requestBasis;
+  state.regexSmartStatus = 'Loading authoritative Line List / Piping Class evidence and selecting safe token mappings…';
+  queueMicrotask(() => render?.());
+
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    let live = current(stateRef, {});
+    const beforeConfig = live.regexTesterConfig || {};
+    const proposed = applyRegexSuggestions(beforeConfig, bundle.receipt, {
+      safeOnly: true,
+      manualLocks: locksOf(live),
+    });
+    const index = Number(proposed.activeFormatIndex || bundle.receipt.formatIndex || 0);
+    const before = beforeConfig?.formats?.[index] || beforeConfig || {};
+    const after = proposed?.formats?.[index] || proposed || {};
+    const changed = changedSmartRoles(before, after);
+
+    if (JSON.stringify(proposed) !== JSON.stringify(beforeConfig)) {
+      const rawResult = runStandaloneRegexTester({ ...live, sourceText: live.sourceText, extractionConfig: proposed });
+      live.regexTesterConfig = proposed;
+      applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
+      refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
+      live = current(stateRef, {});
+    }
+
+    live.regexSmartPreview = null;
+    live.regexSmartAutoAnalysisPendingBasis = '';
+    live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
+    live.regexSmartStatus = changed.length
+      ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}. Rating remains manual.`
+      : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; no unlocked safe mapping changed. Rating remains manual.`;
+  } catch (error) {
+    const live = current(stateRef, {});
+    live.regexSmartAutoAnalysisPendingBasis = '';
+    live.regexSmartAutoAnalysisCompletedBasis = requestBasis;
+    live.regexSmartStatus = `Automatic evidence analysis failed: ${error?.message || String(error)}`;
+  }
+  render?.();
   return true;
 }
 
@@ -171,7 +228,8 @@ async function analyze(stateRef, render) {
     const bundle = await resolveActionEvidence(stateRef);
     const live = current(stateRef, {});
     live.regexSmartPreview = null;
-    live.regexSmartStatus = `Analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'heuristic'} evidence.`;
+    live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
+    live.regexSmartStatus = `Analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'heuristic'} evidence. Rating remains manual.`;
   } catch (error) {
     current(stateRef, {}).regexSmartStatus = `Evidence analysis failed: ${error?.message || String(error)}`;
   }
@@ -190,7 +248,7 @@ async function preview(builder, stateRef) {
     const before = resultOf(state).matchedRows?.length || 0;
     const after = result.matchedRows?.length || 0;
     const rejected = result.rejectedRows?.length || 0;
-    showMessage(builder, `Preview only — extracted ${before} → ${after}; rejected ${rejected}. Configuration is unchanged.`, false);
+    showMessage(builder, `Preview only — extracted ${before} → ${after}; rejected ${rejected}. Configuration is unchanged. Rating is not inferred.`, false);
   } catch (error) {
     showMessage(builder, `Preview failed: ${error?.message || String(error)}`, true);
   }
@@ -216,7 +274,7 @@ async function applySafe(builder, stateRef, render) {
     state.regexTesterConfig = proposed;
     applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
     refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
-    stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s) using ${fresh.masterEvidence?.mode || 'heuristic'} evidence.`;
+    stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s) using ${fresh.masterEvidence?.mode || 'heuristic'} evidence. Rating remains manual.`;
     render?.();
   } catch (error) {
     showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
@@ -229,6 +287,8 @@ function resetSmart(builder, stateRef, render) {
   state.regexSmartPreflightRequestBasis = '';
   state.regexSmartEvidenceBasis = '';
   state.regexSmartPreview = null;
+  state.regexSmartAutoAnalysisPendingBasis = '';
+  state.regexSmartAutoAnalysisCompletedBasis = '';
   state.regexSmartStatus = 'Suggestion preview cleared. Existing mappings were preserved.';
   builder.querySelector('[data-regex-smart-evidence]')?.remove();
   render?.();
@@ -245,7 +305,7 @@ function toggleEvidence(builder, receipt) {
   const explainer = document.createElement('div');
   explainer.style.marginTop = '5px';
   explainer.style.color = '#94a3b8';
-  explainer.textContent = 'Confidence is a composite suggestion score. Master/structural evidence rates are reported separately below; full master rows are not retained in UI state.';
+  explainer.textContent = 'Confidence is a composite suggestion score. Master/structural evidence rates are reported separately below; Rating is excluded from smart inference and remains manual.';
   panel.appendChild(explainer);
   const list = document.createElement('div');
   list.style.marginTop = '7px';
@@ -253,7 +313,7 @@ function toggleEvidence(builder, receipt) {
     const meta = ROLE_META[item.role];
     const row = document.createElement('div');
     row.style.margin = '5px 0';
-    row.textContent = `${meta?.label || item.role}: ${item.derived ? 'derived' : `#${item.tokenPositions.join(',')}`} · Confidence ${percent(item.confidence)} · ${suggestionEvidenceText(item)} · ${item.authorityLevel}${item.conflict ? ' · CONFLICT' : ''}`;
+    row.textContent = `${meta?.label || item.role}: #${item.tokenPositions.join(',')} · Confidence ${percent(item.confidence)} · ${suggestionEvidenceText(item)} · ${item.authorityLevel}${item.conflict ? ' · CONFLICT' : ''}`;
     list.appendChild(row);
   });
   receipt.blockers.forEach((item) => {
@@ -269,11 +329,11 @@ function toggleEvidence(builder, receipt) {
 function decorateTokens(builder, receipt, stateRef, render) {
   const cards = tokenCards(builder);
   cards.forEach((card) => card.querySelectorAll('[data-smart-token-badge]').forEach((node) => node.remove()));
-  receipt.suggestions.filter((item) => !item.derived).forEach((item) => {
+  receipt.suggestions.forEach((item) => {
     const meta = ROLE_META[item.role];
     item.tokenPositions.forEach((position) => {
       const card = cards[position - 1];
-      if (!card) return;
+      if (!card || !meta) return;
       const badge = document.createElement('button');
       badge.type = 'button';
       badge.dataset.smartTokenBadge = item.role;
@@ -300,7 +360,7 @@ async function applyOne(item, stateRef, render, builder) {
     }
     const freshItem = bundle.receipt.suggestions.find((candidate) => candidate.role === item.role
       && candidate.tokenPositions.join(',') === item.tokenPositions.join(','));
-    if (!freshItem || freshItem.conflict) {
+    if (!freshItem || freshItem.conflict || !SMART_AUTO_ROLES.includes(freshItem.role)) {
       showMessage(builder, 'This suggestion is no longer valid under current master evidence.', true);
       render?.();
       return;
@@ -329,6 +389,7 @@ function decorateLocks(card, stateRef, render) {
       state.regexSmartManualLocks = { ...locksOf(state), [role]: !locksOf(state)[role] };
       state.regexSmartPreflight = null;
       state.regexSmartPreflightRequestBasis = '';
+      state.regexSmartAutoAnalysisCompletedBasis = '';
       render?.();
     }, { active: Boolean(locks[role]), size: 13 });
     button.dataset.smartLock = role;
@@ -351,6 +412,7 @@ function openPolicy(builder, stateRef, render) {
     <label>Class suffix regex <input data-suffix value="${profile.normalization.classSuffixPattern}"></label>
     <label>Maximum formats <input data-formats type="number" min="1" max="8" value="${profile.formatPolicy.maximumFormats}"></label>
     <label>Maximum line-key tokens <input data-tokens type="number" min="1" max="5" value="${profile.formatPolicy.maximumLineKeyTokens}"></label>
+    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">Smart inference covers Line Key, Piping Class and Bore only. Rating remains manual.</div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button type="button" data-cancel>Cancel</button><button type="button" data-save>Save</button></div>`;
   panel.querySelectorAll('label').forEach((label) => Object.assign(label.style, { display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '9px', alignItems: 'center' }));
   panel.querySelectorAll('input,select').forEach((input) => Object.assign(input.style, { width: '145px', background: '#0b1320', color: '#e5e7eb', border: '1px solid #475569', borderRadius: '4px', padding: '4px' }));
@@ -366,6 +428,7 @@ function openPolicy(builder, stateRef, render) {
     });
     state.regexSmartPreflight = null;
     state.regexSmartPreflightRequestBasis = '';
+    state.regexSmartAutoAnalysisCompletedBasis = '';
     close();
     render?.();
   };
@@ -386,13 +449,14 @@ export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   }
 
   const receipt = receiptFor(live);
+  if (evidencePending) void autoAnalyzeDatasetEvidence(stateRef, render);
   if (!evidencePending && autoApplyHighestSafe(stateRef, render, receipt)) return;
   installToolbar(builder, stateRef, render, receipt, { evidencePending });
   decorateRegexSampleSelector(builder, resultOf(live).branchSamples || [], live.regexTesterConfig || {});
   decorateTokens(builder, evidencePending ? { ...receipt, suggestions: [] } : receipt, stateRef, render);
   decorateLocks(card, stateRef, render);
   if (evidencePending) {
-    showMessage(builder, 'Authoritative Line List / Piping Class datasets are available. Click Analyze to load their evidence transiently; heuristic-only suggestions will not be auto-applied.', false);
+    showMessage(builder, 'Authoritative Line List / Piping Class evidence is loading automatically. Safe Line Key, Piping Class and Bore mappings will replace stale unlocked selections; Rating remains manual.', false);
   } else if (live.regexSmartStatus) {
     showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
   }
