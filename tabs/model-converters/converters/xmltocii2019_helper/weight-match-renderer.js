@@ -4,6 +4,7 @@ import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/x
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
 import {
   readXmlCiiPreviewRatingSnapshot,
+  resolveXmlCiiPreviewRating,
   resolveXmlCiiWeightMatchRating,
 } from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 import {
@@ -193,9 +194,15 @@ function rerankWithRating(row, config, { ratingMode = 'preview', snapshot = read
 }
 
 function withWeightRatingAuthority(row, ratingMode, snapshot) {
+  const preview = resolveXmlCiiPreviewRating(row, snapshot);
   const resolved = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot });
+  const previewBore = Number(preview?.record?.sizeMm);
   return {
     ...row,
+    lineKey: row?.lineKey || preview?.record?.lineKey || '',
+    requestedPipingClass: row?.requestedPipingClass || preview?.record?.pipingClass || '',
+    resolvedPipingClass: row?.resolvedPipingClass || preview?.record?.pipingClass || '',
+    boreMm: Number.isFinite(previewBore) && previewBore > 0 ? previewBore : row?.boreMm,
     rating: resolved.rating,
     ratingSource: resolved.source,
     dtxrRating: resolved.dtxrRating,
