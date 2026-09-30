@@ -55,6 +55,9 @@ try {
   const row = result?.rows?.[0];
   if (!row) throw new Error('GET_ROWS returned no remapped preview row.');
 
+  // This is the Import Masters projection boundary: mapped source values must be
+  // preserved exactly. Engineering unit conversion (for example NPS inch -> mm)
+  // belongs to the later Preview/enrichment authority path, not this worker table.
   const expected = {
     lineSeqNo: '7',
     lineKey1: 'P',
@@ -62,7 +65,7 @@ try {
     lineKey: 'P0310051',
     pipingClass: '61440',
     material: 'CS',
-    convertedBore: 254,
+    convertedBore: '10',
   };
   for (const [key, value] of Object.entries(expected)) {
     if (String(row[key] ?? '') !== String(value)) {
