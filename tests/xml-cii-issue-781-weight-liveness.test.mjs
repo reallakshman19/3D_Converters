@@ -154,7 +154,6 @@ test('Weight basis collector does not hydrate unrelated applied master datasets'
   );
   const model = fs.readFileSync(
     'converters/xml-cii2019-core/weight-match-model.js',
-    'converters/xml-cii2019-core/piping-class-resolver.js',
     'utf8',
   );
   assert.doesNotMatch(service, /hydrateWeightBasisConfig/);
@@ -167,6 +166,7 @@ test('Weight basis collector does not hydrate unrelated applied master datasets'
 test('changed runtime files remain byte-identical to docs mirrors', () => {
   for (const path of [
     'converters/xml-cii2019-core/weight-match-model.js',
+    'converters/xml-cii2019-core/piping-class-resolver.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
