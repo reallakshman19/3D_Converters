@@ -52,6 +52,11 @@ jobs:
         run: |
           set -o pipefail
           node scripts/xml-cii-mode-b-runtime-materialize.mjs --xml-out /tmp/modeb-runtime.xml --evidence-out /tmp/modeb-runtime-evidence.json | tee modeb04-materialization-summary.json
+      - name: Classify native writer restraint baseline and Mode B collision
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tests/xml-cii-issue-787-mode-b-native-writer-baseline.test.py /tmp/modeb-runtime.xml | tee modeb04-native-writer-baseline.json
       - name: Prove shared junction in native XML-to-CII writer model
         shell: bash
         run: |
@@ -146,6 +151,7 @@ jobs:
           name: issue-787-modeb-04-runtime
           path: |
             modeb04-materialization-summary.json
+            modeb04-native-writer-baseline.json
             modeb04-native-writer-summary.json
             /tmp/modeb-runtime.xml
             /tmp/modeb-runtime-evidence.json
