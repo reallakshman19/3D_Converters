@@ -6,6 +6,7 @@ import {
   saveMappingForFile, findSmartMatchingMapping, getStoredJson,
 } from './xml-cii-adapted-state.js';
 import { fuzzyAutoMapFields } from './xml-cii-adapted-fuzzy-mapper.js';
+import { refineLineListFieldMap } from '../xml-cii-linelist-header-band.js?v=20260930-issue781-linelist-integration-2';
 import {
   MASTER_DEF_MAP, appliedFieldMap, clearPersistedMaster, commitAppliedMaster,
   discardMasterMappingDraft, effectiveDraftFieldMap, ensureMasterRuntime,
@@ -31,7 +32,7 @@ export function autoMapStandaloneMasterFields(masterKey, rawRows, currentMap = {
   const governed = detectLineListFieldMap(rawRows, currentMap || {}, config?.linelist || config || null);
   const merged = { ...fuzzyMap, ...governed };
   for (const field of fields) if (!(field.name in merged)) merged[field.name] = fuzzyMap[field.name] || '';
-  return merged;
+  return refineLineListFieldMap(rawRows, merged, config?.linelist || config || null);
 }
 
 export function rawRowsForMaster(stateRef, key) {
