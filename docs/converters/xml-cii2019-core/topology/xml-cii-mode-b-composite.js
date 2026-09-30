@@ -165,6 +165,10 @@ function competingEligible(candidate, eligibleByNode) {
   return [...seen.values()].sort((a, b) => b.score - a.score || a.candidateId.localeCompare(b.candidateId));
 }
 
+function sharesEndpoint(a, b) {
+  return a.sourceA === b.sourceA || a.sourceA === b.sourceB || a.sourceB === b.sourceA || a.sourceB === b.sourceB;
+}
+
 function evaluateCandidates(observation, splitNodes, options) {
   const nodeMap = new Map(splitNodes.map((node) => [node.sourceIdentity, node]));
   const scored = (observation.boundaryCandidates || []).map((candidate) => {
@@ -253,6 +257,25 @@ function evaluateCandidates(observation, splitNodes, options) {
         ...provisional.get(row.candidateId),
         state: 'AMBIGUOUS',
         reason: `source endpoint ${identity} would own ${rows.length} accepted cross-document edges`,
+      });
+    }
+  }
+
+  // When an accepted candidate has a decisive score margin, eligible alternatives
+  // sharing its endpoint are not still ambiguous: retain them as explicit rejected
+  // alternatives with winner provenance.
+  const acceptedWinners = [...provisional.values()].filter((row) => row.state === 'ACCEPTED');
+  for (const winner of acceptedWinners) {
+    for (const loser of [...provisional.values()]) {
+      if (loser.candidateId === winner.candidateId || loser.state !== 'AMBIGUOUS' || !sharesEndpoint(winner, loser)) continue;
+      const margin = winner.score - loser.score;
+      if (margin < options.competitionMargin) continue;
+      provisional.set(loser.candidateId, {
+        ...loser,
+        state: 'REJECTED',
+        reason: `dominated by accepted candidate ${winner.candidateId} with score margin ${margin}`,
+        acceptedCompetitorId: winner.candidateId,
+        competitionMargin: -margin,
       });
     }
   }
