@@ -1,0 +1,56 @@
+name: Issue 787 Mode B UI Integration Validation
+
+on:
+  pull_request:
+    branches:
+      - 'agent/issue-787-modeb-04-runtime-handoff-20260930'
+      - main
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-selector.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-selector.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js'
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-*.js'
+      - 'tests/xml-cii-issue-787-mode-b-*.mjs'
+      - 'tests/fixtures/xml-cii-mode-b-*.json'
+      - 'Benchmarks/XML-CII-2019/**'
+      - '.github/workflows/issue-787-modeb-05-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modeb-ui-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce MODEB-05 new-JS size contract
+        shell: bash
+        run: |
+          test "$(wc -l < tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-selector.js)" -lt 300
+          test "$(wc -l < tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js)" -lt 300
+      - name: Run MODEB-05 explicit mode/preparation regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-ui-selection.test.mjs
+      - name: Preserve qualified MODEB-04 materialization authority
+        run: node --test tests/xml-cii-issue-787-mode-b-runtime-materializer.test.mjs
+      - name: Preserve frozen MODEB-03 numbering authority
+        run: node --test tests/xml-cii-issue-787-mode-b-numbering.test.mjs tests/xml-cii-issue-787-mode-b-numbering-fixture.test.mjs
+      - name: Preserve frozen MODEB-02 graph authority
+        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs tests/xml-cii-issue-787-mode-b-composite-fixture.test.mjs
+      - name: Preserve MODEB-01 observation authority
+        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
+      - name: Preserve Mode A Preview and issue 776 authority
+        run: node --test tests/xml-cii-mode-a-preview-restoration.test.mjs tests/xml-cii-issue-776-*.test.mjs
+      - name: Preserve PR780 worker/dataset authority
+        run: node --test tests/xml-cii-master-dataset-*.test.mjs tests/xml-cii-master-preview-worker-search.test.mjs tests/xml-cii-master-worker-integration.test.mjs
