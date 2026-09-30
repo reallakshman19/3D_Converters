@@ -5,6 +5,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+TARGET_REF = "1006657924/45669"
+
 
 def load_writer(root: Path):
     path = root / "converters" / "scripts" / "xml_to_cii2019.py"
@@ -15,6 +17,28 @@ def load_writer(root: Path):
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def normalized_ref(value):
+    return str(value or "").strip().lstrip("=").replace(" ", "")
+
+
+def target_occurrences(document, degrees):
+    rows = []
+    for branch in document.branches:
+        for node in branch.nodes:
+            if normalized_ref(node.component_ref_no) != TARGET_REF:
+                continue
+            rows.append({
+                "branchName": branch.branch_name,
+                "nodeNumber": node.node_number,
+                "nodeName": node.node_name,
+                "componentRefNo": node.component_ref_no,
+                "degree": degrees[node.node_number],
+                "position": list(node.position),
+                "hasExplicitRestraint": bool(node.restraint_specs),
+            })
+    return rows
 
 
 def restraint_summary(writer, path: Path):
@@ -33,6 +57,8 @@ def restraint_summary(writer, path: Path):
         "explicitRestraintNodeCount": len(explicit),
         "generatedOpenEndNodeCount": len(node_specs - set(explicit)),
         "droppedShortNodeCount": len(writer.DROPPED_SHORT_ELEMENT_NODES),
+        "targetRef": TARGET_REF,
+        "targetOccurrences": target_occurrences(document, degrees),
     }
     try:
         model = writer._build_conversion_model(document)
@@ -120,11 +146,18 @@ def main():
 
     for baseline in results[:-1]:
         assert baseline["modelStatus"] == "PASS", f"baseline native writer must pass: {baseline}"
+    source_0011 = next(row for row in results if row["path"] == "SYS-6-S8810011-01.xml")
+    assert len(source_0011["targetOccurrences"]) >= 2, source_0011["targetOccurrences"]
+    assert len({row["nodeNumber"] for row in source_0011["targetOccurrences"]}) == 1, source_0011["targetOccurrences"]
+    assert all(row["degree"] > 1 for row in source_0011["targetOccurrences"]), source_0011["targetOccurrences"]
+
     modeb = results[-1]
     assert modeb["modelStatus"] == "FAIL", "diagnostic currently expects the reproduced Mode B native-writer failure"
     assert "multiple restraints" in modeb.get("error", "").lower()
     assert modeb.get("collisions"), "must identify the concrete restraint/edge collision behind the failure"
     assert any(row["edgeNumber"] == 58 for row in modeb["collisions"]), modeb["collisions"]
+    assert len({row["nodeNumber"] for row in modeb["targetOccurrences"]}) > 1, modeb["targetOccurrences"]
+    assert any(row["degree"] == 1 for row in modeb["targetOccurrences"]), modeb["targetOccurrences"]
 
 
 if __name__ == "__main__":
