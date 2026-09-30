@@ -1,0 +1,37 @@
+name: Issue 781 Weight Build Native Backup
+
+on:
+  push:
+    branches:
+      - agent/issue-781-weight-build-singleflight-20260930
+    paths:
+      - .github/workflows/issue-781-weight-build-backup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  native-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/issue-781-weight-build-singleflight-20260930
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run repository-native pre-edit backups
+        shell: bash
+        run: |
+          set -euo pipefail
+          node utils/backup.js save converters/xml-cii2019-core/weight-valve-hints.js "Issue #781 Weight Build indexed ranking before edit"
+          node utils/backup.js save docs/converters/xml-cii2019-core/weight-valve-hints.js "Issue #781 Weight Build indexed ranking docs mirror before edit"
+          node utils/backup.js save tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js "Issue #781 Weight Build validation separation before edit"
+          node utils/backup.js save docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js "Issue #781 Weight Build validation separation docs mirror before edit"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f .backups
+          git diff --cached --quiet && exit 0
+          git commit -m "backup(issue-781): protect Weight Build performance files"
+          git push origin HEAD:agent/issue-781-weight-build-singleflight-20260930
