@@ -21,7 +21,6 @@ async function basisModules() {
     installWeightBasisXmlDom(globalThis);
     modulesPromise = Promise.all([
       import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-basis-linear-1'),
-      import('../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260930-issue781-weight-basis-linear-1'),
       import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-basis-linear-1'),
       import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-basis-linear-1'),
       import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-basis-linear-1'),
@@ -142,7 +141,7 @@ export async function prepareXmlCiiWeightBasis({
   onProgress = null,
 } = {}) {
   progress(onProgress, 'loading-runtime');
-  const [enrichment, geometryApi, weightModel, rigidAuthority, ratingApi] = await basisModules();
+  const [enrichment, weightModel, rigidAuthority, ratingApi] = await basisModules();
 
   progress(onProgress, 'preparing-geometry');
   const prepared = enrichment.prepareXmlCiiWeightMatchGeometry(
@@ -152,17 +151,10 @@ export async function prepareXmlCiiWeightBasis({
   );
   const preparedConfig = mergeBasisAuthorityConfig(prepared.config || geometryConfig, config);
 
-  progress(onProgress, 'applying-staged-geometry');
-  const geometry = geometryApi.applyXmlCiiStagedGeometryAuthority(
-    prepared.xmlText || text(xmlText),
-    text(stagedJsonText),
-    { config: preparedConfig },
-  );
-
   progress(onProgress, 'collecting-weight-basis');
   const ratingCache = new Map();
   const basisRows = weightModel.collectXmlCiiWeightMatchBasisRows(
-    geometry.xmlText,
+    prepared.xmlText || text(xmlText),
     text(stagedJsonText),
     preparedConfig,
   ).map((row) => withRatingAuthority(
@@ -186,7 +178,7 @@ export async function prepareXmlCiiWeightBasis({
     effectiveRigidWeight: { ...plainObject(validated.config?.overrides?.rigidWeight) },
     stats: {
       issueCount: issues.length,
-      geometry: { ...(geometry.stats || {}) },
+      geometry: { stagedGeometryRewriteSkipped: 1 },
       preparation: { ...(prepared.stats || {}) },
     },
   };

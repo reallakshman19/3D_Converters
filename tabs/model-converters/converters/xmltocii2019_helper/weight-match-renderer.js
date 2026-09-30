@@ -326,7 +326,6 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       'hydrating-applied-masters': 'Loading applied masters in Weight worker…',
       'loading-runtime': 'Loading Weight basis runtime…',
       'preparing-geometry': 'Preparing split/inline geometry in Weight worker…',
-      'applying-staged-geometry': 'Applying staged geometry in Weight worker…',
       'collecting-weight-basis': 'Collecting Weight basis in worker…',
       'validating-match1': `Validating Match-1 in worker${Number.isFinite(Number(event.issueCount)) ? ` · ${Number(event.issueCount)} component(s)` : ''}…`,
     };
