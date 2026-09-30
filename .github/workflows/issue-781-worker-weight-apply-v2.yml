@@ -34,6 +34,7 @@ jobs:
           if not match:
               raise SystemExit('Could not recover guarded apply script.')
           script = textwrap.dedent(match.group('body'))
+
           lines = script.splitlines()
           dispatch_replaced = 0
           request_id_replaced = 0
@@ -49,32 +50,25 @@ jobs:
           if request_id_replaced != 1:
               raise SystemExit(f'Expected one Weight response requestId correction, found {request_id_replaced}.')
           script = '\n'.join(lines) + '\n'
+
+          stale_search = "searchDataset: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
+          current_search = "buildSearchCorpus: (rows) => rows.map((row) => Object.values(row).join(' ').toLowerCase()),\n              searchCorpusIndexes: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),"
+          if stale_search not in script:
+              raise SystemExit('Expected stale synthetic search dependency in guarded patcher.')
+          script = script.replace(stale_search, current_search, 1)
+
+          stale_reject = """const result = await svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} });
+            assert.equal(result.type, MASTER_DATASET_EVENT.ERROR);
+            assert.match(result.error.message, /requires a weight dataset/i);"""
+          current_reject = """await assert.rejects(
+              () => svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} }),
+              /requires a weight dataset/i,
+            );"""
+          if stale_reject not in script:
+              raise SystemExit('Expected stale non-weight rejection assertion in guarded patcher.')
+          script = script.replace(stale_reject, current_reject, 1)
+
           exec(compile(script, '<issue-781-worker-weight-apply-v2>', 'exec'), {'__name__': '__main__'})
-
-          test_path = Path('tests/xml-cii-issue-781-worker-weight-api.test.mjs')
-          test_source = test_path.read_text()
-          test_source, count = re.subn(
-              r"searchDataset:\s*\(corpus, query\)\s*=>\s*corpus\.map\(\(value, index\)\s*=>\s*value\.includes\(query\)\s*\?\s*index\s*:\s*-1\)\.filter\(\(index\)\s*=>\s*index\s*>=\s*0\),",
-              "buildSearchCorpus: (rows) => rows.map((row) => Object.values(row).join(' ').toLowerCase()),\n    searchCorpusIndexes: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),",
-              test_source,
-              count=1,
-          )
-          if count != 1:
-              raise SystemExit(f'Synthetic service search dependency replacement count={count}.')
-
-          reject_pattern = re.compile(
-              r"const result = await svc\.handle\(\{ type: MASTER_DATASET_COMMAND\.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready\.metadata\.datasetId, issues: \[issue\], config: \{\} \}\);\s*"
-              r"assert\.equal\(result\.type, MASTER_DATASET_EVENT\.ERROR\);\s*"
-              r"assert\.match\(result\.error\.message, /requires a weight dataset/i\);"
-          )
-          test_source, count = reject_pattern.subn(
-              "await assert.rejects(\n      () => svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} }),\n      /requires a weight dataset/i,\n    );",
-              test_source,
-              count=1,
-          )
-          if count != 1:
-              raise SystemExit(f'Synthetic non-weight rejection assertion replacement count={count}.')
-          test_path.write_text(test_source)
           PY
       - name: Syntax-check touched runtime files
         run: |
