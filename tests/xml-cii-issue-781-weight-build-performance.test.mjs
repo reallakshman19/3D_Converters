@@ -6,6 +6,7 @@ import {
   rankXmlCiiWeightCandidates,
   weightMasterEligibleRows,
 } from '../converters/xml-cii2019-core/weight-valve-hints.js';
+import { buildPipingClassIndex } from '../converters/xml-cii2019-core/piping-class-resolver.js';
 
 function normRating(value) {
   return String(value ?? '').replace(/#/g, '').trim().toUpperCase();
@@ -136,6 +137,37 @@ test('standalone Weight Build delegates basis to the worker without changing the
   assert.match(adapter, /renderer\.bindXmlCiiWeightMatchPhase/);
 });
 
+
+test('Piping Class index construction is linear in row count and preserves class order', () => {
+  const rows = Array.from({ length: 20000 }, (_, index) => ({
+    pipingClass: `PC-${index}`,
+    convertedBore: 100,
+  }));
+  const index = buildPipingClassIndex(rows);
+  assert.equal(index.rows.length, rows.length);
+  assert.equal(index.knownClasses.length, rows.length);
+  assert.equal(index.knownClasses[0], 'PC-0');
+  assert.equal(index.knownClasses.at(-1), 'PC-19999');
+
+  const source = fs.readFileSync('converters/xml-cii2019-core/piping-class-resolver.js', 'utf8');
+  const start = source.indexOf('export function buildPipingClassIndex');
+  const end = source.indexOf('\nfunction normalizeComponentType', start);
+  const body = source.slice(start, end);
+  assert.match(body, /knownClassKeys = new Set/);
+  assert.doesNotMatch(body, /knownClasses\.some/);
+});
+
+test('Weight basis skips master resolution and rejects known non-review nodes before DTXR lookup', () => {
+  const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
+  const start = model.indexOf('function collectWeightRows');
+  const end = model.indexOf('\nexport function collectXmlCiiWeightMatchBasisRows', start);
+  const collector = model.slice(start, end);
+  assert.match(collector, /lightweightBasis \? null : buildPipingClassIndex/);
+  assert.match(collector, /lightweightBasis \? null : buildWeightLineListIndex/);
+  assert.match(collector, /isKnownNonWeightReviewType\(componentType\)[\s\S]*?resolveWeightDtxr/);
+  assert.match(collector, /dtxrContext \|\|= buildDtxrContext/);
+});
+
 test('Weight Line List lookup is indexed once per collection', () => {
   const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
   assert.match(model, /function buildWeightLineListIndex/);
@@ -160,6 +192,7 @@ test('modified Weight Build runtime files remain byte-identical to docs mirrors'
   for (const path of [
     'converters/xml-cii2019-core/weight-valve-hints.js',
     'converters/xml-cii2019-core/weight-match-model.js',
+    'converters/xml-cii2019-core/piping-class-resolver.js',
     'tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',

@@ -45,6 +45,7 @@ jobs:
           node --check converters/xml-cii2019-core/linelist-mapping.js
           node --check converters/xml-cii2019-core/weight-match-ranking-service.js
           node --check converters/xml-cii2019-core/weight-match-model.js
+          node --check converters/xml-cii2019-core/piping-class-resolver.js
           node --check tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js
           node --check tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js
           node --check tabs/xml-cii-2019-standalone/workers/weight-basis-service.js
@@ -93,7 +94,7 @@ jobs:
         run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
       - name: Qualify six-issue Weight ranking at 10k / 50k / 100k
         run: node scripts/run-xml-cii-worker-weight-scale-e2e.mjs
-      - name: Qualify Weight Build basis fast path in Chromium
+      - name: Qualify master-independent Weight Build basis in Chromium
         run: node scripts/run-xml-cii-weight-basis-fastpath-e2e.mjs
       - name: Prove APPLIED Key1/Key2 survives worker remap and Preview fetch
         run: node scripts/run-xml-cii-line-list-remap-preview-e2e.mjs
