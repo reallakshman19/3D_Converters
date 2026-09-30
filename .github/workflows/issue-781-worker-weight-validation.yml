@@ -14,8 +14,11 @@ on:
       - tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
       - tests/xml-cii-issue-781-worker-weight-api.test.mjs
       - tests/xml-cii-issue-781-weight-build-performance.test.mjs
+      - tests/browser/xml-cii-worker-weight-scale-e2e.html
+      - scripts/run-xml-cii-worker-weight-scale-e2e.mjs
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,7 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout literal source head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -47,12 +53,24 @@ jobs:
             tests/xml-cii-issue-781-weight-build-performance.test.mjs \
             tests/xml-cii-master-worker-metadata-import.test.mjs \
             tests/xml-cii-master-preview-worker-search.test.mjs
+      - name: Run Weight / Match-1 authority regressions
+        run: |
+          node --test \
+            tests/xml-cii-issue-776-weight-review-authority.test.mjs \
+            tests/xml-cii-issue-776-weight-acceptance-validation.test.mjs \
+            tests/xml-cii-issue-776-weight-unit-custody.test.mjs \
+            tests/xml-cii-issue-776-match1-provenance.test.mjs \
+            tests/xml-cii-issue-776-match1-acceptance-paths.test.mjs \
+            tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs
 
   browser-worker-scale:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout literal source head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -64,6 +82,8 @@ jobs:
         run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-781-worker-http.log 2>&1 &
       - name: Requalify dataset worker 10k / 50k / 100k responsiveness
         run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
+      - name: Qualify six-issue Weight ranking at 10k / 50k / 100k
+        run: node scripts/run-xml-cii-worker-weight-scale-e2e.mjs
       - name: Upload worker-scale evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,5 +91,6 @@ jobs:
           name: issue-781-worker-weight-scale
           path: |
             ValidationRecords/xml-cii-master-dataset-scale-e2e.json
+            ValidationRecords/xml-cii-issue-781-worker-weight-scale-e2e.json
             /tmp/issue-781-worker-http.log
           if-no-files-found: warn
