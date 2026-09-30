@@ -142,7 +142,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
-      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-basis-fastpath-1');
+      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-input-raw-1');
       if (
         typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
         || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function'
