@@ -47,8 +47,8 @@ assert.ok(autoBasisSource.includes('B31.3 automatic basis'));
 assert.ok(autoBasisSource.includes('data-b313-auto-refresh'));
 assert.ok(autoBasisSource.includes('data-b313-factor-info-button'));
 assert.ok(autoBasisSource.includes('[data-mc-b313-basis-editor]'));
-assert.ok(autoBasisSource.includes('legacy.hidden = true'));
-assert.ok(autoBasisSource.includes("legacy.style.display = 'none'"));
+assert.ok(autoBasisSource.includes('legacyEditor.hidden = true'));
+assert.ok(autoBasisSource.includes("legacyEditor.style.display = 'none'"));
 
 const weightService = await read('tabs/xml-cii-2019-standalone/workers/weight-basis-service.js');
 const installAt = weightService.indexOf('installWeightBasisXmlDom(globalThis);');
