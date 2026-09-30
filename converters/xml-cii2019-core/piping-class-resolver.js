@@ -186,6 +186,7 @@ export function resolveApproximatePipingClass({ requestedClass, knownClasses, pi
 export function buildPipingClassIndex(rows, fieldMap = {}) {
   const map = new Map();
   const knownClasses = [];
+  const knownClassKeys = new Set();
   const safeRows = (Array.isArray(rows) ? rows : []).map(normalizeXmlCiiPipingClassMasterRow);
   for (const row of safeRows) {
     const rawClass = readClassFromRow(row, fieldMap);
@@ -193,7 +194,10 @@ export function buildPipingClassIndex(rows, fieldMap = {}) {
     if (!normalized) continue;
     if (!map.has(normalized)) map.set(normalized, []);
     map.get(normalized).push(row);
-    if (!knownClasses.some((value) => normalizePipingClass(value) === normalized)) knownClasses.push(displayPipingClass(rawClass));
+    if (!knownClassKeys.has(normalized)) {
+      knownClassKeys.add(normalized);
+      knownClasses.push(displayPipingClass(rawClass));
+    }
   }
   map.byClass = map;
   map.knownClasses = knownClasses;

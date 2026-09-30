@@ -262,16 +262,21 @@ function xmlCiiWeightReviewNodeFallbackId(node, nodeIdx) {
 // real positive NodeNumber is the practical "where does this attach" answer,
 // so use that (marked with a leading "~" since it's an approximation, not
 // this node's own number) instead of dumping the technical descriptor.
-function xmlCiiNearestNumberedNodeDisplay(branchNodeList, nodeIdx) {
-  for (let i = nodeIdx - 1; i >= 0; i -= 1) {
-    const candidate = xmlText(branchNodeList[i], 'NodeNumber');
-    if (Number(candidate) > 0) return `~${candidate}`;
+function xmlCiiNearestNumberedNodeDisplays(branchNodeList) {
+  const out = new Array(branchNodeList.length).fill('');
+  let previous = '';
+  for (let index = 0; index < branchNodeList.length; index += 1) {
+    const nodeNumber = xmlText(branchNodeList[index], 'NodeNumber');
+    if (Number(nodeNumber) > 0) previous = nodeNumber;
+    else if (previous) out[index] = `~${previous}`;
   }
-  for (let i = nodeIdx + 1; i < branchNodeList.length; i += 1) {
-    const candidate = xmlText(branchNodeList[i], 'NodeNumber');
-    if (Number(candidate) > 0) return `~${candidate}`;
+  let next = '';
+  for (let index = branchNodeList.length - 1; index >= 0; index -= 1) {
+    const nodeNumber = xmlText(branchNodeList[index], 'NodeNumber');
+    if (Number(nodeNumber) > 0) next = nodeNumber;
+    else if (!out[index] && next) out[index] = `~${next}`;
   }
-  return '';
+  return out;
 }
 
 export function xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx) {
@@ -484,6 +489,45 @@ function resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineL
   return { branchName, lineKey, lineRow: resolverLineRow, boreMm, requestedPipingClass: resolverLineRow.pipingClass, resolvedPipingClass: resolved.pipingClass, rating, pipingClassMatchMethod: resolved.pipingClassMatchMethod, pipingClassNeedsReview: resolved.pipingClassNeedsReview, pipingClassCandidates: resolved.pipingClassCandidates || [] };
 }
 
+function resolveWeightBasisBranchContext(branch, config) {
+  const branchName = xmlText(branch, 'Branchname');
+  const lineKey = deriveLineKeyFromBranchName(branchName, config);
+  const requestedPipingClass = derivePipingClassFromBranchName(branchName, config);
+  const boreMm = branchBoreFromFirstUsefulNode(branch);
+  const rating = ratingOverrideForBranch(config, {
+    lineKey,
+    branchName,
+    lineRow: null,
+    requestedPipingClass,
+  });
+  return {
+    branchName,
+    lineKey,
+    lineRow: null,
+    boreMm,
+    requestedPipingClass,
+    resolvedPipingClass: requestedPipingClass,
+    rating,
+    pipingClassMatchMethod: 'preview-authority',
+    pipingClassNeedsReview: false,
+    pipingClassCandidates: [],
+  };
+}
+
+const EARLY_EXCLUDED_WEIGHT_TYPES = new Set([
+  'PIPE', 'TEE', 'ELBO', 'ELBOW', 'BEND', 'REDUCER', 'REDU',
+  'OLET', 'WELDOLET', 'SOCKOLET', 'THREDOLET', 'THREADOLET',
+  'ELBOLET', 'LATROLET', 'SWEEPOLET', 'NIPOLET',
+  'GASK', 'GASKET', 'SUPPORT', 'ATTA',
+]);
+
+function isKnownNonWeightReviewType(componentType) {
+  const type = toText(componentType).trim().toUpperCase();
+  if (!type) return false;
+  if (EARLY_EXCLUDED_WEIGHT_TYPES.has(type)) return true;
+  return type.startsWith('GASK') || type.startsWith('REDU') || type.endsWith('OLET');
+}
+
 function ratingForRigidWeightIssue(node, branchContext, config) {
   const nodeRating = xmlText(node, 'Rating');
   if (toText(branchContext.rating).trim()) return toText(branchContext.rating).trim();
@@ -495,23 +539,29 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
   if (typeof DOMParser === 'undefined') return [];
   const document = new DOMParser().parseFromString(toText(xmlTextVal), 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return [];
-  const dtxrContext = buildDtxrContext(stagedJsonText, config);
-  const pipingClassIndex = buildPipingClassIndex(config.pipingClass?.masterRows || []);
-  const lineListIndex = buildWeightLineListIndex(config);
+  const lightweightBasis = options.lightweightBasis === true;
+  let dtxrContext = null;
+  const getDtxrContext = () => (dtxrContext ||= buildDtxrContext(stagedJsonText, config));
+  const pipingClassIndex = lightweightBasis ? null : buildPipingClassIndex(config.pipingClass?.masterRows || []);
+  const lineListIndex = lightweightBasis ? null : buildWeightLineListIndex(config);
   const rows = [];
   for (const branch of [...document.getElementsByTagName('Branch')]) {
-    const branchContext = resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex);
+    const branchContext = lightweightBasis
+      ? resolveWeightBasisBranchContext(branch, config)
+      : resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex);
     const branchName = branchContext.branchName;
     const branchNodeList = xmlChildrenByName(branch, 'Node');
     const forwardLengths = xmlCiiForwardElementLengths(branchNodeList);
+    const nearestNumberedDisplays = xmlCiiNearestNumberedNodeDisplays(branchNodeList);
     branchNodeList.forEach((node, nodeIdx) => {
       const nodeNumber = xmlText(node, 'NodeNumber');
-      const dtxrResult = resolveWeightDtxr(node, dtxrContext, config);
-      const dtxrText = dtxrResult?.suppressed ? '' : toText(dtxrResult?.canonicalText);
-      const dtxrSourcePath = dtxrResult?._sourcePath || '';
       const componentType = xmlText(node, 'ComponentType');
       const connectionType = xmlText(node, 'ConnectionType');
       if (connectionType) return;
+      if (options.skipKnownNonReviewDtxr === true && isKnownNonWeightReviewType(componentType)) return;
+      const dtxrResult = resolveWeightDtxr(node, getDtxrContext(), config);
+      const dtxrText = dtxrResult?.suppressed ? '' : toText(dtxrResult?.canonicalText);
+      const dtxrSourcePath = dtxrResult?._sourcePath || '';
       const reviewNode = isXmlCiiWeightReviewNode(node, dtxrText);
       const explicitLength = xmlText(node, 'ElementLengthMm') ? xmlCiiNumberText(xmlText(node, 'ElementLengthMm')) : null;
       const lengthMm = explicitLength !== null ? explicitLength : forwardLengths[nodeIdx];
@@ -549,7 +599,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       // for this row's `key`) when no numbered neighbor exists at all.
       const nodeNumberDisplay = Number(nodeNumber) > 0
         ? nodeNumber
-        : (xmlCiiNearestNumberedNodeDisplay(branchNodeList, nodeIdx)
+        : (nearestNumberedDisplays[nodeIdx]
           || xmlCiiWeightReviewNodeFallbackId(node, nodeIdx)
           || nodeNumber);
       rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
@@ -564,7 +614,11 @@ export function collectXmlCiiWeightMatchBasisRows(xmlTextVal, stagedJsonText, co
     stagedJsonText,
     config,
     'all-review-nodes',
-    { rankCandidates: false },
+    {
+      rankCandidates: false,
+      lightweightBasis: true,
+      skipKnownNonReviewDtxr: true,
+    },
   );
 }
 
