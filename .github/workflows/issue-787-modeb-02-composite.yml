@@ -47,14 +47,103 @@ jobs:
         run: node --test tests/xml-cii-issue-776-*.test.mjs tests/xml-cii-mode-a-preview-restoration.test.mjs
       - name: Run inherited PR780 master-dataset regressions
         run: node --test tests/xml-cii-master-dataset-*.test.mjs tests/xml-cii-master-preview-worker-search.test.mjs tests/xml-cii-master-worker-integration.test.mjs
-      - name: Run inherited adjacent authority regressions
-        run: node --test tests/xml-cii-smart-ui-preflight.test.mjs tests/xml-cii-regex-confidence-buckets.test.mjs tests/xml-cii-b313-preview-od-selection.test.mjs tests/xml-cii-b313-preview-pressure-unit.test.mjs tests/xml-cii-b313-preview-blocker-ui-static.test.mjs tests/engineering-calculation-core.test.mjs
+      - name: Run inherited adjacent authority regressions on MODEB-02 head
+        id: adjacent_head
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-smart-ui-preflight.test.mjs \
+            tests/xml-cii-regex-confidence-buckets.test.mjs \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/engineering-calculation-core.test.mjs 2>&1 | tee modeb02-adjacent-head.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Checkout stacked PR base for adjacent baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: __modeb02_base
+      - name: Run inherited adjacent authority regressions on stacked base
+        id: adjacent_base
+        shell: bash
+        working-directory: __modeb02_base
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-smart-ui-preflight.test.mjs \
+            tests/xml-cii-regex-confidence-buckets.test.mjs \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/engineering-calculation-core.test.mjs 2>&1 | tee ../modeb02-adjacent-base.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Classify adjacent regressions against stacked base
+        id: adjacent_diff
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          head_status="${{ steps.adjacent_head.outputs.status }}"
+          base_status="${{ steps.adjacent_base.outputs.status }}"
+
+          normalize_failures() {
+            sed -nE 's/^[[:space:]]*not ok [0-9]+ - (.*)$/\1/p' "$1" \
+              | sed -E 's/[[:space:]]+#.*$//' \
+              | sort
+          }
+
+          normalize_failures modeb02-adjacent-head.log > modeb02-adjacent-head.failures.txt
+          normalize_failures modeb02-adjacent-base.log > modeb02-adjacent-base.failures.txt
+          comm -23 modeb02-adjacent-head.failures.txt modeb02-adjacent-base.failures.txt \
+            > modeb02-adjacent-new.failures.txt
+
+          status=0
+          classification="head-pass"
+          if [ "${head_status}" != "0" ]; then
+            if [ ! -s modeb02-adjacent-head.failures.txt ]; then
+              status=1
+              classification="unclassified-head-failure"
+            elif [ "${base_status}" = "0" ]; then
+              status=1
+              classification="new-head-failure"
+            elif [ -s modeb02-adjacent-new.failures.txt ]; then
+              status=1
+              classification="new-failure-identity"
+            else
+              classification="baseline-only-failures"
+            fi
+          fi
+
+          echo "MODEB-02 adjacent applicability: head=${head_status} base=${base_status} classification=${classification}"
+          if [ -s modeb02-adjacent-new.failures.txt ]; then
+            echo "New adjacent failures introduced by MODEB-02:"
+            cat modeb02-adjacent-new.failures.txt
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          echo "classification=${classification}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Enforce applicable adjacent regression result
+        if: always()
+        run: test "${{ steps.adjacent_diff.outputs.status }}" = "0"
       - name: Generate deterministic MODEB-02 composite evidence
         run: node scripts/xml-cii-mode-b-compose-observe.mjs --out modeb-composite.json | tee modeb-composite-summary.json
       - name: Upload MODEB-02 evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: issue-787-modeb-02-composite
           path: |
             modeb-composite.json
             modeb-composite-summary.json
+            modeb02-adjacent-head.log
+            modeb02-adjacent-base.log
+            modeb02-adjacent-head.failures.txt
+            modeb02-adjacent-base.failures.txt
+            modeb02-adjacent-new.failures.txt
+          if-no-files-found: warn
