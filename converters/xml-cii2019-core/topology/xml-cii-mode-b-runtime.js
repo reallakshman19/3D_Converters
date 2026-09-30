@@ -1,6 +1,7 @@
 import { buildXmlCiiModeBObservation } from './xml-cii-mode-b-observation.js';
 import { buildXmlCiiModeBComposite } from './xml-cii-mode-b-composite.js';
 import { buildXmlCiiModeBNumbering } from './xml-cii-mode-b-numbering.js';
+import { buildXmlCiiModeBSourceJunctionAliases } from './xml-cii-mode-b-runtime-junctions.js';
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
@@ -15,9 +16,6 @@ function replaceTagValue(block, name, value) {
   const re = new RegExp(`<${name}([^>]*)>[\\s\\S]*?<\\/${name}>`, 'i');
   if (!re.test(block)) throw new Error(`Mode B materializer cannot rewrite missing <${name}> tag.`);
   return block.replace(re, `<${name}$1>${value}</${name}>`);
-}
-function nodeBlocks(branchBlock) {
-  return text(branchBlock).match(/<Node\b[\s\S]*?<\/Node>/gi) || [];
 }
 function branchBlocks(xmlText) {
   return text(xmlText).match(/<Branch\b[\s\S]*?<\/Branch>/gi) || [];
@@ -102,15 +100,14 @@ function buildAliasPlan(composite, numbering) {
   }
   return aliases.sort((a, b) => a.downstreamSourceIdentity.localeCompare(b.downstreamSourceIdentity));
 }
-function transformDocument(document, numbering, aliases) {
+function transformDocument(document, numbering, aliases, sourceJunctionAliases) {
   const numberingById = new Map((numbering.rows || []).map((row) => [row.sourceIdentity, row]));
   const aliasById = new Map((aliases || []).map((row) => [row.downstreamSourceIdentity, row]));
+  const sourceAliasById = new Map((sourceJunctionAliases || []).map((row) => [row.sourceIdentity, row]));
   const branchOccurrenceByName = new Map();
   const seen = [];
   const transformedBranches = [];
-  let positiveRewriteCount = 0;
-  let sentinelPreservedCount = 0;
-  let aliasRewriteCount = 0;
+  const stats = { positiveRewriteCount: 0, sentinelPreservedCount: 0, aliasRewriteCount: 0, sourceJunctionAliasRewriteCount: 0 };
   for (const originalBranch of branchBlocks(document.xmlText)) {
     const branchName = tagValue(originalBranch, 'Branchname');
     const branchOccurrence = (branchOccurrenceByName.get(branchName) || 0) + 1;
@@ -125,21 +122,26 @@ function transformDocument(document, numbering, aliases) {
       const row = numberingById.get(identity);
       if (!row) throw new Error(`Mode B materializer lost numbering row for ${identity}.`);
       const alias = aliasById.get(identity);
+      const sourceAlias = sourceAliasById.get(identity);
       let renderedNodeNumber;
       let renderedAuthority;
       if (alias) {
         if (/<Restraint\b/i.test(nodeBlock)) throw new Error(`Mode B materializer refuses junction alias on restraint-bearing node ${identity}.`);
         renderedNodeNumber = alias.renderedNodeNumber;
         renderedAuthority = 'JUNCTION_ALIAS';
-        aliasRewriteCount += 1;
+        stats.aliasRewriteCount += 1;
+      } else if (sourceAlias) {
+        renderedNodeNumber = sourceAlias.renderedNodeNumber;
+        renderedAuthority = 'SOURCE_JUNCTION_ALIAS';
+        stats.sourceJunctionAliasRewriteCount += 1;
       } else if (row.numberClass === 'POSITIVE_ENGINEERING') {
         renderedNodeNumber = row.outputNodeNumber;
         renderedAuthority = 'MODEB_GRAPH_TRAVERSAL';
-        positiveRewriteCount += 1;
+        stats.positiveRewriteCount += 1;
       } else {
         renderedNodeNumber = sourceNodeNumber;
         renderedAuthority = 'SOURCE_SENTINEL_PRESERVED';
-        sentinelPreservedCount += 1;
+        stats.sentinelPreservedCount += 1;
       }
       seen.push({ sourceIdentity: identity, sourceNodeNumber, outputNodeNumber: row.outputNodeNumber, renderedNodeNumber,
         renderedAuthority, branchName, branchOccurrence, nodeIndex: nodeIndex - 1, componentRefNo, endpoint });
@@ -147,7 +149,7 @@ function transformDocument(document, numbering, aliases) {
     });
     transformedBranches.push(transformed);
   }
-  return { transformedBranches, seen, stats: { positiveRewriteCount, sentinelPreservedCount, aliasRewriteCount } };
+  return { transformedBranches, seen, stats };
 }
 function buildCompositeDocument(canonicalDocuments, transformedBranches, sourceName) {
   const template = canonicalDocuments[0]?.xmlText || '';
@@ -174,12 +176,16 @@ export function prepareXmlCiiModeBRuntimeSource({ splitDocuments = [], sourceNam
     throw new Error(`Mode B runtime has ${composite.ambiguousCandidates.length} ambiguous cross-document candidate(s); resolve topology before conversion.`);
   }
   const numbering = buildXmlCiiModeBNumbering(composite, options.numbering || {});
+  const sourceJunctions = buildXmlCiiModeBSourceJunctionAliases(observation, numbering, options.sourceJunctions || {});
+  if (sourceJunctions.incompatibleGroups.length) {
+    throw new Error(`Mode B runtime found ${sourceJunctions.incompatibleGroups.length} incompatible same-document shared NodeNumber group(s); source junction authority is ambiguous.`);
+  }
   const aliases = buildAliasPlan(composite, numbering);
   const transformedBranches = [];
   const custodyRows = [];
-  const materializationStats = { positiveRewriteCount: 0, sentinelPreservedCount: 0, aliasRewriteCount: 0 };
+  const materializationStats = { positiveRewriteCount: 0, sentinelPreservedCount: 0, aliasRewriteCount: 0, sourceJunctionAliasRewriteCount: 0 };
   for (const document of documents) {
-    const transformed = transformDocument(document, numbering, aliases);
+    const transformed = transformDocument(document, numbering, aliases, sourceJunctions.aliases);
     transformedBranches.push(...transformed.transformedBranches);
     custodyRows.push(...transformed.seen);
     for (const key of Object.keys(materializationStats)) materializationStats[key] += transformed.stats[key] || 0;
@@ -191,6 +197,12 @@ export function prepareXmlCiiModeBRuntimeSource({ splitDocuments = [], sourceNam
     const rows = custodyRows.filter((row) => row.sourceIdentity === alias.downstreamSourceIdentity && row.renderedAuthority === 'JUNCTION_ALIAS');
     if (rows.length !== 1) throw new Error(`Mode B junction alias ${alias.downstreamSourceIdentity} was not rendered exactly once.`);
   }
+  for (const sourceAlias of sourceJunctions.aliases) {
+    const row = custodyRows.find((entry) => entry.sourceIdentity === sourceAlias.sourceIdentity);
+    if (!row || row.renderedAuthority !== 'SOURCE_JUNCTION_ALIAS' || Number(row.renderedNodeNumber) !== sourceAlias.renderedNodeNumber) {
+      throw new Error(`Mode B source junction alias ${sourceAlias.sourceIdentity} was not rendered with governed authority.`);
+    }
+  }
   const normalizedSourceName = safeFileName(sourceName || 'mode-b-composite.xml');
   const sourceText = buildCompositeDocument(documents, transformedBranches, normalizedSourceName);
   const evidence = {
@@ -200,11 +212,13 @@ export function prepareXmlCiiModeBRuntimeSource({ splitDocuments = [], sourceNam
     acceptedCrossDocumentEdgeCount: composite.acceptedCrossDocumentEdges.length,
     insufficientEvidenceCandidateCount: composite.insufficientEvidenceCandidates.length,
     ambiguousCandidateCount: composite.ambiguousCandidates.length, junctionAliasCount: aliases.length,
-    materializedNodeCount: custodyRows.length, materializationStats, sourceDigest: simpleFingerprint(sourceText), aliases,
+    sourceJunctionAliasGroupCount: sourceJunctions.groups.length, sourceJunctionAliasCount: sourceJunctions.aliases.length,
+    materializedNodeCount: custodyRows.length, materializationStats, sourceDigest: simpleFingerprint(sourceText),
+    aliases, sourceJunctionAliases: sourceJunctions.aliases,
   };
   evidence.fingerprint = simpleFingerprint({ ...evidence, fingerprint: undefined });
   return { schema: 'xml-cii-mode-b-runtime-source/v1', sourceKind: 'xml', sourceName: normalizedSourceName, sourceText,
-    documents, observation, composite, numbering, aliases, custodyRows, evidence };
+    documents, observation, composite, numbering, aliases, sourceJunctions, custodyRows, evidence };
 }
 export function buildXmlCiiModeBRuntimeWorkflowJob(modeBInput = {}, baseJob = {}, options = {}) {
   const prepared = prepareXmlCiiModeBRuntimeSource(modeBInput, options);
