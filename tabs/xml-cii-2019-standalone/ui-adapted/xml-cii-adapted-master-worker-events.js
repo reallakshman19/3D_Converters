@@ -175,13 +175,23 @@ function bindPathEvents(container, stateRef, render) {
   });
 }
 
+function restoreUnavailableSheetSelection(select, stateRef, render, key) {
+  const context = ensureMasterRuntime(stateRef.current.masterContext || {});
+  const activeSheet = String(context.activeSheet?.[key] || '');
+  if (activeSheet) select.value = activeSheet;
+  const message = `Worksheet switching for ${key} is unavailable after reload because workbook bytes are session-only. Reopen or re-import the source workbook to change sheets.`;
+  stateRef.current = updateWorkflowState(stateRef.current, { importMastersWriteBackStatus: message });
+  requestMeasuredFullRender(render);
+  alert(message);
+}
+
 function bindSheetEvents(container, stateRef, render) {
   container.querySelectorAll('[data-master-sheet-select]').forEach((select) => {
     select.addEventListener('change', async () => {
       const key = select.dataset.masterSheetSelect;
       const generation = nextGeneration(key);
       const source = importSources.get(key);
-      if (!source) return;
+      if (!source) return restoreUnavailableSheetSelection(select, stateRef, render, key);
       try {
         const ready = await coordinator.selectSheet(key, select.value);
         if (!isCurrent(key, generation)) return;

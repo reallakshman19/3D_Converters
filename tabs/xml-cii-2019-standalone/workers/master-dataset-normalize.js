@@ -1,6 +1,7 @@
 import { MASTER_FIELDS } from '../ui-adapted/xml-cii-adapted-fields-config.js';
 import { fuzzyAutoMapFields } from '../ui-adapted/xml-cii-adapted-fuzzy-mapper.js';
 import { detectLineListFieldMap, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
+import { refineLineListFieldMap } from '../xml-cii-linelist-header-band.js?v=20260930-issue781-linelist-integration-2';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -22,7 +23,7 @@ export function resolveMasterFieldMap(masterKey, rawRows, currentMap = {}, confi
   const detected = detectLineListFieldMap(rawRows, currentMap || {}, config?.linelist || config || null);
   const merged = { ...fuzzy, ...detected };
   for (const field of fields) if (!(field.name in merged)) merged[field.name] = fuzzy[field.name] || '';
-  return merged;
+  return refineLineListFieldMap(rawRows, merged, config?.linelist || config || null);
 }
 
 export function normalizeMasterRows(rawRows, fieldMap, masterKey) {
