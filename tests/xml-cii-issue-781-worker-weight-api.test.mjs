@@ -29,9 +29,9 @@ function fakeStore() {
   };
 }
 
-function service() {
+function service(store = fakeStore()) {
   return createMasterDatasetService({
-    store: fakeStore(),
+    store,
     getXlsx: async () => { throw new Error('xlsx not expected'); },
     prepareDataset: (masterKey, rawRows, _config, currentMap, override) => ({
       rows: rawRows.map((row, index) => ({ ...row, _rowIndex: index + 1 })),
@@ -64,6 +64,26 @@ test('worker-resident Weight Match ranking equals shared pure ranking', async ()
   assert.equal(actual.issues.length, 1);
   assert.deepEqual(actual.issues[0].candidates, expected[0].candidates);
   assert.equal(actual.issues[0].rating, expected[0].rating);
+});
+
+test('fresh worker service recovers a persisted Weight dataset by datasetId', async () => {
+  const store = fakeStore();
+  const opener = service(store);
+  const buffer = new TextEncoder().encode(JSON.stringify(masterRows)).buffer;
+  const ready = await opener.handle({ type: MASTER_DATASET_COMMAND.OPEN_SOURCE, requestId: 'open-persisted', jobId: 'job-persisted', fileName: 'weights.json', masterKey: 'weight', config: {}, currentMap: {}, buffer });
+  const recovered = service(store);
+  const result = await recovered.handle({
+    type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES,
+    requestId: 'rank-persisted',
+    datasetId: ready.metadata.datasetId,
+    issues: [issue],
+    config: { weight: { masterFingerprint: ready.metadata.masterFingerprint, masterRevision: 1 } },
+    ratingMode: 'preview',
+    previewRatingSnapshot: {},
+  });
+  assert.equal(result.type, MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT);
+  assert.equal(result.datasetId, ready.metadata.datasetId);
+  assert.equal(result.issues.length, 1);
 });
 
 test('Weight Match worker rejects a non-weight dataset', async () => {
@@ -146,9 +166,14 @@ test('Weight Match reports bounded stages instead of an indefinite generic compu
 test('standalone module cache chain advances to Weight liveness revision', async () => {
   const token = '20260930-issue781-weight-liveness-1';
   const checks = [
+    ['index.html', 'main-rhbg-fitguard.js'],
+    ['main-rhbg-fitguard.js', 'core/app.js'],
+    ['core/app.js', 'app-standalone-runtime.js'],
+    ['core/app-standalone-runtime.js', 'xml-cii-2019-standalone-tab.js'],
     ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', 'master-dataset-client.js'],
     ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', 'master-dataset-import-coordinator.js'],
     ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', 'xml-cii-adapted-master-dataset-runtime.js'],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', 'weight-match-renderer.js'],
     ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', 'xml-cii-adapted-weight-match-v2.js'],
     ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js', 'xml-cii-adapted-master-mapping-events.js'],
     ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js', 'xml-cii-adapted-master-events.js'],
@@ -178,6 +203,10 @@ test('standalone dataset-backed Weight Build has no all-master materializer depe
 
 test('source/docs mirrors are exact for changed runtime modules', async () => {
   const paths = [
+    'index.html',
+    'main-rhbg-fitguard.js',
+    'core/app.js',
+    'core/app-standalone-runtime.js',
     'converters/xml-cii2019-core/linelist-mapping.js',
     'converters/xml-cii2019-core/weight-match-ranking-service.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',
