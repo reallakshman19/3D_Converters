@@ -38,6 +38,18 @@ function componentRefEndpoint(componentRefNo, endpoint) { const ref = normalizeC
 function truthy(value) { if (value === true) return true; if (value === false || value == null) return false; return /^(1|true|yes|on)$/i.test(clean(value)); }
 function desc(candidate) { return clean(candidate?.typeDesc || candidate?.valveType || candidate?.type || 'Unknown') || 'Unknown'; }
 function plainObject(value) { return value && typeof value === 'object' && !Array.isArray(value); }
+const WEIGHT_ENRICH_TIMEOUT_MS = 60000;
+function withWeightStageTimeout(promise, stage, timeoutMs = WEIGHT_ENRICH_TIMEOUT_MS) {
+  let timeoutId = null;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new Error(`Weight Match timed out during ${stage} after ${Math.round(timeoutMs / 1000)}s.`);
+      error.name = 'TimeoutError';
+      reject(error);
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
+}
 
 function parseConfigText(value) {
   try {
@@ -388,7 +400,11 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const xmlText = await file.text();
       const stagedSource = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig) : { text: await stagedText(stagedJsonText), label: '' };
       const jsonText = clean(stagedSource?.text ?? stagedSource);
-      const enriched = await enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig));
+      status('Preparing Weight Match geometry…');
+      const enriched = await withWeightStageTimeout(
+        enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig)),
+        'XML enrichment',
+      );
       let enrichedConfig = enriched.config || liveConfig;
       let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
       if (workerBackedWeight) {
@@ -410,6 +426,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         .map(cleanRow).filter(Boolean)
         .map((row) => ({ ...row, staleMatch1: validated.validation.stale?.[row.key] || null }));
       if (workerBackedWeight) {
+        status(`Ranking ${issueRows.length} component(s) with ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'}…`);
         const result = await rankWeightIssues(issueRows, { config: validatedConfig, ratingMode, snapshot });
         if (String(result?.datasetId || '') !== String(weightDatasetRef.datasetId)) throw new Error('Weight worker returned a mismatched dataset result.');
         if (!Array.isArray(result?.issues)) throw new Error('Weight worker did not return ranked issues.');
@@ -479,7 +496,10 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
     const xmlText = await file.text();
     const stagedSource = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText || '').catch(() => '') };
     const jsonText = clean(stagedSource?.text ?? stagedSource ?? '');
-    const enriched = await enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig));
+    const enriched = await withWeightStageTimeout(
+      enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig)),
+      'XML enrichment',
+    );
     const enrichedConfig = await ensureWeightMasterRows(enriched.config || liveConfig);
     const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
     if (!hasWeightMasterRows(cfg)) return null;
