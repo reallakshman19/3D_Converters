@@ -1,5 +1,5 @@
 {
-  "lastId": 276,
+  "lastId": 280,
   "entries": [
     {
       "id": 1,
@@ -1932,6 +1932,34 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
       "context": "issue-781 worker Weight API deployment cache chain",
       "backupFile": "276_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 277,
+      "timestamp": "2026-09-30 07:41:48",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js",
+      "context": "issue-781 worker child-module cache hardening",
+      "backupFile": "277_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 278,
+      "timestamp": "2026-09-30 07:41:48",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js",
+      "context": "issue-781 worker child-module cache hardening",
+      "backupFile": "278_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 279,
+      "timestamp": "2026-09-30 07:41:48",
+      "file": "tabs/xml-cii-2019-standalone/workers/master-dataset-normalize.js",
+      "context": "issue-781 worker child-module cache hardening",
+      "backupFile": "279_tabs_xml_cii_2019_standalone_workers_master_dataset_normalize_js.bak"
+    },
+    {
+      "id": 280,
+      "timestamp": "2026-09-30 07:41:48",
+      "file": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-normalize.js",
+      "context": "issue-781 worker child-module cache hardening",
+      "backupFile": "280_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_normalize_js.bak"
     }
   ]
 }
