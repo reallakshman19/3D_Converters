@@ -1,6 +1,11 @@
 import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20260929-pr780-bounded-ui-1';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
 import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20260928-issue776-authority-1';
+import {
+  inspectXmlCiiModeBPreparation,
+  XML_CII_EXECUTION_MODE_B,
+  xmlCiiExecutionMode,
+} from './xml-cii-adapted-mode-selector.js?v=20260930-modeb05-ui-1';
 
 function styleRunButton(button, primary = false) {
   if (!button?.style) return;
@@ -32,11 +37,35 @@ function createProgress(parent) {
   return progress;
 }
 
+function bindModeBPendingRun(existing, rawRef) {
+  const actions = existing.parentNode;
+  const replacement = existing.cloneNode(true);
+  const preparation = inspectXmlCiiModeBPreparation(rawRef.current);
+  replacement.textContent = 'Run Composite Mode B';
+  replacement.title = preparation.ready
+    ? 'Topology preparation is ready. Composite Run remains disabled until source-local reviewed state is frozen through per-source parity evidence.'
+    : preparation.message;
+  replacement.disabled = true;
+  existing.parentNode.replaceChild(replacement, existing);
+  styleRunButton(replacement, true);
+  const progress = createProgress(actions);
+  progress.dataset.modeBRunPending = 'true';
+  progress.textContent = preparation.ready
+    ? 'Mode B topology READY · source-local parity freeze/run binding is not yet released on this WIP head.'
+    : `Mode B BLOCKED · ${preparation.message}`;
+  progress.style.color = preparation.ready ? '#fde68a' : '#fca5a5';
+}
+
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   const result = bindBaseModeAEvents(container, stateRef, render);
   const rawRef = modeARawRef(stateRef);
   const existing = container.querySelector('[data-action="run"]');
   if (!existing?.parentNode) return result;
+
+  if (xmlCiiExecutionMode(rawRef.current) === XML_CII_EXECUTION_MODE_B) {
+    bindModeBPendingRun(existing, rawRef);
+    return result;
+  }
 
   const actions = existing.parentNode;
   const replacement = existing.cloneNode(true);
