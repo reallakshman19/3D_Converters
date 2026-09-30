@@ -59,7 +59,7 @@ const correctedRegex = applyRegexSuggestions(staleRegexConfig, {
 assert.equal(correctedRegex.formats[0].lineKey.tokenPosition, '5');
 assert.equal(correctedRegex.formats[0].pipingClass.tokenPosition, '6');
 assert.equal(correctedRegex.formats[0].bore.tokenPosition, '4');
-assert.equal(correctedRegex.formats[0].rating.tokenPosition, '3', 'Smart apply must not infer or overwrite Rating');
+assert.equal(correctedRegex.formats[0].rating.tokenPosition, '3', 'Suggestion application itself must not infer/overwrite Rating; UI auto-analysis performs stale unlocked Rating cleanup separately');
 
 const materialMapConfig = {
   pipingClassMaterialCodeMap: {
@@ -141,6 +141,8 @@ const mirrorPairs = [
   ['tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js', 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js'],
   ['tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js', 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js', 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js'],
   ['converters/xml-cii2019-core/piping-class-material-code-resolver.js', 'docs/converters/xml-cii2019-core/piping-class-material-code-resolver.js'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js', 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js'],
   ['converters/xml-cii2019-core/b313-preview-fallback-seed.js', 'docs/converters/xml-cii2019-core/b313-preview-fallback-seed.js'],
@@ -153,8 +155,15 @@ for (const [runtime, docs] of mirrorPairs) {
 
 const regexUi = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js', import.meta.url), 'utf8');
 assert.match(regexUi, /void autoAnalyzeDatasetEvidence\(stateRef, render\)/);
+assert.match(regexUi, /clearUnlockedRatingMapping/);
+assert.match(regexUi, /Stale unlocked Rating mapping/);
+assert.match(regexUi, /xml-cii-adapted-regex-smart-evidence\.js\?v=20260930-issue781-auto-authority-1/);
 assert.match(regexUi, /Rating remains manual/);
 assert.doesNotMatch(fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js', import.meta.url), 'utf8'), /ratingCandidate|derivedRatingSuggestion|STANDARD_RATINGS/);
+
+const phasePanel = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', import.meta.url), 'utf8');
+assert.match(phasePanel, /xml-cii-adapted-regex-smart-ui\.js\?v=20260930-issue781-auto-authority-1/);
+assert.match(phasePanel, /xml-cii-adapted-preview-diagnostics-audit-v7\.js\?v=20260930-issue781-auto-authority-1/);
 
 const b313Ui = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js', import.meta.url), 'utf8');
 assert.match(b313Ui, /data-b313-factor-info-button/);
