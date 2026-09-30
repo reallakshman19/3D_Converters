@@ -1,4 +1,5 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260929-pr780-bounded-ui-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-worker-weight-api-1';
+import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-worker-weight-api-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
@@ -194,6 +195,38 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     });
   }
 
+
+  async function rankWeightIssues(message) {
+    const dataset = await ensureDataset(message.datasetId);
+    if (String(dataset?.metadata?.masterKey || '') !== 'weight') {
+      throw new Error(`Weight Match requires a weight dataset; received ${dataset?.metadata?.masterKey || 'unknown'}.`);
+    }
+    const issues = Array.isArray(message.issues) ? message.issues : [];
+    if (issues.length > 5000) throw new Error(`Weight Match issue batch is too large: ${issues.length}.`);
+    const baseConfig = message.config && typeof message.config === 'object' && !Array.isArray(message.config) ? message.config : {};
+    const incomingWeight = baseConfig.weight && typeof baseConfig.weight === 'object' && !Array.isArray(baseConfig.weight) ? baseConfig.weight : {};
+    const workerConfig = {
+      ...baseConfig,
+      weight: {
+        ...incomingWeight,
+        masterRows: dataset.rows,
+        masterFingerprint: dataset.metadata?.masterFingerprint || incomingWeight.masterFingerprint || '',
+        masterRevision: incomingWeight.masterRevision ?? dataset.metadata?.datasetRevision ?? 0,
+      },
+    };
+    const rankedIssues = rankXmlCiiWeightIssues(issues, workerConfig, {
+      ratingMode: message.ratingMode || 'preview',
+      snapshot: message.previewRatingSnapshot || {},
+    });
+    return response(MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT, message.requestId, {
+      datasetId: dataset.metadata.datasetId,
+      rowCount: Number(dataset.metadata.rowCount || dataset.rows.length || 0),
+      datasetRevision: Number(dataset.metadata.datasetRevision || 0),
+      masterFingerprint: dataset.metadata.masterFingerprint || '',
+      issues: rankedIssues,
+    });
+  }
+
   async function release(message) {
     if (message.jobId) sources.delete(message.jobId);
     if (message.datasetId) datasets.delete(message.datasetId);
@@ -207,6 +240,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
       case MASTER_DATASET_COMMAND.REMAP_DATASET: return remapDataset(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
+      case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);
       case MASTER_DATASET_COMMAND.GET_ROWS: return rowsResult(message, false);
       case MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES: return indexedRowsResult(message);
       case MASTER_DATASET_COMMAND.GET_RAW_ROWS: return rowsResult(message, true);

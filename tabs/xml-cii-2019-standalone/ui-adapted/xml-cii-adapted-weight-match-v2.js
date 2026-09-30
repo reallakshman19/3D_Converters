@@ -12,8 +12,7 @@ import {
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
-import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { materializeMasterDatasetRows, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-worker-weight-api-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-weight-ux-1';
 
 function text(value) {
@@ -68,12 +67,19 @@ async function ensureWeightRows(config, masterContext, materializeRows = materia
 
 export async function weightMatchConfigFromState(state, options = {}) {
   const materializeRows = options.materializeRows || materializeMasterDatasetRows;
-  const operationConfig = await materializeXmlCiiDatasetBackedConfig(
-    xmlCiiEnrichedConfigFromState(state),
-    state,
-    { materializeRows },
-  );
-  return ensureWeightRows(operationConfig, state?.masterContext, materializeRows);
+  const context = state?.masterContext || {};
+  const datasetRef = context?.datasetRefs?.weight;
+  const base = compactDatasetBackedConfig(xmlCiiEnrichedConfigFromState(state), context);
+  if (datasetRef?.datasetId) {
+    const out = { ...base };
+    out.weight = out.weight && typeof out.weight === 'object' && !Array.isArray(out.weight) ? { ...out.weight } : {};
+    delete out.weight.masterRows;
+    const revision = Number(context?.appliedMappingRevision?.weight ?? out.weight.masterRevision ?? datasetRef.datasetRevision ?? 0);
+    if (revision > 0) out.weight.masterRevision = revision;
+    if (datasetRef.masterFingerprint) out.weight.masterFingerprint = String(datasetRef.masterFingerprint);
+    return out;
+  }
+  return ensureWeightRows(base, context, materializeRows);
 }
 
 function persistConfig(stateRef, config) {
@@ -149,6 +155,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         throw new Error('Shared Weight Match renderer contract is incomplete.');
       }
       const state = stateRef.current;
+      const weightDatasetRef = state?.masterContext?.datasetRefs?.weight || null;
       let calculationBasis = await weightMatchConfigFromState(state);
       const rendererConfig = withXmlCiiEffectiveRigidWeightLegacyView(calculationBasis);
       let baseline = xmlCiiEffectiveRigidWeightMap(calculationBasis);
@@ -161,6 +168,17 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         stagedJsonText: state.stagedJsonText || '',
         config: rendererConfig,
         enrichXmlForCii2019: shared.enrichXmlForCii2019,
+      weightDatasetRef,
+      rankWeightIssues: weightDatasetRef?.datasetId ? async (issues, request = {}) => {
+        const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, stateRef.current.masterContext || {});
+        return rankMasterDatasetWeightIssues('weight', weightDatasetRef.datasetId, issues, compactConfig, {
+          ratingMode: request.ratingMode || 'preview',
+          previewRatingSnapshot: request.snapshot || {},
+        });
+      } : null,
+      resolveWeightValidationMasterRows: weightDatasetRef?.datasetId
+        ? async () => materializeMasterDatasetRows('weight', weightDatasetRef)
+        : async () => calculationBasis?.weight?.masterRows || [],
         onSaveConfig: (nextConfig) => {
           const saved = persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculationBasis);
           calculationBasis = saved;

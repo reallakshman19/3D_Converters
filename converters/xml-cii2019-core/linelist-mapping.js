@@ -444,7 +444,16 @@ export function readNumericRowValue(row, keys) {
   return match ? Number(match[0]) : null;
 }
 
+export function projectLineListMappedFields(row, fieldMap = {}) {
+  const projected = {};
+  for (const [fieldName, sourceHeader] of Object.entries(fieldMap || {})) {
+    projected[fieldName] = sourceHeader ? readRowValue(row, [sourceHeader]) : '';
+  }
+  return projected;
+}
+
 export function normalizeLineListRow(row, fieldMap, index) {
+  const projected = projectLineListMappedFields(row, fieldMap);
   const lineNoKey = computeLineNoKey(row, fieldMap);
   const materialText = readRowValue(row, [
     fieldMap.material,
@@ -458,6 +467,7 @@ export function normalizeLineListRow(row, fieldMap, index) {
 
   const normalized = {
     ...row,
+    ...projected,
     _sourceRowIndex: row?._rowIndex || (index !== undefined ? index + 1 : 1),
     _raw: row,
     lineNoKey,

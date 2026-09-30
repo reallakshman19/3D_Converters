@@ -1,4 +1,4 @@
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260929-pr780-bounded-ui-1';
+import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-worker-weight-api-1';
 
 export const masterDatasetCoordinator = createMasterDatasetImportCoordinator();
 
@@ -18,6 +18,10 @@ export function remapMasterDataset(masterKey, datasetId, fieldMap = {}) {
   return masterDatasetCoordinator.remapDataset(masterKey, datasetId, fieldMap);
 }
 
+
+export function rankMasterDatasetWeightIssues(masterKey, datasetId, issues = [], config = {}, options = {}) {
+  return masterDatasetCoordinator.rankWeightIssues(masterKey, issues, config, options, datasetId);
+}
 
 export async function materializeMasterDatasetRows(masterKey, datasetRef = {}) {
   const datasetId = String(datasetRef?.datasetId || '');
