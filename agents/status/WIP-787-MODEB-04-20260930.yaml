@@ -24,6 +24,7 @@ plan:
   plan_updates:
     - 5902281285
     - 5903320907
+  task_result_comment: 5903396137
 dependency:
   pr: 790
   head: 7e2739597868bc39bba2594bca3528ee0d03a6e7
