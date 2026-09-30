@@ -9,15 +9,21 @@ import {
   invalidateXmlCiiWeightCache,
   xmlCiiRenderWeightMatchPhase,
   xmlCiiWeightRawPayloadText,
-} from '../../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-basis-worker-1';
+} from '../../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-basis-linear-1';
 import { publishXmlCiiPreviewRatingSnapshot } from '../../converters/xml-cii2019-core/preview-rating-snapshot.js';
-import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-basis-worker-1';
+import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-basis-linear-1';
 
 const MAX_WALL_MS = 5000;
 const MAX_FRAME_GAP_MS = 250;
 const PIPE_COUNT = 1200;
 const STAGED_FILLER_COUNT = 8000;
 const DTXR_RAW = 'GATE   VALVE';
+const AUTHORITY_DATASET_ROWS = 100000;
+const UNRELATED_DATASET_REFS = {
+  lineList: { datasetId: 'must-not-hydrate-line-list', rowCount: AUTHORITY_DATASET_ROWS },
+  pipingClass: { datasetId: 'must-not-hydrate-piping-class', rowCount: AUTHORITY_DATASET_ROWS },
+  materialMap: { datasetId: 'must-not-hydrate-material-map', rowCount: AUTHORITY_DATASET_ROWS },
+};
 
 function pipeNodes() {
   return Array.from({ length: PIPE_COUNT }, (_, index) => {
@@ -107,7 +113,7 @@ async function build() {
       xmlText: request.xmlText || '',
       stagedJsonText: request.stagedJsonText || '',
       config: request.config || {},
-      datasetRefs: {},
+      datasetRefs: UNRELATED_DATASET_REFS,
       ratingMode: request.ratingMode || 'preview',
       previewRatingSnapshot: request.snapshot || {},
     }, { onProgress: request.onProgress }),
@@ -140,6 +146,7 @@ async function build() {
   const status = statusEl.textContent || '';
   const rows = root.querySelectorAll('#mc-wm-content tbody tr').length;
   const inputValue = root.querySelector('.mc-rigid-review-input')?.value || '';
+  const lineKey = root.querySelector('#mc-wm-content tbody tr td:nth-child(3)')?.textContent?.trim() || '';
   const rating = root.querySelector('#mc-wm-content tbody tr td:nth-child(6)')?.textContent?.trim() || '';
   const dtxr = root.querySelector('#mc-wm-content tbody tr td:nth-child(9)')?.textContent || '';
   const ok = rawPayloadPreserved
@@ -150,11 +157,12 @@ async function build() {
     && !/Preparing Weight Match basis/i.test(status)
     && rows === 1
     && Number(inputValue) === 25
+    && lineKey === 'P0310051'
     && rating === '150';
 
   coordinator.dispose();
   return {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V1',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V2',
     ok,
     elapsedMs,
     maxWallMs: MAX_WALL_MS,
@@ -163,10 +171,13 @@ async function build() {
     pipeNodes: PIPE_COUNT,
     stagedRows: STAGED_FILLER_COUNT + 1,
     stagedBytes: stagedJson.length,
+    unrelatedAuthorityDatasetRows: AUTHORITY_DATASET_ROWS * 3,
+    unrelatedAuthorityDatasetsSkipped: true,
     rawPayloadPreserved,
     dtxrResolvedText: dtxr,
     rows,
     inputValue,
+    lineKey,
     rating,
     status,
   };
@@ -180,7 +191,7 @@ try {
   document.querySelector('#out').textContent = JSON.stringify(result, null, 2);
 } catch (error) {
   const result = {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V1',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V2',
     ok: false,
     error: String(error?.stack || error),
   };

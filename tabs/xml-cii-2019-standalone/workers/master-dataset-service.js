@@ -1,10 +1,10 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-worker-1';
-import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-weight-basis-worker-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-linear-1';
+import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-weight-basis-linear-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { recoverMasterDatasetRawRows } from './master-dataset-remap-custody.js?v=20260930-issue781-linelist-integration-2';
-import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20260930-issue781-weight-basis-worker-1';
+import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20260930-issue781-weight-basis-linear-1';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;
@@ -150,41 +150,21 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     return dataset;
   }
 
-  async function hydrateWeightBasisConfig(config = {}, datasetRefs = {}) {
-    const out = { ...(config || {}) };
-    const bindings = [
-      ['lineList', 'linelist', 'masterRows'],
-      ['pipingClass', 'pipingClass', 'masterRows'],
-      ['materialMap', 'material', 'mapRows'],
-    ];
-    for (const [masterKey, sectionName, rowsKey] of bindings) {
-      const datasetId = String(datasetRefs?.[masterKey]?.datasetId || '');
-      if (!datasetId) continue;
-      const dataset = await ensureDataset(datasetId);
-      if (String(dataset?.metadata?.masterKey || '') !== masterKey) {
-        throw new Error(`Weight basis expected ${masterKey} dataset; received ${dataset?.metadata?.masterKey || 'unknown'}.`);
-      }
-      out[sectionName] = { ...(out[sectionName] || {}), [rowsKey]: dataset.rows };
-    }
-    return out;
-  }
-
   function emitWeightBasisProgress(requestId, detail = {}) {
     if (typeof emitEvent !== 'function') return;
     emitEvent(response(MASTER_DATASET_EVENT.WEIGHT_BASIS_PROGRESS, requestId, detail));
   }
 
   async function prepareWeightBasis(message) {
-    emitWeightBasisProgress(message.requestId, { stage: 'hydrating-applied-masters' });
-    const hydratedConfig = await hydrateWeightBasisConfig(
-      message.config || {},
-      message.datasetRefs || {},
-    );
+    emitWeightBasisProgress(message.requestId, { stage: 'using-preview-authority' });
+    const compactConfig = message.config && typeof message.config === 'object'
+      ? message.config
+      : {};
     const result = await prepareXmlCiiWeightBasis({
       xmlText: message.xmlText || '',
       stagedJsonText: message.stagedJsonText || '',
-      config: hydratedConfig,
-      geometryConfig: message.config || {},
+      config: compactConfig,
+      geometryConfig: compactConfig,
       ratingMode: message.ratingMode || 'preview',
       previewRatingSnapshot: message.previewRatingSnapshot || {},
       onProgress: (detail) => emitWeightBasisProgress(message.requestId, detail),

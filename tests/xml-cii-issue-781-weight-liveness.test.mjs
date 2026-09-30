@@ -136,6 +136,9 @@ test('worker Weight basis preserves split geometry and Preview rating authority'
   });
   assert.equal(result.issues.length, 1);
   assert.equal(result.issues[0].rating, '150');
+  assert.equal(result.issues[0].lineKey, 'P0310051');
+  assert.equal(result.issues[0].requestedPipingClass, '61440');
+  assert.equal(result.issues[0].resolvedPipingClass, '61440');
   assert.equal(result.issues[0].boreMm, 100);
   assert.ok(Number(result.issues[0].lengthMm) > 6);
   assert.notEqual(result.issues[0].key, 'B1::-1');
@@ -143,9 +146,27 @@ test('worker Weight basis preserves split geometry and Preview rating authority'
   assert.ok(stages.includes('validating-match1'));
 });
 
+
+test('Weight basis collector does not hydrate unrelated applied master datasets', () => {
+  const service = fs.readFileSync(
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
+    'utf8',
+  );
+  const model = fs.readFileSync(
+    'converters/xml-cii2019-core/weight-match-model.js',
+    'utf8',
+  );
+  assert.doesNotMatch(service, /hydrateWeightBasisConfig/);
+  assert.match(service, /stage: 'using-preview-authority'/);
+  assert.match(model, /lightweightBasis \? null : buildPipingClassIndex/);
+  assert.match(model, /skipKnownNonReviewDtxr: true/);
+  assert.match(model, /isKnownNonWeightReviewType\(componentType\)/);
+});
+
 test('changed runtime files remain byte-identical to docs mirrors', () => {
   for (const path of [
     'converters/xml-cii2019-core/weight-match-model.js',
+    'converters/xml-cii2019-core/piping-class-resolver.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',

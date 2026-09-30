@@ -1,4 +1,4 @@
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-basis-worker-1';
+import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-basis-linear-1';
 
 export const masterDatasetCoordinator = createMasterDatasetImportCoordinator();
 
