@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260930-issue781-weight-basis-fastpath-1');
+  const module = await import('./core/app.js?v=20260930-issue781-weight-input-raw-1');
   await module.init(startupMount());
 }
 

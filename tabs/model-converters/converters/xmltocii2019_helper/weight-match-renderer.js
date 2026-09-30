@@ -21,7 +21,7 @@ import {
   buildXmlCiiRigidWeightMatch1Provenance,
   buildXmlCiiValidatedRigidWeightLegacyView,
 } from '../../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { prepareXmlCiiWeightMatchGeometry } from './enrichment-run-parity.js?v=20260930-issue781-weight-basis-fastpath-1';
+import { prepareXmlCiiWeightMatchGeometry } from './enrichment-run-parity.js?v=20260930-issue781-weight-input-raw-1';
 
 function t(value) { return value === null || value === undefined ? '' : String(value); }
 function clean(value) { return t(value).replace(/\s+/g, ' ').trim(); }
@@ -33,7 +33,16 @@ function convOn(config) { return config?.weight?.convertSmallLengthsInToMm === t
 function allowedType(value) { const type = clean(value).toUpperCase(); return type === 'RIGID' || type.startsWith('FLAN') || type.startsWith('INST') || ['VALV', 'VALVE', 'VLV'].includes(type); }
 function unsafeDtxr(row) { const source = clean(row?.dtxrSource).toLowerCase(); const dtxr = clean(row?.dtxr).toUpperCase(); return /owner|support|ps-tag/.test(source) && /(PIPE REST|SUPPORT|GUIDE|STOP|SHOE|WEAR PLATE|TEE|ELBOW|BEND|REDUCER)/.test(dtxr); }
 function cleanRow(row) { if (!allowedType(row?.componentType)) return null; return unsafeDtxr(row) ? { ...row, dtxr: '', dtxrSource: 'weight-dtxr-suppressed' } : row; }
-async function stagedText(stagedJsonText) { const direct = clean(stagedJsonText); if (direct) return direct; const file = document?.querySelector?.('#model-converters-secondary-input')?.files?.[0]; return file ? await file.text().catch(() => '') : ''; }
+function rawPayloadText(value) {
+  if (typeof value === 'string') return value;
+  return value === null || value === undefined ? '' : String(value);
+}
+async function stagedText(stagedJsonText) {
+  const direct = rawPayloadText(stagedJsonText);
+  if (direct.length) return direct;
+  const file = document?.querySelector?.('#model-converters-secondary-input')?.files?.[0];
+  return file ? await file.text().catch(() => '') : '';
+}
 function currentXmlFile(passedFile) { return passedFile || document?.querySelector?.('#model-converters-primary-input')?.files?.[0] || null; }
 function normalizeComponentRefNo(value) { return clean(value).replace(/^=/, ''); }
 function componentRefEndpoint(componentRefNo, endpoint) { const ref = normalizeComponentRefNo(componentRefNo); const ep = clean(endpoint); return ref && ep ? `${ref}_${ep}` : ref; }
@@ -405,7 +414,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     const hasMatch1Provenance = Object.keys(liveConfig?.overrides?.rigidWeightMatch1Provenance || {}).length > 0;
     if (!opts.force && !hasMatch1Provenance) {
       const stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
-      const jsonLenForFp = clean(stagedSourceForFp?.text ?? stagedSourceForFp).length;
+      const jsonLenForFp = rawPayloadText(stagedSourceForFp?.text ?? stagedSourceForFp).length;
       const fingerprint = wmCacheFingerprint(file, jsonLenForFp, workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (liveConfig?.weight?.masterRows?.length || 0), liveConfig?.overrides, ratingMode, snapshot.revision);
       const cached = readCache(WM_CACHE_KEY);
       if (cached?.fp === fingerprint && Array.isArray(cached?.data) && cached.data.length) {
@@ -421,13 +430,14 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     }
     status(`Computing with ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'}…`);
     try {
-      status('Reading Weight Match inputs…');
+      status('Reading XML source…');
       const xmlText = await withWeightStageTimeout(file.text(), 'XML source read', 15000);
+      status('Resolving staged JSON…');
       const stagedPromise = typeof resolveStagedJsonText === 'function'
         ? resolveStagedJsonText(liveConfig)
         : stagedText(stagedJsonText).then((text) => ({ text, label: '' }));
       const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
-      const jsonText = clean(stagedSource?.text ?? stagedSource);
+      const jsonText = rawPayloadText(stagedSource?.text ?? stagedSource);
       status('Preparing Weight Match basis…');
       await yieldWeightStatus();
       const prepared = prepareXmlCiiWeightMatchGeometry(
@@ -530,7 +540,7 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
       ? resolveStagedJsonText(liveConfig).catch(() => ({ text: '' }))
       : stagedText(stagedJsonText || '').then((text) => ({ text })).catch(() => ({ text: '' }));
     const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
-    const jsonText = clean(stagedSource?.text ?? stagedSource ?? '');
+    const jsonText = rawPayloadText(stagedSource?.text ?? stagedSource ?? '');
     const prepared = prepareXmlCiiWeightMatchGeometry(
       xmlText,
       jsonText,
