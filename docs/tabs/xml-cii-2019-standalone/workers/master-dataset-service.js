@@ -4,6 +4,7 @@ import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookS
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { recoverMasterDatasetRawRows } from './master-dataset-remap-custody.js?v=20260930-issue781-linelist-integration-2';
+import { prepareXmlCiiWeightBasis } from './weight-basis-service.js';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;
@@ -18,7 +19,7 @@ function publicMetadata(metadata) {
   return safe;
 }
 
-export function createMasterDatasetService({ getXlsx, store, prepareDataset, buildSearchCorpus, searchCorpusIndexes }) {
+export function createMasterDatasetService({ getXlsx, store, prepareDataset, buildSearchCorpus, searchCorpusIndexes, emitEvent = null }) {
   if (typeof getXlsx !== 'function') throw new Error('getXlsx dependency is required.');
   if (!store?.persistDataset || !store?.getRows) throw new Error('dataset store dependency is required.');
   if (typeof prepareDataset !== 'function' || typeof buildSearchCorpus !== 'function' || typeof searchCorpusIndexes !== 'function') {
@@ -149,6 +150,48 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     return dataset;
   }
 
+  async function hydrateWeightBasisConfig(config = {}, datasetRefs = {}) {
+    const out = { ...(config || {}) };
+    const bindings = [
+      ['lineList', 'linelist', 'masterRows'],
+      ['pipingClass', 'pipingClass', 'masterRows'],
+      ['materialMap', 'material', 'mapRows'],
+    ];
+    for (const [masterKey, sectionName, rowsKey] of bindings) {
+      const datasetId = String(datasetRefs?.[masterKey]?.datasetId || '');
+      if (!datasetId) continue;
+      const dataset = await ensureDataset(datasetId);
+      if (String(dataset?.metadata?.masterKey || '') !== masterKey) {
+        throw new Error(`Weight basis expected ${masterKey} dataset; received ${dataset?.metadata?.masterKey || 'unknown'}.`);
+      }
+      out[sectionName] = { ...(out[sectionName] || {}), [rowsKey]: dataset.rows };
+    }
+    return out;
+  }
+
+  function emitWeightBasisProgress(requestId, detail = {}) {
+    if (typeof emitEvent !== 'function') return;
+    emitEvent(response(MASTER_DATASET_EVENT.WEIGHT_BASIS_PROGRESS, requestId, detail));
+  }
+
+  async function prepareWeightBasis(message) {
+    emitWeightBasisProgress(message.requestId, { stage: 'hydrating-applied-masters' });
+    const hydratedConfig = await hydrateWeightBasisConfig(
+      message.config || {},
+      message.datasetRefs || {},
+    );
+    const result = await prepareXmlCiiWeightBasis({
+      xmlText: message.xmlText || '',
+      stagedJsonText: message.stagedJsonText || '',
+      config: hydratedConfig,
+      geometryConfig: message.config || {},
+      ratingMode: message.ratingMode || 'preview',
+      previewRatingSnapshot: message.previewRatingSnapshot || {},
+      onProgress: (detail) => emitWeightBasisProgress(message.requestId, detail),
+    });
+    return response(MASTER_DATASET_EVENT.WEIGHT_BASIS_RESULT, message.requestId, result);
+  }
+
   async function search(message) {
     const dataset = await ensureDataset(message.datasetId);
     const indexes = searchCorpusIndexes(dataset.searchCorpus, message.query);
@@ -241,6 +284,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.REMAP_DATASET: return remapDataset(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
       case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);
+      case MASTER_DATASET_COMMAND.PREPARE_WEIGHT_BASIS: return prepareWeightBasis(message);
       case MASTER_DATASET_COMMAND.GET_ROWS: return rowsResult(message, false);
       case MASTER_DATASET_COMMAND.GET_ROWS_BY_INDEXES: return indexedRowsResult(message);
       case MASTER_DATASET_COMMAND.GET_RAW_ROWS: return rowsResult(message, true);

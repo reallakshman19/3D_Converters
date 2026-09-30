@@ -28,18 +28,21 @@ export async function getWorkerXlsxModule() {
   return xlsxPromise;
 }
 
-export function createDefaultMasterDatasetService() {
+export function createDefaultMasterDatasetService(options = {}) {
   return createMasterDatasetService({
     getXlsx: getWorkerXlsxModule,
     store: createIndexedDbDatasetStore(),
     prepareDataset: prepareNormalizedDataset,
     buildSearchCorpus,
     searchCorpusIndexes,
+    emitEvent: options.emitEvent,
   });
 }
 
 export function installMasterDatasetWorker(scope = globalThis) {
-  const service = createDefaultMasterDatasetService();
+  const service = createDefaultMasterDatasetService({
+    emitEvent: (message) => scope.postMessage(message),
+  });
   scope.addEventListener('message', async (event) => {
     const requestId = event?.data?.requestId || '';
     try {
