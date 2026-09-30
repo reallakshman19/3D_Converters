@@ -3,6 +3,7 @@ import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeSta
 import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics } from './xml-cii-adapted-regex-results.js';
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js';
 import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
+import { clearUnlockedRegexRoleClaims } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-live-acceptance-1';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -160,6 +161,13 @@ function actionButton(action, label) {
   button.type = 'button';
   button.dataset.action = action;
   return button;
+}
+
+function assignManualTokenRole(state, field, role, value) {
+  const next = updateRegexTesterConfig(state, field, value);
+  const claimed = String(value || '').split(/[,+]/).map(Number).filter((position) => Number.isInteger(position) && position > 0);
+  next.regexTesterConfig = clearUnlockedRegexRoleClaims(next.regexTesterConfig, role, claimed, next.regexSmartManualLocks || {});
+  return next;
 }
 
 function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
@@ -329,7 +337,7 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
   const updatePos = (key, val) => {
     const field = `regex-${key === 'lineKey' ? 'line-key' : key === 'pipingClass' ? 'piping-class' : key}-token`;
     if (stateRef && stateRef.current) {
-      stateRef.current = updateRegexTesterConfig(stateRef.current, field, val);
+      stateRef.current = assignManualTokenRole(stateRef.current, field, key, val);
       const nextResult = runStandaloneRegexTester({
         ...stateRef.current,
         sourceText: stateRef.current.sourceText,
@@ -340,7 +348,7 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
       stateRef.current = applyStandaloneRegexTesterResult(stateRef.current, nextResult);
       stateRef.current.regexSmartManualLocks = { ...(stateRef.current.regexSmartManualLocks || {}), [key]: true };
     } else {
-      const statePatch = updateRegexTesterConfig(state, field, val);
+      const statePatch = assignManualTokenRole(state, field, key, val);
       Object.assign(state, statePatch);
       const nextResult = runStandaloneRegexTester({
         ...state,

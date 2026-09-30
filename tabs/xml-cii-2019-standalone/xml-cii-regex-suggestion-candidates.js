@@ -144,7 +144,8 @@ function markConflicts(suggestions) {
   for (let i = 0; i < suggestions.length; i += 1) {
     for (let j = i + 1; j < suggestions.length; j += 1) {
       const a = suggestions[i]; const b = suggestions[j];
-      if (a.role === 'lineKey' || b.role === 'lineKey') continue;
+      // A master-backed composite Line Key can include a size token. Keep both
+      // claims for review rather than assigning that token to two roles.
       if (a.tokenPositions.some((pos) => b.tokenPositions.includes(pos))) a.conflict = b.conflict = true;
     }
   }

@@ -292,9 +292,9 @@ function applicableSuggestions(receipt, options, locks) {
   });
 }
 
-function clearClaimedPositions(format, item, locks, replacingRoles) {
+function clearClaimedPositions(format, item, locks, replacingRoles, roles = ROLE_ORDER) {
   const claimed = new Set(item.tokenPositions || []);
-  for (const role of ROLE_ORDER) {
+  for (const role of roles) {
     if (role === item.role || locks[role] || replacingRoles.has(role)) continue;
     const field = format[role] || {};
     const current = positions(field.tokenPosition);
@@ -304,14 +304,35 @@ function clearClaimedPositions(format, item, locks, replacingRoles) {
   }
 }
 
+function matchingLockedEvidenceClaims(format, receipt, locks) {
+  return (receipt?.suggestions || []).filter((item) => {
+    if (!ROLE_ORDER.includes(item.role) || !locks[item.role] || !item.safe || item.conflict) return false;
+    const selected = positions(format[item.role]?.tokenPosition);
+    return selected.length === item.tokenPositions.length
+      && selected.every((position, index) => position === item.tokenPositions[index]);
+  });
+}
+
+export function clearUnlockedRegexRoleClaims(extractionConfig = {}, role, claimedPositions = [], manualLocks = {}) {
+  const next = structuredCloneSafe(extractionConfig);
+  const index = Number(next.activeFormatIndex || 0);
+  const format = next.formats?.[index] || next;
+  clearClaimedPositions(format, { role, tokenPositions: claimedPositions }, manualLocks, new Set(), [...ROLE_ORDER, 'rating']);
+  return next;
+}
+
 export function applyRegexSuggestions(extractionConfig = {}, receipt, options = {}) {
   const next = structuredCloneSafe(extractionConfig);
+  if (receipt?.status === 'BLOCKED') return next;
   const index = Number(next.activeFormatIndex || receipt?.formatIndex || 0);
   next.formats = Array.isArray(next.formats) ? next.formats : [{}, {}];
   next.formats[index] = { ...(next.formats[index] || {}) };
   const locks = options.manualLocks || {};
   const items = applicableSuggestions(receipt, options, locks);
   const replacingRoles = new Set(items.map((item) => item.role));
+  for (const item of matchingLockedEvidenceClaims(next.formats[index], receipt, locks)) {
+    clearClaimedPositions(next.formats[index], item, locks, replacingRoles);
+  }
   for (const item of items) {
     clearClaimedPositions(next.formats[index], item, locks, replacingRoles);
     next.formats[index][item.role] = {

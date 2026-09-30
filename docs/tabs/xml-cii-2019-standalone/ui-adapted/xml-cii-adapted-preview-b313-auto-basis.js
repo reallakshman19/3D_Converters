@@ -443,8 +443,41 @@ function applyT1Guard(host, models) {
   }
 }
 
-export function installPreviewB313AutoBasisPanel({ host, config, rows = [], options = {} } = {}) {
+function watchLivePreviewRows({ host, config, rows, options }) {
+  host.__xmlCiiB313AutoBasisObserver?.disconnect?.();
+  let scheduled = false;
+  let renderedResult = null;
+  const refresh = () => {
+    if (scheduled) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      const liveResult = host.__xmlCiiPreviewResult;
+      const currentRows = Array.isArray(liveResult?.branchRows) ? liveResult.branchRows : rows;
+      const panel = host.querySelector?.('[data-mc-b313-auto-basis-panel]');
+      if (!currentRows.length) {
+        panel?.remove?.();
+        renderedResult = liveResult;
+        return;
+      }
+      if (!host.querySelector?.('[data-mc-b313-wall-update]')) return;
+      const legacyEditor = host.querySelector?.('[data-mc-b313-basis-editor]');
+      if (renderedResult === liveResult && panel && (!legacyEditor || legacyEditor.hidden)) return;
+      installPreviewB313AutoBasisPanel({ host, config, rows: currentRows, options, watchLive: false });
+      renderedResult = liveResult;
+    });
+  };
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(refresh);
+    observer.observe(host, { childList: true, subtree: true });
+    host.__xmlCiiB313AutoBasisObserver = observer;
+  }
+  refresh();
+}
+
+export function installPreviewB313AutoBasisPanel({ host, config, rows = [], options = {}, watchLive = true } = {}) {
   if (!host) return [];
+  if (watchLive) watchLivePreviewRows({ host, config, rows, options });
   const models = buildPreviewB313AutoBasisRows(rows, config);
   const legacyEditor = host.querySelector?.('[data-mc-b313-basis-editor]');
   if (legacyEditor) {

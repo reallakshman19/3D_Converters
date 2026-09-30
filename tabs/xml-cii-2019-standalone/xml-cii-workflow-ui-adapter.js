@@ -1,7 +1,7 @@
 import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
-} from './xml-cii-branch-scope.js?v=20260804-branch-scope-v1';
+} from './xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 
 export function readTextFile(file) {

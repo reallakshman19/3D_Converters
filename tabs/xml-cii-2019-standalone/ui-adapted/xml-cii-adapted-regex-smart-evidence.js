@@ -3,7 +3,7 @@ import {
   buildRegexSuggestionPreflight,
   classifyRegexExtractionRows,
   createDefaultRegexSuggestionProfile,
-} from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-screenshot-repair-1';
+} from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-live-acceptance-1';
 
 const REGEX_MASTER_DEFS = Object.freeze({
   lineList: Object.freeze({ rowsKey: 'lineRows' }),

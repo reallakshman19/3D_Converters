@@ -1,7 +1,7 @@
 import {
   ensureXmlCiiBranchSelectionState as ensureBaseBranchSelectionState,
-} from './xml-cii-adapted-branch-scope.js?v=20260804-branch-scope-v1';
-import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260804-branch-scope-v1';
+} from './xml-cii-adapted-branch-scope.js?v=20260930-issue781-branch-scope-1';
+import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 
 const PROCESSING_PHASES = new Set([
   'regex', 'json-trace', 'preview', 'diagnostics', 'matched-audit',

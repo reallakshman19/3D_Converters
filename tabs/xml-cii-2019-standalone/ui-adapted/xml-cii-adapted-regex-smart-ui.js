@@ -2,7 +2,7 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-screenshot-repair-1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-live-acceptance-1';
 import {
   buildRegexSmartEvidenceReceipt,
   classifyRegexSmartTesterResult,
@@ -10,7 +10,7 @@ import {
   regexSmartReceiptIsCurrent,
   regexSmartReceiptRequestBasis,
   resolveRegexSmartEvidence,
-} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-screenshot-repair-1';
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-live-acceptance-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
@@ -210,6 +210,14 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
   try {
     const bundle = await resolveActionEvidence(stateRef);
     let live = current(stateRef, {});
+    if (bundle.receipt.status === 'BLOCKED') {
+      live.regexSmartPreview = null;
+      live.regexSmartAutoAnalysisPendingBasis = '';
+      live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
+      live.regexSmartStatus = `Automatic evidence analysis blocked: ${(bundle.receipt.blockers || []).map((item) => item.message).join(' ') || 'Preflight blocked.'} Existing mappings were preserved.`;
+      render?.();
+      return true;
+    }
     const beforeConfig = live.regexTesterConfig || {};
     const locks = locksOf(live);
     let proposed = applyRegexSuggestions(beforeConfig, bundle.receipt, {
@@ -297,6 +305,10 @@ async function applySafe(builder, stateRef, render) {
       render?.();
       return;
     }
+    if (fresh.status === 'BLOCKED') {
+      showMessage(builder, 'Preflight blocked. Existing token mappings were preserved.', true);
+      return;
+    }
     const locks = locksOf(state);
     let proposed = applyRegexSuggestions(state.regexTesterConfig, fresh, { safeOnly: true, manualLocks: locks });
     const ratingCleanup = clearUnlockedRatingMapping(proposed, locks);
@@ -375,6 +387,47 @@ function decorateTokens(builder, receipt, stateRef, render) {
       card.querySelector('strong')?.insertAdjacentElement('afterend', badge);
     });
   });
+}
+
+async function applyOne(item, stateRef, render, builder) {
+  const before = current(stateRef, {});
+  const stored = before.regexSmartPreflight;
+  const storedBasis = before.regexSmartPreflightRequestBasis;
+  try {
+    const bundle = await resolveActionEvidence(stateRef);
+    const state = current(stateRef, {});
+    if (!stored || storedBasis !== bundle.receiptRequestBasis || stored.fingerprint !== bundle.receipt.fingerprint) {
+      showMessage(builder, 'Suggestion evidence changed. Analyze again before applying this token.', true);
+      render?.();
+      return;
+    }
+    if (bundle.receipt.status === 'BLOCKED') {
+      showMessage(builder, 'Preflight blocked. Existing token mappings were preserved.', true);
+      return;
+    }
+    const fresh = bundle.receipt.suggestions.find((candidate) => candidate.role === item.role
+      && candidate.tokenPositions.join(',') === item.tokenPositions.join(','));
+    if (!fresh || fresh.conflict || !SMART_AUTO_ROLES.includes(fresh.role)) {
+      showMessage(builder, 'This suggestion is no longer valid under current master evidence.', true);
+      render?.();
+      return;
+    }
+    if (locksOf(state)[fresh.role]) {
+      showMessage(builder, `Unlock ${ROLE_META[fresh.role].label} before applying its suggested position.`, true);
+      return;
+    }
+    const receipt = { formatIndex: state.regexTesterConfig?.activeFormatIndex || 0, suggestions: [fresh] };
+    const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
+    const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
+    state.regexTesterConfig = proposed;
+    applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
+    stateRef.current.regexSmartManualLocks = { ...locksOf(stateRef.current), [fresh.role]: true };
+    refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
+    stateRef.current.regexSmartStatus = `Selected ${ROLE_META[fresh.role].label} token #${fresh.tokenPositions.join(',')} from current evidence.`;
+    render?.();
+  } catch (error) {
+    showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
+  }
 }
 
 function decorateLocks(card, stateRef, render) {

@@ -6,14 +6,14 @@ import {
   modeASourceWorkflowSnapshot,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+} from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js?v=20260813-mode-a-full-propagation-2';
 import {
   applyStandaloneRegexTesterResult,
 } from './xml-cii-adapted-state.js?v=20260813-mode-a-full-propagation-2';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260930-issue781-branch-scope-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

@@ -8,7 +8,7 @@ import {
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
-import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20260930-issue781-fallback-seed-1';
+import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20260930-issue781-live-acceptance-1';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
@@ -36,9 +36,38 @@ function esc(value) {
     .replaceAll("'", '&#39;');
 }
 
+function modeASourceInputs(stateRef, sourceId) {
+  if (!sourceId || !stateRef?.modeABaseRef) return null;
+  // Read the underlying batch state: sourceRef.current rebuilds the selected
+  // XML scope, including a full XML parse, on every access.
+  const base = stateRef.modeABaseRef.current;
+  const source = base?.sourceBatch?.sources?.find((row) => row.sourceId === sourceId);
+  if (!source) return null;
+  const active = base.sourceBatch.activeSourceId === sourceId;
+  return {
+    sourceText: active ? base.sourceText : source.sourceText,
+    sourceFile: active ? base.sourceFile : source.sourceFile,
+    stagedJsonText: active ? base.stagedJsonText : source.stagedJsonText,
+    stagedJsonFile: active ? base.stagedJsonFile : source.stagedJsonFile,
+    branchSelection: JSON.stringify((active ? base.branchSelection : source.branchSelection) || {}),
+    masterContext: base.masterContext,
+    datasetRefs: base.masterContext?.datasetRefs,
+    dependencyRevisions: JSON.stringify(base.dependencyRevisions || {}),
+  };
+}
+
+function previewInputsCurrent(card, stateRef, sourceId, captured) {
+  if (!captured) return true;
+  if (card?.isConnected === false) return false;
+  const current = modeASourceInputs(stateRef, sourceId);
+  return !!current && Object.keys(captured).every((key) => captured[key] === current[key]);
+}
+
 export async function renderStandalonePreviewReportPanel(card, stateRef, render) {
   const state = stateRef && stateRef.current !== undefined ? stateRef.current : stateRef;
+  let sourceInputs = modeASourceInputs(stateRef, state.modeASourceId);
   const config = await previewConfigFromState(state);
+  if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
   const traceResult = state.resolverJsonTraceResult;
   const traceDataPresent = (Array.isArray(traceResult?.resolvedFacts) && traceResult.resolvedFacts.length > 0)
     || (Array.isArray(traceResult?.matchedFacts) && traceResult.matchedFacts.length > 0);
@@ -64,9 +93,14 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       });
       stateRef.current = { ...routed, masterContext: { ...currentContext, config: compactConfig } };
       saveMasterContextToLocalStorage(stateRef.current.masterContext);
+      sourceInputs = modeASourceInputs(stateRef, state.modeASourceId);
     }
   };
 
+  const stagedSource = {
+    text: state.stagedJsonText || '',
+    label: state.stagedJsonFile?.name || '',
+  };
   const options = {
     onSaveConfig: (newCfg) => persistConfig(newCfg, { clearPreview: true }),
     onSaveConfigPreservePreview: (newCfg) => persistConfig(newCfg, { clearPreview: false }),
@@ -80,19 +114,19 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       if (!cfg.overrides) cfg.overrides = {};
       return cfg.overrides;
     },
-    stagedJsonText: state.stagedJsonText || '',
-    stagedSourceLabel: state.stagedJsonFile?.name || '',
+    stagedJsonText: stagedSource.text,
+    stagedSourceLabel: stagedSource.label,
     resolveStagedJsonText: async () => {
-      const current = stateRef && stateRef.current !== undefined ? stateRef.current : state;
-      return {
-        text: current.stagedJsonText || '',
-        label: current.stagedJsonFile?.name || '',
-      };
+      if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
+        throw new Error('Preview source or branch selection changed during build; rebuild Preview.');
+      }
+      return stagedSource;
     },
   };
 
   try {
     const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
     installPreviewB313WallUpdateAuditController({
       host,
       config,
