@@ -3,7 +3,10 @@ import {
   normalizeXmlCiiMaterialIdentity,
   resolveXmlCiiMaterialCodeFromMap,
 } from '../../../converters/xml-cii2019-core/material-code-fuzzy-resolver.js';
-import { resolveConfiguredMaterialCode } from '../../../converters/xml-cii2019-core/piping-class-material-code-resolver.js';
+import {
+  resolveConfiguredMaterialCode,
+  resolveConfiguredMaterialCodeByMaterial,
+} from '../../../converters/xml-cii2019-core/piping-class-material-code-resolver.js?v=20260930-issue781-material-category-1';
 import { computeLineNoKey, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
 
 function text(value) {
@@ -57,6 +60,7 @@ function displayMethod(method) {
     method === 'exact'
     || method === 'designation-exact'
     || method === 'known-alias'
+    || method === 'material-category-exact'
     || method === 'rating-prefix-family-exact'
     || method === 'rating-prefix-family-normalized'
   ) return 'exact';
@@ -186,6 +190,14 @@ function resolveMaterialMap(processMaterial, materialRows, fuzzyConfig, cache) {
   return cache.get(processMaterial);
 }
 
+function configuredMaterialReasons(configured) {
+  return [
+    `configured-material-category-${text(configured?.materialCategory)}`,
+    `configured-unique-code-${text(configured?.materialCode)}`,
+    `configured-matched-rows-${Number(configured?.matchedRowCount || 0)}`,
+  ];
+}
+
 export function resolvePreviewMaterialCodeAuthority(row, config = {}, context = {}) {
   const processMaterial = manualMaterial(row) || processLineListMaterial(row, config, context) || nonClassMaterial(row);
   const materialRows = Array.isArray(config?.material?.mapRows) && config.material.mapRows.length
@@ -195,31 +207,59 @@ export function resolvePreviewMaterialCodeAuthority(row, config = {}, context = 
   const override = overrideRecord(config, { ...row, material: processMaterial || row?.material });
 
   if (processMaterial) {
-    const resolved = resolveMaterialMap(processMaterial, materialRows, fuzzyConfig, context.materialResolutionCache);
-    const strongThreshold = Number.isFinite(Number(fuzzyConfig.overrideConflictThreshold))
-      ? Number(fuzzyConfig.overrideConflictThreshold)
-      : 0.92;
-    const strong = !!resolved.materialCode && resolved.confidence >= strongThreshold && !resolved.ambiguous;
+    const configured = resolveConfiguredMaterialCodeByMaterial({ material: processMaterial, config });
+    const resolved = configured ? null : resolveMaterialMap(processMaterial, materialRows, fuzzyConfig, context.materialResolutionCache);
+    const configuredConfidence = configured ? Number(configured.confidence) / 100 : 0;
+    const governedCode = text(configured?.materialCode || resolved?.materialCode);
+    const governedConfidence = configured ? configuredConfidence : Number(resolved?.confidence || 0);
+    const governedMethod = configured?.method || resolved?.method || 'none';
+    const governedMatchedMaterial = text(configured?.materialName || resolved?.matchedMaterial);
     const pinnedOverride = materialScopedOverride(override, processMaterial);
 
     if (override && pinnedOverride) {
-      const conflict = !!resolved.materialCode && resolved.materialCode !== override.value;
+      const conflict = !!governedCode && governedCode !== override.value;
       return {
         material: processMaterial,
         materialSource: manualMaterial(row) ? 'override' : 'process-linelist-material',
         materialCode: override.value,
         materialCodeSource: conflict ? 'material-scoped-override-conflict' : 'material-scoped-override',
         materialCodeMethod: 'override',
-        materialCodeResolutionMethod: resolved.method,
-        materialCodeConfidence: conflict ? resolved.confidence : 1,
+        materialCodeResolutionMethod: governedMethod,
+        materialCodeConfidence: conflict ? governedConfidence : 1,
         materialCodeNeedsReview: conflict,
-        materialCodeConflict: conflict ? { overrideCode: override.value, resolvedCode: resolved.materialCode, overrideKey: override.key } : null,
-        materialCodeMatchedMaterial: resolved.matchedMaterial || '',
-        materialCodeMatchReasons: resolved.reasons || [],
-        materialCodeCandidates: resolved.candidates || [],
+        materialCodeConflict: conflict ? { overrideCode: override.value, resolvedCode: governedCode, overrideKey: override.key } : null,
+        materialCodeMatchedMaterial: governedMatchedMaterial,
+        materialCodeMatchReasons: configured ? configuredMaterialReasons(configured) : (resolved?.reasons || []),
+        materialCodeCandidates: configured ? [] : (resolved?.candidates || []),
       };
     }
 
+    if (configured) {
+      const conflictingOverride = override && override.value !== configured.materialCode;
+      return {
+        material: processMaterial,
+        materialSource: manualMaterial(row) ? 'override' : 'process-linelist-material',
+        materialCode: configured.materialCode,
+        materialCodeSource: conflictingOverride ? 'material-evidence-corrected' : 'process-material-config-map',
+        materialCodeMethod: 'exact',
+        materialCodeResolutionMethod: configured.method,
+        materialCodeConfidence: configuredConfidence,
+        materialCodeNeedsReview: false,
+        materialCodeConflict: conflictingOverride ? {
+          overrideCode: override.value,
+          resolvedCode: configured.materialCode,
+          overrideKey: override.key,
+        } : null,
+        materialCodeMatchedMaterial: configured.materialName,
+        materialCodeMatchReasons: configuredMaterialReasons(configured),
+        materialCodeCandidates: [],
+      };
+    }
+
+    const strongThreshold = Number.isFinite(Number(fuzzyConfig.overrideConflictThreshold))
+      ? Number(fuzzyConfig.overrideConflictThreshold)
+      : 0.92;
+    const strong = !!resolved?.materialCode && resolved.confidence >= strongThreshold && !resolved.ambiguous;
     if (strong) {
       const conflictingOverride = override && override.value !== resolved.materialCode;
       return {
