@@ -1,0 +1,73 @@
+name: Issue 781 Worker Weight Apply V2
+
+on:
+  push:
+    branches:
+      - agent/issue-781-worker-weight-api-mapping-projection-20260930
+    paths:
+      - .github/workflows/issue-781-worker-weight-apply-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/issue-781-worker-weight-api-mapping-projection-20260930
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Replay guarded architectural repair against actual dispatch shape
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re, textwrap
+
+          source = Path('.github/workflows/issue-781-worker-weight-apply.yml').read_text()
+          match = re.search(r"python3 <<'PY'\n(?P<body>.*?)\n          PY", source, re.S)
+          if not match:
+              raise SystemExit('Could not recover guarded apply script.')
+          script = textwrap.dedent(match.group('body'))
+          lines = script.splitlines()
+          replaced = 0
+          for index, line in enumerate(lines):
+              if 'replace_once(svc' in line and 'MASTER_DATASET_COMMAND.SEARCH' in line:
+                  lines[index] = "replace_once(svc, \"      case MASTER_DATASET_COMMAND.SEARCH: return search(message);\", \"      case MASTER_DATASET_COMMAND.SEARCH: return search(message);\\n      case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);\")"
+                  replaced += 1
+          if replaced != 1:
+              raise SystemExit(f'Expected one worker dispatch patch anchor, found {replaced}.')
+          script = '\n'.join(lines) + '\n'
+          exec(compile(script, '<issue-781-worker-weight-apply-v2>', 'exec'), {'__name__': '__main__'})
+          PY
+      - name: Syntax-check touched runtime files
+        run: |
+          node --check converters/xml-cii2019-core/linelist-mapping.js
+          node --check converters/xml-cii2019-core/weight-match-ranking-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-client.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+          node --check tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+      - name: Run focused architectural regressions
+        run: |
+          node --test tests/xml-cii-issue-781-worker-weight-api.test.mjs
+          node --test tests/xml-cii-master-worker-metadata-import.test.mjs
+          node --test tests/xml-cii-master-preview-worker-search.test.mjs
+          node --test tests/xml-cii-weight-build-runaway-regression.test.mjs
+      - name: Commit qualified implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add converters docs tabs tests
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(issue-781): move Weight ranking to dataset worker'
+          git push origin HEAD:agent/issue-781-worker-weight-api-mapping-projection-20260930
