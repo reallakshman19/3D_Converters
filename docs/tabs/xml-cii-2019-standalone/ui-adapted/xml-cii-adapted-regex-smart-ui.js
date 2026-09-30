@@ -10,7 +10,7 @@ import {
   regexSmartReceiptIsCurrent,
   regexSmartReceiptRequestBasis,
   resolveRegexSmartEvidence,
-} from './xml-cii-adapted-regex-smart-evidence.js?v=20260929-issue781-master-evidence-1';
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-auto-authority-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
@@ -150,11 +150,34 @@ function changedSmartRoles(before, after) {
   ));
 }
 
+function cloneConfig(config) {
+  if (typeof structuredClone === 'function') return structuredClone(config || {});
+  return JSON.parse(JSON.stringify(config || {}));
+}
+
+function clearUnlockedRatingMapping(config, manualLocks = {}) {
+  if (manualLocks.rating === true) return { config, cleared: false };
+  const index = Number(config?.activeFormatIndex || 0);
+  const format = config?.formats?.[index] || config || {};
+  const rating = format?.rating;
+  if (!rating || (!String(rating.tokenPosition || '').trim() && !String(rating.regex || '').trim())) return { config, cleared: false };
+  const next = cloneConfig(config);
+  if (Array.isArray(next.formats)) {
+    next.formats[index] = { ...(next.formats[index] || {}), rating: { ...(next.formats[index]?.rating || {}), tokenPosition: '', regex: '' } };
+  } else {
+    next.rating = { ...(next.rating || {}), tokenPosition: '', regex: '' };
+  }
+  return { config: next, cleared: true };
+}
+
 function autoApplyHighestSafe(stateRef, render, receipt) {
   const state = current(stateRef, {});
   if (regexSmartHasDatasetEvidence(state)) return false;
   if (!stateRef?.current || profileOf(state).operatingMode !== 'AUTO_PREVIEW_SAFE' || receipt.status === 'BLOCKED') return false;
-  const proposed = applyHighestSafeSuggestions(state.regexTesterConfig, receipt, { manualLocks: locksOf(state) });
+  const locks = locksOf(state);
+  let proposed = applyHighestSafeSuggestions(state.regexTesterConfig, receipt, { manualLocks: locks });
+  const ratingCleanup = clearUnlockedRatingMapping(proposed, locks);
+  proposed = ratingCleanup.config;
   if (JSON.stringify(proposed) === JSON.stringify(state.regexTesterConfig)) return false;
   const index = Number(proposed.activeFormatIndex || receipt.formatIndex || 0);
   const before = state.regexTesterConfig?.formats?.[index] || state.regexTesterConfig || {};
@@ -164,9 +187,10 @@ function autoApplyHighestSafe(stateRef, render, receipt) {
   state.regexTesterConfig = proposed;
   applyClassifiedTesterResult(stateRef, result, state.masterContext || {});
   refreshReceiptWithContext(stateRef, state.masterContext || {}, 'resident-or-heuristic');
+  const ratingNote = ratingCleanup.cleared ? ' Stale unlocked Rating mapping cleared; Rating remains manual.' : '';
   stateRef.current.regexSmartStatus = changed.length
-    ? `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.`
-    : 'Automatic token analysis completed; no unlocked safe mapping changed.';
+    ? `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.${ratingNote}`
+    : `Automatic token analysis completed; no unlocked safe mapping changed.${ratingNote}`;
   queueMicrotask(() => render?.());
   return true;
 }
@@ -187,10 +211,13 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
     const bundle = await resolveActionEvidence(stateRef);
     let live = current(stateRef, {});
     const beforeConfig = live.regexTesterConfig || {};
-    const proposed = applyRegexSuggestions(beforeConfig, bundle.receipt, {
+    const locks = locksOf(live);
+    let proposed = applyRegexSuggestions(beforeConfig, bundle.receipt, {
       safeOnly: true,
-      manualLocks: locksOf(live),
+      manualLocks: locks,
     });
+    const ratingCleanup = clearUnlockedRatingMapping(proposed, locks);
+    proposed = ratingCleanup.config;
     const index = Number(proposed.activeFormatIndex || bundle.receipt.formatIndex || 0);
     const before = beforeConfig?.formats?.[index] || beforeConfig || {};
     const after = proposed?.formats?.[index] || proposed || {};
@@ -207,9 +234,10 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
     live.regexSmartPreview = null;
     live.regexSmartAutoAnalysisPendingBasis = '';
     live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
+    const ratingNote = ratingCleanup.cleared ? ' Stale unlocked Rating mapping was cleared.' : ' Rating remains manual.';
     live.regexSmartStatus = changed.length
-      ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}. Rating remains manual.`
-      : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; no unlocked safe mapping changed. Rating remains manual.`;
+      ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}.${ratingNote}`
+      : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; no unlocked safe mapping changed.${ratingNote}`;
   } catch (error) {
     const live = current(stateRef, {});
     live.regexSmartAutoAnalysisPendingBasis = '';
@@ -269,12 +297,15 @@ async function applySafe(builder, stateRef, render) {
       render?.();
       return;
     }
-    const proposed = applyRegexSuggestions(state.regexTesterConfig, fresh, { safeOnly: true, manualLocks: locksOf(state) });
+    const locks = locksOf(state);
+    let proposed = applyRegexSuggestions(state.regexTesterConfig, fresh, { safeOnly: true, manualLocks: locks });
+    const ratingCleanup = clearUnlockedRatingMapping(proposed, locks);
+    proposed = ratingCleanup.config;
     const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
     state.regexTesterConfig = proposed;
     applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
     refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
-    stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s) using ${fresh.masterEvidence?.mode || 'heuristic'} evidence. Rating remains manual.`;
+    stateRef.current.regexSmartStatus = `Applied ${fresh.metrics.safeCount} safe suggestion(s) using ${fresh.masterEvidence?.mode || 'heuristic'} evidence.${ratingCleanup.cleared ? ' Stale unlocked Rating mapping cleared.' : ' Rating remains manual.'}`;
     render?.();
   } catch (error) {
     showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
@@ -456,7 +487,7 @@ export function enhanceRegexSmartWorkbench(card, state, stateRef, render) {
   decorateTokens(builder, evidencePending ? { ...receipt, suggestions: [] } : receipt, stateRef, render);
   decorateLocks(card, stateRef, render);
   if (evidencePending) {
-    showMessage(builder, 'Authoritative Line List / Piping Class evidence is loading automatically. Safe Line Key, Piping Class and Bore mappings will replace stale unlocked selections; Rating remains manual.', false);
+    showMessage(builder, 'Authoritative Line List / Piping Class evidence is loading automatically. Safe Line Key, Piping Class and Bore mappings will replace stale unlocked selections; stale unlocked Rating mapping is cleared and Rating remains manual.', false);
   } else if (live.regexSmartStatus) {
     showMessage(builder, live.regexSmartStatus, /blocked|stale|failed/i.test(live.regexSmartStatus));
   }
