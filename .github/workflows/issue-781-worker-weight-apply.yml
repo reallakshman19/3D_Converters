@@ -1,0 +1,458 @@
+name: Issue 781 Worker Weight Apply
+
+on:
+  push:
+    branches:
+      - agent/issue-781-worker-weight-api-mapping-projection-20260930
+    paths:
+      - .github/workflows/issue-781-worker-weight-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/issue-781-worker-weight-api-mapping-projection-20260930
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply architectural repair
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          TOKEN='20260930-issue781-worker-weight-api-1'
+          OLD='20260929-pr780-bounded-ui-1'
+
+          def p(path): return Path(path)
+          def read(path): return p(path).read_text()
+          def write(path, text): p(path).write_text(text)
+          def replace_once(path, old, new):
+              text=read(path)
+              if old not in text:
+                  raise SystemExit(f'missing replacement in {path}: {old[:100]!r}')
+              write(path, text.replace(old,new,1))
+          def regex_once(path, pattern, replacement):
+              text=read(path)
+              next_text, count=re.subn(pattern,replacement,text,count=1,flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'expected one regex replacement in {path}, got {count}: {pattern}')
+              write(path,next_text)
+
+          # 1) APPLIED mapping projection contract: every mapped logical field is present.
+          lm='converters/xml-cii2019-core/linelist-mapping.js'
+          marker='export function normalizeLineListRow(row, fieldMap, index) {'
+          projection="""export function projectLineListMappedFields(row, fieldMap = {}) {
+            const projected = {};
+            for (const [fieldName, sourceHeader] of Object.entries(fieldMap || {})) {
+              projected[fieldName] = sourceHeader ? readRowValue(row, [sourceHeader]) : '';
+            }
+            return projected;
+          }
+
+          export function normalizeLineListRow(row, fieldMap, index) {"""
+          replace_once(lm, marker, projection)
+          replace_once(lm, 'export function normalizeLineListRow(row, fieldMap, index) {\n  const lineNoKey = computeLineNoKey(row, fieldMap);', 'export function normalizeLineListRow(row, fieldMap, index) {\n  const projected = projectLineListMappedFields(row, fieldMap);\n  const lineNoKey = computeLineNoKey(row, fieldMap);')
+          replace_once(lm, '  const normalized = {\n    ...row,', '  const normalized = {\n    ...row,\n    ...projected,')
+
+          # 2) Pure shared ranking service: same authority implementation on UI fallback and worker.
+          ranking="""import { applyXmlCiiFlangeWeightFallbackToIssue } from './flange-weight-fallback.js';
+          import { resolveXmlCiiWeightMatchRating } from './preview-rating-snapshot.js';
+          import { formatValveHint, rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
+
+          function clean(value) { return value === null || value === undefined ? '' : String(value).replace(/\\s+/g, ' ').trim(); }
+          function emptyRanking() { return { nodeHint: null, semanticSource: null, candidates: [], rejectedCandidates: [] }; }
+
+          export function rankXmlCiiWeightIssue(row, config, options = {}) {
+            const ratingMode = options.ratingMode || 'preview';
+            const snapshot = options.snapshot || {};
+            const authority = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot });
+            const rating = authority.rating;
+            const ranking = rating
+              ? rankXmlCiiWeightCandidates({
+                  boreMm: row?.boreMm,
+                  rating,
+                  lengthMm: row?.lengthMm,
+                  nodeName: row?.nodeName,
+                  componentType: row?.componentType,
+                  componentRefNo: row?.componentRefNo,
+                  dtxr: row?.dtxr,
+                }, config, { includeRejected: true })
+              : emptyRanking();
+            const derivedValveHint = formatValveHint(ranking.nodeHint) || (() => {
+              const best = ranking.candidates?.[0];
+              if (best?.specialFactorRule && best?.specialFactorCode) return (best.typeDesc || '').split(':')[0].trim() || best.specialFactorCode;
+              const semantic = ranking.semanticSource;
+              return semantic?.matches?.[0] ? `${semantic.matches[0].label} (keyword)` : '';
+            })();
+            const ranked = {
+              ...row,
+              rating,
+              ratingSource: authority.source,
+              ratingMode: authority.mode,
+              previewRatingSnapshotRevision: authority.snapshotRevision,
+              dtxrRating: authority.dtxrRating,
+              valveHint: derivedValveHint,
+              nodeHint: ranking.nodeHint,
+              candidates: (ranking.candidates || []).slice(0, 5),
+              rejectedCandidates: (ranking.rejectedCandidates || []).slice(0, 3),
+              ranking,
+            };
+            return applyXmlCiiFlangeWeightFallbackToIssue(ranked, config);
+          }
+
+          export function rankXmlCiiWeightIssues(rows, config, options = {}) {
+            return (Array.isArray(rows) ? rows : []).map((row) => rankXmlCiiWeightIssue(row, config, options));
+          }
+          """
+          write('converters/xml-cii2019-core/weight-match-ranking-service.js', ranking)
+
+          # 3) Worker protocol domain command/result.
+          proto='tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js'
+          replace_once(proto, "  SEARCH: 'SEARCH',", "  SEARCH: 'SEARCH',\n  RANK_WEIGHT_ISSUES: 'RANK_WEIGHT_ISSUES',")
+          replace_once(proto, "  SEARCH_RESULT: 'SEARCH_RESULT',", "  SEARCH_RESULT: 'SEARCH_RESULT',\n  WEIGHT_MATCH_RESULT: 'WEIGHT_MATCH_RESULT',")
+
+          # 4) Worker service executes ranking where the authoritative Weight dataset lives.
+          svc='tabs/xml-cii-2019-standalone/workers/master-dataset-service.js'
+          text=read(svc)
+          first_import_end=text.find('\n', text.find('import '))
+          text=text[:first_import_end+1] + f"import {{ rankXmlCiiWeightIssues }} from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v={TOKEN}';\n" + text[first_import_end+1:]
+          write(svc,text)
+          service_fn="""
+            async function rankWeightIssues(message) {
+              const dataset = await ensureDataset(message.datasetId);
+              if (String(dataset?.metadata?.masterKey || '') !== 'weight') {
+                throw new Error(`Weight Match requires a weight dataset; received ${dataset?.metadata?.masterKey || 'unknown'}.`);
+              }
+              const issues = Array.isArray(message.issues) ? message.issues : [];
+              if (issues.length > 5000) throw new Error(`Weight Match issue batch is too large: ${issues.length}.`);
+              const baseConfig = message.config && typeof message.config === 'object' && !Array.isArray(message.config) ? message.config : {};
+              const incomingWeight = baseConfig.weight && typeof baseConfig.weight === 'object' && !Array.isArray(baseConfig.weight) ? baseConfig.weight : {};
+              const workerConfig = {
+                ...baseConfig,
+                weight: {
+                  ...incomingWeight,
+                  masterRows: dataset.rows,
+                  masterFingerprint: dataset.metadata?.masterFingerprint || incomingWeight.masterFingerprint || '',
+                  masterRevision: incomingWeight.masterRevision ?? dataset.metadata?.datasetRevision ?? 0,
+                },
+              };
+              const rankedIssues = rankXmlCiiWeightIssues(issues, workerConfig, {
+                ratingMode: message.ratingMode || 'preview',
+                snapshot: message.previewRatingSnapshot || {},
+              });
+              return response(MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT, message, {
+                datasetId: dataset.metadata.datasetId,
+                rowCount: Number(dataset.metadata.rowCount || dataset.rows.length || 0),
+                datasetRevision: Number(dataset.metadata.datasetRevision || 0),
+                masterFingerprint: dataset.metadata.masterFingerprint || '',
+                issues: rankedIssues,
+              });
+            }
+
+          """
+          replace_once(svc, '  async function release(message) {', service_fn + '  async function release(message) {')
+          replace_once(svc, "        case MASTER_DATASET_COMMAND.SEARCH:\n          return await search(message);", "        case MASTER_DATASET_COMMAND.SEARCH:\n          return await search(message);\n        case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES:\n          return await rankWeightIssues(message);")
+
+          # 5) Client/coordinator/runtime API plumbing.
+          client='tabs/xml-cii-2019-standalone/workers/master-dataset-client.js'
+          replace_once(client, '  function getRows(datasetId, offset = 0, limit = 150) {', "  function rankWeightIssues(datasetId, issues = [], config = {}, options = {}) {\n    if (!datasetId) throw new Error('datasetId is required.');\n    return request(MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, {\n      datasetId,\n      issues: Array.isArray(issues) ? issues : [],\n      config: config && typeof config === 'object' ? config : {},\n      ratingMode: options.ratingMode || 'preview',\n      previewRatingSnapshot: options.previewRatingSnapshot || {},\n    });\n  }\n\n  function getRows(datasetId, offset = 0, limit = 150) {")
+          replace_once(client, '    openBuffer, openFile, selectSheet, remapDataset, search, getRows, getRowsByIndexes, getRawRows,', '    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, getRows, getRowsByIndexes, getRawRows,')
+
+          coord='tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js'
+          replace_once(coord, '  function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = \'\') {', "  function rankWeightIssues(masterKey, issues = [], config = {}, options = {}, datasetIdOverride = '') {\n    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);\n    if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);\n    return client.rankWeightIssues(datasetId, issues, config, options);\n  }\n\n  function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = '') {")
+          replace_once(coord, '  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, materialize, materializeRows, releaseMaster, search, getRows, getRowsByIndexes, dispose });', '  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, materialize, materializeRows, releaseMaster, search, rankWeightIssues, getRows, getRowsByIndexes, dispose });')
+
+          runtime='tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js'
+          replace_once(runtime, '\n\nexport async function materializeMasterDatasetRows', "\n\nexport function rankMasterDatasetWeightIssues(masterKey, datasetId, issues = [], config = {}, options = {}) {\n  return masterDatasetCoordinator.rankWeightIssues(masterKey, issues, config, options, datasetId);\n}\n\nexport async function materializeMasterDatasetRows")
+
+          # Bump worker-internal module URLs as a single deployment generation.
+          for path in [proto, svc, client, coord, 'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', runtime]:
+              text=read(path).replace(OLD,TOKEN)
+              write(path,text)
+
+          # 6) Standalone Weight Match: compact dataset metadata only; no normal-build materialization.
+          wm='tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js'
+          text=read(wm)
+          text=text.replace("import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';", f"import {{ materializeMasterDatasetRows, rankMasterDatasetWeightIssues }} from './xml-cii-adapted-master-dataset-runtime.js?v={TOKEN}';")
+          text=re.sub(r"\nimport \{ materializeXmlCiiDatasetBackedConfig \} from '\.\./xml-cii-dataset-backed-config\.js\?v=[^']+';",'',text,count=1)
+          pattern=r"export async function weightMatchConfigFromState\(state, options = \{\}\) \{.*?\n\}\n\nfunction persistConfig"
+          replacement="""export async function weightMatchConfigFromState(state, options = {}) {
+            const materializeRows = options.materializeRows || materializeMasterDatasetRows;
+            const context = state?.masterContext || {};
+            const datasetRef = context?.datasetRefs?.weight;
+            const base = compactDatasetBackedConfig(xmlCiiEnrichedConfigFromState(state), context);
+            if (datasetRef?.datasetId) {
+              const out = { ...base };
+              out.weight = out.weight && typeof out.weight === 'object' && !Array.isArray(out.weight) ? { ...out.weight } : {};
+              delete out.weight.masterRows;
+              const revision = Number(context?.appliedMappingRevision?.weight ?? out.weight.masterRevision ?? datasetRef.datasetRevision ?? 0);
+              if (revision > 0) out.weight.masterRevision = revision;
+              if (datasetRef.masterFingerprint) out.weight.masterFingerprint = String(datasetRef.masterFingerprint);
+              return out;
+            }
+            return ensureWeightRows(base, context, materializeRows);
+          }
+
+          function persistConfig"""
+          text,count=re.subn(pattern,replacement,text,count=1,flags=re.S)
+          if count != 1: raise SystemExit('failed weightMatchConfigFromState replacement')
+          text=text.replace('      const state = stateRef.current;\n      let calculationBasis = await weightMatchConfigFromState(state);', '      const state = stateRef.current;\n      const weightDatasetRef = state?.masterContext?.datasetRefs?.weight || null;\n      let calculationBasis = await weightMatchConfigFromState(state);',1)
+          hook='        enrichXmlForCii2019: shared.enrichXmlForCii2019,\n'
+          injected="""        enrichXmlForCii2019: shared.enrichXmlForCii2019,
+                weightDatasetRef,
+                rankWeightIssues: weightDatasetRef?.datasetId ? async (issues, request = {}) => {
+                  const compactConfig = compactDatasetBackedConfig(request.config || rendererConfig, stateRef.current.masterContext || {});
+                  return rankMasterDatasetWeightIssues('weight', weightDatasetRef.datasetId, issues, compactConfig, {
+                    ratingMode: request.ratingMode || 'preview',
+                    previewRatingSnapshot: request.snapshot || {},
+                  });
+                } : null,
+                resolveWeightValidationMasterRows: weightDatasetRef?.datasetId
+                  ? async () => materializeMasterDatasetRows('weight', weightDatasetRef)
+                  : async () => calculationBasis?.weight?.masterRows || [],
+          """
+          if hook not in text: raise SystemExit('weight match bind hook missing')
+          text=text.replace(hook,injected,1)
+          write(wm,text)
+
+          # 7) Shared renderer uses worker API for dataset-backed ranking and remains legacy-compatible.
+          renderer='tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'
+          text=read(renderer)
+          import_marker="import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';\n"
+          text=text.replace(import_marker, import_marker + f"import {{ rankXmlCiiWeightIssue }} from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v={TOKEN}';\n",1)
+          text,count=re.subn(r"function rerankWithRating\(row, config, \{ ratingMode = 'preview', snapshot = readXmlCiiPreviewRatingSnapshot\(\) \} = \{\}\) \{.*?\n\}\n\nfunction xmlLocalName", "function rerankWithRating(row, config, { ratingMode = 'preview', snapshot = readXmlCiiPreviewRatingSnapshot() } = {}) {\n  return rankXmlCiiWeightIssue(row, config, { ratingMode, snapshot });\n}\n\nfunction xmlLocalName", text, count=1, flags=re.S)
+          if count != 1: raise SystemExit('rerank replacement failed')
+          old_sig='export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, enrichXmlForCii2019, onSaveConfig, ensureOverrides, resolveStagedJsonText }) {'
+          new_sig='export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, enrichXmlForCii2019, onSaveConfig, ensureOverrides, resolveStagedJsonText, weightDatasetRef = null, rankWeightIssues = null, resolveWeightValidationMasterRows = null }) {'
+          if old_sig not in text: raise SystemExit('renderer bind signature missing')
+          text=text.replace(old_sig,new_sig,1)
+          text=text.replace("  const publishValidation = (cfg) => {\n    if (!detailEl || !localIssues.length) return;\n    detailEl.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', {\n      bubbles: true,\n      cancelable: true,\n      detail: { issues: localIssues, masterRows: cfg?.weight?.masterRows || [], config: cfg },\n    }));\n  };", "  const publishValidation = async (cfg) => {\n    if (!detailEl || !localIssues.length) return;\n    let masterRows = Array.isArray(cfg?.weight?.masterRows) ? cfg.weight.masterRows : [];\n    if (!masterRows.length && typeof resolveWeightValidationMasterRows === 'function') masterRows = await resolveWeightValidationMasterRows();\n    detailEl.dataset.wmValidationActive = 'true';\n    detailEl.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', {\n      bubbles: true,\n      cancelable: true,\n      detail: { issues: localIssues, masterRows, config: cfg },\n    }));\n  };",1)
+          text=text.replace('    queueMicrotask(() => publishValidation(cfg));', "    if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });",1)
+          start="""    liveConfig = await ensureWeightMasterRows(liveConfig);
+              if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+              const snapshot = readXmlCiiPreviewRatingSnapshot();"""
+          newstart="""    const workerBackedWeight = Boolean(weightDatasetRef?.datasetId && typeof rankWeightIssues === 'function');
+              if (workerBackedWeight) {
+                liveConfig = { ...liveConfig, weight: { ...(liveConfig?.weight || {}) } };
+                delete liveConfig.weight.masterRows;
+                if (weightDatasetRef.masterFingerprint) liveConfig.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
+                const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? liveConfig.weight.masterRevision ?? 0);
+                if (revision > 0) liveConfig.weight.masterRevision = revision;
+              } else {
+                liveConfig = await ensureWeightMasterRows(liveConfig);
+                if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+              }
+              const snapshot = readXmlCiiPreviewRatingSnapshot();"""
+          if start not in text: raise SystemExit('renderer compute start missing')
+          text=text.replace(start,newstart,1)
+          text=text.replace("liveConfig?.weight?.masterRows?.length || 0", "workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (liveConfig?.weight?.masterRows?.length || 0)",1)
+          text=text.replace("        localIssues = cached.data.map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, liveConfig, { ratingMode, snapshot }), liveConfig));", "        localIssues = workerBackedWeight ? cached.data : cached.data.map((row) => rerankWithRating(row, liveConfig, { ratingMode, snapshot }));",1)
+          text=text.replace("        if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; detailEl?.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: liveConfig.weight?.masterRows || [], config: liveConfig } })); }", "        if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(liveConfig); }",1)
+          old_cfg="""      const enrichedConfig = await ensureWeightMasterRows(enriched.config || liveConfig);
+                const cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+                if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }"""
+          new_cfg="""      let enrichedConfig = enriched.config || liveConfig;
+                let cfg = mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig());
+                if (workerBackedWeight) {
+                  cfg = { ...cfg, weight: { ...(cfg?.weight || {}) } };
+                  delete cfg.weight.masterRows;
+                  if (weightDatasetRef.masterFingerprint) cfg.weight.masterFingerprint = weightDatasetRef.masterFingerprint;
+                  const revision = Number(weightDatasetRef.masterRevision ?? weightDatasetRef.datasetRevision ?? cfg.weight.masterRevision ?? 0);
+                  if (revision > 0) cfg.weight.masterRevision = revision;
+                } else {
+                  enrichedConfig = await ensureWeightMasterRows(enrichedConfig);
+                  cfg = await ensureWeightMasterRows(mergeRuntimeOverrides(mergeRuntimeOverrides(enrichedConfig, liveConfig), getXmlCiiPreviewRuntimeConfig()));
+                  if (!hasWeightMasterRows(cfg)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
+                }"""
+          if old_cfg not in text: raise SystemExit('renderer cfg block missing')
+          text=text.replace(old_cfg,new_cfg,1)
+          old_rank="""      const validatedConfig = validated.config;
+                localIssues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, validatedConfig, { ratingMode, snapshot }), validatedConfig));"""
+          new_rank="""      const validatedConfig = validated.config;
+                const issueRows = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, validatedConfig), geometryXml)
+                  .map(cleanRow).filter(Boolean)
+                  .map((row) => ({ ...row, staleMatch1: validated.validation.stale?.[row.key] || null }));
+                if (workerBackedWeight) {
+                  const result = await rankWeightIssues(issueRows, { config: validatedConfig, ratingMode, snapshot });
+                  if (String(result?.datasetId || '') !== String(weightDatasetRef.datasetId)) throw new Error('Weight worker returned a mismatched dataset result.');
+                  if (!Array.isArray(result?.issues)) throw new Error('Weight worker did not return ranked issues.');
+                  localIssues = result.issues;
+                } else {
+                  localIssues = issueRows.map((row) => rerankWithRating(row, validatedConfig, { ratingMode, snapshot }));
+                }"""
+          if old_rank not in text: raise SystemExit('renderer rank block missing')
+          text=text.replace(old_rank,new_rank,1)
+          text=text.replace("cfg?.weight?.masterRows?.length || 0", "workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (cfg?.weight?.masterRows?.length || 0)",1)
+          text=text.replace("      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; detailEl?.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: cfg.weight?.masterRows || [], config: cfg } })); }", "      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(cfg); }",1)
+          write(renderer,text)
+
+          # 8) Warm-cache chain for the touched UI/worker generation.
+          for path in [
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js',
+          ]:
+              text=read(path)
+              text=text.replace('20260929-pr780-bounded-ui-1',TOKEN)
+              text=text.replace('xml-cii-adapted-weight-match-v2.js?v=20260928-issue776-authority-2',f'xml-cii-adapted-weight-match-v2.js?v={TOKEN}')
+              write(path,text)
+
+          # 9) Source/docs deployment mirrors.
+          mirror_sources=[
+            lm, proto, svc, client, coord,
+            'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', runtime, wm, renderer,
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js',
+          ]
+          for src in mirror_sources:
+              dst='docs/'+src
+              p(dst).parent.mkdir(parents=True,exist_ok=True)
+              write(dst,read(src))
+          write('docs/converters/xml-cii2019-core/weight-match-ranking-service.js',ranking)
+
+          # 10) Focused regression suite.
+          test=r'''import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          import { normalizeLineListRow } from '../converters/xml-cii2019-core/linelist-mapping.js';
+          import { rankXmlCiiWeightIssues } from '../converters/xml-cii2019-core/weight-match-ranking-service.js';
+          import { createMasterDatasetService } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-service.js';
+          import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
+
+          test('APPLIED line-list mapping projects Key1/Key2/Line Seq into normalized worker rows', () => {
+            const raw = { __EMPTY_0: '7', __EMPTY_1: '1', __EMPTY_2: '0310051', __EMPTY_21: '61440', __EMPTY_26: 'CS' };
+            const map = { lineSeqNo: '__EMPTY_0', lineKey1: '__EMPTY_1', lineKey2: '__EMPTY_2', pipingClass: '__EMPTY_21', material: '__EMPTY_26' };
+            const row = normalizeLineListRow(raw, map, 0);
+            assert.equal(row.lineSeqNo, '7');
+            assert.equal(row.lineKey1, '1');
+            assert.equal(row.lineKey2, '0310051');
+            assert.equal(row.pipingClass, '61440');
+            assert.equal(row.material, 'CS');
+            assert.ok(row.lineKey);
+          });
+
+          function fakeStore() {
+            const data = new Map();
+            return {
+              async persistDataset(metadata, rows) { data.set(metadata.datasetId, { metadata, rows }); },
+              async getMetadata(id) { return data.get(id)?.metadata || null; },
+              async getRows(id) { return data.get(id)?.rows || []; },
+              async removeDataset(id) { data.delete(id); },
+            };
+          }
+
+          function service() {
+            return createMasterDatasetService({
+              store: fakeStore(),
+              getXlsx: async () => { throw new Error('xlsx not expected'); },
+              prepareDataset: (masterKey, rawRows, _config, currentMap, override) => ({
+                rows: rawRows.map((row, index) => ({ ...row, _rowIndex: index + 1 })),
+                fieldMap: override || currentMap || {},
+                searchCorpus: rawRows.map((row) => Object.values(row).join(' ').toLowerCase()),
+              }),
+              searchDataset: (corpus, query) => corpus.map((value, index) => value.includes(query) ? index : -1).filter((index) => index >= 0),
+            });
+          }
+
+          const masterRows = [
+            { convertedBore: 254, ratingClass: '150', lengthMm: 300, valveWeight: 50, type: 'VALVE', typeDesc: 'GATE VALVE' },
+            { convertedBore: 254, ratingClass: '150', lengthMm: 340, valveWeight: 58, type: 'VALVE', typeDesc: 'GATE VALVE' },
+            { convertedBore: 254, ratingClass: '300', lengthMm: 300, valveWeight: 70, type: 'VALVE', typeDesc: 'GATE VALVE' },
+          ];
+          const issue = { key: 'B1:N1', branchName: 'B1', nodeNumber: 'N1', componentType: 'VALVE', componentRefNo: 'VGT-1', nodeName: 'VGT-1', boreMm: 254, lengthMm: 300, rating: '150', dtxr: 'GATE VALVE' };
+
+          test('worker-resident Weight Match ranking equals shared pure ranking', async () => {
+            const svc = service();
+            const buffer = new TextEncoder().encode(JSON.stringify(masterRows)).buffer;
+            const ready = await svc.handle({ type: MASTER_DATASET_COMMAND.OPEN_SOURCE, requestId: 'open-1', jobId: 'job-1', fileName: 'weights.json', masterKey: 'weight', config: {}, currentMap: {}, buffer });
+            assert.equal(ready.type, MASTER_DATASET_EVENT.DATASET_READY);
+            const datasetId = ready.metadata.datasetId;
+            const config = { weight: { masterFingerprint: ready.metadata.masterFingerprint, masterRevision: 1 } };
+            const expected = rankXmlCiiWeightIssues([issue], { ...config, weight: { ...config.weight, masterRows } }, { ratingMode: 'preview', snapshot: {} });
+            const actual = await svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-1', datasetId, issues: [issue], config, ratingMode: 'preview', previewRatingSnapshot: {} });
+            assert.equal(actual.type, MASTER_DATASET_EVENT.WEIGHT_MATCH_RESULT);
+            assert.equal(actual.datasetId, datasetId);
+            assert.equal(actual.issues.length, 1);
+            assert.deepEqual(actual.issues[0].candidates, expected[0].candidates);
+            assert.equal(actual.issues[0].rating, expected[0].rating);
+          });
+
+          test('Weight Match worker rejects a non-weight dataset', async () => {
+            const svc = service();
+            const buffer = new TextEncoder().encode(JSON.stringify([{ x: 1 }])).buffer;
+            const ready = await svc.handle({ type: MASTER_DATASET_COMMAND.OPEN_SOURCE, requestId: 'open-line', jobId: 'job-line', fileName: 'lines.json', masterKey: 'lineList', config: {}, currentMap: {}, buffer });
+            const result = await svc.handle({ type: MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES, requestId: 'rank-line', datasetId: ready.metadata.datasetId, issues: [issue], config: {} });
+            assert.equal(result.type, MASTER_DATASET_EVENT.ERROR);
+            assert.match(result.error.message, /requires a weight dataset/i);
+          });
+
+          test('standalone dataset-backed Weight Build has no all-master materializer dependency', async () => {
+            const source = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
+            assert.doesNotMatch(source, /materializeXmlCiiDatasetBackedConfig/);
+            assert.match(source, /rankMasterDatasetWeightIssues/);
+            assert.match(source, /delete out\.weight\.masterRows/);
+            const renderer = await readFile(new URL('../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js', import.meta.url), 'utf8');
+            assert.match(renderer, /workerBackedWeight/);
+            assert.match(renderer, /await rankWeightIssues\(issueRows/);
+            assert.match(renderer, /Weight worker returned a mismatched dataset result/);
+          });
+
+          test('source/docs mirrors are exact for changed runtime modules', async () => {
+            const paths = [
+              'converters/xml-cii2019-core/linelist-mapping.js',
+              'converters/xml-cii2019-core/weight-match-ranking-service.js',
+              'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',
+              'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
+              'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
+              'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
+              'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
+              'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
+              'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',
+              'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+            ];
+            for (const path of paths) {
+              const [source, docs] = await Promise.all([readFile(new URL(`../${path}`, import.meta.url), 'utf8'), readFile(new URL(`../docs/${path}`, import.meta.url), 'utf8')]);
+              assert.equal(docs, source, path);
+            }
+          });
+          '''
+          write('tests/xml-cii-issue-781-worker-weight-api.test.mjs',test)
+          PY
+      - name: Syntax-check touched runtime files
+        run: |
+          node --check converters/xml-cii2019-core/linelist-mapping.js
+          node --check converters/xml-cii2019-core/weight-match-ranking-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-client.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+          node --check tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+      - name: Run focused architectural regressions
+        run: |
+          node --test tests/xml-cii-issue-781-worker-weight-api.test.mjs
+          node --test tests/xml-cii-master-worker-metadata-import.test.mjs
+          node --test tests/xml-cii-master-preview-worker-search.test.mjs
+          node --test tests/xml-cii-weight-build-runaway-regression.test.mjs
+      - name: Commit qualified implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add converters docs tabs tests
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(issue-781): move Weight ranking to dataset worker'
+          git push origin HEAD:agent/issue-781-worker-weight-api-mapping-projection-20260930
