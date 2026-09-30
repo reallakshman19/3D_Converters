@@ -1,7 +1,7 @@
-import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js?v=20260930-issue781-weight-liveness-cache-1';
+import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-worker-1';
 import { createIndexedDbDatasetStore } from './master-dataset-store.js';
-import { createMasterDatasetService } from './master-dataset-service.js?v=20260930-issue781-weight-liveness-cache-1';
-import { buildSearchCorpus, prepareNormalizedDataset, searchCorpusIndexes } from './master-dataset-normalize.js?v=20260930-issue781-weight-liveness-cache-1';
+import { createMasterDatasetService } from './master-dataset-service.js?v=20260930-issue781-weight-basis-worker-1';
+import { buildSearchCorpus, prepareNormalizedDataset, searchCorpusIndexes } from './master-dataset-normalize.js?v=20260930-issue781-weight-basis-worker-1';
 
 const SHEETJS_ESM_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 let xlsxPromise = null;
@@ -28,18 +28,21 @@ export async function getWorkerXlsxModule() {
   return xlsxPromise;
 }
 
-export function createDefaultMasterDatasetService() {
+export function createDefaultMasterDatasetService(options = {}) {
   return createMasterDatasetService({
     getXlsx: getWorkerXlsxModule,
     store: createIndexedDbDatasetStore(),
     prepareDataset: prepareNormalizedDataset,
     buildSearchCorpus,
     searchCorpusIndexes,
+    emitEvent: options.emitEvent,
   });
 }
 
 export function installMasterDatasetWorker(scope = globalThis) {
-  const service = createDefaultMasterDatasetService();
+  const service = createDefaultMasterDatasetService({
+    emitEvent: (message) => scope.postMessage(message),
+  });
   scope.addEventListener('message', async (event) => {
     const requestId = event?.data?.requestId || '';
     try {

@@ -1,5 +1,5 @@
-import { createMasterDatasetClient } from './master-dataset-client.js?v=20260930-issue781-weight-liveness-cache-1';
-import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-liveness-cache-1';
+import { createMasterDatasetClient } from './master-dataset-client.js?v=20260930-issue781-weight-basis-worker-1';
+import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-worker-1';
 
 function assertDatasetMessage(message) {
   if (message?.type !== MASTER_DATASET_EVENT.DATASET_READY || !message?.metadata?.datasetId) {
@@ -103,6 +103,10 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return client.rankWeightIssues(datasetId, issues, config, options);
   }
 
+  function prepareWeightBasis(payload = {}, options = {}) {
+    return client.prepareWeightBasis(payload, options);
+  }
+
   function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = '') {
     const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
     if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
@@ -121,5 +125,5 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     client.dispose();
   }
 
-  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, materialize, materializeRows, releaseMaster, search, rankWeightIssues, getRows, getRowsByIndexes, dispose });
+  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, materialize, materializeRows, releaseMaster, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, dispose });
 }

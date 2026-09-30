@@ -1,4 +1,4 @@
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-liveness-cache-1';
+import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-basis-worker-1';
 
 export const masterDatasetCoordinator = createMasterDatasetImportCoordinator();
 
@@ -21,6 +21,10 @@ export function remapMasterDataset(masterKey, datasetId, fieldMap = {}) {
 
 export function rankMasterDatasetWeightIssues(masterKey, datasetId, issues = [], config = {}, options = {}) {
   return masterDatasetCoordinator.rankWeightIssues(masterKey, issues, config, options, datasetId);
+}
+
+export function prepareMasterDatasetWeightBasis(payload = {}, options = {}) {
+  return masterDatasetCoordinator.prepareWeightBasis(payload, options);
 }
 
 export async function materializeMasterDatasetRows(masterKey, datasetRef = {}) {

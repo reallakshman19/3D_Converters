@@ -392,13 +392,21 @@ function lineListRowKey(row, config) {
   return rowText(row, ['lineNoKey', 'lineNo', 'lineKey', 'LineNo', 'Line No', 'Line Number', 'PipelineReference']);
 }
 
-function lineListRowForBranch(branchName, config) {
+function buildWeightLineListIndex(config) {
   const rows = Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows : [];
+  const index = new Map();
+  for (const row of rows) {
+    const key = normalizeLineKey(lineListRowKey(row, config));
+    if (key && !index.has(key)) index.set(key, row);
+  }
+  return index;
+}
+
+function lineListRowForBranch(branchName, config, lineListIndex) {
   const lineKey = deriveLineKeyFromBranchName(branchName, config);
   const wanted = normalizeLineKey(lineKey);
   if (!wanted) return { lineKey: '', row: null };
-  for (const row of rows) if (normalizeLineKey(lineListRowKey(row, config)) === wanted) return { lineKey, row };
-  return { lineKey, row: null };
+  return { lineKey, row: lineListIndex?.get(wanted) || null };
 }
 
 function looksLikeNpsToken(value) {
@@ -461,9 +469,9 @@ function ratingOverrideForBranch(config, { lineKey, branchName, lineRow, request
   return toText(config?.rating?.defaultRating || config?.defaultRating || '').trim();
 }
 
-function resolveRigidWeightBranchContext(branch, config, pipingClassIndex) {
+function resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex) {
   const branchName = xmlText(branch, 'Branchname');
-  const { lineKey, row: lineRow } = lineListRowForBranch(branchName, config);
+  const { lineKey, row: lineRow } = lineListRowForBranch(branchName, config, lineListIndex);
   const derivedClass = derivePipingClassFromBranchName(branchName, config);
   const requestedPipingClass = rowText(lineRow, ['pipingClass', 'Piping Class', 'PIPING_CLASS']) || derivedClass;
   const manualRating = ratingOverrideForBranch(config, { lineKey, branchName, lineRow, requestedPipingClass });
@@ -483,15 +491,16 @@ function ratingForRigidWeightIssue(node, branchContext, config) {
   return overrideText(config, 'rating', [branchContext.lineKey, branchContext.branchName, nodeNumber]) || nodeRating;
 }
 
-function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigid') {
+function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigid', options = {}) {
   if (typeof DOMParser === 'undefined') return [];
   const document = new DOMParser().parseFromString(toText(xmlTextVal), 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return [];
   const dtxrContext = buildDtxrContext(stagedJsonText, config);
   const pipingClassIndex = buildPipingClassIndex(config.pipingClass?.masterRows || []);
+  const lineListIndex = buildWeightLineListIndex(config);
   const rows = [];
   for (const branch of [...document.getElementsByTagName('Branch')]) {
-    const branchContext = resolveRigidWeightBranchContext(branch, config, pipingClassIndex);
+    const branchContext = resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex);
     const branchName = branchContext.branchName;
     const branchNodeList = xmlChildrenByName(branch, 'Node');
     const forwardLengths = xmlCiiForwardElementLengths(branchNodeList);
@@ -521,7 +530,13 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       }
       if (boreMm === null) boreMm = branchContext.boreMm;
       const rating = ratingForRigidWeightIssue(node, branchContext, config);
-      const ranking = rankXmlCiiWeightCandidates({ boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText }, config, { includeRejected: true });
+      const ranking = options.rankCandidates === false
+        ? { nodeHint: null, candidates: [], rejectedCandidates: [] }
+        : rankXmlCiiWeightCandidates(
+          { boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText },
+          config,
+          { includeRejected: true },
+        );
       // NodeNumber can be the literal "-1" sentinel for FLAN/VALV/RIGID/INST
       // nodes whose synthetic ≥10000 fallback number was intentionally
       // suppressed upstream (see staged-geometry-authority.js), and VALV/INST
@@ -541,6 +556,16 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
     });
   }
   return rows;
+}
+
+export function collectXmlCiiWeightMatchBasisRows(xmlTextVal, stagedJsonText, config) {
+  return collectWeightRows(
+    xmlTextVal,
+    stagedJsonText,
+    config,
+    'all-review-nodes',
+    { rankCandidates: false },
+  );
 }
 
 export function collectXmlCiiWeightMatchRows(xmlTextVal, stagedJsonText, config) {

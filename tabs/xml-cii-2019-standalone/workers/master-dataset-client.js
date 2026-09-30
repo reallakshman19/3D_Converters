@@ -1,7 +1,7 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-weight-liveness-cache-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-weight-basis-worker-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20260930-issue781-weight-liveness-cache-1', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20260930-issue781-weight-basis-worker-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
@@ -29,6 +29,10 @@ export function createMasterDatasetClient(options = {}) {
   const weightRequestTimeoutMs = Number.isFinite(configuredWeightTimeout) && configuredWeightTimeout > 0
     ? configuredWeightTimeout
     : 15000;
+  const configuredBasisTimeout = Number(options.weightBasisTimeoutMs);
+  const weightBasisTimeoutMs = Number.isFinite(configuredBasisTimeout) && configuredBasisTimeout > 0
+    ? configuredBasisTimeout
+    : 60000;
   let worker = null;
   const pending = new Map();
   let generation = 0;
@@ -53,6 +57,10 @@ export function createMasterDatasetClient(options = {}) {
       const message = event.data || {};
       const entry = pending.get(message.requestId);
       if (!entry) return;
+      if (message.type === MASTER_DATASET_EVENT.WEIGHT_BASIS_PROGRESS) {
+        entry.onProgress?.(message);
+        return;
+      }
       pending.delete(message.requestId);
       if (entry.timer) clearTimeout(entry.timer);
       if (message.type === MASTER_DATASET_EVENT.ERROR) entry.reject(workerError(message));
@@ -74,7 +82,7 @@ export function createMasterDatasetClient(options = {}) {
     return worker;
   }
 
-  function request(type, payload = {}, transfer = [], timeoutMs = 0) {
+  function request(type, payload = {}, transfer = [], timeoutMs = 0, onProgress = null) {
     const requestId = makeRequestId(type.toLowerCase());
     const requestGeneration = generation;
     return new Promise((resolve, reject) => {
@@ -82,6 +90,7 @@ export function createMasterDatasetClient(options = {}) {
         resolve: (message) => requestGeneration === generation ? resolve(message) : reject(new Error('Worker response is stale.')),
         reject,
         timer: null,
+        onProgress: typeof onProgress === 'function' ? onProgress : null,
       };
       if (timeoutMs > 0) {
         entry.timer = setTimeout(() => {
@@ -145,6 +154,23 @@ export function createMasterDatasetClient(options = {}) {
     throw new Error('Weight Match worker recovery exhausted.');
   }
 
+  async function prepareWeightBasis(payload = {}, options = {}) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await request(
+          MASTER_DATASET_COMMAND.PREPARE_WEIGHT_BASIS,
+          payload,
+          [],
+          weightBasisTimeoutMs,
+          options.onProgress,
+        );
+      } catch (error) {
+        if (error?.name !== 'WorkerTransportError' || attempt > 0) throw error;
+      }
+    }
+    throw new Error('Weight basis worker recovery exhausted.');
+  }
+
   function getRows(datasetId, offset = 0, limit = 150) {
     return request(MASTER_DATASET_COMMAND.GET_ROWS, { datasetId, offset, limit });
   }
@@ -177,7 +203,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, getRows, getRowsByIndexes, getRawRows,
+    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }
