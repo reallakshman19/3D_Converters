@@ -79,14 +79,16 @@ test('mapping draft status explicitly prompts Apply mapping without modal interr
   assert.doesNotMatch(source, /alert\(['"]Mapping changed/);
 });
 
-test('Weight Match reports bounded compute stages instead of one indefinite Computing state', () => {
+test('Weight Match bounds async I/O and exposes the lightweight basis/ranking stages', () => {
   const source = fs.readFileSync(
+    'tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
     'utf8',
   );
   assert.match(source, /withWeightStageTimeout/);
   assert.match(source, /Reading Weight Match inputs/);
-  assert.match(source, /Preparing Weight Match geometry/);
+  assert.match(source, /Preparing Weight Match basis/);
+  assert.doesNotMatch(source, /Preparing Weight Match geometry/);
   assert.match(source, /Ranking \$\{issueRows\.length\} component\(s\)/);
   assert.match(source, /Weight Match timed out during \$\{stage\}/);
 });
