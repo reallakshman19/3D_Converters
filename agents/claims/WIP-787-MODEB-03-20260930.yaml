@@ -1,0 +1,22 @@
+schema: AgentTaskClaim.v1
+repository: reallaksh19/3D_Converters
+issue: 787
+parent_issue: 781
+workstream: XML_CII_MODE_B_03_NUMBERING
+step: MODEB-03
+branch: agent/issue-787-modeb-03-numbering-20260930
+criticality: ENGINEERING_CRITICAL
+owned_outcome: Deterministic post-topology output NodeNumber ledger from frozen MODEB-02 graph, with no topology or converter authority changes.
+dependency_head: 928d883a16754c2458b0a6e0d12aab217cec69f7
+dependency_composite_fingerprint: fnv1a32:d5104931
+allowed_changes:
+  - Mode B numbering core and docs mirror
+  - numbering-focused tests and deterministic evidence fixtures
+  - MODEB-03 CI and recovery/status records
+forbidden_changes:
+  - Mode B candidate scoring or acceptance thresholds
+  - accepted cross-document edge identity
+  - converter handoff
+  - Mode A runtime behavior
+  - UI/default-mode selection
+merge_authority: OWNER_ONLY_NOT_GRANTED
