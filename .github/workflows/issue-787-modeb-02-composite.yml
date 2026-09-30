@@ -1,0 +1,48 @@
+name: Issue 787 Mode B Composite Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'agent/issue-787-modeb-01-observation-20260930'
+    paths:
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-composite.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-composite.js'
+      - 'scripts/xml-cii-mode-b-compose-observe.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-composite.test.mjs'
+      - 'Benchmarks/XML-CII-2019/**'
+      - '.github/workflows/issue-787-modeb-02-composite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modeb-composite:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run MODEB-02 synthetic + real-corpus composite regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs
+      - name: Preserve MODEB-01 observation contract
+        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
+      - name: Preserve existing single-document topology behavior
+        run: node tests/seljson-to-inputxml-topology-element-length.test.js
+      - name: Generate deterministic MODEB-02 composite evidence
+        run: node scripts/xml-cii-mode-b-compose-observe.mjs --out modeb-composite.json | tee modeb-composite-summary.json
+      - name: Upload MODEB-02 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-787-modeb-02-composite
+          path: |
+            modeb-composite.json
+            modeb-composite-summary.json
