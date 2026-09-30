@@ -1,6 +1,6 @@
 import { deriveLineKeyFromBranchName, tokenAtPosition } from './regex-line-key.js';
 import { computeLineNoKey } from './linelist-mapping.js';
-import { buildPipingClassIndex } from './piping-class-resolver.js';
+import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-basis-linear-1';
 import { resolveBranchProcessData } from './branch-process-resolver.js';
 import { buildDtxrContext, resolveDtxrForXmlNode } from './dtxr-resolver.js';
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';

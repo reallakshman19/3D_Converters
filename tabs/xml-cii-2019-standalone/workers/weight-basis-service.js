@@ -1,4 +1,4 @@
-import { installWeightBasisXmlDom } from './weight-basis-xml-dom.js?v=20260930-issue781-weight-basis-worker-1';
+import { installWeightBasisXmlDom } from './weight-basis-xml-dom.js?v=20260930-issue781-weight-basis-linear-1';
 
 let modulesPromise = null;
 
@@ -20,11 +20,11 @@ async function basisModules() {
   if (!modulesPromise) {
     installWeightBasisXmlDom(globalThis);
     modulesPromise = Promise.all([
-      import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-basis-worker-1'),
-      import('../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260930-issue781-weight-basis-worker-1'),
-      import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-basis-worker-1'),
-      import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-basis-worker-1'),
-      import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-basis-worker-1'),
+      import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-basis-linear-1'),
+      import('../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260930-issue781-weight-basis-linear-1'),
+      import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-basis-linear-1'),
+      import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-basis-linear-1'),
+      import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-basis-linear-1'),
     ]);
   }
   return modulesPromise;
