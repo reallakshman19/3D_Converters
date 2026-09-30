@@ -1,4 +1,4 @@
-import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels.js?v=20260930-issue781-worker-weight-api-1';
+import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels.js?v=20260930-issue781-weight-liveness-cache-1';
 import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js';
 
 const STRICT_NOTICE_ATTR = 'data-strict-line-authority-notice';
