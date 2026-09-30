@@ -115,7 +115,7 @@ test('shared Weight Match compute is single-flight and exposes busy state', () =
 });
 
 
-test('Weight Build uses the lightweight basis path and never invokes full conversion enrichment', () => {
+test('standalone Weight Build delegates basis to the worker without changing the fallback authority path', () => {
   const enrichment = fs.readFileSync('tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js', 'utf8');
   const renderer = fs.readFileSync('tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js', 'utf8');
   const adapter = fs.readFileSync('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', 'utf8');
@@ -127,11 +127,24 @@ test('Weight Build uses the lightweight basis path and never invokes full conver
   assert.match(fastPath, /annotateInlineElementLengths/);
   assert.match(fastPath, /applyCondenseRigidOption/);
   assert.doesNotMatch(fastPath, /enrichXmlForCii2019Base|buildStagedSupportIndex|loadXmlCiiWeightMasterRows/);
-  assert.match(renderer, /prepareXmlCiiWeightMatchGeometry/);
-  assert.match(renderer, /withWeightRatingAuthority/);
-  assert.match(renderer, /resolveXmlCiiPreviewRating/);
+  assert.match(renderer, /typeof prepareWeightBasis === 'function'/);
+  assert.match(renderer, /Preparing Weight Match basis in worker/);
+  assert.match(renderer, /prepareXmlCiiWeightMatchGeometry/, 'legacy/helper fallback remains available');
+  assert.match(adapter, /prepareMasterDatasetWeightBasis/);
+  assert.match(adapter, /prepareWeightBasis: async/);
   assert.doesNotMatch(adapter, /loadParentWeightMatchModules/);
   assert.match(adapter, /renderer\.bindXmlCiiWeightMatchPhase/);
+});
+
+test('Weight Line List lookup is indexed once per collection', () => {
+  const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
+  assert.match(model, /function buildWeightLineListIndex/);
+  assert.match(model, /const lineListIndex = buildWeightLineListIndex\(config\)/);
+  const start = model.indexOf('function lineListRowForBranch');
+  const end = model.indexOf('\nfunction looksLikeNpsToken', start);
+  const lookup = model.slice(start, end);
+  assert.match(lookup, /lineListIndex\?\.get\(wanted\)/);
+  assert.doesNotMatch(lookup, /for \(const row of rows\)/);
 });
 
 test('Weight forward element length scan is linear rather than backward rescanning', () => {
@@ -149,6 +162,14 @@ test('modified Weight Build runtime files remain byte-identical to docs mirrors'
     'converters/xml-cii2019-core/weight-match-model.js',
     'tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
+    'tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js',
+    'tabs/xml-cii-2019-standalone/workers/weight-basis-service.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js',
   ]) {

@@ -11,8 +11,10 @@ import {
   xmlCiiWeightRawPayloadText,
 } from '../../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-input-raw-1';
 import { publishXmlCiiPreviewRatingSnapshot } from '../../converters/xml-cii2019-core/preview-rating-snapshot.js';
+import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js';
 
 const MAX_WALL_MS = 5000;
+const MAX_FRAME_GAP_MS = 250;
 const PIPE_COUNT = 1200;
 const STAGED_FILLER_COUNT = 8000;
 const DTXR_RAW = 'GATE   VALVE';
@@ -60,6 +62,7 @@ function ensureOverrides(config) {
 
 async function build() {
   invalidateXmlCiiWeightCache();
+  const coordinator = createMasterDatasetImportCoordinator();
   publishXmlCiiPreviewRatingSnapshot([{
     branchName: 'B1',
     lineKey: 'P0310051',
@@ -100,10 +103,28 @@ async function build() {
     onSaveConfig() {},
     ensureOverrides,
     resolveStagedJsonText: async () => ({ text: stagedJson, label: 'inline-fast-path.json' }),
+    prepareWeightBasis: (request = {}) => coordinator.prepareWeightBasis({
+      xmlText: request.xmlText || '',
+      stagedJsonText: request.stagedJsonText || '',
+      config: request.config || {},
+      datasetRefs: {},
+      ratingMode: request.ratingMode || 'preview',
+      previewRatingSnapshot: request.snapshot || {},
+    }, { onProgress: request.onProgress }),
   });
 
   const button = root.querySelector('#mc-wm-refresh');
   const statusEl = root.querySelector('#mc-wm-status');
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  let running = true;
+  let lastFrame = performance.now();
+  let maxFrameGapMs = 0;
+  const tick = (now) => {
+    maxFrameGapMs = Math.max(maxFrameGapMs, now - lastFrame);
+    lastFrame = now;
+    if (running) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
   const started = performance.now();
   button.click();
 
@@ -111,6 +132,11 @@ async function build() {
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
   const elapsedMs = performance.now() - started;
+  await new Promise((resolve) => requestAnimationFrame((now) => {
+    maxFrameGapMs = Math.max(maxFrameGapMs, now - lastFrame);
+    running = false;
+    resolve();
+  }));
   const status = statusEl.textContent || '';
   const rows = root.querySelectorAll('#mc-wm-content tbody tr').length;
   const inputValue = root.querySelector('.mc-rigid-review-input')?.value || '';
@@ -119,17 +145,21 @@ async function build() {
   const ok = rawPayloadPreserved
     && button.dataset.wmBusy !== 'true'
     && elapsedMs < MAX_WALL_MS
+    && maxFrameGapMs <= MAX_FRAME_GAP_MS
     && status !== 'Error'
     && !/Preparing Weight Match basis/i.test(status)
     && rows === 1
     && Number(inputValue) === 25
     && rating === '150';
 
+  coordinator.dispose();
   return {
     schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V1',
     ok,
     elapsedMs,
     maxWallMs: MAX_WALL_MS,
+    maxFrameGapMs,
+    maxFrameGapLimitMs: MAX_FRAME_GAP_MS,
     pipeNodes: PIPE_COUNT,
     stagedRows: STAGED_FILLER_COUNT + 1,
     stagedBytes: stagedJson.length,
