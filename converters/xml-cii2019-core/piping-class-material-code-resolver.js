@@ -1,9 +1,9 @@
 /**
  * Functionality: resolves a material code from the editable Piping Class ↔
  * Material Code configuration without reading files or mutating configuration.
- * Piping Class is fallback authority only. Wildcard family matching is admitted
- * only after a one- or two-character Rating prefix is recognized from the
- * configured Rating prefix mapping and removed.
+ * Piping Class remains fallback authority. Process/Line List material may also
+ * resolve through an unambiguous exact configured material category before any
+ * generic PCF material-name fuzzy matching is attempted.
  */
 
 import { DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS } from './default-piping-class-material-code-rows.js';
@@ -14,6 +14,25 @@ function text(value) {
 
 function normalizeClass(value) {
   return text(value).toUpperCase().replace(/\s+/g, '');
+}
+
+function normalizeMaterialCategory(value) {
+  return text(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function configuredRows(config = {}) {
+  const mapConfig = config?.pipingClassMaterialCodeMap;
+  if (mapConfig?.enabled === false) return { mapConfig, rows: [], enabled: false };
+  const useAppDefaults = config?.useDefaultPipingClassMaterialCodeMap === true;
+  if (!mapConfig && !useAppDefaults) return { mapConfig, rows: [], enabled: false };
+  const rows = Array.isArray(mapConfig?.rows) && mapConfig.rows.length
+    ? mapConfig.rows
+    : (useAppDefaults ? DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS : []);
+  return { mapConfig, rows, enabled: true };
+}
+
+function confidenceThreshold(mapConfig) {
+  return Number.isFinite(Number(mapConfig?.confidenceThreshold)) ? Number(mapConfig.confidenceThreshold) : 80;
 }
 
 function baseClass(value) {
@@ -144,17 +163,53 @@ function sameResolutionTier(left, right) {
     && left.confidence === right.confidence;
 }
 
+/**
+ * Resolve an exact Line List/process material category through Config 8.
+ * This is intentionally narrow: no wildcard/fuzzy material-category matching.
+ * A category is authoritative only when all threshold-qualified exact-category
+ * rows agree on one material code. Otherwise the caller must fail closed or use
+ * its existing review/fuzzy path.
+ */
+export function resolveConfiguredMaterialCodeByMaterial({ material, config } = {}) {
+  const category = normalizeMaterialCategory(material);
+  if (!category) return null;
+  const configured = configuredRows(config);
+  if (!configured.enabled) return null;
+  const threshold = confidenceThreshold(configured.mapConfig);
+  const candidates = configured.rows.map((row, index) => {
+    const rowCategory = normalizeMaterialCategory(row?.materialCategory);
+    const materialCode = text(row?.materialCode);
+    const confidence = Number(row?.confidence);
+    if (rowCategory !== category || !materialCode || !Number.isFinite(confidence) || confidence < threshold) return null;
+    return { row, index, materialCode, confidence };
+  }).filter(Boolean);
+  if (!candidates.length) return null;
+
+  const uniqueCodes = [...new Set(candidates.map((candidate) => candidate.materialCode))];
+  if (uniqueCodes.length !== 1) return null;
+  candidates.sort((left, right) => right.confidence - left.confidence || left.index - right.index);
+  const best = candidates[0];
+  return {
+    materialCode: best.materialCode,
+    materialName: text(best.row.materialName),
+    materialCategory: text(best.row.materialCategory),
+    confidence: best.confidence,
+    method: 'material-category-exact',
+    matchedRow: best.row,
+    matchedRows: candidates.map((candidate) => candidate.row),
+    matchedRowCount: candidates.length,
+    source: 'piping-class-material-code-config',
+  };
+}
+
 export function resolveConfiguredMaterialCode({ pipingClass, config }) {
-  const mapConfig = config?.pipingClassMaterialCodeMap;
-  if (mapConfig?.enabled === false) return null;
-  const useAppDefaults = config?.useDefaultPipingClassMaterialCodeMap === true;
-  if (!mapConfig && !useAppDefaults) return null;
+  const configured = configuredRows(config);
+  if (!configured.enabled) return null;
   const effectiveClass = normalizeClass(pipingClass);
   if (!effectiveClass) return null;
-  const threshold = Number.isFinite(Number(mapConfig?.confidenceThreshold)) ? Number(mapConfig.confidenceThreshold) : 80;
-  const rows = Array.isArray(mapConfig?.rows) && mapConfig.rows.length ? mapConfig.rows : (useAppDefaults ? DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS : []);
-  const candidates = rows.map((row, index) => {
-    const matched = rowMatch(row, effectiveClass, mapConfig?.normalizeClassSuffix !== false, config);
+  const threshold = confidenceThreshold(configured.mapConfig);
+  const candidates = configured.rows.map((row, index) => {
+    const matched = rowMatch(row, effectiveClass, configured.mapConfig?.normalizeClassSuffix !== false, config);
     const confidence = Number(row?.confidence);
     const materialCode = text(row?.materialCode);
     if (!matched || !materialCode || !Number.isFinite(confidence) || confidence < threshold) return null;
