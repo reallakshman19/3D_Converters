@@ -14,6 +14,7 @@ import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260929-pr780-bounded-ui-1';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-weight-ux-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -130,6 +131,8 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
 }
 
 export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
+  card.__xmlCiiWeightAuthorityPresentationCleanup?.();
+  card.__xmlCiiWeightAuthorityPresentationCleanup = null;
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
@@ -169,6 +172,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
           label: stateRef.current.stagedJsonFile?.name || '',
         }),
       });
+      card.__xmlCiiWeightAuthorityPresentationCleanup = installWeightMatchAuthorityPresentation(card);
       appendEmpiricalWeightValidationReport(card, stateRef);
     } catch (error) {
       card.innerHTML = `<div class="model-converters-workflow-detail-note" style="border-color:#b91c1c;color:#fecaca;background:#450a0a;">Weight Match was not started because the shared Preview Rating authority could not load: ${escapeHtml(error?.message || error)}</div>`;
