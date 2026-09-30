@@ -1,4 +1,4 @@
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20260930-issue781-screenshot-repair-1';
 
 export const masterDatasetCoordinator = createMasterDatasetImportCoordinator();
 
@@ -17,7 +17,6 @@ export function getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes = []
 export function remapMasterDataset(masterKey, datasetId, fieldMap = {}) {
   return masterDatasetCoordinator.remapDataset(masterKey, datasetId, fieldMap);
 }
-
 
 export function rankMasterDatasetWeightIssues(masterKey, datasetId, issues = [], config = {}, options = {}) {
   return masterDatasetCoordinator.rankWeightIssues(masterKey, issues, config, options, datasetId);

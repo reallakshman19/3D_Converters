@@ -1,0 +1,45 @@
+name: Issue 781 Post-merge Screenshot Repair Validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check repaired runtime paths
+        run: |
+          node --check tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+          node --check tabs/xml-cii-2019-standalone/workers/weight-basis-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-client.js
+      - name: Run screenshot acceptance contract
+        run: node tests/xml-cii-issue-781-postmerge-screenshot-repair.test.mjs
+      - name: Re-run Regex authority regressions
+        run: |
+          node --test \
+            tests/xml-cii-issue-781-auto-authority-followup.test.mjs \
+            tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+      - name: Re-run B31.3 automatic basis regressions
+        run: |
+          node --test \
+            tests/xml-cii-issue-781-b313-auto-basis.test.mjs \
+            tests/xml-cii-b313-preview-wall-update.test.mjs \
+            tests/xml-cii-b313-preview-blocker-provenance.test.mjs
+      - name: Re-run deployment mirror and cache-chain gate
+        run: node tests/xml-cii-issue-776-deployment-parity.test.mjs

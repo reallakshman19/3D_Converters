@@ -2,7 +2,7 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-auto-authority-1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-screenshot-repair-1';
 import {
   buildRegexSmartEvidenceReceipt,
   classifyRegexSmartTesterResult,
@@ -10,7 +10,7 @@ import {
   regexSmartReceiptIsCurrent,
   regexSmartReceiptRequestBasis,
   resolveRegexSmartEvidence,
-} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-auto-authority-1';
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-screenshot-repair-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
@@ -375,38 +375,6 @@ function decorateTokens(builder, receipt, stateRef, render) {
       card.querySelector('strong')?.insertAdjacentElement('afterend', badge);
     });
   });
-}
-
-async function applyOne(item, stateRef, render, builder) {
-  const beforeState = current(stateRef, {});
-  const stored = beforeState.regexSmartPreflight;
-  const storedBasis = beforeState.regexSmartPreflightRequestBasis;
-  try {
-    const bundle = await resolveActionEvidence(stateRef);
-    const state = current(stateRef, {});
-    if (!stored || storedBasis !== bundle.receiptRequestBasis || stored.fingerprint !== bundle.receipt.fingerprint) {
-      showMessage(builder, 'Suggestion evidence changed. Analyze again before applying this token.', true);
-      render?.();
-      return;
-    }
-    const freshItem = bundle.receipt.suggestions.find((candidate) => candidate.role === item.role
-      && candidate.tokenPositions.join(',') === item.tokenPositions.join(','));
-    if (!freshItem || freshItem.conflict || !SMART_AUTO_ROLES.includes(freshItem.role)) {
-      showMessage(builder, 'This suggestion is no longer valid under current master evidence.', true);
-      render?.();
-      return;
-    }
-    const receipt = { formatIndex: state.regexTesterConfig?.activeFormatIndex || 0, suggestions: [{ ...freshItem, safe: true }] };
-    const proposed = applyRegexSuggestions(state.regexTesterConfig, receipt, { safeOnly: false, manualLocks: locksOf(state) });
-    const rawResult = runStandaloneRegexTester({ ...state, sourceText: state.sourceText, extractionConfig: proposed });
-    state.regexTesterConfig = proposed;
-    applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
-    stateRef.current.regexSmartManualLocks = { ...locksOf(stateRef.current), [item.role]: true };
-    refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
-    render?.();
-  } catch (error) {
-    showMessage(builder, `Apply failed: ${error?.message || String(error)}`, true);
-  }
 }
 
 function decorateLocks(card, stateRef, render) {
