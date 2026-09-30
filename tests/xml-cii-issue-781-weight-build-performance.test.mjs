@@ -171,7 +171,7 @@ test('Weight basis skips master resolution and rejects known non-review nodes be
 test('Weight Line List lookup is indexed once per collection', () => {
   const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
   assert.match(model, /function buildWeightLineListIndex/);
-  assert.match(model, /const lineListIndex = buildWeightLineListIndex\(config\)/);
+  assert.match(model, /const lineListIndex = lightweightBasis \? null : buildWeightLineListIndex\(config\)/);
   const start = model.indexOf('function lineListRowForBranch');
   const end = model.indexOf('\nfunction looksLikeNpsToken', start);
   const lookup = model.slice(start, end);
