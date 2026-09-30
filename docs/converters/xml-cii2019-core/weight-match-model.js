@@ -1,13 +1,13 @@
 import { deriveLineKeyFromBranchName, tokenAtPosition } from './regex-line-key.js';
 import { computeLineNoKey } from './linelist-mapping.js';
-import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-basis-linear-1';
+import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { resolveBranchProcessData } from './branch-process-resolver.js';
 import { buildDtxrContext, resolveDtxrForXmlNode } from './dtxr-resolver.js';
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
 import {
   buildXmlCiiStagedGeometryIndex,
   resolveXmlCiiStagedGeometryForNode,
-} from './staged-geometry-authority.js?v=20260930-issue781-weight-basis-linear-1';
+} from './staged-geometry-authority.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 function toText(value) {
   return value === undefined || value === null ? '' : String(value);
