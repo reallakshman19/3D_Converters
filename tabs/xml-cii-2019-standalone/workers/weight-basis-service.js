@@ -43,36 +43,47 @@ function geometryOptions(config) {
   };
 }
 
-function reattachMasterRows(preparedConfig, hydratedConfig) {
+function mergeBasisAuthorityConfig(preparedConfig, authorityConfig) {
   const out = { ...(preparedConfig || {}) };
-  const specs = [
-    ['linelist', 'masterRows'],
-    ['pipingClass', 'masterRows'],
-    ['material', 'mapRows'],
-  ];
-  for (const [sectionName, rowsKey] of specs) {
-    const hydrated = plainObject(hydratedConfig?.[sectionName]);
-    const prepared = plainObject(out?.[sectionName]);
-    out[sectionName] = { ...hydrated, ...prepared };
-    if (Array.isArray(hydrated[rowsKey])) out[sectionName][rowsKey] = hydrated[rowsKey];
-  }
-  out.weight = { ...plainObject(hydratedConfig?.weight), ...plainObject(out.weight) };
+  out.weight = {
+    ...plainObject(authorityConfig?.weight),
+    ...plainObject(out.weight),
+  };
   out.overrides = {
     ...plainObject(out.overrides),
-    ...plainObject(hydratedConfig?.overrides),
+    ...plainObject(authorityConfig?.overrides),
   };
   return out;
 }
 
-function withRatingAuthority(row, mode, snapshot, ratingApi) {
-  const preview = ratingApi.resolveXmlCiiPreviewRating(row, snapshot);
-  const resolved = ratingApi.resolveXmlCiiWeightMatchRating(row, { mode, snapshot });
+function ratingAuthorityKey(row, mode) {
+  return [
+    mode,
+    text(row?.branchName),
+    text(row?.lineKey),
+    text(row?.requestedPipingClass),
+    text(row?.resolvedPipingClass),
+    text(row?.boreMm),
+    text(row?.dtxr),
+  ].join('\u0000');
+}
+
+function withRatingAuthority(row, mode, snapshot, ratingApi, cache) {
+  const key = ratingAuthorityKey(row, mode);
+  let authority = cache.get(key);
+  if (!authority) {
+    const preview = ratingApi.resolveXmlCiiPreviewRating(row, snapshot);
+    const resolved = ratingApi.resolveXmlCiiWeightMatchRating(row, { mode, snapshot });
+    authority = { preview, resolved };
+    cache.set(key, authority);
+  }
+  const { preview, resolved } = authority;
   const previewBore = Number(preview?.record?.sizeMm);
   return {
     ...row,
-    lineKey: row?.lineKey || preview?.record?.lineKey || '',
-    requestedPipingClass: row?.requestedPipingClass || preview?.record?.pipingClass || '',
-    resolvedPipingClass: row?.resolvedPipingClass || preview?.record?.pipingClass || '',
+    lineKey: preview?.record?.lineKey || row?.lineKey || '',
+    requestedPipingClass: preview?.record?.pipingClass || row?.requestedPipingClass || '',
+    resolvedPipingClass: preview?.record?.pipingClass || row?.resolvedPipingClass || '',
     boreMm: Number.isFinite(previewBore) && previewBore > 0 ? previewBore : row?.boreMm,
     rating: resolved.rating,
     ratingSource: resolved.source,
@@ -139,7 +150,7 @@ export async function prepareXmlCiiWeightBasis({
     text(stagedJsonText),
     geometryOptions(geometryConfig),
   );
-  const preparedConfig = reattachMasterRows(prepared.config || geometryConfig, config);
+  const preparedConfig = mergeBasisAuthorityConfig(prepared.config || geometryConfig, config);
 
   progress(onProgress, 'applying-staged-geometry');
   const geometry = geometryApi.applyXmlCiiStagedGeometryAuthority(
@@ -149,6 +160,7 @@ export async function prepareXmlCiiWeightBasis({
   );
 
   progress(onProgress, 'collecting-weight-basis');
+  const ratingCache = new Map();
   const basisRows = weightModel.collectXmlCiiWeightMatchBasisRows(
     geometry.xmlText,
     text(stagedJsonText),
@@ -158,6 +170,7 @@ export async function prepareXmlCiiWeightBasis({
     ratingMode,
     previewRatingSnapshot,
     ratingApi,
+    ratingCache,
   ));
 
   progress(onProgress, 'validating-match1', { issueCount: basisRows.length });

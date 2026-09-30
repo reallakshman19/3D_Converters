@@ -150,41 +150,21 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     return dataset;
   }
 
-  async function hydrateWeightBasisConfig(config = {}, datasetRefs = {}) {
-    const out = { ...(config || {}) };
-    const bindings = [
-      ['lineList', 'linelist', 'masterRows'],
-      ['pipingClass', 'pipingClass', 'masterRows'],
-      ['materialMap', 'material', 'mapRows'],
-    ];
-    for (const [masterKey, sectionName, rowsKey] of bindings) {
-      const datasetId = String(datasetRefs?.[masterKey]?.datasetId || '');
-      if (!datasetId) continue;
-      const dataset = await ensureDataset(datasetId);
-      if (String(dataset?.metadata?.masterKey || '') !== masterKey) {
-        throw new Error(`Weight basis expected ${masterKey} dataset; received ${dataset?.metadata?.masterKey || 'unknown'}.`);
-      }
-      out[sectionName] = { ...(out[sectionName] || {}), [rowsKey]: dataset.rows };
-    }
-    return out;
-  }
-
   function emitWeightBasisProgress(requestId, detail = {}) {
     if (typeof emitEvent !== 'function') return;
     emitEvent(response(MASTER_DATASET_EVENT.WEIGHT_BASIS_PROGRESS, requestId, detail));
   }
 
   async function prepareWeightBasis(message) {
-    emitWeightBasisProgress(message.requestId, { stage: 'hydrating-applied-masters' });
-    const hydratedConfig = await hydrateWeightBasisConfig(
-      message.config || {},
-      message.datasetRefs || {},
-    );
+    emitWeightBasisProgress(message.requestId, { stage: 'using-preview-authority' });
+    const compactConfig = message.config && typeof message.config === 'object'
+      ? message.config
+      : {};
     const result = await prepareXmlCiiWeightBasis({
       xmlText: message.xmlText || '',
       stagedJsonText: message.stagedJsonText || '',
-      config: hydratedConfig,
-      geometryConfig: message.config || {},
+      config: compactConfig,
+      geometryConfig: compactConfig,
       ratingMode: message.ratingMode || 'preview',
       previewRatingSnapshot: message.previewRatingSnapshot || {},
       onProgress: (detail) => emitWeightBasisProgress(message.requestId, detail),
