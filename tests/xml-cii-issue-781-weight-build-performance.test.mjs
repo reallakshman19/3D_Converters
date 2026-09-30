@@ -168,6 +168,23 @@ test('Weight basis skips master resolution and rejects known non-review nodes be
   assert.match(collector, /dtxrContext \|\|= buildDtxrContext/);
 });
 
+test('Weight basis never runs the full staged-geometry rewrite pipeline', () => {
+  const service = fs.readFileSync(
+    'tabs/xml-cii-2019-standalone/workers/weight-basis-service.js',
+    'utf8',
+  );
+  const model = fs.readFileSync(
+    'converters/xml-cii2019-core/weight-match-model.js',
+    'utf8',
+  );
+  assert.doesNotMatch(service, /applyXmlCiiStagedGeometryAuthority/);
+  assert.doesNotMatch(service, /staged-geometry-authority\.js/);
+  assert.match(model, /buildXmlCiiStagedGeometryIndex/);
+  assert.match(model, /resolveXmlCiiStagedGeometryForNode/);
+  assert.match(model, /resolveStagedGeometryLazily: true/);
+  assert.match(model, /reviewNode[\s\S]*?reviewEndpoint[\s\S]*?resolveXmlCiiStagedGeometryForNode/);
+});
+
 test('Weight Line List lookup is indexed once per collection', () => {
   const model = fs.readFileSync('converters/xml-cii2019-core/weight-match-model.js', 'utf8');
   assert.match(model, /function buildWeightLineListIndex/);

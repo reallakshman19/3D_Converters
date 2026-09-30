@@ -15,7 +15,7 @@ import { createMasterDatasetImportCoordinator } from '../../tabs/xml-cii-2019-st
 
 const MAX_WALL_MS = 5000;
 const MAX_FRAME_GAP_MS = 250;
-const PIPE_COUNT = 1200;
+const PIPE_COUNT = 1654;
 const STAGED_FILLER_COUNT = 8000;
 const DTXR_RAW = 'GATE   VALVE';
 const AUTHORITY_DATASET_ROWS = 100000;
@@ -121,6 +121,12 @@ async function build() {
 
   const button = root.querySelector('#mc-wm-refresh');
   const statusEl = root.querySelector('#mc-wm-status');
+  const statusHistory = [];
+  const statusObserver = new MutationObserver(() => {
+    const value = statusEl.textContent || '';
+    if (value && statusHistory.at(-1) !== value) statusHistory.push(value);
+  });
+  statusObserver.observe(statusEl, { childList: true, subtree: true, characterData: true });
   await new Promise((resolve) => requestAnimationFrame(resolve));
   let running = true;
   let lastFrame = performance.now();
@@ -144,6 +150,8 @@ async function build() {
     resolve();
   }));
   const status = statusEl.textContent || '';
+  statusObserver.disconnect();
+  if (status && statusHistory.at(-1) !== status) statusHistory.push(status);
   const rows = root.querySelectorAll('#mc-wm-content tbody tr').length;
   const inputValue = root.querySelector('.mc-rigid-review-input')?.value || '';
   const lineKey = root.querySelector('#mc-wm-content tbody tr td:nth-child(3)')?.textContent?.trim() || '';
@@ -155,6 +163,7 @@ async function build() {
     && maxFrameGapMs <= MAX_FRAME_GAP_MS
     && status !== 'Error'
     && !/Preparing Weight Match basis/i.test(status)
+    && !statusHistory.some((value) => /Applying staged geometry/i.test(value))
     && rows === 1
     && Number(inputValue) === 25
     && lineKey === 'P0310051'
@@ -162,7 +171,7 @@ async function build() {
 
   coordinator.dispose();
   return {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V2',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V3',
     ok,
     elapsedMs,
     maxWallMs: MAX_WALL_MS,
@@ -180,6 +189,7 @@ async function build() {
     lineKey,
     rating,
     status,
+    statusHistory,
   };
 }
 
@@ -191,7 +201,7 @@ try {
   document.querySelector('#out').textContent = JSON.stringify(result, null, 2);
 } catch (error) {
   const result = {
-    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V2',
+    schema: 'XMLCII_ISSUE_781_WEIGHT_BASIS_FASTPATH_E2E_V3',
     ok: false,
     error: String(error?.stack || error),
   };
