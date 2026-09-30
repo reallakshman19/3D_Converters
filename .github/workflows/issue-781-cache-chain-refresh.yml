@@ -1,0 +1,113 @@
+name: Issue 781 XML-CII Cache Chain Refresh
+
+on:
+  push:
+    branches:
+      - agent/issue-781-worker-weight-api-mapping-projection-20260930
+    paths:
+      - .github/workflows/issue-781-cache-chain-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  backup-refresh-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/issue-781-worker-weight-api-mapping-projection-20260930
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Native backup current cache-chain bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            index.html
+            docs/index.html
+            main-rhbg-fitguard.js
+            docs/main-rhbg-fitguard.js
+            core/app.js
+            docs/core/app.js
+            core/app-standalone-runtime.js
+            docs/core/app-standalone-runtime.js
+            tabs/xml-cii-2019-standalone-tab.js
+            docs/tabs/xml-cii-2019-standalone-tab.js
+            tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js
+            docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js
+          )
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              node utils/backup.js save "$file" "issue-781 worker Weight API deployment cache chain"
+            fi
+          done
+          git add -f .backups
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(issue-781): backup worker Weight cache chain'
+          git push origin HEAD:agent/issue-781-worker-weight-api-mapping-projection-20260930
+      - name: Advance coherent XML-CII release token
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --ff-only origin agent/issue-781-worker-weight-api-mapping-projection-20260930
+          python3 <<'PY'
+          from pathlib import Path
+          old='20260929-pr780-bounded-ui-1'
+          new='20260930-issue781-worker-weight-api-1'
+          files=[
+            'index.html','main-rhbg-fitguard.js','core/app.js','core/app-standalone-runtime.js',
+            'tabs/xml-cii-2019-standalone-tab.js',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+          ]
+          for file in files:
+            path=Path(file)
+            text=path.read_text()
+            if old not in text:
+              raise SystemExit(f'{file}: expected old XML-CII cache token missing')
+            text=text.replace(old,new)
+            path.write_text(text)
+            docs=Path('docs')/path
+            if docs.exists(): docs.write_text(text)
+          PY
+      - name: Validate exact source/docs parity and cache chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check main-rhbg-fitguard.js
+          node --check core/app.js
+          node --check core/app-standalone-runtime.js
+          node --check tabs/xml-cii-2019-standalone-tab.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js
+          python3 <<'PY'
+          from pathlib import Path
+          token='20260930-issue781-worker-weight-api-1'
+          required={
+            'index.html': f'main-rhbg-fitguard.js?v={token}',
+            'main-rhbg-fitguard.js': f'core/app.js?v={token}',
+            'core/app.js': f'app-standalone-runtime.js?v={token}',
+            'core/app-standalone-runtime.js': f'xml-cii-2019-standalone-tab.js?v={token}',
+            'tabs/xml-cii-2019-standalone-tab.js': f'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v={token}',
+            'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js': f'xml-cii-adapted-phase-panels-mode-a.js?v={token}',
+          }
+          for file,needle in required.items():
+            text=Path(file).read_text()
+            if needle not in text: raise SystemExit(f'{file}: missing {needle}')
+            docs=Path('docs')/file
+            if docs.exists() and docs.read_text()!=text: raise SystemExit(f'docs mirror mismatch: {file}')
+          PY
+          node --test tests/xml-cii-issue-781-worker-weight-api.test.mjs tests/xml-cii-issue-781-weight-build-performance.test.mjs
+      - name: Commit qualified cache-chain refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add index.html docs/index.html main-rhbg-fitguard.js docs/main-rhbg-fitguard.js core/app.js docs/core/app.js core/app-standalone-runtime.js docs/core/app-standalone-runtime.js tabs/xml-cii-2019-standalone-tab.js docs/tabs/xml-cii-2019-standalone-tab.js tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(issue-781): refresh XML-CII worker Weight cache chain'
+          git push origin HEAD:agent/issue-781-worker-weight-api-mapping-projection-20260930
