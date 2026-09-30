@@ -25,7 +25,10 @@ function timeoutError(type, timeoutMs) {
 
 export function createMasterDatasetClient(options = {}) {
   const workerFactory = options.workerFactory || defaultWorkerFactory;
-  const weightRequestTimeoutMs = Math.max(1000, Number(options.weightRequestTimeoutMs) || 15000);
+  const configuredWeightTimeout = Number(options.weightRequestTimeoutMs);
+  const weightRequestTimeoutMs = Number.isFinite(configuredWeightTimeout) && configuredWeightTimeout > 0
+    ? configuredWeightTimeout
+    : 15000;
   let worker = null;
   const pending = new Map();
   let generation = 0;
@@ -56,9 +59,11 @@ export function createMasterDatasetClient(options = {}) {
       else entry.resolve(message);
     });
     nextWorker.addEventListener('error', (event) => {
+      if (worker !== nextWorker) return;
       restartWorker(transportError(event?.message || 'Master dataset worker crashed.'));
     });
     nextWorker.addEventListener('messageerror', () => {
+      if (worker !== nextWorker) return;
       restartWorker(transportError('Master dataset worker returned an unreadable message.'));
     });
     return nextWorker;
