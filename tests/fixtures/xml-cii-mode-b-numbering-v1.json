@@ -1,0 +1,47 @@
+{
+  "schema": "xml-cii-mode-b-numbering/v1",
+  "sourceCompositeFingerprint": "fnv1a32:d5104931",
+  "fingerprint": "fnv1a32:2eb8628d",
+  "options": {
+    "start": 10,
+    "step": 10
+  },
+  "stats": {
+    "vertexCount": 452,
+    "componentCount": 6,
+    "positiveNumberedVertexCount": 234,
+    "nonPositiveSentinelCount": 218,
+    "unnumberedSourceCount": 0,
+    "firstPositiveOutputNodeNumber": 10,
+    "lastPositiveOutputNodeNumber": 2340,
+    "acceptedCrossDocumentEdgeCount": 1,
+    "canonicalFallbackOrientationCount": 0
+  },
+  "acceptedEdgeOrientation": {
+    "candidateId": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2<=>split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::0::-1::1006649732/121345::1",
+    "from": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-6\"-S8810010-91261M7-HC-01/B1::1::88::570::1006649732/121515::2",
+    "to": "split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B1::1::0::-1::1006649732/121345::1",
+    "orientation": "TAIL_TO_HEAD"
+  },
+  "componentVertexCounts": [40, 52, 43, 183, 98, 36],
+  "samples": [
+    {
+      "sourceIdentity": "split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B2::1::0::70::1006649732/121401::1",
+      "sourceNodeNumber": "70",
+      "outputNodeNumber": 10,
+      "numberClass": "POSITIVE_ENGINEERING"
+    },
+    {
+      "sourceIdentity": "split-3-SYS-S8811956-01.xml::/ASIM-1836-6\"-S8811956-91261M7-HC-01/B2::1::1::-2::1006649732/121402::0",
+      "sourceNodeNumber": "-2",
+      "outputNodeNumber": -2,
+      "numberClass": "NONPOSITIVE_SENTINEL"
+    },
+    {
+      "sourceIdentity": "split-1-SYS-6-S8810010-01.xml::/ASIM-1836-2\"-D8810083-91261M7-PP-01/B1::1::35::680::1006649732/119309::2",
+      "sourceNodeNumber": "680",
+      "outputNodeNumber": 2340,
+      "numberClass": "POSITIVE_ENGINEERING"
+    }
+  ]
+}
