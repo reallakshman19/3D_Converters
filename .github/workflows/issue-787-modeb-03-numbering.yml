@@ -1,0 +1,153 @@
+name: Issue 787 Mode B Numbering Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'agent/issue-787-modeb-02-composite-core-20260930'
+    paths:
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-observation.js'
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-composite.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-composite.js'
+      - 'converters/xml-cii2019-core/topology/xml-cii-mode-b-numbering.js'
+      - 'docs/converters/xml-cii2019-core/topology/xml-cii-mode-b-numbering.js'
+      - 'scripts/xml-cii-mode-b-numbering-observe.mjs'
+      - 'tests/xml-cii-issue-787-mode-b-numbering.test.mjs'
+      - 'tests/fixtures/xml-cii-mode-b-composite-v1.json'
+      - 'Benchmarks/XML-CII-2019/**'
+      - '.github/workflows/issue-787-modeb-03-numbering.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modeb-numbering:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run MODEB-03 synthetic + real-corpus numbering regressions
+        run: node --test tests/xml-cii-issue-787-mode-b-numbering.test.mjs
+      - name: Preserve frozen MODEB-02 graph authority
+        run: node --test tests/xml-cii-issue-787-mode-b-composite.test.mjs tests/xml-cii-issue-787-mode-b-combined-oracle.test.mjs tests/xml-cii-issue-787-mode-b-composite-fixture.test.mjs
+      - name: Preserve MODEB-01 observation authority
+        run: node --test tests/xml-cii-issue-787-mode-b-observation.test.mjs tests/xml-cii-issue-787-mode-b-fixture.test.mjs
+      - name: Preserve existing single-document topology behavior
+        run: node tests/seljson-to-inputxml-topology-element-length.test.js
+      - name: Run inherited Issue 776 focused authority regressions
+        run: node --test tests/xml-cii-issue-776-*.test.mjs tests/xml-cii-mode-a-preview-restoration.test.mjs
+      - name: Run inherited PR780 master-dataset regressions
+        run: node --test tests/xml-cii-master-dataset-*.test.mjs tests/xml-cii-master-preview-worker-search.test.mjs tests/xml-cii-master-worker-integration.test.mjs
+      - name: Run inherited adjacent authority regressions on MODEB-03 head
+        id: adjacent_head
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-smart-ui-preflight.test.mjs \
+            tests/xml-cii-regex-confidence-buckets.test.mjs \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/engineering-calculation-core.test.mjs 2>&1 | tee modeb03-adjacent-head.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Checkout stacked PR base for adjacent baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: __modeb03_base
+      - name: Run inherited adjacent authority regressions on stacked base
+        id: adjacent_base
+        shell: bash
+        working-directory: __modeb03_base
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-smart-ui-preflight.test.mjs \
+            tests/xml-cii-regex-confidence-buckets.test.mjs \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/engineering-calculation-core.test.mjs 2>&1 | tee ../modeb03-adjacent-base.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Classify adjacent regressions against stacked base
+        id: adjacent_diff
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          head_status="${{ steps.adjacent_head.outputs.status }}"
+          base_status="${{ steps.adjacent_base.outputs.status }}"
+
+          normalize_failures() {
+            sed -nE 's/^[[:space:]]*not ok [0-9]+ - (.*)$/\1/p' "$1" \
+              | sed -E 's/[[:space:]]+#.*$//' \
+              | sort
+          }
+
+          normalize_failures modeb03-adjacent-head.log > modeb03-adjacent-head.failures.txt
+          normalize_failures modeb03-adjacent-base.log > modeb03-adjacent-base.failures.txt
+          comm -23 modeb03-adjacent-head.failures.txt modeb03-adjacent-base.failures.txt \
+            > modeb03-adjacent-new.failures.txt
+
+          status=0
+          classification="head-pass"
+          if [ "${head_status}" != "0" ]; then
+            if [ ! -s modeb03-adjacent-head.failures.txt ]; then
+              status=1
+              classification="unclassified-head-failure"
+            elif [ "${base_status}" = "0" ]; then
+              status=1
+              classification="new-head-failure"
+            elif [ -s modeb03-adjacent-new.failures.txt ]; then
+              status=1
+              classification="new-failure-identity"
+            else
+              classification="baseline-only-failures"
+            fi
+          fi
+
+          echo "MODEB-03 adjacent applicability: head=${head_status} base=${base_status} classification=${classification}"
+          if [ -s modeb03-adjacent-new.failures.txt ]; then
+            echo "New adjacent failures introduced by MODEB-03:"
+            cat modeb03-adjacent-new.failures.txt
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          echo "classification=${classification}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Enforce applicable adjacent regression result
+        if: always()
+        run: test "${{ steps.adjacent_diff.outputs.status }}" = "0"
+      - name: Generate deterministic MODEB-03 numbering evidence
+        run: node scripts/xml-cii-mode-b-numbering-observe.mjs --out modeb-numbering.json | tee modeb-numbering-summary.json
+      - name: Upload MODEB-03 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-787-modeb-03-numbering
+          path: |
+            modeb-numbering.json
+            modeb-numbering-summary.json
+            modeb03-adjacent-head.log
+            modeb03-adjacent-base.log
+            modeb03-adjacent-head.failures.txt
+            modeb03-adjacent-base.failures.txt
+            modeb03-adjacent-new.failures.txt
+          if-no-files-found: warn
