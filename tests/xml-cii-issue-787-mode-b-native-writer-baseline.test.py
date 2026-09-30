@@ -23,27 +23,33 @@ def restraint_summary(writer, path: Path):
     edges = writer._build_edges(document.branches)
     degrees = writer._build_degree_map(edges)
     explicit = writer._build_explicit_restraint_specs(document.branches)
+    node_specs = set(explicit)
+    if document.metadata.restrain_open_ends:
+        node_specs.update(node_number for node_number, degree in degrees.items() if degree == 1)
     result = {
         "path": path.name,
         "branchCount": len(document.branches),
         "edgeCount": len(edges),
         "explicitRestraintNodeCount": len(explicit),
+        "generatedOpenEndNodeCount": len(node_specs - set(explicit)),
         "droppedShortNodeCount": len(writer.DROPPED_SHORT_ELEMENT_NODES),
     }
     try:
         model = writer._build_conversion_model(document)
         result.update({"modelStatus": "PASS", "modelRestraintCount": len(model.restraints)})
         return result
-    except Exception as exc:  # diagnostic classification must retain exact native failure
+    except Exception as exc:
         result.update({"modelStatus": "FAIL", "errorType": type(exc).__name__, "error": str(exc)})
 
     occupied = {}
     assigned = set()
     collisions = []
 
+    def restraint_kind(node_number):
+        return "EXPLICIT" if node_number in explicit else "GENERATED_OPEN_END"
+
     def note(edge_index, node, phase):
-        specs = explicit.get(node.node_number)
-        if not specs or node.node_number in assigned:
+        if node.node_number not in node_specs or node.node_number in assigned:
             return False
         prior = occupied.get(edge_index)
         if prior is not None:
@@ -52,6 +58,8 @@ def restraint_summary(writer, path: Path):
                 "phase": phase,
                 "existingNodeNumber": prior["nodeNumber"],
                 "incomingNodeNumber": node.node_number,
+                "existingRestraintKind": prior["restraintKind"],
+                "incomingRestraintKind": restraint_kind(node.node_number),
                 "existingNodeName": prior["nodeName"],
                 "incomingNodeName": node.node_name,
                 "existingComponentRefNo": prior["componentRefNo"],
@@ -59,12 +67,17 @@ def restraint_summary(writer, path: Path):
                 "branchName": edges[edge_index].branch_name,
                 "fromNodeNumber": edges[edge_index].from_node.node_number,
                 "toNodeNumber": edges[edge_index].to_node.node_number,
+                "fromNodeName": edges[edge_index].from_node.node_name,
+                "toNodeName": edges[edge_index].to_node.node_name,
+                "fromComponentRefNo": edges[edge_index].from_node.component_ref_no,
+                "toComponentRefNo": edges[edge_index].to_node.component_ref_no,
             })
             return False
         occupied[edge_index] = {
             "nodeNumber": node.node_number,
             "nodeName": node.node_name,
             "componentRefNo": node.component_ref_no,
+            "restraintKind": restraint_kind(node.node_number),
         }
         assigned.add(node.node_number)
         return True
@@ -74,16 +87,14 @@ def restraint_summary(writer, path: Path):
             continue
         if degrees[edge.from_node.node_number] == 1:
             note(edge_index, edge.from_node, "forward-open-from")
-    for node_number in explicit:
+    for node_number in sorted(node_specs):
         if node_number in assigned:
             continue
         for edge_index, edge in enumerate(edges):
-            if edge.to_node.node_number == node_number:
-                if note(edge_index, edge.to_node, "unresolved-to"):
-                    break
-            if edge.from_node.node_number == node_number:
-                if note(edge_index, edge.from_node, "unresolved-from"):
-                    break
+            if edge.to_node.node_number == node_number and note(edge_index, edge.to_node, "unresolved-to"):
+                break
+            if edge.from_node.node_number == node_number and note(edge_index, edge.from_node, "unresolved-from"):
+                break
 
     result["collisions"] = collisions
     result["collisionCount"] = len(collisions)
@@ -107,10 +118,13 @@ def main():
     results = [restraint_summary(writer, path) for path in cases]
     print(json.dumps(results, indent=2, sort_keys=True))
 
+    for baseline in results[:-1]:
+        assert baseline["modelStatus"] == "PASS", f"baseline native writer must pass: {baseline}"
     modeb = results[-1]
     assert modeb["modelStatus"] == "FAIL", "diagnostic currently expects the reproduced Mode B native-writer failure"
     assert "multiple restraints" in modeb.get("error", "").lower()
     assert modeb.get("collisions"), "must identify the concrete restraint/edge collision behind the failure"
+    assert any(row["edgeNumber"] == 58 for row in modeb["collisions"]), modeb["collisions"]
 
 
 if __name__ == "__main__":
