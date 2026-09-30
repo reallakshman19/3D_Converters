@@ -12,7 +12,7 @@ import {
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-worker-weight-api-1';
+import { materializeMasterDatasetRows, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-weight-liveness-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-weight-ux-1';
 
 function text(value) {
@@ -143,7 +143,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   void (async () => {
     try {
       const [renderer, parity] = await Promise.all([
-        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260928-issue776-authority-2'),
+        import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-liveness-1'),
         import('../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2'),
       ]);
       const shared = await parity.loadParentWeightMatchModules();
