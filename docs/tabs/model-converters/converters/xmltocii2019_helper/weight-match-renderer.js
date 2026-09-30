@@ -397,8 +397,12 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     }
     status(`Computing with ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'}…`);
     try {
-      const xmlText = await file.text();
-      const stagedSource = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig) : { text: await stagedText(stagedJsonText), label: '' };
+      status('Reading Weight Match inputs…');
+      const xmlText = await withWeightStageTimeout(file.text(), 'XML source read', 15000);
+      const stagedPromise = typeof resolveStagedJsonText === 'function'
+        ? resolveStagedJsonText(liveConfig)
+        : stagedText(stagedJsonText).then((text) => ({ text, label: '' }));
+      const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
       const jsonText = clean(stagedSource?.text ?? stagedSource);
       status('Preparing Weight Match geometry…');
       const enriched = await withWeightStageTimeout(
@@ -493,8 +497,11 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
   const file = currentXmlFile(xmlFile);
   if (!file) return null;
   try {
-    const xmlText = await file.text();
-    const stagedSource = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText || '').catch(() => '') };
+    const xmlText = await withWeightStageTimeout(file.text(), 'XML source read', 15000);
+    const stagedPromise = typeof resolveStagedJsonText === 'function'
+      ? resolveStagedJsonText(liveConfig).catch(() => ({ text: '' }))
+      : stagedText(stagedJsonText || '').then((text) => ({ text })).catch(() => ({ text: '' }));
+    const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
     const jsonText = clean(stagedSource?.text ?? stagedSource ?? '');
     const enriched = await withWeightStageTimeout(
       enrichXmlForCii2019(xmlText, jsonText, enrichedOptionsForWeightMatch(liveConfig)),
