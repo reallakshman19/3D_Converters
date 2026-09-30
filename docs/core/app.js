@@ -1,7 +1,7 @@
 // Standalone app shell runtime delegate.
 import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v=standalone-3';
 import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260819-sbc-connection-authoring-1-tabperf1';
-import * as runtime from './app-standalone-runtime.js?v=20260930-issue781-weight-basis-worker-1';
+import * as runtime from './app-standalone-runtime.js?v=20260930-issue781-weight-basis-linear-1';
 
 const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260928-rvm-full-scope-core-1-tabperf1';
 let destroyEngineeringTabs = null;
