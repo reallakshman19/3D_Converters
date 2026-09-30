@@ -81,7 +81,6 @@ test('mapping draft status explicitly prompts Apply mapping without modal interr
 
 test('Weight Match bounds async I/O and exposes the lightweight basis/ranking stages', () => {
   const source = fs.readFileSync(
-    'tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
     'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
     'utf8',
   );
