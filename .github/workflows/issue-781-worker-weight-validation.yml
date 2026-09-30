@@ -15,7 +15,9 @@ on:
       - tests/xml-cii-issue-781-worker-weight-api.test.mjs
       - tests/xml-cii-issue-781-weight-build-performance.test.mjs
       - tests/browser/xml-cii-worker-weight-scale-e2e.html
+      - tests/browser/xml-cii-line-list-remap-preview-e2e.html
       - scripts/run-xml-cii-worker-weight-scale-e2e.mjs
+      - scripts/run-xml-cii-line-list-remap-preview-e2e.mjs
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -84,6 +86,8 @@ jobs:
         run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
       - name: Qualify six-issue Weight ranking at 10k / 50k / 100k
         run: node scripts/run-xml-cii-worker-weight-scale-e2e.mjs
+      - name: Prove APPLIED Key1/Key2 survives worker remap and Preview fetch
+        run: node scripts/run-xml-cii-line-list-remap-preview-e2e.mjs
       - name: Upload worker-scale evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,5 +96,6 @@ jobs:
           path: |
             ValidationRecords/xml-cii-master-dataset-scale-e2e.json
             ValidationRecords/xml-cii-issue-781-worker-weight-scale-e2e.json
+            ValidationRecords/xml-cii-issue-781-line-list-remap-preview-e2e.json
             /tmp/issue-781-worker-http.log
           if-no-files-found: warn
