@@ -1286,3 +1286,98 @@ Independent review + explicit owner approval
 ```
 
 Qualification is scope-specific. Passing Appendix A does not authorize unrelated FEA solvers, code-stress engines, vibration modules, FBX/GLB conversion, or other repository programmes.
+
+---
+
+# Appendix B — Mode B semantic multi-XML qualification runtime (Issue #787)
+
+## B.1 Scope and authority state
+
+Mode A remains the current product/default multi-file behavior described throughout this document: multiple independent XML sources remain multiple independent conversion jobs and outputs. The statements above that prohibit namespace merging are **Mode A rules** and are unchanged.
+
+Issue #787 introduces a separate, explicit **Mode B qualification path** for the owner-requested case where several PSI116 XML files are fragments of one physical piping system and must be reconstructed into one semantic topology before conversion.
+
+As of the MODEB-04 runtime-handoff implementation, the authority states are:
+
+```text
+MODE_B_SOURCE_PRESENT          = true
+MODE_B_RUNTIME_BOUND           = true via explicit runXmlCii2019ModeBWorkflow API
+MODE_B_UI_VISIBLE              = false
+MODE_B_DEFAULT                 = false
+MODE_B_PRODUCTION_AUTHORIZED   = false
+MODE_B_COMBINED_ORACLE_RUNTIME = false
+```
+
+The combined benchmark `SYS-001_Single.xml` is a qualification oracle only. It is not consumed as production/runtime authority.
+
+## B.2 Governing Mode B pipeline
+
+The Mode B engineering chain is intentionally separate from raw concatenation and from NodeNumber-offset schemes:
+
+```text
+N split PSI116 XML sources
+  -> immutable source/branch/node occurrence identities
+  -> read-only cross-document topology observations
+  -> fail-closed multi-signal candidate evaluation
+  -> accepted composite graph edges
+  -> deterministic post-topology output numbering
+  -> runtime materialization preserving separate Branch blocks
+  -> existing XML→CII workflow service / native writer
+```
+
+Mode B shall not infer topology from source `NodeNumber` equality. Position is candidate-generation evidence only; accepted joins require the governed multi-signal topology evaluator. Coincident source nodes remain separate identities until the evaluator establishes a specific cross-document edge.
+
+## B.3 Frozen real-corpus authority through MODEB-04
+
+The current qualification corpus is:
+
+```text
+SYS-6-S8810010-01.xml
+SYS-6-S8810011-01.xml
+SYS-S8811956-01.xml
+```
+
+with `SYS-001_Single.xml` as test oracle only.
+
+The frozen MODEB-01 observation records 452 split-source nodes, 7 split branches, 76 positive source-NodeNumber collisions, 120 same-position clusters, 8 TEE facts, 253 restraint facts and three exact-position cross-document candidates. MODEB-02 accepts exactly one boundary after type, connection, OD and opposed-route corroboration; the two position-only candidates remain insufficient. MODEB-03 assigns deterministic positive output numbers only after graph completion and preserves non-positive helper/sentinel identity in its ledger.
+
+The accepted real boundary is:
+
+```text
+upstream:   S8810010 /B1, source Node 570, ComponentRefNo 1006649732/121515, Endpoint 2
+downstream: S8811956 /B1 branch-head helper, source Node -1, ComponentRefNo 1006649732/121345, Endpoint 1
+orientation: TAIL_TO_HEAD
+```
+
+The coincident `1006649732/121346` node is not the accepted boundary and shall not be substituted for it.
+
+## B.4 Native-writer junction alias
+
+The existing native `xml_to_cii2019.py` parser intentionally drops non-positive node numbers and builds route edges independently inside each Branch. MODEB-04 therefore renders a narrowly governed runtime alias without changing the frozen MODEB-03 ledger:
+
+- the upstream accepted tail keeps its pinned positive MODEB-03 output NodeNumber;
+- the accepted downstream non-positive branch-head helper retains its original identity/provenance in evidence;
+- only in the materialized runtime XML, that helper is rendered with the upstream positive junction number;
+- the alias is allowed only for a frozen accepted `TAIL_TO_HEAD` edge;
+- restraint-bearing alias targets are rejected;
+- ambiguous topology blocks conversion;
+- all other non-positive helper/sentinel values remain governed by MODEB-03/source custody;
+- separate Branch blocks are retained so branch-owned temperature, pressure, material and density context is not inherited across a concatenated route.
+
+This runtime-only record is `JUNCTION_ALIAS` authority, not a new source node and not a change to the accepted topology edge.
+
+## B.5 Current exact-head qualification contract
+
+MODEB-04 exact-head qualification must prove, at minimum:
+
+1. the real three-source materializer reproduces the frozen MODEB-01/02/03 authority without the combined oracle at runtime;
+2. exactly one accepted helper alias is rendered and `121346` retains a distinct positive engineering number;
+3. the real native Python writer sees the shared positive junction in both preserved branch routes;
+4. explicit `+Y` REST witnesses `PS-14292.1` and `PS-14259.4` remain type-14 authority;
+5. all seven split Branch blocks and branch-owned process/material metadata are retained;
+6. the ten frozen shared-coverage witness segments remain reconstructable;
+7. inherited XML→CII authority and post-PR780 worker/dataset regressions remain green;
+8. the normal single-file/Mode A workflow remains on its original path;
+9. browser semantic-core timing remains green on the exact PR head.
+
+Passing MODEB-04 advances `RUNTIME_BOUND`; it does **not** make Mode B UI-visible, default, or production-authorized. Those transitions require the later MODEB-05 UI/default-readiness and whole-system qualification work plus explicit owner review/authorization.
