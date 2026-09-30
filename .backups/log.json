@@ -1,5 +1,5 @@
 {
-  "lastId": 263,
+  "lastId": 264,
   "entries": [
     {
       "id": 1,
@@ -1841,6 +1841,13 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js",
       "context": "issue-781 worker-resident Weight API + applied projection contract",
       "backupFile": "263_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 264,
+      "timestamp": "2026-09-30 07:33:02",
+      "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "issue-781 worker Weight API cache-chain expectation",
+      "backupFile": "264_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
     }
   ]
 }
