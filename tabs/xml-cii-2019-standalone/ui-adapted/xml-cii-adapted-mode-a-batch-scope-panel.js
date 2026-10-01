@@ -1,5 +1,5 @@
 import { normalizeModeABatchState, syncActiveModeASource } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

@@ -10,7 +10,7 @@ import {
   _rowText,
   _xmlCiiLineKeyRegexValue,
   _xmlCiiNormalizeLineKey,
-} from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-1';
+} from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-2';
 import {
   bigrams,
   digitRuns,

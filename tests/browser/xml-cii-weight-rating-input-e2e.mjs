@@ -13,7 +13,7 @@ const fixturePath = process.env.XML_CII_41_BRANCH_FIXTURE || path.join(root, 'Be
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
-const release = '20261001-weight-output-1';
+const release = '20261001-weight-output-2';
 const server = createServer(async (request, response) => {
   try {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);

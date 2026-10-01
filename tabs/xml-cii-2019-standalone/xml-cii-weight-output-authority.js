@@ -1,4 +1,4 @@
-import { collectXmlCiiWeightMatchBasisRows, applyXmlCiiRigidWeightOverrides } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-1';
+import { collectXmlCiiWeightMatchBasisRows, applyXmlCiiRigidWeightOverrides } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-2';
 import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { readXmlCiiPreviewRatingSnapshot, resolveXmlCiiPreviewRating, resolveXmlCiiWeightMatchRating } from '../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-rating-1';
 

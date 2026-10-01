@@ -1,4 +1,4 @@
-import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-weight-output-1';
+import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-weight-output-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260804-branch-scope-v1';
 import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import {

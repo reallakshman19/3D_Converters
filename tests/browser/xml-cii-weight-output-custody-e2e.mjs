@@ -13,7 +13,7 @@ const fixturePath = process.env.XML_CII_41_BRANCH_FIXTURE || path.join(root, 'Be
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
-const release = '20261001-weight-output-1';
+const release = '20261001-weight-output-2';
 const expectOwnerBlock = process.argv.includes('--expect-weight-owner-block');
 const server = createServer(async (request, response) => {
   try {
@@ -76,6 +76,8 @@ try {
     entered.push({key:await input.getAttribute('data-wm-key'),weight});
     await input.fill(String(weight)); await input.dispatchEvent('change');
   }
+  await page.locator('#mc-wm-fill-best').click();
+  for (const item of entered) assert.equal(Number(await rows.locator(`.mc-rigid-review-input[data-wm-key=${JSON.stringify(item.key)}]`).inputValue()),item.weight,'Preferred bulk fill replaced a saved Weight Match value');
   await page.getByRole('button',{name:/10 Output \/ Run/}).click();
   await page.getByRole('button',{name:'Run Separate Models',exact:true}).click();
   const modal=page.getByRole('dialog',{name:'Consolidated rigid zero weight review'});
@@ -85,6 +87,10 @@ try {
     const saved=await input.evaluateAll((nodes,key)=>nodes.find(n=>n.dataset.issueKey===key)?.value,item.key);
     if(Number(saved)!==item.weight) console.log('Manual review mismatch',await modal.locator('.mc-rigid-review-input').evaluateAll((nodes,key)=>nodes.find(n=>n.dataset.issueKey===key)?.closest('tr')?.innerText,item.key),JSON.stringify(await page.evaluate(()=>JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')).config.overrides)));
     assert.equal(Number(saved),item.weight,'Saved UI weight did not populate run review');
+  }
+  for (const label of ['Use All Exact Suggestions','Use All Suggestions']) {
+    await modal.getByRole('button',{name:label,exact:true}).click();
+    for (const item of entered) assert.equal(Number(await modal.locator('.mc-rigid-review-input').evaluateAll((nodes,key)=>nodes.find(n=>n.dataset.issueKey===key)?.value,item.key)),item.weight,'Review bulk fill replaced saved weight');
   }
   const reviewRows=modal.locator('.mc-rigid-review-input');
   for(let i=0;i<await reviewRows.count();i++) {

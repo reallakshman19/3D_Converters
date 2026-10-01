@@ -1,14 +1,14 @@
-export * from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-1';
+export * from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-2';
 
 import './xml-cii-adapted-authority-migration.js';
-import { xmlCiiDryRunPreview as buildCorePreview } from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-1';
+import { xmlCiiDryRunPreview as buildCorePreview } from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-2';
 import { withXmlCiiEffectiveRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { applyPreviewBoreWallAuthority } from './xml-cii-adapted-preview-bore-wall-authority.js';
 import { applyPreviewMaterialCodeAuthority } from './xml-cii-adapted-preview-material-authority.js';
-import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js?v=20261001-weight-output-1';
+import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-adapted-preview-rating-authority.js?v=20261001-weight-output-2';
 import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.js';
 import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
-import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js?v=20261001-weight-output-1';
+import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js?v=20261001-weight-output-2';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';

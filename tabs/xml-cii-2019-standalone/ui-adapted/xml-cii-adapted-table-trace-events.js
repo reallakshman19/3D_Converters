@@ -17,7 +17,7 @@ import {
   activeProfileFor,
   normalizeTraceTableConfig,
 } from '../xml-cii-table-trace-config.js';
-import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 const REQUIRED_TABLE_FIELD_NAMES = REQUIRED_TRACE_TABLE_FIELD_NAMES;
 

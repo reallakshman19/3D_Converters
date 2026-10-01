@@ -1,10 +1,10 @@
 import { summarizeStandaloneImportMasters, STANDALONE_IMPORT_MASTER_DEFS } from '../xml-cii-master-context.js';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
-import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
-import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-1';
+import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
 import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';

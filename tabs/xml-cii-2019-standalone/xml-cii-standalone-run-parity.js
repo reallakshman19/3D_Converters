@@ -8,12 +8,12 @@
 // contains the Preview and Weight Match facts that were selected.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
-import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-1';
+import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
-import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-1';
+import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-2';
 
 const PARITY_MODULE_URL = new URL(
-  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20261001-weight-output-1',
+  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20261001-weight-output-2',
   import.meta.url,
 );
 
@@ -77,7 +77,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
   }
-  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-1');
+  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2');
   const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];

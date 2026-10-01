@@ -4,7 +4,7 @@ import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import {
   applyStandaloneImportMastersContext, updateWorkflowState, getSavedMappingsForMaster,
   saveMappingForFile, findSmartMatchingMapping, getStoredJson,
-} from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+} from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { fuzzyAutoMapFields } from './xml-cii-adapted-fuzzy-mapper.js';
 import { refineLineListFieldMap } from '../xml-cii-linelist-header-band.js?v=20260930-issue781-linelist-integration-2';
 import {
@@ -14,7 +14,7 @@ import {
   stageMasterMappingDraft,
 } from './xml-cii-adapted-master-runtime.js';
 import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
-import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-1';
+import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
 
 export function masterConfigForState(stateRef) {
   return stateRef.current.masterContext?.config || readSupportConfigOnce(stateRef.current);

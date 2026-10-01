@@ -1,4 +1,4 @@
-import { createModeASourceProcessingRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
+import { createModeASourceProcessingRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 
 const PROCESS_FIELDS = ['p1', 'hydroPressure', 't1', 't2', 't3', 'density'];
 const text = (value) => value == null ? '' : String(value).trim();

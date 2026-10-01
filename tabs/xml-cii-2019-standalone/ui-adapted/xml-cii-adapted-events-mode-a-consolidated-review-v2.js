@@ -1,6 +1,6 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261001-weight-output-1';
-import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
-import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261001-weight-output-1';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261001-weight-output-2';
+import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
+import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261001-weight-output-2';
 
 function styleRunButton(button, primary = false) {
   if (!button?.style) return;

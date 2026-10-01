@@ -5,6 +5,8 @@ branch: agent/issue-781-output-custody-20261001
 criticality: ENGINEERING_CRITICAL
 takeover_authority: WRITE_ALLOWED_BOUNDED_WEIGHT_CANVAS_AND_XML_COMPOSITION
 current_stage: HANDOVER_DRAFT_PENDING_OWNER_DECISION
+current_runtime_release: 20261001-weight-output-2
+followup_validation: REGEX_PROPAGATION_AND_SAVED_WEIGHT_PRECEDENCE_PASS_NATIVE_UI_AND_REAL41
 report_path: agents/PR812_workreport.md
 dependency: PR811
 merge_authority: OWNER_ONLY_NOT_GRANTED

@@ -1,17 +1,17 @@
-import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261001-weight-output-1';
+import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261001-weight-output-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-1';
+import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
 import {
   withXmlCiiRigidWeightFinal,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-1';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
-import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-1';
+import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');

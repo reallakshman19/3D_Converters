@@ -11,5 +11,8 @@
     "XML_CII_PLAYWRIGHT_MODULE": "C:/CodeA/3DC_776/node_modules/playwright",
     "XML_CII_CHROMIUM_EXECUTABLE": "C:/Program Files/Google/Chrome/Application/chrome.exe",
     "XML_CII_41_BRANCH_FIXTURE": "C:/CodeA/3DC_809/Benchmarks/EF-05-PRO.TEST.xml"
-  }
+  },
+  "followupTestedBasisHead": "4d2606e48df2d5dd7a7c6307004ec07b42d1cd67",
+  "followupRuntimeRelease": "20261001-weight-output-2",
+  "followupNativeBrowserCommand": "node tests/browser/xml-cii-auto-propagation-review-preservation-e2e.mjs"
 }

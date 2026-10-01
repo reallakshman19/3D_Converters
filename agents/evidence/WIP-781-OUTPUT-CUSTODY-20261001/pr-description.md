@@ -10,6 +10,7 @@ Stacked on PR811 (Rating prefix/manual/class fill), not ready for merge. Owner-e
 - Add Sources Mode B combine/save XML with positive node offsets and an offset-map download. Preserve source geometry, engineering fields and same-source shared IDs. Source XML or current enriched outputs can be selected. Mark Mode A Draft. This bounded XML composition adds no cross-file joins and does not promote the unmerged PR788–792 composite runtime stack.
 - Audit actual existing CII to-node weight owners before publication. Withhold an incomplete CII and retain enriched XML, without transferring mass or changing geometry, formulas, units, writer or runtime ownership.
 - Refresh the actual source/docs import chain so repaired children are loaded.
+- Follow-up: synchronize automatic regex mappings even when selections are unchanged, apply/lock text rule edits immediately, and protect saved/manual weights from exact/all bulk suggestions. Explicit per-row selection may replace a value; final review Apply accepts displayed inputs without clicking every suggestion. Current release20261001-weight-output-2.
 
 ### Actual acceptance evidence
 
@@ -24,6 +25,7 @@ Stacked on PR811 (Rating prefix/manual/class fill), not ready for merge. Owner-e
 | Rating workflow responsiveness | PASS | Real41 UI, maximum frame gap150ms under unchanged250ms limit |
 | Staged/10k/50k/100k worker paths | PASS | Existing browser benchmarks; fastpath538.6ms/33.2ms frame; largest ranking64.2ms |
 | Focused Node regressions | PASS36/36 | Mixed independent behavioral and explicit static delegation/cache assertions |
+| Follow-up regex propagation / saved-weight precedence | PASS | Native production panels:5/3 then edited6 propagate;57.25/13.5/sourceB91.25 survive bulk; blank30 fills; explicit replacement20 only. Full41 replay also preserves saved weights across phase6 and both review bulk buttons, without per-row clicks. |
 | Explicit restraint fixture check | NOT_RUN | Sparse checkout lacks SYS-6-S8810011-01.xml; no product assertion reached |
 | Remote deployment | NOT_RUN | Local docs served from this branch; no merge/deployment claimed |
 | Remote stacked-base CI at933158b0 | PASS1 / FAIL3 preexisting | Browser timing passes; unchanged CAESAR/FBX old cache assertions and InputXML manifest failure also fail on PR811. Main-base XML gates not triggered here. |

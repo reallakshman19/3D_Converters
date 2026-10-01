@@ -13,7 +13,7 @@ const fixturePath = process.env.XML_CII_41_BRANCH_FIXTURE || path.join(root, 'Be
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
-const release = '20261001-weight-output-1';
+const release = '20261001-weight-output-2';
 const server = createServer(async (request, response) => {
   try {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
@@ -45,7 +45,7 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
   const coreResult=await page.evaluate(async()=>{
-    const {combineXmlWithNodeOffsets}=await import('/docs/converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261001-weight-output-1');
+    const {combineXmlWithNodeOffsets}=await import('/docs/converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261001-weight-output-2');
     const xml=(unit='MM')=>`<PipeStressExport><Units><DistanceUnits>${unit}</DistanceUnits></Units><Pipe><Branch><Branchname>B1</Branchname><Node><NodeNumber>10</NodeNumber><Position>0 0 0</Position><Weight>17.75</Weight></Node><Node><NodeNumber>20</NodeNumber><Position>100 0 0</Position></Node><Node><NodeNumber>-1</NodeNumber><Position>105 0 0</Position></Node></Branch><Branch><Branchname>B2</Branchname><Node><NodeNumber>20</NodeNumber><Position>100 0 0</Position></Node></Branch></Pipe></PipeStressExport>`;
     const sources=[{fileName:'a.xml',xmlText:xml()},{fileName:'b.xml',xmlText:xml()}];
     const result=combineXmlWithNodeOffsets(sources,{offsetStep:100});

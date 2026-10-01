@@ -2,8 +2,8 @@ import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo }
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20261001-weight-output-1';
-import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-1';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20261001-weight-output-2';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -113,7 +113,7 @@ function popupMarkup(rows, entries) {
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review — Consolidated</div><div data-mode-a-rigid-summary style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) across ${entries.length} XML file(s).</div></div>
       <button type="button" data-mode-a-rigid-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;">Cancel Batch Run</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">Review saved/XML weights and every proposed master, interpolated or empirical weight before applying. Values here and in enriched XML are kg. CII uses the selected Run option (kg → N multiplies by 10). Changes are saved only to their source XML. “Use All Exact Suggestions” fills only preferred exact candidates.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">Saved/XML weights are kept; suggestions populate only missing weights. Apply accepts the displayed values without clicking each suggestion. Bulk suggestions fill blank fields; selecting a row suggestion explicitly replaces that row. Review proposed master, interpolated and empirical weights before applying. Values here and in enriched XML are kg. CII uses the selected Run option (kg → N multiplies by 10). Changes are saved only to their source XML.</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
       <input type="search" data-mode-a-rigid-search placeholder="Search source / branch / node..." style="min-width:250px;padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;">
       <select data-mode-a-rigid-source style="padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;"><option value="">All XML files</option>${sourceOptions}</select>
@@ -189,9 +189,9 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
         if (!best?.preferred || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
-        if (input) { input.value = String(value); count += 1; }
+        if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });
-      setStatus(`Filled ${count} preferred exact suggestion(s). Review remaining rows manually.`, false);
+      setStatus(`Filled ${count} blank field(s) with preferred exact suggestions. Populated weights preserved.`, false);
     });
 
     overlay.querySelector('[data-mode-a-rigid-refresh]')?.addEventListener('click', async () => {

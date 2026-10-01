@@ -1,9 +1,9 @@
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import {
   createModeASourceProcessingRef,
   modeARawRef,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import {
   applyModeAProcessFromReferenceToConfig,
   buildModeAProcessFromPlan,

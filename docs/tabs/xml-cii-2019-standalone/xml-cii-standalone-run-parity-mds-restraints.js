@@ -2,8 +2,8 @@ import {
   enrichStandaloneXmlForRun as enrichStandaloneXmlForRunBase,
   loadParentWeightMatchModules,
   standaloneParityOptions,
-} from './xml-cii-standalone-run-parity-atta-default.js?v=20261001-weight-output-1';
-import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-1';
+} from './xml-cii-standalone-run-parity-atta-default.js?v=20261001-weight-output-2';
+import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js?v=20260804-mds-position-restraints-1';
 
 function text(value) {

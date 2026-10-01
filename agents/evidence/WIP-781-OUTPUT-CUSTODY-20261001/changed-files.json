@@ -18,6 +18,30 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/auto-propagation-baseline.json",
+    "category": "EVIDENCE",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/auto-propagation-browser.txt",
+    "category": "EVIDENCE",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/auto-propagation-regressions.txt",
+    "category": "EVIDENCE",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/auto-propagation-repaired.json",
+    "category": "EVIDENCE",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/baseline-observations.json",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
@@ -228,6 +252,12 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/review-preservation-real41.txt",
+    "category": "EVIDENCE",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/run-stall.png",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
@@ -362,7 +392,7 @@
   {
     "path": "core/app.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -398,19 +428,19 @@
   {
     "path": "docs/core/app.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/index.html",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/main-rhbg-fitguard.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -421,26 +451,26 @@
   },
   {
     "path": "docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Preferred bulk fill preserves saved/edited Weight Match inputs; only marked preferred candidates are accepted.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/model-converters/legacy-adapter.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone-tab.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-bend-radius-toggle.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -452,121 +482,121 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-config-tabs.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-config.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-batch-scope-panel.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-dtxr.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -584,37 +614,43 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-panel.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-process-authority.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-process-from-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-propagation.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
+    "deploymentMirror": true
+  },
+  {
+    "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-rigid-review-tools.js",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Bulk all-suggestion fill preserves populated review weights.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -626,13 +662,13 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-weight-actions.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-weight-tools.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -644,13 +680,13 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-branch-scope.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -662,109 +698,109 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-update.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-line-index.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Synchronize configured rules after safe automatic analysis even with unchanged token selections.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Apply rule edits immediately and lock explicit edited roles.",
     "deploymentMirror": true
   },
   {
@@ -782,31 +818,31 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-mode.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -818,67 +854,67 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-table-trace-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-branch-scope-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-branch-scope.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -890,55 +926,55 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-rigid-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-strict-line.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-client.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-service.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -950,7 +986,7 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-dataset-backed-config.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -962,19 +998,19 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-source-mode-integration-proof.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -992,13 +1028,13 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -1010,7 +1046,7 @@
   {
     "path": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": true
   },
   {
@@ -1022,13 +1058,13 @@
   {
     "path": "index.html",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "main-rhbg-fitguard.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1039,26 +1075,26 @@
   },
   {
     "path": "tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Preferred bulk fill preserves saved/edited Weight Match inputs; only marked preferred candidates are accepted.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/model-converters/legacy-adapter.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone-tab.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-bend-radius-toggle.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1070,121 +1106,121 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-config-tabs.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-config.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-batch-scope-panel.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-dtxr.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1202,37 +1238,43 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-panel.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-process-authority.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-process-from-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-propagation.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-rigid-review-tools.js",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Bulk all-suggestion fill preserves populated review weights.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1244,13 +1286,13 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-weight-actions.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-weight-tools.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1262,13 +1304,13 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-branch-scope.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1280,109 +1322,109 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-audit-controller.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-wall-update.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-line-index.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Synchronize configured rules after safe automatic analysis even with unchanged token selections.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js",
-    "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "category": "PRODUCTION_BEHAVIOR",
+    "reason": "Apply rule edits immediately and lock explicit edited roles.",
     "deploymentMirror": false
   },
   {
@@ -1400,31 +1442,31 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-mode.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1436,67 +1478,67 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-table-trace-events.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-branch-scope-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-branch-scope.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-core.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1508,55 +1550,55 @@
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-rigid-review-v2.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-strict-line.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/workers/master-dataset-client.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/workers/master-dataset-service.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1568,7 +1610,7 @@
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-dataset-backed-config.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1580,19 +1622,19 @@
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-source-mode-integration-proof.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1610,13 +1652,13 @@
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
@@ -1628,13 +1670,19 @@
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
     "category": "CACHE_ACTIVATION_ONLY",
-    "reason": "Version relative import of changed child to release20261001-weight-output-1 in actual deployed import chain.",
+    "reason": "Version repaired child import through the active source/docs release20261001-weight-output-2 chain.",
     "deploymentMirror": false
   },
   {
     "path": "tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js",
     "category": "PRODUCTION_BEHAVIOR",
     "reason": "Normalize absent optional master arrays without inventing values.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "tests/browser/xml-cii-auto-propagation-review-preservation-e2e.mjs",
+    "category": "REGRESSION",
+    "reason": "Native automatic-propagation and saved-weight precedence reproduction/acceptance; explicit inputs and actual41 UI.",
     "deploymentMirror": false
   },
   {
