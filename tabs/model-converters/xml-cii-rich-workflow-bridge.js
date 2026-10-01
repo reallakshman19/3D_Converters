@@ -11,4 +11,4 @@ export {
   xmlCiiWorkflowSetConfigValue as xmlCiiRichWorkflowSetConfigValue,
   xmlCiiWorkflowSetMasterField as xmlCiiRichWorkflowSetMasterField,
   xmlCiiWorkflowClosePopup as xmlCiiRichWorkflowClosePopup,
-} from './xml-cii-workflow-bridge.js?v=20260708-workflow-bridge-align-1';
+} from './xml-cii-workflow-bridge.js?v=20261001-single-weight-owners-1';

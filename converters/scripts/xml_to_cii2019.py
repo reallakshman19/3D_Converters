@@ -99,6 +99,8 @@ class XmlNode:
     bend_type: int | None
     position: tuple[float, float, float]
     restraint_specs: tuple[RestraintSpec, ...]
+    source_node_number: int | None = None
+    weighted_component_start: bool = False
 
 
 @dataclass(frozen=True)
@@ -499,8 +501,13 @@ def _branch_elements_from_root(root: ET.Element, namespace: str, root_name: str)
     raise ValueError("Input XML does not contain any Pipe elements.")
 
 
-def _parse_xml_document(path: Path) -> XmlDocument:
+def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = False) -> XmlDocument:
     root = ET.parse(path).getroot()
+    source_numbers = {}
+    weighted_starts = set()
+    if preserve_rigid_weight_owners:
+        from xml_cii_weighted_geometry import prepare_weighted_node_numbers
+        source_numbers, weighted_starts = prepare_weighted_node_numbers(root)
     root_name = _local_name(root.tag)
     if root_name not in {"PipeStressExport", "CleanXML"}:
         raise ValueError(
@@ -598,6 +605,8 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     bend_type=bend_type_value,
                     position=_parse_position(position_text),
                     restraint_specs=_parse_restraints(node_element, namespace),
+                    source_node_number=source_numbers.get(id(node_element), node_number) if preserve_rigid_weight_owners else None,
+                    weighted_component_start=id(node_element) in weighted_starts,
                 )
             )
 
@@ -626,7 +635,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     # Cleaning at any single downstream call site risked those staying out
     # of sync with each other (e.g. restraints keyed by a node number that
     # a not-yet-cleaned edge list had already dropped).
-    branches = _drop_short_element_nodes(branches)
+    branches = _drop_short_element_nodes(branches, preserve_rigid_weight_owners=preserve_rigid_weight_owners)
 
     return XmlDocument(metadata=metadata, branches=branches)
 
@@ -673,7 +682,8 @@ def _canonical_shared_junctions(
 
 
 def _drop_short_element_nodes(
-    branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
+    branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM,
+    *, preserve_rigid_weight_owners: bool = False,
 ) -> list[XmlBranch]:
     """Collapse short hops while preserving repeated positive branch junctions.
 
@@ -693,6 +703,12 @@ def _drop_short_element_nodes(
             previous = kept[-1]
             length = _distance_between_nodes(previous, node)
             if length <= threshold_mm:
+                if preserve_rigid_weight_owners:
+                    from xml_cii_weighted_geometry import preserve_weighted_short_hop
+                    retained = preserve_weighted_short_hop(kept, node, protected, length)
+                    if retained is not None:
+                        kept = retained
+                        continue
                 if node.node_number in protected and previous.node_number not in protected:
                     merged_specs = _merge_restraint_specs(node.restraint_specs, previous.restraint_specs)
                     kept[-1] = replace(node, restraint_specs=merged_specs)

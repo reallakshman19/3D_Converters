@@ -1,4 +1,4 @@
-import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-2';
+import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-single-weight-owners-1';
 import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';

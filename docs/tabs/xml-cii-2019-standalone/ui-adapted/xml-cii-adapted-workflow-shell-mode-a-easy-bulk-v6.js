@@ -1,8 +1,8 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-consolidated-1';
-import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261001-weight-output-2';
+import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261001-single-weight-owners-1';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-weight-output-2';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261001-weight-output-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-single-weight-owners-1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261001-single-weight-owners-1';
 import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';
@@ -13,6 +13,7 @@ import { installModeAConsolidatedRigidReviewTools } from './xml-cii-adapted-mode
 import { installModeACompactMultiUi } from './xml-cii-adapted-mode-a-compact-ui.js?v=20260814-compact-multi-1';
 import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { disposeAdaptedGeometryPreviews } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 installRigidReviewActionsEnhancement();
@@ -66,6 +67,9 @@ function renderWorkflow(container, stateRef, render) {
   const workspace = createElement('div', '', 'model-converters-root xml-cii-workspace-layout');
   const left = createElement('div', '', 'model-converters-left xml-cii-left-panel');
   renderPhaseRail(left, stateRef.current);
+  if (xmlCiiProcessingMode(stateRef.current) === 'mode-b') {
+    left.querySelectorAll('[data-phase]').forEach(button => { button.disabled = button.dataset.phase !== 'source'; });
+  }
   workspace.appendChild(left);
   const main = createElement('div', '', 'xml-cii-main-workspace');
   if (main.style) {

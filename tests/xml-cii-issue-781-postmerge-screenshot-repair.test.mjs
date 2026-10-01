@@ -4,6 +4,8 @@ import { applyRegexSuggestions } from '../tabs/xml-cii-2019-standalone/xml-cii-r
 
 const release = '20261001-weight-output-2';
 const liveAcceptanceRelease = '20261001-weight-output-2';
+const activation = JSON.parse(await readFile(new URL('../agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/runtime-activation-ledger.json', import.meta.url), 'utf8'));
+const activated = new Set([...activation.activatedModules, 'index.html']);
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
 function regexConfig() {
@@ -75,7 +77,7 @@ const releasePaths = [
   'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
 ];
 for (const path of releasePaths) {
-  const expectedRelease = path.includes('master-dataset') || path.includes('/workers/') ? release : liveAcceptanceRelease;
+  const expectedRelease = activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? release : liveAcceptanceRelease);
   assert.ok((await read(path)).includes(expectedRelease), `live acceptance cache release missing from ${path}`);
 }
 

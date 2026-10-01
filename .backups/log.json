@@ -1,5 +1,5 @@
 {
-  "lastId": 943,
+  "lastId": 1168,
   "entries": [
     {
       "id": 1,
@@ -6601,6 +6601,1581 @@
       "file": "agents\\evidence\\WIP-781-MAIN-INTEGRATION-20261001\\changed-files.json",
       "context": "Final PR813 changed-file reconciliation",
       "backupFile": "943_agents_evidence_WIP_781_MAIN_INTEGRATION_20261001_changed_files_json.bak"
+    },
+    {
+      "id": 944,
+      "timestamp": "2026-10-01 18:36:58",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "Three explicit modes and combined XML Single handoff",
+      "backupFile": "944_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 945,
+      "timestamp": "2026-10-01 18:36:58",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Gate batch UI to explicit Mode A and default Single",
+      "backupFile": "945_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 946,
+      "timestamp": "2026-10-01 18:36:58",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "Gate batch actions and source import by explicit mode",
+      "backupFile": "946_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 947,
+      "timestamp": "2026-10-01 18:36:58",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "Restrict separate models run controls to Mode A",
+      "backupFile": "947_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 948,
+      "timestamp": "2026-10-01 18:36:58",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Combine-only rail and explicit mode selection",
+      "backupFile": "948_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 949,
+      "timestamp": "2026-10-01 18:41:01",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "Qualify measured weighted endpoint preservation and current UI implementation",
+      "backupFile": "949_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 950,
+      "timestamp": "2026-10-01 18:41:01",
+      "file": "converters\\scripts\\xml_to_cii2019.py",
+      "context": "Preserve weighted endpoints only in existing standalone runtime parser",
+      "backupFile": "950_converters_scripts_xml_to_cii2019_py.bak"
+    },
+    {
+      "id": 951,
+      "timestamp": "2026-10-01 18:41:01",
+      "file": "converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "Opt active parser into qualified weighted component preservation",
+      "backupFile": "951_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 952,
+      "timestamp": "2026-10-01 18:41:01",
+      "file": "converters\\scripts\\xml_cii_weight_output_custody.py",
+      "context": "Audit original source identity after explicit runtime node allocation",
+      "backupFile": "952_converters_scripts_xml_cii_weight_output_custody_py.bak"
+    },
+    {
+      "id": 953,
+      "timestamp": "2026-10-01 18:41:01",
+      "file": "converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "Load weighted geometry module within existing engine",
+      "backupFile": "953_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 954,
+      "timestamp": "2026-10-01 18:42:43",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "Correct measured next junction distance to3mm before geometry implementation",
+      "backupFile": "954_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 955,
+      "timestamp": "2026-10-01 18:48:50",
+      "file": "tests\\xml-cii-weight-owner-guard.test.py",
+      "context": "retain fail-closed tests while adding lossless physical owner recovery",
+      "backupFile": "955_tests_xml_cii_weight_owner_guard_test_py.bak"
+    },
+    {
+      "id": 956,
+      "timestamp": "2026-10-01 18:48:50",
+      "file": "converters\\scripts\\xml_cii_weighted_geometry.py",
+      "context": "limit repair to measured nonzero geometry, omit unproven coincident alias",
+      "backupFile": "956_converters_scripts_xml_cii_weighted_geometry_py.bak"
+    },
+    {
+      "id": 957,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "docs\\converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "957_docs_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 958,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "958_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 959,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "959_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 960,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "core\\app.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "960_core_app_js.bak"
+    },
+    {
+      "id": 961,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "docs\\core\\app.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "961_docs_core_app_js.bak"
+    },
+    {
+      "id": 962,
+      "timestamp": "2026-10-01 18:52:47",
+      "file": "main-rhbg-fitguard.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "962_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 963,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "963_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 964,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "964_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 965,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "965_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 966,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "966_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 967,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "967_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 968,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "968_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 969,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "969_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 970,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "970_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 971,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "971_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 972,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "972_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 973,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "973_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 974,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "974_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 975,
+      "timestamp": "2026-10-01 18:52:48",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "975_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 976,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "976_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 977,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "977_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 978,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "978_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 979,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "979_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 980,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "980_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 981,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "981_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 982,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "982_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 983,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "983_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 984,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "984_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 985,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "985_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 986,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "986_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 987,
+      "timestamp": "2026-10-01 18:52:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "987_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 988,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "988_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 989,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "989_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 990,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "990_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 991,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "991_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 992,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "992_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 993,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "993_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 994,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "994_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 995,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "995_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 996,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "996_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 997,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "997_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 998,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "998_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 999,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "999_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 1000,
+      "timestamp": "2026-10-01 18:52:50",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1000_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 1001,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1001_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 1002,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1002_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 1003,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1003_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 1004,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1004_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 1005,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1005_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 1006,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1006_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 1007,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1007_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 1008,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1008_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 1009,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1009_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 1010,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1010_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 1011,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1011_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 1012,
+      "timestamp": "2026-10-01 18:52:51",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1012_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1013,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1013_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1014,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1014_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 1015,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1015_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 1016,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1016_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 1017,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1017_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 1018,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1018_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 1019,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1019_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 1020,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1020_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 1021,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1021_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 1022,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1022_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 1023,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1023_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 1024,
+      "timestamp": "2026-10-01 18:52:52",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1024_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 1025,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1025_docs_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 1026,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1026_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 1027,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1027_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 1028,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1028_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 1029,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1029_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 1030,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1030_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 1031,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1031_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 1032,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1032_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 1033,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1033_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 1034,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1034_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1035,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1035_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1036,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "index.html",
+      "context": "activate reverse-import entry chain",
+      "backupFile": "1036_index_html.bak"
+    },
+    {
+      "id": 1037,
+      "timestamp": "2026-10-01 18:52:53",
+      "file": "docs\\index.html",
+      "context": "mirror release entry",
+      "backupFile": "1037_docs_index_html.bak"
+    },
+    {
+      "id": 1038,
+      "timestamp": "2026-10-01 18:52:54",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1038_docs_converters_scripts_xml_to_cii2019_py.bak"
+    },
+    {
+      "id": 1039,
+      "timestamp": "2026-10-01 18:52:54",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1039_docs_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 1040,
+      "timestamp": "2026-10-01 18:52:54",
+      "file": "docs\\converters\\scripts\\xml_cii_weight_output_custody.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1040_docs_converters_scripts_xml_cii_weight_output_custody_py.bak"
+    },
+    {
+      "id": 1041,
+      "timestamp": "2026-10-01 18:56:54",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "native Single review prefill failure, preserve displayed weights and blank-only bulk fill",
+      "backupFile": "1041_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1042,
+      "timestamp": "2026-10-01 18:56:54",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-smart-fill-ui.js",
+      "context": "native Single review prefill failure, preserve displayed weights and blank-only bulk fill",
+      "backupFile": "1042_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_smart_fill_ui_js.bak"
+    },
+    {
+      "id": 1043,
+      "timestamp": "2026-10-01 18:56:54",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "native Single review prefill failure, preserve displayed weights and blank-only bulk fill",
+      "backupFile": "1043_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 1044,
+      "timestamp": "2026-10-01 18:56:54",
+      "file": "agents\\status\\WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "context": "native Single review prefill failure, preserve displayed weights and blank-only bulk fill",
+      "backupFile": "1044_agents_status_WIP_781_SINGLE_COMBINE_OWNERS_20261001_yaml.bak"
+    },
+    {
+      "id": 1045,
+      "timestamp": "2026-10-01 18:57:02",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1045_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 1046,
+      "timestamp": "2026-10-01 18:57:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1046_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 1047,
+      "timestamp": "2026-10-01 18:57:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-smart-fill-ui.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1047_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_smart_fill_ui_js.bak"
+    },
+    {
+      "id": 1048,
+      "timestamp": "2026-10-01 18:57:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1048_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1049,
+      "timestamp": "2026-10-01 18:59:28",
+      "file": "converters\\scripts\\xml_cii_weight_output_custody.py",
+      "context": "reject duplicated source weight identity even if cleanup leaves one owner",
+      "backupFile": "1049_converters_scripts_xml_cii_weight_output_custody_py.bak"
+    },
+    {
+      "id": 1050,
+      "timestamp": "2026-10-01 19:00:22",
+      "file": "docs\\converters\\scripts\\xml_cii_weight_output_custody.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1050_docs_converters_scripts_xml_cii_weight_output_custody_py.bak"
+    },
+    {
+      "id": 1051,
+      "timestamp": "2026-10-01 19:00:25",
+      "file": "tests\\browser\\xml-cii-weight-output-custody-e2e.mjs",
+      "context": "explicit Mode A regression after Single default and preserve prior failed artifacts",
+      "backupFile": "1051_tests_browser_xml_cii_weight_output_custody_e2e_mjs.bak"
+    },
+    {
+      "id": 1052,
+      "timestamp": "2026-10-01 19:00:25",
+      "file": "tests\\browser\\xml-cii-mode-b-xml-export-e2e.mjs",
+      "context": "select Mode B before multiple uploads after Single default",
+      "backupFile": "1052_tests_browser_xml_cii_mode_b_xml_export_e2e_mjs.bak"
+    },
+    {
+      "id": 1053,
+      "timestamp": "2026-10-01 19:02:39",
+      "file": "converters\\scripts\\xml_to_cii2019.py",
+      "context": "independent downloaded CII audit isolates short physical component predecessor loss",
+      "backupFile": "1053_converters_scripts_xml_to_cii2019_py.bak"
+    },
+    {
+      "id": 1054,
+      "timestamp": "2026-10-01 19:02:39",
+      "file": "converters\\scripts\\xml_cii_weighted_geometry.py",
+      "context": "independent downloaded CII audit isolates short physical component predecessor loss",
+      "backupFile": "1054_converters_scripts_xml_cii_weighted_geometry_py.bak"
+    },
+    {
+      "id": 1055,
+      "timestamp": "2026-10-01 19:02:39",
+      "file": "tests\\xml-cii-weighted-geometry.test.py",
+      "context": "independent downloaded CII audit isolates short physical component predecessor loss",
+      "backupFile": "1055_tests_xml_cii_weighted_geometry_test_py.bak"
+    },
+    {
+      "id": 1056,
+      "timestamp": "2026-10-01 19:02:39",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "independent downloaded CII audit isolates short physical component predecessor loss",
+      "backupFile": "1056_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 1057,
+      "timestamp": "2026-10-01 19:02:48",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1057_docs_converters_scripts_xml_to_cii2019_py.bak"
+    },
+    {
+      "id": 1058,
+      "timestamp": "2026-10-01 19:02:48",
+      "file": "docs\\converters\\scripts\\xml_cii_weighted_geometry.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1058_docs_converters_scripts_xml_cii_weighted_geometry_py.bak"
+    },
+    {
+      "id": 1059,
+      "timestamp": "2026-10-01 19:08:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "native Single typed weight lost as stale Match1; explicit typed vs candidate acceptance and bounded cache contract",
+      "backupFile": "1059_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1060,
+      "timestamp": "2026-10-01 19:08:23",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "native Single typed weight lost as stale Match1; explicit typed vs candidate acceptance and bounded cache contract",
+      "backupFile": "1060_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1061,
+      "timestamp": "2026-10-01 19:08:23",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "native Single typed weight lost as stale Match1; explicit typed vs candidate acceptance and bounded cache contract",
+      "backupFile": "1061_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1062,
+      "timestamp": "2026-10-01 19:08:23",
+      "file": "tests\\xml-cii-issue-781-postmerge-screenshot-repair.test.mjs",
+      "context": "native Single typed weight lost as stale Match1; explicit typed vs candidate acceptance and bounded cache contract",
+      "backupFile": "1062_tests_xml_cii_issue_781_postmerge_screenshot_repair_test_mjs.bak"
+    },
+    {
+      "id": 1063,
+      "timestamp": "2026-10-01 19:09:23",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1063_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1064,
+      "timestamp": "2026-10-01 19:09:23",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1064_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1065,
+      "timestamp": "2026-10-01 19:09:23",
+      "file": "core\\app.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1065_core_app_js.bak"
+    },
+    {
+      "id": 1066,
+      "timestamp": "2026-10-01 19:09:23",
+      "file": "docs\\core\\app.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1066_docs_core_app_js.bak"
+    },
+    {
+      "id": 1067,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1067_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1068,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\index.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1068_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1069,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\index.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1069_docs_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1070,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1070_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1071,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1071_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1072,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1072_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1073,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1073_docs_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1074,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1074_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1075,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1075_docs_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1076,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\xml-cii-branch-sample-sync.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1076_tabs_model_converters_xml_cii_branch_sample_sync_js.bak"
+    },
+    {
+      "id": 1077,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "docs\\tabs\\model-converters\\xml-cii-branch-sample-sync.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1077_docs_tabs_model_converters_xml_cii_branch_sample_sync_js.bak"
+    },
+    {
+      "id": 1078,
+      "timestamp": "2026-10-01 19:09:24",
+      "file": "tabs\\model-converters\\xml-cii-condense-rigid-ui-bridge.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1078_tabs_model_converters_xml_cii_condense_rigid_ui_bridge_js.bak"
+    },
+    {
+      "id": 1079,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-condense-rigid-ui-bridge.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1079_docs_tabs_model_converters_xml_cii_condense_rigid_ui_bridge_js.bak"
+    },
+    {
+      "id": 1080,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-conversion-workflow-popup.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1080_tabs_model_converters_xml_cii_conversion_workflow_popup_js.bak"
+    },
+    {
+      "id": 1081,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-conversion-workflow-popup.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1081_docs_tabs_model_converters_xml_cii_conversion_workflow_popup_js.bak"
+    },
+    {
+      "id": 1082,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-post-run-validator-standalone.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1082_tabs_model_converters_xml_cii_post_run_validator_standalone_js.bak"
+    },
+    {
+      "id": 1083,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-post-run-validator-standalone.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1083_docs_tabs_model_converters_xml_cii_post_run_validator_standalone_js.bak"
+    },
+    {
+      "id": 1084,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-rich-workflow-bridge.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1084_tabs_model_converters_xml_cii_rich_workflow_bridge_js.bak"
+    },
+    {
+      "id": 1085,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-rich-workflow-bridge.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1085_docs_tabs_model_converters_xml_cii_rich_workflow_bridge_js.bak"
+    },
+    {
+      "id": 1086,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-rich-workflow-hotfix.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1086_tabs_model_converters_xml_cii_rich_workflow_hotfix_js.bak"
+    },
+    {
+      "id": 1087,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-rich-workflow-hotfix.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1087_docs_tabs_model_converters_xml_cii_rich_workflow_hotfix_js.bak"
+    },
+    {
+      "id": 1088,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-rich-workflow-popup.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1088_tabs_model_converters_xml_cii_rich_workflow_popup_js.bak"
+    },
+    {
+      "id": 1089,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-rich-workflow-popup.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1089_docs_tabs_model_converters_xml_cii_rich_workflow_popup_js.bak"
+    },
+    {
+      "id": 1090,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "tabs\\model-converters\\xml-cii-short-element-toggle.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1090_tabs_model_converters_xml_cii_short_element_toggle_js.bak"
+    },
+    {
+      "id": 1091,
+      "timestamp": "2026-10-01 19:09:25",
+      "file": "docs\\tabs\\model-converters\\xml-cii-short-element-toggle.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1091_docs_tabs_model_converters_xml_cii_short_element_toggle_js.bak"
+    },
+    {
+      "id": 1092,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\model-converters\\xml-cii-workflow-bridge.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1092_tabs_model_converters_xml_cii_workflow_bridge_js.bak"
+    },
+    {
+      "id": 1093,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\model-converters\\xml-cii-workflow-bridge.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1093_docs_tabs_model_converters_xml_cii_workflow_bridge_js.bak"
+    },
+    {
+      "id": 1094,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\model-converters\\xml-cii-workflow-hotfix.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1094_tabs_model_converters_xml_cii_workflow_hotfix_js.bak"
+    },
+    {
+      "id": 1095,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\model-converters\\xml-cii-workflow-hotfix.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1095_docs_tabs_model_converters_xml_cii_workflow_hotfix_js.bak"
+    },
+    {
+      "id": 1096,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\model-converters\\xml-cii-workflow-popup.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1096_tabs_model_converters_xml_cii_workflow_popup_js.bak"
+    },
+    {
+      "id": 1097,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\model-converters\\xml-cii-workflow-popup.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1097_docs_tabs_model_converters_xml_cii_workflow_popup_js.bak"
+    },
+    {
+      "id": 1098,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\model-converters-tab.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1098_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1099,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\model-converters-tab.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1099_docs_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1100,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1100_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 1101,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1101_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 1102,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1102_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1103,
+      "timestamp": "2026-10-01 19:09:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1103_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1104,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1104_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 1105,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1105_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 1106,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1106_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 1107,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1107_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 1108,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1108_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1109,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1109_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1110,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1110_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 1111,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1111_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 1112,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1112_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 1113,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1113_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 1114,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1114_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1115,
+      "timestamp": "2026-10-01 19:09:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1115_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1116,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1116_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1117,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1117_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1118,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1118_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 1119,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1119_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 1120,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1120_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 1121,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1121_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 1122,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1122_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 1123,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1123_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 1124,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1124_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 1125,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1125_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 1126,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1126_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 1127,
+      "timestamp": "2026-10-01 19:09:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1127_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 1128,
+      "timestamp": "2026-10-01 19:09:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1128_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 1129,
+      "timestamp": "2026-10-01 19:09:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1129_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 1130,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1130_docs_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 1131,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1131_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1132,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-smart-fill-ui.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1132_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_smart_fill_ui_js.bak"
+    },
+    {
+      "id": 1133,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1133_docs_converters_scripts_xml_to_cii2019_py.bak"
+    },
+    {
+      "id": 1134,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1134_docs_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 1135,
+      "timestamp": "2026-10-01 19:11:24",
+      "file": "docs\\converters\\scripts\\xml_cii_weight_output_custody.py",
+      "context": "mirror physical component preservation in existing Python runtime",
+      "backupFile": "1135_docs_converters_scripts_xml_cii_weight_output_custody_py.bak"
+    },
+    {
+      "id": 1136,
+      "timestamp": "2026-10-01 19:12:20",
+      "file": "tests\\xml-cii-issue-776-match1-acceptance-paths.test.mjs",
+      "context": "explicit manual-final versus provenance Match1 acceptance boundary",
+      "backupFile": "1136_tests_xml_cii_issue_776_match1_acceptance_paths_test_mjs.bak"
+    },
+    {
+      "id": 1137,
+      "timestamp": "2026-10-01 19:17:15",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "visual acceptance: header and active toggle must identify selected processing mode",
+      "backupFile": "1137_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 1138,
+      "timestamp": "2026-10-01 19:17:15",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "visual acceptance: header and active toggle must identify selected processing mode",
+      "backupFile": "1138_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 1139,
+      "timestamp": "2026-10-01 19:17:15",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "visual acceptance: header and active toggle must identify selected processing mode",
+      "backupFile": "1139_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 1140,
+      "timestamp": "2026-10-01 19:17:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1140_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 1141,
+      "timestamp": "2026-10-01 19:17:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1141_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 1142,
+      "timestamp": "2026-10-01 19:19:20",
+      "file": "agents\\PR813_workreport.md",
+      "context": "reconcile live owner merge of PR813 and bounded successor mission",
+      "backupFile": "1142_agents_PR813_workreport_md.bak"
+    },
+    {
+      "id": 1143,
+      "timestamp": "2026-10-01 19:19:20",
+      "file": "agents\\status\\PR813.yaml",
+      "context": "reconcile live owner merge of PR813 and bounded successor mission",
+      "backupFile": "1143_agents_status_PR813_yaml.bak"
+    },
+    {
+      "id": 1144,
+      "timestamp": "2026-10-01 19:19:21",
+      "file": "agents\\claims\\PR813.yaml",
+      "context": "reconcile live owner merge of PR813 and bounded successor mission",
+      "backupFile": "1144_agents_claims_PR813_yaml.bak"
+    },
+    {
+      "id": 1145,
+      "timestamp": "2026-10-01 19:29:16",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-authority-ui.js",
+      "context": "align Weight Match legend with explicit manual Final and selected Match1 custody",
+      "backupFile": "1145_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_authority_ui_js.bak"
+    },
+    {
+      "id": 1146,
+      "timestamp": "2026-10-01 19:29:16",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "align typed-manual explanation with explicit candidate provenance",
+      "backupFile": "1146_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1147,
+      "timestamp": "2026-10-01 19:29:23",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1147_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1148,
+      "timestamp": "2026-10-01 19:29:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-authority-ui.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1148_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_authority_ui_js.bak"
+    },
+    {
+      "id": 1149,
+      "timestamp": "2026-10-01 19:29:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "activate changed Single/ModeA/ModeB and weighted owner runtime imports",
+      "backupFile": "1149_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1150,
+      "timestamp": "2026-10-01 19:29:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "mirror qualified runtime and cache activation",
+      "backupFile": "1150_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1151,
+      "timestamp": "2026-10-01 19:31:47",
+      "file": "tests\\xml-cii-issue-781-weight-match-authority-presentation.test.mjs",
+      "context": "use valid file URL on Windows; numerical/presentation expected values unchanged",
+      "backupFile": "1151_tests_xml_cii_issue_781_weight_match_authority_presentation_test_mjs.bak"
+    },
+    {
+      "id": 1152,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1152_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 1153,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\status\\WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1153_agents_status_WIP_781_SINGLE_COMBINE_OWNERS_20261001_yaml.bak"
+    },
+    {
+      "id": 1154,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\claims\\WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1154_agents_claims_WIP_781_SINGLE_COMBINE_OWNERS_20261001_yaml.bak"
+    },
+    {
+      "id": 1155,
+      "timestamp": "2026-10-01 19:44:54",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "PR814 qualify actual activated parent chain without changing RVM oracle",
+      "backupFile": "1155_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1156,
+      "timestamp": "2026-10-01 19:44:55",
+      "file": "tests\\browser\\xml-cii-weight-rating-input-e2e.mjs",
+      "context": "PR814 verify typed Final weight survives Rating changes; native heartbeat retained",
+      "backupFile": "1156_tests_browser_xml_cii_weight_rating_input_e2e_mjs.bak"
+    },
+    {
+      "id": 1157,
+      "timestamp": "2026-10-01 19:46:06",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "PR814 align weight field help with explicit candidate and typed manual Final authority",
+      "backupFile": "1157_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1158,
+      "timestamp": "2026-10-01 19:46:06",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "PR814 exact mirror of manual Final field help",
+      "backupFile": "1158_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1159,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\PR814_workreport.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1159_agents_PR814_workreport_md.bak"
+    },
+    {
+      "id": 1160,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\status\\PR814.yaml",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1160_agents_status_PR814_yaml.bak"
+    },
+    {
+      "id": 1161,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\claims\\PR814.yaml",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1161_agents_claims_PR814_yaml.bak"
+    },
+    {
+      "id": 1162,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\current-handover.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1162_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_current_handover_md.bak"
+    },
+    {
+      "id": 1163,
+      "timestamp": "2026-10-01 19:50:04",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1163_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
+    },
+    {
+      "id": 1164,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\PR814_workreport.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1164_agents_PR814_workreport_md.bak"
+    },
+    {
+      "id": 1165,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\status\\PR814.yaml",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1165_agents_status_PR814_yaml.bak"
+    },
+    {
+      "id": 1166,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\claims\\PR814.yaml",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1166_agents_claims_PR814_yaml.bak"
+    },
+    {
+      "id": 1167,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\current-handover.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1167_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_current_handover_md.bak"
+    },
+    {
+      "id": 1168,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1168_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
     }
   ]
 }

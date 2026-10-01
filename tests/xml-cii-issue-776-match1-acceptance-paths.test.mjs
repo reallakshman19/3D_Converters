@@ -10,7 +10,10 @@ assert.match(renderer, /buildXmlCiiRigidWeightMatch1Provenance/);
 assert.match(renderer, /rigidWeightProposalMeta/);
 assert.match(renderer, /data-wm-row-index/);
 assert.match(renderer, /buildXmlCiiValidatedRigidWeightLegacyView/);
-assert.match(standalone, /withXmlCiiRigidWeightMatch1\(clean, changes, proposalMeta\)/);
+assert.match(standalone, /withXmlCiiRigidWeightMatch1\(clean, candidates, proposalMeta\)/);
+assert.match(standalone, /proposalMeta\[key\]\?\.acceptanceMethod === 'manual'/);
+assert.match(standalone, /withXmlCiiRigidWeightFinal\(withXmlCiiRigidWeightMatch1\(clean, candidates, proposalMeta\), manual\)/);
+assert.match(renderer, /input\.dataset\.wmSelectionOrigin === 'candidate' \? 'candidate' : 'manual'/);
 assert.match(actions, /buildXmlCiiRigidWeightMatch1Provenance\(change, config/);
 assert.match(actions, /rigidWeightMatch1Provenance/);
 for (const field of ['componentRefNo','boreMm','rating','lengthMm','elementLengthSource']) {

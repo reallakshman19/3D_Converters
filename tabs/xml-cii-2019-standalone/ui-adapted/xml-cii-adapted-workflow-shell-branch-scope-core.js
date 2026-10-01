@@ -1,9 +1,9 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260804-branch-scope-v1';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260804-branch-scope-v1';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-weight-output-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-single-weight-owners-1';
 import { renderOutputPanel } from './xml-cii-adapted-output-panel.js?v=20260804-branch-scope-v1';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20261001-weight-output-2';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20261001-single-weight-owners-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260804-branch-scope-v1';
 import {
   createXmlCiiBranchScopedStateRef,

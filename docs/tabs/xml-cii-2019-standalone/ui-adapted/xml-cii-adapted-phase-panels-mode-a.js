@@ -1,6 +1,7 @@
-import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261001-weight-output-2';
-import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-weight-output-2';
-import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-weight-output-2';
+import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-single-weight-owners-1';
+import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-single-weight-owners-1';
 import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-2';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
@@ -11,7 +12,7 @@ import {
   renderStandaloneDiagnosticsReportPanel,
   renderStandalonePreviewReportPanel,
 } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-2';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-weight-output-2';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-single-weight-owners-1';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260813-mode-a-full-propagation-2';
 import {
@@ -25,7 +26,7 @@ import {
 import {
   renderModeAConsolidatedPreviewPanel,
   renderModeAConsolidatedWeightPanel,
-} from './xml-cii-adapted-mode-a-consolidated.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-mode-a-consolidated.js?v=20261001-single-weight-owners-1';
 
 const BATCH_CUSTOM_PHASES = new Set([
   'regex',
@@ -290,6 +291,16 @@ function renderCustomBatchPhase(root, stateRef, render, phaseId) {
 export function renderActivePhase(root, stateRef, render) {
   const rawState = modeARawState(stateRef);
   const phaseId = rawState.activePhaseId;
+
+  if (xmlCiiProcessingMode(rawState) !== 'mode-a') {
+    renderBranchScopedPhase(root, stateRef, render);
+    if (phaseId === 'source' && (rawState.activeSubTabId || 'loader') === 'loader') {
+      const workspace = sourceWorkspace(activeCard(root, phaseId));
+      renderModeBXmlExport(workspace, stateRef, render);
+      if (xmlCiiProcessingMode(rawState) === 'mode-b') renderModeASourceInventory(workspace, stateRef, render);
+    }
+    return;
+  }
 
   if (BATCH_CUSTOM_PHASES.has(phaseId)) {
     renderCustomBatchPhase(root, stateRef, render, phaseId);

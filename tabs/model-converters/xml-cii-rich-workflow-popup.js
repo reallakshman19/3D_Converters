@@ -6,4 +6,4 @@
  * cached or older imports only; it must not contain active popup logic.
  */
 
-export { installXmlCiiWorkflowPopup as installXmlCiiRichWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260708-workflow-bridge-align-1';
+export { installXmlCiiWorkflowPopup as installXmlCiiRichWorkflowPopup } from './xml-cii-workflow-popup.js?v=20261001-single-weight-owners-1';

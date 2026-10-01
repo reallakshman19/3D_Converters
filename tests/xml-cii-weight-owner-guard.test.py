@@ -41,8 +41,8 @@ with tempfile.TemporaryDirectory() as directory:
     assert [float(line.split()[0]) for line in payload.splitlines() if line.strip()] == [177.5, 135]
 
     cases = [node(10, 0, 17.75, 2, "RIGID") + node(20, 100),
-             node(10, 0) + node(20, 1, 13.5, 2, "FLAN") + node(30, 100),
-             node(10, 0) + node(-1, 100, 57.25, 2, "VALV") + node(30, 200)]
+             node(10, 0) + node(20, 0, 13.5, 2, "FLAN") + node(30, 100),
+             node(-1, 100, 57.25, 2, "VALV") + node(30, 200)]
     for nodes in cases:
         source, model = prepare(folder, nodes)
         assert len(audit_rigid_weight_owners(source, model)) == 1
@@ -68,4 +68,17 @@ with tempfile.TemporaryDirectory() as directory:
     else:
         raise AssertionError("Non-finite component weight must block publication")
 
-print("PASS: retained CII owners/scaling; branch-head, collapsed, nonpositive, changed and invalid weights blocked")
+    source, model = prepare(folder, node(10, 0) + node(20, 100, 17.75, 2, "VALV")
+                            + node(20, 100, 17.75, 2, "VALV") + node(30, 200))
+    try:
+        require_rigid_weight_owners(source, model)
+    except ValueError as error:
+        assert "CII_WEIGHT_OWNER_AMBIGUOUS" in str(error)
+    else:
+        raise AssertionError("Duplicated source identity must not share one weight owner")
+    (folder / 'result.cii').unlink(missing_ok=True)
+    rejected = subprocess.run(command, capture_output=True, text=True)
+    assert rejected.returncode != 0 and 'CII_WEIGHT_OWNER_AMBIGUOUS' in rejected.stderr
+    assert not (folder / 'result.cii').exists()
+
+print("PASS: retained CII owners/scaling; absent predecessors, zero-length, changed and invalid weights blocked")

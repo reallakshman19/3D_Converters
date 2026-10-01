@@ -62,6 +62,7 @@ try {
   assert.deepEqual(coreResult.ids,[10,20,-1,20,110,120,-1,120]);
   assert.deepEqual(coreResult.offsets,[0,100]);assert.deepEqual(coreResult.weights,[17.75,17.75]);assert.deepEqual(coreResult.failures,[]);
   const second=fixture.replace(/(<ProjectName>)[^<]*/, '$1Mode B second source');
+  await page.getByRole('button',{name:'Mode B — Combine XML (node offsets)',exact:true}).click();
   await page.locator('input[data-field="source-file"]').setInputFiles([
     {name:'source-one.xml',mimeType:'application/xml',buffer:Buffer.from(fixture)},
     {name:'source-two.xml',mimeType:'application/xml',buffer:Buffer.from(second)},

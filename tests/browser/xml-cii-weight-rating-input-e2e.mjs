@@ -14,6 +14,8 @@ const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
 const release = '20261001-weight-output-2';
+const activated = JSON.parse(await readFile(path.join(root,
+  'agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/runtime-activation-ledger.json'), 'utf8'));
 const server = createServer(async (request, response) => {
   try {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
@@ -107,7 +109,10 @@ try {
   assert.equal(persisted.overrides.rating[source.line || source.branch], '900', 'A second save must preserve the first');
   const input = rows().nth(sourceIndex).locator('.mc-rigid-review-input');
   await input.fill('10.5'); await input.dispatchEvent('change');
-  assert.equal((await savedConfig()).overrides.rigidWeightMatch1[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5,
+    'Typed weights use manual Final authority');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], undefined,
+    'A typed value must not become a candidate match');
 
   await measure(async () => { await rows().nth(sourceIndex).locator('.mc-wm-rating-input').fill('300');
     await rows().nth(sourceIndex).locator('[data-wm-rating-fill-class]').click(); }, 'class fill Rating 300');
@@ -116,7 +121,8 @@ try {
     if (initial[index].pipingClass === source.pipingClass) assert.equal(filled[index].rating, '300');
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
-  assert.equal(filled[sourceIndex].accepted, 'false', 'Rating change must invalidate the old Match1 acceptance');
+  assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
   await measure(() => page.locator('#mc-wm-refresh').click(), 'repeat Build after class fill');
   assert.equal((await readRows())[sourceIndex].rating, '300');
@@ -127,13 +133,15 @@ try {
   assert.equal((await readRows())[sourceIndex].rating, '300');
   assert.equal((await readRows())[otherIndex].rating, '300');
   for (const file of ['weight-match-renderer', 'xml-cii-adapted-regex-rating', 'xml-cii-adapted-weight-match-v2', 'master-dataset-worker']) {
-    const expectedRelease = release;
+    const expectedRelease = activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
+      ? activated.release : release;
     assert.ok(modules.some((url) => url.includes(`${file}.js?v=${expectedRelease}`)), `Missing active release ${file}`);
   }
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,
     editedPrefix: ['3', '600'], manual: ['900', '450'], classFill: { pipingClass: source.pipingClass, rating: '300', rows: filledCount },
-    match1BecameStale: true, repeatBuild: true, reopen: true, timings, errors };
+    manualFinalPreservedAfterRatingChange: 10.5, typedCandidateMatchAbsent: true,
+    repeatBuild: true, reopen: true, timings, errors };
   if (process.env.XML_CII_RATING_EVIDENCE_DIR) {
     const dir = process.env.XML_CII_RATING_EVIDENCE_DIR;
     await mkdir(dir, { recursive: true });

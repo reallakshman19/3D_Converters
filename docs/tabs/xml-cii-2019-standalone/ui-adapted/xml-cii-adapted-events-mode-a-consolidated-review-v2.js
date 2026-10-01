@@ -1,6 +1,7 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261001-weight-output-2';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261001-single-weight-owners-1';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
-import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261001-weight-output-2';
+import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
 
 function styleRunButton(button, primary = false) {
   if (!button?.style) return;
@@ -35,6 +36,7 @@ function createProgress(parent) {
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   const result = bindBaseModeAEvents(container, stateRef, render);
   const rawRef = modeARawRef(stateRef);
+  if (xmlCiiProcessingMode(rawRef.current) !== 'mode-a') return result;
   const existing = container.querySelector('[data-action="run"]');
   if (!existing?.parentNode) return result;
 

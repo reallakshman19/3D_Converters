@@ -179,7 +179,7 @@ def _audit_collapsed_explicit_restraint_identity(document: base.XmlDocument, sou
 
 def _runtime_parse_xml_document(path) -> base.XmlDocument:
     source_rows = _source_explicit_restraint_identity_rows(path)
-    document = _ORIGINAL_PARSE_XML_DOCUMENT(path)
+    document = _ORIGINAL_PARSE_XML_DOCUMENT(path, preserve_rigid_weight_owners=True)
     return _audit_collapsed_explicit_restraint_identity(document, source_rows)
 
 

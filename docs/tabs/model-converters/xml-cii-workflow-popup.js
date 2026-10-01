@@ -12,7 +12,7 @@
  */
 
 import { WorkflowModal } from './shared/WorkflowModal.js?v=20260624-workflow-tabs-fix-1';
-import { xmlCiiWorkflowGetBridge, xmlCiiWorkflowGetSnapshot, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20260708-workflow-bridge-align-1';
+import { xmlCiiWorkflowGetBridge, xmlCiiWorkflowGetSnapshot, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20261001-single-weight-owners-1';
 import { renderXmlCiiPopupNativePhase } from './xml-cii-popup-native-panels.js?v=20260625-service-1';
 import { renderXmlCiiCustomInputPanel, bindXmlCiiCustomInputPanel } from './custom-input/custom-input-panel.js?v=20260625-custom-input-2';
 import { renderXmlCiiJsonTracePanel, bindXmlCiiJsonTracePanel } from './json-trace/json-trace-panel.js?v=20260705-json-trace-dashboard-1';

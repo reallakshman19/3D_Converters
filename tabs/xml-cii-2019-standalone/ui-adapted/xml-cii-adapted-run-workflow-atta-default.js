@@ -1,4 +1,4 @@
-import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261001-weight-output-2';
+import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261001-single-weight-owners-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
 import {
@@ -11,7 +11,7 @@ import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
-import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-2';
+import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-single-weight-owners-1';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -96,7 +96,7 @@ function rigidReviewRow(issue, index) {
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, info.dtxrRating ? `DTXR rating ${info.dtxrRating}# (evidence only)` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
     <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" value="${esc(best ? (best.suggestedWeight ?? best.weight) : '')}" placeholder="kg" style="width:72px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" data-rigid-review-prefilled="true" value="${esc(best ? (best.suggestedWeight ?? best.weight) : '')}" placeholder="kg" style="width:72px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
     <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${staleMatch1Notice(issue)}${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;
 }
@@ -107,7 +107,7 @@ function rigidReviewMarkup(rows) {
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) have zero weight and length greater than 6 mm.</div></div>
       <button type="button" data-rigid-review-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;font-size:12px;">Cancel</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions use the resolved Rating from explicit overrides, Piping Class master, or Regex extraction. DTXR Rating is comparison evidence only unless explicitly fetched in Preview.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Saved/XML weights are kept. Suggestions populate missing weights and Apply accepts the displayed values. Bulk fill preserves existing entries; clicking a row suggestion explicitly replaces that row. Review proposed master, interpolated and empirical weights before applying. XML values are kg; CII follows the selected weight conversion option. DTXR Rating is comparison evidence only unless explicitly fetched in Preview.</div>
     <div style="overflow:auto;max-height:45vh;border:1px solid rgba(148,163,184,0.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,0.3);color:#fff;border-bottom:1px solid rgba(148,163,184,0.15);"><th style="padding:8px;">Branch</th><th style="padding:8px;">Bore</th><th style="padding:8px;">Rating</th><th style="padding:8px;">Node</th><th style="padding:8px;">DTXR</th><th style="padding:8px;">Length</th><th style="padding:8px;">Manual Weight</th><th style="padding:8px;">Nearest Suggestions</th></tr></thead><tbody>${rows.map(rigidReviewRow).join('')}</tbody></table></div>
     <div data-rigid-review-status style="font-size:12px;margin-top:8px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;">
@@ -191,9 +191,12 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
     rows.forEach((issue, index) => {
       const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
       const best = issue.candidates?.[0] || null;
-      if (input && best) input.value = String(best.suggestedWeight ?? best.weight ?? '');
+      if (input && best && !(Number(input.value) > 0)) {
+        input.value = String(best.suggestedWeight ?? best.weight ?? '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     });
-    setStatus('Filled available best suggestions. Review values before applying.', false);
+    setStatus('Filled missing weights from available suggestions; existing entries preserved.', false);
   });
   overlay.querySelector('[data-rigid-review-cancel]')?.addEventListener('click', () => finish({ cancelled: true, skipped: false, weightsByKey: {} }));
   overlay.querySelector('[data-rigid-review-skip]')?.addEventListener('click', () => finish({ cancelled: false, skipped: true, weightsByKey: {} }));
