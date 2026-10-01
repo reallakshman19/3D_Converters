@@ -1,16 +1,13 @@
-import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
-import { collectXmlCiiWeightMatchRows } from '../../../converters/xml-cii2019-core/weight-match-model.js';
-import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
-import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js';
+import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-2';
+import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2';
 import { createElement } from './xml-cii-adapted-dom.js';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import {
   modeAExecutionRows,
   modeARawRef,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -36,23 +33,6 @@ function yieldUi() {
     else if (typeof setTimeout === 'function') setTimeout(resolve, 0);
     else resolve();
   });
-}
-
-function cloneConfig(config) {
-  try { return JSON.parse(JSON.stringify(config || {})); } catch { return { ...(config || {}) }; }
-}
-
-function ensureWeightMasterRows(config, state) {
-  const out = cloneConfig(config);
-  if (Array.isArray(out?.weight?.masterRows) && out.weight.masterRows.length) return out;
-  const rows = Array.isArray(state?.masterContext?.weightMasterRows) && state.masterContext.weightMasterRows.length
-    ? state.masterContext.weightMasterRows
-    : DEFAULT_WEIGHT_MASTER_ROWS;
-  out.weight = out.weight && typeof out.weight === 'object' && !Array.isArray(out.weight)
-    ? { ...out.weight }
-    : {};
-  out.weight.masterRows = rows.map((row) => ({ ...row }));
-  return out;
 }
 
 function compactPreviewRow(source, row) {
@@ -212,7 +192,7 @@ export async function buildModeAConsolidatedWeightMatch(stateOrRef = {}, runtime
   const executionRows = runtime.executionRows
     ? runtime.executionRows(stateOrRef)
     : modeAExecutionRows(stateOrRef);
-  const collector = runtime.collector || collectXmlCiiWeightMatchRows;
+  const collector = runtime.collector || collectModeARigidWeightReviewIssues;
   const configBuilder = runtime.configBuilder || xmlCiiEnrichedConfigFromState;
   const rows = [];
   const sources = [];
@@ -222,28 +202,21 @@ export async function buildModeAConsolidatedWeightMatch(stateOrRef = {}, runtime
     const entry = executionRows[index];
     runtime.onProgress?.({ index, total: executionRows.length, source: entry.source });
     try {
-      const config = ensureWeightMasterRows(configBuilder(entry.state), entry.state);
-      const prepared = await prepareStandaloneWeightReviewXml(entry.state, config);
-      if (prepared.error) throw new Error(prepared.error);
-      const preparedConfig = ensureWeightMasterRows(prepared.config || config, entry.state);
-      const basisRows = collector(
-        prepared.xmlText,
-        entry.state.stagedJsonText || '',
-        preparedConfig,
-      ) || [];
-      const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
-      const sourceRows = collector(
-        prepared.xmlText,
-        entry.state.stagedJsonText || '',
-        validated.config,
-      ) || [];
+      const config = configBuilder(entry.state);
+      const reviewedRows = await collector(entry.state, config);
+      const sourceRows = reviewedRows.map((row) => ({ ...row,
+        weight: row.acceptedWeight ?? row.originalWeight,
+        overrideWeight: row.acceptedWeightSource === 'Saved weight' ? row.acceptedWeight : null,
+        mapped: Number(row.acceptedWeight) > 0,
+        weightSource: row.acceptedWeightSource || 'unresolved',
+      }));
       rows.push(...sourceRows.map((row) => compactWeightRow(entry.source, row)));
       sources.push({
         sourceId: entry.source.sourceId,
         fileName: entry.source.fileName,
         rowCount: sourceRows.length,
         unresolvedCount: sourceRows.filter((row) => row?.mapped !== true).length,
-        staleMatch1Count: validated.validation.staleCount,
+        staleMatch1Count: sourceRows.filter((row) => row.staleMatch1).length,
       });
     } catch (error) {
       errors.push({

@@ -1,24 +1,26 @@
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
-import { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-model.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
+import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20261001-weight-output-2';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
 const text = (value) => value === undefined || value === null ? '' : String(value).trim();
 
 export async function collectModeARigidWeightReviewIssues(state = {}, config = {}) {
-  const prepared = await prepareStandaloneWeightReviewXml(state, config);
+  const effectiveConfig = await materializeXmlCiiDatasetBackedConfig(config, state);
+  const prepared = await prepareStandaloneWeightReviewXml(state, effectiveConfig);
   if (prepared.error) throw new Error(prepared.error);
-  const preparedConfig = prepared.config || config;
-  const basisRows = collectXmlCiiWeightMatchRows(prepared.xmlText, state.stagedJsonText || '', preparedConfig);
-  const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
+  const validated = prepared.weightAuthority;
+  const basisRows = validated.basisRows;
   const authorityConfig = validated.config;
-  return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
+  return basisRows.map((issue) => {
     const staleMatch1 = validated.validation.stale?.[issue.key] || null;
+    const savedWeight = Number(authorityConfig.overrides?.rigidWeight?.[issue.key]);
+    const sourceWeight = Number(issue.originalWeight);
+    const acceptedWeight = savedWeight > 0 ? savedWeight : (sourceWeight > 0 ? sourceWeight : null);
     const authority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
     const rating = authority.rating;
     const ranking = rating
@@ -35,6 +37,8 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
       staleMatch1,
+      acceptedWeight,
+      acceptedWeightSource: savedWeight > 0 ? 'Saved weight' : (sourceWeight > 0 ? 'XML weight' : ''),
       rating,
       dtxrRating: authority.dtxrRating,
       ratingAuthority: authority,
@@ -43,7 +47,7 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
       candidates: ranking.candidates.slice(0, 5),
       rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
     }, authorityConfig);
-  }).filter((issue) => !issue.mapped);
+  });
 }
 
 function ratingInfo(issue) {
@@ -97,7 +101,7 @@ function rowMarkup(issue, rowIndex) {
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td title="${attr(issue.dtxrSourcePath || '')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:180px;">${esc(issue.dtxr || 'Not found')}</td>
     <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
-    <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(best ? (best.suggestedWeight ?? best.selectedWeight ?? best.weight ?? '') : '')}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
+    <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(issue.acceptedWeight ?? (best ? (best.suggestedWeight ?? best.selectedWeight ?? best.weight ?? '') : ''))}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"><small data-reviewed-weight-source style="display:block;color:#94a3b8;">${esc(issue.acceptedWeightSource || (best ? `Proposed · ${best.weightMethod || 'master'}` : 'Unresolved'))}</small></td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:300px;">${staleMatch1Notice(issue)}${candidateButtons(issue, rowIndex) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;
 }
@@ -109,7 +113,7 @@ function popupMarkup(rows, entries) {
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review — Consolidated</div><div data-mode-a-rigid-summary style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) across ${entries.length} XML file(s).</div></div>
       <button type="button" data-mode-a-rigid-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;">Cancel Batch Run</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">One review gate covers all enabled XML models. Source identity is preserved; Rating and Weight changes are written only to that XML. “Use All Exact Suggestions” fills only preferred exact candidates.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">Saved/XML weights are kept; suggestions populate only missing weights. Apply accepts the displayed values without clicking each suggestion. Bulk suggestions fill blank fields; selecting a row suggestion explicitly replaces that row. Review proposed master, interpolated and empirical weights before applying. Values here and in enriched XML are kg. CII uses the selected Run option (kg → N multiplies by 10). Changes are saved only to their source XML.</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
       <input type="search" data-mode-a-rigid-search placeholder="Search source / branch / node..." style="min-width:250px;padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;">
       <select data-mode-a-rigid-source style="padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;"><option value="">All XML files</option>${sourceOptions}</select>
@@ -185,9 +189,9 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
         if (!best?.preferred || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
-        if (input) { input.value = String(value); count += 1; }
+        if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });
-      setStatus(`Filled ${count} preferred exact suggestion(s). Review remaining rows manually.`, false);
+      setStatus(`Filled ${count} blank field(s) with preferred exact suggestions. Populated weights preserved.`, false);
     });
 
     overlay.querySelector('[data-mode-a-rigid-refresh]')?.addEventListener('click', async () => {

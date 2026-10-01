@@ -46,7 +46,11 @@ assert.ok(
 );
 
 const activeReview = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js', import.meta.url), 'utf8');
-assert.match(activeReview, /buildXmlCiiValidatedRigidWeightLegacyView\(preparedConfig, basisRows\)/);
+assert.match(activeReview, /collectModeARigidWeightReviewIssues\(state, config\)/);
 assert.doesNotMatch(activeReview, /const effectiveConfig = withXmlCiiEffectiveRigidWeightLegacyView\(config\)/);
+
+const authority = await readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-weight-output-authority.js', import.meta.url), 'utf8');
+assert.match(authority, /buildXmlCiiValidatedRigidWeightLegacyView\(basisConfig, basisRows\)/);
+assert.match(authority, /Accepted weight has no output node/);
 
 console.log('Issue #776 downstream Match-1 validation regression passed.');

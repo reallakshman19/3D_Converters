@@ -1,13 +1,13 @@
-import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js';
+import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
 import { resolveBranchLineKeySuggestion } from './xml-cii-adapted-branch-line-map-panel.js';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import {
   createModeASourceProcessingRef,
   modeAExecutionRows,
   modeARawRef,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import {
   buildModeAPreviewFillPlan,
   buildModeAProjectDataMatchPlan,

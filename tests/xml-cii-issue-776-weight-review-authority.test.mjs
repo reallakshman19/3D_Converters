@@ -8,9 +8,13 @@ const activeSingle = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-
 
 assert.match(parity, /prepareStandaloneWeightReviewXml/);
 assert.match(parity, /applyXmlCiiStagedGeometryAuthority/);
-assert.match(consolidated, /await prepareStandaloneWeightReviewXml\(state, config\)/);
+assert.match(consolidated, /await materializeXmlCiiDatasetBackedConfig\(config, state\)/);
+assert.match(consolidated, /await prepareStandaloneWeightReviewXml\(state, effectiveConfig\)/);
+assert.match(consolidated, /const validated = prepared\.weightAuthority/);
+assert.match(consolidated, /const basisRows = validated\.basisRows/);
 assert.match(single, /await prepareStandaloneWeightReviewXml\(state, config\)/);
-assert.match(activeSingle, /await prepareStandaloneWeightReviewXml\(state, config\)/);
+assert.match(activeSingle, /await collectModeARigidWeightReviewIssues\(state, config\)/);
+assert.match(activeSingle, /issues\.filter\(\(issue\) => !\(Number\(issue\.acceptedWeight\) > 0\)\)/);
 assert.doesNotMatch(consolidated, /collectXmlCiiZeroRigidWeightIssues\(state\.sourceText/);
 assert.doesNotMatch(single, /collectXmlCiiZeroRigidWeightIssues\(state\.sourceText/);
 assert.doesNotMatch(activeSingle, /collectXmlCiiZeroRigidWeightIssues\(state\.sourceText/);

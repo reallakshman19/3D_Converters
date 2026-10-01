@@ -3,8 +3,8 @@ import {
   withXmlCiiRigidWeightMatch1,
   xmlCiiRigidWeightLifecycleSnapshot,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
-import { createModeASourceProcessingRef, modeARawRef, modeARawState } from './xml-cii-adapted-mode-a-propagation.js';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
+import { createModeASourceProcessingRef, modeARawRef, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function parseConfig(value) { try { const out = JSON.parse(String(value || '{}')); return out && typeof out === 'object' && !Array.isArray(out) ? out : {}; } catch { return {}; } }

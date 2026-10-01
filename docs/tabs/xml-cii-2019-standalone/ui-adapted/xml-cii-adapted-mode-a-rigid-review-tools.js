@@ -37,7 +37,7 @@ function enhance(dialog) {
   all.type = 'button';
   all.dataset.modeARigidFillAllSuggestions = 'true';
   all.textContent = 'Use All Suggestions';
-  all.title = 'Fill each visible review row with its first available suggestion. This is a review aid only; no weight is committed until Apply Weights and Run All Models.';
+  all.title = 'Fill blank visible review weights with their first available suggestion. Preserve populated values. Apply Weights and Run All Models accepts the displayed values.';
   styleButton(all);
 
   const status = dialog.querySelector('[data-mode-a-rigid-status]');
@@ -73,14 +73,13 @@ function enhance(dialog) {
       const input = row.querySelector('.mc-rigid-review-input');
       const candidate = row.querySelector('[data-mode-a-rigid-candidate]');
       const weight = Number(candidate?.dataset?.modeARigidWeight);
-      if (!input || !Number.isFinite(weight) || weight <= 0) continue;
+      if (!input || text(input.value) || !Number.isFinite(weight) || weight <= 0) continue;
       input.value = String(weight);
       count += 1;
     }
     setStatus(count
-      ? `Filled ${count} first suggestion(s). Review all values before applying.`
-      : 'No visible positive suggestions are available.',
-      count === 0);
+      ? `Filled ${count} blank weight field(s). Populated weights preserved; review before applying.`
+      : 'No blank visible weights to fill. Populated weights preserved.', false);
   });
 
   if (exact) exact.insertAdjacentElement('beforebegin', dtxr);

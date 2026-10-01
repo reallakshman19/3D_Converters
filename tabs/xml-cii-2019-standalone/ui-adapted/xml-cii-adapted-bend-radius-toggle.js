@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 function parseConfig(state) {
   try {
