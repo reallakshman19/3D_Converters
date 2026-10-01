@@ -54,6 +54,30 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/ci-36843139044-failure-excerpt.txt",
+    "category": "EVIDENCE",
+    "reason": "Observed remote PR check result/failure or exact GitHub changed-path reconciliation.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/ci-36843139261-failure-excerpt.txt",
+    "category": "EVIDENCE",
+    "reason": "Observed remote PR check result/failure or exact GitHub changed-path reconciliation.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/ci-36843139458-failure-excerpt.txt",
+    "category": "EVIDENCE",
+    "reason": "Observed remote PR check result/failure or exact GitHub changed-path reconciliation.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/ci-head-933158b0.json",
+    "category": "EVIDENCE",
+    "reason": "Observed remote PR check result/failure or exact GitHub changed-path reconciliation.",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/cii-current-geometry.png",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
@@ -81,6 +105,12 @@
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/focused-regressions.txt",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/github-changed-files.txt",
+    "category": "EVIDENCE",
+    "reason": "Observed remote PR check result/failure or exact GitHub changed-path reconciliation.",
     "deploymentMirror": false
   },
   {

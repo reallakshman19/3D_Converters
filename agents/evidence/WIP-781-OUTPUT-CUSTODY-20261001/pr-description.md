@@ -26,6 +26,7 @@ Stacked on PR811 (Rating prefix/manual/class fill), not ready for merge. Owner-e
 | Focused Node regressions | PASS36/36 | Mixed independent behavioral and explicit static delegation/cache assertions |
 | Explicit restraint fixture check | NOT_RUN | Sparse checkout lacks SYS-6-S8810011-01.xml; no product assertion reached |
 | Remote deployment | NOT_RUN | Local docs served from this branch; no merge/deployment claimed |
+| Remote stacked-base CI at933158b0 | PASS1 / FAIL3 preexisting | Browser timing passes; unchanged CAESAR/FBX old cache assertions and InputXML manifest failure also fail on PR811. Main-base XML gates not triggered here. |
 
 ### Unresolved / protected decision
 
