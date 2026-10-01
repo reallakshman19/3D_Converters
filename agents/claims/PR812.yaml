@@ -1,7 +1,7 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
-pr_or_wip: WIP-781-OUTPUT-CUSTODY-20261001
-claim_state: ACTIVE_IMPLEMENTATION
+pr_or_wip: PR812
+claim_state: DRAFT_HANDOVER_PENDING_OWNER_DECISION
 branch: agent/issue-781-output-custody-20261001
 authority_domains: [XML_CII_WEIGHT_OUTPUT_CUSTODY, XML_CII_GEOMETRY_PREVIEW_REFRESH, XML_NODE_OFFSET_COMPOSITION_EXPORT]
 coordination_state: COORDINATION_REQUIRED

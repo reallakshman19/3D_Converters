@@ -6,15 +6,15 @@
     "deploymentMirror": false
   },
   {
-    "path": "agents/WIP-781-OUTPUT-CUSTODY-20261001_workreport.md",
+    "path": "agents/PR812_workreport.md",
     "category": "HANDOVER",
-    "reason": "Current recoverable mission, qualification, limitations, dependency and exact next action.",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
     "deploymentMirror": false
   },
   {
-    "path": "agents/claims/WIP-781-OUTPUT-CUSTODY-20261001.yaml",
+    "path": "agents/claims/PR812.yaml",
     "category": "HANDOVER",
-    "reason": "Current recoverable mission, qualification, limitations, dependency and exact next action.",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
     "deploymentMirror": false
   },
   {
@@ -45,6 +45,12 @@
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/canvas-refresh.json",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/changed-files.json",
+    "category": "EVIDENCE",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
     "deploymentMirror": false
   },
   {
@@ -168,6 +174,12 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/pr-description.md",
+    "category": "EVIDENCE",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/repaired-enriched.xml",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
@@ -234,6 +246,12 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/validation-commands.json",
+    "category": "EVIDENCE",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001/weight-basis-fastpath-response.json",
     "category": "EVIDENCE",
     "reason": "Actual local execution/artifact witness; pre-guard full CII failure preserved separately from guard PASS.",
@@ -276,9 +294,9 @@
     "deploymentMirror": false
   },
   {
-    "path": "agents/status/WIP-781-OUTPUT-CUSTODY-20261001.yaml",
+    "path": "agents/status/PR812.yaml",
     "category": "HANDOVER",
-    "reason": "Current recoverable mission, qualification, limitations, dependency and exact next action.",
+    "reason": "Durable PR812 identity, current validation/reproduction and recovery state.",
     "deploymentMirror": false
   },
   {

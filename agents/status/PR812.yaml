@@ -1,13 +1,13 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
-pr_or_wip: WIP-781-OUTPUT-CUSTODY-20261001
+pr_or_wip: PR812
 branch: agent/issue-781-output-custody-20261001
 criticality: ENGINEERING_CRITICAL
 takeover_authority: WRITE_ALLOWED_BOUNDED_WEIGHT_CANVAS_AND_XML_COMPOSITION
-current_stage: RECONCILE
-report_path: agents/WIP-781-OUTPUT-CUSTODY-20261001_workreport.md
+current_stage: HANDOVER_DRAFT_PENDING_OWNER_DECISION
+report_path: agents/PR812_workreport.md
 dependency: PR811
 merge_authority: OWNER_ONLY_NOT_GRANTED
 full_cii_acceptance: FAIL_16_UNRESOLVED_COMPONENT_OWNERS
 owner_decision: PENDING_EXPLICIT_GEOMETRY_AND_WEIGHT_OWNERSHIP_APPROVAL
-exact_next_action: Commit verified bounded repairs and allocate draft PR stacked on PR811; keep full CII acceptance failure and pending ownership decision explicit.
+exact_next_action: Reconcile PR812 remote checks; after owner answers pending geometry/ownership question, qualify repair or record explicitly narrowed scope. No merge authority.
