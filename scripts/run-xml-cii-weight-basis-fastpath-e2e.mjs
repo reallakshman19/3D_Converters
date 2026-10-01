@@ -38,3 +38,6 @@ try {
 } finally {
   await browser.close();
 }
+
+// Exercise persisted prefix/manual/class-fill controls with the real 41-branch source.
+await import('../tests/browser/xml-cii-weight-rating-input-e2e.mjs');

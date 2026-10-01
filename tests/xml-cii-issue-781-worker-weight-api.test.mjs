@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Keep configured/manual Rating and Match-1 invalidation in the existing worker CI gate.
+import './xml-cii-weight-rating-input.test.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { normalizeLineListRow } from '../converters/xml-cii2019-core/linelist-mapping.js';

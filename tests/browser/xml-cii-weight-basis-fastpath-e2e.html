@@ -168,7 +168,7 @@ async function build() {
   const rows = root.querySelectorAll('#mc-wm-content tbody tr').length;
   const inputValue = root.querySelector('.mc-rigid-review-input')?.value || '';
   const lineKey = root.querySelector('#mc-wm-content tbody tr td:nth-child(3)')?.textContent?.trim() || '';
-  const rating = root.querySelector('#mc-wm-content tbody tr td:nth-child(6)')?.textContent?.trim() || '';
+  const rating = root.querySelector('#mc-wm-content tbody tr .mc-wm-rating-input')?.value || '';
   const dtxr = root.querySelector('#mc-wm-content tbody tr td:nth-child(9)')?.textContent || '';
   const ok = rawPayloadPreserved
     && button.dataset.wmBusy !== 'true'

@@ -1,5 +1,5 @@
 {
-  "lastId": 454,
+  "lastId": 457,
   "entries": [
     {
       "id": 1,
@@ -3178,6 +3178,27 @@
       "file": "tests\\browser\\xml-cii-issue-781-mode-a-live-e2e.mjs",
       "context": "Weight Rating release assertions; owner changed prefix/manual policy",
       "backupFile": "454_tests_browser_xml_cii_issue_781_mode_a_live_e2e_mjs.bak"
+    },
+    {
+      "id": 455,
+      "timestamp": "2026-10-01 08:28:48",
+      "file": "tests\\xml-cii-issue-781-worker-weight-api.test.mjs",
+      "context": "Add Rating input regressions to existing CI worker gate",
+      "backupFile": "455_tests_xml_cii_issue_781_worker_weight_api_test_mjs.bak"
+    },
+    {
+      "id": 456,
+      "timestamp": "2026-10-01 08:28:48",
+      "file": "tests\\browser\\xml-cii-weight-basis-fastpath-e2e.html",
+      "context": "Read new editable Rating value; preserve 600 oracle and 250ms gate",
+      "backupFile": "456_tests_browser_xml_cii_weight_basis_fastpath_e2e_html.bak"
+    },
+    {
+      "id": 457,
+      "timestamp": "2026-10-01 08:29:56",
+      "file": "scripts\\run-xml-cii-weight-basis-fastpath-e2e.mjs",
+      "context": "Run exact41 Weight Rating UI acceptance in existing browser CI gate",
+      "backupFile": "457_scripts_run_xml_cii_weight_basis_fastpath_e2e_mjs.bak"
     }
   ]
 }

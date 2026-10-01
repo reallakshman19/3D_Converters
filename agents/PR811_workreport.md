@@ -1,4 +1,4 @@
-# WIP-781-WEIGHT-RATING-20261001 — Weight Rating mapping and manual class fill
+# PR811 — Weight Rating mapping and manual class fill
 
 ## CURRENT RECOVERY STATE
 HANDOVER_READINESS: READY
@@ -15,7 +15,7 @@ MAIN_HEAD_LAST_CHECKED: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
 MERGE_BASE: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
 REPORT_BASIS_HEAD: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
 GROUNDING_EPOCH: GE-20261001-RATING-01
-CURRENT_STAGE: VALIDATED_PR_PREPARATION
+CURRENT_STAGE: PR811_CI_RECONCILIATION
 HIGHEST_RISK: Persisted Rating edits must reach worker validation before ranking; old Match-1 acceptances must become stale.
 EXACT_NEXT_ACTION: Create draft PR from committed branch, allocate PR identity, rerun exact-head browser test and inspect checks; no merge authorization.
 
@@ -71,16 +71,16 @@ PR810 status/claim reconciled to live MERGED/RELEASED; workreport receives histo
 |---|---|---|
 | `.backups/log.json` | Native backup audit | Inspected |
 | `agents/PR810_workreport.md` | Delivery and merged predecessor reconciliation | Inspected |
-| `agents/WIP-781-WEIGHT-RATING-20261001_workreport.md` | Delivery and merged predecessor reconciliation | Inspected |
+| `agents/PR811_workreport.md` | Delivery and merged predecessor reconciliation | Inspected |
 | `agents/claims/PR810.yaml` | Delivery and merged predecessor reconciliation | Inspected |
-| `agents/claims/WIP-781-WEIGHT-RATING-20261001.yaml` | Delivery and merged predecessor reconciliation | Inspected |
+| `agents/claims/PR811.yaml` | Delivery and merged predecessor reconciliation | Inspected |
 | `agents/evidence/WIP-781-WEIGHT-RATING-20261001/combined-mode-a.txt` | Browser/Node evidence | Execution/inspection PASS |
 | `agents/evidence/WIP-781-WEIGHT-RATING-20261001/focused-node.txt` | Browser/Node evidence | Execution/inspection PASS |
 | `agents/evidence/WIP-781-WEIGHT-RATING-20261001/new-rating-live.txt` | Browser/Node evidence | Execution/inspection PASS |
 | `agents/evidence/WIP-781-WEIGHT-RATING-20261001/weight-rating-browser.json` | Browser/Node evidence | Execution/inspection PASS |
 | `agents/evidence/WIP-781-WEIGHT-RATING-20261001/weight-rating-class-fill.png` | Browser/Node evidence | Execution/inspection PASS |
 | `agents/status/PR810.yaml` | Delivery and merged predecessor reconciliation | Inspected |
-| `agents/status/WIP-781-WEIGHT-RATING-20261001.yaml` | Delivery and merged predecessor reconciliation | Inspected |
+| `agents/status/PR811.yaml` | Delivery and merged predecessor reconciliation | Inspected |
 | `converters/xml-cii2019-core/preview-rating-snapshot.js` | Rating authority/input/persistence | Mirror/syntax/browser PASS |
 | `converters/xml-cii2019-core/weight-match-ranking-service.js` | Rating authority/input/persistence | Mirror/syntax/browser PASS |
 | `converters/xml-cii2019-core/weight-rating-input.js` | Rating authority/input/persistence | Mirror/syntax/browser PASS |
@@ -156,3 +156,8 @@ PR810 status/claim reconciled to live MERGED/RELEASED; workreport receives histo
 | `tests/xml-cii-weight-rating-input.test.mjs` | Validation/release regression | Execution/inspection PASS |
 
 Ledger paths: 85. Unexplained paths:0. Incoming takeover remains READ_ONLY; production qualification refreshed96/100, all>=17. Live deployment after merge is NOT_RUN. Current owner browser profile is NOT_RUN; reproducible local docs-path Chromium acceptance is PASS.
+
+## PR allocation and CI reconciliation GE-20261001-RATING-04
+PR811 draft https://github.com/reallaksh19/3D_Converters/pull/811 allocated on head3198ee6256fa5c631b04832a56b141b5be0b378e, base d6f19bdd, mergeable; no reviews.85 live PR changed paths match ledger. Attach confirmed. Report/status/claim renamed to PR811 identity. Origin WIP remains in evidence folder provenance.
+Initial CI12 PASS/4 FAIL. Three unrelated inherited failures: qualify and live-ui expect root key20260929-pr780-metadata-1 while main already has20260930-issue781-live-acceptance-1; contract expects canonical ModelConvertersTab old key and InputXML cii_syntax_check_2019.py manifest hash mismatch. Main source inspected; relevant ModelConvertersTab/module/asset/manifest/test files unchanged by PR811; these are SOURCE_INSPECTION/INFERRED inheritance, not independently executed base product tests. No InputXML/FBX/CAESAR repair authorized or attempted.
+Introduced CI browser-worker-scale FAIL is a DOM getter mismatch: previous static Rating text became editable input, getter observed arrow/class text instead of Rating150. Product result:one exact25kg suggestion, lineP0310051,33.4ms max gap; oracle expected150 remains unchanged. Fix reads input.value;250ms/5000ms limits unchanged. Mandatory backup note incorrectly said600 but actual retained oracle is150. Six new Rating tests imported into existing worker API gate, and new full41 Rating browser script invoked from existing fastpath driver; no workflow changes. Final rerun pending.

@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
-pr_or_wip: WIP-781-WEIGHT-RATING-20261001
+pr_or_wip: PR811
 claim_state: ACTIVE
 branch: agent/issue-781-weight-rating-20261001
 criticality: ENGINEERING_CRITICAL

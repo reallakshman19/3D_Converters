@@ -1,4 +1,4 @@
-> Reconciled 2026-10-01: PR810 was owner-merged 2026-09-30T23:39:40Z (merge9d38b13d). Its claim is released. The record below describes the historical PR810 handover; new Weight Rating follow-up is agents/WIP-781-WEIGHT-RATING-20261001_workreport.md.
+> Reconciled 2026-10-01: PR810 was owner-merged 2026-09-30T23:39:40Z (merge9d38b13d). Its claim is released. The record below describes the historical PR810 handover; new Weight Rating follow-up is agents/PR811_workreport.md.
 
 # PR810 — Issue #781 live screenshot acceptance
 
