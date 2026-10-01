@@ -1,6 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { xmlCiiRenderPreviewPhase, xmlCiiBuildAndRenderPreview } from './xml-cii-adapted-preview-renderer.js';
-import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
+import { xmlCiiRenderPreviewPhase, xmlCiiBuildAndRenderPreview } from './xml-cii-adapted-preview-renderer.js?v=20261001-weight-output-2';
+import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }

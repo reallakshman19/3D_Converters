@@ -1,5 +1,5 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20260930-issue781-weight-liveness-cache-1';
-import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20261001-weight-output-2';
+import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import {
   collectModeASuccessfulCiiFiles,
   downloadModeACiiZip,

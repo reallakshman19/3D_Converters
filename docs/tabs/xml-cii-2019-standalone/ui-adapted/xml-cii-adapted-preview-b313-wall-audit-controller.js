@@ -4,7 +4,7 @@ import {
   buildPreviewB313WallUpdateReport,
   installPreviewB313WallUpdateController,
   selectPreviewB313ActionRows,
-} from './xml-cii-adapted-preview-b313-wall-update.js?v=20260928-issue776-authority-1';
+} from './xml-cii-adapted-preview-b313-wall-update.js?v=20261001-weight-output-2';
 import { XML_CII_PREVIEW_LEGACY_CACHE_KEY } from './xml-cii-adapted-preview-cache-v7.js';
 
 function text(value) {

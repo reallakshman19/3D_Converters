@@ -1,7 +1,7 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js';
+import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
-import { isXmlCiiWeightReviewNode } from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import { isXmlCiiWeightReviewNode } from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-2';
 import {
   ensureValveHintConfig,
   formatValveHint,
@@ -11,7 +11,7 @@ import {
   specialValveFactorRows,
   rankXmlCiiWeightCandidates
 } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v1';
@@ -301,7 +301,7 @@ function persistWeightMatchConfig(stateRef, config) {
 async function bindParentWeightMatchPhase(card, stateRef, render) {
   const state = stateRef.current;
   try {
-    const { loadParentWeightMatchModules } = await import('../xml-cii-standalone-run-parity.js');
+    const { loadParentWeightMatchModules } = await import('../xml-cii-standalone-run-parity.js?v=20261001-weight-output-2');
     const { bindXmlCiiWeightMatchPhase, enrichXmlForCii2019 } = await loadParentWeightMatchModules();
     const config = await ensureWeightMasterRows(xmlCiiEnrichedConfigFromState(state), state.masterContext);
     const xmlFile = state.sourceFile || (state.sourceText ? new File([state.sourceText], 'source.xml', { type: 'application/xml' }) : null);
@@ -326,7 +326,7 @@ async function bindParentWeightMatchPhase(card, stateRef, render) {
 async function weightMatchSourceXml(xmlText, stagedJsonText, liveConfig, splitOn) {
   if (!splitOn) return xmlText;
   try {
-    const { enrichStandaloneXmlForRun } = await import('../xml-cii-standalone-run-parity.js');
+    const { enrichStandaloneXmlForRun } = await import('../xml-cii-standalone-run-parity.js?v=20261001-weight-output-2');
     const parity = await enrichStandaloneXmlForRun(
       { sourceText: xmlText, stagedJsonText, supportConfigJson: JSON.stringify(liveConfig), options: { splitCondensedValveFlange: true } },
       { dryRun: true, skipAutoWeightMatch: true }

@@ -1,3 +1,5 @@
+import { xmlCiiWeightReviewNodeOverrideKey } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-2';
+
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
@@ -36,7 +38,7 @@ function authorityKey(entry) {
   return [
     entry?.scope || '',
     entry?.branchName || '',
-    entry?.nodeNumber || '',
+    entry?.nodeKey || entry?.nodeNumber || '',
     ...(Array.isArray(entry?.path) ? entry.path : []),
   ].join('\u0000');
 }
@@ -86,7 +88,9 @@ export function extractXmlCiiParityAuthorityEntries(xmlText, expectedEntries = [
     if (!branch) return { ...entry, actual: '', found: false, missing: 'branch' };
     let owner = branch;
     if (entry?.scope === 'node') {
-      owner = childrenByName(branch, 'Node').find((node) => childText(node, 'NodeNumber') === text(entry?.nodeNumber)) || null;
+      owner = childrenByName(branch, 'Node').find((node, index) => entry?.nodeKey
+        ? xmlCiiWeightReviewNodeOverrideKey(text(entry.branchName), node, index) === entry.nodeKey
+        : childText(node, 'NodeNumber') === text(entry?.nodeNumber)) || null;
       if (!owner) return { ...entry, actual: '', found: false, missing: 'node' };
     }
     const actual = valueAtPath(owner, entry?.path || []);

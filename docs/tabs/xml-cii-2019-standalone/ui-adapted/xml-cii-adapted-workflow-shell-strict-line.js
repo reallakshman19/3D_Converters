@@ -1,9 +1,9 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260708-v8';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260708-v8';
-import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260708-v8';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260804-strict-line-authority-v2';
+import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-weight-output-2';
 import { renderOutputPanel } from './xml-cii-adapted-output-panel.js?v=20260708-v8';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20260803-atta-default-rest-closure-1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20261001-weight-output-2';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260708-v8';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();

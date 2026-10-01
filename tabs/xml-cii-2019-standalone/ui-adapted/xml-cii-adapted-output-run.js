@@ -1,9 +1,9 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
-import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
-import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js';
+import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }

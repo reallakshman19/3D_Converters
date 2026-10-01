@@ -1,11 +1,11 @@
 import {
   updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, findSmartMatchingMapping,
-} from './xml-cii-adapted-state.js';
+} from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { appliedFieldMap, ensureMasterRuntime } from './xml-cii-adapted-master-runtime.js';
-import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-rating-1';
+import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 import { perfCount, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
-import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-rating-1';
-import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-rating-1';
+import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
+import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
 
 const generations = new Map();

@@ -1,3 +1,4 @@
+import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { parseXmlCiiEnrichmentConfig } from '../../../../converters/xml-cii2019-core/config.js';
 import { enrichXmlForCii2019 as enrichXmlForCii2019Base } from './enrichment-core.js?v=20260620-rating-override-1';
 import { xmlCiiDryRunPreview } from './preview-renderer.js?v=20260626-process-xml-fallback-1';
@@ -612,7 +613,12 @@ export function prepareXmlCiiWeightMatchGeometry(xmlTextVal, stagedJsonText, opt
   }
   annotateInlineElementLengths(document, prepared);
   applyCondenseRigidOption(prepared, document, options);
-  prepared.xmlText = new XMLSerializer().serializeToString(document);
+  const canonical = applyXmlCiiStagedGeometryAuthority(
+    new XMLSerializer().serializeToString(document), stagedJsonText, { ...options, config },
+  );
+  prepared.xmlText = canonical.xmlText;
+  prepared.stats = { ...prepared.stats, ...canonical.stats, weightMatchGeometryCanonicalCleanup: 1 };
+  prepared.diagnostics.push(...canonical.diagnostics);
   prepared.stats.weightMatchGeometryFastPath = 1;
   prepared.diagnostics.push({
     type: 'weight-match-geometry-fast-path',

@@ -1,8 +1,8 @@
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
-import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js';
+import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js?v=20261001-weight-output-2';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
 import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
-import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
+import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261001-weight-output-2';
 
 function parseSupportConfig(raw) {
   try {

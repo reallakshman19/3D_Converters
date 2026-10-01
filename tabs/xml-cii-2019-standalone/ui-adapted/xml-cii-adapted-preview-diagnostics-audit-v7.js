@@ -1,21 +1,21 @@
 import {
   _xmlCiiOpenPreviewOverridePopup,
   renderStandaloneDiagnosticsReportPanel,
-} from './xml-cii-adapted-preview-diagnostics-audit.js?v=20260929-pr780-metadata-1';
+} from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
 import {
   xmlCiiBuildAndRenderPreview,
   xmlCiiRenderPreviewPhase,
-} from './xml-cii-adapted-preview-renderer-v7.js';
+} from './xml-cii-adapted-preview-renderer-v7.js?v=20261001-weight-output-2';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
-import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
-import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-rating-1';
-import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20261001-weight-output-2';
+import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-output-2';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
-} from './xml-cii-adapted-state.js';
+} from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 export { renderStandaloneDiagnosticsReportPanel };
 

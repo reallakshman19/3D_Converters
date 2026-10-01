@@ -8,13 +8,12 @@
 // contains the Preview and Weight Match facts that were selected.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
-import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
+import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
-import { collectXmlCiiWeightMatchRows } from '../../converters/xml-cii2019-core/weight-match-model.js';
-import { buildXmlCiiValidatedRigidWeightLegacyView } from '../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
+import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-2';
 
 const PARITY_MODULE_URL = new URL(
-  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260928-issue776-authority-2',
+  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20261001-weight-output-2',
   import.meta.url,
 );
 
@@ -73,37 +72,17 @@ function recordExpected(entries, {
   entries.push({ scope, branchName, nodeNumber, path, field, expected, kind, source });
 }
 
-const WEIGHT_BEARING_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
-
-function mappedNodeWeights(nodeRows, config, blockedWeightKeys = new Set()) {
-  const weights = new Map();
-  for (const nr of nodeRows || []) {
-    if (!WEIGHT_BEARING_TYPES.has(text(nr.componentType).toUpperCase())) continue;
-    if (blockedWeightKeys.has(text(nr.key))) continue;
-    const override = Number(config?.overrides?.rigidWeight?.[nr.key]);
-    const auto = nr.weightMatch && !nr.weightMatch.zeroFallback ? Number(nr.weightMatch.weight) : NaN;
-    const weight = Number.isFinite(override) && override > 0 ? override : (Number.isFinite(auto) && auto > 0 ? auto : null);
-    if (weight !== null) weights.set(`${text(nr.branchName)}|${text(nr.nodeNumber)}`, weight);
-  }
-  return weights;
-}
-
-async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics, options = {}) {
+async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
   const result = { xmlText, branchRows: [], nodeRows: [], expectedEntries: [], appliedFields: 0 };
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
   }
-  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2');
   const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
   if (!result.branchRows.length) return result;
 
-  const nodeWeights = mappedNodeWeights(
-    result.nodeRows,
-    config,
-    options.blockedWeightKeys instanceof Set ? options.blockedWeightKeys : new Set(options.blockedWeightKeys || []),
-  );
   const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
@@ -155,15 +134,6 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         });
       }
 
-      const mapped = nodeWeights.get(`${branchName}|${nodeNumber}`);
-      const existingWeight = numeric(childText(node, 'Weight'));
-      if (mapped !== undefined && (existingWeight === null || existingWeight === 0) && setChildText(document, node, 'Weight', mapped)) {
-        result.appliedFields += 1;
-        recordExpected(result.expectedEntries, {
-          scope: 'node', branchName, nodeNumber, path: ['Weight'], field: 'weight',
-          value: mapped, kind: 'number', source: 'weight-match',
-        });
-      }
     }
   }
 
@@ -210,7 +180,10 @@ export async function prepareStandaloneWeightReviewXml(state = {}, config = {}) 
   const parity = await import(PARITY_MODULE_URL.href);
   const supportConfigJson = JSON.stringify(config && typeof config === 'object' ? config : {});
   const options = standaloneParityOptions(supportConfigJson, state?.options || {});
-  const enriched = await parity.enrichXmlForCii2019(sourceText, stagedJsonText, options);
+  const authority = prepareStandaloneRigidWeightAuthority(parity, sourceText, stagedJsonText, config, options);
+  const enriched = await parity.enrichXmlForCii2019(sourceText, stagedJsonText, {
+    ...options, supportConfigJson: JSON.stringify(deferStandaloneRigidWeights(config)),
+  });
   const preparedConfig = enriched?.config && typeof enriched.config === 'object'
     ? { ...enriched.config, ...config, overrides: { ...(enriched.config.overrides || {}), ...(config?.overrides || {}) } }
     : config;
@@ -224,6 +197,7 @@ export async function prepareStandaloneWeightReviewXml(state = {}, config = {}) 
     config: preparedConfig,
     diagnostics: [...(enriched?.diagnostics || []), ...(geometry?.diagnostics || [])],
     stats: { ...(enriched?.stats || {}), ...(geometry?.stats || {}) },
+    weightAuthority: authority,
     error: null,
   };
 }
@@ -256,8 +230,11 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
   try {
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
-    const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
     const supportConfig = parseConfig(options.supportConfigJson);
+    const validated = prepareStandaloneRigidWeightAuthority(parity, sourceText, text(job.stagedJsonText), supportConfig, options);
+    const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), {
+      ...options, supportConfigJson: JSON.stringify(deferStandaloneRigidWeights(supportConfig)),
+    });
     const config = enriched?.config && typeof enriched.config === 'object'
       ? {
           ...enriched.config,
@@ -271,12 +248,6 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
       text(job.stagedJsonText),
       { config },
     );
-    const basisRows = collectXmlCiiWeightMatchRows(
-      geometry.xmlText,
-      text(job.stagedJsonText),
-      config,
-    );
-    const validated = buildXmlCiiValidatedRigidWeightLegacyView(config, basisRows);
     const authorityConfig = validated.config;
 
     out.diagnostics = [
@@ -300,18 +271,19 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
       staleMatch1Weights: validated.validation.staleCount,
     };
 
-    const staleMatch1Keys = new Set(Object.keys(validated.validation.stale));
     const process = await applyStandaloneProcessParity(
       geometry.xmlText,
       authorityConfig,
       text(job.stagedJsonText),
       out.diagnostics,
-      { blockedWeightKeys: staleMatch1Keys },
     );
-    out.xmlText = process.xmlText;
+    const accepted = applyStandaloneAcceptedRigidWeights(process.xmlText, validated);
+    out.xmlText = accepted.xmlText;
     out.branchRows = process.branchRows;
     out.nodeRows = process.nodeRows;
-    out.expectedEntries = process.expectedEntries;
+    out.expectedEntries = [...process.expectedEntries, ...accepted.expectedEntries];
+    out.stats.acceptedRigidWeightWrites = accepted.appliedCount;
+    out.diagnostics.push(...accepted.appliedRows.map((row) => ({ ...row, source: 'validated-or-final-weight' })));
     out.evidence = createStandaloneRunParityEvidence({
       xmlText: out.xmlText,
       expectedEntries: out.expectedEntries,

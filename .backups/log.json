@@ -1,5 +1,5 @@
 {
-  "lastId": 457,
+  "lastId": 929,
   "entries": [
     {
       "id": 1,
@@ -3199,6 +3199,3310 @@
       "file": "scripts\\run-xml-cii-weight-basis-fastpath-e2e.mjs",
       "context": "Run exact41 Weight Rating UI acceptance in existing browser CI gate",
       "backupFile": "457_scripts_run_xml_cii_weight_basis_fastpath_e2e_mjs.bak"
+    },
+    {
+      "id": 458,
+      "timestamp": "2026-10-01 12:08:07",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Weight output custody defer and explicit validated writes",
+      "backupFile": "458_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 459,
+      "timestamp": "2026-10-01 12:08:07",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Populate saved weights in consolidated run review",
+      "backupFile": "459_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 460,
+      "timestamp": "2026-10-01 12:08:07",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Align single review with canonical Weight basis",
+      "backupFile": "460_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 461,
+      "timestamp": "2026-10-01 12:11:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Mirror Weight output custody repair",
+      "backupFile": "461_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 462,
+      "timestamp": "2026-10-01 12:11:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Mirror consolidated weight review",
+      "backupFile": "462_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 463,
+      "timestamp": "2026-10-01 12:11:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Mirror single weight review basis",
+      "backupFile": "463_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 464,
+      "timestamp": "2026-10-01 12:18:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "Invalidate stale output on engineering input changes",
+      "backupFile": "464_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 465,
+      "timestamp": "2026-10-01 12:18:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Route output invalidation through Mode A state",
+      "backupFile": "465_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 466,
+      "timestamp": "2026-10-01 12:18:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-cii-preview-canvas.js",
+      "context": "Destroy disconnected preview renderers and refresh geometry",
+      "backupFile": "466_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_cii_preview_canvas_js.bak"
+    },
+    {
+      "id": 467,
+      "timestamp": "2026-10-01 12:18:49",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Dispose geometry preview before rerender",
+      "backupFile": "467_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 468,
+      "timestamp": "2026-10-01 12:21:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "Mirror stale output invalidation",
+      "backupFile": "468_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 469,
+      "timestamp": "2026-10-01 12:21:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Mirror result invalidation routing",
+      "backupFile": "469_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 470,
+      "timestamp": "2026-10-01 12:21:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-cii-preview-canvas.js",
+      "context": "Mirror geometry preview lifecycle",
+      "backupFile": "470_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_cii_preview_canvas_js.bak"
+    },
+    {
+      "id": 471,
+      "timestamp": "2026-10-01 12:21:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Mirror geometry disposal",
+      "backupFile": "471_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 472,
+      "timestamp": "2026-10-01 12:33:53",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\enrichment-run-parity.js",
+      "context": "Align Weight Match with existing export geometry cleanup",
+      "backupFile": "472_tabs_model_converters_converters_xmltocii2019_helper_enrichment_run_parity_js.bak"
+    },
+    {
+      "id": 473,
+      "timestamp": "2026-10-01 12:33:53",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\enrichment-run-parity.js",
+      "context": "Mirror canonical Weight Match cleanup",
+      "backupFile": "473_docs_tabs_model_converters_converters_xmltocii2019_helper_enrichment_run_parity_js.bak"
+    },
+    {
+      "id": 474,
+      "timestamp": "2026-10-01 12:33:53",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Report applied canonical geometry cleanup",
+      "backupFile": "474_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 475,
+      "timestamp": "2026-10-01 12:33:54",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Mirror canonical geometry stats",
+      "backupFile": "475_docs_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 476,
+      "timestamp": "2026-10-01 12:36:19",
+      "file": "converters\\xml-cii2019-core\\weight-match-model.js",
+      "context": "Track precise accepted weight identities for output custody",
+      "backupFile": "476_converters_xml_cii2019_core_weight_match_model_js.bak"
+    },
+    {
+      "id": 477,
+      "timestamp": "2026-10-01 12:36:20",
+      "file": "docs\\converters\\xml-cii2019-core\\weight-match-model.js",
+      "context": "Mirror precise output identities",
+      "backupFile": "477_docs_converters_xml_cii2019_core_weight_match_model_js.bak"
+    },
+    {
+      "id": 478,
+      "timestamp": "2026-10-01 12:36:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Use shared source-local review authority and uploaded master",
+      "backupFile": "478_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 479,
+      "timestamp": "2026-10-01 12:36:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Mirror source-local consolidated Weight authority",
+      "backupFile": "479_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 480,
+      "timestamp": "2026-10-01 12:37:04",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Normalize absent optional master rows for existing converter input contract",
+      "backupFile": "480_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 481,
+      "timestamp": "2026-10-01 12:37:04",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Mirror converter input normalization",
+      "backupFile": "481_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 482,
+      "timestamp": "2026-10-01 12:39:55",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-run-parity-evidence.js",
+      "context": "Verify accepted negative-number components by precise review identity",
+      "backupFile": "482_tabs_xml_cii_2019_standalone_xml_cii_run_parity_evidence_js.bak"
+    },
+    {
+      "id": 483,
+      "timestamp": "2026-10-01 12:39:56",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-run-parity-evidence.js",
+      "context": "Mirror precise parity identity checks",
+      "backupFile": "483_docs_tabs_xml_cii_2019_standalone_xml_cii_run_parity_evidence_js.bak"
+    },
+    {
+      "id": 484,
+      "timestamp": "2026-10-01 12:45:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Wire owner-requested Mode B node-offset XML save in Sources",
+      "backupFile": "484_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 485,
+      "timestamp": "2026-10-01 12:45:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Mirror Mode B Sources UI",
+      "backupFile": "485_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 486,
+      "timestamp": "2026-10-01 12:45:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel-core.js",
+      "context": "Mark existing Mode A label Draft",
+      "backupFile": "486_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_core_js.bak"
+    },
+    {
+      "id": 487,
+      "timestamp": "2026-10-01 12:45:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel-core.js",
+      "context": "Mirror Mode A Draft label",
+      "backupFile": "487_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_core_js.bak"
+    },
+    {
+      "id": 488,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "488_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 489,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "489_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 490,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-bend-radius-toggle.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "490_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_bend_radius_toggle_js.bak"
+    },
+    {
+      "id": 491,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-bend-radius-toggle.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "491_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_bend_radius_toggle_js.bak"
+    },
+    {
+      "id": 492,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "492_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 493,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "493_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 494,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "494_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 495,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "495_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 496,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-controls.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "496_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_controls_js.bak"
+    },
+    {
+      "id": 497,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-controls.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "497_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_controls_js.bak"
+    },
+    {
+      "id": 498,
+      "timestamp": "2026-10-01 12:55:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "498_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 499,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "499_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 500,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "500_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 501,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "501_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 502,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "502_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 503,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "503_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 504,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "504_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 505,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "505_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 506,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "506_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 507,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "507_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 508,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "508_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 509,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "509_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 510,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-batch-scope-panel.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "510_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_batch_scope_panel_js.bak"
+    },
+    {
+      "id": 511,
+      "timestamp": "2026-10-01 12:55:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-batch-scope-panel.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "511_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_batch_scope_panel_js.bak"
+    },
+    {
+      "id": 512,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-dtxr.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "512_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_dtxr_js.bak"
+    },
+    {
+      "id": 513,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-dtxr.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "513_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_dtxr_js.bak"
+    },
+    {
+      "id": 514,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "514_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 515,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "515_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 516,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "516_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 517,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "517_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 518,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "518_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 519,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "519_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 520,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "520_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_js.bak"
+    },
+    {
+      "id": 521,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "521_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_js.bak"
+    },
+    {
+      "id": 522,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-from-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "522_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_from_ui_js.bak"
+    },
+    {
+      "id": 523,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-from-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "523_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_from_ui_js.bak"
+    },
+    {
+      "id": 524,
+      "timestamp": "2026-10-01 12:55:19",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-propagation.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "524_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_propagation_js.bak"
+    },
+    {
+      "id": 525,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-propagation.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "525_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_propagation_js.bak"
+    },
+    {
+      "id": 526,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "526_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_v2_js.bak"
+    },
+    {
+      "id": 527,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "527_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_v2_js.bak"
+    },
+    {
+      "id": 528,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "528_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_js.bak"
+    },
+    {
+      "id": 529,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "529_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_js.bak"
+    },
+    {
+      "id": 530,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "530_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 531,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "531_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 532,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-actions.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "532_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_actions_js.bak"
+    },
+    {
+      "id": 533,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-actions.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "533_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_actions_js.bak"
+    },
+    {
+      "id": 534,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-tools.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "534_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_tools_js.bak"
+    },
+    {
+      "id": 535,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-tools.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "535_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_tools_js.bak"
+    },
+    {
+      "id": 536,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "536_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 537,
+      "timestamp": "2026-10-01 12:55:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "537_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 538,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "538_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 539,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "539_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 540,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "540_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 541,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "541_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 542,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "542_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 543,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "543_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 544,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "544_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 545,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "545_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 546,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "546_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_core_js.bak"
+    },
+    {
+      "id": 547,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "547_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_core_js.bak"
+    },
+    {
+      "id": 548,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "548_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_js.bak"
+    },
+    {
+      "id": 549,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "549_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_js.bak"
+    },
+    {
+      "id": 550,
+      "timestamp": "2026-10-01 12:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-line-index.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "550_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_line_index_js.bak"
+    },
+    {
+      "id": 551,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-line-index.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "551_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_line_index_js.bak"
+    },
+    {
+      "id": 552,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-rating-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "552_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_rating_authority_js.bak"
+    },
+    {
+      "id": 553,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-rating-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "553_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_rating_authority_js.bak"
+    },
+    {
+      "id": 554,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "554_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 555,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "555_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 556,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-propagation-audit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "556_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_propagation_audit_js.bak"
+    },
+    {
+      "id": 557,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-propagation-audit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "557_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_propagation_audit_js.bak"
+    },
+    {
+      "id": 558,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "558_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 559,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "559_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 560,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "560_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 561,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "561_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 562,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "562_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 563,
+      "timestamp": "2026-10-01 12:55:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "563_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 564,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "564_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 565,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "565_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 566,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "566_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 567,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "567_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 568,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "568_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 569,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "569_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 570,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "570_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 571,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "571_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 572,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "572_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 573,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "573_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 574,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "574_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 575,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "575_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 576,
+      "timestamp": "2026-10-01 12:55:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-source-mode.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "576_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_source_mode_js.bak"
+    },
+    {
+      "id": 577,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-source-mode.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "577_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_source_mode_js.bak"
+    },
+    {
+      "id": 578,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-support-type-mapper.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "578_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_support_type_mapper_js.bak"
+    },
+    {
+      "id": 579,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-support-type-mapper.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "579_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_support_type_mapper_js.bak"
+    },
+    {
+      "id": 580,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-table-trace-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "580_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_table_trace_events_js.bak"
+    },
+    {
+      "id": 581,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-table-trace-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "581_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_table_trace_events_js.bak"
+    },
+    {
+      "id": 582,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "582_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 583,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "583_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 584,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "584_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 585,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "585_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 586,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "586_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 587,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "587_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 588,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "588_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 589,
+      "timestamp": "2026-10-01 12:55:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "589_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 590,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "590_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 591,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "591_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 592,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "592_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 593,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "593_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 594,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "594_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 595,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "595_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 596,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "596_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 597,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "597_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 598,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "598_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 599,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "599_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 600,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "600_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 601,
+      "timestamp": "2026-10-01 12:55:25",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "601_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 602,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "602_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 603,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "603_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 604,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "604_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 605,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "605_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 606,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "606_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 607,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "607_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 608,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "608_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 609,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "609_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 610,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "610_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 611,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "611_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 612,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "612_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 613,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "613_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 614,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "614_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 615,
+      "timestamp": "2026-10-01 12:55:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "615_docs_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 616,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "616_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 617,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "617_docs_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 618,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "618_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 619,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "619_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 620,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "620_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 621,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "621_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 622,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "622_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 623,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "623_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 624,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "624_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 625,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "625_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 626,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "626_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 627,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "627_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 628,
+      "timestamp": "2026-10-01 12:55:27",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-weight-output-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "628_tabs_xml_cii_2019_standalone_xml_cii_weight_output_authority_js.bak"
+    },
+    {
+      "id": 629,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-weight-output-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "629_docs_tabs_xml_cii_2019_standalone_xml_cii_weight_output_authority_js.bak"
+    },
+    {
+      "id": 630,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "630_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 631,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "631_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 632,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "core\\app.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "632_core_app_js.bak"
+    },
+    {
+      "id": 633,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\core\\app.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "633_docs_core_app_js.bak"
+    },
+    {
+      "id": 634,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "main-rhbg-fitguard.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "634_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 635,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "635_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 636,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "636_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 637,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "637_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 638,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "638_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 639,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "639_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 640,
+      "timestamp": "2026-10-01 12:55:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "640_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 641,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "641_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 642,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "642_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_hook_js.bak"
+    },
+    {
+      "id": 643,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "643_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_hook_js.bak"
+    },
+    {
+      "id": 644,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "644_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_ui_js.bak"
+    },
+    {
+      "id": 645,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "645_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_ui_js.bak"
+    },
+    {
+      "id": 646,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "646_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_authority_js.bak"
+    },
+    {
+      "id": 647,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-authority.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "647_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_authority_js.bak"
+    },
+    {
+      "id": 648,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "648_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 649,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "649_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 650,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-update.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "650_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_update_js.bak"
+    },
+    {
+      "id": 651,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-update.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "651_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_update_js.bak"
+    },
+    {
+      "id": 652,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "652_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 653,
+      "timestamp": "2026-10-01 12:55:29",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "653_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 654,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "654_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 655,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "655_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 656,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "656_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 657,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "657_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 658,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "658_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 659,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "659_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 660,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "660_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 661,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "661_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 662,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "index.html",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "662_index_html.bak"
+    },
+    {
+      "id": 663,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\index.html",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "663_docs_index_html.bak"
+    },
+    {
+      "id": 664,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "664_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 665,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "665_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 666,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "666_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 667,
+      "timestamp": "2026-10-01 12:55:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "667_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 668,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-auto-basis.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "668_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_auto_basis_js.bak"
+    },
+    {
+      "id": 669,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-auto-basis.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "669_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_auto_basis_js.bak"
+    },
+    {
+      "id": 670,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-audit-controller.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "670_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_audit_controller_js.bak"
+    },
+    {
+      "id": 671,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-audit-controller.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "671_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_audit_controller_js.bak"
+    },
+    {
+      "id": 672,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "672_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 673,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "673_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 674,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "674_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 675,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "675_docs_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 676,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "676_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 677,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "677_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 678,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "678_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 679,
+      "timestamp": "2026-10-01 12:55:31",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Version active output repair dependency chain",
+      "backupFile": "679_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 680,
+      "timestamp": "2026-10-01 12:57:58",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Complete shared Weight worker cache ancestor",
+      "backupFile": "680_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 681,
+      "timestamp": "2026-10-01 12:57:58",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Complete shared Weight worker cache ancestor",
+      "backupFile": "681_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 682,
+      "timestamp": "2026-10-01 12:57:58",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "Complete shared Weight worker cache ancestor",
+      "backupFile": "682_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 683,
+      "timestamp": "2026-10-01 12:57:58",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "Complete shared Weight worker cache ancestor",
+      "backupFile": "683_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 684,
+      "timestamp": "2026-10-01 12:59:47",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "Update exact expected cache keys for output repair release",
+      "backupFile": "684_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 685,
+      "timestamp": "2026-10-01 12:59:47",
+      "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
+      "context": "Update cache assertions only for versioned UI dependencies",
+      "backupFile": "685_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
+    },
+    {
+      "id": 686,
+      "timestamp": "2026-10-01 12:59:47",
+      "file": "tests\\xml-cii-issue-781-postmerge-screenshot-repair.test.mjs",
+      "context": "Assert output repair active release",
+      "backupFile": "686_tests_xml_cii_issue_781_postmerge_screenshot_repair_test_mjs.bak"
+    },
+    {
+      "id": 687,
+      "timestamp": "2026-10-01 12:59:47",
+      "file": "tests\\browser\\xml-cii-weight-rating-input-e2e.mjs",
+      "context": "Verify retained Rating behavior on new live release",
+      "backupFile": "687_tests_browser_xml_cii_weight_rating_input_e2e_mjs.bak"
+    },
+    {
+      "id": 688,
+      "timestamp": "2026-10-01 13:04:06",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "Invalidate stale batch source outputs after shared engineering input changes",
+      "backupFile": "688_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 689,
+      "timestamp": "2026-10-01 13:04:06",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "Mirror batch result invalidation",
+      "backupFile": "689_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 690,
+      "timestamp": "2026-10-01 13:04:06",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Forward source batch result invalidation",
+      "backupFile": "690_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 691,
+      "timestamp": "2026-10-01 13:04:06",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Mirror source batch forwarding",
+      "backupFile": "691_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 692,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "Weight owner export guard before active CII writer",
+      "backupFile": "692_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 693,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "docs\\converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "Weight owner export guard deployment mirror",
+      "backupFile": "693_docs_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 694,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "Load weight owner audit in existing runtime",
+      "backupFile": "694_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 695,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "docs\\converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "Load weight owner audit deployment mirror",
+      "backupFile": "695_docs_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 696,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "Refresh active engine release",
+      "backupFile": "696_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 697,
+      "timestamp": "2026-10-01 13:18:34",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "Refresh active engine deployment release",
+      "backupFile": "697_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 698,
+      "timestamp": "2026-10-01 13:22:46",
+      "file": "tests\\xml-cii-issue-776-standalone-run-match1-custody.test.mjs",
+      "context": "Keep custody contract across extracted output authority module",
+      "backupFile": "698_tests_xml_cii_issue_776_standalone_run_match1_custody_test_mjs.bak"
+    },
+    {
+      "id": 699,
+      "timestamp": "2026-10-01 13:23:28",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Remove redundant coarse-node weight write before precise accepted release",
+      "backupFile": "699_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 700,
+      "timestamp": "2026-10-01 13:23:28",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Mirror precise accepted release only",
+      "backupFile": "700_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 701,
+      "timestamp": "2026-10-01 13:46:42",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Synchronize automatic regex extraction even when mapping selections remain unchanged",
+      "backupFile": "701_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 702,
+      "timestamp": "2026-10-01 13:46:43",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Propagate rule edits to active configuration without token click",
+      "backupFile": "702_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 703,
+      "timestamp": "2026-10-01 13:46:43",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Preserve populated review weights during exact bulk fill",
+      "backupFile": "703_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 704,
+      "timestamp": "2026-10-01 13:46:43",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-rigid-review-tools.js",
+      "context": "Preserve populated weights during all-suggestion bulk fill",
+      "backupFile": "704_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_rigid_review_tools_js.bak"
+    },
+    {
+      "id": 705,
+      "timestamp": "2026-10-01 13:46:43",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Preserve saved and edited Weight Match inputs during preferred bulk fill",
+      "backupFile": "705_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 706,
+      "timestamp": "2026-10-01 13:48:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Mirror automatic propagation and saved weight precedence",
+      "backupFile": "706_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 707,
+      "timestamp": "2026-10-01 13:48:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Mirror automatic propagation and saved weight precedence",
+      "backupFile": "707_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 708,
+      "timestamp": "2026-10-01 13:48:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Mirror automatic propagation and saved weight precedence",
+      "backupFile": "708_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 709,
+      "timestamp": "2026-10-01 13:48:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-rigid-review-tools.js",
+      "context": "Mirror automatic propagation and saved weight precedence",
+      "backupFile": "709_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_rigid_review_tools_js.bak"
+    },
+    {
+      "id": 710,
+      "timestamp": "2026-10-01 13:48:17",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Mirror automatic propagation and saved weight precedence",
+      "backupFile": "710_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 711,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "core\\app.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "711_core_app_js.bak"
+    },
+    {
+      "id": 712,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "docs\\core\\app.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "712_docs_core_app_js.bak"
+    },
+    {
+      "id": 713,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "docs\\index.html",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "713_docs_index_html.bak"
+    },
+    {
+      "id": 714,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "714_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 715,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "715_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 716,
+      "timestamp": "2026-10-01 13:53:14",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "716_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 717,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-bend-radius-toggle.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "717_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_bend_radius_toggle_js.bak"
+    },
+    {
+      "id": 718,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "718_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 719,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "719_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 720,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-controls.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "720_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_controls_js.bak"
+    },
+    {
+      "id": 721,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "721_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 722,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "722_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 723,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "723_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 724,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "724_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 725,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "725_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 726,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "726_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 727,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "727_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 728,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "728_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 729,
+      "timestamp": "2026-10-01 13:53:15",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "729_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 730,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "730_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 731,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "731_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 732,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-batch-scope-panel.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "732_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_batch_scope_panel_js.bak"
+    },
+    {
+      "id": 733,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-dtxr.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "733_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_dtxr_js.bak"
+    },
+    {
+      "id": 734,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "734_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 735,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "735_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 736,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "736_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_hook_js.bak"
+    },
+    {
+      "id": 737,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "737_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_ui_js.bak"
+    },
+    {
+      "id": 738,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "738_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 739,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "739_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_js.bak"
+    },
+    {
+      "id": 740,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "740_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_authority_js.bak"
+    },
+    {
+      "id": 741,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-from-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "741_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_from_ui_js.bak"
+    },
+    {
+      "id": 742,
+      "timestamp": "2026-10-01 13:53:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-propagation.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "742_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_propagation_js.bak"
+    },
+    {
+      "id": 743,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "743_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_v2_js.bak"
+    },
+    {
+      "id": 744,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "744_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_js.bak"
+    },
+    {
+      "id": 745,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "745_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 746,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-actions.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "746_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_actions_js.bak"
+    },
+    {
+      "id": 747,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-tools.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "747_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_tools_js.bak"
+    },
+    {
+      "id": 748,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "748_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 749,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "749_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 750,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "750_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 751,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "751_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 752,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "752_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 753,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "753_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 754,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-auto-basis.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "754_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_auto_basis_js.bak"
+    },
+    {
+      "id": 755,
+      "timestamp": "2026-10-01 13:53:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-audit-controller.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "755_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_audit_controller_js.bak"
+    },
+    {
+      "id": 756,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-update.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "756_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_update_js.bak"
+    },
+    {
+      "id": 757,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "757_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 758,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "758_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 759,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "759_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_core_js.bak"
+    },
+    {
+      "id": 760,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "760_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_js.bak"
+    },
+    {
+      "id": 761,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-line-index.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "761_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_line_index_js.bak"
+    },
+    {
+      "id": 762,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-rating-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "762_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_rating_authority_js.bak"
+    },
+    {
+      "id": 763,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "763_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 764,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "764_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 765,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-propagation-audit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "765_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_propagation_audit_js.bak"
+    },
+    {
+      "id": 766,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "766_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 767,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "767_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 768,
+      "timestamp": "2026-10-01 13:53:18",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "768_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 769,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "769_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 770,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "770_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 771,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "771_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 772,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "772_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 773,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "773_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 774,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "774_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 775,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "775_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 776,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-source-mode.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "776_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_source_mode_js.bak"
+    },
+    {
+      "id": 777,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-support-type-mapper.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "777_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_support_type_mapper_js.bak"
+    },
+    {
+      "id": 778,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-table-trace-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "778_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_table_trace_events_js.bak"
+    },
+    {
+      "id": 779,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "779_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 780,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "780_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 781,
+      "timestamp": "2026-10-01 13:53:19",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "781_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 782,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "782_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 783,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "783_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 784,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "784_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 785,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "785_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 786,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "786_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 787,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "787_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 788,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "788_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 789,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "789_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 790,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "790_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 791,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "791_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 792,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "792_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 793,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "793_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 794,
+      "timestamp": "2026-10-01 13:53:20",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "794_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 795,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "795_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 796,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "796_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 797,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "797_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 798,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "798_docs_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 799,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "799_docs_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 800,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-run-parity-evidence.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "800_docs_tabs_xml_cii_2019_standalone_xml_cii_run_parity_evidence_js.bak"
+    },
+    {
+      "id": 801,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "801_docs_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 802,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "802_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 803,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "803_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 804,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "804_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 805,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-weight-output-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "805_docs_tabs_xml_cii_2019_standalone_xml_cii_weight_output_authority_js.bak"
+    },
+    {
+      "id": 806,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "806_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 807,
+      "timestamp": "2026-10-01 13:53:21",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "807_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 808,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "808_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 809,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "809_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 810,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "810_docs_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 811,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "811_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 812,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "index.html",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "812_index_html.bak"
+    },
+    {
+      "id": 813,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "main-rhbg-fitguard.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "813_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 814,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "814_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 815,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "815_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 816,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-bend-radius-toggle.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "816_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_bend_radius_toggle_js.bak"
+    },
+    {
+      "id": 817,
+      "timestamp": "2026-10-01 13:53:22",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config-tabs.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "817_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_tabs_js.bak"
+    },
+    {
+      "id": 818,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-config.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "818_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_config_js.bak"
+    },
+    {
+      "id": 819,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-controls.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "819_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_controls_js.bak"
+    },
+    {
+      "id": 820,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "820_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_cii_zip_js.bak"
+    },
+    {
+      "id": 821,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "821_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 822,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "822_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_mode_a_js.bak"
+    },
+    {
+      "id": 823,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events-smart.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "823_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_smart_js.bak"
+    },
+    {
+      "id": 824,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "824_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 825,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "825_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 826,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "826_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 827,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "827_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 828,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "828_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 829,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "829_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 830,
+      "timestamp": "2026-10-01 13:53:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "830_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 831,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-batch-scope-panel.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "831_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_batch_scope_panel_js.bak"
+    },
+    {
+      "id": 832,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-dtxr.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "832_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_dtxr_js.bak"
+    },
+    {
+      "id": 833,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "833_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 834,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "834_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 835,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "835_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_hook_js.bak"
+    },
+    {
+      "id": 836,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "836_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_weight_ui_js.bak"
+    },
+    {
+      "id": 837,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "837_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_js.bak"
+    },
+    {
+      "id": 838,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-panel.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "838_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_panel_js.bak"
+    },
+    {
+      "id": 839,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "839_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_authority_js.bak"
+    },
+    {
+      "id": 840,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-process-from-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "840_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_process_from_ui_js.bak"
+    },
+    {
+      "id": 841,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-propagation.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "841_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_propagation_js.bak"
+    },
+    {
+      "id": 842,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "842_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_v2_js.bak"
+    },
+    {
+      "id": 843,
+      "timestamp": "2026-10-01 13:53:24",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "843_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_js.bak"
+    },
+    {
+      "id": 844,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-state.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "844_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_state_js.bak"
+    },
+    {
+      "id": 845,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-actions.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "845_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_actions_js.bak"
+    },
+    {
+      "id": 846,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-weight-tools.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "846_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_weight_tools_js.bak"
+    },
+    {
+      "id": 847,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-b-xml-export.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "847_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_b_xml_export_js.bak"
+    },
+    {
+      "id": 848,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "848_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 849,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-branch-scope.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "849_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_branch_scope_js.bak"
+    },
+    {
+      "id": 850,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "850_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 851,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-smart.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "851_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_smart_js.bak"
+    },
+    {
+      "id": 852,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "852_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 853,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-auto-basis.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "853_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_auto_basis_js.bak"
+    },
+    {
+      "id": 854,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-audit-controller.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "854_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_audit_controller_js.bak"
+    },
+    {
+      "id": 855,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-b313-wall-update.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "855_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_b313_wall_update_js.bak"
+    },
+    {
+      "id": 856,
+      "timestamp": "2026-10-01 13:53:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "856_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 857,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "857_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_js.bak"
+    },
+    {
+      "id": 858,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "858_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_core_js.bak"
+    },
+    {
+      "id": 859,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-dryrun.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "859_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_dryrun_js.bak"
+    },
+    {
+      "id": 860,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-line-index.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "860_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_line_index_js.bak"
+    },
+    {
+      "id": 861,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-rating-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "861_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_rating_authority_js.bak"
+    },
+    {
+      "id": 862,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "862_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 863,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "863_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 864,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-propagation-audit.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "864_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_propagation_audit_js.bak"
+    },
+    {
+      "id": 865,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "865_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 866,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "866_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 867,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "867_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 868,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "868_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 869,
+      "timestamp": "2026-10-01 13:53:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-rigid-review-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "869_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_rigid_review_mode_a_js.bak"
+    },
+    {
+      "id": 870,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "870_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 871,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "871_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_consolidated_review_v2_js.bak"
+    },
+    {
+      "id": 872,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a-fast.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "872_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_fast_js.bak"
+    },
+    {
+      "id": 873,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "873_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_mode_a_js.bak"
+    },
+    {
+      "id": 874,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "874_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 875,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-source-mode.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "875_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_source_mode_js.bak"
+    },
+    {
+      "id": 876,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-support-type-mapper.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "876_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_support_type_mapper_js.bak"
+    },
+    {
+      "id": 877,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-table-trace-events.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "877_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_table_trace_events_js.bak"
+    },
+    {
+      "id": 878,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "878_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 879,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "879_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 880,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "880_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_atta_default_js.bak"
+    },
+    {
+      "id": 881,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "881_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_core_js.bak"
+    },
+    {
+      "id": 882,
+      "timestamp": "2026-10-01 13:53:27",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-branch-scope.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "882_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_branch_scope_js.bak"
+    },
+    {
+      "id": 883,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-consolidated-v3.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "883_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_consolidated_v3_js.bak"
+    },
+    {
+      "id": 884,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-core.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "884_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_core_js.bak"
+    },
+    {
+      "id": 885,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v4.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "885_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v4_js.bak"
+    },
+    {
+      "id": 886,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v5.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "886_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v5_js.bak"
+    },
+    {
+      "id": 887,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "887_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 888,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-propagation-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "888_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_propagation_v2_js.bak"
+    },
+    {
+      "id": 889,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "889_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_js.bak"
+    },
+    {
+      "id": 890,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-rigid-review-v2.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "890_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_rigid_review_v2_js.bak"
+    },
+    {
+      "id": 891,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-strict-line.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "891_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_strict_line_js.bak"
+    },
+    {
+      "id": 892,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "892_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_js.bak"
+    },
+    {
+      "id": 893,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "893_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 894,
+      "timestamp": "2026-10-01 13:53:28",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "894_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 895,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "895_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 896,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "896_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 897,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "897_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 898,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "898_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 899,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-run-parity-evidence.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "899_tabs_xml_cii_2019_standalone_xml_cii_run_parity_evidence_js.bak"
+    },
+    {
+      "id": 900,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-source-mode-integration-proof.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "900_tabs_xml_cii_2019_standalone_xml_cii_source_mode_integration_proof_js.bak"
+    },
+    {
+      "id": 901,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "901_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_atta_default_js.bak"
+    },
+    {
+      "id": 902,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "902_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_mds_restraints_js.bak"
+    },
+    {
+      "id": 903,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "903_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 904,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-weight-output-authority.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "904_tabs_xml_cii_2019_standalone_xml_cii_weight_output_authority_js.bak"
+    },
+    {
+      "id": 905,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api-atta-default.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "905_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_atta_default_js.bak"
+    },
+    {
+      "id": 906,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-api.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "906_tabs_xml_cii_2019_standalone_xml_cii_workflow_api_js.bak"
+    },
+    {
+      "id": 907,
+      "timestamp": "2026-10-01 13:53:29",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-engine-client.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "907_tabs_xml_cii_2019_standalone_xml_cii_workflow_engine_client_js.bak"
+    },
+    {
+      "id": 908,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-service.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "908_tabs_xml_cii_2019_standalone_xml_cii_workflow_service_js.bak"
+    },
+    {
+      "id": 909,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-workflow-ui-adapter.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "909_tabs_xml_cii_2019_standalone_xml_cii_workflow_ui_adapter_js.bak"
+    },
+    {
+      "id": 910,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "910_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 911,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\browser\\xml-cii-mode-b-xml-export-e2e.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "911_tests_browser_xml_cii_mode_b_xml_export_e2e_mjs.bak"
+    },
+    {
+      "id": 912,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\browser\\xml-cii-weight-output-custody-e2e.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "912_tests_browser_xml_cii_weight_output_custody_e2e_mjs.bak"
+    },
+    {
+      "id": 913,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\browser\\xml-cii-weight-rating-input-e2e.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "913_tests_browser_xml_cii_weight_rating_input_e2e_mjs.bak"
+    },
+    {
+      "id": 914,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "914_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 915,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "915_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
+    },
+    {
+      "id": 916,
+      "timestamp": "2026-10-01 13:53:30",
+      "file": "tests\\xml-cii-issue-781-postmerge-screenshot-repair.test.mjs",
+      "context": "Activate regex propagation and saved-weight precedence release2",
+      "backupFile": "916_tests_xml_cii_issue_781_postmerge_screenshot_repair_test_mjs.bak"
+    },
+    {
+      "id": 917,
+      "timestamp": "2026-10-01 14:33:02",
+      "file": "tests\\browser\\xml-cii-mode-b-release-smoke.mjs",
+      "context": "Repair native release witness filename wait; UI inventory includes source identity",
+      "backupFile": "917_tests_browser_xml_cii_mode_b_release_smoke_mjs.bak"
+    },
+    {
+      "id": 918,
+      "timestamp": "2026-10-01 14:34:45",
+      "file": "agents\\WIP-781-MAIN-INTEGRATION-20261001_workreport.md",
+      "context": "Record main integration salvage and live release qualification",
+      "backupFile": "918_agents_WIP_781_MAIN_INTEGRATION_20261001_workreport_md.bak"
+    },
+    {
+      "id": 919,
+      "timestamp": "2026-10-01 14:34:45",
+      "file": "agents\\status\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Update integration branch current state",
+      "backupFile": "919_agents_status_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 920,
+      "timestamp": "2026-10-01 14:34:45",
+      "file": "agents\\claims\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Update integration branch current claim",
+      "backupFile": "920_agents_claims_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 921,
+      "timestamp": "2026-10-01 14:34:45",
+      "file": "agents\\PR812_workreport.md",
+      "context": "Reconcile merged stacked PR812 absent from deployed main",
+      "backupFile": "921_agents_PR812_workreport_md.bak"
+    },
+    {
+      "id": 922,
+      "timestamp": "2026-10-01 14:34:46",
+      "file": "agents\\status\\PR812.yaml",
+      "context": "Reconcile GitHub merged wrong destination",
+      "backupFile": "922_agents_status_PR812_yaml.bak"
+    },
+    {
+      "id": 923,
+      "timestamp": "2026-10-01 14:34:46",
+      "file": "agents\\claims\\PR812.yaml",
+      "context": "Release historical PR812 claim to main integration",
+      "backupFile": "923_agents_claims_PR812_yaml.bak"
+    },
+    {
+      "id": 924,
+      "timestamp": "2026-10-01 14:35:22",
+      "file": "tests\\browser\\xml-cii-mode-b-release-smoke.mjs",
+      "context": "Capture combine failure status instead of timeout-only witness",
+      "backupFile": "924_tests_browser_xml_cii_mode_b_release_smoke_mjs.bak"
+    },
+    {
+      "id": 925,
+      "timestamp": "2026-10-01 14:35:57",
+      "file": "tests\\browser\\xml-cii-mode-b-release-smoke.mjs",
+      "context": "Use two distinct source documents as existing real Mode B acceptance fixture",
+      "backupFile": "925_tests_browser_xml_cii_mode_b_release_smoke_mjs.bak"
+    },
+    {
+      "id": 926,
+      "timestamp": "2026-10-01 14:37:14",
+      "file": "tests\\browser\\xml-cii-mode-b-xml-export-e2e.mjs",
+      "context": "Keep fresh main integration evidence separate from PR812 historical witnesses",
+      "backupFile": "926_tests_browser_xml_cii_mode_b_xml_export_e2e_mjs.bak"
+    },
+    {
+      "id": 927,
+      "timestamp": "2026-10-01 14:39:10",
+      "file": "agents\\WIP-781-MAIN-INTEGRATION-20261001_workreport.md",
+      "context": "Finalize main integration validation before code checkpoint",
+      "backupFile": "927_agents_WIP_781_MAIN_INTEGRATION_20261001_workreport_md.bak"
+    },
+    {
+      "id": 928,
+      "timestamp": "2026-10-01 14:39:10",
+      "file": "agents\\status\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Record completed local release acceptance",
+      "backupFile": "928_agents_status_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 929,
+      "timestamp": "2026-10-01 14:39:11",
+      "file": "agents\\claims\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Record concrete main-based integration handover",
+      "backupFile": "929_agents_claims_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
     }
   ]
 }
