@@ -12,7 +12,7 @@ Follow-up to #781/#787 and the owner-merged #813. Implement the owner's clarifie
 
 ## Independent acceptance
 
-Native Chrome + deployed docs mirror + actual Pyodide, with XML and CII downloads:
+Native Chrome + locally served docs mirror + actual Pyodide, with XML and CII downloads:
 
 | Workflow | Result |
 | --- | --- |
@@ -30,6 +30,6 @@ ENGINEERING_CRITICAL; Appendix A 98/100, each challenge >=17/20, documented with
 
 67 source modules participate in reverse import activation; 110 source/docs path changes contain query metadata only. The implementation consists of 17 bounded source files and their mirrors. Existing overlaps with #801/#794 and #788–792 are classified COORDINATION_REQUIRED; no unmerged topology stack is incorporated.
 
-The supplied originals were replayed; the exact prior failing enriched XML/config was not supplied, so this does not claim the identical eight-owner run was reproduced. Remote successor deployment and checks are not yet observed at creation. Local acceptance is not deployed acceptance.
+The supplied originals were replayed; the exact prior failing enriched XML/config was not supplied, so this does not claim the identical eight-owner run was reproduced. Remote deployment remains NOT_RUN. Initial CI completed9PASS7FAIL: typed Final browser expectation and RVM parent cache contract are corrected and locally validated; five inherited failures are documented with exact-base reproduction/predecessor logs. Fresh CI replay pending. Local acceptance is not deployed acceptance.
 
 **Draft for review. Owner-only merge.**

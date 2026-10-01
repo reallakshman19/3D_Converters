@@ -1,6 +1,6 @@
 {
   "baseMain": "bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22",
-  "head": "e017d068a61219f8f4a1c6a6dea104f19ef6eea7",
+  "head": "e8c9ba89ef8354f7b1c3be2267fba12df5f09eb3",
   "protectedPathDiff": [],
   "exactMirrors": 72,
   "changed": [
@@ -8,8 +8,8 @@
       "path": ".backups/log.json",
       "kind": "backup",
       "reason": "mandatory native backup ledger",
-      "bytes": 389896,
-      "sha256": "ffd9013706acc542412f64d1d5dd00e9e344f978c25c1d64b3c7dd4946db11b1"
+      "bytes": 393757,
+      "sha256": "12c11eb727b25c4fdc9ea56161971e2563fcf5c2a9d216f364c77e3396e19742"
     },
     {
       "path": "agents/PR813_workreport.md",
@@ -19,11 +19,11 @@
       "sha256": "83771661ce71a81e3a031176631eaf4115d6d4c86476d9b0d3bfdd6f1f8272ed"
     },
     {
-      "path": "agents/WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "path": "agents/PR814_workreport.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 10223,
-      "sha256": "3dc15d0583514a07e0ffa30c7893a09ff45d9cb2e3b8f6037be8cd3239860921"
+      "bytes": 13328,
+      "sha256": "7f27aebcf90c7ec11c80993dda988afc050c5748bbf7e41d80eef0451aeff4eb"
     },
     {
       "path": "agents/claims/PR813.yaml",
@@ -33,11 +33,11 @@
       "sha256": "a309092faf73c6dae74d72301fd040b5d61bf84cfd75feb64d835b3e4f1f344f"
     },
     {
-      "path": "agents/claims/WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "path": "agents/claims/PR814.yaml",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 732,
-      "sha256": "a1d6919f88f4f998c438d2d58d2a0bd65a2aafd1d72c291455a3e4844bee67ce"
+      "bytes": 916,
+      "sha256": "f3b7ad73f85efa743d4c35211a17fcdec89d7e94838f9ffdac15e17dc137b0ae"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/activate-runtime.py",
@@ -54,11 +54,74 @@
       "sha256": "SELF_REFERENTIAL_NOT_HASHED"
     },
     {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/base-cii14.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 4113,
+      "sha256": "196a18edd7bd68337f627d9250fbdb49ebf4e088755a54ad24e18c91591761f3"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/base-fbx-managed.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 18993,
+      "sha256": "ed0de13ba4de7918c22e69440a8dfa75ec1f58af0016ec3ddb8a041f158bf5d6"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/base-reproduction.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 1574,
+      "sha256": "cd7b06da1444783f424abd08efd6103934e40cce9ae81a1c608d5cc5e159fc14"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/base-scope-tree.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 2635,
+      "sha256": "65c56b552d73e0e4afefb60724c2e742e8a5ea672f972867dc7a952cb18c8e56"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/classification.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 871,
+      "sha256": "feb056a8c25032d30973193831fe4d92923c818fa006acd32d0e1c518fc23757"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/predecessor-caesar.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 32501,
+      "sha256": "d42fbc9791156d884057ec62497d34f30c1dcd3fd7bdfa73a07ab5cc3a60a913"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/predecessor-fbx-live.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 23427,
+      "sha256": "f5759d0c99bbd24b90328fa431860f341972048cc8eb40670e550af8cb753119"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/predecessor-stagedjson.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 34946,
+      "sha256": "cfc7ae5a1258893ca5fe4bae1c0e1fe0edfbdc03b1e555d8c2d9be595cc7bd08"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/rollup-final.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 5362,
+      "sha256": "166a20b7890b7ccbd173e4a3f4b7f42ee089ca2df0d2b286634c9f2e1a235d85"
+    },
+    {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/current-handover.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 10179,
-      "sha256": "afacf69bb83d00505058558ecd5b6457235b945a192dde8d9d5aa4f436fc8cb3"
+      "bytes": 1138,
+      "sha256": "8f6e05890a93f2b1faef1582881f46f01d6893359159b758bd9eb9a82f50a1e1"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/dataset-custody.log",
@@ -141,8 +204,22 @@
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr-body.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 3306,
-      "sha256": "4a924dd179698e6bfc4de5969d732de78734b37b0d345a93c237825a36ee8818"
+      "bytes": 3551,
+      "sha256": "80df58f9e90be0b5502d8eb14913de560bfc4fcfc9bcb5aab7c2f9bbd77d659e"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr814-initial-live.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 6760,
+      "sha256": "49ad6fadafda24e45b29ac706781aa2726445c94aea48598ab7c73d45aa14a14"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr814-live-files.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 910473,
+      "sha256": "b867b549f00111579f2f04673db2fd755fe5c488b10c48e67c9d99cc1597e839"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/publication-guard.log",
@@ -150,6 +227,20 @@
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
       "bytes": 190,
       "sha256": "157310f54f41f693f11e28c85607674250450202c11ad0ee92929b6f7bbf633e"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/rating-ci-repair/weight-rating-browser.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 905,
+      "sha256": "b0a47417731d4a5fd929256c2825eab9b419c644a984e3c1c20f4bed70369854"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/rating-ci-repair/weight-rating-class-fill.png",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 65240,
+      "sha256": "40b4a5789cc873372d26d847a72d5855865f994a0feea077dbc068fd6fdf6d6b"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/real41-browser/canvas-refresh.json",
@@ -376,11 +467,11 @@
       "sha256": "3f7b4177e3f5b03510c042dc004ceeff420b9d61faac2f296defdc1657eac0db"
     },
     {
-      "path": "agents/status/WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "path": "agents/status/PR814.yaml",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 1069,
-      "sha256": "1038d67af6cb4f276816a796c5ac0e62bb075052a6606d0c077c12acd31b9439"
+      "bytes": 1199,
+      "sha256": "7473da91b7c7caac9b9b1c9335b565982334e9fc63002fc7cf898524ba629fa3"
     },
     {
       "path": "converters/scripts/xml_cii_weight_output_custody.py",
@@ -519,8 +610,8 @@
       "path": "docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js",
       "kind": "implementation",
       "reason": "exact source mirror: bounded mode, review, physical-owner repair; existing ownership retained",
-      "bytes": 54949,
-      "sha256": "58d542150826cbc7b57a4ad1fb2094b3e6a4eaa51fde293b3af02c89657cebfa"
+      "bytes": 54931,
+      "sha256": "49511d196e9baabce806e00dd662dac30ab1f14b522dec81c529ca6a072e399f"
     },
     {
       "path": "docs/tabs/model-converters/index.js",
@@ -974,8 +1065,8 @@
       "path": "tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js",
       "kind": "implementation",
       "reason": "bounded mode, review, physical-owner repair; existing ownership retained",
-      "bytes": 54949,
-      "sha256": "58d542150826cbc7b57a4ad1fb2094b3e6a4eaa51fde293b3af02c89657cebfa"
+      "bytes": 54931,
+      "sha256": "49511d196e9baabce806e00dd662dac30ab1f14b522dec81c529ca6a072e399f"
     },
     {
       "path": "tabs/model-converters/index.js",
@@ -1410,6 +1501,20 @@
       "reason": "physical owner, manual weight, mode dispatch, or activated release contract regression",
       "bytes": 13607,
       "sha256": "26d63f41eea9c224ffa17f8308d28c0b9a2c4affe52e82a5f2f7ab136d0b4ee8"
+    },
+    {
+      "path": "tests/browser/xml-cii-weight-rating-input-e2e.mjs",
+      "kind": "validation",
+      "reason": "physical owner, manual weight, mode dispatch, or activated release contract regression",
+      "bytes": 11120,
+      "sha256": "78dab384cec009fd2ccd8f59b9eca145f8cceec7900e4121c648e5d72a746e32"
+    },
+    {
+      "path": "tests/model-converters/test-rvmattr-scope-tree.mjs",
+      "kind": "validation",
+      "reason": "physical owner, manual weight, mode dispatch, or activated release contract regression",
+      "bytes": 3075,
+      "sha256": "8baed756ad13116eac884809bbf937aedebf12a049b6cd238f6303394ec055b9"
     },
     {
       "path": "tests/xml-cii-issue-776-deployment-parity.test.mjs",

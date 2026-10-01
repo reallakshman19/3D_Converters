@@ -1,5 +1,5 @@
 {
-  "lastId": 1151,
+  "lastId": 1163,
   "entries": [
     {
       "id": 1,
@@ -8057,6 +8057,90 @@
       "file": "tests\\xml-cii-issue-781-weight-match-authority-presentation.test.mjs",
       "context": "use valid file URL on Windows; numerical/presentation expected values unchanged",
       "backupFile": "1151_tests_xml_cii_issue_781_weight_match_authority_presentation_test_mjs.bak"
+    },
+    {
+      "id": 1152,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\WIP-781-SINGLE-COMBINE-OWNERS-20261001_workreport.md",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1152_agents_WIP_781_SINGLE_COMBINE_OWNERS_20261001_workreport_md.bak"
+    },
+    {
+      "id": 1153,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\status\\WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1153_agents_status_WIP_781_SINGLE_COMBINE_OWNERS_20261001_yaml.bak"
+    },
+    {
+      "id": 1154,
+      "timestamp": "2026-10-01 19:39:25",
+      "file": "agents\\claims\\WIP-781-SINGLE-COMBINE-OWNERS-20261001.yaml",
+      "context": "allocate PR814 and maintain recovery-first PR identity",
+      "backupFile": "1154_agents_claims_WIP_781_SINGLE_COMBINE_OWNERS_20261001_yaml.bak"
+    },
+    {
+      "id": 1155,
+      "timestamp": "2026-10-01 19:44:54",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "PR814 qualify actual activated parent chain without changing RVM oracle",
+      "backupFile": "1155_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1156,
+      "timestamp": "2026-10-01 19:44:55",
+      "file": "tests\\browser\\xml-cii-weight-rating-input-e2e.mjs",
+      "context": "PR814 verify typed Final weight survives Rating changes; native heartbeat retained",
+      "backupFile": "1156_tests_browser_xml_cii_weight_rating_input_e2e_mjs.bak"
+    },
+    {
+      "id": 1157,
+      "timestamp": "2026-10-01 19:46:06",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "PR814 align weight field help with explicit candidate and typed manual Final authority",
+      "backupFile": "1157_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1158,
+      "timestamp": "2026-10-01 19:46:06",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "PR814 exact mirror of manual Final field help",
+      "backupFile": "1158_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1159,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\PR814_workreport.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1159_agents_PR814_workreport_md.bak"
+    },
+    {
+      "id": 1160,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\status\\PR814.yaml",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1160_agents_status_PR814_yaml.bak"
+    },
+    {
+      "id": 1161,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\claims\\PR814.yaml",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1161_agents_claims_PR814_yaml.bak"
+    },
+    {
+      "id": 1162,
+      "timestamp": "2026-10-01 19:50:03",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\current-handover.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1162_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_current_handover_md.bak"
+    },
+    {
+      "id": 1163,
+      "timestamp": "2026-10-01 19:50:04",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
+      "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
+      "backupFile": "1163_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
     }
   ]
 }
