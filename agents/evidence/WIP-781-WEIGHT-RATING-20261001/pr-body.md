@@ -22,3 +22,6 @@ Manual Rating uses existing line/branch scope. Class fill rejects a Line Key sha
 Recovery report: `agents/PR811_workreport.md` (renamed after PR allocation). Browser JSON, screenshot, and execution transcripts are in `agents/evidence/WIP-781-WEIGHT-RATING-20261001/`.
 
 Merge requires explicit owner authorization.
+
+### CI on a7856900
+13 checks pass, including the full41 Rating UI exercised in the existing browser-worker gate. Three inherited failures remain: CAESAR/FBX startup key expectations and InputXML module/hash contracts. Independent current-main Git blob inspection confirms these inputs already disagree with their old expectations/manifest; no unrelated repair included. Merge is owner-only; deployed owner-profile acceptance remains NOT_RUN.

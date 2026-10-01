@@ -13,11 +13,11 @@ BRANCH: agent/issue-781-weight-rating-20261001
 WORK_LOCATION: C:/CodeA/3DC_live_acceptance
 MAIN_HEAD_LAST_CHECKED: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
 MERGE_BASE: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
-REPORT_BASIS_HEAD: d6f19bdd3bf2c07e339d5e549d1b82795aa0fb4c
+REPORT_BASIS_HEAD: a78569001a26b136860d142b34ed2c9f123592fe
 GROUNDING_EPOCH: GE-20261001-RATING-01
-CURRENT_STAGE: PR811_CI_RECONCILIATION
-HIGHEST_RISK: Persisted Rating edits must reach worker validation before ranking; old Match-1 acceptances must become stale.
-EXACT_NEXT_ACTION: Create draft PR from committed branch, allocate PR identity, rerun exact-head browser test and inspect checks; no merge authorization.
+CURRENT_STAGE: OWNER_REVIEW_HANDOVER
+HIGHEST_RISK: Three unrelated inherited CI failures remain; current owner profile and post-merge deployed acceptance are NOT_RUN.
+EXACT_NEXT_ACTION: Inspect gh pr checks 811 after final metadata push; owner review is next. No merge authorization. On merge, replay tests/browser/xml-cii-weight-rating-input-e2e.mjs against the owner deployment/profile before declaring deployed acceptance.
 
 ## Mission and scope
 ENGINEERING_CRITICAL. Owner requests Phase 6 Weight Match to use Rating prefix mapping and allow manual Rating entry with class fill like Phase 4 Preview. Boundaries: existing shared renderer, resolver, worker basis/ranking, prefix editor persistence, cache release edges and source/docs mirrors. No writer/runtime/canvas switch, master data changes, numerical matching changes, automatic DTXR fallback, or workflow edits. Merge owner-only.
@@ -161,3 +161,106 @@ Ledger paths: 85. Unexplained paths:0. Incoming takeover remains READ_ONLY; prod
 PR811 draft https://github.com/reallaksh19/3D_Converters/pull/811 allocated on head3198ee6256fa5c631b04832a56b141b5be0b378e, base d6f19bdd, mergeable; no reviews.85 live PR changed paths match ledger. Attach confirmed. Report/status/claim renamed to PR811 identity. Origin WIP remains in evidence folder provenance.
 Initial CI12 PASS/4 FAIL. Three unrelated inherited failures: qualify and live-ui expect root key20260929-pr780-metadata-1 while main already has20260930-issue781-live-acceptance-1; contract expects canonical ModelConvertersTab old key and InputXML cii_syntax_check_2019.py manifest hash mismatch. Main source inspected; relevant ModelConvertersTab/module/asset/manifest/test files unchanged by PR811; these are SOURCE_INSPECTION/INFERRED inheritance, not independently executed base product tests. No InputXML/FBX/CAESAR repair authorized or attempted.
 Introduced CI browser-worker-scale FAIL is a DOM getter mismatch: previous static Rating text became editable input, getter observed arrow/class text instead of Rating150. Product result:one exact25kg suggestion, lineP0310051,33.4ms max gap; oracle expected150 remains unchanged. Fix reads input.value;250ms/5000ms limits unchanged. Mandatory backup note incorrectly said600 but actual retained oracle is150. Six new Rating tests imported into existing worker API gate, and new full41 Rating browser script invoked from existing fastpath driver; no workflow changes. Final rerun pending.
+
+## Final delivery checkpoint GE-20261001-RATING-05
+Current validated implementation head a78569001a26b136860d142b34ed2c9f123592fe.13 CI PASS /3 FAIL; browser-worker-scale now PASS including six explicit Rating tests through existing worker gate and complete real41 docs-path UI script. CI Chromium fastpath getter now150 and exact25kg result; matching, wall and frame limits unchanged. Current full owner-request UI is REMOTE_EXECUTION PASS on CI as well as local Chromium. WSW/browser timing and all Weight/Regex/B313 gates PASS. Local focused worker gate19/19 PASS. No reviews yet; PR mergeable; owner-only merge.
+Three failures remain outside this mission: qualify(CAESAR old root query), live-ui(FBX old root query), contract(InputXML old canonical module query plus runtime asset SHA mismatch). Independent Git base artifact inspection confirms both old queries absent and cii_syntax_check_2019.py SHA differs from manifest on main itself; evidence inherited-ci-base-inspection.json. Observation ARTIFACT_INSPECTION, oracle independent base blob comparison; not a base product execution. Those failures are NOT claimed PASS. User profile/deployed acceptance remains NOT_RUN.
+Final commit updates delivery metadata/evidence only; production/test files remain identical to CI-tested a7856900. PR report/status/claim allocated, predecessor PR810 reconciled, actual diff ledger refreshed. README/Benchmarks collateral absent. No workflows modified. Checks after final metadata push may be pending; exact next action in recovery header. Mandatory backups exist locally with audit log; no generated engineering master data or results changed.
+
+### Actual final changed paths (supersedes prior preallocation ledger)
+- `.backups/log.json`
+- `agents/PR810_workreport.md`
+- `agents/PR811_workreport.md`
+- `agents/claims/PR810.yaml`
+- `agents/claims/PR811.yaml`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/ci-110219250124-a7856900.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/ci-110219250829-a7856900.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/ci-a7856900.json`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/ci-worker-gate.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/combined-mode-a.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/focused-node.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/inherited-ci-base-inspection.json`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/new-rating-live.txt`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/pr-body.md`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/weight-rating-browser.json`
+- `agents/evidence/WIP-781-WEIGHT-RATING-20261001/weight-rating-class-fill.png`
+- `agents/status/PR810.yaml`
+- `agents/status/PR811.yaml`
+- `converters/xml-cii2019-core/preview-rating-snapshot.js`
+- `converters/xml-cii2019-core/weight-match-ranking-service.js`
+- `converters/xml-cii2019-core/weight-rating-input.js`
+- `core/app.js`
+- `docs/converters/xml-cii2019-core/preview-rating-snapshot.js`
+- `docs/converters/xml-cii2019-core/weight-match-ranking-service.js`
+- `docs/converters/xml-cii2019-core/weight-rating-input.js`
+- `docs/core/app.js`
+- `docs/index.html`
+- `docs/main-rhbg-fitguard.js`
+- `docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js`
+- `docs/tabs/model-converters/legacy-adapter.js`
+- `docs/tabs/model-converters/xml-cii-post-run-validator-standalone.js`
+- `docs/tabs/xml-cii-2019-standalone-tab.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js`
+- `docs/tabs/xml-cii-2019-standalone/workers/master-dataset-client.js`
+- `docs/tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js`
+- `docs/tabs/xml-cii-2019-standalone/workers/master-dataset-service.js`
+- `docs/tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js`
+- `docs/tabs/xml-cii-2019-standalone/workers/weight-basis-service.js`
+- `docs/tabs/xml-cii-2019-standalone/xml-cii-dataset-backed-config.js`
+- `docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js`
+- `index.html`
+- `main-rhbg-fitguard.js`
+- `scripts/run-xml-cii-weight-basis-fastpath-e2e.mjs`
+- `tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js`
+- `tabs/model-converters/legacy-adapter.js`
+- `tabs/model-converters/xml-cii-post-run-validator-standalone.js`
+- `tabs/xml-cii-2019-standalone-tab.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js`
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js`
+- `tabs/xml-cii-2019-standalone/workers/master-dataset-client.js`
+- `tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js`
+- `tabs/xml-cii-2019-standalone/workers/master-dataset-service.js`
+- `tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js`
+- `tabs/xml-cii-2019-standalone/workers/weight-basis-service.js`
+- `tabs/xml-cii-2019-standalone/xml-cii-dataset-backed-config.js`
+- `tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js`
+- `tests/browser/xml-cii-issue-781-mode-a-live-e2e.mjs`
+- `tests/browser/xml-cii-weight-basis-fastpath-e2e.html`
+- `tests/browser/xml-cii-weight-rating-input-e2e.mjs`
+- `tests/xml-cii-issue-776-deployment-parity.test.mjs`
+- `tests/xml-cii-issue-781-auto-authority-followup.test.mjs`
+- `tests/xml-cii-issue-781-postmerge-screenshot-repair.test.mjs`
+- `tests/xml-cii-issue-781-worker-weight-api.test.mjs`
+- `tests/xml-cii-rating-consumer-policy.test.mjs`
+- `tests/xml-cii-weight-rating-input.test.mjs`
+
+Reconciled paths:94. Unexplained paths:0. Tested production/test head:a7856900. Final metadata head resolves from live PR811.

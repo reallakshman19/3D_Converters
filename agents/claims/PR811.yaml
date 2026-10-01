@@ -1,7 +1,7 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: PR811
-claim_state: ACTIVE
+claim_state: AWAITING_OWNER_REVIEW
 branch: agent/issue-781-weight-rating-20261001
 criticality: ENGINEERING_CRITICAL
 authority_domains: [XML_CII_WEIGHT_RATING_INPUT, XML_CII_REGEX_RATING_MAPPING_PERSISTENCE]
