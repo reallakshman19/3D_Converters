@@ -1,13 +1,13 @@
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1';
-import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-rating-1';
-import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-rating-1';
+import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
+import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-output-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
 import {
   readXmlCiiPreviewRatingSnapshot,
   resolveXmlCiiPreviewRating,
   resolveXmlCiiWeightMatchRating,
-} from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-rating-1';
+} from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-output-2';
 import {
   ensureValveHintConfig,
   formatValveHint,
@@ -406,7 +406,17 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed</strong> values are not engineering authority until you select a candidate, edit/confirm the weight, or use an explicit accept/fill action; accepted values are stored as Match-1. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (!input) return; input.value = button.dataset.wmWeight || ''; input.dispatchEvent(new Event('change', { bubbles: true })); }));
   };
-  const fillBest = () => { let count = 0; contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => { const best = localIssues[index]?.candidates?.[0]; if (!best || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return; input.value = String(selectedWeight(best)); saveInput(input); count += 1; }); return count; };
+  const fillBest = () => {
+    let count = 0;
+    contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => {
+      const best = localIssues[index]?.candidates?.[0];
+      if (!best?.preferred || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return;
+      if (input.dataset.wmAccepted === 'true'
+        || (input.value.trim() && Number(input.value) !== Number(selectedWeight(best)))) return;
+      input.value = String(selectedWeight(best)); saveInput(input); count += 1;
+    });
+    return count;
+  };
   const computeCore = async (opts = {}) => {
     let liveConfig = activeConfig();
     syncToggle(); syncRatingMode(); drawPanel();

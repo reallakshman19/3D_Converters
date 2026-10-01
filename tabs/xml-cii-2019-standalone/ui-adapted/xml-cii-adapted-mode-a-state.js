@@ -5,7 +5,7 @@ import {
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-2';
-import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-consolidated-1';
+import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 const MODE_A_SOURCE_CACHE_KEYS = Object.freeze([
   'xml-cii-wm-cache-v1',
@@ -32,6 +32,8 @@ function routeModeADependencyState(previous, replacement) {
     ...replacement,
     dependencyRevisions: routed.dependencyRevisions,
     dependencyRevisionBasis: routed.dependencyRevisionBasis,
+    result: routed.result,
+    sourceBatch: routed.sourceBatch,
   };
 }
 

@@ -2,7 +2,7 @@ import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
 } from './xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
-import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
@@ -68,6 +68,11 @@ export async function enrichSupportConfigJson(state, branchScope = null, options
     config.weight.masterRows = weightMasterRows;
     const appliedWeightRevision = Number(state.masterContext?.appliedMappingRevision?.weight || 0);
     if (appliedWeightRevision > 0) config.weight.masterRevision = appliedWeightRevision;
+  }
+  // Parsed UI config represents absent optional masters as null; the Python
+  // converter expects arrays. An absent master supplies no engineering data.
+  for (const [section, field] of [['linelist', 'masterRows'], ['pipingClass', 'masterRows'], ['material', 'mapRows'], ['weight', 'masterRows']]) {
+    if (config[section]?.[field] === null) config[section] = { ...config[section], [field]: [] };
   }
   if (branchScope?.manifest) config.branchSelection = branchScope.manifest;
   return JSON.stringify(config, null, 2);

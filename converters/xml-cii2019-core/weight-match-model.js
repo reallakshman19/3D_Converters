@@ -662,7 +662,7 @@ export function applyXmlCiiRigidWeightOverrides(xmlTextVal, weightsByKey) {
       const numeric = keys.map((key) => xmlCiiNumberText(weightsByKey?.[key])).find((value) => value !== null && value > 0) ?? null;
       if (numeric === null || numeric <= 0) return;
       xmlSetText(document, node, 'Weight', String(numeric));
-      appliedRows.push({ type: 'rigid-weight-manual-override', branchName, nodeNumber, weight: numeric });
+      appliedRows.push({ type: 'rigid-weight-manual-override', key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, nodeNumber, weight: numeric });
     });
   }
   return { xmlText: new XMLSerializer().serializeToString(document), appliedCount: appliedRows.length, appliedRows };

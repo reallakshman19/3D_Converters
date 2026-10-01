@@ -6,9 +6,9 @@ import { buildStandalonePreviewDiagnosticsAudit } from './xml-cii-preview-diagno
 import { runStandaloneWeightMatch } from './xml-cii-weight-match.js';
 import { runStandaloneSupportTypeMapper } from './xml-cii-support-type-mapper.js';
 import { buildStandaloneOutputRunReadiness } from './xml-cii-output-run-readiness.js';
-import { runXmlCii2019Workflow } from './xml-cii-workflow-api.js';
+import { runXmlCii2019Workflow } from './xml-cii-workflow-api.js?v=20261001-weight-output-2';
 import { defaultXmlCii2019SupportConfigJson } from './xml-cii-standalone-default-config.js';
-import { buildXmlCiiWorkflowJobFromUiState } from './xml-cii-workflow-ui-adapter.js';
+import { buildXmlCiiWorkflowJobFromUiState } from './xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }

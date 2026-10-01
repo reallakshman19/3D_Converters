@@ -149,7 +149,7 @@ test('worker Weight basis preserves split geometry and Preview rating authority'
 });
 
 
-test('Weight basis resolves staged length and bore lazily without a full XML rewrite', async () => {
+test('Weight basis applies the existing export cleanup and preserves staged length and bore', async () => {
   const xmlText = '<Model><Branch><Branchname>B2</Branchname>'
     + '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType><Position>0 0 0</Position></Node>'
     + '<Node><NodeNumber>-1</NodeNumber><NodeName>GATE VALVE</NodeName><ComponentType>VALV</ComponentType><ComponentRefNo>V-LAZY</ComponentRefNo><Endpoint>2</Endpoint><Position>100 0 0</Position></Node>'
@@ -175,7 +175,7 @@ test('Weight basis resolves staged length and bore lazily without a full XML rew
   assert.equal(result.issues[0].lengthMm, 125);
   assert.equal(result.issues[0].boreMm, 80);
   assert.equal(result.issues[0].elementLengthSource, 'ElementLengthMm');
-  assert.equal(result.stats.geometry.stagedGeometryRewriteSkipped, 1);
+  assert.equal(result.stats.geometry.stagedGeometryRewriteSkipped, 0);
 });
 
 test('Weight basis collector does not hydrate unrelated applied master datasets', () => {

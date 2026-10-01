@@ -4,7 +4,7 @@ import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookS
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { recoverMasterDatasetRawRows } from './master-dataset-remap-custody.js?v=20260930-issue781-linelist-integration-2';
-import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20261001-weight-rating-1';
+import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20261001-weight-output-2';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;

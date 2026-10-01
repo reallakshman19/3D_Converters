@@ -1,5 +1,5 @@
 import { appendLabeledControl, createElement, createOption } from './xml-cii-adapted-dom.js';
-import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20260930-issue781-branch-scope-1';
+import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
 import { XML_OR_TXT_ACCEPT } from '../xml-cii-workflow-source-detect.js';
 
 export function renderSourceControls(card, state) {
