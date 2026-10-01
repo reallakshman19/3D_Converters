@@ -12,7 +12,7 @@ const root = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const fixturePath = path.resolve(process.env.XML_CII_41_BRANCH_FIXTURE
   || path.join(root, 'Benchmarks', 'EF-05-PRO.TEST.xml'));
 const weightMasterPath = path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx');
-const release = '20260930-issue781-live-acceptance-1';
+const release = '20261001-weight-rating-1';
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);

@@ -1,5 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
+import { applyStandaloneRegexTesterResult, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
 
 export function renderRatingSequenceEditor(parent, state, stateRef, render) {
   const section = createElement('section', '', 'xml-cii-regex-rule-card');
@@ -74,11 +75,16 @@ export function renderRatingSequenceEditor(parent, state, stateRef, render) {
 }
 
 function updateRatingSequence(nextSeq, stateRef, render) {
-  stateRef.current.regexTesterConfig.ratingSequence = nextSeq;
-  stateRef.current.regexTesterResult = runStandaloneRegexTester({
-    ...stateRef.current,
-    sourceText: stateRef.current.sourceText,
-    extractionConfig: stateRef.current.regexTesterConfig
+  const state = stateRef.current;
+  const next = { ...state, regexTesterConfig: { ...state.regexTesterConfig, ratingSequence: nextSeq } };
+  const result = runStandaloneRegexTester({
+    ...next,
+    sourceText: next.sourceText,
+    extractionConfig: next.regexTesterConfig,
   });
+  const saved = applyStandaloneRegexTesterResult(next, result);
+  const masterContext = { ...saved.masterContext, config: JSON.parse(saved.supportConfigJson) };
+  stateRef.current = { ...saved, masterContext };
+  saveMasterContextToLocalStorage(masterContext);
   render();
 }

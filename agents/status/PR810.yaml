@@ -5,11 +5,11 @@ mission: Repair Issue 781 live Regex, B31.3 Preview, and Weight Match screenshot
 workstream: XML_CII_ISSUE_781_LIVE_ACCEPTANCE
 branch: agent/issue-781-live-acceptance-20260930
 criticality: ENGINEERING_CRITICAL
-agent_state: ACTIVE
+agent_state: MERGED
 pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/PR810_workreport.md
-current_stage: PR810_OWNER_REVIEW_HANDOVER
+current_stage: OWNER_MERGED_20260930
 blocker: Inherited CAESAR dropdown and FBX cache-chain static key assertions fail on merged #809/current main too; separate test-only correction needed if green checks are required.
 main_head_last_checked: d81ed7a84a6c8bfbbf5530dd662671eef69b27ec
 validation:
@@ -26,5 +26,5 @@ validation:
   release_cache_parity: PASS_STATIC
   ci_initial_head_988cdf3b: TWO_INHERITED_FAIL_CAESAR_AND_FBX
 merge_authority: OWNER_ONLY_NOT_GRANTED
-exact_next_action: Run gh pr checks 810 on final head and record results; preserve owner-only merge and route inherited CAESAR/FBX static assertions to separate test-only correction if green checks are required.
-last_updated: 2026-09-30
+exact_next_action: No remaining PR810 action; Weight Rating owner follow-up tracked in WIP-781-WEIGHT-RATING-20261001.
+last_updated: 2026-10-01

@@ -178,7 +178,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
 }
 
 const WEIGHT_MATCH_MODULE_URL = new URL(
-  '../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+  '../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-rating-1',
   import.meta.url,
 );
 

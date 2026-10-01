@@ -2,7 +2,7 @@ import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
-import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-live-acceptance-1';
+import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20261001-weight-rating-1';
 import {
   buildRegexSmartEvidenceReceipt,
   classifyRegexSmartTesterResult,
@@ -10,7 +10,7 @@ import {
   regexSmartReceiptIsCurrent,
   regexSmartReceiptRequestBasis,
   resolveRegexSmartEvidence,
-} from './xml-cii-adapted-regex-smart-evidence.js?v=20260930-issue781-live-acceptance-1';
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20261001-weight-rating-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },

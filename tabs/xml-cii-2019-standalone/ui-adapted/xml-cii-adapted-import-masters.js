@@ -4,7 +4,7 @@ import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
-import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-weight-liveness-cache-1';
+import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-rating-1';
 import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
