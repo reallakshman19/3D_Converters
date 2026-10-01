@@ -9,5 +9,5 @@ protected_paths: [tabs/xml-cii-2019-standalone/ui-adapted, tabs/model-converters
 merge_authority: OWNER_ONLY_NOT_GRANTED
 
 pr_url: https://github.com/reallaksh19/3D_Converters/pull/814
-code_checkpoint: e8c9ba89ef8354f7b1c3be2267fba12df5f09eb3
-remote_checks: INITIAL_9_PASS_7_FAIL_CORRECTIONS_NATIVE_PASS_REMOTE_REPLAY_PENDING
+code_checkpoint: 16fcb9ac87712ec6e59a94b8f5f9b89d72da8283
+remote_checks: 11PASS/4FAIL/1PENDING_INHERITED_FAILURES

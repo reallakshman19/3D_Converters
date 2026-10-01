@@ -1,6 +1,6 @@
 {
   "baseMain": "bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22",
-  "head": "e8c9ba89ef8354f7b1c3be2267fba12df5f09eb3",
+  "head": "16fcb9ac87712ec6e59a94b8f5f9b89d72da8283",
   "protectedPathDiff": [],
   "exactMirrors": 72,
   "changed": [
@@ -8,8 +8,8 @@
       "path": ".backups/log.json",
       "kind": "backup",
       "reason": "mandatory native backup ledger",
-      "bytes": 393757,
-      "sha256": "12c11eb727b25c4fdc9ea56161971e2563fcf5c2a9d216f364c77e3396e19742"
+      "bytes": 395349,
+      "sha256": "1ca62985450429f8f2db68f2e1680c4ed1450faf36f101f93939241616d38386"
     },
     {
       "path": "agents/PR813_workreport.md",
@@ -22,8 +22,8 @@
       "path": "agents/PR814_workreport.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 13328,
-      "sha256": "7f27aebcf90c7ec11c80993dda988afc050c5748bbf7e41d80eef0451aeff4eb"
+      "bytes": 15047,
+      "sha256": "e75decb6dfdba090e73cfd5a93b0d7d23bdbb6e504e3747e9112eca2090db680"
     },
     {
       "path": "agents/claims/PR813.yaml",
@@ -36,8 +36,8 @@
       "path": "agents/claims/PR814.yaml",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 916,
-      "sha256": "f3b7ad73f85efa743d4c35211a17fcdec89d7e94838f9ffdac15e17dc137b0ae"
+      "bytes": 889,
+      "sha256": "b91c1abf0b215ee38f112c2a67dbe2bd2cf599b9df8371fe24a1617ec5be0aa8"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/activate-runtime.py",
@@ -52,6 +52,69 @@
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
       "bytes": null,
       "sha256": "SELF_REFERENTIAL_NOT_HASHED"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac-current.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 6737,
+      "sha256": "28103f7908bba2c4e5c3460524519cadfd2d6a2b98d20cf5b945f04b36ee5828"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac-initial.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 6622,
+      "sha256": "00b56e4a0c2ae338e39f78141484abcfa18ab3405a8132d4b40bec86be13714c"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/caesar-v11-v14-dropdown-qualification.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 18060,
+      "sha256": "19cbd54110bd776c46e5271627f5c36a5a7c3575c96f2851d93e798991bb6bcc"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/classified-checks.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 970,
+      "sha256": "4e89d8dc4e5226c317d318cbb336b2ab292912866ab90508757e49d6055f1931"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/fbx-live-ui-cache-chain.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 3055,
+      "sha256": "c953165d404c7b61487b49e882bd9912d9fa4a5fc6924dbdb3c6ea372481a06f"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/fbx2-browser-managed-reference.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 51766,
+      "sha256": "c88e46e7ee9450f96088ba4df0fa426ec8fd1baa7b8e918ff3174bd576861d8c"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/final-rollup.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 6737,
+      "sha256": "28103f7908bba2c4e5c3460524519cadfd2d6a2b98d20cf5b945f04b36ee5828"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-16fcb9ac/stagedjson-and-pages-runtime-contract.txt",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 11772,
+      "sha256": "f38c01a97ca2aedf6e146a29da6712fae2e9806ab3778c8da5bae20f0ad16eba"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/att-rvm-scope-tree.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 8041,
+      "sha256": "ca50d2b95cae9b7bbfd8cb77e2d587340f388169829c3bda1b0f98f1df8cf105"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/base-cii14.txt",
@@ -82,11 +145,46 @@
       "sha256": "65c56b552d73e0e4afefb60724c2e742e8a5ea672f972867dc7a952cb18c8e56"
     },
     {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/browser-worker-scale.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 9286,
+      "sha256": "78745dd176d44d23c57db11c655bf4eb5df86e1bf56b8bad9c43a87913b00699"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/caesar-v11-v14-dropdown-qualification.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 18060,
+      "sha256": "92e52f59bdea7ad3cb28c8e70318e90ea3bce70c3c4268a9e98ce2e4509d8fd7"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/cii-ver-14-merge-qualification.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 10140,
+      "sha256": "4e284551617ad14b49433d07704fcd67ce2c9bc93dfd4e2f118e4788996195a1"
+    },
+    {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/classification.json",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
       "bytes": 871,
       "sha256": "feb056a8c25032d30973193831fe4d92923c818fa006acd32d0e1c518fc23757"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/fbx-live-ui-cache-chain.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 3055,
+      "sha256": "da435700936a2f68543be8214d07f84d89717425f1e6ff5458671a390dd0b7ae"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/fbx2-browser-managed-reference.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 51766,
+      "sha256": "c5181ef9d58f483d88a1670b5ff4008d47d70a63dbdde4c4fb014c2c660af75b"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/predecessor-caesar.txt",
@@ -117,11 +215,18 @@
       "sha256": "166a20b7890b7ccbd173e4a3f4b7f42ee089ca2df0d2b286634c9f2e1a235d85"
     },
     {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/ci-e8c9ba89/stagedjson-and-pages-runtime-contract.log",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 11772,
+      "sha256": "df31a0ce99651b4d2ab43f8e6a419c74d4fdf78ea24fbf19afec0779a45443f8"
+    },
+    {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/current-handover.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 1138,
-      "sha256": "8f6e05890a93f2b1faef1582881f46f01d6893359159b758bd9eb9a82f50a1e1"
+      "bytes": 1559,
+      "sha256": "da94c6d403afacd5d0c3fe5bbbc1cf643029e98fce129c9a419904a2e36720f3"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/dataset-custody.log",
@@ -204,8 +309,8 @@
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr-body.md",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 3551,
-      "sha256": "80df58f9e90be0b5502d8eb14913de560bfc4fcfc9bcb5aab7c2f9bbd77d659e"
+      "bytes": 3668,
+      "sha256": "7a250bd9663bc824336f060428549a2b5978c63d1c3823cc722b6c9ccab1a362"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr814-initial-live.json",
@@ -213,6 +318,13 @@
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
       "bytes": 6760,
       "sha256": "49ad6fadafda24e45b29ac706781aa2726445c94aea48598ab7c73d45aa14a14"
+    },
+    {
+      "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr814-live-files-16fcb9ac.json",
+      "kind": "handover/evidence",
+      "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
+      "bytes": 1203080,
+      "sha256": "6f122a00cb79baa278b5d6af0aac691a9dabf6342eb13ba4a5d5c7e786f11a7f"
     },
     {
       "path": "agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/pr814-live-files.json",
@@ -470,8 +582,8 @@
       "path": "agents/status/PR814.yaml",
       "kind": "handover/evidence",
       "reason": "recovery, actual acceptance evidence, live claim/status reconciliation",
-      "bytes": 1199,
-      "sha256": "7473da91b7c7caac9b9b1c9335b565982334e9fc63002fc7cf898524ba629fa3"
+      "bytes": 1186,
+      "sha256": "f3c8b57e6c8cc9cf30d730f1236ac14b92ec94fb8b8925e8c800f4257446ada3"
     },
     {
       "path": "converters/scripts/xml_cii_weight_output_custody.py",

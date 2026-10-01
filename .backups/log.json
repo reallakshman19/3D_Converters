@@ -1,5 +1,5 @@
 {
-  "lastId": 1163,
+  "lastId": 1168,
   "entries": [
     {
       "id": 1,
@@ -8141,6 +8141,41 @@
       "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
       "context": "PR814 classify actual CI, corrected typed Final test and base reproduction",
       "backupFile": "1163_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
+    },
+    {
+      "id": 1164,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\PR814_workreport.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1164_agents_PR814_workreport_md.bak"
+    },
+    {
+      "id": 1165,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\status\\PR814.yaml",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1165_agents_status_PR814_yaml.bak"
+    },
+    {
+      "id": 1166,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\claims\\PR814.yaml",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1166_agents_claims_PR814_yaml.bak"
+    },
+    {
+      "id": 1167,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\current-handover.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1167_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_current_handover_md.bak"
+    },
+    {
+      "id": 1168,
+      "timestamp": "2026-10-01 19:56:42",
+      "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
+      "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
+      "backupFile": "1168_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
     }
   ]
 }

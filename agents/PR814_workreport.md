@@ -6,7 +6,7 @@
 
 Owner requests Single (default), Mode A (separate models, Draft), and Mode B (combine with node offsets, then load Single). The owner also explicitly requests repair of the pasted CII_WEIGHT_OWNER_UNRESOLVED failure and preservation of manually entered weights downstream. This is one owner-expanded mission following PR813.
 
-Classification: ENGINEERING_CRITICAL. Merge authority: OWNER_ONLY, not granted. Execution location: C:/CodeA/3DC_live_acceptance, branch agent/issue-781-single-combine-owners-20261001. User's C:/CodeA/3DC_809 is a Gitless fixture snapshot. Base main bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22. Bootstrap checkpoint e017d068. PR814 OPEN DRAFT https://github.com/reallaksh19/3D_Converters/pull/814; base main bebf552e; code checkpoint e8c9ba89ef8354f7b1c3be2267fba12df5f09eb3, pushed and attached. Work report/status/claim migrated; evidence directory retains the unique WIP identifier for stable test links.
+Classification: ENGINEERING_CRITICAL. Merge authority: OWNER_ONLY, not granted. Execution location: C:/CodeA/3DC_live_acceptance, branch agent/issue-781-single-combine-owners-20261001. User's C:/CodeA/3DC_809 is a Gitless fixture snapshot. Base main bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22. Bootstrap checkpoint e017d068. PR814 OPEN DRAFT https://github.com/reallaksh19/3D_Converters/pull/814; base main bebf552e; implementation checkpoint e8c9ba89; tested correction checkpoint16fcb9ac87712ec6e59a94b8f5f9b89d72da8283, pushed and attached. Work report/status/claim migrated; evidence directory retains the unique WIP identifier for stable test links.
 
 Qualification outcome CONTINUE; bounded implementation authority. No runtime, writer or canvas ownership switch, workflow modification, master/formula/unit change, mass summing/transfer, guessed geometry, or fail-closed guard bypass is authorized. Source physical endpoints and entered component masses are authority. The same active wrapper, model builder and writer remain selected.
 
@@ -67,7 +67,7 @@ Falsifier remains any missing/duplicate owner, changed mass or changed source ph
 | real41 downloaded CII | PASS 174/174 owners | Artifact inspection | Independent source endpoints/masses |
 | Mode B deep compose | PASS 82 branches/3308 nodes | Native browser, mixed units/malformed/overflow/zero-step rejected | Non-number fields and exact IDs unchanged |
 | Exact pasted 8-owner run/config | NOT_RUN | Owner supplied originals, not exact failing enriched XML/config | Do not claim exact count reproduced |
-| Remote CI e8c9ba89 | FAIL 9 PASS / 7 FAIL | Full literal-head rollup and failed logs retained | Workflow execution; classified below |
+| Remote CI e8c9ba89 | FAIL 9 PASS / 7 FAIL | Full head-associated rollup and failed logs retained | Workflow execution; classified below |
 | Native Rating/class-fill follow-up | PASS 174 rows | Prefix3→600 persists without Preview; manual900/450; class fill300; typed10.5 Final survives | Entered values; <=250ms unchanged heartbeat (max201ms) |
 | Remote successor deployment | NOT_RUN | PR814 not merged | Local acceptance does not establish deployed acceptance |
 
@@ -77,7 +77,7 @@ Fixed-width CII is parsed independently by the artifact auditor; values use the 
 
 Highest risk: a cache/identity integration accidentally routes Single through batch authority or a component mass reaches an edge with altered source length. Preserve failure witnesses and Final/Match-1 separation.
 
-EXACT_NEXT_ACTION: commit and push the PR814 identity/CI correction checkpoint; read its fresh literal-head rollup and diagnose any new failure. No merge. After owner merge, replay native Pages acceptance; never claim deployed acceptance from local results.
+EXACT_NEXT_ACTION: `gh pr view 814 --json headRefOid,statusCheckRollup,state,isDraft,mergeable,reviewDecision` to observe the queued CII Ver14 job and final metadata-head checks; preserve inherited failures and wait for owner review/merge. After an owner merge, run `XML_CII_MODE_B_BASE_URL=https://reallaksh19.github.io/3D_Converters/ node tests/browser/xml-cii-mode-b-release-smoke.mjs` with recorded Chromium/fixture environment, then the Single/ModeA artifact acceptance. No merge authority. No production mutation remains within approved scope.
 
 Final Single replay PASS: header, equal-candidate typed manual Final, 42 downloaded physical owners, latest-output canvas and Refresh geometry. Source/docs ledger PASS with no protected-path diff. Last additions only align authority legend with tested Final/Match-1 semantics. Full source fixture SHA256s match current main exactly.
 
@@ -91,4 +91,13 @@ Initial e8c9ba89 rollup completed9PASS7FAIL, none pending. Full logs and rollup:
 - INHERITED, newly triggered: FBX Managed Reference exact primaryAccept assertion fails. Exact base tree reproduces it; review addon unchanged. No FBX engineering/selector authority change attempted.
 - INHERITED: CAESAR dropdown and FBX Live UI cache checks still expect20260929-pr780-metadata-1; predecessor failed logs match. StagedJSON has obsolete parent query assertions plus the same immutable InputXML cii_syntax_check_2019.py manifest mismatch as predecessor. New queries are necessary and exact source/docs mirrored; manifest/core not changed. These five unrelated failures remain FAIL, not PASS.
 
-Appendix A addendum98/100 CONTINUE for bounded CI integration: A1 current typed origin→withXmlCiiRigidWeightFinal path; A2 actual line110 mismatch and base reproductions; A3 fixed10.5 value/250ms limit unchanged, candidate checks retained; A4 native174-row persisted Final and8/8 gate; A5 only two tests plus user-facing field help. Production help text now distinguishes typed manual Final and selected Match1. No engineering computation changed after e8c9ba89; last edits are validation/help/metadata. Fresh remote replay is pending this checkpoint.
+Appendix A addendum98/100 CONTINUE for bounded CI integration: A1 current typed origin→withXmlCiiRigidWeightFinal path; A2 actual line110 mismatch and base reproductions; A3 fixed10.5 value/250ms limit unchanged, candidate checks retained; A4 native174-row persisted Final and8/8 gate; A5 only two tests plus user-facing field help. Production help text now distinguishes typed manual Final and selected Match1. No engineering computation changed after e8c9ba89; last edits are validation/help/metadata. Fresh remote replay is recorded below.
+
+
+## Final delivery observation (16fcb9ac)
+
+Handover state READY_FOR_OWNER_REVIEW_WITH_INHERITED_CI_FAILURES. PR814 OPEN DRAFT, MERGEABLE, no comments/reviews at last read; base main unchangedbebf552e. Remote231 changed paths exactly match local Git at16fcb9ac. Source/docs72 exact mirrors;110 source/docs paths are query-only. README/Benchmarks/ValidationRecords/workflows have identical Git trees.
+
+Fresh CI 11PASS/4FAIL/1PENDING; all XML/CII mission gates, RVM scope-tree, worker/rating native browser and WSW browser PASS. Remaining completed failures are inherited CAESAR cache, FBX live cache, FBX Managed Reference and StagedJSON/InputXML contract; logs in ci-16fcb9ac/. Pending workflow: CII Ver 14 Merge Qualification. CII Ver14 is independently reproduced FAIL on exact base and initially failed this PR; do not promote a queued observation to PASS.
+
+Final publication checkpoint changes only report/status/claim/backup/evidence metadata and PR description; production and tests remain byte/tree-equivalent to tested16fcb9ac. Fresh CI on that final metadata head is NOT_RUN at this observation. Numerical acceptance remains42/42 and174/174 downloaded physical owners; remote deployed acceptance NOT_RUN. Initial failures and independent source authority are retained. No workflow/benchmark/oracle tolerance modifications. New integration incompatibilities resolved.

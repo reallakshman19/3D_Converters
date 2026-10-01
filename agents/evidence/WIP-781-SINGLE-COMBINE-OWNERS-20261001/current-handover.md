@@ -8,4 +8,6 @@ Local downloaded artifact acceptance: combined supplied originals42/42 owners; r
 
 Initial remote CI9PASS7FAIL. One new typed Final browser expectation corrected; RVM parent cache assertion corrected. Five inherited failures reproduced or matched to predecessor logs; see ci-e8c9ba89/ and canonical report. Native Rating test174rows PASS with max201ms (limit250ms unchanged).
 
-EXACT_NEXT_ACTION: push correction checkpoint and classify fresh PR814 literal-head checks. No workflow/format/master/oracle weakening or merge.
+EXACT_NEXT_ACTION: `gh pr view 814 --json headRefOid,statusCheckRollup,state,isDraft,mergeable,reviewDecision` to observe pending/final metadata-head checks; owner review/merge remains required. No workflow/format/master/oracle weakening or merge.
+
+Final tested correction16fcb9ac: 11PASS/4FAIL/1PENDING. Mission checks, worker Rating browser, WSW browser and scope tree PASS. Four inherited completed failures retained; CII Ver14 queued at observation (exact-base failure preserved). Final metadata checkpoint is production/test equivalent; its fresh CI NOT_RUN.

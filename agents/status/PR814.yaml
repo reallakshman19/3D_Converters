@@ -4,7 +4,7 @@ pr_or_wip: PR814
 branch: agent/issue-781-single-combine-owners-20261001
 criticality: ENGINEERING_CRITICAL
 base_main: bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22
-current_stage: DRAFT_CI_INTEGRATION_REPLAY_PENDING
+current_stage: READY_FOR_OWNER_REVIEW_WITH_INHERITED_CI_FAILURES
 takeover_authority: WRITE_ALLOWED_BOUNDED_QUALIFIED_UI_AND_GEOMETRY
 owner_geometry_repair_authorization: EXPLICIT_LATEST_ERROR_TO_BE_FIXED_REQUEST
 exact8_artifact: REQUESTED_NOT_YET_RECEIVED
@@ -22,5 +22,5 @@ merge_authority: OWNER_ONLY_NOT_GRANTED
 report_path: agents/PR814_workreport.md
 
 pr_url: https://github.com/reallaksh19/3D_Converters/pull/814
-code_checkpoint: e8c9ba89ef8354f7b1c3be2267fba12df5f09eb3
-remote_checks: INITIAL_9_PASS_7_FAIL_CORRECTIONS_NATIVE_PASS_REMOTE_REPLAY_PENDING
+code_checkpoint: 16fcb9ac87712ec6e59a94b8f5f9b89d72da8283
+remote_checks: 11PASS/4FAIL/1PENDING_INHERITED_FAILURES
