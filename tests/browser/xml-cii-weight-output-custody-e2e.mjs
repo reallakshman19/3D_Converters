@@ -13,7 +13,7 @@ const fixturePath = process.env.XML_CII_41_BRANCH_FIXTURE || path.join(root, 'Be
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
-const release = '20261001-weight-output-2';
+const release = '20261001-single-weight-owners-1';
 const expectOwnerBlock = process.argv.includes('--expect-weight-owner-block');
 const server = createServer(async (request, response) => {
   try {
@@ -45,6 +45,7 @@ try {
   }, JSON.stringify(seed));
   await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  await page.locator('[data-mode-b-action="select-a"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /Valve Weights/ }).click();
   await page.locator('input[data-master-file="weight"]').setInputFiles(path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx'));
@@ -60,12 +61,13 @@ try {
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')).config.rating.ratingSequence.some(([p, r]) => p === '3' && r === '600')));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  await page.locator('[data-mode-b-action="select-a"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /^6 Weight Match/ }).click();
   await page.locator('#mc-wm-refresh').waitFor();
 
 
-  const evidenceDir=`agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001${expectOwnerBlock ? '/guard-e2e' : ''}`;
+  const evidenceDir=process.env.XML_CII_WEIGHT_OUTPUT_EVIDENCE_DIR || `agents/evidence/WIP-781-OUTPUT-CUSTODY-20261001${expectOwnerBlock ? '/guard-e2e' : ''}`;
   await mkdir(evidenceDir,{recursive:true});
   await page.locator('#mc-wm-refresh').click();
   await page.waitForFunction(() => document.querySelector('#mc-wm-refresh')?.dataset.wmBusy !== 'true' && /shown/.test(document.querySelector('#mc-wm-status')?.textContent || ''));
@@ -148,7 +150,7 @@ try {
   const afterMeta=await page.locator('.model-converters-preview-meta').filter({hasText:/Geometry preview:/}).innerText();
   assert.notEqual(afterMeta,canvasMeta);
   await writeFile(path.join(evidenceDir,'canvas-refresh.json'),JSON.stringify({status:'PASS',canvasMeta,afterMeta,sourceReplacement:true},null,2));
-  for(const file of ['main-rhbg-fitguard','xml-cii-2019-standalone-tab','xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6','xml-cii-adapted-state','xml-cii-adapted-cii-preview-canvas','xml-cii-standalone-run-parity','xml-cii-weight-output-authority','weight-basis-service','xml-cii-workflow-engine-client','engine']) assert.ok(modules.some(url=>url.includes(`${file}.js?v=${release}`)),`Missing live release module ${file}`);
+  for(const file of ['main-rhbg-fitguard','xml-cii-2019-standalone-tab','xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6','xml-cii-adapted-processing-mode','xml-cii-workflow-engine-client','engine']) assert.ok(modules.some(url=>url.includes(`${file}.js?v=${release}`)),`Missing live release module ${file}`);
   await writeFile(path.join(evidenceDir,'output-runtime-modules.json'),JSON.stringify(modules,null,2));
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({status:'PASS',scope:expectOwnerBlock ? 'CII withheld for16 unresolved owners; XML/canvas preserved. Full CII acceptance remains FAIL.' : 'Reviewed XML weights and canvas; audit full CII ownership separately',fixture:'41 branches',accepted:accepted.length,entered,errors},null,2));

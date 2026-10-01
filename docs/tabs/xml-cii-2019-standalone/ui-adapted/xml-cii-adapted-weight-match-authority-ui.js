@@ -113,7 +113,7 @@ function decorateRow(row) {
     ? (presentation.state === 'MATCH1_ACCEPTED' ? 'Accepted Match-1 engineering authority.' : 'Accepted/resolved engineering weight authority.')
     : (positive(candidateWeight)
       ? 'Suggested value only. It is NOT ACCEPTED until you explicitly accept a candidate or edit/confirm this weight.'
-      : 'Enter a positive weight to explicitly accept it into Match-1 authority.');
+      : 'Enter a positive weight to save manual Final authority.');
   for (const button of buttons) decorateCandidateButton(button, presentation);
 }
 
@@ -129,7 +129,7 @@ function ensureLegend(root) {
   legend.style.borderColor = '#7c5a18';
   legend.style.background = '#2a210b';
   legend.style.color = '#ffe7a3';
-  legend.innerHTML = '<strong>Authority legend:</strong> Candidate matched / Suggested is algorithmic evidence only and remains <strong>NOT ACCEPTED</strong>. Use <strong>Accept as Match-1</strong> (or explicitly edit/confirm the weight) to create Match-1 authority.';
+  legend.innerHTML = '<strong>Authority legend:</strong> Candidate matched / Suggested is algorithmic evidence only and remains <strong>NOT ACCEPTED</strong>. Use <strong>Accept as Match-1</strong> for a candidate. Typing a positive weight saves <strong>manual Final authority</strong>.';
   table.before(legend);
 }
 

@@ -371,7 +371,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         ...(overrides.rigidWeightProposalMeta || {}),
         [key]: buildXmlCiiRigidWeightMatch1Provenance(issue, cfg, candidate, {
           weightKg: value,
-          acceptanceMethod: candidate ? 'candidate' : 'manual',
+          acceptanceMethod: input.dataset.wmSelectionOrigin === 'candidate' ? 'candidate' : 'manual',
         }),
       };
     }
@@ -379,7 +379,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     input.dataset.wmAccepted = 'true';
     const row = input.closest('tr');
     const statusCell = row?.querySelector('[data-wm-status-cell]');
-    if (statusCell) statusCell.textContent = 'Accepted · Match-1';
+    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Match-1' : 'Accepted · Manual';
     if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });
   };
   const drawRows = (issues) => {
@@ -403,8 +403,13 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     }).join('');
     const cfg = activeConfig();
     const authorityText = ratingMode === 'dtxr' ? 'Explicit DTXR Rating mode' : 'Manual → Preview → Rating prefix mapping';
-    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed</strong> values are not engineering authority until you select a candidate, edit/confirm the weight, or use an explicit accept/fill action; accepted values are stored as Match-1. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
-    contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (!input) return; input.value = button.dataset.wmWeight || ''; input.dispatchEvent(new Event('change', { bubbles: true })); }));
+    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed</strong> values are not engineering authority until you select a candidate, edit/confirm the weight, or use an explicit accept/fill action; Typed entries are manual weights; accepted candidate selections are stored as Match-1. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (input) acceptCandidate(input, button.dataset.wmWeight || ''); }));
+  };
+  const acceptCandidate = (input, value) => {
+    input.value = String(value); input.dataset.wmSelectionOrigin = 'candidate';
+    try { input.dispatchEvent(new Event('change', { bubbles: true })); }
+    finally { delete input.dataset.wmSelectionOrigin; }
   };
   const fillBest = () => {
     let count = 0;
@@ -413,7 +418,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       if (!best?.preferred || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return;
       if (input.dataset.wmAccepted === 'true'
         || (input.value.trim() && Number(input.value) !== Number(selectedWeight(best)))) return;
-      input.value = String(selectedWeight(best)); saveInput(input); count += 1;
+      acceptCandidate(input, selectedWeight(best)); count += 1;
     });
     return count;
   };

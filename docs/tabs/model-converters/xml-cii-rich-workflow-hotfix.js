@@ -5,4 +5,4 @@
  * neutral Workflow 1 / Workflow 2 naming. Keep old export for cached imports.
  */
 
-export { installXmlCiiWorkflowHotfix as installXmlCiiRichWorkflowHotfix } from './xml-cii-workflow-hotfix.js?v=20260624-workflow1-workflow2-1';
+export { installXmlCiiWorkflowHotfix as installXmlCiiRichWorkflowHotfix } from './xml-cii-workflow-hotfix.js?v=20261001-single-weight-owners-1';

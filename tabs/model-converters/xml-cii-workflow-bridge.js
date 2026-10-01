@@ -6,7 +6,7 @@
  * button cannot see the phase bridge populated by renderModelConvertersTab().
  */
 
-import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260729-inputxml-live-release-1';
+import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20261001-single-weight-owners-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };

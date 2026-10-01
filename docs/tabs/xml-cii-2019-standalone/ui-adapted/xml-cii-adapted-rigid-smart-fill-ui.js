@@ -61,7 +61,9 @@ function prepareInputs(dialog) {
     const key = input.getAttribute('data-rigid-review-key') || '';
     const stored = values[key];
     if (stored) input.value = stored.value;
-    else if (tr.querySelector('[data-rigid-review-candidate]') && numeric(input.value) > 0) {
+    else if (input.dataset.rigidReviewPrefilled === 'true' && numeric(input.value) > 0) {
+      values[key] = { value: input.value, source: 'suggestion' };
+    } else if (tr.querySelector('[data-rigid-review-candidate]') && numeric(input.value) > 0) {
       input.dataset.rigidSmartBaseSuggestion = input.value; input.value = '';
     }
     if (!input.dataset.rigidSmartBound) {

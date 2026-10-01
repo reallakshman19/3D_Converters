@@ -1,10 +1,10 @@
 // Standalone app shell runtime delegate.
 import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v=standalone-3';
 import { installEngineeringTabs } from './engineering-tabs-extension.js?v=20260819-sbc-connection-authoring-1-tabperf1';
-import * as runtime from './app-standalone-runtime.js?v=20260930-issue781-screenshot-repair-1';
+import * as runtime from './app-standalone-runtime.js?v=20261001-single-weight-owners-1';
 
-const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260928-rvm-full-scope-core-1-tabperf1';
-const XML_CII_STANDALONE_MODULE = '../tabs/xml-cii-2019-standalone-tab.js?v=20261001-weight-output-2';
+const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20261001-single-weight-owners-1';
+const XML_CII_STANDALONE_MODULE = '../tabs/xml-cii-2019-standalone-tab.js?v=20261001-single-weight-owners-1';
 let destroyEngineeringTabs = null;
 
 function loadLiveModelConverters() {

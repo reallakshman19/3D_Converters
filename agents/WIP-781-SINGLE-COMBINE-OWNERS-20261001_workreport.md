@@ -1,20 +1,80 @@
 # WIP-781-SINGLE-COMBINE-OWNERS-20261001
 
-## Current recovery state
-ENGINEERING_CRITICAL; IMPLEMENT; NEW_PR_REQUIRED; work location C:/CodeA/3DC_live_acceptance, branch agent/issue-781-single-combine-owners-20261001; REPORT_BASIS_HEAD=bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22. Merge OWNER_ONLY_NOT_GRANTED. UI implementation qualification below; weight geometry mutation remains READ_ONLY until its separate concrete qualification.
+# Single, combine handoff and physical CII weight owners
 
-Owner 2026-10-01 requests three toggles with Single default; only Single and Mode A execution paths; Mode B combines multiple XML then loads the result into Single. Owner also explicitly requests repair of CII_WEIGHT_OWNER_UNRESOLVED8 pasted failure, expanding prior pending component geometry/ownership repair scope. This authorizes bounded lossless component-owner repair; no runtime/writer/canvas switch, mass transfer/summing, guessed geometry, formula/master/unit changes, or guard bypass. Existing independent16-owner real41 benchmark remains a required regression. Exact failing enriched XML requested asynchronously; existing three source fixtures found in C:/CodeA/3DC_809/Benchmarks/XML-CII-2019. Do not claim exact8 reproduction without actual failed artifact/config.
+## Mission and authority
 
-GE-20261001-SINGLE-OWNERS: main bebf552e, PR813 MERGED to main8d116561; production tree differs from prior91c455db only two timing artifacts. PR813 final CI13PASS3 inheritedFAIL. Fresh branch created from current main; MinGit invalid benchmark path on checkout left spurious README index removal, repaired by index-only read-tree with temporary core.protectNTFS=false and restored skip-worktree flags; no committed README change allowed. Current code includes Mode B and CII publication guard, explaining actual owner log. PR813 historical OPEN DRAFT/pending merge records now stale and will be reconciled.
+Owner requests Single (default), Mode A (separate models, Draft), and Mode B (combine with node offsets, then load Single). The owner also explicitly requests repair of the pasted CII_WEIGHT_OWNER_UNRESOLVED failure and preservation of manually entered weights downstream. This is one owner-expanded mission following PR813.
 
-Coordination: open801 weight/cache,794 LineList and788–792 Mode B topology stack still active; COORDINATION_REQUIRED. New mode selection overlaps792 phase/events prefixes; reuse existing Single/ModeA renderers and event handlers without importing topology stack. Component geometry domain overlaps773/772 historical type/cleanup authority; inspect concrete diff before repair. No workflow changes authorized.
+Classification: ENGINEERING_CRITICAL. Merge authority: OWNER_ONLY, not granted. Execution location: C:/CodeA/3DC_live_acceptance, branch agent/issue-781-single-combine-owners-20261001. User's C:/CodeA/3DC_809 is a Gitless fixture snapshot. Base main bebf552e6d45eaefb1d2dc878a8e7a172d1bfd22. Bootstrap checkpoint e017d068. New PR allocation pending.
 
-UI trace: easy-bulk-v6 always wraps normalized ModeA state and branch-scoped ref; phase-panels-mode-a always dispatches batch phases; events-mode-a always captures multiple source inputs then replaces Run; consolidated-review-v2 always clones Run Separate Models. Mode B export only stores xmlCombinationMode and downloads, not load into Single. Current default is Mode A. Hypothesis: explicit xmlProcessingMode single/mode-a/mode-b can gate existing batch render/event dispatch; existing normalized one-source storage may remain internal but Single never fans out. Mode B disables Run and has explicit Combine/Save/Use in Single action; the handoff creates one new source, clears old source-specific weights/results/staged geometry and preserves shared config/masters/extractors. Prevents stale source overrides from three old files contaminating combined new node IDs.
+Qualification outcome CONTINUE; bounded implementation authority. No runtime, writer or canvas ownership switch, workflow modification, master/formula/unit change, mass summing/transfer, guessed geometry, or fail-closed guard bypass is authorized. Source physical endpoints and entered component masses are authority. The same active wrapper, model builder and writer remain selected.
 
-UI Appendix A: A1 20/20 inspected active shell, phase/events chain and ModeB export import/composer; existing smart handler already calls canonical single run. A2 20/20 current source independently shows default mode-a and unconditional batch capture/run; previous native82/3308 witness verifies only download, not Single handoff. A3 20/20 three explicit toggles; only2 execution authorities; Single source upload limited to1, ModeA keeps batch isolation, ModeB combine-only with new-source handoff; preserve masters/settings without source override contamination. A4 19/20 native browser fresh defaultSingle, switchA enablesmultiple and batch controls, B combines3 supplied fixtures/save/loads one Single source and rejects direct batchRun; count and exact fields use independent original XML. A5 19/20 new bounded mode-state helper, surgical dispatch gates in shell/phase/events and UI handoff; source/docs/cache activation parity.98/100 CONTINUE WRITE_ALLOWED_BOUNDED_UI.
+Canonical delivery skill engineering-pr-delivery loaded from reallaksh19/Common. Root repository instructions and .agents/AGENTS.md read. Native backup log includes the existing-file backups. Claims/status are maintained; no agents delegated.
 
-Weight trace: runtime_custody.main→base._parse_xml_document ignores NodeNumber<=0→_drop_short_element_nodes collapses<=6mm→patched._build_conversion_model→to-node Rigid=2 index→guard exact identity→unchanged writer scaling. Positive branch-start first node has no incoming owner; negative weighted helpers discarded; short components can be deleted/replaced by canonical junction. Hypothesis: retain existing physical weighted component endpoints/preceding source geometry with explicit safe positive runtime IDs and source identity mapping; never attach its mass to a different physical component. Falsifier: actual unresolved source node is zero-length/ambiguous or no predecessor; keep guard and expose unresolved case rather than invent length/owner. Weight repair qualification NOT_COMPLETE until actual neighbor distances and current model behavior are independently measured.
+## Live grounding and coordination
 
-Validation ledger: owner pasted8 FAILURE USER_SUPPLIED/NONE; existing16 CII auditFAIL ARTIFACT_INSPECTION/INDEPENDENT_REPRODUCTION; current production tracePASS SOURCE_INSPECTION/IMPLEMENTATION_COUPLED. New UI/native/real41 repairs NOT_RUN. Exact8 artifact reproduction NOT_RUN pending requested upload. Changed ledger initially only WIP report/status/claim. Highest risk: preserving mass by silently changing geometry or loading combined XML with stale source overrides.
+PR813 was owner-merged as 8d1165617259fb62b9ab7209be7f028ffe479793 at 2026-10-01T11:29:24Z, head 91c455db. Main includes it. PR813 report/status/claim reconciled to MERGED/CLOSED; its historical 16-owner failure remains evidence of the predecessor guard.
 
-EXACT_NEXT_ACTION: measure exact real41 unresolved component neighbors/lengths; implement qualified explicit modes and Single handoff; qualify bounded component endpoint preservation independently before Python production edits; maintain checkpoints and main-based PR. Owner failure logs/readiness warnings must remain distinct from actual conversion exception.
+Main fetched again without drift. Active overlaps: PR801 Weight/cache, PR794 LineList, PR788–792 Mode B topology stack, and PR773/772 component cleanup lineage. COORDINATION_REQUIRED; no unmerged topology implementation imported. This Mode B remains node-offset composition; it does not invent cross-file joins.
+
+Windows checkout excludes Benchmarks because an existing tracked XML->CII2019 path is invalid on Windows. Index was repaired before this branch's mutations with temporary core.protectNTFS=false and skip-worktree flags. Do not repeat read-tree over staged work. WSW originals hydrated from exact origin/main blobs only to run the gate. README, Benchmarks, ValidationRecords and workflows must have no committed diff.
+
+## Implementation and production trace
+
+- Explicit xmlProcessingMode gates the existing Single and Mode A render/event/run paths. Default is Single. Mode B disables conversion phases, combines selected sources with existing offsets, offers XML/map downloads, then creates one new Single source. The header and highlighted toggle identify the selected mode.
+- Handoff retains shared masters, extractor settings and options; clears constituent source overrides, staged geometry, results and source caches. Combined XML engineering fields remain intact. Mode A remains isolated per source.
+- Active Single review now retains proposed values through the smart-review observer. Apply accepts the displayed values. Bulk fill preserves existing entries; a row candidate click explicitly replaces that row.
+- Weight Match records typed edits as manual Final authority, including a typed value equal to a candidate. Candidate buttons/preferred fill explicitly retain Match-1 provenance. This uses existing Final/Match-1 APIs; no ranking or master authority changes.
+- engine.js fetches xml_cii_weighted_geometry.py alongside the existing runtime assets. Active runtime_custody wrapper opts the original parser into preservation; other parser callers keep the old default.
+- The parser assigns unique positive runtime IDs to weighted negative sentinels and their actual source predecessors, retaining source_node_number. It preserves nonzero weighted endpoints, their actual starts and the measured short hop to a protected junction. No coordinates or masses move.
+- The publication guard matches original component identity and exact mass, rejects duplicate source identities, invalid masses, absent predecessors and zero-length weighted components. Unresolved CII remains withheld while enriched XML is retained.
+- Cache release 20261001-single-weight-owners-1 activates 67 source modules through reverse import dependencies. Most parent changes are query metadata only; source/docs mirrors are exact bytes. Complete path reasons belong in changed-file-ledger.json. Python assets retain no-store fetching.
+
+## Failure isolation and falsifiers
+
+1. Historical real41 export lost 16 owners: six branch starts had preceding negative nodes 89 mm away; ten weighted helpers had 86 mm incoming components followed by 3 mm canonical-junction hops. Initial inferred zero distance was disproved by source measurement before mutation. No coincident alias is implemented.
+2. First native Single replay showed smart-review prepareInputs cleared all populated suggestions. Failure screenshot/text preserved separately. Explicit prefilled values are retained.
+3. Independent downloaded CII audit disproved the first endpoint-only repair: 38 real41 components grew 3 mm, seven three-source components grew 3.2 mm because their unweighted immediate starts were still dropped. Failure JSON preserved in both evidence folders. Exact source starts are now retained; unchanged oracle passes.
+4. Three-source download audit found typed 57.25 kg became a stale Match-1 and was replaced by 59 kg. Manual edits now use Final authority. Candidate selection is explicit rather than inferred from numeric equality.
+
+Falsifier remains any missing/duplicate owner, changed mass or changed source physical delta in downloaded CII; a hidden batch run in Single; or constituent overrides retained by combined-source handoff. Do not relax the oracle or cleanup threshold to obtain PASS.
+
+## Appendix A implementation qualification
+
+| Challenge | Repository/evidence basis | Score |
+| --- | --- | --- |
+| A1 Production trace | easy-bulk-v6 -> mode-a phase/events; Single smart handler -> atta-default review; runtime_custody -> original parser -> patched model -> custody guard -> existing writer | 20/20 |
+| A2 Current failure isolation | native Single prefill FAIL, source-neighbor distances, independent CII delta FAIL, native manual57.25 -> XML59 mismatch | 20/20 |
+| A3 Authority/invariant | original XML points and masses; manual Final vs selected Match-1 provenance; explicit two execution paths; retain fail-closed; no ownership switch | 20/20 |
+| A4 Independent validation | actual CLI 59/13.5/378/303.967/17.75 constants; exact 1/3/3.2/86/89/610 mm source geometry; downloaded artifacts, original-file field comparisons | 19/20 |
+| A5 Minimal patch boundary | opt-in parser fields/helper/guard, explicit mode dispatch/handoff, Single review marker, explicit edit origin, source/docs/cache activation | 19/20 |
+
+98/100, each >=17; CONTINUE within explicit owner repair scope. Geometry corrections were driven by failed independent evidence, not weakened expectations. Cache/static checks are implementation-coupled and must not be represented as independent engineering authority.
+
+## Validation ledger
+
+| Check | Status | Observation | Oracle |
+| --- | --- | --- | --- |
+| Existing main focused gate | PASS 28/28 | Local execution, original workflow unchanged | Existing gate; semantic fixtures plus static contracts |
+| Dataset custody | PASS 25/25 | Local execution | Existing custody tests |
+| Mission focused | PASS 38/38 | Local execution | Existing regressions plus new state handoff fixture |
+| Native physical geometry/CLI | PASS | Actual parser/model/CLI; unchanged writer | Independently specified endpoints/masses |
+| Missing/zero-length/changed/nonfinite/duplicate guard | PASS | Actual CLI rejects publication | Explicit invalid source fixtures |
+| User three-source Mode B -> Single | PASS | Native Chrome/docs/Pyodide, 7 branches/452 source nodes, offsets 0/100000/200000, XML/CII downloaded | Exact original fields, manual values |
+| Three-source downloaded CII | PASS 42/42 owners | Artifact inspection; typed57.25 retained | Source immediate predecessor/delta/mass multiset, no converter imports |
+| real41 Mode A and output canvas | PASS | Native Chrome/docs/Pyodide, accepted174, saved57.25/13.5, latest-output refresh and new-source replacement | Entered values/current output basis |
+| real41 downloaded CII | PASS 174/174 owners | Artifact inspection | Independent source endpoints/masses |
+| Mode B deep compose | PASS 82 branches/3308 nodes | Native browser, mixed units/malformed/overflow/zero-step rejected | Non-number fields and exact IDs unchanged |
+| Exact pasted 8-owner run/config | NOT_RUN | Owner supplied originals, not exact failing enriched XML/config | Do not claim exact count reproduced |
+| Remote successor deployment/CI | NOT_RUN | New PR not yet allocated | Local acceptance does not establish deployed acceptance |
+
+Fixed-width CII is parsed independently by the artifact auditor; values use the unchanged writer's defined six-significant-digit serialization. No tolerance or physical authority is weakened. readiness warnings about unbuilt optional phases are distinct from the repaired converter exception.
+
+## Recovery and exact next action
+
+Highest risk: a cache/identity integration accidentally routes Single through batch authority or a component mass reaches an edge with altered source length. Preserve failure witnesses and Final/Match-1 separation.
+
+EXACT_NEXT_ACTION: commit the scoped, locally validated checkpoint; allocate a main-based draft PR, migrate WIP identity, attach the PR, record actual remote checks. No merge. After owner merge, replay native Pages acceptance; never claim deployed acceptance from local results.
+
+Final Single replay PASS: header, equal-candidate typed manual Final, 42 downloaded physical owners, latest-output canvas and Refresh geometry. Source/docs ledger PASS with no protected-path diff. Last additions only align authority legend with tested Final/Match-1 semantics. Full source fixture SHA256s match current main exactly.

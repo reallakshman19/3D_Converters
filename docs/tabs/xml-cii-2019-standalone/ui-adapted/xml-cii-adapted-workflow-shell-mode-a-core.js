@@ -1,8 +1,8 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-weight-output-2';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20261001-weight-output-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-single-weight-owners-1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20261001-single-weight-owners-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
 import {
   createXmlCiiBranchScopedStateRef,
@@ -11,6 +11,7 @@ import {
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -89,11 +90,14 @@ function createSourceBadge(state) {
 }
 
 function createBatchBadge(state) {
+  const mode = xmlCiiProcessingMode(state);
+  if (mode === 'single') return createBadge('Single model', '#93c5fd', '#3b82f6');
   const batch = normalizeModeABatchState(state).sourceBatch;
   const sources = Array.isArray(batch?.sources) ? batch.sources : [];
-  if (!sources.length) return createBadge('Separate Models: 0', '#94a3b8', 'rgba(148,163,184,.45)');
+  const label = mode === 'mode-b' ? 'Combine sources' : 'Separate Models';
+  if (!sources.length) return createBadge(`${label}: 0`, '#94a3b8', 'rgba(148,163,184,.45)');
   const enabled = sources.filter((source) => source.enabled !== false).length;
-  return createBadge(`Separate Models: ${enabled}/${sources.length}`, enabled ? '#8be28b' : '#fca5a5', enabled ? '#2f855a' : '#ef4444');
+  return createBadge(`${label}: ${enabled}/${sources.length}`, enabled ? '#8be28b' : '#fca5a5', enabled ? '#2f855a' : '#ef4444');
 }
 
 function selectedBranchesForSource(source) {
@@ -107,12 +111,12 @@ function selectedBranchesForSource(source) {
 function createBranchBadge(state) {
   const batch = normalizeModeABatchState(state).sourceBatch;
   const enabled = (batch?.sources || []).filter((source) => source.enabled !== false);
-  if (enabled.length > 1) {
+  if (xmlCiiProcessingMode(state) !== 'single' && enabled.length > 1) {
     const total = enabled.reduce((sum, source) => sum + Number(source.metrics?.branchCount || 0), 0);
     const selected = enabled.reduce((sum, source) => sum + selectedBranchesForSource(source), 0);
     const blocked = selected === 0;
     return createBadge(
-      `Branches (batch): ${selected}/${total}`,
+      `Branches (${xmlCiiProcessingMode(state) === 'mode-b' ? 'combine' : 'batch'}): ${selected}/${total}`,
       blocked ? '#fca5a5' : '#8be28b',
       blocked ? '#ef4444' : '#2f855a',
     );
@@ -173,11 +177,15 @@ function createDiagnosticsBadges(state) {
 }
 
 export function renderHeader(root, state) {
+  const mode = xmlCiiProcessingMode(state);
+  const help = { single: 'Single processes one XML as one model.',
+    'mode-a': 'Mode A (Draft) processes multiple XML files as separate models.',
+    'mode-b': 'Mode B combines multiple XML files with node offsets. Load the combined XML into Single to convert it.' };
   const header = createElement('header', '', 'xml-cii-standalone-header');
   const title = createElement('div');
   title.append(
     createElement('h1', 'XML→CII 2019 Standalone'),
-    createElement('p', 'Mode A processes multiple XML files as isolated models; no node or branch identities are merged across files.'),
+    createElement('p', help[mode]),
   );
   const statusRow = createElement('div', '', 'xml-cii-header-status-row');
   Object.assign(statusRow.style, { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' });

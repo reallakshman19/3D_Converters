@@ -1,4 +1,4 @@
-import { computeXmlCiiWeightIssues } from './converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-rating-1';
+import { computeXmlCiiWeightIssues } from './converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-single-weight-owners-1';
 import { validateWeightSubsets } from '../../converters/xml-cii2019-core/weight-subset-validator.js';
 
 function summaryOf(rows = []) {

@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
 
-const moduleUrl = pathToFileURL(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-authority-ui.js', import.meta.url).pathname).href;
+const moduleUrl = new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-authority-ui.js', import.meta.url).href;
 const { weightMatchAuthorityPresentation } = await import(moduleUrl);
 
 const suggested = weightMatchAuthorityPresentation({

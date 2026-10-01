@@ -3,6 +3,7 @@ import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core
 import {
   withXmlCiiEffectiveRigidWeightLegacyView,
   withXmlCiiRigidWeightMatch1,
+  withXmlCiiRigidWeightFinal,
   xmlCiiEffectiveRigidWeightMap,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import {
@@ -13,7 +14,7 @@ import {
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
-import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-weight-rating-1';
+import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-single-weight-owners-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 
 function text(value) {
@@ -168,7 +169,9 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
     const value = Number(nextConfig?.overrides?.rigidWeight?.[key]);
     if (key && Number.isFinite(value) && value > 0 && provenance && typeof provenance === 'object') changes[key] = value;
   }
-  const staged = withXmlCiiRigidWeightMatch1(clean, changes, proposalMeta);
+  const manual = Object.fromEntries(Object.entries(changes).filter(([key]) => proposalMeta[key]?.acceptanceMethod === 'manual'));
+  const candidates = Object.fromEntries(Object.entries(changes).filter(([key]) => !(key in manual)));
+  const staged = withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1(clean, candidates, proposalMeta), manual);
   persistConfig(stateRef, staged);
   return staged;
 }
@@ -181,7 +184,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
-      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-output-2');
+      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-single-weight-owners-1');
       if (
         typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
         || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function'

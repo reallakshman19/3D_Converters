@@ -1,4 +1,4 @@
-import { xmlCiiRichWorkflowGetBridge } from './xml-cii-rich-workflow-bridge.js?v=20260624-simple-rich-isolation-1';
+import { xmlCiiRichWorkflowGetBridge } from './xml-cii-rich-workflow-bridge.js?v=20261001-single-weight-owners-1';
 
 const INSTALL_FLAG = Symbol.for('pcf-glb-xml-cii-condense-rigid-ui-bridge-v6');
 const VERSION = '20260624-simple-rich-isolation-1';

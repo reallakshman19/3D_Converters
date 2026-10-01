@@ -71,12 +71,12 @@ import { FileInputCard } from './shared/FileInputCard.js';
 import { FieldMappingTable } from './shared/FieldMappingTable.js';
 import { EditablePreviewTable } from './shared/EditablePreviewTable.js';
 import { xmlCiiRenderPreviewPhase as xmlCiiRenderPreviewPhaseImported, xmlCiiBuildAndRenderPreview as xmlCiiBuildAndRenderPreviewImported, xmlCiiDryRunPreview } from './converters/xmltocii2019_helper/preview-renderer.js';
-import { xmlCiiRenderWeightMatchPhase as xmlCiiRenderWeightMatchPhaseImported, bindXmlCiiWeightMatchPhase as bindXmlCiiWeightMatchPhaseImported } from './converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-output-2';
+import { xmlCiiRenderWeightMatchPhase as xmlCiiRenderWeightMatchPhaseImported, bindXmlCiiWeightMatchPhase as bindXmlCiiWeightMatchPhaseImported } from './converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-single-weight-owners-1';
 import { xmlCiiRenderSupportMapperPhase as xmlCiiRenderSupportMapperPhaseImported, bindXmlCiiSupportMapperPhase as bindXmlCiiSupportMapperPhaseImported } from './converters/xmltocii2019_helper/support-types-panel.js';
-import { extractXmlCiiBranchSample as _extractXmlCiiBranchSample } from './xml-cii-branch-sample-sync.js';
+import { extractXmlCiiBranchSample as _extractXmlCiiBranchSample } from './xml-cii-branch-sample-sync.js?v=20261001-single-weight-owners-1';
 import { xmlCiiWorkflowParsedStagedSource } from './workflow/services/xml-cii-staged-source-service.js?v=20260625-service-1';
 import { xmlCiiSetupPostRunValidation, xmlCiiRegisterPostRunCallback } from './xml-cii-workflow-runner.js?v=20260626-standalone-val-1';
-import { runXmlCiiStandalonePostRunValidation } from './xml-cii-post-run-validator-standalone.js?v=20260626-standalone-val-1';
+import { runXmlCiiStandalonePostRunValidation } from './xml-cii-post-run-validator-standalone.js?v=20261001-single-weight-owners-1';
 
 
 const STORAGE_KEY = 'model-converters.defaults.v1';
