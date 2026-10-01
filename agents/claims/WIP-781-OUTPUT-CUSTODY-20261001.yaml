@@ -1,0 +1,9 @@
+schema: AgentClaim.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-OUTPUT-CUSTODY-20261001
+claim_state: READ_ONLY_DIAGNOSIS
+branch: agent/issue-781-output-custody-20261001
+authority_domains: [XML_CII_WEIGHT_OUTPUT_CUSTODY, XML_CII_GEOMETRY_PREVIEW_REFRESH]
+coordination_state: COORDINATION_REQUIRED
+protected_paths: [tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-cii-preview-canvas.js]
+merge_authority: OWNER_ONLY_NOT_GRANTED

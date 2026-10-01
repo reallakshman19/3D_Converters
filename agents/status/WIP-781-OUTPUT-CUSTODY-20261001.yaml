@@ -1,0 +1,11 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-781-OUTPUT-CUSTODY-20261001
+branch: agent/issue-781-output-custody-20261001
+criticality: ENGINEERING_CRITICAL
+takeover_authority: WRITE_ALLOWED_WEIGHT_CUSTODY_ONLY
+current_stage: IMPLEMENT
+report_path: agents/WIP-781-OUTPUT-CUSTODY-20261001_workreport.md
+dependency: PR811
+merge_authority: OWNER_ONLY_NOT_GRANTED
+exact_next_action: Defer saved weight writes until canonical basis validation; apply validated/final map without candidate prerequisite.
