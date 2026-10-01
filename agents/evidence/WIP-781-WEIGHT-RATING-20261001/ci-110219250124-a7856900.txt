@@ -105,22 +105,22 @@ focused	Checkout literal source head	2026-10-01T04:30:15.1926273Z Updating files
 focused	Checkout literal source head	2026-10-01T04:30:15.1929217Z Updating files: 100% (9921/9921)
 focused	Checkout literal source head	2026-10-01T04:30:15.1930045Z Updating files: 100% (9921/9921), done.
 focused	Checkout literal source head	2026-10-01T04:30:15.2688204Z Note: switching to 'a78569001a26b136860d142b34ed2c9f123592fe'.
-focused	Checkout literal source head	2026-10-01T04:30:15.2690020Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2690020Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2708198Z You are in 'detached HEAD' state. You can look around, make experimental
 focused	Checkout literal source head	2026-10-01T04:30:15.2709616Z changes and commit them, and you can discard any commits you make in this
 focused	Checkout literal source head	2026-10-01T04:30:15.2711164Z state without impacting any branches by switching back to a branch.
-focused	Checkout literal source head	2026-10-01T04:30:15.2711734Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2711734Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2712359Z If you want to create a new branch to retain commits you create, you may
 focused	Checkout literal source head	2026-10-01T04:30:15.2713026Z do so (now or later) by using -c with the switch command. Example:
-focused	Checkout literal source head	2026-10-01T04:30:15.2713450Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2713450Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2714241Z   git switch -c <new-branch-name>
-focused	Checkout literal source head	2026-10-01T04:30:15.2714524Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2714524Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2714769Z Or undo this operation with:
-focused	Checkout literal source head	2026-10-01T04:30:15.2715012Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2715012Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2715213Z   git switch -
-focused	Checkout literal source head	2026-10-01T04:30:15.2715416Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2715416Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2715868Z Turn off this advice by setting config variable advice.detachedHead to false
-focused	Checkout literal source head	2026-10-01T04:30:15.2716340Z 
+focused	Checkout literal source head	2026-10-01T04:30:15.2716340Z
 focused	Checkout literal source head	2026-10-01T04:30:15.2716678Z HEAD is now at a785690 test(xml-cii): gate real Rating UI and reconcile PR811 custody
 focused	Checkout literal source head	2026-10-01T04:30:15.3115128Z ##[endgroup]
 focused	Checkout literal source head	2026-10-01T04:30:15.3775537Z [command]/usr/bin/git log -1 --format=%H

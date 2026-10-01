@@ -264,3 +264,5 @@ Final commit updates delivery metadata/evidence only; production/test files rema
 - `tests/xml-cii-weight-rating-input.test.mjs`
 
 Reconciled paths:94. Unexplained paths:0. Tested production/test head:a7856900. Final metadata head resolves from live PR811.
+
+Final metadata note: PR811 marked READY_FOR_REVIEW (not merged),94 changed paths. CI transcripts preserve output with trailing whitespace stripped; production/test files remain a7856900-identical. No current-head review approvals. Final source/docs evidence is local+CI; user deployment still NOT_RUN.
