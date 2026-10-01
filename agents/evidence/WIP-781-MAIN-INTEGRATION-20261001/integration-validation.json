@@ -8,6 +8,8 @@
     "XML_CII_41_BRANCH_FIXTURE": "C:/CodeA/3DC_809/Benchmarks/EF-05-PRO.TEST.xml"
   },
   "checks": [
+    {"status":"PASS","observation":"LOCAL_EXECUTION","oracle":"MIXED_INDEPENDENT_FIXTURES_AND_IMPLEMENTATION_COUPLED_CONTRACTS","command":"node --test using focused paths extracted unchanged from .github/workflows/issue-776-validation.yml","evidence":"ci-focused-local-repaired.txt","actual":"28/28PASS; only tracked WSW fixtures hydrated; no numerical oracle changes"},
+    {"status":"PASS","observation":"SOURCE_INSPECTION","oracle":"IMPLEMENTATION_COUPLED","actual":"committed README, Benchmarks, ValidationRecords and workflow trees equal main; integration production equals f30552b8"},
     {"status":"FAIL","observation":"REMOTE_EXECUTION","oracle":"INDEPENDENT_REPRODUCTION","command":"XML_CII_MODE_B_BASE_URL=https://reallaksh19.github.io/3D_Converters/ node tests/browser/xml-cii-mode-b-release-smoke.mjs --observe-absence","evidence":"live-baseline.json","expected":"Mode B visible after two distinct XML uploads","actual":"zero Mode B controls","origin":"PREEXISTING_RELEASE_GAP"},
     {"status":"PASS","observation":"LOCAL_EXECUTION","oracle":"INDEPENDENT_REPRODUCTION","command":"node tests/browser/xml-cii-mode-b-release-smoke.mjs","evidence":"main-integrated.json","actual":"native UI control and both downloads;82 branches3308 nodes;offsets0/100000"},
     {"status":"PASS","observation":"LOCAL_EXECUTION","oracle":"INDEPENDENT_REPRODUCTION","command":"XML_CII_MODE_B_EVIDENCE_DIR=agents/evidence/WIP-781-MAIN-INTEGRATION-20261001 node tests/browser/xml-cii-mode-b-xml-export-e2e.mjs","evidence":"mode-b-acceptance.json","actual":"every non-number node field preserved;82 branches3308nodes;invalid inputs fail closed"},

@@ -69,6 +69,12 @@
     "deploymentMirror": false
   },
   {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-head-a2d500d9.json",
+    "category": "REMOTE_RECONCILIATION",
+    "reason": "Actual GitHub path list and complete code-head CI rollup, distinct from repaired remote deployment NOT_RUN",
+    "deploymentMirror": false
+  },
+  {
     "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-worker-failure.txt",
     "category": "HANDOVER_OR_FRESH_EVIDENCE",
     "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
@@ -78,6 +84,12 @@
     "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/focused-regressions.txt",
     "category": "RELEASE_WITNESS",
     "reason": "Fresh live/main integration witness, main-based identity and exact continuation state",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/github-changed-files.txt",
+    "category": "REMOTE_RECONCILIATION",
+    "reason": "Actual GitHub path list and complete code-head CI rollup, distinct from repaired remote deployment NOT_RUN",
     "deploymentMirror": false
   },
   {

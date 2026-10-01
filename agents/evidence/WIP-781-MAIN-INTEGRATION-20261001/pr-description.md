@@ -14,6 +14,7 @@ In Sources, choose **Mode B — Combine XML (node offsets)**, select Source XML 
 - Main-integrated native browser: **PASS**, visible Mode B, both actual downloads,82branches/3308nodes, offsets0/+100000.
 - Full Mode B acceptance: **PASS**, every non-number node field unchanged; repeated IDs/negative helpers preserved; malformed/mixed units/overflow rejected.
 - Focused regressions: **36/36 PASS**.
+- Actual main focused gate: **28/28 local PASS**. Initial main CI exposed two obsolete structural assertions in three gates. The tests now trace canonical review authority and accepted-only weight release, and execute existing independent stale57.25kg fixtures; numerical expectations/tolerances and production remain unchanged. Initial failure logs are retained.
 - Native CII publication guard: **PASS**, retained-owner positive scaling and missing/invalid owner block.
 - Production tree parity with qualified PR812, source/docs parity and production whitespace: **PASS**.
 
@@ -24,3 +25,5 @@ Fresh evidence: `agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/`. Historical
 **Full CII acceptance remains FAIL16**: six branch-start RIGID and ten collapsed FLAN components have no CII weight owner. Existing guard retains enriched XML and withholds incomplete CII. This integration does not alter geometry, transfer mass, change units/formulas/master data or bypass the guard. The prior explicit geometry/ownership decision remains pending. Draft status preserves that incomplete scope.
 
 No merge authority is granted to this agent. Open PR801/794 and Mode B788–792 overlap are recorded as COORDINATION_REQUIRED; no unmerged topology stack or workflow changes imported.
+
+Recovery report: `agents/PR813_workreport.md`. The committed net README, benchmark, workflow and main timing-record diffs are empty; a transient Windows index/cache-tree issue was repaired through an isolated temporary index and explicit committed-tree checks.

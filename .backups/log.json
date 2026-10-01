@@ -1,5 +1,5 @@
 {
-  "lastId": 938,
+  "lastId": 943,
   "entries": [
     {
       "id": 1,
@@ -6566,6 +6566,41 @@
       "file": "agents\\claims\\PR812.yaml",
       "context": "Link successor PR813",
       "backupFile": "938_agents_claims_PR812_yaml.bak"
+    },
+    {
+      "id": 939,
+      "timestamp": "2026-10-01 14:49:08",
+      "file": "agents\\evidence\\WIP-781-MAIN-INTEGRATION-20261001\\pr-description.md",
+      "context": "Record exposed main CI tests and recovery-state qualification",
+      "backupFile": "939_agents_evidence_WIP_781_MAIN_INTEGRATION_20261001_pr_description_md.bak"
+    },
+    {
+      "id": 940,
+      "timestamp": "2026-10-01 14:49:08",
+      "file": "agents\\evidence\\WIP-781-MAIN-INTEGRATION-20261001\\integration-validation.json",
+      "context": "Add main CI gate qualification and restored README invariant",
+      "backupFile": "940_agents_evidence_WIP_781_MAIN_INTEGRATION_20261001_integration_validation_json.bak"
+    },
+    {
+      "id": 941,
+      "timestamp": "2026-10-01 14:49:49",
+      "file": "agents\\PR813_workreport.md",
+      "context": "Checkpoint reconciled main-based CI and owner handover",
+      "backupFile": "941_agents_PR813_workreport_md.bak"
+    },
+    {
+      "id": 942,
+      "timestamp": "2026-10-01 14:49:49",
+      "file": "agents\\status\\PR813.yaml",
+      "context": "Checkpoint observed repaired CI head",
+      "backupFile": "942_agents_status_PR813_yaml.bak"
+    },
+    {
+      "id": 943,
+      "timestamp": "2026-10-01 14:49:49",
+      "file": "agents\\evidence\\WIP-781-MAIN-INTEGRATION-20261001\\changed-files.json",
+      "context": "Final PR813 changed-file reconciliation",
+      "backupFile": "943_agents_evidence_WIP_781_MAIN_INTEGRATION_20261001_changed_files_json.bak"
     }
   ]
 }

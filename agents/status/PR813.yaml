@@ -11,8 +11,9 @@ merge_authority: OWNER_ONLY_NOT_GRANTED
 full_cii_acceptance: FAIL_16_UNRESOLVED_COMPONENT_OWNERS
 validation: MODE_B_NATIVE_UI_DOWNLOAD_AND_ALL_FIELDS_PASS_36_REGRESSIONS_PASS
 remote_repaired_deployment: NOT_RUN_PENDING_OWNER_MERGE
-remote_checks_observed_head: 58bf88607fe40b5cfda7678f396e57b986e110d0
-remote_checks: TEN_PASS_SIX_FAIL_THREE_PREEXISTING_THREE_OBSOLETE_CONTRACTS_LOCALLY_REPAIRED
+remote_checks_observed_head: a2d500d95663a4b757489ecef31e0a1368dd5f9c
+remote_checks: THIRTEEN_PASS_THREE_PREEXISTING_FAILURES
 main_gate_local_validation: PASS_28_OF_28
 report_path: agents/PR813_workreport.md
-exact_next_action: Push checkpoint; reconcile remote paths/checks; owner review/merge then official Pages smoke. Separate16 ownership approval pending.
+handover_readiness: READY_FOR_RECOVERY
+exact_next_action: Owner review/merge into main then official Pages smoke. Separate16 ownership approval pending; no agent merge authority.
