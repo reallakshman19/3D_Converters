@@ -12,8 +12,8 @@ import {
 } from './xml-cii-adapted-state.js';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-screenshot-repair-1';
-import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20260930-issue781-live-acceptance-1';
+import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-rating-1';
+import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-weight-rating-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 
 function text(value) {
@@ -181,7 +181,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
-      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20260930-issue781-weight-no-staged-rewrite-1');
+      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-rating-1');
       if (
         typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
         || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function'
@@ -234,6 +234,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         xmlFile,
         stagedJsonText: state.stagedJsonText || '',
         config: rendererConfig,
+        resolveConfig: () => withXmlCiiEffectiveRigidWeightLegacyView(calculationBasis),
         weightDatasetRef,
         rankWeightIssues: weightDatasetRef?.datasetId ? async (issues, request = {}) => {
           const currentContext = assertCurrentBuild(request).masterContext || {};

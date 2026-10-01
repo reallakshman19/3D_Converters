@@ -1,4 +1,6 @@
 import { extractXmlCiiRatingFromDtxr } from './dtxr-rating-resolver.js';
+import { deriveXmlCiiRatingFromPipingClass } from './dtxr-rating-resolver.js';
+import { readXmlCiiWeightManualRating, xmlCiiWeightRatingClass } from './weight-rating-input.js?v=20261001-weight-rating-1';
 
 export const XML_CII_PREVIEW_RATING_SNAPSHOT_SCHEMA = 'xml-cii-preview-rating-snapshot/v2';
 export const XML_CII_PREVIEW_RATING_SNAPSHOT_KEY = 'xml-cii-preview-rating-snapshot-v2';
@@ -299,10 +301,14 @@ export function resolveXmlCiiPreviewRating(row = {}, snapshot = readXmlCiiPrevie
     ],
   ];
 
+  let conflict = null;
   for (const [source, predicate] of identityPasses) {
     const result = resultFromMatches(records.filter(predicate), source, snapshot);
     if (result?.rating) return result;
+    if (result?.source.endsWith('-conflict')) conflict = result;
   }
+
+  if (conflict) return conflict;
 
   return {
     rating: '',
@@ -312,7 +318,7 @@ export function resolveXmlCiiPreviewRating(row = {}, snapshot = readXmlCiiPrevie
   };
 }
 
-export function resolveXmlCiiWeightMatchRating(row = {}, { mode = 'preview', snapshot } = {}) {
+export function resolveXmlCiiWeightMatchRating(row = {}, { mode = 'preview', snapshot, config = {} } = {}) {
   const dtxrRating = extractXmlCiiRatingFromDtxr(row?.dtxr);
   if (mode === 'dtxr') {
     return {
@@ -324,8 +330,15 @@ export function resolveXmlCiiWeightMatchRating(row = {}, { mode = 'preview', sna
     };
   }
   const preview = resolveXmlCiiPreviewRating(row, snapshot || readXmlCiiPreviewRatingSnapshot());
+  const context = { ...row, lineKey: row.lineKey || preview.record?.lineKey,
+    requestedPipingClass: preview.record?.pipingClass || xmlCiiWeightRatingClass(row) };
+  const manual = readXmlCiiWeightManualRating(context, config);
+  const prefix = !preview.rating && !preview.source.endsWith('-conflict')
+    ? deriveXmlCiiRatingFromPipingClass(xmlCiiWeightRatingClass(context), config) : '';
   return {
     ...preview,
+    rating: manual || preview.rating || prefix,
+    source: manual ? 'weight-match-manual' : (preview.rating || !prefix ? preview.source : 'piping-class-prefix'),
     dtxrRating,
     mode: 'preview',
   };

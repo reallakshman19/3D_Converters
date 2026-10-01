@@ -4,7 +4,7 @@ import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20260930-issue781-branch-scope-1';
 import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20260930-issue781-branch-scope-1';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
-import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20260930-issue781-weight-liveness-cache-1';
+import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20261001-weight-rating-1';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260708-v8';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';

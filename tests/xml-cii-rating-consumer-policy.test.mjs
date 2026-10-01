@@ -26,7 +26,9 @@ test('Weight Match consumes Preview Rating and exposes explicit DTXR mode', asyn
   assert.match(source, /resolveXmlCiiWeightMatchRating/);
   assert.match(source, /Use Rating as per DTXR/);
   assert.match(source, /Use Rating shown in Preview/);
-  assert.match(source, /Weight Match does not derive Rating again/);
+  assert.match(source, /Rating prefix mapping/);
+  assert.match(source, /saveXmlCiiWeightRating/);
+  assert.match(source, /data-wm-rating-fill-class/);
   assert.doesNotMatch(source, /xmlCiiWeightMatchRatingFromConfig/);
   assert.doesNotMatch(source, /processRating\(/);
   assert.doesNotMatch(source, /overrideValue\(config,\s*'rating'/);
@@ -38,7 +40,7 @@ test('standalone Weight Match routes only through the shared renderer authority'
   const routeSource = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js');
   assert.match(phaseSource, /renderAdaptedWeightMatchPanelV2/);
   assert.doesNotMatch(phaseSource, /renderAdaptedWeightMatchPanel\s+from\s+'\.\/xml-cii-adapted-weight-match\.js'/);
-  assert.match(routeSource, /loadParentWeightMatchModules/);
+  assert.match(routeSource, /await import\('\.\.\/\.\.\/model-converters\/converters\/xmltocii2019_helper\/weight-match-renderer\.js\?v=/);
   assert.match(routeSource, /xmlCiiRenderWeightMatchPhase/);
   assert.match(routeSource, /shared Preview Rating authority could not load/);
   assert.doesNotMatch(routeSource, /bindAdaptedWeightMatchPanel/);

@@ -14,7 +14,7 @@ import {
   stageMasterMappingDraft,
 } from './xml-cii-adapted-master-runtime.js';
 import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
-import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20260929-pr780-metadata-import-1';
+import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-rating-1';
 
 export function masterConfigForState(stateRef) {
   return stateRef.current.masterContext?.config || readSupportConfigOnce(stateRef.current);

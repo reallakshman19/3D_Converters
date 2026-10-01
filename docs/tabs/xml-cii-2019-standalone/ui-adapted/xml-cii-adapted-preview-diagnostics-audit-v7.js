@@ -8,7 +8,7 @@ import {
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20260928-issue776-authority-1';
-import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20260930-issue781-live-acceptance-1';
+import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-rating-1';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {

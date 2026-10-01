@@ -1,7 +1,7 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20260930-issue781-screenshot-repair-1', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20261001-weight-rating-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {

@@ -5,7 +5,7 @@ const modulesPromise = Promise.all([
   import('../../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
   import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
   import('../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
-  import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20260930-issue781-weight-no-staged-rewrite-1'),
+  import('../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-rating-1'),
 ]);
 
 function text(value) {
@@ -64,12 +64,12 @@ function ratingAuthorityKey(row, mode) {
   ].join('\u0000');
 }
 
-function withRatingAuthority(row, mode, snapshot, ratingApi, cache) {
+function withRatingAuthority(row, mode, snapshot, ratingApi, cache, config) {
   const key = ratingAuthorityKey(row, mode);
   let authority = cache.get(key);
   if (!authority) {
     const preview = ratingApi.resolveXmlCiiPreviewRating(row, snapshot);
-    const resolved = ratingApi.resolveXmlCiiWeightMatchRating(row, { mode, snapshot });
+    const resolved = ratingApi.resolveXmlCiiWeightMatchRating(row, { mode, snapshot, config });
     authority = { preview, resolved };
     cache.set(key, authority);
   }
@@ -160,6 +160,7 @@ export async function prepareXmlCiiWeightBasis({
     previewRatingSnapshot,
     ratingApi,
     ratingCache,
+    preparedConfig,
   ));
 
   progress(onProgress, 'validating-match1', { issueCount: basisRows.length });

@@ -1,10 +1,10 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
-import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-rating-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
 import { xmlCiiWeightMasterRowsFingerprint } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { recoverMasterDatasetRawRows } from './master-dataset-remap-custody.js?v=20260930-issue781-linelist-integration-2';
-import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20260930-issue781-screenshot-repair-1';
+import { prepareXmlCiiWeightBasis } from './weight-basis-service.js?v=20261001-weight-rating-1';
 
 function datasetIdFor(jobId, masterKey, sheetName = '', revision = 1) {
   return `${jobId}:${masterKey}:${sheetName || 'rows'}:r${revision}`;

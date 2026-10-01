@@ -1,5 +1,5 @@
 import { applyXmlCiiFlangeWeightFallbackToIssue } from './flange-weight-fallback.js';
-import { resolveXmlCiiWeightMatchRating } from './preview-rating-snapshot.js';
+import { resolveXmlCiiWeightMatchRating } from './preview-rating-snapshot.js?v=20261001-weight-rating-1';
 import { formatValveHint, rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
 
 function clean(value) { return value === null || value === undefined ? '' : String(value).replace(/\s+/g, ' ').trim(); }
@@ -8,7 +8,7 @@ function emptyRanking() { return { nodeHint: null, semanticSource: null, candida
 export function rankXmlCiiWeightIssue(row, config, options = {}) {
   const ratingMode = options.ratingMode || 'preview';
   const snapshot = options.snapshot || {};
-  const authority = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot });
+  const authority = resolveXmlCiiWeightMatchRating(row, { mode: ratingMode, snapshot, config });
   const rating = authority.rating;
   const ranking = rating
     ? rankXmlCiiWeightCandidates({

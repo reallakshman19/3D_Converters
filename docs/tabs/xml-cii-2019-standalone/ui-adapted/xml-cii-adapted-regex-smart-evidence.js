@@ -1,9 +1,9 @@
-import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20260930-issue781-screenshot-repair-1';
+import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-rating-1';
 import {
   buildRegexSuggestionPreflight,
   classifyRegexExtractionRows,
   createDefaultRegexSuggestionProfile,
-} from '../xml-cii-regex-smart-suggestions.js?v=20260930-issue781-live-acceptance-1';
+} from '../xml-cii-regex-smart-suggestions.js?v=20261001-weight-rating-1';
 
 const REGEX_MASTER_DEFS = Object.freeze({
   lineList: Object.freeze({ rowsKey: 'lineRows' }),

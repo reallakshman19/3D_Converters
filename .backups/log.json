@@ -1,5 +1,5 @@
 {
-  "lastId": 386,
+  "lastId": 454,
   "entries": [
     {
       "id": 1,
@@ -2702,6 +2702,482 @@
       "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "Issue 781 branch-scope cache release assertions",
       "backupFile": "386_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 387,
+      "timestamp": "2026-10-01 08:07:24",
+      "file": "converters\\xml-cii2019-core\\preview-rating-snapshot.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "387_converters_xml_cii2019_core_preview_rating_snapshot_js.bak"
+    },
+    {
+      "id": 388,
+      "timestamp": "2026-10-01 08:07:24",
+      "file": "converters\\xml-cii2019-core\\weight-match-ranking-service.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "388_converters_xml_cii2019_core_weight_match_ranking_service_js.bak"
+    },
+    {
+      "id": 389,
+      "timestamp": "2026-10-01 08:07:25",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "389_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 390,
+      "timestamp": "2026-10-01 08:07:25",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "390_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 391,
+      "timestamp": "2026-10-01 08:07:25",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "391_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 392,
+      "timestamp": "2026-10-01 08:07:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Weight Rating prefix and manual class fill follow-up",
+      "backupFile": "392_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 393,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "393_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 394,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "394_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 395,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\model-converters\\xml-cii-post-run-validator-standalone.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "395_tabs_model_converters_xml_cii_post_run_validator_standalone_js.bak"
+    },
+    {
+      "id": 396,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "396_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 397,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "397_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 398,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "398_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 399,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "399_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 400,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "400_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 401,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "401_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 402,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "402_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 403,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "403_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 404,
+      "timestamp": "2026-10-01 08:11:59",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "404_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 405,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "405_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 406,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "406_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 407,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "407_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 408,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "408_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 409,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "409_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 410,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "410_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 411,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "411_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 412,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "412_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 413,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "413_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 414,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "414_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 415,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "415_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 416,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "416_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 417,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "core\\app.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "417_core_app_js.bak"
+    },
+    {
+      "id": 418,
+      "timestamp": "2026-10-01 08:12:00",
+      "file": "main-rhbg-fitguard.js",
+      "context": "Weight Rating active cache release",
+      "backupFile": "418_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 419,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\converters\\xml-cii2019-core\\preview-rating-snapshot.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "419_docs_converters_xml_cii2019_core_preview_rating_snapshot_js.bak"
+    },
+    {
+      "id": 420,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\converters\\xml-cii2019-core\\weight-match-ranking-service.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "420_docs_converters_xml_cii2019_core_weight_match_ranking_service_js.bak"
+    },
+    {
+      "id": 421,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\core\\app.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "421_docs_core_app_js.bak"
+    },
+    {
+      "id": 422,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "422_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 423,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "423_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 424,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "424_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 425,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\model-converters\\xml-cii-post-run-validator-standalone.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "425_docs_tabs_model_converters_xml_cii_post_run_validator_standalone_js.bak"
+    },
+    {
+      "id": 426,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "426_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 427,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-events.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "427_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_events_js.bak"
+    },
+    {
+      "id": 428,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-import-masters.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "428_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_import_masters_js.bak"
+    },
+    {
+      "id": 429,
+      "timestamp": "2026-10-01 08:12:01",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-commit.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "429_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_commit_js.bak"
+    },
+    {
+      "id": 430,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-dataset-runtime.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "430_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_dataset_runtime_js.bak"
+    },
+    {
+      "id": 431,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-events.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "431_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_events_js.bak"
+    },
+    {
+      "id": 432,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-mapping-events.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "432_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_mapping_events_js.bak"
+    },
+    {
+      "id": 433,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "433_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 434,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "434_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 435,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "435_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_js.bak"
+    },
+    {
+      "id": 436,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "436_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 437,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-rating.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "437_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_rating_js.bak"
+    },
+    {
+      "id": 438,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-evidence.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "438_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_evidence_js.bak"
+    },
+    {
+      "id": 439,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-smart-ui.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "439_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_smart_ui_js.bak"
+    },
+    {
+      "id": 440,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-regex-tester.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "440_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_regex_tester_js.bak"
+    },
+    {
+      "id": 441,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "441_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 442,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "442_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 443,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-client.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "443_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_client_js.bak"
+    },
+    {
+      "id": 444,
+      "timestamp": "2026-10-01 08:12:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-import-coordinator.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "444_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_import_coordinator_js.bak"
+    },
+    {
+      "id": 445,
+      "timestamp": "2026-10-01 08:12:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-service.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "445_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_service_js.bak"
+    },
+    {
+      "id": 446,
+      "timestamp": "2026-10-01 08:12:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\master-dataset-worker.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "446_docs_tabs_xml_cii_2019_standalone_workers_master_dataset_worker_js.bak"
+    },
+    {
+      "id": 447,
+      "timestamp": "2026-10-01 08:12:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\workers\\weight-basis-service.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "447_docs_tabs_xml_cii_2019_standalone_workers_weight_basis_service_js.bak"
+    },
+    {
+      "id": 448,
+      "timestamp": "2026-10-01 08:12:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-dataset-backed-config.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "448_docs_tabs_xml_cii_2019_standalone_xml_cii_dataset_backed_config_js.bak"
+    },
+    {
+      "id": 449,
+      "timestamp": "2026-10-01 08:12:03",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-standalone-run-parity.js",
+      "context": "Weight Rating docs mirror",
+      "backupFile": "449_docs_tabs_xml_cii_2019_standalone_xml_cii_standalone_run_parity_js.bak"
+    },
+    {
+      "id": 450,
+      "timestamp": "2026-10-01 08:18:18",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "Weight Rating release assertions; owner changed prefix/manual policy",
+      "backupFile": "450_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 451,
+      "timestamp": "2026-10-01 08:18:18",
+      "file": "tests\\xml-cii-issue-781-postmerge-screenshot-repair.test.mjs",
+      "context": "Weight Rating release assertions; owner changed prefix/manual policy",
+      "backupFile": "451_tests_xml_cii_issue_781_postmerge_screenshot_repair_test_mjs.bak"
+    },
+    {
+      "id": 452,
+      "timestamp": "2026-10-01 08:18:18",
+      "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
+      "context": "Weight Rating release assertions; owner changed prefix/manual policy",
+      "backupFile": "452_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
+    },
+    {
+      "id": 453,
+      "timestamp": "2026-10-01 08:18:18",
+      "file": "tests\\xml-cii-rating-consumer-policy.test.mjs",
+      "context": "Weight Rating release assertions; owner changed prefix/manual policy",
+      "backupFile": "453_tests_xml_cii_rating_consumer_policy_test_mjs.bak"
+    },
+    {
+      "id": 454,
+      "timestamp": "2026-10-01 08:18:18",
+      "file": "tests\\browser\\xml-cii-issue-781-mode-a-live-e2e.mjs",
+      "context": "Weight Rating release assertions; owner changed prefix/manual policy",
+      "backupFile": "454_tests_browser_xml_cii_issue_781_mode_a_live_e2e_mjs.bak"
     }
   ]
 }
