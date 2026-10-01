@@ -1,13 +1,13 @@
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1';
-import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-rating-1';
-import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-rating-1';
+import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-1';
+import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-output-1';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
 import {
   readXmlCiiPreviewRatingSnapshot,
   resolveXmlCiiPreviewRating,
   resolveXmlCiiWeightMatchRating,
-} from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-rating-1';
+} from '../../../../converters/xml-cii2019-core/preview-rating-snapshot.js?v=20261001-weight-output-1';
 import {
   ensureValveHintConfig,
   formatValveHint,

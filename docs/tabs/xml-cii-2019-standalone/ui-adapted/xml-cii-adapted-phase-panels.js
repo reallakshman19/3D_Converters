@@ -1,21 +1,21 @@
-import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
+import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261001-weight-output-1';
 import { createElement, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
-import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20260930-issue781-branch-scope-1';
-import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20260930-issue781-branch-scope-1';
+import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20261001-weight-output-1';
+import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20261001-weight-output-1';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
-import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20261001-weight-rating-1';
-import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260708-v8';
+import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20261001-weight-output-1';
+import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20261001-weight-output-1';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
-import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20260727-cache-v7';
-import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260708-v8';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20260930-issue781-weight-liveness-cache-1';
-import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
-import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260928-issue776-authority-2';
-import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
-import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20260930-issue781-branch-scope-1';
+import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-1';
+import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-1';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-weight-output-1';
+import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js?v=20261001-weight-output-1';
+import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?v=20261001-weight-output-1';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261001-weight-output-1';
+import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js?v=20261001-weight-output-1';
+import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-1';
 
 export function renderActivePhase(root, stateRef, render) {
   const state = stateRef.current;

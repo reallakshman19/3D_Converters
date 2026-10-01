@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { applyRegexSuggestions } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 
-const release = '20261001-weight-rating-1';
-const liveAcceptanceRelease = '20261001-weight-rating-1';
+const release = '20261001-weight-output-1';
+const liveAcceptanceRelease = '20261001-weight-output-1';
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
 function regexConfig() {

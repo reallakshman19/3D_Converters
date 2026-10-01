@@ -3,20 +3,20 @@ import {
   _dtxrWallCandidateForRow,
   _dtxrWallCandidateIndex,
   xmlCiiDryRunPreview,
-} from './xml-cii-adapted-preview-dryrun.js';
+} from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-1';
 import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
 import {
   B313_PREVIEW_ACTION_LABEL,
   buildPreviewB313WallUpdateReport,
-} from './xml-cii-adapted-preview-b313-wall-update.js?v=20260928-issue776-authority-1';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
+} from './xml-cii-adapted-preview-b313-wall-update.js?v=20261001-weight-output-1';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
 import {
   createModeASourceProcessingRef,
   modeAExecutionRows,
   modeARawRef,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

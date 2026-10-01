@@ -1,4 +1,4 @@
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260813-mode-a-full-propagation-2';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-weight-output-1';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -7,7 +7,7 @@ import {
   normalizeModeABatchState,
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
-import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
+import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
 
 function sourceManifest(source, result, scope, error = '') {
   return {

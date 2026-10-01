@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { renderStandaloneMatchedAuditPanel } from './xml-cii-adapted-preview-diagnostics-audit.js';
+import { renderStandaloneMatchedAuditPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-1';
 
 // Data Propagation Auditor
 // ------------------------
@@ -25,8 +25,8 @@ async function freshDryRun(state) {
   try {
     if (!t(state.sourceText) || typeof DOMParser === 'undefined') return null;
     const [{ xmlCiiDryRunPreview }, { xmlCiiEnrichedConfigFromState }] = await Promise.all([
-      import('./xml-cii-adapted-preview-dryrun.js'),
-      import('./xml-cii-adapted-state.js'),
+      import('./xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-1'),
+      import('./xml-cii-adapted-state.js?v=20261001-weight-output-1'),
     ]);
     const config = xmlCiiEnrichedConfigFromState(state);
     const result = xmlCiiDryRunPreview(state.sourceText, config, state.stagedJsonText || '');

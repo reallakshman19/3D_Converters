@@ -109,7 +109,10 @@ async function renderAdaptedGeometryPreview(host, meta, xmlText) {
   }
   try {
     const { ModelConverters_3DModelConv_PreviewRenderer } = await import('../../../converters/view/model-conv-preview-renderer.js');
+    if (!host.isConnected) return;
+    host.__xmlCiiGeometryRenderer?._3DModelConv_destroy();
     const renderer = new ModelConverters_3DModelConv_PreviewRenderer(host);
+    host.__xmlCiiGeometryRenderer = renderer;
     renderer._3DModelConv_renderProject(project);
     meta.textContent = `Geometry preview: ${project.segments.length} segment(s), ${project.nodes.length} node(s), ${project.supports.length} support(s). Drag to orbit, scroll to zoom.`;
   } catch (error) {
@@ -131,6 +134,10 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   download.dataset.action = 'download-cii';
   download.disabled = !available;
   head.appendChild(download);
+  const refresh = createElement('button', 'Refresh geometry', 'model-converters-download-btn');
+  refresh.type = 'button';
+  refresh.dataset.action = 'refresh-cii-geometry';
+  head.appendChild(refresh);
 
   // Geometry preview (parity with the parent 3DModelConv Geometry Preview),
   // built from the enriched XML when available, else the loaded source XML.
@@ -150,5 +157,17 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   parent.appendChild(card);
   drawAdaptedCiiPreviewCanvas(canvas, ciiText);
   const geometryXml = text(state?.result?.enrichedText) || text(state?.sourceText);
+  geometryHost.dataset.geometryBasis = state?.result?.enrichedText ? 'latest-output' : 'current-source';
+  refresh.addEventListener('click', () => {
+    geometryMeta.textContent = 'Building geometry preview…';
+    renderAdaptedGeometryPreview(geometryHost, geometryMeta, geometryXml);
+  });
   renderAdaptedGeometryPreview(geometryHost, geometryMeta, geometryXml);
+}
+
+export function disposeAdaptedGeometryPreviews(container) {
+  for (const host of container.querySelectorAll('.xml-cii-adapted-geometry-host')) {
+    host.__xmlCiiGeometryRenderer?._3DModelConv_destroy();
+    host.__xmlCiiGeometryRenderer = null;
+  }
 }

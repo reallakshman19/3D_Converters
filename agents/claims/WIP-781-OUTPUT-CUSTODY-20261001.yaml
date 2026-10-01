@@ -1,9 +1,9 @@
 schema: AgentClaim.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: WIP-781-OUTPUT-CUSTODY-20261001
-claim_state: READ_ONLY_DIAGNOSIS
+claim_state: ACTIVE_IMPLEMENTATION
 branch: agent/issue-781-output-custody-20261001
-authority_domains: [XML_CII_WEIGHT_OUTPUT_CUSTODY, XML_CII_GEOMETRY_PREVIEW_REFRESH]
+authority_domains: [XML_CII_WEIGHT_OUTPUT_CUSTODY, XML_CII_GEOMETRY_PREVIEW_REFRESH, XML_NODE_OFFSET_COMPOSITION_EXPORT]
 coordination_state: COORDINATION_REQUIRED
-protected_paths: [tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-cii-preview-canvas.js]
+protected_paths: [tabs/xml-cii-2019-standalone, converters/xml-cii2019-core/weight-match-model.js, converters/xml-cii2019-core/xml-node-offset-combine.js, tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js, converters/scripts/xml_to_cii2019_runtime_custody.py, converters/scripts/xml_cii_weight_output_custody.py, converters/xml-cii-2019-standalone/engine.js, docs/tabs/xml-cii-2019-standalone]
 merge_authority: OWNER_ONLY_NOT_GRANTED

@@ -1,6 +1,6 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
-import { applyStandaloneRegexTesterResult, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { applyStandaloneRegexTesterResult, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
 
 export function renderRatingSequenceEditor(parent, state, stateRef, render) {
   const section = createElement('section', '', 'xml-cii-regex-rule-card');

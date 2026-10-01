@@ -86,7 +86,7 @@ const weightByXml = {
 
 const weight = await buildModeAConsolidatedWeightMatch({}, {
   executionRows: () => executionRows,
-  collector: (xmlText) => weightByXml[xmlText],
+  collector: (state) => weightByXml[state.sourceText].map(row => ({ ...row, acceptedWeight: row.mapped ? row.weight : null, acceptedWeightSource: row.mapped ? 'Saved weight' : '' })),
   configBuilder: () => ({ weight: { masterRows: [{}] } }),
   yieldUi: async () => {},
 });

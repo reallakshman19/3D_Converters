@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { renderSourceControls } from './xml-cii-adapted-controls.js?v=20260930-issue781-branch-scope-1';
+import { renderSourceControls } from './xml-cii-adapted-controls.js?v=20261001-weight-output-1';
 import { detectXmlCiiWorkflowSourceKind, workflowSourceKindLabel } from '../xml-cii-workflow-source-detect.js';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
 import { getSourceDocumentContext, resetSourceDocumentContextCache } from './xml-cii-adapted-source-derived-context.js';

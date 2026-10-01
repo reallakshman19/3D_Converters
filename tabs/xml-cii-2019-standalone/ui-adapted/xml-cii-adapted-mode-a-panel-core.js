@@ -75,7 +75,7 @@ export function renderModeASourceInventory(parent, stateRef) {
   panel.dataset.modeAPanel = 'source-inventory';
   if (panel.style) Object.assign(panel.style, { marginTop: '12px', padding: '12px', border: '1px solid #334155', borderRadius: '8px' });
   panel.append(
-    createElement('div', 'Multiple XML — Separate Models (Mode A)', 'model-converters-workflow-section-title'),
+    createElement('div', 'Multiple XML — Separate Models (Mode A · Draft)', 'model-converters-workflow-section-title'),
     createElement('div', 'Each enabled XML is processed independently. Repeated Branchname text is isolated by branch occurrence; original engineering names are preserved.', 'model-converters-workflow-detail-note'),
   );
   const input = parent.querySelector?.('[data-field="source-file"]');
@@ -141,7 +141,7 @@ export function renderModeABatchResults(parent, state = {}) {
   if (!batchResult?.sources?.length) return;
   const panel = createElement('section', '', 'xml-cii-weight-panel');
   panel.dataset.modeAPanel = 'batch-results';
-  panel.appendChild(createElement('h3', 'Mode A Batch Results — Separate Models'));
+  panel.appendChild(createElement('h3', 'Mode A (Draft) Batch Results — Separate Models'));
   panel.appendChild(createElement('div', `${batchResult.summary?.succeeded || 0} succeeded · ${batchResult.summary?.failed || 0} failed · ${batchResult.summary?.blocked || 0} blocked · ${batchResult.sources.length} inspected`, 'model-converters-workflow-detail-note'));
   const downloadManifest = button('Download Batch Manifest', 'download-batch-manifest');
   panel.appendChild(downloadManifest);

@@ -22,6 +22,7 @@ import xml_to_cii2019 as base
 import xml_to_cii2019_patched as patched
 import xml_to_cii2019_direction as direction
 from xml_to_cii2019_bend_radius_policy import apply_bend_radius_policy, publish_one_point_five_d
+from xml_cii_weight_output_custody import require_rigid_weight_owners
 
 
 OPEN_END_COINCIDENT_TOLERANCE_MM = 0.5
@@ -347,6 +348,7 @@ def main() -> None:
         patched._node_name_kind_map(document, node_number_kind_map),
         support_config,
     )
+    require_rigid_weight_owners(input_xml, model)
     temperature_map, pressure_map = patched._branch_case_maps(document)
     base._build_restraint_payload = direction._direction_enabled_restraint_payload_factory(support_config)
     base._build_elements_payload = patched._patched_elements_payload_factory(

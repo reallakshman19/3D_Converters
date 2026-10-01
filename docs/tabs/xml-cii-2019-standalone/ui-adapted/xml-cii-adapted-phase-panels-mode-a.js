@@ -1,17 +1,18 @@
-import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20260930-issue781-branch-scope-1';
-import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260930-issue781-branch-scope-1';
-import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20260930-issue781-branch-scope-1';
+import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261001-weight-output-1';
+import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-weight-output-1';
+import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261001-weight-output-1';
+import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-1';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
-import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20261001-weight-rating-1';
-import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20261001-weight-rating-1';
+import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20261001-weight-output-1';
+import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20261001-weight-output-1';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
 import {
   renderStandaloneDiagnosticsReportPanel,
   renderStandalonePreviewReportPanel,
-} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-rating-1';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-weight-rating-1';
-import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260813-mode-a-full-propagation-2';
+} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-1';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-weight-output-1';
+import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260813-mode-a-full-propagation-2';
 import {
   createModeABatchSharedRef,
@@ -20,11 +21,11 @@ import {
   modeABatchTotals,
   modeAExecutionRows,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js?v=20260930-issue781-branch-scope-1';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
 import {
   renderModeAConsolidatedPreviewPanel,
   renderModeAConsolidatedWeightPanel,
-} from './xml-cii-adapted-mode-a-consolidated.js?v=20260928-issue776-authority-2';
+} from './xml-cii-adapted-mode-a-consolidated.js?v=20261001-weight-output-1';
 
 const BATCH_CUSTOM_PHASES = new Set([
   'regex',
@@ -60,7 +61,7 @@ function batchSummaryText(state) {
 function prependBatchScope(card, state, detail = '') {
   const note = createElement('div', '', 'model-converters-workflow-detail-note');
   note.dataset.modeABatchPropagationScope = 'true';
-  note.textContent = `Mode A batch scope: ${batchSummaryText(state)}${detail ? ` ${detail}` : ''}`;
+  note.textContent = `Mode A (Draft) batch scope: ${batchSummaryText(state)}${detail ? ` ${detail}` : ''}`;
   Object.assign(note.style, {
     marginBottom: '10px',
     borderColor: '#2563eb',
@@ -306,6 +307,7 @@ export function renderActivePhase(root, stateRef, render) {
   if (phaseId === 'source' && (state.activeSubTabId || 'loader') === 'loader') {
     const workspace = sourceWorkspace(card);
     renderModeASourceInventory(workspace, stateRef, render);
+    renderModeBXmlExport(workspace, stateRef, render);
     const sourceKind = workspace.querySelector?.('[data-field="source-kind"]');
     if (sourceKind && state.sourceBatch?.sources?.length) {
       sourceKind.value = 'xml';

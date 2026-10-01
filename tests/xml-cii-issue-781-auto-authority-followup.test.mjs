@@ -157,13 +157,13 @@ const regexUi = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adap
 assert.match(regexUi, /void autoAnalyzeDatasetEvidence\(stateRef, render\)/);
 assert.match(regexUi, /clearUnlockedRatingMapping/);
 assert.match(regexUi, /Stale unlocked Rating mapping/);
-assert.match(regexUi, /xml-cii-adapted-regex-smart-evidence\.js\?v=20261001-weight-rating-1/);
+assert.match(regexUi, /xml-cii-adapted-regex-smart-evidence\.js\?v=20261001-weight-output-1/);
 assert.match(regexUi, /Rating remains manual/);
 assert.doesNotMatch(fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js', import.meta.url), 'utf8'), /ratingCandidate|derivedRatingSuggestion|STANDARD_RATINGS/);
 
 const phasePanel = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', import.meta.url), 'utf8');
-assert.match(phasePanel, /xml-cii-adapted-regex-smart-ui\.js\?v=20261001-weight-rating-1/);
-assert.match(phasePanel, /xml-cii-adapted-preview-diagnostics-audit-v7\.js\?v=20261001-weight-rating-1/);
+assert.match(phasePanel, /xml-cii-adapted-regex-smart-ui\.js\?v=20261001-weight-output-1/);
+assert.match(phasePanel, /xml-cii-adapted-preview-diagnostics-audit-v7\.js\?v=20261001-weight-output-1/);
 
 const b313Ui = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js', import.meta.url), 'utf8');
 assert.match(b313Ui, /data-b313-factor-info-button/);

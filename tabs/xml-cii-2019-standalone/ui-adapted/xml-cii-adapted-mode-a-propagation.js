@@ -12,8 +12,8 @@ import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.j
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js?v=20260813-mode-a-full-propagation-2';
 import {
   applyStandaloneRegexTesterResult,
-} from './xml-cii-adapted-state.js?v=20260813-mode-a-full-propagation-2';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260930-issue781-branch-scope-1';
+} from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

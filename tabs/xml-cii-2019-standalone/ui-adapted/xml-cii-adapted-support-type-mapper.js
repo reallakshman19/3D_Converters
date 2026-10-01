@@ -3,7 +3,7 @@ import {
   bindUnifiedSupportMappingTable,
   renderUnifiedSupportMappingTable
 } from '../../model-converters/converters/xmltocii2019_helper/support-mapping-table.js';
-import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { saveMasterContextToLocalStorage, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
 import { createDefaultSupportTypeMapperConfig } from '../xml-cii-support-type-mapper.js';
 
 const KINDS = ['REST', 'GUIDE', 'LINESTOP', 'ANCHOR'];

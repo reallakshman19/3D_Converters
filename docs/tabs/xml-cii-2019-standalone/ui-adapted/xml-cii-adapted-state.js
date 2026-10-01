@@ -8,7 +8,7 @@ import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-elem
 import { createDefaultTraceTableConfig } from '../xml-cii-table-trace-config.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
-import { advanceDependencyRevisionState, initializeDependencyRevisionState } from './xml-cii-adapted-dependency-revisions.js';
+import { advanceDependencyRevisionState, initializeDependencyRevisionState, supportConfigSignature } from './xml-cii-adapted-dependency-revisions.js';
 
 const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
   { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT' },
@@ -298,16 +298,41 @@ function synchronizedMasterContext(masterContext, parsedConfig) {
   return masterContext && parsedConfig ? { ...masterContext, config: parsedConfig } : masterContext;
 }
 
+function invalidateBatchOutputs(previous, next, dependency) {
+  if (!next.sourceBatch?.sources?.length) return next.sourceBatch;
+  const priorSources = new Map((previous.sourceBatch?.sources || []).map((source) => [source.sourceId, source]));
+  const sharedChanged = JSON.stringify(previous.options) !== JSON.stringify(next.options)
+    || previous.sourceBatch?.sharedSupportConfigJson !== next.sourceBatch.sharedSupportConfigJson
+    || Object.keys(dependency.dependencyRevisions).some((key) => key.endsWith('AppliedRevision')
+      && previous.dependencyRevisions?.[key] !== undefined && dependency.dependencyRevisions[key] !== previous.dependencyRevisions[key]);
+  const sources = next.sourceBatch.sources.map((source) => {
+    const prior = priorSources.get(source.sourceId);
+    if (!prior || !source.workflow?.result || source.workflow.result !== prior.workflow?.result) return source;
+    const changed = sharedChanged || ['sourceText', 'stagedJsonText', 'branchSelection', 'supportConfigJson']
+      .some((key) => JSON.stringify(prior[key]) !== JSON.stringify(source[key]));
+    return changed ? { ...source, workflow: { ...source.workflow, result: null } } : source;
+  });
+  return { ...next.sourceBatch, sources };
+}
+
 export function updateWorkflowState(state, patch = {}) {
   const next = { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
   const configChanged = Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson');
   const parsedConfig = configChanged ? parseSupportConfigForState(next.supportConfigJson) : null;
   if (configChanged && next.masterContext) next.masterContext = synchronizedMasterContext(next.masterContext, parsedConfig);
   const revisionConfig = parsedConfig || next.masterContext?.config || state.masterContext?.config || {};
-  return { ...next, ...advanceDependencyRevisionState(state, next, revisionConfig) };
+  const dependency = advanceDependencyRevisionState(state, next, revisionConfig);
+  const revisionChanged = state.dependencyRevisions
+    ? Object.entries(dependency.dependencyRevisions).some(([key, value]) => value !== state.dependencyRevisions[key])
+    : String(state.sourceText || '') !== String(next.sourceText || '')
+      || supportConfigSignature(parseSupportConfigForState(state.supportConfigJson)) !== supportConfigSignature(revisionConfig);
+  const inputChanged = revisionChanged
+    || ['stagedJsonText', 'branchSelection', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
+  const result = inputChanged && next.result === state.result ? null : next.result;
+  return { ...next, ...dependency, result, sourceBatch: invalidateBatchOutputs(state, next, dependency) };
 }
 
-export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
+export function updateWorkflowOptions(state, optionPatch = {}) { return updateWorkflowState(state, { options: { ...state.options, ...optionPatch } }); }
 export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null, outputRunReadinessReport: null }); }
 export function resetWorkflowState() {
   if (typeof localStorage !== 'undefined') {

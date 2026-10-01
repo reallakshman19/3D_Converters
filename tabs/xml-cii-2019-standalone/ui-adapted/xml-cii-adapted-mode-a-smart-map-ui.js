@@ -1,12 +1,12 @@
-import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js';
+import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-1';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
 import {
   createModeASourceProcessingRef,
   modeAExecutionRows,
   modeARawRef,
   modeARawState,
-} from './xml-cii-adapted-mode-a-propagation.js';
+} from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
 import {
   buildModeASmartMapChanges,
   buildModeASmartMapGroups,

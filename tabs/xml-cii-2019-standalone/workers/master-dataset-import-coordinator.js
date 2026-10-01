@@ -1,4 +1,4 @@
-import { createMasterDatasetClient } from './master-dataset-client.js?v=20261001-weight-rating-1';
+import { createMasterDatasetClient } from './master-dataset-client.js?v=20261001-weight-output-1';
 import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 function assertDatasetMessage(message) {

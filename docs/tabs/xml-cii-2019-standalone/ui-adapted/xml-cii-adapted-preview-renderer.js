@@ -1,6 +1,6 @@
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
 import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
-import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js';
+import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-1';
 import { applyAdaptedPreviewOverrideFillDown, applyAdaptedPreviewProcessFillDown, markAdaptedPreviewOverrideManual, markAdaptedPreviewProcessManual, applyAdaptedPreviewSmartFillByClass, applyAdaptedPreviewSmartProcessFillByClass } from './xml-cii-adapted-preview-filldown.js';
 import { replaceJsonObject, runAtomicPreviewClassTransaction } from './xml-cii-adapted-preview-class-transaction.js';
 import {
@@ -13,7 +13,7 @@ import {
   _uniqueKeys,
   _hasOwn,
   xmlCiiDryRunPreview
-} from './xml-cii-adapted-preview-dryrun.js';
+} from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-1';
 
 const PV_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 const _PV_CACHE_MAX_BYTES = 2500000;
@@ -188,7 +188,7 @@ function _classTransactionSuccessMessage(hydrationResult, value) {
 import {
   _dtxrWallCandidateForRow,
   _dtxrWallCandidateIndex
-} from './xml-cii-adapted-preview-dryrun.js';
+} from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-1';
 
 function _bindDtxrWallUpdateButtonBranchScoped({ host, branchRows, config, ensureOverrides, onSaveConfig, stagedSourceLabel = '' }) {
   host?.querySelector('[data-mc-dtxr-wall-update]')?.addEventListener('click', () => {

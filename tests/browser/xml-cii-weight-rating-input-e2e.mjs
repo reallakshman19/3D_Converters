@@ -13,7 +13,7 @@ const fixturePath = process.env.XML_CII_41_BRANCH_FIXTURE || path.join(root, 'Be
 const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
-const release = '20261001-weight-rating-1';
+const release = '20261001-weight-output-1';
 const server = createServer(async (request, response) => {
   try {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
@@ -127,7 +127,8 @@ try {
   assert.equal((await readRows())[sourceIndex].rating, '300');
   assert.equal((await readRows())[otherIndex].rating, '300');
   for (const file of ['weight-match-renderer', 'xml-cii-adapted-regex-rating', 'xml-cii-adapted-weight-match-v2', 'master-dataset-worker']) {
-    assert.ok(modules.some((url) => url.includes(`${file}.js?v=${release}`)), `Missing active release ${file}`);
+    const expectedRelease = release;
+    assert.ok(modules.some((url) => url.includes(`${file}.js?v=${expectedRelease}`)), `Missing active release ${file}`);
   }
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,

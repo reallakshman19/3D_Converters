@@ -1,6 +1,6 @@
-import { installModeAConsolidatedWeightEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js?v=20260928-issue776-authority-2';
-import { installModeAConsolidatedWeightTools } from './xml-cii-adapted-mode-a-weight-tools.js?v=20260928-issue776-authority-2';
-import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-weight-1';
+import { installModeAConsolidatedWeightEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js?v=20261001-weight-output-1';
+import { installModeAConsolidatedWeightTools } from './xml-cii-adapted-mode-a-weight-tools.js?v=20261001-weight-output-1';
+import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-1';
 
 export function installModeAConsolidatedWeightEasyUiFromWorkspace(workspace,stateRef) {
   const state=modeARawState(stateRef);

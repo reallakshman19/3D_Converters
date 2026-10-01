@@ -1,4 +1,4 @@
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260928-issue776-authority-1';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-weight-output-1';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -7,12 +7,12 @@ import {
   normalizeModeABatchState,
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
-import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
-import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20260813-mode-a-rigid-review-1';
+import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-1';
+import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
 import {
   collectModeARigidWeightReviewIssues,
   openModeAConsolidatedRigidWeightReviewPopup,
-} from './xml-cii-adapted-rigid-review-mode-a.js?v=20260928-issue776-authority-1';
+} from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-1';
 import { applyModeAConsolidatedRigidReviewUpdates } from './xml-cii-adapted-rigid-review-mode-a-state.js?v=20260813-mode-a-rigid-review-1';
 import { downloadModeACiiZip } from './xml-cii-adapted-mode-a-cii-zip.js?v=20260814-save-all-cii-zip-1';
 

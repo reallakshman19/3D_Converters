@@ -1,18 +1,17 @@
-import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20260803-atta-default-rest-closure-1';
+import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261001-weight-output-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
+import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-1';
 import {
-  buildXmlCiiValidatedRigidWeightLegacyView,
   withXmlCiiRigidWeightFinal,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
-import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20260929-pr780-dataset-operation-1';
+import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-1';
 import {
   resolveStandaloneWeightReviewRating,
   standaloneWeightReviewRatingInfo,
 } from './xml-cii-adapted-weight-rating-authority.js';
-import { prepareStandaloneWeightReviewXml } from '../xml-cii-standalone-run-parity.js?v=20260928-issue776-authority-2';
+import { collectModeARigidWeightReviewIssues } from './xml-cii-adapted-rigid-review-mode-a.js?v=20261001-weight-output-1';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
@@ -222,34 +221,8 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
 }
 
 async function unresolvedRigidIssues(state, config) {
-  const { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
-  const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
-  const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
-  const prepared = await prepareStandaloneWeightReviewXml(state, config);
-  if (prepared.error) throw new Error(prepared.error);
-  const preparedConfig = prepared.config || config;
-  const basisRows = collectXmlCiiWeightMatchRows(prepared.xmlText, state.stagedJsonText || '', preparedConfig);
-  const validated = buildXmlCiiValidatedRigidWeightLegacyView(preparedConfig, basisRows);
-  const authorityConfig = validated.config;
-  return collectXmlCiiZeroRigidWeightIssues(prepared.xmlText, state.stagedJsonText || '', authorityConfig).map((issue) => {
-    const staleMatch1 = validated.validation.stale?.[issue.key] || null;
-    const ratingAuthority = resolveStandaloneWeightReviewRating(issue, authorityConfig);
-    const rating = ratingAuthority.rating;
-    const ranking = rating
-      ? rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, authorityConfig, { includeRejected: true })
-      : { candidates: [], rejectedCandidates: [] };
-    return applyXmlCiiFlangeWeightFallbackToIssue({
-      ...issue,
-      staleMatch1,
-      rating,
-      dtxrRating: ratingAuthority.dtxrRating,
-      ratingAuthority,
-      ratingConflict: ratingAuthority.conflict,
-      branchRating: issue.rating,
-      candidates: ranking.candidates.slice(0, 5),
-      rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
-    }, authorityConfig);
-  }).filter((issue) => !issue.mapped);
+  const issues = await collectModeARigidWeightReviewIssues(state, config);
+  return issues.filter((issue) => !(Number(issue.acceptedWeight) > 0));
 }
 
 async function reviewRigidWeights(stateRef, config) {

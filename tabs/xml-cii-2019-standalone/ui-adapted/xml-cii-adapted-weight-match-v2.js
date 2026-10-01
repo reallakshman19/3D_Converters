@@ -9,10 +9,10 @@ import {
   saveMasterContextToLocalStorage,
   updateWorkflowState,
   xmlCiiEnrichedConfigFromState,
-} from './xml-cii-adapted-state.js';
+} from './xml-cii-adapted-state.js?v=20261001-weight-output-1';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-rating-1';
+import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-weight-rating-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 
@@ -181,7 +181,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
     try {
-      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-rating-1');
+      const renderer = await import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js?v=20261001-weight-output-1');
       if (
         typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
         || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function'
