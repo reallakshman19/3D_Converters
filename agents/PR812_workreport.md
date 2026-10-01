@@ -2,7 +2,7 @@
 
 ## LIVE DELIVERY RECONCILIATION — 2026-10-01
 
-PR812 is MERGED at f30552b8 into agent/issue-781-weight-rating-20261001 (merge50c298b5), after PR811 had already merged into main. Main e6e3458f contains PR811 but none of PR812; official Pages browser reproduces missing Mode B after two distinct XML uploads. Historical OPEN DRAFT statements below are superseded. Follow-up WIP-781-MAIN-INTEGRATION-20261001 restores the exact qualified diff onto current main in branch agent/issue-781-mode-b-main-20261001. It preserves existing PASS evidence and full CII FAIL16, with no new ownership approval. Current owner merge authority is not granted to this agent. Recovery: agents/WIP-781-MAIN-INTEGRATION-20261001_workreport.md. Historical validation remains attributable to PR812, not deployed acceptance.
+PR812 is MERGED at f30552b8 into agent/issue-781-weight-rating-20261001 (merge50c298b5), after PR811 had already merged into main. Main e6e3458f contains PR811 but none of PR812; official Pages browser reproduces missing Mode B after two distinct XML uploads. Historical OPEN DRAFT statements below are superseded. Follow-up PR813 restores the exact qualified diff onto current main in branch agent/issue-781-mode-b-main-20261001. It preserves existing PASS evidence and full CII FAIL16, with no new ownership approval. Current owner merge authority is not granted to this agent. Recovery: agents/PR813_workreport.md. Historical validation remains attributable to PR812, not deployed acceptance.
 
 ## CURRENT RECOVERY STATE — 2026-10-01 (supersedes historical sections below)
 

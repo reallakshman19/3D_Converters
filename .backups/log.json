@@ -1,5 +1,5 @@
 {
-  "lastId": 929,
+  "lastId": 938,
   "entries": [
     {
       "id": 1,
@@ -6503,6 +6503,69 @@
       "file": "agents\\claims\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
       "context": "Record concrete main-based integration handover",
       "backupFile": "929_agents_claims_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 930,
+      "timestamp": "2026-10-01 14:44:12",
+      "file": "tests\\xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs",
+      "context": "Keep stale-match1 authority CI on actual deferred accepted-only release",
+      "backupFile": "930_tests_xml_cii_issue_776_stale_match1_no_auto_rerank_test_mjs.bak"
+    },
+    {
+      "id": 931,
+      "timestamp": "2026-10-01 14:44:12",
+      "file": "tests\\xml-cii-issue-776-weight-review-authority.test.mjs",
+      "context": "Trace actual canonical review collector and unchanged geometry authority in main CI",
+      "backupFile": "931_tests_xml_cii_issue_776_weight_review_authority_test_mjs.bak"
+    },
+    {
+      "id": 932,
+      "timestamp": "2026-10-01 14:45:44",
+      "file": "agents\\WIP-781-MAIN-INTEGRATION-20261001_workreport.md",
+      "context": "Migrate main-based follow-up to PR813 and document actual CI contracts",
+      "backupFile": "932_agents_WIP_781_MAIN_INTEGRATION_20261001_workreport_md.bak"
+    },
+    {
+      "id": 933,
+      "timestamp": "2026-10-01 14:45:44",
+      "file": "agents\\status\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Migrate status to allocated PR813",
+      "backupFile": "933_agents_status_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 934,
+      "timestamp": "2026-10-01 14:45:44",
+      "file": "agents\\claims\\WIP-781-MAIN-INTEGRATION-20261001.yaml",
+      "context": "Migrate active integration claim to PR813",
+      "backupFile": "934_agents_claims_WIP_781_MAIN_INTEGRATION_20261001_yaml.bak"
+    },
+    {
+      "id": 935,
+      "timestamp": "2026-10-01 14:45:44",
+      "file": "agents\\evidence\\WIP-781-MAIN-INTEGRATION-20261001\\changed-files.json",
+      "context": "Reconcile allocated PR813 and CI contract repairs",
+      "backupFile": "935_agents_evidence_WIP_781_MAIN_INTEGRATION_20261001_changed_files_json.bak"
+    },
+    {
+      "id": 936,
+      "timestamp": "2026-10-01 14:45:44",
+      "file": "agents\\PR812_workreport.md",
+      "context": "Link actual main integration PR813 successor",
+      "backupFile": "936_agents_PR812_workreport_md.bak"
+    },
+    {
+      "id": 937,
+      "timestamp": "2026-10-01 14:45:45",
+      "file": "agents\\status\\PR812.yaml",
+      "context": "Link successor PR813",
+      "backupFile": "937_agents_status_PR812_yaml.bak"
+    },
+    {
+      "id": 938,
+      "timestamp": "2026-10-01 14:45:45",
+      "file": "agents\\claims\\PR812.yaml",
+      "context": "Link successor PR813",
+      "backupFile": "938_agents_claims_PR812_yaml.bak"
     }
   ]
 }

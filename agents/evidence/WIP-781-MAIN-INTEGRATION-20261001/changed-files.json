@@ -14,9 +14,9 @@
     "provenance": "Qualified PR812 f30552b8 salvage; handover files additionally reconcile actual merged state"
   },
   {
-    "path": "agents/WIP-781-MAIN-INTEGRATION-20261001_workreport.md",
-    "category": "HANDOVER",
-    "reason": "Fresh live/main integration witness, main-based identity and exact continuation state",
+    "path": "agents/PR813_workreport.md",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
     "deploymentMirror": false
   },
   {
@@ -27,15 +27,51 @@
     "provenance": "Qualified PR812 f30552b8 salvage; handover files additionally reconcile actual merged state"
   },
   {
-    "path": "agents/claims/WIP-781-MAIN-INTEGRATION-20261001.yaml",
-    "category": "HANDOVER",
-    "reason": "Fresh live/main integration witness, main-based identity and exact continuation state",
+    "path": "agents/claims/PR813.yaml",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
     "deploymentMirror": false
   },
   {
     "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/changed-files.json",
     "category": "RELEASE_WITNESS",
     "reason": "Fresh live/main integration witness, main-based identity and exact continuation state",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-authority-failure.txt",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-contracts-repaired.txt",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-focused-local-baseline.txt",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-focused-local-repaired.txt",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-head-58bf8860.json",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
+    "deploymentMirror": false
+  },
+  {
+    "path": "agents/evidence/WIP-781-MAIN-INTEGRATION-20261001/ci-worker-failure.txt",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
     "deploymentMirror": false
   },
   {
@@ -534,9 +570,9 @@
     "provenance": "Qualified PR812 f30552b8 salvage; handover files additionally reconcile actual merged state"
   },
   {
-    "path": "agents/status/WIP-781-MAIN-INTEGRATION-20261001.yaml",
-    "category": "HANDOVER",
-    "reason": "Fresh live/main integration witness, main-based identity and exact continuation state",
+    "path": "agents/status/PR813.yaml",
+    "category": "HANDOVER_OR_FRESH_EVIDENCE",
+    "reason": "Allocated PR813 identity, actual remote CI and fresh main-based evidence",
     "deploymentMirror": false
   },
   {
@@ -2135,11 +2171,23 @@
     "provenance": "Qualified PR812 f30552b8 salvage; handover files additionally reconcile actual merged state"
   },
   {
+    "path": "tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs",
+    "category": "VALIDATION_CONTRACT",
+    "reason": "Actual main CI authority path validation without changed numerical oracles",
+    "deploymentMirror": false
+  },
+  {
     "path": "tests/xml-cii-issue-776-standalone-run-match1-custody.test.mjs",
     "category": "REGRESSION",
     "reason": "Independent weight/state/geometry constants or explicitly implementation-coupled delegation/cache contract; no engineering tolerance changes.",
     "deploymentMirror": false,
     "provenance": "Qualified PR812 f30552b8 salvage; handover files additionally reconcile actual merged state"
+  },
+  {
+    "path": "tests/xml-cii-issue-776-weight-review-authority.test.mjs",
+    "category": "VALIDATION_CONTRACT",
+    "reason": "Actual main CI authority path validation without changed numerical oracles",
+    "deploymentMirror": false
   },
   {
     "path": "tests/xml-cii-issue-781-auto-authority-followup.test.mjs",
