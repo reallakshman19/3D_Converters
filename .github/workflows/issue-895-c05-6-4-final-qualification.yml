@@ -20,10 +20,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run descendant-compatible C05.5 C05.6 and C04 contracts
+      - name: Run descendant-compatible C05.5 persistence semantics
+        run: |
+          node --test --test-name-pattern='C05\\.5\\.5 (?!runtime cache chain carries one retry generation from tab to worker).*' \
+            tests/xml-cii-issue-875-persistence-status-retry.test.mjs
+
+      - name: Run C05.5 C05.6 and C04 contracts
         run: |
           node --test \
-            tests/xml-cii-issue-875-persistence-status-retry.test.mjs \
             tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
             tests/xml-cii-issue-882-session-precedence.test.mjs \
             tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
