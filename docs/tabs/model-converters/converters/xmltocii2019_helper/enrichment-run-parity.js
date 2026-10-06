@@ -207,8 +207,9 @@ function setProcessBlock(document, branch, row) {
   return count;
 }
 
-function setBranchNodeFacts(document, branch, row) {
+function setBranchNodeFacts(document, branch, row, options = {}) {
   let count = 0;
+  const preserveNodeGeometry = options?.preserveNodeGeometry === true;
   const pipingClass = rowValue(row, 'pipingClass', 'pipingClassResolved', 'resolvedPipingClass');
   const rating = rowValue(row, 'rating', 'branchRating');
   const boreMm = row?.sizeMm ?? row?.boreMm;
@@ -220,8 +221,8 @@ function setBranchNodeFacts(document, branch, row) {
   for (const node of childrenByName(branch, 'Node')) {
     if (setText(document, node, 'PipingClass', pipingClass)) count += 1;
     if (setText(document, node, 'Rating', rating)) count += 1;
-    if (boreMm != null && text(boreMm) !== '' && setText(document, node, 'BoreMm', Number(boreMm).toFixed(3))) count += 1;
-    if (setText(document, node, 'WallThickness', numberText(wallThickness))) count += 1;
+    if (!preserveNodeGeometry && boreMm != null && text(boreMm) !== '' && setText(document, node, 'BoreMm', Number(boreMm).toFixed(3))) count += 1;
+    if (!preserveNodeGeometry && setText(document, node, 'WallThickness', numberText(wallThickness))) count += 1;
     if (setText(document, node, 'CorrosionAllowance', numberText(corrosion))) count += 1;
     if (setText(document, node, 'MaterialName', material)) count += 1;
     if (setText(document, node, 'MaterialCode', materialCode)) count += 1;
@@ -566,7 +567,7 @@ function applyPreviewRunParity(enriched, sourceXmlText, stagedJsonText, options 
     if (!row) { if (branchName) missedBranches.push(branchName); continue; }
     branchCount += 1;
     processCount += setProcessBlock(document, branch, row);
-    nodeFactCount += setBranchNodeFacts(document, branch, row);
+    nodeFactCount += setBranchNodeFacts(document, branch, row, options);
     provenanceRows.push(...processProvenanceDiagnostics(row));
   }
 
