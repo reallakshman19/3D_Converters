@@ -30,14 +30,12 @@ const CONFIG = {
 const WITNESSES = [
   { id: 'reducer-110', branch: 'B2', node: '110', componentType: 'REDU', ref: '=67127481/31', endpoint: '1', sourceOd: 610, bore: 600, wall: 30.9626, role: 'reported reducer 110-120' },
   { id: 'reducer-120', branch: 'B2', node: '120', componentType: 'REDU', ref: '=67127481/31', endpoint: '2', sourceOd: 508, bore: 500, wall: 26.1874, role: 'reported reducer 110-120 / start 120-129' },
-  { id: 'span-128', branch: 'B2', node: '128', componentType: 'FLAN', ref: '=67127481/32', endpoint: '1', sourceOd: 508, bore: 500, wall: 26.1874, role: 'reported 120-129' },
   { id: 'span-129', branch: 'B2', node: '129', componentType: 'FLAN', ref: '=67127481/32', endpoint: '2', sourceOd: 508, bore: 500, wall: 26.1874, role: 'reported 120-129' },
   { id: 'span-70', branch: 'B5', node: '70', componentType: 'BRAN', ref: '=67127481/65', endpoint: '1', sourceOd: 33.4, bore: 25, wall: 6.35, role: 'reported 70-197' },
   { id: 'span-197', branch: 'B5', node: '197', componentType: 'VALV', ref: '=67127481/71', endpoint: '1', sourceOd: 33.4, bore: 25, wall: 6.35, role: 'reported 70-197' },
   { id: 'span-390', branch: 'B6', node: '390', componentType: 'FLAN', ref: '=67127481/97', endpoint: '1', sourceOd: 33.4, bore: 25, wall: 6.35, role: 'reported 390-399 bore-only' },
   { id: 'span-399', branch: 'B6', node: '399', componentType: 'FLAN', ref: '=67127481/97', endpoint: '2', sourceOd: 33.4, bore: 25, wall: 6.35, role: 'reported 390-399 bore-only' },
   { id: 'span-437', branch: 'B7', node: '437', componentType: 'FLAN', ref: '=67127481/102', endpoint: '2', sourceOd: 33.4, bore: 25, wall: 6.35, role: 'reported 437-439 mixed-bore span' },
-  { id: 'span-438', branch: 'B7', node: '438', componentType: 'VALV', ref: '=67127481/104', endpoint: '1', sourceOd: 60.3, bore: 50, wall: 8.7376, role: 'reported 437-439 mixed-bore span' },
   { id: 'span-439', branch: 'B7', node: '439', componentType: 'VALV', ref: '=67127481/104', endpoint: '2', sourceOd: 60.3, bore: 50, wall: 8.7376, role: 'reported 437-439 mixed-bore span' },
   { id: 'control-80', branch: 'B4', node: '80', componentType: 'BRAN', ref: '=67127481/57', endpoint: '1', sourceOd: 60.3, bore: 50, wall: 8.7376, role: 'unrelated source control' },
 ];
@@ -168,9 +166,13 @@ try {
     });
   }
 
-  const mixed = ledger.filter((row) => row.branch === 'B7' && ['437','438','439'].includes(row.node));
+  const mixed = ledger.filter((row) => row.branch === 'B7' && ['437','439'].includes(row.node));
   requireValue(new Set(mixed.map((row) => row.engineInput.boreMm)).size === 2,
-    '437-439 must retain mixed DN25/DN50 geometry; branch-wide flattening detected');
+    '437-439 span endpoints must retain mixed DN25/DN50 geometry; branch-wide flattening detected');
+  requireValue(
+    !preparedByNode.has('B7::438') && !finalByNode.has('B7::438'),
+    'generated B7 node 438 is a 3.2 mm short helper and must remain removed by the 6 mm cleanup policy',
+  );
 
   const result = {
     schema: 'XMLCII_ISSUE_830_P2810042_BORE_WALL_LEDGER_V1',
@@ -187,6 +189,7 @@ try {
       span70to197Dn25: true,
       span390to399Dn25: true,
       span437to439MixedDn25Dn50: true,
+      span437to439ShortHelper438Removed: true,
       unrelatedControl80Dn50: true,
       componentTypesPreservedForWitnessSet: true,
       branchNameFallbackUsedForWitnessSet: false,
