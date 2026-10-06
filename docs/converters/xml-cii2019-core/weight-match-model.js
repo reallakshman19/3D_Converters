@@ -295,6 +295,11 @@ export function isXmlCiiRigidNode(node) {
   return xmlText(node, 'ComponentType').toUpperCase() === 'RIGID' || Number(xmlText(node, 'Rigid')) === 2;
 }
 
+export function isXmlCiiWeightReviewConnectionEligible(node) {
+  const connectionType = xmlText(node, 'ConnectionType');
+  return !connectionType || isXmlCiiRigidNode(node);
+}
+
 export function isXmlCiiWeightReviewNode(node, dtxr = '') {
   const compType = xmlText(node, 'ComponentType').toUpperCase();
   const nodeName = xmlText(node, 'NodeName').toUpperCase();
@@ -566,7 +571,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       const nodeNumber = xmlText(node, 'NodeNumber');
       const componentType = xmlText(node, 'ComponentType');
       const connectionType = xmlText(node, 'ConnectionType');
-      if (connectionType) return;
+      if (!isXmlCiiWeightReviewConnectionEligible(node)) return;
       if (options.skipKnownNonReviewDtxr === true && isKnownNonWeightReviewType(componentType)) return;
       const dtxrResult = resolveWeightDtxr(node, getDtxrContext(), config);
       const dtxrText = dtxrResult?.suppressed ? '' : toText(dtxrResult?.canonicalText);
