@@ -106,6 +106,40 @@ function unique(values) {
   return [...new Set((values || []).map(text).filter(Boolean))];
 }
 
+function positiveBore(value) {
+  const match = text(value).replace(/,/g, '').match(/[-+]?\d*\.?\d+(?:[Ee][-+]?\d+)?/);
+  const numeric = match ? Number(match[0]) : Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+export function buildStandaloneBoreTraceValidationIndex(sourceText, stagedJsonText, config = {}) {
+  const ledgerResult = buildStandaloneDtxrResolutionLedger(
+    String(sourceText || ''),
+    stagedJsonText,
+    config,
+  );
+  const index = new Map();
+  for (const record of ledgerResult.records || []) {
+    const status = text(record.status).toUpperCase();
+    const firstMember = Array.isArray(record.positionMembers)
+      ? (record.positionMembers[0] || null)
+      : null;
+    const boreMm = status.startsWith('RESOLVED_')
+      ? positiveBore(firstMember?.bore)
+      : null;
+    index.set(Number(record.xmlIndex), {
+      xmlIndex: Number(record.xmlIndex),
+      status,
+      boreMm,
+      source: 'resolver-json-trace',
+      effectiveSource: text(record.effectiveSource),
+      matchType: text(record.matchType),
+      sourcePath: text(firstMember?.sourcePath),
+    });
+  }
+  return index;
+}
+
 function factFromLedgerRecord(record, node, jsonConfig) {
   const members = Array.isArray(record.positionMembers) ? record.positionMembers : [];
   const firstMember = members[0] || {};
