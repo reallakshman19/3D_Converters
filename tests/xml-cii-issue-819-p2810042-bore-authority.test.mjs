@@ -6,6 +6,9 @@ import {
 import {
   applyXmlCiiStagedGeometryAuthority,
 } from '../converters/xml-cii2019-core/staged-geometry-authority.js';
+import {
+  applyPreviewBoreWallAuthority,
+} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
 
 let boreAuthorityModule = null;
 try {
@@ -115,6 +118,101 @@ test('Branchname fallback is validated against DTXR/JSON-trace bore and flagged 
   assert.equal(result.traceMismatch, true);
   assert.equal(result.needsReview, true);
   assert.equal(result.validationTraceBoreMm, 50);
+});
+
+
+function leaf(name, value) {
+  return {
+    nodeType: 1,
+    localName: name,
+    nodeName: name,
+    textContent: String(value),
+    childNodes: [],
+  };
+}
+
+function element(name, fields = {}) {
+  return {
+    nodeType: 1,
+    localName: name,
+    nodeName: name,
+    textContent: '',
+    childNodes: Object.entries(fields).map(([key, value]) => leaf(key, value)),
+  };
+}
+
+function fakeBranch(name, nodes) {
+  return {
+    nodeType: 1,
+    localName: 'Branch',
+    nodeName: 'Branch',
+    textContent: '',
+    childNodes: [leaf('Branchname', name), ...nodes],
+  };
+}
+
+test('Preview publishes endpoint-specific bore and wall authority for every XML node', () => {
+  const branch = fakeBranch(branchName, [
+    element('Node', {
+      NodeNumber: 110,
+      ComponentType: 'REDU',
+      ComponentRefNo: '=67127481/31',
+      Endpoint: 1,
+      OutsideDiameter: 610,
+    }),
+    element('Node', {
+      NodeNumber: 120,
+      ComponentType: 'REDU',
+      ComponentRefNo: '=67127481/31',
+      Endpoint: 2,
+      OutsideDiameter: 508,
+    }),
+    element('Node', {
+      NodeNumber: 70,
+      ComponentType: 'BRAN',
+      ComponentRefNo: '=67127481/65',
+      Endpoint: 1,
+      OutsideDiameter: 33.4,
+    }),
+  ]);
+  const sourceDocument = {
+    getElementsByTagName(name) {
+      if (name === 'Branch') return [branch];
+      return [];
+    },
+  };
+  const config = {
+    pipingClass: {
+      masterRows: [
+        { 'Piping Class': '61440', DN: 25, 'Wall Thickness': 6.35, SCH: '80' },
+        { 'Piping Class': '61440', DN: 500, 'Wall Thickness': 26.1874, SCH: '80' },
+        { 'Piping Class': '61440', DN: 600, 'Wall Thickness': 30.9626, SCH: '80' },
+      ],
+    },
+  };
+  const preview = applyPreviewBoreWallAuthority({
+    xmlText: reducerXml,
+    stagedJsonText: staged,
+    config,
+    sourceDocument,
+    result: {
+      branchRows: [{
+        branchName,
+        sizeMm: 600,
+        pipingClass: '61440',
+      }],
+      nodeRows: [],
+    },
+  });
+  assert.equal(preview.nodeBoreWallRows.length, 3, 'every source XML node needs a node-level authority row');
+  const byNode = new Map(preview.nodeBoreWallRows.map((row) => [row.nodeNumber, row]));
+  assert.equal(byNode.get('110')?.boreMm, 600);
+  assert.equal(byNode.get('110')?.wallThickness, '30.9626');
+  assert.equal(byNode.get('120')?.boreMm, 500);
+  assert.equal(byNode.get('120')?.wallThickness, '26.1874');
+  assert.equal(byNode.get('70')?.boreMm, 25);
+  assert.equal(byNode.get('70')?.wallThickness, '6.35');
+  assert.equal(byNode.get('70')?.boreSource, 'xml-outside-diameter');
 });
 
 console.log('Issue #819 P2810042 bore-authority regression checks completed.');
