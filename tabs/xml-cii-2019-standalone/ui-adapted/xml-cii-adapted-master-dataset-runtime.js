@@ -1,4 +1,4 @@
-import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20261001-weight-output-2';
+import { createMasterDatasetImportCoordinator } from '../workers/master-dataset-import-coordinator.js?v=20261006-c05-5-5-persistence-retry-1';
 
 export const masterDatasetCoordinator = createMasterDatasetImportCoordinator();
 
