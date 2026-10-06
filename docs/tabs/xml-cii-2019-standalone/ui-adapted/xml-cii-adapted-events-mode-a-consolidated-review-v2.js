@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261001-single-weight-owners-1';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261006-c05-5-5-persistence-retry-1';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261001-single-weight-owners-1';
 import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
