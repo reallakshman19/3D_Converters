@@ -204,6 +204,8 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-776-http.log 2>&1 &
       - name: Run exact-head WSW browser conversion
         run: node scripts/run-xml-cii-issue-776-wsw-e2e.mjs
+      - name: Run P2810042 bore wall witness ledger
+        run: node scripts/run-xml-cii-issue-830-p2810042-bore-wall-e2e.mjs
       - name: Run 10k / 50k / 100k master dataset browser scale
         run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
       - name: Upload WSW exact-head evidence
@@ -213,6 +215,7 @@ jobs:
           name: issue-776-wsw-e2e
           path: |
             ValidationRecords/xml-cii-issue-776-wsw-e2e.json
+            ValidationRecords/xml-cii-issue-830-p2810042-bore-wall.json
             ValidationRecords/xml-cii-master-dataset-scale-e2e.json
             /tmp/issue-776-http.log
           if-no-files-found: warn
