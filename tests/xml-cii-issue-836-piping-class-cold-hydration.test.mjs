@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 
 import { commitDatasetReadyMaster } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js';
 import { hydratePersistedMasterDatasets } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js';
@@ -169,5 +170,55 @@ test('C05.2 does not pre-complete Mat_Map or Valve Weight revision custody', asy
     assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, undefined);
   } finally {
     storage.restore();
+  }
+});
+
+
+test('C05.2 piping class rejects stale restart revision against IndexedDB metadata', async () => {
+  const storage = installStorage({
+    'xml-cii-master-source-pipingClass': JSON.stringify({
+      source: 'Piping class master.xlsx',
+      datasetId: 'issue836:pc:r4',
+      datasetRevision: 4,
+      rowCount: 1,
+      fieldMap: {},
+      appliedRevision: 1,
+      persistenceMode: 'indexeddb',
+    }),
+  });
+  const stateRef = startupState();
+  try {
+    await assert.rejects(
+      hydratePersistedMasterDatasets(stateRef, {
+        store: {
+          async getMetadata() {
+            return {
+              datasetId: 'issue836:pc:r4',
+              datasetRevision: 5,
+              rowCount: 1,
+              fileName: 'Piping class master.xlsx',
+            };
+          },
+          async getRowsRange() { return [{ Marker: 'PC' }]; },
+          async getRows() { return [{ Marker: 'PC' }]; },
+        },
+      }),
+      /pipingClass dataset revision mismatch: expected 4, received 5/,
+    );
+  } finally {
+    storage.restore();
+  }
+});
+
+test('C05.2 changed runtime modules match docs deployment mirrors', async () => {
+  for (const sourcePath of [
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js',
+  ]) {
+    const [source, docs] = await Promise.all([
+      fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8'),
+      fs.readFile(new URL('../docs/' + sourcePath, import.meta.url), 'utf8'),
+    ]);
+    assert.equal(source, docs, sourcePath + ' must match docs mirror');
   }
 });
