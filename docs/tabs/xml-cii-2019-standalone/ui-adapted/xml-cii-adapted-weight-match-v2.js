@@ -120,7 +120,7 @@ export async function weightMatchConfigFromState(state, options = {}) {
   return ensureWeightRows(base, context, materializeRows);
 }
 
-function assertWeightDatasetResultAuthority(result = {}, datasetRef = {}) {
+export function assertWeightDatasetResultAuthority(result = {}, datasetRef = {}) {
   const expectedId = String(datasetRef?.datasetId || '');
   const actualId = String(result?.datasetId || '');
   if (expectedId && actualId !== expectedId) {
