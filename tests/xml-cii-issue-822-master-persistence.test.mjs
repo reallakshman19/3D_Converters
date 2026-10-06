@@ -219,3 +219,57 @@ test('C05 active Mode-A shell surfaces persisted-master restore failures to the 
   assert.match(source, /importMastersWriteBackStatus/);
   assert.match(source, /Persisted master restore failed/);
 });
+
+
+test('C05 active dependency chain is cache-visible and changed runtime mirrors are byte-identical', async () => {
+  const token = '20261006-p2810042-master-persistence-1';
+  const cacheFiles = [
+    'tabs/xml-cii-2019-standalone-tab.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
+  ];
+  for (const runtimePath of cacheFiles) {
+    const source = await fs.readFile(new URL('../' + runtimePath, import.meta.url), 'utf8');
+    assert.match(source, new RegExp(token), runtimePath + ' must carry the C05 cache token');
+  }
+
+  const mirrorPairs = [
+    'tabs/xml-cii-2019-standalone-tab.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-mapping-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+  ];
+  for (const sourcePath of mirrorPairs) {
+    const docsPath = 'docs/' + sourcePath;
+    const [source, docs] = await Promise.all([
+      fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8'),
+      fs.readFile(new URL('../' + docsPath, import.meta.url), 'utf8'),
+    ]);
+    assert.equal(source, docs, sourcePath + ' must match docs mirror');
+  }
+});
