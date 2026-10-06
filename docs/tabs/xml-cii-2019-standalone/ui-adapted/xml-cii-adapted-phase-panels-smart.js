@@ -1,5 +1,5 @@
 import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels.js?v=20261006-c05-5-5-persistence-retry-1';
-import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20261001-weight-output-2';
+import { enhanceRegexSmartWorkbench } from './xml-cii-adapted-regex-smart-ui.js?v=20261007-c05-6-2-consumer-authority-1';
 
 const STRICT_NOTICE_ATTR = 'data-strict-line-authority-notice';
 
