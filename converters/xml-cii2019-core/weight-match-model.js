@@ -4,6 +4,7 @@ import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-iss
 import { resolveBranchProcessData } from './branch-process-resolver.js';
 import { buildDtxrContext, resolveDtxrForXmlNode } from './dtxr-resolver.js';
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
+import { resolveXmlCiiBoreAuthority } from './bore-authority.js';
 import {
   buildXmlCiiStagedGeometryIndex,
   resolveXmlCiiStagedGeometryForNode,
@@ -590,13 +591,16 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       if (mode === 'all-review-nodes') {
         if (lengthMm === null || lengthMm <= 6) return;
       } else if (lengthMm === null || (weight !== null && Math.abs(weight) > 1e-12)) return;
-      let boreMm = xmlCiiNumberText(stagedGeometry?.boreMm);
-      if (boreMm === null) boreMm = xmlCiiNumberText(xmlText(node, 'BoreMm'));
-      if (boreMm === null) {
-        const od = xmlCiiNumberText(xmlText(node, 'OutsideDiameter'));
-        if (od !== null) boreMm = nominalDnFromOd(od);
-      }
-      if (boreMm === null) boreMm = branchContext.boreMm;
+      const boreAuthority = resolveXmlCiiBoreAuthority({
+        xmlOutsideDiameterMm: xmlCiiNumberText(xmlText(node, 'OutsideDiameter')),
+        xmlBoreMm: xmlCiiNumberText(xmlText(node, 'BoreMm')),
+        stagedBoreMm: xmlCiiNumberText(stagedGeometry?.boreMm),
+        branchName,
+        fallbackBoreMm: branchContext.boreMm,
+        validationTraceText: dtxrText,
+        config,
+      });
+      const boreMm = boreAuthority.boreMm;
       const rating = ratingForRigidWeightIssue(node, branchContext, config);
       const ranking = options.rankCandidates === false
         ? { nodeHint: null, candidates: [], rejectedCandidates: [] }
@@ -620,7 +624,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
         : (nearestNumberedDisplays[nodeIdx]
           || xmlCiiWeightReviewNodeFallbackId(node, nodeIdx)
           || nodeNumber);
-      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: stagedLength !== null || explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
+      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, boreSource: boreAuthority.source, boreFallbackUsed: boreAuthority.fallbackUsed, boreTraceMismatch: boreAuthority.traceMismatch, boreNeedsReview: boreAuthority.needsReview, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: stagedLength !== null || explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
     });
   }
   return rows;
