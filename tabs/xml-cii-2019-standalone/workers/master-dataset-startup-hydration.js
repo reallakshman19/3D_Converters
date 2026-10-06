@@ -160,6 +160,28 @@ function applyLoadedDatasets(state, loaded) {
   };
 }
 
+function restoreFailureRecord(masterKey, custody, error) {
+  return Object.freeze({
+    masterKey,
+    datasetId: String(custody?.datasetId || ''),
+    stage: 'startup-hydration',
+    name: String(error?.name || 'Error'),
+    message: String(error?.message || error || 'Persisted master restore failed.'),
+  });
+}
+
+function withMasterRestoreFailures(state, entries, failures) {
+  const nextFailures = state?.masterRestoreFailures && typeof state.masterRestoreFailures === 'object'
+    ? { ...state.masterRestoreFailures }
+    : {};
+  for (const [masterKey] of entries) delete nextFailures[masterKey];
+  for (const failure of failures) nextFailures[failure.masterKey] = failure;
+  return {
+    ...state,
+    masterRestoreFailures: nextFailures,
+  };
+}
+
 export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
   if (!stateRef?.current) return false;
   const entries = Object.keys(MASTER_DEFS)
@@ -167,7 +189,18 @@ export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
     .filter(([, custody]) => custody);
   if (!entries.length) return false;
   const store = options.store || createIndexedDbDatasetStore(options);
-  const loaded = await Promise.all(entries.map(([masterKey, custody]) => loadDataset(store, masterKey, custody)));
-  stateRef.current = applyLoadedDatasets(stateRef.current, loaded);
+  const outcomes = await Promise.all(entries.map(async ([masterKey, custody]) => {
+    try {
+      return { ok: true, item: await loadDataset(store, masterKey, custody) };
+    } catch (error) {
+      return { ok: false, failure: restoreFailureRecord(masterKey, custody, error) };
+    }
+  }));
+  const loaded = outcomes.filter((entry) => entry.ok).map((entry) => entry.item);
+  const failures = outcomes.filter((entry) => !entry.ok).map((entry) => entry.failure);
+  const nextState = loaded.length
+    ? applyLoadedDatasets(stateRef.current, loaded)
+    : stateRef.current;
+  stateRef.current = withMasterRestoreFailures(nextState, entries, failures);
   return true;
 }
