@@ -1,4 +1,4 @@
-import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
 import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-output-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
