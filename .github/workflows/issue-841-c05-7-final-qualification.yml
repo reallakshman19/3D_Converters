@@ -1,0 +1,322 @@
+name: Issue 841 C05 Final Exact Head Qualification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c05-current-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run full descendant-compatible C05.5 persistence semantics
+        run: |
+          node --test \
+            --test-skip-pattern='runtime cache chain carries one retry generation from tab to worker' \
+            tests/xml-cii-issue-875-persistence-status-retry.test.mjs
+      - name: Run current C05.5 C05.6 and protected authority contracts
+        run: |
+          node --test \
+            tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
+            tests/xml-cii-issue-882-session-precedence.test.mjs \
+            tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs \
+            tests/xml-cii-issue-893-consumer-authority.test.mjs \
+            tests/xml-cii-issue-894-scale-contract.test.mjs \
+            tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs \
+            tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
+            tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs \
+            tests/xml-cii-workflow-job-dataset-materialization.test.mjs
+
+  p0-applicable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate B31.3 live Preview row custody
+        run: node tests/xml-cii-issue-781-b313-live-row-custody.test.js
+      - name: Validate explicit REST custody to CII writer
+        run: python3 tests/xml-cii-issue-781-explicit-restraint-custody.test.py
+      - name: Run adjacent P0 regressions on exact head
+        id: adjacent_head
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-b313-preview-ui-static.test.js \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs 2>&1 | tee c05-p0-adjacent-head.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Checkout stacked C05 baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 3dd55ffc185fef400879de7a3801a27a2737cdff
+          path: __c05_base
+      - name: Run adjacent P0 regressions on stacked baseline
+        id: adjacent_base
+        shell: bash
+        working-directory: __c05_base
+        run: |
+          set +e
+          node --test --test-reporter=tap \
+            tests/xml-cii-b313-preview-ui-static.test.js \
+            tests/xml-cii-b313-preview-od-selection.test.mjs \
+            tests/xml-cii-b313-preview-pressure-unit.test.mjs \
+            tests/xml-cii-b313-preview-blocker-ui-static.test.mjs \
+            tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs 2>&1 | tee ../c05-p0-adjacent-base.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Classify P0 applicability against stacked baseline
+        id: adjacent_diff
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          head_status="${{ steps.adjacent_head.outputs.status }}"
+          base_status="${{ steps.adjacent_base.outputs.status }}"
+          normalize_failures() {
+            sed -nE 's/^[[:space:]]*not ok [0-9]+ - (.*)$/\1/p' "$1" \
+              | sed -E 's/[[:space:]]+#.*$//' \
+              | sort
+          }
+          normalize_failures c05-p0-adjacent-head.log > c05-p0-adjacent-head.failures.txt
+          normalize_failures c05-p0-adjacent-base.log > c05-p0-adjacent-base.failures.txt
+          comm -23 c05-p0-adjacent-head.failures.txt c05-p0-adjacent-base.failures.txt \
+            > c05-p0-adjacent-new.failures.txt
+          status=0
+          classification="head-pass"
+          if [ "${head_status}" != "0" ]; then
+            if [ ! -s c05-p0-adjacent-head.failures.txt ]; then
+              status=1
+              classification="unclassified-head-failure"
+            elif [ "${base_status}" = "0" ]; then
+              status=1
+              classification="new-head-failure"
+            elif [ -s c05-p0-adjacent-new.failures.txt ]; then
+              status=1
+              classification="new-failure-identity"
+            else
+              classification="baseline-only-failures"
+            fi
+          fi
+          echo "P0 applicability: head=${head_status} base=${base_status} classification=${classification}"
+          cat c05-p0-adjacent-new.failures.txt || true
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          echo "classification=${classification}" >> "${GITHUB_OUTPUT}"
+      - name: Enforce applicable P0 result
+        if: always()
+        run: |
+          echo "classification=${{ steps.adjacent_diff.outputs.classification }}"
+          test "${{ steps.adjacent_diff.outputs.status }}" = "0"
+      - name: Upload P0 applicability ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-841-c05-p0-applicability
+          path: |
+            c05-p0-adjacent-head.log
+            c05-p0-adjacent-base.log
+            c05-p0-adjacent-head.failures.txt
+            c05-p0-adjacent-base.failures.txt
+            c05-p0-adjacent-new.failures.txt
+          if-no-files-found: error
+
+  worker-line-list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check worker and projection runtime
+        run: |
+          node --check converters/xml-cii2019-core/linelist-mapping.js
+          node --check converters/xml-cii2019-core/weight-match-ranking-service.js
+          node --check converters/xml-cii2019-core/weight-match-model.js
+          node --check converters/xml-cii2019-core/piping-class-resolver.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-service.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-client.js
+          node --check tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js
+      - name: Run worker projection and Weight authority regressions
+        run: |
+          node --test \
+            tests/xml-cii-issue-781-worker-weight-api.test.mjs \
+            tests/xml-cii-issue-781-weight-liveness.test.mjs \
+            tests/xml-cii-issue-781-weight-build-performance.test.mjs \
+            tests/xml-cii-master-worker-metadata-import.test.mjs \
+            tests/xml-cii-master-preview-worker-search.test.mjs \
+            tests/xml-cii-issue-776-weight-review-authority.test.mjs \
+            tests/xml-cii-issue-776-weight-acceptance-validation.test.mjs \
+            tests/xml-cii-issue-776-weight-unit-custody.test.mjs \
+            tests/xml-cii-issue-776-match1-provenance.test.mjs \
+            tests/xml-cii-issue-776-match1-acceptance-paths.test.mjs \
+            tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-841-worker-http.log 2>&1 &
+      - name: Prove APPLIED Key1 Key2 survives worker remap and Preview fetch
+        run: node scripts/run-xml-cii-line-list-remap-preview-e2e.mjs
+      - name: Requalify worker Weight ranking scale
+        run: node scripts/run-xml-cii-worker-weight-scale-e2e.mjs
+      - name: Requalify master-independent Weight Build basis
+        run: node scripts/run-xml-cii-weight-basis-fastpath-e2e.mjs
+      - name: Upload worker and line-list receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-841-c05-worker-line-list
+          path: |
+            ValidationRecords/xml-cii-issue-781-line-list-remap-preview-e2e.json
+            ValidationRecords/xml-cii-issue-781-worker-weight-scale-e2e.json
+            ValidationRecords/xml-cii-issue-781-weight-basis-fastpath-e2e.json
+            /tmp/issue-841-worker-http.log
+          if-no-files-found: error
+
+  c05-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4174 --bind 127.0.0.1 > /tmp/issue-841-c05-http.log 2>&1 &
+      - name: Run combined three-master cold reload
+        env:
+          XML_CII_ISSUE_892_URL: http://127.0.0.1:4174
+          XML_CII_ISSUE_892_OUTPUT: ValidationRecords/xml-cii-issue-841-three-master-cold-reload.json
+        run: node scripts/run-xml-cii-issue-892-three-master-cold-reload-e2e.mjs
+      - name: Run cold-hydrated consumer authority
+        env:
+          XML_CII_ISSUE_893_URL: http://127.0.0.1:4174
+          XML_CII_ISSUE_893_OUTPUT: ValidationRecords/xml-cii-issue-841-consumer-authority.json
+        run: node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
+      - name: Run P2810042 rigid-owner protected lifecycle
+        env:
+          XML_CII_ISSUE_821_URL: http://127.0.0.1:4174
+        run: node scripts/run-xml-cii-issue-821-p2810042-rigid-weight-e2e.mjs
+      - name: Upload final C05 browser receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-841-c05-browser
+          path: |
+            ValidationRecords/xml-cii-issue-841-three-master-cold-reload.json
+            ValidationRecords/xml-cii-issue-841-consumer-authority.json
+            ValidationRecords/xml-cii-issue-821-p2810042-rigid-weight.json
+            /tmp/issue-841-c05-http.log
+          if-no-files-found: error
+
+  c05-ledger-mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build cumulative C05 changed-file ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=db926a1ecf6ae2dd72735d9ab9c03e029c9e4239
+          git diff --name-only "$base" HEAD | sort > c05-changed-files.txt
+          git diff --stat "$base" HEAD > c05-diff-stat.txt
+          count=$(wc -l < c05-changed-files.txt | tr -d ' ')
+          echo "C05 cumulative changed files: $count"
+          cat c05-diff-stat.txt
+      - name: Verify cumulative runtime source docs mirrors
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > c05-mirror-parity.txt
+          failures=0
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            case "$path" in
+              tabs/xml-cii-2019-standalone/*|converters/xml-cii2019-core/*)
+                mirror="docs/$path"
+                if [ -f "$mirror" ]; then
+                  if cmp -s "$path" "$mirror"; then
+                    echo "PASS $path == $mirror" >> c05-mirror-parity.txt
+                  else
+                    echo "FAIL $path != $mirror" >> c05-mirror-parity.txt
+                    failures=$((failures+1))
+                  fi
+                fi
+                ;;
+              docs/tabs/xml-cii-2019-standalone/*|docs/converters/xml-cii2019-core/*)
+                source="${path#docs/}"
+                if [ -f "$source" ]; then
+                  if cmp -s "$source" "$path"; then
+                    echo "PASS $source == $path" >> c05-mirror-parity.txt
+                  else
+                    echo "FAIL $source != $path" >> c05-mirror-parity.txt
+                    failures=$((failures+1))
+                  fi
+                fi
+                ;;
+            esac
+          done < c05-changed-files.txt
+          sort -u c05-mirror-parity.txt -o c05-mirror-parity.txt
+          cat c05-mirror-parity.txt
+          echo "mirror_failures=$failures"
+          test "$failures" = "0"
+      - name: Upload cumulative ledger
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-841-c05-ledger-mirror
+          path: |
+            c05-changed-files.txt
+            c05-diff-stat.txt
+            c05-mirror-parity.txt
+          if-no-files-found: error
