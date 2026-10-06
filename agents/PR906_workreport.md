@@ -50,9 +50,11 @@ No production/runtime/docs mirror file is in scope.
 
 ## Validation
 - PASS — independent local source/workbook extraction used to build the inventory.
-- NOT_RUN locally — repository import test requires the C05 material tree; hosted PR validation will execute it.
-- NOT_RUN — hosted exact-head validation until PR allocation.
-- NOT_APPLICABLE — source/docs runtime mirror check because no runtime source changes are planned.
+- PASS — `node --check tests/xml-cii-issue-901-p2810042-source-baseline.test.mjs`.
+- PASS — inventory JSON parse and baseline assertions against the independently extracted source/workbook facts.
+- PASS — inherited C05 exact-head qualification run 37549299891 at PR head 39d15048bd8ed4496882771fd361040373b63ee1: 5/5 jobs SUCCESS (browser, P0 applicable, worker/line-list, current Node contracts, mirror/ledger).
+- NOT_RUN — the newly named #901 Node test is not enumerated by the inherited C05 workflows. No workflow file was changed because repository rules require explicit authorization for workflow edits; #905 owns final hosted combined qualification.
+- NOT_APPLICABLE — source/docs runtime mirror check for the #901 delta because no runtime source changed.
 
 ## Findings / negative knowledge
 - The full model is materially heterogeneous despite the 24-inch line identity; branch B5 contains 33.4/60.3 mm OD and B6 contains 33.4/60.3/610 mm OD.
@@ -63,5 +65,8 @@ No production/runtime/docs mirror file is in scope.
 ## Highest risk
 Accidentally promoting line-level size evidence into node-level engineering authority in the later combined test. The baseline oracle exists to make that visible and non-negotiable.
 
+## Result
+C06.1 baseline responsibility is complete. No production defect was repaired and no runtime authority changed. PR #906 remains draft/unmerged; merge authority remains Owner-only.
+
 ## EXACT_NEXT_ACTION
-Validate PR #906 exact head, reconcile provider checks, publish #901 TASK_EVIDENCE/TASK_RESULT if green, and only then permit #902 to start.
+Publish #901 TASK_EVIDENCE/TASK_RESULT, close #901 as responsibility-complete, update #823 serial frontier to #902, and begin #902 read-only grounding.
