@@ -1,0 +1,53 @@
+name: Issue 884 C05.5.4.5 Corrupt Restore Final Qualification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c05-5-4-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify qualification-only child scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            git diff --name-only "${base_sha}...HEAD" > /tmp/issue884_changed.txt
+            cat /tmp/issue884_changed.txt
+            disallowed="$(grep -Ev '^\.github/workflows/issue-884-c05-5-4-5-final\.yml$' /tmp/issue884_changed.txt || true)"
+            if [ -n "${disallowed}" ]; then
+              echo "Issue 884 must remain qualification-only; unexpected files:"
+              printf '%s\n' "${disallowed}"
+              exit 1
+            fi
+          fi
+
+      - name: Run C05.5.4 and protected master regression set
+        run: |
+          node --test \
+            tests/xml-cii-issue-880-corrupt-restore-baseline.test.mjs \
+            tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
+            tests/xml-cii-issue-882-session-precedence.test.mjs \
+            tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
+            tests/xml-cii-issue-836-piping-class-cold-hydration.test.mjs \
+            tests/xml-cii-issue-837-mat-map-cold-hydration.test.mjs \
+            tests/xml-cii-issue-857-valve-weight-cold-hydration.test.mjs \
+            tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
+            tests/xml-cii-issue-872-worker-session-fallback.test.mjs \
+            tests/xml-cii-issue-873-session-custody.test.mjs
