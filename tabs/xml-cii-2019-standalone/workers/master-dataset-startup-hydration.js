@@ -38,6 +38,7 @@ function datasetCustody(masterKey) {
     source: String(custody.source || ''),
     fieldMap: custody.fieldMap && typeof custody.fieldMap === 'object' ? { ...custody.fieldMap } : {},
     appliedRevision: Number(custody.appliedRevision || 0),
+    datasetRevision: Number(custody.datasetRevision || 0),
     masterFingerprint: String(custody.masterFingerprint || ''),
   };
 }
@@ -56,6 +57,11 @@ async function loadDataset(store, masterKey, custody) {
   const metadataCount = metadata.rowCount == null ? Number(custody.rowCount || 0) : Number(metadata.rowCount || 0);
   if (metadataCount !== Number(custody.rowCount || 0)) {
     throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`);
+  }
+  const custodyRevision = Number(custody.datasetRevision || 0);
+  const metadataRevision = Number(metadata.datasetRevision || 0);
+  if (custodyRevision > 0 && metadataRevision > 0 && custodyRevision !== metadataRevision) {
+    throw new Error(`Persisted ${masterKey} dataset revision mismatch: expected ${custodyRevision}, received ${metadataRevision}.`);
   }
 
   let fullRows = null;
@@ -109,6 +115,7 @@ function applyLoadedDatasets(state, loaded) {
     context.mappingRows[item.masterKey] = Array.isArray(item.metadata.mappingRows) ? item.metadata.mappingRows.slice(0, STARTUP_PREVIEW_ROWS) : [];
     context.datasetRefs[item.masterKey] = Object.freeze({
       datasetId: item.custody.datasetId,
+      datasetRevision: Number(item.custody.datasetRevision || item.metadata.datasetRevision || 0),
       rowCount: item.custody.rowCount,
       masterKey: item.masterKey,
       fileName: item.metadata.fileName || item.custody.source,
@@ -154,7 +161,37 @@ export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
     .filter(([, custody]) => custody);
   if (!entries.length) return false;
   const store = options.store || createIndexedDbDatasetStore(options);
-  const loaded = await Promise.all(entries.map(([masterKey, custody]) => loadDataset(store, masterKey, custody)));
-  stateRef.current = applyLoadedDatasets(stateRef.current, loaded);
-  return true;
+  const outcomes = await Promise.all(entries.map(async ([masterKey, custody]) => {
+    try {
+      return { ok: true, masterKey, value: await loadDataset(store, masterKey, custody) };
+    } catch (error) {
+      return {
+        ok: false,
+        masterKey,
+        error: {
+          name: String(error?.name || 'Error'),
+          message: String(error?.message || error || 'Persisted master restore failed.'),
+        },
+      };
+    }
+  }));
+  const loaded = outcomes.filter((outcome) => outcome.ok).map((outcome) => outcome.value);
+  const failures = outcomes.filter((outcome) => !outcome.ok);
+  let nextState = loaded.length
+    ? applyLoadedDatasets(stateRef.current, loaded)
+    : stateRef.current;
+  if (failures.length) {
+    const detail = failures
+      .map((failure) => `${failure.masterKey}: ${failure.error.message}`)
+      .join('; ');
+    const restored = loaded.length
+      ? `Restored ${loaded.length} persisted master dataset${loaded.length === 1 ? '' : 's'}; `
+      : '';
+    nextState = {
+      ...nextState,
+      importMastersWriteBackStatus: `${restored}persisted master unavailable/failed: ${detail}`,
+    };
+  }
+  stateRef.current = nextState;
+  return loaded.length > 0 || failures.length > 0;
 }
