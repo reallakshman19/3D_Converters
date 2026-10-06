@@ -10,9 +10,16 @@ import {
   resolveBranchNominalBore,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-wall-evidence.js';
 
-test('10-inch branch name outranks a DN100 first-node fallback', () => {
+test('XML/source bore outranks Branchname size regex', () => {
   assert.equal(
     resolveBranchNominalBore('/TWGA-1000-10"-P1110501-1006520P5-01/B1', 100),
+    100,
+  );
+});
+
+test('Branchname size regex remains fallback when XML/source bore is absent', () => {
+  assert.equal(
+    resolveBranchNominalBore('/TWGA-1000-10"-P1110501-1006520P5-01/B1', null),
     250,
   );
 });

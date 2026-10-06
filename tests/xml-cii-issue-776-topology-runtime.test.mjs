@@ -82,3 +82,6 @@ assert.equal(Number(coords[0].trim()), 1, 'repaired graph should need one coordi
 assert.equal(Number(coords[1].trim().split(/\s+/)[0]), 60);
 
 console.log('Issue #776 runtime topology regression passed.');
+
+// Issue #781 C02 uses the established authority gate as its exact-head carrier.
+await import('./xml-cii-issue-781-p2810042-bore-wall-authority.test.mjs');
