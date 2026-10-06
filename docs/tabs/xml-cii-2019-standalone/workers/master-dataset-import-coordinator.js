@@ -48,6 +48,12 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return remember(masterKey, await client.remapDataset(activeId, fieldMap));
   }
 
+  async function retryPersistence(masterKey, datasetIdOverride = '') {
+    const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
+    if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
+    return client.retryPersistence(datasetId);
+  }
+
   async function materialize(message, options = {}) {
     const ready = assertDatasetMessage(message);
     const datasetId = ready.metadata.datasetId;
@@ -125,5 +131,5 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     client.dispose();
   }
 
-  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, materialize, materializeRows, releaseMaster, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, dispose });
+  return Object.freeze({ openFile, openBuffer, selectSheet, workbookJob, remapDataset, retryPersistence, materialize, materializeRows, releaseMaster, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, dispose });
 }
