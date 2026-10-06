@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 
 import { commitDatasetReadyMaster } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-commit.js';
 import { hydratePersistedMasterDatasets } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js';
@@ -141,5 +142,55 @@ test('C05.3 preserves Piping Class green and does not pre-complete Valve Weight 
     assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, undefined);
   } finally {
     storage.restore();
+  }
+});
+
+
+test('C05.3 Mat_Map rejects stale restart revision against IndexedDB metadata', async () => {
+  const storage = installStorage({
+    'xml-cii-master-source-materialMap': JSON.stringify({
+      source: 'PCF_MAT_MAP.TXT',
+      datasetId: 'issue837:mat:r3',
+      datasetRevision: 3,
+      rowCount: 1,
+      fieldMap: {},
+      appliedRevision: 1,
+      persistenceMode: 'indexeddb',
+    }),
+  });
+  const stateRef = startupState();
+  try {
+    await assert.rejects(
+      hydratePersistedMasterDatasets(stateRef, {
+        store: {
+          async getMetadata() {
+            return {
+              datasetId: 'issue837:mat:r3',
+              datasetRevision: 4,
+              rowCount: 1,
+              fileName: 'PCF_MAT_MAP.TXT',
+            };
+          },
+          async getRowsRange() { return [{ Marker: 'MAT' }]; },
+          async getRows() { return [{ Marker: 'MAT' }]; },
+        },
+      }),
+      /materialMap dataset revision mismatch: expected 3, received 4/,
+    );
+  } finally {
+    storage.restore();
+  }
+});
+
+test('C05.3 changed runtime modules match docs deployment mirrors', async () => {
+  for (const sourcePath of [
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js',
+    'tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js',
+  ]) {
+    const [source, docs] = await Promise.all([
+      fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8'),
+      fs.readFile(new URL('../docs/' + sourcePath, import.meta.url), 'utf8'),
+    ]);
+    assert.equal(source, docs, sourcePath + ' must match docs mirror');
   }
 });
