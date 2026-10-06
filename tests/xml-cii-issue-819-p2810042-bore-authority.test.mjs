@@ -81,6 +81,26 @@ function value(block, tag) {
   return (block.match(new RegExp(`<${tag}>\\s*([^<]+?)\\s*<\\/${tag}>`, 'i'))?.[1] || '').trim();
 }
 
+test('source OD canonicalizes stale enriched BoreMm even without staged JSON', () => {
+  const stale = reducerXml.replace(
+    '<OutsideDiameter>508</OutsideDiameter>',
+    '<OutsideDiameter>508</OutsideDiameter><BoreMm>600.000</BoreMm>',
+  );
+  const geometry = applyXmlCiiStagedGeometryAuthority(stale, '', {
+    config: {
+      dropGasketNodes: false,
+      dropGasketsInEnrichment: false,
+      dropShortElementLengthNodes: false,
+    },
+  });
+  const node120 = nodeBlock(geometry.xmlText, 120);
+  assert.equal(
+    value(node120, 'BoreMm'),
+    '500.000',
+    'source OD508 must correct stale branch DN600 in enriched XML even when staged JSON is absent',
+  );
+});
+
 test('shared staged component ref cannot collapse REDU endpoint-specific XML OD', () => {
   const geometry = applyXmlCiiStagedGeometryAuthority(reducerXml, staged, {
     config: {
