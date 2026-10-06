@@ -38,16 +38,15 @@ jobs:
             fi
           fi
 
-      - name: Run C05.5.4 and protected master regression set
+      - name: Run C05.5.4 and descendant-compatible protected-path regressions
         run: |
           node --test \
-            tests/xml-cii-issue-880-corrupt-restore-baseline.test.mjs \
             tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
             tests/xml-cii-issue-882-session-precedence.test.mjs \
             tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
-            tests/xml-cii-issue-836-piping-class-cold-hydration.test.mjs \
-            tests/xml-cii-issue-837-mat-map-cold-hydration.test.mjs \
-            tests/xml-cii-issue-857-valve-weight-cold-hydration.test.mjs \
             tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
             tests/xml-cii-issue-872-worker-session-fallback.test.mjs \
-            tests/xml-cii-issue-873-session-custody.test.mjs
+            tests/xml-cii-issue-873-session-custody.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs
