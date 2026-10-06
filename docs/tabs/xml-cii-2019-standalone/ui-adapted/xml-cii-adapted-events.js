@@ -9,7 +9,7 @@ import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weigh
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
-import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20261001-weight-output-2';
+import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20261006-p2810042-master-persistence-1';
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js?v=20261001-single-weight-owners-1';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js?v=20261001-weight-output-2';
 import { compareTraceResultsByComponentRef } from '../xml-cii-table-trace-source.js';
