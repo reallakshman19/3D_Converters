@@ -221,6 +221,8 @@ jobs:
         run: node scripts/run-xml-cii-issue-830-p2810042-bore-wall-e2e.mjs
       - name: Run P2810042 rigid weight lifecycle
         run: node scripts/run-xml-cii-issue-821-p2810042-rigid-weight-e2e.mjs
+      - name: Run C05 master cold reload lifecycle
+        run: node scripts/run-xml-cii-issue-822-master-cold-reload-e2e.mjs
       - name: Run 10k / 50k / 100k master dataset browser scale
         run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
       - name: Upload WSW exact-head evidence
@@ -232,6 +234,7 @@ jobs:
             ValidationRecords/xml-cii-issue-776-wsw-e2e.json
             ValidationRecords/xml-cii-issue-830-p2810042-bore-wall.json
             ValidationRecords/xml-cii-issue-821-p2810042-rigid-weight.json
+            ValidationRecords/xml-cii-issue-822-master-cold-reload.json
             ValidationRecords/xml-cii-master-dataset-scale-e2e.json
             /tmp/issue-776-http.log
           if-no-files-found: warn
