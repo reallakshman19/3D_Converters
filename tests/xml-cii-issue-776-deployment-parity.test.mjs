@@ -4,6 +4,15 @@ import { readFile } from 'node:fs/promises';
 const release = '20260930-issue781-weight-no-staged-rewrite-1';
 const screenshotRepairRelease = '20261001-weight-output-2';
 const liveAcceptanceRelease = '20261001-weight-output-2';
+const c05MasterPersistenceRelease = '20261006-p2810042-master-persistence-1';
+const c05MasterPersistencePaths = new Set([
+  'tabs/xml-cii-2019-standalone-tab.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
+  'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
+  'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
+  'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
+]);
 const activation = JSON.parse(await readFile(new URL('../agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/runtime-activation-ledger.json', import.meta.url), 'utf8'));
 const activated = new Set([...activation.activatedModules, 'index.html']);
 const moduleRelease = (filename, fallback) => activation.activatedModules.some(path => path.endsWith('/' + filename)) ? activation.release : fallback;
@@ -97,7 +106,9 @@ const screenshotRepairPaths = [
 ];
 for (const path of screenshotRepairPaths) {
   const source = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-  const expectedRelease = activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease);
+  const expectedRelease = c05MasterPersistencePaths.has(path)
+    ? c05MasterPersistenceRelease
+    : (activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease));
   assert.ok(source.includes(expectedRelease), `live acceptance cache chain missing ${expectedRelease}: ${path}`);
 }
 
