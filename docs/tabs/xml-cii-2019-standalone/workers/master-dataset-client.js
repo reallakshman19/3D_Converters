@@ -130,6 +130,11 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.REMAP_DATASET, { datasetId, fieldMap: { ...(fieldMap || {}) } });
   }
 
+  function retryPersistence(datasetId) {
+    if (!datasetId) throw new Error('datasetId is required.');
+    return request(MASTER_DATASET_COMMAND.RETRY_PERSISTENCE, { datasetId });
+  }
+
   function search(datasetId, query) {
     return request(MASTER_DATASET_COMMAND.SEARCH, { datasetId, query });
   }
@@ -203,7 +208,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, getRawRows,
+    openBuffer, openFile, selectSheet, remapDataset, retryPersistence, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }
