@@ -61,13 +61,14 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       fieldMapOverride: source.fieldMapOverride,
       ...(source.masterKey === 'weight' ? { masterFingerprint: xmlCiiWeightMasterRowsFingerprint(prepared.rows) } : {}),
     };
+    const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
     datasets.set(metadata.datasetId, {
       metadata,
       rows: prepared.rows,
       rawRows,
+      mappingRows,
       searchCorpus: prepared.searchCorpus,
     });
-    const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
     let persistence;
     metadata.persistenceMode = 'indexeddb';
     try {
@@ -166,12 +167,50 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     return response(MASTER_DATASET_EVENT.DATASET_READY, message.requestId, ready);
   }
 
+  async function retryPersistence(message) {
+    const dataset = await ensureDataset(message.datasetId);
+    const metadata = dataset.metadata || {};
+    const mappingRows = Array.isArray(dataset.mappingRows)
+      ? dataset.mappingRows
+      : (Array.isArray(metadata.mappingRows) ? metadata.mappingRows : []);
+    try {
+      metadata.persistenceMode = 'indexeddb';
+      await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, dataset.rows);
+      return response(MASTER_DATASET_EVENT.PERSISTENCE_RESULT, message.requestId, {
+        datasetId: metadata.datasetId,
+        metadata: publicMetadata(metadata),
+        previewRows: dataset.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+        mappingRows,
+        persistence: { persisted: true, failure: null, quotaLimited: false },
+      });
+    } catch (error) {
+      metadata.persistenceMode = 'session';
+      return response(MASTER_DATASET_EVENT.PERSISTENCE_RESULT, message.requestId, {
+        datasetId: metadata.datasetId,
+        metadata: publicMetadata(metadata),
+        previewRows: dataset.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+        mappingRows,
+        persistence: {
+          persisted: false,
+          failure: persistenceFailure(error),
+          quotaLimited: quotaLike(error),
+        },
+      });
+    }
+  }
+
   async function ensureDataset(datasetId) {
     if (datasets.has(datasetId)) return datasets.get(datasetId);
     const metadata = await store.getMetadata?.(datasetId);
     const rows = await store.getRows(datasetId);
     if (!metadata || !rows) throw new Error(`Unknown dataset: ${datasetId}`);
-    const dataset = { metadata, rows, rawRows: null, searchCorpus: buildSearchCorpus(rows) };
+    const dataset = {
+      metadata,
+      rows,
+      rawRows: null,
+      mappingRows: Array.isArray(metadata.mappingRows) ? metadata.mappingRows : [],
+      searchCorpus: buildSearchCorpus(rows),
+    };
     datasets.set(datasetId, dataset);
     return dataset;
   }
@@ -287,6 +326,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.OPEN_SOURCE: return openSource(message);
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
       case MASTER_DATASET_COMMAND.REMAP_DATASET: return remapDataset(message);
+      case MASTER_DATASET_COMMAND.RETRY_PERSISTENCE: return retryPersistence(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
       case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);
       case MASTER_DATASET_COMMAND.PREPARE_WEIGHT_BASIS: return prepareWeightBasis(message);
