@@ -256,6 +256,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     const limit = Math.max(1, Math.min(MASTER_DATASET_CHUNK_ROWS, Number(message.limit) || MASTER_DATASET_PREVIEW_ROWS));
     return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
       datasetId: message.datasetId,
+      masterKey: String(dataset?.metadata?.masterKey || ''),
+      datasetRevision: Number(dataset?.metadata?.datasetRevision || 0),
+      masterFingerprint: String(dataset?.metadata?.masterFingerprint || ''),
       offset,
       raw,
       rows: sourceRows.slice(offset, offset + limit),
@@ -276,6 +279,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     }
     return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
       datasetId: message.datasetId,
+      masterKey: String(dataset?.metadata?.masterKey || ''),
+      datasetRevision: Number(dataset?.metadata?.datasetRevision || 0),
+      masterFingerprint: String(dataset?.metadata?.masterFingerprint || ''),
       indexes,
       rows,
       rowCount: dataset.rows.length,
