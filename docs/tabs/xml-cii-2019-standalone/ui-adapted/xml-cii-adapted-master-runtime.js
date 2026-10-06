@@ -103,6 +103,9 @@ function committedConfig(config, def, fieldMap, normalizedRows, datasetRef) {
 
 function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
   if (!metadata?.datasetId) return null;
+  const persistence = String(metadata.persistenceMode || '').toLowerCase() === 'session'
+    ? 'session'
+    : 'indexeddb';
   return Object.freeze({
     datasetId: String(metadata.datasetId),
     rowCount: Number(metadata.rowCount || 0),
@@ -116,7 +119,7 @@ function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
     ...(key === 'weight' ? {
       masterFingerprint: String(metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(rows)),
     } : {}),
-    persistence: 'indexeddb',
+    persistence,
   });
 }
 
@@ -235,6 +238,9 @@ export function persistChangedMasterDetailed(key, context) {
   const workbook = context?.workbookData?.[key] || {};
   const meta = context?.sourceMetadata?.[key] || {};
   const datasetRef = context?.datasetRefs?.[key] || null;
+  const durableDatasetRef = datasetRef?.datasetId && datasetRef.persistence === 'indexeddb'
+    ? datasetRef
+    : null;
   const duplicateBytes = datasetRef ? 0 : byteLength(normalized) + byteLength(rawRows) + byteLength(workbook);
   const compact = !!datasetRef || duplicateBytes >= COMPACT_PERSISTENCE_THRESHOLD_BYTES;
   const sourceCustody = {
@@ -242,12 +248,12 @@ export function persistChangedMasterDetailed(key, context) {
     fieldMap: { ...(context?.config?.[def.configKey]?.fieldMap || {}) },
     appliedRevision: Number(context?.appliedMappingRevision?.[key] || 0),
     ...(datasetRef ? {
-      datasetId: datasetRef.datasetId,
       rowCount: datasetRef.rowCount,
-      persistenceMode: 'indexeddb',
       ...((key === 'pipingClass' || key === 'materialMap' || key === 'weight') && Number(datasetRef.datasetRevision) > 0 ? {
         datasetRevision: Number(datasetRef.datasetRevision),
       } : {}),
+      persistenceMode: durableDatasetRef ? 'indexeddb' : 'session',
+      ...(durableDatasetRef ? { datasetId: durableDatasetRef.datasetId } : {}),
       ...(datasetRef.masterFingerprint ? { masterFingerprint: datasetRef.masterFingerprint } : {}),
     } : {}),
   };
@@ -290,8 +296,9 @@ export function persistChangedMasterDetailed(key, context) {
     failures: failures.map(persistenceFailure),
     compact,
     quotaLimited,
-    normalizedPersisted: datasetRef ? true : !normalizedResult.error,
-    indexedDbBacked: !!datasetRef,
+    normalizedPersisted: durableDatasetRef ? true : (datasetRef ? false : !normalizedResult.error),
+    indexedDbBacked: !!durableDatasetRef,
+    sessionOnly: !!datasetRef && !durableDatasetRef,
     estimatedDuplicateBytes: duplicateBytes,
   };
 }
