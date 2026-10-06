@@ -14,6 +14,7 @@ const fixture = await readFile(fixturePath, 'utf8');
 assert.equal((fixture.match(/<Branch(?:\s|>)/gi) || []).length, 41);
 assert.equal((fixture.match(/<Node(?:\s|>)/gi) || []).length, 1654);
 const release = '20261001-weight-output-2';
+const c05MasterPersistenceRelease = '20261006-p2810042-master-persistence-1';
 const activated = JSON.parse(await readFile(path.join(root,
   'agents/evidence/WIP-781-SINGLE-COMBINE-OWNERS-20261001/runtime-activation-ledger.json'), 'utf8'));
 const server = createServer(async (request, response) => {
@@ -133,8 +134,10 @@ try {
   assert.equal((await readRows())[sourceIndex].rating, '300');
   assert.equal((await readRows())[otherIndex].rating, '300');
   for (const file of ['weight-match-renderer', 'xml-cii-adapted-regex-rating', 'xml-cii-adapted-weight-match-v2', 'master-dataset-worker']) {
-    const expectedRelease = activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
-      ? activated.release : release;
+    const expectedRelease = file === 'master-dataset-worker'
+      ? c05MasterPersistenceRelease
+      : (activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
+        ? activated.release : release);
     assert.ok(modules.some((url) => url.includes(`${file}.js?v=${expectedRelease}`)), `Missing active release ${file}`);
   }
   assert.deepEqual(errors, []);
