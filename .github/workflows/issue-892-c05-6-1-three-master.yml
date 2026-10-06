@@ -1,4 +1,4 @@
-name: Issue 892 C05.6.1 Three Master First Load
+name: Issue 892 C05.6.1 Three Master Cold Reload
 
 on:
   pull_request:
@@ -8,9 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  three-master-first-load:
+  three-master-cold-reload:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
@@ -26,14 +26,14 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Start static server
         run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-892-http.log 2>&1 &
-      - name: Run combined three-master first-load persistence baseline
+      - name: Run combined three-master cold reload lifecycle
         run: node scripts/run-xml-cii-issue-892-three-master-cold-reload-e2e.mjs
-      - name: Upload first-load receipt
+      - name: Upload combined lifecycle receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue-892-c05-6-1-three-master-first-load
+          name: issue-892-c05-6-1-three-master-cold-reload
           path: |
-            ValidationRecords/xml-cii-issue-892-three-master-first-load.json
+            ValidationRecords/xml-cii-issue-892-three-master-cold-reload.json
             /tmp/issue-892-http.log
           if-no-files-found: error
