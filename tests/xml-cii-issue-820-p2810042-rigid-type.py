@@ -39,7 +39,8 @@ def edge_key(edge):
 # - EXE/B2 has 480 FLAN ep1 -> -1 FLAN ep2 -> 10 RIGID ep2;
 # - the RIGID and negative FLAN endpoint are coincident.
 # A positive accepted weight makes preserve_weighted_node_numbers temporarily
-# allocate the negative predecessor as max-positive+10 = 490.
+# allocate the negative predecessor as max-positive+10 = 490. The assertion
+# below is deliberately about the active post-cleanup model, not the transient ID.
 fixture = (
     "<PipeStressExport xmlns='http://aveva.com/pipeStress116.xsd'>"
     + branch(
