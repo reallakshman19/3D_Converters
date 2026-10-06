@@ -170,6 +170,10 @@ function restoreFailureRecord(masterKey, custody, error) {
   });
 }
 
+function activeSessionAuthority(state, masterKey) {
+  return String(state?.masterContext?.datasetRefs?.[masterKey]?.persistence || '').toLowerCase() === 'session';
+}
+
 function withMasterRestoreFailures(state, entries, failures) {
   const nextFailures = state?.masterRestoreFailures && typeof state.masterRestoreFailures === 'object'
     ? { ...state.masterRestoreFailures }
@@ -196,7 +200,10 @@ export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
       return { ok: false, failure: restoreFailureRecord(masterKey, custody, error) };
     }
   }));
-  const loaded = outcomes.filter((entry) => entry.ok).map((entry) => entry.item);
+  const loaded = outcomes
+    .filter((entry) => entry.ok)
+    .map((entry) => entry.item)
+    .filter((item) => !activeSessionAuthority(stateRef.current, item.masterKey));
   const failures = outcomes.filter((entry) => !entry.ok).map((entry) => entry.failure);
   const nextState = loaded.length
     ? applyLoadedDatasets(stateRef.current, loaded)
