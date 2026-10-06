@@ -21,6 +21,27 @@ function configFromState(state, fallback = {}) {
   return state?.masterContext?.config || readSupportConfigOnce(state) || fallback || {};
 }
 
+function mergeWorkerPersistence(localPersistence, ready) {
+  const worker = ready?.persistence;
+  if (!worker || worker.persisted !== false) return localPersistence;
+  const failure = worker.failure || { name: 'Error', message: 'IndexedDB persistence failed.' };
+  return {
+    ...localPersistence,
+    failures: [
+      ...(localPersistence.failures || []),
+      {
+        key: 'indexeddb:dataset',
+        name: String(failure.name || 'Error'),
+        message: String(failure.message || 'IndexedDB persistence failed.'),
+      },
+    ],
+    quotaLimited: Boolean(localPersistence.quotaLimited || worker.quotaLimited),
+    normalizedPersisted: false,
+    indexedDbBacked: false,
+    sessionOnly: true,
+  };
+}
+
 function validateReady(key, ready) {
   const metadata = ready?.metadata;
   if (!metadata?.datasetId) throw new Error(`Dataset-ready metadata is required for ${key}.`);
@@ -54,7 +75,10 @@ export function commitDatasetReadyMaster({ context = {}, config = {}, key, ready
     mappingRows: { ...(committed.context.mappingRows || {}), [key]: mappingRows },
   };
   if (key === 'pipingClass') nextContext.pipingClassIndex = null;
-  const persistence = persistChangedMasterDetailed(key, nextContext);
+  const persistence = mergeWorkerPersistence(
+    persistChangedMasterDetailed(key, nextContext),
+    ready,
+  );
   return { ...committed, context: nextContext, persistence };
 }
 
