@@ -38,6 +38,9 @@ function datasetCustody(masterKey) {
     source: String(custody.source || ''),
     fieldMap: custody.fieldMap && typeof custody.fieldMap === 'object' ? { ...custody.fieldMap } : {},
     appliedRevision: Number(custody.appliedRevision || 0),
+    ...(masterKey === 'pipingClass' && Number(custody.datasetRevision) > 0 ? {
+      datasetRevision: Number(custody.datasetRevision),
+    } : {}),
     masterFingerprint: String(custody.masterFingerprint || ''),
   };
 }
@@ -56,6 +59,13 @@ async function loadDataset(store, masterKey, custody) {
   const metadataCount = metadata.rowCount == null ? Number(custody.rowCount || 0) : Number(metadata.rowCount || 0);
   if (metadataCount !== Number(custody.rowCount || 0)) {
     throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`);
+  }
+  if (masterKey === 'pipingClass') {
+    const custodyRevision = Number(custody.datasetRevision || 0);
+    const metadataRevision = Number(metadata.datasetRevision || 0);
+    if (custodyRevision > 0 && metadataRevision > 0 && custodyRevision !== metadataRevision) {
+      throw new Error(`Persisted pipingClass dataset revision mismatch: expected ${custodyRevision}, received ${metadataRevision}.`);
+    }
   }
 
   let fullRows = null;
@@ -114,6 +124,9 @@ function applyLoadedDatasets(state, loaded) {
       fileName: item.metadata.fileName || item.custody.source,
       sheetName: item.metadata.sheetName || '',
       fieldMap: { ...item.custody.fieldMap },
+      ...(item.masterKey === 'pipingClass' && Number(item.custody.datasetRevision || item.metadata.datasetRevision) > 0 ? {
+        datasetRevision: Number(item.custody.datasetRevision || item.metadata.datasetRevision),
+      } : {}),
       ...(masterFingerprint ? { masterFingerprint } : {}),
       persistence: 'indexeddb',
     });
