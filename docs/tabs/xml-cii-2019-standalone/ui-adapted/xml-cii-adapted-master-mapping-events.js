@@ -12,9 +12,9 @@ import {
   discardMasterMappingDraft, effectiveDraftFieldMap, ensureMasterRuntime,
   masterMappingStatus, persistChangedMasterDetailed, readSupportConfigOnce,
   stageMasterMappingDraft,
-} from './xml-cii-adapted-master-runtime.js';
+} from './xml-cii-adapted-master-runtime.js?v=20261006-p2810042-master-persistence-1';
 import { perfAddMs, perfCount, perfNow, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
-import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
+import { remapDatasetBackedMasterDraft } from './xml-cii-adapted-master-dataset-commit.js?v=20261006-p2810042-master-persistence-1';
 
 export function masterConfigForState(stateRef) {
   return stateRef.current.masterContext?.config || readSupportConfigOnce(stateRef.current);
