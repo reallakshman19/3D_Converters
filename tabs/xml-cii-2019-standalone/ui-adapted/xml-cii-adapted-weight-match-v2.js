@@ -120,6 +120,25 @@ export async function weightMatchConfigFromState(state, options = {}) {
   return ensureWeightRows(base, context, materializeRows);
 }
 
+function assertWeightDatasetResultAuthority(result = {}, datasetRef = {}) {
+  const expectedId = String(datasetRef?.datasetId || '');
+  const actualId = String(result?.datasetId || '');
+  if (expectedId && actualId !== expectedId) {
+    throw new Error(`Weight Match dataset authority mismatch: expected ${expectedId}, received ${actualId || 'unknown'}.`);
+  }
+  const expectedRevision = Number(datasetRef?.datasetRevision || 0);
+  const actualRevision = Number(result?.datasetRevision || 0);
+  if (expectedRevision > 0 && actualRevision > 0 && expectedRevision !== actualRevision) {
+    throw new Error(`Weight Match dataset revision mismatch: expected ${expectedRevision}, received ${actualRevision}.`);
+  }
+  const expectedFingerprint = String(datasetRef?.masterFingerprint || '');
+  const actualFingerprint = String(result?.masterFingerprint || '');
+  if (expectedFingerprint && actualFingerprint !== expectedFingerprint) {
+    throw new Error(`Weight Match dataset fingerprint mismatch: expected ${expectedFingerprint}, received ${actualFingerprint || 'missing'}.`);
+  }
+  return result;
+}
+
 function persistConfig(stateRef, config) {
   const compactConfig = compactDatasetBackedConfig(config, stateRef.current.masterContext || {});
   const masterContext = { ...(stateRef.current.masterContext || {}), config: compactConfig };
@@ -246,6 +265,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
             ratingMode: request.ratingMode || 'preview',
             previewRatingSnapshot: request.snapshot || {},
           });
+          assertWeightDatasetResultAuthority(result, weightDatasetRef);
           assertCurrentBuild(request);
           return result;
         } : null,
