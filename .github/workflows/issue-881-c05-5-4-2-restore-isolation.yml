@@ -1,0 +1,29 @@
+name: Issue 881 C05.5.4.2 Per Master Restore Isolation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  per-master-restore-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run C05.5.4.2 focused and hydration regression contracts
+        run: |
+          node --test \
+            tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs
