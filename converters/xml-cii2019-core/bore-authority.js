@@ -134,6 +134,8 @@ export function resolveXmlCiiBoreAuthority({
   fallbackBoreMm = null,
   validationTraceBoreMm = null,
   validationTraceText = '',
+  validationTraceStatus = '',
+  validationTraceSource = '',
   config = {},
 } = {}) {
   const sourceOdBore = xmlCiiNominalDnFromOd(xmlOutsideDiameterMm);
@@ -166,16 +168,68 @@ export function resolveXmlCiiBoreAuthority({
   }
 
   const directValidation = positiveNumber(validationTraceBoreMm);
-  const parsedValidation = directValidation === null
+  const rawTraceStatus = text(validationTraceStatus).toUpperCase();
+  const explicitTraceStatus = Boolean(rawTraceStatus);
+  const traceStatusResolved = rawTraceStatus.startsWith('RESOLVED_');
+  const traceStatusAmbiguous = rawTraceStatus.includes('AMBIGUOUS');
+  const traceStatusUnresolved = rawTraceStatus === 'UNRESOLVED';
+  const parsedValidation = (
+    directValidation === null
+    && (!explicitTraceStatus || traceStatusResolved)
+  )
     ? xmlCiiDtxrValidationBoreMm(validationTraceText, config)
     : null;
   const traceBoreMm = directValidation ?? parsedValidation;
+  const traceStatus = rawTraceStatus || (traceBoreMm !== null ? 'RESOLVED_LEGACY' : '');
   const traceMismatch = Boolean(
     fallbackUsed
+    && !traceStatusAmbiguous
+    && !traceStatusUnresolved
     && boreMm !== null
     && traceBoreMm !== null
     && !sameNominalBore(Number(boreMm), Number(traceBoreMm)),
   );
+  const traceMissingBore = Boolean(
+    fallbackUsed
+    && traceStatusResolved
+    && traceBoreMm === null,
+  );
+  const traceNeedsReview = Boolean(
+    fallbackUsed
+    && (traceMismatch || traceStatusAmbiguous || traceStatusUnresolved || traceMissingBore),
+  );
+
+  let diagnostic = null;
+  if (fallbackUsed && traceStatusAmbiguous) {
+    diagnostic = {
+      type: 'bore-fallback-trace-ambiguous',
+      branchName: text(branchName),
+      fallbackBoreMm: boreMm,
+      traceStatus,
+      traceSource: text(validationTraceSource),
+      message: `Branchname/fallback bore DN${boreMm} could not be validated because Resolver JSON Trace is ambiguous; fallback is review-required.`,
+    };
+  } else if (fallbackUsed && (traceStatusUnresolved || traceMissingBore)) {
+    diagnostic = {
+      type: 'bore-fallback-trace-unresolved',
+      branchName: text(branchName),
+      fallbackBoreMm: boreMm,
+      traceStatus,
+      traceSource: text(validationTraceSource),
+      reason: traceMissingBore ? 'resolved-trace-has-no-bore' : 'trace-unresolved',
+      message: `Branchname/fallback bore DN${boreMm} could not be validated by Resolver JSON Trace; fallback is review-required.`,
+    };
+  } else if (traceMismatch) {
+    diagnostic = {
+      type: 'bore-fallback-trace-mismatch',
+      branchName: text(branchName),
+      fallbackBoreMm: boreMm,
+      traceBoreMm,
+      traceStatus,
+      traceSource: text(validationTraceSource),
+      message: `Branchname/fallback bore DN${boreMm} conflicts with DTXR/JSON-trace bore DN${traceBoreMm}; fallback is review-required.`,
+    };
+  }
 
   return {
     boreMm,
@@ -183,16 +237,10 @@ export function resolveXmlCiiBoreAuthority({
     fallbackUsed,
     branchFallbackBoreMm: branchFallback,
     validationTraceBoreMm: traceBoreMm,
+    validationTraceStatus: traceStatus,
+    validationTraceSource: text(validationTraceSource),
     traceMismatch,
-    needsReview: traceMismatch,
-    diagnostic: traceMismatch
-      ? {
-          type: 'bore-fallback-trace-mismatch',
-          branchName: text(branchName),
-          fallbackBoreMm: boreMm,
-          traceBoreMm,
-          message: `Branchname/fallback bore DN${boreMm} conflicts with DTXR/JSON-trace bore DN${traceBoreMm}; fallback is review-required.`,
-        }
-      : null,
+    needsReview: traceNeedsReview,
+    diagnostic,
   };
 }
