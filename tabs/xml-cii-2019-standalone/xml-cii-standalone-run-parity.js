@@ -10,6 +10,7 @@
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
+import { xmlCiiWeightReviewNodeOverrideKey } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-2';
 import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-2';
 
 const PARITY_MODULE_URL = new URL(
@@ -70,6 +71,7 @@ function recordExpected(entries, {
   scope,
   branchName,
   nodeNumber = '',
+  nodeKey = '',
   path,
   field,
   value,
@@ -78,7 +80,7 @@ function recordExpected(entries, {
 }) {
   const expected = text(value).trim();
   if (!expected) return;
-  entries.push({ scope, branchName, nodeNumber, path, field, expected, kind, source });
+  entries.push({ scope, branchName, nodeNumber, nodeKey, path, field, expected, kind, source });
 }
 
 async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
@@ -126,8 +128,9 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
       });
     }
 
-    for (const node of childrenByName(branch, 'Node')) {
+    for (const [nodeIndex, node] of childrenByName(branch, 'Node').entries()) {
       const nodeNumber = childText(node, 'NodeNumber');
+      const nodeKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIndex);
       const nodeAuthority = byNodeAuthority.get(nodeAuthorityKey(branchName, node)) || null;
       const nodeWrites = [
         { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
@@ -143,7 +146,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         if (!valid || !setChildText(document, node, write.name, write.value)) continue;
         result.appliedFields += 1;
         recordExpected(result.expectedEntries, {
-          scope: 'node', branchName, nodeNumber, path: [write.name], field: write.field,
+          scope: 'node', branchName, nodeNumber, nodeKey, path: [write.name], field: write.field,
           value: write.value, kind: write.kind, source: write.source || 'standalone-preview',
         });
       }
@@ -313,6 +316,9 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     if (!out.evidence.ok) {
       out.error = `Standalone run parity blocked ${out.evidence.mismatchCount} authority mismatch(es).`;
       out.logs.push(`${out.error} Engine input was not released.`);
+      for (const mismatch of out.evidence.mismatches.slice(0, 50)) {
+        out.logs.push(`PARITY_MISMATCH ${JSON.stringify(mismatch)}`);
+      }
       return out;
     }
 
