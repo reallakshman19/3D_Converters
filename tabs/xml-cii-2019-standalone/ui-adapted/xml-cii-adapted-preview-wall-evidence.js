@@ -79,12 +79,14 @@ function npsToDnMap(config) {
 }
 
 export function resolveBranchNominalBore(branchName, fallbackBore, config = {}) {
+  // XML/source-derived bore is authoritative. Branch-name NPS is metadata and
+  // is used only when the source branch has no usable bore/OD evidence.
+  const sourceBore = Number(fallbackBore);
+  if (Number.isFinite(sourceBore) && sourceBore > 0) return sourceBore;
   const hit = text(branchName).match(/-(\d+(?:\.\d+)?)\s*"(?=-)/);
   const nps = hit ? String(Number(hit[1])) : '';
   const mapped = Number(npsToDnMap(config)[nps]);
-  if (Number.isFinite(mapped) && mapped > 0) return mapped;
-  const fallback = Number(fallbackBore);
-  return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+  return Number.isFinite(mapped) && mapped > 0 ? mapped : null;
 }
 
 function componentEvidence(componentType, componentRefNo, boreMm, dtxr, source) {

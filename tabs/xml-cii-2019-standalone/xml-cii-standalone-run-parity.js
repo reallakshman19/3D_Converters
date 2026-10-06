@@ -121,7 +121,6 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
         { name: 'MaterialName', field: 'material', value: row.material, kind: 'text' },
         { name: 'MaterialCode', field: 'materialCode', value: row.materialCode, kind: 'text' },
-        { name: 'WallThickness', field: 'wallThickness', value: row.wallThickness, kind: 'number' },
         { name: 'CorrosionAllowance', field: 'corrosion', value: row.corrosion, kind: 'number' },
       ];
       for (const write of nodeWrites) {

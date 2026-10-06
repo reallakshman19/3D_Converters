@@ -1,5 +1,7 @@
 import { applyXmlCiiPostSplitElementLengthCleanup } from './post-split-element-length-cleanup.js';
 import { cleanXmlCiiNodeBlocks } from './xml-cii-node-block-cleanup.js';
+import { buildPipingClassIndex, findBestPipingClassRow } from './piping-class-resolver.js';
+import { resolveXmlCiiWallThicknessWithEvidence } from './dtxr-wall-evidence-ledger.js';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function truthy(value) { if (value === true) return true; if (value === false || value === null || value === undefined) return false; if (typeof value === 'number') return value !== 0; return /^(1|true|yes|on)$/i.test(text(value)); }
@@ -37,5 +39,278 @@ function enforcedCleanupOptions(options, stage) { const config = options?.config
 function addStats(base = {}, extra = {}) { const out = { ...base }; for (const key of ['gasketNodesDropped', 'shortElementLengthNodesDropped']) out[key] = Number(out[key] || 0) + Number(extra[key] || 0); out.shortElementLengthNodesDroppedByType = { ...(out.shortElementLengthNodesDroppedByType || {}) }; for (const [type, count] of Object.entries(extra.shortElementLengthNodesDroppedByType || {})) out.shortElementLengthNodesDroppedByType[type] = Number(out.shortElementLengthNodesDroppedByType[type] || 0) + Number(count || 0); return out; }
 function mergeCleanup(result, options, stage = 'post-staged-geometry-authority') { const cleanup = applyXmlCiiPostSplitElementLengthCleanup(result.xmlText, enforcedCleanupOptions(options, stage)); return { xmlText: cleanup.xmlText, stats: addStats({ ...(result.stats || {}), postSplitElementLengthsRecalculated: cleanup.stats.postSplitElementLengthsRecalculated || 0 }, cleanup.stats || {}), diagnostics: [...(result.diagnostics || []), ...(cleanup.diagnostics || [])] }; }
 function preCleanXml(xmlText, options, stage) { return cleanXmlCiiNodeBlocks(xmlText, enforcedCleanupOptions(options, stage)); }
-function applyRegexFallback(xmlText, index, options = {}) { const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority'); const stats = addStats({ stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0, gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0 }, first.stats || {}); let xmlOut = first.xmlText; if (shouldDropGasketNodes(options)) { const dropped = dropNodeBlocksInText(xmlOut, (type) => type === 'GASK'); xmlOut = dropped.xmlText; stats.gasketNodesDropped += dropped.count; } if (index?.count) xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => { const ref = normalizeRef(block.match(/<ComponentRefNo>([\s\S]*?)<\/ComponentRefNo>/i)?.[1] || ''); const geometry = ref ? index.byRef.get(ref) : null; if (!geometry) return block; let out = block; let changed = false; if (geometry.lengthMm !== null) { out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm); stats.stagedLengthAnnotations += 1; changed = true; } const od = numberValue(block.match(/<OutsideDiameter>([\s\S]*?)<\/OutsideDiameter>/i)?.[1] || ''); const bore = geometry.boreMm || xmlCiiNominalDnFromOd(od); if (bore !== null) { out = setOrInsertInNodeBlock(out, 'BoreMm', bore); stats.stagedBoreAnnotations += 1; changed = true; } if (changed) stats.stagedGeometryMatches += 1; return out; }); if (shouldSuppressFallbackHighNodeNumbers(options)) { const suppressedHigh = suppressNodeNumbersInText(xmlOut, isFallbackHighNode); xmlOut = suppressedHigh.xmlText; stats.fallbackHighNodeNumbersSuppressed = suppressedHigh.count; } const diagnostics = [...(first.diagnostics || [])]; if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({ type: 'fallback-high-node-number-suppressed', count: stats.fallbackHighNodeNumbersSuppressed, message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.' }); return mergeCleanup({ xmlText: xmlOut, stats, diagnostics }, options); }
-export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, options = {}) { const index = options.stagedIndex || buildXmlCiiStagedGeometryIndex(stagedJsonText); const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority'); if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return applyRegexFallback(first.xmlText, index, options); let document = null; try { document = new DOMParser().parseFromString(text(first.xmlText), 'application/xml'); if (document.getElementsByTagName('parsererror').length) return applyRegexFallback(first.xmlText, index, options); } catch { return applyRegexFallback(first.xmlText, index, options); } const stats = addStats({ stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0, gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0 }, first.stats || {}); const diagnostics = [...(first.diagnostics || [])]; if (shouldDropGasketNodes(options)) { const dropped = dropGasketNodesInDom(document); stats.gasketNodesDropped += dropped; if (dropped > 0) diagnostics.push({ type: 'gasket-node-dropped', count: dropped, message: 'GASK nodes were removed from enriched XML before staged geometry/weight matching.' }); } if (index.count) for (const branch of [...document.getElementsByTagName('Branch')]) { const branchName = childText(branch, 'Branchname'); for (const node of childrenByName(branch, 'Node')) { const geometry = resolveXmlCiiStagedGeometryForNode(node, index); if (!geometry) continue; let changed = false; if (geometry.lengthMm !== null && geometry.lengthMm > 0) { if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) changed = true; stats.stagedLengthAnnotations += 1; } const odDn = xmlCiiNominalDnFromOd(numberValue(childText(node, 'OutsideDiameter'))); const bore = geometry.boreMm || odDn; if (bore !== null && bore > 0) { if (ensureText(document, node, 'BoreMm', formatMm(bore))) changed = true; stats.stagedBoreAnnotations += 1; } if (changed) { stats.stagedGeometryMatches += 1; diagnostics.push({ type: 'staged-geometry-authority', branchName, nodeNumber: childText(node, 'NodeNumber'), componentRefNo: childText(node, 'ComponentRefNo'), stagedType: geometry.stagedType, dtxr: geometry.dtxr, lengthMm: geometry.lengthMm, boreMm: bore, lengthSource: geometry.lengthMm !== null ? 'staged-component-refno' : '', boreSource: geometry.boreMm ? 'staged-component-refno' : (odDn ? 'xml-outside-diameter' : '') }); } } } if (shouldSuppressFallbackHighNodeNumbers(options)) { stats.fallbackHighNodeNumbersSuppressed = suppressFallbackHighNodeNumbersInDom(document); if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({ type: 'fallback-high-node-number-suppressed', count: stats.fallbackHighNodeNumbersSuppressed, message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.' }); } return mergeCleanup({ xmlText: new XMLSerializer().serializeToString(document), stats, diagnostics }, options); }
+function blockText(block, tag) { return text(block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'))?.[1] || ''); }
+function positiveNumber(value) { const numeric = numberValue(value); return numeric !== null && numeric > 0 ? numeric : null; }
+function sourceNodeBore({ outsideDiameter, outerDiameter, od, bore, boreMm, stagedBoreMm: stagedBore }) {
+  for (const rawOd of [outsideDiameter, outerDiameter, od]) {
+    const dn = xmlCiiNominalDnFromOd(positiveNumber(rawOd));
+    if (dn !== null && dn > 0) return { boreMm: dn, source: 'xml-outside-diameter' };
+  }
+  for (const rawBore of [bore, boreMm]) {
+    const value = positiveNumber(rawBore);
+    if (value !== null) return { boreMm: value, source: 'xml-bore' };
+  }
+  const staged = positiveNumber(stagedBore);
+  return staged !== null
+    ? { boreMm: staged, source: 'staged-component-refno' }
+    : { boreMm: null, source: '' };
+}
+function rowNumber(row, names) {
+  for (const name of names) {
+    const value = positiveNumber(row?.[name] ?? row?._raw?.[name]);
+    if (value !== null) return value;
+  }
+  return null;
+}
+function structuredDtxr(dtxr, componentType, componentRefNo, boreMm, source) {
+  return text(dtxr) ? { dtxr: text(dtxr), componentType, componentRefNo, boreMm, source } : null;
+}
+function resolveNodeWallAuthority({
+  boreMm, pipingClass, componentType, rating, componentRefNo,
+  dtxrValues = [], geometry = null, config = {}, pipingClassIndex,
+}) {
+  if (!Number.isFinite(Number(boreMm)) || Number(boreMm) <= 0) return null;
+  const evidence = dtxrValues.map((item) => structuredDtxr(
+    item?.dtxr ?? item?.text ?? item,
+    item?.componentType || componentType,
+    item?.componentRefNo || componentRefNo,
+    item?.boreMm ?? boreMm,
+    item?.source || 'xml-dtxr',
+  )).filter(Boolean);
+  if (geometry?.dtxr) evidence.push(structuredDtxr(
+    geometry.dtxr,
+    geometry.stagedType || componentType,
+    geometry.ref || componentRefNo,
+    positiveNumber(geometry.boreMm) ?? boreMm,
+    'staged-json',
+  ));
+  const dtxr = resolveXmlCiiWallThicknessWithEvidence({ boreMm, dtxrValues: evidence, config });
+  const classMatch = pipingClass && pipingClassIndex
+    ? findBestPipingClassRow({
+      pipingClass,
+      boreMm,
+      componentType: 'PIPE',
+      rating: rating || '',
+      schedule: '',
+      pipingClassIndex,
+      overrides: config?.overrides || {},
+      config,
+    })
+    : null;
+  const classWall = rowNumber(classMatch?.row, [
+    'wallThickness', 'WallThickness', 'Wall Thickness', 'Wall thickness',
+    'WALL_THICKNESS', 'WALL_THICK', 'WT', 'THK', 'Thickness',
+  ]);
+  const dtxrWall = positiveNumber(dtxr?.wallThicknessMm);
+  const wallThicknessMm = dtxr?.evidenceKind === 'DIRECT_WALL' && dtxrWall !== null
+    ? dtxrWall
+    : (classWall ?? dtxrWall);
+  if (wallThicknessMm === null) return { wallThicknessMm: null, source: '', dtxr };
+  return {
+    wallThicknessMm,
+    source: dtxr?.evidenceKind === 'DIRECT_WALL' && dtxrWall !== null
+      ? dtxr.source
+      : (classWall !== null ? 'piping-class-master' : (dtxr?.source || '')),
+    dtxr,
+  };
+}
+function appendBoreMismatchDiagnostics(diagnostics, stats, context, wall) {
+  for (const record of wall?.dtxr?.evidenceRecords || []) {
+    if (record.disposition !== 'REJECTED_BORE_MISMATCH') continue;
+    stats.dtxrBoreMismatchFlags = Number(stats.dtxrBoreMismatchFlags || 0) + 1;
+    diagnostics.push({
+      type: 'dtxr-bore-mismatch',
+      ...context,
+      componentType: record.componentType,
+      componentRefNo: record.componentRefNo,
+      evidenceBoreMm: record.boreMm,
+      targetBoreMm: record.targetBoreMm,
+      dtxr: record.dtxr,
+      evidenceSource: record.source,
+      status: 'flagged',
+      message: 'DTXR/json component bore does not match the resolved XML/source bore; mismatched wall evidence was rejected.',
+    });
+  }
+}
+
+function applyRegexFallback(xmlText, index, options = {}) {
+  const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority');
+  const config = options?.config && typeof options.config === 'object' ? options.config : {};
+  const pipingClassIndex = buildPipingClassIndex(config?.pipingClass?.masterRows || []);
+  const stats = addStats({
+    stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0, nodeWallAnnotations: 0, dtxrBoreMismatchFlags: 0,
+    gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0,
+  }, first.stats || {});
+  const diagnostics = [...(first.diagnostics || [])];
+  let xmlOut = first.xmlText;
+  if (shouldDropGasketNodes(options)) {
+    const dropped = dropNodeBlocksInText(xmlOut, (type) => type === 'GASK');
+    xmlOut = dropped.xmlText;
+    stats.gasketNodesDropped += dropped.count;
+  }
+  xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
+    const ref = normalizeRef(blockText(block, 'ComponentRefNo'));
+    const geometry = ref ? index?.byRef?.get(ref) || null : null;
+    let out = block;
+    let stagedChanged = false;
+    if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined && geometry.lengthMm > 0) {
+      out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm);
+      stats.stagedLengthAnnotations += 1;
+      stagedChanged = true;
+    }
+    const boreAuthority = sourceNodeBore({
+      outsideDiameter: blockText(block, 'OutsideDiameter'),
+      outerDiameter: blockText(block, 'OuterDiameter'),
+      od: blockText(block, 'OD'),
+      bore: blockText(block, 'Bore'),
+      boreMm: blockText(block, 'BoreMm'),
+      stagedBoreMm: geometry?.boreMm,
+    });
+    if (boreAuthority.boreMm !== null) {
+      out = setOrInsertInNodeBlock(out, 'BoreMm', boreAuthority.boreMm);
+      if (boreAuthority.source === 'staged-component-refno') stats.stagedBoreAnnotations += 1;
+      else stats.sourceBoreAnnotations += 1;
+    }
+    const componentType = normalizeType(blockText(block, 'ComponentType'));
+    const componentRefNo = blockText(block, 'ComponentRefNo');
+    const dtxrValues = ['DTXR', 'DTXR_POS', 'TEEDESC_POS', 'DTXR_PS']
+      .map((tag) => ({ dtxr: blockText(block, tag), componentType, componentRefNo, boreMm: boreAuthority.boreMm, source: `xml-${tag.toLowerCase()}` }))
+      .filter((item) => item.dtxr);
+    const wall = resolveNodeWallAuthority({
+      boreMm: boreAuthority.boreMm,
+      pipingClass: blockText(block, 'PipingClass'),
+      componentType,
+      rating: blockText(block, 'Rating'),
+      componentRefNo,
+      dtxrValues,
+      geometry,
+      config,
+      pipingClassIndex,
+    });
+    if (wall?.wallThicknessMm !== null && wall?.wallThicknessMm !== undefined) {
+      out = setOrInsertInNodeBlock(out, 'WallThickness', wall.wallThicknessMm);
+      stats.nodeWallAnnotations += 1;
+    }
+    appendBoreMismatchDiagnostics(diagnostics, stats, {
+      nodeNumber: blockText(block, 'NodeNumber'),
+      componentRefNo,
+      boreSource: boreAuthority.source,
+    }, wall);
+    if (stagedChanged) stats.stagedGeometryMatches += 1;
+    return out;
+  });
+  if (shouldSuppressFallbackHighNodeNumbers(options)) {
+    const suppressedHigh = suppressNodeNumbersInText(xmlOut, isFallbackHighNode);
+    xmlOut = suppressedHigh.xmlText;
+    stats.fallbackHighNodeNumbersSuppressed = suppressedHigh.count;
+  }
+  if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({
+    type: 'fallback-high-node-number-suppressed',
+    count: stats.fallbackHighNodeNumbersSuppressed,
+    message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.',
+  });
+  return mergeCleanup({ xmlText: xmlOut, stats, diagnostics }, options);
+}
+export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, options = {}) {
+  const config = options?.config && typeof options.config === 'object' ? options.config : {};
+  const index = options.stagedIndex || buildXmlCiiStagedGeometryIndex(stagedJsonText);
+  const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority');
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return applyRegexFallback(first.xmlText, index, options);
+  let document = null;
+  try {
+    document = new DOMParser().parseFromString(text(first.xmlText), 'application/xml');
+    if (document.getElementsByTagName('parsererror').length) return applyRegexFallback(first.xmlText, index, options);
+  } catch {
+    return applyRegexFallback(first.xmlText, index, options);
+  }
+  const pipingClassIndex = buildPipingClassIndex(config?.pipingClass?.masterRows || []);
+  const stats = addStats({
+    stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0, nodeWallAnnotations: 0, dtxrBoreMismatchFlags: 0,
+    gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0,
+  }, first.stats || {});
+  const diagnostics = [...(first.diagnostics || [])];
+  if (shouldDropGasketNodes(options)) {
+    const dropped = dropGasketNodesInDom(document);
+    stats.gasketNodesDropped += dropped;
+    if (dropped > 0) diagnostics.push({
+      type: 'gasket-node-dropped', count: dropped,
+      message: 'GASK nodes were removed from enriched XML before staged geometry/weight matching.',
+    });
+  }
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    for (const node of childrenByName(branch, 'Node')) {
+      const geometry = resolveXmlCiiStagedGeometryForNode(node, index);
+      let stagedChanged = false;
+      if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined && geometry.lengthMm > 0) {
+        if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) stagedChanged = true;
+        stats.stagedLengthAnnotations += 1;
+      }
+      const boreAuthority = sourceNodeBore({
+        outsideDiameter: childText(node, 'OutsideDiameter'),
+        outerDiameter: childText(node, 'OuterDiameter'),
+        od: childText(node, 'OD'),
+        bore: childText(node, 'Bore'),
+        boreMm: childText(node, 'BoreMm'),
+        stagedBoreMm: geometry?.boreMm,
+      });
+      if (boreAuthority.boreMm !== null) {
+        ensureText(document, node, 'BoreMm', formatMm(boreAuthority.boreMm));
+        if (boreAuthority.source === 'staged-component-refno') stats.stagedBoreAnnotations += 1;
+        else stats.sourceBoreAnnotations += 1;
+      }
+      const componentType = normalizeType(childText(node, 'ComponentType'));
+      const componentRefNo = childText(node, 'ComponentRefNo');
+      const dtxrValues = ['DTXR', 'DTXR_POS', 'TEEDESC_POS', 'DTXR_PS']
+        .map((tag) => ({ dtxr: childText(node, tag), componentType, componentRefNo, boreMm: boreAuthority.boreMm, source: `xml-${tag.toLowerCase()}` }))
+        .filter((item) => item.dtxr);
+      const wall = resolveNodeWallAuthority({
+        boreMm: boreAuthority.boreMm,
+        pipingClass: childText(node, 'PipingClass'),
+        componentType,
+        rating: childText(node, 'Rating'),
+        componentRefNo,
+        dtxrValues,
+        geometry,
+        config,
+        pipingClassIndex,
+      });
+      if (wall?.wallThicknessMm !== null && wall?.wallThicknessMm !== undefined) {
+        ensureText(document, node, 'WallThickness', formatMm(wall.wallThicknessMm));
+        stats.nodeWallAnnotations += 1;
+      }
+      appendBoreMismatchDiagnostics(diagnostics, stats, {
+        branchName,
+        nodeNumber: childText(node, 'NodeNumber'),
+        componentRefNo,
+        boreSource: boreAuthority.source,
+      }, wall);
+      if (stagedChanged) {
+        stats.stagedGeometryMatches += 1;
+        diagnostics.push({
+          type: 'staged-geometry-authority',
+          branchName,
+          nodeNumber: childText(node, 'NodeNumber'),
+          componentRefNo,
+          stagedType: geometry?.stagedType || '',
+          dtxr: geometry?.dtxr || '',
+          lengthMm: geometry?.lengthMm ?? null,
+          boreMm: boreAuthority.boreMm,
+          lengthSource: geometry?.lengthMm !== null && geometry?.lengthMm !== undefined ? 'staged-component-refno' : '',
+          boreSource: boreAuthority.source,
+        });
+      }
+    }
+  }
+  if (shouldSuppressFallbackHighNodeNumbers(options)) {
+    stats.fallbackHighNodeNumbersSuppressed = suppressFallbackHighNodeNumbersInDom(document);
+    if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({
+      type: 'fallback-high-node-number-suppressed',
+      count: stats.fallbackHighNodeNumbersSuppressed,
+      message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.',
+    });
+  }
+  return mergeCleanup({ xmlText: new XMLSerializer().serializeToString(document), stats, diagnostics }, options);
+}

@@ -45,8 +45,10 @@ function correctedRow(row, branch, indexes, config) {
   const classWall = exactClassWallFromIndex(
     indexes.classWall, row.pipingClass || row.pipingClassDerived, boreMm,
   );
-  const authority = dtxr?.evidenceKind === 'DIRECT_WALL'
-    ? dtxr : (classWall || dtxr);
+  const dtxrWall = Number(dtxr?.wallThicknessMm);
+  const hasResolvedDtxrWall = Number.isFinite(dtxrWall) && dtxrWall > 0;
+  const authority = dtxr?.evidenceKind === 'DIRECT_WALL' && hasResolvedDtxrWall
+    ? dtxr : (classWall || (hasResolvedDtxrWall ? dtxr : null));
   const result = {
     ...row,
     sizeMm: boreMm,

@@ -123,7 +123,6 @@ export function resolveXmlCiiWallThicknessWithEvidence({
     dtxrValues: inputValues,
     config,
   });
-  if (!resolution) return null;
 
   const selected = selectedRecord(normalized, resolution);
   const records = normalized.map((record) => evidenceRecord(
@@ -135,7 +134,7 @@ export function resolveXmlCiiWallThicknessWithEvidence({
   const rejectedCount = records.filter((record) => record.disposition.startsWith('REJECTED_')).length;
   const eligibleCount = records.length - rejectedCount;
 
-  const selectedEvidence = selected ? {
+  const selectedEvidence = selected && resolution ? {
     sequence: selected.sequence,
     dtxr: selected.dtxr,
     componentType: selected.componentType,
@@ -151,7 +150,20 @@ export function resolveXmlCiiWallThicknessWithEvidence({
   } : null;
 
   return {
-    ...resolution,
+    ...(resolution || {
+      wallThicknessMm: null,
+      nps: '',
+      schedule: '',
+      evidenceKind: '',
+      dtxr: '',
+      source: '',
+      provenance: null,
+      componentType: '',
+      componentRefNo: '',
+      evidenceBoreMm: null,
+      evidenceSource: '',
+      unresolved: true,
+    }),
     evidenceSchema: EVIDENCE_SCHEMA,
     selectionPolicy: 'existing-resolver-rank-then-source-sequence',
     selectedEvidence,
