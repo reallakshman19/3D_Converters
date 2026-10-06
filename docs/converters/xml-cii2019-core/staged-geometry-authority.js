@@ -27,7 +27,8 @@ const FALLBACK_HIGH_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
 export function xmlCiiNominalDnFromOd(odMm) { const numeric = Number(odMm); if (!Number.isFinite(numeric) || numeric <= 0) return null; let best = null; for (const [od, dn] of OD_TO_DN) { const err = Math.abs(numeric - od); if (!best || err < best.err) best = { od, dn, err }; } return best && best.err <= Math.max(1.5, Math.abs(best.od) * 0.006) ? best.dn : null; }
 export function resolveXmlCiiStagedGeometryForNode(node, stagedIndex) { if (!node || !stagedIndex?.byRef) return null; const ref = normalizeRef(childText(node, 'ComponentRefNo')); return ref ? stagedIndex.byRef.get(ref) || null : null; }
 function formatMm(value) { const numeric = Number(value); return Number.isFinite(numeric) ? numeric.toFixed(3) : ''; }
-function setOrInsertInNodeBlock(block, tag, value) { const formatted = formatMm(value); if (!formatted) return block; const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`, 'i'); if (re.test(block)) return block.replace(re, `<${tag}>${formatted}</${tag}>`); return block.replace(/<\/Node>\s*$/i, `<${tag}>${formatted}</${tag}></Node>`); }
+function formatWallMm(value) { const numeric = Number(value); return Number.isFinite(numeric) ? Number(numeric.toPrecision(12)).toString() : ''; }
+function setOrInsertInNodeBlock(block, tag, value, formatter = formatMm) { const formatted = formatter(value); if (!formatted) return block; const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`, 'i'); if (re.test(block)) return block.replace(re, `<${tag}>${formatted}</${tag}>`); return block.replace(/<\/Node>\s*$/i, `<${tag}>${formatted}</${tag}></Node>`); }
 function shouldDropGasketNodes(options = {}) { const config = options?.config && typeof options.config === 'object' ? options.config : {}; return truthy(options.disableGasketNodes) || truthy(options.disableGasketInOutput) || truthy(config.disableGasketNodes) || truthy(config.disableGasketInOutput) || (defaultTrue(options.dropGasketNodes) && defaultTrue(options.dropGasketsInEnrichment) && defaultTrue(config.dropGasketNodes) && defaultTrue(config.dropGasketsInEnrichment)); }
 function shouldSuppressFallbackHighNodeNumbers(options = {}) { const config = options?.config && typeof options.config === 'object' ? options.config : {}; const splitEnabled = truthy(options.splitCondensedValveFlange) || truthy(options.split_condensed_valve_flange) || truthy(config.splitCondensedValveFlange) || truthy(config.split_condensed_valve_flange); return splitEnabled; }
 function isFallbackHighNode(componentType, nodeNumber) { const number = Number(nodeNumber); return Number.isFinite(number) && number >= 10000 && FALLBACK_HIGH_TYPES.has(normalizeType(componentType)); }
@@ -189,7 +190,7 @@ function applyRegexFallback(xmlText, index, options = {}) {
       pipingClassIndex,
     });
     if (wall?.wallThicknessMm !== null && wall?.wallThicknessMm !== undefined) {
-      out = setOrInsertInNodeBlock(out, 'WallThickness', wall.wallThicknessMm);
+      out = setOrInsertInNodeBlock(out, 'WallThickness', wall.wallThicknessMm, formatWallMm);
       stats.nodeWallAnnotations += 1;
     }
     appendBoreMismatchDiagnostics(diagnostics, stats, {
@@ -278,7 +279,7 @@ export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, opti
         pipingClassIndex,
       });
       if (wall?.wallThicknessMm !== null && wall?.wallThicknessMm !== undefined) {
-        ensureText(document, node, 'WallThickness', formatMm(wall.wallThicknessMm));
+        ensureText(document, node, 'WallThickness', formatWallMm(wall.wallThicknessMm));
         stats.nodeWallAnnotations += 1;
       }
       appendBoreMismatchDiagnostics(diagnostics, stats, {
