@@ -181,13 +181,18 @@ jobs:
             tests/xml-cii-issue-781-weight-liveness.test.mjs \
             tests/xml-cii-issue-781-weight-build-performance.test.mjs \
             tests/xml-cii-master-worker-metadata-import.test.mjs \
-            tests/xml-cii-master-preview-worker-search.test.mjs \
             tests/xml-cii-issue-776-weight-review-authority.test.mjs \
             tests/xml-cii-issue-776-weight-acceptance-validation.test.mjs \
             tests/xml-cii-issue-776-weight-unit-custody.test.mjs \
             tests/xml-cii-issue-776-match1-provenance.test.mjs \
             tests/xml-cii-issue-776-match1-acceptance-paths.test.mjs \
             tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs
+      - name: Run descendant-compatible Preview search and current coordinator authority
+        run: |
+          node --test \
+            --test-skip-pattern='Preview and import share one coordinator singleton including persisted dataset ids' \
+            tests/xml-cii-master-preview-worker-search.test.mjs
+          node --test tests/xml-cii-issue-893-consumer-authority.test.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
