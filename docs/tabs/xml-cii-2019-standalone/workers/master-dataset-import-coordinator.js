@@ -1,4 +1,4 @@
-import { createMasterDatasetClient } from './master-dataset-client.js?v=20261006-c05-5-5-persistence-retry-1';
+import { createMasterDatasetClient } from './master-dataset-client.js?v=20261007-c05-6-2-consumer-authority-1';
 import { MASTER_DATASET_EVENT, MASTER_DATASET_CHUNK_ROWS } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 function assertDatasetMessage(message) {
