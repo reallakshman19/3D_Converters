@@ -1,0 +1,24 @@
+name: Issue 893 C05.6.2 Consumer Authority Baseline
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumer-authority-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Characterize current consumer authority boundary
+        run: node --test tests/xml-cii-issue-893-consumer-authority-baseline.test.mjs
