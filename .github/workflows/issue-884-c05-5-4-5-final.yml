@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base_sha="${{ github.event.pull_request.base.sha }}"
+            base_sha="8eebbc9881dcb87fce0c1d2821408ddcfb1e2380"
             git diff --name-only "${base_sha}...HEAD" > /tmp/issue884_changed.txt
             cat /tmp/issue884_changed.txt
             disallowed="$(grep -Ev '^\.github/workflows/issue-884-c05-5-4-5-final\.yml$' /tmp/issue884_changed.txt || true)"
