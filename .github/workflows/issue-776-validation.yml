@@ -79,6 +79,7 @@ jobs:
             tests/xml-cii-master-dataset-persistence.test.mjs \
             tests/xml-cii-master-dataset-rollback-custody.test.mjs \
             tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-issue-822-master-persistence.test.mjs \
             tests/xml-cii-master-dataset-worker.test.mjs \
             tests/xml-cii-master-preview-worker-search.test.mjs \
             tests/xml-cii-master-worker-integration.test.mjs 2>&1 | tee issue-776-dataset-worker.log
