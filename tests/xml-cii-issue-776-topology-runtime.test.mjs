@@ -82,3 +82,8 @@ assert.equal(Number(coords[0].trim()), 1, 'repaired graph should need one coordi
 assert.equal(Number(coords[1].trim().split(/\s+/)[0]), 60);
 
 console.log('Issue #776 runtime topology regression passed.');
+
+// Keep the established #776 topology gate as the execution carrier for the
+// reported #781 P2810042 coordinate-custody regression. This import adds a
+// scenario only; it does not change the existing #776 assertions above.
+await import('./xml-cii-issue-781-p2810042-coordinate-custody.test.mjs');
