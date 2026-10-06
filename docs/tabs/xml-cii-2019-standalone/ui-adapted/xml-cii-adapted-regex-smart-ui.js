@@ -10,7 +10,7 @@ import {
   regexSmartReceiptIsCurrent,
   regexSmartReceiptRequestBasis,
   resolveRegexSmartEvidence,
-} from './xml-cii-adapted-regex-smart-evidence.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-regex-smart-evidence.js?v=20261007-c05-6-2-consumer-authority-1';
 
 const ROLE_META = Object.freeze({
   lineKey: { icon: 'link', label: 'Line Key', color: '#60a5fa' },
