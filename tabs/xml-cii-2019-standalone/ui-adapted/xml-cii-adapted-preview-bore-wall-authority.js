@@ -5,7 +5,6 @@ import {
   childText,
   children,
   exactClassWallFromIndex,
-  nodeBoreMm,
   stagedBranchWallEvidenceFromIndex,
   resolveBranchNominalBore,
   text,
@@ -13,9 +12,20 @@ import {
 import {
   resolveXmlCiiWallThicknessWithEvidence,
 } from '../../../converters/xml-cii2019-core/dtxr-wall-evidence-ledger.js';
+import {
+  resolveXmlCiiBoreAuthority,
+} from '../../../converters/xml-cii2019-core/bore-authority.js';
+import {
+  buildXmlCiiStagedGeometryIndex,
+  resolveXmlCiiStagedGeometryForNode,
+} from '../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20261006-p2810042-bore-1';
 
 function norm(value) {
   return text(value).toUpperCase().replace(/\s+/g, '');
+}
+
+function normalizedRef(value) {
+  return text(value).replace(/^=/, '').replace(/\s+/g, '').toUpperCase();
 }
 
 function classSizeKey(row, boreMm) {
@@ -25,38 +35,38 @@ function classSizeKey(row, boreMm) {
     : row?.wallThicknessKey;
 }
 
-function branchDtxrWallEvidence(branch, branchName, stagedIndex, boreMm, config) {
-  const evidence = [
+function branchEvidence(branch, branchName, stagedIndex) {
+  return [
     ...stagedBranchWallEvidenceFromIndex(stagedIndex, branchName),
     ...collectXmlBranchWallEvidence(branch),
   ];
-  return resolveXmlCiiWallThicknessWithEvidence({
+}
+
+function wallAuthorityForBore({
+  boreMm,
+  evidence,
+  classWallIndex,
+  pipingClass,
+  config,
+}) {
+  if (!Number.isFinite(Number(boreMm)) || Number(boreMm) <= 0) {
+    return { authority: null, dtxr: null, classWall: null };
+  }
+  const dtxr = resolveXmlCiiWallThicknessWithEvidence({
     boreMm,
     dtxrValues: evidence,
     config,
   });
-}
-
-function correctedRow(row, branch, indexes, config) {
-  const boreMm = resolveBranchNominalBore(row.branchName, row.sizeMm, config);
-  const dtxr = branchDtxrWallEvidence(
-    branch, row.branchName, indexes.staged, boreMm, config,
-  );
   const classWall = exactClassWallFromIndex(
-    indexes.classWall, row.pipingClass || row.pipingClassDerived, boreMm,
+    classWallIndex, pipingClass, boreMm,
   );
   const authority = dtxr?.evidenceKind === 'DIRECT_WALL'
-    ? dtxr : (classWall || dtxr);
-  const result = {
-    ...row,
-    sizeMm: boreMm,
-    size: boreMm ? `${boreMm}mm` : row.size,
-    wallThicknessKey: classSizeKey(row, boreMm),
-  };
-  if (authority) {
-    result.wallThickness = Number(authority.wallThicknessMm.toPrecision(6)).toString();
-    result.wallThicknessSource = authority.source;
-  }
+    ? dtxr
+    : (classWall || dtxr);
+  return { authority, dtxr, classWall };
+}
+
+function withWallEvidenceFields(result, dtxr) {
   result.dtxrWallThickness = dtxr?.wallThicknessMm || '';
   result.dtxrWallSchedule = dtxr?.schedule || '';
   result.dtxrWallSource = dtxr?.source || '';
@@ -76,6 +86,29 @@ function correctedRow(row, branch, indexes, config) {
   result.dtxrWallEligibleEvidenceCount = dtxr?.eligibleEvidenceCount || 0;
   result.dtxrWallRejectedEvidenceCount = dtxr?.rejectedEvidenceCount || 0;
   return result;
+}
+
+function correctedRow(row, branch, indexes, config) {
+  const boreMm = resolveBranchNominalBore(row.branchName, row.sizeMm, config);
+  const evidence = branchEvidence(branch, row.branchName, indexes.stagedWall);
+  const { authority, dtxr } = wallAuthorityForBore({
+    boreMm,
+    evidence,
+    classWallIndex: indexes.classWall,
+    pipingClass: row.pipingClass || row.pipingClassDerived,
+    config,
+  });
+  const result = {
+    ...row,
+    sizeMm: boreMm,
+    size: boreMm ? `${boreMm}mm` : row.size,
+    wallThicknessKey: classSizeKey(row, boreMm),
+  };
+  if (authority) {
+    result.wallThickness = Number(authority.wallThicknessMm.toPrecision(6)).toString();
+    result.wallThicknessSource = authority.source;
+  }
+  return withWallEvidenceFields(result, dtxr);
 }
 
 function parseXml(xmlText) {
@@ -100,31 +133,133 @@ function branchMap(document) {
     .map((branch) => [childText(branch, 'Branchname'), branch]));
 }
 
-function nodeBoreIndex(document) {
-  const index = new Map();
-  for (const branch of document.getElementsByTagName('Branch')) {
-    const branchName = childText(branch, 'Branchname');
-    for (const node of children(branch, 'Node')) {
-      const key = [
-        branchName, childText(node, 'NodeNumber'),
-        childText(node, 'ComponentRefNo').replace(/^=/, ''),
-        childText(node, 'Endpoint'),
-      ].join('::');
-      index.set(key, nodeBoreMm(node));
-    }
-  }
-  return index;
+function nodeAuthorityKey({
+  branchName,
+  nodeNumber,
+  componentRefNo,
+  endpoint,
+}) {
+  return [
+    text(branchName),
+    text(nodeNumber),
+    normalizedRef(componentRefNo),
+    text(endpoint),
+  ].join('::');
 }
 
-function correctNodeRows(nodeRows, document) {
-  const bores = nodeBoreIndex(document);
+function nodeTraceText(node, stagedGeometry) {
+  const xmlTrace = [
+    'DTXR',
+    'DTXR_POS',
+    'TEEDESC_POS',
+    'DTXR_PS',
+  ].map((name) => childText(node, name)).find((value) => text(value));
+  return text(xmlTrace || stagedGeometry?.dtxr || '');
+}
+
+function buildNodeBoreWallRows({
+  document,
+  correctedBranchRows,
+  indexes,
+  config,
+}) {
+  const branchRows = new Map(
+    (correctedBranchRows || []).map((row) => [text(row.branchName), row]),
+  );
+  const rows = [];
+  const diagnostics = [];
+
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    const branchRow = branchRows.get(branchName) || null;
+    const pipingClass = branchRow?.pipingClass || branchRow?.pipingClassDerived || '';
+    const evidence = branchEvidence(branch, branchName, indexes.stagedWall);
+
+    for (const node of children(branch, 'Node')) {
+      const stagedGeometry = resolveXmlCiiStagedGeometryForNode(
+        node, indexes.stagedGeometry,
+      );
+      const bore = resolveXmlCiiBoreAuthority({
+        xmlOutsideDiameterMm: childText(node, 'OutsideDiameter')
+          || childText(node, 'OuterDiameter')
+          || childText(node, 'OD'),
+        xmlBoreMm: childText(node, 'BoreMm') || childText(node, 'Bore'),
+        stagedBoreMm: stagedGeometry?.boreMm,
+        branchName,
+        fallbackBoreMm: branchRow?.sizeMm,
+        validationTraceText: nodeTraceText(node, stagedGeometry),
+        config,
+      });
+      const { authority, dtxr } = wallAuthorityForBore({
+        boreMm: bore.boreMm,
+        evidence,
+        classWallIndex: indexes.classWall,
+        pipingClass,
+        config,
+      });
+
+      const row = withWallEvidenceFields({
+        key: nodeAuthorityKey({
+          branchName,
+          nodeNumber: childText(node, 'NodeNumber'),
+          componentRefNo: childText(node, 'ComponentRefNo'),
+          endpoint: childText(node, 'Endpoint'),
+        }),
+        branchName,
+        nodeNumber: childText(node, 'NodeNumber'),
+        componentType: childText(node, 'ComponentType'),
+        componentRefNo: childText(node, 'ComponentRefNo'),
+        endpoint: childText(node, 'Endpoint'),
+        pipingClass,
+        boreMm: bore.boreMm,
+        boreSource: bore.source,
+        boreFallbackUsed: bore.fallbackUsed,
+        boreTraceMismatch: bore.traceMismatch,
+        boreNeedsReview: bore.needsReview,
+        boreValidationTraceMm: bore.validationTraceBoreMm,
+        wallThickness: authority?.wallThicknessMm != null
+          ? Number(authority.wallThicknessMm.toPrecision(6)).toString()
+          : '',
+        wallThicknessSource: authority?.source || '',
+        wallThicknessKey: classSizeKey({ pipingClass }, bore.boreMm),
+      }, dtxr);
+      rows.push(row);
+
+      if (bore.diagnostic) {
+        diagnostics.push({
+          ...bore.diagnostic,
+          branchName,
+          nodeNumber: row.nodeNumber,
+          componentType: row.componentType,
+          componentRefNo: row.componentRefNo,
+          endpoint: row.endpoint,
+          stage: 'preview-node-bore-wall-authority',
+        });
+      }
+    }
+  }
+  return { rows, diagnostics };
+}
+
+function correctNodeRows(nodeRows, nodeBoreWallRows) {
+  const byKey = new Map(
+    (nodeBoreWallRows || []).map((row) => [row.key, row]),
+  );
   return (nodeRows || []).map((row) => {
-    const key = [
-      row.branchName, row.nodeNumber,
-      text(row.componentRefNo).replace(/^=/, ''), row.endpoint,
-    ].join('::');
-    const boreMm = bores.get(key);
-    return Number.isFinite(boreMm) ? { ...row, boreMm } : row;
+    const key = nodeAuthorityKey(row);
+    const authority = byKey.get(key);
+    if (!authority) return row;
+    return {
+      ...row,
+      boreMm: authority.boreMm,
+      boreSource: authority.boreSource,
+      boreFallbackUsed: authority.boreFallbackUsed,
+      boreTraceMismatch: authority.boreTraceMismatch,
+      boreNeedsReview: authority.boreNeedsReview,
+      wallThickness: authority.wallThickness,
+      wallThicknessSource: authority.wallThicknessSource,
+      wallThicknessKey: authority.wallThicknessKey,
+    };
   });
 }
 
@@ -136,15 +271,24 @@ export function applyPreviewBoreWallAuthority({
   if (!document) return result;
   const branches = branchMap(document);
   const indexes = {
-    staged: buildStagedBranchWallEvidenceIndex(stagedJsonText),
+    stagedWall: buildStagedBranchWallEvidenceIndex(stagedJsonText),
+    stagedGeometry: buildXmlCiiStagedGeometryIndex(stagedJsonText),
     classWall: buildExactClassWallIndex(config),
   };
   const branchRows = result.branchRows.map((row) => correctedRow(
     row, branches.get(row.branchName), indexes, config,
   ));
+  const nodeAuthority = buildNodeBoreWallRows({
+    document,
+    correctedBranchRows: branchRows,
+    indexes,
+    config,
+  });
   return {
     ...result,
     branchRows,
-    nodeRows: correctNodeRows(result.nodeRows, document),
+    nodeRows: correctNodeRows(result.nodeRows, nodeAuthority.rows),
+    nodeBoreWallRows: nodeAuthority.rows,
+    boreAuthorityDiagnostics: nodeAuthority.diagnostics,
   };
 }
