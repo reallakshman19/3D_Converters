@@ -1,0 +1,24 @@
+name: Issue 836 C05.2 Piping Class Cold Hydration
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  piping-class-cold-hydration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run C05.2 focused lifecycle contract
+        run: node --test tests/xml-cii-issue-836-piping-class-cold-hydration.test.mjs
