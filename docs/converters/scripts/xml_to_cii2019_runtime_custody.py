@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runtime custody wrapper for standalone PSI116 XML -> CII 2019.
 
-Adds three narrow mechanics on top of xml_to_cii2019_direction:
+Adds four narrow mechanics on top of xml_to_cii2019_direction:
 1. Synthetic RestrainOpenEnds ANC restraints are allowed only at true physical
    open ends. A degree-1 engineering node coincident with another retained node
    number is a branch/continuation occurrence and is not auto-anchored.
@@ -10,6 +10,9 @@ Adds three narrow mechanics on top of xml_to_cii2019_direction:
 3. Explicit restraint identities collapsed by short-node cleanup are audited
    against the retained engineering node without inventing one replacement
    NodeName when several physical support identities share the same position.
+4. Source Position values fail closed when malformed, and default COORDS
+   authority remains the first retained source node of each connected component
+   instead of being reassigned to a later synthetic open-end restraint.
 """
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ OPEN_END_COINCIDENT_TOLERANCE_MM = 0.5
 EXPLICIT_RESTRAINT_IDENTITY_TOLERANCE_MM = 0.5
 _ORIGINAL_PARSE_XML_DOCUMENT = base._parse_xml_document
 _ORIGINAL_BUILD_RESTRAINTS = base._build_restraints
+_ORIGINAL_BUILD_COORDS_PAYLOAD = base._build_coords_payload
 _PUBLISH_BEND_RADIUS_1_5D = False
 EXPLICIT_RESTRAINT_CUSTODY_EVENTS: list[dict] = []
 
@@ -59,6 +63,29 @@ def _source_position(value: str) -> tuple[float, float, float] | None:
     if not all(math.isfinite(value) for value in values):
         return None
     return values
+
+
+def _strict_parse_position(value: str) -> tuple[float, float, float]:
+    text = base._safe_text(value)
+    parts = text.split()
+    if len(parts) != 3:
+        raise ValueError(
+            "Invalid Position: expected exactly three finite numeric coordinates; "
+            f"got {text!r}. Refusing implicit (0,0,0) coordinate fallback."
+        )
+    try:
+        values = tuple(float(part) for part in parts)
+    except ValueError as exc:
+        raise ValueError(
+            "Invalid Position: expected exactly three finite numeric coordinates; "
+            f"got {text!r}. Refusing implicit (0,0,0) coordinate fallback."
+        ) from exc
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError(
+            "Invalid Position: non-finite coordinate encountered; "
+            f"got {text!r}. Refusing implicit (0,0,0) coordinate fallback."
+        )
+    return values  # type: ignore[return-value]
 
 
 def _source_node_number(value: str) -> int | None:
@@ -265,6 +292,42 @@ def _topology_aware_build_restraints(
     return restraints, edge_to_index
 
 
+def _source_datum_coords_payload(model: base.ConversionModel, coords_mode: str) -> list[str]:
+    # Preserve the established semantics of explicit all/none modes. The
+    # reported loss occurs only in the default first mode, where the base
+    # implementation currently lets an auto-generated open-end restraint
+    # replace the source datum for an otherwise connected graph.
+    if coords_mode != "first":
+        return _ORIGINAL_BUILD_COORDS_PAYLOAD(model, coords_mode)
+
+    component_of, _ = base._coords_component_map(model)
+    first_by_component: dict[int, tuple[int, tuple[float, float, float]]] = {}
+    for edge in model.edges:
+        for node in (edge.from_node, edge.to_node):
+            component = component_of.get(int(node.node_number))
+            if component is None or component in first_by_component:
+                continue
+            first_by_component[component] = (
+                int(node.node_number),
+                tuple(float(value) for value in node.position),
+            )
+
+    selected = sorted(first_by_component.values(), key=lambda row: row[0])
+    if not selected:
+        return [base._row(["0"])]
+
+    payload = [base._row([str(len(selected))])]
+    for node_number, position in selected:
+        mapped = base._map_position_to_cii(position)
+        payload.append(base._row([
+            str(node_number),
+            base._format_fixed_float(mapped[0], 4),
+            base._format_fixed_float(mapped[1], 4),
+            base._format_fixed_float(mapped[2], 4),
+        ]))
+    return payload
+
+
 def _runtime_bend_payload(model: base.ConversionModel) -> list[str]:
     lines: list[str] = []
     for edge in model.bend_edges:
@@ -298,8 +361,10 @@ def install_runtime_custody_patch() -> None:
     # direction imported above has already installed its direction-cosine and
     # tolerant-restraint patches. Wrap that active implementation rather than
     # reverting to the older base builder.
+    base._parse_position = _strict_parse_position  # type: ignore[assignment]
     base._parse_xml_document = _runtime_parse_xml_document  # type: ignore[assignment]
     base._build_restraints = _topology_aware_build_restraints  # type: ignore[assignment]
+    base._build_coords_payload = _source_datum_coords_payload  # type: ignore[assignment]
     base._build_bend_payload = _runtime_bend_payload  # type: ignore[assignment]
 
 
