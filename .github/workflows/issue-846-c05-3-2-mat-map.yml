@@ -1,0 +1,24 @@
+name: Issue 846 C05.3.2 Mat Map Restart Custody
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mat-map-restart-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run C05.3.2 focused contract
+        run: node --test tests/xml-cii-issue-846-mat-map-restart-custody.test.mjs
