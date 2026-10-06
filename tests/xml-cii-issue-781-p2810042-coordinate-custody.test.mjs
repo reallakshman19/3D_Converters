@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -42,50 +43,52 @@ function coordsRows(text) {
   return section(text, 'COORDS').split(/\r?\n/).filter((line) => line.trim());
 }
 
-const dir = await mkdtemp(join(tmpdir(), 'xml-cii-781-p2810042-coordinate-'));
+test('P2810042 analogue preserves Node 10 as the connected-component source datum', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'xml-cii-781-p2810042-coordinate-'));
+  const input = join(dir, 'p2810042-coordinate.xml');
+  const output = join(dir, 'p2810042-coordinate.cii');
 
-// Reported topology analogue:
-// - Node 10 is the first retained source node.
-// - A later branch terminates back on Node 10, so Node 10 has degree 2.
-// - RestrainOpenEnds=Yes creates different degree-1 open-end restraints.
-// The default single component anchor must retain the source datum (Node 10),
-// not silently switch absolute-coordinate authority to a later open end.
-const validInput = join(dir, 'p2810042-coordinate.xml');
-const validOutput = join(dir, 'p2810042-coordinate.cii');
-await writeFile(validInput, documentXml(
-  branch('/HBMR-1000-24"-P2810042-61440-01/B2',
-    node(10, '72298.40 115930.00 100000.00', { type: 'BRAN' })
-    + node(20, '72588.00 115930.00 100000.00', { type: 'RIGID', rigid: 2, ref: '=67127481/56' })
-    + node(30, '73502.00 115930.00 100000.00', { type: 'ELBO' }))
-  + branch('/HBMR-1000-24-"P2810042-61440-01-EXE/B2',
-    node(480, '72088.40 115930.00 100000.00', { type: 'FLAN' })
-    + node(10, '72298.40 115930.00 100000.00', { type: 'RIGID', rigid: 2, ref: '=67127432/19' }))
-));
+  // Reported topology analogue:
+  // - Node 10 is the first retained source node.
+  // - A later branch terminates back on Node 10, so Node 10 has degree 2.
+  // - RestrainOpenEnds=Yes creates different degree-1 open-end restraints.
+  // The default single component anchor must retain the source datum (Node 10),
+  // not silently switch absolute-coordinate authority to a later open end.
+  await writeFile(input, documentXml(
+    branch('/HBMR-1000-24"-P2810042-61440-01/B2',
+      node(10, '72298.40 115930.00 100000.00', { type: 'BRAN' })
+      + node(20, '72588.00 115930.00 100000.00', { type: 'RIGID', rigid: 2, ref: '=67127481/56' })
+      + node(30, '73502.00 115930.00 100000.00', { type: 'ELBO' }))
+    + branch('/HBMR-1000-24-"P2810042-61440-01-EXE/B2',
+      node(480, '72088.40 115930.00 100000.00', { type: 'FLAN' })
+      + node(10, '72298.40 115930.00 100000.00', { type: 'RIGID', rigid: 2, ref: '=67127432/19' }))
+  ));
 
-const validRun = runConverter(validInput, validOutput);
-assert.equal(validRun.status, 0, validRun.stderr || validRun.stdout);
-const cii = await readFile(validOutput, 'utf8');
-const coords = coordsRows(cii);
-assert.equal(Number(coords[0].trim()), 1, 'one connected graph must retain one absolute COORDS anchor');
-const anchor = coords[1].trim().split(/\s+/).map(Number);
-assert.equal(anchor[0], 10,
-  'default COORDS datum must remain the first retained source node, not a later generated/open-end authority');
-assert.deepEqual(anchor.slice(1, 4), [72298.4, 100000.0, -115930.0],
-  'Node 10 global coordinate must preserve source Position under XML XYZ -> CII X,Z,-Y mapping');
+  const run = runConverter(input, output);
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  const cii = await readFile(output, 'utf8');
+  const coords = coordsRows(cii);
+  assert.equal(Number(coords[0].trim()), 1, 'one connected graph must retain one absolute COORDS anchor');
+  const anchor = coords[1].trim().split(/\s+/).map(Number);
+  assert.equal(anchor[0], 10,
+    'default COORDS datum must remain the first retained source node, not a later generated/open-end authority');
+  assert.deepEqual(anchor.slice(1, 4), [72298.4, 100000.0, -115930.0],
+    'Node 10 global coordinate must preserve source Position under XML XYZ -> CII X,Z,-Y mapping');
+});
 
-// Fail-closed control: the current parser must never turn unresolved Position
-// text into an implicit origin.
-const badInput = join(dir, 'bad-position.xml');
-const badOutput = join(dir, 'bad-position.cii');
-await writeFile(badInput, documentXml(
-  branch('/BAD-POSITION',
-    node(10, 'not-a-position')
-    + node(20, '100 0 0')),
-  'No',
-));
-const badRun = runConverter(badInput, badOutput);
-assert.notEqual(badRun.status, 0, 'malformed Position must block conversion instead of becoming (0,0,0)');
-assert.match(`${badRun.stdout}\n${badRun.stderr}`, /Position|coordinate/i,
-  'fail-closed diagnostic must identify Position/coordinate custody');
+test('malformed Position fails closed instead of becoming implicit origin', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'xml-cii-781-bad-coordinate-'));
+  const input = join(dir, 'bad-position.xml');
+  const output = join(dir, 'bad-position.cii');
+  await writeFile(input, documentXml(
+    branch('/BAD-POSITION',
+      node(10, 'not-a-position')
+      + node(20, '100 0 0')),
+    'No',
+  ));
 
-console.log('Issue #781 P2810042 coordinate-custody regression passed.');
+  const run = runConverter(input, output);
+  assert.notEqual(run.status, 0, 'malformed Position must block conversion instead of becoming (0,0,0)');
+  assert.match(`${run.stdout}\n${run.stderr}`, /Position|coordinate/i,
+    'fail-closed diagnostic must identify Position/coordinate custody');
+});
