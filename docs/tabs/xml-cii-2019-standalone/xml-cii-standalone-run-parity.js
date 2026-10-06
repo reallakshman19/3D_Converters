@@ -34,6 +34,15 @@ function elementChildren(parent) {
 function childrenByName(parent, name) { return elementChildren(parent).filter((node) => localName(node) === name); }
 function firstChild(parent, name) { return childrenByName(parent, name)[0] || null; }
 function childText(parent, name) { return text(firstChild(parent, name)?.textContent).trim(); }
+function normalizedRef(value) { return text(value).replace(/^=/, '').replace(/\s+/g, '').toUpperCase(); }
+function nodeAuthorityKey(branchName, node) {
+  return [
+    text(branchName).trim(),
+    childText(node, 'NodeNumber'),
+    normalizedRef(childText(node, 'ComponentRefNo')),
+    childText(node, 'Endpoint'),
+  ].join('::');
+}
 
 function ensureChild(document, parent, name) {
   let element = firstChild(parent, name);
@@ -73,7 +82,7 @@ function recordExpected(entries, {
 }
 
 async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
-  const result = { xmlText, branchRows: [], nodeRows: [], expectedEntries: [], appliedFields: 0 };
+  const result = { xmlText, branchRows: [], nodeRows: [], nodeBoreWallRows: [], expectedEntries: [], appliedFields: 0 };
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
   }
@@ -81,9 +90,12 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
+  result.nodeBoreWallRows = Array.isArray(preview?.nodeBoreWallRows) ? preview.nodeBoreWallRows : [];
+  if (Array.isArray(preview?.boreAuthorityDiagnostics)) diagnostics.push(...preview.boreAuthorityDiagnostics);
   if (!result.branchRows.length) return result;
 
   const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
+  const byNodeAuthority = new Map(result.nodeBoreWallRows.map((row) => [text(row.key), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
 
@@ -116,12 +128,14 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
 
     for (const node of childrenByName(branch, 'Node')) {
       const nodeNumber = childText(node, 'NodeNumber');
+      const nodeAuthority = byNodeAuthority.get(nodeAuthorityKey(branchName, node)) || null;
       const nodeWrites = [
         { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
         { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
         { name: 'MaterialName', field: 'material', value: row.material, kind: 'text' },
         { name: 'MaterialCode', field: 'materialCode', value: row.materialCode, kind: 'text' },
-        { name: 'WallThickness', field: 'wallThickness', value: row.wallThickness, kind: 'number' },
+        { name: 'BoreMm', field: 'boreMm', value: nodeAuthority?.boreMm, kind: 'number', source: 'standalone-preview-node' },
+        { name: 'WallThickness', field: 'wallThickness', value: nodeAuthority?.wallThickness, kind: 'number', source: 'standalone-preview-node' },
         { name: 'CorrosionAllowance', field: 'corrosion', value: row.corrosion, kind: 'number' },
       ];
       for (const write of nodeWrites) {
@@ -130,7 +144,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         result.appliedFields += 1;
         recordExpected(result.expectedEntries, {
           scope: 'node', branchName, nodeNumber, path: [write.name], field: write.field,
-          value: write.value, kind: write.kind, source: 'standalone-preview',
+          value: write.value, kind: write.kind, source: write.source || 'standalone-preview',
         });
       }
 
@@ -215,6 +229,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     evidence: null,
     branchRows: [],
     nodeRows: [],
+    nodeBoreWallRows: [],
     expectedEntries: [],
   };
   if (!sourceText.trim()) {
@@ -282,6 +297,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     out.xmlText = accepted.xmlText;
     out.branchRows = process.branchRows;
     out.nodeRows = process.nodeRows;
+    out.nodeBoreWallRows = process.nodeBoreWallRows;
     out.expectedEntries = [...process.expectedEntries, ...accepted.expectedEntries];
     out.stats.acceptedRigidWeightWrites = accepted.appliedCount;
     out.diagnostics.push(...accepted.appliedRows.map((row) => ({ ...row, source: 'validated-or-final-weight' })));
