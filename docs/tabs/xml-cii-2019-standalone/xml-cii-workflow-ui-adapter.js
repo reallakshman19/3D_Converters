@@ -2,7 +2,7 @@ import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
 } from './xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
-import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
+import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20261007-c05-6-2-consumer-authority-1';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
