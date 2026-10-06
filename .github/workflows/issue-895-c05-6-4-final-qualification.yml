@@ -22,7 +22,8 @@ jobs:
           node-version: '22'
       - name: Run descendant-compatible C05.5 persistence semantics
         run: |
-          node --test --test-name-pattern='C05\\.5\\.5 (?!runtime cache chain carries one retry generation from tab to worker).*' \
+          node --test \
+            --test-skip-pattern='runtime cache chain carries one retry generation from tab to worker' \
             tests/xml-cii-issue-875-persistence-status-retry.test.mjs
 
       - name: Run C05.5 C05.6 and C04 contracts
