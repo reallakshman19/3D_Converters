@@ -1,7 +1,7 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20261006-c05-5-5-persistence-retry-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20261001-weight-output-2', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20261006-c05-5-5-persistence-retry-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
