@@ -38,7 +38,7 @@ function datasetCustody(masterKey) {
     source: String(custody.source || ''),
     fieldMap: custody.fieldMap && typeof custody.fieldMap === 'object' ? { ...custody.fieldMap } : {},
     appliedRevision: Number(custody.appliedRevision || 0),
-    ...((masterKey === 'pipingClass' || masterKey === 'materialMap') && Number(custody.datasetRevision) > 0 ? {
+    ...((masterKey === 'pipingClass' || masterKey === 'materialMap' || masterKey === 'weight') && Number(custody.datasetRevision) > 0 ? {
       datasetRevision: Number(custody.datasetRevision),
     } : {}),
     masterFingerprint: String(custody.masterFingerprint || ''),
@@ -60,7 +60,7 @@ async function loadDataset(store, masterKey, custody) {
   if (metadataCount !== Number(custody.rowCount || 0)) {
     throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`);
   }
-  if (masterKey === 'pipingClass' || masterKey === 'materialMap') {
+  if (masterKey === 'pipingClass' || masterKey === 'materialMap' || masterKey === 'weight') {
     const custodyRevision = Number(custody.datasetRevision || 0);
     const metadataRevision = Number(metadata.datasetRevision || 0);
     if (custodyRevision > 0 && metadataRevision > 0 && custodyRevision !== metadataRevision) {
@@ -124,7 +124,7 @@ function applyLoadedDatasets(state, loaded) {
       fileName: item.metadata.fileName || item.custody.source,
       sheetName: item.metadata.sheetName || '',
       fieldMap: { ...item.custody.fieldMap },
-      ...((item.masterKey === 'pipingClass' || item.masterKey === 'materialMap') && Number(item.custody.datasetRevision || item.metadata.datasetRevision) > 0 ? {
+      ...((item.masterKey === 'pipingClass' || item.masterKey === 'materialMap' || item.masterKey === 'weight') && Number(item.custody.datasetRevision || item.metadata.datasetRevision) > 0 ? {
         datasetRevision: Number(item.custody.datasetRevision || item.metadata.datasetRevision),
       } : {}),
       ...(masterFingerprint ? { masterFingerprint } : {}),
