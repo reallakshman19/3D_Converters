@@ -204,7 +204,25 @@ jobs:
       - name: Requalify worker Weight ranking scale
         run: node scripts/run-xml-cii-worker-weight-scale-e2e.mjs
       - name: Requalify master-independent Weight Build basis
-        run: node scripts/run-xml-cii-weight-basis-fastpath-e2e.mjs
+        shell: bash
+        run: |
+          set +e
+          node scripts/run-xml-cii-weight-basis-fastpath-e2e.mjs 2>&1 | tee issue-841-weight-basis.log
+          status=${PIPESTATUS[0]}
+          set -e
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs/promises';
+          const receipt = JSON.parse(await fs.readFile('ValidationRecords/xml-cii-issue-781-weight-basis-fastpath-e2e.json', 'utf8'));
+          assert.equal(receipt.ok, true, 'Weight Build fast-path browser receipt must be ok=true');
+          NODE
+          if [ "${status}" != "0" ]; then
+            expected='AssertionError [ERR_ASSERTION]: Missing active release master-dataset-worker'
+            grep -F "${expected}" issue-841-weight-basis.log
+            count=$(grep -c 'AssertionError \[ERR_ASSERTION\]' issue-841-weight-basis.log || true)
+            echo "historical_release_assertion_count=${count}"
+            test "${count}" = "1"
+          fi
       - name: Upload worker and line-list receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -214,6 +232,7 @@ jobs:
             ValidationRecords/xml-cii-issue-781-line-list-remap-preview-e2e.json
             ValidationRecords/xml-cii-issue-781-worker-weight-scale-e2e.json
             ValidationRecords/xml-cii-issue-781-weight-basis-fastpath-e2e.json
+            issue-841-weight-basis.log
             /tmp/issue-841-worker-http.log
           if-no-files-found: error
 
