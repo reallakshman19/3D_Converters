@@ -19,6 +19,9 @@ import {
   buildXmlCiiStagedGeometryIndex,
   resolveXmlCiiStagedGeometryForNode,
 } from '../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20261006-p2810042-bore-1';
+import {
+  buildStandaloneBoreTraceValidationIndex,
+} from '../xml-cii-resolver-json-trace.js';
 
 function norm(value) {
   return text(value).toUpperCase().replace(/\s+/g, '');
@@ -159,6 +162,8 @@ function nodeTraceText(node, stagedGeometry) {
 
 function buildNodeBoreWallRows({
   document,
+  xmlText,
+  stagedJsonText,
   correctedBranchRows,
   indexes,
   config,
@@ -168,6 +173,18 @@ function buildNodeBoreWallRows({
   );
   const rows = [];
   const diagnostics = [];
+  let traceIndex = null;
+  let xmlIndex = 0;
+  const traceValidationFor = (index) => {
+    if (!(traceIndex instanceof Map)) {
+      traceIndex = buildStandaloneBoreTraceValidationIndex(
+        xmlText,
+        stagedJsonText,
+        config,
+      );
+    }
+    return traceIndex.get(Number(index)) || null;
+  };
 
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     const branchName = childText(branch, 'Branchname');
@@ -176,10 +193,11 @@ function buildNodeBoreWallRows({
     const evidence = branchEvidence(branch, branchName, indexes.stagedWall);
 
     for (const node of children(branch, 'Node')) {
+      xmlIndex += 1;
       const stagedGeometry = resolveXmlCiiStagedGeometryForNode(
         node, indexes.stagedGeometry,
       );
-      const bore = resolveXmlCiiBoreAuthority({
+      const boreArgs = {
         xmlOutsideDiameterMm: childText(node, 'OutsideDiameter')
           || childText(node, 'OuterDiameter')
           || childText(node, 'OD'),
@@ -187,9 +205,21 @@ function buildNodeBoreWallRows({
         stagedBoreMm: stagedGeometry?.boreMm,
         branchName,
         fallbackBoreMm: branchRow?.sizeMm,
-        validationTraceText: nodeTraceText(node, stagedGeometry),
         config,
-      });
+      };
+      const initialBore = resolveXmlCiiBoreAuthority(boreArgs);
+      const traceValidation = initialBore.fallbackUsed
+        ? traceValidationFor(xmlIndex)
+        : null;
+      const bore = traceValidation
+        ? resolveXmlCiiBoreAuthority({
+            ...boreArgs,
+            validationTraceBoreMm: traceValidation.boreMm,
+            validationTraceStatus: traceValidation.status,
+            validationTraceSource: traceValidation.source,
+            validationTraceText: nodeTraceText(node, stagedGeometry),
+          })
+        : initialBore;
       const { authority, dtxr } = wallAuthorityForBore({
         boreMm: bore.boreMm,
         evidence,
@@ -217,6 +247,8 @@ function buildNodeBoreWallRows({
         boreTraceMismatch: bore.traceMismatch,
         boreNeedsReview: bore.needsReview,
         boreValidationTraceMm: bore.validationTraceBoreMm,
+        boreTraceStatus: bore.validationTraceStatus || '',
+        boreTraceSource: bore.validationTraceSource || '',
         wallThickness: authority?.wallThicknessMm != null
           ? Number(authority.wallThicknessMm.toPrecision(6)).toString()
           : '',
@@ -256,6 +288,9 @@ function correctNodeRows(nodeRows, nodeBoreWallRows) {
       boreFallbackUsed: authority.boreFallbackUsed,
       boreTraceMismatch: authority.boreTraceMismatch,
       boreNeedsReview: authority.boreNeedsReview,
+      boreValidationTraceMm: authority.boreValidationTraceMm,
+      boreTraceStatus: authority.boreTraceStatus,
+      boreTraceSource: authority.boreTraceSource,
       wallThickness: authority.wallThickness,
       wallThicknessSource: authority.wallThicknessSource,
       wallThicknessKey: authority.wallThicknessKey,
@@ -280,6 +315,8 @@ export function applyPreviewBoreWallAuthority({
   ));
   const nodeAuthority = buildNodeBoreWallRows({
     document,
+    xmlText,
+    stagedJsonText,
     correctedBranchRows: branchRows,
     indexes,
     config,
