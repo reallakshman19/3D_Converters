@@ -46,6 +46,7 @@ jobs:
             tests/xml-cii-issue-776-standalone-run-match1-custody.test.mjs \
             tests/xml-cii-issue-776-workflow-weight-master-revision.test.mjs \
             tests/xml-cii-issue-776-junction-enrichment-authority.test.mjs \
+            tests/xml-cii-issue-819-p2810042-bore-authority.test.mjs \
             tests/xml-cii-issue-776-mode-a-acceptance-label.test.mjs \
             tests/xml-cii-issue-776-mode-a-weight-canonical-geometry.test.mjs \
             tests/xml-cii-issue-776-flange-weight-geometry.test.mjs \
