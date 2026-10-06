@@ -23,7 +23,7 @@ jobs:
       - name: Run C05.4 and C04 focused Node contracts
         run: |
           node --test \
-            tests/xml-cii-issue-856-valve-weight-restart-custody.test.mjs \
+            tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs \
             tests/xml-cii-issue-857-valve-weight-cold-hydration.test.mjs \
             tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
             tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs
