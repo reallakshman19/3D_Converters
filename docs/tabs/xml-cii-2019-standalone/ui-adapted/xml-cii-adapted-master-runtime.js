@@ -110,7 +110,7 @@ function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
     fileName: String(metadata.fileName || ''),
     sheetName: String(metadata.sheetName || ''),
     fieldMap: { ...(fieldMap || metadata.fieldMap || {}) },
-    ...((key === 'pipingClass' || key === 'materialMap') && Number(metadata.datasetRevision) > 0 ? {
+    ...((key === 'pipingClass' || key === 'materialMap' || key === 'weight') && Number(metadata.datasetRevision) > 0 ? {
       datasetRevision: Number(metadata.datasetRevision),
     } : {}),
     ...(key === 'weight' ? {
@@ -245,7 +245,7 @@ export function persistChangedMasterDetailed(key, context) {
       datasetId: datasetRef.datasetId,
       rowCount: datasetRef.rowCount,
       persistenceMode: 'indexeddb',
-      ...((key === 'pipingClass' || key === 'materialMap') && Number(datasetRef.datasetRevision) > 0 ? {
+      ...((key === 'pipingClass' || key === 'materialMap' || key === 'weight') && Number(datasetRef.datasetRevision) > 0 ? {
         datasetRevision: Number(datasetRef.datasetRevision),
       } : {}),
       ...(datasetRef.masterFingerprint ? { masterFingerprint: datasetRef.masterFingerprint } : {}),
