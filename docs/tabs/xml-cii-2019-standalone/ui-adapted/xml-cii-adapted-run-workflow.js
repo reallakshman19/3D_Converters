@@ -211,7 +211,7 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
 }
 
 async function unresolvedRigidIssues(state, config) {
-  const { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20261001-weight-output-2');
+  const { collectXmlCiiWeightMatchRows, collectXmlCiiZeroRigidWeightIssues } = await import('../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1');
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
   const prepared = await prepareStandaloneWeightReviewXml(state, config);
