@@ -1,7 +1,7 @@
 import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20261006-c05-5-5-persistence-retry-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20261006-c05-5-5-persistence-retry-1', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20261007-c05-6-2-consumer-authority-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
