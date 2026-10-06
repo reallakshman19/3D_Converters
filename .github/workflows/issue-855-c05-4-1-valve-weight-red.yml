@@ -20,5 +20,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run C05.4.1 RED baseline contract
-        run: node --test tests/xml-cii-issue-855-valve-weight-red-baseline.test.mjs
+      - name: Run C05.4.1 RED baseline contracts
+        run: node --test tests/xml-cii-issue-855-valve-weight-red-baseline.test.mjs tests/xml-cii-issue-855-valve-weight-custody-red.test.mjs
