@@ -5,7 +5,7 @@ import { appliedFieldMap, ensureMasterRuntime, persistChangedMasterDetailed } fr
 import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 import { perfCount, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
 import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
-import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
 
 const generations = new Map();
