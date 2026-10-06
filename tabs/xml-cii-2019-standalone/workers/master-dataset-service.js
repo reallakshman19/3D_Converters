@@ -19,6 +19,19 @@ function publicMetadata(metadata) {
   return safe;
 }
 
+function quotaLike(error) {
+  const name = String(error?.name || '');
+  const message = String(error?.message || error || '');
+  return /QuotaExceededError/i.test(name) || /quota|storage.*full|database.*full/i.test(message);
+}
+
+function persistenceFailure(error) {
+  return {
+    name: String(error?.name || 'Error'),
+    message: String(error?.message || error || 'Unknown IndexedDB persistence error'),
+  };
+}
+
 export function createMasterDatasetService({ getXlsx, store, prepareDataset, buildSearchCorpus, searchCorpusIndexes, emitEvent = null }) {
   if (typeof getXlsx !== 'function') throw new Error('getXlsx dependency is required.');
   if (!store?.persistDataset || !store?.getRows) throw new Error('dataset store dependency is required.');
@@ -55,11 +68,24 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       searchCorpus: prepared.searchCorpus,
     });
     const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
-    await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, prepared.rows);
+    let persistence;
+    metadata.persistenceMode = 'indexeddb';
+    try {
+      await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, prepared.rows);
+      persistence = { persisted: true, failure: null, quotaLimited: false };
+    } catch (error) {
+      metadata.persistenceMode = 'session';
+      persistence = {
+        persisted: false,
+        failure: persistenceFailure(error),
+        quotaLimited: quotaLike(error),
+      };
+    }
     return {
       metadata: publicMetadata(metadata),
       previewRows: prepared.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
       mappingRows,
+      persistence,
     };
   }
 
