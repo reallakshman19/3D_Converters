@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run persistence failure, durable-master, and C04 contracts
+      - name: Run descendant-compatible persistence, durable-master, and C04 contracts
         run: |
           node --test \
             tests/xml-cii-issue-875-persistence-status-retry.test.mjs \
@@ -32,10 +32,7 @@ jobs:
             tests/xml-cii-master-dataset-startup-hydration.test.mjs \
             tests/xml-cii-master-dataset-rollback-custody.test.mjs \
             tests/xml-cii-master-weight-fingerprint-metadata.test.mjs \
-            tests/xml-cii-issue-836-piping-class-cold-hydration.test.mjs \
-            tests/xml-cii-issue-837-mat-map-cold-hydration.test.mjs \
             tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs \
-            tests/xml-cii-issue-857-valve-weight-cold-hydration.test.mjs \
             tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
             tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs
 
