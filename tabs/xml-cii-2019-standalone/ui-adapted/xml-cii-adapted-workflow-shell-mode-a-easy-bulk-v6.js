@@ -24,6 +24,11 @@ function hydratePersistedMasters(stateRef, render) {
     .then((changed) => { if (changed) render(); })
     .catch((error) => {
       console.error('[xml-cii] Mode-A IndexedDB master restore failed:', error);
+      stateRef.current = {
+        ...stateRef.current,
+        importMastersWriteBackStatus: `Persisted master restore failed: ${error?.message || String(error)}`,
+      };
+      render();
     });
 }
 
