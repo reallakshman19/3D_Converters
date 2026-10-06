@@ -1,0 +1,128 @@
+name: Issue 895 C05.6.4 Final Three Master Scale Qualification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c05-6-node-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run descendant-compatible C05.5 C05.6 and C04 contracts
+        run: |
+          node --test \
+            tests/xml-cii-issue-875-persistence-status-retry.test.mjs \
+            tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
+            tests/xml-cii-issue-882-session-precedence.test.mjs \
+            tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs \
+            tests/xml-cii-issue-893-consumer-authority.test.mjs \
+            tests/xml-cii-issue-894-scale-contract.test.mjs \
+            tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs \
+            tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
+            tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs \
+            tests/xml-cii-workflow-job-dataset-materialization.test.mjs
+
+  c05-6-combined-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-895-combined-http.log 2>&1 &
+      - name: Run combined three-master cold reload
+        env:
+          XML_CII_ISSUE_892_OUTPUT: ValidationRecords/xml-cii-issue-895-three-master-cold-reload.json
+        run: node scripts/run-xml-cii-issue-892-three-master-cold-reload-e2e.mjs
+      - name: Run cold-hydrated consumer authority
+        env:
+          XML_CII_ISSUE_893_OUTPUT: ValidationRecords/xml-cii-issue-895-consumer-authority.json
+        run: node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
+      - name: Run unchanged 10k 50k 100k scale oracle
+        env:
+          XML_CII_MASTER_DATASET_SCALE_OUTPUT: ValidationRecords/xml-cii-issue-895-master-dataset-scale.json
+        run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
+      - name: Upload combined C05.6 receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-895-c05-6-combined-receipts
+          path: |
+            ValidationRecords/xml-cii-issue-895-three-master-cold-reload.json
+            ValidationRecords/xml-cii-issue-895-consumer-authority.json
+            ValidationRecords/xml-cii-issue-895-master-dataset-scale.json
+            /tmp/issue-895-combined-http.log
+          if-no-files-found: error
+
+  c05-6-protected-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4174 --bind 127.0.0.1 > /tmp/issue-895-protected-http.log 2>&1 &
+      - name: Piping Class individual cold lifecycle
+        env:
+          XML_CII_ISSUE_836_URL: http://127.0.0.1:4174
+        run: node scripts/run-xml-cii-issue-836-piping-class-cold-reload-e2e.mjs
+      - name: Mat Map individual cold lifecycle
+        env:
+          XML_CII_ISSUE_837_URL: http://127.0.0.1:4174
+        run: node scripts/run-xml-cii-issue-837-mat-map-cold-reload-e2e.mjs
+      - name: Valve Weight individual cold lifecycle and hydrated ranking
+        env:
+          XML_CII_ISSUE_859_URL: http://127.0.0.1:4174
+          XML_CII_ISSUE_859_OUTPUT: ValidationRecords/xml-cii-issue-895-valve-weight-cold-reload.json
+        run: node scripts/run-xml-cii-issue-859-valve-weight-cold-reload-e2e.mjs
+      - name: C04 P2810042 rigid-owner lifecycle
+        env:
+          XML_CII_ISSUE_821_URL: http://127.0.0.1:4174
+        run: node scripts/run-xml-cii-issue-821-p2810042-rigid-weight-e2e.mjs
+      - name: Upload protected lifecycle receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-895-c05-6-protected-receipts
+          path: |
+            ValidationRecords/xml-cii-issue-836-piping-class-cold-reload.json
+            ValidationRecords/xml-cii-issue-837-mat-map-cold-reload.json
+            ValidationRecords/xml-cii-issue-895-valve-weight-cold-reload.json
+            ValidationRecords/xml-cii-issue-821-p2810042-rigid-weight.json
+            /tmp/issue-895-protected-http.log
+          if-no-files-found: error
