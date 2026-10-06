@@ -110,6 +110,9 @@ function datasetDescriptor(metadata, fieldMap, rows = [], key = '') {
     fileName: String(metadata.fileName || ''),
     sheetName: String(metadata.sheetName || ''),
     fieldMap: { ...(fieldMap || metadata.fieldMap || {}) },
+    ...(key === 'pipingClass' && Number(metadata.datasetRevision) > 0 ? {
+      datasetRevision: Number(metadata.datasetRevision),
+    } : {}),
     ...(key === 'weight' ? {
       masterFingerprint: String(metadata.masterFingerprint || xmlCiiWeightMasterRowsFingerprint(rows)),
     } : {}),
@@ -242,6 +245,9 @@ export function persistChangedMasterDetailed(key, context) {
       datasetId: datasetRef.datasetId,
       rowCount: datasetRef.rowCount,
       persistenceMode: 'indexeddb',
+      ...(key === 'pipingClass' && Number(datasetRef.datasetRevision) > 0 ? {
+        datasetRevision: Number(datasetRef.datasetRevision),
+      } : {}),
       ...(datasetRef.masterFingerprint ? { masterFingerprint: datasetRef.masterFingerprint } : {}),
     } : {}),
   };
