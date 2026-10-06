@@ -4,8 +4,8 @@ import {
   ensureMasterRuntime,
   persistChangedMasterDetailed,
   readSupportConfigOnce,
-} from './xml-cii-adapted-master-runtime.js';
-import { remapMasterDataset } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-master-runtime.js?v=20261006-p2810042-master-persistence-1';
+import { remapMasterDataset } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-p2810042-master-persistence-1';
 
 const SAMPLE_LIMIT = 150;
 
