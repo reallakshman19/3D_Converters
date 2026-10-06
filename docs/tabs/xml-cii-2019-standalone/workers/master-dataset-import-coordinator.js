@@ -54,6 +54,29 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return client.retryPersistence(datasetId);
   }
 
+  function assertRowsAuthority(masterKey, expectedRef = {}, result = {}) {
+    const expectedId = String(expectedRef?.datasetId || '');
+    const actualId = String(result?.datasetId || '');
+    if (expectedId && actualId !== expectedId) {
+      throw new Error(`Dataset authority mismatch for ${masterKey}: expected datasetId ${expectedId}, received ${actualId || 'unknown'}.`);
+    }
+    const actualKey = String(result?.masterKey || '');
+    if (actualKey && actualKey !== masterKey) {
+      throw new Error(`Dataset authority mismatch for ${masterKey}: dataset belongs to ${actualKey}.`);
+    }
+    const expectedRevision = Number(expectedRef?.datasetRevision || 0);
+    const actualRevision = Number(result?.datasetRevision || 0);
+    if (expectedRevision > 0 && actualRevision > 0 && expectedRevision !== actualRevision) {
+      throw new Error(`Dataset revision mismatch for ${masterKey}: expected ${expectedRevision}, received ${actualRevision}.`);
+    }
+    const expectedFingerprint = String(expectedRef?.masterFingerprint || '');
+    const actualFingerprint = String(result?.masterFingerprint || '');
+    if (expectedFingerprint && actualFingerprint !== expectedFingerprint) {
+      throw new Error(`Dataset fingerprint mismatch for ${masterKey}: expected ${expectedFingerprint}, received ${actualFingerprint || 'missing'}.`);
+    }
+    return result;
+  }
+
   async function materialize(message, options = {}) {
     const ready = assertDatasetMessage(message);
     const datasetId = ready.metadata.datasetId;
@@ -73,13 +96,18 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return { rows, rawRows, metadata: ready.metadata, previewRows: ready.previewRows || [], mappingRows: ready.mappingRows || [] };
   }
 
-  async function materializeRows(masterKey, rowCount = 0, datasetIdOverride = '') {
+  async function materializeRows(masterKey, rowCount = 0, datasetIdOverride = '', datasetRef = {}) {
     const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
     if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
+    const expectedRef = { ...(datasetRef || {}), datasetId };
     const expected = Math.max(0, Number(rowCount) || 0);
     const rows = [];
     for (let offset = 0; offset < expected; offset += MASTER_DATASET_CHUNK_ROWS) {
-      const result = await client.getRows(datasetId, offset, MASTER_DATASET_CHUNK_ROWS);
+      const result = assertRowsAuthority(
+        masterKey,
+        expectedRef,
+        await client.getRows(datasetId, offset, MASTER_DATASET_CHUNK_ROWS),
+      );
       rows.push(...(result?.rows || []));
     }
     if (rows.length !== expected) {
@@ -113,16 +141,24 @@ export function createMasterDatasetImportCoordinator(options = {}) {
     return client.prepareWeightBasis(payload, options);
   }
 
-  function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = '') {
+  async function getRows(masterKey, offset = 0, limit = 150, datasetIdOverride = '', datasetRef = {}) {
     const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
     if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
-    return client.getRows(datasetId, offset, limit);
+    return assertRowsAuthority(
+      masterKey,
+      { ...(datasetRef || {}), datasetId },
+      await client.getRows(datasetId, offset, limit),
+    );
   }
 
-  function getRowsByIndexes(masterKey, indexes = [], datasetIdOverride = '') {
+  async function getRowsByIndexes(masterKey, indexes = [], datasetIdOverride = '', datasetRef = {}) {
     const datasetId = datasetIdOverride || activeDatasets.get(masterKey);
     if (!datasetId) throw new Error(`No active dataset exists for ${masterKey}.`);
-    return client.getRowsByIndexes(datasetId, indexes);
+    return assertRowsAuthority(
+      masterKey,
+      { ...(datasetRef || {}), datasetId },
+      await client.getRowsByIndexes(datasetId, indexes),
+    );
   }
 
   function dispose() {
