@@ -44,6 +44,8 @@ function applyRegexFallback(xmlText, index, options = {}) {
     stagedGeometryMatches: 0,
     stagedLengthAnnotations: 0,
     stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0,
+    sourceBoreCorrections: 0,
     gasketNodesDropped: 0,
     fallbackHighNodeNumbersSuppressed: 0,
   }, first.stats || {});
@@ -57,41 +59,47 @@ function applyRegexFallback(xmlText, index, options = {}) {
     stats.gasketNodesDropped += dropped.count;
   }
 
-  if (index?.count) {
-    xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
-      const ref = normalizeRef(block.match(/<ComponentRefNo>([\s\S]*?)<\/ComponentRefNo>/i)?.[1] || '');
-      const geometry = ref ? index.byRef.get(ref) : null;
-      if (!geometry) return block;
+  xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
+    const ref = normalizeRef(block.match(/<ComponentRefNo>([\s\S]*?)<\/ComponentRefNo>/i)?.[1] || '');
+    const geometry = ref ? index?.byRef?.get(ref) || null : null;
 
-      let out = block;
-      let changed = false;
-      if (geometry.lengthMm !== null) {
-        out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm);
-        stats.stagedLengthAnnotations += 1;
-        changed = true;
-      }
+    let out = block;
+    let stagedChanged = false;
+    if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined) {
+      out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm);
+      stats.stagedLengthAnnotations += 1;
+      stagedChanged = true;
+    }
 
-      const authority = resolveXmlCiiBoreAuthority({
-        xmlOutsideDiameterMm: numberValue(block.match(/<OutsideDiameter>([\s\S]*?)<\/OutsideDiameter>/i)?.[1] || ''),
-        xmlBoreMm: numberValue(block.match(/<BoreMm>([\s\S]*?)<\/BoreMm>/i)?.[1] || ''),
-        stagedBoreMm: geometry.boreMm,
-        validationTraceText: geometry.dtxr,
-        config,
-      });
-      if (authority.boreMm !== null) {
-        out = setOrInsertInNodeBlock(out, 'BoreMm', authority.boreMm);
-        stats.stagedBoreAnnotations += 1;
-        changed = true;
-      }
-      if (authority.diagnostic) diagnostics.push({
-        ...authority.diagnostic,
-        componentRefNo: ref,
-        stage: 'staged-geometry-regex',
-      });
-      if (changed) stats.stagedGeometryMatches += 1;
-      return out;
+    const sourceOutsideDiameterMm = numberValue(block.match(/<OutsideDiameter>([\s\S]*?)<\/OutsideDiameter>/i)?.[1] || '');
+    const existingBoreMm = numberValue(block.match(/<BoreMm>([\s\S]*?)<\/BoreMm>/i)?.[1] || '');
+    const authority = resolveXmlCiiBoreAuthority({
+      xmlOutsideDiameterMm: sourceOutsideDiameterMm,
+      xmlBoreMm: existingBoreMm,
+      stagedBoreMm: geometry?.boreMm,
+      validationTraceText: geometry?.dtxr || '',
+      config,
     });
-  }
+    if (authority.boreMm !== null) {
+      const before = out;
+      out = setOrInsertInNodeBlock(out, 'BoreMm', authority.boreMm);
+      if (out !== before) {
+        stats.sourceBoreAnnotations += 1;
+        if (existingBoreMm !== null && Math.abs(existingBoreMm - Number(authority.boreMm)) > 1e-6) {
+          stats.sourceBoreCorrections += 1;
+        }
+      }
+      if (geometry) stats.stagedBoreAnnotations += 1;
+      if (geometry && out !== before) stagedChanged = true;
+    }
+    if (authority.diagnostic) diagnostics.push({
+      ...authority.diagnostic,
+      componentRefNo: ref,
+      stage: 'staged-geometry-regex',
+    });
+    if (geometry && stagedChanged) stats.stagedGeometryMatches += 1;
+    return out;
+  });
 
   if (shouldSuppressFallbackHighNodeNumbers(options)) {
     const suppressedHigh = suppressNodeNumbersInText(xmlOut, isFallbackHighNode);
@@ -129,6 +137,8 @@ export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, opti
     stagedGeometryMatches: 0,
     stagedLengthAnnotations: 0,
     stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0,
+    sourceBoreCorrections: 0,
     gasketNodesDropped: 0,
     fallbackHighNodeNumbersSuppressed: 0,
   }, first.stats || {});
@@ -145,54 +155,72 @@ export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, opti
     });
   }
 
-  if (index.count) {
-    for (const branch of [...document.getElementsByTagName('Branch')]) {
-      const branchName = childText(branch, 'Branchname');
-      for (const node of childrenByName(branch, 'Node')) {
-        const geometry = resolveXmlCiiStagedGeometryForNode(node, index);
-        if (!geometry) continue;
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    for (const node of childrenByName(branch, 'Node')) {
+      const geometry = resolveXmlCiiStagedGeometryForNode(node, index);
 
-        let changed = false;
-        if (geometry.lengthMm !== null && geometry.lengthMm > 0) {
-          if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) changed = true;
-          stats.stagedLengthAnnotations += 1;
-        }
+      let stagedChanged = false;
+      if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined && geometry.lengthMm > 0) {
+        if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) stagedChanged = true;
+        stats.stagedLengthAnnotations += 1;
+      }
 
-        const authority = resolveXmlCiiBoreAuthority({
-          xmlOutsideDiameterMm: numberValue(childText(node, 'OutsideDiameter')),
-          xmlBoreMm: numberValue(childText(node, 'BoreMm')),
-          stagedBoreMm: geometry.boreMm,
-          branchName,
-          validationTraceText: geometry.dtxr,
-          config,
-        });
-        if (authority.boreMm !== null && authority.boreMm > 0) {
-          if (ensureText(document, node, 'BoreMm', formatMm(authority.boreMm))) changed = true;
-          stats.stagedBoreAnnotations += 1;
+      const sourceOutsideDiameterMm = numberValue(childText(node, 'OutsideDiameter'));
+      const existingBoreMm = numberValue(childText(node, 'BoreMm'));
+      const authority = resolveXmlCiiBoreAuthority({
+        xmlOutsideDiameterMm: sourceOutsideDiameterMm,
+        xmlBoreMm: existingBoreMm,
+        stagedBoreMm: geometry?.boreMm,
+        branchName,
+        validationTraceText: geometry?.dtxr || '',
+        config,
+      });
+      if (authority.boreMm !== null && authority.boreMm > 0) {
+        const changed = ensureText(document, node, 'BoreMm', formatMm(authority.boreMm));
+        if (changed) {
+          stats.sourceBoreAnnotations += 1;
+          if (existingBoreMm !== null && Math.abs(existingBoreMm - Number(authority.boreMm)) > 1e-6) {
+            stats.sourceBoreCorrections += 1;
+          }
         }
-        if (authority.diagnostic) diagnostics.push({
-          ...authority.diagnostic,
+        if (geometry) stats.stagedBoreAnnotations += 1;
+        if (geometry && changed) stagedChanged = true;
+      }
+      if (authority.diagnostic) diagnostics.push({
+        ...authority.diagnostic,
+        branchName,
+        nodeNumber: childText(node, 'NodeNumber'),
+        componentRefNo: childText(node, 'ComponentRefNo'),
+        stage: 'staged-geometry',
+      });
+
+      if (geometry && stagedChanged) {
+        stats.stagedGeometryMatches += 1;
+        diagnostics.push({
+          type: 'staged-geometry-authority',
           branchName,
           nodeNumber: childText(node, 'NodeNumber'),
           componentRefNo: childText(node, 'ComponentRefNo'),
-          stage: 'staged-geometry',
+          stagedType: geometry.stagedType,
+          dtxr: geometry.dtxr,
+          lengthMm: geometry.lengthMm,
+          boreMm: authority.boreMm,
+          lengthSource: geometry.lengthMm !== null ? 'staged-component-refno' : '',
+          boreSource: authority.source,
         });
-
-        if (changed) {
-          stats.stagedGeometryMatches += 1;
-          diagnostics.push({
-            type: 'staged-geometry-authority',
-            branchName,
-            nodeNumber: childText(node, 'NodeNumber'),
-            componentRefNo: childText(node, 'ComponentRefNo'),
-            stagedType: geometry.stagedType,
-            dtxr: geometry.dtxr,
-            lengthMm: geometry.lengthMm,
-            boreMm: authority.boreMm,
-            lengthSource: geometry.lengthMm !== null ? 'staged-component-refno' : '',
-            boreSource: authority.source,
-          });
-        }
+      } else if (!geometry && sourceOutsideDiameterMm !== null && authority.boreMm !== null && existingBoreMm !== Number(authority.boreMm)) {
+        diagnostics.push({
+          type: 'source-bore-authority-correction',
+          branchName,
+          nodeNumber: childText(node, 'NodeNumber'),
+          componentRefNo: childText(node, 'ComponentRefNo'),
+          outsideDiameterMm: sourceOutsideDiameterMm,
+          previousBoreMm: existingBoreMm,
+          boreMm: authority.boreMm,
+          boreSource: authority.source,
+          message: 'Source OutsideDiameter corrected stale enriched BoreMm without requiring staged geometry.',
+        });
       }
     }
   }
