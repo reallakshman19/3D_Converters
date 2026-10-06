@@ -170,6 +170,7 @@ export function standaloneParityOptions(supportConfigJson, options = {}) {
     splitCondensedValveFlange: split,
     split_condensed_valve_flange: split,
     condenseRigidXsd: config.condenseRigidXsd === true || config.condense_rigid_xsd === true,
+    preserveNodeGeometry: true,
   };
 }
 
