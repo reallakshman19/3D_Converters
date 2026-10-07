@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 import {
@@ -77,5 +78,13 @@ assert.equal(
   _filterStagedHierarchyByScope(hierarchy, { wildcard: '', selectedIds: [] }).hierarchy.length,
   810,
 );
+
+const root = new URL('../../', import.meta.url);
+const addonSource = await readFile(new URL('tabs/model-converters/rvmattr-scope-tree-addon.js', root), 'utf8');
+const legacySource = await readFile(new URL('tabs/model-converters/legacy-adapter.js', root), 'utf8');
+assert.match(addonSource, /total branch\(es\).*rendered branch\(es\).*selected\/checked branch\(es\)/s);
+assert.match(addonSource, /Wildcard and checked scope are OR-combined at conversion/);
+assert.match(legacySource, /total branch\(es\).*wildcard-matched\/visible branch\(es\).*selected\/checked branch\(es\)/s);
+assert.doesNotMatch(legacySource, /selected item\(s\)\. Wildcard and checked items are combined/);
 
 console.log('test-rvmattr-scope-integrated-940: PASS');

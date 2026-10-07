@@ -5106,6 +5106,9 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
     const hasVisible = (node, pattern) => nodeMatches(node, pattern)
       || (node.children || []).some((child) => hasVisible(child, pattern));
 
+    let totalBranches = 0;
+    walk(tree, (node) => { if (node.kind === 'BRANCH') totalBranches += 1; });
+
     const render = () => {
       const wildcard = _normalizeRvmScopePattern(wildcardInput.value);
       let visibleBranches = 0;
@@ -5132,7 +5135,7 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
       };
       treeEl.innerHTML = `<ul style="padding-left:0;margin:0;">${tree.map((node) => renderNode(node)).join('')}</ul>`;
       treeEl.querySelectorAll('input[data-indeterminate="true"]').forEach((input) => { input.indeterminate = true; });
-      statsEl.textContent = `${visibleBranches} visible branch(es), ${selectedBranches.size || selected.size} selected item(s). Wildcard and checked items are combined.`;
+      statsEl.textContent = `${totalBranches} total branch(es), ${visibleBranches} wildcard-matched/visible branch(es), ${selectedBranches.size} selected/checked branch(es). Wildcard and checked scope are OR-combined at conversion.`;
     };
 
     treeEl.addEventListener('change', (event) => {

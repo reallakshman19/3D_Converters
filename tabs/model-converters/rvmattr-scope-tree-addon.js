@@ -1,14 +1,14 @@
 import { state } from '../../core/state.js';
 import { parseRmssAttributes } from '../../converters/rmss-attribute-parser.js';
 import { matchesScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
-import { applyRvmScopeSelection, mergeRvmScopeRenderedSelection } from './rvmattr-scope-selection-model.js?v=20261007-rvm-selection-custody-2';
+import { applyRvmScopeSelection, countSelectedRvmBranches, mergeRvmScopeRenderedSelection } from './rvmattr-scope-selection-model.js?v=20261007-rvm-integrated-scope-1';
 import {
   buildRvmAttributeScopeTree,
   buildRvmScopeRenderRows,
   countRvmAttributeScopeTree,
   rvmScopeExpansionIdsForPattern,
 } from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-2';
-const VERSION = '20261007-rvm-selection-custody-2';
+const VERSION = '20261007-rvm-integrated-scope-1';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -119,17 +119,6 @@ function nodeHtml(node, depth, context) {
     ${children ? `<ul data-rvm-tree-children style="padding-left:0;margin:0;">${children}</ul>` : ''}
   </li>`;
 }
-function selectedBranchCount(tree, selection) {
-  let count = 0;
-  const visit = (nodes) => {
-    for (const node of nodes || []) {
-      if (node.kind === 'BRANCH' && selection.has(node.selectId)) count += 1;
-      visit(node.children);
-    }
-  };
-  visit(tree);
-  return count;
-}
 function renderFullTree(context) {
   const pattern = context.wildcardInput?.value || '';
   const selectedWithin = selectedWithinMap(context.tree, context.selection);
@@ -146,8 +135,8 @@ function renderFullTree(context) {
   for (const input of context.treeElement.querySelectorAll('input[data-indeterminate="true"]')) {
     input.indeterminate = true;
   }
-  const selected = selectedBranchCount(context.tree, context.selection);
-  context.statsElement.textContent = `${context.counts.branches} total branch(es), ${context.counts.items} hierarchy item(s), ${selected} selected branch(es). Use +/− to expand or collapse.`;
+  const selected = countSelectedRvmBranches(context.tree, context.selection);
+  context.statsElement.textContent = `${context.counts.branches} total branch(es), ${projection.renderedBranchCount} rendered branch(es), ${selected} selected/checked branch(es). Wildcard and checked scope are OR-combined at conversion. Use +/− to expand or collapse.`;
 }
 function updateSelectionCache(context, event) {
   const input = event.target.closest?.('input[data-scope-node]');

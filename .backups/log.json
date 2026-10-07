@@ -1,5 +1,5 @@
 {
-  "lastId": 1285,
+  "lastId": 1290,
   "entries": [
     {
       "id": 1,
@@ -8932,6 +8932,41 @@
       "file": "docs\\tabs\\model-converters\\rvmattr-scope-selection-model.js",
       "context": "G1 #940 effective selected branch count",
       "backupFile": "1285_docs_tabs_model_converters_rvmattr_scope_selection_model_js.bak"
+    },
+    {
+      "id": 1286,
+      "timestamp": "2026-10-07 17:28:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "G1 #940 truthful progressive scope counters",
+      "backupFile": "1286_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1287,
+      "timestamp": "2026-10-07 17:28:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "G1 #940 truthful progressive scope counters",
+      "backupFile": "1287_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1288,
+      "timestamp": "2026-10-07 17:28:00",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "G1 #940 truthful legacy scope counters",
+      "backupFile": "1288_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1289,
+      "timestamp": "2026-10-07 17:28:00",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "G1 #940 truthful legacy scope counters",
+      "backupFile": "1289_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1290,
+      "timestamp": "2026-10-07 17:28:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-integrated-940.mjs",
+      "context": "G1 #940 integrated counter wording oracle",
+      "backupFile": "1290_tests_model_converters_test_rvmattr_scope_integrated_940_mjs.bak"
     }
   ]
 }
