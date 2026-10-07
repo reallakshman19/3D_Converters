@@ -1,5 +1,5 @@
 {
-  "lastId": 1227,
+  "lastId": 1230,
   "entries": [
     {
       "id": 1,
@@ -8540,6 +8540,13 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "R01 #931 U5 exact-head matcher contract replay",
       "backupFile": "1227_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1230,
+      "timestamp": "2026-10-07 11:31:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "S1 #936 PA1 exact branch-set truth table",
+      "backupFile": "1230_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }

@@ -54,19 +54,55 @@ const wildcardHierarchy = [
     children: [],
   },
   {
+    name: '/ASIM-1838-AA-BB--PL/B3',
+    type: 'BRANCH',
+    attributes: { OWNER_SITE: 'SITE-A', OWNER: '/SITE-A/ZONE-13/PIPE-8' },
+    children: [],
+  },
+  {
     name: '/ASIM-1885-PL-3"-S8810009-91261M7-01/B2',
     type: 'BRANCH',
     attributes: { OWNER_SITE: 'SITE-B', OWNER: '/SITE-B/ZONE-88/PIPE-9' },
     children: [],
   },
+  {
+    name: '/GLRD-1000-P4110010-61440-01/B1',
+    type: 'BRANCH',
+    attributes: { OWNER_SITE: 'SITE-C', OWNER: '/SITE-C/ZONE-41/PIPE-10' },
+    children: [],
+  },
 ];
-const quotedScope = _filterStagedHierarchyByScope(wildcardHierarchy, {
-  wildcard: '"183*-*--PL"',
-  selectedIds: [],
+
+function branchNames(scope) {
+  return _filterStagedHierarchyByScope(wildcardHierarchy, scope)
+    .hierarchy.map((row) => row.name);
+}
+
+// PA1 oracle: expected branch identities are declared before production filtering.
+const scopeTruth = Object.freeze({
+  quoted183: ['/ASIM-1837-XX-YY--PL/B2', '/ASIM-1838-AA-BB--PL/B3'],
+  siteB: ['/ASIM-1885-PL-3"-S8810009-91261M7-01/B2'],
+  combined: ['/ASIM-1837-XX-YY--PL/B2', '/ASIM-1885-PL-3"-S8810009-91261M7-01/B2'],
+  none: [],
+  full: wildcardHierarchy.map((row) => row.name),
 });
-assert.deepEqual(quotedScope.hierarchy.map((row) => row.name), ['/ASIM-1837-XX-YY--PL/B2']);
+
+assert.deepEqual(branchNames({ wildcard: '"183*-*--PL"', selectedIds: [] }), scopeTruth.quoted183);
+assert.deepEqual(branchNames({ wildcard: '183*-*--PL', selectedIds: [] }), scopeTruth.quoted183);
+assert.deepEqual(branchNames({ wildcard: '', selectedIds: ['site:SITE-B'] }), scopeTruth.siteB);
+assert.deepEqual(
+  branchNames({ wildcard: '1837*--PL', selectedIds: ['site:SITE-B'] }),
+  scopeTruth.combined,
+);
+assert.deepEqual(branchNames({ wildcard: 'NO-SUCH-*', selectedIds: [] }), scopeTruth.none);
+assert.deepEqual(branchNames({ wildcard: '', selectedIds: [] }), scopeTruth.full);
+assert.deepEqual(branchNames('183*-*--PL'), scopeTruth.quoted183);
+
+// A wildcard may match one atomic field, but may not bridge unrelated hierarchy fields.
+assert.deepEqual(branchNames({ wildcard: 'SITE-A*91261M7', selectedIds: [] }), scopeTruth.none);
+
 assert.equal(matchesRvmScope(wildcardHierarchy[0], '"183*-*--PL"'), true);
-assert.equal(matchesRvmScope(wildcardHierarchy[1], '"183*-*--PL"'), false);
+assert.equal(matchesRvmScope(wildcardHierarchy[2], '"183*-*--PL"'), false);
 assert.deepEqual(splitScopeTokens('"183*-*--PL"'), ['183*-*--PL']);
 assert.equal(matchesScopeFields(['/A/183.X-ABC--PL'], '183.X*--PL'), true);
 assert.equal(matchesScopeFields(['/A/1830X-ABC--PL'], '183.X*--PL'), false);
