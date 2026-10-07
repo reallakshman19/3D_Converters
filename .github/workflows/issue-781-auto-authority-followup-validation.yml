@@ -32,6 +32,7 @@ on:
       - 'tests/xml-cii-branch-line-family-suggestion.test.mjs'
       - 'tests/xml-cii-pr340-review-regressions.test.mjs'
       - 'tests/xml-cii-branch-line-unique-family-941.test.mjs'
+      - 'tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs'
       - 'tests/xml-cii-issue-776-deployment-parity.test.mjs'
       - '.github/workflows/issue-781-auto-authority-followup-validation.yml'
   workflow_dispatch:
@@ -62,6 +63,7 @@ jobs:
           tests/xml-cii-branch-line-family-suggestion.test.mjs
           tests/xml-cii-pr340-review-regressions.test.mjs
           tests/xml-cii-branch-line-unique-family-941.test.mjs
+          tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs
       - name: Run material authority regressions
         run: |
           node --test tests/xml-cii-material-code-fuzzy-authority.test.mjs

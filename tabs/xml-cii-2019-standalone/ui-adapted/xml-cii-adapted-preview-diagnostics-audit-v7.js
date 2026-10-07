@@ -5,7 +5,7 @@ import {
 import {
   xmlCiiBuildAndRenderPreview,
   xmlCiiRenderPreviewPhase,
-} from './xml-cii-adapted-preview-renderer-v7.js?v=20261007-branch-line-l1-1';
+} from './xml-cii-adapted-preview-renderer-v7.js?v=20261007-branch-line-l2-1';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20261001-weight-output-2';
 import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-output-2';

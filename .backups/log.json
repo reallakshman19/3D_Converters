@@ -1,5 +1,5 @@
 {
-  "lastId": 1335,
+  "lastId": 1354,
   "entries": [
     {
       "id": 1,
@@ -8512,6 +8512,139 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-actions.js",
       "context": "L2 #942 U3 display unresolved ambiguity/designator evidence",
       "backupFile": "1335_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_actions_js.bak"
+    },
+    {
+      "id": 1336,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-panel.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1336_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_panel_js.bak"
+    },
+    {
+      "id": 1337,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-panel.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1337_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_panel_js.bak"
+    },
+    {
+      "id": 1338,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1338_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1339,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1339_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1340,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1340_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1341,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1341_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1342,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1342_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1343,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1343_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1344,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1344_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1345,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1345_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1346,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1346_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1347,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1347_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1348,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1348_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1349,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L2 #942 U4 publish ambiguity-safety cache chain",
+      "backupFile": "1349_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1350,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tests\\xml-cii-branch-line-unique-family-941.test.mjs",
+      "context": "L2 #942 U4 protected cache/regression qualification",
+      "backupFile": "1350_tests_xml_cii_branch_line_unique_family_941_test_mjs.bak"
+    },
+    {
+      "id": 1351,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tests\\xml-cii-branch-line-ambiguity-safety-942.test.mjs",
+      "context": "L2 #942 U4 protected cache/regression qualification",
+      "backupFile": "1351_tests_xml_cii_branch_line_ambiguity_safety_942_test_mjs.bak"
+    },
+    {
+      "id": 1352,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
+      "context": "L2 #942 U4 protected cache/regression qualification",
+      "backupFile": "1352_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
+    },
+    {
+      "id": 1353,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "L2 #942 U4 protected cache/regression qualification",
+      "backupFile": "1353_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1354,
+      "timestamp": "2026-10-07 18:47:00",
+      "file": ".github\\workflows\\issue-781-auto-authority-followup-validation.yml",
+      "context": "L2 #942 U4 protected cache/regression qualification",
+      "backupFile": "1354__github_workflows_issue_781_auto_authority_followup_validation_yml.bak"
     }
   ]
 }

@@ -163,7 +163,7 @@ assert.doesNotMatch(fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/xml
 
 const phasePanel = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', import.meta.url), 'utf8');
 assert.match(phasePanel, /xml-cii-adapted-regex-smart-ui\.js\?v=20261007-c05-6-2-consumer-authority-1/);
-assert.match(phasePanel, /xml-cii-adapted-preview-diagnostics-audit-v7\.js\?v=20261007-branch-line-l1-1/);
+assert.match(phasePanel, /xml-cii-adapted-preview-diagnostics-audit-v7\.js\?v=20261007-branch-line-l2-1/);
 
 const b313Ui = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js', import.meta.url), 'utf8');
 assert.match(b313Ui, /data-b313-factor-info-button/);

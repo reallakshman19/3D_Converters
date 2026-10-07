@@ -89,9 +89,9 @@ for (const sourcePath of [`${branchRoot}xml-cii-branch-scope.js`, ...branchScope
 }
 
 const qualifiedSuccessorPathReleases = new Map([
-  ['tabs/xml-cii-2019-standalone-tab.js', '20261007-branch-line-l1-1'],
-  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', '20261007-branch-line-l1-1'],
-  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', '20261007-branch-line-l1-1'],
+  ['tabs/xml-cii-2019-standalone-tab.js', '20261007-branch-line-l2-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', '20261007-branch-line-l2-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', '20261007-branch-line-l2-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', '20261007-c05-6-2-consumer-authority-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', '20261007-c05-6-2-consumer-authority-1'],
   ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', '20261007-c05-6-2-consumer-authority-1'],
