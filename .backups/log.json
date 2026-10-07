@@ -1,5 +1,5 @@
 {
-  "lastId": 1168,
+  "lastId": 1169,
   "entries": [
     {
       "id": 1,
@@ -8176,6 +8176,13 @@
       "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
       "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
       "backupFile": "1168_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
+    },
+    {
+      "id": 1169,
+      "timestamp": "2026-10-07 02:36:20",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 stale release oracle repair",
+      "backupFile": "1169_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
     }
   ]
 }
