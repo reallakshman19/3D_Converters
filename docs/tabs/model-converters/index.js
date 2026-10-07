@@ -9,7 +9,7 @@
  * ConverterRunner) are available here for convenience.
  */
 
-export { renderModelConvertersTab } from './ModelConvertersTab-fbx2-managed-reference.js?v=20261007-rvm-scope-matcher-1';
+export { renderModelConvertersTab } from './ModelConvertersTab-fbx2-managed-reference.js?v=20261007-rvm-reachability-2';
 
 // Re-export reusable module surfaces so external consumers have one import target.
 export { XML_CII_WORKFLOW_PHASES, normalizeWorkflowPhaseId, getWorkflowPhase } from './WorkflowShell.js?v=20260928-tabperf1';

@@ -1,5 +1,5 @@
 {
-  "lastId": 1239,
+  "lastId": 1256,
   "entries": [
     {
       "id": 1,
@@ -8610,6 +8610,125 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-reachability-937.mjs",
       "context": "S2 #937 U4 search reachability oracle",
       "backupFile": "1239_tests_model_converters_test_rvmattr_scope_reachability_937_mjs.bak"
+    },
+    {
+      "id": 1240,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1240_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1241,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1241_docs_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1242,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1242_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1243,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1243_docs_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1244,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "tabs\\model-converters\\index.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1244_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1245,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\tabs\\model-converters\\index.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1245_docs_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1246,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "tabs\\model-converters-tab.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1246_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1247,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\tabs\\model-converters-tab.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1247_docs_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1248,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1248_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1249,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1249_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1250,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "core\\app.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1250_core_app_js.bak"
+    },
+    {
+      "id": 1251,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\core\\app.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1251_docs_core_app_js.bak"
+    },
+    {
+      "id": 1252,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "main-rhbg-fitguard.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1252_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1253,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1253_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1254,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "index.html",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1254_index_html.bak"
+    },
+    {
+      "id": 1255,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "docs\\index.html",
+      "context": "S2 #937 U5a reachability cache publication",
+      "backupFile": "1255_docs_index_html.bak"
+    },
+    {
+      "id": 1256,
+      "timestamp": "2026-10-07 11:54:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "S2 #937 U5a cache and production-binding assertions",
+      "backupFile": "1256_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }
