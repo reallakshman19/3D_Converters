@@ -148,6 +148,30 @@ export function buildRvmAttributeScopeTree(hierarchy) {
     .map(finalizeNode));
 }
 
+function expansionSet(value) {
+  if (value instanceof Set) return value;
+  return new Set(Array.isArray(value) ? value : []);
+}
+
+export function buildRvmScopeRenderRows(tree, options = {}) {
+  const expandedIds = expansionSet(options.expandedIds);
+  const rows = [];
+  let renderedBranchCount = 0;
+  const visit = (nodes, depth) => {
+    for (const node of nodes || []) {
+      rows.push({ node, depth });
+      if (node.kind === 'BRANCH') renderedBranchCount += 1;
+      if (expandedIds.has(node.id)) visit(node.children, depth + 1);
+    }
+  };
+  visit(tree, 0);
+  return {
+    rows,
+    totalBranchCount: countRvmAttributeScopeTree(tree).branches,
+    renderedBranchCount,
+  };
+}
+
 export function countRvmAttributeScopeTree(tree) {
   const counts = { sites: 0, owners: 0, branches: 0, items: 0, total: 0 };
   const walk = (nodes) => {

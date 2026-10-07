@@ -1,5 +1,5 @@
 {
-  "lastId": 1227,
+  "lastId": 1229,
   "entries": [
     {
       "id": 1,
@@ -8540,6 +8540,20 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "R01 #931 U5 exact-head matcher contract replay",
       "backupFile": "1227_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1228,
+      "timestamp": "2026-10-07 11:10:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "R02 #932 U2 pure expansion render-row contract",
+      "backupFile": "1228_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
+    },
+    {
+      "id": 1229,
+      "timestamp": "2026-10-07 11:10:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "R02 #932 U2 pure expansion render-row contract",
+      "backupFile": "1229_docs_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
     }
   ]
 }
