@@ -1,5 +1,5 @@
 {
-  "lastId": 1170,
+  "lastId": 1171,
   "entries": [
     {
       "id": 1,
@@ -8190,6 +8190,13 @@
       "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "B1 #917 add #893 successor-qualified smart-panel release",
       "backupFile": "1170_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1171,
+      "timestamp": "2026-10-07 02:42:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 switch successor release authority from module to exact import edge",
+      "backupFile": "1171_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
     }
   ]
 }
