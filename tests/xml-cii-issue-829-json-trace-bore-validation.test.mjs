@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import {
   applyPreviewBoreWallAuthority,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
 import { runStandaloneResolverJsonTrace } from '../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
+import {
+  ALL_SCOPE_ID,
+  ensureResolverHierarchyScope,
+} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js';
 
 const branchName = '/HBMR-1000-24"-P2810042-61440-01/B9';
 
@@ -259,4 +264,31 @@ test('unknown JSON Trace scope fails explicitly instead of silently dropping bra
     supportConfigJson: '{}',
     jsonTraceScopeId: '/ZONE-MISSING',
   }), /Unknown JSON hierarchy scope/);
+});
+
+
+test('Resolver UI defaults to bounded scope while preserving explicit All scopes', () => {
+  const stagedJsonText = scopedResolverJson();
+  const stateRef = { current: { stagedJsonText } };
+  const bounded = ensureResolverHierarchyScope(stateRef.current, stateRef);
+  assert.equal(bounded.index.indexable, true);
+  assert.equal(bounded.selectedScopeId, '/ZONE-A');
+  assert.equal(stateRef.current.jsonTraceScopeId, '/ZONE-A');
+  const cached = stateRef.current.resolverJsonTraceUiScopeCache.index;
+  assert.equal(ensureResolverHierarchyScope(stateRef.current, stateRef).index, cached);
+
+  stateRef.current = { ...stateRef.current, jsonTraceScopeId: ALL_SCOPE_ID };
+  const all = ensureResolverHierarchyScope(stateRef.current, stateRef);
+  assert.equal(all.selectedScopeId, ALL_SCOPE_ID);
+});
+
+test('Resolver panel render stays lazy until explicit Build / refresh action', async () => {
+  const panelSource = await readFile(
+    new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js', import.meta.url),
+    'utf8',
+  );
+  assert.equal(panelSource.includes("import { runStandaloneResolverJsonTrace }"), false);
+  assert.equal(panelSource.includes('result = runStandaloneResolverJsonTrace('), false);
+  assert.match(panelSource, /ensureResolverHierarchyScope\(state, stateRef\)/);
+  assert.match(panelSource, /Build \/ refresh resolver index/);
 });
