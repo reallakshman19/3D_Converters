@@ -3,9 +3,10 @@ import { parseRmssAttributes } from '../../converters/rmss-attribute-parser.js';
 import { matchesScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 import {
   buildRvmAttributeScopeTree,
+  buildRvmScopeRenderRows,
   countRvmAttributeScopeTree,
-} from './rvmattr-scope-tree-model.js?v=20261007-rvm-scope-matcher-1';
-const VERSION = '20261007-rvm-scope-matcher-1';
+} from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-1';
+const VERSION = '20261007-rvm-reachability-1';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -94,12 +95,14 @@ function checkboxHtml(node, checked, indeterminate) {
   return `<input type="checkbox" data-scope-node="${escapeAttribute(node.selectId)}" ${checked ? 'checked' : ''} data-indeterminate="${indeterminate ? 'true' : 'false'}">`;
 }
 function nodeHtml(node, depth, context) {
-  const expanded = context.expanded.has(node.id) ? context.expanded.get(node.id) : true;
+  const expanded = context.expanded.get(node.id) === true;
   const checked = node.selectable && context.selection.get(node.selectId) === true;
   const indeterminate = node.selectable && !checked
     && context.selectedWithin.get(node.id) === true;
   const matched = nodeMatches(node, context.pattern);
-  const children = (node.children || []).map((child) => nodeHtml(child, depth + 1, context)).join('');
+  const children = (node.children || [])
+    .filter((child) => context.visibleIds.has(child.id))
+    .map((child) => nodeHtml(child, depth + 1, context)).join('');
   const count = node.branchKeys?.length ? ` (${node.branchKeys.length})` : '';
   return `<li data-rvm-tree-node="${escapeAttribute(node.id)}" style="list-style:none;margin:2px 0 2px ${depth ? 14 : 0}px;">
     <div style="display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;${matched ? 'background:rgba(75,137,220,.16);' : ''}">
@@ -109,7 +112,7 @@ function nodeHtml(node, depth, context) {
       <span>${escapeHtml(node.label)}</span>
       <span style="color:#7f8ea3;font-size:11px;">${escapeHtml(count)}</span>
     </div>
-    ${children ? `<ul data-rvm-tree-children style="padding-left:0;margin:0;${expanded ? '' : 'display:none;'}">${children}</ul>` : ''}
+    ${children ? `<ul data-rvm-tree-children style="padding-left:0;margin:0;">${children}</ul>` : ''}
   </li>`;
 }
 function selectedBranchCount(tree, selection) {
@@ -126,8 +129,13 @@ function selectedBranchCount(tree, selection) {
 function renderFullTree(context) {
   const pattern = context.wildcardInput?.value || '';
   const selectedWithin = selectedWithinMap(context.tree, context.selection);
+  const expandedIds = new Set(
+    [...context.expanded.entries()].filter(([, value]) => value === true).map(([id]) => id),
+  );
+  const projection = buildRvmScopeRenderRows(context.tree, { expandedIds });
+  const visibleIds = new Set(projection.rows.map((row) => row.node.id));
   const html = context.tree.map((node) => nodeHtml(node, 0, {
-    expanded: context.expanded, selection: context.selection, selectedWithin, pattern,
+    expanded: context.expanded, selection: context.selection, selectedWithin, pattern, visibleIds,
   })).join('');
   context.treeElement.innerHTML = `<ul data-rvm-full-tree-root="${VERSION}" style="padding-left:0;margin:0;">${html}</ul>`;
   for (const input of context.treeElement.querySelectorAll('input[data-indeterminate="true"]')) {
@@ -150,7 +158,7 @@ function toggleNode(context, event) {
   event.preventDefault();
   event.stopPropagation();
   const id = button.getAttribute('data-rvm-tree-toggle');
-  context.expanded.set(id, !(context.expanded.has(id) ? context.expanded.get(id) : true));
+  context.expanded.set(id, context.expanded.get(id) !== true);
   renderFullTree(context);
 }
 function installFullScopeButton(card) {

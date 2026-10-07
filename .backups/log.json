@@ -1,5 +1,5 @@
 {
-  "lastId": 1232,
+  "lastId": 1234,
   "entries": [
     {
       "id": 1,
@@ -8561,6 +8561,20 @@
       "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-model.js",
       "context": "S2 #937 U2 hierarchy path and expansion visibility semantics",
       "backupFile": "1232_docs_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
+    },
+    {
+      "id": 1233,
+      "timestamp": "2026-10-07 11:41:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "S2 #937 U3 bind UI to expansion reachability projection",
+      "backupFile": "1233_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1234,
+      "timestamp": "2026-10-07 11:41:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "S2 #937 U3 bind UI to expansion reachability projection",
+      "backupFile": "1234_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
     }
   ]
 }
