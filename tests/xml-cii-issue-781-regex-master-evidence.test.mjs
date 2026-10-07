@@ -77,6 +77,24 @@ const authoritativeRows = {
   pipingClass: [{ pipingClass: '61440', convertedBore: 400 }],
 };
 
+function boundedProviders(calls = []) {
+  const normalize = (value) => String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  return {
+    search: async (masterKey, datasetId, query) => {
+      calls.push(['search', masterKey, datasetId, query]);
+      const needle = normalize(query);
+      const indexes = authoritativeRows[masterKey]
+        .map((row, index) => normalize(Object.values(row).join('')).includes(needle) ? index : -1)
+        .filter((index) => index >= 0);
+      return { indexes };
+    },
+    getRowsByIndexes: async (masterKey, datasetId, indexes) => {
+      calls.push(['getRowsByIndexes', masterKey, datasetId, [...indexes]]);
+      return { rows: indexes.map((index) => authoritativeRows[masterKey][index]).filter(Boolean) };
+    },
+  };
+}
+
 test('dataset-backed smart evidence is transient and upgrades existing scorer authority', async () => {
   resetRegexSuggestionCachesForTests();
   const state = datasetBackedState();
@@ -99,17 +117,22 @@ test('dataset-backed smart evidence is transient and upgrades existing scorer au
   const heuristicRows = classifyRegexSmartTesterResult(state.regexTesterResult, state.masterContext);
   assert.equal(heuristicRows.matchedRows[0].status, 'EXTRACTED');
 
-  const bundle = await resolveRegexSmartEvidence(state, {
-    materializeRows: async (masterKey, ref) => {
-      calls.push([masterKey, ref.datasetId, ref.rowCount]);
-      return authoritativeRows[masterKey];
-    },
-  });
+  const bundle = await resolveRegexSmartEvidence(state, boundedProviders(calls));
 
-  assert.deepEqual(calls, [
-    ['lineList', 'line-ds', 1],
-    ['pipingClass', 'class-ds', 1],
-  ]);
+  assert(calls.some(([kind, masterKey]) => kind === 'search' && masterKey === 'lineList'));
+  assert(calls.some(([kind, masterKey]) => kind === 'search' && masterKey === 'pipingClass'));
+  assert(calls.some(([kind, masterKey, datasetId, indexes]) => (
+    kind === 'getRowsByIndexes'
+    && masterKey === 'lineList'
+    && datasetId === 'line-ds'
+    && indexes.length === 1
+  )));
+  assert(calls.some(([kind, masterKey, datasetId, indexes]) => (
+    kind === 'getRowsByIndexes'
+    && masterKey === 'pipingClass'
+    && datasetId === 'class-ds'
+    && indexes.length === 1
+  )));
   assert.equal(bundle.receipt.masterEvidence.mode, 'MASTER_BACKED');
   assert.notEqual(bundle.receipt.fingerprint, heuristic.fingerprint);
   assert.equal(bundle.regexTesterResult.matchedRows[0].status, 'MASTER_VALIDATED');
@@ -148,9 +171,7 @@ test('receipt cache identity separates empty resident evidence from hydrated evi
     currentResult: state.regexTesterResult,
     profile: state.regexSuggestionProfile,
   });
-  const bundle = await resolveRegexSmartEvidence(state, {
-    materializeRows: async (masterKey) => authoritativeRows[masterKey],
-  });
+  const bundle = await resolveRegexSmartEvidence(state, boundedProviders());
   const hydratedAgain = buildRegexSuggestionPreflight({
     branchSamples: state.regexTesterResult.branchSamples,
     extractionConfig: state.regexTesterConfig,
