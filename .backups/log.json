@@ -1,5 +1,5 @@
 {
-  "lastId": 1230,
+  "lastId": 1232,
   "entries": [
     {
       "id": 1,
@@ -8547,6 +8547,20 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "S1 #936 PA1 exact branch-set truth table",
       "backupFile": "1230_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1231,
+      "timestamp": "2026-10-07 11:36:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "S2 #937 U2 hierarchy path and expansion visibility semantics",
+      "backupFile": "1231_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
+    },
+    {
+      "id": 1232,
+      "timestamp": "2026-10-07 11:36:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "S2 #937 U2 hierarchy path and expansion visibility semantics",
+      "backupFile": "1232_docs_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
     }
   ]
 }

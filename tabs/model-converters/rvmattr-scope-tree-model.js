@@ -148,6 +148,45 @@ export function buildRvmAttributeScopeTree(hierarchy) {
     .map(finalizeNode));
 }
 
+function expandedIds(value) {
+  if (value instanceof Set) return value;
+  return new Set(Array.isArray(value) ? value : []);
+}
+
+export function rvmScopePathToNode(tree, targetId) {
+  const target = clean(targetId);
+  if (!target) return null;
+  const visit = (nodes, path) => {
+    for (const node of nodes || []) {
+      const next = [...path, node];
+      if (node.id === target) return next;
+      const found = visit(node.children, next);
+      if (found) return found;
+    }
+    return null;
+  };
+  return visit(tree, []);
+}
+
+export function buildRvmScopeRenderRows(tree, options = {}) {
+  const expanded = expandedIds(options.expandedIds);
+  const rows = [];
+  let renderedBranchCount = 0;
+  const visit = (nodes, depth) => {
+    for (const node of nodes || []) {
+      rows.push(Object.freeze({ node, depth }));
+      if (node.kind === 'BRANCH') renderedBranchCount += 1;
+      if (expanded.has(node.id)) visit(node.children, depth + 1);
+    }
+  };
+  visit(tree, 0);
+  return Object.freeze({
+    rows: Object.freeze(rows),
+    totalBranchCount: countRvmAttributeScopeTree(tree).branches,
+    renderedBranchCount,
+  });
+}
+
 export function countRvmAttributeScopeTree(tree) {
   const counts = { sites: 0, owners: 0, branches: 0, items: 0, total: 0 };
   const walk = (nodes) => {
