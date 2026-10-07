@@ -12,7 +12,7 @@ import {
   buildModeASmartMapGroups,
   modeASmartMapGroupForRow,
   modeASmartMapSummary,
-} from './xml-cii-adapted-mode-a-smart-map.js?v=20260814-smart-map-1';
+} from './xml-cii-adapted-mode-a-smart-map.js?v=20261007-branch-line-l4-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();

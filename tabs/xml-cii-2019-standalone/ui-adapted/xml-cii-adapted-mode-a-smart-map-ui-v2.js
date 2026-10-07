@@ -15,7 +15,7 @@ import {
   modeASmartMapPipingClassPrefix,
   modeASmartMapSummary,
   rankModeASmartMapCatalogForGroup,
-} from './xml-cii-adapted-mode-a-smart-map-v2.js?v=20260814-smart-map-service-class-1';
+} from './xml-cii-adapted-mode-a-smart-map-v2.js?v=20261007-branch-line-l4-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
