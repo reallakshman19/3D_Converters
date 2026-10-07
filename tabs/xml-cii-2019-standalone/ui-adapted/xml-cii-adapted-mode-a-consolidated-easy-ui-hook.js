@@ -1,5 +1,5 @@
-import { installModeAConsolidatedPreviewEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20261001-weight-output-2';
-import { installModeASmartMapUiV2 } from './xml-cii-adapted-mode-a-smart-map-ui-v2.js?v=20261001-weight-output-2';
+import { installModeAConsolidatedPreviewEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20261007-branch-line-l4-1';
+import { installModeASmartMapUiV2 } from './xml-cii-adapted-mode-a-smart-map-ui-v2.js?v=20261007-branch-line-l4-1';
 import { installModeASmartMapSelectAll } from './xml-cii-adapted-mode-a-smart-map-select-all.js?v=20260814-preview-restore-1';
 import { installModeAProcessFromUi } from './xml-cii-adapted-mode-a-process-from-ui.js?v=20261001-weight-output-2';
 import { repairModeAExactMappedProcessAuthority } from './xml-cii-adapted-mode-a-process-authority.js?v=20261001-weight-output-2';

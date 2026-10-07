@@ -1,5 +1,5 @@
 {
-  "lastId": 1388,
+  "lastId": 1390,
   "entries": [
     {
       "id": 1,
@@ -8883,6 +8883,20 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-ui-v2.js",
       "context": "L4 #944 U5a2 publish Smart Map UI v2→model cache edge",
       "backupFile": "1388_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_ui_v2_js.bak"
+    },
+    {
+      "id": 1389,
+      "timestamp": "2026-10-07 20:38:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "L4 #944 U5a3 publish Easy UI hook child cache edges",
+      "backupFile": "1389_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 1390,
+      "timestamp": "2026-10-07 20:38:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
+      "context": "L4 #944 U5a3 publish Easy UI hook child cache edges",
+      "backupFile": "1390_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
     }
   ]
 }
