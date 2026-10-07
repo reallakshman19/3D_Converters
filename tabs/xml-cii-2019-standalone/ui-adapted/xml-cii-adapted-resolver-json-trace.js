@@ -1,5 +1,4 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
-import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
 import {
