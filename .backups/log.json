@@ -1,5 +1,5 @@
 {
-  "lastId": 1368,
+  "lastId": 1369,
   "entries": [
     {
       "id": 1,
@@ -8743,6 +8743,13 @@
       "file": "tests\\xml-cii-mode-a-easy-bulk-preview.test.mjs",
       "context": "L4 #944 U3d project match row-resolver regression",
       "backupFile": "1368_tests_xml_cii_mode_a_easy_bulk_preview_test_mjs.bak"
+    },
+    {
+      "id": 1369,
+      "timestamp": "2026-10-07 19:55:00",
+      "file": "tests\\xml-cii-branch-line-shared-authority-944.test.mjs",
+      "context": "L4 #944 U4a persisted manual branchLineKeyMap precedence regression",
+      "backupFile": "1369_tests_xml_cii_branch_line_shared_authority_944_test_mjs.bak"
     }
   ]
 }

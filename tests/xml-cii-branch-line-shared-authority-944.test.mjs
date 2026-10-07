@@ -6,6 +6,7 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js';
 import { buildModeASmartMapGroups } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map.js';
 import { buildModeAProjectDataMatchPlan } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-bulk-preview.js';
+import { deriveLineKeyFromBranchName } from '../converters/xml-cii2019-core/regex-line-key.js';
 
 const keys = ['S8810009', 'A1234501', 'A1234502'];
 const row = {
@@ -50,6 +51,28 @@ if (typeof resolveBranchLineRowSuggestion === 'function') {
   assert.deepEqual(plan.ambiguous, []);
   assert.deepEqual(plan.unmatched, []);
 }
+
+// Persisted manual branch mapping remains higher authority than regex/token inference.
+const manualBranch = '/AREA-S8810389-A1234500/B1';
+const manualConfig = {
+  linelist: {
+    branchLineKeyMap: { [manualBranch]: 'S8810009' },
+    branchNameRegex: '(A1234500)',
+    lineNoGroup: 1,
+    tokenDelimiter: '-',
+    lineKeyTokenPositions: '2',
+  },
+};
+assert.equal(
+  deriveLineKeyFromBranchName(manualBranch, manualConfig),
+  'S8810009',
+  'persisted branchLineKeyMap must outrank regex and token fallback',
+);
+assert.equal(
+  resolveBranchLineRowSuggestion({ ...row, lineKey: 'S8810009' }, keys).key,
+  'S8810009',
+  'surfaces must preserve the Preview-derived persisted mapping as exact loaded authority',
+);
 
 // Cross-surface safety provenance must not collapse.
 const ambiguousRow = {
