@@ -42,6 +42,12 @@ for (const [file, cases] of Object.entries(manifest.testNameDispositions || {}))
     assert(testName.trim(), `Blank disposed test name in ${file}`);
     assert.equal(entry.role, 'SUPERSEDED_ACCEPTANCE');
     assert(Array.isArray(entry.evidence) && entry.evidence.length > 0, `Missing case evidence: ${file} :: ${testName}`);
+    assert(Array.isArray(entry.successors) && entry.successors.length > 0, `Missing case successor guards: ${file} :: ${testName}`);
+    for (const successor of entry.successors) {
+      assert(inventory.has(successor), `Case successor guard does not exist: ${file} :: ${testName} -> ${successor}`);
+      const successorRole = manifest.fileDispositions?.[successor]?.role || manifest.policy.defaultXmlCiiRole;
+      assert.equal(successorRole, 'RELEASE_GUARD', `Case successor must remain a current release guard: ${successor}`);
+    }
   }
 }
 
