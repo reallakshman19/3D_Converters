@@ -6,7 +6,8 @@
 - PR: #920 (OPEN / DRAFT / unmerged)
 - Branch: agent/issue-918-integration-b2-dataset-compat-20261007
 - Base material: PR #919 @ 51f7c32af71fec9664a515e5da1658643134410f
-- Current head: 79fc1dc999d1ef4c0c0455904a108a40742e0ba8
+- Runtime/test implementation head before this recovery note: 79fc1dc999d1ef4c0c0455904a108a40742e0ba8
+- Current PR head: the commit containing this report and the test-only guard correction
 - Protocol: reallaksh19/Common@3761d930ae061b899cc737d26390041ccc6db858:skills/engineering-pr-delivery-v3.2
 - Classification: ENGINEERING_CRITICAL
 
@@ -31,16 +32,18 @@ Clear the #776 PR780 dataset blocker and preserve C05 worker/master behavior wit
 ## Mandatory backups
 - Initial B2: #1173–#1182.
 - U4 successful-import repair: #1183–#1187.
+- U4 malformed regression-guard correction: #1188–#1189.
 
 ## Validation
 - #776 prior B2 head 9b3fab4e: SUCCESS / dataset=0.
 - #841 prior B2 head 9b3fab4e: FAIL only in Weight Build follow-on rating test; root cause isolated to missing dependency after split.
-- Current exact head 79fc1dc999d1ef4c0c0455904a108a40742e0ba8: structural source/docs/dependency/cache assertions PASS.
-- Hosted #841/#776/#895/#903: PENDING.
+- Runtime-complete head 79fc1dc999d1ef4c0c0455904a108a40742e0ba8: source/docs/dependency/cache assertions PASS; #776 original PR780 assertions PASS, but the newly-added guard file had an over-escaped regex SyntaxError.
+- This commit replaces only that malformed guard with exact string-inclusion assertions; runtime is unchanged.
+- Hosted exact-head #841/#776/#895/#903: PENDING.
 - #905: expected historical C06 qualification-only scope sentinel on post-programme runtime changes; classify separately, never weaken.
 
 ## Highest risk
 A successful workbook import must complete the state update and render Mapping status: APPLIED after the responsibility split.
 
 ## EXACT_NEXT_ACTION
-Read exact-head workflow runs for 79fc1dc999d1ef4c0c0455904a108a40742e0ba8. Require #841 worker-line-list to pass, #776 to remain dataset=0/focused=0, and #895/#903 to stay green. If so, publish U4 evidence then execute U5 handoff only.
+Use only the PR head containing this report for final qualification. Require #841 worker-line-list PASS, #776 focused=0/dataset=0, and #895/#903 green. Classify #905 as the historical C06 scope sentinel. If green, publish U4 evidence then execute U5 handoff only.
