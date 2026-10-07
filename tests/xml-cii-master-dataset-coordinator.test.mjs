@@ -66,14 +66,14 @@ test('coordinator hydrates normalized and raw rows in bounded chunks', async () 
     async selectSheet() {
       return { type: MASTER_DATASET_EVENT.DATASET_READY, metadata: { datasetId: 'ds-1', rowCount }, previewRows: [{ n: 1 }], mappingRows: [{ raw: 1 }] };
     },
-    async getRows(_id, offset, limit) {
+    async getRows(id, offset, limit) {
       calls.push(['normal', offset, limit]);
       const count = Math.min(limit, rowCount - offset);
-      return { rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
+      return { datasetId: id, masterKey: 'lineList', rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
     },
-    async getRowsByIndexes(_id, indexes) {
+    async getRowsByIndexes(id, indexes) {
       calls.push(['indexes', ...indexes]);
-      return { indexes: [...indexes], rows: indexes.map((index) => ({ n: index })), rowCount };
+      return { datasetId: id, masterKey: 'lineList', indexes: [...indexes], rows: indexes.map((index) => ({ n: index })), rowCount };
     },
     async getRawRows(_id, offset, limit) {
       calls.push(['raw', offset, limit]);
@@ -107,7 +107,7 @@ test('coordinator materializes a persisted dataset in bounded normalized chunks'
     async getRows(id, offset, limit) {
       calls.push([id, offset, limit]);
       const count = Math.min(limit, rowCount - offset);
-      return { rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
+      return { datasetId: id, masterKey: 'weight', rows: Array.from({ length: count }, (_, i) => ({ n: offset + i })) };
     },
     async releaseSource() {}, async releaseDataset() {}, search() {}, dispose() {},
   };
