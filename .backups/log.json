@@ -1,5 +1,5 @@
 {
-  "lastId": 1189,
+  "lastId": 1193,
   "entries": [
     {
       "id": 1,
@@ -8323,6 +8323,34 @@
       "file": "agents\\PR920_workreport.md",
       "context": "B2 #918 U4 record test-only qualification repair and current recovery state",
       "backupFile": "1189_agents_PR920_workreport_md.bak"
+    },
+    {
+      "id": 1190,
+      "timestamp": "2026-10-07 09:20:00",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-trace-resolution-ledger.js",
+      "context": "J01 #922 U3 scoped resolver + spatial grouping",
+      "backupFile": "1190_tabs_xml_cii_2019_standalone_xml_cii_trace_resolution_ledger_js.bak"
+    },
+    {
+      "id": 1191,
+      "timestamp": "2026-10-07 09:20:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-trace-resolution-ledger.js",
+      "context": "J01 #922 U3 scoped resolver + spatial grouping",
+      "backupFile": "1191_docs_tabs_xml_cii_2019_standalone_xml_cii_trace_resolution_ledger_js.bak"
+    },
+    {
+      "id": 1192,
+      "timestamp": "2026-10-07 09:20:00",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-resolver-json-trace.js",
+      "context": "J01 #922 U3 scoped resolver + spatial grouping",
+      "backupFile": "1192_tabs_xml_cii_2019_standalone_xml_cii_resolver_json_trace_js.bak"
+    },
+    {
+      "id": 1193,
+      "timestamp": "2026-10-07 09:20:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-resolver-json-trace.js",
+      "context": "J01 #922 U3 scoped resolver + spatial grouping",
+      "backupFile": "1193_docs_tabs_xml_cii_2019_standalone_xml_cii_resolver_json_trace_js.bak"
     }
   ]
 }
