@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   applyPreviewBoreWallAuthority,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
+import { runStandaloneResolverJsonTrace } from '../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
 
 const branchName = '/HBMR-1000-24"-P2810042-61440-01/B9';
 
@@ -168,4 +169,94 @@ test('source XML geometry remains primary and does not emit fallback diagnostics
     result.boreAuthorityDiagnostics.filter((item) => item.type.startsWith('bore-fallback-trace-')).length,
     0,
   );
+});
+
+
+const scopeBranchA = '/SCOPE-A-4"-P1000001-61440-01/B1';
+const scopeBranchB = '/SCOPE-B-4"-P1000002-61440-01/B1';
+
+function scopedBranch(name, site, position, tag, dtxr) {
+  return {
+    type: 'BRANCH',
+    name,
+    attributes: { OWNER_SITE: site },
+    children: [{
+      type: 'ATTA',
+      name: tag,
+      attributes: {
+        NAME: tag,
+        POS: position,
+        DTXR: dtxr,
+        ABORE: '100',
+      },
+    }],
+  };
+}
+
+function scopedResolverSourceXml() {
+  return `<Root><Branch><Branchname>${scopeBranchB}</Branchname><Node>
+    <NodeNumber>20</NodeNumber><NodeName>PS-B</NodeName><ComponentType>ANCI</ComponentType>
+    <Position>100 0 0</Position>
+  </Node></Branch></Root>`;
+}
+
+function scopedResolverJson() {
+  return JSON.stringify([
+    scopedBranch(scopeBranchA, '/ZONE-A', '0 0 0', '/PS-A', 'REST-A'),
+    scopedBranch(scopeBranchB, '/ZONE-B', '100 0 0', '/PS-B', 'REST-B'),
+  ]);
+}
+
+function resolutionSummary(result) {
+  return result.resolutionLedger.map((row) => ({
+    xmlNodeNumber: row.xmlNodeNumber,
+    status: row.status,
+    effectiveDtxr: row.effectiveDtxr,
+    sourceBranch: row.sourceBranch,
+    matchType: row.matchType,
+  }));
+}
+
+test('bounded JSON Trace scope preserves selected-branch resolution parity', () => {
+  const input = {
+    sourceKind: 'xml',
+    sourceText: scopedResolverSourceXml(),
+    stagedJsonText: scopedResolverJson(),
+    supportConfigJson: '{}',
+  };
+  const legacy = runStandaloneResolverJsonTrace(input);
+  const scoped = runStandaloneResolverJsonTrace({ ...input, jsonTraceScopeId: '/ZONE-B' });
+  assert.equal(legacy.traceResolutionLedger.groups.length, 2);
+  assert.equal(scoped.traceResolutionLedger.groups.length, 1);
+  assert.equal(scoped.hierarchyScope.applied, true);
+  assert.equal(scoped.hierarchyScope.selectedScopeId, '/ZONE-B');
+  assert.equal(scoped.hierarchyScope.selectedItemCount, 1);
+  assert.deepEqual(resolutionSummary(scoped), resolutionSummary(legacy));
+  assert.equal(scoped.positionIndex.entries.some((entry) => Object.hasOwn(entry, 'raw')), false);
+  assert.equal(scoped.traceResolutionLedger.groups.some((group) =>
+    group.entries.some((entry) => Object.hasOwn(entry, 'raw'))), false);
+});
+
+test('explicit All scopes preserves legacy all-source resolver result', () => {
+  const input = {
+    sourceKind: 'xml',
+    sourceText: scopedResolverSourceXml(),
+    stagedJsonText: scopedResolverJson(),
+    supportConfigJson: '{}',
+  };
+  const legacy = runStandaloneResolverJsonTrace(input);
+  const all = runStandaloneResolverJsonTrace({ ...input, jsonTraceScopeId: '__ALL__' });
+  assert.equal(all.hierarchyScope.applied, false);
+  assert.equal(all.traceResolutionLedger.groups.length, legacy.traceResolutionLedger.groups.length);
+  assert.deepEqual(resolutionSummary(all), resolutionSummary(legacy));
+});
+
+test('unknown JSON Trace scope fails explicitly instead of silently dropping branches', () => {
+  assert.throws(() => runStandaloneResolverJsonTrace({
+    sourceKind: 'xml',
+    sourceText: scopedResolverSourceXml(),
+    stagedJsonText: scopedResolverJson(),
+    supportConfigJson: '{}',
+    jsonTraceScopeId: '/ZONE-MISSING',
+  }), /Unknown JSON hierarchy scope/);
 });
