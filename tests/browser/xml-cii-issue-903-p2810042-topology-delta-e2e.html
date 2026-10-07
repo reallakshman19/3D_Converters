@@ -1,0 +1,318 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>C06.3 P2810042 topology continuity delta gate</title>
+<pre id="out">RUNNING</pre>
+<script type="module">
+import {
+  prepareStandaloneWeightReviewXml,
+  enrichStandaloneXmlForRun,
+} from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js';
+import { buildXmlCiiTopologyDisconnectAudit } from '../../converters/xml-cii2019-core/topology/xml-cii-topology-disconnect-audit.js';
+import { xmlCiiNominalDnFromOd } from '../../converters/xml-cii2019-core/bore-authority.js';
+import {
+  P2810042_C06_CLASS_ROWS,
+  P2810042_C06_TARGET_WEIGHTS,
+} from '../fixtures/xml-cii-p2810042-c06-combined-fixture.js';
+import { buildP2810042C06FullXml } from '../fixtures/xml-cii-p2810042-c06-full-fixture.js';
+
+const CONFIG = {
+  splitCondensedValveFlange: true,
+  split_condensed_valve_flange: true,
+  dropGasketNodes: true,
+  dropGasketsInEnrichment: true,
+  dropShortElementLengthNodes: true,
+  shortElementLengthDropThresholdMm: 6,
+  pipingClass: { masterRows: P2810042_C06_CLASS_ROWS },
+  rating: { defaultRating: '600' },
+  weight: { masterRows: [] },
+};
+const WALL_BY_DN = new Map(P2810042_C06_CLASS_ROWS.map((row) => [Number(row.DN), Number(row['Wall Thickness'])]));
+
+function text(value) { return value == null ? '' : String(value).trim(); }
+function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
+function children(parent, name) {
+  return [...(parent?.childNodes || [])].filter((child) => child.nodeType === 1 && localName(child) === name);
+}
+function childText(parent, name) { return text(children(parent, name)[0]?.textContent); }
+function numberOrNull(value) { const n = Number(text(value)); return Number.isFinite(n) ? n : null; }
+function parse(xmlText) {
+  const doc = new DOMParser().parseFromString(String(xmlText || ''), 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('XML parse failed');
+  return doc;
+}
+function normalizeRef(value) { return text(value).replace(/^=/, '').replace(/\s+/g, '').toUpperCase(); }
+function stableKey(branchName, node) {
+  return [text(branchName), normalizeRef(childText(node, 'ComponentRefNo')), childText(node, 'Endpoint')].join('::');
+}
+function nodeRows(xmlText) {
+  const rows = [];
+  const seen = new Set();
+  for (const branch of [...parse(xmlText).getElementsByTagNameNS('*', 'Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    for (const node of children(branch, 'Node')) {
+      const key = stableKey(branchName, node);
+      if (seen.has(key)) throw new Error(`duplicate stable node key ${key}`);
+      seen.add(key);
+      rows.push({
+        key, branchName,
+        nodeNumber: childText(node, 'NodeNumber'),
+        componentType: childText(node, 'ComponentType').toUpperCase(),
+        componentRefNo: childText(node, 'ComponentRefNo'),
+        endpoint: childText(node, 'Endpoint'),
+        rigid: childText(node, 'Rigid'),
+        position: childText(node, 'Position'),
+        outsideDiameter: numberOrNull(childText(node, 'OutsideDiameter')),
+        boreMm: numberOrNull(childText(node, 'BoreMm')),
+        wallThickness: numberOrNull(childText(node, 'WallThickness')),
+        weight: numberOrNull(childText(node, 'Weight')) ?? 0,
+      });
+    }
+  }
+  return rows;
+}
+function rowId(row) {
+  const raw = text(row.branchName);
+  const suffix = /EXE\/B2$/i.test(raw) ? 'EXE/B2' : raw.match(/\/(B\d+)$/i)?.[1]?.toUpperCase() || raw;
+  return `${suffix}::${text(row.nodeNumber)}`;
+}
+function close(a, b, tolerance = 1e-6) {
+  return Number.isFinite(Number(a)) && Number.isFinite(Number(b)) && Math.abs(Number(a) - Number(b)) <= tolerance;
+}
+function requireValue(condition, message) { if (!condition) throw new Error(message); }
+function badRows(audit, pathPrefix) {
+  return (audit.rows || []).filter((row) => row.path.startsWith(pathPrefix) && ['DISCONNECTED', 'ORPHAN'].includes(row.status));
+}
+function reasonCounts(rows) {
+  const out = {};
+  for (const row of rows || []) out[row.reason || row.status || 'unknown'] = (out[row.reason || row.status || 'unknown'] || 0) + 1;
+  return out;
+}
+function delta(field, source, final, reason, result = 'PASS') { return { field, source, final, reason, result }; }
+const SPLIT_RIGID_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
+function positionPoint(value) {
+  const nums = text(value).match(/-?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?/g)?.map(Number).filter(Number.isFinite) || [];
+  return nums.length >= 3 ? nums.slice(0, 3) : null;
+}
+function positionDistance(left, right) {
+  const a = positionPoint(left), b = positionPoint(right);
+  return a && b ? Math.hypot(b[0]-a[0], b[1]-a[1], b[2]-a[2]) : null;
+}
+function exactShortDrop(source, diagnostics) {
+  return (diagnostics || []).find((item) =>
+    item?.type === 'short-element-length-node-dropped'
+    && text(item.nodeNumber) === text(source.nodeNumber)
+    && text(item.componentType).toUpperCase() === source.componentType
+    && normalizeRef(item.componentRefNo) === normalizeRef(source.componentRefNo)
+  ) || null;
+}
+function isCanonicalCollapsedSourceHelper(source, sourceNodes) {
+  if (!(Number(source.nodeNumber) < 0) || !SPLIT_RIGID_TYPES.has(source.componentType)) return false;
+  const branchRows = sourceNodes.filter((row) => row.branchName === source.branchName);
+  const index = branchRows.findIndex((row) => row.key === source.key);
+  const junction = index >= 0 ? branchRows[index + 1] : null;
+  if (!junction || !(Number(junction.nodeNumber) > 0)) return false;
+  const distance = positionDistance(source.position, junction.position);
+  if (distance == null || distance > 0.01) return false;
+  const occurrences = sourceNodes.filter((row) => {
+    if (row.nodeNumber !== junction.nodeNumber) return false;
+    const d = positionDistance(row.position, junction.position);
+    return d != null && d <= 0.01;
+  });
+  return new Set(occurrences.map((row) => row.branchName)).size >= 2;
+}
+function governedRigidTransition(source, engine) {
+  return source.rigid === '' && engine.rigid === '2'
+    && Number(source.nodeNumber) < 0 && Number(engine.nodeNumber) > 0
+    && SPLIT_RIGID_TYPES.has(source.componentType);
+}
+
+try {
+  const sourceText = buildP2810042C06FullXml();
+  const sourceNodes = nodeRows(sourceText);
+  requireValue(sourceNodes.length === 172, `expected 172 source nodes, got ${sourceNodes.length}`);
+
+  const prepared = await prepareStandaloneWeightReviewXml(
+    { sourceText, stagedJsonText: '', options: { splitCondensedValveFlange: true } },
+    structuredClone(CONFIG),
+  );
+  requireValue(!prepared.error, `prepareStandaloneWeightReviewXml failed: ${prepared.error}`);
+  const accepted = {};
+  for (const target of P2810042_C06_TARGET_WEIGHTS) {
+    const row = (prepared.weightAuthority?.basisRows || []).find((item) => rowId(item) === `${target.branch}::${target.node}`);
+    requireValue(row, `${target.id}: target missing from review basis`);
+    requireValue(row.componentRefNo === target.ref, `${target.id}: review ref drift`);
+    accepted[row.key] = target.kg;
+  }
+
+  const runConfig = structuredClone(CONFIG);
+  runConfig.overrides = { rigidWeight: accepted };
+  const final = await enrichStandaloneXmlForRun({
+    sourceText,
+    stagedJsonText: '',
+    supportConfigJson: JSON.stringify(runConfig),
+    options: { splitCondensedValveFlange: true },
+  });
+  requireValue(final.applied, `enrichStandaloneXmlForRun failed: ${final.error || 'not applied'}`);
+
+  const sourceAudit = buildXmlCiiTopologyDisconnectAudit(sourceText, { mode: 'audit' });
+  const finalAudit = buildXmlCiiTopologyDisconnectAudit(final.xmlText, { mode: 'audit' });
+  const sourceTopologyFindings = badRows(sourceAudit, 'Path 1');
+  const finalTopologyFindings = badRows(finalAudit, 'Path 1');
+  const sourceContinuityFailures = badRows(sourceAudit, 'Path 2');
+  const finalContinuityFailures = badRows(finalAudit, 'Path 2');
+  requireValue(sourceContinuityFailures.length === 0, `source continuity unexpectedly has ${sourceContinuityFailures.length} failures`);
+  requireValue(finalContinuityFailures.length === 0, `final continuity has ${finalContinuityFailures.length} disconnected/orphan rows`);
+
+  const finalNodes = nodeRows(final.xmlText);
+  const finalByKey = new Map(finalNodes.map((row) => [row.key, row]));
+  const sourceByKey = new Map(sourceNodes.map((row) => [row.key, row]));
+  const cleanupDiagnostics = Array.isArray(final.diagnostics) ? final.diagnostics : [];
+  const targetWeights = new Map(P2810042_C06_TARGET_WEIGHTS.map((row) => [`${row.branch}::${row.node}`, Number(row.kg)]));
+  const retained = [];
+  const removed = [];
+  const unexplained = [];
+
+  for (const source of sourceNodes) {
+    const engine = finalByKey.get(source.key);
+    if (!engine) {
+      if (source.componentType === 'GASK') {
+        removed.push({ key: source.key, nodeNumber: source.nodeNumber, componentType: source.componentType, reason: 'cleanup:gasket' });
+        continue;
+      }
+      const shortDrop = exactShortDrop(source, cleanupDiagnostics);
+      if (shortDrop) {
+        removed.push({
+          key: source.key,
+          nodeNumber: source.nodeNumber,
+          componentType: source.componentType,
+          reason: `cleanup:short-element<=${shortDrop.thresholdMm}mm`,
+          provenance: {
+            diagnosticType: shortDrop.type,
+            elementLengthMm: shortDrop.elementLengthMm,
+            thresholdMm: shortDrop.thresholdMm,
+            componentRefNo: shortDrop.componentRefNo,
+          },
+        });
+        continue;
+      }
+      if (isCanonicalCollapsedSourceHelper(source, sourceNodes)) {
+        removed.push({
+          key: source.key,
+          nodeNumber: source.nodeNumber,
+          componentType: source.componentType,
+          reason: 'cleanup:canonical-junction-helper-collapse',
+          provenance: 'source topology matches collapseCoincidentPreJunctionHelpers predicate',
+        });
+        continue;
+      }
+      unexplained.push({ key: source.key, nodeNumber: source.nodeNumber, componentType: source.componentType, reason: 'source-node-missing-from-final' });
+      continue;
+    }
+
+    const changes = [];
+    if (source.nodeNumber !== engine.nodeNumber) {
+      const reason = Number(source.nodeNumber) <= 0 && Number(engine.nodeNumber) > 0 ? 'runtime:canonical-node-numbering' : 'UNEXPLAINED';
+      changes.push(delta('NodeNumber', source.nodeNumber, engine.nodeNumber, reason, reason === 'UNEXPLAINED' ? 'FAIL' : 'PASS'));
+    }
+    if (source.componentType !== engine.componentType) changes.push(delta('ComponentType', source.componentType, engine.componentType, 'UNEXPLAINED', 'FAIL'));
+    if (source.position !== engine.position) changes.push(delta('Position', source.position, engine.position, 'UNEXPLAINED', 'FAIL'));
+    if (!close(source.outsideDiameter, engine.outsideDiameter)) changes.push(delta('OutsideDiameter', source.outsideDiameter, engine.outsideDiameter, 'UNEXPLAINED', 'FAIL'));
+    if (source.rigid !== engine.rigid) {
+      const governed = governedRigidTransition(source, engine);
+      changes.push(delta(
+        'Rigid',
+        source.rigid,
+        engine.rigid,
+        governed ? 'authority:split-condensed-rigid-marker' : 'UNEXPLAINED',
+        governed ? 'PASS' : 'FAIL',
+      ));
+    }
+
+    const expectedDn = xmlCiiNominalDnFromOd(source.outsideDiameter);
+    if (!close(engine.boreMm, expectedDn)) changes.push(delta('BoreMm', source.boreMm, engine.boreMm, 'UNEXPLAINED', 'FAIL'));
+    else if (!close(source.boreMm, engine.boreMm)) changes.push(delta('BoreMm', source.boreMm, engine.boreMm, 'authority:source-outside-diameter'));
+
+    const expectedWall = WALL_BY_DN.get(Number(expectedDn));
+    if (!close(engine.wallThickness, expectedWall)) changes.push(delta('WallThickness', source.wallThickness, engine.wallThickness, 'UNEXPLAINED', 'FAIL'));
+    else if (!close(source.wallThickness, engine.wallThickness)) changes.push(delta('WallThickness', source.wallThickness, engine.wallThickness, 'authority:piping-class-master'));
+
+    const target = targetWeights.get(rowId(source));
+    if (target != null) {
+      if (!close(engine.weight, target)) changes.push(delta('Weight', source.weight, engine.weight, 'UNEXPLAINED', 'FAIL'));
+      else if (!close(source.weight, engine.weight)) changes.push(delta('Weight', source.weight, engine.weight, 'authority:reviewed-exact-rigid-owner'));
+    } else if (!close(source.weight, engine.weight)) {
+      changes.push(delta('Weight', source.weight, engine.weight, 'UNEXPLAINED', 'FAIL'));
+    }
+
+    const failed = changes.filter((item) => item.result === 'FAIL');
+    if (failed.length) unexplained.push({ key: source.key, nodeNumber: source.nodeNumber, componentType: source.componentType, changes: failed });
+    retained.push({ key: source.key, sourceNodeNumber: source.nodeNumber, finalNodeNumber: engine.nodeNumber, componentType: source.componentType, changes });
+  }
+
+  const generated = finalNodes
+    .filter((row) => !sourceByKey.has(row.key))
+    .map((row) => ({ key: row.key, nodeNumber: row.nodeNumber, componentType: row.componentType, reason: 'UNEXPLAINED_FINAL_NODE' }));
+  unexplained.push(...generated);
+  requireValue(unexplained.length === 0, `unexplained source→final engineering deltas: ${JSON.stringify(unexplained.slice(0, 12))}`);
+
+  const result = {
+    schema: 'XMLCII_ISSUE_903_P2810042_TOPOLOGY_DELTA_V1',
+    ok: true,
+    topology: {
+      fixState: 'READ_ONLY_NOT_APPLIED',
+      source: {
+        path1Findings: sourceTopologyFindings.length,
+        path1Reasons: reasonCounts(sourceTopologyFindings),
+        path2ContinuityFailures: sourceContinuityFailures.length,
+        stats: sourceAudit.stats,
+      },
+      final: {
+        path1Findings: finalTopologyFindings.length,
+        path1Reasons: reasonCounts(finalTopologyFindings),
+        path2ContinuityFailures: finalContinuityFailures.length,
+        stats: finalAudit.stats,
+      },
+    },
+    delta: {
+      sourceNodes: sourceNodes.length,
+      finalNodes: finalNodes.length,
+      retainedNodes: retained.length,
+      removedNodes: removed.length,
+      generatedNodes: generated.length,
+      unexplainedCount: unexplained.length,
+      removalReasons: reasonCounts(removed),
+      retained,
+      removed,
+    },
+    finalStats: final.stats || {},
+    cleanupDiagnostics: cleanupDiagnostics
+      .filter((item) => ['short-element-length-node-dropped', 'gasket-node-dropped'].includes(item?.type))
+      .map((item) => ({
+        type: item.type,
+        nodeNumber: item.nodeNumber || '',
+        componentType: item.componentType || '',
+        componentRefNo: item.componentRefNo || '',
+        elementLengthMm: item.elementLengthMm ?? '',
+        thresholdMm: item.thresholdMm ?? '',
+      })),
+    finalEvidence: final.evidence || null,
+    acceptedWeightKeys: Object.keys(accepted),
+    assertions: {
+      sourceContinuityClean: true,
+      finalContinuityClean: true,
+      topologyKeptReadOnly: true,
+      allEngineeringDeltasClassified: true,
+      noUnexplainedGeneratedNodes: true,
+    },
+    finalXmlText: final.xmlText,
+  };
+  globalThis.__XML_CII_ISSUE_903_DONE__ = true;
+  globalThis.__XML_CII_ISSUE_903_RESULT__ = result;
+  document.querySelector('#out').textContent = JSON.stringify({ ...result, finalXmlText: '[omitted]', delta: { ...result.delta, retained: '[omitted]' } }, null, 2);
+} catch (error) {
+  const result = { schema: 'XMLCII_ISSUE_903_P2810042_TOPOLOGY_DELTA_V1', ok: false, error: String(error?.stack || error) };
+  globalThis.__XML_CII_ISSUE_903_DONE__ = true;
+  globalThis.__XML_CII_ISSUE_903_RESULT__ = result;
+  document.querySelector('#out').textContent = JSON.stringify(result, null, 2);
+}
+</script>
