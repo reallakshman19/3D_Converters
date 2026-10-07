@@ -1,5 +1,5 @@
 {
-  "lastId": 1208,
+  "lastId": 1209,
   "entries": [
     {
       "id": 1,
@@ -8407,6 +8407,13 @@
       "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
       "context": "R01 #931 U4 addon shared matcher migration",
       "backupFile": "1208_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1209,
+      "timestamp": "2026-10-07 10:42:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "R01 #931 U4a quoted wildcard and UI/conversion parity regression",
+      "backupFile": "1209_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }

@@ -4,6 +4,8 @@ import {
   buildRvmAttributeScopeTree,
   countRvmAttributeScopeTree,
 } from '../../tabs/model-converters/rvmattr-scope-tree-model.js';
+import { matchesRvmScope } from '../../converters/rvm-scope-pattern.js';
+import { _filterStagedHierarchyByScope } from '../../tabs/model-converters/converters/stagedjson-xml-helpers.js';
 
 const hierarchy = [
   {
@@ -41,6 +43,30 @@ assert.equal(branches[0].children[0].selectable, false);
 assert.deepEqual(countRvmAttributeScopeTree(tree), {
   sites: 1, owners: 1, branches: 2, items: 4, total: 8,
 });
+assert.equal(branches[0].scopeFields.includes('/SITE-A/PIPE-1/BRAN-1'), true);
+assert.equal(branches[0].scopeFields.includes('/SITE-A/PIPE-1'), true);
+
+const wildcardHierarchy = [
+  {
+    name: '/ASIM-1837-XX-YY--PL/B2',
+    type: 'BRANCH',
+    attributes: { OWNER_SITE: 'SITE-A', OWNER: '/SITE-A/ZONE-12/PIPE-7' },
+    children: [],
+  },
+  {
+    name: '/ASIM-1885-PL-3"-S8810009-91261M7-01/B2',
+    type: 'BRANCH',
+    attributes: { OWNER_SITE: 'SITE-B', OWNER: '/SITE-B/ZONE-88/PIPE-9' },
+    children: [],
+  },
+];
+const quotedScope = _filterStagedHierarchyByScope(wildcardHierarchy, {
+  wildcard: '"183*-*--PL"',
+  selectedIds: [],
+});
+assert.deepEqual(quotedScope.hierarchy.map((row) => row.name), ['/ASIM-1837-XX-YY--PL/B2']);
+assert.equal(matchesRvmScope(wildcardHierarchy[0], '"183*-*--PL"'), true);
+assert.equal(matchesRvmScope(wildcardHierarchy[1], '"183*-*--PL"'), false);
 
 const root = new URL('../../', import.meta.url);
 const addon = await readFile(new URL(
@@ -60,7 +86,11 @@ assert.match(addon, /data-rvm-tree-toggle/);
 assert.match(addon, /parseRmssAttributes/);
 assert.match(addon, /buildRvmAttributeScopeTree/);
 assert.match(addon, /MutationObserver/);
+assert.match(addon, /matchesScopeFields/);
+assert.doesNotMatch(addon, /function wildcardRegex/);
 assert.doesNotMatch(addon, /\.slice\(0\s*,\s*\d+/);
+assert.match(legacy, /matchesRvmScope/);
+assert.doesNotMatch(legacy, /normalized\.includes\('\*'\)\s*\?\s*`\^/);
 assert.match(shell, /installRvmAttrScopeTreeAddon/);
 assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20260802-rvm-full-scope-tree-1/);
 // The scope addon retains its own release. Shared parents advance when any
