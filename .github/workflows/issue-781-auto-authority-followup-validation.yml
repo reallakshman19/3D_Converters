@@ -35,6 +35,7 @@ on:
       - 'tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs'
       - 'tests/xml-cii-branch-line-heldout-generalization-943.test.mjs'
       - 'tests/xml-cii-branch-line-shared-authority-944.test.mjs'
+      - 'tests/xml-cii-branch-line-mixed-integration-945.test.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-v2.js'
@@ -86,6 +87,7 @@ jobs:
           tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs
           tests/xml-cii-branch-line-heldout-generalization-943.test.mjs
           tests/xml-cii-branch-line-shared-authority-944.test.mjs
+          tests/xml-cii-branch-line-mixed-integration-945.test.mjs
       - name: Run material authority regressions
         run: |
           node --test tests/xml-cii-material-code-fuzzy-authority.test.mjs
