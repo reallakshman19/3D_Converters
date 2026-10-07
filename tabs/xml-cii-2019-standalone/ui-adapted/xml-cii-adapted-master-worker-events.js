@@ -9,6 +9,8 @@ import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-maste
 import {
   bindRetryPersistenceEvents,
   masterImportPersistenceStatus,
+  nextPersistenceFailures,
+  persistenceFailureRecord,
   retryCurrentMasterPersistence,
 } from './xml-cii-adapted-master-persistence-retry.js?v=20261007-integration-b2-dataset-compat-1';
 
