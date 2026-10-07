@@ -1,0 +1,51 @@
+name: Issue 903 C06.3 Topology Continuity Delta Qualification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/issue-903-c06-3-topology-delta.yml'
+      - 'scripts/run-xml-cii-issue-903-p2810042-topology-delta-e2e.mjs'
+      - 'tests/browser/xml-cii-issue-903-p2810042-topology-delta-e2e.html'
+      - 'tests/fixtures/xml-cii-p2810042-c06-full-fixture.js'
+      - 'agents/WIP-903-C06-3-v3_workreport.md'
+      - 'agents/PR*_workreport.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  topology-continuity-delta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check C06.3 runner and fixture
+        run: |
+          node --check scripts/run-xml-cii-issue-903-p2810042-topology-delta-e2e.mjs
+          node --check tests/fixtures/xml-cii-p2810042-c06-full-fixture.js
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-903-http.log 2>&1 &
+      - name: Run full-model topology continuity and delta gate
+        run: node scripts/run-xml-cii-issue-903-p2810042-topology-delta-e2e.mjs
+      - name: Upload C06.3 receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-903-c06-3-topology-delta
+          path: |
+            ValidationRecords/xml-cii-issue-903-p2810042-topology-delta.json
+            ValidationRecords/xml-cii-issue-903-p2810042-final.xml
+            /tmp/issue-903-http.log
+          if-no-files-found: warn
