@@ -272,9 +272,17 @@ test('C05.6.2 changed source/docs mirrors remain byte-identical and cache chain 
     assert.equal(source, docs, sourcePath);
   }
 
+  const qualifiedSuccessorCacheVersion = new Map([
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', '20261007-branch-line-l4-1'],
+    ['tabs/xml-cii-2019-standalone-tab.js', '20261007-branch-line-l4-1'],
+  ]);
   const cachePaths = mirrorPaths.filter((path) => !path.endsWith('master-dataset-service.js'));
   for (const sourcePath of cachePaths) {
     const source = await fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8');
-    assert.ok(source.includes(version), sourcePath + ' missing consumer-authority cache generation');
+    const expectedVersion = qualifiedSuccessorCacheVersion.get(sourcePath) || version;
+    assert.ok(
+      source.includes(expectedVersion),
+      sourcePath + ' missing qualified cache generation ' + expectedVersion,
+    );
   }
 });
