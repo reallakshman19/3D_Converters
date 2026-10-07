@@ -1,5 +1,5 @@
 {
-  "lastId": 1261,
+  "lastId": 1264,
   "entries": [
     {
       "id": 1,
@@ -8764,6 +8764,27 @@
       "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
       "context": "S3 #938 U3 progressive tree shared selection Set",
       "backupFile": "1261_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1262,
+      "timestamp": "2026-10-07 12:12:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "S3 #938 U4 pure render-selection merge authority",
+      "backupFile": "1262_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1263,
+      "timestamp": "2026-10-07 12:12:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "S3 #938 U4 pure render-selection merge authority",
+      "backupFile": "1263_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1264,
+      "timestamp": "2026-10-07 12:12:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-selection-938.mjs",
+      "context": "S3 #938 U4 hidden-selection refresh oracle",
+      "backupFile": "1264_tests_model_converters_test_rvmattr_scope_selection_938_mjs.bak"
     }
   ]
 }

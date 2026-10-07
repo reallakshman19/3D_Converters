@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { _filterStagedHierarchyByScope } from '../../tabs/model-converters/converters/stagedjson-xml-helpers.js';
+import { applyRvmScopeSelection, mergeRvmScopeRenderedSelection } from '../../tabs/model-converters/rvmattr-scope-selection-model.js';
 
 const hierarchy = [
   {
@@ -47,6 +48,28 @@ assert.deepEqual(
   hierarchy.map((row) => row.name),
   'cleared selection plus blank wildcard is explicit full scope',
 );
+
+const hiddenSelection = new Set(['branch:/SITE-A/ZONE-1/PIPE-1/BRAN-2', 'site:SITE-B']);
+const sameSelection = mergeRvmScopeRenderedSelection(hiddenSelection, [
+  { id: 'site:SITE-B', checked: true },
+]);
+assert.equal(sameSelection, hiddenSelection, 'render merge must retain the authoritative Set identity');
+assert.equal(hiddenSelection.has('branch:/SITE-A/ZONE-1/PIPE-1/BRAN-2'), true,
+  'a selected branch absent from the rendered rows must survive render refresh');
+
+mergeRvmScopeRenderedSelection(hiddenSelection, [{ id: 'site:SITE-B', checked: false }]);
+assert.equal(hiddenSelection.has('site:SITE-B'), false);
+assert.equal(hiddenSelection.has('branch:/SITE-A/ZONE-1/PIPE-1/BRAN-2'), true,
+  'refresh may only change IDs represented by rendered checkbox state');
+
+applyRvmScopeSelection(hiddenSelection, [
+  'owner:SITE-A/ZONE-1/PIPE-1',
+  'branch:/SITE-A/ZONE-1/PIPE-1/BRAN-1',
+], true);
+assert.equal(hiddenSelection.has('owner:SITE-A/ZONE-1/PIPE-1'), true);
+assert.equal(hiddenSelection.has('branch:/SITE-A/ZONE-1/PIPE-1/BRAN-1'), true);
+applyRvmScopeSelection(hiddenSelection, ['branch:/SITE-A/ZONE-1/PIPE-1/BRAN-1'], false);
+assert.equal(hiddenSelection.has('branch:/SITE-A/ZONE-1/PIPE-1/BRAN-1'), false);
 
 const root = new URL('../../', import.meta.url);
 const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js', root), 'utf8');

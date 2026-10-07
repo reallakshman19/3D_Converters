@@ -1,13 +1,14 @@
 import { state } from '../../core/state.js';
 import { parseRmssAttributes } from '../../converters/rmss-attribute-parser.js';
 import { matchesScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
+import { applyRvmScopeSelection, mergeRvmScopeRenderedSelection } from './rvmattr-scope-selection-model.js?v=20261007-rvm-selection-custody-2';
 import {
   buildRvmAttributeScopeTree,
   buildRvmScopeRenderRows,
   countRvmAttributeScopeTree,
   rvmScopeExpansionIdsForPattern,
 } from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-2';
-const VERSION = '20261007-rvm-selection-custody-1';
+const VERSION = '20261007-rvm-selection-custody-2';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -52,11 +53,9 @@ function selectionStates(treeElement) {
   return result;
 }
 function mergeSelectionStates(cache, treeElement) {
-  for (const input of treeElement.querySelectorAll('input[data-scope-node]')) {
-    const id = input.getAttribute('data-scope-node');
-    if (input.checked) cache.add(id);
-    else cache.delete(id);
-  }
+  const rendered = [...treeElement.querySelectorAll('input[data-scope-node]')]
+    .map((input) => ({ id: input.getAttribute('data-scope-node'), checked: Boolean(input.checked) }));
+  mergeRvmScopeRenderedSelection(cache, rendered);
 }
 function selectableIds(node, values = []) {
   if (node.selectable && node.selectId) values.push(node.selectId);
@@ -156,10 +155,7 @@ function updateSelectionCache(context, event) {
   const id = input.getAttribute('data-scope-node');
   const node = context.index.get(id);
   const ids = node ? selectableIds(node, []) : [id];
-  for (const selectableId of ids) {
-    if (input.checked) context.selection.add(selectableId);
-    else context.selection.delete(selectableId);
-  }
+  applyRvmScopeSelection(context.selection, ids, input.checked);
 }
 function toggleNode(context, event) {
   const button = event.target.closest?.('[data-rvm-tree-toggle]');
