@@ -3,7 +3,7 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260729-inputxml-live-release-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20261007-rvm-scope-matcher-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20261007-rvm-selection-custody-2';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260729-fbx2-direct-pipe-1';
@@ -13,7 +13,7 @@ import { installFbxZonePackageExport } from './fbx-zone-package-export.js?v=2026
 import { installBmCiiSupportAnnotationPopup } from './bm-cii-support-annotation-popup.js?v=20260617-bmcii-open-basic-handoff-2';
 import { installInputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v4.js?v=20260615-inputxml-property-transfer-popup-host-hide-1-tabperf1';
 import { installRvmAttrUxmlAddon } from './rvmattr-uxml-addon.js?v=20260618-port-bore-contract-1';
-import { installRvmAttrScopeTreeAddon } from './rvmattr-scope-tree-addon.js?v=20261007-rvm-reachability-2';
+import { installRvmAttrScopeTreeAddon } from './rvmattr-scope-tree-addon.js?v=20261007-rvm-selection-custody-2';
 import { installXmlCiiWorkflowButtonScope } from './xml-cii-workflow-button-scope.js?v=20260624-unified-wf2-1';
 import { installXmlCiiWorkflowLauncherHotfix } from './xml-cii-workflow-launcher-hotfix.js?v=20260708-workflow-bridge-align-1';
 import { installXmlCiiSimpleWorkflowController } from './xml-cii-simple-workflow-controller.js?v=20260624-workflow-consolidation-1';

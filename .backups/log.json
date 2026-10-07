@@ -1,5 +1,5 @@
 {
-  "lastId": 1264,
+  "lastId": 1281,
   "entries": [
     {
       "id": 1,
@@ -8785,6 +8785,125 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-selection-938.mjs",
       "context": "S3 #938 U4 hidden-selection refresh oracle",
       "backupFile": "1264_tests_model_converters_test_rvmattr_scope_selection_938_mjs.bak"
+    },
+    {
+      "id": 1265,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1265_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1266,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1266_docs_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1267,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1267_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1268,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1268_docs_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1269,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "tabs\\model-converters\\index.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1269_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1270,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\tabs\\model-converters\\index.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1270_docs_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1271,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "tabs\\model-converters-tab.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1271_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1272,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\tabs\\model-converters-tab.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1272_docs_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1273,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1273_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1274,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1274_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1275,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "core\\app.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1275_core_app_js.bak"
+    },
+    {
+      "id": 1276,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\core\\app.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1276_docs_core_app_js.bak"
+    },
+    {
+      "id": 1277,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "main-rhbg-fitguard.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1277_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1278_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "index.html",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1279_index_html.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "docs\\index.html",
+      "context": "S3 #938 U5a selection-custody cache publication",
+      "backupFile": "1280_docs_index_html.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-10-07 12:20:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "S3 #938 U5a shared selection runtime assertions",
+      "backupFile": "1281_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }
