@@ -1,0 +1,519 @@
+{
+  "schema": "xml-cii-issue-769-release-test-authority/v1",
+  "basis": {
+    "parentIssue": 769,
+    "responsibility": 966,
+    "productBasis": "f8136f6a3da4cc5559bb41adebe56f3c8d4ccd95",
+    "baselineMain": "a4e5e7a14f5a6662be7d4b418a0b31344ce6ce85",
+    "baselineRun": 37651668016,
+    "defaultRole": "RELEASE_GUARD"
+  },
+  "roles": [
+    "RELEASE_GUARD",
+    "HISTORICAL_RED",
+    "SUPERSEDED_ACCEPTANCE",
+    "EXTERNAL_GUARD"
+  ],
+  "policy": {
+    "defaultXmlCiiRole": "RELEASE_GUARD",
+    "unknownXmlCiiFile": "RELEASE_GUARD",
+    "nonBlockingRolesRequireEvidence": true,
+    "preserveNonBlockingTests": true,
+    "productRepairFromDisposition": false
+  },
+  "externalGuards": {
+    "tests/engineering-calculation-core.test.mjs": {
+      "role": "EXTERNAL_GUARD",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016: engineering-core failures are shared with main",
+        "#769 retains targeted B31.3 Preview and empirical-weight guards inside its own release scope"
+      ],
+      "rationale": "This file spans unrelated engineering families including FIT/AIV; broad registry behavior is not owned by XML→CII #769."
+    }
+  },
+  "fileDispositions": {
+    "tests/xml-cii-issue-835-master-custody-baseline.test.mjs": {
+      "role": "HISTORICAL_RED",
+      "evidence": [
+        "#835 CLOSED/COMPLETE",
+        "#841 final exact-head C05 qualification run 37546244392"
+      ],
+      "successors": [
+        "tests/xml-cii-master-dataset-startup-hydration.test.mjs",
+        "tests/xml-cii-master-dataset-rollback-custody.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-855-valve-weight-red-baseline.test.mjs": {
+      "role": "HISTORICAL_RED",
+      "evidence": [
+        "#855 CLOSED/COMPLETE",
+        "#895 final exact-head C05.6 qualification run 37543559660"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs",
+        "tests/xml-cii-issue-858-hydrated-weight-match.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-871-persistence-failure-baseline.test.mjs": {
+      "role": "HISTORICAL_RED",
+      "evidence": [
+        "#871 CLOSED/COMPLETE",
+        "#884 final descendant-compatible qualification run 37509826838"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-872-worker-session-fallback.test.mjs",
+        "tests/xml-cii-issue-873-session-custody.test.mjs",
+        "tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-880-corrupt-restore-baseline.test.mjs": {
+      "role": "HISTORICAL_RED",
+      "evidence": [
+        "#880 CLOSED/COMPLETE",
+        "#884 final descendant-compatible qualification run 37509826838"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs",
+        "tests/xml-cii-issue-882-session-precedence.test.mjs",
+        "tests/xml-cii-issue-883-restore-failure-identity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-893-consumer-authority-baseline.test.mjs": {
+      "role": "HISTORICAL_RED",
+      "evidence": [
+        "#893 CLOSED/COMPLETE",
+        "#895 final exact-head C05.6 qualification run 37543559660"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-893-consumer-authority.test.mjs",
+        "tests/xml-cii-issue-894-scale-contract.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-836-piping-class-cold-hydration.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#836 CLOSED/COMPLETE",
+        "#884 records #836 pre-completion assertions as obsolete on final descendant",
+        "#841 final exact-head C05 qualification"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs",
+        "tests/xml-cii-issue-893-consumer-authority.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-837-mat-map-cold-hydration.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#837 CLOSED/COMPLETE",
+        "#884 records #837 pre-completion assertions as obsolete on final descendant",
+        "#841 final exact-head C05 qualification"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-882-session-precedence.test.mjs",
+        "tests/xml-cii-issue-893-consumer-authority.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-856-valve-weight-restart-custody.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#856 CLOSED/COMPLETE",
+        "#895 final C05.6 qualification retains final Valve Weight contract instead of predecessor staging assumptions"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs",
+        "tests/xml-cii-issue-858-hydrated-weight-match.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-857-valve-weight-cold-hydration.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#857 CLOSED/COMPLETE",
+        "#884 records #857 stale-revision expectation as obsolete on final descendant"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-860-valve-weight-final-contract.test.mjs",
+        "tests/xml-cii-issue-858-hydrated-weight-match.test.mjs"
+      ]
+    },
+    "tests/xml-cii-issue-901-p2810042-source-baseline.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#901 CLOSED/COMPLETE baseline",
+        "#905 C06.5 exact-head final qualification run 37557694868"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-819-p2810042-bore-authority.test.mjs",
+        "tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs",
+        "tests/xml-cii-issue-829-json-trace-bore-validation.test.mjs"
+      ]
+    },
+    "tests/xml-cii-anc-listed-stiffness-static.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#905 C06.5 protected exact-head qualification green"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-benchmark-basis.test.mjs",
+        "tests/xml-cii-issue-776-topology-runtime.test.mjs"
+      ]
+    },
+    "tests/xml-cii-b313-preview-ui-static.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#841 P0 records this adjacent static as baseline-only",
+        "#769 current B31.3 protected workflows are green"
+      ],
+      "successors": [
+        "tests/xml-cii-b313-preview-blocker-ui-static.test.mjs",
+        "tests/xml-cii-b313-preview-od-selection.test.mjs",
+        "tests/xml-cii-b313-preview-pressure-unit.test.mjs",
+        "tests/xml-cii-issue-781-b313-auto-basis.test.mjs"
+      ]
+    },
+    "tests/xml-cii-b313-preview-wall-audit-controller.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#769 current B31.3 protected workflows are green"
+      ],
+      "successors": [
+        "tests/xml-cii-b313-preview-blocker-provenance.test.mjs",
+        "tests/xml-cii-b313-preview-wall-update.test.mjs",
+        "tests/xml-cii-issue-781-b313-live-row-custody.test.js"
+      ]
+    },
+    "tests/xml-cii-master-context-default-rows.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#841/#895 current worker-resident dataset custody exact-head gates are green"
+      ],
+      "successors": [
+        "tests/xml-cii-master-dataset-config.test.mjs",
+        "tests/xml-cii-master-dataset-startup-hydration.test.mjs",
+        "tests/xml-cii-master-worker-integration.test.mjs"
+      ]
+    },
+    "tests/xml-cii-mode-a-activation.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#945 fresh mixed-family integration and #776 browser authority are current"
+      ],
+      "successors": [
+        "tests/xml-cii-mode-a-preview-restoration.test.mjs",
+        "tests/xml-cii-branch-line-shared-authority-944.test.mjs",
+        "tests/xml-cii-branch-line-mixed-integration-945.test.mjs"
+      ]
+    },
+    "tests/xml-cii-mode-a-batch.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#776 exact-head browser authority and current Mode A guards are green"
+      ],
+      "successors": [
+        "tests/xml-cii-mode-a-easy-bulk-guards.test.mjs",
+        "tests/xml-cii-mode-a-preview-restoration.test.mjs",
+        "tests/xml-cii-issue-776-mode-a-weight-canonical-geometry.test.mjs"
+      ]
+    },
+    "tests/xml-cii-mode-a-smart-map.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#944/#945 qualified shared branch-line authority supersedes heuristic Smart Map expectations"
+      ],
+      "successors": [
+        "tests/xml-cii-branch-line-shared-authority-944.test.mjs",
+        "tests/xml-cii-branch-line-mixed-integration-945.test.mjs",
+        "tests/xml-cii-mode-a-smart-map-v2-conflict.test.mjs"
+      ]
+    },
+    "tests/xml-cii-preview-strict-line-authority.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#776/#781 current strict Preview authority gates are green"
+      ],
+      "successors": [
+        "tests/xml-cii-preview-strict-line-activation.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-issue-781-linelist-integration.test.mjs"
+      ]
+    },
+    "tests/xml-cii-runtime-custody-static.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#841/#895/#905 exact-head runtime/browser qualifications are green"
+      ],
+      "successors": [
+        "tests/xml-cii-master-dataset-startup-hydration.test.mjs",
+        "tests/xml-cii-issue-893-consumer-authority.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-smart-ui-integration.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 focused baseline failure",
+        "#776/#781 exact-head UI/browser authority gates are current"
+      ],
+      "successors": [
+        "tests/xml-cii-smart-ui-preflight.test.mjs",
+        "tests/xml-cii-issue-781-auto-authority-followup.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-benchmark-validation.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 combined Preview→XML→CII authority and parity gate is current"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-benchmark-basis.test.mjs",
+        "tests/xml-cii-source-schema-sys0010-benchmark.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-defaults-regression.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 baseline run 37651668016",
+        "#776/#841 current runtime and dataset authority gates are green"
+      ],
+      "successors": [
+        "tests/xml-cii-standalone-config-revision-routing.test.mjs",
+        "tests/xml-cii-standalone-dependency-revisions.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-implementation-guard.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 exact-head protected regressions green",
+        "#776 current authority validation green"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-source-schema-authority-guards.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-import-masters.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#841/#895 current worker import/cold hydration qualification supersedes eager legacy import assumptions"
+      ],
+      "successors": [
+        "tests/xml-cii-master-worker-metadata-import.test.mjs",
+        "tests/xml-cii-master-dataset-ready-commit.test.mjs",
+        "tests/xml-cii-master-worker-integration.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-live-smoke.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 focused baseline failure",
+        "#905 C06.5 and #776 browser E2E are current final-path witnesses"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-standalone-output-run.test.js"
+      ]
+    },
+    "tests/xml-cii-standalone-parity.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 final parity comparisons=696 / mismatches=0"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-preview-run-parity-closure.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-preview-diagnostics-audit.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 current Preview blocker/provenance and C06 final diagnostics gates are green"
+      ],
+      "successors": [
+        "tests/xml-cii-b313-preview-blocker-provenance.test.mjs",
+        "tests/xml-cii-standalone-preview-source-custody.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-production-readiness.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 exact-head release qualification supersedes old readiness snapshot"
+      ],
+      "successors": [
+        "tests/xml-cii-output-run-metadata-readiness.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-regex-tester.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-007 PASS and current regex master-evidence gates"
+      ],
+      "successors": [
+        "tests/xml-cii-regex-confidence-buckets.test.mjs",
+        "tests/xml-cii-issue-781-regex-master-evidence.test.mjs",
+        "tests/xml-cii-issue-781-live-regex-acceptance.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-source-mode-integration.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-009 focused baseline failure",
+        "#905 C06.5 combined exact-head source→Preview→XML→CII gate is current"
+      ],
+      "successors": [
+        "tests/xml-cii-source-schema-authority-guards.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-support-type-mapper.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 protected support/writer regressions and current source-schema authority"
+      ],
+      "successors": [
+        "tests/xml-cii-source-schema-relationship.test.mjs",
+        "tests/xml-cii-staged-restraint-fallback-policy.test.mjs",
+        "tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-topofix-live-proof.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 topology/final-continuity/unexpected-delta gate is current"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-topology-runtime.test.mjs",
+        "tests/xml-cii-source-schema-authority-guards.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-weight-match.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-002/BM-004 exact hosted evidence",
+        "#841/#895 current worker Weight authority gates"
+      ],
+      "successors": [
+        "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+        "tests/xml-cii-issue-776-weight-review-authority.test.mjs",
+        "tests/xml-cii-issue-781-weight-match-authority-presentation.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-workflow-api.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 and #776 exact-head workflow/browser gates are current"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-output-result-invalidation.test.mjs"
+      ]
+    },
+    "tests/xml-cii-standalone-workflow-ui-adapted.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 and #776 exact-head workflow/browser gates are current"
+      ],
+      "successors": [
+        "tests/xml-cii-mode-a-preview-restoration.test.mjs",
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+      ]
+    },
+    "tests/xml-cii-support-confidence-resolver-trace.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 source/topology/support provenance exact-head gate is current"
+      ],
+      "successors": [
+        "tests/xml-cii-source-schema-relationship.test.mjs",
+        "tests/xml-cii-standalone-support-relationship-authority.test.js"
+      ]
+    },
+    "tests/xml-cii-support-confidence-runtime-resolution.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 current support provenance and CII writer protection"
+      ],
+      "successors": [
+        "tests/xml-cii-standalone-support-relationship-authority.test.js",
+        "tests/xml-cii-staged-restraint-fallback-policy.test.mjs"
+      ]
+    },
+    "tests/xml-cii-table-trace-source.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#905 C06.5 combined authority ledger supersedes legacy table-trace snapshot"
+      ],
+      "successors": [
+        "tests/xml-cii-source-schema-authority-guards.test.mjs",
+        "tests/xml-cii-source-schema-relationship.test.mjs"
+      ]
+    },
+    "tests/xml-cii-weight-validation-app-static.test.js": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "#769 BM-004 exact empirical execution and current Weight Match authority UX workflow"
+      ],
+      "successors": [
+        "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+        "tests/xml-cii-issue-781-weight-match-authority-presentation.test.mjs"
+      ]
+    }
+  },
+  "testNameDispositions": {
+    "tests/xml-cii-issue-875-persistence-status-retry.test.mjs": {
+      "runtime cache chain carries one retry generation from tab to worker": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "#895 final qualification: superseded C05.5 token replaced by #893 current cache generation"
+        ]
+      }
+    },
+    "tests/xml-cii-master-preview-worker-search.test.mjs": {
+      "Preview and import share one coordinator singleton including persisted dataset ids": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "#841 final qualification: pre-#893 coordinator signature superseded by restored datasetRef authority"
+        ]
+      }
+    }
+  },
+  "baselineObservedFailureFiles": [
+    "tests/xml-cii-anc-listed-stiffness-static.test.js",
+    "tests/xml-cii-b313-preview-ui-static.test.js",
+    "tests/xml-cii-b313-preview-wall-audit-controller.test.mjs",
+    "tests/xml-cii-issue-781-auto-authority-followup.test.mjs",
+    "tests/xml-cii-issue-781-postmerge-screenshot-repair.test.mjs",
+    "tests/xml-cii-master-context-default-rows.test.js",
+    "tests/xml-cii-mode-a-activation.test.mjs",
+    "tests/xml-cii-mode-a-batch.test.mjs",
+    "tests/xml-cii-mode-a-smart-map.test.mjs",
+    "tests/xml-cii-preview-strict-line-authority.test.mjs",
+    "tests/xml-cii-runtime-custody-static.test.js",
+    "tests/xml-cii-smart-ui-integration.test.mjs",
+    "tests/xml-cii-standalone-benchmark-validation.test.js",
+    "tests/xml-cii-standalone-defaults-regression.test.js",
+    "tests/xml-cii-standalone-implementation-guard.test.js",
+    "tests/xml-cii-standalone-import-masters.test.js",
+    "tests/xml-cii-standalone-live-smoke.test.js",
+    "tests/xml-cii-standalone-parity.test.js",
+    "tests/xml-cii-standalone-preview-diagnostics-audit.test.js",
+    "tests/xml-cii-standalone-production-readiness.test.js",
+    "tests/xml-cii-standalone-regex-tester.test.js",
+    "tests/xml-cii-standalone-source-mode-integration.test.js",
+    "tests/xml-cii-standalone-support-type-mapper.test.js",
+    "tests/xml-cii-standalone-topofix-live-proof.test.js",
+    "tests/xml-cii-standalone-weight-match.test.js",
+    "tests/xml-cii-standalone-workflow-api.test.js",
+    "tests/xml-cii-standalone-workflow-ui-adapted.test.js",
+    "tests/xml-cii-support-confidence-resolver-trace.test.js",
+    "tests/xml-cii-support-confidence-runtime-resolution.test.js",
+    "tests/xml-cii-table-trace-source.test.js",
+    "tests/xml-cii-weight-validation-app-static.test.js"
+  ]
+}
