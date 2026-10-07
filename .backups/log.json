@@ -1,5 +1,5 @@
 {
-  "lastId": 1328,
+  "lastId": 1329,
   "entries": [
     {
       "id": 1,
@@ -8463,6 +8463,13 @@
       "file": "tests\\xml-cii-branch-line-unique-family-941.test.mjs",
       "context": "L1 #941 U5 cache-chain assertions",
       "backupFile": "1328_tests_xml_cii_branch_line_unique_family_941_test_mjs.bak"
+    },
+    {
+      "id": 1329,
+      "timestamp": "2026-10-07 18:10:00",
+      "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
+      "context": "L1 #941 U5 refresh stale cache-chain qualification expectations",
+      "backupFile": "1329_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
     }
   ]
 }
