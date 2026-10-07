@@ -71,6 +71,13 @@ function exactSuggestions(rows, keys) {
   }));
 }
 
+function rowAuthorityDecisions(rows, keys) {
+  return (rows || []).map((row) => ({
+    branchName: text(row?.branchName),
+    ...resolveBranchLineRowSuggestion(row, keys),
+  }));
+}
+
 function derivedHints(rows) {
   const unmappedHints = unique((rows || []).filter((row) => row?.lineMiss === true).map((row) => row?.lineKey));
   if (unmappedHints.length) return unmappedHints;
@@ -148,6 +155,9 @@ function buildGroup(rows, keys, catalog, groupKey) {
   const sourceId = text(rows[0]?.sourceId);
   const fileName = text(rows[0]?.fileName);
   const allowedKeys = unique(keys);
+  const branchLineDecisions = rowAuthorityDecisions(rows, allowedKeys);
+  const blockedDecision = branchLineDecisions.find((decision) => decision.status === 'blocked');
+  const ambiguousDecision = branchLineDecisions.find((decision) => decision.status === 'ambiguous');
   const existingMappings = unique(rows.filter((row) => row?.lineMiss !== true).map((row) => row?.lineKey));
   const hints = derivedHints(rows);
   const service = groupService(rows, hints);
@@ -161,7 +171,13 @@ function buildGroup(rows, keys, catalog, groupKey) {
   let recommended = '';
   let reason = 'No credible project Line Key suggestion.';
 
-  if (exact.length > 1) {
+  if (blockedDecision) {
+    status = 'conflict';
+    reason = `Branch→Line blocked: ${blockedDecision.reason || 'mapping is not authorized'}${blockedDecision.candidates?.length ? ` · candidates ${blockedDecision.candidates.join(', ')}` : ''}.`;
+  } else if (ambiguousDecision) {
+    status = 'conflict';
+    reason = `Branch→Line ambiguous${ambiguousDecision.mask ? ` at ${ambiguousDecision.mask}` : ''}: ${(ambiguousDecision.candidates || []).join(', ')}.`;
+  } else if (exact.length > 1) {
     status = 'conflict';
     reason = `Multiple exact project keys match this line family: ${exact.join(', ')}.`;
   } else if (exact.length === 1) {
@@ -208,6 +224,7 @@ function buildGroup(rows, keys, catalog, groupKey) {
     lineHint: hints[0] || exact[0] || '',
     service,
     pipingClassPrefix,
+    branchLineDecisions,
     rows: rows.map((row) => ({ ...row })),
     branchNames: unique(rows.map((row) => row?.branchName)),
     branchLabels: unique(rows.map((row) => branchLabel(row?.branchName))),

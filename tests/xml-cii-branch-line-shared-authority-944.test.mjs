@@ -5,6 +5,7 @@ import {
   resolveBranchLineRowSuggestion,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js';
 import { buildModeASmartMapGroups } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map.js';
+import { buildModeASmartMapGroups as buildModeASmartMapGroupsV2 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-v2.js';
 import { buildModeAProjectDataMatchPlan } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-bulk-preview.js';
 import { deriveLineKeyFromBranchName } from '../converters/xml-cii2019-core/regex-line-key.js';
 
@@ -36,6 +37,17 @@ if (typeof resolveBranchLineRowSuggestion === 'function') {
   assert.equal(groups[0].status, 'exact');
   assert.equal(groups[0].recommended, canonical.key);
   assert.deepEqual(groups[0].exactCandidates, [canonical.key]);
+  assert.equal(groups[0].branchLineDecisions[0].status, canonical.status);
+  assert.equal(groups[0].branchLineDecisions[0].key, canonical.key);
+  assert.equal(groups[0].branchLineDecisions[0].method, canonical.method);
+  assert.equal(groups[0].branchLineDecisions[0].mask, canonical.mask);
+
+  const groupsV2 = buildModeASmartMapGroupsV2([row], { 'SRC-1': keys });
+  assert.equal(groupsV2.length, 1);
+  assert.equal(groupsV2[0].status, 'exact');
+  assert.equal(groupsV2[0].recommended, canonical.key);
+  assert.equal(groupsV2[0].branchLineDecisions[0].status, canonical.status);
+  assert.equal(groupsV2[0].branchLineDecisions[0].key, canonical.key);
 
   const plan = buildModeAProjectDataMatchPlan(
     [row],
@@ -108,6 +120,34 @@ if (typeof resolveBranchLineRowSuggestion === 'function') {
   assert.equal(safetyPlan.blocked[0].method, blocked.method);
   assert.equal(safetyPlan.blocked[0].reason, blocked.reason);
   assert.equal(safetyPlan.blocked[0].mask, blocked.mask);
+
+  const ambiguousGroup = buildModeASmartMapGroups(
+    [ambiguousRow],
+    { 'SRC-1': ['P4110001', 'P4110003'] },
+  )[0];
+  assert.equal(ambiguousGroup.recommended, '');
+  assert.equal(ambiguousGroup.branchLineDecisions[0].status, ambiguous.status);
+  assert.deepEqual(ambiguousGroup.branchLineDecisions[0].candidates, ambiguous.candidates);
+  assert.equal(ambiguousGroup.branchLineDecisions[0].method, ambiguous.method);
+  assert.equal(ambiguousGroup.branchLineDecisions[0].mask, ambiguous.mask);
+
+  const blockedGroup = buildModeASmartMapGroups(
+    [blockedRow],
+    { 'SRC-1': ['P4110001', 'P4110003'] },
+  )[0];
+  assert.equal(blockedGroup.recommended, '');
+  assert.equal(blockedGroup.branchLineDecisions[0].status, blocked.status);
+  assert.deepEqual(blockedGroup.branchLineDecisions[0].candidates, blocked.candidates);
+  assert.equal(blockedGroup.branchLineDecisions[0].method, blocked.method);
+  assert.equal(blockedGroup.branchLineDecisions[0].reason, blocked.reason);
+
+  const blockedGroupV2 = buildModeASmartMapGroupsV2(
+    [blockedRow],
+    { 'SRC-1': ['P4110001', 'P4110003'] },
+  )[0];
+  assert.equal(blockedGroupV2.recommended, '');
+  assert.equal(blockedGroupV2.branchLineDecisions[0].status, blocked.status);
+  assert.equal(blockedGroupV2.branchLineDecisions[0].reason, blocked.reason);
 }
 
 console.log('test-xml-cii-branch-line-shared-authority-944: PASS');
