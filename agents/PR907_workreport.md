@@ -42,11 +42,13 @@ Qualification published on #902 comment 6027786967. Score 98/100, minimum challe
 - agents/PR907_workreport.md — recovery-first PR report.
 
 ## Validation
-- PASS — local node --check for all three new JS/MJS surfaces before GitHub mutation.
-- PASS — fixture builder emits 25 source-derived Node elements and no raw project/user header metadata.
-- NOT_RUN — combined Chromium authority ledger on repository exact head.
+- PASS — local node --check for fixture module, browser module body, and runner before GitHub mutation.
+- PASS — fixture builder emits 25 source-derived Node elements across 7 combined witness branches and no raw project/user header metadata.
+- PASS — remote PR changed-file reconciliation: exactly four new test/report files; no runtime, writer, master-data or workflow file.
+- QUEUED/IN_PROGRESS — inherited C05 exact-head workflows on the current PR head; these protect predecessor behavior only.
+- NOT_RUN — new combined Chromium authority ledger on repository exact head.
 - NOT_RUN — exact runtime-custody Python CII execution on repository exact head.
-- NOT_APPLICABLE — runtime source/docs mirror delta; #902 currently changes no runtime source.
+- NOT_APPLICABLE — runtime source/docs mirror delta; #902 changes no runtime source.
 
 ## Findings / negative knowledge
 - Workflow-service custody is two-stage: it first produces the reviewed enriched XML, applies SIF facts, then calls the CII engine with `engineJob.sourceText = sif.text`. The CII engine therefore receives the reviewed enriched XML as its input file. The #902 runner mirrors that exact handoff by invoking `xml_to_cii2019_runtime_custody.py` on the browser-produced final XML.
@@ -56,5 +58,8 @@ Qualification published on #902 comment 6027786967. Score 98/100, minimum challe
 ## Highest risk
 A browser/final-XML GREEN result with a Python custody mismatch. If observed, #902 must remain RED and the owning path moves to #904; do not weaken the CII assertions.
 
+## Current disposition
+Implementation is complete, but responsibility remains OPEN because the new combined runner has no approved existing workflow hook. Repository rules prohibit adding/editing workflow YAML without explicit Owner authorization. Inherited C05 gates cannot substitute for execution of the new C06 oracle.
+
 ## EXACT_NEXT_ACTION
-Inspect automatic exact-head checks, then obtain executable combined-run evidence without editing workflow YAML. If the combined runner cannot be executed under an existing approved gate, leave #902 incomplete rather than claiming NOT_RUN as PASS.
+After inherited checks settle, obtain explicit Owner authorization for a qualification-workflow hook (or another approved execution surface), run `scripts/run-xml-cii-issue-902-p2810042-combined-e2e.mjs` at the exact PR head, publish its receipt, and only then decide GREEN vs RED / #904.
