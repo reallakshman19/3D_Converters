@@ -147,10 +147,10 @@ test('bounded evidence plan derives queries only from the selected top buckets',
 
 test('ASIM dominant and alternative families keep Line Key evidence within the fixed query cap', () => {
   const dominant = Array.from({ length: 15 }, (_, index) => ({
-    branchName: `/ASIM-1885-PL-3"-S881${String(1000 + index).padStart(4, '0')}-91261M7-HC-01/B${index + 1}`,
+    branchName: '/ASIM-1885-PL-3"-S881' + String(1000 + index).padStart(4, '0') + '-91261M7-HC-01/B' + (index + 1),
   }));
   const alternative = Array.from({ length: 13 }, (_, index) => ({
-    branchName: `/ASIM-1885-PL-HOT-S882${String(2000 + index).padStart(4, '0')}-91261M7-HC-01/B${index + 1}`,
+    branchName: '/ASIM-1885-PL-HOT-S882' + String(2000 + index).padStart(4, '0') + '-91261M7-HC-01/B' + (index + 1),
   }));
   const rare = [
     { branchName: '/AREA-DN100-P4110003-93833/B1' },
@@ -411,7 +411,6 @@ test('incomplete bounded evidence cannot auto-promote master-backed roles', () =
   assert.ok(plan.lineListQueries.includes('P0310080'));
   assert.ok(plan.lineListQueries.includes('P0310081'));
 });
-
 test('bounded dataset evidence caps broad worker search results and fetches indexes only', async () => {
   const searches = [];
   const fetched = [];
