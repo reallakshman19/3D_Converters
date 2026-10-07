@@ -1,5 +1,5 @@
 {
-  "lastId": 1390,
+  "lastId": 1394,
   "entries": [
     {
       "id": 1,
@@ -8897,6 +8897,34 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js",
       "context": "L4 #944 U5a3 publish Easy UI hook child cache edges",
       "backupFile": "1390_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_hook_js.bak"
+    },
+    {
+      "id": 1391,
+      "timestamp": "2026-10-07 20:43:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L4 #944 U5b1 publish v6 shell→Easy UI hook cache edge",
+      "backupFile": "1391_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1392,
+      "timestamp": "2026-10-07 20:43:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L4 #944 U5b1 publish v6 shell→Easy UI hook cache edge",
+      "backupFile": "1392_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1393,
+      "timestamp": "2026-10-07 20:43:00",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L4 #944 U5b1 publish standalone tab→v6 shell cache edge",
+      "backupFile": "1393_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1394,
+      "timestamp": "2026-10-07 20:43:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L4 #944 U5b1 publish standalone tab→v6 shell cache edge",
+      "backupFile": "1394_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
     }
   ]
 }

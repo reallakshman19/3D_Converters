@@ -7,7 +7,7 @@ import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } fr
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';
 import { installJsonTraceFieldUiEnhancement } from './xml-cii-adapted-json-trace-field-ui.js?v=20260813-mode-a-consolidated-1';
-import { installModeAConsolidatedPreviewEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20261001-weight-output-2';
+import { installModeAConsolidatedPreviewEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20261007-branch-line-l4-1';
 import { installModeAConsolidatedWeightEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js?v=20261001-weight-output-2';
 import { installModeAConsolidatedRigidReviewTools } from './xml-cii-adapted-mode-a-rigid-review-tools.js?v=20261001-weight-output-2';
 import { installModeACompactMultiUi } from './xml-cii-adapted-mode-a-compact-ui.js?v=20260814-compact-multi-1';
