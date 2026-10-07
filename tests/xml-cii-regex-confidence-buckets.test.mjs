@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildRegexSampleBuckets } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-sample-buckets.js';
+import { selectRegexAnalysisBuckets } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-analysis-buckets.js';
 import { buildRegexSuggestionPreflight } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 
 function config() {
@@ -79,4 +80,36 @@ test('sample buckets expose one representative per structural signature without 
     assert.ok(bucket.members.includes(bucket.representative));
     assert.equal(bucket.members.length, bucket.count);
   }
+});
+
+
+test('analysis policy selects the dominant one or two buckets by count then first-seen', () => {
+  const samples = [
+    ...Array.from({ length: 3 }, (_, index) => ({ branchName: `/ASIM-1885-PL-${3 + index * 3}"-S8810009-91261M7-0${index + 1}/B1` })),
+    { branchName: '/ASIM-1885-PL-12"-S8810100-HOT-01/B8' },
+    { branchName: '/ASIM-1885-PL-10"-S8810105-HOT-01/B3' },
+    { branchName: '/AREA-DN100-P4110003-93833/B3' },
+    { branchName: '/OTHER-X-1/B1' },
+  ];
+  const selection = selectRegexAnalysisBuckets(samples, '-');
+  assert.equal(selection.sourceSampleCount, 7);
+  assert.equal(selection.structuralBucketCount, 4);
+  assert.equal(selection.selectedBucketCount, 2);
+  assert.equal(selection.selectedSampleCount, 5);
+  assert.equal(selection.selectedBuckets[0].count, 3);
+  assert.equal(selection.selectedBuckets[1].count, 2);
+  assert.equal(selection.selectedBuckets[0].firstSeen, 0);
+  assert.equal(selection.selectedBuckets[1].firstSeen, 3);
+  assert.equal(selection.samples.some((row) => row.branchName.includes('AREA-DN100')), false);
+});
+
+test('analysis policy uses one bucket when the structural population has one family', () => {
+  const samples = [
+    { branchName: '/ASIM-1885-PL-3"-S8810009-91261M7-01/B1' },
+    { branchName: '/ASIM-1885-PL-6"-S8810010-91261M7-01/B2' },
+  ];
+  const selection = selectRegexAnalysisBuckets(samples, '-');
+  assert.equal(selection.structuralBucketCount, 1);
+  assert.equal(selection.selectedBucketCount, 1);
+  assert.equal(selection.selectedSampleCount, 2);
 });
