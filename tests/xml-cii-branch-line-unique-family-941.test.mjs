@@ -56,18 +56,19 @@ const actionsSource = await readFile(
   'utf8',
 );
 assert.match(panelSource, /data-line-hint=/);
-assert.match(actionsSource, /lineHint/);
-assert.match(actionsSource, /resolveBranchLineKeySuggestion\([^\n]+\{\s*lineHint/s);
+assert.match(actionsSource, /export function resolveBranchLineRowSuggestion/);
+assert.match(actionsSource, /lineHint:\s*text\(row\?\.lineKey\)/);
+assert.match(actionsSource, /const result = resolveBranchLineRowSuggestion\(\{/);
 
 const cacheRoot = new URL('../', import.meta.url);
 const cacheFiles = [
-  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js', 'xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l2-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js', 'xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l4-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js', 'xml-cii-adapted-branch-line-map-panel.js?v=20261007-branch-line-l2-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js', 'xml-cii-adapted-preview-renderer.js?v=20261007-branch-line-l2-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js', 'xml-cii-adapted-preview-renderer-v7.js?v=20261007-branch-line-l2-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', 'xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261007-branch-line-l2-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', 'xml-cii-adapted-phase-panels-mode-a.js?v=20261007-branch-line-l2-1'],
-  ['tabs/xml-cii-2019-standalone-tab.js', 'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261007-branch-line-l2-1'],
+  ['tabs/xml-cii-2019-standalone-tab.js', 'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261007-branch-line-l4-1'],
 ];
 for (const [path, expected] of cacheFiles) {
   const source = await readFile(new URL(path, cacheRoot), 'utf8');

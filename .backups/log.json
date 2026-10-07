@@ -1,5 +1,5 @@
 {
-  "lastId": 1396,
+  "lastId": 1398,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,20 @@
       "file": ".github\\workflows\\issue-781-auto-authority-followup-validation.yml",
       "context": "L4 #944 U5b2 protected authority regression gate",
       "backupFile": "1396__github_workflows_issue_781_auto_authority_followup_validation_yml.bak"
+    },
+    {
+      "id": 1397,
+      "timestamp": "2026-10-07 20:58:00",
+      "file": "tests\\xml-cii-branch-line-ambiguity-safety-942.test.mjs",
+      "context": "L4 #944 successor-aware L2 cache qualification",
+      "backupFile": "1397_tests_xml_cii_branch_line_ambiguity_safety_942_test_mjs.bak"
+    },
+    {
+      "id": 1398,
+      "timestamp": "2026-10-07 20:58:00",
+      "file": "tests\\xml-cii-branch-line-unique-family-941.test.mjs",
+      "context": "L4 #944 successor-aware L1 authority qualification",
+      "backupFile": "1398_tests_xml_cii_branch_line_unique_family_941_test_mjs.bak"
     }
   ]
 }
