@@ -135,7 +135,7 @@ await fs.writeFile(finalXmlPath, `${browserResult.finalXmlText}\n`, 'utf8');
 const python = process.env.PYTHON || 'python3';
 const args = [
   'converters/scripts/xml_to_cii2019_runtime_custody.py',
-  '--input', sourcePath,
+  '--input', finalXmlPath,
   '--output', ciiPath,
   '--coords-mode', 'first',
   '--weight-scale', '10',
