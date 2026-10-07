@@ -8,6 +8,7 @@ const activation = JSON.parse(await readFile(new URL('../agents/evidence/WIP-781
 const activated = new Set([...activation.activatedModules, 'index.html']);
 const qualifiedSuccessorReleases = new Map([
   ['xml-cii-adapted-phase-panels.js', '20261006-c05-5-5-persistence-retry-1'],
+  ['xml-cii-adapted-phase-panels-smart.js', '20261007-c05-6-2-consumer-authority-1'],
 ]);
 const moduleRelease = (filename, fallback) => qualifiedSuccessorReleases.get(filename)
   || (activation.activatedModules.some(path => path.endsWith('/' + filename)) ? activation.release : fallback);
