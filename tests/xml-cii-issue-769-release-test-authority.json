@@ -463,6 +463,18 @@
         "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
         "tests/xml-cii-issue-781-weight-match-authority-presentation.test.mjs"
       ]
+    },
+    "tests/xml-cii-issue-781-postmerge-screenshot-repair.test.mjs": {
+      "role": "SUPERSEDED_ACCEPTANCE",
+      "evidence": [
+        "exact-head run 37660036585 fails only on stale 20261001-weight-output-2 live acceptance cache token after qualified branch-line L4 parent activation",
+        "#944/#945 exact-head branch-line L4 and mixed-family gates are green",
+        "Issue 776 deployment parity and Auto/P0 gates are current"
+      ],
+      "successors": [
+        "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+        "tests/xml-cii-issue-781-auto-authority-followup.test.mjs"
+      ]
     }
   },
   "testNameDispositions": {
@@ -479,6 +491,239 @@
         "role": "SUPERSEDED_ACCEPTANCE",
         "evidence": [
           "#841 final qualification: pre-#893 coordinator signature superseded by restored datasetRef authority"
+        ]
+      }
+    },
+    "tests/xml-cii-linelist-auto-map-integration.test.mjs": {
+      "combined auto-map rejects stale incompatible claims and preserves explicit semantics": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "current #781 line-list integration requires no false lineSeqNo for the reported multi-row header",
+          "exact-head Line-list Sheet run 37660036717 SUCCESS"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-781-linelist-integration.test.mjs",
+          "tests/xml-cii-linelist-synthetic-label-mapping.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-bore-wall-authority.test.mjs": {
+      "10-inch branch name outranks a DN100 first-node fallback": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "current resolveBranchNominalBore gives valid source bore precedence over branch-name fallback",
+          "Issue 776 exact-head source-geometry/bore authority guards and browser witness are green"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-819-p2810042-bore-authority.test.mjs",
+          "tests/xml-cii-issue-829-json-trace-bore-validation.test.mjs",
+          "tests/xml-cii-b313-preview-od-selection.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-branch-multiselect.test.mjs": {
+      "activation chain and Source UI expose branch multiselect controls": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "direct 20260804 branch-scope shell activation was superseded by composed 20261007 branch-line L4 shell",
+          "branch-scope behavioral subtests in the same file still execute; current browser E2E is green"
+        ],
+        "successors": [
+          "tests/xml-cii-branch-scope-exact-filter.test.mjs",
+          "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-json-trace-fields-support-codes.test.mjs": {
+      "UI enhancement exposes table config, diagnostics explanation, and composed activation": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "old 20260804 strict-line cache token is superseded by later composed shell generations",
+          "source-schema/support authority and current deployment parity remain guarded"
+        ],
+        "successors": [
+          "tests/xml-cii-source-schema-authority-guards.test.mjs",
+          "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-master-dataset-remap.test.mjs": {
+      "remap fails closed after raw session custody is unavailable": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "current behavior still rejects remap when raw rows are unavailable; only historical error wording changed from 'session-only' to 'unavailable'",
+          "current persistence/restore identity guards are green"
+        ],
+        "successors": [
+          "tests/xml-cii-master-dataset-rollback-custody.test.mjs",
+          "tests/xml-cii-issue-883-restore-failure-identity.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-mode-a-fast-multi-ui.test.mjs": {
+      "fast Mode A runner preserves sequential isolation while removing per-source full renders": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "legacy static slice begins at the earlier consolidated-review loop and therefore spans later render calls outside the source-conversion loop",
+          "current runModeABatchFastFromUi source loop remains sequential and contains no render call; exact-head browser timing/E2E is green"
+        ],
+        "successors": [
+          "tests/xml-cii-mode-a-easy-bulk-guards.test.mjs",
+          "tests/xml-cii-mode-a-preview-restoration.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-mode-a-preview-hidden-controls.test.mjs": {
+      "native individual Preview engineering controls remain present after restoration": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "legacy string-presence snapshot targets pre-composition renderer placement; current Preview controls are composed through later phase/panel owners",
+          "current Mode A Preview restoration and B31.3 live-row custody guards are green"
+        ],
+        "successors": [
+          "tests/xml-cii-mode-a-preview-restoration.test.mjs",
+          "tests/xml-cii-issue-781-b313-live-row-custody.test.js"
+        ]
+      }
+    },
+    "tests/xml-cii-mode-a-save-all-cii-zip.test.mjs": {
+      "Mode A run UI exposes Save All CII Files ZIP control": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "feature remains present; failure is exact source-syntax drift from data.modeAAction to button.dataset.modeAAction",
+          "same file's ZIP generation/content tests pass and current Mode A browser guards are green"
+        ],
+        "successors": [
+          "tests/xml-cii-mode-a-save-all-cii-zip.test.mjs",
+          "tests/xml-cii-mode-a-easy-bulk-guards.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-preview-strict-line-activation.test.mjs": {
+      "standalone tab activates the strict-line workflow shell": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "direct 20260804 strict-line shell import was superseded by composed 20261007 branch-line L4 shell",
+          "strict Preview semantic guards and deployment parity remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-preview-strict-line-activation.test.mjs",
+          "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-readonly-consumer-dataset-config.test.mjs": {
+      "Weight Match builds its calculation basis through generic dataset materialization": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "Weight Match moved from generic full-row materialization to worker/consumer authority; old helper-presence assertion is architectural history",
+          "C05.6 consumer authority and hydrated Weight Match successors are current"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-893-consumer-authority.test.mjs",
+          "tests/xml-cii-issue-858-hydrated-weight-match.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-rigid-review-actions.test.mjs": {
+      "rigid review enhancement exposes requested actions and modal safeguards": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "direct 20260804 rigid-review shell activation was superseded by the composed L4 shell; action-planning subtests in the same file still pass",
+          "current Weight review authority and consolidated rigid review guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-776-weight-review-authority.test.mjs",
+          "tests/xml-cii-mode-a-consolidated-rigid-review.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-source-schema-sys0010-benchmark.test.mjs": {
+      "benchmark-anchored reconstructed family resolves member-owned GUI=10 and LIM=35": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "current support authority requires governed relationship/source evidence and fails closed rather than reconstructing an unsupported synthetic family",
+          "C06/source-schema relationship and real support relationship authority are current"
+        ],
+        "successors": [
+          "tests/xml-cii-source-schema-relationship.test.mjs",
+          "tests/xml-cii-standalone-support-relationship-authority.test.js"
+        ]
+      }
+    },
+    "tests/xml-cii-standalone-config-save-routing.test.mjs": {
+      "active run review routes both rating-refresh and rigid-weight saves": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "exact count of two inline updateWorkflowState save sites is a pre-consolidation source-shape assertion",
+          "current post-run weight authority and workflow master-revision guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-776-post-run-weight-authority.test.mjs",
+          "tests/xml-cii-issue-776-workflow-weight-master-revision.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-standalone-dependency-revisions-integration.test.mjs": {
+      "workflow state owns dependency revision initialization and advancement centrally": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "central dependency custody remains required, but the exact return-expression source shape changed",
+          "current dependency revision and output invalidation guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-standalone-dependency-revisions.test.mjs",
+          "tests/xml-cii-output-result-invalidation.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-standalone-preview-material-wiring.test.mjs": {
+      "wrapper wires Material-only callback without replaying XML/Bore/Rating stages": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "incremental Preview internals changed after consumer/worker authority consolidation; exact rerankWeight callback shape is no longer the contract",
+          "current material authority/index guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-preview-material-authority-index.test.mjs",
+          "tests/xml-cii-process-material-authority.test.mjs"
+        ]
+      },
+      "wrapper retains C6b exact-source custody and explicit Material callback routing": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "exact callback/source-shape assertion was superseded by later Preview authority composition",
+          "current material authority/index and process material guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-preview-material-authority-index.test.mjs",
+          "tests/xml-cii-process-material-authority.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-unmatched-atta-default-rest-closure.test.mjs": {
+      "deployed UI chain selects the fresh restraint-closure runner": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "direct 20260803 ATTA runner activation was superseded by later composed workflow shells",
+          "ATTA closure behavior tests and current deployment parity remain release guards"
+        ],
+        "successors": [
+          "tests/xml-cii-atta-default-restraint.test.mjs",
+          "tests/xml-cii-issue-776-deployment-parity.test.mjs"
+        ]
+      }
+    },
+    "tests/xml-cii-weight-match-dataset-materialization.test.mjs": {
+      "Weight Match materializes dataset rows when resident compatibility rows are absent": {
+        "role": "SUPERSEDED_ACCEPTANCE",
+        "evidence": [
+          "worker-resident Weight authority superseded transient full-row materialization as the required consumer contract",
+          "current hydrated Weight Match and C05.6 consumer authority guards remain current"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-858-hydrated-weight-match.test.mjs",
+          "tests/xml-cii-issue-893-consumer-authority.test.mjs"
         ]
       }
     }
