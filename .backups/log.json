@@ -1,5 +1,5 @@
 {
-  "lastId": 1329,
+  "lastId": 1330,
   "entries": [
     {
       "id": 1,
@@ -8470,6 +8470,13 @@
       "file": "tests\\xml-cii-issue-781-auto-authority-followup.test.mjs",
       "context": "L1 #941 U5 refresh stale cache-chain qualification expectations",
       "backupFile": "1329_tests_xml_cii_issue_781_auto_authority_followup_test_mjs.bak"
+    },
+    {
+      "id": 1330,
+      "timestamp": "2026-10-07 18:17:00",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "L1 #941 U5 register qualified branch-line cache successor paths",
+      "backupFile": "1330_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
     }
   ]
 }
