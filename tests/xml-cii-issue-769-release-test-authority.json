@@ -486,7 +486,7 @@
         ],
         "successors": [
           "tests/xml-cii-issue-893-consumer-authority.test.mjs",
-          "tests/xml-cii-issue-894-scale-contract.test.mjs"
+          "tests/xml-cii-issue-875-persistence-status-retry.test.mjs"
         ]
       }
     },
@@ -498,7 +498,7 @@
         ],
         "successors": [
           "tests/xml-cii-issue-893-consumer-authority.test.mjs",
-          "tests/xml-cii-master-worker-integration.test.mjs"
+          "tests/xml-cii-master-dataset-startup-hydration.test.mjs"
         ]
       }
     },
