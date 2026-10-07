@@ -1,5 +1,5 @@
 {
-  "lastId": 1209,
+  "lastId": 1226,
   "entries": [
     {
       "id": 1,
@@ -8414,6 +8414,125 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "R01 #931 U4a quoted wildcard and UI/conversion parity regression",
       "backupFile": "1209_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1210,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1210_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1211,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1211_docs_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1212,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1212_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1213,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1213_docs_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1214,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "tabs\\model-converters\\index.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1214_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1215,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\tabs\\model-converters\\index.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1215_docs_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1216,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "tabs\\model-converters-tab.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1216_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1217,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\tabs\\model-converters-tab.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1217_docs_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1218,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1218_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1219,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1219_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1220,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "core\\app.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1220_core_app_js.bak"
+    },
+    {
+      "id": 1221,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\core\\app.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1221_docs_core_app_js.bak"
+    },
+    {
+      "id": 1222,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "main-rhbg-fitguard.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1222_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1223,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1223_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1224,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "index.html",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1224_index_html.bak"
+    },
+    {
+      "id": 1225,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "docs\\index.html",
+      "context": "R01 #931 U4b Model Converters cache publication",
+      "backupFile": "1225_docs_index_html.bak"
+    },
+    {
+      "id": 1226,
+      "timestamp": "2026-10-07 10:50:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "R01 #931 U4b cache chain regression",
+      "backupFile": "1226_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }

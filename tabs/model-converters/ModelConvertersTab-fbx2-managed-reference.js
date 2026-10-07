@@ -18,7 +18,7 @@ function installFbxLiveUi(container) {
 }
 
 async function loadBaseModelConvertersTab() {
-  const module = await import('./ModelConvertersTab.js?v=20261001-single-weight-owners-1');
+  const module = await import('./ModelConvertersTab.js?v=20261007-rvm-scope-matcher-1');
   if (typeof module?.renderModelConvertersTab !== 'function') {
     throw new Error('Base Model Converters renderer export is missing.');
   }

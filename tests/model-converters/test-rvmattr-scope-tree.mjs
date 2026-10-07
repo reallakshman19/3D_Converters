@@ -76,6 +76,12 @@ const shell = await readFile(new URL(
 const indexSource = await readFile(new URL(
   'tabs/model-converters/index.js', root), 'utf8');
 const shim = await readFile(new URL('tabs/model-converters-tab.js', root), 'utf8');
+const wrapper = await readFile(new URL(
+  'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js', root), 'utf8');
+const appRuntime = await readFile(new URL('core/app-standalone-runtime.js', root), 'utf8');
+const app = await readFile(new URL('core/app.js', root), 'utf8');
+const main = await readFile(new URL('main-rhbg-fitguard.js', root), 'utf8');
+const html = await readFile(new URL('index.html', root), 'utf8');
 
 assert.match(addon, /Convert full scope/);
 const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js', root), 'utf8');
@@ -92,10 +98,17 @@ assert.doesNotMatch(addon, /\.slice\(0\s*,\s*\d+/);
 assert.match(legacy, /matchesRvmScope/);
 assert.doesNotMatch(legacy, /normalized\.includes\('\*'\)\s*\?\s*`\^/);
 assert.match(shell, /installRvmAttrScopeTreeAddon/);
-assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20260802-rvm-full-scope-tree-1/);
+assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20261007-rvm-scope-matcher-1/);
 // The scope addon retains its own release. Shared parents advance when any
 // converter dependency changes; verify the actual fresh parent URLs separately.
-assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261001-single-weight-owners-1/);
-assert.match(shim, /model-converters\/index\.js\?v=20261001-single-weight-owners-1/);
+assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(shim, /model-converters\/index\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(shim, /model-converters\/legacy-adapter\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(wrapper, /ModelConvertersTab\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(appRuntime, /model-converters-tab\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(app, /app-standalone-runtime\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(app, /model-converters-tab\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(main, /core\/app\.js\?v=20261007-rvm-scope-matcher-1/);
+assert.match(html, /main-rhbg-fitguard\.js\?v=20261007-rvm-scope-matcher-1/);
 
 console.log('test-rvmattr-scope-tree: PASS');
