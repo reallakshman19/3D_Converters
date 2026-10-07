@@ -5,8 +5,9 @@ import {
   buildRvmAttributeScopeTree,
   buildRvmScopeRenderRows,
   countRvmAttributeScopeTree,
-} from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-1';
-const VERSION = '20261007-rvm-reachability-1';
+  rvmScopeExpansionIdsForPattern,
+} from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-2';
+const VERSION = '20261007-rvm-reachability-2';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -95,7 +96,7 @@ function checkboxHtml(node, checked, indeterminate) {
   return `<input type="checkbox" data-scope-node="${escapeAttribute(node.selectId)}" ${checked ? 'checked' : ''} data-indeterminate="${indeterminate ? 'true' : 'false'}">`;
 }
 function nodeHtml(node, depth, context) {
-  const expanded = context.expanded.get(node.id) === true;
+  const expanded = context.expandedIds.has(node.id);
   const checked = node.selectable && context.selection.get(node.selectId) === true;
   const indeterminate = node.selectable && !checked
     && context.selectedWithin.get(node.id) === true;
@@ -132,10 +133,11 @@ function renderFullTree(context) {
   const expandedIds = new Set(
     [...context.expanded.entries()].filter(([, value]) => value === true).map(([id]) => id),
   );
+  for (const id of rvmScopeExpansionIdsForPattern(context.tree, pattern)) expandedIds.add(id);
   const projection = buildRvmScopeRenderRows(context.tree, { expandedIds });
   const visibleIds = new Set(projection.rows.map((row) => row.node.id));
   const html = context.tree.map((node) => nodeHtml(node, 0, {
-    expanded: context.expanded, selection: context.selection, selectedWithin, pattern, visibleIds,
+    expandedIds, selection: context.selection, selectedWithin, pattern, visibleIds,
   })).join('');
   context.treeElement.innerHTML = `<ul data-rvm-full-tree-root="${VERSION}" style="padding-left:0;margin:0;">${html}</ul>`;
   for (const input of context.treeElement.querySelectorAll('input[data-indeterminate="true"]')) {

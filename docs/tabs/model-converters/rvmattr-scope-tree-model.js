@@ -1,4 +1,4 @@
-import { rvmScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
+import { matchesScopeFields, rvmScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -166,6 +166,32 @@ export function rvmScopePathToNode(tree, targetId) {
     return null;
   };
   return visit(tree, []);
+}
+
+function selectableNodeMatches(node, pattern) {
+  if (!node?.selectable) return false;
+  const fields = node.scopeFields?.length
+    ? node.scopeFields
+    : [node.label, node.kind, node.searchable];
+  return matchesScopeFields(fields, pattern);
+}
+
+export function rvmScopeExpansionIdsForPattern(tree, pattern) {
+  if (!clean(pattern)) return Object.freeze([]);
+  const expanded = new Set();
+  const visit = (node) => {
+    let matched = selectableNodeMatches(node, pattern);
+    for (const child of node.children || []) {
+      if (!child.selectable) continue;
+      if (visit(child)) {
+        expanded.add(node.id);
+        matched = true;
+      }
+    }
+    return matched;
+  };
+  for (const node of tree || []) visit(node);
+  return Object.freeze([...expanded]);
 }
 
 export function buildRvmScopeRenderRows(tree, options = {}) {

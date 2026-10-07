@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildRvmAttributeScopeTree,
   buildRvmScopeRenderRows,
+  rvmScopeExpansionIdsForPattern,
   rvmScopePathToNode,
 } from '../../tabs/model-converters/rvmattr-scope-tree-model.js';
 
@@ -44,5 +45,19 @@ for (const branch of hierarchy) {
     `branch not reachable through explicit expansion path: ${branchId}`,
   );
 }
+
+const targetBranch = hierarchy[799];
+const searchExpanded = new Set(rvmScopeExpansionIdsForPattern(tree, 'BRAN-0800'));
+const searchVisible = buildRvmScopeRenderRows(tree, { expandedIds: searchExpanded });
+assert.equal(
+  searchVisible.rows.some((row) => row.node.id === `branch:${targetBranch.name}`),
+  true,
+  'wildcard/search evidence must reveal the target branch through its ancestor path',
+);
+assert.equal(
+  searchVisible.rows.some((row) => row.node.kind !== 'SITE' && row.node.selectable === false),
+  false,
+  'scope search must not auto-expand component/item descendants',
+);
 
 console.log('test-rvmattr-scope-reachability-937: PASS');
