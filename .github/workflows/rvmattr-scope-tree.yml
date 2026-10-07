@@ -11,6 +11,7 @@ on:
       - 'tests/model-converters/test-rvmattr-scope-reachability-937.mjs'
       - 'tests/model-converters/test-rvmattr-scope-selection-938.mjs'
       - 'tests/model-converters/test-rvmattr-scope-large-939.mjs'
+      - 'tests/model-converters/test-rvmattr-scope-integrated-940.mjs'
       - '.github/workflows/rvmattr-scope-tree.yml'
   workflow_dispatch:
 
@@ -41,3 +42,4 @@ jobs:
           node tests/model-converters/test-rvmattr-scope-reachability-937.mjs
           node tests/model-converters/test-rvmattr-scope-selection-938.mjs
           node tests/model-converters/test-rvmattr-scope-large-939.mjs
+          node tests/model-converters/test-rvmattr-scope-integrated-940.mjs

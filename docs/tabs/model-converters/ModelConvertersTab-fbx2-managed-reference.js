@@ -18,7 +18,7 @@ function installFbxLiveUi(container) {
 }
 
 async function loadBaseModelConvertersTab() {
-  const module = await import('./ModelConvertersTab.js?v=20261007-rvm-selection-custody-2');
+  const module = await import('./ModelConvertersTab.js?v=20261007-rvm-integrated-scope-1');
   if (typeof module?.renderModelConvertersTab !== 'function') {
     throw new Error('Base Model Converters renderer export is missing.');
   }

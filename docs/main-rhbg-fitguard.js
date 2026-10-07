@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20261007-rvm-selection-custody-2');
+  const module = await import('./core/app.js?v=20261007-rvm-integrated-scope-1');
   await module.init(startupMount());
 }
 

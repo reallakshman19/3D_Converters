@@ -143,17 +143,17 @@ assert.doesNotMatch(addon, /\.slice\(0\s*,\s*\d+/);
 assert.match(legacy, /matchesRvmScope/);
 assert.doesNotMatch(legacy, /normalized\.includes\('\*'\)\s*\?\s*`\^/);
 assert.match(shell, /installRvmAttrScopeTreeAddon/);
-assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20261007-rvm-selection-custody-2/);
+assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20261007-rvm-integrated-scope-1/);
 // The scope addon retains its own release. Shared parents advance when any
 // converter dependency changes; verify the actual fresh parent URLs separately.
-assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(shim, /model-converters\/index\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(shim, /model-converters\/legacy-adapter\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(wrapper, /ModelConvertersTab\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(appRuntime, /model-converters-tab\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(app, /app-standalone-runtime\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(app, /model-converters-tab\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(main, /core\/app\.js\?v=20261007-rvm-selection-custody-2/);
-assert.match(html, /main-rhbg-fitguard\.js\?v=20261007-rvm-selection-custody-2/);
+assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(shim, /model-converters\/index\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(shim, /model-converters\/legacy-adapter\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(wrapper, /ModelConvertersTab\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(appRuntime, /model-converters-tab\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(app, /app-standalone-runtime\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(app, /model-converters-tab\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(main, /core\/app\.js\?v=20261007-rvm-integrated-scope-1/);
+assert.match(html, /main-rhbg-fitguard\.js\?v=20261007-rvm-integrated-scope-1/);
 
 console.log('test-rvmattr-scope-tree: PASS');

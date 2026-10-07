@@ -1,5 +1,5 @@
 {
-  "lastId": 1290,
+  "lastId": 1308,
   "entries": [
     {
       "id": 1,
@@ -8967,6 +8967,132 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-integrated-940.mjs",
       "context": "G1 #940 integrated counter wording oracle",
       "backupFile": "1290_tests_model_converters_test_rvmattr_scope_integrated_940_mjs.bak"
+    },
+    {
+      "id": 1291,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1291_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1292,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1292_docs_tabs_model_converters_ModelConvertersTab_js.bak"
+    },
+    {
+      "id": 1293,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1293_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1294,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\tabs\\model-converters\\ModelConvertersTab-fbx2-managed-reference.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1294_docs_tabs_model_converters_ModelConvertersTab_fbx2_managed_reference_js.bak"
+    },
+    {
+      "id": 1295,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "tabs\\model-converters\\index.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1295_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1296,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\tabs\\model-converters\\index.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1296_docs_tabs_model_converters_index_js.bak"
+    },
+    {
+      "id": 1297,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "tabs\\model-converters-tab.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1297_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1298,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\tabs\\model-converters-tab.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1298_docs_tabs_model_converters_tab_js.bak"
+    },
+    {
+      "id": 1299,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "core\\app-standalone-runtime.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1299_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1300,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\core\\app-standalone-runtime.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1300_docs_core_app_standalone_runtime_js.bak"
+    },
+    {
+      "id": 1301,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "core\\app.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1301_core_app_js.bak"
+    },
+    {
+      "id": 1302,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\core\\app.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1302_docs_core_app_js.bak"
+    },
+    {
+      "id": 1303,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "main-rhbg-fitguard.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1303_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1304,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\main-rhbg-fitguard.js",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1304_docs_main_rhbg_fitguard_js.bak"
+    },
+    {
+      "id": 1305,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "index.html",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1305_index_html.bak"
+    },
+    {
+      "id": 1306,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "docs\\index.html",
+      "context": "G1 #940 integrated scope cache publication",
+      "backupFile": "1306_docs_index_html.bak"
+    },
+    {
+      "id": 1307,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "G1 #940 integrated runtime cache assertions",
+      "backupFile": "1307_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1308,
+      "timestamp": "2026-10-07 17:34:00",
+      "file": ".github\\workflows\\rvmattr-scope-tree.yml",
+      "context": "G1 #940 protected mixed integration gate",
+      "backupFile": "1308__github_workflows_rvmattr_scope_tree_yml.bak"
     }
   ]
 }
