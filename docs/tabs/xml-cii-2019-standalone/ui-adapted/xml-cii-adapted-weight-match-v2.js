@@ -13,7 +13,7 @@ import {
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js?v=20260928-issue776-authority-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
-import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-single-weight-owners-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
 
@@ -118,6 +118,25 @@ export async function weightMatchConfigFromState(state, options = {}) {
     return out;
   }
   return ensureWeightRows(base, context, materializeRows);
+}
+
+export function assertWeightDatasetResultAuthority(result = {}, datasetRef = {}) {
+  const expectedId = String(datasetRef?.datasetId || '');
+  const actualId = String(result?.datasetId || '');
+  if (expectedId && actualId !== expectedId) {
+    throw new Error(`Weight Match dataset authority mismatch: expected ${expectedId}, received ${actualId || 'unknown'}.`);
+  }
+  const expectedRevision = Number(datasetRef?.datasetRevision || 0);
+  const actualRevision = Number(result?.datasetRevision || 0);
+  if (expectedRevision > 0 && actualRevision > 0 && expectedRevision !== actualRevision) {
+    throw new Error(`Weight Match dataset revision mismatch: expected ${expectedRevision}, received ${actualRevision}.`);
+  }
+  const expectedFingerprint = String(datasetRef?.masterFingerprint || '');
+  const actualFingerprint = String(result?.masterFingerprint || '');
+  if (expectedFingerprint && actualFingerprint !== expectedFingerprint) {
+    throw new Error(`Weight Match dataset fingerprint mismatch: expected ${expectedFingerprint}, received ${actualFingerprint || 'missing'}.`);
+  }
+  return result;
 }
 
 function persistConfig(stateRef, config) {
@@ -246,6 +265,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
             ratingMode: request.ratingMode || 'preview',
             previewRatingSnapshot: request.snapshot || {},
           });
+          assertWeightDatasetResultAuthority(result, weightDatasetRef);
           assertCurrentBuild(request);
           return result;
         } : null,

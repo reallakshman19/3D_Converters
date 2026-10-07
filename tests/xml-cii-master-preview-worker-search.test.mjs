@@ -25,11 +25,13 @@ test('Preview and import share one coordinator singleton including persisted dat
   assert.match(events, /masterDatasetCoordinator as coordinator/);
   assert.match(runtime, /export const masterDatasetCoordinator = createMasterDatasetImportCoordinator\(\)/);
   assert.match(runtime, /masterDatasetCoordinator\.search\(masterKey, query, datasetId\)/);
-  assert.match(runtime, /masterDatasetCoordinator\.getRows\(masterKey, offset, limit, datasetId\)/);
-  assert.match(runtime, /masterDatasetCoordinator\.getRowsByIndexes\(masterKey, indexes, datasetId\)/);
+  assert.match(runtime, /masterDatasetCoordinator\.getRows\(masterKey, offset, limit, datasetId, datasetRef\)/);
+  assert.match(runtime, /masterDatasetCoordinator\.getRowsByIndexes\(masterKey, indexes, datasetId, datasetRef\)/);
   assert.match(coordinator, /function search\(masterKey, query, datasetIdOverride = ''\)/);
   assert.match(coordinator, /datasetIdOverride \|\| activeDatasets\.get\(masterKey\)/);
-  assert.match(coordinator, /function getRowsByIndexes\(masterKey, indexes = \[\], datasetIdOverride = ''\)/);
+  assert.match(coordinator, /async function getRows\(masterKey, offset = 0, limit = 150, datasetIdOverride = '', datasetRef = \{\}\)/);
+  assert.match(coordinator, /async function getRowsByIndexes\(masterKey, indexes = \[\], datasetIdOverride = '', datasetRef = \{\}\)/);
+  assert.match(coordinator, /assertRowsAuthority\(/);
 });
 test('worker-search runtime mirrors are byte-identical in docs deployment', async () => {
   for (const path of pairs) assert.equal(await read('docs/' + path), await read(path), `docs mirror drift: ${path}`);

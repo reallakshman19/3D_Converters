@@ -1,0 +1,24 @@
+name: Issue 858 C05.4.4 Hydrated Valve Weight Match
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hydrated-weight-match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run C05.4.4 hydrated Weight Match contract
+        run: node --test tests/xml-cii-issue-858-hydrated-weight-match.test.mjs

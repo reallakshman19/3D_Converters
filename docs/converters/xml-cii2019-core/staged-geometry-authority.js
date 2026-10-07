@@ -1,5 +1,8 @@
 import { applyXmlCiiPostSplitElementLengthCleanup } from './post-split-element-length-cleanup.js';
 import { cleanXmlCiiNodeBlocks } from './xml-cii-node-block-cleanup.js';
+import { resolveXmlCiiBoreAuthority, xmlCiiNominalDnFromOd } from './bore-authority.js';
+
+export { xmlCiiNominalDnFromOd };
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function truthy(value) { if (value === true) return true; if (value === false || value === null || value === undefined) return false; if (typeof value === 'number') return value !== 0; return /^(1|true|yes|on)$/i.test(text(value)); }
@@ -20,9 +23,7 @@ function stagedBoreMm(attrs) { const values = ['ABORE', 'LBORE', 'PBORE', 'HBORE
 function stagedDtxr(attrs, component) { return text(readAttr(attrs, ['DTXR_POS', 'DTXR', 'DESC', 'DESCRIPTION', 'NAME']) || component?.name || ''); }
 function walkStaged(value, branchName = '', out = []) { if (Array.isArray(value)) { value.forEach((item) => walkStaged(item, branchName, out)); return out; } if (!value || typeof value !== 'object') return out; const attrs = value.attributes && typeof value.attributes === 'object' ? value.attributes : {}; const type = normalizeType(value.type || attrs.TYPE || attrs.RAW_TYPE); const currentBranch = type === 'BRANCH' || Array.isArray(value.children) ? text(value.name || attrs.NAME || attrs.OWNER || branchName) : branchName; out.push({ component: value, attrs, type, branchName: currentBranch }); if (Array.isArray(value.children)) value.children.forEach((child) => walkStaged(child, currentBranch, out)); return out; }
 export function buildXmlCiiStagedGeometryIndex(stagedJsonText) { const index = { byRef: new Map(), count: 0 }; if (!text(stagedJsonText)) return index; let parsed = null; try { parsed = typeof stagedJsonText === 'string' ? JSON.parse(stagedJsonText) : stagedJsonText; } catch { return index; } for (const item of walkStaged(parsed)) { const attrs = item.attrs || {}; const refs = [readAttr(attrs, ['REF', 'ComponentRefNo', 'COMPONENTREFNO']), readAttr(attrs, ['NAME']), item.component?.name].map(normalizeRef).filter(Boolean); if (!refs.length) continue; const geometry = { ref: refs[0], rawRefs: refs, stagedType: item.type, branchName: item.branchName, lengthMm: stagedLengthMm(attrs), boreMm: stagedBoreMm(attrs), dtxr: stagedDtxr(attrs, item.component) }; if (geometry.lengthMm === null && geometry.boreMm === null) continue; for (const ref of refs) if (!index.byRef.has(ref)) index.byRef.set(ref, geometry); index.count += 1; } return index; }
-const OD_TO_DN = [[10.3,6],[13.7,8],[17.1,10],[21.3,15],[26.7,20],[33.4,25],[42.2,32],[48.3,40],[60.3,50],[73.0,65],[88.9,80],[114.3,100],[141.3,125],[168.3,150],[219.1,200],[273.0,250],[323.8,300],[355.6,350],[406.4,400],[457.2,450],[508.0,500],[609.6,600],[711.0,700],[762.0,750]];
 const FALLBACK_HIGH_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
-export function xmlCiiNominalDnFromOd(odMm) { const numeric = Number(odMm); if (!Number.isFinite(numeric) || numeric <= 0) return null; let best = null; for (const [od, dn] of OD_TO_DN) { const err = Math.abs(numeric - od); if (!best || err < best.err) best = { od, dn, err }; } return best && best.err <= Math.max(1.5, Math.abs(best.od) * 0.006) ? best.dn : null; }
 export function resolveXmlCiiStagedGeometryForNode(node, stagedIndex) { if (!node || !stagedIndex?.byRef) return null; const ref = normalizeRef(childText(node, 'ComponentRefNo')); return ref ? stagedIndex.byRef.get(ref) || null : null; }
 function formatMm(value) { const numeric = Number(value); return Number.isFinite(numeric) ? numeric.toFixed(3) : ''; }
 function setOrInsertInNodeBlock(block, tag, value) { const formatted = formatMm(value); if (!formatted) return block; const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`, 'i'); if (re.test(block)) return block.replace(re, `<${tag}>${formatted}</${tag}>`); return block.replace(/<\/Node>\s*$/i, `<${tag}>${formatted}</${tag}></Node>`); }
@@ -37,5 +38,205 @@ function enforcedCleanupOptions(options, stage) { const config = options?.config
 function addStats(base = {}, extra = {}) { const out = { ...base }; for (const key of ['gasketNodesDropped', 'shortElementLengthNodesDropped']) out[key] = Number(out[key] || 0) + Number(extra[key] || 0); out.shortElementLengthNodesDroppedByType = { ...(out.shortElementLengthNodesDroppedByType || {}) }; for (const [type, count] of Object.entries(extra.shortElementLengthNodesDroppedByType || {})) out.shortElementLengthNodesDroppedByType[type] = Number(out.shortElementLengthNodesDroppedByType[type] || 0) + Number(count || 0); return out; }
 function mergeCleanup(result, options, stage = 'post-staged-geometry-authority') { const cleanup = applyXmlCiiPostSplitElementLengthCleanup(result.xmlText, enforcedCleanupOptions(options, stage)); return { xmlText: cleanup.xmlText, stats: addStats({ ...(result.stats || {}), postSplitElementLengthsRecalculated: cleanup.stats.postSplitElementLengthsRecalculated || 0 }, cleanup.stats || {}), diagnostics: [...(result.diagnostics || []), ...(cleanup.diagnostics || [])] }; }
 function preCleanXml(xmlText, options, stage) { return cleanXmlCiiNodeBlocks(xmlText, enforcedCleanupOptions(options, stage)); }
-function applyRegexFallback(xmlText, index, options = {}) { const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority'); const stats = addStats({ stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0, gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0 }, first.stats || {}); let xmlOut = first.xmlText; if (shouldDropGasketNodes(options)) { const dropped = dropNodeBlocksInText(xmlOut, (type) => type === 'GASK'); xmlOut = dropped.xmlText; stats.gasketNodesDropped += dropped.count; } if (index?.count) xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => { const ref = normalizeRef(block.match(/<ComponentRefNo>([\s\S]*?)<\/ComponentRefNo>/i)?.[1] || ''); const geometry = ref ? index.byRef.get(ref) : null; if (!geometry) return block; let out = block; let changed = false; if (geometry.lengthMm !== null) { out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm); stats.stagedLengthAnnotations += 1; changed = true; } const od = numberValue(block.match(/<OutsideDiameter>([\s\S]*?)<\/OutsideDiameter>/i)?.[1] || ''); const bore = geometry.boreMm || xmlCiiNominalDnFromOd(od); if (bore !== null) { out = setOrInsertInNodeBlock(out, 'BoreMm', bore); stats.stagedBoreAnnotations += 1; changed = true; } if (changed) stats.stagedGeometryMatches += 1; return out; }); if (shouldSuppressFallbackHighNodeNumbers(options)) { const suppressedHigh = suppressNodeNumbersInText(xmlOut, isFallbackHighNode); xmlOut = suppressedHigh.xmlText; stats.fallbackHighNodeNumbersSuppressed = suppressedHigh.count; } const diagnostics = [...(first.diagnostics || [])]; if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({ type: 'fallback-high-node-number-suppressed', count: stats.fallbackHighNodeNumbersSuppressed, message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.' }); return mergeCleanup({ xmlText: xmlOut, stats, diagnostics }, options); }
-export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, options = {}) { const index = options.stagedIndex || buildXmlCiiStagedGeometryIndex(stagedJsonText); const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority'); if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return applyRegexFallback(first.xmlText, index, options); let document = null; try { document = new DOMParser().parseFromString(text(first.xmlText), 'application/xml'); if (document.getElementsByTagName('parsererror').length) return applyRegexFallback(first.xmlText, index, options); } catch { return applyRegexFallback(first.xmlText, index, options); } const stats = addStats({ stagedGeometryMatches: 0, stagedLengthAnnotations: 0, stagedBoreAnnotations: 0, gasketNodesDropped: 0, fallbackHighNodeNumbersSuppressed: 0 }, first.stats || {}); const diagnostics = [...(first.diagnostics || [])]; if (shouldDropGasketNodes(options)) { const dropped = dropGasketNodesInDom(document); stats.gasketNodesDropped += dropped; if (dropped > 0) diagnostics.push({ type: 'gasket-node-dropped', count: dropped, message: 'GASK nodes were removed from enriched XML before staged geometry/weight matching.' }); } if (index.count) for (const branch of [...document.getElementsByTagName('Branch')]) { const branchName = childText(branch, 'Branchname'); for (const node of childrenByName(branch, 'Node')) { const geometry = resolveXmlCiiStagedGeometryForNode(node, index); if (!geometry) continue; let changed = false; if (geometry.lengthMm !== null && geometry.lengthMm > 0) { if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) changed = true; stats.stagedLengthAnnotations += 1; } const odDn = xmlCiiNominalDnFromOd(numberValue(childText(node, 'OutsideDiameter'))); const bore = geometry.boreMm || odDn; if (bore !== null && bore > 0) { if (ensureText(document, node, 'BoreMm', formatMm(bore))) changed = true; stats.stagedBoreAnnotations += 1; } if (changed) { stats.stagedGeometryMatches += 1; diagnostics.push({ type: 'staged-geometry-authority', branchName, nodeNumber: childText(node, 'NodeNumber'), componentRefNo: childText(node, 'ComponentRefNo'), stagedType: geometry.stagedType, dtxr: geometry.dtxr, lengthMm: geometry.lengthMm, boreMm: bore, lengthSource: geometry.lengthMm !== null ? 'staged-component-refno' : '', boreSource: geometry.boreMm ? 'staged-component-refno' : (odDn ? 'xml-outside-diameter' : '') }); } } } if (shouldSuppressFallbackHighNodeNumbers(options)) { stats.fallbackHighNodeNumbersSuppressed = suppressFallbackHighNodeNumbersInDom(document); if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({ type: 'fallback-high-node-number-suppressed', count: stats.fallbackHighNodeNumbersSuppressed, message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.' }); } return mergeCleanup({ xmlText: new XMLSerializer().serializeToString(document), stats, diagnostics }, options); }
+function applyRegexFallback(xmlText, index, options = {}) {
+  const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority');
+  const stats = addStats({
+    stagedGeometryMatches: 0,
+    stagedLengthAnnotations: 0,
+    stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0,
+    sourceBoreCorrections: 0,
+    gasketNodesDropped: 0,
+    fallbackHighNodeNumbersSuppressed: 0,
+  }, first.stats || {});
+  const diagnostics = [...(first.diagnostics || [])];
+  const config = options?.config && typeof options.config === 'object' ? options.config : {};
+  let xmlOut = first.xmlText;
+
+  if (shouldDropGasketNodes(options)) {
+    const dropped = dropNodeBlocksInText(xmlOut, (type) => type === 'GASK');
+    xmlOut = dropped.xmlText;
+    stats.gasketNodesDropped += dropped.count;
+  }
+
+  xmlOut = xmlOut.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
+    const ref = normalizeRef(block.match(/<ComponentRefNo>([\s\S]*?)<\/ComponentRefNo>/i)?.[1] || '');
+    const geometry = ref ? index?.byRef?.get(ref) || null : null;
+
+    let out = block;
+    let stagedChanged = false;
+    if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined) {
+      out = setOrInsertInNodeBlock(out, 'ElementLengthMm', geometry.lengthMm);
+      stats.stagedLengthAnnotations += 1;
+      stagedChanged = true;
+    }
+
+    const sourceOutsideDiameterMm = numberValue(block.match(/<OutsideDiameter>([\s\S]*?)<\/OutsideDiameter>/i)?.[1] || '');
+    const existingBoreMm = numberValue(block.match(/<BoreMm>([\s\S]*?)<\/BoreMm>/i)?.[1] || '');
+    const authority = resolveXmlCiiBoreAuthority({
+      xmlOutsideDiameterMm: sourceOutsideDiameterMm,
+      xmlBoreMm: existingBoreMm,
+      stagedBoreMm: geometry?.boreMm,
+      validationTraceText: geometry?.dtxr || '',
+      config,
+    });
+    if (authority.boreMm !== null) {
+      const before = out;
+      out = setOrInsertInNodeBlock(out, 'BoreMm', authority.boreMm);
+      if (out !== before) {
+        stats.sourceBoreAnnotations += 1;
+        if (existingBoreMm !== null && Math.abs(existingBoreMm - Number(authority.boreMm)) > 1e-6) {
+          stats.sourceBoreCorrections += 1;
+        }
+      }
+      if (geometry) stats.stagedBoreAnnotations += 1;
+      if (geometry && out !== before) stagedChanged = true;
+    }
+    if (authority.diagnostic) diagnostics.push({
+      ...authority.diagnostic,
+      componentRefNo: ref,
+      stage: 'staged-geometry-regex',
+    });
+    if (geometry && stagedChanged) stats.stagedGeometryMatches += 1;
+    return out;
+  });
+
+  if (shouldSuppressFallbackHighNodeNumbers(options)) {
+    const suppressedHigh = suppressNodeNumbersInText(xmlOut, isFallbackHighNode);
+    xmlOut = suppressedHigh.xmlText;
+    stats.fallbackHighNodeNumbersSuppressed = suppressedHigh.count;
+  }
+  if (stats.fallbackHighNodeNumbersSuppressed > 0) {
+    diagnostics.push({
+      type: 'fallback-high-node-number-suppressed',
+      count: stats.fallbackHighNodeNumbersSuppressed,
+      message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.',
+    });
+  }
+  return mergeCleanup({ xmlText: xmlOut, stats, diagnostics }, options);
+}
+
+export function applyXmlCiiStagedGeometryAuthority(xmlText, stagedJsonText, options = {}) {
+  const index = options.stagedIndex || buildXmlCiiStagedGeometryIndex(stagedJsonText);
+  const first = preCleanXml(xmlText, options, 'pre-staged-geometry-authority');
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return applyRegexFallback(first.xmlText, index, options);
+  }
+
+  let document = null;
+  try {
+    document = new DOMParser().parseFromString(text(first.xmlText), 'application/xml');
+    if (document.getElementsByTagName('parsererror').length) {
+      return applyRegexFallback(first.xmlText, index, options);
+    }
+  } catch {
+    return applyRegexFallback(first.xmlText, index, options);
+  }
+
+  const stats = addStats({
+    stagedGeometryMatches: 0,
+    stagedLengthAnnotations: 0,
+    stagedBoreAnnotations: 0,
+    sourceBoreAnnotations: 0,
+    sourceBoreCorrections: 0,
+    gasketNodesDropped: 0,
+    fallbackHighNodeNumbersSuppressed: 0,
+  }, first.stats || {});
+  const diagnostics = [...(first.diagnostics || [])];
+  const config = options?.config && typeof options.config === 'object' ? options.config : {};
+
+  if (shouldDropGasketNodes(options)) {
+    const dropped = dropGasketNodesInDom(document);
+    stats.gasketNodesDropped += dropped;
+    if (dropped > 0) diagnostics.push({
+      type: 'gasket-node-dropped',
+      count: dropped,
+      message: 'GASK nodes were removed from enriched XML before staged geometry/weight matching.',
+    });
+  }
+
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    for (const node of childrenByName(branch, 'Node')) {
+      const geometry = resolveXmlCiiStagedGeometryForNode(node, index);
+
+      let stagedChanged = false;
+      if (geometry?.lengthMm !== null && geometry?.lengthMm !== undefined && geometry.lengthMm > 0) {
+        if (ensureText(document, node, 'ElementLengthMm', formatMm(geometry.lengthMm))) stagedChanged = true;
+        stats.stagedLengthAnnotations += 1;
+      }
+
+      const sourceOutsideDiameterMm = numberValue(childText(node, 'OutsideDiameter'));
+      const existingBoreMm = numberValue(childText(node, 'BoreMm'));
+      const authority = resolveXmlCiiBoreAuthority({
+        xmlOutsideDiameterMm: sourceOutsideDiameterMm,
+        xmlBoreMm: existingBoreMm,
+        stagedBoreMm: geometry?.boreMm,
+        branchName,
+        validationTraceText: geometry?.dtxr || '',
+        config,
+      });
+      if (authority.boreMm !== null && authority.boreMm > 0) {
+        const changed = ensureText(document, node, 'BoreMm', formatMm(authority.boreMm));
+        if (changed) {
+          stats.sourceBoreAnnotations += 1;
+          if (existingBoreMm !== null && Math.abs(existingBoreMm - Number(authority.boreMm)) > 1e-6) {
+            stats.sourceBoreCorrections += 1;
+          }
+        }
+        if (geometry) stats.stagedBoreAnnotations += 1;
+        if (geometry && changed) stagedChanged = true;
+      }
+      if (authority.diagnostic) diagnostics.push({
+        ...authority.diagnostic,
+        branchName,
+        nodeNumber: childText(node, 'NodeNumber'),
+        componentRefNo: childText(node, 'ComponentRefNo'),
+        stage: 'staged-geometry',
+      });
+
+      if (geometry && stagedChanged) {
+        stats.stagedGeometryMatches += 1;
+        diagnostics.push({
+          type: 'staged-geometry-authority',
+          branchName,
+          nodeNumber: childText(node, 'NodeNumber'),
+          componentRefNo: childText(node, 'ComponentRefNo'),
+          stagedType: geometry.stagedType,
+          dtxr: geometry.dtxr,
+          lengthMm: geometry.lengthMm,
+          boreMm: authority.boreMm,
+          lengthSource: geometry.lengthMm !== null ? 'staged-component-refno' : '',
+          boreSource: authority.source,
+        });
+      } else if (!geometry && sourceOutsideDiameterMm !== null && authority.boreMm !== null && existingBoreMm !== Number(authority.boreMm)) {
+        diagnostics.push({
+          type: 'source-bore-authority-correction',
+          branchName,
+          nodeNumber: childText(node, 'NodeNumber'),
+          componentRefNo: childText(node, 'ComponentRefNo'),
+          outsideDiameterMm: sourceOutsideDiameterMm,
+          previousBoreMm: existingBoreMm,
+          boreMm: authority.boreMm,
+          boreSource: authority.source,
+          message: 'Source OutsideDiameter corrected stale enriched BoreMm without requiring staged geometry.',
+        });
+      }
+    }
+  }
+
+  if (shouldSuppressFallbackHighNodeNumbers(options)) {
+    stats.fallbackHighNodeNumbersSuppressed = suppressFallbackHighNodeNumbersInDom(document);
+    if (stats.fallbackHighNodeNumbersSuppressed > 0) diagnostics.push({
+      type: 'fallback-high-node-number-suppressed',
+      count: stats.fallbackHighNodeNumbersSuppressed,
+      message: 'Generated fallback 10000+ inline node numbers were set back to -1; keeping them is intentionally not user-configurable.',
+    });
+  }
+
+  return mergeCleanup({
+    xmlText: new XMLSerializer().serializeToString(document),
+    stats,
+    diagnostics,
+  }, options);
+}

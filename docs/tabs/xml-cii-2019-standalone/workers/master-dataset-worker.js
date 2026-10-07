@@ -1,6 +1,6 @@
-import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { MASTER_DATASET_EVENT, serializeWorkerError } from './master-dataset-protocol.js?v=20261006-c05-5-5-persistence-retry-1';
 import { createIndexedDbDatasetStore } from './master-dataset-store.js';
-import { createMasterDatasetService } from './master-dataset-service.js?v=20261001-weight-output-2';
+import { createMasterDatasetService } from './master-dataset-service.js?v=20261007-c05-6-2-consumer-authority-1';
 import { buildSearchCorpus, prepareNormalizedDataset, searchCorpusIndexes } from './master-dataset-normalize.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 
 const SHEETJS_ESM_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';

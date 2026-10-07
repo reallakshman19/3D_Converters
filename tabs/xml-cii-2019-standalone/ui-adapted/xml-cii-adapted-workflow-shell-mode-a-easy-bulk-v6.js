@@ -1,8 +1,8 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-consolidated-1';
 import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261001-single-weight-owners-1';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-single-weight-owners-1';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261001-single-weight-owners-1';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261007-c05-6-2-consumer-authority-1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261006-c05-5-5-persistence-retry-1';
 import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';

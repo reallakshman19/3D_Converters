@@ -4,7 +4,7 @@ import { MASTER_FIELDS } from './xml-cii-adapted-fields-config.js';
 import { getSavedMappingsForMaster, findSmartMatchingMapping } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
 import { appliedFieldMap, effectiveDraftFieldMap, masterMappingStatus, readSupportConfigOnce } from './xml-cii-adapted-master-runtime.js';
-import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { getMasterDatasetRows, getMasterDatasetRowsByIndexes, searchMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
 import { buildMatchingRowIndexes, logicalRowCount, virtualRowItems, virtualRowWindow } from './xml-cii-adapted-virtual-rows.js';
 
 export { buildPreviewSearchRows, previewSearchText } from './xml-cii-adapted-import-preview-search.js';
@@ -475,7 +475,30 @@ function renderMasterCard(master, state, config) {
   appendMetric(metrics, 'Source', master.sourceMetadata?.source || 'not-loaded');
   appendMetric(metrics, 'Status', masterStatusText(master));
   appendMetric(metrics, 'Rows', master.rowCount);
+  const datasetRef = context.datasetRefs?.[master.key] || null;
+  const persistenceFailure = state.masterPersistenceFailures?.[master.key] || null;
+  if (datasetRef?.datasetId) {
+    const durable = String(datasetRef.persistence || '') === 'indexeddb';
+    const persistenceText = durable
+      ? (persistenceFailure ? 'IndexedDB durable; restart custody needs retry' : 'IndexedDB durable')
+      : 'SESSION ONLY — active now; reload requires durable retry or re-import';
+    appendMetric(metrics, 'Persistence', persistenceText);
+  }
   card.appendChild(metrics);
+
+  if (datasetRef?.datasetId && (String(datasetRef.persistence || '') === 'session' || persistenceFailure)) {
+    const retryRow = style(createElement('div', '', 'xml-cii-master-persistence-retry'), {
+      display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap',
+      margin: '8px 0 12px 0', padding: '8px 10px', borderRadius: '6px',
+      border: '1px solid rgba(245,158,11,.45)', background: 'rgba(245,158,11,.08)',
+    });
+    const retry = mappingButton('Retry durable save', 'retry-master-persistence', master.key, !state.importMastersLoading, true);
+    const detail = persistenceFailure?.phase === 'restart-custody'
+      ? 'Dataset rows are durable in IndexedDB, but reload custody is incomplete. Retry saves restart metadata only; parsing and mapping are unchanged.'
+      : 'Parse/import succeeded and this master is usable now, but it is session-only. Retry reuses the parsed dataset; it does not reparse or remap.';
+    retryRow.append(retry, createElement('span', detail, 'xml-cii-phase-help'));
+    card.appendChild(retryRow);
+  }
 
   card.appendChild(renderColumnMapping(master, state, config));
   appendPreview(card, master, state, config);

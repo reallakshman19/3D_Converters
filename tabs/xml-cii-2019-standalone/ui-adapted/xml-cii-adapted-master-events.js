@@ -1,4 +1,4 @@
-import { bindMasterWorkerImportEvents } from './xml-cii-adapted-master-worker-events.js?v=20261001-weight-output-2';
+import { bindMasterWorkerImportEvents } from './xml-cii-adapted-master-worker-events.js?v=20261006-c05-5-5-persistence-retry-1';
 import { bindMasterMappingEvents } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 
 export {

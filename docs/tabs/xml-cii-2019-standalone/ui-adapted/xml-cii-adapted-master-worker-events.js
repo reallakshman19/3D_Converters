@@ -2,10 +2,19 @@ import {
   updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, findSmartMatchingMapping,
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { appliedFieldMap, ensureMasterRuntime } from './xml-cii-adapted-master-runtime.js';
-import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
+import { masterConfigForState } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 import { perfCount, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
 import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
-import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
+import {
+  bindRetryPersistenceEvents,
+  masterImportPersistenceStatus,
+  nextPersistenceFailures,
+  persistenceFailureRecord,
+  retryCurrentMasterPersistence,
+} from './xml-cii-adapted-master-persistence-retry.js?v=20261007-integration-b2-dataset-compat-2';
+
+export { masterImportPersistenceStatus, retryCurrentMasterPersistence };
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
 
 const generations = new Map();
@@ -32,6 +41,10 @@ function translateError(error) {
   if (/XLSX|worksheet|workbook|spreadsheet/i.test(message)) return `Spreadsheet import failed: ${message}`;
   if (/Fetch failed|Failed to fetch/i.test(message)) return `Could not read file: ${message}`;
   return message;
+}
+
+function currentMasterRef(stateRef, key) {
+  return ensureMasterRuntime(stateRef.current.masterContext || {}).datasetRefs?.[key] || null;
 }
 
 function workerSettings(stateRef, key, fileName) {
@@ -76,12 +89,21 @@ function commitReady(stateRef, key, ready, source, settings) {
     sourceMetadata,
   });
   const mappingText = settings.matchedKey ? ` using saved mapping from ${settings.matchedKey}` : ' with worker auto-mapping';
+  const workerPersistence = ready?.persistence || null;
+  const failure = workerPersistence?.persisted === false
+    ? persistenceFailureRecord(key, metadata.datasetId, 'indexeddb', workerPersistence)
+    : (committed.persistence?.failures?.length
+      ? persistenceFailureRecord(key, metadata.datasetId, 'restart-custody', committed.persistence)
+      : null);
   stateRef.current = updateWorkflowState(stateRef.current, {
     masterContext: committed.context,
     supportConfigJson: JSON.stringify(committed.config, null, 2),
     importMastersLoading: false,
-    importMastersWriteBackStatus: masterPersistenceStatus(
-      `Imported ${source.fileName} (${metadata.rowCount} rows)${mappingText}.`, committed.persistence,
+    masterPersistenceFailures: nextPersistenceFailures(stateRef.current, key, failure),
+    importMastersWriteBackStatus: masterImportPersistenceStatus(
+      `Imported ${source.fileName} (${metadata.rowCount} rows)${mappingText}.`,
+      workerPersistence,
+      committed.persistence,
     ),
   });
   return committed;
@@ -206,4 +228,5 @@ export function bindMasterWorkerImportEvents(container, stateRef, render) {
   bindFileEvents(container, stateRef, render);
   bindPathEvents(container, stateRef, render);
   bindSheetEvents(container, stateRef, render);
+  bindRetryPersistenceEvents(container, stateRef, render);
 }

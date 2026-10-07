@@ -1,0 +1,61 @@
+name: Issue 894 C05.6.3 Dataset Scale Regression
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scale-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run scale custody and mirror contracts
+        run: |
+          node --test \
+            tests/xml-cii-issue-894-scale-contract.test.mjs \
+            tests/xml-cii-master-dataset-ready-commit.test.mjs \
+            tests/xml-cii-master-dataset-persistence.test.mjs \
+            tests/xml-cii-issue-893-consumer-authority.test.mjs
+
+  scale-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-894-http.log 2>&1 &
+      - name: Run established 10k/50k/100k scale oracle unchanged
+        env:
+          XML_CII_MASTER_DATASET_SCALE_OUTPUT: ValidationRecords/xml-cii-issue-894-master-dataset-scale.json
+        run: node scripts/run-xml-cii-master-dataset-scale-e2e.mjs
+      - name: Upload scale receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-894-c05-6-3-dataset-scale
+          path: |
+            ValidationRecords/xml-cii-issue-894-master-dataset-scale.json
+            /tmp/issue-894-http.log
+          if-no-files-found: error

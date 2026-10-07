@@ -38,6 +38,9 @@ function datasetCustody(masterKey) {
     source: String(custody.source || ''),
     fieldMap: custody.fieldMap && typeof custody.fieldMap === 'object' ? { ...custody.fieldMap } : {},
     appliedRevision: Number(custody.appliedRevision || 0),
+    ...((masterKey === 'pipingClass' || masterKey === 'materialMap' || masterKey === 'weight') && Number(custody.datasetRevision) > 0 ? {
+      datasetRevision: Number(custody.datasetRevision),
+    } : {}),
     masterFingerprint: String(custody.masterFingerprint || ''),
   };
 }
@@ -50,30 +53,106 @@ function compactConfigSection(config, def, fieldMap) {
   return next;
 }
 
+function classifiedRestoreError(code, restoreStage, message, cause = null) {
+  const error = new Error(message);
+  error.restoreDomain = 'restore-storage';
+  error.restoreCode = code;
+  error.restoreStage = restoreStage;
+  if (cause) error.cause = cause;
+  return error;
+}
+
+async function readRestoreValue(reader, masterKey, restoreStage) {
+  try {
+    return await reader();
+  } catch (cause) {
+    throw classifiedRestoreError(
+      'STORAGE_READ_FAILED',
+      restoreStage,
+      `Persisted ${masterKey} storage read failed during ${restoreStage}: ${cause?.message || String(cause)}`,
+      cause,
+    );
+  }
+}
+
 async function loadDataset(store, masterKey, custody) {
-  const metadata = await store.getMetadata(custody.datasetId);
-  if (!metadata) throw new Error(`Persisted ${masterKey} dataset is unavailable.`);
+  const metadata = await readRestoreValue(
+    () => store.getMetadata(custody.datasetId),
+    masterKey,
+    'metadata-read',
+  );
+  if (!metadata) {
+    throw classifiedRestoreError(
+      'MISSING_DATASET',
+      'metadata-validate',
+      `Persisted ${masterKey} dataset is unavailable.`,
+    );
+  }
   const metadataCount = metadata.rowCount == null ? Number(custody.rowCount || 0) : Number(metadata.rowCount || 0);
   if (metadataCount !== Number(custody.rowCount || 0)) {
-    throw new Error(`Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`);
+    throw classifiedRestoreError(
+      'ROW_COUNT_MISMATCH',
+      'metadata-validate',
+      `Persisted ${masterKey} row count mismatch: expected ${custody.rowCount}, received ${metadataCount}.`,
+    );
+  }
+  if (masterKey === 'pipingClass' || masterKey === 'materialMap' || masterKey === 'weight') {
+    const custodyRevision = Number(custody.datasetRevision || 0);
+    const metadataRevision = Number(metadata.datasetRevision || 0);
+    if (custodyRevision > 0 && metadataRevision > 0 && custodyRevision !== metadataRevision) {
+      throw classifiedRestoreError(
+        'REVISION_MISMATCH',
+        'metadata-validate',
+        `Persisted ${masterKey} dataset revision mismatch: expected ${custodyRevision}, received ${metadataRevision}.`,
+      );
+    }
   }
 
   let fullRows = null;
   let previewRows;
   if (typeof store.getRowsRange === 'function') {
-    previewRows = await store.getRowsRange(custody.datasetId, 0, STARTUP_PREVIEW_ROWS);
+    previewRows = await readRestoreValue(
+      () => store.getRowsRange(custody.datasetId, 0, STARTUP_PREVIEW_ROWS),
+      masterKey,
+      'preview-read',
+    );
   } else {
-    fullRows = await store.getRows(custody.datasetId);
+    fullRows = await readRestoreValue(
+      () => store.getRows(custody.datasetId),
+      masterKey,
+      'rows-read',
+    );
     previewRows = Array.isArray(fullRows) ? fullRows.slice(0, STARTUP_PREVIEW_ROWS) : null;
   }
-  if (!Array.isArray(previewRows)) throw new Error(`Persisted ${masterKey} preview is unavailable.`);
+  if (!Array.isArray(previewRows)) {
+    throw classifiedRestoreError(
+      'PREVIEW_ROWS_UNAVAILABLE',
+      'preview-read',
+      `Persisted ${masterKey} preview is unavailable.`,
+    );
+  }
 
   const needsLegacyWeightFingerprint = masterKey === 'weight'
     && !custody.masterFingerprint
     && !metadata.masterFingerprint;
-  if (needsLegacyWeightFingerprint && !Array.isArray(fullRows)) fullRows = await store.getRows(custody.datasetId);
+  if (needsLegacyWeightFingerprint && !Array.isArray(fullRows)) {
+    try {
+      fullRows = await store.getRows(custody.datasetId);
+    } catch (cause) {
+      throw classifiedRestoreError(
+        'FINGERPRINT_MIGRATION_FAILED',
+        'fingerprint-migration',
+        `Persisted Weight fingerprint migration requires ${metadataCount} rows.`,
+        cause,
+      );
+    }
+  }
   if (needsLegacyWeightFingerprint && (!Array.isArray(fullRows) || fullRows.length !== metadataCount)) {
-    throw new Error(`Persisted Weight fingerprint migration requires ${metadataCount} rows.`);
+    throw classifiedRestoreError(
+      'FINGERPRINT_MIGRATION_FAILED',
+      'fingerprint-migration',
+      `Persisted Weight fingerprint migration requires ${metadataCount} rows.`,
+    );
   }
 
   return {
@@ -114,6 +193,9 @@ function applyLoadedDatasets(state, loaded) {
       fileName: item.metadata.fileName || item.custody.source,
       sheetName: item.metadata.sheetName || '',
       fieldMap: { ...item.custody.fieldMap },
+      ...((item.masterKey === 'pipingClass' || item.masterKey === 'materialMap' || item.masterKey === 'weight') && Number(item.custody.datasetRevision || item.metadata.datasetRevision) > 0 ? {
+        datasetRevision: Number(item.custody.datasetRevision || item.metadata.datasetRevision),
+      } : {}),
       ...(masterFingerprint ? { masterFingerprint } : {}),
       persistence: 'indexeddb',
     });
@@ -147,6 +229,50 @@ function applyLoadedDatasets(state, loaded) {
   };
 }
 
+function restoreFailureRecord(masterKey, custody, error) {
+  return Object.freeze({
+    masterKey,
+    datasetId: String(custody?.datasetId || ''),
+    stage: 'startup-hydration',
+    name: String(error?.name || 'Error'),
+    message: String(error?.message || error || 'Persisted master restore failed.'),
+  });
+}
+
+function restoreFailureIdentity(masterKey, custody, error) {
+  return Object.freeze({
+    masterKey,
+    datasetId: String(custody?.datasetId || ''),
+    domain: String(error?.restoreDomain || 'restore-storage'),
+    code: String(error?.restoreCode || 'RESTORE_FAILED'),
+    stage: String(error?.restoreStage || 'startup-hydration'),
+  });
+}
+
+function activeSessionAuthority(state, masterKey) {
+  return String(state?.masterContext?.datasetRefs?.[masterKey]?.persistence || '').toLowerCase() === 'session';
+}
+
+function withMasterRestoreFailures(state, entries, failures, identities) {
+  const nextFailures = state?.masterRestoreFailures && typeof state.masterRestoreFailures === 'object'
+    ? { ...state.masterRestoreFailures }
+    : {};
+  const nextIdentity = state?.masterRestoreFailureIdentity && typeof state.masterRestoreFailureIdentity === 'object'
+    ? { ...state.masterRestoreFailureIdentity }
+    : {};
+  for (const [masterKey] of entries) {
+    delete nextFailures[masterKey];
+    delete nextIdentity[masterKey];
+  }
+  for (const failure of failures) nextFailures[failure.masterKey] = failure;
+  for (const identity of identities) nextIdentity[identity.masterKey] = identity;
+  return {
+    ...state,
+    masterRestoreFailures: nextFailures,
+    masterRestoreFailureIdentity: nextIdentity,
+  };
+}
+
 export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
   if (!stateRef?.current) return false;
   const entries = Object.keys(MASTER_DEFS)
@@ -154,7 +280,26 @@ export async function hydratePersistedMasterDatasets(stateRef, options = {}) {
     .filter(([, custody]) => custody);
   if (!entries.length) return false;
   const store = options.store || createIndexedDbDatasetStore(options);
-  const loaded = await Promise.all(entries.map(([masterKey, custody]) => loadDataset(store, masterKey, custody)));
-  stateRef.current = applyLoadedDatasets(stateRef.current, loaded);
+  const outcomes = await Promise.all(entries.map(async ([masterKey, custody]) => {
+    try {
+      return { ok: true, item: await loadDataset(store, masterKey, custody) };
+    } catch (error) {
+      return {
+        ok: false,
+        failure: restoreFailureRecord(masterKey, custody, error),
+        identity: restoreFailureIdentity(masterKey, custody, error),
+      };
+    }
+  }));
+  const loaded = outcomes
+    .filter((entry) => entry.ok)
+    .map((entry) => entry.item)
+    .filter((item) => !activeSessionAuthority(stateRef.current, item.masterKey));
+  const failures = outcomes.filter((entry) => !entry.ok).map((entry) => entry.failure);
+  const identities = outcomes.filter((entry) => !entry.ok).map((entry) => entry.identity);
+  const nextState = loaded.length
+    ? applyLoadedDatasets(stateRef.current, loaded)
+    : stateRef.current;
+  stateRef.current = withMasterRestoreFailures(nextState, entries, failures, identities);
   return true;
 }

@@ -1,4 +1,4 @@
-import { materializeMasterDatasetRows } from './ui-adapted/xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { materializeMasterDatasetRows } from './ui-adapted/xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 
 const MASTER_DATASET_CONFIG_DEFS = Object.freeze({
   lineList: Object.freeze({ configKey: 'linelist', rowsProperty: 'masterRows', contextRowsKey: 'lineRows' }),

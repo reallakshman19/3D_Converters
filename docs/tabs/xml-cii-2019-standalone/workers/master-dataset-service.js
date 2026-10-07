@@ -1,4 +1,4 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, MASTER_DATASET_PREVIEW_ROWS, MASTER_DATASET_CHUNK_ROWS, assertCommandEnvelope } from './master-dataset-protocol.js?v=20261006-c05-5-5-persistence-retry-1';
 import { rankXmlCiiWeightIssues } from '../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-rating-1';
 import { listWorkbookSheets, parseTextSource, parseWorkbookSheet, parseWorkbookSheetSample, sourceNeedsSheetSelection } from './master-dataset-parser.js';
 import { suggestWorkbookSheet } from './master-dataset-sheet-selector.js';
@@ -17,6 +17,19 @@ function response(type, requestId, payload = {}) {
 function publicMetadata(metadata) {
   const { config, currentMap, fieldMapOverride, ...safe } = metadata;
   return safe;
+}
+
+function quotaLike(error) {
+  const name = String(error?.name || '');
+  const message = String(error?.message || error || '');
+  return /QuotaExceededError/i.test(name) || /quota|storage.*full|database.*full/i.test(message);
+}
+
+function persistenceFailure(error) {
+  return {
+    name: String(error?.name || 'Error'),
+    message: String(error?.message || error || 'Unknown IndexedDB persistence error'),
+  };
 }
 
 export function createMasterDatasetService({ getXlsx, store, prepareDataset, buildSearchCorpus, searchCorpusIndexes, emitEvent = null }) {
@@ -48,18 +61,32 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       fieldMapOverride: source.fieldMapOverride,
       ...(source.masterKey === 'weight' ? { masterFingerprint: xmlCiiWeightMasterRowsFingerprint(prepared.rows) } : {}),
     };
+    const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
     datasets.set(metadata.datasetId, {
       metadata,
       rows: prepared.rows,
       rawRows,
+      mappingRows,
       searchCorpus: prepared.searchCorpus,
     });
-    const mappingRows = rawRows.slice(0, MASTER_DATASET_PREVIEW_ROWS);
-    await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, prepared.rows);
+    let persistence;
+    metadata.persistenceMode = 'indexeddb';
+    try {
+      await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, prepared.rows);
+      persistence = { persisted: true, failure: null, quotaLimited: false };
+    } catch (error) {
+      metadata.persistenceMode = 'session';
+      persistence = {
+        persisted: false,
+        failure: persistenceFailure(error),
+        quotaLimited: quotaLike(error),
+      };
+    }
     return {
       metadata: publicMetadata(metadata),
       previewRows: prepared.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
       mappingRows,
+      persistence,
     };
   }
 
@@ -140,12 +167,50 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     return response(MASTER_DATASET_EVENT.DATASET_READY, message.requestId, ready);
   }
 
+  async function retryPersistence(message) {
+    const dataset = await ensureDataset(message.datasetId);
+    const metadata = dataset.metadata || {};
+    const mappingRows = Array.isArray(dataset.mappingRows)
+      ? dataset.mappingRows
+      : (Array.isArray(metadata.mappingRows) ? metadata.mappingRows : []);
+    try {
+      metadata.persistenceMode = 'indexeddb';
+      await store.persistDataset({ ...publicMetadata(metadata), mappingRows }, dataset.rows);
+      return response(MASTER_DATASET_EVENT.PERSISTENCE_RESULT, message.requestId, {
+        datasetId: metadata.datasetId,
+        metadata: publicMetadata(metadata),
+        previewRows: dataset.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+        mappingRows,
+        persistence: { persisted: true, failure: null, quotaLimited: false },
+      });
+    } catch (error) {
+      metadata.persistenceMode = 'session';
+      return response(MASTER_DATASET_EVENT.PERSISTENCE_RESULT, message.requestId, {
+        datasetId: metadata.datasetId,
+        metadata: publicMetadata(metadata),
+        previewRows: dataset.rows.slice(0, MASTER_DATASET_PREVIEW_ROWS),
+        mappingRows,
+        persistence: {
+          persisted: false,
+          failure: persistenceFailure(error),
+          quotaLimited: quotaLike(error),
+        },
+      });
+    }
+  }
+
   async function ensureDataset(datasetId) {
     if (datasets.has(datasetId)) return datasets.get(datasetId);
     const metadata = await store.getMetadata?.(datasetId);
     const rows = await store.getRows(datasetId);
     if (!metadata || !rows) throw new Error(`Unknown dataset: ${datasetId}`);
-    const dataset = { metadata, rows, rawRows: null, searchCorpus: buildSearchCorpus(rows) };
+    const dataset = {
+      metadata,
+      rows,
+      rawRows: null,
+      mappingRows: Array.isArray(metadata.mappingRows) ? metadata.mappingRows : [],
+      searchCorpus: buildSearchCorpus(rows),
+    };
     datasets.set(datasetId, dataset);
     return dataset;
   }
@@ -191,6 +256,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     const limit = Math.max(1, Math.min(MASTER_DATASET_CHUNK_ROWS, Number(message.limit) || MASTER_DATASET_PREVIEW_ROWS));
     return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
       datasetId: message.datasetId,
+      masterKey: String(dataset?.metadata?.masterKey || ''),
+      datasetRevision: Number(dataset?.metadata?.datasetRevision || 0),
+      masterFingerprint: String(dataset?.metadata?.masterFingerprint || ''),
       offset,
       raw,
       rows: sourceRows.slice(offset, offset + limit),
@@ -211,6 +279,9 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
     }
     return response(MASTER_DATASET_EVENT.ROWS_RESULT, message.requestId, {
       datasetId: message.datasetId,
+      masterKey: String(dataset?.metadata?.masterKey || ''),
+      datasetRevision: Number(dataset?.metadata?.datasetRevision || 0),
+      masterFingerprint: String(dataset?.metadata?.masterFingerprint || ''),
       indexes,
       rows,
       rowCount: dataset.rows.length,
@@ -261,6 +332,7 @@ export function createMasterDatasetService({ getXlsx, store, prepareDataset, bui
       case MASTER_DATASET_COMMAND.OPEN_SOURCE: return openSource(message);
       case MASTER_DATASET_COMMAND.SELECT_SHEET: return selectSheet(message);
       case MASTER_DATASET_COMMAND.REMAP_DATASET: return remapDataset(message);
+      case MASTER_DATASET_COMMAND.RETRY_PERSISTENCE: return retryPersistence(message);
       case MASTER_DATASET_COMMAND.SEARCH: return search(message);
       case MASTER_DATASET_COMMAND.RANK_WEIGHT_ISSUES: return rankWeightIssues(message);
       case MASTER_DATASET_COMMAND.PREPARE_WEIGHT_BASIS: return prepareWeightBasis(message);

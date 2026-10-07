@@ -1,5 +1,5 @@
 {
-  "lastId": 1168,
+  "lastId": 1189,
   "entries": [
     {
       "id": 1,
@@ -8176,6 +8176,153 @@
       "file": "agents\\evidence\\WIP-781-SINGLE-COMBINE-OWNERS-20261001\\pr-body.md",
       "context": "PR814 final bounded repair handover; 11 target checks pass, inherited failures explicit",
       "backupFile": "1168_agents_evidence_WIP_781_SINGLE_COMBINE_OWNERS_20261001_pr_body_md.bak"
+    },
+    {
+      "id": 1169,
+      "timestamp": "2026-10-07 02:36:20",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 stale release oracle repair",
+      "backupFile": "1169_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1170,
+      "timestamp": "2026-10-07 02:39:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 add #893 successor-qualified smart-panel release",
+      "backupFile": "1170_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1171,
+      "timestamp": "2026-10-07 02:42:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 switch successor release authority from module to exact import edge",
+      "backupFile": "1171_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1172,
+      "timestamp": "2026-10-07 02:44:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 add #893 path and regex-edge successor releases",
+      "backupFile": "1172_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1173,
+      "timestamp": "2026-10-07 03:49:00",
+      "file": "tests\\xml-cii-master-dataset-coordinator.test.mjs",
+      "context": "B2 #918 dataset compatibility and worker-event decomposition",
+      "backupFile": "1173_tests_xml_cii_master_dataset_coordinator_test_mjs.bak"
+    },
+    {
+      "id": 1174,
+      "timestamp": "2026-10-07 03:49:00",
+      "file": "tests\\xml-cii-master-preview-worker-search.test.mjs",
+      "context": "B2 #918 dataset compatibility and worker-event decomposition",
+      "backupFile": "1174_tests_xml_cii_master_preview_worker_search_test_mjs.bak"
+    },
+    {
+      "id": 1175,
+      "timestamp": "2026-10-07 03:49:00",
+      "file": "tests\\xml-cii-master-worker-integration.test.mjs",
+      "context": "B2 #918 dataset compatibility and worker-event decomposition",
+      "backupFile": "1175_tests_xml_cii_master_worker_integration_test_mjs.bak"
+    },
+    {
+      "id": 1176,
+      "timestamp": "2026-10-07 03:49:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 dataset compatibility and worker-event decomposition",
+      "backupFile": "1176_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1177,
+      "timestamp": "2026-10-07 03:49:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 dataset compatibility and worker-event decomposition",
+      "backupFile": "1177_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1178,
+      "timestamp": "2026-10-07 03:59:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-persistence-retry.js",
+      "context": "B2 #918 restore persistence helper imports after responsibility split",
+      "backupFile": "1178_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_persistence_retry_js.bak"
+    },
+    {
+      "id": 1179,
+      "timestamp": "2026-10-07 03:59:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-persistence-retry.js",
+      "context": "B2 #918 restore persistence helper imports after responsibility split",
+      "backupFile": "1179_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_persistence_retry_js.bak"
+    },
+    {
+      "id": 1180,
+      "timestamp": "2026-10-07 03:59:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 restore persistence helper imports after responsibility split",
+      "backupFile": "1180_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1181,
+      "timestamp": "2026-10-07 03:59:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 restore persistence helper imports after responsibility split",
+      "backupFile": "1181_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1182,
+      "timestamp": "2026-10-07 03:59:00",
+      "file": "tests\\xml-cii-master-worker-integration.test.mjs",
+      "context": "B2 #918 restore persistence helper imports after responsibility split",
+      "backupFile": "1182_tests_xml_cii_master_worker_integration_test_mjs.bak"
+    },
+    {
+      "id": 1183,
+      "timestamp": "2026-10-07 04:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-persistence-retry.js",
+      "context": "B2 #918 U4 successful-import dependency ownership repair",
+      "backupFile": "1183_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_persistence_retry_js.bak"
+    },
+    {
+      "id": 1184,
+      "timestamp": "2026-10-07 04:12:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-persistence-retry.js",
+      "context": "B2 #918 U4 successful-import dependency ownership repair",
+      "backupFile": "1184_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_persistence_retry_js.bak"
+    },
+    {
+      "id": 1185,
+      "timestamp": "2026-10-07 04:12:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 U4 successful-import dependency ownership repair",
+      "backupFile": "1185_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1186,
+      "timestamp": "2026-10-07 04:12:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-master-worker-events.js",
+      "context": "B2 #918 U4 successful-import dependency ownership repair",
+      "backupFile": "1186_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_master_worker_events_js.bak"
+    },
+    {
+      "id": 1187,
+      "timestamp": "2026-10-07 04:12:00",
+      "file": "tests\\xml-cii-master-worker-integration.test.mjs",
+      "context": "B2 #918 U4 successful-import dependency ownership repair",
+      "backupFile": "1187_tests_xml_cii_master_worker_integration_test_mjs.bak"
+    },
+    {
+      "id": 1188,
+      "timestamp": "2026-10-07 04:24:00",
+      "file": "tests\\xml-cii-master-worker-integration.test.mjs",
+      "context": "B2 #918 U4 replace malformed regex guard with exact string assertion",
+      "backupFile": "1188_tests_xml_cii_master_worker_integration_test_mjs.bak"
+    },
+    {
+      "id": 1189,
+      "timestamp": "2026-10-07 04:24:00",
+      "file": "agents\\PR920_workreport.md",
+      "context": "B2 #918 U4 record test-only qualification repair and current recovery state",
+      "backupFile": "1189_agents_PR920_workreport_md.bak"
     }
   ]
 }

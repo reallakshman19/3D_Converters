@@ -1,4 +1,4 @@
-import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261001-weight-output-2';
+import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 import {
   buildRegexSuggestionPreflight,
   classifyRegexExtractionRows,

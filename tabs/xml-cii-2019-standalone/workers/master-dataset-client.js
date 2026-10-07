@@ -1,7 +1,7 @@
-import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20260930-issue781-weight-no-staged-rewrite-1';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT, makeRequestId } from './master-dataset-protocol.js?v=20261006-c05-5-5-persistence-retry-1';
 
 function defaultWorkerFactory() {
-  return new Worker(new URL('./master-dataset-worker.js?v=20261001-weight-output-2', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./master-dataset-worker.js?v=20261007-c05-6-2-consumer-authority-1', import.meta.url), { type: 'module' });
 }
 
 function workerError(message) {
@@ -130,6 +130,11 @@ export function createMasterDatasetClient(options = {}) {
     return request(MASTER_DATASET_COMMAND.REMAP_DATASET, { datasetId, fieldMap: { ...(fieldMap || {}) } });
   }
 
+  function retryPersistence(datasetId) {
+    if (!datasetId) throw new Error('datasetId is required.');
+    return request(MASTER_DATASET_COMMAND.RETRY_PERSISTENCE, { datasetId });
+  }
+
   function search(datasetId, query) {
     return request(MASTER_DATASET_COMMAND.SEARCH, { datasetId, query });
   }
@@ -203,7 +208,7 @@ export function createMasterDatasetClient(options = {}) {
   }
 
   return Object.freeze({
-    openBuffer, openFile, selectSheet, remapDataset, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, getRawRows,
+    openBuffer, openFile, selectSheet, remapDataset, retryPersistence, search, rankWeightIssues, prepareWeightBasis, getRows, getRowsByIndexes, getRawRows,
     releaseSource, releaseDataset, cancelActiveImport, dispose,
   });
 }

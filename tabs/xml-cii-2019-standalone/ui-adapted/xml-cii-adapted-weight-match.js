@@ -88,7 +88,7 @@ function editableRuleTable(title, headers, rowsHtml, helpText) {
 
 function hintPanel(config) {
   ensureValveHintConfig(config);
-  return `<div style="margin:8px 0;white-space:pre-line;font-size:12px;color:#94a3b8;background:rgba(30,41,59,0.5);padding:10px;border-radius:6px;border:1px solid rgba(148,163,184,0.15);">Rows included: RIGID, FLAN*, VALV / VALVE / VLV, INST. Rows excluded: support-only, TEE, ELBO/BEND, REDUCER, OLET, PIPE, GASK. Nodes with a non-empty ConnectionType (e.g. BRAN) are excluded. Valve Hint applies to all eligible nodes (Endpoint restriction removed). Exact candidate length gate is ±${esc(valveHintLengthToleranceMm(config))} mm.</div>`;
+  return `<div style="margin:8px 0;white-space:pre-line;font-size:12px;color:#94a3b8;background:rgba(30,41,59,0.5);padding:10px;border-radius:6px;border:1px solid rgba(148,163,184,0.15);">Rows included: RIGID, FLAN*, VALV / VALVE / VLV, INST. Rows excluded: support-only, TEE, ELBO/BEND, REDUCER, OLET, PIPE, GASK. Nodes with a non-empty ConnectionType (e.g. BRAN) are excluded unless the node is a physical RIGID / Rigid=2 weight owner. Valve Hint applies to all eligible nodes (Endpoint restriction removed). Exact candidate length gate is ±${esc(valveHintLengthToleranceMm(config))} mm.</div>`;
 }
 
 function enhancedHintPanel(config) {
