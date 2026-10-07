@@ -133,7 +133,7 @@ test('dataset-backed smart evidence is transient and upgrades existing scorer au
     && datasetId === 'class-ds'
     && indexes.length === 1
   )));
-  assert.equal(bundle.receipt.masterEvidence.mode, 'MASTER_BACKED');
+  assert.equal(bundle.receipt.masterEvidence.mode, 'BOUNDED_MASTER_EVIDENCE');
   assert.notEqual(bundle.receipt.fingerprint, heuristic.fingerprint);
   assert.equal(bundle.regexTesterResult.matchedRows[0].status, 'MASTER_VALIDATED');
   assert.equal(bundle.regexTesterResult.matchedRows[0].semanticValidation.lineKnown, true);
@@ -180,8 +180,8 @@ test('receipt cache identity separates empty resident evidence from hydrated evi
     profile: state.regexSuggestionProfile,
   });
   assert.equal(heuristic.masterEvidence.mode, 'HEURISTIC_ONLY');
-  assert.equal(bundle.receipt.masterEvidence.mode, 'MASTER_BACKED');
-  assert.equal(hydratedAgain.masterEvidence.mode, 'MASTER_BACKED');
+  assert.equal(bundle.receipt.masterEvidence.mode, 'BOUNDED_MASTER_EVIDENCE');
+  assert.equal(hydratedAgain.masterEvidence.mode, 'BOUNDED_MASTER_EVIDENCE');
   assert.notEqual(heuristic.fingerprint, hydratedAgain.fingerprint);
 });
 
