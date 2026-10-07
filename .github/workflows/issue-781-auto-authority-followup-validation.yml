@@ -25,6 +25,13 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
       - 'tests/xml-cii-issue-781-auto-authority-followup.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js'
+      - 'tests/xml-cii-branch-line-family-suggestion.test.mjs'
+      - 'tests/xml-cii-pr340-review-regressions.test.mjs'
+      - 'tests/xml-cii-branch-line-unique-family-941.test.mjs'
       - 'tests/xml-cii-issue-776-deployment-parity.test.mjs'
       - '.github/workflows/issue-781-auto-authority-followup-validation.yml'
   workflow_dispatch:
@@ -48,6 +55,13 @@ jobs:
         run: node --test tests/xml-cii-issue-781-auto-authority-followup.test.mjs
       - name: Run Regex master-evidence regression
         run: node --test tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+
+      - name: Run Branch to Line authority regressions
+        run: >-
+          node --test
+          tests/xml-cii-branch-line-family-suggestion.test.mjs
+          tests/xml-cii-pr340-review-regressions.test.mjs
+          tests/xml-cii-branch-line-unique-family-941.test.mjs
       - name: Run material authority regressions
         run: |
           node --test tests/xml-cii-material-code-fuzzy-authority.test.mjs
