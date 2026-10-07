@@ -1,5 +1,5 @@
 {
-  "lastId": 1193,
+  "lastId": 1194,
   "entries": [
     {
       "id": 1,
@@ -8351,6 +8351,13 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-resolver-json-trace.js",
       "context": "J01 #922 U3 scoped resolver + spatial grouping",
       "backupFile": "1193_docs_tabs_xml_cii_2019_standalone_xml_cii_resolver_json_trace_js.bak"
+    },
+    {
+      "id": 1194,
+      "timestamp": "2026-10-07 09:28:00",
+      "file": "tests\\xml-cii-issue-829-json-trace-bore-validation.test.mjs",
+      "context": "J01 #922 U3 scoped/all-source resolver parity coverage",
+      "backupFile": "1194_tests_xml_cii_issue_829_json_trace_bore_validation_test_mjs.bak"
     }
   ]
 }
