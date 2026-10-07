@@ -1,5 +1,5 @@
 {
-  "lastId": 1369,
+  "lastId": 1375,
   "entries": [
     {
       "id": 1,
@@ -8750,6 +8750,48 @@
       "file": "tests\\xml-cii-branch-line-shared-authority-944.test.mjs",
       "context": "L4 #944 U4a persisted manual branchLineKeyMap precedence regression",
       "backupFile": "1369_tests_xml_cii_branch_line_shared_authority_944_test_mjs.bak"
+    },
+    {
+      "id": 1370,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-bulk-preview.js",
+      "context": "L4 #944 U4b1 project-match ambiguity/blocked provenance",
+      "backupFile": "1370_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_bulk_preview_js.bak"
+    },
+    {
+      "id": 1371,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-bulk-preview.js",
+      "context": "L4 #944 U4b1 project-match ambiguity/blocked provenance",
+      "backupFile": "1371_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_bulk_preview_js.bak"
+    },
+    {
+      "id": 1372,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "L4 #944 U4b1 Easy UI blocked project-match count",
+      "backupFile": "1372_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 1373,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "L4 #944 U4b1 Easy UI blocked project-match count",
+      "backupFile": "1373_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 1374,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "tests\\xml-cii-mode-a-easy-bulk-preview.test.mjs",
+      "context": "L4 #944 U4b1 project-match backward regression",
+      "backupFile": "1374_tests_xml_cii_mode_a_easy_bulk_preview_test_mjs.bak"
+    },
+    {
+      "id": 1375,
+      "timestamp": "2026-10-07 20:05:00",
+      "file": "tests\\xml-cii-branch-line-shared-authority-944.test.mjs",
+      "context": "L4 #944 U4b1 cross-surface safety provenance regression",
+      "backupFile": "1375_tests_xml_cii_branch_line_shared_authority_944_test_mjs.bak"
     }
   ]
 }

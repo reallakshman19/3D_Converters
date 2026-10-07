@@ -491,7 +491,7 @@ function makeToolbar(panel, result, stateRef) {
     const preview = document.createElement('span');
     preview.dataset.projectMatchPreview = 'true';
     preview.className = 'xml-cii-phase-help';
-    preview.textContent = `${plan.changes.length} safe exact mapping(s) · ${plan.ambiguous.length} ambiguous · ${plan.unmatched.length} unmatched.`;
+    preview.textContent = `${plan.changes.length} safe exact mapping(s) · ${plan.ambiguous.length} ambiguous · ${plan.blocked.length} blocked · ${plan.unmatched.length} unmatched.`;
     toolbar.appendChild(preview);
     if (plan.changes.length) {
       const apply = document.createElement('button');

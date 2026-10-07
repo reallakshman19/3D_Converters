@@ -44,6 +44,7 @@ const matchPlan = buildModeAProjectDataMatchPlan(duplicateBranchRows, sourceKeys
 assert.equal(matchPlan.changes.length, 2);
 assert.deepEqual(matchPlan.changes.map((row) => [row.sourceId, row.lineKey]), [['A', 'LINE-A'], ['B', 'LINE-B']]);
 assert.equal(matchPlan.ambiguous.length, 1);
+assert.deepEqual(matchPlan.blocked, []);
 assert.equal(matchPlan.affectedSourceCount, 2);
 
 console.log('xml-cii Mode A easy bulk Preview tests: PASS');

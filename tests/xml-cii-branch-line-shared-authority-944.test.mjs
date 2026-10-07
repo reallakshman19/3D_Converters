@@ -92,6 +92,22 @@ if (typeof resolveBranchLineRowSuggestion === 'function') {
   assert.equal(blocked.status, 'blocked');
   assert.equal(blocked.reason, 'DESIGNATOR_CHANGE_NOT_AUTHORIZED');
   assert.deepEqual(blocked.candidates, ['P4110001', 'P4110003']);
+
+  const safetyPlan = buildModeAProjectDataMatchPlan(
+    [ambiguousRow, blockedRow],
+    { 'SRC-1': ['P4110001', 'P4110003'] },
+    resolveBranchLineRowSuggestion,
+  );
+  assert.equal(safetyPlan.changes.length, 0);
+  assert.equal(safetyPlan.ambiguous.length, 1);
+  assert.deepEqual(safetyPlan.ambiguous[0].candidates, ambiguous.candidates);
+  assert.equal(safetyPlan.ambiguous[0].method, ambiguous.method);
+  assert.equal(safetyPlan.ambiguous[0].mask, ambiguous.mask);
+  assert.equal(safetyPlan.blocked.length, 1);
+  assert.deepEqual(safetyPlan.blocked[0].candidates, blocked.candidates);
+  assert.equal(safetyPlan.blocked[0].method, blocked.method);
+  assert.equal(safetyPlan.blocked[0].reason, blocked.reason);
+  assert.equal(safetyPlan.blocked[0].mask, blocked.mask);
 }
 
 console.log('test-xml-cii-branch-line-shared-authority-944: PASS');

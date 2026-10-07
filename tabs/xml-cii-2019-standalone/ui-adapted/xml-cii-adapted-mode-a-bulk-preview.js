@@ -68,16 +68,28 @@ export function buildModeAPreviewFillPlan(rows = [], sourceRow = {}, field = '')
   return { rule, value, groupKey, changes, skipped, invalidSourceValue: false, sourceNeedsReview: false };
 }
 export function buildModeAProjectDataMatchPlan(rows = [], sourceLineKeys = {}, resolver) {
-  const changes = [], ambiguous = [], unmatched = [], seen = new Set();
+  const changes = [], ambiguous = [], blocked = [], unmatched = [], seen = new Set();
   for (const row of rows || []) {
     if (!row?.lineMiss) continue;
     const identity = `${row.sourceId}::${row.branchName}`;
     if (seen.has(identity)) continue;
     seen.add(identity);
     const result = typeof resolver === 'function' ? resolver(row, sourceLineKeys?.[row.sourceId] || []) : { status: 'none' };
-    if (result?.status === 'match' && text(result.key)) changes.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, lineKey: text(result.key) });
-    else if (result?.status === 'ambiguous') ambiguous.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, candidates: result.candidates || [] });
-    else unmatched.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName });
+    if (result?.status === 'match' && text(result.key)) {
+      changes.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, lineKey: text(result.key) });
+    } else if (result?.status === 'ambiguous') {
+      ambiguous.push({
+        sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName,
+        candidates: result.candidates || [], method: result.method || '', reason: result.reason || '', mask: result.mask || '',
+      });
+    } else if (result?.status === 'blocked') {
+      blocked.push({
+        sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName,
+        candidates: result.candidates || [], method: result.method || '', reason: result.reason || '', mask: result.mask || '',
+      });
+    } else {
+      unmatched.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName });
+    }
   }
-  return { changes, ambiguous, unmatched, affectedSourceCount: new Set(changes.map((row) => row.sourceId)).size };
+  return { changes, ambiguous, blocked, unmatched, affectedSourceCount: new Set(changes.map((row) => row.sourceId)).size };
 }
