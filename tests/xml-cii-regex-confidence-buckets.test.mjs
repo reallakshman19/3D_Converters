@@ -8,6 +8,10 @@ import {
   resolveRegexBoundedDatasetEvidence,
 } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js';
 import { buildRegexSuggestionPreflight } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
+import {
+  buildRegexSmartEvidenceReceipt,
+  materializeRegexSmartMasterContext,
+} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js';
 
 function config() {
   return {
@@ -170,4 +174,83 @@ test('bounded dataset evidence caps broad worker search results and fetches inde
   assert.equal(result.rows.length, 10);
   assert.equal(fetched.length, 10);
   assert.equal(fetched.includes(499), false, 'broad search must not hydrate all 500 matches');
+});
+
+
+test('dataset-backed smart context uses bounded indexed evidence and keeps full sample metrics', async () => {
+  const branchSamples = [
+    ...Array.from({ length: 3 }, (_, index) => ({ branchName: `/ASIM-1885-PL-${3 + index * 3}"-S8810009-91261M7-0${index + 1}/B1` })),
+    { branchName: '/ASIM-1885-PL-12"-S8810100-HOT-01/B8' },
+    { branchName: '/ASIM-1885-PL-10"-S8810105-HOT-01/B3' },
+    { branchName: '/AREA-DN100-P4110003-93833/B3' },
+  ];
+  const lineByIndex = new Map([
+    [1, { lineKey: 'S8810009' }],
+    [2, { lineKey: 'S8810100' }],
+    [3, { lineKey: 'S8810105' }],
+  ]);
+  const classByIndex = new Map([[10, { pipingClass: '91261', convertedBore: 80 }]]);
+  const searches = [];
+  const search = async (masterKey, _datasetId, query) => {
+    searches.push([masterKey, query]);
+    if (masterKey === 'lineList') {
+      if (query === 'S8810009') return { indexes: [1] };
+      if (query === 'S8810100') return { indexes: [2] };
+      if (query === 'S8810105') return { indexes: [3] };
+      return { indexes: [] };
+    }
+    if (query === '91261M7' || query === '91261') return { indexes: [10] };
+    return { indexes: [] };
+  };
+  const getRowsByIndexes = async (masterKey, _datasetId, indexes) => ({
+    rows: indexes.map((index) => (masterKey === 'lineList' ? lineByIndex.get(index) : classByIndex.get(index))).filter(Boolean),
+  });
+  const state = {
+    regexTesterConfig: config(),
+    regexTesterResult: { branchSamples, matchedRows: [], rejectedRows: branchSamples },
+    masterContext: {
+      datasetRefs: {
+        lineList: { datasetId: 'lines-100k', rowCount: 100000 },
+        pipingClass: { datasetId: 'classes-100k', rowCount: 100000 },
+      },
+      rowCounts: { lineList: 100000, pipingClass: 100000 },
+    },
+  };
+  const hydrated = await materializeRegexSmartMasterContext(state, { search, getRowsByIndexes });
+  assert.equal(hydrated.lineRowCount, 3);
+  assert.equal(hydrated.pipingClassRowCount, 1);
+  assert.equal(hydrated.analysisSampleCount, 5);
+  assert.equal(hydrated.selectedBucketCount, 2);
+  assert.equal(hydrated.boundedEvidence.mode, 'BOUNDED_MASTER_EVIDENCE');
+  assert.equal(hydrated.boundedEvidence.complete, true);
+  assert.ok(searches.length > 0);
+  assert.ok(searches.length < 200, 'bounded evidence must not issue row-count-proportional requests');
+
+  const receipt = buildRegexSmartEvidenceReceipt(state, hydrated.masterContext);
+  assert.equal(receipt.metrics.sampleCount, 6, 'coverage metrics retain the full sample population');
+  assert.equal(receipt.analysisSampleCount, 5, 'classification uses only the top two buckets');
+  assert.equal(receipt.masterEvidence.mode, 'BOUNDED_MASTER_EVIDENCE');
+});
+
+test('incomplete bounded evidence cannot auto-promote master-backed roles', () => {
+  const branchSamples = [
+    { branchName: '/GLRD-1000-6"-P4110001-93833-01/B1' },
+    { branchName: '/GLRD-1000-8"-P4110002-93833-02/B2' },
+  ];
+  const receipt = buildRegexSuggestionPreflight({
+    branchSamples,
+    analysisSamples: branchSamples,
+    extractionConfig: config(),
+    masterContext: {
+      lineRows: [{ lineKey: 'P4110001' }, { lineKey: 'P4110002' }],
+      pipingClassRows: [{ pipingClass: '93833' }],
+      rowCounts: { lineList: 100000, pipingClass: 100000 },
+      regexBoundedEvidence: { mode: 'BOUNDED_MASTER_EVIDENCE', complete: false },
+    },
+    currentResult: { matchedRows: [], rejectedRows: branchSamples },
+  });
+  const lineKey = receipt.suggestions.find((item) => item.role === 'lineKey');
+  assert.equal(lineKey.authorityLevel, 'PARTIAL_MASTER_EVIDENCE');
+  assert.equal(lineKey.safe, false);
+  assert.equal(lineKey.review, true);
 });
