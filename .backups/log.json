@@ -1,5 +1,5 @@
 {
-  "lastId": 1197,
+  "lastId": 1198,
   "entries": [
     {
       "id": 1,
@@ -8379,6 +8379,13 @@
       "file": "tests\\xml-cii-issue-829-json-trace-bore-validation.test.mjs",
       "context": "J01 #922 U4 hierarchy selector + lazy resolver protected regression",
       "backupFile": "1197_tests_xml_cii_issue_829_json_trace_bore_validation_test_mjs.bak"
+    },
+    {
+      "id": 1198,
+      "timestamp": "2026-10-07 09:55:00",
+      "file": "tests\\xml-cii-issue-829-json-trace-bore-validation.test.mjs",
+      "context": "J01 #922 U5 large-file and source/docs qualification",
+      "backupFile": "1198_tests_xml_cii_issue_829_json_trace_bore_validation_test_mjs.bak"
     }
   ]
 }
