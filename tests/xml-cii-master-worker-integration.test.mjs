@@ -23,6 +23,9 @@ test('worker import binding preserves atomic dataset commit and sheet selection'
   assert.match(source, /coordinator\.selectSheet/);
   assert.match(source, /coordinator\.openBuffer/);
   assert.match(source, /xml-cii-adapted-master-persistence-retry\.js/);
+  assert.match(source, /nextPersistenceFailures,[\s\S]*persistenceFailureRecord,/);
+  assert.match(persistence, /export function nextPersistenceFailures/);
+  assert.match(persistence, /export function persistenceFailureRecord/);
   assert.match(persistence, /export async function retryCurrentMasterPersistence/);
   assert.match(persistence, /export function bindRetryPersistenceEvents/);
   assert(lines(source) < 300);
