@@ -35,7 +35,11 @@ test('family resolver never rewrites a B designator into a P family', () => {
     '/GLRD-1000-6"-B4110004-93833-01/B1',
     ['P4110001', 'P4110003'],
   );
-  assert.deepEqual(result, { status: 'none', key: '', candidates: [] });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.key, '');
+  assert.equal(result.method, 'cross-designator-family');
+  assert.equal(result.reason, 'DESIGNATOR_CHANGE_NOT_AUTHORIZED');
+  assert.deepEqual(result.candidates, ['P4110001', 'P4110003']);
 });
 
 test('exact loaded token wins even when neighboring family keys exist', () => {

@@ -90,6 +90,55 @@ function progressiveFamilyResolution(branchName, lineListKeys, options = {}) {
   return { status: 'none', key: '', candidates: [] };
 }
 
+function crossDesignatorFamilyEvidence(branchName, lineListKeys, options = {}) {
+  const loaded = unique(lineListKeys)
+    .map((key) => ({ key, compact: compact(key) }))
+    .filter((row) => row.compact);
+  const tokens = unique(options.tokens?.length ? options.tokens : familyTokens(branchName))
+    .map(compact)
+    .filter((token) => /^[A-Z][A-Z0-9]+$/.test(token));
+
+  for (let wildcardCount = 0; wildcardCount <= 4; wildcardCount += 1) {
+    const candidates = new Map();
+    const evidence = [];
+    for (const token of tokens) {
+      if (token.length <= wildcardCount + 3) continue;
+      const tokenDesignator = token[0];
+      const body = token.slice(1);
+      const prefix = wildcardCount ? body.slice(0, -wildcardCount) : body;
+      const matched = loaded.filter((row) => (
+        row.compact.length === token.length
+        && row.compact[0] !== tokenDesignator
+        && row.compact.slice(1).startsWith(prefix)
+      ));
+      if (!matched.length) continue;
+      const mask = `?${prefix}${'X'.repeat(wildcardCount)}`;
+      evidence.push({
+        token,
+        tokenDesignator,
+        mask,
+        candidateDesignators: unique(matched.map((row) => row.compact[0])),
+        matchedKeys: matched.map((row) => row.key),
+      });
+      for (const row of matched) candidates.set(row.key, row);
+    }
+    if (!evidence.length) continue;
+    const keys = [...candidates.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return {
+      status: 'blocked',
+      key: '',
+      candidates: keys,
+      method: 'cross-designator-family',
+      reason: 'DESIGNATOR_CHANGE_NOT_AUTHORIZED',
+      mask: evidence[0].mask,
+      wildcardCount,
+      token: evidence[0].token,
+      evidence,
+    };
+  }
+  return { status: 'none', key: '', candidates: [] };
+}
+
 export function resolveBranchLineKeySuggestion(branchName, lineListKeys = [], options = {}) {
   const loadedKeys = unique(lineListKeys);
   const exact = loadedKeys
@@ -122,9 +171,13 @@ export function resolveBranchLineKeySuggestion(branchName, lineListKeys = [], op
       method: 'line-hint-family',
     });
     if (hintedFamily.status !== 'none') return hintedFamily;
+    const blockedHint = crossDesignatorFamilyEvidence('', loadedKeys, { tokens: [lineHint] });
+    if (blockedHint.status === 'blocked') return { ...blockedHint, hint: lineHint };
   }
 
-  return progressiveFamilyResolution(branchName, loadedKeys);
+  const family = progressiveFamilyResolution(branchName, loadedKeys);
+  if (family.status !== 'none') return family;
+  return crossDesignatorFamilyEvidence(branchName, loadedKeys);
 }
 
 function unmappedBranches(container) {
