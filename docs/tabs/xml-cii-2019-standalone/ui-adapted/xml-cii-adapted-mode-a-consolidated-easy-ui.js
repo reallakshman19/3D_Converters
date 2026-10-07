@@ -12,7 +12,7 @@ import {
   buildModeAPreviewFillPlan,
   buildModeAProjectDataMatchPlan,
   modeAPreviewFillRule,
-} from './xml-cii-adapted-mode-a-bulk-preview.js';
+} from './xml-cii-adapted-mode-a-bulk-preview.js?v=20261007-branch-line-l4-1';
 import {
   applyModeAProcessReferenceToConfig,
   buildModeAProcessReferencePlan,
