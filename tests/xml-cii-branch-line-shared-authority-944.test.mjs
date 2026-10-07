@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 import {
   resolveBranchLineKeySuggestion,
@@ -148,6 +149,22 @@ if (typeof resolveBranchLineRowSuggestion === 'function') {
   assert.equal(blockedGroupV2.recommended, '');
   assert.equal(blockedGroupV2.branchLineDecisions[0].status, blocked.status);
   assert.equal(blockedGroupV2.branchLineDecisions[0].reason, blocked.reason);
+}
+
+const cacheRoot = new URL('../', import.meta.url);
+const l4CacheEdges = [
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js', 'xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui.js', 'xml-cii-adapted-mode-a-smart-map.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-ui-v2.js', 'xml-cii-adapted-mode-a-smart-map-v2.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui.js', 'xml-cii-adapted-mode-a-bulk-preview.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js', 'xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js', 'xml-cii-adapted-mode-a-smart-map-ui-v2.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', 'xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20261007-branch-line-l4-1'],
+  ['tabs/xml-cii-2019-standalone-tab.js', 'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261007-branch-line-l4-1'],
+];
+for (const [path, expected] of l4CacheEdges) {
+  const source = await readFile(new URL(path, cacheRoot), 'utf8');
+  assert.equal(source.includes(expected), true, `L4 cache edge missing ${expected} in ${path}`);
 }
 
 console.log('test-xml-cii-branch-line-shared-authority-944: PASS');

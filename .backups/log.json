@@ -1,5 +1,5 @@
 {
-  "lastId": 1394,
+  "lastId": 1396,
   "entries": [
     {
       "id": 1,
@@ -8925,6 +8925,20 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
       "context": "L4 #944 U5b1 publish standalone tab→v6 shell cache edge",
       "backupFile": "1394_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1395,
+      "timestamp": "2026-10-07 20:50:00",
+      "file": "tests\\xml-cii-branch-line-shared-authority-944.test.mjs",
+      "context": "L4 #944 U5b2 cache-chain regression",
+      "backupFile": "1395_tests_xml_cii_branch_line_shared_authority_944_test_mjs.bak"
+    },
+    {
+      "id": 1396,
+      "timestamp": "2026-10-07 20:50:00",
+      "file": ".github\\workflows\\issue-781-auto-authority-followup-validation.yml",
+      "context": "L4 #944 U5b2 protected authority regression gate",
+      "backupFile": "1396__github_workflows_issue_781_auto_authority_followup_validation_yml.bak"
     }
   ]
 }

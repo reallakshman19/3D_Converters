@@ -1,0 +1,79 @@
+name: Issue 781 Auto Authority Follow-up Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-suggestion-candidates.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js'
+      - 'converters/xml-cii2019-core/piping-class-material-code-resolver.js'
+      - 'docs/converters/xml-cii2019-core/piping-class-material-code-resolver.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-material-authority.js'
+      - 'converters/xml-cii2019-core/b313-preview-fallback-seed.js'
+      - 'docs/converters/xml-cii2019-core/b313-preview-fallback-seed.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-b313-auto-basis.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
+      - 'tests/xml-cii-issue-781-auto-authority-followup.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-actions.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-line-map-panel.js'
+      - 'tests/xml-cii-branch-line-family-suggestion.test.mjs'
+      - 'tests/xml-cii-pr340-review-regressions.test.mjs'
+      - 'tests/xml-cii-branch-line-unique-family-941.test.mjs'
+      - 'tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs'
+      - 'tests/xml-cii-branch-line-heldout-generalization-943.test.mjs'
+      - 'tests/xml-cii-issue-776-deployment-parity.test.mjs'
+      - '.github/workflows/issue-781-auto-authority-followup-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  auto-authority-followup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run exact Issue 781 follow-up witnesses
+        run: node --test tests/xml-cii-issue-781-auto-authority-followup.test.mjs
+      - name: Run Regex master-evidence regression
+        run: node --test tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+
+      - name: Run Branch to Line authority regressions
+        run: >-
+          node --test
+          tests/xml-cii-branch-line-family-suggestion.test.mjs
+          tests/xml-cii-pr340-review-regressions.test.mjs
+          tests/xml-cii-branch-line-unique-family-941.test.mjs
+          tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs
+          tests/xml-cii-branch-line-heldout-generalization-943.test.mjs
+      - name: Run material authority regressions
+        run: |
+          node --test tests/xml-cii-material-code-fuzzy-authority.test.mjs
+          node --test tests/xml-cii-process-material-authority.test.mjs
+          node --test tests/xml-cii-preview-material-authority-index.test.mjs
+      - name: Run B31.3 Preview regressions
+        run: |
+          node --test tests/xml-cii-b313-preview-wall-update.test.mjs
+          node --test tests/xml-cii-b313-preview-blocker-provenance.test.mjs
+      - name: Verify deployment mirror and cache chain
+        run: node --test tests/xml-cii-issue-776-deployment-parity.test.mjs
