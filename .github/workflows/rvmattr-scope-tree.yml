@@ -8,6 +8,7 @@ on:
       - 'tabs/model-converters/index.js'
       - 'tabs/model-converters/rvmattr-scope-tree-*.js'
       - 'tests/model-converters/test-rvmattr-scope-tree.mjs'
+      - 'tests/model-converters/test-rvmattr-scope-reachability-937.mjs'
       - '.github/workflows/rvmattr-scope-tree.yml'
   workflow_dispatch:
 
@@ -35,3 +36,4 @@ jobs:
           node --check tabs/model-converters/index.js
           node --check tabs/model-converters-tab.js
           node tests/model-converters/test-rvmattr-scope-tree.mjs
+          node tests/model-converters/test-rvmattr-scope-reachability-937.mjs

@@ -1,5 +1,5 @@
 {
-  "lastId": 1256,
+  "lastId": 1257,
   "entries": [
     {
       "id": 1,
@@ -8729,6 +8729,13 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "S2 #937 U5a cache and production-binding assertions",
       "backupFile": "1256_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1257,
+      "timestamp": "2026-10-07 11:58:00",
+      "file": ".github\\workflows\\rvmattr-scope-tree.yml",
+      "context": "S2 #937 U5b protected 810-branch reachability gate",
+      "backupFile": "1257_github_workflows_rvmattr_scope_tree_yml.bak"
     }
   ]
 }
