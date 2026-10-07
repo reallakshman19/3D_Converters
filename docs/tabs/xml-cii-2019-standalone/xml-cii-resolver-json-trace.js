@@ -8,6 +8,11 @@ import {
   decorateJsonTraceLedger,
   normalizeJsonTraceCaptureFields,
 } from './xml-cii-json-trace-fields.js';
+import {
+  ALL_SCOPE_ID,
+  buildJsonHierarchyScopeIndex,
+  materializeJsonHierarchyScope,
+} from './xml-cii-json-hierarchy-scope.js';
 
 export function createDefaultResolverJsonTraceConfig() {
   return {
@@ -193,6 +198,59 @@ function factFromLedgerRecord(record, node, jsonConfig) {
   };
 }
 
+function scopedStagedJsonInput(input = {}) {
+  const requestedScopeId = text(input.jsonTraceScopeId);
+  if (!requestedScopeId) {
+    return {
+      stagedInput: input.stagedJsonText,
+      hierarchyScope: { requestedScopeId: '', selectedScopeId: ALL_SCOPE_ID, applied: false },
+    };
+  }
+  const index = input.jsonTraceScopeIndex?.schema === 'xml-cii-json-hierarchy-scope/v1'
+    ? input.jsonTraceScopeIndex
+    : buildJsonHierarchyScopeIndex(input.stagedJsonText);
+  const selected = materializeJsonHierarchyScope(
+    input.stagedJsonText,
+    index,
+    requestedScopeId,
+  );
+  return {
+    stagedInput: selected.value,
+    hierarchyScope: {
+      requestedScopeId,
+      selectedScopeId: selected.scopeId,
+      applied: selected.scopeId !== ALL_SCOPE_ID,
+      indexable: index.indexable === true,
+      strategy: index.strategy || '',
+      scopeCount: Array.isArray(index.scopes) ? index.scopes.length : 0,
+      sourceItemCount: Number(index.itemCount || 0),
+      selectedItemCount: Number(selected.itemCount || 0),
+    },
+  };
+}
+
+function stripRawMember(member = {}) {
+  const { raw, ...rest } = safeObject(member);
+  return rest;
+}
+
+function stripRawTraceLedger(ledgerResult = {}) {
+  const groups = (ledgerResult.groups || []).map((group) => ({
+    ...group,
+    entries: (group.entries || []).map(stripRawMember),
+  }));
+  const records = (ledgerResult.records || []).map((record) => ({
+    ...record,
+    positionMembers: (record.positionMembers || []).map(stripRawMember),
+  }));
+  return {
+    ...ledgerResult,
+    groups,
+    records,
+    ledger: Array.isArray(ledgerResult.ledger) ? records : ledgerResult.ledger,
+  };
+}
+
 function positionIndexFromLedger(ledgerResult) {
   const entries = [];
   const byCoordKey = new Map();
@@ -212,7 +270,6 @@ function positionIndexFromLedger(ledgerResult) {
         branchName: entry.branchName || '',
         bore: entry.bore || '',
         _path: entry.path || '',
-        raw: entry.raw,
       };
       entries.push(indexed);
       if (entry.jsonNodeNo) {
@@ -252,8 +309,9 @@ export function runStandaloneResolverJsonTrace(input = {}) {
     jsonTrace: { ...safeObject(supportConfig.jsonTrace), ...jsonConfig },
     dtxrPositionOffset: jsonConfig.dtxrPositionOffset,
   };
-  const rawLedgerResult = buildStandaloneDtxrResolutionLedger(sourceText, input.stagedJsonText, ledgerConfig);
-  const ledgerResult = decorateJsonTraceLedger(rawLedgerResult, jsonConfig);
+  const scoped = scopedStagedJsonInput(input);
+  const rawLedgerResult = buildStandaloneDtxrResolutionLedger(sourceText, scoped.stagedInput, ledgerConfig);
+  const ledgerResult = stripRawTraceLedger(decorateJsonTraceLedger(rawLedgerResult, jsonConfig));
   const indexes = buildStandaloneXmlResolverIndex(sourceText);
   const nodeByIndex = new Map(indexes.nodes.map((node) => [Number(node.xmlIndex), node]));
   const resolvedFacts = ledgerResult.records
@@ -265,6 +323,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
 
   const diagnostics = [
     { type: 'resolver-json-trace-source-kind', sourceKind },
+    { type: 'resolver-json-trace-hierarchy-scope', ...scoped.hierarchyScope },
     { type: 'resolver-json-trace-index-stats', ...indexes.indexStats },
     { type: 'resolver-json-trace-position-index', count: positionIndex.count, groups: ledgerResult.groups.length },
     { type: 'resolver-json-trace-capture-fields', rows: jsonConfig.captureFields.filter((field) => field.enabled).length },
@@ -276,6 +335,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
   return {
     ...indexes,
     jsonConfig,
+    hierarchyScope: scoped.hierarchyScope,
     positionIndex,
     resolutionLedger: ledgerResult.records,
     traceResolutionLedger: ledgerResult,
