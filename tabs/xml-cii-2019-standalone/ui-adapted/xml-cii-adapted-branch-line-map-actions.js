@@ -327,7 +327,10 @@ function bindAutoSuggest(container, lineListKeys) {
       const input = tr.querySelector('.bulk-line-input');
       if (!input || input.value.trim()) return;
       const lineHint = tr.getAttribute('data-line-hint') || '';
-      const result = resolveBranchLineKeySuggestion(tr.getAttribute('data-branch') || '', lineListKeys, { lineHint });
+      const result = resolveBranchLineRowSuggestion({
+        branchName: tr.getAttribute('data-branch') || '',
+        lineKey: lineHint,
+      }, lineListKeys);
       if (result.status === 'match') {
         input.value = result.key;
         const familyMethod = result.method === 'progressive-family-mask' || result.method === 'line-hint-family';
