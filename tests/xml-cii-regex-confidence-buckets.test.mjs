@@ -3,6 +3,10 @@ import test from 'node:test';
 
 import { buildRegexSampleBuckets } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-sample-buckets.js';
 import { selectRegexAnalysisBuckets } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-analysis-buckets.js';
+import {
+  buildRegexBoundedEvidencePlan,
+  resolveRegexBoundedDatasetEvidence,
+} from '../tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js';
 import { buildRegexSuggestionPreflight } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 
 function config() {
@@ -112,4 +116,58 @@ test('analysis policy uses one bucket when the structural population has one fam
   assert.equal(selection.structuralBucketCount, 1);
   assert.equal(selection.selectedBucketCount, 1);
   assert.equal(selection.selectedSampleCount, 2);
+});
+
+
+test('bounded evidence plan derives queries only from the selected top buckets', () => {
+  const samples = [
+    ...Array.from({ length: 3 }, (_, index) => ({ branchName: `/ASIM-1885-PL-${3 + index * 3}"-S8810009-91261M7-0${index + 1}/B1` })),
+    { branchName: '/ASIM-1885-PL-12"-S8810100-HOT-01/B8' },
+    { branchName: '/ASIM-1885-PL-10"-S8810105-HOT-01/B3' },
+    { branchName: '/AREA-DN100-P4110003-93833/B3' },
+  ];
+  const plan = buildRegexBoundedEvidencePlan({
+    branchSamples: samples,
+    extractionConfig: config(),
+    profile: { formatPolicy: { maximumLineKeyTokens: 3 }, normalization: { classSuffixPattern: '(?:M[0-9A-Z]+)$' } },
+  });
+  assert.equal(plan.analysis.selectedBucketCount, 2);
+  assert.equal(plan.analysis.selectedSampleCount, 5);
+  assert.ok(plan.lineListQueries.includes('S8810009'));
+  assert.ok(plan.lineListQueries.includes('S8810100'));
+  assert.equal(plan.lineListQueries.some((value) => value.includes('P4110003')), false);
+  assert.ok(plan.pipingClassQueries.includes('91261M7'));
+  assert.ok(plan.pipingClassQueries.includes('91261'));
+  assert.equal(plan.pipingClassQueries.includes('93833'), false);
+});
+
+test('bounded dataset evidence caps broad worker search results and fetches indexes only', async () => {
+  const searches = [];
+  const fetched = [];
+  const search = async (_masterKey, _datasetId, query) => {
+    searches.push(query);
+    if (query === 'A10000') return { indexes: Array.from({ length: 500 }, (_, index) => index) };
+    return { indexes: [800, 801] };
+  };
+  const getRowsByIndexes = async (_masterKey, _datasetId, indexes) => {
+    fetched.push(...indexes);
+    return { rows: indexes.map((index) => ({ index })) };
+  };
+  const result = await resolveRegexBoundedDatasetEvidence({
+    masterKey: 'lineList',
+    datasetRef: { datasetId: 'line-dataset', rowCount: 100000 },
+    queries: ['A10000', 'B10000'],
+    search,
+    getRowsByIndexes,
+    maxIndexesPerQuery: 8,
+    maxTotalIndexes: 20,
+  });
+  assert.deepEqual(searches, ['A10000', 'B10000']);
+  assert.equal(result.queryCount, 2);
+  assert.equal(result.truncatedQueryCount, 1);
+  assert.equal(result.totalIndexOverflow, false);
+  assert.equal(result.rowIndexCount, 10);
+  assert.equal(result.rows.length, 10);
+  assert.equal(fetched.length, 10);
+  assert.equal(fetched.includes(499), false, 'broad search must not hydrate all 500 matches');
 });
