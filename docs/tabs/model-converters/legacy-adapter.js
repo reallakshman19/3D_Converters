@@ -5059,6 +5059,7 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:24px;';
     const card = document.createElement('div');
+    card.__rvmScopeSelectedIds = selected;
     card.style.cssText = 'width:min(860px,96vw);max-height:88vh;background:#151a22;color:#e8eef7;border:1px solid #3b4658;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;';
     card.innerHTML = `
       <div style="padding:14px 18px;border-bottom:1px solid #303848;">

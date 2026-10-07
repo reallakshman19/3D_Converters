@@ -7,7 +7,7 @@ import {
   countRvmAttributeScopeTree,
   rvmScopeExpansionIdsForPattern,
 } from './rvmattr-scope-tree-model.js?v=20261007-rvm-reachability-2';
-const VERSION = '20261007-rvm-reachability-2';
+const VERSION = '20261007-rvm-selection-custody-1';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -45,14 +45,18 @@ function nodeMatches(node, pattern) {
   return matchesScopeFields(fields, pattern);
 }
 function selectionStates(treeElement) {
-  const result = new Map();
+  const result = new Set();
   for (const input of treeElement.querySelectorAll('input[data-scope-node]')) {
-    result.set(input.getAttribute('data-scope-node'), Boolean(input.checked));
+    if (input.checked) result.add(input.getAttribute('data-scope-node'));
   }
   return result;
 }
 function mergeSelectionStates(cache, treeElement) {
-  for (const [id, checked] of selectionStates(treeElement)) cache.set(id, checked);
+  for (const input of treeElement.querySelectorAll('input[data-scope-node]')) {
+    const id = input.getAttribute('data-scope-node');
+    if (input.checked) cache.add(id);
+    else cache.delete(id);
+  }
 }
 function selectableIds(node, values = []) {
   if (node.selectable && node.selectId) values.push(node.selectId);
@@ -73,7 +77,7 @@ function modelIndex(tree) {
 function selectedWithinMap(tree, selection) {
   const result = new Map();
   const visit = (node) => {
-    let selected = node.selectable && selection.get(node.selectId) === true;
+    let selected = node.selectable && selection.has(node.selectId);
     for (const child of node.children || []) {
       if (visit(child)) selected = true;
     }
@@ -97,7 +101,7 @@ function checkboxHtml(node, checked, indeterminate) {
 }
 function nodeHtml(node, depth, context) {
   const expanded = context.expandedIds.has(node.id);
-  const checked = node.selectable && context.selection.get(node.selectId) === true;
+  const checked = node.selectable && context.selection.has(node.selectId);
   const indeterminate = node.selectable && !checked
     && context.selectedWithin.get(node.id) === true;
   const matched = nodeMatches(node, context.pattern);
@@ -120,7 +124,7 @@ function selectedBranchCount(tree, selection) {
   let count = 0;
   const visit = (nodes) => {
     for (const node of nodes || []) {
-      if (node.kind === 'BRANCH' && selection.get(node.selectId) === true) count += 1;
+      if (node.kind === 'BRANCH' && selection.has(node.selectId)) count += 1;
       visit(node.children);
     }
   };
@@ -152,7 +156,10 @@ function updateSelectionCache(context, event) {
   const id = input.getAttribute('data-scope-node');
   const node = context.index.get(id);
   const ids = node ? selectableIds(node, []) : [id];
-  for (const selectableId of ids) context.selection.set(selectableId, input.checked);
+  for (const selectableId of ids) {
+    if (input.checked) context.selection.add(selectableId);
+    else context.selection.delete(selectableId);
+  }
 }
 function toggleNode(context, event) {
   const button = event.target.closest?.('[data-rvm-tree-toggle]');
@@ -233,7 +240,9 @@ async function enhanceScopeCard(card) {
       card, treeElement, tree,
       index: modelIndex(tree),
       counts: countRvmAttributeScopeTree(tree),
-      selection: selectionStates(treeElement),
+      selection: card.__rvmScopeSelectedIds instanceof Set
+        ? card.__rvmScopeSelectedIds
+        : selectionStates(treeElement),
       expanded,
       wildcardInput: card.querySelector('[data-scope-wildcard]'),
       statsElement: card.querySelector('[data-scope-stats]'),
