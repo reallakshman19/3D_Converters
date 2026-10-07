@@ -2,7 +2,7 @@ import {
   updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, findSmartMatchingMapping,
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { appliedFieldMap, ensureMasterRuntime } from './xml-cii-adapted-master-runtime.js';
-import { masterConfigForState, masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
+import { masterConfigForState } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 import { perfCount, requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
 import { commitDatasetReadyMaster } from './xml-cii-adapted-master-dataset-commit.js?v=20261001-weight-output-2';
 import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
@@ -12,7 +12,7 @@ import {
   nextPersistenceFailures,
   persistenceFailureRecord,
   retryCurrentMasterPersistence,
-} from './xml-cii-adapted-master-persistence-retry.js?v=20261007-integration-b2-dataset-compat-1';
+} from './xml-cii-adapted-master-persistence-retry.js?v=20261007-integration-b2-dataset-compat-2';
 
 export { masterImportPersistenceStatus, retryCurrentMasterPersistence };
 import { MASTER_DATASET_EVENT } from '../workers/master-dataset-protocol.js';
