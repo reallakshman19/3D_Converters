@@ -2,6 +2,7 @@ import { decodeTextUtf8, encodeTextUtf8, baseNameWithoutExtension } from '../cor
 import { tryNativeRvmTextMode } from './rvm-to-rev.js';
 import { _buildXmlFromStagedJsonText } from './stagedjson-to-xml.js';
 import { parseRmssAttributes, parseRmssStructuralMembers } from '../../../converters/rmss-attribute-parser.js';
+import { matchesScopeFields, normalizeScopePattern } from '../../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 import { _looksLikeStagedHierarchy, _filterStagedHierarchyByScope, _buildPsiXmlFromRmssHierarchy } from './stagedjson-xml-helpers.js';
 import { resolveXmlCiiSupportKind, buildStagedSupportIndex, xmlCiiTypeEntriesFromSupportKind, xmlCiiTypeEntryFromExistingRestraint, applyXmlRestraints } from '../../../converters/xml-cii2019-core/support-mapping.js';
 
@@ -185,7 +186,7 @@ function buildStpTextFromRmssHierarchy(hierarchy, outputName) {
 }
 
 function normalizeRvmScopePattern(pattern) {
-  return toText(pattern).trim();
+  return normalizeScopePattern(pattern);
 }
 
 function normalizeRvmScope(scope) {
@@ -200,24 +201,15 @@ function normalizeRvmScope(scope) {
   return { wildcard, selectedIds, enabled: !!wildcard || selectedIds.length > 0 };
 }
 
-function rvmScopeRegex(pattern) {
-  const normalized = normalizeRvmScopePattern(pattern);
-  if (!normalized) return null;
-  const escaped = normalized
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*');
-  const source = normalized.includes('*') ? `^${escaped}$` : escaped;
-  return new RegExp(source, 'i');
-}
-
 function filterStpMembersByScope(members, rawScope) {
   const scope = normalizeRvmScope(rawScope);
   const source = Array.isArray(members) ? members : [];
   if (!scope.enabled) return source;
   if (!scope.wildcard) return [];
-  const regex = rvmScopeRegex(scope.wildcard);
-  if (!regex) return source;
-  return source.filter((member) => regex.test([member?.label, member?.kind].map((part) => toText(part)).join(' ')));
+  return source.filter((member) => matchesScopeFields(
+    [member?.label, member?.kind],
+    scope.wildcard,
+  ));
 }
 
 function rvmScopeLogLine(scopeStats) {

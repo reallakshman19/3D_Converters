@@ -1,5 +1,5 @@
 {
-  "lastId": 1198,
+  "lastId": 1208,
   "entries": [
     {
       "id": 1,
@@ -8337,6 +8337,76 @@
       "file": "docs\\converters\\rvm-scope-pattern.js",
       "context": "R01 #931 U2 shared scope normalization + glob compiler",
       "backupFile": "1198_docs_converters_rvm_scope_pattern_js.bak"
+    },
+    {
+      "id": 1199,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "tabs\\model-converters\\converters\\stagedjson-xml-helpers.js",
+      "context": "R01 #931 U4 shared staged hierarchy matcher",
+      "backupFile": "1199_tabs_model_converters_converters_stagedjson_xml_helpers_js.bak"
+    },
+    {
+      "id": 1200,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "docs\\tabs\\model-converters\\converters\\stagedjson-xml-helpers.js",
+      "context": "R01 #931 U4 shared staged hierarchy matcher",
+      "backupFile": "1200_docs_tabs_model_converters_converters_stagedjson_xml_helpers_js.bak"
+    },
+    {
+      "id": 1201,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "tabs\\model-converters\\converters\\rvmattr-to-xml.js",
+      "context": "R01 #931 U4 shared ATT/STP matcher",
+      "backupFile": "1201_tabs_model_converters_converters_rvmattr_to_xml_js.bak"
+    },
+    {
+      "id": 1202,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "docs\\tabs\\model-converters\\converters\\rvmattr-to-xml.js",
+      "context": "R01 #931 U4 shared ATT/STP matcher",
+      "backupFile": "1202_docs_tabs_model_converters_converters_rvmattr_to_xml_js.bak"
+    },
+    {
+      "id": 1203,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "tabs\\model-converters\\legacy-adapter.js",
+      "context": "R01 #931 U4 popup/conversion matcher migration",
+      "backupFile": "1203_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1204,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "docs\\tabs\\model-converters\\legacy-adapter.js",
+      "context": "R01 #931 U4 popup/conversion matcher migration",
+      "backupFile": "1204_docs_tabs_model_converters_legacy_adapter_js.bak"
+    },
+    {
+      "id": 1205,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "R01 #931 U4 atomic tree scope fields",
+      "backupFile": "1205_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
+    },
+    {
+      "id": 1206,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-model.js",
+      "context": "R01 #931 U4 atomic tree scope fields",
+      "backupFile": "1206_docs_tabs_model_converters_rvmattr_scope_tree_model_js.bak"
+    },
+    {
+      "id": 1207,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "R01 #931 U4 addon shared matcher migration",
+      "backupFile": "1207_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
+    },
+    {
+      "id": 1208,
+      "timestamp": "2026-10-07 10:31:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-tree-addon.js",
+      "context": "R01 #931 U4 addon shared matcher migration",
+      "backupFile": "1208_docs_tabs_model_converters_rvmattr_scope_tree_addon_js.bak"
     }
   ]
 }

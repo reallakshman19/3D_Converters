@@ -14,7 +14,7 @@ import {
   validateConverterWorkerResponse,
 } from '../../converters/worker-contract.js';
 import { parseRmssAttributes, parseRmssStructuralMembers } from '../../converters/rmss-attribute-parser.js';
-import { rvmScopeRegex } from '../../converters/rvm-scope-pattern.js';
+import { matchesRvmScope, matchesScopeFields, normalizeScopePattern, rvmScopeFields, rvmScopeRegex } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 import { parseStpSupportMembers } from '../../parser/stp-support-parser.js';
 import { getAllRules, resolveKindFromAttrs, renderSupportMapperPanel } from '../../rvm-viewer/RvmSupportMapper.js?v=20260518-support-mapper-11';
 import { parseXmlCiiEnrichmentConfig } from '../../converters/xml-cii2019-core/config.js';
@@ -4891,7 +4891,7 @@ function _buildXmlFromStagedJsonText(stagedJsonText, inputName, options) {
 }
 
 function _normalizeRvmScopePattern(pattern) {
-  return _toText(pattern).trim();
+  return normalizeScopePattern(pattern);
 }
 
 function _normalizeRvmScope(scope) {
@@ -4907,13 +4907,7 @@ function _normalizeRvmScope(scope) {
 }
 
 function _rvmScopeRegex(pattern) {
-  const normalized = _normalizeRvmScopePattern(pattern);
-  if (!normalized) return null;
-  const escaped = normalized
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*');
-  const source = normalized.includes('*') ? `^${escaped}$` : escaped;
-  return new RegExp(source, 'i');
+  return rvmScopeRegex(pattern);
 }
 
 function _rvmBranchKey(branch) {
@@ -4922,32 +4916,11 @@ function _rvmBranchKey(branch) {
 }
 
 function _rvmScopeText(value) {
-  if (!value || typeof value !== 'object') return _toText(value);
-  const attrs = value.attributes || {};
-  const parts = [
-    value.label,
-    value.name,
-    value.id,
-    value.type,
-    value.kind,
-    attrs.NAME,
-    attrs.OWNER,
-    attrs.OWNER_SITE,
-    attrs.SITE,
-    attrs.ZONE,
-    attrs.PIPE,
-    attrs.BRANCH,
-    attrs.HREF,
-    attrs.TREF,
-    attrs.CREF,
-  ];
-  return parts.map((part) => _toText(part)).filter(Boolean).join(' ');
+  return rvmScopeFields(value).join(' ');
 }
 
 function _matchesRvmScope(value, pattern) {
-  const regex = _rvmScopeRegex(pattern);
-  if (!regex) return true;
-  return regex.test(_rvmScopeText(value));
+  return matchesRvmScope(value, pattern);
 }
 
 function _branchScopeIds(branch) {
@@ -5009,9 +4982,10 @@ function _filterStpMembersByScope(members, rawScope) {
   const source = Array.isArray(members) ? members : [];
   if (!scope.enabled) return source;
   if (!scope.wildcard) return [];
-  const regex = _rvmScopeRegex(scope.wildcard);
-  if (!regex) return source;
-  return source.filter((member) => regex.test([member?.label, member?.kind].map((part) => _toText(part)).join(' ')));
+  return source.filter((member) => matchesScopeFields(
+    [member?.label, member?.kind],
+    scope.wildcard,
+  ));
 }
 
 function _rvmScopeLogLine(scopeStats) {
@@ -5124,17 +5098,20 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
       for (const child of node.children || []) collectIds(child, out);
       return out;
     };
-    const nodeMatches = (node, regex) => !regex || regex.test([node.label, node.kind, node.searchable].join(' '));
-    const hasVisible = (node, regex) => nodeMatches(node, regex) || (node.children || []).some((child) => hasVisible(child, regex));
+    const nodeMatches = (node, pattern) => !pattern
+      || (node.branch
+        ? matchesRvmScope(node.branch, pattern)
+        : matchesScopeFields([node.label, node.kind, node.searchable], pattern));
+    const hasVisible = (node, pattern) => nodeMatches(node, pattern)
+      || (node.children || []).some((child) => hasVisible(child, pattern));
 
     const render = () => {
       const wildcard = _normalizeRvmScopePattern(wildcardInput.value);
-      const regex = _rvmScopeRegex(wildcard);
       let visibleBranches = 0;
       let selectedBranches = new Set();
       const selectedIds = new Set(selected);
       const renderNode = (node, depth = 0) => {
-        if (!hasVisible(node, regex)) return '';
+        if (!hasVisible(node, wildcard)) return '';
         if (node.kind === 'BRANCH') visibleBranches += 1;
         const childHtml = (node.children || []).map((child) => renderNode(child, depth + 1)).filter(Boolean).join('');
         const nodeIds = collectIds(node);
@@ -5143,7 +5120,7 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
         if (childSelected) for (const key of node.branchKeys || []) selectedBranches.add(key);
         return `
           <li style="list-style:none;margin:2px 0 2px ${depth ? 14 : 0}px;">
-            <label style="display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;${nodeMatches(node, regex) && wildcard ? 'background:rgba(75,137,220,.16);' : ''}">
+            <label style="display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;${nodeMatches(node, wildcard) && wildcard ? 'background:rgba(75,137,220,.16);' : ''}">
               <input type="checkbox" data-scope-node="${_escAttr(node.id)}" ${checked ? 'checked' : ''} data-indeterminate="${!checked && childSelected ? 'true' : 'false'}">
               <span style="color:#7fb4ff;font-size:11px;min-width:48px;">${_esc(node.kind)}</span>
               <span>${_esc(node.label)}</span>
@@ -5171,8 +5148,8 @@ async function _openRvmAttributeScopePopup(inputName, hierarchy, initialScope = 
     });
     wildcardInput.addEventListener('input', render);
     card.querySelector('[data-scope-select-visible]').addEventListener('click', () => {
-      const regex = _rvmScopeRegex(wildcardInput.value);
-      walk(tree, (node) => { if (node.kind === 'BRANCH' && hasVisible(node, regex)) selected.add(node.id); });
+      const wildcard = _normalizeRvmScopePattern(wildcardInput.value);
+      walk(tree, (node) => { if (node.kind === 'BRANCH' && hasVisible(node, wildcard)) selected.add(node.id); });
       render();
     });
     card.querySelector('[data-scope-clear]').addEventListener('click', () => {

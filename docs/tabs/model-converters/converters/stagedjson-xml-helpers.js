@@ -1,4 +1,5 @@
 import { enrichHierarchyWithMapperKinds } from '../../../converters/xml-cii2019-core/support-mapping.js';
+import { matchesRvmScope, normalizeScopePattern, rvmScopeFields, rvmScopeRegex } from '../../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 import { baseNameWithoutExtension } from '../core/output-utils.js';
 
 function _toText(val) {
@@ -362,7 +363,7 @@ export function _looksLikeStagedHierarchy(payload) {
 }
 
 export function _normalizeRvmScopePattern(pattern) {
-  return _toText(pattern).trim();
+  return normalizeScopePattern(pattern);
 }
 
 export function _normalizeRvmScope(scope) {
@@ -378,13 +379,7 @@ export function _normalizeRvmScope(scope) {
 }
 
 export function _rvmScopeRegex(pattern) {
-  const normalized = _normalizeRvmScopePattern(pattern);
-  if (!normalized) return null;
-  const escaped = normalized
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*');
-  const source = normalized.includes('*') ? `^${escaped}$` : escaped;
-  return new RegExp(source, 'i');
+  return rvmScopeRegex(pattern);
 }
 
 export function _rvmBranchKey(branch) {
@@ -393,32 +388,11 @@ export function _rvmBranchKey(branch) {
 }
 
 export function _rvmScopeText(value) {
-  if (!value || typeof value !== 'object') return _toText(value);
-  const attrs = value.attributes || {};
-  const parts = [
-    value.label,
-    value.name,
-    value.id,
-    value.type,
-    value.kind,
-    attrs.NAME,
-    attrs.OWNER,
-    attrs.OWNER_SITE,
-    attrs.SITE,
-    attrs.ZONE,
-    attrs.PIPE,
-    attrs.BRANCH,
-    attrs.HREF,
-    attrs.TREF,
-    attrs.CREF,
-  ];
-  return parts.map((part) => _toText(part)).filter(Boolean).join(' ');
+  return rvmScopeFields(value).join(' ');
 }
 
 export function _matchesRvmScope(value, pattern) {
-  const regex = _rvmScopeRegex(pattern);
-  if (!regex) return true;
-  return regex.test(_rvmScopeText(value));
+  return matchesRvmScope(value, pattern);
 }
 
 export function _branchScopeIds(branch) {

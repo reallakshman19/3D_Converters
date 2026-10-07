@@ -1,10 +1,11 @@
 import { state } from '../../core/state.js';
 import { parseRmssAttributes } from '../../converters/rmss-attribute-parser.js';
+import { matchesScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
 import {
   buildRvmAttributeScopeTree,
   countRvmAttributeScopeTree,
-} from './rvmattr-scope-tree-model.js?v=20260802-rvm-full-scope-tree-1';
-const VERSION = '20260802-rvm-full-scope-tree-1';
+} from './rvmattr-scope-tree-model.js?v=20261007-rvm-scope-matcher-1';
+const VERSION = '20261007-rvm-scope-matcher-1';
 let installed = false;
 let latestAttributeFile = null;
 function clean(value) {
@@ -34,14 +35,12 @@ function scanAttributeInputs(root = document) {
   }
   return latestAttributeFile;
 }
-function wildcardRegex(pattern) {
-  const text = clean(pattern);
-  if (!text) return null;
-  const escaped = text.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-  return new RegExp(text.includes('*') ? `^${escaped}$` : escaped, 'i');
-}
-function nodeMatches(node, regex) {
-  return Boolean(regex && regex.test(`${node.label} ${node.kind} ${node.searchable}`));
+function nodeMatches(node, pattern) {
+  if (!clean(pattern)) return false;
+  const fields = node.scopeFields?.length
+    ? node.scopeFields
+    : [node.label, node.kind, node.searchable];
+  return matchesScopeFields(fields, pattern);
 }
 function selectionStates(treeElement) {
   const result = new Map();
@@ -99,7 +98,7 @@ function nodeHtml(node, depth, context) {
   const checked = node.selectable && context.selection.get(node.selectId) === true;
   const indeterminate = node.selectable && !checked
     && context.selectedWithin.get(node.id) === true;
-  const matched = nodeMatches(node, context.regex);
+  const matched = nodeMatches(node, context.pattern);
   const children = (node.children || []).map((child) => nodeHtml(child, depth + 1, context)).join('');
   const count = node.branchKeys?.length ? ` (${node.branchKeys.length})` : '';
   return `<li data-rvm-tree-node="${escapeAttribute(node.id)}" style="list-style:none;margin:2px 0 2px ${depth ? 14 : 0}px;">
@@ -125,10 +124,10 @@ function selectedBranchCount(tree, selection) {
   return count;
 }
 function renderFullTree(context) {
-  const regex = wildcardRegex(context.wildcardInput?.value);
+  const pattern = context.wildcardInput?.value || '';
   const selectedWithin = selectedWithinMap(context.tree, context.selection);
   const html = context.tree.map((node) => nodeHtml(node, 0, {
-    expanded: context.expanded, selection: context.selection, selectedWithin, regex,
+    expanded: context.expanded, selection: context.selection, selectedWithin, pattern,
   })).join('');
   context.treeElement.innerHTML = `<ul data-rvm-full-tree-root="${VERSION}" style="padding-left:0;margin:0;">${html}</ul>`;
   for (const input of context.treeElement.querySelectorAll('input[data-indeterminate="true"]')) {

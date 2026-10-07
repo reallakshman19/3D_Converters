@@ -1,3 +1,5 @@
+import { rvmScopeFields } from '../../converters/rvm-scope-pattern.js?v=20261007-rvm-scope-matcher-1';
+
 function clean(value) {
   return String(value ?? '').trim();
 }
@@ -44,7 +46,7 @@ function searchableText(item) {
     .map(clean).filter(Boolean).join(' ');
 }
 
-function makeNode(id, label, kind, selectable = false, searchable = '') {
+function makeNode(id, label, kind, selectable = false, searchable = '', scopeFields = []) {
   return {
     id,
     label,
@@ -52,16 +54,17 @@ function makeNode(id, label, kind, selectable = false, searchable = '') {
     selectable,
     selectId: selectable ? id : null,
     searchable: searchable || label,
+    scopeFields: [...scopeFields],
     branchKeys: new Set(),
     children: [],
     sortChildren: kind === 'SITE' || kind === 'OWNER',
   };
 }
 
-function ensureNode(nodeMap, roots, id, label, kind, parent, searchable) {
+function ensureNode(nodeMap, roots, id, label, kind, parent, searchable, scopeFields = []) {
   let node = nodeMap.get(id);
   if (node) return node;
-  node = makeNode(id, label, kind, true, searchable);
+  node = makeNode(id, label, kind, true, searchable, scopeFields);
   nodeMap.set(id, node);
   if (parent) parent.children.push(node);
   else roots.push(node);
@@ -84,6 +87,7 @@ function itemNode(item, branchId, pathParts, index) {
     itemKind(item),
     false,
     searchableText(item),
+    rvmScopeFields(item),
   );
   node.children = (Array.isArray(item?.children) ? item.children : [])
     .map((child, childIndex) => itemNode(child, branchId, path, childIndex));
@@ -96,19 +100,19 @@ function addBranch(roots, nodeMap, branch) {
   if (!key) return;
   const siteLabel = branchSite(branch);
   const site = ensureNode(nodeMap, roots, `site:${siteLabel}`,
-    siteLabel, 'SITE', null, siteLabel);
+    siteLabel, 'SITE', null, siteLabel, [siteLabel]);
   let parent = site;
   let accumulated = '';
   for (const part of ownerParts(branch)) {
     accumulated = accumulated ? `${accumulated}/${part}` : part;
     if (part === siteLabel || accumulated === siteLabel) continue;
     const owner = ensureNode(nodeMap, roots, `owner:${accumulated}`,
-      part, 'OWNER', parent, accumulated);
+      part, 'OWNER', parent, accumulated, [part, accumulated]);
     owner.parent = parent;
     parent = owner;
   }
   const branchNode = ensureNode(nodeMap, roots, `branch:${key}`,
-    key, 'BRANCH', parent, searchableText(branch));
+    key, 'BRANCH', parent, searchableText(branch), rvmScopeFields(branch));
   branchNode.parent = parent;
   branchNode.children = (Array.isArray(branch?.children) ? branch.children : [])
     .map((child, index) => itemNode(child, key, [], index));
@@ -128,6 +132,7 @@ function finalizeNode(node) {
     selectable: node.selectable,
     selectId: node.selectId,
     searchable: node.searchable,
+    scopeFields: Object.freeze([...(node.scopeFields || [])]),
     branchKeys: Object.freeze([...node.branchKeys].sort(compareText)),
     children: Object.freeze(children),
   });
