@@ -1,5 +1,6 @@
 import { updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { ensureMasterRuntime, persistChangedMasterDetailed } from './xml-cii-adapted-master-runtime.js';
+import { masterPersistenceStatus } from './xml-cii-adapted-master-mapping-events.js?v=20261001-weight-output-2';
 import { requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
 import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
 
