@@ -23,7 +23,7 @@ Qualification published on #902 comment 6027786967. Score 98/100, minimum challe
 - Class 61440 rows are authoritative repo-master values for DN25, DN50, DN450, DN500 and DN600.
 - Browser ledger runs prepareStandaloneWeightReviewXml → xmlCiiDryRunPreview → enrichStandaloneXmlForRun on the same fixture.
 - Two C04 weights are explicitly labelled regression tokens: B3::150 = 42.25 kg and EXE/B2::10 = 51.5 kg. They are not claimed engineering/master masses.
-- Runner executes converters/scripts/xml_to_cii2019_runtime_custody.py, matching Standalone invocation custody, with kg→N scale 10.
+- Runner executes converters/scripts/xml_to_cii2019_runtime_custody.py on the reviewed final XML, matching workflow-service handoff and Standalone invocation custody, with kg→N scale 10.
 - CII parser reads actual ELEMENTS, REDUCERS, RIGID and COORDS bytes and checks representative DN25/DN50/DN450/reducer/rigid/coordinate witnesses.
 
 ## Protected invariants
@@ -49,7 +49,7 @@ Qualification published on #902 comment 6027786967. Score 98/100, minimum challe
 - NOT_APPLICABLE — runtime source/docs mirror delta; #902 currently changes no runtime source.
 
 ## Findings / negative knowledge
-- Product CII does not consume the separately downloaded enriched XML artifact. Standalone CII reprocesses the original XML plus support config through xml_to_cii2019_runtime_custody.py. The oracle therefore compares both outputs from the same source/config instead of feeding one into the other.
+- Workflow-service custody is two-stage: it first produces the reviewed enriched XML, applies SIF facts, then calls the CII engine with `engineJob.sourceText = sif.text`. The CII engine therefore receives the reviewed enriched XML as its input file. The #902 runner mirrors that exact handoff by invoking `xml_to_cii2019_runtime_custody.py` on the browser-produced final XML.
 - The Python weight-owner guard only blocks positive source weights that lose ownership; zero-weight unresolved rigid owners remain valid review state and are not forced to invented values.
 - The full source baseline remains #901. The 25-node #902 fixture is a source-derived integration witness, not a replacement for the full-model inventory or #903 whole-model differential gate.
 
