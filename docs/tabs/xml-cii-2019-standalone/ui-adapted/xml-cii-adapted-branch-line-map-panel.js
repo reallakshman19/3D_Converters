@@ -95,11 +95,12 @@ function statusBadge(status) {
 function tableRows(branches, map, datalistId) {
   return branches.map((row) => {
     const state = branchLineMapRowState(row, map);
+    const lineHint = text(row?.lineKey);
     const locked = state.status === 'resolved';
     const override = locked
       ? '<button type="button" class="bulk-enable-override-btn" style="margin-left:6px;background:#1e293b;color:#bfdbfe;border:1px solid #3b82f6;border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;">Override</button>'
       : '';
-    return `<tr class="bulk-map-tr" data-branch="${esc(state.branchName)}" data-status="${state.mapped ? 'mapped' : 'unmapped'}" data-mapping-source="${esc(state.status)}" data-has-explicit-override="${state.explicit ? 'true' : 'false'}" data-resolved-line-key="${esc(state.resolvedValue)}" style="border-bottom:1px solid rgba(148,163,184,0.1);">
+    return `<tr class="bulk-map-tr" data-branch="${esc(state.branchName)}" data-line-hint="${esc(lineHint)}" data-status="${state.mapped ? 'mapped' : 'unmapped'}" data-mapping-source="${esc(state.status)}" data-has-explicit-override="${state.explicit ? 'true' : 'false'}" data-resolved-line-key="${esc(state.resolvedValue)}" style="border-bottom:1px solid rgba(148,163,184,0.1);">
       <td style="padding:8px 12px;font-family:monospace;font-size:12px;color:#e2e8f0;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(state.branchName)}">${esc(state.branchName)}</td>
       <td style="padding:6px 12px;"><div style="display:flex;align-items:center;"><input type="text" list="${esc(datalistId)}" class="bulk-line-input" data-branch="${esc(state.branchName)}" value="${esc(state.value)}" placeholder="Type or select line list key..." ${locked ? 'readonly aria-readonly="true"' : ''} style="width:100%;max-width:320px;background:${locked ? '#111827' : '#0f172a'};color:#f8fafc;border:1px solid ${locked ? '#475569' : '#334155'};border-radius:5px;padding:5px 10px;font-size:12px;">${override}</div></td>
       <td style="padding:8px 12px;text-align:center;">${statusBadge(state.status)}</td></tr>`;

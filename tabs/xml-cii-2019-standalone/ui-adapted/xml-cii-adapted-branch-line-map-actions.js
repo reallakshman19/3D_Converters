@@ -39,11 +39,14 @@ function familyTokens(branchName) {
   return unique(text(branchName).toUpperCase().match(/[A-Z][A-Z0-9]{4,}/g) || []);
 }
 
-function progressiveFamilyResolution(branchName, lineListKeys) {
+function progressiveFamilyResolution(branchName, lineListKeys, options = {}) {
   const loaded = unique(lineListKeys)
     .map((key) => ({ key, compact: compact(key) }))
     .filter((row) => row.compact);
-  const tokens = familyTokens(branchName);
+  const tokens = unique(options.tokens?.length ? options.tokens : familyTokens(branchName))
+    .map(compact)
+    .filter(Boolean);
+  const method = text(options.method) || 'progressive-family-mask';
 
   for (let wildcardCount = 1; wildcardCount <= 4; wildcardCount += 1) {
     const candidates = new Map();
@@ -66,7 +69,7 @@ function progressiveFamilyResolution(branchName, lineListKeys) {
         status: 'match',
         key: keys[0],
         candidates: keys,
-        method: 'progressive-family-mask',
+        method,
         mask: primary.mask,
         wildcardCount,
         token: primary.token,
@@ -77,7 +80,7 @@ function progressiveFamilyResolution(branchName, lineListKeys) {
       status: 'ambiguous',
       key: '',
       candidates: keys,
-      method: 'progressive-family-mask',
+      method,
       mask: primary.mask,
       wildcardCount,
       token: primary.token,
@@ -87,8 +90,9 @@ function progressiveFamilyResolution(branchName, lineListKeys) {
   return { status: 'none', key: '', candidates: [] };
 }
 
-export function resolveBranchLineKeySuggestion(branchName, lineListKeys = []) {
-  const exact = unique(lineListKeys)
+export function resolveBranchLineKeySuggestion(branchName, lineListKeys = [], options = {}) {
+  const loadedKeys = unique(lineListKeys);
+  const exact = loadedKeys
     .map((key) => ({ key, score: exactMatchScore(branchName, key) }))
     .filter((row) => row.score > 0)
     .sort((a, b) => b.score - a.score || b.key.length - a.key.length || a.key.localeCompare(b.key, undefined, { numeric: true }));
@@ -101,7 +105,26 @@ export function resolveBranchLineKeySuggestion(branchName, lineListKeys = []) {
       : { status: 'ambiguous', key: '', candidates: top };
   }
 
-  return progressiveFamilyResolution(branchName, lineListKeys);
+  const lineHint = text(options?.lineHint);
+  if (lineHint) {
+    const canonicalHint = loadedKeys.find((key) => text(key).toUpperCase() === lineHint.toUpperCase());
+    if (canonicalHint) {
+      return {
+        status: 'match',
+        key: canonicalHint,
+        candidates: [canonicalHint],
+        method: 'line-hint-exact',
+        hint: lineHint,
+      };
+    }
+    const hintedFamily = progressiveFamilyResolution('', loadedKeys, {
+      tokens: [lineHint],
+      method: 'line-hint-family',
+    });
+    if (hintedFamily.status !== 'none') return hintedFamily;
+  }
+
+  return progressiveFamilyResolution(branchName, loadedKeys);
 }
 
 function unmappedBranches(container) {
@@ -241,10 +264,12 @@ function bindAutoSuggest(container, lineListKeys) {
     container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]').forEach((tr) => {
       const input = tr.querySelector('.bulk-line-input');
       if (!input || input.value.trim()) return;
-      const result = resolveBranchLineKeySuggestion(tr.getAttribute('data-branch') || '', lineListKeys);
+      const lineHint = tr.getAttribute('data-line-hint') || '';
+      const result = resolveBranchLineKeySuggestion(tr.getAttribute('data-branch') || '', lineListKeys, { lineHint });
       if (result.status === 'match') {
         input.value = result.key;
-        markPending(tr, result.method === 'progressive-family-mask' ? `✨ Family ${result.mask}` : '✨ Suggested');
+        const familyMethod = result.method === 'progressive-family-mask' || result.method === 'line-hint-family';
+        markPending(tr, familyMethod ? `✨ Family ${result.mask}` : '✨ Suggested');
         suggested += 1;
         return;
       }
@@ -252,7 +277,8 @@ function bindAutoSuggest(container, lineListKeys) {
         ambiguous += 1;
         const status = tr.querySelector('.bulk-row-status');
         if (status) {
-          status.textContent = result.method === 'progressive-family-mask'
+          const familyMethod = result.method === 'progressive-family-mask' || result.method === 'line-hint-family';
+          status.textContent = familyMethod
             ? `⚠ Ambiguous ${result.mask}: ${result.candidates.join(' / ')}`
             : `⚠ Ambiguous: ${result.candidates.join(' / ')}`;
           status.style.color = '#fbbf24';
