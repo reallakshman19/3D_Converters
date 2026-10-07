@@ -483,6 +483,10 @@
         "role": "SUPERSEDED_ACCEPTANCE",
         "evidence": [
           "#895 final qualification: superseded C05.5 token replaced by #893 current cache generation"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-893-consumer-authority.test.mjs",
+          "tests/xml-cii-issue-875-persistence-status-retry.test.mjs"
         ]
       }
     },
@@ -491,6 +495,10 @@
         "role": "SUPERSEDED_ACCEPTANCE",
         "evidence": [
           "#841 final qualification: pre-#893 coordinator signature superseded by restored datasetRef authority"
+        ],
+        "successors": [
+          "tests/xml-cii-issue-893-consumer-authority.test.mjs",
+          "tests/xml-cii-master-dataset-startup-hydration.test.mjs"
         ]
       }
     },
