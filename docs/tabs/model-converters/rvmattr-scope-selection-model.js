@@ -31,3 +31,17 @@ export function mergeRvmScopeRenderedSelection(selection, renderedStates = []) {
 export function selectedRvmScopeIds(selection) {
   return Object.freeze([...(selection instanceof Set ? selection : [])]);
 }
+
+export function countSelectedRvmBranches(tree, selection) {
+  const selected = targetSet(selection);
+  let count = 0;
+  const visit = (nodes, inherited = false) => {
+    for (const node of nodes || []) {
+      const active = inherited || (node.selectable && selected.has(node.selectId));
+      if (node.kind === 'BRANCH' && active) count += 1;
+      visit(node.children, active);
+    }
+  };
+  visit(tree);
+  return count;
+}

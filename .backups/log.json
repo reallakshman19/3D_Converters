@@ -1,5 +1,5 @@
 {
-  "lastId": 1283,
+  "lastId": 1285,
   "entries": [
     {
       "id": 1,
@@ -8918,6 +8918,20 @@
       "file": ".github\\workflows\\rvmattr-scope-tree.yml",
       "context": "S4 #939 U5 protected thousand-branch interaction gate",
       "backupFile": "1283_github_workflows_rvmattr_scope_tree_yml.bak"
+    },
+    {
+      "id": 1284,
+      "timestamp": "2026-10-07 17:22:00",
+      "file": "tabs\\model-converters\\rvmattr-scope-selection-model.js",
+      "context": "G1 #940 effective selected branch count",
+      "backupFile": "1284_tabs_model_converters_rvmattr_scope_selection_model_js.bak"
+    },
+    {
+      "id": 1285,
+      "timestamp": "2026-10-07 17:22:00",
+      "file": "docs\\tabs\\model-converters\\rvmattr-scope-selection-model.js",
+      "context": "G1 #940 effective selected branch count",
+      "backupFile": "1285_docs_tabs_model_converters_rvmattr_scope_selection_model_js.bak"
     }
   ]
 }
