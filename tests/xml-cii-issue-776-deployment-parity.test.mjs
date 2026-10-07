@@ -49,6 +49,8 @@ const branchUi = `${branchRoot}ui-adapted/`;
 const qualifiedSuccessorEdgeReleases = new Map([
   [`${branchUi}xml-cii-adapted-phase-panels-smart.js::xml-cii-adapted-phase-panels.js`, '20261006-c05-5-5-persistence-retry-1'],
   [`${branchUi}xml-cii-adapted-phase-panels-mode-a.js::xml-cii-adapted-phase-panels-smart.js`, '20261007-c05-6-2-consumer-authority-1'],
+  [`${branchUi}xml-cii-adapted-regex-smart-ui.js::xml-cii-adapted-regex-smart-evidence.js`, '20261007-c05-6-2-consumer-authority-1'],
+  [`${branchUi}xml-cii-adapted-regex-smart-evidence.js::xml-cii-adapted-master-dataset-runtime.js`, '20261007-c05-6-2-consumer-authority-1'],
 ]);
 const branchScopeCacheEdges = new Map([
   [`${branchRoot}xml-cii-mode-a-batch-core.js`, ['xml-cii-branch-scope.js']],
@@ -86,6 +88,14 @@ for (const sourcePath of [`${branchRoot}xml-cii-branch-scope.js`, ...branchScope
   }
 }
 
+const qualifiedSuccessorPathReleases = new Map([
+  ['tabs/xml-cii-2019-standalone-tab.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-client.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', '20261007-c05-6-2-consumer-authority-1'],
+]);
 const screenshotRepairPaths = [
   'index.html',
   'main-rhbg-fitguard.js',
@@ -104,7 +114,8 @@ const screenshotRepairPaths = [
 ];
 for (const path of screenshotRepairPaths) {
   const source = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-  const expectedRelease = activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease);
+  const expectedRelease = qualifiedSuccessorPathReleases.get(path)
+    || (activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease));
   assert.ok(source.includes(expectedRelease), `live acceptance cache chain missing ${expectedRelease}: ${path}`);
 }
 
@@ -128,8 +139,8 @@ for (const path of legacyWeightReleasePaths) {
 const regexUi = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js', import.meta.url), 'utf8');
 const regexEvidence = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', import.meta.url), 'utf8');
 assert.ok(regexUi.includes(`xml-cii-regex-smart-suggestions.js?v=${regexEvidenceRelease}`));
-assert.ok(regexUi.includes(`xml-cii-adapted-regex-smart-evidence.js?v=${moduleRelease('xml-cii-adapted-regex-smart-evidence.js', liveAcceptanceRelease)}`));
+assert.ok(regexUi.includes(`xml-cii-adapted-regex-smart-evidence.js?v=${qualifiedSuccessorEdgeReleases.get(`${branchUi}xml-cii-adapted-regex-smart-ui.js::xml-cii-adapted-regex-smart-evidence.js`) || moduleRelease('xml-cii-adapted-regex-smart-evidence.js', liveAcceptanceRelease)}`));
 assert.ok(regexEvidence.includes(`xml-cii-regex-smart-suggestions.js?v=${regexEvidenceRelease}`));
-assert.ok(regexEvidence.includes(`xml-cii-adapted-master-dataset-runtime.js?v=${moduleRelease('xml-cii-adapted-master-dataset-runtime.js', screenshotRepairRelease)}`));
+assert.ok(regexEvidence.includes(`xml-cii-adapted-master-dataset-runtime.js?v=${qualifiedSuccessorEdgeReleases.get(`${branchUi}xml-cii-adapted-regex-smart-evidence.js::xml-cii-adapted-master-dataset-runtime.js`) || moduleRelease('xml-cii-adapted-master-dataset-runtime.js', screenshotRepairRelease)}`));
 
 console.log('Issue #776 deployment mirror/cache chain verified.');
