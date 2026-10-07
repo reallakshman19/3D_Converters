@@ -13,6 +13,7 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js'
       - 'tests/xml-cii-issue-781-regex-master-evidence.test.mjs'
+      - 'tests/xml-cii-issue-781-live-regex-acceptance.test.mjs'
       - 'tests/browser/xml-cii-issue-781-live-regex-acceptance.html'
       - 'tests/xml-cii-issue-781-live-regex-browser.mjs'
       - 'scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs'
@@ -38,7 +39,10 @@ jobs:
           node-version: '22'
 
       - name: Run Issue 781 regex master evidence regression
-        run: node --test tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+        run: >-
+          node --test
+          tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+          tests/xml-cii-issue-781-live-regex-acceptance.test.mjs
 
       - name: Run existing smart regex regressions
         run: >-
