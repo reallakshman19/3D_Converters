@@ -36,8 +36,8 @@ const duplicateBranchRows = [
   { sourceId: 'B', fileName: 'B.xml', branchName: '/AMB/B2', lineMiss: true },
 ];
 const sourceKeys = { A: ['LINE-A'], B: ['LINE-B', 'ALT-B'] };
-const resolver = (branchName, keys) => {
-  if (branchName === '/AMB/B2') return { status: 'ambiguous', key: '', candidates: keys };
+const resolver = (row, keys) => {
+  if (row?.branchName === '/AMB/B2') return { status: 'ambiguous', key: '', candidates: keys };
   return { status: 'match', key: keys[0], candidates: [keys[0]] };
 };
 const matchPlan = buildModeAProjectDataMatchPlan(duplicateBranchRows, sourceKeys, resolver);

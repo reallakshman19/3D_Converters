@@ -1,5 +1,5 @@
 {
-  "lastId": 1363,
+  "lastId": 1368,
   "entries": [
     {
       "id": 1,
@@ -8708,6 +8708,41 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-smart-map-v2.js",
       "context": "L4 #944 U3c Mode A Smart Map v2 consumes row-level branch-to-Line authority",
       "backupFile": "1363_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_smart_map_v2_js.bak"
+    },
+    {
+      "id": 1364,
+      "timestamp": "2026-10-07 19:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-bulk-preview.js",
+      "context": "L4 #944 U3d project match planner passes full row authority",
+      "backupFile": "1364_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_bulk_preview_js.bak"
+    },
+    {
+      "id": 1365,
+      "timestamp": "2026-10-07 19:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-bulk-preview.js",
+      "context": "L4 #944 U3d project match planner passes full row authority",
+      "backupFile": "1365_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_bulk_preview_js.bak"
+    },
+    {
+      "id": 1366,
+      "timestamp": "2026-10-07 19:47:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "L4 #944 U3d Easy UI passes canonical row authority",
+      "backupFile": "1366_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 1367,
+      "timestamp": "2026-10-07 19:47:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-mode-a-consolidated-easy-ui.js",
+      "context": "L4 #944 U3d Easy UI passes canonical row authority",
+      "backupFile": "1367_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_mode_a_consolidated_easy_ui_js.bak"
+    },
+    {
+      "id": 1368,
+      "timestamp": "2026-10-07 19:47:00",
+      "file": "tests\\xml-cii-mode-a-easy-bulk-preview.test.mjs",
+      "context": "L4 #944 U3d project match row-resolver regression",
+      "backupFile": "1368_tests_xml_cii_mode_a_easy_bulk_preview_test_mjs.bak"
     }
   ]
 }

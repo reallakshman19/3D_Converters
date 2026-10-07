@@ -1,5 +1,5 @@
 import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
-import { resolveBranchLineKeySuggestion } from './xml-cii-adapted-branch-line-map-panel.js';
+import { resolveBranchLineRowSuggestion } from './xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l4-1';
 import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import {
@@ -487,7 +487,7 @@ function makeToolbar(panel, result, stateRef) {
 
   match.addEventListener('click', () => {
     toolbar.querySelectorAll('[data-project-match-preview], [data-project-match-apply]').forEach((node) => node.remove());
-    const plan = buildModeAProjectDataMatchPlan(result.rows || [], projectLineKeys(stateRef), resolveBranchLineKeySuggestion);
+    const plan = buildModeAProjectDataMatchPlan(result.rows || [], projectLineKeys(stateRef), resolveBranchLineRowSuggestion);
     const preview = document.createElement('span');
     preview.dataset.projectMatchPreview = 'true';
     preview.className = 'xml-cii-phase-help';

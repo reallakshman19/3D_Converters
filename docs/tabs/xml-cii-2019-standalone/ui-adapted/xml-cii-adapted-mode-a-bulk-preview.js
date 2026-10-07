@@ -74,7 +74,7 @@ export function buildModeAProjectDataMatchPlan(rows = [], sourceLineKeys = {}, r
     const identity = `${row.sourceId}::${row.branchName}`;
     if (seen.has(identity)) continue;
     seen.add(identity);
-    const result = typeof resolver === 'function' ? resolver(row.branchName || '', sourceLineKeys?.[row.sourceId] || []) : { status: 'none' };
+    const result = typeof resolver === 'function' ? resolver(row, sourceLineKeys?.[row.sourceId] || []) : { status: 'none' };
     if (result?.status === 'match' && text(result.key)) changes.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, lineKey: text(result.key) });
     else if (result?.status === 'ambiguous') ambiguous.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, candidates: result.candidates || [] });
     else unmatched.push({ sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName });
