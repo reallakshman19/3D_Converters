@@ -1,5 +1,5 @@
 {
-  "lastId": 1189,
+  "lastId": 1198,
   "entries": [
     {
       "id": 1,
@@ -8323,6 +8323,20 @@
       "file": "agents\\PR920_workreport.md",
       "context": "B2 #918 U4 record test-only qualification repair and current recovery state",
       "backupFile": "1189_agents_PR920_workreport_md.bak"
+    },
+    {
+      "id": 1197,
+      "timestamp": "2026-10-07 10:22:00",
+      "file": "converters\\rvm-scope-pattern.js",
+      "context": "R01 #931 U2 shared scope normalization + glob compiler",
+      "backupFile": "1197_converters_rvm_scope_pattern_js.bak"
+    },
+    {
+      "id": 1198,
+      "timestamp": "2026-10-07 10:22:00",
+      "file": "docs\\converters\\rvm-scope-pattern.js",
+      "context": "R01 #931 U2 shared scope normalization + glob compiler",
+      "backupFile": "1198_docs_converters_rvm_scope_pattern_js.bak"
     }
   ]
 }
