@@ -1,0 +1,97 @@
+{
+  "schema": "xml-cii-issue-769-release-coverage/v1",
+  "basis": {
+    "parentIssue": 769,
+    "responsibility": 967,
+    "authorityManifest": "tests/xml-cii-issue-769-release-test-authority.json"
+  },
+  "taskCoverage": {
+    "TASK-001": [
+      "tests/xml-cii-linelist-synthetic-label-mapping.test.mjs",
+      "tests/xml-cii-issue-781-linelist-integration.test.mjs",
+      "tests/xml-cii-issue-781-linelist-sheet-selection.test.mjs"
+    ],
+    "TASK-002": [
+      "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+      "tests/xml-cii-issue-776-weight-unit-custody.test.mjs",
+      "tests/xml-cii-issue-776-post-run-weight-authority.test.mjs",
+      "tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs"
+    ],
+    "TASK-003": [
+      "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+      "tests/xml-cii-issue-781-weight-match-authority-presentation.test.mjs"
+    ],
+    "TASK-004": [
+      "tests/xml-cii-master-large-persistence.test.mjs",
+      "tests/xml-cii-master-dataset-worker.test.mjs",
+      "tests/xml-cii-issue-894-scale-contract.test.mjs"
+    ],
+    "TASK-005": [
+      "tests/xml-cii-regex-confidence-buckets.test.mjs",
+      "tests/xml-cii-issue-781-regex-master-evidence.test.mjs",
+      "tests/xml-cii-issue-781-live-regex-acceptance.test.mjs"
+    ],
+    "TASK-006": [
+      "tests/xml-cii-branch-line-unique-family-941.test.mjs",
+      "tests/xml-cii-branch-line-ambiguity-safety-942.test.mjs",
+      "tests/xml-cii-branch-line-heldout-generalization-943.test.mjs",
+      "tests/xml-cii-branch-line-shared-authority-944.test.mjs",
+      "tests/xml-cii-branch-line-mixed-integration-945.test.mjs"
+    ],
+    "TASK-007": [
+      "tests/xml-cii-b313-preview-blocker-provenance.test.mjs",
+      "tests/xml-cii-b313-preview-blocker-ui-static.test.mjs",
+      "tests/xml-cii-b313-preview-od-selection.test.mjs",
+      "tests/xml-cii-b313-preview-pressure-unit.test.mjs",
+      "tests/xml-cii-b313-preview-wall-update.test.mjs",
+      "tests/xml-cii-issue-781-b313-auto-basis.test.mjs",
+      "tests/xml-cii-issue-781-b313-live-row-custody.test.js"
+    ],
+    "TASK-008": [
+      "tests/xml-cii-authority-migration.test.mjs",
+      "tests/xml-cii-standalone-dependency-revisions.test.mjs",
+      "tests/xml-cii-output-result-invalidation.test.mjs"
+    ]
+  },
+  "benchmarkCoverage": {
+    "BM-001": [
+      "tests/xml-cii-linelist-synthetic-label-mapping.test.mjs",
+      "tests/xml-cii-issue-781-linelist-integration.test.mjs"
+    ],
+    "BM-002": [
+      "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+      "tests/xml-cii-issue-821-rigid-weight-eligibility.test.mjs"
+    ],
+    "BM-003": [
+      "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+      "tests/xml-cii-issue-776-stale-match1-no-auto-rerank.test.mjs"
+    ],
+    "BM-004": [
+      "tests/xml-cii-rigid-weight-lifecycle.test.mjs",
+      "tests/xml-cii-issue-781-weight-match-authority-presentation.test.mjs"
+    ],
+    "BM-005": [
+      "tests/xml-cii-master-large-persistence.test.mjs",
+      "tests/xml-cii-issue-894-scale-contract.test.mjs"
+    ],
+    "BM-006": [
+      "tests/xml-cii-branch-line-family-suggestion.test.mjs",
+      "tests/xml-cii-branch-line-mixed-integration-945.test.mjs"
+    ],
+    "BM-007": [
+      "tests/xml-cii-regex-confidence-buckets.test.mjs",
+      "tests/xml-cii-issue-781-regex-master-evidence.test.mjs"
+    ],
+    "BM-008": [
+      "tests/xml-cii-b313-preview-blocker-provenance.test.mjs",
+      "tests/xml-cii-b313-preview-od-selection.test.mjs",
+      "tests/xml-cii-b313-preview-pressure-unit.test.mjs"
+    ]
+  },
+  "hostedEvidence": {
+    "BM-002": "run 37649750425 — complete Python CLI weight-scale E2E PASS",
+    "BM-004": "run 37649274590 — exact empirical boundary execution PASS",
+    "BM-005": "run 37650242601 — 10k/50k/100k browser scale + quota/session PASS",
+    "TASK-006": "run 37648355609 / 37648355729 / 37648355634 — mixed-family integration + protected gates PASS"
+  }
+}
