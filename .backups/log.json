@@ -1,5 +1,5 @@
 {
-  "lastId": 1333,
+  "lastId": 1335,
   "entries": [
     {
       "id": 1,
@@ -8498,6 +8498,20 @@
       "file": "tests\\xml-cii-branch-line-family-suggestion.test.mjs",
       "context": "L2 #942 U2 strengthen B/P fail-closed regression",
       "backupFile": "1333_tests_xml_cii_branch_line_family_suggestion_test_mjs.bak"
+    },
+    {
+      "id": 1334,
+      "timestamp": "2026-10-07 18:38:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-actions.js",
+      "context": "L2 #942 U3 display unresolved ambiguity/designator evidence",
+      "backupFile": "1334_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_actions_js.bak"
+    },
+    {
+      "id": 1335,
+      "timestamp": "2026-10-07 18:38:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-actions.js",
+      "context": "L2 #942 U3 display unresolved ambiguity/designator evidence",
+      "backupFile": "1335_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_actions_js.bak"
     }
   ]
 }

@@ -314,6 +314,7 @@ function bindAutoSuggest(container, lineListKeys) {
     if (!lineListKeys?.length) return alert('No master Line List keys loaded.');
     let suggested = 0;
     let ambiguous = 0;
+    let blocked = 0;
     container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]').forEach((tr) => {
       const input = tr.querySelector('.bulk-line-input');
       if (!input || input.value.trim()) return;
@@ -337,9 +338,20 @@ function bindAutoSuggest(container, lineListKeys) {
           status.style.color = '#fbbf24';
           status.title = 'No mapping assigned because the most-specific authoritative match resolves to multiple loaded Line List keys.';
         }
+        return;
+      }
+      if (result.status === 'blocked') {
+        blocked += 1;
+        tr.dataset.reviewReason = result.reason || 'DESIGNATOR_CHANGE_NOT_AUTHORIZED';
+        const status = tr.querySelector('.bulk-row-status');
+        if (status) {
+          status.textContent = `⚠ Cross-designator blocked ${result.mask || ''}: ${result.candidates.join(' / ')}`;
+          status.style.color = '#f59e0b';
+          status.title = 'No mapping assigned: using the plausible loaded family would require changing the Line Key designator, which is not authorized.';
+        }
       }
     });
-    alert(`${suggested} unambiguous mapping${suggested === 1 ? '' : 's'} suggested.${ambiguous ? ` ${ambiguous} ambiguous result${ambiguous === 1 ? '' : 's'} left for review.` : ''}`);
+    alert(`${suggested} unambiguous mapping${suggested === 1 ? '' : 's'} suggested.${ambiguous ? ` ${ambiguous} ambiguous result${ambiguous === 1 ? '' : 's'} left for review.` : ''}${blocked ? ` ${blocked} cross-designator result${blocked === 1 ? '' : 's'} blocked and left for review.` : ''}`);
   });
 }
 
