@@ -1,5 +1,5 @@
 {
-  "lastId": 1171,
+  "lastId": 1172,
   "entries": [
     {
       "id": 1,
@@ -8197,6 +8197,13 @@
       "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "B1 #917 switch successor release authority from module to exact import edge",
       "backupFile": "1171_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
+    },
+    {
+      "id": 1172,
+      "timestamp": "2026-10-07 02:44:30",
+      "file": "tests\\xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "B1 #917 add #893 path and regex-edge successor releases",
+      "backupFile": "1172_tests_xml_cii_issue_776_deployment_parity_test_mjs.bak"
     }
   ]
 }
