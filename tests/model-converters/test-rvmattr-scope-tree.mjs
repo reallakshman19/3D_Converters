@@ -4,7 +4,7 @@ import {
   buildRvmAttributeScopeTree,
   countRvmAttributeScopeTree,
 } from '../../tabs/model-converters/rvmattr-scope-tree-model.js';
-import { matchesRvmScope } from '../../converters/rvm-scope-pattern.js';
+import { matchesRvmScope, matchesScopeFields, splitScopeTokens } from '../../converters/rvm-scope-pattern.js';
 import { _filterStagedHierarchyByScope } from '../../tabs/model-converters/converters/stagedjson-xml-helpers.js';
 
 const hierarchy = [
@@ -67,6 +67,11 @@ const quotedScope = _filterStagedHierarchyByScope(wildcardHierarchy, {
 assert.deepEqual(quotedScope.hierarchy.map((row) => row.name), ['/ASIM-1837-XX-YY--PL/B2']);
 assert.equal(matchesRvmScope(wildcardHierarchy[0], '"183*-*--PL"'), true);
 assert.equal(matchesRvmScope(wildcardHierarchy[1], '"183*-*--PL"'), false);
+assert.deepEqual(splitScopeTokens('"183*-*--PL"'), ['183*-*--PL']);
+assert.equal(matchesScopeFields(['/A/183.X-ABC--PL'], '183.X*--PL'), true);
+assert.equal(matchesScopeFields(['/A/1830X-ABC--PL'], '183.X*--PL'), false);
+assert.equal(matchesScopeFields(['183-AAA', 'BBB--PL'], '183*--PL'), false);
+assert.equal(matchesScopeFields(['prefix 183-AAA-BBB--PL suffix'], '183*--PL'), true);
 
 const root = new URL('../../', import.meta.url);
 const addon = await readFile(new URL(

@@ -1,5 +1,5 @@
 {
-  "lastId": 1226,
+  "lastId": 1227,
   "entries": [
     {
       "id": 1,
@@ -8533,6 +8533,13 @@
       "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
       "context": "R01 #931 U4b cache chain regression",
       "backupFile": "1226_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
+    },
+    {
+      "id": 1227,
+      "timestamp": "2026-10-07 11:00:00",
+      "file": "tests\\model-converters\\test-rvmattr-scope-tree.mjs",
+      "context": "R01 #931 U5 exact-head matcher contract replay",
+      "backupFile": "1227_tests_model_converters_test_rvmattr_scope_tree_mjs.bak"
     }
   ]
 }
