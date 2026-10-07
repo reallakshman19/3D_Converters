@@ -180,6 +180,14 @@ export function resolveBranchLineKeySuggestion(branchName, lineListKeys = [], op
   return crossDesignatorFamilyEvidence(branchName, loadedKeys);
 }
 
+export function resolveBranchLineRowSuggestion(row = {}, lineListKeys = []) {
+  return resolveBranchLineKeySuggestion(
+    text(row?.branchName),
+    lineListKeys,
+    { lineHint: text(row?.lineKey) },
+  );
+}
+
 function unmappedBranches(container) {
   return [...container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]')]
     .filter((tr) => !tr.querySelector('.bulk-line-input')?.value?.trim())
