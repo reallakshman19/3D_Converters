@@ -23,6 +23,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Run #967 canonical current release guards
+        id: issue769_current
+        shell: bash
+        run: |
+          set +e
+          node scripts/verify-issue-769-xml-cii.mjs 2>&1 | tee issue-769-current-focused.log
+          focused_status=${PIPESTATUS[0]}
+          node scripts/verify-issue-769-xml-cii.mjs --full 2>&1 | tee issue-769-current-full.log
+          full_status=${PIPESTATUS[0]}
+          echo "focused_status=${focused_status}" >> "${GITHUB_OUTPUT}"
+          echo "full_status=${full_status}" >> "${GITHUB_OUTPUT}"
+          echo "#967 current guards focused=${focused_status} full=${full_status}"
+          exit 0
       - name: Run Issue 776 focused regressions
         id: focused
         shell: bash
@@ -185,13 +198,17 @@ jobs:
             issue-776-adjacent-head.failures.txt
             issue-776-adjacent-base.failures.txt
             issue-776-adjacent-new.failures.txt
+            issue-769-current-focused.log
+            issue-769-current-full.log
           if-no-files-found: error
 
       - name: Enforce applicable regression result
         if: always()
         shell: bash
         run: |
-          echo "focused=${{ steps.focused.outputs.status }} rigid_type=${{ steps.rigid_type.outputs.status }} dataset=${{ steps.dataset.outputs.status }} adjacent=${{ steps.adjacent_diff.outputs.status }} classification=${{ steps.adjacent_diff.outputs.classification }}"
+          echo "focused=${{ steps.focused.outputs.status }} rigid_type=${{ steps.rigid_type.outputs.status }} dataset=${{ steps.dataset.outputs.status }} adjacent=${{ steps.adjacent_diff.outputs.status }} classification=${{ steps.adjacent_diff.outputs.classification }} issue769_focused=${{ steps.issue769_current.outputs.focused_status }} issue769_full=${{ steps.issue769_current.outputs.full_status }}"
+          test "${{ steps.issue769_current.outputs.focused_status }}" = "0"
+          test "${{ steps.issue769_current.outputs.full_status }}" = "0"
           test "${{ steps.focused.outputs.status }}" = "0"
           test "${{ steps.rigid_type.outputs.status }}" = "0"
           test "${{ steps.dataset.outputs.status }}" = "0"
