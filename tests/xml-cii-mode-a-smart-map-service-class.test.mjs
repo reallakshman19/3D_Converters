@@ -38,10 +38,11 @@ assert.equal(groups.length, 1);
 const group = groups[0];
 assert.equal(group.service, 'S');
 assert.equal(group.pipingClassPrefix, 'ABC');
-assert.equal(group.status, 'similar');
-assert.equal(group.recommended, 'S8810452', 'same Service + same 3-letter Piping Class prefix must outrank equally similar alternatives');
-assert.match(group.reason, /Service S prioritized first/);
-assert.match(group.reason, /Piping Class ABC second/);
+assert.equal(group.status, 'conflict');
+assert.equal(group.recommended, '', 'ambiguous authoritative family evidence must not be replaced by a heuristic recommendation');
+assert.equal(group.branchLineDecisions[0].status, 'ambiguous');
+assert.deepEqual(group.branchLineDecisions[0].candidates, ['S8810451', 'S8810452']);
+assert.match(group.reason, /Branch→Line ambiguous/);
 
 const similarCandidates = group.candidates.filter((candidate) => candidate.basis === 'similar');
 assert.equal(similarCandidates[0].key, 'S8810452');
