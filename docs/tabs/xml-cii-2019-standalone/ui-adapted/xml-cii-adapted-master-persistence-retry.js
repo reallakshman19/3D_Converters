@@ -3,14 +3,14 @@ import { ensureMasterRuntime, persistChangedMasterDetailed } from './xml-cii-ada
 import { requestMeasuredFullRender } from './xml-cii-adapted-perf.js';
 import { masterDatasetCoordinator as coordinator } from './xml-cii-adapted-master-dataset-runtime.js?v=20261006-c05-5-5-persistence-retry-1';
 
-function nextPersistenceFailures(state, key, failure = null) {
+export function nextPersistenceFailures(state, key, failure = null) {
   const next = { ...(state?.masterPersistenceFailures || {}) };
   if (failure) next[key] = Object.freeze({ ...failure });
   else delete next[key];
   return next;
 }
 
-function persistenceFailureRecord(key, datasetId, phase, persistence = {}) {
+export function persistenceFailureRecord(key, datasetId, phase, persistence = {}) {
   const failure = persistence?.failure || persistence?.failures?.[0] || null;
   if (!failure && phase !== 'restart-custody') return null;
   return {
