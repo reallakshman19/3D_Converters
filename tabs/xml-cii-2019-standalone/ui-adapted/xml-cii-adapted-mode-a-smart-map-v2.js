@@ -1,4 +1,4 @@
-import { resolveBranchLineKeySuggestion } from './xml-cii-adapted-branch-line-map-panel.js';
+import { resolveBranchLineRowSuggestion } from './xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l4-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -66,7 +66,7 @@ export function modeASmartMapSimilarity(left = '', right = '') {
 
 function exactSuggestions(rows, keys) {
   return unique((rows || []).flatMap((row) => {
-    const result = resolveBranchLineKeySuggestion(text(row?.branchName), keys);
+    const result = resolveBranchLineRowSuggestion(row, keys);
     return result.status === 'match' ? [result.key] : [];
   }));
 }
@@ -133,7 +133,7 @@ function rankSimilar(hints, keys, catalog, targetService, targetClassPrefix, lim
 }
 
 function groupIdentity(row, keys) {
-  const exact = resolveBranchLineKeySuggestion(text(row?.branchName), keys);
+  const exact = resolveBranchLineRowSuggestion(row, keys);
   if (exact.status === 'match' && text(exact.key)) return `KEY:${text(exact.key)}`;
   const family = modeASmartMapBranchFamily(row?.branchName);
   return `FAMILY:${compact(family) || compact(row?.branchName) || compact(row?.lineKey)}`;
