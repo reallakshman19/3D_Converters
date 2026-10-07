@@ -34,10 +34,12 @@ function sizeSyntax(value) {
     && /(?:^DN\s*|"|\bIN(?:CH)?\b|\bNPS\b)/i.test(text(value));
 }
 
-function searchable(value) {
+function lineKeyProbe(value) {
   const source = text(value);
   const compact = source.replace(/[^A-Z0-9]/gi, '');
-  return compact.length >= 4 && /\d/.test(compact) && !sizeSyntax(source);
+  return compact.length >= 5
+    && /^[A-Z]+\d{4,}[A-Z0-9]*$/i.test(compact)
+    && !sizeSyntax(source);
 }
 
 function addBounded(set, value, limitState) {
@@ -59,11 +61,16 @@ function lineQueries(rows, maximumTokens, limitState) {
   const out = new Set();
   const widthLimit = Math.max(1, Math.min(3, Number(maximumTokens) || 3));
   for (const row of rows) {
+    const atomic = row.values.filter(lineKeyProbe);
+    if (atomic.length) {
+      for (const value of atomic) addBounded(out, value, limitState);
+      continue;
+    }
     for (let start = 0; start < row.values.length; start += 1) {
       let joined = '';
       for (let width = 1; width <= widthLimit && start + width <= row.values.length; width += 1) {
         joined += row.values[start + width - 1];
-        if (searchable(joined)) addBounded(out, joined, limitState);
+        if (width >= 2 && lineKeyProbe(joined)) addBounded(out, joined, limitState);
       }
     }
   }
