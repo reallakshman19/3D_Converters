@@ -11,7 +11,7 @@ import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolv
 import {
   renderStandaloneDiagnosticsReportPanel,
   renderStandalonePreviewReportPanel,
-} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261007-branch-line-l1-1';
 import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261007-c05-6-2-consumer-authority-1';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260813-mode-a-full-propagation-2';

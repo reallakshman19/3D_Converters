@@ -1,5 +1,5 @@
 {
-  "lastId": 1313,
+  "lastId": 1328,
   "entries": [
     {
       "id": 1,
@@ -8358,6 +8358,111 @@
       "file": ".github\\workflows\\issue-781-auto-authority-followup-validation.yml",
       "context": "L1 #941 U4 protected Branch to Line authority regressions",
       "backupFile": "1313_github_workflows_issue_781_auto_authority_followup_validation_yml.bak"
+    },
+    {
+      "id": 1314,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-panel.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1314_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_panel_js.bak"
+    },
+    {
+      "id": 1315,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-branch-line-map-panel.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1315_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_branch_line_map_panel_js.bak"
+    },
+    {
+      "id": 1316,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1316_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1317,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1317_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1318,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1318_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1319,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1319_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1320,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1320_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1321,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1321_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1322,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1322_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1323,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-phase-panels-mode-a.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1323_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_phase_panels_mode_a_js.bak"
+    },
+    {
+      "id": 1324,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1324_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1325,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1325_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_workflow_shell_mode_a_easy_bulk_v6_js.bak"
+    },
+    {
+      "id": 1326,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1326_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1327,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "docs\\tabs\\xml-cii-2019-standalone-tab.js",
+      "context": "L1 #941 U5 browser cache publication",
+      "backupFile": "1327_docs_tabs_xml_cii_2019_standalone_tab_js.bak"
+    },
+    {
+      "id": 1328,
+      "timestamp": "2026-10-07 18:03:00",
+      "file": "tests\\xml-cii-branch-line-unique-family-941.test.mjs",
+      "context": "L1 #941 U5 cache-chain assertions",
+      "backupFile": "1328_tests_xml_cii_branch_line_unique_family_941_test_mjs.bak"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261007-c05-6-2-consumer-authority-1';
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261007-branch-line-l1-1';
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
   'Source type',

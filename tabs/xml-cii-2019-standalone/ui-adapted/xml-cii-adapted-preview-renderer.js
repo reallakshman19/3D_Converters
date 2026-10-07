@@ -1,5 +1,5 @@
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
-import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
+import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js?v=20261007-branch-line-l1-1';
 import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
 import { applyAdaptedPreviewOverrideFillDown, applyAdaptedPreviewProcessFillDown, markAdaptedPreviewOverrideManual, markAdaptedPreviewProcessManual, applyAdaptedPreviewSmartFillByClass, applyAdaptedPreviewSmartProcessFillByClass } from './xml-cii-adapted-preview-filldown.js';
 import { replaceJsonObject, runAtomicPreviewClassTransaction } from './xml-cii-adapted-preview-class-transaction.js';

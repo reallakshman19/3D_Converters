@@ -4,7 +4,7 @@
  * companion actions module so matching authority remains independently testable.
  */
 
-import { bindBranchLineMapActions } from './xml-cii-adapted-branch-line-map-actions.js';
+import { bindBranchLineMapActions } from './xml-cii-adapted-branch-line-map-actions.js?v=20261007-branch-line-l1-1';
 
 export { resolveBranchLineKeySuggestion } from './xml-cii-adapted-branch-line-map-actions.js';
 
