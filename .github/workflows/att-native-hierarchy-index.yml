@@ -1,0 +1,29 @@
+name: ATT Native Hierarchy Index H1
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/model-converters/att-native-hierarchy-index.js'
+      - 'docs/tabs/model-converters/att-native-hierarchy-index.js'
+      - 'tests/model-converters/test-att-native-hierarchy-index.mjs'
+      - '.github/workflows/att-native-hierarchy-index.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  h1-native-index:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: H1 source and docs mirror exactness
+        run: cmp tabs/model-converters/att-native-hierarchy-index.js docs/tabs/model-converters/att-native-hierarchy-index.js
+      - name: H1 independent native hierarchy proof
+        run: |
+          node --check tabs/model-converters/att-native-hierarchy-index.js
+          node tests/model-converters/test-att-native-hierarchy-index.mjs
