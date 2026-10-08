@@ -17,7 +17,7 @@ const SCHEMA='LFJ.WorkerExecution.v1';
  * cannot be created. No SHA, Preview Basis or engineering rights are invented.
  */
 export async function runRequiredWorkerJob({
-  createWorker,jobId,sourceRefId,sourceRevision,sourceSha256,byteLength,
+  createWorker,trustedWorkerCtor,jobId,sourceRefId,sourceRevision,sourceSha256,byteLength,
 }={}) {
   if(!valid(jobId)||!valid(sourceRefId)||!valid(sourceRevision)||
      !valid(sourceSha256)||!Number.isSafeInteger(byteLength)||byteLength<0)
@@ -33,6 +33,15 @@ export async function runRequiredWorkerJob({
   if(typeof worker.postMessage!=='function'||typeof worker.terminate!=='function'||
      (!browser&&!node))
     fail('INVALID_WORKER_PORT','real Worker-shaped asynchronous message and termination port required');
+  // U01 provenance is trusted at the application composition root, not from
+  // a fake Worker-shaped object or its self-asserted READY fields. Native
+  // browser Workers use the platform Worker constructor; Node WorkerThreads
+  // callers must explicitly inject node:worker_threads.Worker.
+  const platformWorkerCtor=trustedWorkerCtor??globalThis.Worker;
+  if(typeof platformWorkerCtor!=='function')
+    fail('WORKER_UNAVAILABLE','trusted platform Worker constructor is required');
+  if(!(worker instanceof platformWorkerCtor))
+    fail('INVALID_WORKER_PORT','injected execution port is not a trusted platform Worker instance');
 
   const source={jobId,sourceRefId,sourceRevision,sourceSha256,byteLength};
   return new Promise((resolve,reject)=>{
