@@ -8,7 +8,7 @@ import {xmlCiiRenderPreviewPhase} from '../../tabs/xml-cii-2019-standalone/ui-ad
 const mode = new URLSearchParams(location.search).get('case') || 'scale';
 const expectedMasterCounts = {linelist:385, pipingClass:10699, material:383, weight:1595};
 const events = [], longTasks = [], heartbeatGaps = [];
-let previousBeat = performance.now(), done = false;
+let previousBeat = performance.now(), done = false, clickStart = Infinity;
 const timer = setInterval(() => {
   const now = performance.now();
   heartbeatGaps.push(Math.max(0, now - previousBeat - 25));
@@ -20,7 +20,8 @@ addEventListener('unhandledrejection', (event) => {
 });
 addEventListener('error', (event) => events.push({type:'error',message:String(event.message)}));
 try {
-  new PerformanceObserver(list => longTasks.push(...list.getEntries().map(x => Number(x.duration.toFixed(2)))))
+  new PerformanceObserver(list => longTasks.push(...list.getEntries()
+      .filter(x => x.startTime >= clickStart).map(x => Number(x.duration.toFixed(2)))))
     .observe({entryTypes:['longtask']});
 } catch {}
 const finish = (record) => {
@@ -67,8 +68,7 @@ try {
   fixture.innerHTML=xmlCiiRenderPreviewPhase(new File([xml],'public-sys001.xml'),config);
   const host=fixture.querySelector('#mc-preview-table-host');
   if(!host?.querySelector('[data-mc-preview-build]')) throw Error('Real 4 Preview button missing');
-  const starts=performance.now();
-  let resolvedMs=null;
+  let starts=0, resolvedMs=null;
   const resolveStagedJsonText=()=> {
     resolvedMs=performance.now()-starts;
     if(mode==='reject') return Promise.reject(new Error('P0_STAGED_SOURCE_REJECTED_SENTINEL'));
@@ -83,6 +83,11 @@ try {
   await renderer.xmlCiiBuildAndRenderPreview(fixture,xml,config,options); // idle only, no computation
   const button=host.querySelector('[data-mc-preview-build]');
   if(!button) throw Error('Preview button disappeared before the click');
+  // Profiler is armed from Playwright after imports/setup; measure only the click.
+  globalThis.__PREVIEW_P0_READY__=true;
+  await new Promise(resolve=>{ globalThis.__PREVIEW_P0_TRIGGER__=resolve; });
+  heartbeatGaps.length=0;longTasks.length=0;
+  starts=performance.now();clickStart=starts;previousBeat=starts;
   button.click();
   const timeoutMs=mode==='reject'?1000:90000;
   const deadline=performance.now()+timeoutMs;
