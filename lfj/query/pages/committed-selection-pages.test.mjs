@@ -146,3 +146,89 @@ test('R09/U04 RED: cursor never survives new source SHA, scope, epoch or tamperi
    await assert.rejects(()=>f.request(second.cursor,1),e=>e?.code==='SOURCE_STALE');
  }finally{await f.close();}
 });
+
+test('R09/U04 semantic RED: late async staged write must be discarded AFTER abort',async()=>{
+ const f=await sourceView();
+ let staged=[],release,entered;
+ const atWrite=new Promise(resolve=>{entered=resolve;});
+ const store={
+   stagePage:async rows=>{
+     entered();
+     await new Promise(resolve=>{release=resolve;});
+     staged.push(...rows);
+   },
+   commit:async()=>{},abort:async()=>{staged=[];},
+   readRange:async()=>[]
+ };
+ const basis=sourceBasis(f.view.manifest);
+ const pager=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+ try{
+   const pending=pager.stageSelectedPage([f.opens[1]]);
+   await atWrite;
+   await pager.abort();
+   release();
+   await assert.rejects(pending,e=>e?.code==='STAGE_NOT_ACTIVE');
+   assert.deepEqual(staged,[],'late write after first abort cannot escape rollback');
+ }finally{await f.close();}
+});
+test('R09/U04 semantic RED: late storage commit must re-abort provisional publication',async()=>{
+ const f=await sourceView();
+ let rows=[],visible=null,release,entered;
+ const atCommit=new Promise(resolve=>{entered=resolve;});
+ const store={
+   stagePage:async p=>{rows.push(...p);},
+   commit:async manifest=>{
+     entered();
+     await new Promise(resolve=>{release=resolve;});
+     visible={manifest,rows:[...rows]};
+   },
+   abort:async()=>{rows=[];visible=null;},
+   readRange:async()=>visible?.rows??[]
+ };
+ const basis=sourceBasis(f.view.manifest);
+ const pager=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+ try{
+   await pager.stageSelectedPage([f.opens[1]]);
+   const promise=pager.commitSelection({
+     schema:'LFJ.OccurrenceSelectionSummary.v1',complete:true,
+     ...basis,selectedCount:1,scannedCount:f.opens.length,
+     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+   });
+   await atCommit;
+   await pager.abort();
+   release();
+   await assert.rejects(promise,e=>e?.code==='SELECTION_SUPERSEDED');
+   assert.equal(visible,null,'commit resolves after cancellation: late manifest must be rolled back');
+ }finally{await f.close();}
+});
+test('R09/U04 semantic RED: abort during indexed read may never return accepted page',async()=>{
+ const f=await sourceView();
+ let release,entered;
+ const atRead=new Promise(resolve=>{entered=resolve;});
+ let rows=[];
+ const store={
+   stagePage:async p=>{rows.push(...p);},
+   commit:async()=>{},
+   abort:async()=>{rows=[];},
+   readRange:async(start,n)=>{
+     const copy=rows.slice(start,start+n);
+     entered();
+     await new Promise(resolve=>{release=resolve;});
+     return copy;
+   }
+ };
+ const basis=sourceBasis(f.view.manifest);
+ const pager=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+ try{
+   await pager.stageSelectedPage([f.opens[1]]);
+   await pager.commitSelection({
+     schema:'LFJ.OccurrenceSelectionSummary.v1',complete:true,
+     ...basis,selectedCount:1,scannedCount:f.opens.length,
+     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+   });
+   const pending=pager.readPage({cursor:null,maxRows:1,maxBytes:65536,
+     sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+   await atRead;await pager.abort();release();
+   await assert.rejects(pending,e=>e?.code==='PAGE_SESSION_ABORTED');
+ }finally{await f.close();}
+});
