@@ -115,3 +115,32 @@ export function createSourcePageAckGate(post,{timeoutMs=5000}={}) {
     }
   });
 }
+
+
+/** R06 genuine byte-consumption receiver inside the SAME source-scanning Worker.
+ * Consumed source bytes are separately checked against R03 SHA by the R05
+ * Worker scan, and R07 will verify the complete R06 receipt before commit.
+ */
+export function receiveVerifiedSourceBytes(message,post){
+  if(message?.schema!=='LFJ.WorkerExecution.v1'||typeof post!=='function')return false;
+  const {kind,jobId,sourceRefId,sourceSha256,sourceRevision}=message;
+  if(typeof jobId!=='string'||!jobId||typeof sourceRefId!=='string'||!sourceRefId||
+     typeof sourceSha256!=='string'||!sourceSha256||typeof sourceRevision!=='string'||!sourceRevision)
+    return true;
+  if(kind==='START'){
+    post({...message,kind:'READY'});
+    return true;
+  }
+  if(kind!=='SOURCE_PAGE')return true;
+  const {startByte,endByteExclusive,bytes}=message;
+  if(!(bytes instanceof Uint8Array)||
+     !Number.isSafeInteger(startByte)||startByte<0||
+     !Number.isSafeInteger(endByteExclusive)||endByteExclusive<=startByte||
+     endByteExclusive-startByte!==bytes.length)return true;
+  let checksum=0;
+  for(const byte of bytes)checksum=(checksum+byte)>>>0;
+  const {bytes:discard,...basis}=message;
+  post({...basis,kind:'SOURCE_ACK',receivedBytes:bytes.length});
+  post({...basis,kind:'SOURCE_CONSUMED',consumedBytes:endByteExclusive,pageChecksum:checksum});
+  return true;
+}
