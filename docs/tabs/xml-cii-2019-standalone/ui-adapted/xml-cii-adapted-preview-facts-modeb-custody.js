@@ -129,7 +129,8 @@ export async function attestXmlCiiModeBSourceCustody({
       if(Number(n)>0)positive.add(Number(n));
     }
     const offset=i===0?0:Math.ceil(previousMaximum/manifest.offsetStep)*manifest.offsetStep;
-    const max=Math.max(0,...positive);
+    let max=0;
+    for(const value of positive)if(value>max)max=value;
     demand(Number.isSafeInteger(offset+max),'OFFSET_OVERFLOW',id);
     const numberMap=[...positive].sort((a,b)=>a-b).map(n=>({sourceNumber:n,outputNumber:n+offset}));
     demand(meta.offset===offset&&meta.positiveIdCount===positive.size
@@ -140,7 +141,7 @@ export async function attestXmlCiiModeBSourceCustody({
       const target=combined.pipes[combinedPipe++];
       demand(Boolean(target),'COMBINED_PIPE_MISSING',id+'/Pipe['+j+']');
       childSignature(pipe,target,offset,id+'/Pipe['+j+']');
-      expectedIDs.push(...nodeIds(pipe,id,count));
+      for(const occurrenceId of nodeIds(pipe,id,count))expectedIDs.push(occurrenceId);
     }
     sourceTotals.push({sourceId:id,pipeCount:count.pipeCount,
       branchCount:count.branches,nodeCount:count.nodes,offset});
