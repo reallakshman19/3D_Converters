@@ -1814,6 +1814,10 @@
         {
           "responsibility_id": "R02",
           "ref": "reallaksh19/3D_Converters#1064"
+        },
+        {
+          "responsibility_id": "R05",
+          "ref": "reallaksh19/3D_Converters#1068"
         }
       ]
     }
@@ -1822,7 +1826,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 103
+      "reserve_weight": 98
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2069,6 +2073,69 @@
       ],
       "primary_pr": "reallaksh19/3D_Converters#1067",
       "candidate_ref": "lfj/r02-source-ownership"
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1068",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R05",
+      "work_class": "PRODUCT",
+      "outcome": "Every ordered source occurrence has a distinct revision-bound path and truthful ancestry and raw-byte span.",
+      "independence_basis": "Independent recursive source occurrence and span census. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C2_INDEX"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/index/"
+      ],
+      "acceptance_methods": [
+        "Independent recursive source occurrence and span census",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1064",
+        "reallaksh19/3D_Converters#1062"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "All descendants are represented",
+          "verify": "Independent oracle: Independent recursive source occurrence and span census; outcome: All descendants are represented"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Identical names retain distinct identity",
+          "verify": "Independent oracle: Independent recursive source occurrence and span census; outcome: Identical names retain distinct identity"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Parent and span relationships are exact",
+          "verify": "Independent oracle: Independent recursive source occurrence and span census; outcome: Parent and span relationships are exact"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Source mismatch invalidates indexed facts",
+          "verify": "Independent oracle: Independent recursive source occurrence and span census; outcome: Source mismatch invalidates indexed facts"
+        }
+      ]
     }
   ],
   "plan_updates": [
