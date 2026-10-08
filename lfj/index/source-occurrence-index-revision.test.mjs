@@ -19,10 +19,11 @@ async function scan(snapshot,overrides={}){
  const all=pages.flat();
  return {result,all,roots:all.filter(e=>e.kind==='OPEN'&&e.path==='')};
 }
-test('U04 RED: same-length original JSON edit with same source revision invalidates occurrence ID',async()=>{
+test('U04 R03 snapshots bind digest to revision, so same-length edits change occurrence identity',async()=>{
  const first=source('{"a":1}'),changed=source('{"a":2}');
  assert.equal(first.byteLength,changed.byteLength);
- assert.equal(first.revision,changed.revision);
+ assert.notEqual(first.revision,changed.revision,
+   'R03 finalizes revisions with the exact SHA, even for an unchanged caller revision');
  assert.notEqual(first.sha256,changed.sha256);
  const a=await scan(first),b=await scan(changed);
  assert.equal(a.roots.length,1);assert.equal(b.roots.length,1);
