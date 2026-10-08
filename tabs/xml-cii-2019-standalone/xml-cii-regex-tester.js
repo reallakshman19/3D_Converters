@@ -1,4 +1,5 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
+import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
 
 const SAMPLE_LIMIT = 2000;
 const SAMPLE_CACHE_LIMIT = 3;
@@ -137,10 +138,8 @@ function mergeConfig(config = {}) {
       rating: { ...defaults.formats[0].rating, ...safeObject(source.rating) },
       bore: { ...defaults.formats[0].bore, ...safeObject(source.bore) },
     };
-    formats = [
-      { ...singleFormat },
-      { ...defaults.formats[1] }
-    ];
+    // A legacy single-format config must not silently enable a second format.
+    formats = [singleFormat];
   } else {
     formats = formats.map((f, i) => {
       const defF = defaults.formats[i] || defaults.formats[0];
@@ -257,9 +256,11 @@ function writeRegexConfig(supportConfigJson, extractionConfig) {
   const cfg = mergeConfig(extractionConfig);
   config.regexTester = cfg;
   const f0 = cfg.formats[0];
+  if (f0) {
   config.linelist = { ...safeObject(config.linelist), branchNameRegex: f0.lineKey.regex, lineNoGroup: f0.lineKey.group, tokenDelimiter: f0.tokenDelimiter, lineKeyTokenPositions: String(f0.lineKey.tokenPosition || ''), lineKeyJoiner: f0.lineKeyJoiner };
   config.rating = { ...safeObject(config.rating), pipingClassRegex: f0.pipingClass.regex, pipingClassGroup: f0.pipingClass.group, ratingRegex: f0.rating.regex, ratingGroup: f0.rating.group, tokenDelimiter: f0.tokenDelimiter, pipingClassTokenIndex: f0.pipingClass.tokenPosition, ratingSequence: cfg.ratingSequence };
   config.weight = { ...safeObject(config.weight), boreRegex: f0.bore.regex, boreGroup: f0.bore.group, tokenDelimiter: f0.tokenDelimiter, boreTokenIndex: f0.bore.tokenPosition };
+  }
   
   // also store formats array in config for downstream parser usage if necessary
   config.formats = cfg.formats;
@@ -273,18 +274,13 @@ export function runStandaloneRegexTester(input = {}) {
   if (sourceKind === 'inputxml') return inputXmlNotRequired(extractionConfig, input.supportConfigJson);
   const branchSamples = parseStandaloneRegexBranchSamples(sourceText);
   const rows = branchSamples.map((sample) => {
-    const row1 = extractionRow(sample, extractionConfig.formats[0], extractionConfig.ratingSequence);
-    if (row1.status === 'MATCHED') {
-      row1.matchedFormatIndex = 0;
-      return row1;
-    }
-    const row2 = extractionRow(sample, extractionConfig.formats[1], extractionConfig.ratingSequence);
-    if (row2.status === 'MATCHED') {
-      row2.matchedFormatIndex = 1;
-      return row2;
-    }
-    row1.matchedFormatIndex = 0;
-    return row1;
+    const identity = extractBranchFieldsWithFormats(sample.branchName || sample.lineReference, extractionConfig);
+    return {
+      ...sample,
+      ...identity,
+      status: identity.status === 'MATCHED' ? 'MATCHED' : 'REJECTED',
+      extractionStatus: identity.status,
+    };
   });
   const matchedRows = rows.filter((row) => row.status === 'MATCHED');
   const rejectedRows = rows.filter((row) => row.status !== 'MATCHED');
