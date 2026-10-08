@@ -11,6 +11,7 @@ on:
       - 'tabs/model-converters/index.js'
       - 'docs/tabs/model-converters/index.js'
       - 'tests/model-converters/test-att-native-runtime-cache-chain.mjs'
+      - 'tests/model-converters/test-att-native-converter-outputs.mjs'
       - 'scripts/att-native-aml-golden-check.mjs'
       - '.github/workflows/att-native-runtime-h5.yml'
   workflow_dispatch:
@@ -37,3 +38,4 @@ jobs:
           node tests/model-converters/test-att-native-tree-projection.mjs
           node tests/model-converters/test-att-native-scope-selection.mjs
           node tests/model-converters/test-att-native-conversion-scope.mjs
+          node tests/model-converters/test-att-native-converter-outputs.mjs
