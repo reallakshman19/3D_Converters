@@ -12,12 +12,15 @@ try {
     page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));
     const cdp=await page.context().newCDPSession(page);
     await cdp.send('Profiler.enable');
-    await cdp.send('Profiler.start');
+    let profilerStarted=false;
     let result;
     const began=Date.now();
     try{
       await page.goto(`${base}/tests/browser/xml-cii-preview-p0-red.html?case=${mode}`,
         {waitUntil:'domcontentloaded',timeout:60000});
+      await page.waitForFunction(()=>globalThis.__PREVIEW_P0_READY__===true,null,{timeout:15000});
+      await cdp.send('Profiler.start');profilerStarted=true;
+      await page.evaluate(()=>globalThis.__PREVIEW_P0_TRIGGER__());
       await page.waitForFunction(()=>Boolean(globalThis.__PREVIEW_P0_RED_RESULT__),
         null,{timeout:mode==='scale'?120000:15000});
       result=await page.evaluate(()=>globalThis.__PREVIEW_P0_RED_RESULT__);
@@ -25,7 +28,7 @@ try {
       result={mode,status:'BROWSER_OR_HARNESS_TIMEOUT',error:String(error),
         caveat:'A timeout is failure evidence, not completed Preview'};
     }
-    const profile=await cdp.send('Profiler.stop').catch(()=>({profile:null}));
+    const profile=profilerStarted?await cdp.send('Profiler.stop').catch(()=>({profile:null})):{profile:null};
     const profiles=profile.profile;
     if(profiles){
       const frames=new Map((profiles.nodes||[]).map(n=>[n.id,n.callFrame]));
