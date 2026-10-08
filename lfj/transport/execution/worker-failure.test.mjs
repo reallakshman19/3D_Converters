@@ -81,3 +81,21 @@ test('U04 RED: throwing progress observer refuses completed receipt and cleans W
   await gone(worker);
  }finally{await worker.terminate();s.snapshot.close();}
 });
+
+
+for(const [mode,expected] of [
+ ['no-ack','WORKER_ACK_TIMEOUT'],
+ ['double-ack','WORKER_PROTOCOL'],
+ ['consumed-before-ack','WORKER_PROTOCOL'],
+]){
+ test('U04 terminal: '+mode+' never permits consumption and kills Worker',async()=>{
+  const s=source(),worker=workerFor(mode),progress=[];
+  try{
+   await assert.rejects(()=>transfer(worker,s,r=>progress.push(r)),
+     e=>e?.code===expected);
+   assert.deepEqual(progress,[],'no consumed progress before exact ACK+consume');
+   assert.deepEqual(s.reads,[[0,4096]],'no subsequent source range read');
+   await gone(worker);
+  }finally{await worker.terminate();s.snapshot.close();}
+ });
+}
