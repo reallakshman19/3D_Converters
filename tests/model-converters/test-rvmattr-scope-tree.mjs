@@ -65,7 +65,7 @@ assert.match(shell, /installRvmAttrScopeTreeAddon/);
 assert.match(shell, /rvmattr-scope-tree-addon\.js\?v=20260802-rvm-full-scope-tree-1/);
 // The scope addon retains its own release. Shared parents advance when any
 // converter dependency changes; verify the actual fresh parent URLs separately.
-assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261008-txt-tree-ux-r3-1/);
-assert.match(shim, /model-converters\/index\.js\?v=20261008-txt-tree-ux-r3-1/);
+assert.match(indexSource, /ModelConvertersTab-fbx2-managed-reference\.js\?v=20261008-txt-tree-ux-r5-1/);
+assert.match(shim, /model-converters\/index\.js\?v=20261008-txt-tree-ux-r5-1/);
 
 console.log('test-rvmattr-scope-tree: PASS');
