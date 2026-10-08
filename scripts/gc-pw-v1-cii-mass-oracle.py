@@ -224,7 +224,8 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
     groups = ledger.get("groups")
     if not isinstance(groups, list):
         fail("GROUPS_REQUIRED", "groups")
-    used = {}
+    used = {}  # Only CII RIGID indexes may be keys here.
+    group_ids = set()  # Physical group identity is a different key domain.
     accounted = set()
     for g in groups:
         obj(g, "groups[]")
@@ -238,9 +239,9 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
         if (source_id, component) in accounted:
             fail("DUPLICATE_PHYSICAL_COMPONENT", component)
         accounted.add((source_id, component))
-        if group_id in used:
+        if group_id in group_ids:
             fail("DUPLICATE_PHYSICAL_GROUP", group_id)
-        used[group_id] = True
+        group_ids.add(group_id)
         action = text(g.get("finalAction"), "finalAction")
         key = (source_id, component)
         match1 = review_maps["RigidMatch1"].get(key)
