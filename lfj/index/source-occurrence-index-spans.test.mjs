@@ -53,37 +53,49 @@ test('U03 original UTF8 half-open byte spans for nested composites, Unicode, sca
  source.close();
 });
 
-test('U03 RED: opt-in bounded scalar facts preserve exact own attributes, no descendant owner pollution',async()=>{
- const source=snap(),{open}=await events(source,{includeScalarValues:true});
- const name=at(open,'/hierarchy/0/name');
- const parentType=at(open,'/hierarchy/0/type');
- const childType=at(open,'/hierarchy/0/children/0/type');
- const childZone=at(open,'/hierarchy/0/children/0/attributes/OWNER_ZONE');
- const lexicalNumber=at(open,'/tail');
- assert.equal(name.value,'β💡');
- assert.equal(parentType.value,'BRANCH');
- assert.equal(childType.value,'VALVE');
- assert.equal(childZone.value,'/Z-CHILD');
- assert.equal(lexicalNumber.value,'1.20e+03','retain exact source decimal, do not JS-round engineering facts');
- // Construct only two explicitly listed node occurrences. OWN attributes are
- // taken from exact direct JSON Pointer children, not ancestor-subtree regex.
+test('U03 source-local ownAttributes SEAL byte proof never attaches child owner to ancestor',async()=>{
+ const source=snap(),{open,seal}=await events(source);
+ const parent=at(open,'/hierarchy/0'),child=at(open,'/hierarchy/0/children/0');
+ const pAttrs=at(open,'/hierarchy/0/attributes');
+ const cAttrs=at(open,'/hierarchy/0/children/0/attributes');
+ const byOpen=x=>seal.find(e=>e.occurrenceId===x.occurrenceId);
+ const pSeal=byOpen(pAttrs),cSeal=byOpen(cAttrs);
+ assert.deepEqual(pSeal.ownAttributes,{
+   ownerOccurrenceId:parent.occurrenceId,startByte:pAttrs.startByte,
+   endByteExclusive:pSeal.endByteExclusive,
+ });
+ assert.deepEqual(cSeal.ownAttributes,{
+   ownerOccurrenceId:child.occurrenceId,startByte:cAttrs.startByte,
+   endByteExclusive:cSeal.endByteExclusive,
+ });
+ assert.equal(byOpen(at(open,'/hierarchy/0/children')).ownAttributes,undefined);
+ const directOwn=async ref=>{
+   assert.ok(ref.endByteExclusive-ref.startByte<=4096,
+     'this test attests only a small bounded OWN-attribute object');
+   const sourceBytes=await source.readRange(ref.startByte,ref.endByteExclusive,source.revision);
+   return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(sourceBytes));
+ };
+ const parentOwn=await directOwn(pSeal.ownAttributes);
+ const childOwn=await directOwn(cSeal.ownAttributes);
+ assert.deepEqual(parentOwn,{});
+ assert.deepEqual(childOwn,{OWNER_ZONE:'/Z-CHILD'});
+ // Type and name are independent pinned source fixture facts, not inferred
+ // from descendant strings or guessed by an engineering identity mapper.
  const facts=[
-  {sourceId:'REAL-PL01',occurrenceId:at(open,'/hierarchy/0').occurrenceId,
-   parentOccurrenceId:null,type:parentType.value,name:name.value,attributes:{}},
-  {sourceId:'REAL-PL01',occurrenceId:at(open,'/hierarchy/0/children/0').occurrenceId,
-   parentOccurrenceId:at(open,'/hierarchy/0').occurrenceId,type:childType.value,
-   name:at(open,'/hierarchy/0/children/0/name').value,
-   attributes:{OWNER_ZONE:childZone.value}},
+   {sourceId:'REAL-PL01',occurrenceId:parent.occurrenceId,parentOccurrenceId:null,
+     type:'BRANCH',name:'β💡',attributes:parentOwn},
+   {sourceId:'REAL-PL01',occurrenceId:child.occurrenceId,
+     parentOccurrenceId:parent.occurrenceId,type:'VALVE',name:'V',attributes:childOwn},
  ];
  const owned=resolveSourceOwners(facts);
- assert.equal(owned[0].ownerZone,null,'child-owned OWNER_ZONE must not attach to parent');
+ assert.equal(owned[0].ownerZone,null,'child must not contaminate parent');
  assert.equal(owned[1].ownerZone,'/Z-CHILD');
- assert.equal(owned[1].ownerZoneSource,facts[1].occurrenceId);
+ assert.equal(owned[1].ownerZoneSource,child.occurrenceId);
  assert.equal(owned[0].engineeringReady,false);
  source.close();
 });
 
-test('U03 opt-in is explicit: default original occurrence pages do not disclose scalar payloads',async()=>{
+test('U03 index events never disclose arbitrary scalar payloads',async()=>{
  const source=snap(),{open}=await events(source);
  for(const row of open) assert.equal(Object.hasOwn(row,'value'),false);
  source.close();
