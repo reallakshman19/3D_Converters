@@ -64,27 +64,31 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     if(!parent){
       if(rootSeen)fail('INDEX_EVENT_SEQUENCE','multiple root values');
       rootSeen=true;
-      return {path:'',parentId:null};
+      return {path:'',parentId:null,localAttributesOwnerId:null};
     }
-    let member;
+    let member,localAttributesOwnerId=null;
     if(parent.type==='array'){
       member=String(parent.nextIndex++);
     }else{
       if(parent.pendingKey===null)fail('INDEX_EVENT_SEQUENCE','object value lacks verified own key');
+      // Only this *direct* object property can serve as an own-attribute
+      // source reference. A descendant attribute never belongs to an ancestor.
+      if(parent.pendingKey==='attributes')localAttributesOwnerId=parent.occurrenceId;
       member=escapePointer(parent.pendingKey);
       parent.pendingKey=null;
     }
-    return {path:parent.path+'/'+member,parentId:parent.occurrenceId};
+    return {path:parent.path+'/'+member,parentId:parent.occurrenceId,localAttributesOwnerId};
   }
   async function open(token,type){
     if(opened>=maxOccurrences)
       fail('OCCURRENCE_LIMIT','original JSON has more values than permitted');
-    const {path,parentId}=nextPath();
+    const {path,parentId,localAttributesOwnerId}=nextPath();
     const ordinal=opened++;
     const id=occurrenceId(sourceRefId,snapshot.revision,path);
     const record={occurrenceId:id,ordinal,path,parentId,type,startByte:token.startByte};
     await publish({kind:'OPEN',...record});
-    return record;
+    // Internal provenance only; emitted OPEN wire shape is unchanged.
+    return {...record,localAttributesOwnerId:type==='object'?localAttributesOwnerId:null};
   }
   async function seal(record,endByteExclusive){
     if(endByteExclusive<=record.startByte)
@@ -93,6 +97,10 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     await publish({
       kind:'SEAL',occurrenceId:record.occurrenceId,ordinal:record.ordinal,
       endByteExclusive,
+      ...(record.localAttributesOwnerId ? {ownAttributes:Object.freeze({
+        ownerOccurrenceId:record.localAttributesOwnerId,
+        startByte:record.startByte,endByteExclusive,
+      })} : {}),
     });
   }
   async function onToken(token){
