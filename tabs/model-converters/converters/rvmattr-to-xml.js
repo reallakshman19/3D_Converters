@@ -242,6 +242,10 @@ function mergeStageLogs(stages) {
 
 function buildRvmAttrResponseFromAttText(attText, inputName, options) {
   const stem = baseNameWithoutExtension(inputName || 'RMSS_ATTRIBUTE');
+  const nativeScope = options?.rvmScope?.nativeScope;
+  if (nativeScope?.mode === 'SELECTED' && (!Array.isArray(nativeScope.rules) || !nativeScope.rules.length)) {
+    throw new Error('Selected native ATT scope missing source-ID membership rules.');
+  }
   const parsedHierarchy = parseRmssAttributes(attText, options.rvmRouting);
   const scope = _filterStagedHierarchyByScope(parsedHierarchy, options?.rvmScope);
   const hierarchy = scope.hierarchy;
@@ -250,7 +254,14 @@ function buildRvmAttrResponseFromAttText(attText, inputName, options) {
   }
   const xmlFromAtt = _buildPsiXmlFromRmssHierarchy(hierarchy, inputName, options);
   let attStpText = null;
-  const structMembers = filterStpMembersByScope(parseRmssStructuralMembers(attText), scope.scope);
+  // Exact structural ownership comes from the original ATT NAME/OWNER graph,
+  // not from wildcard-only label matching or a branch-derived prefix guess.
+  const nativeFiltered = nativeScope?.mode === 'SELECTED';
+  const structCandidates = parseRmssStructuralMembers(
+    attText, nativeFiltered ? { nativeRules: nativeScope.rules } : {},
+  );
+  const structMembers = nativeFiltered ? structCandidates
+    : filterStpMembersByScope(structCandidates, scope.scope);
   if (structMembers.length > 0) {
     attStpText = buildStpTextFromMembers(structMembers, `${stem}_supports.stp`);
   } else {
@@ -335,6 +346,9 @@ export async function run(context) {
   const scope = normalizeRvmScope(runValues?.rvmScope);
 
   if (scope.enabled && secondary) {
+    if (runValues?.rvmScope?.nativeScope?.mode === 'SELECTED') {
+      throw new Error('Selected native ATT zones cannot yet be applied to binary RVM geometry by the native bridge. RVM+ATT partial conversion is blocked to prevent a false scoped result. Run ATT-only for scoped piping exports, or full RVM conversion.');
+    }
     const attText = fileText(secondary) || (secondaryBytes ? decodeTextUtf8(secondaryBytes) : '');
     return buildRvmAttrResponseFromAttText(attText, secondary.name || primary.name, runValues);
   }

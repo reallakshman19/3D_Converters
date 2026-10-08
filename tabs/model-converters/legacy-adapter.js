@@ -14,6 +14,7 @@ import {
   validateConverterWorkerResponse,
 } from '../../converters/worker-contract.js';
 import { parseRmssAttributes, parseRmssStructuralMembers } from '../../converters/rmss-attribute-parser.js';
+import { openAttNativeScopePopup } from './att-native-scope-popup.js?v=20261008-native-att-selection-1';
 import { rvmScopeRegex } from '../../converters/rvm-scope-pattern.js';
 import { parseStpSupportMembers } from '../../parser/stp-support-parser.js';
 import { getAllRules, resolveKindFromAttrs, renderSupportMapperPanel } from '../../rvm-viewer/RvmSupportMapper.js?v=20260518-support-mapper-11';
@@ -9446,11 +9447,9 @@ export function renderModelConvertersTab(container) {
       if (selectedConverter === 'rvmattr_to_xml') {
         let scopeSelection = { cancelled: false, wildcard: '', selectedIds: [] };
         if (secondaryBytes) {
-          const attTextForScope = _decodeTextUtf8(secondaryBytes);
-          const hierarchyForScope = parseRmssAttributes(attTextForScope, state.rvm?.routing);
-          scopeSelection = await _openRvmAttributeScopePopup(
+          scopeSelection = await openAttNativeScopePopup(
             primaryFile?.name || secondaryFile?.name || 'RVM Attribute conversion',
-            hierarchyForScope,
+            secondaryBytes,
           );
           if (scopeSelection.cancelled) {
             const message = 'Cancelled: ATT/RVM hierarchy selection was dismissed.';

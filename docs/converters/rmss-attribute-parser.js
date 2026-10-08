@@ -1032,14 +1032,40 @@ const STRUCT_PATH_RE = /\b(STRUCTURE|FRMWORK|FRAMEWORK|FRMW|STRU|PIPESUPP)\b/i;
  * POS. Output members are visible line segments; single-point supports get a
  * short stub later in the STEP writer.
  */
-export function parseRmssStructuralMembers(content) {
+function nativeMemberPredicate(blocks, options) {
+  if (!Array.isArray(options?.nativeRules)) return () => true;
+  const rules = new Map(options.nativeRules);
+  if (!rules.size) throw new Error('Native selected scope must include explicit source-ID rules.');
+  const owners = new Map();
+  for (const block of blocks) {
+    const id = String(block?.attributes?.NAME || block?.id || '').trim();
+    if (!id) continue;
+    if (owners.has(id)) throw new Error('Ambiguous native ATT record identity: ' + id);
+    owners.set(id, String(block?.attributes?.OWNER || '').trim());
+  }
+  return (id) => {
+    let current = id;
+    const seen = new Set();
+    while (current && !seen.has(current)) {
+      if (rules.has(current)) return rules.get(current) === true;
+      seen.add(current);
+      current = owners.get(current) || '';
+    }
+    if (current) throw new Error('Cyclic ATT owner path for ' + id);
+    return false;
+  };
+}
+
+export function parseRmssStructuralMembers(content, options = {}) {
   const blocks = parseTextBlocks(content);
+  const nativeSelected = nativeMemberPredicate(blocks, options);
   const members = [];
   for (const block of blocks) {
     const rawType = normalizeToken(block?.attributes?.TYPE || '');
     const name  = String(block?.attributes?.NAME  || '').trim();
     const owner = String(block?.attributes?.OWNER || '').trim();
     const blockId = String(block?.id || '').trim();
+    if (!nativeSelected(name || blockId)) continue;
     const dtxr = String(block?.attributes?.DTXR   || '').trim();
     const ref  = String(block?.attributes?.REF    || block?.attributes?.DBREF || block?.attributes?.REFNO || '').trim();
 
@@ -1087,12 +1113,12 @@ export function parseRmssStructuralMembers(content) {
       const key = `${start.x.toFixed(3)},${start.y.toFixed(3)},${start.z.toFixed(3)}|${end.x.toFixed(3)},${end.y.toFixed(3)},${end.z.toFixed(3)}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
-      members.push({ label, kind, start, end });
+      members.push({ label, kind, start, end, sourceName: name || blockId, sourceOwner: owner });
       pushed = true;
     }
 
     if (!pushed && points.POS) {
-      members.push({ label, kind, start: points.POS, end: points.POS });
+      members.push({ label, kind, start: points.POS, end: points.POS, sourceName: name || blockId, sourceOwner: owner });
     }
   }
   return members;

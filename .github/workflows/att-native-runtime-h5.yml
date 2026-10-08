@@ -1,0 +1,41 @@
+name: ATT Native Runtime H5
+on:
+  pull_request:
+    paths:
+      - 'tabs/model-converters-tab.js'
+      - 'docs/tabs/model-converters-tab.js'
+      - 'tabs/model-converters/ModelConvertersTab.js'
+      - 'docs/tabs/model-converters/ModelConvertersTab.js'
+      - 'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'
+      - 'docs/tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'
+      - 'tabs/model-converters/index.js'
+      - 'docs/tabs/model-converters/index.js'
+      - 'tests/model-converters/test-att-native-runtime-cache-chain.mjs'
+      - 'tests/model-converters/test-att-native-converter-outputs.mjs'
+      - 'scripts/att-native-aml-golden-check.mjs'
+      - '.github/workflows/att-native-runtime-h5.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime-source-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce deployed source docs mirrors
+        run: |
+          for f in tabs/model-converters-tab.js tabs/model-converters/ModelConvertersTab.js tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js tabs/model-converters/index.js; do cmp "$f" "docs/$f"; done
+      - name: Scope runtime and regression
+        run: |
+          node --check scripts/att-native-aml-golden-check.mjs
+          node tests/model-converters/test-att-native-runtime-cache-chain.mjs
+          node tests/model-converters/test-rvmattr-scope-tree.mjs
+          node tests/model-converters/test-att-native-hierarchy-index.mjs
+          node tests/model-converters/test-att-native-tree-projection.mjs
+          node tests/model-converters/test-att-native-scope-selection.mjs
+          node tests/model-converters/test-att-native-conversion-scope.mjs
+          node tests/model-converters/test-att-native-converter-outputs.mjs
