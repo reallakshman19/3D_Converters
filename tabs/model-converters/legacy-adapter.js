@@ -14,7 +14,7 @@ import {
   validateConverterWorkerResponse,
 } from '../../converters/worker-contract.js';
 import { parseRmssAttributes, parseRmssStructuralMembers } from '../../converters/rmss-attribute-parser.js';
-import { openAttNativeScopePopup } from './att-native-scope-popup.js?v=20261008-native-att-selection-1';
+import { openAttNativeScopePopup } from './att-native-scope-popup.js?v=20261008-txt-tree-ux-r5-1';
 import { rvmScopeRegex } from '../../converters/rvm-scope-pattern.js';
 import { parseStpSupportMembers } from '../../parser/stp-support-parser.js';
 import { getAllRules, resolveKindFromAttrs, renderSupportMapperPanel } from '../../rvm-viewer/RvmSupportMapper.js?v=20260518-support-mapper-11';

@@ -112,3 +112,20 @@ export function attScopePartiallyExcludedBranches(index, selection) {
   }
   return Object.freeze([...violations]);
 }
+
+/** Remove an explicit source-ID include/exclude override, restoring inherited state. */
+export function removeAttScopeRule(index, selection, id) {
+  if (!index.byId.has(id)) throw new Error('Unknown native ATT identity: ' + id);
+  const rules = new Map(selection?.rules || []);
+  rules.delete(id);
+  return Object.freeze({ rules });
+}
+
+/** Stable view of explicit choices. The underlying ID rules remain the authority. */
+export function listAttScopeRules(index, selection) {
+  return Object.freeze([...selection?.rules || []].map(([id, checked]) => {
+    const record = index.byId.get(id);
+    if (!record) throw new Error('Unknown native ATT identity: ' + id);
+    return Object.freeze({ id, name: record.name, type: record.type, checked });
+  }));
+}

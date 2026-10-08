@@ -1,0 +1,59 @@
+name: Native TXT Hierarchy UX R1 R2
+on:
+  pull_request:
+    paths:
+      - 'tabs/model-converters/att-native-tree-browser.js'
+      - 'docs/tabs/model-converters/att-native-tree-browser.js'
+      - 'tabs/model-converters/att-native-scope-popup.js'
+      - 'docs/tabs/model-converters/att-native-scope-popup.js'
+      - 'tabs/model-converters/legacy-adapter.js'
+      - 'docs/tabs/model-converters/legacy-adapter.js'
+      - 'tabs/model-converters/ModelConvertersTab.js'
+      - 'docs/tabs/model-converters/ModelConvertersTab.js'
+      - 'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'
+      - 'docs/tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'
+      - 'tabs/model-converters/index.js'
+      - 'docs/tabs/model-converters/index.js'
+      - 'tabs/model-converters-tab.js'
+      - 'docs/tabs/model-converters-tab.js'
+      - 'tests/model-converters/test-att-native-tree-browser.mjs'
+      - 'tests/model-converters/test-att-native-scope-selection.mjs'
+      - 'tests/model-converters/test-att-native-runtime-cache-chain.mjs'
+      - 'tests/model-converters/test-rvmattr-scope-tree.mjs'
+      - '.github/workflows/att-native-txt-tree-ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contextual-virtual-tree:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce source/docs mirrors
+        run: |
+          set -eu
+          for f in tabs/model-converters/att-native-tree-browser.js tabs/model-converters/att-native-scope-popup.js tabs/model-converters/legacy-adapter.js tabs/model-converters/ModelConvertersTab.js tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js tabs/model-converters/index.js tabs/model-converters-tab.js; do
+            cmp "$f" "docs/$f"
+          done
+      - name: Native TXT graph and UX regressions
+        run: |
+          set -eu
+          node --check tabs/model-converters/att-native-tree-browser.js
+          node --check tabs/model-converters/att-native-scope-popup.js
+          node --check tabs/model-converters/legacy-adapter.js
+          node tests/model-converters/test-att-native-tree-browser.mjs
+          node tests/model-converters/test-att-native-hierarchy-index.mjs
+          node tests/model-converters/test-att-native-tree-projection.mjs
+          node tests/model-converters/test-att-native-scope-selection.mjs
+          node tests/model-converters/test-att-native-conversion-scope.mjs
+          node tests/model-converters/test-att-native-converter-outputs.mjs
+          node tests/model-converters/test-att-native-runtime-cache-chain.mjs
+          node tests/model-converters/test-rvmattr-scope-tree.mjs
+      - name: Honest fixture qualification boundary
+        run: |
+          echo "PASS only when exact-head synthetic >105k tree and ATT output oracles pass"
+          echo "Real owner 90MB Chromium interaction remains pending UX-R4"
