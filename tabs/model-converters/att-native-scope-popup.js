@@ -25,8 +25,8 @@ export async function openAttNativeScopePopup(name, bytes) {
     '<div style="padding:8px;display:flex;gap:8px;flex-wrap:wrap;">',
     '<input type="search" data-native-search placeholder="Find any native name or type" aria-label="Search complete ATT source" style="flex:1;min-width:200px;">',
     '<span data-native-page></span><button data-native-prev>Previous</button><button data-native-next>Next</button></div>',
-    '<div data-native-rows role="tree" aria-label="Native source hierarchy" style="flex:1;overflow:auto;padding:8px;"></div>',
-    '<details data-expected-panel style="padding:8px 12px;border-top:1px solid #45516b;">',
+    '<div data-native-rows role="tree" aria-label="Native source hierarchy" style="flex:1 1 auto;min-height:80px;overflow:auto;padding:8px;"></div>',
+    '<details data-expected-panel style="padding:8px 12px;border-top:1px solid #45516b;max-height:35vh;overflow:auto;flex-shrink:0;">',
     '<summary>Compare expected Site / Zone list with this ATT file</summary>',
     '<p style="font-size:12px;margin:6px 0;">Paste exact native names copied from a separate model inventory. Each line: SITE /NAME or ZONE /NAME OWNER=/PARENT. Or paste JSON with nodes[] and complete:true for a full inventory. This does not read NWD/RVM automatically.</p>',
     '<textarea data-expected-entries aria-label="Expected Site or Zone identities" rows="3" placeholder="SITE /ASIM-1885-CU-PL&#10;ZONE /ASIM-1885-CU-PL-S OWNER=/ASIM-1885-CU-PL" style="width:100%;box-sizing:border-box;background:#0e1624;color:#fff;border:1px solid #77869f;border-radius:5px;"></textarea>',
@@ -135,6 +135,8 @@ export async function openAttNativeScopePopup(name, bytes) {
       if (!file) return;
       expectedReport = null;
       checkedExpectedText = '';
+      expectedInput.value = 'EXPECTED_INVENTORY_LOADING';
+      displayCoverage(null); // close the async read window before trusting file contents
       try {
         expectedInput.value = await file.text();
         displayCoverage(null);
@@ -161,6 +163,7 @@ export async function openAttNativeScopePopup(name, bytes) {
     });
     el('[data-clear-expected]').addEventListener('click', () => {
       expectedInput.value = '';
+      el('[data-expected-file]').value = '';
       expectedReport = null;
       checkedExpectedText = '';
       displayCoverage(null);
