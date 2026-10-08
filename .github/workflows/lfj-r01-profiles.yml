@@ -8,6 +8,8 @@ on:
       - 'lfj/contracts/profiles/**'
       - '.github/workflows/lfj-r01-profiles.yml'
   pull_request:
+    branches:
+      - lfj/structured-data-plan-v4
     paths:
       - 'lfj/contracts/profiles/**'
       - '.github/workflows/lfj-r01-profiles.yml'
