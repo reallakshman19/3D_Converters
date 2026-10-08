@@ -1,7 +1,10 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
-import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
+import {
+  ensureResolverHierarchyScope,
+  renderResolverHierarchyScopeControl,
+} from './xml-cii-adapted-resolver-scope.js';
 import {
   XML_NODE_TRACE_HEADERS,
   buildEvidenceTreeRows,
@@ -212,10 +215,11 @@ function renderDelimiterControls(parent, state) {
   parent.appendChild(bar);
 }
 
-function renderResolverIndex(parent, state) {
+function renderResolverIndex(parent, state, stateRef, render, scopeState) {
   const result = state.resolverJsonTraceResult;
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(createElement('h3', 'Resolver Index'));
+  renderResolverHierarchyScopeControl(section, stateRef, render, scopeState);
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
   const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
   if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
@@ -335,14 +339,8 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   }
 
   const subTabId = state.jsonTraceActiveSubTabId || 'index';
-  let result = state.resolverJsonTraceResult;
-  if (!result && state.sourceText && state.stagedJsonText) {
-    result = runStandaloneResolverJsonTrace({ sourceText: state.sourceText, stagedJsonText: state.stagedJsonText, jsonConfig: state.resolverJsonTraceConfig, supportConfigJson: state.supportConfigJson });
-    if (stateRef?.current) {
-      stateRef.current.resolverJsonTraceResult = result;
-      stateRef.current.resolverJsonTraceJsonResult = result;
-    }
-  }
+  const result = state.resolverJsonTraceResult;
+  const scopeState = ensureResolverHierarchyScope(state, stateRef);
 
   const container = createElement('div', '', 'xml-cii-sub-tabs-layout');
   const rail = createElement('nav', '', 'xml-cii-sub-nav-rail');
@@ -377,7 +375,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
 
   const workspace = createElement('div', '', 'xml-cii-sub-workspace');
   if (subTabId === 'index') {
-    renderResolverIndex(workspace, state);
+    renderResolverIndex(workspace, state, stateRef, render, scopeState);
     renderJsonConfig(workspace, state);
   } else if (subTabId === 'tableImport') {
     renderStandaloneTraceTableImportPanel(workspace, state);

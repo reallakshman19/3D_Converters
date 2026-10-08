@@ -1,4 +1,5 @@
 import { sourceFieldEvidence } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
+import { groupTraceEntriesSpatially } from './xml-cii-trace-spatial-index.js';
 
 const LEDGER_SCHEMA = 'xml-cii-trace-resolution-ledger/v1';
 
@@ -246,31 +247,7 @@ export function buildStandaloneDtxrPositionGroups(stagedJsonText, toleranceMm = 
   try { parsed = typeof stagedJsonText === 'string' ? JSON.parse(stagedJsonText) : stagedJsonText; } catch { return []; }
   const entries = [];
   walkStaged(parsed, { branchName: '', point: null, bore: '' }, entries, '$', { value: 0 }, config);
-  const groups = [];
-  for (const entry of entries) {
-    let selected = null;
-    let selectedDistance = Number.POSITIVE_INFINITY;
-    for (const group of groups) {
-      const sameRoot = group.branch.root === entry.branch.root;
-      if (!sameRoot) continue;
-      const distance = pointDistanceMm(group.anchor, entry.point);
-      if (distance <= toleranceMm && distance < selectedDistance) {
-        selected = group;
-        selectedDistance = distance;
-      }
-    }
-    if (!selected) {
-      selected = {
-        id: `DTXR-G${groups.length + 1}`,
-        branch: entry.branch,
-        anchor: entry.point,
-        anchorJsonNodeNo: entry.jsonNodeNo,
-        entries: [],
-      };
-      groups.push(selected);
-    }
-    selected.entries.push(entry);
-  }
+  const groups = groupTraceEntriesSpatially(entries, toleranceMm);
   return groups.map((group) => ({
     ...group,
     jsonNodeNos: uniqueValues(group.entries.map((entry) => entry.jsonNodeNo)),
