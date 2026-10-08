@@ -1,8 +1,8 @@
-# LFJ/V4 — Resolver-first vertical slice (Owner priority update, 2026-10-08)
+# LFJ/1.0 — Resolver-first vertical slice: executable sequence and blocker status
 
-**Classification:** owner-authorized priority and implementation-sequence plan; governance-only draft, not runtime code, accepted evidence, a release gate, or amendment to the currently released machine proposal. **Parent:** [3D_Converters #1042](https://github.com/reallaksh19/3D_Converters/issues/1042). **Protocol:** [Common V3.2](https://github.com/reallaksh19/Common/tree/957377de11843f78dd7210450c8e5a99b859eea9/skills/engineering-pr-delivery-v3.2), current ENFORCED proposal digest `sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d`.
+**Classification: REVIEW_REVISED / PLAN_NOT_APPROVED pending independent exact-head re-review.** Existing owner-authorized priority update, **governance only**: no product code, no amended materialization/leases, no merge, no V3.2 progress claims. Parent [3D_Converters #1042](https://github.com/reallaksh19/3D_Converters/issues/1042); review PR [#1077](https://github.com/reallaksh19/3D_Converters/pull/1077); consolidated [independent required-changes review](https://github.com/reallaksh19/3D_Converters/pull/1077#issuecomment-5460026352). **Normative, task-complete detail is [resolver-first-implementation-workpack.REVIEW.md](./resolver-first-implementation-workpack.REVIEW.md), especially §§14–17.** No abbreviated note in this file overrides that workpack.
 
-## 0. Lossless owner instruction and decision
+## 0. Owner's preserved intent and live consumer states
 
 > "resuable engine wired to 3 Resolver / JSON Trace.
 >
@@ -12,80 +12,103 @@
 >
 > Make a detailed plan"
 
-**Interpretation:** LFJ remains an app-independent portable engine. Its ONLY current runtime adopter is **3 Resolver / JSON Trace** inside `3D_Converters`. Do not wire LFJ into Enrichment, XML_Compare_Utilities Draft, Revision Compare, 3DMarkupTool, GLB/FBX workflows or authenticated remote APIs as part of the Resolver-first milestone. Preserve those applications' existing behavior, owner-approved longer-term V4 decomposition and format-specific rights; describe future ports and compatibility contracts as placeholders only. Owner authorization supersedes historical Pass-1 read-only wording prospectively; it does **not** authorize merging unfinished code, bypassing V3.2 claim-first admission, reusing an active writer's lease, or claiming untested engineering outputs.
+**Architecture:** LFJ/1.0 is a reusable app-neutral shared source/profile/occurrence/Worker/query/API-interface engine, initially housed under `3D_Converters/lfj/`, with **no import of Resolver or engineering UI/writer code into LFJ core**. Separate adapters retain each application's semantics, output permissions and original source authority.
 
-## 1. Cold actual source truth / no false acceptance
+| Consumer | Current milestone state | Runtime permission |
+| --- | --- | --- |
+| 3 Resolver / JSON Trace | `ACTIVE_INTEGRATION_TARGET`, **NOT YET WIRED OR ACCEPTED** | First/only authorized adopter after correctly admitted dependencies |
+| StagedJSON → XML | `PLACEHOLDER_NOT_WIRED` | No LFJ import/product edit |
+| 3D Draft Edit | `PLACEHOLDER_NOT_WIRED` | No LFJ import/product edit |
+| Revision Compare | `PLACEHOLDER_NOT_WIRED` | No LFJ import/product edit |
 
-Baseline heads at decision: `3D_Converters@f57b5799952e268ee57a91658ebae36ed723f43f`, `XML_Compare_Utilities@2e588a5469f463b177990d7f8683deb56ce48a0e`, `Common@957377de11843f78dd7210450c8e5a99b859eea9`. Recheck these before each code unit.
+Prior V4 XCU/3DMarkup, glTF/FBX and remote service roadmap is retained as separate future scope, not abandoned or deemed complete.
 
-- Original [PR #928](https://github.com/reallaksh19/3D_Converters/pull/928) still unmerged. J01 [PR #992](https://github.com/reallaksh19/3D_Converters/pull/992) merged; Resolver's legacy index exists on main.
-- R01 (root profiles), R02 (ancestor ownership), R03 (exact source custody), R04 (incremental tokenizer), R05 (original occurrence index) are native merged. [R05](https://github.com/reallaksh19/3D_Converters/issues/1068) proved an independent **10,539,386-byte** bare-array source at SHA-256 `e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a`, with **270** array roots and **339,987** JSON values; Node source-index time was reported around **93.6 s**, NOT an accepted browser performance target, and not a trace/XML golden.
-- Canonical [R06 #1071](https://github.com/reallaksh19/3D_Converters/issues/1071), [draft PR #1075](https://github.com/reallaksh19/3D_Converters/pull/1075) has an EXCLUSIVE active writer for `lfj/transport/execution/**`. U01 strict worker provenance and U02 bounded transfer ACK are reportedly implemented/qualified; U03 consumed-byte progress and U04 fault matrix remain open. Do not duplicate or push into this writer's branch.
-- Legacy [Resolver hierarchy scope](https://github.com/reallaksh19/3D_Converters/blob/f57b5799952e268ee57a91658ebae36ed723f43f/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js) searches nested slices with `fieldString()`, so child `OWNER_ZONE` can contaminate a parent's scope; unsupported roots and All invoke whole-source `JSON.parse`; `source.length` is labeled `byteLength`. [Resolver UI](https://github.com/reallaksh19/3D_Converters/blob/f57b5799952e268ee57a91658ebae36ed723f43f/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js) synchronously builds the index on render and caches by length plus three 96-char samples. [event handler](https://github.com/reallaksh19/3D_Converters/blob/f57b5799952e268ee57a91658ebae36ed723f43f/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js) is `async` but calls synchronous `runStandaloneResolverJsonTrace`. Provider correctness is NOT live adopter correctness.
+## 1. Exact GitHub and source-level continuation checkpoint
 
-## 2. The only live vertical data path
+At review baseline: `3D_Converters/main@f57b5799952e268ee57a91658ebae36ed723f43f`; released V3.2 24-responsibility/130-point proposal digest `sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d`. Re-read all live refs before using this as current truth. R01–R05 native product merged. Canonical R06 [issue #1071](https://github.com/reallaksh19/3D_Converters/issues/1071), [draft PR #1075](https://github.com/reallaksh19/3D_Converters/pull/1075) **exclusive writer**. U01 Worker-provenance, U02 one-page ACK-pressure and U03 Worker-consumed-byte protocol have prior exact-head evidence at `4fa6cbfef7daa563e096ec8438afc77299e19773`; [U03 TASK_EVIDENCE](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355). U04 source-fault matrix is **RED-only** as of review at `10a13b23c6fd18ee1d8c794f901064644d40735b`; neither U04 GREEN nor PR merge is claimed. New commits require fresh exact-head qualification; there is no deployed LFJ Resolver runtime acceptance.
+
+Verified source blockers on current main:
+
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js` eagerly reads StagedJSON `File.text`/full text (L93–100), then its `runResolverJsonTraceFromUi` calls the synchronous `runStandaloneResolverJsonTrace` after async file hydration (L207–229); CSV export builds complete strings on main (L249–267).
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js` (L248–333) owns source, configuration and dependency revisions, but has no R12 write lease today.
+- `tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js` looks for own owner fields over serialized nested subtrees: child OWNER_ZONE can contaminate parent; it calls whole-source `JSON.parse` on All, treats JS string length as byteLength; `ui-adapted/xml-cii-adapted-resolver-scope.js` samples 3 string regions as cache key and scans during render.
+- `tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js` L196–251 uses full `JSON.parse`, recursive `walkStaged` retaining `raw`, and **silently returns [] on parse errors**, which is **not** a valid zero-match trace. L593–625 computes full groups and records synchronously; it lies OUTSIDE current R13 lease.
+- `ui-adapted/xml-cii-adapted-resolver-json-trace.js` renders full trees/table rows and directly interpolates source-controlled values into `innerHTML` (L275–301); `ui-adapted/xml-cii-adapted-events.js` downloads complete CSV strings. These must be R13-owned and bounded.
+- `docs/tabs/xml-cii-2019-standalone/**` deployment mirrors exist, while **`docs/lfj/` is absent** at inspected main. Tests of source modules do not prove production docs Worker URLs, JS MIME/CSP, cache and import resolution.
+- Real checked-in source: `Benchmarks/Managejson to Input XML/ATTRIBUTE_managed_stage.json`, **10,539,386 original bytes**, SHA-256 `e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a`, root 270 and 339,987 JSON value census. Historical Node original 10.54MB census ~93.6 seconds is a performance risk, **not** browser/trace correctness. Real XML/trace/CII expected outputs: `NO_GOLDEN`; authentic populated 30/90MB sources: `NO_SOURCE` until acquired.
+
+## 2. One executable data path with versioned trust boundaries
 
 ```text
-Resolver StagedJSON File/Blob + authoritative XML/CII input
-  -> immutable original-byte SourceSnapshot (R03 SHA-256 + source revision)
-  -> explicit SchemaProfile (R01) + byte grammar (R04)
-  -> original occurrence path/spans (R05) + ancestor ownership (R02)
-  -> trusted Worker execution (R06), fault/cancel/stale terminal lifecycle (R07)
-  -> exact ScopeQuery and Selection (R08)
-  -> complete counts + bounded source-order QueryPages (R09)
-  -> browser/Node same results and source ports (R10)
-  -> 3 Resolver UI source selector, scope tree, state and paging (R12)
-  -> Resolver trace computation in isolated job, XML/CII authority retained (R13)
-  -> independent Resolver-only acceptance checkpoint
+Resolver original StagedJSON Blob/File + authoritative XML/CII + config/mode
+ -> R03 immutable original-byte SourceSnapshot, exact SHA+revision
+ -> R01 admitted SchemaProfile + Resolver-specific engineering profile
+ -> R04 tokenizer, R05 complete original occurrences / R02 source-local ownership
+ -> R06 real isolated Worker + R07 terminal job/revision lifecycle
+ -> R08 exact include/exclude scoped selection + R09 bounded complete ordered pages
+ -> R10 portable source/job/query/result/error envelope + real served docs LFJ bundle
+ -> R12 REAL Resolver file-loading/state/scope control/selection UI
+ -> R13 REAL dedicated Resolver module Worker:
+       bounded incremental engineering trace projection and global context
+       XML/DTXR/POS/PS joins, source/branch/bore/coordinate/calibration authority
+       bounded result pages, safe DOM, complete streamed CSV/export
+ -> G7 independent output/security/real-device browser acceptance
 ```
 
-The shared LFJ package owns custody, profile capabilities, worker/job transport, stable occurrence identity, selection/paging, progress, revision fences and typed errors. The Resolver adapter owns XML/trace semantics, POS/PS/DTXR, bore and branch rules, CII field resolution and any engineering permissions. **Never equate LFJ SHA sourceId with existing GC-PW `basisId`, `physicalOccurrenceId` or any downstream match identity.** A source reader/index/viewer capability NEVER implicitly grants engineering edit/export or CII authority.
+LFJ portable API versioned interface is an actual **R10 product deliverable**, NOT a deployed remote authenticated API; R11 tenant isolation/auth/quota/network backend remains unimplemented and receives no progress. `LFJ.PortEnvelope.v1` must type version, request/job, profile capability, source SHA/ref/revision, query/cursor, bounded input/output pages, result counts, terminal error and optional *data-only* auth context; reject unsupported version and malformed clone, checked in Node22/24 plus actual Chromium Worker.
 
-**Boundary:** source parse, scope discovery and expensive trace resolution must not block the UI; moving only the index to a Worker while leaving the full trace synchronous fails the objective. Source-level `File.text()` for large input, stringifying whole files to cross the Worker boundary, whole-doc selected-metadata regex and silent main-thread fallback are prohibited. Where legacy behavior must be preserved for small files, use an explicitly documented threshold/capability path, NEVER an unnoticed large-file degradation.
+**Resolver must have its own complete execution basis**, not JSON SHA alone: staged source ref/revision/SHA, selection digest, **XML revision/SHA**, effective Resolver/support config revisions, source/branch mode, run epoch, and export authority. UI result, saved config, benchmark, clipboard, CSV, displayed counts and export all fail closed on stale basis; provisional Worker pages never publish as complete.
 
-## 3. Work sequence: one claim-owned responsibility and writer at a time
+## 3. Binding B01–B09 review corrections and accountable authorship
 
-| Step | Existing leaf / independent question | Owned code surface | Direct RED then acceptance |
-| --- | --- | --- | --- |
-| A0 | Owner intent, dependency and fixture inventory | `lfj/governance/**` only | Readback owner priority and latest main/PR leases; unchanged 130-point graph until validated change |
-| A1 | R06: Is all large execution truly off-main and bounded? | `lfj/transport/execution/**` **existing writer #1075 only** | U03 real Worker byte-consumption, U04 no-ACK/crash/invalid-protocol; no inline parse |
-| A2 | R07: Can cancel, crash or supersede ever publish stale results? | `lfj/transport/lifecycle/**` | Four semantic units: terminal cancellation, crash refusal, revision fence, retry safety |
-| A3 | R08: Does selection include exact original occurrences? | `lfj/query/selection/**` | Include/exclude semantics, repeated-name siblings, ancestor/owner conflict and unsupported-scope negatives |
-| A4 | R09: Do bounded pages reconstruct complete selected source without lies? | `lfj/query/pages/**` | One-row page-union oracle, deterministic source order, stale cursor refusal, full counts despite page cap |
-| A5 | R10: Do Node and actual browser ports agree? | `lfj/ports/**` | Same byte SHA/revision/owner/selection/page facts on Node 22/24 and Chromium Worker |
-| A6 | R12: Can Resolver display exact owner scopes without foreground scans? | `tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js`, `ui-adapted/xml-cii-adapted-resolver-scope.js` | U01 owner correctness, U02 occurrence IDs, U03 same-size-interior-edit cache invalidation, U04 source complete despite limited rendered rows |
-| A7 | R13: Does actual Resolver return correct trace/CII facts through Worker? | `tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js`, `ui-adapted/xml-cii-adapted-events.js` | U01 full-vs-scoped trace, U02 complete POS/PS/DTXR/refs, U03 existing engineering authority, U04 stale result refusal |
-| A8 | RESOLVER_VERTICAL_ACCEPTED — independent, **non-progress-bearing checkpoint**, NOT R18 | Resolver-source golden and browser acceptance evidence | Real populated source, independent XML/trace/CII outputs, error/worker/heap/interaction budgets and source/docs parity |
+| Blocker | Required change within existing claim responsibilities | Independent RED/acceptance |
+| --- | --- | --- |
+| B01 R12 File/Blob intake/state | V3.2 authorized R12 extension for Resolver-only `events.js` file handler + `state.js` source epoch + docs mirror, **R12 FIRST writer** | Real file control on 10.54MB Blob, equal-length interior replacement, no entire JSON string on foreground |
+| B02 R13 trace and output | Authorize dedicated Resolver module Worker + compact incremental projection/ledger + UI renderer, tree/table and CSV/export helpers; legacy parse/walk used for **small-source comparison only** | Full/scoped XML/DTXR/POS/PS independently authored golden, bounded real Worker work/message/DOM, no foreground whole parse |
+| B03 docs deploy | Authorize R10 LFJ module packager/`docs/lfj/**` or equivalent; R12/R13 paired app mirror/build ownership | Served docs Chromium worker imports, URL/MIME/CSP/404/stale cache negatives; no fallback |
+| B04 identity | R07 generic epoch + R13 full JSON+XML+config+selection+mode+authority+run-basis digest | Same JSON changed XML/config; late refresh/save, cancellation-before-export; zero stale outputs |
+| B05 schema | LFJ schema profile != Resolver engineering-approved profile; invalid, ambiguous or unsupported root typed failure | Malformed JSON/UTF8, dual envelope, bad depth, repeated names, legal empty vs invalid zero |
+| B06 end-to-end bounds | Complete engineering computation/joins outside output scope; cap Worker retained state, result clones, DOM and CSV | Page=1 complete union, independent POS/PS expected records, heap and message measurements |
+| B07 HTML injection | R13 safe `textContent`/nodes for all source-derived tree, branch, bore and position text, docs mirror | Chromium hostile HTML literals cannot execute/inject, remain visibly literal |
+| B08 portable API | R10 implement `LFJ.PortEnvelope.v1` and tests under `lfj/ports/**` | Node22/24/Chromium version/structured-clone/unsupported capability refusals |
+| B09 governance | U01–U03 earlier evidence, U04 RED-only; no manual P/E/title | Read back exact R06 head and per-head CI before reporting |
 
-**Do not create duplicate R06 children/PRs or write outside a responsibility's lease.** R07-R10 and R12-R13 use the existing **24-leaf, 130-point ENFORCED proposal** (unless an independently validated new plan revision is necessary). Admission of each child follows the exact pinned checker and predecessor evidence. If a unit exceeds the V3.2 budget, split/reapprove responsibility while conserving claim weights before continuing. Preserve the four V3.2 publications: `IMPLEMENTATION_PLAN`, `PLAN_UPDATE`, `TASK_EVIDENCE`, `TASK_RESULT`, with exact-head evidence and independently authored RED before GREEN.
+**WRITE-SURFACE AUTHORISATION IS NOT YET GRANTED BY THIS DOCUMENT.** Existing released R12 lease only includes `xml-cii-json-hierarchy-scope.js` and `xml-cii-adapted-resolver-scope.js`. Existing R13 lease includes `xml-cii-resolver-json-trace.js` and `xml-cii-adapted-events.js`. Existing R10 is `lfj/ports/**` only. Before product edits, separately approve material claim-preserving V3.2 ENFORCED graph-diff covering **R10 docs LFJ packager; R12 File/Blob loader, state, docs; R13 Worker entrypoint, trace projection/ledger, renderer, CSV/export, docs**. Declare ordered shared `events.js` ownership (R12 file-input first, then R13 run/export later) and exact source → deploy mapping; no simultaneous writer. The full per-file ownership/red-oracle table is in [workpack §16](./resolver-first-implementation-workpack.REVIEW.md).
 
-## 4. Resolver-specific contracts to implement / satisfy
+## 4. Phase-by-phase strictly dependency-ordered implementation
 
-- `SourceSnapshot.v1`: immutable byte SHA256, byteLength (not JS UTF-16 string length), original sourceRef (separate from digest), source revision, backing/encoding, limits.
-- `SchemaProfile.v1`: exact supported root (`array`, `hierarchy`, `objects`, `branches`, typed-single only where actually proven), producer/schema version, field ownership policy and capabilities; reject ambiguous dual envelopes and unknown shapes with typed errors, not All fallback.
-- `IndexManifest.v1`: source SHA+revision, profile fingerprint, all-value and all-branch counts, complete/partial status, orphan/duplicate diagnostics, source-order ancestry and exact UTF-8 spans.
-- `Occurrence.v1`: typed RFC6901 ordered path with escaped `~`/`/`, ordinal, parent/sourceRef identity and own-field span; `name` is a display label, NEVER identity.
-- `ScopeQuery.v1` / `Selection.v1`: explicit selection/all/none, include/exclude and descendant rules, SHA+revision+profile+selection digest, stable cursors, fail-closed capability mismatch; page row count DOES NOT bound total selection.
-- `WorkerJob.v1`: protocol/job/request IDs, sourceRef and revision, worker provenance, progress based on bytes actually consumed, ACK/backpressure, cancel/fault and one terminal outcome. UI must suppress out-of-order responses.
-- `TraceExportManifest.v1`: input XML basis, staged source SHA, selection digest, full source counts, selected occurrence counts, output record counts/digests, original CII authority/ref lineage, adapter version, explicitly supported output rights, rejected/ambiguous facts and untouched-field oracles.
-- Future API, Enrichment, XCU Draft, Revision and 3DMarkup: only interface/capability placeholders documenting prospective adaptors; no import, event hook, Worker swap, downstream write path or implied support.
+| Phase / admitted responsibility | Four semantic outcomes or independently rejectable unit | Explicit exit |
+| --- | --- | --- |
+| P0 read-only truth/oracles | Heads/leases, actual file/event/result graph, independent small golden, original real source + measured baseline | `SOURCE_REALITY_MAP`; unknown output `NO_GOLDEN`, source `NO_SOURCE` |
+| P1-A1 R06 (existing #1075) | Finish U04 worker crash-before-ready, ACK-before-consume crash, stale/malformed ACK, termination/cleanup | U01–U04 exact-head native/Chromium + direct retained regression, then TASK_RESULT |
+| P1-A2 R07 `lfj/transport/lifecycle/**` | U01 cancel terminal; U02 partial crash refusal; U03 old revision/source/job fence; U04 retry fresh selection | Exactly one terminal job, zero stale commit |
+| P2-A3 R08 `lfj/query/selection/**` | U01 includes; U02 nested exclusions; U03 repeated-name distinct occurrence; U04 incompatible scope refusal | Independently expected selected source membership |
+| P3-A4 R09 `lfj/query/pages/**` | U01 row/byte cap; U02 complete union; U03 deterministic order; U04 stale cursor | page=1 returns complete union via pages, no clipping |
+| P4-A5 R10 `lfj/ports/**` + **authorized docs LFJ packager** | U01 same byte/digest; U02 same ownership/path; U03 same selection/pages; U04 unsupported typed refusals; add B08 versioned port acceptance inside these units | Node22/24 + Chromium parity **and served deployment worker/MIME/CSP** |
+| P5-PRE-R12 governance | Claim-preserving approved ownership of all R10/R12/R13 required source/docs paths, explicit sequential event regions | ENFORCED checker/graph-diff accepted, approval+writer readback |
+| P5-A7 R12 | U01 correct ancestor source owner; U02 exact occurrence+selection; U03 full revision cache invalidation; U04 paged complete view, plus loader/state seam | Live docs Resolver File/Blob→LFJ scope control; no foreground scan |
+| P6-A8 R13 | U01 full/scoped result parity; U02 all expected engineering occurrences; U03 original XML/CII rights; U04 no stale publication, plus safe DOM and complete bounded CSV/Worker | Actual clicked Build/Refresh executes trace CPU in real Worker and matches independent expected outputs |
+| P7 G7 independent | G7.1 source; G7.2 true engineering golden; G7.3 crash/fault; G7.4 real populated large source browser perf/heap; G7.5 served user path/export; G7.6 source/security/Preview/Weight/GC-PW regression | Resolver `ACCEPTED` **only if every gate independently PASSED**, separate from R18/R24 |
+| P8 deferred | StagedJSON→XML, Draft Edit, Revision Compare adapters remain contracts/placeholders; remote HTTP/API implementation R11 deferred | NO LFJ imports, NO release claim |
 
-## 5. RED-first independent oracle and source registry
+All four semantic units per leaf are **existing approved units**, not new points for plumbing, deployment or test orchestration. RED commit before minimal GREEN, exact-head direct Node+Chromium and independent input→output oracles, `TASK_EVIDENCE` + `CHECKPOINT_FACTS_V1`, review, only then merge. Existing 350 target / 900 hard LOC leaf budgets trigger V3.2 replan when exceeded. Parent issue title/scoreboard projected, never hand-edited.
 
-**OWNER_REPOSITORY_REAL input** (not fabricated): [ATTRIBUTE_managed_stage.json @ verified base](https://github.com/reallaksh19/3D_Converters/blob/f57b5799952e268ee57a91658ebae36ed723f43f/Benchmarks/Managejson%20to%20Input%20XML/ATTRIBUTE_managed_stage.json); bytes `10,539,386`, SHA256 `e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a`, root bare-array count `270`, independent full JSON value census `339,987` as asserted by [R05 test](https://github.com/reallaksh19/3D_Converters/blob/f57b5799952e268ee57a91658ebae36ed723f43f/lfj/index/source-occurrence-index-real-source.test.mjs). These are test-specified original source facts; browser 30/90 MB acceptance and XML/CII output goldens remain unproven.
+## 5. Independently controlled source/output/performance acceptance
 
-**SYNTHETIC RED, never marketed as real input:** (1) parent without own Zone, valve child with `OWNER_ZONE`: parent remains unscoped; (2) identical-name sibling branches: distinct source paths; (3) equal-length interior source mutation outside first/middle/last cache samples: force a new digest/revision/index; (4) dual envelope `objects` + `hierarchy` refuses unsupported ambiguity; (5) invalid UTF-8, duplicate keys, depth, broken Unicode, bounded numeric tokens; (6) no Worker, fake Worker, crash, silent fallback, slow ACK, cancellation race; (7) row limit 1 union exactly equals complete selected scope; (8) stale source/cursor/output after replacement; (9) trace parity across full and zone selected against independently authored XML/DTXR/POS/PS expectations; (10) source-untouched and permission-negative cases.
+- **Real known source only:** original 10,539,386-byte SHA-pinned `ATTRIBUTE_managed_stage.json`; input census NOT accepted XML/CII/CSV trace output. Source-specific facts cannot grant engineering authoring/export rights.
+- **Independent small RED fixtures:** no inherited child Zone bleed; duplicate-name siblings and escaped pointers; equal-length interior edit; XML/config-only revision; invalid UTF8/duplicate-key/dual-root/deep input; false/absent Worker and late ACK; selected-outside-context POS/PS; bad original-source authority; hostile `<img onerror>` branch name; full-vs-scope output, page=1 union and stale CSV.
+- **Unobtained release inputs:** approved engineering XML/JSON→POS/PS/DTXR/CSV/CII output oracle = `NO_GOLDEN` until independent custodian; authentic populated >=30MB and 90MB datasets = `NO_SOURCE`. **Coding may continue; G7.2/G7.4 cannot pass** before those are sourced and verified.
+- **Proposed unmeasured SLO:** input-to-paint p95 <=100ms, no LFJ source-scan main-thread task >50ms, rendered <=200 rows/page, Worker source page <=64KiB one outstanding; explicit owner baseline/ratification on named OS/device/Chromium build required. Measure cold/warm p50/p95, first usable scope/page, full trace, Worker/main heap RSS and maximum payload, cancellation latency, source counts; raw run artifacts attached. Historical ~93.6s Node 10.54MB index is a performance investigation trigger, **never** a browser pass.
 
-**Still missing and hard veto:** authentic populated >=30 MB and 90 MB-class original source plus independent sources/goldens approved by a separate custodian; expected final trace/XML/CSV/CII manifest with exact output digests, counts and engineering invariants (not produced by the same converter under test). Unknown expected output fields must remain UNKNOWN, not guessed.
+## 6. Review decisions D1–D6 — ALREADY RESOLVED by independent reviewer
 
-## 6. Proposed unmeasured performance and correctness thresholds
+D1 = Resolver-only live adopter, other three named apps placeholders. D2 = dedicated real Resolver Worker and incremental trace projection, legacy ledger small-case comparator only; explicit R13 source lease expansion required. D3 = author small independent engineering golden now, real authoritative golden `NO_GOLDEN` until obtained, coding not blocked. D4 = benchmark named real Chromium/device, limits unapproved until baseline, genuine 30/90MB `NO_SOURCE`. D5 = tested versioned local envelope in R10, no remote API/auth service/R11 points. D6 = preserve released claims/digest/130 total, ordered ENFORCED graph lease amendments, no concurrent writers, G7 separate R18/R24. **Do not ask the Owner to restate these generic decisions.** Exact missing external source/golden or mandated material amendment approval remain verifiable hold points.
 
-**PROPOSED/UNMEASURED; must be baselined and approved on named reference hardware and exact browser versions before becoming release limits.** Interactive input-to-paint p95 at most **100 ms** while Worker indexes; no LFJ-attributable UI task above **50 ms** from source scanning; scope/page UI projection bounded to **<=200 rows per page**; source transfer currently R06-targeted **<=64 KiB outstanding one-at-a-time** until ACK; no large-source main-thread JSON parse. Cancellation observable promptly, target acknowledgement p95 **<=250 ms** at explicit worker yield checkpoints; no old-revision result accepted. For the real populated 30/90 MB reference corpus, record intake/index and first safe page times, peak UI and Worker heap/RSS separately; **no index-time or memory pass is inferred** from existing Node 10.54 MB test (~93.6 seconds). Optimize measured bottlenecks under an independently owned leaf when necessary, without weakening source completeness.
+## 7. Current review state / ordered next actions
 
-Test Node 22/24, actual Chromium module Worker and failure scenarios; compare source facts/output against independent oracle, not against a second invocation of the same LFJ implementation. Preserve docs mirror parity and existing 4 Preview/Weight/Mode B/CII output tests as relevant nonregression gates.
+1. **This docs-only plan revision:** incorporate [nine independent blockers](https://github.com/reallaksh19/3D_Converters/pull/1077#issuecomment-5460026352) in both governance docs and PR description, then obtain a fresh **independent exact-head plan re-review**. `PLAN_NOT_APPROVED` until reviewer clears it; docs alone award no completed semantic unit.
+2. Existing [R06 #1075](https://github.com/reallaksh19/3D_Converters/pull/1075) writer may finish U04 RED→GREEN and exact-head evidence **without waiting for a general plan discussion**.
+3. Admit R07→R08→R09; R10 needs its portable contract + explicit docs packaging surface; before R12/R13 product work, approve full source/deploy ownership amendment using ENFORCED graph-diff and ordered events.js lease.
+4. Connect real Resolver controls and trace Worker, then independently qualify the served deployment and G7 sources/goldens/performance. Unmet gates remain `NOT_QUALIFIED`. Do not count broader R18/R24 releases or deferred consumers.
 
-## 7. Checkpoints, hold points, future adapters
-
-At A1/U03-U04 → A2 → A3 → A4 → A5 → A6 → A7, publish exact source commits and `TASK_EVIDENCE`; let the V3.2 provider derive title/scoreboard P/E rather than hand-edit it. Keep R18 as the original **multi-repo JSON release gate** (still OPEN) and R24 as binary gate (still OPEN). Resolver-only acceptance **does not complete either**. Deferred applications must be marked `PLACEHOLDER_NOT_WIRED`, neither `ADOPTED` nor implicitly broken/uninstalled.
-
-**Next executable code action:** the existing R06 writer completes independently verifiable U03 consumed-byte progress and U04 transport/fault matrix at exact head; then admit R07 in its own write surface, proceeding in dependency order. In parallel, independent Resolver RED oracles may be designed/reviewed read-only, but do not materialize R12 as completed or merge product wiring before R09/R10 gates. Original CII/Preview/Weight engineering ownership is unchanged.
+**FINAL STATUS: governance REVIEW_REVISED; PLAN_NOT_APPROVED until independent exact-head confirmation. No product code or released proposal changes in this PR.**
