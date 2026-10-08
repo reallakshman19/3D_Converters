@@ -173,11 +173,28 @@ export function compareXmlCiiParityAuthorityEntries(expectedEntries = [], actual
 
 export function createStandaloneRunParityEvidence({ xmlText = '', expectedEntries = [], branchRows = [], nodeRows = [] } = {}) {
   const branchByName = new Map((branchRows || []).map((row) => [text(row?.branchName), row]));
+  const ratingsByName = new Map();
+  for (const branch of branchRows || []) {
+    const name = text(branch?.branchName);
+    if (!ratingsByName.has(name)) ratingsByName.set(name, new Set());
+    ratingsByName.get(name).add(text(branch?.rating));
+  }
   const internalMismatches = [];
   for (const nodeRow of nodeRows || []) {
-    const branch = branchByName.get(text(nodeRow?.branchName));
-    const branchRating = text(branch?.rating);
+    const name = text(nodeRow?.branchName);
+    const indexed = Number.isSafeInteger(nodeRow?.branchOccurrenceIndex);
+    const branch = indexed ? branchRows[nodeRow.branchOccurrenceIndex] : branchByName.get(name);
     const nodeRating = text(nodeRow?.rating);
+    if ((indexed && text(branch?.branchName) !== name)
+      || (!indexed && ratingsByName.get(name)?.size > 1 && nodeRating)) {
+      internalMismatches.push({
+        type: 'weight-match-rating-ambiguous-owner', scope: 'node', branchName: name,
+        nodeNumber: text(nodeRow?.nodeNumber), field: 'rating',
+        expected: '', actual: nodeRating, source: 'weight-match',
+      });
+      continue;
+    }
+    const branchRating = text(branch?.rating);
     if (branchRating && nodeRating && branchRating !== nodeRating) {
       internalMismatches.push({
         type: 'weight-match-rating-parity',
