@@ -1,6 +1,6 @@
-import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261006-c05-5-5-persistence-retry-1';
+import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261008-p0-mode-b-parity-1';
 import { installRigidSmartFillDashboard } from './xml-cii-adapted-rigid-smart-fill-ui.js?v=20261001-single-weight-owners-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-single-weight-owners-1';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261008-p0-mode-b-parity-1';
 
 installRigidSmartFillDashboard();
 
