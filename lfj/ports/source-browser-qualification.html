@@ -22,6 +22,9 @@
               clearTimeout(timer);reject(new Error('unbounded page'));return;
             }
             rows.push(...m.rows);
+            worker.postMessage({schema:'LFJ.CrossRuntimeSourcePort.v1',
+              kind:'PAGE_ACK',jobId:'R10-BROWSER-JOB',
+              sourceRefId,sequence:m.sequence});
           }
           if(m?.kind==='SCAN_DONE'||m?.kind==='FAILED'){clearTimeout(timer);resolve(m);}
         });
