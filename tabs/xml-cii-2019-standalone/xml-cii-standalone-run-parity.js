@@ -96,15 +96,22 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   if (Array.isArray(preview?.boreAuthorityDiagnostics)) diagnostics.push(...preview.boreAuthorityDiagnostics);
   if (!result.branchRows.length) return result;
 
-  const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
+  // Branch names are not unique. Preserve the occurrence order consumed by Preview.
+  const expectedBranches = result.branchRows;
   const byNodeAuthority = new Map(result.nodeBoreWallRows.map((row) => [text(row.key), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
 
-  for (const branch of [...document.getElementsByTagName('Branch')]) {
+  const actualBranches = [...document.getElementsByTagName('Branch')];
+  if (actualBranches.length !== expectedBranches.length) {
+    throw new Error('Standalone process parity branch occurrence count disagrees with Preview.');
+  }
+  for (const [occurrenceIndex, branch] of actualBranches.entries()) {
     const branchName = childText(branch, 'Branchname');
-    const row = byBranch.get(branchName);
-    if (!row) continue;
+    const row = expectedBranches[occurrenceIndex];
+    if (text(row?.branchName) !== branchName) {
+      throw new Error(`Standalone process parity branch occurrence ${occurrenceIndex + 1} disagrees with Preview.`);
+    }
     const pressure = ensureChild(document, branch, 'Pressure');
     const temperature = ensureChild(document, branch, 'Temperature');
 
