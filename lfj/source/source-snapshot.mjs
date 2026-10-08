@@ -81,7 +81,7 @@ class Sha256 {
 /** The caller's generation is only one part of revision identity; bytes are authoritative. */
 export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revision, maxChunkBytes=1024*1024 }={}) {
   if (!isCount(byteLength)) fail('INVALID_DECLARATION','byteLength must be a safe nonnegative integer');
-  if (!isCount(maxChunkBytes)||maxChunkBytes===0) fail('INVALID_DECLARATION','maxChunkBytes must be positive');
+  if (!isCount(maxChunkBytes)||maxChunkBytes===0||maxChunkBytes>1024*1024) fail('CHUNK_LIMIT','maxChunkBytes must be in 1..1MiB');
   if (typeof revision!=='string'||!revision.length) fail('INVALID_DECLARATION','revision is required');
   if (expectedSha256!==undefined && !/^[a-f0-9]{64}$/.test(expectedSha256)) fail('INVALID_DECLARATION','expected SHA-256 must be lowercase 64-hex');
   let state='OPEN', received=0, retained=[];
