@@ -202,10 +202,23 @@ test('P0 reproduced: repeated PL-06 produces a false missing 200010 with first-n
 
 
 test('static runtime loads the refreshed parity writer and evidence modules as a pair', async () => {
-  const [service, writer] = await Promise.all([
-    readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js', import.meta.url), 'utf8'),
-    readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js', import.meta.url), 'utf8'),
-  ]);
-  assert.match(service, /xml-cii-standalone-run-parity\.js\?v=20261008-p0-mode-b-parity-1/);
-  assert.match(writer, /xml-cii-run-parity-evidence\.js\?v=20261008-p0-mode-b-parity-1/);
+  const paths = [
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js',
+    '../tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+    '../tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
+    '../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
+  ];
+  const sources = await Promise.all(paths.map(async path => readFile(new URL(path, import.meta.url), 'utf8')));
+  const modules = [
+    'xml-cii-adapted-run-workflow',
+    'xml-cii-workflow-api',
+    'xml-cii-workflow-service',
+    'xml-cii-standalone-run-parity',
+    'xml-cii-run-parity-evidence',
+  ];
+  sources.forEach((source, index) => assert.ok(
+    source.includes(modules[index] + '.js?v=20261008-p0-mode-b-parity-1'),
+    'static P0 import chain must contain refreshed ' + modules[index],
+  ));
 });
