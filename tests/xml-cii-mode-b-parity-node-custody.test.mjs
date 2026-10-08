@@ -152,7 +152,7 @@ test('writer does not collapse identically named branch occurrences with indepen
 
 test('missing Preview numerics never synthesize zero or overwrite source engineering fields', async () => {
   const one = '<PipeStressExport>' + branch(pl01, [
-    first.replace('<CorrosionAllowance>0</CorrosionAllowance>',
+    first.replace('<BoreMm>300</BoreMm>', '').replace('<CorrosionAllowance>0</CorrosionAllowance>',
       '<CorrosionAllowance>1.5</CorrosionAllowance>'),
   ]).replace('</Branchname>',
     '</Branchname><Temperature><Temperature1>-100000</Temperature1></Temperature>'
