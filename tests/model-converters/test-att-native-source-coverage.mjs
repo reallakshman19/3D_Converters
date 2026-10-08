@@ -77,7 +77,7 @@ assert.throws(()=>parseExpectedAttSiteZoneManifest('PIPE /S'),/SITE or ZONE/);
 assert.throws(()=>parseExpectedAttSiteZoneManifest('ZONE S'),/Expected/);
 assert.throws(()=>parseExpectedAttSiteZoneManifest('{broken'),/JSON is invalid/);
 assert.throws(()=>parseExpectedAttSiteZoneManifest(''),/at least one/);
-assert.throws(()=>parseExpectedAttSiteZoneManifest({complete:'true',nodes:[{type:'SITE',name:'/S'}]}),/boolean/);
+assert.throws(()=>parseExpectedAttSiteZoneManifest({complete:'true',nodes:[{type:'SITE',name:'/S'}]}),/true or false/);
 
 const popup = readFileSync(new URL('../../tabs/model-converters/att-native-scope-popup.js',import.meta.url),'utf8');
 assert.match(popup,/data-expected-entries/);
