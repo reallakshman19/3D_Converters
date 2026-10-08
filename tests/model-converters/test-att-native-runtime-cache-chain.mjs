@@ -9,13 +9,14 @@ const files = [
 ];
 for (const [file, child] of files) {
   const s = await readFile(new URL(file,root),'utf8');
-  assert.ok(s.includes(child+'?v=20261008-native-att-scope-1'),
+  assert.ok(s.includes(child+'?v=20261008-site-zone-coverage-1'),
     'Runtime import chain not updated: '+file+' → '+child);
 }
 const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js',root),'utf8');
 const popup = await readFile(new URL('tabs/model-converters/att-native-scope-popup.js',root),'utf8');
 const converter = await readFile(new URL('tabs/model-converters/converters/rvmattr-to-xml.js',root),'utf8');
 assert.match(legacy,/scopeSelection = await openAttNativeScopePopup/);
+assert.match(legacy,/site-zone-coverage-1/);
 assert.match(legacy,/runValues\.rvmScope = scopeSelection/);
 assert.match(popup,/data-native-full/);
 assert.match(popup,/data-native-confirm/);
