@@ -1,3 +1,5 @@
+import { extractBranchFieldsWithFormats } from './branch-format-extraction.js';
+
 function _toText(value) {
   if (value === undefined || value === null) return '';
   return String(value);
@@ -104,11 +106,19 @@ export function xmlCiiLineKeyFromBranchTokens(branchName, config) {
   return joined;
 }
 
-export function deriveLineKeyFromBranchName(branchName, config) {
+export function deriveMappedLineKeyForBranch(branchName, config = {}) {
+  return _mappedLineKeyForBranch(branchName, config.linelist || {});
+}
+
+export function deriveLineKeyFromBranchName(branchName, config = {}) {
   const text = _toText(branchName).trim();
   const linelist = config.linelist || {};
   const mapped = _mappedLineKeyForBranch(text, linelist);
   if (mapped) return mapped;
+  if (Array.isArray(config?.regexTester?.formats) || Array.isArray(config?.formats)) {
+    const identity = extractBranchFieldsWithFormats(text, config);
+    return identity.status === 'MATCHED' ? identity.lineKey : '';
+  }
 
   // Regex is an explicit user override and must take precedence over token fallback.
   // Otherwise a configured regex cannot fix shifted branch formats such as:
