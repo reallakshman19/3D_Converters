@@ -1,143 +1,257 @@
 import { indexAttNativeHierarchy } from './att-native-hierarchy-index.js';
-import { ATT_TREE_ROW_LIMIT, projectAttNativeTree, expandAttNativeAncestors, findAttNativeVisibleOffset } from './att-native-tree-projection.js';
-import { createAttScopeSelection, setAttScopeRule, attScopeNodeState, resolveAttScopeSelection, attScopePartiallyExcludedBranches } from './att-native-scope-selection.js';
-const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-})[c]);
+import {
+  ATT_BROWSER_ROW_HEIGHT, ATT_BROWSER_MAX_RENDER_ROWS, createAttNativeTreeBrowser,
+} from './att-native-tree-browser.js';
+import {
+  createAttScopeSelection, setAttScopeRule, attScopeNodeState,
+  resolveAttScopeSelection, attScopePartiallyExcludedBranches,
+} from './att-native-scope-selection.js';
 
-/** Show native Site→Zone source hierarchy; return canonical branch scope. */
+const escapeText = value => String(value ?? '').replace(/[&<>"']/g, chr => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+})[chr]);
+
+/**
+ * The loaded ATT/TXT is the sole authority for every Site, Zone and descendant.
+ * NWD/RVM is optional and never a prerequisite for browsing or ATT scope.
+ * DOM rendering is windowed; the indexed graph and selected scope never are.
+ */
 export async function openAttNativeScopePopup(name, bytes) {
-  if (typeof document === 'undefined') throw new Error('Native scope browser requires a document.');
+  if (typeof document === 'undefined') throw new Error('TXT hierarchy browser needs a document.');
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:12px;';
   const card = document.createElement('section');
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-modal', 'true');
-  card.setAttribute('aria-label', 'Native ATT Site and Zone scope');
-  card.style.cssText = 'width:min(960px,98vw);height:min(92vh,880px);display:flex;flex-direction:column;background:#152030;color:#f0f5ff;border:1px solid #5c6b80;border-radius:12px;overflow:hidden;';
+  card.setAttribute('aria-label', 'Select areas from the loaded ATT or TXT');
+  card.style.cssText = 'width:min(1020px,98vw);height:min(92vh,920px);display:flex;flex-direction:column;background:#152030;color:#f0f5ff;border:1px solid #657994;border-radius:12px;overflow:hidden;';
   card.innerHTML = [
-    '<header style="padding:12px;border-bottom:1px solid #4a5568;"><strong>Native Site / Zone / descendant selection</strong>',
-    '<div style="font-size:12px;color:#b6c5dc;">', safe(name),
-    ' — selecting parents includes hidden descendants.</div>',
-    '<div data-native-stats aria-live="polite"></div></header>',
-    '<div style="padding:8px;display:flex;gap:8px;flex-wrap:wrap;">',
-    '<input type="search" data-native-search placeholder="Find any native name or type" aria-label="Search complete ATT source" style="flex:1;min-width:200px;">',
-    '<span data-native-page></span><button data-native-prev>Previous</button><button data-native-next>Next</button></div>',
-    '<div data-native-rows role="tree" aria-label="Native source hierarchy" style="flex:1;overflow:auto;padding:8px;"></div>',
-    '<div data-native-selection aria-live="polite" style="padding:8px;border-top:1px solid #45516b;"></div>',
-    '<footer style="padding:10px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">',
-    '<button data-native-clear>Clear</button><button data-native-cancel>Cancel</button>',
-    '<button data-native-full>Convert full file</button>',
-    '<button data-native-confirm disabled>Convert selected scope</button></footer>',
+    '<header style="padding:14px 16px;border-bottom:1px solid #45516b;">',
+    '<strong style="font-size:17px;">Choose model areas to convert</strong>',
+    '<div style="font-size:12px;color:#b6c5dc;">', escapeText(name),
+    ' · Site, Zone and descendant hierarchy comes entirely from this TXT/ATT file.</div>',
+    '<div data-native-stats aria-live="polite" style="font-size:12px;margin-top:6px;"></div>',
+    '</header>',
+    '<div style="padding:10px 16px;display:flex;align-items:center;gap:8px;">',
+    '<label for="att-native-search" style="font-size:12px;">Find</label>',
+    '<input id="att-native-search" type="search" data-native-search placeholder="Search Sites, Zones and components in this TXT" style="flex:1;min-width:100px;background:#0b1524;color:#fff;border:1px solid #71809a;border-radius:5px;padding:8px;">',
+    '<span data-native-matches style="font-size:12px;white-space:nowrap;"></span></div>',
+    '<div data-native-rows role="tree" aria-label="TXT Site Zone hierarchy" tabindex="0" ',
+    'style="flex:1;min-height:110px;overflow:auto;padding:0 12px;scrollbar-gutter:stable;font-size:12px;"></div>',
+    '<div data-native-selection role="status" aria-live="polite" style="padding:9px 16px;border-top:1px solid #45516b;font-size:12px;"></div>',
+    '<div data-native-error role="alert" style="display:none;padding:5px 16px;color:#ffcfba;font-size:12px;"></div>',
+    '<footer style="padding:12px 16px;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;">',
+    '<button type="button" data-native-clear>Clear selection</button>',
+    '<button type="button" data-native-cancel>Cancel</button>',
+    '<button type="button" data-native-full>Convert entire TXT scope</button>',
+    '<button type="button" data-native-confirm disabled>Convert selected areas</button>',
+    '</footer>',
   ].join('');
   overlay.appendChild(card);
   document.body.appendChild(overlay);
-  const el = s => card.querySelector(s);
-  const stats = el('[data-native-stats]');
-  const rows = el('[data-native-rows]');
-  const summary = el('[data-native-selection]');
+  const element = selector => card.querySelector(selector);
+  const viewport = element('[data-native-rows]');
+  const status = element('[data-native-stats]');
+  const summary = element('[data-native-selection]');
+  const search = element('[data-native-search]');
+  const feedback = element('[data-native-error]');
   let index;
   try {
-    stats.textContent = 'Indexing all source records, sites, zones…';
+    status.textContent = 'Reading native TXT/ATT records…';
     index = await indexAttNativeHierarchy(new Blob([bytes]).stream(), {
-      onProgress(count) { stats.textContent = 'Indexed ' + count.typed + ' native records…'; },
+      onProgress(progress) {
+        status.textContent = 'Indexed ' + progress.typed.toLocaleString() + ' TXT records…';
+      },
     });
-  } catch (error) { overlay.remove(); throw error; }
-  const expanded = new Set();
-  let selection = createAttScopeSelection();
-  let offset = 0, search = '', timer = null;
-
-  function render() {
-    const page = projectAttNativeTree(index, { expanded, offset, search, limit: ATT_TREE_ROW_LIMIT });
-    rows.innerHTML = page.rows.map(r => {
-      const state = attScopeNodeState(index, selection, r.id);
-      const toggle = r.childCount
-        ? '<button type="button" data-expand="' + safe(r.id) + '" aria-label="Expand or collapse ' + safe(r.name) + '">' + (expanded.has(r.id) ? '−' : '+') + '</button>'
-        : '<span aria-hidden="true" style="display:inline-block;width:22px;"></span>';
-      const reveal = search ? '<button type="button" data-reveal="' + safe(r.id) + '">Reveal</button>' : '';
-      return '<div role="treeitem" aria-level="' + (r.depth + 1)
-        + '" style="display:flex;align-items:center;gap:8px;padding:3px;min-width:max-content;margin-left:' + (search ? 0 : Math.min(r.depth, 24) * 13) + 'px;">'
-        + toggle + '<input type="checkbox" data-check="' + safe(r.id) + '" aria-label="Select ' + safe(r.name) + '"'
-        + (state === 'checked' ? ' checked' : '') + ' data-mixed="' + (state === 'mixed') + '">'
-        + '<small style="color:#9fc6ff;min-width:44px;">' + safe(r.type) + '</small>'
-        + '<span>' + safe(r.name) + '</span><small>' + (r.childCount ? '(' + r.childCount + ')' : '') + '</small>'
-        + reveal + '</div>';
-    }).join('');
-    rows.querySelectorAll('[data-mixed="true"]').forEach(input => { input.indeterminate = true; });
-    el('[data-native-page]').textContent = (page.visibleTotal ? offset + 1 : 0) + '–'
-      + Math.min(page.visibleTotal, offset + page.rows.length) + '/' + page.visibleTotal
-      + (search ? ' matches' : ' visible');
-    el('[data-native-prev]').disabled = !page.canPrevious;
-    el('[data-native-next]').disabled = !page.canNext;
-    stats.textContent = index.counts.typed.toLocaleString() + ' indexed · ' + index.counts.sites
-      + ' Sites · ' + index.counts.zones + ' Zones · ' + page.rows.length
-      + ' rendered · ' + page.unresolvedTotal + ' unresolved';
-    const resolved = resolveAttScopeSelection(index, selection);
-    summary.textContent = resolved.selectedNativeCount.toLocaleString() + ' native records selected; '
-      + resolved.selectedBranchIds.length + ' piping branches eligible for XML/JSON.';
-    el('[data-native-confirm]').disabled = !resolved.explicitSelection || !resolved.selectedNativeCount;
+  } catch (error) {
+    overlay.remove();
+    throw error;
   }
+
+  const browser = createAttNativeTreeBrowser(index);
+  let selection = createAttScopeSelection();
+  let selected = resolveAttScopeSelection(index, selection);
+  let pendingSearch = null;
+  let lastScrollBeforeSearch = 0;
+  let pendingFrame = false;
+
+  function errorText(value) {
+    feedback.style.display = value ? 'block' : 'none';
+    feedback.textContent = value || '';
+  }
+  function paintSummary() {
+    summary.textContent = selected.selectedNativeCount.toLocaleString()
+      + ' native records selected · ' + selected.selectedBranchIds.length
+      + ' convertible piping branches. Selected Sites/Zones include hidden descendants.';
+    element('[data-native-confirm]').disabled = !selected.explicitSelection || !selected.selectedNativeCount;
+  }
+  function paintStats() {
+    status.textContent = index.counts.typed.toLocaleString() + ' native TXT records · '
+      + index.counts.sites + ' Sites · ' + index.counts.zones + ' Zones'
+      + (index.counts.unresolved ? ' · ' + index.counts.unresolved + ' unresolved owner(s)' : '');
+    element('[data-native-matches]').textContent = browser.search
+      ? browser.matchCount.toLocaleString() + ' matches'
+      : browser.visibleTotal.toLocaleString() + ' tree rows';
+  }
+  function paintRows() {
+    const buffer = 5;
+    const first = Math.max(0, Math.floor(viewport.scrollTop / ATT_BROWSER_ROW_HEIGHT) - buffer);
+    const visible = Math.max(18, Math.ceil((viewport.clientHeight || 500) / ATT_BROWSER_ROW_HEIGHT) + buffer * 2);
+    const windowed = browser.windowAt(first, Math.min(visible, ATT_BROWSER_MAX_RENDER_ROWS));
+    const rowHtml = windowed.rows.map(row => {
+      const state = attScopeNodeState(index, selection, row.id);
+      const caret = row.childCount
+        ? '<button type="button" data-expand="' + escapeText(row.id) + '" aria-label="' + (row.expanded ? 'Collapse ' : 'Expand ')
+          + escapeText(row.name) + '" style="width:26px;flex-shrink:0;">' + (row.expanded ? '▾' : '▸') + '</button>'
+        : '<span aria-hidden="true" style="display:inline-block;flex-shrink:0;width:26px;"></span>';
+      const label = escapeText(row.name);
+      const highlighted = row.matches ? '<strong style="color:#ffe59b;">' + label + '</strong>' : label;
+      return '<div role="treeitem" tabindex="-1" data-row="' + escapeText(row.id) + '"'
+        + ' aria-level="' + (row.depth + 1) + '"'
+        + (row.childCount ? ' aria-expanded="' + String(row.expanded) + '"' : '')
+        + ' style="box-sizing:border-box;height:' + ATT_BROWSER_ROW_HEIGHT + 'px;display:flex;align-items:center;gap:7px;white-space:nowrap;'
+        + 'padding-left:' + (row.depth * 16) + 'px;">'
+        + caret
+        + '<input type="checkbox" data-check="' + escapeText(row.id) + '" aria-label="Select ' + label + '"'
+        + (state === 'checked' ? ' checked' : '') + ' data-mixed="' + (state === 'mixed') + '">'
+        + '<small style="color:#a3b8dd;width:42px;flex-shrink:0;">' + escapeText(row.type) + '</small>'
+        + '<span title="' + label + '" style="text-overflow:ellipsis;">' + highlighted + '</span>'
+        + (row.childCount ? '<small style="color:#a1b1c7;">(' + row.childCount + ')</small>' : '')
+        + '</div>';
+    }).join('');
+    viewport.innerHTML = windowed.visibleTotal
+      ? '<div aria-hidden="true" style="height:' + windowed.topPixels + 'px;"></div>' + rowHtml
+        + '<div aria-hidden="true" style="height:' + windowed.bottomPixels + 'px;"></div>'
+      : '<div role="status" style="padding:12px;color:#ffe3ad;">'
+        + (browser.search
+          ? 'No matching Site, Zone or component in this loaded TXT/ATT file. Try another name or check that the correct TXT was loaded.'
+          : 'No SITE, ZONE or descendant records found in this TXT/ATT file.')
+        + '</div>';
+    viewport.querySelectorAll('[data-mixed="true"]').forEach(input => { input.indeterminate = true; });
+  }
+  function refresh({ withStats = false } = {}) {
+    if (withStats) paintStats();
+    paintRows();
+  }
+  function focusRow(id, target = 'row') {
+    for (const row of viewport.querySelectorAll('[data-row]')) {
+      if (row.getAttribute('data-row') !== id) continue;
+      const focusable = target === 'check' ? row.querySelector('[data-check]') : row;
+      focusable?.focus({ preventScroll: true });
+      return;
+    }
+  }
+  function focusPosition(position) {
+    const bounded = Math.max(0, Math.min(browser.visibleTotal - 1, position));
+    const current = browser.windowAt(bounded, 1).rows[0];
+    if (!current) return;
+    const top = bounded * ATT_BROWSER_ROW_HEIGHT;
+    if (top < viewport.scrollTop) viewport.scrollTop = top;
+    else if (top + ATT_BROWSER_ROW_HEIGHT > viewport.scrollTop + viewport.clientHeight) {
+      viewport.scrollTop = Math.max(0, top - viewport.clientHeight + ATT_BROWSER_ROW_HEIGHT);
+    }
+    paintRows();
+    focusRow(current.id);
+  }
+  function toggleExpanded(id) {
+    const oldPosition = browser.positionOf(id);
+    const relative = oldPosition * ATT_BROWSER_ROW_HEIGHT - viewport.scrollTop;
+    browser.toggle(id);
+    const newPosition = browser.positionOf(id);
+    if (newPosition >= 0) viewport.scrollTop = Math.max(0, newPosition * ATT_BROWSER_ROW_HEIGHT - relative);
+    refresh({ withStats: true });
+    focusRow(id);
+  }
+
   return new Promise(resolve => {
-    const done = result => { if (timer) clearTimeout(timer); overlay.remove(); resolve(result); };
-    rows.addEventListener('click', event => {
-      const btn = event.target.closest('[data-expand], [data-reveal]');
-      if (!btn) return;
-      const expandId = btn.getAttribute('data-expand');
-      if (expandId) {
-        if (expanded.has(expandId)) expanded.delete(expandId);
-        else expanded.add(expandId);
-        offset = 0;
-      } else {
-        const id = btn.getAttribute('data-reveal');
-        const updated = expandAttNativeAncestors(index, id, expanded);
-        expanded.clear(); for (const value of updated) expanded.add(value);
-        search = ''; el('[data-native-search]').value = '';
-        const location = findAttNativeVisibleOffset(index, id, expanded);
-        offset = Math.floor(Math.max(0, location) / ATT_TREE_ROW_LIMIT) * ATT_TREE_ROW_LIMIT;
+    function done(result) {
+      if (pendingSearch) clearTimeout(pendingSearch);
+      overlay.remove();
+      resolve(result);
+    }
+    viewport.addEventListener('scroll', () => {
+      if (pendingFrame) return;
+      pendingFrame = true;
+      requestAnimationFrame(() => { pendingFrame = false; paintRows(); });
+    }, { passive: true });
+    viewport.addEventListener('click', event => {
+      const button = event.target.closest('[data-expand]');
+      if (button) toggleExpanded(button.getAttribute('data-expand'));
+    });
+    viewport.addEventListener('change', event => {
+      const checkbox = event.target.closest('[data-check]');
+      if (!checkbox) return;
+      const id = checkbox.getAttribute('data-check');
+      selection = setAttScopeRule(index, selection, id, checkbox.checked);
+      // Traverse all source records on selection changes only, never while scrolling.
+      selected = resolveAttScopeSelection(index, selection);
+      errorText('');
+      paintSummary();
+      paintRows();
+      focusRow(id, 'check');
+    });
+    viewport.addEventListener('keydown', event => {
+      const row = event.target.closest('[data-row]');
+      if (!row) return;
+      const currentId = row.getAttribute('data-row');
+      const position = browser.positionOf(currentId);
+      if (event.key === 'ArrowDown') { event.preventDefault(); focusPosition(position + 1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); focusPosition(position - 1); }
+      else if (event.key === 'Home') { event.preventDefault(); focusPosition(0); }
+      else if (event.key === 'End') { event.preventDefault(); focusPosition(browser.visibleTotal - 1); }
+      else if (event.key === 'ArrowRight' && row.getAttribute('aria-expanded') === 'false') {
+        event.preventDefault(); toggleExpanded(currentId);
+      } else if (event.key === 'ArrowLeft' && row.getAttribute('aria-expanded') === 'true') {
+        event.preventDefault(); toggleExpanded(currentId);
+      } else if (event.key === 'ArrowLeft') {
+        const parent = index.byId.get(currentId)?.parentId;
+        const parentPosition = parent ? browser.positionOf(parent) : -1;
+        if (parentPosition >= 0) { event.preventDefault(); focusPosition(parentPosition); }
       }
-      render();
     });
-    rows.addEventListener('change', event => {
-      const input = event.target.closest('[data-check]');
-      if (!input) return;
-      selection = setAttScopeRule(index, selection, input.getAttribute('data-check'), input.checked);
-      render();
+    search.addEventListener('input', () => {
+      if (pendingSearch) clearTimeout(pendingSearch);
+      const next = search.value;
+      pendingSearch = setTimeout(() => {
+        if (!browser.search && next.trim()) lastScrollBeforeSearch = viewport.scrollTop;
+        const restore = Boolean(browser.search && !next.trim());
+        browser.setSearch(next);
+        viewport.scrollTop = restore ? lastScrollBeforeSearch : 0;
+        refresh({ withStats: true });
+      }, 160);
     });
-    el('[data-native-search]').addEventListener('input', event => {
-      const value = event.target.value;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { search = value; offset = 0; render(); }, 120);
+    element('[data-native-clear]').addEventListener('click', () => {
+      selection = createAttScopeSelection();
+      selected = resolveAttScopeSelection(index, selection);
+      paintSummary(); paintRows(); errorText('');
     });
-    el('[data-native-prev]').addEventListener('click', () => { offset = Math.max(0, offset - ATT_TREE_ROW_LIMIT); render(); });
-    el('[data-native-next]').addEventListener('click', () => { offset += ATT_TREE_ROW_LIMIT; render(); });
-    el('[data-native-clear]').addEventListener('click', () => { selection = createAttScopeSelection(); render(); });
-    el('[data-native-cancel]').addEventListener('click', () => done({ cancelled: true }));
-    el('[data-native-full]').addEventListener('click', () => done({
+    element('[data-native-cancel]').addEventListener('click', () => done({ cancelled: true }));
+    element('[data-native-full]').addEventListener('click', () => done({
       cancelled: false, wildcard: '', selectedIds: [], nativeScope: { mode: 'FULL' },
     }));
-    el('[data-native-confirm]').addEventListener('click', () => {
-      const resolved = resolveAttScopeSelection(index, selection);
-      if (!resolved.explicitSelection || !resolved.selectedNativeCount) return;
-      if (!resolved.selectedBranchIds.length) {
-        summary.textContent = 'Selected source contains no convertible piping BRAN. Refusing an unfiltered or silently empty XML/JSON output.';
+    element('[data-native-confirm]').addEventListener('click', () => {
+      if (!selected.explicitSelection || !selected.selectedNativeCount) return;
+      if (!selected.selectedBranchIds.length) {
+        errorText('Selected areas have no piping BRAN convertible to XML/JSON. No unfiltered output will be generated.');
         return;
       }
       const partial = attScopePartiallyExcludedBranches(index, selection);
       if (partial.length) {
-        summary.textContent = 'Conversion blocked: ' + partial.length
-          + ' selected piping branch(es) have explicitly excluded components. Whole-branch export would leak unchecked geometry.';
+        errorText('Conversion blocked: ' + partial.length
+          + ' selected piping branches contain excluded components. Whole-branch export would include unchecked geometry.');
         return;
       }
       done({
-        cancelled: false, wildcard: '', selectedIds: [...resolved.selectedBranchIds],
+        cancelled: false, wildcard: '', selectedIds: [...selected.selectedBranchIds],
         nativeScope: {
           mode: 'SELECTED', rules: [...selection.rules.entries()],
-          indexed: index.counts.typed, selectedNativeCount: resolved.selectedNativeCount,
-          selectedPipingBranches: resolved.selectedBranchIds.length,
-          selectedByType: resolved.byType,
+          indexed: index.counts.typed, selectedNativeCount: selected.selectedNativeCount,
+          selectedPipingBranches: selected.selectedBranchIds.length,
+          selectedByType: selected.byType,
         },
       });
     });
-    render();
+    paintStats(); paintSummary(); paintRows();
+    search.focus({ preventScroll: true });
   });
 }
