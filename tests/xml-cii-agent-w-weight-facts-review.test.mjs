@@ -252,6 +252,7 @@ test('scorer pins master rows against in-place mutation; proposal custody contai
   assert.equal(p.extensions.candidate.masterRowId, 'valve-row-77');
   assert.ok(p.evidenceRefs.includes('weight:master-row:0'));
   assert.ok(p.proposalId.includes('rank-rev-1'));
+  config.weight.masterRows[0].rating = '150'; // a new scorer represents the changed master and must require a new basis
   const refreshed = createXmlCiiFactWeightScorer(config, 'rank-rev-2')(fixture(b), b)[0];
   assert.equal(refreshed.value, 99);
   assert.ok(refreshed.proposalId !== p.proposalId);
