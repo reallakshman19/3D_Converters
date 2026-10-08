@@ -1834,6 +1834,10 @@
         {
           "responsibility_id": "R09",
           "ref": "reallaksh19/3D_Converters#1085"
+        },
+        {
+          "responsibility_id": "R10",
+          "ref": "reallaksh19/3D_Converters#1088"
         }
       ]
     }
@@ -1842,7 +1846,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 80
+      "reserve_weight": 75
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2399,6 +2403,69 @@
           "weight": 25,
           "outcome": "Replaced source invalidates previous cursors",
           "verify": "Independent oracle: Independent one-row page union and stale-cursor checks; outcome: Replaced source invalidates previous cursors"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1088",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R10",
+      "work_class": "PRODUCT",
+      "outcome": "Two supported local execution environments yield identical source identities and scope results.",
+      "independence_basis": "Independent cross-runtime source/hash/results expectations. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C5_PORTS"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/ports/"
+      ],
+      "acceptance_methods": [
+        "Independent cross-runtime source/hash/results expectations",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1071",
+        "reallaksh19/3D_Converters#1085"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Inputs yield identical digests",
+          "verify": "Independent oracle: Independent cross-runtime source/hash/results expectations; outcome: Inputs yield identical digests"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Nested occurrences match exactly",
+          "verify": "Independent oracle: Independent cross-runtime source/hash/results expectations; outcome: Nested occurrences match exactly"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Ordered pages match exactly",
+          "verify": "Independent oracle: Independent cross-runtime source/hash/results expectations; outcome: Ordered pages match exactly"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Unsupported capabilities are explicit",
+          "verify": "Independent oracle: Independent cross-runtime source/hash/results expectations; outcome: Unsupported capabilities are explicit"
         }
       ]
     }
