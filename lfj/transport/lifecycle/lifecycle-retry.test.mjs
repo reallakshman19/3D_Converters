@@ -7,8 +7,9 @@ const basis={sourceRefId:'S',sourceSha256:'a'.repeat(64),sourceRevision:'s1',
  byteLength:31,selectionDigest:'scope-A',dependencyRevision:'xml-A'};
 function open(jobId='J1',opts={}){
  const workers=[];
- const createWorker=()=>{const w=new Worker(new URL('./lifecycle-worker-fixture.mjs',import.meta.url),
-  {type:'module',workerData:{mode:opts.mode||'ready'}});workers.push(w);return w;};
+ const createWorker=()=>{const mode=(opts.mode==='exit'&&workers.length)?'ready':(opts.mode||'ready');
+  const w=new Worker(new URL('./lifecycle-worker-fixture.mjs',import.meta.url),
+  {type:'module',workerData:{mode}});workers.push(w);return w;};
  const session=createWorkerLifecycleSession({jobId,...basis,createWorker,trustedWorkerCtor:Worker});
  return {session,createWorker,workers,async stop(){await Promise.all(workers.map(w=>w.terminate()));}};
 }
