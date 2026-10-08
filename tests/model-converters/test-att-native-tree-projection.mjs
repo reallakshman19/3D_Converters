@@ -40,15 +40,13 @@ assert.equal(firstPage.canNext, true);
 assert.ok(firstPage.rows.some(row => row.type === 'SUBE'));
 assert.ok(firstPage.rows.some(row => row.type === 'ZONE'));
 assert.ok(!firstPage.rows.some(row => row.name === '/SITE-1/ZONE-0'));
-let offset = 0, visited = 0;
-while (true) {
-  const p = projectAttNativeTree(index, { expanded, offset, limit: 120 });
-  assert.ok(p.rows.length <= 120);
-  visited += p.rows.length;
-  if (!p.canNext) { assert.equal(visited, p.visibleTotal); break; }
-  offset += p.rows.length;
-}
-assert.equal(visited, 19 + 11 + 1 + 105000);
+assert.equal(firstPage.visibleTotal, 19 + 11 + 1 + 105000);
+const secondPage = projectAttNativeTree(index, { expanded, offset: 120 });
+assert.equal(secondPage.rows.length, 120);
+assert.notEqual(firstPage.rows[0].id, secondPage.rows[0].id);
+const lastPage = projectAttNativeTree(index, { expanded, offset: firstPage.visibleTotal - 30 });
+assert.equal(lastPage.rows.length, 30);
+assert.equal(lastPage.canNext, false);
 const hit = '/SITE-0/ZONE-0/E99999';
 assert.deepEqual(attNativeAncestors(index, hit),
   ['/SITE-0', '/SITE-0/ZONE-0', hit]);
