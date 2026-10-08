@@ -5,6 +5,7 @@
 <pre id="result">RUNNING</pre>
 <script type="module">
 import { createDefaultRegexTesterConfig } from '../../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
+import { masterDatasetCoordinator } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js';
 import { createDefaultRegexSuggestionProfile } from '../../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 import { renderStandaloneRegexTesterPanel } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js';
 import { enhanceRegexSmartWorkbench } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js';
@@ -148,9 +149,24 @@ try {
     ...defaultProfile,
     formatPolicy: { ...defaultProfile.formatPolicy, maximumFormats: 1 },
   };
+  // Register actual worker-backed masters, not fabricated dataset IDs: a failed
+  // worker lookup is not equivalent to a governed BLOCKED preflight.
+  const encoder = new TextEncoder();
+  const buffer = (rows) => {
+    const bytes = encoder.encode(JSON.stringify(rows));
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  };
+  const lineFieldMap = blockedState.masterContext.config.linelist.fieldMap;
+  const classFieldMap = blockedState.masterContext.config.pipingClass.fieldMap;
+  const lineReady = await masterDatasetCoordinator.openBuffer(
+    'lineList', buffer(blockedState.masterContext.lineRows), 'j03-line-list.json', { fieldMapOverride: lineFieldMap },
+  );
+  const classReady = await masterDatasetCoordinator.openBuffer(
+    'pipingClass', buffer(blockedState.masterContext.pipingClassRows), 'j03-piping-class.json', { fieldMapOverride: classFieldMap },
+  );
   blockedState.masterContext.datasetRefs = {
-    lineList: { datasetId: 'resident-line-test', rowCount: 1, fieldMap: blockedState.masterContext.config.linelist.fieldMap },
-    pipingClass: { datasetId: 'resident-class-test', rowCount: 1, fieldMap: blockedState.masterContext.config.pipingClass.fieldMap },
+    lineList: { ...lineReady.metadata, fieldMap: lineFieldMap },
+    pipingClass: { ...classReady.metadata, fieldMap: classFieldMap },
   };
   blockedState.masterContext.rowCounts = { lineList: 1, pipingClass: 1 };
   const blockedBefore = structuredClone(blockedState.regexTesterConfig);
@@ -188,4 +204,5 @@ try {
   result.textContent = JSON.stringify(globalThis.__XML_CII_LIVE_REGEX_RESULT__, null, 2);
 }
 globalThis.__XML_CII_LIVE_REGEX_DONE__ = true;
+masterDatasetCoordinator.dispose();
 </script>
