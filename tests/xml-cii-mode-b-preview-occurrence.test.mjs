@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import { applyPreviewBoreWallAuthority } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
 import { rerankPreviewNodeRows } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js';
@@ -91,4 +92,38 @@ test('strict line correction replaces only its own repeated-name node occurrence
   assert.deepEqual(rebuilt.nodeRows.map(r => r.branchOccurrenceIndex).sort(), [0, 1]);
   assert.equal(rebuilt.branchRows[0].lineKeyMethod, 'none');
   assert.equal(rebuilt.branchRows[1].lineKeyMethod, 'exact');
+});
+
+
+test('live Single Run reaches repaired parity through Smart, ATTA and MDS wrappers', async () => {
+  const modules = [
+    'tabs/xml-cii-2019-standalone-tab.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js',
+  ];
+  const source = await Promise.all(modules.map(path =>
+    readFile(new URL('../' + path, import.meta.url), 'utf8')));
+  for (let index = 0; index < modules.length - 1; index += 1) {
+    const nextName = modules[index + 1].split('/').at(-1);
+    assert.ok(source[index].includes(nextName + '?v=20261008-p0-mode-b-parity-1'),
+      'live module still imports stale ' + nextName + ' via ' + modules[index]);
+  }
+  assert.match(source[5], /replaceRunHandler\(container, stateRef, render\)/);
+  assert.match(source[5], /runWorkflowFromUi\(stateRef, render\)/);
+  assert.match(source[7], /runParityEnricher: enrichStandaloneXmlForRun/);
+  assert.match(source[8], /closeGovernedMdsPositionRestraintsXml/);
+  assert.match(source[9], /closeGovernedAttaDefaultRestraintsXml/);
+  for (const index of [8, 9]) {
+    assert.match(source[index], /createStandaloneRunParityEvidence/);
+    assert.match(source[index], /out\.applied = false/);
+  }
 });
