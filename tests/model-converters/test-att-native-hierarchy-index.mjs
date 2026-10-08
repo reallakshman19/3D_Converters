@@ -39,7 +39,7 @@ const damaged = [
   'NEW /D', 'NAME:= /D', 'TYPE:= ZONE', 'OWNER:= /*',
   'NEW /D#2', 'NAME:= /D#2', 'TYPE:= ZONE', 'OWNER:= /*',
   'END',
-].join('\\n');
+].join('\n');
 const unusual = await indexAttNativeHierarchy(damaged);
 assert.equal(unusual.counts.typed, 5);
 assert.equal(unusual.byId.size, 5, 'Duplicate synthetic ID must not overwrite a real NAME');
