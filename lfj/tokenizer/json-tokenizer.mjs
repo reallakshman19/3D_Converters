@@ -55,7 +55,9 @@ export function createJsonByteCursor(snapshot,{
   });
 }
 
-const utf8=new TextDecoder('utf-8',{fatal:true});
+// A U+FEFF *inside* quoted JSON data is a real source character, not a file BOM.
+// Default TextDecoder stripping silently changes such source values.
+const utf8=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const singleEscapes=Object.freeze({
   34:'"',92:'\\',47:'/',98:'\b',102:'\f',110:'\n',114:'\r',116:'\t',
 });
