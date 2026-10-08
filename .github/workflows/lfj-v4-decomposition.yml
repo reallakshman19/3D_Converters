@@ -8,6 +8,7 @@ on:
       - 'lfj/governance/structured-data-v4.execution-graph.json'
       - 'lfj/governance/structured-data-v4.PLAN.md'
       - '.github/workflows/lfj-v4-decomposition.yml'
+      - '.github/workflows/lfj-r03-source.yml'
       - 'lfj/governance/pinned-v32/delp_projection_v32.py'
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - 'lfj/governance/structured-data-v4.execution-graph.json'
       - 'lfj/governance/structured-data-v4.PLAN.md'
       - '.github/workflows/lfj-v4-decomposition.yml'
+      - '.github/workflows/lfj-r03-source.yml'
   workflow_dispatch:
 
 permissions:
