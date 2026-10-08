@@ -93,7 +93,8 @@ export async function runCommittedSourceQuery({
   sourceRefId,sourceSha256:source.sha256,sourceRevision:source.revision
  });
  const job={...sourceBasis,jobId,byteLength:source.byteLength,selectionDigest,revision};
- const current=getCurrentBasis??(()=>job);
+ if(typeof getCurrentBasis!=='function')fail('SOURCE_BASIS_ATTESTATION_REQUIRED','live source and selection basis callback required');
+ const current=getCurrentBasis;
  let worker,session,tx,pager;
  try{
   session=createWorkerLifecycleSession({
