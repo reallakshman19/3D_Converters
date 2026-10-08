@@ -52,11 +52,22 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     }));
     if(pending.length>=pageEvents)await flush();
   }
+  // Exact R03 snapshots can be closed while an R04 byte cursor holds its
+  // already-read page. Attest liveness at each transport handoff, both before
+  // and after the awaited sink, to prevent more provisional events leaking
+  // after a source is closed. The R03 reader itself enforces the revision.
+  async function attestLive() {
+    if(signal?.aborted)fail('INDEX_ABORTED','original index scan was cancelled');
+    await snapshot.readRange(0,0,snapshot.revision);
+    if(signal?.aborted)fail('INDEX_ABORTED','original index scan was cancelled');
+  }
   async function flush(){
     if(!pending.length)return;
+    await attestLive();
     const batch=Object.freeze(pending);
     pending=[];
-    await onEventPage(batch); // backpressure, propagate sink errors
+    await onEventPage(batch); // backpressure; propagate sink errors unchanged
+    await attestLive();
     sent+=batch.length;
   }
   function nextPath() {
