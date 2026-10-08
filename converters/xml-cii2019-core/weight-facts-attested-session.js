@@ -96,8 +96,18 @@ export async function assertWeightInputCustody(basis, facts, custody, digests) {
 // The #999 integrator supplies authoritative bytes/store leases and occurrence custody.
 export function createAttestedWeightReviewService({ score, digestReview, digestUtf8, digestCanonical } = {}) {
   const core = createWeightReviewService({ score, digestReview });
-  const { openBasis: _unsafe, openBasisJob: _unsafeJob, ...safe } = core;
-  return Object.freeze({
+  const { openBasis: _unsafe, openBasisJob: _unsafeJob,
+    subscribeJob: _unsafeSubscribe, awaitJob: _unsafeAwait,
+    cancelJob: _unsafeCancel, ...safe } = core;
+  const jobs = new Map(), latestByBasis = new Map();
+  const eventFor = job => {
+    const { requestId, basisId, stage, completed, total, event, error } = job;
+    return { requestId, basisId, stage, completed, total, event,
+      ...(error ? { error: { ...error } } : {}) };
+  };
+  const isStale = job => job.cancelled || latestByBasis.get(job.basisId) !== job.requestId;
+  const cancelled = job => { job.cancelled = true; job.event = 'cancelled'; return eventFor(job); };
+  const api = {
     ...safe,
     async openBasis(basis, { facts, custody } = {}) {
       const attestation = await assertWeightInputCustody(basis, facts, custody,
@@ -105,5 +115,65 @@ export function createAttestedWeightReviewService({ score, digestReview, digestU
       const result = core.openBasis(basis, { facts });
       return { ...result, attestation };
     },
-  });
+    openBasisJob(basis, { requestId, loadFacts } = {}) {
+      if (typeof requestId !== 'string' || !requestId || typeof loadFacts !== 'function') {
+        custodyError('INVALID_JOB', 'Unique requestId and fact/custody loader required');
+      }
+      if (jobs.has(requestId)) custodyError('JOB_COLLISION', 'Cannot reuse an attested requestId');
+      const job = { requestId, basisId: basis?.basisId, stage: 'facts',
+        completed: 0, total: null, event: 'progress', cancelled: false };
+      if (!sha(job.basisId)) custodyError('INVALID_JOB', 'Job InputBasis must identify a SHA-256 revision');
+      const previous = latestByBasis.get(job.basisId);
+      if (previous && jobs.has(previous) && jobs.get(previous).event === 'progress') {
+        cancelled(jobs.get(previous)); // superseded worker result is never authoritative
+      }
+      latestByBasis.set(job.basisId, requestId);
+      jobs.set(requestId, job);
+      const report = (completed, total) => {
+        if (isStale(job) || job.event !== 'progress') return;
+        if (Number.isSafeInteger(completed) && completed >= job.completed) job.completed = completed;
+        if (Number.isSafeInteger(total) && total >= job.completed) job.total = total;
+      };
+      job.completion = Promise.resolve().then(async () => {
+        if (isStale(job)) return eventFor(job);
+        const output = await loadFacts({
+          basis, requestId, report, isCancelled: () => isStale(job),
+        });
+        if (isStale(job)) return cancelled(job);
+        const attestation = await assertWeightInputCustody(basis, output?.facts,
+          output?.custody, { digestUtf8, digestCanonical });
+        if (isStale(job)) return cancelled(job);
+        core.openBasis(basis, { facts: output.facts });
+        job.completed = attestation.physicalCount;
+        job.total = attestation.physicalCount;
+        job.event = 'completed';
+        return eventFor(job);
+      }).catch(error => {
+        if (isStale(job)) return cancelled(job);
+        job.event = 'failed';
+        job.error = { code: error?.code || 'FACT_LOAD_FAILED',
+          message: String(error?.message || error), retryable: false, stage: 'facts' };
+        return eventFor(job);
+      });
+      return { requestId, basisId: job.basisId };
+    },
+    subscribeJob(requestId) {
+      const job = jobs.get(requestId);
+      if (!job) custodyError('UNKNOWN_JOB', 'Unknown attested Weight job');
+      return eventFor(job);
+    },
+    async awaitJob(requestId) {
+      const job = jobs.get(requestId);
+      if (!job) custodyError('UNKNOWN_JOB', 'Unknown attested Weight job');
+      await job.completion;
+      return eventFor(job);
+    },
+    cancelJob(requestId) {
+      const job = jobs.get(requestId);
+      if (!job) custodyError('UNKNOWN_JOB', 'Unknown attested Weight job');
+      if (job.event === 'progress') cancelled(job);
+      return eventFor(job);
+    },
+  };
+  return Object.freeze(api);
 }

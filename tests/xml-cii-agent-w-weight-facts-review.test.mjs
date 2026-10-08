@@ -524,3 +524,57 @@ test('U1 strict review rejects legacy row-index identities and incomplete/duplic
   assert.equal(decision.state,'accepted');
   assert.equal(strict.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisions[facts[0].occurrenceId].value,22);
 });
+
+test('U1 attested asynchronous jobs fence cancel, stale worker replies and wrong content', async () => {
+  const {b,custody,facts,service} = attestedFixture();
+  const weight = service();
+  let release;
+  const late = new Promise(resolve => { release = resolve; });
+  weight.openBasisJob(b,{requestId:'old-master',loadFacts:async()=>late});
+  assert.equal(weight.subscribeJob('old-master').event,'progress');
+  weight.openBasisJob(b,{requestId:'latest-master',loadFacts:async()=>({facts,custody})});
+  release({facts,custody});
+  assert.equal((await weight.awaitJob('old-master')).event,'cancelled');
+  const latest = await weight.awaitJob('latest-master');
+  assert.equal(latest.event,'completed');
+  assert.equal(latest.completed,2);
+  assert.equal(weight.getFacts({basisId:b.basisId}).totalCount,2);
+  assert.throws(() => weight.openBasisJob(b,{requestId:'latest-master',loadFacts:async()=>({facts,custody})}),
+    e=>e.code==='JOB_COLLISION');
+
+  const broken = service();
+  const corrupt = {...custody,sourceTexts:{one:'<Node number="-1">B</Node>'}};
+  broken.openBasisJob(b,{requestId:'wrong-digest',loadFacts:async()=>({facts,custody:corrupt})});
+  const failed = await broken.awaitJob('wrong-digest');
+  assert.equal(failed.event,'failed');
+  assert.equal(failed.error.code,'INPUT_DIGEST_MISMATCH');
+  assert.throws(() => broken.getFacts({basisId:b.basisId}),e=>e.code==='UNKNOWN_BASIS');
+
+  let unlock;
+  const blocked = new Promise(resolve => {unlock=resolve;});
+  const cancelled = service();
+  cancelled.openBasisJob(b,{requestId:'cancel-before-complete',loadFacts:async()=>blocked});
+  assert.equal(cancelled.cancelJob('cancel-before-complete').event,'cancelled');
+  unlock({facts,custody});
+  assert.equal((await cancelled.awaitJob('cancel-before-complete')).event,'cancelled');
+  assert.throws(() => cancelled.getFacts({basisId:b.basisId}),e=>e.code==='UNKNOWN_BASIS');
+});
+
+test('U1 strict canonical session keeps portable non-XML domain and explicit source isolation', async () => {
+  const {b,custody,facts} = attestedFixture();
+  const domain='synthetic/mechanical-v1';
+  const bytes={...custody,masters:{},occurrenceIdsBySource:{one:['one/part:0']}};
+  const base={...b,domainId:domain,masters:{},sourceRefs:[{...b.sourceRefs[0],mediaType:'application/json'}]};
+  delete base.basisId;
+  base.basisId=canonicalSha(base);
+  const f=[{...facts[0],domainId,basisId:base.basisId,occurrenceId:'one/part:0',
+    subjectType:'physical-component',fieldId:'mass.kg',value:null,authority:'unresolved'}];
+  const strict=createAttestedWeightReviewService({score:()=>[],
+    digestUtf8:async text=>hash(text),digestCanonical:async value=>canonicalSha(value)});
+  await strict.openBasis(base,{facts:f,custody:bytes});
+  const cmd={commandId:'accept-non-xml',basisId:base.basisId,scopeId:'one',
+    occurrenceId:'one/part:0',action:'enter-manual',expectedDecisionRevision:null,value:7,unit:'kg'};
+  const result=strict.applyDecisions({basisId:base.basisId,scopeId:'one',commands:[cmd]});
+  assert.equal(result[0].state,'accepted');
+  assert.equal(strict.getDecisionState({basisId:base.basisId,scopeId:'one'}).decisions['one/part:0'].value,7);
+});
