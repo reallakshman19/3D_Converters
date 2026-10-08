@@ -37,7 +37,7 @@ function record(input,index) {
   return {sourceId,occurrenceId,parentOccurrenceId,
     type:input.type.trim().toUpperCase(),name:input.name,attrs};
 }
-function local(value,key,owner){
+function local(owner,key){
   if(!own(owner.attrs,key))return null;
   const s=clean(owner.attrs[key]);
   if(!s)fail('INVALID_OWNER_VALUE',owner.occurrenceId+' '+key+' cannot be blank');
