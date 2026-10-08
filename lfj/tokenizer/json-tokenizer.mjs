@@ -164,6 +164,8 @@ const nonzero=b=>b!==null&&b>=49&&b<=57;
 export async function scanJsonDocument(snapshot,{
   pageBytes=65536,maxTokenBytes=65536,onToken=null,signal=null,
   maxDepth=256,maxTokens=128*1024*1024,maxByteLength=128*1024*1024,
+  maxObjectKeys=8192,maxObjectKeyBytes=1024*1024,
+  maxRetainedKeyBytes=4*1024*1024,
 }={}) {
   if(onToken!==null&&typeof onToken!=='function')
     fail('INVALID_TOKEN_SINK',0,'onToken must be a callable sink');
@@ -171,7 +173,11 @@ export async function scanJsonDocument(snapshot,{
   // protective defaults, not reference-hardware performance acceptance SLOs.
   if(!safe(maxDepth)||maxDepth===0||maxDepth>256||
      !safe(maxTokens)||maxTokens===0||maxTokens>512*1024*1024||
-     !safe(maxByteLength)||maxByteLength===0||maxByteLength>512*1024*1024)
+     !safe(maxByteLength)||maxByteLength===0||maxByteLength>512*1024*1024||
+     !safe(maxTokenBytes)||maxTokenBytes===0||maxTokenBytes>MAX_PAGE||
+     !safe(maxObjectKeys)||maxObjectKeys===0||maxObjectKeys>8192||
+     !safe(maxObjectKeyBytes)||maxObjectKeyBytes===0||maxObjectKeyBytes>1024*1024||
+     !safe(maxRetainedKeyBytes)||maxRetainedKeyBytes===0||maxRetainedKeyBytes>4*1024*1024)
     fail('INVALID_RESOURCE_LIMIT',0,'depth/tokens/original-byte caps are invalid or too large');
   if(!snapshot||!safe(snapshot.byteLength))
     fail('INVALID_BYTE_SOURCE',0,'valid R03 snapshot length is required');
@@ -182,7 +188,7 @@ export async function scanJsonDocument(snapshot,{
     if(signal?.aborted)fail('SCAN_ABORTED',cursor.position,'scan was cancelled');
   };
   checkSignal();
-  let tokenCount=0;
+  let tokenCount=0,activeKeyBytes=0;
   const skip=async()=>{
     while(ASCII_WS.has(await cursor.peek()))await cursor.take();
   };
@@ -213,7 +219,11 @@ export async function scanJsonDocument(snapshot,{
   const number=async()=>{
     const start=cursor.position;
     let raw='';
-    const take=async()=>{const b=await cursor.take();raw+=String.fromCharCode(b);return b;};
+    const take=async()=>{
+      if(cursor.position-start>=maxTokenBytes)
+        fail('TOKEN_LIMIT',cursor.position,'numeric original-byte token exceeds cap');
+      const b=await cursor.take();raw+=String.fromCharCode(b);return b;
+    };
     if(await cursor.peek()===45)await take();
     let p=await cursor.peek();
     if(p===48)await take();
@@ -275,9 +285,11 @@ export async function scanJsonDocument(snapshot,{
   }
   async function parseObject(depth,capture){
     const start=cursor.position;await cursor.take();await publish('start-object',start);
-    // Duplicate decoded JSON property names are forbidden, including \u escape aliases.
-    // R04/U04 must qualify maximum breadth and key-retention budget before large-file release.
+    // Each active object remembers exact decoded property names for duplicate
+    // detection, but both local breadth and aggregate retained key bytes are
+    // bounded. Data cannot bypass limits by nesting many small objects.
     const seen=new Set(),fields=Object.create(null);
+    let ownKeyBytes=0;
     await skip();
     if(await cursor.peek()===125){
       const pos=cursor.position;await cursor.take();await publish('end-object',pos);
@@ -285,8 +297,17 @@ export async function scanJsonDocument(snapshot,{
     }
     while(true){
       if(await cursor.peek()!==34)fail('EXPECTED_KEY',cursor.position,'object key must be quoted');
+      const keyStart=cursor.position;
       const key=await quoted('key');
       if(seen.has(key))fail('DUPLICATE_JSON_KEY',cursor.position,'JSON object has repeated decoded key');
+      if(seen.size>=maxObjectKeys)
+        fail('OBJECT_KEYS_LIMIT',keyStart,'source object has too many distinct own keys');
+      const ownBytes=cursor.position-keyStart;
+      if(ownKeyBytes+ownBytes>maxObjectKeyBytes)
+        fail('OBJECT_KEY_BYTES_LIMIT',keyStart,'original own-key byte budget exceeded');
+      if(activeKeyBytes+ownBytes>maxRetainedKeyBytes)
+        fail('RETAINED_KEY_BYTES_LIMIT',keyStart,'simultaneous nested own-key bytes exceeded');
+      ownKeyBytes+=ownBytes;activeKeyBytes+=ownBytes;
       seen.add(key);
       await skip();
       if(await cursor.peek()!==58)fail('EXPECTED_COLON',cursor.position,'object key missing colon');
@@ -307,6 +328,7 @@ export async function scanJsonDocument(snapshot,{
       const pos=cursor.position;await cursor.take();await publish('comma',pos);
       await skip();
     }
+    activeKeyBytes-=ownKeyBytes;
     return {type:'object',fields:{...fields}};
   }
   await skip();
@@ -315,6 +337,10 @@ export async function scanJsonDocument(snapshot,{
   checkSignal();
   if(await cursor.peek()!==null)
     fail('TRAILING_CONTENT',cursor.position,'non-whitespace bytes follow complete JSON');
+  checkSignal();
+  // The cursor may still hold a cached last page when another client closes
+  // the R03 store. Re-attest source liveness on exact EOF before RootFacts READY.
+  await snapshot.readRange(0,0,cursor.sourceRevision);
   checkSignal();
   const rootFacts={
     schemaVersion:'lfj-token-root-facts/v1',
