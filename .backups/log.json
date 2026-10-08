@@ -1,5 +1,5 @@
 {
-  "lastId": 1232,
+  "lastId": 1250,
   "entries": [
     {
       "id": 1,
@@ -8624,6 +8624,132 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
       "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
       "backupFile": "1299_issue980_node_key_format_guard_1.bak"
+    },
+    {
+      "id": 1233,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1300_issue980_preview_core_0.bak"
+    },
+    {
+      "id": 1234,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1300_issue980_preview_core_1.bak"
+    },
+    {
+      "id": 1235,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1301_issue980_preview_weight_occurrence_0.bak"
+    },
+    {
+      "id": 1236,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1301_issue980_preview_weight_occurrence_1.bak"
+    },
+    {
+      "id": 1237,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1302_issue980_preview_rating_occurrence_0.bak"
+    },
+    {
+      "id": 1238,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1302_issue980_preview_rating_occurrence_1.bak"
+    },
+    {
+      "id": 1239,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1303_issue980_strict_line_occurrence_0.bak"
+    },
+    {
+      "id": 1240,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1303_issue980_strict_line_occurrence_1.bak"
+    },
+    {
+      "id": 1241,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1304_issue980_verifier_node_rating_0.bak"
+    },
+    {
+      "id": 1242,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1304_issue980_verifier_node_rating_1.bak"
+    },
+    {
+      "id": 1243,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1305_issue980_preview_core_rating_import_0.bak"
+    },
+    {
+      "id": 1244,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1305_issue980_preview_core_rating_import_1.bak"
+    },
+    {
+      "id": 1245,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1306_issue980_import_extra_preview_tests.bak"
+    },
+    {
+      "id": 1246,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1307_issue980_rating_legacy_ambiguous_0.bak"
+    },
+    {
+      "id": 1247,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1307_issue980_rating_legacy_ambiguous_1.bak"
+    },
+    {
+      "id": 1248,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tests/xml-cii-mode-b-preview-occurrence.test.mjs",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1308_issue980_preview_rating_negative_test.bak"
+    },
+    {
+      "id": 1249,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1309_issue980_rating_core_import_0.bak"
+    },
+    {
+      "id": 1250,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1309_issue980_rating_core_import_1.bak"
     }
   ]
 }
