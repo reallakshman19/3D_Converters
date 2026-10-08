@@ -26,6 +26,7 @@ test('U01 RED: actual native WorkerThreads receives START and replies from non-m
  let worker;
  try{
   const reply=await runRequiredWorkerJob({...input,
+   trustedWorkerCtor:Worker,
    createWorker:()=>{
     worker=new Worker(new URL('./required-worker-fixture.mjs',import.meta.url),{type:'module'});
     return worker;
