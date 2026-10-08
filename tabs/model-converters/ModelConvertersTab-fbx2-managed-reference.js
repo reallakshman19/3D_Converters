@@ -18,7 +18,7 @@ function installFbxLiveUi(container) {
 }
 
 async function loadBaseModelConvertersTab() {
-  const module = await import('./ModelConvertersTab.js?v=20261008-native-att-scope-1');
+  const module = await import('./ModelConvertersTab.js?v=20261008-txt-tree-ux-1');
   if (typeof module?.renderModelConvertersTab !== 'function') {
     throw new Error('Base Model Converters renderer export is missing.');
   }
