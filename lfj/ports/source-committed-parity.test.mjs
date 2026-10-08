@@ -156,3 +156,9 @@ test('R10/U03: source-valid long R05 identities survive R08 staging into R09 ind
   assert.equal(indexStore.reads,1);
  }finally{await result.close();}
 });
+
+test('R10/U04 semantic RED: missing live source/scope attestation must refuse before Worker admission',async()=>{
+ let created=0;
+ await assert.rejects(()=>runCommittedSourceQuery({blob:new Blob([bytes]),revision,expectedSha256:sha,sourceRefId,jobId:'R10-UNATTESTED',selectionDigest:'all',selection:{mode:'ALL',includes:[],excludes:[]},trustedWorkerCtor:Worker,createWorker:()=>{created++;throw Error('must not admit');},indexStore:sourceIndexStore(),selectedStore:selectedIndexedStore()}),e=>e?.code==='SOURCE_BASIS_ATTESTATION_REQUIRED');
+ assert.equal(created,0,'must refuse before native Worker or source materialization');
+});
