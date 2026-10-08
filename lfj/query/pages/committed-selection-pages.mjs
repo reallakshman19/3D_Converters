@@ -90,7 +90,7 @@ export function createCommittedSelectionPager({
     }
     busy=true;
     try{
-      await store.stagePage(Object.freeze([...page]));
+      await store.stagePage(Object.freeze(page.map(row=>Object.freeze({...row}))));
       if(state!=='STAGING')fail('STAGE_NOT_ACTIVE','stage completed after cancellation');
       current();
       stagedCount+=page.length;lastOrdinal=previous;
@@ -172,7 +172,7 @@ export function createCommittedSelectionPager({
       nextOffset=offset;nextCursor=token;lastPageOrdinal=previous;usedFirst=true;
       return Object.freeze({
         schema:'LFJ.CommittedSelectionPage.v1',complete,
-        rows:Object.freeze([...rows]),cursor:token,
+        rows:Object.freeze(rows.map(row=>Object.freeze({...row}))),cursor:token,
         totalCount:total,...basis,selectionDigest,jobEpoch,
         rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
       });
