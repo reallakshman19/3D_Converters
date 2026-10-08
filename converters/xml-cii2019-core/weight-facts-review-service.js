@@ -228,6 +228,13 @@ export function createWeightReviewService({ score } = {}) {
         required(state(basisId, frozen.scopeId, frozen.stage).revision === frozen.revision, 'STALE_SNAPSHOT', 'Review changed after freeze');
         review.set(frozen.scopeId + '|' + frozen.stage, frozen);
       }
+      for (const sourceId of opened.sources) {
+        for (const stage of ['RigidMatch1', 'Rigidmatch2']) {
+          if (state(basisId, sourceId, stage).revision !== null) {
+            required(review.has(sourceId + '|' + stage), 'MISSING_SNAPSHOT', 'Frozen review missing for ' + sourceId + ':' + stage);
+          }
+        }
+      }
       const seen = new Set();
       for (const c of outputBasis.components) {
         required(!seen.has(keyOf(c)) && opened.identities.get(c.occurrenceId) === c.sourceId, 'IDENTITY_CONFLICT', 'Missing/duplicate source occurrence');
