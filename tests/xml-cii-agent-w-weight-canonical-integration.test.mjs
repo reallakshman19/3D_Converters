@@ -97,7 +97,7 @@ test('canonical bridge blocks omitted original occurrence, untrusted alias and t
   const input=await fixture();
   const missing=copy(input);missing.originalOccurrences.pop();
   await assert.rejects(()=>service().openCanonicalFacts(missing),rejectCode('ORIGINAL_POPULATION_MISMATCH'));
-  const alias=copy(input);alias.physicalOccurrences[0].nodeOrdinal=undefined;
+  const alias=copy(input);delete alias.physicalOccurrences[0].nodeOrdinal;
   await assert.rejects(()=>service().openCanonicalFacts(alias),rejectCode('INVALID_SOURCE_ORDINAL'));
   const truncated=copy(input);truncated.pages.pop();
   await assert.rejects(()=>service().openCanonicalFacts(truncated),
