@@ -37,6 +37,7 @@ export async function transferBoundedSourcePages({
   const unsubscribe=(kind,fn)=>browser?worker.removeEventListener(kind,fn):worker.off(kind,fn);
   const revision=snapshot.revision,sha=snapshot.sha256;
   let acknowledgedBytes=0,pages=0,maxUnacknowledgedBytes=0,workerConsumedBytes=0;
+  try {
   for(let start=0;start<snapshot.byteLength;){
     const end=Math.min(snapshot.byteLength,start+pageBytes);
     const original=await snapshot.readRange(start,end,revision,pageBytes);
@@ -127,6 +128,13 @@ export async function transferBoundedSourcePages({
       }
     });
     acknowledgedBytes=end;start=end;pages++;
+  }
+  } catch(error) {
+    // Any source/ACK/protocol/consumer failure invalidates the entire
+    // transport job; no stale Worker can receive another page or be reused.
+    // Native terminate() returns a Promise; browser terminate() is void.
+    try{await worker.terminate();}catch { /* Preserve original typed cause. */ }
+    throw error;
   }
   return Object.freeze({
     schema:'LFJ.SourceTransferReceipt.v1',jobId,sourceRefId,
