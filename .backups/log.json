@@ -1,5 +1,5 @@
 {
-  "lastId": 1216,
+  "lastId": 1226,
   "entries": [
     {
       "id": 1,
@@ -8372,6 +8372,76 @@
       "file": "tests\\xml-cii-regex-confidence-buckets.test.mjs",
       "context": "J02 #923 U4 bounded Regex smart evidence integration",
       "backupFile": "1216_tests_xml_cii_regex_confidence_buckets_test_mjs.bak"
+    },
+    {
+      "id": 1217,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1400_issue925_p0_preview_occurrence_0.bak"
+    },
+    {
+      "id": 1218,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1400_issue925_p0_preview_occurrence_1.bak"
+    },
+    {
+      "id": 1219,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1401_issue925_p0_writer_0.bak"
+    },
+    {
+      "id": 1220,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1401_issue925_p0_writer_1.bak"
+    },
+    {
+      "id": 1221,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1402_issue925_p0_workflow_0.bak"
+    },
+    {
+      "id": 1222,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1402_issue925_p0_workflow_1.bak"
+    },
+    {
+      "id": 1223,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1403_issue925_stacked_budget_0.bak"
+    },
+    {
+      "id": 1224,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1403_issue925_stacked_budget_1.bak"
+    },
+    {
+      "id": 1225,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1404_issue925_stacked_budget_0.bak"
+    },
+    {
+      "id": 1226,
+      "timestamp": "2026-10-08 08:10:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
+      "backupFile": "1404_issue925_stacked_budget_1.bak"
     }
   ]
 }
