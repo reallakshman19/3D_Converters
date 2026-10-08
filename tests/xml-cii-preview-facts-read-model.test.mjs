@@ -5,6 +5,9 @@ import {webcrypto} from 'node:crypto';
 import {makeBasisRef, digestUtf8, digestCanonical, canonicalJson,
   assertBasisDigest, validateFactRecord, validatePage, assertCompletePopulation} from
   '../contracts/gc-pw-v1/contract.mjs';
+import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
+import {projectXmlCiiOccurrences} from
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {buildXmlCiiSourceFactRecords, openPreviewFactReadModel} from
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-read-model.js';
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
@@ -172,6 +175,36 @@ test('portable non-XML FactRecords use the same immutable paginated core',async(
   assert.equal(first.items[0].subjectType,'beam');
   assert.equal(model.info.engineeringReady,false);
   assert.equal(first.complete,false);
+});
+test('public SYS-001 raw XML has all its original branches/nodes across every read page',async()=>{
+  installWeightBasisXmlDom(globalThis);
+  const xmlText=await readFile(new URL('../Benchmarks/XML-CII-2019/SYS-001_Single.xml',import.meta.url),'utf8');
+  const xml=new DOMParser().parseFromString(xmlText,'application/xml');
+  const rawBranches=[...xml.getElementsByTagName('Branch')];
+  const expected=[];
+  for(const [bi,branch] of rawBranches.entries()){
+    expected.push({subjectType:'branch',sourceId:S,occurrenceId:JSON.stringify([S,bi,null,''])});
+    const nodeChildren=[...branch.childNodes].filter(n=>n.nodeType===1 && n.localName==='Node');
+    for(let ni=0;ni<nodeChildren.length;ni++)
+      expected.push({subjectType:'node',sourceId:S,occurrenceId:JSON.stringify([S,bi,ni,''])});
+  }
+  assert.equal(rawBranches.length,9);
+  assert.equal(expected.filter(x=>x.subjectType==='node').length,541);
+  const parsed=projectXmlCiiOccurrences({xmlText,mode:'A',sourceId:S});
+  const base=await basis();
+  const b=await makeBasisRef({...base,basisId:undefined,
+    sourceRefs:[{sourceId:S,mediaType:'application/xml',sha256:await digestUtf8(xmlText)}]});
+  const model=await openPreviewFactReadModel({basis:b,expectedOccurrences:expected,
+    records:buildXmlCiiSourceFactRecords({basisId:b.basisId,projection:parsed}),ports});
+  let cursor=null,read=0;const distinct=new Set();
+  do{
+    const page=await model.getFacts({basisId:b.basisId,cursor,limit:200});
+    read+=page.items.length;cursor=page.nextCursor;
+    for(const row of page.items)distinct.add(row.subjectType+':'+row.occurrenceId);
+    assert.equal(page.complete,false); // no full engineering verification yet
+  }while(cursor!==null);
+  assert.equal(read,9*2+541*5);
+  assert.equal(distinct.size,550);
 });
 test('source and deployed docs read-model are byte identical',async()=>{
   const file='xml-cii-adapted-preview-facts-read-model.js';
