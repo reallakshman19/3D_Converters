@@ -20,7 +20,11 @@ async function inNativeWorker(json=original){
           if(message.schema!=='LFJ.CrossRuntimeSourcePort.v1'||message.rows?.length>2){
             clearTimeout(timer);reject(new Error('invalid original-source page'));return;
           }
-          pages.push(...message.rows);return;
+          pages.push(...message.rows);
+          worker.postMessage({schema:'LFJ.CrossRuntimeSourcePort.v1',
+            kind:'PAGE_ACK',jobId:'R10-NODE-JOB',
+            sourceRefId:'SOURCE-ORIGINAL',sequence:message.sequence});
+          return;
         }
         if(message?.kind==='SCAN_DONE'||message?.kind==='FAILED'){
           done=true;clearTimeout(timer);resolve(message);
@@ -68,4 +72,27 @@ test('R10/U04 RED: invalid JSON cannot become a complete source-index receipt',a
  assert.equal(result.kind,'FAILED');
  assert.notEqual(result.summary?.complete,true);
  assert.ok(result.code);
+});
+
+test('R10/U04 semantic RED: native Worker pauses with ONE unacknowledged source event page',async()=>{
+ const worker=new Worker(new URL('./source-node-worker.mjs',import.meta.url),{type:'module'});
+ let pages=0,completed=false,resolvePage;
+ const firstPage=new Promise(resolve=>{resolvePage=resolve;});
+ try{
+   worker.on('message',m=>{
+     if(m?.kind==='PROVISIONAL_PAGE'){
+       pages++;
+       if(pages===1)resolvePage();
+     }
+     if(m?.kind==='SCAN_DONE')completed=true;
+   });
+   worker.postMessage({schema:'LFJ.CrossRuntimeSourcePort.v1',kind:'SCAN',
+     jobId:'R10-NO-ACK',sourceRefId:'SOURCE-ORIGINAL',revision:'source-one',
+     blob:new Blob([new TextEncoder().encode(original)]),pageEvents:2});
+   await Promise.race([firstPage,new Promise((_,reject)=>
+     setTimeout(()=>reject(new Error('real Worker never emitted first page')),5000))]);
+   await new Promise(resolve=>setTimeout(resolve,250));
+   assert.equal(pages,1,'bounded batches alone are insufficient: Worker must await PAGE_ACK');
+   assert.equal(completed,false,'no complete source claim before receiver has staged all pages');
+ }finally{await worker.terminate();}
 });
