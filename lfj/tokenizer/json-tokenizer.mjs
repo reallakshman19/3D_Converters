@@ -289,7 +289,7 @@ export async function scanJsonDocument(snapshot,{
       const pos=cursor.position;await cursor.take();await publish('comma',pos);
       await skip();
     }
-    return {type:'object',fields};
+    return {type:'object',fields:{...fields}};
   }
   await skip();
   const root=await parseValue(0,'root');
