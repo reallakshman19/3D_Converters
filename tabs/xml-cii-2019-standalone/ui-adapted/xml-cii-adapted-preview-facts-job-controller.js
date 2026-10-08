@@ -104,8 +104,8 @@ export function createXmlCiiPreviewJobController({
         assert(attested===true,'BASIS_NOT_VERIFIED','Full source/master/overrides basis was not verified');
         publish({state:'running',stage:'dispatch',completed:0,total:3});
         const transport=execute({
-          requestId:job.requestId,basisId:job.basisId,
           ...(spec.input||{}),
+          requestId:job.requestId,basisId:job.basisId,
           onProgress:(event)=>{
             if(!currentJob(job))return;
             if(event?.requestId!==job.requestId||event?.basisId!==job.basisId
@@ -124,6 +124,11 @@ export function createXmlCiiPreviewJobController({
           ||typeof transport.release!=='function')
           throw new PreviewJobError('INVALID_TRANSPORT','Executor must expose promise and release()');
         job.transport=transport;
+        if(!currentJob(job)) {
+          try{transport.release();}catch{}
+          Promise.resolve(transport.promise).catch(()=>{});
+          return;
+        }
         Promise.resolve(transport.promise).then(result=>{
           if(!currentJob(job))return;
           if(!completeResult(result))
