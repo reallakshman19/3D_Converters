@@ -1818,6 +1818,10 @@
         {
           "responsibility_id": "R05",
           "ref": "reallaksh19/3D_Converters#1068"
+        },
+        {
+          "responsibility_id": "R06",
+          "ref": "reallaksh19/3D_Converters#1073"
         }
       ]
     }
@@ -1826,7 +1830,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 98
+      "reserve_weight": 93
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2134,6 +2138,68 @@
           "weight": 25,
           "outcome": "Source mismatch invalidates indexed facts",
           "verify": "Independent oracle: Independent recursive source occurrence and span census; outcome: Source mismatch invalidates indexed facts"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1073",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R06",
+      "work_class": "PRODUCT",
+      "outcome": "Large jobs do not silently occupy the foreground and their queue pressure remains bounded.",
+      "independence_basis": "Explicit no-worker fallback, transfer-pressure and source-progress negatives. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C3_ISOLATION"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/transport/execution/"
+      ],
+      "acceptance_methods": [
+        "Explicit no-worker fallback, transfer-pressure and source-progress negatives",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1068"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Large work never runs inline unexpectedly",
+          "verify": "Independent oracle: Explicit no-worker fallback, transfer-pressure and source-progress negatives; outcome: Large work never runs inline unexpectedly"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Transfer memory stays bounded",
+          "verify": "Independent oracle: Explicit no-worker fallback, transfer-pressure and source-progress negatives; outcome: Transfer memory stays bounded"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Progress follows consumed source bytes",
+          "verify": "Independent oracle: Explicit no-worker fallback, transfer-pressure and source-progress negatives; outcome: Progress follows consumed source bytes"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Unavailable execution support fails closed",
+          "verify": "Independent oracle: Explicit no-worker fallback, transfer-pressure and source-progress negatives; outcome: Unavailable execution support fails closed"
         }
       ]
     }
