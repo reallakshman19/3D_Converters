@@ -234,6 +234,11 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   assert.ok(final.includes('value="${attr(issue.acceptedWeight ?? \'\')}"'));
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
+  assert.ok(final.includes('function isDirectQualifiedCandidate(candidate)'));
+  assert.ok(final.includes('if (!isDirectQualifiedCandidate(best)'));
+  assert.ok(final.includes('const nextEntries = [];'));
+  assert.ok(final.includes('workingEntries.splice(0, workingEntries.length, ...nextEntries)'));
+  assert.ok(final.includes('Refresh failed; previous suggestions preserved.'));
 });
 
 test('scorer pins master rows against in-place mutation; proposal custody contains row and method', () => {

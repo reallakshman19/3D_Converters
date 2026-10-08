@@ -71,6 +71,15 @@ function staleMatch1Notice(issue) {
   return `<div data-stale-match1 title="${attr(`Match-1 was rejected because its accepted geometry/rating/master basis is stale (${stale.reason || 'basis changed'}).${changed}`)}" style="margin-bottom:5px;color:#fca5a5;font-size:10px;font-weight:700;">⚠ ${esc(priorText)}${esc(changed)}</div>`;
 }
 
+function isDirectQualifiedCandidate(candidate) {
+  // A preferred rank alone is not proof of a directly qualified exact master value.
+  const method = text(candidate?.weightMethod);
+  return candidate?.preferred === true
+    && !candidate?.inferredWeight && !candidate?.flangeWeightFallback
+    && !candidate?.specialFactorRule && !candidate?.zeroFallback
+    && !/interpolat|extrapolat|factor|fallback|inferred/i.test(method);
+}
+
 function candidateButtons(issue, rowIndex) {
   return (issue.candidates || []).map((candidate) => {
     const weight = candidate.suggestedWeight ?? candidate.selectedWeight ?? candidate.weight;
@@ -187,7 +196,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       rows.forEach((row, index) => {
         const best = row.candidates?.[0];
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
-        if (!best?.preferred || !Number.isFinite(value) || value <= 0) return;
+        if (!isDirectQualifiedCandidate(best) || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
         if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });
@@ -196,28 +205,40 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
 
     overlay.querySelector('[data-mode-a-rigid-refresh]')?.addEventListener('click', async () => {
       const button = overlay.querySelector('[data-mode-a-rigid-refresh]');
+      const applyButton = overlay.querySelector('[data-mode-a-rigid-apply]');
+      if (button?.disabled) return; // No overlapping refresh jobs.
       if (button) button.disabled = true;
+      if (applyButton) applyButton.disabled = true; // Never apply half-refreshed Rating.
       setStatus('Refreshing suggestions across XML files…', false);
       const current = collectCurrentValues(overlay);
-      for (const entry of workingEntries) {
-        const sourceRatings = {};
-        rows.filter((row) => row.sourceId === entry.sourceId).forEach((row) => {
-          const value = current.ratings.get(row.reviewId);
-          if (value) sourceRatings[row.key] = value;
-        });
-        const config = {
-          ...(entry.config || {}),
-          overrides: {
-            ...(entry.config?.overrides || {}),
-            rating: { ...(entry.config?.overrides?.rating || {}), ...sourceRatings },
-          },
-        };
-        entry.config = config;
-        entry.issues = await collectModeARigidWeightReviewIssues(entry.state, config);
+      const nextEntries = [];
+      try {
+        for (const entry of workingEntries) {
+          const sourceRatings = {};
+          rows.filter((row) => row.sourceId === entry.sourceId).forEach((row) => {
+            const value = current.ratings.get(row.reviewId);
+            if (value) sourceRatings[row.key] = value;
+          });
+          const config = {
+            ...(entry.config || {}),
+            overrides: {
+              ...(entry.config?.overrides || {}),
+              rating: { ...(entry.config?.overrides?.rating || {}), ...sourceRatings },
+            },
+          };
+          const issues = await collectModeARigidWeightReviewIssues(entry.state, config);
+          nextEntries.push({ ...entry, config, issues });
+        }
+        // Publish all source previews only after every source refresh succeeds.
+        workingEntries.splice(0, workingEntries.length, ...nextEntries);
+        draw(current.weights);
+        setStatus(`Suggestions refreshed for ${workingEntries.length} XML file(s).`, false);
+      } catch (error) {
+        setStatus(`Refresh failed; previous suggestions preserved. ${text(error?.message || error)}`, true);
+      } finally {
+        if (button) button.disabled = false;
+        if (applyButton) applyButton.disabled = false;
       }
-      draw(current.weights);
-      setStatus(`Suggestions refreshed for ${workingEntries.length} XML file(s).`, false);
-      if (button) button.disabled = false;
     });
 
     overlay.querySelector('[data-mode-a-rigid-cancel]')?.addEventListener('click', () => {

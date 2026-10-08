@@ -81,3 +81,9 @@ Independent test covers final override 22kg prevailing over Match-1 20kg after e
 - A persisted frozen review at the current revision must match its decision ledger exactly, even if its integrity SHA is recomputed. Run verification independently compares frozen decisions against the current ledger.
 - Every selected physical-component occurrence must appear in run output even when an upstream adapter omitted a `mass.kg` field. Missing accepted mass still blocks independently. This is a completeness guard, not a replacement for original-source 19/871 oracles.
 - Native focused Node22 CI and real owner browser/CII acceptance must be rechecked at the new exact head. Shared worker/run/Preview/writer migration remains integrator-owned.
+
+## 9. Mode A Final review popup fail-closed UI slice (not canonical session wiring)
+
+- `Use All Exact Suggestions` now excludes interpolation/extrapolation, special-factor, fallback, inferred and zero entries even when an old ranking reports `preferred`. `Use All Suggestions` remains a separate explicit review action; proposals still do not populate accepted inputs without user selection.
+- Refresh is staged per source and publishes the combined refreshed suggestions only when **all** source recalculations succeed. A failure preserves the previously displayed rows and accepted-input draft, shows an error, and re-enables controls; Apply is disabled during refresh. This is a legacy UI safety boundary until #999 injects the canonical FactRecord/DecisionCommand session.
+- The owned UI static regression does not establish real browser behavior, renderer responsiveness, or final CII correctness; those are separate NOT_RUN acceptance gates.
