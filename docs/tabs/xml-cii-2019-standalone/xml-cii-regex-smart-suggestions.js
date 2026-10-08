@@ -122,13 +122,14 @@ function evidenceDescriptor(masterContext = {}) {
   const lineRows = Array.isArray(masterContext.lineRows) ? masterContext.lineRows : [];
   const pipingClassRows = Array.isArray(masterContext.pipingClassRows) ? masterContext.pipingClassRows : [];
   const refs = masterContext.datasetRefs || {};
+  const bounded = masterContext.regexBoundedEvidence;
   const lineExpected = Math.max(0, Number(refs?.lineList?.rowCount ?? masterContext?.rowCounts?.lineList) || 0);
   const classExpected = Math.max(0, Number(refs?.pipingClass?.rowCount ?? masterContext?.rowCounts?.pipingClass) || 0);
-  const mode = lineRows.length && pipingClassRows.length
+  const mode = bounded?.mode || (lineRows.length && pipingClassRows.length
     ? 'MASTER_BACKED'
     : lineRows.length || pipingClassRows.length
       ? 'PARTIAL_MASTER_EVIDENCE'
-      : 'HEURISTIC_ONLY';
+      : 'HEURISTIC_ONLY');
   return {
     mode,
     lineRowsLoaded: lineRows.length,
@@ -137,6 +138,7 @@ function evidenceDescriptor(masterContext = {}) {
     pipingClassRowsExpected: classExpected,
     lineDatasetId: txt(refs?.lineList?.datasetId),
     pipingClassDatasetId: txt(refs?.pipingClass?.datasetId),
+    boundedComplete: bounded ? bounded.complete !== false : null,
   };
 }
 
@@ -208,11 +210,13 @@ export function buildRegexSuggestionPreflight(input = {}) {
   const profile = input.profile || createDefaultRegexSuggestionProfile();
   const config = input.extractionConfig || {};
   const samples = Array.isArray(input.branchSamples) ? input.branchSamples : [];
+  const analysisSamples = Array.isArray(input.analysisSamples) && input.analysisSamples.length ? input.analysisSamples : samples;
   const masterContext = input.masterContext || {};
   const masterEvidence = evidenceDescriptor(masterContext);
   const cacheKey = configFingerprint({
     config,
     profile,
+    analysisSamples: analysisSamples.map(sampleName),
     appliedMappingRevision: masterContext.appliedMappingRevision || null,
     rowCounts: masterContext.rowCounts || null,
     masterEvidence,
@@ -231,22 +235,31 @@ export function buildRegexSuggestionPreflight(input = {}) {
   cacheStats.preflightMisses += 1;
   const formatIndex = Number(config.activeFormatIndex || input.activeFormatIndex || 0);
   const format = activeFormat(config, formatIndex);
-  const rows = tokenize(samples, format.tokenDelimiter || '-');
+  const fullRows = tokenize(samples, format.tokenDelimiter || '-');
+  const fullClusters = clusterRows(fullRows);
+  const rows = tokenize(analysisSamples, format.tokenDelimiter || '-');
   const clusters = clusterRows(rows);
   const selected = clusters[formatIndex] || clusters[0] || { rows: [], count: 0, signature: '' };
   const { lineFieldMap, classFieldMap } = masterFieldMaps(masterContext);
   const classEvidence = cachedClassMasterEvidence(masterContext.pipingClassRows || [], classFieldMap);
-  const suggestions = buildRegexRoleSuggestions({
+  let suggestions = buildRegexRoleSuggestions({
     rows: selected.rows,
     lineMasters: cachedLineMasterEvidence(masterContext.lineRows || [], lineFieldMap),
     classMasters: classEvidence.classes,
     classBoresByClass: classEvidence.boresByClass,
     profile,
   });
-  const metrics = summarize(suggestions, rows.length, clusters.length, input.currentResult);
+  if (masterEvidence.boundedComplete === false) {
+    suggestions = suggestions.map((item) => (
+      item.authorityLevel === 'AUTHORIZED_MASTER' || item.authorityLevel === 'GOVERNED_NORMALIZED_MASTER'
+        ? { ...item, authorityLevel: 'PARTIAL_MASTER_EVIDENCE', safe: false, review: true }
+        : item
+    ));
+  }
+  const metrics = summarize(suggestions, fullRows.length, fullClusters.length, input.currentResult);
   const blockers = [];
-  if (!rows.length) blockers.push({ code: 'SOURCE_SAMPLE_SET_EMPTY', message: 'No branch samples are available.' });
-  if (clusters.length > profile.formatPolicy.maximumFormats) blockers.push({ code: 'FORMAT_COUNT_EXCEEDS_PROFILE', message: `${clusters.length} formats exceed the configured maximum.` });
+  if (!fullRows.length) blockers.push({ code: 'SOURCE_SAMPLE_SET_EMPTY', message: 'No branch samples are available.' });
+  if (fullClusters.length > profile.formatPolicy.maximumFormats) blockers.push({ code: 'FORMAT_COUNT_EXCEEDS_PROFILE', message: `${fullClusters.length} formats exceed the configured maximum.` });
   const status = blockers.length
     ? 'BLOCKED'
     : metrics.conflictCount
@@ -259,13 +272,16 @@ export function buildRegexSuggestionPreflight(input = {}) {
     status,
     formatIndex,
     selectedSignature: selected.signature,
-    fingerprint: configFingerprint({ samples: rows.map((row) => row.source), config, counts: masterContext?.rowCounts, masterEvidence, profile }),
+    analysisSampleCount: rows.length,
+    analysisBucketCount: clusters.length,
+    fingerprint: configFingerprint({ samples: fullRows.map((row) => row.source), analysisSamples: rows.map((row) => row.source), config, counts: masterContext?.rowCounts, masterEvidence, profile }),
     masterEvidence: Object.freeze({ ...masterEvidence }),
     suggestions: Object.freeze(suggestions.map(Object.freeze)),
-    clusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
+    clusters: Object.freeze(fullClusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
+    analysisClusters: Object.freeze(clusters.map((row) => Object.freeze({ signature: row.signature, count: row.count }))),
     metrics: Object.freeze(metrics),
     blockers: Object.freeze(blockers),
-    canPreview: rows.length > 0,
+    canPreview: fullRows.length > 0,
     canApply: status === 'READY_TO_APPLY',
   });
   if (samples && typeof samples === 'object') {

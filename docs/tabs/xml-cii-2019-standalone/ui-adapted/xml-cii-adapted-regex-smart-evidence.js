@@ -1,4 +1,11 @@
-import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
+import {
+  getMasterDatasetRowsByIndexes,
+  searchMasterDatasetRows,
+} from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
+import {
+  buildRegexBoundedEvidencePlan,
+  resolveRegexBoundedDatasetEvidence,
+} from '../xml-cii-regex-bounded-evidence.js';
 import {
   buildRegexSuggestionPreflight,
   classifyRegexExtractionRows,
@@ -6,8 +13,8 @@ import {
 } from '../xml-cii-regex-smart-suggestions.js?v=20261001-weight-rating-1';
 
 const REGEX_MASTER_DEFS = Object.freeze({
-  lineList: Object.freeze({ rowsKey: 'lineRows' }),
-  pipingClass: Object.freeze({ rowsKey: 'pipingClassRows' }),
+  lineList: Object.freeze({ rowsKey: 'lineRows', queriesKey: 'lineListQueries' }),
+  pipingClass: Object.freeze({ rowsKey: 'pipingClassRows', queriesKey: 'pipingClassQueries' }),
 });
 
 function object(value) {
@@ -70,52 +77,115 @@ export function regexSmartReceiptRequestBasis(state = {}) {
   });
 }
 
-function exactResidentRows(context, masterKey, expected) {
-  const resident = rows(context?.[REGEX_MASTER_DEFS[masterKey].rowsKey]);
-  if (!resident.length) return null;
-  if (expected > 0 && resident.length !== expected) return null;
-  return resident;
+function residentEvidence(context, masterKey) {
+  return Object.freeze({
+    masterKey,
+    rows: Object.freeze([...rows(context?.[REGEX_MASTER_DEFS[masterKey].rowsKey])]),
+    queryCount: 0,
+    matchedQueryCount: 0,
+    rowIndexCount: 0,
+    truncatedQueryCount: 0,
+    totalIndexOverflow: false,
+    resident: true,
+  });
 }
 
-async function evidenceRows(context, masterKey, materializeRows) {
+async function boundedEvidence(context, masterKey, plan, options) {
+  const def = REGEX_MASTER_DEFS[masterKey];
   const ref = object(context?.datasetRefs?.[masterKey]);
-  const expected = Math.max(0, Number(ref.rowCount ?? context?.rowCounts?.[masterKey]) || 0);
-  const resident = exactResidentRows(context, masterKey, expected);
-  if (resident) return resident;
-  if (!ref.datasetId) return rows(context?.[REGEX_MASTER_DEFS[masterKey].rowsKey]);
-  const materialized = await materializeRows(masterKey, ref);
-  if (!Array.isArray(materialized) || materialized.length !== expected) {
-    throw new Error(`Regex master evidence materialization mismatch for ${masterKey}: expected ${expected}, received ${Array.isArray(materialized) ? materialized.length : 0}.`);
-  }
-  return materialized;
+  if (!ref.datasetId) return residentEvidence(context, masterKey);
+  return resolveRegexBoundedDatasetEvidence({
+    masterKey,
+    datasetRef: ref,
+    queries: plan[def.queriesKey],
+    search: options.search || searchMasterDatasetRows,
+    getRowsByIndexes: options.getRowsByIndexes || getMasterDatasetRowsByIndexes,
+    maxIndexesPerQuery: options.maxIndexesPerQuery,
+    maxTotalIndexes: options.maxTotalIndexes,
+  });
+}
+
+function evidenceSummary(plan, lineEvidence, classEvidence, hasDatasetEvidence) {
+  if (!hasDatasetEvidence) return null;
+  const complete = !plan.queryOverflow.lineList
+    && !plan.queryOverflow.pipingClass
+    && !lineEvidence.totalIndexOverflow
+    && !classEvidence.totalIndexOverflow;
+  return Object.freeze({
+    mode: 'BOUNDED_MASTER_EVIDENCE',
+    complete,
+    analysis: Object.freeze({
+      sourceSampleCount: plan.analysis.sourceSampleCount,
+      structuralBucketCount: plan.analysis.structuralBucketCount,
+      selectedBucketCount: plan.analysis.selectedBucketCount,
+      selectedSampleCount: plan.analysis.selectedSampleCount,
+      selectedSignatures: plan.analysis.selectedSignatures,
+    }),
+    queryOverflow: plan.queryOverflow,
+    lineList: Object.freeze({
+      queryCount: lineEvidence.queryCount,
+      matchedQueryCount: lineEvidence.matchedQueryCount || 0,
+      rowIndexCount: lineEvidence.rowIndexCount,
+      truncatedQueryCount: lineEvidence.truncatedQueryCount,
+    }),
+    pipingClass: Object.freeze({
+      queryCount: classEvidence.queryCount,
+      matchedQueryCount: classEvidence.matchedQueryCount || 0,
+      rowIndexCount: classEvidence.rowIndexCount,
+      truncatedQueryCount: classEvidence.truncatedQueryCount,
+    }),
+  });
 }
 
 export async function materializeRegexSmartMasterContext(state = {}, options = {}) {
   const context = object(state.masterContext);
-  const materializeRows = options.materializeRows || materializeMasterDatasetRows;
-  const lineRows = await evidenceRows(context, 'lineList', materializeRows);
-  const pipingClassRows = await evidenceRows(context, 'pipingClass', materializeRows);
+  const profile = state.regexSuggestionProfile || createDefaultRegexSuggestionProfile();
+  const plan = buildRegexBoundedEvidencePlan({
+    branchSamples: rows(state?.regexTesterResult?.branchSamples),
+    extractionConfig: state.regexTesterConfig,
+    profile,
+    queryLimit: options.queryLimit,
+  });
+  const lineEvidence = await boundedEvidence(context, 'lineList', plan, options);
+  const classEvidence = await boundedEvidence(context, 'pipingClass', plan, options);
+  const refs = object(context.datasetRefs);
+  const bounded = evidenceSummary(plan, lineEvidence, classEvidence, Boolean(refs?.lineList?.datasetId || refs?.pipingClass?.datasetId));
   const transient = {
     ...context,
-    lineRows,
-    pipingClassRows,
+    lineRows: [...lineEvidence.rows],
+    pipingClassRows: [...classEvidence.rows],
+    ...(bounded ? { regexBoundedEvidence: bounded } : {}),
   };
   const evidenceBasis = stable({
-    lineList: masterBasis(context, 'lineList', lineRows.length),
-    pipingClass: masterBasis(context, 'pipingClass', pipingClassRows.length),
+    lineList: masterBasis(context, 'lineList', lineEvidence.rows.length),
+    pipingClass: masterBasis(context, 'pipingClass', classEvidence.rows.length),
+    bounded,
   });
   return Object.freeze({
     masterContext: transient,
     evidenceBasis,
     requestBasis: regexSmartEvidenceRequestBasis(state),
-    lineRowCount: lineRows.length,
-    pipingClassRowCount: pipingClassRows.length,
+    lineRowCount: lineEvidence.rows.length,
+    pipingClassRowCount: classEvidence.rows.length,
+    analysisSampleCount: plan.analysis.selectedSampleCount,
+    selectedBucketCount: plan.analysis.selectedBucketCount,
+    boundedEvidence: bounded,
+  });
+}
+
+function analysisPlan(state = {}) {
+  return buildRegexBoundedEvidencePlan({
+    branchSamples: rows(state?.regexTesterResult?.branchSamples),
+    extractionConfig: state.regexTesterConfig,
+    profile: state.regexSuggestionProfile || createDefaultRegexSuggestionProfile(),
   });
 }
 
 export function buildRegexSmartEvidenceReceipt(state = {}, masterContext = state.masterContext) {
+  const plan = analysisPlan(state);
   return buildRegexSuggestionPreflight({
     branchSamples: rows(state?.regexTesterResult?.branchSamples),
+    analysisSamples: plan.analysis.samples,
     extractionConfig: state.regexTesterConfig,
     masterContext,
     currentResult: object(state.regexTesterResult),
@@ -153,7 +223,7 @@ export function regexSmartReceiptIsCurrent(state = {}) {
   if (!receipt) return false;
   if (state.regexSmartPreflightRequestBasis !== regexSmartReceiptRequestBasis(state)) return false;
   if (!regexSmartHasDatasetEvidence(state)) return true;
-  return receipt?.masterEvidence?.mode === 'MASTER_BACKED' || receipt?.masterEvidence?.mode === 'PARTIAL_MASTER_EVIDENCE';
+  return ['MASTER_BACKED', 'PARTIAL_MASTER_EVIDENCE', 'BOUNDED_MASTER_EVIDENCE'].includes(receipt?.masterEvidence?.mode);
 }
 
 export const REGEX_SMART_MASTER_KEYS = Object.freeze(Object.keys(REGEX_MASTER_DEFS));
