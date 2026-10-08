@@ -9,6 +9,8 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-dtxr-transaction.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-dtxr-transaction.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-fetch.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-fetch.js'
       - 'tests/xml-cii-preview-b2b-dtxr-worker.test.mjs'
       - 'tests/browser/xml-cii-preview-b2b-dtxr-worker.html'
       - 'scripts/run-xml-cii-preview-b2b-dtxr-worker.mjs'
