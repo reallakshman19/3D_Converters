@@ -87,13 +87,15 @@ function recordExpected(entries, {
     nodeNumber, nodeKey, path, field, expected, kind, source });
 }
 
-async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
+export async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics, runtime = {}) {
   const result = { xmlText, branchRows: [], nodeRows: [], nodeBoreWallRows: [], expectedEntries: [], appliedFields: 0 };
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
   }
-  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2');
-  const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
+  const previewBuilder = typeof runtime.previewBuilder === 'function'
+    ? runtime.previewBuilder
+    : (await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2')).xmlCiiDryRunPreview;
+  const preview = previewBuilder(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
   result.nodeBoreWallRows = Array.isArray(preview?.nodeBoreWallRows) ? preview.nodeBoreWallRows : [];
