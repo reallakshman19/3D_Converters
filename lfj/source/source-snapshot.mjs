@@ -87,7 +87,9 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
   let state='OPEN', received=0, retained=[];
   const hasher=new Sha256();
   return Object.freeze({
+    abort() { if (state==='OPEN'||state==='READY') { state='ABORTED'; retained=[]; } },
     append(input,offset) {
+      if (state==='ABORTED') fail('SOURCE_ABORTED','source intake has been aborted');
       if (state!=='OPEN') fail('SNAPSHOT_FINALIZED','source no longer accepts bytes');
       if (!(input instanceof Uint8Array)) fail('INVALID_CHUNK','chunk must be Uint8Array');
       if (!isCount(offset)||offset!==received) fail('CHUNK_SEQUENCE','chunk offset must equal next expected byte');
@@ -100,6 +102,7 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
       return received;
     },
     finalize() {
+      if (state==='ABORTED') fail('SOURCE_ABORTED','source intake has been aborted');
       if (state!=='OPEN') fail('SNAPSHOT_FINALIZED','snapshot finalized or invalid');
       if (received!==byteLength) fail('INCOMPLETE_SOURCE','cannot publish partial snapshot');
       const sha256=hasher.hex();
@@ -139,5 +142,87 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
         close() { state='CLOSED';retained=[]; },
       });
     },
+  });
+}
+
+
+/**
+ * R03 large-source Blob/File custody port. The *immutable backing* lives with
+ * Blob rather than duplicating the complete byte stream into retained JS chunks.
+ * Its SHA is computed from exact original bytes in capped slices before READY.
+ *
+ * This port is intentionally I/O-only: R06 must run large scans away from the
+ * browser foreground and supply worker cancellation/backpressure. The fact that
+ * a Blob read is async does not by itself establish UI responsiveness.
+ */
+export async function openBlobSourceSnapshot(blob,{
+  revision,expectedSha256,chunkBytes=1024*1024,signal=null,
+}={}) {
+  if (typeof Blob==='undefined'||!(blob instanceof Blob))
+    fail('BLOB_REQUIRED','A real immutable Blob or File is required');
+  if (!isCount(blob.size)) fail('INVALID_DECLARATION','Blob byte size must be a safe integer');
+  if (typeof revision!=='string'||!revision.length)
+    fail('INVALID_DECLARATION','source revision is required');
+  if (!isCount(chunkBytes)||!chunkBytes||chunkBytes>1024*1024)
+    fail('CHUNK_LIMIT','Blob scan slice must be in 1..1MiB');
+  if (expectedSha256!==undefined&&!/^[a-f0-9]{64}$/.test(expectedSha256))
+    fail('INVALID_DECLARATION','expected SHA-256 must be lowercase 64-hex');
+
+  let state='OPEN';
+  const live=()=> {
+    if (signal?.aborted) { state='ABORTED';fail('SOURCE_ABORTED','source scan cancelled'); }
+    if (state==='ABORTED') fail('SOURCE_ABORTED','source scan cancelled');
+    if (state==='CLOSED') fail('SOURCE_CLOSED','source handle closed');
+  };
+  const sha=new Sha256();
+  for (let offset=0;offset<blob.size;offset+=chunkBytes) {
+    live();
+    const end=Math.min(blob.size,offset+chunkBytes);
+    const bytes=new Uint8Array(await blob.slice(offset,end).arrayBuffer());
+    live();
+    if (bytes.byteLength!==end-offset)fail('SOURCE_SIZE_DRIFT','Blob slice did not return exact byte range');
+    sha.update(bytes);
+  }
+  live();
+  const actual=sha.hex();
+  if (expectedSha256!==undefined&&actual!==expectedSha256) {
+    state='CLOSED';
+    fail('SOURCE_HASH_MISMATCH','Blob bytes differ from attested source');
+  }
+  state='READY';
+  const revisionId=`${revision}:sha256:${actual}`;
+  function check(expectedRevision) {
+    live();
+    if (expectedRevision!==revisionId)fail('STALE_REVISION','source revision mismatch');
+  }
+  async function read(start,end,expectedRevision,limit) {
+    check(expectedRevision);
+    if (!isCount(start)||!isCount(end)||end<start||end>blob.size)
+      fail('RANGE_INVALID','invalid source byte span');
+    if (end-start>limit)fail('RANGE_LIMIT','large byte reads require bounded pages');
+    const bytes=new Uint8Array(await blob.slice(start,end).arrayBuffer());
+    check(expectedRevision);
+    if (bytes.byteLength!==end-start)fail('SOURCE_SIZE_DRIFT','source backing read changed size');
+    return bytes;
+  }
+  return Object.freeze({
+    schema:'LFJ.SourceSnapshot.v1',
+    backing:'immutable-blob',
+    byteLength:blob.size,sha256:actual,sourceId:`sha256:${actual}`,
+    revision:revisionId,encoding:'UTF-8',
+    async readRange(start,end,expectedRevision,maxSpanBytes=1024*1024){
+      if (!isCount(maxSpanBytes)||!maxSpanBytes||maxSpanBytes>1024*1024)
+        fail('RANGE_LIMIT','maxSpanBytes must be in 1..1MiB');
+      return read(start,end,expectedRevision,maxSpanBytes);
+    },
+    async *readChunks(expectedRevision,maxSpanBytes=1024*1024) {
+      check(expectedRevision);
+      if (!isCount(maxSpanBytes)||!maxSpanBytes||maxSpanBytes>1024*1024)
+        fail('CHUNK_LIMIT','read chunk must be in 1..1MiB');
+      for(let offset=0;offset<blob.size;offset+=maxSpanBytes)
+        yield await read(offset,Math.min(offset+maxSpanBytes,blob.size),
+          expectedRevision,maxSpanBytes);
+    },
+    close(){state='CLOSED';},
   });
 }
