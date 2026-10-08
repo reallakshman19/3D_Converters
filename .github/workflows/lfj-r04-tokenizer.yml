@@ -40,5 +40,10 @@ jobs:
           node --version
       - name: Test independent R04 RED/GREEN token cases
         run: node --test lfj/tokenizer/*.test.mjs
+      - name: Qualify actual checked-in 10.54 MB original source (Node 24 only)
+        if: matrix.node == '24'
+        env:
+          LFJ_R04_REAL_SOURCE: '1'
+        run: node --test lfj/tokenizer/json-tokenizer-resource.test.mjs
       - name: Verify no test changed source files
         run: test -z "$(git status --porcelain)"
