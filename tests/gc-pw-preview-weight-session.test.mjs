@@ -6,7 +6,8 @@ import { openGcPwPreviewWeightSession as docsOpenGcPwPreviewWeightSession } from
 import { readFile } from 'node:fs/promises';
 import { physicalOccurrenceId } from '../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import { createPreviewBasis } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js';
-import { assertBasisDigest, digestUtf8 } from '../contracts/gc-pw-v1/contract.mjs';
+import { assertBasisDigest, digestUtf8, canonicalJson, digestCanonical, validateFactRecord, validatePage } from '../contracts/gc-pw-v1/contract.mjs';
+import { openPreviewFactReadModel } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-read-model.js';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 const SRC_A = '<PipeStressExport><Branch><Node><NodeNumber>-1</NodeNumber></Node></Branch></PipeStressExport>';
@@ -201,4 +202,46 @@ test('deployed docs mirror loads all actual modules and preserves root contract 
   const session = await docsOpenGcPwPreviewWeightSession(opts);
   const opened = await session.awaitReady();
   assert.equal(opened.openedFacts, physicalOccurrences.length * FIELDS.length);
+});
+
+test('actual merged Preview read-model pages feed actual attested Weight session, without duplicate geometry', async () => {
+  const o = argumentsFor('real-preview-reader');
+  // Source ownership and engineering readiness are independent input claims:
+  // in this test the fixture supplies positive facts, not product release truth.
+  o.requiredFieldIds = ['source.occurrence', ...FIELDS];
+  let previewOpened = null;
+  o.loadFactPages = async ({ basis, report, isCancelled }) => {
+    const expectedOccurrences = physicalOccurrences.map(p => ({
+      sourceId: p.sourceId, occurrenceId: physicalOccurrenceId(p),
+      subjectType: 'physical-component',
+    }));
+    const input = physicalOccurrences.flatMap(p => [
+      { ...record(basis, p, 'source.occurrence'), value: true, authority: 'source' },
+      ...FIELDS.map(field => record(basis, p, field)),
+    ]);
+    previewOpened = await openPreviewFactReadModel({
+      basis, expectedOccurrences, records: input,
+      ports: { assertBasisDigest, canonicalJson, digestCanonical, validateFactRecord, validatePage },
+      requiredEngineeringFields: { 'physical-component': ['bore.mm', 'mass.kg'] },
+      verifyEngineeringComplete: ({ records }) => records.filter(f => f.fieldId === 'mass.kg').length === 2,
+    });
+    assert.equal(previewOpened.info.engineeringReady, true);
+    const result = [];
+    let cursor = null, read = 0;
+    do {
+      assert.equal(isCancelled(), false);
+      const page = await previewOpened.getFacts({ basisId: basis.basisId, subjectType: 'physical-component', cursor, limit: 3 });
+      result.push(page);
+      read += page.items.length;
+      report(read, page.totalCount);
+      cursor = page.nextCursor;
+    } while (cursor !== null);
+    return result;
+  };
+  const session = await openGcPwPreviewWeightSession(o);
+  const result = await session.awaitReady();
+  assert.equal(result.openedFacts, physicalOccurrences.length * o.requiredFieldIds.length);
+  assert.equal(previewOpened.info.totalFactCount, result.openedFacts);
+  assert.equal(result.review.getFacts({ basisId: session.basisId, limit: 50 }).totalCount, result.openedFacts);
+  assert.equal(result.review.getDecisionState({ basisId: session.basisId, scopeId: 'PL01' }).decisionRevision, null);
 });
