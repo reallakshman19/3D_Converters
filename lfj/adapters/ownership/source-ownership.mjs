@@ -87,50 +87,59 @@ export function resolveOccurrenceOwnership(occurrences) {
   }
 
   const resultByRecord = new Map();
-  const visiting = new Set();
-  function resolve(record) {
-    if (resultByRecord.has(record)) return resultByRecord.get(record);
-    if (visiting.has(record)) fail('ANCESTRY_CYCLE', 'source occurrences contain an ancestry cycle');
-    visiting.add(record);
+  function resolve(startRecord) {
+    if (resultByRecord.has(startRecord)) return resultByRecord.get(startRecord);
 
-    const attrs = ownAttributes(record);
-    const sourceId = record.sourceId;
-    const parentId = record.parentOccurrenceId ?? null;
-    let parent = null;
-    if (parentId !== null) {
+    // Follow ancestry as an explicit chain. Deep, valid, leaf-first source
+    // sequences must not depend on the JavaScript call-stack limit.
+    const lineage = [];
+    const seen = new Set();
+    let record = startRecord;
+    while (record && !resultByRecord.has(record)) {
+      if (seen.has(record)) fail('ANCESTRY_CYCLE', 'source occurrences contain an ancestry cycle');
+      seen.add(record);
+      lineage.push(record);
+      const parentId = record.parentOccurrenceId ?? null;
+      if (parentId === null) break;
       stringId(parentId, 'parentOccurrenceId');
-      const source = bySource.get(sourceId);
-      const found = source?.get(parentId);
-      if (!found) fail('PARENT_NOT_FOUND', 'parent must be present in the same source identity');
-      parent = resolve(found);
+      const parent = bySource.get(record.sourceId)?.get(parentId);
+      if (!parent) fail('PARENT_NOT_FOUND', 'parent must be present in the same source identity');
+      record = parent;
     }
 
-    const kind = readOwnName(record, 'type')?.toUpperCase() ?? '';
-    const ownSite = ownTypedContainer(record, kind,
-      ownValue(attrs, ['OWNER_SITE', 'SITE_ID'], 'ownerSite'), { key: 'site' });
-    const ownZone = ownTypedContainer(record, kind,
-      ownValue(attrs, ['OWNER_ZONE', 'ZONE_ID'], 'ownerZone'), { key: 'zone' });
-    const inheritedSite = parent?.ownerSite ?? null;
-    const inheritedZone = parent?.ownerZone ?? null;
-    const ownerSite = ownSite ?? inheritedSite;
-    let ownerZone = kind === 'SITE' ? null : inheritedZone;
-    if (ownSite !== null && inheritedSite !== null && ownSite !== inheritedSite) ownerZone = null;
-    if (ownZone !== null) ownerZone = ownZone;
-
-    const projection = Object.freeze({
-      schema: SOURCE_OWNER_SCHEMA,
-      sourceId,
-      occurrenceId: record.occurrenceId,
-      parentOccurrenceId: parentId,
-      type: kind,
-      name: readOwnName(record, 'name') ?? '',
-      ownerSite,
-      ownerZone,
-      branchOwner: ownValue(attrs, ['OWNER'], 'branchOwner'),
-    });
-    resultByRecord.set(record, projection);
-    visiting.delete(record);
-    return projection;
+    // Materialize from oldest known ancestor toward original occurrence.
+    // Each source record enters resultByRecord once: total work O(records).
+    for (let index = lineage.length - 1; index >= 0; index -= 1) {
+      const current = lineage[index];
+      const attrs = ownAttributes(current);
+      const sourceId = current.sourceId;
+      const parentId = current.parentOccurrenceId ?? null;
+      const parentRecord = parentId === null ? null : bySource.get(sourceId)?.get(parentId);
+      const parent = parentRecord ? resultByRecord.get(parentRecord) : null;
+      const kind = readOwnName(current, 'type')?.toUpperCase() ?? '';
+      const ownSite = ownTypedContainer(current, kind,
+        ownValue(attrs, ['OWNER_SITE', 'SITE_ID'], 'ownerSite'), { key: 'site' });
+      const ownZone = ownTypedContainer(current, kind,
+        ownValue(attrs, ['OWNER_ZONE', 'ZONE_ID'], 'ownerZone'), { key: 'zone' });
+      const inheritedSite = parent?.ownerSite ?? null;
+      const inheritedZone = parent?.ownerZone ?? null;
+      const ownerSite = ownSite ?? inheritedSite;
+      let ownerZone = kind === 'SITE' ? null : inheritedZone;
+      if (ownSite !== null && inheritedSite !== null && ownSite !== inheritedSite) ownerZone = null;
+      if (ownZone !== null) ownerZone = ownZone;
+      resultByRecord.set(current, Object.freeze({
+        schema: SOURCE_OWNER_SCHEMA,
+        sourceId,
+        occurrenceId: current.occurrenceId,
+        parentOccurrenceId: parentId,
+        type: kind,
+        name: readOwnName(current, 'name') ?? '',
+        ownerSite,
+        ownerZone,
+        branchOwner: ownValue(attrs, ['OWNER'], 'branchOwner'),
+      }));
+    }
+    return resultByRecord.get(startRecord);
   }
 
   return Object.freeze(occurrences.map(resolve));
