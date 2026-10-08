@@ -3,15 +3,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker} from 'node:worker_threads';
+import {createHash} from 'node:crypto';
+import {createSourceSnapshotBuilder} from '../../source/source-snapshot.mjs';
 import {createWorkerLifecycleSession} from './lifecycle-session.mjs';
 
-const sourceA=Object.freeze({
-  sourceRefId:'PL01',sourceRevision:'revision-A',
-  sourceSha256:'a'.repeat(64),byteLength:8193,
-  selectionDigest:'selection-A',dependencyRevision:'xml+config-A',
-});
-const sourceB=Object.freeze({...sourceA,sourceRevision:'revision-B',
-  sourceSha256:'b'.repeat(64)});
+// This exact-byte differential is produced by the independently verified R03
+// custody port, not invented matching-length SHA strings or Worker self-report.
+function originalSource(changeInterior,revision){
+ const bytes=new Uint8Array(8193);
+ for(let i=0;i<bytes.length;i++)bytes[i]=(i*13+19)%251;
+ if(changeInterior)bytes[4096]^=0x71;
+ const b=createSourceSnapshotBuilder({byteLength:bytes.length,revision});
+ b.append(bytes,0);
+ const s=b.finalize();
+ assert.equal(s.sha256,createHash('sha256').update(bytes).digest('hex'));
+ const basis={sourceRefId:'PL01',sourceRevision:s.revision,
+  sourceSha256:s.sha256,byteLength:s.byteLength,
+  selectionDigest:'selection-A',dependencyRevision:'xml+config-A'};
+ s.close();
+ return Object.freeze(basis);
+}
+const sourceA=originalSource(false,'r07-a');
+const sourceB=originalSource(true,'r07-b');
+assert.equal(sourceA.byteLength,sourceB.byteLength);
+assert.notEqual(sourceA.sourceSha256,sourceB.sourceSha256);
 function setup(mode='ready',overrides={}){
  let worker,created=0,active={...sourceA,...overrides};
  const notices=[];
@@ -83,11 +98,10 @@ test('U03 RED: explicit epoch supersession is terminal and settles actual native
  }finally{await j.worker?.terminate();}
 });
 test('U03 RED: A completes later than B; A cannot override freshly selected B',async()=>{
- const a=setup('delayed'),b=setup('ready');
+ const a=setup('delayed'),b=setup('ready',sourceB);
  try{
   const pendingA=a.session.start();
   a.replace(sourceB);
-  b.replace(sourceA);
   const readyB=await b.session.start();
   assert.equal(readyB.kind,'ADMITTED');
   assert.equal(readyB.complete,false);
@@ -102,6 +116,29 @@ test('U03 RED: exact unchanged source plus XML/config selection remains only ADM
   assert.equal((await j.session.start()).kind,'ADMITTED');
   assert.equal(j.session.snapshot().kind,'ADMITTED');
   assert.equal(j.session.snapshot().complete,false);
+  assert.deepEqual(j.notices,[]);
+  assert.equal((await j.session.cancel()).kind,'CANCELLED');
+ }finally{await j.worker?.terminate();}
+});
+
+test('U03 RED: unexpected current-basis read failure refuses admission, never assumes valid revision',async()=>{
+ const j=setup('ready');
+ try{
+  const denied=createWorkerLifecycleSession({
+   jobId:'READ-FAIL',...sourceA,trustedWorkerCtor:Worker,
+   createWorker:()=>{throw new Error('no Worker should be created');},
+   getCurrentBasis:()=>{throw new Error('disconnected source provider');},
+  });
+  stale(await denied.start());
+  assert.equal(denied.snapshot().kind,'STALE');
+ }finally{await j.worker?.terminate();}
+});
+test('U03 RED: equal-basis explicit supersede does not spuriously cancel a valid Worker',async()=>{
+ const j=setup('ready');
+ try{
+  assert.equal((await j.session.start()).kind,'ADMITTED');
+  assert.equal((await j.session.supersede(sourceA)).kind,'ADMITTED');
+  assert.ok(j.worker.threadId>0);
   assert.deepEqual(j.notices,[]);
   assert.equal((await j.session.cancel()).kind,'CANCELLED');
  }finally{await j.worker?.terminate();}
