@@ -328,3 +328,17 @@ test('R09/U02 semantic RED: genuine valid R05 occurrence IDs beyond 1024 charact
    assert.ok(f.f.opens[2].occurrenceId.length>1024);
  }finally{await f.close();}
 });
+
+test('R09/U01 semantic RED: maxBytes must bound the entire serialized page, not rows alone',async()=>{
+ const f=await prepared();
+ try{
+   const firstRow=f.f.opens[1];
+   const onlyRowBytes=new TextEncoder().encode(JSON.stringify(firstRow)).byteLength;
+   const cap=Math.max(256,onlyRowBytes+1);
+   assert.ok(cap<65536);
+   // The row fits this budget, but the complete page also carries source
+   // basis, selection epoch, cursor, count, rights and version metadata.
+   await assert.rejects(()=>f.request(null,1,cap),
+     e=>e?.code==='PAGE_WIRE_OVERLIMIT');
+ }finally{await f.close();}
+});
