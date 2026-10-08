@@ -8,7 +8,7 @@
 // contains the Preview and Weight Match facts that were selected.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
-import { createStandaloneRunParityEvidence, xmlCiiParityNodeSignature } from './xml-cii-run-parity-evidence.js?v=20261008-p0-mode-b-parity-1';
+import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { xmlCiiWeightReviewNodeOverrideKey } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-2';
@@ -63,20 +63,13 @@ function setChildText(document, parent, name, value) {
 }
 
 function numeric(value) {
-  const supplied = text(value).trim();
-  if (!supplied) return null; // Absence is not a reviewed engineering zero.
-  const normalized = supplied.replace(/[^0-9.+-eE]/g, '');
-  if (!normalized) return null; // 'N/A' and other non-numeric labels are not zero.
-  const n = Number(normalized);
+  const n = Number(text(value).replace(/[^0-9.+-eE]/g, ''));
   return Number.isFinite(n) ? n : null;
 }
 
 function recordExpected(entries, {
   scope,
   branchName,
-  branchOccurrenceIndex = null,
-  nodeOrdinal = null,
-  nodeSignature = '',
   nodeNumber = '',
   nodeKey = '',
   path,
@@ -87,41 +80,37 @@ function recordExpected(entries, {
 }) {
   const expected = text(value).trim();
   if (!expected) return;
-  entries.push({ scope, branchName, branchOccurrenceIndex, nodeOrdinal, nodeSignature,
-    nodeNumber, nodeKey, path, field, expected, kind, source });
+  entries.push({ scope, branchName, nodeNumber, nodeKey, path, field, expected, kind, source });
 }
 
-export async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics, runtime = {}) {
+async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
   const result = { xmlText, branchRows: [], nodeRows: [], nodeBoreWallRows: [], expectedEntries: [], appliedFields: 0 };
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
   }
-  const previewBuilder = typeof runtime.previewBuilder === 'function'
-    ? runtime.previewBuilder
-    : (await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261008-p0-mode-b-parity-1')).xmlCiiDryRunPreview;
-  const preview = previewBuilder(xmlText, config, stagedJsonText || '');
+  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2');
+  const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
   result.nodeBoreWallRows = Array.isArray(preview?.nodeBoreWallRows) ? preview.nodeBoreWallRows : [];
   if (Array.isArray(preview?.boreAuthorityDiagnostics)) diagnostics.push(...preview.boreAuthorityDiagnostics);
   if (!result.branchRows.length) return result;
 
-  // Names and abbreviated node keys are not unique in combined Mode B documents.
+  // Branch names are not unique. Preserve the occurrence order consumed by Preview.
   const expectedBranches = result.branchRows;
-  const authoritativeNodes = result.nodeBoreWallRows;
-  let nodeOccurrenceIndex = 0;
+  const byNodeAuthority = new Map(result.nodeBoreWallRows.map((row) => [text(row.key), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
 
   const actualBranches = [...document.getElementsByTagName('Branch')];
   if (actualBranches.length !== expectedBranches.length) {
-    throw new Error('Combined XML branch occurrences differ from Preview; converter input blocked.');
+    throw new Error('Standalone process parity branch occurrence count disagrees with Preview.');
   }
-  for (const [branchOccurrenceIndex, branch] of actualBranches.entries()) {
+  for (const [occurrenceIndex, branch] of actualBranches.entries()) {
     const branchName = childText(branch, 'Branchname');
-    const row = expectedBranches[branchOccurrenceIndex];
-    if (text(row?.branchName).trim() !== branchName) {
-      throw new Error('Combined XML branch occurrence order differs from Preview; converter input blocked.');
+    const row = expectedBranches[occurrenceIndex];
+    if (text(row?.branchName) !== branchName) {
+      throw new Error(`Standalone process parity branch occurrence ${occurrenceIndex + 1} disagrees with Preview.`);
     }
     const pressure = ensureChild(document, branch, 'Pressure');
     const temperature = ensureChild(document, branch, 'Temperature');
@@ -141,7 +130,7 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
       if (!valid || !setChildText(document, write.owner, write.name, write.value)) continue;
       result.appliedFields += 1;
       recordExpected(result.expectedEntries, {
-        scope: 'branch', branchName, branchOccurrenceIndex, path: write.path, field: write.field,
+        scope: 'branch', branchName, path: write.path, field: write.field,
         value: write.value, kind: write.kind, source: 'standalone-preview',
       });
     }
@@ -149,15 +138,7 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
     for (const [nodeIndex, node] of childrenByName(branch, 'Node').entries()) {
       const nodeNumber = childText(node, 'NodeNumber');
       const nodeKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIndex);
-      const nodeAuthority = authoritativeNodes.length ? authoritativeNodes[nodeOccurrenceIndex] : null;
-      if (authoritativeNodes.length && (!nodeAuthority
-        || text(nodeAuthority.branchName).trim() !== branchName
-        || text(nodeAuthority.nodeNumber).trim() !== nodeNumber
-        || normalizedRef(nodeAuthority.componentRefNo) !== normalizedRef(childText(node, 'ComponentRefNo'))
-        || text(nodeAuthority.endpoint).trim() !== childText(node, 'Endpoint'))) {
-        throw new Error('Combined XML node bore authority occurrence differs from Preview; converter input blocked.');
-      }
-      nodeOccurrenceIndex += 1;
+      const nodeAuthority = byNodeAuthority.get(nodeAuthorityKey(branchName, node)) || null;
       const nodeWrites = [
         { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
         { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
@@ -172,9 +153,7 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
         if (!valid || !setChildText(document, node, write.name, write.value)) continue;
         result.appliedFields += 1;
         recordExpected(result.expectedEntries, {
-          scope: 'node', branchName, branchOccurrenceIndex, nodeOrdinal: nodeIndex,
-          nodeSignature: xmlCiiParityNodeSignature(node),
-          nodeNumber, nodeKey, path: [write.name], field: write.field,
+          scope: 'node', branchName, nodeNumber, nodeKey, path: [write.name], field: write.field,
           value: write.value, kind: write.kind, source: write.source || 'standalone-preview',
         });
       }
@@ -182,9 +161,6 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
     }
   }
 
-  if (authoritativeNodes.length && nodeOccurrenceIndex !== authoritativeNodes.length) {
-    throw new Error('Combined XML node bore authority count differs from Preview; converter input blocked.');
-  }
   if (!result.appliedFields) return result;
   diagnostics.push({
     type: 'standalone-process-parity-applied',
