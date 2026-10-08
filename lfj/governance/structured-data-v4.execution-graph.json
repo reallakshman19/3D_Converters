@@ -1799,26 +1799,30 @@
       ],
       "released_proposal_digest": "sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d",
       "bindings": [
-      {
-        "responsibility_id": "R01",
-        "ref": "reallaksh19/3D_Converters#1052"
-      },
-      {
-        "responsibility_id": "R03",
-        "ref": "reallaksh19/3D_Converters#1057"
-      },
-      {
-        "responsibility_id": "R04",
-        "ref": "reallaksh19/3D_Converters#1062"
-      }
-    ]
+        {
+          "responsibility_id": "R01",
+          "ref": "reallaksh19/3D_Converters#1052"
+        },
+        {
+          "responsibility_id": "R03",
+          "ref": "reallaksh19/3D_Converters#1057"
+        },
+        {
+          "responsibility_id": "R04",
+          "ref": "reallaksh19/3D_Converters#1062"
+        },
+        {
+          "responsibility_id": "R02",
+          "ref": "reallaksh19/3D_Converters#1064"
+        }
+      ]
     }
   },
   "nodes": [
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 110
+      "reserve_weight": 103
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -1999,6 +2003,68 @@
           "weight": 25,
           "outcome": "Excessive depth and scalars fail safely",
           "verify": "Independent oracle: Independent escaped-string, multibyte, malformed and deep nesting corpus; outcome: Excessive depth and scalars fail safely"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1064",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 7,
+      "responsibility_id": "R02",
+      "work_class": "PRODUCT",
+      "outcome": "Parent Site and Zone facts do not change when a descendant has unrelated local attributes.",
+      "independence_basis": "Independent parent/child owner-site/zone fixtures. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C1_OWNER"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/adapters/ownership/"
+      ],
+      "acceptance_methods": [
+        "Independent parent/child owner-site/zone fixtures",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1052"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Local owner beats descendant values",
+          "verify": "Independent oracle: Independent parent/child owner-site/zone fixtures; outcome: Local owner beats descendant values"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Inheritance follows declared rules",
+          "verify": "Independent oracle: Independent parent/child owner-site/zone fixtures; outcome: Inheritance follows declared rules"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Conflicting owner rights are diagnosed",
+          "verify": "Independent oracle: Independent parent/child owner-site/zone fixtures; outcome: Conflicting owner rights are diagnosed"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Same-name siblings remain distinct",
+          "verify": "Independent oracle: Independent parent/child owner-site/zone fixtures; outcome: Same-name siblings remain distinct"
         }
       ]
     }
