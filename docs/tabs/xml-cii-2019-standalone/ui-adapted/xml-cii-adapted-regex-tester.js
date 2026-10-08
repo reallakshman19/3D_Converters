@@ -179,16 +179,9 @@ function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
     return val.split(/[,+]/).map(x => Number(x.trim())).filter(x => Number.isFinite(x));
   };
   
-  const toggleToken = (key, pos, multi = false) => {
+  const replaceToken = (key, pos) => {
     const list = getSelectedTokens(key);
-    if (multi) {
-      const index = list.indexOf(pos);
-      if (index > -1) list.splice(index, 1);
-      else list.push(pos);
-      return list.sort((a,b)=>a-b).join(',');
-    } else {
-      return list.includes(pos) ? '' : String(pos);
-    }
+    return list.length === 1 && list[0] === pos ? '' : String(pos);
   };
 
   const lkList = getSelectedTokens('lineKey');
@@ -246,10 +239,10 @@ function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
       return b;
     };
     
-    card.appendChild(btn('Line Key', isLk, '#3b82f6', 'Toggle in Line Key', () => updatePos('lineKey', toggleToken('lineKey', pos, true))));
-    card.appendChild(btn('Piping Class', isPc, '#10b981', 'Set as Piping Class', () => updatePos('pipingClass', toggleToken('pipingClass', pos))));
-    card.appendChild(btn('Rating', isRt, '#eab308', 'Set as Rating', () => updatePos('rating', toggleToken('rating', pos))));
-    card.appendChild(btn('Bore', isBr, '#f97316', 'Set as Bore', () => updatePos('bore', toggleToken('bore', pos))));
+    card.appendChild(btn('Line Key', isLk, '#3b82f6', 'Set as Line Key', () => updatePos('lineKey', replaceToken('lineKey', pos))));
+    card.appendChild(btn('Piping Class', isPc, '#10b981', 'Set as Piping Class', () => updatePos('pipingClass', replaceToken('pipingClass', pos))));
+    card.appendChild(btn('Rating', isRt, '#eab308', 'Set as Rating', () => updatePos('rating', replaceToken('rating', pos))));
+    card.appendChild(btn('Bore', isBr, '#f97316', 'Set as Bore', () => updatePos('bore', replaceToken('bore', pos))));
     
     flexRow.appendChild(card);
   });
