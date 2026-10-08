@@ -1,6 +1,6 @@
 import { indexAttNativeHierarchy } from './att-native-hierarchy-index.js';
 import { ATT_TREE_ROW_LIMIT, projectAttNativeTree, expandAttNativeAncestors, findAttNativeVisibleOffset } from './att-native-tree-projection.js';
-import { createAttScopeSelection, setAttScopeRule, attScopeNodeState, resolveAttScopeSelection } from './att-native-scope-selection.js';
+import { createAttScopeSelection, setAttScopeRule, attScopeNodeState, resolveAttScopeSelection, attScopePartiallyExcludedBranches } from './att-native-scope-selection.js';
 const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[c]);
@@ -120,6 +120,12 @@ export async function openAttNativeScopePopup(name, bytes) {
       if (!resolved.explicitSelection || !resolved.selectedNativeCount) return;
       if (!resolved.selectedBranchIds.length) {
         summary.textContent = 'Selected source contains no convertible piping BRAN. Refusing an unfiltered or silently empty XML/JSON output.';
+        return;
+      }
+      const partial = attScopePartiallyExcludedBranches(index, selection);
+      if (partial.length) {
+        summary.textContent = 'Conversion blocked: ' + partial.length
+          + ' selected piping branch(es) have explicitly excluded components. Whole-branch export would leak unchecked geometry.';
         return;
       }
       done({
