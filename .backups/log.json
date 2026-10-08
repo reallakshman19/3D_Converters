@@ -1,5 +1,5 @@
 {
-  "lastId": 1199,
+  "lastId": 1203,
   "entries": [
     {
       "id": 1,
@@ -8393,6 +8393,34 @@
       "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
       "context": "P0 #980 before actual writer/verifier integration regressions (connector-preserved)",
       "backupFile": "1274_issue_980_process_integration_tests.bak"
+    },
+    {
+      "id": 1200,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 before missing Preview numeric source-preservation regression",
+      "backupFile": "1275_issue_980_numeric_source_custody_test.bak"
+    },
+    {
+      "id": 1201,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 before missing numeric Preview output writer fix",
+      "backupFile": "1276_issue_980_missing_numeric_writer_src.bak"
+    },
+    {
+      "id": 1202,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 before missing numeric Preview output docs fix",
+      "backupFile": "1277_issue_980_missing_numeric_writer_docs.bak"
+    },
+    {
+      "id": 1203,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 before exact duplicate PL-06 200010 missing-node regression",
+      "backupFile": "1278_issue_980_second_pl06_offset_regression.bak"
     }
   ]
 }
