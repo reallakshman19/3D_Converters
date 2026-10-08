@@ -80,11 +80,12 @@ function occurrenceKey(r) { return JSON.stringify([r.sourceId,r.occurrenceId]); 
 function validateEngineeringFields(required, identities, recordKeys) {
   requireThat(required && typeof required === 'object', 'ENGINEERING_FIELDS_REQUIRED',
     'Independent engineering field requirements are mandatory');
-  for (const subjectType of ['branch','node']) {
+  const types=new Set([...identities].map(item=>item.subjectType));
+  for (const subjectType of types) {
     const fields=required[subjectType];
     requireThat(Array.isArray(fields) && fields.some(field => typeof field === 'string'
       && field.length > 0 && !field.startsWith('source.')),
-      'ENGINEERING_FIELDS_REQUIRED','At least one non-source field must be required for each subject type');
+      'ENGINEERING_FIELDS_REQUIRED','At least one non-source field must be required for '+subjectType);
   }
   for (const r of identities) {
     for (const fieldId of required[r.subjectType]) {
@@ -111,8 +112,8 @@ export async function openPreviewFactReadModel({
   const expected = new Map();
   for (const raw of expectedOccurrences) {
     const subjectType=validateId(raw?.subjectType,'subjectType');
-    requireThat(subjectType === 'branch' || subjectType === 'node',
-      'INVALID_EXPECTED_SUBJECT','Original population includes only branches/nodes');
+    // Portable core: e.g. instrument, beam, support, branch, node.
+    // XML-only subject restrictions belong to buildXmlCiiSourceFactRecords().
     const id=occurrenceKey({sourceId:validateId(raw.sourceId,'sourceId'),
       occurrenceId:validateId(raw.occurrenceId,'occurrenceId')});
     requireThat(!expected.has(id),'DUPLICATE_EXPECTED_OCCURRENCE','Expected occurrence repeated');
