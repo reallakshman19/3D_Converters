@@ -192,7 +192,7 @@ function buildNodeBoreWallRows({
     const pipingClass = branchRow?.pipingClass || branchRow?.pipingClassDerived || '';
     const evidence = branchEvidence(branch, branchName, indexes.stagedWall);
 
-    for (const node of children(branch, 'Node')) {
+    for (const [nodeOrdinal, node] of children(branch, 'Node').entries()) {
       xmlIndex += 1;
       const stagedGeometry = resolveXmlCiiStagedGeometryForNode(
         node, indexes.stagedGeometry,
@@ -236,6 +236,8 @@ function buildNodeBoreWallRows({
           endpoint: childText(node, 'Endpoint'),
         }),
         branchName,
+        branchOccurrenceIndex,
+        nodeOrdinal,
         nodeNumber: childText(node, 'NodeNumber'),
         componentType: childText(node, 'ComponentType'),
         componentRefNo: childText(node, 'ComponentRefNo'),
@@ -275,18 +277,28 @@ function buildNodeBoreWallRows({
 
 function correctNodeRows(nodeRows, nodeBoreWallRows) {
   const byKey = new Map();
-  const contestedKeys = new Set((nodeRows || []).map((row) => nodeAuthorityKey(row)));
+  const byOccurrence = new Map();
+  const ambiguous = new Set();
   for (const item of nodeBoreWallRows || []) {
-    const existing = byKey.get(item.key);
-    if (existing && contestedKeys.has(item.key)
-      && ['boreMm', 'wallThickness', 'pipingClass'].some((field) => text(existing[field]) !== text(item[field]))) {
-      throw new Error('Combined Preview duplicate node key has conflicting bore/wall authority; conversion blocked.');
-    }
+    const previous = byKey.get(item.key);
+    if (previous && ['boreMm', 'wallThickness', 'pipingClass']
+      .some((field) => text(previous[field]) !== text(item[field]))) ambiguous.add(item.key);
     byKey.set(item.key, item);
+    byOccurrence.set(`${item.branchOccurrenceIndex}::${item.nodeOrdinal}`, item);
   }
   return (nodeRows || []).map((row) => {
+    const qualified = Number.isSafeInteger(row.branchOccurrenceIndex)
+      && Number.isSafeInteger(row.nodeOrdinal);
     const key = nodeAuthorityKey(row);
-    const authority = byKey.get(key);
+    const authority = qualified
+      ? byOccurrence.get(`${row.branchOccurrenceIndex}::${row.nodeOrdinal}`)
+      : byKey.get(key);
+    if (qualified && (!authority || authority.key !== key)) {
+      throw new Error('Combined Preview node occurrence identity drift; conversion blocked.');
+    }
+    if (!qualified && ambiguous.has(key)) {
+      throw new Error('Combined Preview duplicate node key has conflicting bore/wall authority; conversion blocked.');
+    }
     if (!authority) return row;
     return {
       ...row,
