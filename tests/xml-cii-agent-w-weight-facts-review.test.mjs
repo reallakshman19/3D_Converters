@@ -578,3 +578,44 @@ test('U1 strict canonical session keeps portable non-XML domain and explicit sou
   assert.equal(result[0].state,'accepted');
   assert.equal(strict.getDecisionState({basisId:base.basisId,scopeId:'one'}).decisions['one/part:0'].value,7);
 });
+
+test('U1 strict Mode A and Mode B source lineage isolates duplicate negative node labels', async () => {
+  const {b,custody,facts,service} = attestedFixture();
+  const sourceTwo = '<Node number="-1">B</Node>'; // repeated legacy NodeNumber is not identity
+  const idTwo = '["two",0,0,"valve-A"]';
+  const combined = {...b};
+  delete combined.basisId;
+  combined.sourceRefs=[...b.sourceRefs,{sourceId:'two',sha256:hash(sourceTwo),mediaType:'application/xml'}];
+  combined.scope=[...b.scope,{sourceId:'two',selectionRef:'selected'}];
+  combined.basisId=canonicalSha(combined);
+  const proof={...custody,sourceTexts:{...custody.sourceTexts,two:sourceTwo},
+    occurrenceIdsBySource:{...custody.occurrenceIdsBySource,two:[idTwo]}};
+  const rows=[
+    ...facts.map(f=>({...f,basisId:combined.basisId})),
+    {...facts[0],basisId:combined.basisId,sourceId:'two',occurrenceId:idTwo,
+      provenance:[{sourceRef:'two',locator:'branch:0/node:0'}]},
+  ];
+  const strict=service();
+  const opened=await strict.openBasis(combined,{facts:rows,custody:proof});
+  assert.equal(opened.attestation.sourceCount,2);
+  assert.equal(opened.attestation.physicalCount,3);
+  const first=strict.applyDecisions({basisId:combined.basisId,scopeId:'one',
+    commands:[{commandId:'one-accepted',basisId:combined.basisId,scopeId:'one',
+      occurrenceId:rows[0].occurrenceId,action:'enter-manual',expectedDecisionRevision:null,
+      value:59,unit:'kg'}]});
+  assert.equal(first[0].state,'accepted');
+  assert.equal(strict.getDecisionState({basisId:combined.basisId,scopeId:'two'}).decisionRevision,null);
+  assert.throws(()=>strict.applyDecisions({basisId:combined.basisId,scopeId:'one',
+    commands:[{commandId:'two-leak',basisId:combined.basisId,scopeId:'one',
+      occurrenceId:idTwo,action:'enter-manual',expectedDecisionRevision:first[0].decisionRevision,
+      value:15,unit:'kg'}],expectedDecisionRevision:first[0].decisionRevision}),
+    e=>e.code==='IDENTITY_CONFLICT');
+  const missing={...proof,occurrenceIdsBySource:{one:proof.occurrenceIdsBySource.one,two:[]}};
+  await assert.rejects(()=>service().openBasis(combined,{facts:rows,custody:missing}),
+    e=>e.code==='POPULATION_MISMATCH');
+  const aliased={...rows, 0:{...rows[0],occurrenceId:idTwo}}; // fabricate same cross-source physical identity
+  await assert.rejects(()=>service().openBasis(combined,{
+    facts:[aliased[0],...rows.slice(1)],
+    custody:{...proof,occurrenceIdsBySource:{one:[idTwo,rows[1].occurrenceId],two:[idTwo]}},
+  }),e=>e.code==='IDENTITY_CONFLICT');
+});
