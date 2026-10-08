@@ -271,6 +271,7 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
         if not isinstance(allocations, list) or not allocations:
             fail("EMPTY_CHILD_ALLOCATIONS", group_id)
         total = Decimal(0)
+        validated_child_allocations = []
         for allocation in allocations:
             obj(allocation, "childAllocations[]")
             idx = unsigned_index(allocation.get("rigidRecordIndex"), "rigidRecordIndex")
@@ -281,11 +282,16 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
             used[idx] = group_id
             amount_kg = amount(allocation.get("allocatedKg"), "allocatedKg")
             total += amount_kg
+            validated_child_allocations.append((idx, amount_kg))
+        # Challenge accepted physical-component conservation *before* output-scale parity.
+        # A duplicated full mass on a split sibling is a custody violation, not just
+        # an arbitrary per-row mismatch when the emitted CII has the old weights.
+        if abs(total - expected_mass) > Decimal("0.000001"):
+            fail("PHYSICAL_MASS_NONCONSERVATION", f"{group_id}: allocated {total}, accepted {expected_mass}")
+        for idx, amount_kg in validated_child_allocations:
             expected_weight = amount_kg * scale
             if not close_as_cii(expected_weight, weights[idx]):
                 fail("CII_WEIGHT_MISMATCH", f"RIGID[{idx}] {weights[idx]} != {expected_weight} ({convention})")
-        if abs(total - expected_mass) > Decimal("0.000001"):
-            fail("PHYSICAL_MASS_NONCONSERVATION", f"{group_id}: allocated {total}, accepted {expected_mass}")
     for stage in ("RigidMatch1", "Rigidmatch2"):
         unclaimed = set(review_maps[stage]) - accounted
         if unclaimed:
