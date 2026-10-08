@@ -1866,7 +1866,9 @@
           "verify": "Three-repository compatibility and negative permissions matrix",
           "outcome": "Each source variant receives correct read, view, edit and export permissions"
         }
-      ]
+      ],
+      "primary_pr": "reallaksh19/3D_Converters#1053",
+      "candidate_ref": "lfj/r01-root-profile-authority"
     }
   ],
   "plan_updates": [
