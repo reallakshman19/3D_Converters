@@ -1,0 +1,94 @@
+name: LFJ V4 integrated source and GC-PW consumer regression
+on:
+  push:
+    branches: [lfj/structured-data-plan-v4]
+    paths:
+      - 'lfj/**'
+      - '.github/workflows/lfj-v4-integrated-consumers.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/**'
+      - '.github/workflows/lfj-v4-integrated-consumers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-native:
+    name: LFJ source + Preview/Weight native Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Report exact merge tree, source scope and Node runtime
+        run: |
+          echo "LFJ_INTEGRATED_TESTED_SHA=$(git rev-parse HEAD)"
+          node --version
+      - name: Four LFJ providers — profiles, ownership, original bytes and complete JSON tokens
+        run: |
+          for test_file in \
+            lfj/contracts/profiles/*.test.mjs \
+            lfj/adapters/ownership/*.test.mjs \
+            lfj/source/*.test.mjs \
+            lfj/tokenizer/*.test.mjs; do
+            node --test "$test_file" || exit 1
+          done
+      - name: Existing original-source Preview and Weight semantic regression
+        run: |
+          for test_file in \
+            tests/xml-cii-preview-modeb-custody.test.mjs \
+            tests/xml-cii-preview-modeb-basis.test.mjs \
+            tests/xml-cii-preview-modeb-session.test.mjs \
+            tests/xml-cii-preview-p4-a1-golden.test.mjs \
+            tests/xml-cii-agent-w-weight-roundtrip.test.mjs \
+            tests/xml-cii-agent-w-weight-review-checkpoint.test.mjs \
+            tests/xml-cii-agent-w-weight-approved-run-packet.test.mjs \
+            tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs; do
+            node --test "$test_file" || exit 1
+          done
+      - name: Attest real 10,539,386-byte owner source — original SHA, complete token census
+        if: matrix.node == '24'
+        env:
+          LFJ_R04_REAL_SOURCE: '1'
+        run: node --test lfj/tokenizer/json-tokenizer-resource.test.mjs
+      - name: Verify test tree unchanged
+        run: test -z "$(git status --porcelain)"
+
+  modeb-real-browser:
+    name: Retained 4 Preview actual Mode B Chromium source/button
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source-level original/combined Preview basis and live button checks
+        run: |
+          echo "PREVIEW_INTEGRATED_TESTED_SHA=$(git rev-parse HEAD)"
+          node --test tests/xml-cii-preview-modeb-session.test.mjs
+          node --test tests/xml-cii-preview-modeb-basis.test.mjs
+      - name: Install exact retained Preview browser runner
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve exact PR merge-tree source
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/lfj-modeb-source.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/tests/browser/xml-cii-preview-modeb-real-button.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-modeb-source.log
+          exit 1
+      - name: Real Chromium Mode B Preview button, cancellation and source-complete facts
+        run: node scripts/run-xml-cii-preview-modeb-real-button.mjs
