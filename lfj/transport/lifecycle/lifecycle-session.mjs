@@ -18,6 +18,7 @@ export function createWorkerLifecycleSession({
  const listeners=new Set();
  const trusted=trustedWorkerCtor??globalThis.Worker;
  let worker=null,starting=null,terminal=null,termination=null,state='NEW';
+ let releaseWorkerWatch=()=>{};
  function notify(event){
    for(const listener of [...listeners]) {
      try{listener(event);}
@@ -33,6 +34,7 @@ export function createWorkerLifecycleSession({
      ...(errorCode?{errorCode}:{}),
      complete:false,engineeringReady:false,
    });
+   releaseWorkerWatch();
    notify(terminal);
    return terminal;
  }
@@ -49,6 +51,33 @@ export function createWorkerLifecycleSession({
    }
    try{await termination;}catch { /* Preserve already selected terminal state. */ }
  }
+ // R06 observes START->READY only; R07 must continue watching the
+ // actual Worker AFTER READY. A provisional page is never a commit.
+ function watchWorker(){
+   const onFailure=()=>{
+     if(terminal)return;
+     finish('FAILED','WORKER_FAILED');
+     void stopWorker();
+   };
+   const browser=typeof worker?.addEventListener==='function'&&
+     typeof worker?.removeEventListener==='function';
+   const node=typeof worker?.on==='function'&&typeof worker?.off==='function';
+   if(browser){
+     worker.addEventListener('error',onFailure);
+     worker.addEventListener('messageerror',onFailure);
+     releaseWorkerWatch=()=>{
+       worker.removeEventListener('error',onFailure);
+       worker.removeEventListener('messageerror',onFailure);
+     };
+   }else if(node){
+     worker.on('error',onFailure);
+     worker.on('exit',onFailure);
+     releaseWorkerWatch=()=>{
+       worker.off('error',onFailure);
+       worker.off('exit',onFailure);
+     };
+   }
+ }
  function start(){
    if(terminal)return Promise.resolve(terminal);
    if(starting)return starting;
@@ -56,8 +85,8 @@ export function createWorkerLifecycleSession({
    if(typeof trusted!=='function'||typeof createWorker!=='function'){
      return Promise.resolve(finish('FAILED','WORKER_UNAVAILABLE'));
    }
-   try{worker=createWorker();}
-   catch{ return Promise.resolve(finish('FAILED','WORKER_UNAVAILABLE')); }
+   try{worker=createWorker();watchWorker();}
+   catch{return Promise.resolve(finish('FAILED','WORKER_UNAVAILABLE'));}
    state='ADMITTING';
    starting=(async()=>{
      try{
