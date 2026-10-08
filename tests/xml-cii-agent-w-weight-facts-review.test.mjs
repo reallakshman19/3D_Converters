@@ -8,6 +8,7 @@ import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2
 import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
+import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
 function basis(domainId = 'xml-cii/2019', sources = ['one'], master = 'master-v1') {
@@ -433,4 +434,93 @@ test('all-source exact bulk planner covers off-page physical facts, preserves so
   assert.equal(planExactSourceWeightCommands(service,{basisId:b.basisId,scopeId:'one'}).qualified,0);
   const replay = { ...planned, commands: planned.commands.map(c=>({...c})) };
   assert.deepEqual(commitExactSourceWeightCommands(service,replay),results); // idempotent click retry
+});
+
+function canonicalSha(value) {
+  const ordered = input => Array.isArray(input) ? input.map(ordered)
+    : input && typeof input === 'object'
+      ? Object.fromEntries(Object.keys(input).sort().map(key => [key, ordered(input[key])]))
+      : input;
+  return hash(JSON.stringify(ordered(value)));
+}
+function attestedFixture() {
+  const custody = {
+    sourceTexts: { one: '<Node number="-1">A</Node>' },
+    selectionText: '{"source":"one"}',
+    stagedSourceText: null,
+    configText: '{"rating":"150"}',
+    overridesText: '{}',
+    masters: { weight: {datasetText:'[{"kg":15}]',mappingText:'{"mass":"kg"}'} },
+    occurrenceIdsBySource: {one:['["one",0,0,"valve-A"]','["one",0,1,"valve-B"]']},
+  };
+  const b = {
+    schemaVersion: WEIGHT_SCHEMA, domainId:'xml-cii/2019',
+    sourceRefs:[{sourceId:'one',sha256:hash(custody.sourceTexts.one),mediaType:'application/xml'}],
+    selectionSha256:hash(custody.selectionText),stagedSourceSha256:null,
+    masters:{weight:{datasetId:'w',revision:1,sha256:hash(custody.masters.weight.datasetText),
+      mappingSha256:hash(custody.masters.weight.mappingText),rowCount:1}},
+    configSha256:hash(custody.configText),overridesSha256:hash(custody.overridesText),
+    scope:[{sourceId:'one',selectionRef:'selected'}],
+  };
+  b.basisId = canonicalSha(b);
+  const facts = custody.occurrenceIdsBySource.one.map(occurrenceId => ({
+    schemaVersion:WEIGHT_SCHEMA,domainId:b.domainId,basisId:b.basisId,
+    subjectType:'physical-component',sourceId:'one',occurrenceId,fieldId:'mass.kg',
+    authority:'unresolved',value:null,unit:'kg',
+    provenance:[{sourceRef:'one',locator:'source-ordinal'}],diagnostics:[],
+  }));
+  const service = () => createAttestedWeightReviewService({
+    score:oracleScore,digestUtf8:async text => hash(text),
+    digestCanonical:async value => canonicalSha(value),
+  });
+  return {b,custody,facts,service};
+}
+
+test('U1 attested facts cannot open without exact canonical basis/content and selected identity', async () => {
+  const {b,custody,facts,service} = attestedFixture();
+  const weight = service();
+  assert.equal(weight.openBasisJob,undefined); // mock-only async path is not an authority bypass
+  const opened = await weight.openBasis(b,{facts,custody});
+  assert.equal(opened.attestation.physicalCount,2);
+  assert.equal(weight.getFacts({basisId:b.basisId,subjectType:'physical-component'}).totalCount,2);
+  const changed = {...custody,sourceTexts:{one:'<Node number="-1">B</Node>'}};
+  assert.equal(changed.sourceTexts.one.length,custody.sourceTexts.one.length);
+  await assert.rejects(() => service().openBasis(b,{facts,custody:changed}),
+    e=>e.code==='INPUT_DIGEST_MISMATCH');
+  const alteredMaster = {...custody,masters:{weight:{...custody.masters.weight,
+    datasetText:'[{"kg":16}]'}}};
+  await assert.rejects(() => service().openBasis(b,{facts,custody:alteredMaster}),
+    e=>e.code==='INPUT_DIGEST_MISMATCH');
+  const changedMapping = {...custody,masters:{weight:{...custody.masters.weight,
+    mappingText:'{"mass":"lb"}'}}};
+  await assert.rejects(() => service().openBasis(b,{facts,custody:changedMapping}),
+    e=>e.code==='INPUT_DIGEST_MISMATCH');
+  await assert.rejects(() => service().openBasis({...b,basisId:hash('not canonical')},{facts,custody}),
+    e=>e.code==='BASIS_DIGEST_MISMATCH');
+  await assert.rejects(() => service().openBasis(b,{facts,custody:{...custody,sourceTexts:{one:custody.sourceTexts.one,two:'extra'}}}),
+    e=>e.code==='CUSTODY_SCOPE_MISMATCH');
+});
+
+test('U1 strict review rejects legacy row-index identities and incomplete/duplicate original custody', async () => {
+  const {b,custody,facts,service} = attestedFixture();
+  const incomplete = {...custody,occurrenceIdsBySource:{one:[custody.occurrenceIdsBySource.one[0]]}};
+  await assert.rejects(() => service().openBasis(b,{facts,custody:incomplete}),
+    e=>e.code==='POPULATION_MISMATCH');
+  const duplicate = {...custody,occurrenceIdsBySource:{one:[facts[0].occurrenceId,facts[0].occurrenceId]}};
+  await assert.rejects(() => service().openBasis(b,{facts,custody:duplicate}),
+    e=>e.code==='POPULATION_MISMATCH');
+  const legacy = legacyXmlCiiWeightFacts([{branchName:'B',nodeNumber:'-1',boreMm:100,
+    rating:'150',lengthMm:100,componentType:'VALV'}],b,'one');
+  await assert.rejects(() => service().openBasis(b,{facts:legacy,custody}),
+    e=>e.code==='LEGACY_ONLY_FACT');
+  assert.equal((await assertWeightInputCustody(b,facts,custody,{
+    digestUtf8:async text=>hash(text),digestCanonical:async value=>canonicalSha(value)})).sourceCount,1);
+  const strict=service();
+  await strict.openBasis(b,{facts,custody});
+  const decision=strict.applyDecisions({basisId:b.basisId,scopeId:'one',stage:'RigidMatch1',
+    commands:[{commandId:'review-1',basisId:b.basisId,scopeId:'one',
+      occurrenceId:facts[0].occurrenceId,action:'enter-manual',
+      expectedDecisionRevision:null,value:22,unit:'kg'}]})[0];
+  assert.equal(decision.state,'accepted');
+  assert.equal(strict.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisions[facts[0].occurrenceId].value,22);
 });
