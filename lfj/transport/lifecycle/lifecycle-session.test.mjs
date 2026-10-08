@@ -32,15 +32,18 @@ const assertTerminal=(result,kind)=>{
 };
 test('U01 RED: cancel before START creates no Worker and publishes one terminal outcome',async()=>{
  const j=open('delayed');
+ try{
  const cancelled=await j.session.cancel();
  assertTerminal(cancelled,'CANCELLED');
  assertTerminal(await j.session.start(),'CANCELLED');
  assert.strictEqual(await j.session.cancel(),cancelled,'cancel is idempotent');
  assert.equal(j.created,0);
  assert.deepEqual(j.terminal,[cancelled]);
+ }finally{await j.worker?.terminate();}
 });
 test('U01 RED: cancel during pending native Worker READY closes native thread',async()=>{
  const j=open('delayed');
+ try{
  const pending=j.session.start();
  assert.equal(j.created,1,'START creates exactly one platform Worker');
  const cancelled=await j.session.cancel();
@@ -49,6 +52,7 @@ test('U01 RED: cancel during pending native Worker READY closes native thread',a
  assert.equal(j.worker.threadId,-1,'cancel awaits actual Worker termination');
  assert.strictEqual(await j.session.cancel(),cancelled);
  assert.deepEqual(j.terminal,[cancelled],'late READY or exit cannot publish twice');
+ }finally{await j.worker?.terminate();}
 });
 test('U01 RED: cancel after real isolated READY terminates while preserving terminal once',async()=>{
  const j=open('ready');
