@@ -1,0 +1,26 @@
+name: Agent P P4-A1 Preview Raw Source Golden Oracle
+on:
+  push:
+    branches:
+      - 'agent-p/1000-preview-p4-a1-golden-*'
+  pull_request:
+    paths:
+      - 'tests/fixtures/xml-cii-preview-p4-a1/**'
+      - 'tests/xml-cii-preview-p4-a1-golden.test.mjs'
+      - '.github/workflows/xml-cii-preview-p4-a1-golden.yml'
+jobs:
+  source-golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent original-source custody and retained Preview facts oracles
+        run: |
+          node --test tests/xml-cii-preview-p4-a1-golden.test.mjs \
+            tests/xml-cii-preview-facts-occurrence.test.mjs \
+            tests/xml-cii-preview-facts-read-model.test.mjs
