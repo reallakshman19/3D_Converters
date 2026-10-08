@@ -80,14 +80,15 @@ function occurrenceKey(r) { return JSON.stringify([r.sourceId,r.occurrenceId]); 
 function validateEngineeringFields(required, identities, recordKeys) {
   requireThat(required && typeof required === 'object', 'ENGINEERING_FIELDS_REQUIRED',
     'Independent engineering field requirements are mandatory');
-  const types=new Set([...identities].map(item=>item.subjectType));
+  const allIdentities=[...identities];
+  const types=new Set(allIdentities.map(item=>item.subjectType));
   for (const subjectType of types) {
     const fields=required[subjectType];
     requireThat(Array.isArray(fields) && fields.some(field => typeof field === 'string'
       && field.length > 0 && !field.startsWith('source.')),
       'ENGINEERING_FIELDS_REQUIRED','At least one non-source field must be required for '+subjectType);
   }
-  for (const r of identities) {
+  for (const r of allIdentities) {
     for (const fieldId of required[r.subjectType]) {
       requireThat(recordKeys.has(recordKey({...r,fieldId})),
         'REQUIRED_ENGINEERING_FACT_MISSING','Missing '+r.subjectType+' '+fieldId+' fact at '+r.occurrenceId);
