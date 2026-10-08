@@ -1004,3 +1004,14 @@ test('U4 individual dialog cancel never commits; explicit Match1 then Final clic
   assert.equal(finalized.view.finalKg,22);
   assert.equal(body.children.length,0);
 });
+
+test('U4 single Weight panel binds only injected canonical original occurrence and keeps Final separate',()=>{
+  const panel=fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',import.meta.url),'utf8');
+  assert.ok(panel.includes('options.canonicalIndividual || null'));
+  assert.ok(panel.includes('readVerifiedIndividualWeightReview(canonicalIndividual.session'));
+  assert.ok(panel.includes("stage: 'RigidMatch1'"));
+  assert.ok(panel.includes('openVerifiedIndividualWeightReviewDialog({'));
+  assert.ok(panel.includes('decision.snapshot.revision'));
+  assert.ok(panel.includes('Separate Final review and shared CII Run approval are still required.'));
+  assert.ok(!panel.includes("nodeNumber: canonicalIndividual"));
+});
