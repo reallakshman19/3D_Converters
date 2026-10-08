@@ -123,7 +123,7 @@ export async function runCommittedSourceQuery({
     selectionDigest,jobEpoch:jobId,getCurrentBasis:()=>current()});
   const selectionSummary=await selectCommittedOccurrences(view,{
    ...selection,sourceBasis,getCurrentBasis:()=>current()
-  },{onSelectedPage:pager.stageSelectedPage,pageRows:64,maxPageBytes:65536});
+  },{onSelectedPage:pager.stageSelectedPage,pageRows:64,maxPageBytes:1048576});
   const pageManifest=await pager.commitSelection(selectionSummary);
   const readPage=({cursor=null,maxRows=256,maxBytes=65536}={})=>
    pager.readPage({cursor,maxRows,maxBytes,sourceBasis,selectionDigest,jobEpoch:jobId});
