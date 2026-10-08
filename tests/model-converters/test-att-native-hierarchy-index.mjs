@@ -31,6 +31,23 @@ assert.equal(bulk.counts.typed, 1025);
 assert.equal(pageAttChildren(bulk, '/SITE', 0, 25).total, 1024);
 assert.equal(pageAttChildren(bulk, '/SITE', 1000, 25).rows.length, 24);
 assert.equal([...walkAttSubtreeIds(bulk, '/SITE')].length, 1025);
+
+const damaged = [
+  'NEW /C1', 'NAME:= /C1', 'TYPE:= ZONE', 'OWNER:= /C2',
+  'NEW /C2', 'NAME:= /C2', 'TYPE:= ZONE', 'OWNER:= /C1',
+  'NEW /D', 'NAME:= /D', 'TYPE:= ZONE', 'OWNER:= /*',
+  'NEW /D', 'NAME:= /D', 'TYPE:= ZONE', 'OWNER:= /*',
+  'NEW /D#2', 'NAME:= /D#2', 'TYPE:= ZONE', 'OWNER:= /*',
+  'END',
+].join('\\n');
+const unusual = await indexAttNativeHierarchy(damaged);
+assert.equal(unusual.counts.typed, 5);
+assert.equal(unusual.byId.size, 5, 'Duplicate synthetic ID must not overwrite a real NAME');
+assert.equal(unusual.counts.duplicatedNames, 1);
+assert.equal(unusual.counts.cycles, 1);
+assert.equal([...walkAttSubtreeIds(unusual, '/C1')].length, 2);
+assert.equal(unusual.roots.some(id => id === '/C1' || id === '/C2'), true);
+
 console.log('synthetic ATT native hierarchy and pagination: PASS');
 
 // The Owner's confidential large-file fixture must NOT be stored in GitHub.
