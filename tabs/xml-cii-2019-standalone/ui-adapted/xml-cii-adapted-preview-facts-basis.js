@@ -21,6 +21,15 @@ export function canonicalPreviewValue(value) {
       'UNSERIALIZABLE_VALUE', 'Non-plain object in engineering basis');
     assert(!seen.has(v), 'CYCLIC_VALUE', 'Cyclic engineering basis');
     seen.add(v);
+    if (Array.isArray(v)) {
+      for (let index = 0; index < v.length; index++) {
+        assert(Object.hasOwn(v, index), 'SPARSE_ARRAY', 'Sparse array is not a valid engineering basis');
+      }
+      assert(Reflect.ownKeys(v).length === v.length + 1, 'UNSERIALIZABLE_VALUE', 'Extra array properties are not serializable');
+    } else {
+      assert(Reflect.ownKeys(v).every((key) => typeof key === 'string' && Object.prototype.propertyIsEnumerable.call(v, key)),
+        'UNSERIALIZABLE_VALUE', 'Non-enumerable or symbol engineering fields are unsupported');
+    }
     const out = Array.isArray(v) ? '[' + v.map(encode).join(',') + ']'
       : '{' + Object.keys(v).sort().map((k) => {
         assert(v[k] !== undefined, 'UNSERIALIZABLE_VALUE', 'Undefined engineering field: ' + k);
@@ -30,6 +39,13 @@ export function canonicalPreviewValue(value) {
     return out;
   };
   return encode(value);
+}
+function freezeBasis(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) freezeBasis(child);
+    Object.freeze(value);
+  }
+  return value;
 }
 function shaCheck(s) {
   assert(typeof s === 'string' && /^[a-f0-9]{64}$/.test(s), 'INVALID_DIGEST', 'Expected lowercase SHA-256 hex digest');
@@ -90,7 +106,7 @@ export async function createPreviewBasis({
     scope,
   };
   // Hash the complete canonical public representation, never a sampled prefix.
-  return { ...record, basisId: await digest(sha256, canonicalPreviewValue(record)) };
+  return freezeBasis({ ...record, basisId: await digest(sha256, canonicalPreviewValue(record)) });
 }
 export function previewOccurrenceId({ sourceId, branchOrdinal, nodeOrdinal = null, componentSignature = '' }) {
   nonempty(sourceId, 'sourceId');
