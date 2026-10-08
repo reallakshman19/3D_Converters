@@ -1,0 +1,33 @@
+name: LFJ R02 own-ancestor source truth
+
+on:
+  push:
+    branches:
+      - lfj/r02-source-ownership
+    paths:
+      - 'lfj/adapters/ownership/**'
+      - '.github/workflows/lfj-r02-ownership.yml'
+  pull_request:
+    paths:
+      - 'lfj/adapters/ownership/**'
+      - '.github/workflows/lfj-r02-ownership.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ancestor-truth:
+    name: R02 RED-first ancestor authority / Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run independent source-owner acceptance
+        run: node --test lfj/adapters/ownership/source-ownership.test.mjs
