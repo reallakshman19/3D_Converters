@@ -119,12 +119,36 @@ try {
   assert.deepEqual(finished.done, { cancelled: true });
   assert.equal(finished.error, undefined);
   assert.deepEqual(jsErrors,[]);
+  // Independent full-scope action oracle: first dismissal keeps the popup,
+  // explicit acceptance converts the entire loaded TXT without selected scope.
+  await page.evaluate(async sourceText => {
+    const module = await import('/tabs/model-converters/att-native-scope-popup.js');
+    window.__popupDone = null;
+    module.openAttNativeScopePopup('synthetic-only.txt', new TextEncoder().encode(sourceText))
+      .then(value => { window.__popupDone = value; })
+      .catch(error => { window.__popupError = error.message; });
+  }, text);
+  await page.locator('[data-native-full]').waitFor({ state:'visible', timeout:120000 });
+  page.once('dialog', dialog => {
+    assert.match(dialog.message(), /ENTIRE loaded TXT\/ATT file/);
+    return dialog.dismiss();
+  });
+  await page.locator('[data-native-full]').click();
+  assert.equal(await page.locator('[data-native-rows]').count(), 1,
+    'Dismissing full-file confirmation must keep selection dialog open');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('[data-native-full]').click();
+  await page.waitForFunction(() => window.__popupDone?.nativeScope?.mode === 'FULL');
+  const fullAction = await page.evaluate(() => window.__popupDone);
+  assert.deepEqual(fullAction.selectedIds, []);
+  assert.equal(fullAction.nativeScope.mode, 'FULL');
+  assert.equal(await page.locator('[data-native-rows]').count(), 0);
   const heapUsed = await page.evaluate(() => performance.memory?.usedJSHeapSize || null);
   console.log('TXT_CHROMIUM_UX_PASS ' + JSON.stringify({
     indexedSourceRecords: 105213, sites: 18, zones: 192, renderedRowMaximum: maxRows,
     firstTreeMs, chromiumHeapBytes: heapUsed,
     searchInContext: true, missingSourceIdNoFabrication: true, stableSelection: true,
-    browserScriptErrors: jsErrors.length,
+    browserScriptErrors: jsErrors.length, fullFileConfirmGuard: true,
     evidenceScope: 'SYNTHETIC_CHROMIUM_ONLY_REAL_OWNER_90MB_FILE_NOT_REPLAYED',
   }));
   await page.close();
