@@ -91,3 +91,24 @@ export function resolveAttScopeSelection(index, selection, options = {}) {
     explicitSelection: [...rules.values()].some(value => value === true),
   });
 }
+
+/** A branch-selected subtree with excluded children cannot be emitted whole. */
+export function attScopePartiallyExcludedBranches(index, selection) {
+  const violations = new Set();
+  for (const [id, enabled] of selection?.rules || []) {
+    if (enabled) continue;
+    const seen = new Set();
+    let cursor = index.byId.get(id)?.parentId;
+    while (cursor && !seen.has(cursor)) {
+      seen.add(cursor);
+      const parent = index.byId.get(cursor);
+      if (!parent) break;
+      if (parent.type === 'BRAN' && attScopeEffectiveChecked(index, selection, cursor)) {
+        violations.add(cursor);
+        break;
+      }
+      cursor = parent.parentId;
+    }
+  }
+  return Object.freeze([...violations]);
+}
