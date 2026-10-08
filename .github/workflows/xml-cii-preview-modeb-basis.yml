@@ -1,0 +1,27 @@
+name: Agent P B3-B1 Mode B Attested Basis
+on:
+  push:
+    branches:
+      - 'agent-p/1000-preview-modeb-basis-*'
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-*'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-*'
+      - 'tests/xml-cii-preview-modeb-*.test.mjs'
+      - '.github/workflows/xml-cii-preview-modeb-basis.yml'
+jobs:
+  full-basis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Original and combined Source Basis / manifest / fresh master authority
+        run: |
+          node --test tests/xml-cii-preview-modeb-custody.test.mjs \
+            tests/xml-cii-preview-modeb-basis.test.mjs \
+            tests/gc-pw-v1-contract.test.mjs
