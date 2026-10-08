@@ -39,3 +39,55 @@ export async function scanSourceInsideWorker(message,{publishPage}={}) {
     return Object.freeze(summary);
   }finally{source.close();}
 }
+
+
+/**
+ * One outstanding provisional event page maximum. Receiver ACK is an
+ * application-store staging acknowledgment, NOT source-index commit.
+ * Without ACK, scanning stalls and eventually fails closed.
+ */
+export function createSourcePageAckGate(post,{timeoutMs=5000}={}) {
+  if(typeof post!=='function'||!Number.isSafeInteger(timeoutMs)||
+      timeoutMs<100||timeoutMs>30000) {
+    const error=new Error('invalid bounded page transport');
+    error.code='PAGE_PORT_INVALID';throw error;
+  }
+  let pending=null,sequence=0;
+  const reject=(code,detail)=>{
+    const e=new Error(detail);e.code=code;return e;
+  };
+  return Object.freeze({
+    async publish(rows,{jobId,sourceRefId}) {
+      if(pending)throw reject('PAGE_BACKPRESSURE','prior source page has not been staged');
+      const n=sequence++;
+      return new Promise((resolve,rejectPromise)=>{
+        const timer=setTimeout(()=>{
+          pending=null;
+          rejectPromise(reject('PAGE_ACK_TIMEOUT','source event page not acknowledged'));
+        },timeoutMs);
+        pending={n,jobId,sourceRefId,resolve,rejectPromise,timer};
+        try {
+          post({schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
+            jobId,sourceRefId,sequence:n,rows});
+        }catch(e){
+          clearTimeout(timer);pending=null;
+          rejectPromise(reject('PAGE_POST_FAILED','native Worker could not post source page'));
+        }
+      });
+    },
+    receive(message) {
+      if(message?.kind!=='PAGE_ACK')return false;
+      const p=pending;
+      if(!p)return true; // late ACK never resurrects a completed/failed page
+      clearTimeout(p.timer);pending=null;
+      if(message.schema!==SOURCE_WORKER_SCHEMA||
+         message.jobId!==p.jobId||message.sourceRefId!==p.sourceRefId||
+         message.sequence!==p.n){
+        p.rejectPromise(reject('PAGE_ACK_MISMATCH','receiver ACK belongs to wrong source or page'));
+      }else{
+        p.resolve();
+      }
+      return true;
+    }
+  });
+}
