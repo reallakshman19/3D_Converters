@@ -231,7 +231,7 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   const final = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js', import.meta.url), 'utf8');
   const match1 = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
   assert.ok(renderer.includes("const initial = issue.weight && issue.weight > 0 ? issue.weight : '';"));
-  assert.ok(final.includes("value=\\\"${attr(issue.acceptedWeight ?? '')}\\\""));
+  assert.ok(final.includes('value="${attr(issue.acceptedWeight ?? \'\')}"'));
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
 });
