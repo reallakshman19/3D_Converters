@@ -15,6 +15,8 @@ export class SelectionPageError extends Error {
 }
 const fail=(code,detail)=>{throw new SelectionPageError(code,detail);};
 const valid=s=>typeof s==='string'&&s.length>0&&s.length<=1024;
+// R05 permits JSON pointer-bound occurrence identities up to 67,584 code units.
+const validOccurrenceId=s=>typeof s==='string'&&s.length>0&&s.length<=67584;
 const same=(a,b)=>a&&typeof a==='object'&&
   a.sourceRefId===b.sourceRefId&&a.sourceSha256===b.sourceSha256&&
   a.sourceRevision===b.sourceRevision;
@@ -81,7 +83,7 @@ export function createCommittedSelectionPager({
     let previous=lastOrdinal,sum=0;
     for(const row of page){
       if(row?.kind!=='OPEN'||!same(row,basis)||
-        typeof row.occurrenceId!=='string'||!row.occurrenceId||
+        !validOccurrenceId(row.occurrenceId)||
         !Number.isSafeInteger(row.ordinal)||row.ordinal<=previous)
         fail('STAGE_ROW_INVALID','original source ordered OPEN occurrence required');
       previous=row.ordinal;
@@ -158,7 +160,7 @@ export function createCommittedSelectionPager({
       let bytes=0,previous=lastPageOrdinal;
       for(const row of rows){
         if(row?.kind!=='OPEN'||!same(row,basis)||
-           !valid(row.occurrenceId)||!Number.isSafeInteger(row.ordinal)||
+           !validOccurrenceId(row.occurrenceId)||!Number.isSafeInteger(row.ordinal)||
            row.ordinal<=previous)
           fail('PAGE_ROW_INVALID','paged source record is not complete, ordered or current');
         previous=row.ordinal;
