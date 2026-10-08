@@ -39,7 +39,7 @@ export function legacyXmlCiiWeightFacts(rows, basis, sourceId) {
       if (fieldId === 'bore.mm' || fieldId === 'length.mm') { value = num(value); unit = 'mm'; }
       else if (fieldId === 'mass.kg') { value = num(value); unit = 'kg'; authority = value !== null && value > 0 ? 'source' : 'unresolved'; if (authority === 'unresolved') value = null; }
       else value = toText(value);
-      if (value === null || value === '') authority = 'unresolved';
+      if (value === null || value === '') { authority = 'unresolved'; value = null; }
       // Rating is read-only here: Preview/override is the normal rating authority.
       if (fieldId === 'rating' && value !== '') authority = row.ratingSource === 'weight-match-manual' ? 'manual' : 'derived';
       out.push(record(basis, sourceId, occurrenceId, fieldId, value, authority, unit, locator, diagnostic));
