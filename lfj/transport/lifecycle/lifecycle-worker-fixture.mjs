@@ -8,5 +8,20 @@ parentPort.on('message',message=>{
      isMainThread:false});
  };
  if(workerData?.mode==='delayed')setTimeout(ready,400);
- else ready();
+ else if(workerData?.mode==='after-ready-exit'){
+   ready();
+   parentPort.postMessage({...message,kind:'PROVISIONAL_SOURCE_PAGE',
+     pageOrdinal:0,complete:false,engineeringReady:false});
+   setTimeout(()=>process.exit(17),110);
+ } else if(workerData?.mode==='after-ready-error'){
+   ready();
+   parentPort.postMessage({...message,kind:'PROVISIONAL_SOURCE_PAGE',
+     pageOrdinal:0,complete:false,engineeringReady:false});
+   setTimeout(()=>{throw new Error('R07 native worker crashed after provisional page');},110);
+ } else if(workerData?.mode==='forged-complete'){
+   ready();
+   parentPort.postMessage({...message,kind:'PROVISIONAL_SOURCE_PAGE',
+     pageOrdinal:0,complete:false,engineeringReady:false});
+   parentPort.postMessage({...message,kind:'INDEX_COMPLETE',complete:true,engineeringReady:true});
+ } else ready();
 });
