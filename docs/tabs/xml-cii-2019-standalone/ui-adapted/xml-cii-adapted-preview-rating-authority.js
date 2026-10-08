@@ -88,8 +88,16 @@ function emptyWeightAuthority(nodeRow, rating) {
 
 export function rerankPreviewNodeRows(nodeRows, branchRows, config) {
   const byBranch = new Map(branchRows.map((row) => [row.branchName, row]));
+  const ratingsByName = new Map();
+  for (const branch of branchRows) {
+    if (!ratingsByName.has(branch.branchName)) ratingsByName.set(branch.branchName, new Set());
+    ratingsByName.get(branch.branchName).add(_toText(branch.rating).trim());
+  }
   return (nodeRows || []).map((nodeRow) => {
     const indexed = Number.isSafeInteger(nodeRow.branchOccurrenceIndex);
+    if (!indexed && ratingsByName.get(nodeRow.branchName)?.size > 1) {
+      throw new Error('Combined Preview legacy node has ambiguous branch rating; conversion blocked.');
+    }
     const branch = indexed ? branchRows[nodeRow.branchOccurrenceIndex]
       : byBranch.get(nodeRow.branchName);
     if (indexed && branch?.branchName !== nodeRow.branchName) {
