@@ -1838,6 +1838,10 @@
         {
           "responsibility_id": "R10",
           "ref": "reallaksh19/3D_Converters#1088"
+        },
+        {
+          "responsibility_id": "R12",
+          "ref": "reallaksh19/3D_Converters#1091"
         }
       ]
     }
@@ -1846,7 +1850,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 75
+      "reserve_weight": 70
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2466,6 +2470,71 @@
           "weight": 25,
           "outcome": "Unsupported capabilities are explicit",
           "verify": "Independent oracle: Independent cross-runtime source/hash/results expectations; outcome: Unsupported capabilities are explicit"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1091",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R12",
+      "work_class": "PRODUCT",
+      "outcome": "3D Resolver scope choices reflect exact source ownership and remain responsive with large sources.",
+      "independence_basis": "Existing J01 child-owner and equal-length cache RED oracles. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C4_RES_SCOPE",
+        "C6_RES_SCOPE"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js",
+        "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js"
+      ],
+      "acceptance_methods": [
+        "Existing J01 child-owner and equal-length cache RED oracles",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1085",
+        "reallaksh19/3D_Converters#1088"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Ancestor ownership is correct",
+          "verify": "Independent oracle: Existing J01 child-owner and equal-length cache RED oracles; outcome: Ancestor ownership is correct"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "A scope retains exact source identity",
+          "verify": "Independent oracle: Existing J01 child-owner and equal-length cache RED oracles; outcome: A scope retains exact source identity"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Source replacement invalidates cached scopes",
+          "verify": "Independent oracle: Existing J01 child-owner and equal-length cache RED oracles; outcome: Source replacement invalidates cached scopes"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Row limits do not limit source selection",
+          "verify": "Independent oracle: Existing J01 child-owner and equal-length cache RED oracles; outcome: Row limits do not limit source selection"
         }
       ]
     }
