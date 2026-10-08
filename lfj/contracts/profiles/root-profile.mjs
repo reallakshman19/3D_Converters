@@ -44,8 +44,9 @@ function identifyRoot(value) {
   if (Array.isArray(value)) return { rootKind: 'array', rootKey: null, rootPath: '$' };
   if (!isObject(value)) refuse('UNSUPPORTED_ROOT', 'JSON root must be an array or recognized object');
 
-  const matches = ENVELOPES.filter((key) => Array.isArray(value[key]));
-  const typed = typeof value.type === 'string' && value.type.trim() !== ''
+  const matches = ENVELOPES.filter((key) => Object.hasOwn(value, key) && Array.isArray(value[key]));
+  const typed = Object.hasOwn(value, 'type') && Object.hasOwn(value, 'children')
+    && typeof value.type === 'string' && value.type.trim() !== ''
     && Array.isArray(value.children);
 
   if (matches.length + Number(typed) > 1) {
