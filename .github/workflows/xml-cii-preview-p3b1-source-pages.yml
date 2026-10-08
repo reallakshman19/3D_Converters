@@ -1,0 +1,37 @@
+name: Agent P P3-B1 Source Fact Pages
+on:
+  push:
+    branches:
+      - 'agent-p/1000-preview-source-pages-*'
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-browser-read.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-browser-read.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js'
+      - 'tests/xml-cii-preview-source-fact-pages.test.mjs'
+      - 'tests/browser/xml-cii-preview-p3b1-source-pages.html'
+      - 'scripts/run-xml-cii-preview-p3b1-source-pages.mjs'
+      - '.github/workflows/xml-cii-preview-p3b1-source-pages.yml'
+jobs:
+  original-source-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent original XML census, stale digest, full pages and source/docs parity
+        run: |
+          node --test tests/xml-cii-preview-source-fact-pages.test.mjs \
+            tests/xml-cii-preview-button-basis.test.mjs \
+            tests/gc-pw-v1-contract.test.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Real Preview browser traverses every source FactRecord
+        run: node scripts/run-xml-cii-preview-p3b1-source-pages.mjs
