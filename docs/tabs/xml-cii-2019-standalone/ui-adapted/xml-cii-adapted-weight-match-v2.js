@@ -196,7 +196,7 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
   return staged;
 }
 
-export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
+export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
   card.__xmlCiiWeightAuthorityPresentationCleanup?.();
   card.__xmlCiiWeightAuthorityPresentationCleanup = null;
   card.__xmlCiiWeightBuildSnapshotCleanup?.();
@@ -306,6 +306,51 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
       });
       card.__xmlCiiWeightAuthorityPresentationCleanup = installWeightMatchAuthorityPresentation(card);
       appendEmpiricalWeightValidationReport(card, stateRef);
+      // Explicitly injected by #999 AFTER complete Preview Worker FactRecords are
+      // attested: never convert legacy issue keys or NodeNumber to canonical IDs.
+      const canonicalIndividual = options.canonicalIndividual || null;
+      if (canonicalIndividual) {
+        const { readVerifiedIndividualWeightReview } = await import('../../../converters/xml-cii2019-core/weight-facts-individual-review.js');
+        readVerifiedIndividualWeightReview(canonicalIndividual.session, {
+          sourceId: canonicalIndividual.sourceId,
+          occurrenceId: canonicalIndividual.occurrenceId,
+          stage: 'RigidMatch1',
+        });
+        const container = document.createElement('div');
+        container.className = 'xml-cii-phase-help';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Review verified individual Match-1';
+        const status = document.createElement('span');
+        status.setAttribute('role', 'status');
+        container.appendChild(button);
+        container.appendChild(status);
+        card.appendChild(container);
+        button.addEventListener('click', async () => {
+          if (button.disabled) return;
+          button.disabled = true;
+          try {
+            const { openVerifiedIndividualWeightReviewDialog } = await import('./xml-cii-adapted-weight-individual-dialog.js');
+            const decision = await openVerifiedIndividualWeightReviewDialog({
+              session: canonicalIndividual.session,
+              sourceId: canonicalIndividual.sourceId,
+              occurrenceId: canonicalIndividual.occurrenceId,
+              stage: 'RigidMatch1',
+            });
+            if (!decision.cancelled) {
+              status.textContent = ' Verified Match-1 decision frozen at ' + decision.snapshot.revision +
+                '. Separate Final review and shared CII Run approval are still required.';
+              if (typeof options.onCanonicalReviewAccepted === 'function') {
+                options.onCanonicalReviewAccepted(decision);
+              }
+            }
+          } catch (error) {
+            status.textContent = ' Verified review blocked: ' + escapeHtml(error?.message || error);
+          } finally {
+            button.disabled = false;
+          }
+        });
+      }
     } catch (error) {
       card.innerHTML = `<div class="model-converters-workflow-detail-note" style="border-color:#b91c1c;color:#fecaca;background:#450a0a;">Weight Match was not started because the shared Preview Rating authority could not load: ${escapeHtml(error?.message || error)}</div>`;
       console.error('Standalone Weight Match authority load failed:', error);
