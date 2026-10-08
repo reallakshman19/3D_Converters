@@ -55,14 +55,20 @@ function fromFacts(records) {
   }
   return out;
 }
-function candidateSummary(c) {
+function candidateSummary(c, masterRowIndex = -1) {
   return {
     type: toText(c.type || c.valveType), typeDesc: toText(c.typeDesc),
+    masterRowOrdinal: masterRowIndex >= 0 ? masterRowIndex : null,
+    masterRowId: toText(c.rowData?.id ?? c.rowData?.Id ?? c.rowData?.rowId),
     rowBore: num(c.rowBore), rowRating: toText(c.rowRating),
     rowLength: num(c.rowLength), masterWeight: num(c.masterWeight),
     lengthDelta: num(c.lengthDelta), lengthQualified: !!c.lengthQualified,
     preferred: !!c.preferred, inferred: !!c.inferredWeight,
-    factor: !!c.specialFactorRule, flangeFallback: !!c.flangeWeightFallback,
+    weightMethod: toText(c.weightMethod), extrapolationRatio: num(c.extrapolationRatio),
+    lengthToleranceMm: num(c.lengthToleranceMm), nodeHint: toText(c.valveHintLabel),
+    semanticReason: toText(c.semanticReason), semanticSource: toText(c.semanticSource),
+    factor: !!c.specialFactorRule, specialFactorCode: toText(c.specialFactorCode),
+    flangeFallback: !!c.flangeWeightFallback, oddEntry: !!c.oddEntry,
     warning: toText(c.weightWarning), rejectedReason: toText(c.rejectedReason),
     score: num(c.score), semanticTier: num(c.semanticTier),
   };
@@ -82,26 +88,36 @@ function rankedFromFacts(records, config) {
   return { candidates: amended.candidates || [], rejectedCandidates: amended.rejectedCandidates || [] };
 }
 export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-weight-rank/v1') {
+  // A proposal's master identity cannot drift through a mutable host config or
+  // the legacy ranker's WeakMap index while an acceptance popup is open.
+  const pinnedConfig = JSON.parse(JSON.stringify(config || {}));
+  const masterRows = Array.isArray(pinnedConfig?.weight?.masterRows) ? pinnedConfig.weight.masterRows : [];
+  const rowIndices = new Map(masterRows.map((row, index) => [row, index]));
+  const rowOrdinal = (candidate) => rowIndices.get(candidate?.rowData) ?? -1;
   const scorer = (records, basis) => {
     const identity = records[0];
     if (!identity || basis.domainId !== ID || identity.domainId !== ID) throw new Error('XML-CII scorer requires matching FactRecord domain');
-    const ranking = rankedFromFacts(records, config);
+    const ranking = rankedFromFacts(records, pinnedConfig);
     return ranking.candidates.slice(0, 5).flatMap((candidate, index) => {
       const value = num(candidate.selectedWeight ?? candidate.suggestedWeight ?? candidate.weight);
       if (value === null || value <= 0 || candidate.zeroFallback) return [];
       return [{
         basisId: basis.basisId, domainId: ID, occurrenceId: identity.occurrenceId,
-        proposalId: basis.basisId + '/' + identity.occurrenceId + '/rank:' + (index + 1),
+        proposalId: [basis.basisId, identity.occurrenceId, scoringRevision,
+          'master-row:' + rowOrdinal(candidate), 'rank:' + (index + 1),
+          'method:' + (candidate.weightMethod || 'master'), 'kg:' + value].join('/'),
         value, unit: 'kg', method: candidate.weightMethod || 'master',
         ranking: index + 1, qualified: !!candidate.preferred && !candidate.inferredWeight && !candidate.flangeWeightFallback,
         eligibilityReasons: [candidate.preferred ? 'exact-bore-rating-length' : 'explicit-review-required', candidate.weightWarning || ''].filter(Boolean),
-        evidenceRefs: [basis.basisId, basis.masters?.weight?.sha256 || '', identity.sourceId].filter(Boolean),
+        evidenceRefs: [basis.basisId, basis.masters?.weight?.sha256 || '', identity.sourceId,
+          rowOrdinal(candidate) < 0 ? 'weight:derived-fallback' : 'weight:master-row:' + rowOrdinal(candidate)].filter(Boolean),
         scoringRevision,
-        extensions: { candidate: candidateSummary(candidate), rejectedCandidates: index === 0 ? ranking.rejectedCandidates.map(candidateSummary) : [] },
+        extensions: { candidate: candidateSummary(candidate, rowOrdinal(candidate)),
+          rejectedCandidates: index === 0 ? ranking.rejectedCandidates.map(c => candidateSummary(c, rowOrdinal(c))) : [] },
       }];
     });
   };
   scorer.audit = (records, basis) => ({ basisId: basis.basisId, occurrenceId: records[0]?.occurrenceId,
-    ...(() => { const ranking = rankedFromFacts(records, config); return { rejectedCandidates: ranking.rejectedCandidates.map(candidateSummary), candidateCount: ranking.candidates.length }; })() });
+    ...(() => { const ranking = rankedFromFacts(records, config); return { rejectedCandidates: ranking.rejectedCandidates.map(c => candidateSummary(c, rowOrdinal(c))), candidateCount: ranking.candidates.length }; })() });
   return scorer;
 }
