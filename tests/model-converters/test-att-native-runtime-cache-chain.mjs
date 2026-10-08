@@ -9,7 +9,7 @@ const files = [
 ];
 for (const [file, child] of files) {
   const s = await readFile(new URL(file,root),'utf8');
-  assert.ok(s.includes(child+'?v=20261008-txt-tree-ux-r3-1'),
+  assert.ok(s.includes(child+'?v=20261008-txt-tree-ux-r5-1'),
     'Runtime import chain not updated: '+file+' → '+child);
 }
 const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js',root),'utf8');
