@@ -175,3 +175,26 @@ test('missing Preview numerics never synthesize zero or overwrite source enginee
     !['t1', 'p1', 'boreMm', 'wallThickness', 'corrosion'].includes(item.field)),
     'only actually sourced Preview numbers are admitted to output authority');
 });
+
+
+test('P0 reproduced: repeated PL-06 produces a false missing 200010 with first-name lookup', () => {
+  // A third source or recombination can place PL-06 at both 100010 and 200010.
+  // The previous first-Branchname lookup looks at 100010 and misses 200010.
+  const earlier = numbered.replace('<NodeNumber>200010</NodeNumber>',
+    '<NodeNumber>100010</NodeNumber>');
+  const triple = '<PipeStressExport>' + branch(pl01, [first])
+    + branch(pl06, [earlier, negative1, negative2])
+    + branch(pl06, [numbered, negative1, negative2]) + '</PipeStressExport>';
+  const expected = { ...entry(identities[0]), branchOccurrenceIndex: 2 };
+  const checked = extractXmlCiiParityAuthorityEntries(triple, [expected]);
+  assert.equal(checked[0].found, true);
+  assert.equal(checked[0].actual, '900');
+  // Prove the exact old failure classification without changing or disabling it.
+  const oldLookup = { ...expected };
+  delete oldLookup.branchOccurrenceIndex;
+  delete oldLookup.nodeOrdinal;
+  delete oldLookup.nodeSignature;
+  oldLookup.nodeKey = pl06 + '::200010';
+  const oldEvidence = extractXmlCiiParityAuthorityEntries(triple, [oldLookup]);
+  assert.deepEqual([oldEvidence[0].found, oldEvidence[0].missing], [false, 'node']);
+});
