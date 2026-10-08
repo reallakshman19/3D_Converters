@@ -151,7 +151,7 @@ export function createWeightReviewService({ score } = {}) {
       const opened = current(basisId), source = opened.identities.get(occurrenceId);
       required(source, 'UNKNOWN_OCCURRENCE', 'Unknown physical occurrence');
       required(typeof score.audit === 'function', 'AUDIT_UNAVAILABLE', 'Scorer must implement candidate audit');
-      return copy(score.audit(copy(opened.byOccurrence.get(source + '\\u0000' + occurrenceId)), copy(opened.basis)));
+      return copy(score.audit(copy(opened.byOccurrence.get(keyOf({ sourceId: source, occurrenceId }))), copy(opened.basis)));
     },
     applyDecisions({ basisId, scopeId, expectedDecisionRevision = null, commands, stage = 'RigidMatch1' }) {
       const opened = current(basisId); stageName(stage);
