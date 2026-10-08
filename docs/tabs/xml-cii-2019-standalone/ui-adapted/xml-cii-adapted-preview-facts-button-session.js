@@ -1,6 +1,8 @@
 // P3-A Preview-only actual-button adapter. Engineering resolution stays in
 // the P2.2 Worker; old table remains the presentation/editor authority.
 import {createPreviewBasis} from './xml-cii-adapted-preview-facts-basis.js';
+import {openActualPreviewSourceFactPages,installActualPreviewSourceFactPanel}
+  from './xml-cii-adapted-preview-facts-browser-read.js';
 import {createXmlCiiPreviewJobController} from './xml-cii-adapted-preview-facts-job-controller.js';
 
 const jobs=new WeakMap();
@@ -132,8 +134,12 @@ export async function runPreviewButtonSession({
     if(liveBasis.basisId!==basis.basisId)throw fail('STALE_INPUT_BASIS',
       'Source/master/overrides changed while Preview was computing. Retry with current inputs.');
     if(!current())return null;
+    const sourcePages=await openActualPreviewSourceFactPages({
+      basis,xmlText,sourceId:scope.sourceId,sourceOccurrences:result.sourceOccurrences,mode:scope.mode});
+    if(!current())return null;
     const rendered=await renderResult(result,staged);
     if(!current())return null;
+    installActualPreviewSourceFactPanel(host,sourcePages);
     host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
     host.dataset.mcPreviewBasisId=basis.basisId;
     return rendered;
