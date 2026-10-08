@@ -128,8 +128,9 @@ test('engineering-complete claim requires explicit verified port and per-occurre
   });
   assert.equal(complete.info.engineeringReady,true);
   const pages=await allPages(complete);
-  assert.equal(assertCompletePopulation(pages,b.basisId,
-    item=>item.sourceId+':'+item.occurrenceId+':'+item.fieldId,18),undefined);
+  const census=assertCompletePopulation(pages,b.basisId,
+    item=>item.sourceId+':'+item.occurrenceId+':'+item.fieldId,18);
+  assert.equal(census.verifiedCount,18);
   assert.equal(pages.at(-1).nextCursor,null);
 });
 test('stable cursor is fenced to revision and query; can read all filtered rows',async()=>{
@@ -157,15 +158,20 @@ test('no input or published fact can mutate a snapshot after it is opened',async
   assert.deepEqual(await allPages(model),initial);
   assert.throws(()=>{initial[0].items[0].value=false;},TypeError);
 });
-test('portable synthetic non-XML FactRecords use identical immutable read-model',async()=>{
+test('portable non-XML FactRecords use the same immutable paginated core',async()=>{
   const old=await basis();
   const b=await makeBasisRef({...old,basisId:undefined,domainId:'beam/loadcase'});
   const expected=[{subjectType:'beam',sourceId:S,occurrenceId:'beam1'}];
-  // Contract requires XML/branch and node ONLY in the XML source-custody adapter;
-  // this test intentionally verifies the documented gap, never fakes portability.
-  await assert.rejects(openPreviewFactReadModel({
-    basis:b,expectedOccurrences:expected,records:[],ports,
-  }),{code:'INVALID_EXPECTED_SUBJECT'});
+  const record={schemaVersion:'gc-pw/1.0',domainId:'beam/loadcase',basisId:b.basisId,
+    sourceId:S,occurrenceId:'beam1',subjectType:'beam',fieldId:'source.occurrence',
+    value:true,authority:'source',provenance:provenance('beam#1'),diagnostics:[]};
+  const model=await openPreviewFactReadModel({basis:b,expectedOccurrences:expected,
+    records:[record],ports});
+  const first=await model.getFacts({basisId:b.basisId});
+  assert.equal(first.items.length,1);
+  assert.equal(first.items[0].subjectType,'beam');
+  assert.equal(model.info.engineeringReady,false);
+  assert.equal(first.complete,false);
 });
 test('source and deployed docs read-model are byte identical',async()=>{
   const file='xml-cii-adapted-preview-facts-read-model.js';
