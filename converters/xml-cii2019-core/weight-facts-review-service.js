@@ -68,7 +68,7 @@ export function createWeightReviewService({ score } = {}) {
   const makeProposals = (opened, occurrenceId) => {
     const source = opened.identities.get(occurrenceId);
     required(source, 'UNKNOWN_OCCURRENCE', 'Unknown occurrence');
-    const record = opened.byOccurrence.get(source + '\u0000' + occurrenceId);
+    const record = opened.byOccurrence.get(keyOf({ sourceId: source, occurrenceId }));
     const proposals = score(copy(record), copy(opened.basis)) || [];
     required(Array.isArray(proposals), 'INVALID_PROPOSAL', 'Scorer must return an array');
     const ids = new Set();
