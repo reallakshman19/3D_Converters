@@ -6,6 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { withXmlCiiRigidWeightMatch1, resolveXmlCiiRigidWeight } from '../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2019-core/weight-facts-review-service.js';
 import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
+import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
 function basis(domainId = 'xml-cii/2019', sources = ['one'], master = 'master-v1') {
@@ -231,6 +232,8 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   const final = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js', import.meta.url), 'utf8');
   const match1 = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
   assert.ok(renderer.includes("const initial = issue.weight && issue.weight > 0 ? issue.weight : '';"));
+  assert.ok(renderer.includes('weightMatchContentFingerprint({'));
+  assert.ok(!renderer.includes('wmCacheFingerprint('));
   assert.ok(final.includes('value="${attr(issue.acceptedWeight ?? \'\')}"'));
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
@@ -374,4 +377,26 @@ test('a rehashed forged Final snapshot cannot gain authority; physical facts req
   coverage.openBasis(b,{facts:missingMassFact});
   throws(() => coverage.verifyRun({basisId:b.basisId,reviewedSnapshotIds:[],
     outputBasis:{components:[]}}), 'INCOMPLETE_RUN');
+});
+
+test('content-SHA cache custody rejects same-size source/staged/master changes and missing worker digests', async () => {
+  const input = { xmlText: '<Node>A</Node>', stagedJsonText: '{"weight":15}',
+    masterRows: [{boreMm:100,rating:'150',weight:15}],
+    config: {weight:{rule:'exact'}}, ratingMode:'preview', snapshot:{revision:'pv-1',rating:'150'} };
+  const fingerprint = await weightMatchContentFingerprint(input);
+  assert.match(fingerprint, /^gc-pw-wm-sha256\/1:[a-f0-9]{64}$/);
+  const changedXml = await weightMatchContentFingerprint({...input, xmlText:'<Node>B</Node>'});
+  const changedStaged = await weightMatchContentFingerprint({...input, stagedJsonText:'{"weight":16}'});
+  const changedMaster = await weightMatchContentFingerprint({...input, masterRows:[{boreMm:100,rating:'150',weight:16}]});
+  assert.notEqual(fingerprint, changedXml);
+  assert.notEqual(fingerprint, changedStaged);
+  assert.notEqual(fingerprint, changedMaster);
+  assert.equal(await weightMatchContentFingerprint({...input, masterRows:null,
+    masterRef:{datasetId:'weight',rowCount:1595,masterFingerprint:'weak-legacy-value'}}),null);
+  const validWorker = {...input,masterRows:null,
+    masterRef:{datasetId:'weight',sha256:hash('row-content'),mappingSha256:hash('mapping'),revision:7}};
+  const first = await weightMatchContentFingerprint(validWorker);
+  const second = await weightMatchContentFingerprint({...validWorker,
+    masterRef:{...validWorker.masterRef,sha256:hash('same-size-changed-master')}});
+  assert.notEqual(first,second);
 });

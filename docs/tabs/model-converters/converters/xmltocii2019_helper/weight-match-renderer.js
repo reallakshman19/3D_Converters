@@ -1,4 +1,5 @@
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
+import { weightMatchContentFingerprint } from '../../../../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
 import { saveXmlCiiWeightRating, xmlCiiWeightRatingClass } from '../../../../converters/xml-cii2019-core/weight-rating-input.js?v=20261001-weight-output-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
@@ -306,7 +307,6 @@ export function xmlCiiRenderWeightMatchPhase() {
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v2-preview-rating';
 const PV_CACHE_KEY = 'xml-cii-pv-cache-v2';
 const CACHE_MAX_BYTES = 2_500_000;
-function wmCacheFingerprint(file, jsonLen, masterLen, overrides, ratingMode, snapshotRevision, ratingConfig) { return `${file?.name || ''}:${file?.size || 0}|j${jsonLen}|m${masterLen}|o${JSON.stringify(overrides || {})}|rm${ratingMode}|pr${snapshotRevision || ''}|rc${JSON.stringify(ratingConfig || {})}`; }
 function readCache(storageKey) { try { return JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { return null; } }
 function writeCache(storageKey, fingerprint, data) { try { const payload = JSON.stringify({ fp: fingerprint, data, ts: Date.now() }); if (payload.length > CACHE_MAX_BYTES) return; localStorage.setItem(storageKey, payload); } catch {} }
 export function invalidateXmlCiiWeightCache() { try { localStorage.removeItem(WM_CACHE_KEY); } catch {} }
@@ -440,22 +440,6 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     }
     const snapshot = readXmlCiiPreviewRatingSnapshot();
     const hasMatch1Provenance = Object.keys(liveConfig?.overrides?.rigidWeightMatch1Provenance || {}).length > 0;
-    if (!opts.force && !hasMatch1Provenance) {
-      const stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
-      const jsonLenForFp = xmlCiiWeightRawPayloadText(stagedSourceForFp?.text ?? stagedSourceForFp).length;
-      const fingerprint = wmCacheFingerprint(file, jsonLenForFp, workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (liveConfig?.weight?.masterRows?.length || 0), liveConfig?.overrides, ratingMode, snapshot.revision, liveConfig.rating);
-      const cached = readCache(WM_CACHE_KEY);
-      if (cached?.fp === fingerprint && Array.isArray(cached?.data) && cached.data.length) {
-        localIssues = workerBackedWeight ? cached.data : cached.data.map((row) => rerankWithRating(row, liveConfig, { ratingMode, snapshot }));
-        const mapped = localIssues.filter((row) => row.mapped).length;
-        const zero = localIssues.filter((row) => row.candidates?.[0]?.zeroFallback).length;
-        const unresolved = localIssues.length - mapped - localIssues.filter((row) => row.candidates?.[0]?.preferred || row.candidates?.[0]?.flangeWeightFallback || (row.candidates?.[0]?.inferredWeight && !row.candidates?.[0]?.zeroFallback)).length - zero;
-        status(`${mapped} mapped · restored · ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'} · ${localIssues.length} shown`, (zero || unresolved) ? 'bad' : 'ok');
-        drawRows(localIssues);
-        if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(liveConfig); }
-        return;
-      }
-    }
     status(`Computing with ${ratingMode === 'dtxr' ? 'DTXR Rating' : 'Preview Rating'}…`);
     try {
       status('Reading XML source…');
@@ -466,6 +450,27 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
         : stagedText(stagedJsonText).then((text) => ({ text, label: '' }));
       const stagedSource = await withWeightStageTimeout(stagedPromise, 'staged JSON resolution', 15000);
       const jsonText = xmlCiiWeightRawPayloadText(stagedSource?.text ?? stagedSource);
+      const fingerprint = await weightMatchContentFingerprint({
+        xmlText, stagedJsonText: jsonText, config: liveConfig, ratingMode, snapshot,
+        ...(workerBackedWeight
+          ? { masterRef: weightDatasetRef }
+          : { masterRows: liveConfig?.weight?.masterRows }),
+      });
+      if (fingerprint && !opts.force && !hasMatch1Provenance) {
+        const cached = readCache(WM_CACHE_KEY);
+        if (cached?.fp === fingerprint && Array.isArray(cached.data) && cached.data.length) {
+          localIssues = workerBackedWeight ? cached.data
+            : cached.data.map(row => rerankWithRating(row, liveConfig, { ratingMode, snapshot }));
+          const mapped = localIssues.filter(row => row.mapped).length;
+          status(`${mapped} mapped · SHA-verified cache · ${localIssues.length} shown`, 'ok');
+          drawRows(localIssues);
+          if (window.__xmlCiiPendingValidation) {
+            window.__xmlCiiPendingValidation = false;
+            await publishValidation(liveConfig);
+          }
+          return;
+        }
+      }
       let cfg = liveConfig;
       let validation = { stale: {}, staleCount: 0 };
       let issueRows = [];
@@ -546,8 +551,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       status(`${mapped} mapped · ${suggested} exact · ${flange} flange fallback · ${inferred} inferred · ${missingRatings} missing Rating · ${unresolved} unresolved · ${localIssues.length} shown${stagedSource?.label ? ` · ${stagedSource.label}` : ''}`, (zero || unresolved || missingRatings) ? 'bad' : 'ok');
       drawRows(localIssues);
       const cacheable = localIssues.map((row) => { const { ranking, ...rest } = row; return rest; });
-      const fingerprint = wmCacheFingerprint(file, jsonText.length, workerBackedWeight ? Number(weightDatasetRef?.rowCount || 0) : (cfg?.weight?.masterRows?.length || 0), cfg?.overrides, ratingMode, snapshot.revision, cfg.rating);
-      writeCache(WM_CACHE_KEY, fingerprint, cacheable);
+      if (fingerprint && !hasMatch1Provenance) writeCache(WM_CACHE_KEY, fingerprint, cacheable);
       if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; await publishValidation(cfg); }
     } catch (error) {
       localIssues = [];
