@@ -92,6 +92,8 @@ export async function indexAttNativeHierarchy(source, options = {}) {
   finish(lineNo);
 
   const byId = new Map();
+  // Reserve all raw names: a synthetic duplicate suffix must never steal a real NAME.
+  const rawNames = new Set(records.map(record => record.name || record.heading));
   const byName = new Map();
   const duplicateNames = [];
   for (const record of records) {
@@ -99,7 +101,14 @@ export async function indexAttNativeHierarchy(source, options = {}) {
     const collisionList = byName.get(record.name) || [];
     collisionList.push(record);
     byName.set(record.name, collisionList);
-    record.id = collisionList.length === 1 ? record.name : record.name + '#' + collisionList.length;
+    if (collisionList.length === 1) record.id = record.name;
+    else {
+      let suffix = collisionList.length;
+      record.id = record.name + '#' + suffix;
+      while (rawNames.has(record.id) || byId.has(record.id)) {
+        record.id = record.name + '#' + (++suffix);
+      }
+    }
     byId.set(record.id, record);
     if (collisionList.length > 1) duplicateNames.push(record.id);
   }
@@ -123,17 +132,39 @@ export async function indexAttNativeHierarchy(source, options = {}) {
     record.parentId = matches[0].id;
     matches[0].childrenIds.push(record.id);
   }
+  // A native source can contain owner cycles. Cut one edge per cycle into
+  // an explicit root, preserving every record and preventing invisible subtrees.
+  const cycles = [];
+  const visited = new Set();
+  for (const record of records) {
+    if (visited.has(record.id)) continue;
+    const path = new Set();
+    let current = record;
+    while (current && !visited.has(current.id) && !path.has(current.id)) {
+      path.add(current.id);
+      current = current.parentId ? byId.get(current.parentId) : null;
+    }
+    if (current && path.has(current.id)) {
+      const parent = byId.get(current.parentId);
+      if (parent) parent.childrenIds = parent.childrenIds.filter(id => id !== current.id);
+      cycles.push({ id: current.id, owner: current.parentId });
+      current.parentId = null;
+      roots.push(current.id);
+    }
+    for (const id of path) visited.add(id);
+  }
   const counts = Object.freeze({
     typed: records.length, metadata: metadata.length, lines: lineNo,
     sites: countsByType.SITE || 0, zones: countsByType.ZONE || 0,
     branches: countsByType.BRAN || 0, pipes: countsByType.PIPE || 0,
     roots: roots.length, unresolved: unresolvedOwners.length,
     ambiguous: ambiguousOwners.length, duplicatedNames: duplicateNames.length,
+    cycles: cycles.length,
   });
   return {
     records, byId, roots, metadata, counts,
     countsByType: Object.freeze({ ...countsByType }),
-    diagnostics: { unresolvedOwners, ambiguousOwners, duplicateNames },
+    diagnostics: { unresolvedOwners, ambiguousOwners, duplicateNames, cycles },
   };
 }
 
