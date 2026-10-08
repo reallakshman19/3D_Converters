@@ -1,5 +1,5 @@
 {
-  "lastId": 1250,
+  "lastId": 1252,
   "entries": [
     {
       "id": 1,
@@ -8750,6 +8750,20 @@
       "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
       "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
       "backupFile": "1309_issue980_rating_core_import_1.bak"
+    },
+    {
+      "id": 1251,
+      "timestamp": "2026-10-08 06:50:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 Mode B sparse weight occurrence end-to-end Preview metadata and honest CI qualification handover",
+      "backupFile": "1310_issue980_sparse_occurrence_report_0.bak"
+    },
+    {
+      "id": 1252,
+      "timestamp": "2026-10-08 06:50:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 Mode B sparse weight occurrence end-to-end Preview metadata and honest CI qualification handover",
+      "backupFile": "1310_issue980_sparse_occurrence_report_1.bak"
     }
   ]
 }
