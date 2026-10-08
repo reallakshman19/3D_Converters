@@ -4,7 +4,28 @@ const AUTHORITIES = new Set(['source', 'exact-master', 'derived', 'proposed', 'm
 const STAGES = new Set(['preview', 'RigidMatch1', 'Rigidmatch2']);
 const DECISIONS = new Set(['accept-proposal', 'enter-manual', 'reject', 'defer', 'final-override']);
 const sha = (x) => typeof x === 'string' && /^[a-f\d]{64}$/i.test(x);
-const copy = (x) => JSON.parse(JSON.stringify(x));
+function plainJson(value, seen = new Set()) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (!value || typeof value !== 'object' || seen.has(value)) return false;
+  if (Array.isArray(value)) {
+    seen.add(value);
+    const good = value.every((item, index) => Object.hasOwn(value, index) && plainJson(item, seen))
+      && Object.keys(value).length === value.length;
+    seen.delete(value);
+    return good;
+  }
+  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return false;
+  seen.add(value);
+  const good = Object.keys(value).every((key) =>
+    !['__proto__', 'constructor', 'prototype'].includes(key) && plainJson(value[key], seen));
+  seen.delete(value);
+  return good;
+}
+const copy = (x) => {
+  required(plainJson(x), 'INVALID_JSON', 'Envelope must be lossless plain JSON');
+  return JSON.parse(JSON.stringify(x));
+};
 const finitePositive = (x) => typeof x === 'number' && Number.isFinite(x) && x > 0;
 const keyOf = (x) => x.sourceId + '\u0000' + x.occurrenceId;
 function fault(code, message) { const e = new Error(message); e.code = code; e.retryable = false; return e; }
@@ -19,14 +40,20 @@ function validateBasis(b) {
   required(Array.isArray(b.sourceRefs) && b.sourceRefs.length && Array.isArray(b.scope) && b.scope.length, 'INVALID_BASIS', 'Nonempty source and scope required');
   required(sha(b.selectionSha256) && (b.stagedSourceSha256 === null || sha(b.stagedSourceSha256)), 'INVALID_BASIS', 'Selection/staged digest required');
   required(sha(b.configSha256) && sha(b.overridesSha256), 'INVALID_BASIS', 'Config/override digest required');
-  const sources = new Set();
+  required(plainJson(b), 'INVALID_BASIS', 'Basis must use JSON-safe serializable fields');
+  const sources = new Set(), selections = new Set();
   for (const ref of b.sourceRefs) {
     required(ref.sourceId && sha(ref.sha256) && ref.mediaType && !sources.has(ref.sourceId), 'SOURCE_CONFLICT', 'Duplicate or invalid source digest');
     sources.add(ref.sourceId);
   }
-  for (const ref of b.scope) required(sources.has(ref.sourceId) && ref.selectionRef, 'SCOPE_CONFLICT', 'Unresolved selection/source');
+  for (const ref of b.scope) {
+    required(sources.has(ref.sourceId) && ref.selectionRef, 'SCOPE_CONFLICT', 'Unresolved selection/source');
+    const scopeKey = ref.sourceId + '\\u0000' + ref.selectionRef;
+    required(!selections.has(scopeKey), 'SCOPE_CONFLICT', 'Duplicate selection source scope');
+    selections.add(scopeKey);
+  }
   for (const m of Object.values(b.masters || {})) {
-    required(m.datasetId && m.revision !== undefined && sha(m.sha256) && sha(m.mappingSha256) && Number.isSafeInteger(m.rowCount) && m.rowCount >= 0, 'INVALID_MASTER', 'Master digest and revision required');
+    required(m.datasetId && ((typeof m.revision === 'string' && m.revision.trim()) || (Number.isSafeInteger(m.revision) && m.revision >= 0)) && sha(m.sha256) && sha(m.mappingSha256) && Number.isSafeInteger(m.rowCount) && m.rowCount >= 0, 'INVALID_MASTER', 'Master digest and revision required');
   }
   return sources;
 }
@@ -37,6 +64,7 @@ function validateFacts(b, facts, sources) {
     required(f.schemaVersion === WEIGHT_SCHEMA && f.domainId === b.domainId && f.basisId === b.basisId, 'STALE_FACT', 'Fact basis mismatch');
     required(sources.has(f.sourceId) && f.occurrenceId && f.subjectType && f.fieldId && AUTHORITIES.has(f.authority), 'INVALID_FACT', 'Fact identity/authority invalid');
     required(Array.isArray(f.provenance) && Array.isArray(f.diagnostics), 'INVALID_FACT', 'Fact provenance required');
+    required(plainJson(f) && ((f.authority !== 'unresolved' && f.authority !== 'conflict') || f.value === null), 'INVALID_FACT', 'Invalid JSON or non-null unresolved/conflict fact');
     required(f.value === null || (typeof f.value !== 'number' || Number.isFinite(f.value)), 'INVALID_NUMBER', 'Nonfinite fact value');
     const composite = keyOf(f), identity = identities.get(f.occurrenceId);
     required(!identity || identity === f.sourceId, 'IDENTITY_CONFLICT', 'Occurrence aliases two sources');
@@ -56,7 +84,7 @@ function paginate(items, basisId, cursor, limit = 100) {
   const offset = parts ? Number(parts[1]) : 0;
   required(Number.isSafeInteger(offset) && offset <= items.length, 'INVALID_PAGE', 'Invalid cursor offset');
   const end = Math.min(offset + limit, items.length);
-  return { schemaVersion: WEIGHT_SCHEMA, basisId, items: copy(items.slice(offset, end)), totalCount: items.length, nextCursor: end < items.length ? basisId + ':' + end : null, complete: end === items.length };
+  return { schemaVersion: WEIGHT_SCHEMA, basisId, items: copy(items.slice(offset, end)), totalCount: items.length, nextCursor: end < items.length ? basisId + ':' + end : null, complete: true };
 }
 export function createWeightReviewService({ score } = {}) {
   required(typeof score === 'function', 'INVALID_SCORER', 'Inject a pure fact-based scorer');
@@ -75,7 +103,7 @@ export function createWeightReviewService({ score } = {}) {
     for (const p of proposals) {
       required(p.basisId === opened.basis.basisId && p.domainId === opened.basis.domainId && p.occurrenceId === occurrenceId && p.unit === 'kg', 'STALE_PROPOSAL', 'Proposal identity/unit mismatch');
       required(finitePositive(p.value) && p.proposalId && !ids.has(p.proposalId) && Number.isInteger(p.ranking) && p.ranking > 0 && typeof p.qualified === 'boolean', 'INVALID_PROPOSAL', 'Invalid candidate mass, id or ranking');
-      required(p.scoringRevision && Array.isArray(p.eligibilityReasons) && Array.isArray(p.evidenceRefs), 'INVALID_PROPOSAL', 'Missing scoring provenance');
+      required(typeof p.method === 'string' && p.method.trim() && p.scoringRevision && Array.isArray(p.eligibilityReasons) && Array.isArray(p.evidenceRefs) && plainJson(p), 'INVALID_PROPOSAL', 'Missing method/scoring provenance or invalid JSON');
       ids.add(p.proposalId);
     }
     return proposals;
@@ -159,10 +187,12 @@ export function createWeightReviewService({ score } = {}) {
       required(opened.sources.has(scopeId), 'SCOPE_CONFLICT', 'Scope must be an authoritative sourceId');
       required(Array.isArray(commands) && commands.length, 'INVALID_COMMAND', 'Nonempty decision commands required');
       const before = state(basisId, scopeId, stage);
-      const next = copy(before), touched = new Set(), results = [];
+      const next = copy(before), touched = new Set(), commandIds = new Set(), results = [];
       // Verify every command before publishing a single mutation (transaction is atomic).
       for (const cmd of commands) {
-        required(cmd.commandId && cmd.basisId === basisId && cmd.scopeId === scopeId && DECISIONS.has(cmd.action), 'INVALID_COMMAND', 'Malformed or stale command');
+        required(cmd.commandId && cmd.basisId === basisId && cmd.scopeId === scopeId && DECISIONS.has(cmd.action) && plainJson(cmd), 'INVALID_COMMAND', 'Malformed or stale command');
+        required(!commandIds.has(cmd.commandId), 'DUPLICATE_COMMAND', 'Duplicate command in one transaction');
+        commandIds.add(cmd.commandId);
         required(cmd.expectedDecisionRevision === expectedDecisionRevision, 'STALE_DECISION', 'Command revision mismatch');
         const source = opened.identities.get(cmd.occurrenceId);
         required(source === scopeId && !touched.has(cmd.occurrenceId), 'IDENTITY_CONFLICT', 'Duplicate/cross-source occurrence');
