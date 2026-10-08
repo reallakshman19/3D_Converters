@@ -267,3 +267,21 @@ test('R09/U02: invalid/incomplete R08 selection cannot commit partial selected p
    assert.equal(store.state.committed,null);
  }finally{await f.close();}
 });
+
+test('R09/U04: real same-length R03 interior edit revokes old source cursor by SHA',async()=>{
+ const f=await prepared();
+ const changedText=sourceText.replace('"name":"B"','"name":"C"');
+ const raw=new TextEncoder().encode(changedText);
+ const b=createSourceSnapshotBuilder({byteLength:raw.length,revision:'R09-fixture'});
+ b.append(raw,0);
+ const changed=b.finalize();
+ try{
+   assert.equal(changed.byteLength,f.f.source.byteLength,'edit preserves source byte length');
+   assert.notEqual(changed.sha256,f.basis.sourceSha256,'independent R03 SHA changes');
+   const first=await f.request(null,1);
+   assert.ok(first.cursor);
+   await assert.rejects(()=>f.request(first.cursor,1,65536,{
+     sourceBasis:{...f.basis,sourceSha256:changed.sha256,sourceRevision:changed.revision}
+   }),e=>e?.code==='SOURCE_STALE');
+ }finally{changed.close();await f.close();}
+});
