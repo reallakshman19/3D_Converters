@@ -1,0 +1,21 @@
+name: XML-CII GC-PW Worker Fact Gate
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/gc-pw-preview-worker-fact-port.js'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/gc-pw-preview-worker-fact-port.js'
+      - 'tests/gc-pw-preview-worker-fact-port.test.mjs'
+      - 'docs/architecture/gc-pw-preview-worker-fact-port.md'
+      - '.github/workflows/xml-cii-gc-pw-worker-fact-gate.yml'
+  workflow_dispatch:
+jobs:
+  preview-worker-weight-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Challenge actual Preview job/read-model and Weight review gate
+        run: node --test tests/gc-pw-preview-worker-fact-port.test.mjs
