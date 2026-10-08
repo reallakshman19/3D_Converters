@@ -1,5 +1,5 @@
 {
-  "lastId": 1189,
+  "lastId": 1199,
   "entries": [
     {
       "id": 1,
@@ -8323,6 +8323,76 @@
       "file": "agents\\PR920_workreport.md",
       "context": "B2 #918 U4 record test-only qualification repair and current recovery state",
       "backupFile": "1189_agents_PR920_workreport_md.bak"
+    },
+    {
+      "id": 1190,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 pre-edit evidence verifier (connector-preserved)",
+      "backupFile": "1265_issue_980_parity_evidence_0.bak"
+    },
+    {
+      "id": 1191,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 pre-edit docs evidence verifier (connector-preserved)",
+      "backupFile": "1266_issue_980_parity_evidence_1.bak"
+    },
+    {
+      "id": 1192,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 pre-edit process parity writer (connector-preserved)",
+      "backupFile": "1267_issue_980_parity_writer_0.bak"
+    },
+    {
+      "id": 1193,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 pre-edit docs process parity writer (connector-preserved)",
+      "backupFile": "1268_issue_980_parity_writer_1.bak"
+    },
+    {
+      "id": 1194,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before occurrence-ordered output projection (connector-preserved)",
+      "backupFile": "1269_issue_980_parity_writer_order_0.bak"
+    },
+    {
+      "id": 1195,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before occurrence-ordered docs projection (connector-preserved)",
+      "backupFile": "12610_issue_980_parity_writer_order_1.bak"
+    },
+    {
+      "id": 1196,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 before exact PL-01 node metadata correction (connector-preserved)",
+      "backupFile": "1271_issue_980_real_pl01_fixture.bak"
+    },
+    {
+      "id": 1197,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before named parity writer test seam (connector-preserved)",
+      "backupFile": "1272_issue_980_parity_writer_test_seam_0.bak"
+    },
+    {
+      "id": 1198,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before named docs parity writer test seam (connector-preserved)",
+      "backupFile": "1273_issue_980_parity_writer_test_seam_1.bak"
+    },
+    {
+      "id": 1199,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 before actual writer/verifier integration regressions (connector-preserved)",
+      "backupFile": "1274_issue_980_process_integration_tests.bak"
     }
   ]
 }
