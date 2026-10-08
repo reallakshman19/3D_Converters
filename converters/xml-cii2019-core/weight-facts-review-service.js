@@ -60,7 +60,7 @@ function paginate(items, basisId, cursor, limit = 100) {
 }
 export function createWeightReviewService({ score } = {}) {
   required(typeof score === 'function', 'INVALID_SCORER', 'Inject a pure fact-based scorer');
-  const bases = new Map(), ledger = new Map(), snapshots = new Map();
+  const bases = new Map(), ledger = new Map(), snapshots = new Map(), jobs = new Map();
   const current = (id) => { const v = bases.get(id); required(v, 'UNKNOWN_BASIS', 'Open basis before requests'); return v; };
   const stageName = (s) => { required(STAGES.has(s), 'INVALID_STAGE', 'Unknown review stage'); return s; };
   const slot = (id, scopeId, stage) => id + '|' + scopeId + '|' + stage;
@@ -89,6 +89,51 @@ export function createWeightReviewService({ score } = {}) {
       bases.set(basis.basisId, opened);
       return { requestId: basis.basisId, basisId: basis.basisId, stage: 'facts', completed: checked.identities.size, total: checked.identities.size, event: 'completed' };
     },
+    openBasisJob(basis, { loadFacts, requestId } = {}) {
+      validateBasis(basis);
+      required(typeof loadFacts === 'function' && requestId, 'INVALID_JOB', 'Async fact loader and requestId required');
+      required(!jobs.has(requestId), 'JOB_COLLISION', 'A requestId cannot be reused');
+      const job = { requestId, basisId: basis.basisId, stage: 'facts', completed: 0, total: null, event: 'progress', cancelled: false };
+      jobs.set(requestId, job);
+      const report = (completed, total) => {
+        if (job.cancelled) return;
+        if (Number.isSafeInteger(completed) && completed >= 0) job.completed = completed;
+        if (Number.isSafeInteger(total) && total >= 0) job.total = total;
+      };
+      const completion = Promise.resolve().then(() => loadFacts({ basis: copy(basis), requestId, report, isCancelled: () => job.cancelled }))
+        .then((facts) => {
+          if (job.cancelled) return this.subscribeJob(requestId);
+          const result = this.openBasis(basis, { facts });
+          if (job.cancelled) return this.subscribeJob(requestId);
+          Object.assign(job, { completed: result.completed, total: result.total, event: 'completed' });
+          return this.subscribeJob(requestId);
+        }).catch((error) => {
+          if (job.cancelled) return this.subscribeJob(requestId);
+          job.event = 'failed';
+          job.error = { code: error.code || 'FACT_LOAD_FAILED', message: String(error.message || error), retryable: false, stage: 'facts' };
+          return this.subscribeJob(requestId);
+        });
+      job.completion = completion;
+      return { requestId, basisId: basis.basisId };
+    },
+    subscribeJob(requestId) {
+      const job = jobs.get(requestId);
+      required(job, 'UNKNOWN_JOB', 'Unknown requestId');
+      const { completion, cancelled, ...publicEvent } = job;
+      return copy(publicEvent);
+    },
+    async awaitJob(requestId) {
+      const job = jobs.get(requestId);
+      required(job, 'UNKNOWN_JOB', 'Unknown requestId');
+      await job.completion;
+      return this.subscribeJob(requestId);
+    },
+    cancelJob(requestId) {
+      const job = jobs.get(requestId);
+      required(job, 'UNKNOWN_JOB', 'Unknown requestId');
+      if (job.event === 'progress') { job.cancelled = true; job.event = 'cancelled'; }
+      return this.subscribeJob(requestId);
+    },
     getFacts({ basisId, subjectType, sourceId, cursor, limit }) {
       const opened = current(basisId);
       const rows = [...opened.byOccurrence.values()].flat().filter((f) => (!subjectType || f.subjectType === subjectType) && (!sourceId || f.sourceId === sourceId));
@@ -101,6 +146,12 @@ export function createWeightReviewService({ score } = {}) {
       required(new Set(ids).size === ids.length, 'DUPLICATE_OCCURRENCE', 'Duplicate requested occurrence');
       const rows = ids.flatMap((id) => makeProposals(opened, id));
       return paginate(rows, basisId, cursor, limit);
+    },
+    getCandidateAudit({ basisId, occurrenceId }) {
+      const opened = current(basisId), source = opened.identities.get(occurrenceId);
+      required(source, 'UNKNOWN_OCCURRENCE', 'Unknown physical occurrence');
+      required(typeof score.audit === 'function', 'AUDIT_UNAVAILABLE', 'Scorer must implement candidate audit');
+      return copy(score.audit(copy(opened.byOccurrence.get(source + '\\u0000' + occurrenceId)), copy(opened.basis)));
     },
     applyDecisions({ basisId, scopeId, expectedDecisionRevision = null, commands, stage = 'RigidMatch1' }) {
       const opened = current(basisId); stageName(stage);
@@ -198,6 +249,11 @@ export function createWeightReviewService({ score } = {}) {
         if (c.output) {
           required(finitePositive(c.output.scale) && c.output.unit && Number.isFinite(c.output.value), 'INVALID_CONVERSION', 'Explicit run-boundary transform required');
           required(Math.abs(c.output.value - total * c.output.scale) <= Math.max(1e-6, Math.abs(c.output.value) * 1e-9), 'DOUBLE_CONVERSION', 'Run-boundary conversion is not single-scale');
+        }
+      }
+      for (const [identity, facts] of opened.byOccurrence) {
+        if (facts.some((f) => f.fieldId === 'mass.kg')) {
+          required(seen.has(identity), 'INCOMPLETE_RUN', 'Required physical occurrence omitted from run');
         }
       }
       return { basisId, verified: true, componentCount: seen.size };
