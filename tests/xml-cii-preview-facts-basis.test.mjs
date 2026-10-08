@@ -61,3 +61,26 @@ test('source-to-docs deployment mirror exact', async () => {
   const docs=await fs.readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js',import.meta.url),'utf8');
   assert.equal(source,docs);
 });
+
+test('public InputBasis snapshot is deeply immutable and detached from caller writes', async () => {
+  const input=seed();
+  const basis=await createPreviewBasis(input);
+  assert.ok(Object.isFrozen(basis));
+  assert.ok(Object.isFrozen(basis.sourceRefs));
+  assert.ok(Object.isFrozen(basis.sourceRefs[0]));
+  assert.ok(Object.isFrozen(basis.masters));
+  assert.ok(Object.isFrozen(basis.masters.line));
+  assert.ok(Object.isFrozen(basis.scope[0]));
+  assert.throws(() => { basis.masters.line.sha256='0'.repeat(64); }, TypeError);
+  assert.throws(() => basis.sourceRefs.push({}), TypeError);
+  input.masters.line.rows[0].class='CHANGED';
+  assert.notEqual(basis.basisId, (await createPreviewBasis(input)).basisId);
+});
+test('sparse arrays and hidden engineering data are rejected instead of omitted', async () => {
+  const missing=seed();
+  missing.masters.line.rows.length=2; // an absent row cannot masquerade as an empty row
+  await assert.rejects(createPreviewBasis(missing), {code:'SPARSE_ARRAY'});
+  const decorated=seed();
+  Object.defineProperty(decorated.masters.line.rows[0], 'hiddenMaterial', {value:'A106',enumerable:false});
+  await assert.rejects(createPreviewBasis(decorated), {code:'UNSERIALIZABLE_VALUE'});
+});
