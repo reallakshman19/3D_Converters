@@ -67,14 +67,26 @@ export function canonicalJson(value) {
   }
   return JSON.stringify(visit(value, '$'));
 }
-export async function digestCanonical(value) {
-  const input = canonicalJson(value);
+export async function digestUtf8(content) {
+  if (typeof content !== 'string') reject('TEXT_CONTENT_REQUIRED', '$.content');
   if (!globalThis.crypto?.subtle || typeof TextEncoder === 'undefined') reject('CRYPTO_UNAVAILABLE', '$');
-  const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
   return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+export async function digestCanonical(value) {
+  return digestUtf8(canonicalJson(value));
+}
+export async function assertContentDigest(content, expectedSha256) {
+  sha(expectedSha256, '$.expectedSha256');
+  if (await digestUtf8(content) !== expectedSha256) reject('CONTENT_DIGEST_MISMATCH', '$.expectedSha256');
+  return expectedSha256;
+}
 export async function makeBasisRef(input) {
-  const value = { ...record(input, '$'), schemaVersion: SCHEMA_VERSION };
+  record(input, '$');
+  if (input.schemaVersion !== undefined && input.schemaVersion !== SCHEMA_VERSION) {
+    reject('UNSUPPORTED_SCHEMA_VERSION', '$.schemaVersion');
+  }
+  const value = { ...input, schemaVersion: SCHEMA_VERSION };
   delete value.basisId;
   const basisId = await digestCanonical(value);
   const result = { ...value, basisId };
@@ -99,7 +111,9 @@ export function validateBasisRef(value) {
   for (const [name, entry] of Object.entries(value.masters)) {
     str(name, '$.masters key');
     const p = '$.masters.' + name; record(entry, p);
-    str(entry.datasetId, p + '.datasetId'); str(String(entry.revision ?? ''), p + '.revision');
+    str(entry.datasetId, p + '.datasetId');
+    if (!(typeof entry.revision === 'string' && entry.revision.trim()) &&
+        !(Number.isSafeInteger(entry.revision) && entry.revision >= 0)) reject('INVALID_REVISION', p + '.revision');
     sha(entry.sha256, p + '.sha256'); sha(entry.mappingSha256, p + '.mappingSha256');
     integer(entry.rowCount, p + '.rowCount');
   }

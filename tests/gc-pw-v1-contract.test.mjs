@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import {
-  SCHEMA_VERSION, ContractError, canonicalJson, digestCanonical, makeBasisRef, assertBasisDigest,
+  SCHEMA_VERSION, ContractError, canonicalJson, digestCanonical, digestUtf8, assertContentDigest, makeBasisRef, assertBasisDigest,
   validateBasisRef, validateFactRecord, validateProposal, validateDecisionCommand,
   validateDecisionBatch, validatePage, assertCompletePopulation, validateJobEvent, validateSnapshotRef,
 } from '../contracts/gc-pw-v1/contract.mjs';
@@ -70,6 +70,19 @@ test('canonical JSON has stable property order and rejects unsafe/nonfinite inpu
   fails(() => canonicalJson(sparse), 'SPARSE_ARRAY');
 });
 
+test('source bytes of identical length have distinct SHA-256; declared contents are attested', async () => {
+  const oldText = '<a>150</a>', newText = '<a>300</a>';
+  assert.equal(oldText.length, newText.length);
+  const oldHash = await digestUtf8(oldText), changedHash = await digestUtf8(newText);
+  assert.notEqual(oldHash, changedHash);
+  assert.equal(await assertContentDigest(oldText, oldHash), oldHash);
+  await assert.rejects(() => assertContentDigest(newText, oldHash),
+    (error) => error.code === 'CONTENT_DIGEST_MISMATCH');
+  const oldBasis = await fixture({ sourceRefs: [{ sourceId: 'PL-01', sha256: oldHash, mediaType: 'application/xml' }] });
+  const newBasis = await fixture({ sourceRefs: [{ sourceId: 'PL-01', sha256: changedHash, mediaType: 'application/xml' }] });
+  assert.notEqual(oldBasis.basisId, newBasis.basisId);
+});
+
 test('full-content SHA basis validates at owner master scale, not by file length or row count', async () => {
   const first = await fixture();
   assert.equal(first.masters.pipingClass.rowCount, 10699);
@@ -92,6 +105,8 @@ test('basis rejects duplicate source IDs/scopes and malformed authoritative desc
   fails(() => validateBasisRef({ ...base, scope: [{ sourceId: 'foreign', selectionRef: 'all' }] }), 'UNKNOWN_SOURCE');
   fails(() => validateBasisRef({ ...base, masters: { weight: { ...base.masters.weight, sha256: 'same-length-not-a-digest' } } }), 'SHA256_REQUIRED');
   fails(() => validateBasisRef({ ...base, schemaVersion: 'gc-pw/2.0' }), 'UNSUPPORTED_SCHEMA_VERSION');
+  fails(() => validateBasisRef({ ...base, masters: { weight: { ...base.masters.weight, revision: {} } } }), 'INVALID_REVISION');
+  await assert.rejects(() => fixture({ schemaVersion: 'gc-pw/2.0' }), (error) => error.code === 'UNSUPPORTED_SCHEMA_VERSION');
 });
 
 test('portable non-XML FactRecord, no DOM/engine dependency', async () => {

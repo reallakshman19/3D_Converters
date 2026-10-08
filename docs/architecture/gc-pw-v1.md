@@ -23,7 +23,7 @@ The existing converters/worker-contract.js accepts ArrayBuffer converter-run mes
 The module contracts/gc-pw-v1/contract.mjs exports:
 
 - SCHEMA_VERSION, ContractError (stable machine code and JSON-path, no UI state).
-- canonicalJson and digestCanonical, pure domain-independent canonicalization + SHA-256 by WebCrypto.
+- canonicalJson, digestCanonical, digestUtf8 and assertContentDigest: deterministic JSON digests and byte-for-byte UTF-8 text attestation by WebCrypto. Callers must hash actual source/staged text, not just its metadata. The contract cannot prove a producer read the correct file without content custody.
 - makeBasisRef / validateBasisRef / assertBasisDigest. A complete InputBasis binds source contents, branch selection, staged source, mapped master dataset contents/revisions, configuration and overrides. An unchanged row count is **not** an unchanged master.
 - validateFactRecord, validateProposal: facts have exact occurrence identity, domain/field/unit, authority and provenance. Proposed values are not accepted output.
 - validateDecisionCommand / validateDecisionBatch: explicitly scoped, version-expected commands; duplicate commands, double decisions on one occurrence, wrong scope/basis and missing manual weight are rejected. **Persistence/idempotency across requests and optimistic CAS execution remain to be implemented by the future decision store**, not falsely claimed here.
