@@ -1,0 +1,38 @@
+name: Native TXT Selected Areas UX R3
+on:
+  pull_request:
+    paths:
+      - 'tabs/model-converters/att-native-scope-selection.js'
+      - 'docs/tabs/model-converters/att-native-scope-selection.js'
+      - 'tabs/model-converters/att-native-scope-popup.js'
+      - 'docs/tabs/model-converters/att-native-scope-popup.js'
+      - 'tests/model-converters/test-att-native-scope-selection.mjs'
+      - '.github/workflows/att-native-txt-selection-ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selected-area-ux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full identical source/docs
+        run: |
+          set -eu
+          for f in tabs/model-converters/att-native-scope-selection.js tabs/model-converters/att-native-scope-popup.js tabs/model-converters/legacy-adapter.js tabs/model-converters/ModelConvertersTab.js tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js tabs/model-converters/index.js tabs/model-converters-tab.js; do
+            cmp "$f" "docs/$f"
+          done
+      - name: Canonical selection and full source export regression
+        run: |
+          set -eu
+          node --check tabs/model-converters/att-native-scope-selection.js
+          node --check tabs/model-converters/att-native-scope-popup.js
+          node tests/model-converters/test-att-native-scope-selection.mjs
+          node tests/model-converters/test-att-native-tree-browser.mjs
+          node tests/model-converters/test-att-native-conversion-scope.mjs
+          node tests/model-converters/test-att-native-converter-outputs.mjs
+          node tests/model-converters/test-att-native-runtime-cache-chain.mjs
