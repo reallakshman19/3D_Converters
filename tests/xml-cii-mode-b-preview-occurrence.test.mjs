@@ -49,6 +49,8 @@ test('reranked weights use their own repeated branch rating, not last-name ratin
   assert.deepEqual(revised.map(r => r.rating), ['1500', '900']);
   assert.throws(() => rerankPreviewNodeRows([{ ...rows[0], branchOccurrenceIndex: 9 }], baseBranches, {}),
     /branch occurrence drift/);
+  assert.throws(() => rerankPreviewNodeRows([{ ...rows[0], branchOccurrenceIndex: undefined }], baseBranches, {}),
+    /ambiguous branch rating/);
 });
 
 test('run-parity internal rating checks remain occurrence-specific', () => {
