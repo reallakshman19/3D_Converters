@@ -1,5 +1,5 @@
 {
-  "lastId": 1204,
+  "lastId": 1206,
   "entries": [
     {
       "id": 1,
@@ -8428,6 +8428,20 @@
       "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
       "context": "P0 fix absent XML bore independently from absent Preview authority",
       "backupFile": "1279_issue_980_numeric_absent_fixture.bak"
+    },
+    {
+      "id": 1205,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 Issue980 truthful exact-head continuity after source-backed 3-source replay",
+      "backupFile": "1280_issue_980_reporting_checkpoint_0.bak"
+    },
+    {
+      "id": 1206,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 Issue980 truthful exact-head continuity after source-backed 3-source replay",
+      "backupFile": "1281_issue_980_reporting_checkpoint_1.bak"
     }
   ]
 }
