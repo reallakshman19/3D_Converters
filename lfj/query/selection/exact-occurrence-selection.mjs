@@ -58,6 +58,33 @@ function verifyQuery(query) {
   return {mode, includes: new Set(includes), excludes: new Set(excludes)};
 }
 
+function verifySourceBasis(query, committed) {
+  const source = query?.sourceBasis;
+  if (!source || typeof source !== 'object' ||
+      !valid(source.sourceRefId) || !valid(source.sourceSha256) ||
+      !valid(source.sourceRevision)) {
+    fail('SOURCE_BASIS_REQUIRED', 'caller must bind selection to exact current source');
+  }
+  const same = basis => basis !== null && typeof basis === 'object' &&
+    basis.sourceRefId === committed.sourceRefId &&
+    basis.sourceSha256 === committed.sourceSha256 &&
+    basis.sourceRevision === committed.sourceRevision;
+  if (!same(source))
+    fail('SOURCE_STALE', 'query source differs from the committed occurrence manifest');
+  const getter = query.getCurrentBasis;
+  if (getter !== undefined && typeof getter !== 'function')
+    fail('INVALID_SCOPE', 'current source basis callback must be a function');
+  return () => {
+    if (getter === undefined) return;
+    let current;
+    try { current = getter(); } catch {
+      fail('SOURCE_STALE', 'current source basis cannot be attested');
+    }
+    if (!same(current))
+      fail('SOURCE_STALE', 'current original source was superseded');
+  };
+}
+
 /**
  * Source-ordered selection, constant working ancestry + bounded output page.
  * Exclusions win over descendant re-inclusion (fail-closed subtree policy).
@@ -67,6 +94,7 @@ export async function selectCommittedOccurrences(view, query, {
   onSelectedPage, pageRows = 256, maxPageBytes = 65536, signal = null
 } = {}) {
   const basis = verifyCommitted(view);
+  const attestCurrentSource = verifySourceBasis(query, basis);
   const scope = verifyQuery(query);
   if (typeof onSelectedPage !== 'function')
     fail('SELECTION_SINK_REQUIRED', 'provisional output-page sink required');
@@ -80,6 +108,7 @@ export async function selectCommittedOccurrences(view, query, {
   let scanned = 0, selected = 0, staged = [], stagedBytes = 0;
   const checkCancel = () => {
     if (signal?.aborted) fail('SELECTION_ABORTED', 'source query superseded or cancelled');
+    attestCurrentSource();
   };
   async function flush() {
     if (!staged.length) return;
