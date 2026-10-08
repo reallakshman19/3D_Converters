@@ -1,0 +1,76 @@
+name: LFJ V4 claim-first V3.2 decomposition
+
+on:
+  push:
+    branches:
+      - lfj/structured-data-plan-v4
+    paths:
+      - 'lfj/governance/structured-data-v4.execution-graph.json'
+      - 'lfj/governance/structured-data-v4.PLAN.md'
+      - '.github/workflows/lfj-v4-decomposition.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'lfj/governance/structured-data-v4.execution-graph.json'
+      - 'lfj/governance/structured-data-v4.PLAN.md'
+      - '.github/workflows/lfj-v4-decomposition.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admission:
+    name: Canonical DELP proposal-v2 admission
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read planning branch
+        uses: actions/checkout@v4
+      - name: Pin the governing Common V3.2 source
+        uses: actions/checkout@v4
+        with:
+          repository: reallaksh19/Common
+          ref: c8eb92a9d530869a8d48bf56616e908eff2ecebb
+          path: common
+          persist-credentials: false
+      - name: Prove exact protocol provenance
+        shell: bash
+        run: |
+          test "$(git -C common rev-parse HEAD)" = "c8eb92a9d530869a8d48bf56616e908eff2ecebb"
+          python3 -m py_compile common/skills/engineering-pr-delivery-v3.2/scripts/delp_projection_v32.py
+      - name: Validate root and complete claim-first plan
+        shell: bash
+        run: |
+          python3 common/skills/engineering-pr-delivery-v3.2/scripts/delp_projection_v32.py \
+            validate-graph --graph lfj/governance/structured-data-v4.execution-graph.json
+          python3 common/skills/engineering-pr-delivery-v3.2/scripts/delp_projection_v32.py \
+            decompose-check --graph lfj/governance/structured-data-v4.execution-graph.json \
+            --mode ENFORCED --json > lfj-v4.decomposition-report.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('lfj-v4.decomposition-report.json')
+          r = json.loads(p.read_text('utf-8'))
+          print('V3.2_CANONICAL_MODE:', r.get('mode'))
+          print('V3.2_RELEASE_STATE:', r.get('release_state'))
+          print('V3.2_DIGEST:', r.get('proposal_digest'))
+          print('V3.2_SUMMARY:', json.dumps(r.get('summary'), sort_keys=True))
+          for key, leaf in (r.get('leaves') or {}).items():
+              if leaf.get('blockers'):
+                  print('BLOCKER', key, json.dumps(leaf['blockers']))
+              if leaf.get('advisories'):
+                  print('ADVISORY', key, json.dumps(leaf['advisories']))
+          assert r.get('mode') == 'ENFORCED', 'ENFORCED decomposition policy missing'
+          assert r.get('release_state') == 'RELEASEABLE', 'Do not create child issues: pre-materialization proposal not releasable'
+          assert (r.get('summary') or {}).get('not_releasable') == 0, 'One or more V3.2 responsibilities have blockers'
+          assert str(r.get('proposal_digest') or '').startswith('sha256:'), 'Missing canonical proposal digest'
+          PY
+      - name: Preserve canonical quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-v4-v32-decomposition-quality
+          path: lfj-v4.decomposition-report.json
+          if-no-files-found: ignore
