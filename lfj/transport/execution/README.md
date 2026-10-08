@@ -1,6 +1,6 @@
-# LFJ R06 Worker-required isolated execution — U01 native qualification
+# LFJ R06 Worker-required execution — U01/U02 native qualification
 
-**Parent owner:** [LFJ #1042](https://github.com/reallaksh19/3D_Converters/issues/1042), **admitted claim:** [R06 child #1071](https://github.com/reallaksh19/3D_Converters/issues/1071) / C3_ISOLATION 5 existing points in 130-point V3.2 proposal. [Governance PR #1072](https://github.com/reallaksh19/3D_Converters/pull/1072) merged at `f57b5799952e268ee57a91658ebae36ed723f43f` after pinned V3.2 [run #37800817690](https://github.com/reallaksh19/3D_Converters/actions/runs/37800817690) passed. **U01 only; U02–U04 not yet coded or qualified.**
+**Parent owner:** [LFJ #1042](https://github.com/reallaksh19/3D_Converters/issues/1042), **admitted claim:** [R06 child #1071](https://github.com/reallaksh19/3D_Converters/issues/1071) / C3_ISOLATION 5 existing points in 130-point V3.2 proposal. [Governance PR #1072](https://github.com/reallaksh19/3D_Converters/pull/1072) merged at `f57b5799952e268ee57a91658ebae36ed723f43f` after pinned V3.2 [run #37800817690](https://github.com/reallaksh19/3D_Converters/actions/runs/37800817690) passed. **U01 and U02 direct native contracts implemented; U03–U04 not yet coded or qualified.**
 
 ## Actual downstream boundary
 
@@ -12,9 +12,16 @@ R05 original source index [PR #1070](https://github.com/reallaksh19/3D_Converter
 
 **Independent test proof:** [`required-worker.test.mjs`](./required-worker.test.mjs) committed first (RED until production `required-worker.mjs` added), plus real **native Node WorkerThreads fixture** `required-worker-fixture.mjs`. Tests assert actual `isMainThread===false` and `threadId>0` under an independently instantiated Worker, invalid source metadata fails before construction, unavailable factories and fake Worker shaped callbacks fail without inline work. [Exact Node 22/24 dedicated workflow #37801199693](https://github.com/reallaksh19/3D_Converters/actions/runs/37801199693) **PASSED both versions** at production + dedicated workflow head. This is actual Node Worker isolation in a native test, **not** a Chromium performance metric nor a universal assertion that any arbitrary injected port is truly isolated.
 
+## U02 bounded original-source byte transport
+
+`transferBoundedSourcePages({worker,trustedWorkerCtor,snapshot,jobId,sourceRefId,pageBytes,ackTimeoutMs})` requires a genuine isolated Worker instance, an attested immutable R03 snapshot, and distinct job, source-ref, original revision and SHA. It sends only **one transferable Uint8Array original source page at a time** with original `startByte`/`endByteExclusive`. It does not read or enqueue the next original page until a matching `SOURCE_ACK` attests the exact job/ref/revision/SHA/range and received byte count. Maximum page size is **65,536 bytes**, with a bounded timeout 1–30,000ms; missing ACK is typed `WORKER_ACK_TIMEOUT`, invalid ACK `WORKER_PROTOCOL`. One page outstanding bounds this port's source-payload pressure independent of total source size. This is not an entire browser heap or throughput guarantee.
+
+The independent [U02 Node Worker test](./bounded-source-transfer.test.mjs) uses a **real** `worker_threads` receiver [fixture](./bounded-source-fixture.mjs), including delayed ACK and a no-ACK Worker. Its manually asserted 130,071-byte source requires eight 16,384-byte source reads, exact source offsets, max one unacknowledged page; the no-ACK Worker must observe just one source read before typed failure. The first RED commit `e2003f9` failed because the module was not implemented; the first production pass exposed a **test harness mistake** (unwrapped snapshot passed instead of the read-spy port), corrected at `9fc49c6`. Do not claim that harness issue was a source transport defect. [Exact direct R06 Node22/24 run #37806504626](https://github.com/reallaksh19/3D_Converters/actions/runs/37806504626) passed the corrected test.
+
+The returned `acknowledgedBytes` is **transport receipt accounting only**, not independently verified JSON parsing/consumed-byte progress. `complete:false`, `engineeringReady:false`, `rightsBasis:SOURCE_TRANSPORT_ONLY` are enforced. U03 must separately attest true consumed-source byte progress; U04/R07 handle crash, stale sessions, terminal abort and disposal. This module does not integrate R05 parsing into a Worker, grant output rights, replace actual Preview/Weight controllers or prove R18 populated 30/90MB browser responsiveness.
+
 ## NEXT acceptance (not implemented)
 
-- **U02:** source-byte-transfer and page-ack pressure budget. A slow consumer must not retain or post unbounded queued copies; preserve exact R03 source SHA and R05 ordinal/revision, explicit page size and maximum unacknowledged byte budget; independent RED negative first.
 - **U03:** monotonic progress based on **acknowledged consumed original source bytes**, not fabricated node counts or Weight geometry.
 - **U04:** Worker absent/throws/errors, protocol mismatches, no-ACK/stale Worker and transport failure must fail closed with typed diagnostics; no inline fallback.
 - **R07:** terminal cancellation/superseded results, crash recovery, source epoch/retry, resource disposal, downstream acceptance. R18 retains actual populated 30/90MB Chromium worker heap/p95 and independently emitted XML/CII writer goldens.
