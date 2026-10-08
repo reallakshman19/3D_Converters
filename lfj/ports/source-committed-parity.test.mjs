@@ -110,3 +110,27 @@ test('R10/U04 RED: failed R07 synchronous index store commit cannot publish R09 
  assert.ok(store.rollbacks>0);
  assert.equal(selected.reads,0);
 });
+
+test('R10/U04: absent actual Worker fails closed, no foreground scan/index commit',async()=>{
+ const indexStore=sourceIndexStore(),selectedStore=selectedIndexedStore();
+ await assert.rejects(()=>runCommittedSourceQuery({
+  blob:new Blob([bytes]),revision,expectedSha256:sha,sourceRefId,
+  jobId:'R10-NO-WORKER',selectionDigest:'all',
+  selection:{mode:'ALL',includes:[],excludes:[]},
+  trustedWorkerCtor:Worker,createWorker:()=>{throw new Error('no native Worker');},
+  indexStore,selectedStore
+ }),e=>e?.code==='WORKER_UNAVAILABLE');
+ assert.equal(indexStore.committed,false);
+ assert.equal(selectedStore.reads,0);
+});
+test('R10/U04: missing committed store refuses source execution before Worker admission',async()=>{
+ let created=0;
+ await assert.rejects(()=>runCommittedSourceQuery({
+  blob:new Blob([bytes]),revision,expectedSha256:sha,sourceRefId,
+  jobId:'R10-NO-STORE',selectionDigest:'all',
+  selection:{mode:'ALL',includes:[],excludes:[]},
+  trustedWorkerCtor:Worker,createWorker:()=>{created++;throw Error('not reached');},
+  indexStore:sourceIndexStore(),selectedStore:null
+ }),e=>e?.code==='SOURCE_PORT_REQUIRED');
+ assert.equal(created,0);
+});
