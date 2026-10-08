@@ -11,7 +11,7 @@ The verifier additionally requires:
 2. All three stage snapshot *files*: \`preview\`, \`RigidMatch1\`, \`Rigidmatch2\`, SHA-bound independently to declared InputBasis; decision payloads must be stage-specific, source/physical-component scoped and cannot silently treat a proposed candidate as accepted.
 3. A separately prepared **physical-component allocation ledger**, not generated from the final CII. Every group must declare original source occurrence, physical group ID, explicit final action, accepted mass kg and child allocations to exact CII RIGID record positions. The full \`RIGID\` record list must be accounted for or explicitly documented as zero-mass/noncomponent edges.
 4. A byte-level CII SHA-256 that binds the actual tested output; the oracle checks selected mass, sum allocated child mass and actual output numeric values after exactly one declared scale. The default compatibility scale may **never silently toggle**. \`legacy-kgx10-N\` means explicit x10; \`raw-kg\` explicit x1.
-5. Every false-completeness path fails (wrong source, wrong snapshot hash, same NodeNumber alias, duplicate child RIGID ownership, missing/extra RIGID rows, incorrect CONTROL counts, changed CII, proposed-as-final, no final decision, nonconserved allocation and x100 scaling).
+5. Every false-completeness path fails (wrong source, wrong snapshot hash, an accepted review decision for an unlisted physical component, same NodeNumber alias, duplicate child RIGID ownership, missing/extra RIGID rows, incorrect CONTROL counts, changed CII, proposed-as-final, no final decision, nonconserved allocation and x100 scaling).
 
 ## CLI
 

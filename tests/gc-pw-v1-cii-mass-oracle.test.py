@@ -173,6 +173,20 @@ class HeldOutMassTests(unittest.TestCase):
             ledger["snapshots"]["preview"] = {"filename": "../preview.json", "basisId": BASIS, "sha256": "a"*64}
             error(lambda: check(ledger, td), "UNSAFE_FILENAME")
 
+    def test_extra_snapshot_acceptance_for_unlisted_component_cannot_disappear(self):
+        with tempfile.TemporaryDirectory() as td:
+            ledger = make_case(td, split=False)
+            stage = Path(td) / "RigidMatch1.json"
+            payload = json.loads(stage.read_text())
+            payload["decisions"].append({
+                "sourceId": "SRC1", "componentOccurrenceId": "unlisted-physical",
+                "action": "accept", "acceptedKg": "45",
+            })
+            updated = json.dumps(payload, sort_keys=True).encode()
+            stage.write_bytes(updated)
+            ledger["snapshots"]["RigidMatch1"]["sha256"] = digest(updated)
+            error(lambda: check(ledger, td), "UNACCOUNTED_REVIEW_DECISION")
+
     def test_cli_reports_fail_closed_not_fake_owner_success(self):
         with tempfile.TemporaryDirectory() as td:
             ledger = make_case(td, split=False)

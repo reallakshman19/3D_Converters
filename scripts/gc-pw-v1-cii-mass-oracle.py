@@ -283,6 +283,10 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
                 fail("CII_WEIGHT_MISMATCH", f"RIGID[{idx}] {weights[idx]} != {expected_weight} ({convention})")
         if abs(total - expected_mass) > Decimal("0.000001"):
             fail("PHYSICAL_MASS_NONCONSERVATION", f"{group_id}: allocated {total}, accepted {expected_mass}")
+    for stage in ("RigidMatch1", "Rigidmatch2"):
+        unclaimed = set(review_maps[stage]) - accounted
+        if unclaimed:
+            fail("UNACCOUNTED_REVIEW_DECISION", f"{stage}: {sorted(unclaimed)!r}")
     zero = ledger.get("nonmassRigid")
     if not isinstance(zero, list):
         fail("NONMASS_DECLARATIONS_REQUIRED", "nonmassRigid")
