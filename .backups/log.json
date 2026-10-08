@@ -1,5 +1,5 @@
 {
-  "lastId": 1222,
+  "lastId": 1232,
   "entries": [
     {
       "id": 1,
@@ -8554,6 +8554,76 @@
       "file": "agents/PR981_workreport.md",
       "context": "P0 exact-production-function runtime evidence and full UI cache chain",
       "backupFile": "12817_issue980_report_runtime_proof.bak"
+    },
+    {
+      "id": 1223,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1290_issue980_preview_occurrence_0.bak"
+    },
+    {
+      "id": 1224,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1291_issue980_preview_occurrence_1.bak"
+    },
+    {
+      "id": 1225,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1292_issue980_preview_occurrence_tests.bak"
+    },
+    {
+      "id": 1226,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1293_issue980_preview_load_0_0.bak"
+    },
+    {
+      "id": 1227,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1294_issue980_preview_load_0_1.bak"
+    },
+    {
+      "id": 1228,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1295_issue980_preview_load_1_0.bak"
+    },
+    {
+      "id": 1229,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1296_issue980_preview_load_1_1.bak"
+    },
+    {
+      "id": 1230,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1297_issue980_static_preview_guard.bak"
+    },
+    {
+      "id": 1231,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1298_issue980_node_key_format_guard_0.bak"
+    },
+    {
+      "id": 1232,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1299_issue980_node_key_format_guard_1.bak"
     }
   ]
 }
