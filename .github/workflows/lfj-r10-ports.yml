@@ -1,0 +1,65 @@
+name: LFJ R10 real Node/browser Worker source port parity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/ports/**'
+      - '.github/workflows/lfj-r10-ports.yml'
+  push:
+    branches: [lfj/r10-worker-source-ports]
+    paths:
+      - 'lfj/ports/**'
+      - '.github/workflows/lfj-r10-ports.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-worker:
+    name: R10 native Worker original source Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Attest exact source head and real native Worker source test
+        run: |
+          git rev-parse HEAD
+          node --test lfj/ports/*.test.mjs
+      - name: No written fixture data
+        run: test -z "$(git status --porcelain)"
+
+  real-browser-worker:
+    name: R10 served real Chromium Worker original source parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact Chromium browser runner
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual committed LFJ source as ES modules
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/r10-served-modules.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/lfj/ports/source-browser-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/r10-served-modules.log
+          exit 1
+      - name: Real Worker WebCrypto original SHA and nested occurrence parity
+        run: |
+          git rev-parse HEAD
+          node lfj/ports/source-browser-qualification.mjs
