@@ -110,6 +110,28 @@ test('U03 inherited collection is not an actual source envelope property', () =>
   assert.equal(typedCode(() => inspect(forged)), 'UNSUPPORTED_ROOT');
 });
 
+test('U02 inherited markup profile does not impersonate a declared source profile', () => {
+  const source = Object.assign(Object.create({ profile: 'AVEVA_JSON_FOR_3D_RVM_VIEWER' }), {
+    schema: 'inputxml-managed-stage/v1',
+    converter: 'INPUTXML->STAGEDJSON',
+    converterSchema: 'inputxml-direct-managed-stage/v2-rich-topology',
+    units: { length: 'mm' },
+    hierarchy: a,
+  });
+  assert.equal(inspect(source).profileId, 'staged-generic/v1');
+});
+
+test('U02 inherited converter cannot satisfy a strict declared markup profile', () => {
+  const source = Object.assign(Object.create({ converter: 'INPUTXML->STAGEDJSON' }), {
+    schema: 'inputxml-managed-stage/v1',
+    profile: 'AVEVA_JSON_FOR_3D_RVM_VIEWER',
+    converterSchema: 'inputxml-direct-managed-stage/v2-rich-topology',
+    units: { length: 'mm' },
+    hierarchy: a,
+  });
+  assert.equal(typedCode(() => inspect(source)), 'CONVERTER_MISMATCH');
+});
+
 test('U03 no source envelope key, unknown field, record or occurrence is rewritten', () => {
   const root = { hierarchy: a, unknownProducerField: { x: ['unchanged'] }, flags: [true, false] };
   const before = JSON.stringify(root);
