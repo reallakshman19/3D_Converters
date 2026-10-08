@@ -37,7 +37,7 @@ function enhance(dialog) {
   all.type = 'button';
   all.dataset.modeARigidFillAllSuggestions = 'true';
   all.textContent = 'Use All Suggestions';
-  all.title = 'Fill blank visible review weights with their first available suggestion. Preserve populated values. Apply Weights and Run All Models accepts the displayed values.';
+  all.title = 'Fill blank review weights across all selected source occurrences with their first available suggestion. Preserve populated values. Apply Weights and Run All Models accepts the displayed values.';
   styleButton(all);
 
   const status = dialog.querySelector('[data-mode-a-rigid-status]');
@@ -69,7 +69,7 @@ function enhance(dialog) {
   all.addEventListener('click', () => {
     let count = 0;
     for (const row of dialog.querySelectorAll('[data-mode-a-rigid-review-row]')) {
-      if (row.style.display === 'none') continue;
+      // Filtering is a display choice, never a limit on the selected decision scope.
       const input = row.querySelector('.mc-rigid-review-input');
       const candidate = row.querySelector('[data-mode-a-rigid-candidate]');
       const weight = Number(candidate?.dataset?.modeARigidWeight);
@@ -79,7 +79,7 @@ function enhance(dialog) {
     }
     setStatus(count
       ? `Filled ${count} blank weight field(s). Populated weights preserved; review before applying.`
-      : 'No blank visible weights to fill. Populated weights preserved.', false);
+      : 'No blank eligible weights to fill. Populated weights preserved.', false);
   });
 
   if (exact) exact.insertAdjacentElement('beforebegin', dtxr);

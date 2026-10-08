@@ -85,6 +85,7 @@ function setDtxrRatingMode(panel, result, stateRef, enabled) {
         bestWeight: row.bestWeight,
         bestScore: row.bestScore,
         bestDescription: row.bestDescription,
+        bestCandidate: row.bestCandidate,
       };
     }
     if (!enabled) {

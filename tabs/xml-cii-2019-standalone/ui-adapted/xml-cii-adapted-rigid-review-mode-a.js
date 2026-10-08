@@ -1,4 +1,5 @@
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
+import { isXmlCiiDirectQualifiedCandidate } from '../../../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
@@ -101,7 +102,7 @@ function rowMarkup(issue, rowIndex) {
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td title="${attr(issue.dtxrSourcePath || '')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:180px;">${esc(issue.dtxr || 'Not found')}</td>
     <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
-    <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(issue.acceptedWeight ?? (best ? (best.suggestedWeight ?? best.selectedWeight ?? best.weight ?? '') : ''))}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"><small data-reviewed-weight-source style="display:block;color:#94a3b8;">${esc(issue.acceptedWeightSource || (best ? `Proposed · ${best.weightMethod || 'master'}` : 'Unresolved'))}</small></td>
+    <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(issue.acceptedWeight ?? '')}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"><small data-reviewed-weight-source style="display:block;color:#94a3b8;">${esc(issue.acceptedWeightSource || (best ? `Proposed · ${best.weightMethod || 'master'}` : 'Unresolved'))}</small></td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:300px;">${staleMatch1Notice(issue)}${candidateButtons(issue, rowIndex) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;
 }
@@ -187,7 +188,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       rows.forEach((row, index) => {
         const best = row.candidates?.[0];
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
-        if (!best?.preferred || !Number.isFinite(value) || value <= 0) return;
+        if (!isXmlCiiDirectQualifiedCandidate(best) || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
         if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });
@@ -196,28 +197,40 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
 
     overlay.querySelector('[data-mode-a-rigid-refresh]')?.addEventListener('click', async () => {
       const button = overlay.querySelector('[data-mode-a-rigid-refresh]');
+      const applyButton = overlay.querySelector('[data-mode-a-rigid-apply]');
+      if (button?.disabled) return; // No overlapping refresh jobs.
       if (button) button.disabled = true;
+      if (applyButton) applyButton.disabled = true; // Never apply half-refreshed Rating.
       setStatus('Refreshing suggestions across XML files…', false);
       const current = collectCurrentValues(overlay);
-      for (const entry of workingEntries) {
-        const sourceRatings = {};
-        rows.filter((row) => row.sourceId === entry.sourceId).forEach((row) => {
-          const value = current.ratings.get(row.reviewId);
-          if (value) sourceRatings[row.key] = value;
-        });
-        const config = {
-          ...(entry.config || {}),
-          overrides: {
-            ...(entry.config?.overrides || {}),
-            rating: { ...(entry.config?.overrides?.rating || {}), ...sourceRatings },
-          },
-        };
-        entry.config = config;
-        entry.issues = await collectModeARigidWeightReviewIssues(entry.state, config);
+      const nextEntries = [];
+      try {
+        for (const entry of workingEntries) {
+          const sourceRatings = {};
+          rows.filter((row) => row.sourceId === entry.sourceId).forEach((row) => {
+            const value = current.ratings.get(row.reviewId);
+            if (value) sourceRatings[row.key] = value;
+          });
+          const config = {
+            ...(entry.config || {}),
+            overrides: {
+              ...(entry.config?.overrides || {}),
+              rating: { ...(entry.config?.overrides?.rating || {}), ...sourceRatings },
+            },
+          };
+          const issues = await collectModeARigidWeightReviewIssues(entry.state, config);
+          nextEntries.push({ ...entry, config, issues });
+        }
+        // Publish all source previews only after every source refresh succeeds.
+        workingEntries.splice(0, workingEntries.length, ...nextEntries);
+        draw(current.weights);
+        setStatus(`Suggestions refreshed for ${workingEntries.length} XML file(s).`, false);
+      } catch (error) {
+        setStatus(`Refresh failed; previous suggestions preserved. ${text(error?.message || error)}`, true);
+      } finally {
+        if (button) button.disabled = false;
+        if (applyButton) applyButton.disabled = false;
       }
-      draw(current.weights);
-      setStatus(`Suggestions refreshed for ${workingEntries.length} XML file(s).`, false);
-      if (button) button.disabled = false;
     });
 
     overlay.querySelector('[data-mode-a-rigid-cancel]')?.addEventListener('click', () => {
