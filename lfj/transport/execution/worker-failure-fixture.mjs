@@ -14,6 +14,18 @@ parentPort.on('message',message=>{
     parentPort.postMessage({...message,kind:'READY'});return;
   }
   if(message.kind!=='SOURCE_PAGE')return;
+  if(mode==='no-ack')return;
+  if(mode==='double-ack'){
+    const ack={...message,kind:'SOURCE_ACK',receivedBytes:message.bytes.byteLength};
+    parentPort.postMessage(ack);
+    parentPort.postMessage(ack);
+    return;
+  }
+  if(mode==='consumed-before-ack'){
+    parentPort.postMessage({...message,kind:'SOURCE_CONSUMED',
+      consumedBytes:message.endByteExclusive,pageChecksum:0});
+    return;
+  }
   if(mode==='exit-on-page'){process.exit(9);return;}
   if(mode==='wrong-ack'){
     parentPort.postMessage({...message,kind:'SOURCE_ACK',
