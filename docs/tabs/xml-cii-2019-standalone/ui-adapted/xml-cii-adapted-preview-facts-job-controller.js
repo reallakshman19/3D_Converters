@@ -157,7 +157,8 @@ export function createXmlCiiPreviewJobController({
   }
   function subscribe(listener) {
     assert(typeof listener==='function','INVALID_OBSERVER','Listener required');
-    listeners.add(listener);listener(snapshot);
+    listeners.add(listener);
+    try{listener(snapshot);}catch{/* Initial subscription cannot alter job outcome. */}
     return ()=>listeners.delete(listener);
   }
   return Object.freeze({start,cancel,retry,dispose,subscribe,
