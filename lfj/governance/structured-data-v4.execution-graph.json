@@ -1799,11 +1799,15 @@
       ],
       "released_proposal_digest": "sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d",
       "bindings": [
-        {
-          "responsibility_id": "R01",
-          "ref": "reallaksh19/3D_Converters#1052"
-        }
-      ]
+      {
+        "responsibility_id": "R01",
+        "ref": "reallaksh19/3D_Converters#1052"
+      },
+      {
+        "responsibility_id": "R03",
+        "ref": "reallaksh19/3D_Converters#1057"
+      }
+    ]
     }
   },
   "nodes": [
