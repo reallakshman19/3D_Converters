@@ -2,6 +2,7 @@
  * JSON. Returns rows with provenance; invalid XML returns empty rows. */
 
 import { deriveLineKeyFromBranchName, tokenAtPosition } from '../../../converters/xml-cii2019-core/regex-line-key.js';
+import { extractBranchFieldsWithFormats } from '../../../converters/xml-cii2019-core/branch-format-extraction.js';
 import { computeLineNoKey, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
 import { xmlCiiWeightReviewNodeOverrideKey, isXmlCiiWeightReviewNode, xmlCiiNumberText } from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { rankXmlCiiWeightCandidates, formatValveHint } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
@@ -227,6 +228,10 @@ export function _shiftedBranchTokens(branchName, delimiter = '-') {
 }
 
 export function _derivePipingClassFromBranchName(branchName, config) {
+  if (Array.isArray(config?.regexTester?.formats) || Array.isArray(config?.formats)) {
+    const identity = extractBranchFieldsWithFormats(branchName, config);
+    return identity.status === 'MATCHED' ? identity.pipingClass : '';
+  }
   const regexValue = _regexGroup(branchName, config.rating?.pipingClassRegex, config.rating?.pipingClassGroup || 1);
   if (regexValue) return regexValue;
   const delimiter = config.rating?.tokenDelimiter || config.linelist?.tokenDelimiter || '-';
@@ -423,6 +428,8 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
 
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     const branchName = _xmlText(branch, 'Branchname');
+    const configuredFormats = Array.isArray(config?.regexTester?.formats) || Array.isArray(config?.formats);
+    const extracted = configuredFormats ? extractBranchFieldsWithFormats(branchName, config) : null;
     const lineKey = deriveLineKeyFromBranchName(branchName, config);
     let lineListRawMatch = lineKey ? _xmlCiiFindLineListRow(lineKey, config) : null;
     let lineKeyMethod = lineListRawMatch ? 'exact' : 'none';
@@ -440,17 +447,31 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     const lineListMatch = _normaliseLineListMatch(lineListRawMatch, config);
     const lineFromTo = _xmlCiiRowFromTo(lineListMatch, config);
     const lineListClass = _rowText(lineListMatch, ['pipingClass', 'Piping Class', 'PIPING_CLASS']);
-    const branchClass = _derivePipingClassFromBranchName(branchName, config);
-    const derivedClassRaw = lineListClass || branchClass;
-    const boreMm = _branchBoreFromFirstUsefulNode(branch) || _deriveBoreFromBranchName(branchName, config) || _rowNumber(lineListMatch, ['convertedBore', 'Bore', 'DN', 'NB']);
+    const branchClass = extracted ? extracted.pipingClass : _derivePipingClassFromBranchName(branchName, config);
+    // A master class is not permitted to overwrite or silently contradict a configured format.
+    const exactClassConflict = extracted?.status === 'MATCHED' && lineKeyMethod === 'exact'
+      && !!lineListClass && lineListClass.toUpperCase() !== branchClass.toUpperCase();
+    const branchIdentity = exactClassConflict
+      ? { ...extracted, status: 'AMBIGUOUS', lineKey: '', pipingClass: '', rating: '', bore: '',
+          matchedFormatIndex: null, conflictReason: 'EXACT_LINE_LIST_CLASS_CONFLICT' }
+      : extracted;
+    const derivedClassRaw = extracted
+      ? (branchIdentity.status === 'MATCHED' ? branchClass : '')
+      : (lineListClass || branchClass);
+    const formatBore = extracted
+      ? (branchIdentity.status === 'MATCHED' ? _nominalDnFromNps(_numericFromSizeToken(branchIdentity.bore), config) : null)
+      : _deriveBoreFromBranchName(branchName, config);
+    const boreMm = _branchBoreFromFirstUsefulNode(branch) || formatBore
+      || _rowNumber(lineListMatch, ['convertedBore', 'Bore', 'DN', 'NB']);
     const ratingKeys = _uniqueKeys([lineKey, branchName, derivedClassRaw]);
     const manualRating = _ratingOverride(config, ratingKeys);
     const rowRating = _rowText(lineListMatch, ['rating', 'Rating', 'RATING']);
     const inputRating = manualRating || rowRating || _deriveRatingFromPipingClass(derivedClassRaw, config);
     const resolverLineRow = { ...(lineListMatch || {}), pipingClass: derivedClassRaw };
     const branchXmlFacts = _branchXmlFallbackFacts(branch);
-    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: branchXmlFacts, xmlBranch: branchXmlFacts, config });
-    const branchRating = manualRating || resolved.rating || _deriveRatingFromPipingClass(resolved.pipingClass, config) || rowRating;
+    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: branchXmlFacts, xmlBranch: branchXmlFacts, branchIdentity, config });
+    const branchRating = branchIdentity && branchIdentity.status !== 'MATCHED'
+      ? '' : (manualRating || resolved.rating || _deriveRatingFromPipingClass(resolved.pipingClass, config) || rowRating);
     const ratingSource = manualRating ? 'override' : _overrideSource(config.overrides, 'rating', lineKey);
     const pdOverride = (lineKey && config?.overrides?.processData?.[lineKey]) || {};
 
@@ -492,6 +513,10 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     branchRows.push({
       branchName,
       lineKey,
+      extractionStatus: branchIdentity?.status || 'LEGACY',
+      matchedFormatIndex: branchIdentity?.status === 'MATCHED' ? branchIdentity.matchedFormatIndex : null,
+      agreeingFormatIndices: branchIdentity?.agreeingFormatIndices || [],
+      branchIdentityConflict: branchIdentity?.conflictReason || '',
       lineKeyMethod,
       lineKeyConfidence,
       lineKeyProposed,
