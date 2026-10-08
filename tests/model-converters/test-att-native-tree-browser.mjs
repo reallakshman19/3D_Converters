@@ -41,6 +41,8 @@ assert.equal(browser.windowAt(206,120).rows.some(row=>row.id==='/SITE-17/ZONE-9'
 assert.equal(browser.windowAt(0,0).rows.length,120);
 
 browser.toggle('/SITE-0/ZONE-0');
+assert.equal(browser.visibleTotal,105212,'collapsed child PIPE hides its BRAN but retains it in indexed source');
+browser.toggle('/ASIM-1885-PL-PIPE-7');
 assert.equal(browser.visibleTotal,105213,'all 105k descendants become browseable without truncation');
 assert.equal(browser.windowAt(10,1000).rows.length,ATT_BROWSER_MAX_RENDER_ROWS);
 assert.equal(browser.positionOf('/SITE-0/ZONE-0/E99999')>99000,true);
