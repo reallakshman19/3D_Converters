@@ -138,7 +138,7 @@ try {
   await page.waitForFunction(() => {
     const matches = document.querySelector('[data-native-matches]')?.textContent || '';
     return matches.includes('matches') && !matches.includes('0 matches');
-  }, { timeout: 180000 });
+  }, null, { timeout: 180000 });
   const context = await rows.evaluateAll(nodes => nodes.map(n => ({
     name: n.getAttribute('data-row'), level: Number(n.getAttribute('aria-level')),
   })));
