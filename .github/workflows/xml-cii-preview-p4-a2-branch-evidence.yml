@@ -1,0 +1,28 @@
+name: Preview P4-A2 Branch Evidence Gate
+on:
+  push:
+    branches:
+      - 'agent-p/1000-preview-p4-a2-branch-evidence-*'
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-branch-evidence.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-branch-evidence.js'
+      - 'tests/xml-cii-preview-p4-a2-branch-evidence.test.mjs'
+      - '.github/workflows/xml-cii-preview-p4-a2-branch-evidence.yml'
+jobs:
+  p4-a2-source-branch-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: P4 A1 custody, P4 A2 original branch and Format1/2 extraction regressions
+        run: |
+          node --test tests/xml-cii-preview-p4-a1-golden.test.mjs \
+            tests/xml-cii-preview-p4-a2-branch-evidence.test.mjs \
+            tests/xml-cii-j04-shared-branch-extraction.test.mjs \
+            tests/xml-cii-j04-multi-format-preview.test.mjs
