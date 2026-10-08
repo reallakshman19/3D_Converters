@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './xml-cii-mode-b-preview-occurrence.test.mjs';
 import { readFile } from 'node:fs/promises';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import { extractXmlCiiParityAuthorityEntries, compareXmlCiiParityAuthorityEntries, createStandaloneRunParityEvidence } from '../tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js';
