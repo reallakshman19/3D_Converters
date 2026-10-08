@@ -180,7 +180,10 @@ export function createWorkerLifecycleSession({
    if(indexTx)fail('INDEX_TRANSACTION_EXISTS','one staging transaction per job');
    if(snapshot().kind!=='ADMITTED')fail('INDEX_NOT_ADMITTED','trusted Worker admission required');
    let aborted=false,committed=false,pending=0,events=0,opens=0,seals=0;
-   const rollback=()=>{if(committed||aborted)return;aborted=true;try{abort();}catch{/* never accept failed rollback */}};
+   const rollback=()=>{if(committed)return;aborted=true;
+     // Re-abort after a pending async sink settles: it may have written AFTER
+     // cancellation already cleared staging. Every abort must be idempotent.
+     try{abort();}catch{/* never accept failed rollback */}};
    indexTx={abort:rollback};
    const live=()=>{
      if(aborted||committed)fail('INDEX_ALREADY_TERMINAL','index transaction was settled');
