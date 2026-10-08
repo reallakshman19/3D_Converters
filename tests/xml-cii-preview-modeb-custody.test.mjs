@@ -129,6 +129,17 @@ test('source count, missing original, wrong config SHA and altered root are reje
  await assert.rejects(attestXmlCiiModeBSourceCustody({...f,combinedSource:altered,basis:changedBasis}),
   {code:'MODE_B_VALUE_DRIFT'});
 });
+test('original-source selection and ordered basis source refs cannot silently drift',async()=>{
+ const f=await fixture();
+ const limited=await makeBasisRef({...f.basis,basisId:undefined,
+  scope:[{sourceId:'PL01',selectionRef:'ALL'}]});
+ await assert.rejects(attestXmlCiiModeBSourceCustody({...f,basis:limited}),
+  {code:'SOURCE_SCOPE_MISMATCH'});
+ const swapped=await makeBasisRef({...f.basis,basisId:undefined,
+  sourceRefs:[f.basis.sourceRefs[1],f.basis.sourceRefs[0],f.basis.sourceRefs[2]]});
+ await assert.rejects(attestXmlCiiModeBSourceCustody({...f,basis:swapped}),
+  {code:'BASIS_SOURCE_ORDER_DRIFT'});
+});
 test('source/docs deployed Mode B attestor are byte-identical',async()=>{
  const path='xml-cii-adapted-preview-facts-modeb-custody.js';
  const a=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/'+path,import.meta.url),'utf8');
