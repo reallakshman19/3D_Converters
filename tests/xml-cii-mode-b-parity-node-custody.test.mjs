@@ -8,16 +8,16 @@ installWeightBasisXmlDom(globalThis);
 // The combined document offsets the PL-06 positives by 200000 and preserves -1 helpers.
 const pl01 = '/ASIM-1885-PL-8"-S8810104-HOT-01/B2';
 const pl06 = '/ASIM-1885-PL-10"-S8810105-HOT-01/B3';
-function node(number, ref, endpoint, position, component, rating = '900') {
+function node(number, ref, endpoint, position, component, rating = '900', pipingClass = 'S8810105') {
   return '<Node><NodeNumber>' + number + '</NodeNumber><ComponentRefNo>' + ref
     + '</ComponentRefNo><Endpoint>' + endpoint + '</Endpoint><Position>' + position
-    + '</Position><ComponentType>' + component + '</ComponentType><PipingClass>S8810105</PipingClass>'
+    + '</Position><ComponentType>' + component + '</ComponentType><PipingClass>' + pipingClass + '</PipingClass>'
     + '<Rating>' + rating + '</Rating><BoreMm>300</BoreMm><CorrosionAllowance>0</CorrosionAllowance></Node>';
 }
 function branch(name, nodes) {
   return '<Pipe><Branch><Branchname>' + name + '</Branchname>' + nodes.join('') + '</Branch></Pipe>';
 }
-const first = node('10', '=1006649755/1166', '1', '596080.15 -1122803.20 102409.55', 'BRAN');
+const first = node('10', '=1006649755/1898', '1', '596080.15 -1122803.20 102409.55', 'FLAN', '900', 'S8810104');
 const numbered = node('200010', '=1006649755/1750', '1', '803427.00 -1140678.00 98762.35', 'BRAN');
 const negative1 = node('-1', '=1006657947/24', '1', '803427.00 -1134477.00 98736.95', 'ELBO');
 const negative2 = node('-1', '=1006657947/24', '2', '803808.00 -1134096.00 98736.95', 'ELBO');
