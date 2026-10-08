@@ -89,7 +89,7 @@ for (const sourcePath of [`${branchRoot}xml-cii-branch-scope.js`, ...branchScope
 }
 
 const qualifiedSuccessorPathReleases = new Map([
-  ['tabs/xml-cii-2019-standalone-tab.js', '20261007-c05-6-2-consumer-authority-1'],
+  ['tabs/xml-cii-2019-standalone-tab.js', '20261008-p0-mode-b-parity-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', '20261007-c05-6-2-consumer-authority-1'],
   ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', '20261007-c05-6-2-consumer-authority-1'],
   ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', '20261007-c05-6-2-consumer-authority-1'],
@@ -118,6 +118,11 @@ for (const path of screenshotRepairPaths) {
     || (activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? screenshotRepairRelease : liveAcceptanceRelease));
   assert.ok(source.includes(expectedRelease), `live acceptance cache chain missing ${expectedRelease}: ${path}`);
 }
+
+const standaloneTabSource = await readFile(new URL('../tabs/xml-cii-2019-standalone-tab.js', import.meta.url), 'utf8');
+assert.ok(standaloneTabSource.includes(
+  'xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js?v=20261008-p0-mode-b-parity-1',
+), 'standalone live entrypoint must activate the corrected P0 Mode B shell');
 
 const appSource = await readFile(new URL('../core/app.js', import.meta.url), 'utf8');
 assert.ok(appSource.includes('XML_CII_STANDALONE_MODULE'));
