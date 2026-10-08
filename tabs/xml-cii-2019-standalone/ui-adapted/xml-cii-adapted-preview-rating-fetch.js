@@ -67,7 +67,9 @@ export function applyPreviewDtxrRatingOverrides(config = {}, branchRows = []) {
   const targets = [];
   for (const row of Array.isArray(branchRows) ? branchRows : []) {
     const key = targetKey(row);
-    if (key && refresh.preservedManual.has(key)) {
+    // A user's manual Rating is authoritative even when it was never tagged
+    // as a previously fetched DTXR Rating. Protect both cases.
+    if (key && (refresh.preservedManual.has(key) || isManualRating(target.overrides, key))) {
       manualProtected += 1;
       continue;
     }
