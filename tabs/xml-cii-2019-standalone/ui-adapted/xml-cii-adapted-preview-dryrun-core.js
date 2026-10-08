@@ -401,9 +401,23 @@ function previewWorkingDocument(xmlText, sourceDocument = null) {
   }
 }
 
+// Preserve original source-local Node ordinal before a *working copy* removes
+// gaskets/short elements. Downstream bore/wall authority indexes raw XML Nodes;
+// post-cleanup array indices are not physical occurrence identities.
+export function capturePreviewOriginalNodeOrdinals(document) {
+  const ordinals = new WeakMap();
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    _xmlChildrenByName(branch, 'Node').forEach((node, ordinal) => {
+      ordinals.set(node, ordinal);
+    });
+  }
+  return ordinals;
+}
+
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {}) {
   const document = previewWorkingDocument(xmlText, runtime.sourceDocument);
   if (!document) return { branchRows: [], nodeRows: [] };
+  const originalNodeOrdinals = capturePreviewOriginalNodeOrdinals(document);
 
   // Node Block Invariant Cleanup Sync (Parity with xml-cii-node-block-cleanup.js)
   const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
@@ -577,15 +591,19 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw })
     });
 
-    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows });
+    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows, originalNodeOrdinals });
   }
   return { branchRows, nodeRows };
 }
 
-function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows }) {
+function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows, originalNodeOrdinals }) {
   let previousPosition = null;
   const branchNodes = _xmlChildrenByName(branch, 'Node');
   branchNodes.forEach((node, nodeIdx) => {
+    const originalNodeOrdinal = originalNodeOrdinals?.get(node);
+    if (!Number.isSafeInteger(originalNodeOrdinal) || originalNodeOrdinal < 0) {
+      throw new Error('Preview original source Node ordinal missing after cleanup; conversion blocked.');
+    }
     const positionText = _xmlText(node, 'Position');
     const computedLengthMm = previousPosition ? _pointDistanceMm(previousPosition, positionText) : null;
     const explicitLengthMm = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm'));
@@ -606,7 +624,7 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreM
         key: weightKey,
         branchName,
         branchOccurrenceIndex,
-        nodeOrdinal: nodeIdx,
+        nodeOrdinal: originalNodeOrdinal,
         nodeNumber,
         componentType,
         boreMm,
