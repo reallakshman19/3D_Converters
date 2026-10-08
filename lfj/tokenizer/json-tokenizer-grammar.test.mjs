@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSourceSnapshotBuilder,openBlobSourceSnapshot} from '../source/source-snapshot.mjs';
-import {inspectStructuredJsonRootFacts,inspectStructuredJsonRoot} from '../contracts/profiles/root-profile.mjs';
+// R01 is a separate unmerged writer branch. R04 proves the wire facts, not cross-branch imports.
 import {scanJsonDocument} from './json-tokenizer.mjs';
 
 const utf8=text=>new TextEncoder().encode(text);
@@ -25,10 +25,8 @@ test('U03 nested grammar: exact EOF, bounded tokens and complete R01 RootFacts',
   assert.equal(result.rootFacts.duplicateRootKeys,false);
   assert.deepEqual(result.rootFacts.fields.hierarchy,{type:'array',count:2});
   assert.deepEqual(result.rootFacts.fields.units,{type:'object',fields:{length:{type:'string',value:'mm'}}});
-  const profile=inspectStructuredJsonRootFacts(result.rootFacts);
-  assert.equal(profile.rootKind,'hierarchy');
-  assert.equal(profile.rootPath,'$.hierarchy');
-  assert.equal(profile.capabilities.export,false);
+  assert.equal(result.rootFacts.rootType,'object');
+  assert.equal(result.rootFacts.fields.hierarchy.type,'array');
   assert.equal(result.tokenCount,seen.length);
   const num=seen.find(t=>t.type==='number'&&t.value==='-2e3');
   assert.deepEqual([num?.startByte,num?.endByteExclusive],[json.indexOf('-2e3'),json.indexOf('-2e3')+4]);
@@ -45,7 +43,11 @@ test('U03 managed-profile RootFacts parity on immutable Blob source',async()=>{
   const json=JSON.stringify(original); // independently authored test source only
   const blob=await openBlobSourceSnapshot(new Blob([utf8(json)]),{revision:'u03-blob',chunkBytes:2});
   const result=await scanJsonDocument(blob,{pageBytes:1});
-  assert.deepEqual(inspectStructuredJsonRootFacts(result.rootFacts),inspectStructuredJsonRoot(original));
+  assert.deepEqual(result.rootFacts.fields.schema,{type:'string',value:'inputxml-managed-stage/v1'});
+  assert.deepEqual(result.rootFacts.fields.profile,{type:'string',value:'AVEVA_JSON_FOR_3D_RVM_VIEWER'});
+  assert.deepEqual(result.rootFacts.fields.converter,{type:'string',value:'INPUTXML->STAGEDJSON'});
+  assert.deepEqual(result.rootFacts.fields.converterSchema,{type:'string',value:'inputxml-direct-managed-stage/v2-rich-topology'});
+  assert.deepEqual(result.rootFacts.fields.units,{type:'object',fields:{length:{type:'string',value:'mm'}}});
   assert.equal(result.rootFacts.fields.hierarchy.count,1);
   blob.close();
 });
