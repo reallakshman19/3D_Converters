@@ -112,8 +112,9 @@ test('U8 held-out emitted XML oracle rejects source omissions, duplicate source,
   }
   const fx=fixture();const xml=generatedXml(fx.ids);
   const duplicate=xml.replace('</CII>',xml.match(/<Physical source="PL01"[\s\S]*?<\/Physical>/)[0]+'</CII>');
+  const duplicateSha256 = await digestUtf8(duplicate);
   await assert.rejects(()=>verifyEmittedCiiWeightHandoff(fx.session,{
-    artifactXml:duplicate,artifactSha256:await digestUtf8(duplicate),
+    artifactXml:duplicate,artifactSha256:duplicateSha256,
     writerRunId:'writer-run-actual-output',reviewedSnapshotRefs:fx.refs,
     extractPhysicalChildren}),reject('OUTPUT_PHYSICAL_CENSUS_MISMATCH'));
 });
