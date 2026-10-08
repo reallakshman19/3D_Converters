@@ -81,3 +81,29 @@ test('matching selected occurrences and matching Preview identities qualify rele
   assert.equal(audit.checkedCount, 2);
   assert.deepEqual(audit.failures, []);
 });
+
+
+test('15 dominant + 13 alternative occurrences meet an independent engineering identity oracle', () => {
+  const dominantNames = Array.from({ length: 15 }, (_, i) =>
+    '/ASIM-1885-3"-S8811000-91261M7-HC-01/B' + (i + 1));
+  const alternativeNames = Array.from({ length: 13 }, (_, i) =>
+    '/ASIM-1885-PL-HOT-S8822000-91261M7-HC-01/B' + (i + 1));
+  const names = [...dominantNames, ...alternativeNames];
+  // Expected values are declared independently, not copied from the resolver or Preview.
+  const expectedRows = names.map((branchName, index) => ({
+    branchName, extractionStatus: 'MATCHED', matchedFormatIndex: index < 15 ? 0 : 1,
+    lineKey: index < 15 ? 'S8811000' : 'S8822000', pipingClass: '91261M7',
+  }));
+  const occurrences = names.map((branchName, index) => ({
+    branchName, branchOccurrenceId: 'ORACLE-' + (index + 1),
+  }));
+  const pass = auditConfiguredBranchFormats(occurrences, configured, expectedRows);
+  assert.equal(pass.checkedCount, 28);
+  assert.equal(pass.blocked, false, JSON.stringify(pass.failures));
+  const altered = expectedRows.map(row => ({ ...row }));
+  altered[16].pipingClass = 'S8822000';
+  const negative = auditConfiguredBranchFormats(occurrences, configured, altered);
+  assert.equal(negative.blocked, true);
+  assert.deepEqual([negative.failures[0].occurrenceIndex, negative.failures[0].reason],
+    [16, 'ENGINEERING_IDENTITY_MISMATCH']);
+});
