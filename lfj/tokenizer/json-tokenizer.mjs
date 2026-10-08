@@ -142,3 +142,170 @@ export async function scanQuotedJsonString(cursor,{maxTokenBytes=65536}={}) {
     raw.push(await take());
   }
 }
+
+
+/**
+ * R04/U03 complete JSON grammar over the exact R03 byte port.
+ * No JSON.parse, no AST of nested values, no file-wide token buffering.
+ * onToken is an optional backpressured event sink; R05 owns occurrence indexing.
+ * RootFacts are published ONLY after closure and exact EOF validation.
+ *
+ * Fixed defensive depth/token hard stops are provisional until R04/U04
+ * independently qualifies configurable global resource budgets.
+ */
+const ROOT_FIELDS=new Set([
+  'hierarchy','branches','objects','type','children',
+  'schema','profile','converter','converterSchema','units',
+]);
+const ASCII_WS=new Set([9,10,13,32]);
+const digit=b=>b!==null&&b>=48&&b<=57;
+const nonzero=b=>b!==null&&b>=49&&b<=57;
+
+export async function scanJsonDocument(snapshot,{
+  pageBytes=65536,maxTokenBytes=65536,onToken=null,
+}={}) {
+  if(onToken!==null&&typeof onToken!=='function')
+    fail('INVALID_TOKEN_SINK',0,'onToken must be a callable sink');
+  const cursor=createJsonByteCursor(snapshot,{pageBytes});
+  let tokenCount=0;
+  const skip=async()=>{
+    while(ASCII_WS.has(await cursor.peek()))await cursor.take();
+  };
+  const publish=async(type,start,value)=>{
+    if(++tokenCount>2000000)fail('TOKEN_COUNT_LIMIT',start,'maximum structural tokens exceeded');
+    if(onToken!==null)await onToken(Object.freeze({
+      type,startByte:start,endByteExclusive:cursor.position,
+      ...(value!==undefined?{value}:{}),
+      sourceSha256:cursor.sourceSha256,sourceRevision:cursor.sourceRevision,
+    }));
+  };
+  const quoted=async(type)=>{
+    const token=await scanQuotedJsonString(cursor,{maxTokenBytes});
+    await publish(type,token.startByte,token.value);
+    return token.value;
+  };
+  const literal=async(word,value)=>{
+    const start=cursor.position;
+    for(let i=0;i<word.length;i++){
+      if(await cursor.take()!==word.charCodeAt(i))
+        fail('INVALID_LITERAL',cursor.position,'invalid JSON literal '+word);
+    }
+    await publish(value===null?'null':'boolean',start,value);
+    return value===null?{type:'null'}:{type:'boolean',value};
+  };
+  const number=async()=>{
+    const start=cursor.position;
+    let raw='';
+    const take=async()=>{const b=await cursor.take();raw+=String.fromCharCode(b);return b;};
+    if(await cursor.peek()===45)await take();
+    let p=await cursor.peek();
+    if(p===48)await take();
+    else if(nonzero(p)){
+      do {await take();p=await cursor.peek();} while(digit(p));
+    }else fail('INVALID_NUMBER',cursor.position,'number requires an integer part');
+    if(await cursor.peek()===46){
+      await take();
+      if(!digit(await cursor.peek()))
+        fail('INVALID_NUMBER',cursor.position,'fraction requires at least one digit');
+      while(digit(await cursor.peek()))await take();
+    }
+    p=await cursor.peek();
+    if(p===69||p===101){
+      await take();p=await cursor.peek();
+      if(p===43||p===45)await take();
+      if(!digit(await cursor.peek()))
+        fail('INVALID_NUMBER',cursor.position,'exponent requires a digit');
+      while(digit(await cursor.peek()))await take();
+    }
+    await publish('number',start,raw); // exact decimal lexeme; do NOT round numeric engineering facts
+    return {type:'number'};
+  };
+  async function parseValue(depth,capture=null) {
+    if(depth>256)fail('DEPTH_LIMIT',cursor.position,'nested values exceed protected depth');
+    await skip();
+    const p=await cursor.peek();
+    if(p===null)fail('EXPECTED_VALUE',cursor.position,'truncated JSON value');
+    if(p===34)return {type:'string',value:await quoted('string')};
+    if(p===123)return parseObject(depth,capture);
+    if(p===91)return parseArray(depth);
+    if(p===116)return literal('true',true);
+    if(p===102)return literal('false',false);
+    if(p===110)return literal('null',null);
+    if(p===45||digit(p))return number();
+    fail('EXPECTED_VALUE',cursor.position,'expected JSON value');
+  }
+  async function parseArray(depth){
+    const start=cursor.position;await cursor.take();await publish('start-array',start);
+    let count=0;
+    await skip();
+    if(await cursor.peek()===93){
+      const pos=cursor.position;await cursor.take();await publish('end-array',pos);
+      return {type:'array',count};
+    }
+    while(true){
+      await parseValue(depth+1);
+      count++;
+      if(!Number.isSafeInteger(count))
+        fail('COUNT_LIMIT',cursor.position,'array length exceeds safe integer');
+      await skip();
+      const p=await cursor.peek();
+      if(p===93){const pos=cursor.position;await cursor.take();await publish('end-array',pos);break;}
+      if(p!==44)fail('EXPECTED_ARRAY_SEPARATOR',cursor.position,'expected comma or closing bracket');
+      const pos=cursor.position;await cursor.take();await publish('comma',pos);
+    }
+    return {type:'array',count};
+  }
+  async function parseObject(depth,capture){
+    const start=cursor.position;await cursor.take();await publish('start-object',start);
+    // Duplicate decoded JSON property names are forbidden, including \u escape aliases.
+    // R04/U04 must qualify maximum breadth and key-retention budget before large-file release.
+    const seen=new Set(),fields=Object.create(null);
+    await skip();
+    if(await cursor.peek()===125){
+      const pos=cursor.position;await cursor.take();await publish('end-object',pos);
+      return {type:'object',fields};
+    }
+    while(true){
+      if(await cursor.peek()!==34)fail('EXPECTED_KEY',cursor.position,'object key must be quoted');
+      const key=await quoted('key');
+      if(seen.has(key))fail('DUPLICATE_JSON_KEY',cursor.position,'JSON object has repeated decoded key');
+      seen.add(key);
+      await skip();
+      if(await cursor.peek()!==58)fail('EXPECTED_COLON',cursor.position,'object key missing colon');
+      const colon=cursor.position;await cursor.take();await publish('colon',colon);
+      const keep=capture==='root'?ROOT_FIELDS.has(key):capture==='units'&&key==='length';
+      const nextCapture=keep&&key==='units'&&capture==='root'?'units':null;
+      const descriptor=await parseValue(depth+1,nextCapture);
+      if(keep){
+        if(descriptor.type==='array')fields[key]={type:'array',count:descriptor.count};
+        else if(descriptor.type==='object')fields[key]={type:'object',fields:descriptor.fields};
+        else if(descriptor.type==='string')fields[key]={type:'string',value:descriptor.value};
+        else fields[key]={type:descriptor.type};
+      }
+      await skip();
+      const p=await cursor.peek();
+      if(p===125){const pos=cursor.position;await cursor.take();await publish('end-object',pos);break;}
+      if(p!==44)fail('EXPECTED_OBJECT_SEPARATOR',cursor.position,'expected comma or closing brace');
+      const pos=cursor.position;await cursor.take();await publish('comma',pos);
+      await skip();
+    }
+    return {type:'object',fields};
+  }
+  await skip();
+  const root=await parseValue(0,'root');
+  await skip();
+  if(await cursor.peek()!==null)
+    fail('TRAILING_CONTENT',cursor.position,'non-whitespace bytes follow complete JSON');
+  const rootFacts={
+    schemaVersion:'lfj-token-root-facts/v1',
+    rootType:root.type,complete:true,duplicateRootKeys:false,
+    ...(root.type==='object'?{fields:root.fields}:{}),
+    ...(root.type==='array'?{rootCount:root.count}:{}),
+  };
+  return Object.freeze({
+    schema:'lfj-json-document-scan/v1',
+    complete:true,sourceSha256:cursor.sourceSha256,sourceRevision:cursor.sourceRevision,
+    endByteExclusive:cursor.position,tokenCount,
+    rootFacts:Object.freeze(rootFacts),
+  });
+}
