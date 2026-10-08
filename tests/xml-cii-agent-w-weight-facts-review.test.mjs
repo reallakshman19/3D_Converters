@@ -9,6 +9,7 @@ import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer, isXmlCiiDirectQu
 import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
 import { planVerifiedModeAExactMatch1, commitVerifiedModeAExactMatch1 } from '../converters/xml-cii2019-core/weight-facts-mode-a-exact-actions.js';
+import { planVerifiedFinalMatch2, commitVerifiedFinalMatch2 } from '../converters/xml-cii2019-core/weight-facts-final-review-actions.js';
 import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
@@ -766,4 +767,86 @@ test('U5 optional owned Mode A toolbar does not legacy-persist a verified canoni
   assert.ok(ui.includes('commitVerifiedModeAExactMatch1(options.canonicalSession, plan)'));
   assert.ok(ui.includes('Do NOT write legacy rigidWeight overrides'));
   assert.ok(ui.includes('if (dtxrMode) throw new Error'));
+});
+
+test('U6 source 59 kg, Match-1 20 kg, and explicit Final 22 kg have separate frozen authority', () => {
+  const b=basis('xml-cii/2019',['one','two']),facts=[...fixture(b,'one',59),...fixture(b,'two')];
+  const review=createWeightReviewService({score:oracleScore});
+  review.openBasis(b,{facts});
+  const session={basis:b,review,openedFacts:facts.length},idTwo=facts.at(-1).occurrenceId;
+  throws(()=>planVerifiedFinalMatch2(session,[]),'INCOMPLETE_FINAL_REVIEW');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'two',stage:'Rigidmatch2'}).decisionRevision,null);
+  const m=review.applyDecisions({basisId:b.basisId,scopeId:'two',stage:'RigidMatch1',commands:[{
+    commandId:'match1-20',basisId:b.basisId,scopeId:'two',occurrenceId:idTwo,
+    expectedDecisionRevision:null,action:'enter-manual',value:20,unit:'kg',
+  }]})[0];
+  const frozenMatch1=review.freezeSnapshot({basisId:b.basisId,scopeId:'two',
+    stage:'RigidMatch1',expectedDecisionRevision:m.decisionRevision});
+  const withoutFinal=planVerifiedFinalMatch2(session,[]);
+  assert.equal(withoutFinal.retained,2);
+  assert.equal(withoutFinal.overrides,0); // Match-1 20 is NOT Final 22
+  const choices=[{sourceId:'two',occurrenceId:idTwo,value:22,unit:'kg',
+    reason:'Engineer explicitly approved 22 kg for Final Rigid Match-2.'}];
+  const planned=planVerifiedFinalMatch2(session,choices);
+  assert.equal(planned.retained,1);
+  assert.equal(planned.overrides,1);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'two',stage:'Rigidmatch2'}).decisionRevision,null);
+  const applied=commitVerifiedFinalMatch2(session,planned);
+  assert.equal(applied.acceptedOverrides,1);
+  assert.equal(applied.finalSnapshots.length,2);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'two',stage:'RigidMatch1'}).decisions[idTwo].value,20);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'two',stage:'Rigidmatch2'}).decisions[idTwo].value,22);
+  const reviewed=[frozenMatch1.snapshotRef,...applied.finalSnapshots.map(s=>s.snapshotRef)];
+  const output={components:[
+    {sourceId:'one',occurrenceId:facts[0].occurrenceId,
+      children:[{childId:'A',kg:29},{childId:'B',kg:30}],
+      output:{unit:'cii-force',scale:10,value:590}},
+    {sourceId:'two',occurrenceId:idTwo,
+      children:[{childId:'C',kg:10},{childId:'D',kg:12}],
+      output:{unit:'cii-force',scale:10,value:220}},
+  ]};
+  assert.equal(review.verifyRun({basisId:b.basisId,reviewedSnapshotIds:reviewed,outputBasis:output}).verified,true);
+  const wrong=structuredClone(output);wrong.components[1].children[1].kg=10;
+  throws(()=>review.verifyRun({basisId:b.basisId,reviewedSnapshotIds:reviewed,outputBasis:wrong}),'MASS_NOT_CONSERVED');
+});
+
+test('U6 Final stage rejects missing reason, out-of-scope IDs and stale later source before mutation', () => {
+  const b=basis('xml-cii/2019',['one','two']),facts=[...fixture(b,'one',59),...fixture(b,'two',60)];
+  const review=createWeightReviewService({score:oracleScore});
+  review.openBasis(b,{facts});
+  const session={basis:b,review,openedFacts:facts.length};
+  const one=facts[0].occurrenceId,two=facts.at(-1).occurrenceId;
+  throws(()=>planVerifiedFinalMatch2(session,[{sourceId:'one',occurrenceId:one,value:22}]),
+    'ENGINEERING_FINAL_REASON_REQUIRED');
+  throws(()=>planVerifiedFinalMatch2(session,[{sourceId:'one',occurrenceId:'fake',value:22,
+    reason:'explicit check'}]),'UNKNOWN_FINAL_OCCURRENCE');
+  throws(()=>planVerifiedFinalMatch2(session,[
+    {sourceId:'one',occurrenceId:one,value:22,reason:'review A'},
+    {sourceId:'one',occurrenceId:one,value:23,reason:'review B'}
+  ]),'DUPLICATE_FINAL_CHOICE');
+  const choice=[
+    {sourceId:'one',occurrenceId:one,value:22,reason:'Explicit first source Final approval'},
+    {sourceId:'two',occurrenceId:two,value:23,reason:'Explicit second source Final approval'},
+  ];
+  const stale=planVerifiedFinalMatch2(session,choice);
+  review.applyDecisions({basisId:b.basisId,scopeId:'two',commands:[{
+    commandId:'late-match1-change',basisId:b.basisId,scopeId:'two',
+    occurrenceId:two,expectedDecisionRevision:null,action:'enter-manual',value:61,unit:'kg',
+  }]});
+  throws(()=>commitVerifiedFinalMatch2(session,stale),'STALE_FINAL_REVIEW');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2'}).decisionRevision,null);
+  const current=planVerifiedFinalMatch2(session,choice),tampered=structuredClone(current);
+  tampered.plans[0].commands[0].value=500;
+  throws(()=>commitVerifiedFinalMatch2(session,tampered),'STALE_FINAL_REVIEW');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2'}).decisionRevision,null);
+});
+
+test('U6 Final review cannot silently use unaccepted proposed 15 kg as physical mass', () => {
+  const b=basis(),review=createWeightReviewService({score:oracleScore});
+  review.openBasis(b,{facts:fixture(b)});
+  const session={basis:b,review,openedFacts:13};
+  const proposal=review.getProposals({basisId:b.basisId}).items[0];
+  assert.equal(proposal.value,15);
+  throws(()=>planVerifiedFinalMatch2(session,[]),'INCOMPLETE_FINAL_REVIEW');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2'}).decisionRevision,null);
 });
