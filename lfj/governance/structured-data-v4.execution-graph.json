@@ -1822,6 +1822,10 @@
         {
           "responsibility_id": "R06",
           "ref": "reallaksh19/3D_Converters#1071"
+        },
+        {
+          "responsibility_id": "R07",
+          "ref": "reallaksh19/3D_Converters#1078"
         }
       ]
     }
@@ -1830,7 +1834,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 93
+      "reserve_weight": 88
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2200,6 +2204,68 @@
           "weight": 25,
           "outcome": "Unavailable execution support fails closed",
           "verify": "Independent oracle: Explicit no-worker fallback, transfer-pressure and source-progress negatives; outcome: Unavailable execution support fails closed"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1078",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R07",
+      "work_class": "PRODUCT",
+      "outcome": "Cancelled or superseded jobs never publish acceptable results and abandoned jobs release resources.",
+      "independence_basis": "Independent cancel/crash/stale-revision fault cases. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C3_LIFECYCLE"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/transport/lifecycle/"
+      ],
+      "acceptance_methods": [
+        "Independent cancel/crash/stale-revision fault cases",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1071"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Cancelled work has a terminal outcome",
+          "verify": "Independent oracle: Independent cancel/crash/stale-revision fault cases; outcome: Cancelled work has a terminal outcome"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Crashes cannot produce partial success",
+          "verify": "Independent oracle: Independent cancel/crash/stale-revision fault cases; outcome: Crashes cannot produce partial success"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Old revisions cannot publish outputs",
+          "verify": "Independent oracle: Independent cancel/crash/stale-revision fault cases; outcome: Old revisions cannot publish outputs"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Retries never reuse old selections",
+          "verify": "Independent oracle: Independent cancel/crash/stale-revision fault cases; outcome: Retries never reuse old selections"
         }
       ]
     }
