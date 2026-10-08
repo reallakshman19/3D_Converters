@@ -1,4 +1,4 @@
-# LFJ R10 — actual cross-runtime Worker source port (U01/U02 prototype)
+# LFJ R10 — real Node/browser Worker, committed source paging
 
 Governance: [R10 #1088](https://github.com/reallaksh19/3D_Converters/issues/1088) existing C5_PORTS (5 original programme points), admitted by [PR #1089](https://github.com/reallaksh19/3D_Converters/pull/1089) after accepted R06 and R09; product source `lfj/ports/**` only. Full C5_PORTS responsibility remains **IN PROGRESS** until Node and actually served browser Worker outputs, scoped R08/R09 pages, unsupported-capability cases and deployment permissions are qualified. No new graph claim.
 
@@ -17,10 +17,9 @@ Only after full original JSON grammar and complete source event census does Work
 
 ## R06 → R07 → R08 → R09 committed source composition
 
-`runCommittedSourceQuery` in `committed-worker-query.mjs` injects **two independent store ports**: a synchronous-commit R07 source-event index store (`stagePage/commit/abort/readOrdered`) and a R09 selected-result indexed store (`stagePage/commit/abort/readRange`). The **same** real Node/Chromium Worker must answer R06 `START`, actually consume bounded original byte pages, and run R03/R05 original JSON scanning inside Worker; only an accepted R06 receipt + complete matching R05 source census authorizes R07 `SOURCE_INDEX_COMPLETE`. After that, the genuine R08 selector stages R09 pages once and the caller reads by index offset with source/scope/job-fenced cursors. Failure or missing Worker/store aborts rather than falling back. Test-only tiny-array stores are explicit fixtures, never production spill/durability proof.
+`runCommittedSourceQuery` in `committed-worker-query.mjs` injects **two independent store ports**: a synchronous-commit R07 source-event index store (`stagePage/commit/abort/readOrdered`) and a R09 selected-result indexed store (`stagePage/commit/abort/readRange`). The **same** real Node/Chromium Worker must answer R06 `START`, actually consume bounded original byte pages, and run R03/R05 original JSON scanning inside Worker; only an accepted R06 receipt + complete matching R05 source census authorizes R07 `SOURCE_INDEX_COMPLETE`. After that, the genuine R08 selector stages R09 pages once and the caller reads by index offset with source/scope/job-fenced cursors. Failure or missing Worker/store aborts rather than falling back. The caller **must supply a live `getCurrentBasis` attestation** for source, SHA, revision, scope, and job; no fixed-basis default may silently publish a stale result. Tiny-array fixtures are not production persistence.
 
-## Remaining acceptance vetoes
+## Remaining vetoes
 
-The existing R05/R07 source-index pipeline has no default persistent queryable store; R09 supplies only the storage-port interface. The present R10 scan sends original provisional events to the host but **does not** yet stitch these facts into a real persistent or complete R07 Worker-consumed receipt plus R08→R09 paged view, or test U03 true selected-page parity in both environments. `docs/lfj` is not deployed, and the graph's `lfj/ports/**` lease cannot be used to edit `docs/**`, Resolver `tabs/**`, CI mirror owners or independent domain adapters without a V3.2 authorized claim-preserving amendment.
-
-Do not claim live Resolver, authentic XML-CII/DTXR/POS/PS outputs, 10.54/30/90MB browser performance, cross-session cursor durability, or adoption by future repositories. Source facts remain distinct from R02 typed Site/Zone ownership, R08 selection, GC-PW Basis or edit authority.
+R10's real Worker R06→R09 composition uses only injected test stores; no production persisted, crash-safe IndexedDB/OPFS source-index backend or deployed `docs/lfj` exists. Its `lfj/ports/**` lease never authorizes edits to `docs/**`, Resolver or other owners without V3.2 graph amendment.
+Do not claim live Resolver, XML/DTXR/POS/PS/CII export, large-file browser performance, durable cursors or other app adoption. Source facts do not grant Site/Zone or editing authority.
