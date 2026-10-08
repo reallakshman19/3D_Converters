@@ -3,6 +3,8 @@ import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-clie
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
 import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261001-single-weight-owners-1';
+import { buildXmlCiiBranchOccurrences } from './xml-cii-branch-scope.js';
+import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 
 function parseSupportConfig(raw) {
   try {
@@ -110,6 +112,15 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     return mergeInputXmlEngineResult(finalEnrichedResult, engineResult, factedJob.options.outputMode);
   }
 
+  // API callers and Mode A must pass the same full selected-occurrence format gate as the UI.
+  const occurrences = buildXmlCiiBranchOccurrences(factedJob.sourceText);
+  const auditConfig = parseSupportConfig(factedJob.supportConfigJson);
+  const audit = auditConfiguredBranchFormats(occurrences, auditConfig);
+  if (audit.blocked) return blockedRunParityResult(factedJob, {
+    error: `Configured branch identity blocked ${audit.failures.length} selected occurrence(s): ${JSON.stringify(audit.failures.slice(0, 3))}`,
+    stats: { branchFormatAudit: audit },
+  });
+
   const parityRunner = typeof runtime.runParityEnricher === 'function'
     ? runtime.runParityEnricher
     : enrichStandaloneXmlForRun;
@@ -117,6 +128,13 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   if (!parity?.applied || parity?.error || !parity?.evidence || parity.evidence.ok !== true) {
     return blockedRunParityResult(factedJob, parity);
   }
+  const finalAudit = auditConfiguredBranchFormats(occurrences, auditConfig, parity.branchRows);
+  if (finalAudit.blocked) return blockedRunParityResult(factedJob, {
+    error: `Preview branch identity is not qualified for converter release: ${JSON.stringify(finalAudit.failures.slice(0, 3))}`,
+    stats: { branchFormatAudit: finalAudit },
+    evidence: parity.evidence,
+    logs: parity.logs,
+  });
 
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
