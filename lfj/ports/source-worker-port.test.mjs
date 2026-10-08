@@ -96,3 +96,39 @@ test('R10/U04 semantic RED: native Worker pauses with ONE unacknowledged source 
    assert.equal(completed,false,'no complete source claim before receiver has staged all pages');
  }finally{await worker.terminate();}
 });
+
+test('R10/U04 semantic RED: a large valid R05 event batch is split into <=1MiB native Worker wire pages',async()=>{
+ const suffix='K'.repeat(14000);
+ const obj=Object.fromEntries(Array.from({length:32},(_,i)=>['key'+i+'_'+suffix,'v']));
+ const raw=new TextEncoder().encode(JSON.stringify(obj));
+ const expectedSha256=createHash('sha256').update(raw).digest('hex');
+ const worker=new Worker(new URL('./source-node-worker.mjs',import.meta.url),{type:'module'});
+ let pages=0,events=0,largestWire=0;
+ try{
+   const result=await new Promise((resolve,reject)=>{
+     const timer=setTimeout(()=>reject(new Error('long-key native Worker scan timed out')),60000);
+     worker.on('error',e=>{clearTimeout(timer);reject(e);});
+     worker.on('message',message=>{
+       if(message?.kind==='PROVISIONAL_PAGE'){
+         pages++;
+         events+=message.rows.length;
+         const wireBytes=new TextEncoder().encode(JSON.stringify(message)).byteLength;
+         largestWire=Math.max(largestWire,wireBytes);
+         worker.postMessage({schema:'LFJ.CrossRuntimeSourcePort.v1',kind:'PAGE_ACK',
+           jobId:'R10-LONG-KEY',sourceRefId:'LONG-SOURCE',sequence:message.sequence});
+       }else if(message?.kind==='SCAN_DONE'||message?.kind==='FAILED'){
+         clearTimeout(timer);resolve(message);
+       }
+     });
+     worker.postMessage({schema:'LFJ.CrossRuntimeSourcePort.v1',kind:'SCAN',
+       jobId:'R10-LONG-KEY',sourceRefId:'LONG-SOURCE',revision:'long-source',
+       blob:new Blob([raw]),expectedSha256,pageEvents:4096});
+   });
+   assert.equal(result.kind,'SCAN_DONE');
+   assert.equal(result.summary.sourceSha256,expectedSha256);
+   assert.equal(result.summary.occurrenceCount,33);
+   assert.equal(events,66,'no OPEN/SEAL facts silently clipped by transport');
+   assert.ok(pages>=2,'one large valid source event batch needs multiple bounded wire messages');
+   assert.ok(largestWire<=1048576,'entire serialized Worker message must be bounded');
+ }finally{await worker.terminate();}
+});
