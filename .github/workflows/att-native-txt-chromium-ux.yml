@@ -1,0 +1,31 @@
+name: Native TXT 105k Chromium UX R4
+on:
+  pull_request:
+    paths:
+      - 'scripts/test-att-native-tree-browser-chromium.mjs'
+      - 'tabs/model-converters/att-native-scope-popup.js'
+      - 'tabs/model-converters/att-native-tree-browser.js'
+      - 'tabs/model-converters/att-native-scope-selection.js'
+      - '.github/workflows/att-native-txt-chromium-ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium-native-ux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless Chromium runner
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Browser native TXT hierarchy, scroll, search, selection
+        run: node scripts/test-att-native-tree-browser-chromium.mjs
+      - name: Evidence scope
+        run: |
+          echo "Qualified 105213 synthetic TXT identities and actual Chromium DOM interactions."
+          echo "Owner private 90.85MB AML Chromium exact-head run still required; no binary NWD/RVM source needed for hierarchy."
