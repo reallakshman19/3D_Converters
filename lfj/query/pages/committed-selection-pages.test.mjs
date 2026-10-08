@@ -285,3 +285,31 @@ test('R09/U04: real same-length R03 interior edit revokes old source cursor by S
    }),e=>e?.code==='SOURCE_STALE');
  }finally{changed.close();await f.close();}
 });
+
+test('R09/U02 semantic RED: returned page rows are immutable even if indexed backend deserializes mutable objects',async()=>{
+ const store=memoryIndexedStore(),reader=store.readRange.bind(store);
+ store.readRange=async(...args)=>(await reader(...args)).map(r=>({...r}));
+ const f=await prepared({store});
+ try{
+   const page=await f.request(null,1);
+   assert.equal(Object.isFrozen(page.rows),true);
+   assert.equal(Object.isFrozen(page.rows[0]),true,'rows must be frozen snapshots');
+   assert.throws(()=>{page.rows[0].path='/tampered';},TypeError);
+ }finally{await f.close();}
+});
+test('R09/U02 semantic RED: caller mutation after staging cannot alter indexed source row',async()=>{
+ const f=await sourceView(),basis=sourceBasis(f.view.manifest);
+ let received;
+ const store={
+   stagePage:async p=>{received=p;},
+   commit:async()=>{},abort:async()=>{},readRange:async()=>[]
+ };
+ const p=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+ try{
+   const mutable={...f.opens[1]};
+   await p.stageSelectedPage([mutable]);
+   mutable.path='/tampered';
+   assert.equal(received[0].path,'/0','stage must take a defensive immutable snapshot');
+   assert.equal(Object.isFrozen(received[0]),true);
+ }finally{await p.abort();await f.close();}
+});
