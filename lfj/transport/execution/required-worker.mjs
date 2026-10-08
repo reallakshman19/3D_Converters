@@ -54,14 +54,21 @@ export async function runRequiredWorkerJob({
         worker.removeEventListener('error',onError);
       }else{
         worker.off('message',message);worker.off('error',onError);
+        worker.off('exit',onExit);
       }
     };
     const stop=(error,result)=>{
-      if(ended)return;ended=true;cleanup();
-      if(error)reject(error);else resolve(Object.freeze(result));
+      if(ended)return;
+      ended=true;cleanup();
+      if(!error){resolve(Object.freeze(result));return;}
+      // Failed admission owns this Worker: terminate and await native exit
+      // before reporting the failure. A later job must use a fresh Worker.
+      Promise.resolve().then(()=>worker.terminate()).catch(()=>{}).then(()=>reject(error));
     };
     const onError=e=>stop(new WorkerExecutionError('WORKER_FAILED',
       'isolated Worker reported an execution error',{cause:e?.error??e}));
+    const onExit=code=>stop(new WorkerExecutionError('WORKER_FAILED',
+      'isolated Worker exited before READY (code '+code+')'));
     const message=event=>{
       const data=browser?event?.data:event;
       if(!data||data.schema!==SCHEMA||data.kind!=='READY'||
@@ -80,6 +87,7 @@ export async function runRequiredWorkerJob({
     }else{
       worker.on('message',message);
       worker.on('error',onError);
+      worker.on('exit',onExit);
     }
     // A hung Worker never turns into a synchronous fallback or a successful
     // job. Later R07 owns terminal lifecycle/retry orchestration.
