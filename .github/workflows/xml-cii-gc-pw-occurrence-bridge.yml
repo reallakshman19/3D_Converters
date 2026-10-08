@@ -1,0 +1,20 @@
+name: XML-CII GC-PW Occurrence Bridge
+on:
+  pull_request:
+    paths:
+      - 'contracts/gc-pw-v1/occurrence-bridge.mjs'
+      - 'tests/gc-pw-v1-occurrence-bridge.test.mjs'
+      - 'docs/architecture/gc-pw-v1-occurrence-bridge.md'
+      - '.github/workflows/xml-cii-gc-pw-occurrence-bridge.yml'
+  workflow_dispatch:
+jobs:
+  source-occurrence-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Challenge canonical source facts and stale basis
+        run: node --test tests/gc-pw-v1-occurrence-bridge.test.mjs
