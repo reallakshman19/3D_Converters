@@ -1,0 +1,49 @@
+name: LFJ R05 source value occurrence census
+
+on:
+  push:
+    branches:
+      - 'lfj/r05-source-occurrence-index'
+    paths:
+      - 'lfj/index/**'
+      - '.github/workflows/lfj-r05-index.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/index/**'
+      - '.github/workflows/lfj-r05-index.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  index-native:
+    name: R05 Node ${{ matrix.node }} original byte token-to-value occurrence contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Print tested exact source revision
+        run: |
+          echo "R05_TESTED_SHA=$(git rev-parse HEAD)"
+          node --version
+      - name: Direct independent source path census and typed negative oracle
+        run: |
+          for test_file in lfj/index/*.test.mjs; do
+            node --test "$test_file" || exit 1
+          done
+      - name: Original 10.54 MB real-file independent JSON value census (Node24)
+        if: matrix.node == '24'
+        env:
+          LFJ_R05_REAL_SOURCE: '1'
+        run: node --test lfj/index/source-occurrence-index-real-source.test.mjs
+      - name: No source mutation in tests
+        run: test -z "$(git status --porcelain)"
