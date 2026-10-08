@@ -85,7 +85,12 @@ function rankedFromFacts(records, config) {
   }, config, { includeRejected: true });
   const amended = applyXmlCiiFlangeWeightFallbackToIssue({ ...values,
     candidates: rank.candidates.slice(0, 5), rejectedCandidates: rank.rejectedCandidates }, config);
-  return { candidates: amended.candidates || [], rejectedCandidates: amended.rejectedCandidates || [] };
+  // Legacy flange fallback marks the issue rather than the candidate.
+  // Preserve that provenance on the proposal without changing its mass.
+  const candidates = amended.flangeWeightFallback
+    ? (amended.candidates || []).map((candidate) => ({ ...candidate, flangeWeightFallback: true }))
+    : (amended.candidates || []);
+  return { candidates, rejectedCandidates: amended.rejectedCandidates || [] };
 }
 export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-weight-rank/v1') {
   // A proposal's master identity cannot drift through a mutable host config or
