@@ -4,10 +4,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const legacy = process.env.LFJ_R01_LEGACY_RED === '1';
-const candidate = legacy
-  ? await import('../../../contracts/stagedjson-contract.js')
-  : await import('./root-profile.mjs');
+// Before R01 code is introduced, exercise the real existing consumer implementation.
+// Re-run it later with LFJ_R01_LEGACY_RED=1; only an absent candidate triggers fallback.
+let legacy = process.env.LFJ_R01_LEGACY_RED === '1';
+let candidate;
+if (!legacy) {
+  try { candidate = await import('./root-profile.mjs'); }
+  catch (error) {
+    if (error.code !== 'ERR_MODULE_NOT_FOUND' || !String(error.message).includes('root-profile.mjs')) throw error;
+    legacy = true;
+  }
+}
+if (legacy) candidate = await import('../../../contracts/stagedjson-contract.js');
 
 const inspect = legacy
   ? (root) => {
