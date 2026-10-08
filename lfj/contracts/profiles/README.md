@@ -53,3 +53,29 @@ Source cases include all five root variants; strict marked profile; source envel
 - R19 independent RVM/ATT, R16–R17 XML Draft full-source export, and R18 actual populated 30/90 MB reference-hardware gates remain open.
 
 **Next:** finish current hosted Node/self-review and source/doc parity; on qualification publish exact-head TASK_EVIDENCE. Do not merge until authorized.
+
+## Token-derived AST-free RootFacts seam (subsequent R01 unit)
+
+`inspectStructuredJsonRootFacts(facts)` accepts the **shallow** descriptor consumed by the future R04 byte tokenizer. This is an alternative source-facts input to the original `inspectStructuredJsonRoot(parsed)`, not a new authority. Both call the **same** root-profile metadata classifier and return the unchanged `lfj-root-profile/v1` structural classification / `STRUCTURAL_INSPECTION_ONLY` rights. [Token facts source and independent parity/negative tests](./root-facts.test.mjs).
+
+```js
+{
+  schemaVersion: 'lfj-token-root-facts/v1',
+  rootType: 'object',
+  complete: true, duplicateRootKeys: false,
+  fields: {
+    schema: { type: 'string', value: 'inputxml-managed-stage/v1' },
+    profile: { type: 'string', value: 'AVEVA_JSON_FOR_3D_RVM_VIEWER' },
+    converter: { type: 'string', value: 'INPUTXML->STAGEDJSON' },
+    converterSchema: { type: 'string', value: 'inputxml-direct-managed-stage/v2-rich-topology' },
+    units: { type: 'object', fields: { length: { type: 'string', value: 'mm' } } },
+    hierarchy: { type: 'array', count: 2 }
+  }
+}
+```
+
+A bare array uses `{rootType:'array',rootCount:N,complete:true,duplicateRootKeys:false}`, not a fabricated `Array(N)`. A typed singleton uses `fields.type:{type:'string',value:'BRANCH'}` and `fields.children:{type:'array',count:N}`. The R04 lexer is responsible for deriving these counts and literal scalar values from **exact R03 bytes**, reporting unknown/invalid UTF-8, malformed JSON and duplicate raw keys, and setting `complete:true` **only after complete document closure**. R01 itself cannot authenticate a caller's assertion of `complete` and is therefore never an engineering acceptance token.
+
+**Fail closed:** declared but non-array `hierarchy`, `branches` or `objects` root envelopes reject `INVALID_ROOT_ENVELOPE` in both parsed-root and shallow-token paths, even when another valid envelope is present; simultaneous valid envelopes reject `AMBIGUOUS_ROOT`. Malformed field descriptors, missing completeness declaration or scalar types reject `INVALID_ROOT_FACTS`, `complete:false` rejects `INCOMPLETE_ROOT_FACTS`, `duplicateRootKeys:true` rejects `DUPLICATE_ROOT_KEY`; known strict managed-stage incompatible schema/converter/units or empty rich hierarchy retain their legacy typed refusals.
+
+**Acceptance scope:** independent `root-facts.test.mjs` tests cover parity for array/hierarchy/objects/branches/typed singleton and strict RVM profile, negative root/descriptor states and rights refusal. Exact-head Node hosted qualification is required. R04 and R05 do NOT yet exist; real-token-generated descriptors, source-coordinate spans, complete occurrence counts, source-to-output goldens and populated 30MB performance remain entirely unqualified.
