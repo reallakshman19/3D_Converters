@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import {writeFile,mkdir} from 'node:fs/promises';
 const base=process.env.XML_CII_RED_BASE_URL || 'http://127.0.0.1:4173';
-const results={schema:'PREVIEW_P0_RED_RUN_V1',sourceHead:process.env.GITHUB_SHA||'local',
+const results={schema:'PREVIEW_P0_RED_RUN_V1',sourceHead:process.env.PREVIEW_EXACT_HEAD||process.env.GITHUB_SHA||'local',
   caveat:'Uses real repository XML + synthetic master scale; not private owner inputs',
   cases:[],hotFunctions:[]};
 const browser=await chromium.launch({headless:true});
@@ -53,6 +53,7 @@ await mkdir('ValidationRecords',{recursive:true});
 await writeFile('ValidationRecords/xml-cii-preview-p0-red.json',JSON.stringify(results,null,2)+'\n');
 console.log('PREVIEW_P0_RED_DIAGNOSTIC');
 console.log(JSON.stringify(results,null,2));
-if(!rejection || !scale || rejection.status==='HARNESS_OR_PRODUCT_THROW'){
-  process.exitCode=1; // setup failure: incomplete diagnostic
+if(!rejection || !scale || [rejection,scale].some(x=>
+  ['HARNESS_OR_PRODUCT_THROW','BROWSER_OR_HARNESS_TIMEOUT'].includes(x.status))){
+  process.exitCode=1; // inconclusive diagnostic; never present a setup failure as a successful RED
 }
