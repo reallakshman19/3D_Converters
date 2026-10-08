@@ -1,0 +1,43 @@
+name: Agent P B3-B2A Mode B Worker Source Facts
+on:
+  push:
+    branches:
+      - 'agent-p/1000-preview-modeb-live-b3b2a'
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-session.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-source-pages.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-session.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-source-pages.js'
+      - 'tests/xml-cii-preview-modeb-session.test.mjs'
+      - '.github/workflows/xml-cii-preview-modeb-session.yml'
+      - 'tests/browser/xml-cii-preview-modeb-worker.html'
+      - 'scripts/run-xml-cii-preview-modeb-worker.mjs'
+jobs:
+  worker-source-facts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Mode B source-worker session, freshness, cancellation and basis
+        run: node --test tests/xml-cii-preview-modeb-session.test.mjs tests/xml-cii-preview-modeb-basis.test.mjs
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start static exact-source server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/p3b2a-http.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/tests/browser/xml-cii-preview-modeb-worker.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/p3b2a-http.log
+          exit 1
+      - name: Real Chromium Worker full-source custody and UI responsiveness
+        run: node scripts/run-xml-cii-preview-modeb-worker.mjs
