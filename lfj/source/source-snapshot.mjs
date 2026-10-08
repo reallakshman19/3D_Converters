@@ -8,6 +8,9 @@ export class SourceSnapshotError extends TypeError {
 }
 const fail = (code, message) => { throw new SourceSnapshotError(code, message); };
 const isCount = (n) => Number.isSafeInteger(n) && n >= 0;
+// In-memory custody is explicitly small-source only. Use openBlobSourceSnapshot for larger inputs.
+const MAX_RESIDENT_BYTES = 16*1024*1024;
+const MAX_RESIDENT_SEGMENTS = 4096;
 const K = Object.freeze([
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -81,13 +84,18 @@ class Sha256 {
 /** The caller's generation is only one part of revision identity; bytes are authoritative. */
 export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revision, maxChunkBytes=1024*1024 }={}) {
   if (!isCount(byteLength)) fail('INVALID_DECLARATION','byteLength must be a safe nonnegative integer');
+  if (byteLength>MAX_RESIDENT_BYTES) fail('SOURCE_RESIDENCY_LIMIT','large inputs need a Blob-backed source port');
   if (!isCount(maxChunkBytes)||maxChunkBytes===0||maxChunkBytes>1024*1024) fail('CHUNK_LIMIT','maxChunkBytes must be in 1..1MiB');
   if (typeof revision!=='string'||!revision.length) fail('INVALID_DECLARATION','revision is required');
   if (expectedSha256!==undefined && !/^[a-f0-9]{64}$/.test(expectedSha256)) fail('INVALID_DECLARATION','expected SHA-256 must be lowercase 64-hex');
   let state='OPEN', received=0, retained=[];
   const hasher=new Sha256();
   return Object.freeze({
-    abort() { if (state==='OPEN'||state==='READY') { state='ABORTED'; retained=[]; } },
+    abort() {
+      if (state==='ABORTED') return;
+      if (state!=='OPEN') fail('SNAPSHOT_FINALIZED','completed sources must be closed via snapshot.close()');
+      state='ABORTED';retained=[];
+    },
     append(input,offset) {
       if (state==='ABORTED') fail('SOURCE_ABORTED','source intake has been aborted');
       if (state!=='OPEN') fail('SNAPSHOT_FINALIZED','source no longer accepts bytes');
@@ -95,6 +103,7 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
       if (!isCount(offset)||offset!==received) fail('CHUNK_SEQUENCE','chunk offset must equal next expected byte');
       if (!input.length || input.length>maxChunkBytes) fail('CHUNK_LIMIT','chunk size must be nonzero and bounded');
       if (received+input.length>byteLength) fail('SOURCE_OVERFLOW','chunk exceeds declared source length');
+      if (retained.length>=MAX_RESIDENT_SEGMENTS) fail('SEGMENT_LIMIT','too many retained chunks; use bounded coalesced or Blob input');
       const immutableCopy=Uint8Array.from(input);
       retained.push({start:received,bytes:immutableCopy});
       hasher.update(immutableCopy);
@@ -121,9 +130,18 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
         if (!isCount(start)||!isCount(end)||end<start||end>byteLength) fail('RANGE_INVALID','source byte range invalid');
         if (end-start>limit) fail('RANGE_LIMIT','read exceeds bounded span limit');
         const out=new Uint8Array(end-start);
-        for (const chunk of retained) {
-          const lo=Math.max(chunk.start,start), hi=Math.min(chunk.start+chunk.bytes.length,end);
-          if (lo<hi) out.set(chunk.bytes.subarray(lo-chunk.start,hi-chunk.start),lo-start);
+        // Find first overlapping retained segment in O(log N), then visit only the matching span.
+        let lo=0,hi=retained.length;
+        while(lo<hi) {
+          const mid=(lo+hi)>>>1, part=retained[mid];
+          if(part.start+part.bytes.length<=start)lo=mid+1;
+          else hi=mid;
+        }
+        for(let i=lo;i<retained.length;i++) {
+          const chunk=retained[i];
+          if(chunk.start>=end)break;
+          const from=Math.max(chunk.start,start), to=Math.min(chunk.start+chunk.bytes.length,end);
+          if(from<to)out.set(chunk.bytes.subarray(from-chunk.start,to-chunk.start),from-start);
         }
         return out;
       };
