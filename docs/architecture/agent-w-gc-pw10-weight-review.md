@@ -54,3 +54,14 @@ No shared workflow, phase registry, Preview, worker protocol or writer files wer
 | Local/browser worker portability and stopped/stale reply | In-memory async fence tested; real worker NOT_RUN |
 
 Do not mark WW1–WW6 or full project acceptance completed until the live-run gates and integrator-owned writer checks actually pass.
+
+## 6. Checkpoint W3 source-owned lifecycle / occurrence safeguards (not complete integration)
+
+- `weight-match-model.js` now carries original `branchOccurrenceIndex` and `nodeOrdinal` into existing prepared rows without editing Preview. Identical `NodeNumber=-1` values get distinct physical identities through the read-only adapter.
+- `weight-match-renderer.js` no longer places a top-ranked proposal in an unaccepted weight input. A candidate still requires a selection/explicit input event. This is a DOM-path safeguard, not proof that all save pathways are ported to the ledger.
+- `xml-cii-adapted-weight-match-v2.js` now writes both explicit candidate and typed manual values to Match-1. Previously a typed Match-1 entry was silently projected to Final Match-2. `rigid-weight-authority.js` no longer deletes an existing Final value when a Match-1 weight changes, preserving independent stage precedence. Both root/docs modules are mirrored.
+- The XML-CII scorer pins a copy of master rows/config on construction, and proposals include scoring revision, method, mass, row ordinal/source id and complete rejected audit. Legacy flange fallback issue-level provenance is retained at the proposal level.
+- Full ModeA/individual Match-1 and single/ModeA Final acceptance are **not yet wired** to `applyDecisions` of the new session. The #999 integrator must attach source-bound, digest-attested FactRecord sessions to these runtime paths and writer; no self-parity acceptance is claimed.
+- Integrator I01 `contracts/gc-pw-v1/contract.mjs` arrived on main at `1fb7abef62f3590f647ac3c6d482813904a5ca73` after this branch fork. Local envelopes were checked against its exact validator source (17 passes across BasisRef/FactRecord/Proposal/Page/DecisionCommand/JobEvent); `assertBasisDigest` against real input bytes and native browser transport still pending. InputBasis `Page.complete` describes finished computation, not terminal pagination.
+
+**Cache veto:** The existing `weight-match-renderer.js` cache fingerprint remains based on metadata (filename/size, staged JSON length, master count, overrides). It must not be promoted as GC-PW basis identity. The future worker/UI bridge must use validated full-source/master SHA-256 or bypass that unsafe restored result. No performance claim/unsafe cache rewrite was made without owner-run timings.
