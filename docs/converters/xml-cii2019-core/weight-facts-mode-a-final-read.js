@@ -58,13 +58,19 @@ export function readVerifiedModeAFinalRows(session) {
       const match1Kg=match1?.state==='accepted'?match1.value:null;
       const finalKg=final?.state==='accepted'?final.value:null;
       const effectiveKg=positive(finalKg)?finalKg:positive(match1Kg)?match1Kg:sourceKg;
-      rows.push({sourceId,occurrenceId,sourceKg,match1Kg,finalKg,effectiveKg,
+      const original=decodePhysicalOccurrenceId(occurrenceId);
+      rows.push({sourceId,occurrenceId,
+        branchOccurrenceIndex:original.branchOccurrenceIndex,nodeOrdinal:original.nodeOrdinal,
+        componentSignature:original.componentSignature,
+        sourceKg,match1Kg,finalKg,effectiveKg,
         status:positive(finalKg)?'Final':positive(match1Kg)?'Match-1':positive(sourceKg)?'Source':'Needs review'});
     }
   }
   if(factCount!==session.openedFacts||!rows.length)
     fail('INCOMPLETE_FINAL_FACTS','Full verified physical field count must match the reviewed facts custody');
-  rows.sort((a,b)=>a.sourceId.localeCompare(b.sourceId)||a.occurrenceId.localeCompare(b.occurrenceId));
+  rows.sort((a,b)=>a.sourceId.localeCompare(b.sourceId)||
+    a.branchOccurrenceIndex-b.branchOccurrenceIndex||a.nodeOrdinal-b.nodeOrdinal||
+    a.componentSignature.localeCompare(b.componentSignature));
   return {basisId:basis.basisId,stage:'Rigidmatch2',sources,revisionBySource,
     physicalCount:rows.length,verifiedFactCount:factCount,
     unresolved:rows.filter(x=>!positive(x.effectiveKg)).length,rows};
