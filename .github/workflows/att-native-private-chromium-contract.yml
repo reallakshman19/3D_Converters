@@ -1,0 +1,43 @@
+name: TXT Private Chromium Replay Contract G1
+on:
+  pull_request:
+    paths:
+      - 'scripts/qualify-att-native-private-chromium.mjs'
+      - 'tabs/model-converters/att-native-scope-popup.js'
+      - 'tabs/model-converters/att-native-tree-browser.js'
+      - '.github/workflows/att-native-private-chromium-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-private-replay-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and private fixture custody rule
+        run: |
+          set -eu
+          node --check scripts/qualify-att-native-private-chromium.mjs
+          ! grep -q 'nwd.*required' scripts/qualify-att-native-private-chromium.mjs
+          cmp tabs/model-converters/att-native-scope-popup.js docs/tabs/model-converters/att-native-scope-popup.js
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Replay CLI self-run synthetic Chromium path (private data never uploaded)
+        run: node scripts/qualify-att-native-private-chromium.mjs --synthetic
+      - name: Verify missing private TXT cannot be claimed accepted
+        run: |
+          if node scripts/qualify-att-native-private-chromium.mjs /tmp/nonexistent-private-AML.txt > /tmp/blocked-output.log 2>&1; then
+            echo "ERROR: accepted a missing Owner fixture"
+            exit 1
+          fi
+          if grep -q 'ATT_NATIVE_REAL_AML_BROWSER_PASS' /tmp/blocked-output.log; then
+            echo "ERROR: fabricated successful private-file replay"
+            exit 1
+          fi
+          echo "Private AML result remains NOT_RUN unless an authorized checkout runs the SHA-locked local CLI."
