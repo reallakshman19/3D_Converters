@@ -65,7 +65,9 @@ function setChildText(document, parent, name, value) {
 function numeric(value) {
   const supplied = text(value).trim();
   if (!supplied) return null; // Absence is not a reviewed engineering zero.
-  const n = Number(supplied.replace(/[^0-9.+-eE]/g, ''));
+  const normalized = supplied.replace(/[^0-9.+-eE]/g, '');
+  if (!normalized) return null; // 'N/A' and other non-numeric labels are not zero.
+  const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }
 
