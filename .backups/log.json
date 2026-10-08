@@ -1,5 +1,5 @@
 {
-  "lastId": 1276,
+  "lastId": 1277,
   "entries": [
     {
       "id": 1,
@@ -8932,6 +8932,13 @@
       "file": "agents/claims/PR981.yaml",
       "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
       "backupFile": "13362_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1277,
+      "timestamp": "2026-10-08 07:40:00",
+      "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
+      "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
     }
   ]
 }
