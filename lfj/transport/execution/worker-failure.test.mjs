@@ -99,3 +99,24 @@ for(const [mode,expected] of [
   }finally{await worker.terminate();s.snapshot.close();}
  });
 }
+
+test('U04 RED: forged Worker prototype must not inline-ACK original source transfer',async()=>{
+ const s=source(),handlers=new Map();
+ let inlineCalls=0;
+ const fake=Object.create(Worker.prototype);
+ fake.on=(kind,fn)=>{handlers.set(kind,fn);return fake;};
+ fake.off=(kind,fn)=>{if(handlers.get(kind)===fn)handlers.delete(kind);return fake;};
+ fake.terminate=()=>Promise.resolve(0);
+ fake.postMessage=msg=>{
+   inlineCalls++;
+   queueMicrotask(()=>handlers.get('message')?.({
+     ...msg,kind:'SOURCE_ACK',receivedBytes:msg.bytes.byteLength,
+   }));
+ };
+ try{
+   assert.equal(fake instanceof Worker,true);
+   await assert.rejects(()=>transfer(fake,s),e=>e?.code==='INVALID_WORKER_PORT');
+   assert.equal(inlineCalls,0,'source bytes must not be delivered to spoofed inline receiver');
+   assert.equal(handlers.size,0,'reject and clean all source listeners');
+ }finally{s.snapshot.close();}
+});
