@@ -115,7 +115,10 @@ export async function verifyPhysicalFactPages({
   physicalOccurrences, requiredFieldIds, expectedSubjectType, pages,
 }) {
   // Fail-closed: cannot project facts unless actual live bytes match this basis.
-  await attestLiveBasis({ basis, ...record(live, 'live') });
+  // The immutable BasisRef is caller-independent; reject a shadow basis payload.
+  const supplied = record(live, 'live');
+  required(!Object.hasOwn(supplied, 'basis'), 'LIVE_BASIS_INJECTION', 'live.basis');
+  await attestLiveBasis({ ...supplied, basis });
   nonempty(expectedSubjectType, 'expectedSubjectType');
   const sources = sourceIndex(basis);
   ordinal(expectedOriginalCount, 'expectedOriginalCount');

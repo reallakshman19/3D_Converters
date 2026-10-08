@@ -134,6 +134,13 @@ test('selection, config, override and staged-source changes do not silently reus
   await assert.rejects(attestLiveBasis({ basis, ...d }), failCode('STAGED_SOURCE_DRIFT'));
 });
 
+test('live-evidence payload cannot shadow the independently supplied authoritative basis', async () => {
+  const { options } = await fixture();
+  const bad = mutate(options);
+  bad.live.basis = { ...bad.basis, basisId: 'f'.repeat(64) };
+  await assert.rejects(verifyPhysicalFactPages(bad), failCode('LIVE_BASIS_INJECTION'));
+});
+
 test('stale forged basisId fails even if all public fields are superficially valid', async () => {
   const { basis, live } = await fixture(); const bad = mutate(basis);
   bad.basisId = 'f'.repeat(64);
