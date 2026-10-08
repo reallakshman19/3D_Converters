@@ -16,6 +16,7 @@ on:
       - 'tests/xml-cii-issue-781-live-regex-acceptance.test.mjs'
       - 'tests/xml-cii-j04-multi-format-preview.test.mjs'
       - 'tests/xml-cii-j04-shared-branch-extraction.test.mjs'
+      - 'tests/xml-cii-j04-mode-a-provenance.test.mjs'
       - 'converters/xml-cii2019-core/branch-format-extraction.js'
       - 'docs/converters/xml-cii2019-core/branch-format-extraction.js'
       - 'tests/browser/xml-cii-issue-781-live-regex-acceptance.html'
@@ -49,6 +50,7 @@ jobs:
           tests/xml-cii-issue-781-live-regex-acceptance.test.mjs
           tests/xml-cii-j04-multi-format-preview.test.mjs
           tests/xml-cii-j04-shared-branch-extraction.test.mjs
+          tests/xml-cii-j04-mode-a-provenance.test.mjs
 
       - name: Run existing smart regex regressions
         run: >-
