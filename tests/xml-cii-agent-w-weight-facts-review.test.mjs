@@ -171,7 +171,7 @@ test('candidate audit retains length-rejected semantics and unresolved Rating ne
   const rejected = service.getCandidateAudit({ basisId: b.basisId, occurrenceId: 'one/branch:0/physical:0' }).rejectedCandidates;
   assert.ok(rejected.some((c) => c.rowLength === 106.1 && c.rejectedReason.includes('length failed')));
   const blocked = createWeightReviewService({ score: createXmlCiiFactWeightScorer(config) });
-  const conflict = facts.map((f) => f.fieldId === 'rating' ? { ...f, authority: 'conflict', diagnostics: ['unresolved Rating'] } : f);
+  const conflict = facts.map((f) => f.fieldId === 'rating' ? { ...f, authority: 'conflict', value: null, diagnostics: ['unresolved Rating'] } : f);
   blocked.openBasis(b, { facts: conflict });
   assert.equal(blocked.getProposals({ basisId: b.basisId, occurrenceIds: ['one/branch:0/physical:0'] }).items.length, 0);
 });
@@ -193,4 +193,22 @@ test('cancelled asynchronous fact job fences late worker completion; incomplete 
     components: [{ sourceId: 'one', occurrenceId: 'one/branch:0/physical:0',
       children: [{ childId: 'only', kg: 59 }] }],
   } }), 'INCOMPLETE_RUN');
+});
+
+test('strict GC-PW unresolved value and command uniqueness enforcement', () => {
+  const b = basis(), score = createXmlCiiFactWeightScorer({weight: {masterRows: []}});
+  const service = createWeightReviewService({ score });
+  const facts = fixture(b);
+  assert.ok(facts.filter(f => f.authority === 'unresolved').every(f => f.value === null));
+  const invalid = facts.map(f => f.fieldId === 'component.ref' ? {...f, authority: 'conflict', value: 'fake'} : f);
+  throws(() => service.openBasis(b, { facts: invalid }), 'INVALID_FACT');
+  service.openBasis(b, { facts });
+  const page = service.getFacts({basisId: b.basisId, limit: 2});
+  assert.equal(page.complete, true); // computation complete while nextCursor still represents more display pages
+  assert.ok(page.nextCursor);
+  throws(() => service.applyDecisions({basisId: b.basisId, scopeId: 'one',
+    commands: [
+      command(b, 'same', 'enter-manual', null, {value: 11, unit: 'kg'}),
+      {...command(b, 'same', 'enter-manual', null, {value: 11, unit: 'kg'}), occurrenceId: 'one/branch:0/physical:0'},
+    ]}), 'DUPLICATE_COMMAND');
 });
