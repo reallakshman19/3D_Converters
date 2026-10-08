@@ -105,8 +105,15 @@ class HeldOutMassTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             ledger = make_case(td, split=False, weight=["12073.4"])
             error(lambda: check(ledger, td), "CII_WEIGHT_MISMATCH")
-            ledger["output"]["convention"] = "raw-kg"
+            ledger["output"]["convention"] = "legacy-unscaled-N"
             error(lambda: check(ledger, td), "CII_WEIGHT_MISMATCH")
+
+    def test_cii_units_declaration_must_be_force_even_if_numbers_match(self):
+        with tempfile.TemporaryDirectory() as td:
+            ledger = make_case(td, split=False)
+            path = Path(td) / "actual.cii"
+            path.write_text(path.read_text().replace("  N.\n", "  lbf.\n"), encoding="utf-8")
+            error(lambda: check(ledger, td), "CII_FORCE_UNIT_UNVERIFIED")
 
     def test_proposal_is_not_accepted_and_match1_does_not_equal_final(self):
         with tempfile.TemporaryDirectory() as td:

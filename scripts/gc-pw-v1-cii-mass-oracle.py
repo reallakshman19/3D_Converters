@@ -106,6 +106,8 @@ def parse_cii_rigid(cii_text):
             fail("CII_PREAMBLE", line[:80])
     if "CONTROL" not in sections or "RIGID" not in sections:
         fail("CII_SECTION_MISSING", "CONTROL or RIGID")
+    if "UNITS" not in sections or not any(row.strip() == "N." for row in sections["UNITS"]):
+        fail("CII_FORCE_UNIT_UNVERIFIED", "UNITS N. declaration missing")
     controls = sections["CONTROL"]
     if len(controls) != 4:
         fail("BAD_CII_CONTROL", f"expected 4 lines, got {len(controls)}")
@@ -214,7 +216,7 @@ def verify_ledger(ledger, cii_text, *, source_dir, evidence_dir, cii_bytes=None)
     convention = text(cii_info.get("convention"), "output.convention")
     if convention == "legacy-kgx10-N":
         scale = Decimal(10)
-    elif convention == "raw-kg":
+    elif convention == "legacy-unscaled-N":
         scale = Decimal(1)
     else:
         fail("UNSUPPORTED_OUTPUT_CONVENTION", convention)
