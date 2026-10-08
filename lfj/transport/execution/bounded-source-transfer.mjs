@@ -11,7 +11,7 @@ const MAX_PAGE_BYTES=65536;
 
 export async function transferBoundedSourcePages({
   worker,trustedWorkerCtor,snapshot,jobId,sourceRefId,
-  pageBytes=65536,ackTimeoutMs=5000,
+  pageBytes=65536,ackTimeoutMs=5000,onConsumed=null,
 }={}) {
   if(!snapshot||typeof snapshot.readRange!=='function'||
      !Number.isSafeInteger(snapshot.byteLength)||snapshot.byteLength<0||
@@ -21,6 +21,8 @@ export async function transferBoundedSourcePages({
   if(!Number.isSafeInteger(pageBytes)||pageBytes<1||pageBytes>MAX_PAGE_BYTES||
      !Number.isSafeInteger(ackTimeoutMs)||ackTimeoutMs<1||ackTimeoutMs>30000)
     fail('TRANSFER_LIMIT','page and acknowledgement budgets invalid');
+  if(onConsumed!==null&&typeof onConsumed!=='function')
+    fail('INVALID_CONSUMPTION_SINK','onConsumed must be a synchronous callback when enabled');
   const trusted=trustedWorkerCtor??globalThis.Worker;
   if(typeof trusted!=='function')
     fail('WORKER_UNAVAILABLE','trusted isolated Worker constructor required');
@@ -34,7 +36,7 @@ export async function transferBoundedSourcePages({
   const subscribe=(kind,fn)=>browser?worker.addEventListener(kind,fn):worker.on(kind,fn);
   const unsubscribe=(kind,fn)=>browser?worker.removeEventListener(kind,fn):worker.off(kind,fn);
   const revision=snapshot.revision,sha=snapshot.sha256;
-  let acknowledgedBytes=0,pages=0,maxUnacknowledgedBytes=0;
+  let acknowledgedBytes=0,pages=0,maxUnacknowledgedBytes=0,workerConsumedBytes=0;
   for(let start=0;start<snapshot.byteLength;){
     const end=Math.min(snapshot.byteLength,start+pageBytes);
     const original=await snapshot.readRange(start,end,revision,pageBytes);
@@ -45,7 +47,7 @@ export async function transferBoundedSourcePages({
     const pendingBytes=original.byteLength;
     maxUnacknowledgedBytes=Math.max(maxUnacknowledgedBytes,pendingBytes);
     await new Promise((resolve,reject)=>{
-      let settled=false,timer=null;
+      let settled=false,acked=false,timer=null;
       const cleanup=()=>{
         clearTimeout(timer);
         unsubscribe('message',onMessage);
@@ -63,16 +65,50 @@ export async function transferBoundedSourcePages({
         'isolated receiver exited before acknowledging original bytes'));
       const onMessage=event=>{
         const msg=browser?event?.data:event;
-        if(!msg||msg.schema!==SCHEMA||msg.kind!=='SOURCE_ACK'||
-           msg.jobId!==jobId||msg.sourceRefId!==sourceRefId||
-           msg.sourceRevision!==revision||msg.sourceSha256!==sha||
-           msg.startByte!==start||msg.endByteExclusive!==end||
-           msg.receivedBytes!==pendingBytes){
+        const exact=msg&&msg.schema===SCHEMA&&
+          msg.jobId===jobId&&msg.sourceRefId===sourceRefId&&
+          msg.sourceRevision===revision&&msg.sourceSha256===sha&&
+          msg.startByte===start&&msg.endByteExclusive===end;
+        if(!exact){
           finish(new WorkerExecutionError('WORKER_PROTOCOL',
-            'source ACK does not match exact original source page'));
+            'Worker report does not match exact original source page'));
           return;
         }
-        finish(null);
+        if(msg.kind==='SOURCE_ACK'&&!acked&&msg.receivedBytes===pendingBytes){
+          acked=true;
+          if(!onConsumed){finish(null);return;}
+          // Transport ACK is not proof of source-byte consumption. Retain
+          // exactly this page in flight until the trusted Worker processes it.
+          clearTimeout(timer);
+          timer=setTimeout(()=>finish(new WorkerExecutionError('WORKER_CONSUME_TIMEOUT',
+            'Worker acknowledged transport but never reported consumed source bytes')),
+            ackTimeoutMs);
+          return;
+        }
+        if(msg.kind==='SOURCE_CONSUMED'&&onConsumed&&acked&&
+           msg.consumedBytes===end&&Number.isSafeInteger(msg.pageChecksum)&&
+           msg.pageChecksum>=0&&msg.pageChecksum<=0xffffffff){
+          const report=Object.freeze({
+            schema:'LFJ.WorkerConsumedSourceProgress.v1',
+            jobId,sourceRefId,sourceRevision:revision,sourceSha256:sha,
+            byteLength:snapshot.byteLength,consumedBytes:end,
+            pageChecksum:msg.pageChecksum,complete:false,engineeringReady:false,
+          });
+          try {
+            const callbackResult=onConsumed(report);
+            if(callbackResult&&typeof callbackResult.then==='function')
+              fail('CONSUMPTION_CALLBACK_ASYNC','progress callback must be synchronous');
+          }catch(error){
+            finish(new WorkerExecutionError('CONSUMPTION_CALLBACK_FAILED',
+              'Worker-consumption progress observer failed',{cause:error}));
+            return;
+          }
+          workerConsumedBytes=end;
+          finish(null);
+          return;
+        }
+        finish(new WorkerExecutionError('WORKER_PROTOCOL',
+          'Worker ACK/consumption sequence or consumed byte offset was invalid'));
       };
       subscribe('message',onMessage);
       subscribe('error',onError);
@@ -96,7 +132,9 @@ export async function transferBoundedSourcePages({
     schema:'LFJ.SourceTransferReceipt.v1',jobId,sourceRefId,
     sourceSha256:sha,sourceRevision:revision,
     byteLength:snapshot.byteLength,acknowledgedBytes,pages,
-    maxUnacknowledgedBytes,complete:false,engineeringReady:false,
+    maxUnacknowledgedBytes,
+    ...(onConsumed?{workerConsumedBytes}:{}),
+    complete:false,engineeringReady:false,
     rightsBasis:'SOURCE_TRANSPORT_ONLY',
   });
 }
