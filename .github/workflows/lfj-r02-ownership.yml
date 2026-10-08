@@ -1,0 +1,44 @@
+name: LFJ R02 ancestor source owner independent oracle
+
+on:
+  push:
+    branches:
+      - 'lfj/r02-*'
+    paths:
+      - 'lfj/adapters/ownership/**'
+      - '.github/workflows/lfj-r02-ownership.yml'
+  pull_request:
+    branches:
+      - lfj/r01-root-profile-authority
+      - lfj/structured-data-plan-v4
+      - main
+    paths:
+      - 'lfj/adapters/ownership/**'
+      - '.github/workflows/lfj-r02-ownership.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-owner:
+    name: R02 Node ${{ matrix.node }} independent own-vs-descendant oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Record tested exact head or merge tree
+        run: |
+          echo "R02_TESTED_SHA=$(git rev-parse HEAD)"
+          node --version
+      - name: Verify independent R02 owner facts, no existing app rewrites
+        run: node --test lfj/adapters/ownership/*.test.mjs
+      - name: Ensure verification did not edit source
+        run: test -z "$(git status --porcelain)"
