@@ -1,6 +1,6 @@
 # LFJ/1.0 — Resolver-first IMPLEMENTATION WORKPACK, review candidate V1
 
-**Review-only, no product code.** Parent 3D_Converters#1042; owner-priority governance PR #1077; canonical worker child #1071, product draft #1075. Prepared 2026-10-08 against main f57b5799952e268ee57a91658ebae36ed723f43f and plan PR df5a7ebf7ff30f0ed697d8550ad4fd9405e3e2e2. **Reconstruct latest source before coding.**
+**REVISED FOR INDEPENDENT REVIEW — PLAN_NOT_APPROVED pending exact-head re-review, no product code.** [Source-level review request #5460026352](https://github.com/reallaksh19/3D_Converters/pull/1077#issuecomment-5460026352) defines nine blocking corrections B01–B09, all addressed as implementation requirements below. A corrected plan is NOT a claim that product source is fixed, the write-surface graph amended, or final Resolver acceptance passed. **Where older descriptive text conflicts, the binding corrections in §§14–17 govern.** Parent 3D_Converters#1042; owner-priority governance PR #1077; canonical worker child #1071, product draft #1075. Prepared 2026-10-08 against main f57b5799952e268ee57a91658ebae36ed723f43f and plan PR df5a7ebf7ff30f0ed697d8550ad4fd9405e3e2e2. **Reconstruct latest source before coding.**
 
 ## 0. Owner intent, precise outcome and non-goals
 
@@ -8,7 +8,7 @@
 
 **User-facing end state:** Open actual Resolver; load a real StagedJSON File/Blob and authoritative XML/CII source; Build/Refresh yields complete, revisable Site/Zone/branch scope tree; selecting All or a bounded scope indexes all original occurrences without main-thread parsing; Resolve/Trace runs off-main; POS/PS/DTXR, bore/coordinate, matches/rejections and engineering source lineage agree exactly with independently approved expected output; page small result portions while retaining whole-source counts; replacing/cancelling a source never publishes stale trace/export; worker absence fails visibly, not via hidden main-thread fallback. Preserve existing Preview/Weight/GC-PW and CII permission invariants. Until proven, call it ACTIVE_INTEGRATION_TARGET, NOT WIRED/ACCEPTED.
 
-**Current facts:** R01–R05 native merged. R05 real 10,539,386-byte original staging JSON (SHA e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a): 270 array roots / 339,987 JSON values, Node census ~93.6s, not accepted responsiveness. R06 U01–U03 exact node and downstream evidence on #1075 exists; U04 independent RED candidate 10a13b23c6fd18ee1d8c794f901064644d40735b not yet accepted. R07–R10 and R12–R13 not materialized. **No Resolver code currently calls the complete LFJ execution path**.
+**Current facts (reconciled at review):** R01–R05 native merged. R05 real 10,539,386-byte original staging JSON (SHA e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a): 270 array roots / 339,987 JSON values, Node census ~93.6s, not accepted responsiveness. R06 U01–U03 have prior exact-head Node22/24 and retained integration evidence [#1071](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355); U04 has independent RED-test candidate 10a13b23c6fd18ee1d8c794f901064644d40735b on draft #1075, **not** qualified U04 GREEN or accepted R06; re-fetch branch head before continuation. R07–R10 and R12–R13 not materialized. **No Resolver code currently calls the complete LFJ execution path**.
 
 ## 1. Non-negotiable architecture / contract
 
@@ -70,7 +70,7 @@ Pre-adoption independent RED negatives: a BRANCH lacking own Zone with a VALVE c
 | R06/U04.d Cleanup/refusal | On failure: no lingering Worker/listeners/timers or partial accepted result; caller callback rejection fails closed | Native thread termination + observer-failure and no-ACK negatives |
 | R06 GATE | U01–U04 exact-head verified, dedicated Node22/24 and retained Chromium/Preview/Weight no-regression, docs mirror | TASK_RESULT on #1071; merge #1075 only when no direct blockers |
 
-**R07 must be separately admitted to lfj/transport/lifecycle/** (after R06).
+**R07 must be separately admitted to lfj/transport/lifecycle/** (after R06). R07's full revision fence must accept an app-supplied effective dependency digest spanning JSON, XML, config, selected scope, source/mode, epoch and export authority; native job fencing alone does not prove Resolver publish/export safety (B04).
 
 | Unit | Exact small implementation question | Required negative oracle |
 | --- | --- | --- |
@@ -112,11 +112,11 @@ Pre-adoption independent RED negatives: a BRANCH lacking own Zone with a VALVE c
 | R10/U03 Selection/page parity | Page union, counts/order, per-page cap and cursor stale negatives equal in both ports | page=1 and page=max independent expected output |
 | R10/U04 Explicit unsupported capability | Worker unavailable, Blob unsupported, runtime port mismatch and schema incompatibility fail typed | CSP/missing Worker, no hidden foreground parse/fallback |
 
-**PORTABILITY GATE:** native and *actual browser Worker* paths instantiate same app-neutral interfaces; transport/paging safe; no Resolver-specific imports into LFJ. Define forward-compatible API envelope/specification only; R11 tenant auth, remote quota, deployed endpoint and remote correctness remain deferred. If authentic LFJ endpoint is missing, document it as not implemented, not working.
+**PORTABILITY GATE (B03+B08):** native and *actual browser Worker* paths instantiate the same app-neutral interfaces; transport/paging safe; no Resolver-specific imports into LFJ. R10 must implement/test the versioned port envelope in §15, and an independently reproducible served docs-site LFJ module/Worker bundle with exact import paths, correct JS MIME, CSP-compatible construction and versioned cache invalidation. Current main has **NO docs/lfj/**; it is a blocker, not a documentation nicety. Any added build/deploy/doc paths require a prior claim-preserving ENFORCED writer-lease amendment. No silent main-thread fallback on 404, CSP or Worker denied. R11 tenant auth, quota, deployed endpoints remain deferred, no R11 points.
 
 ## 9. Phase 5 — first actual adopter: Resolver scope R12
 
-**Only sanctioned write surfaces:** tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js and tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js. Exact approved graph must admit R12 after R09/R10. If additional source loader/UI state/doc mirrors require product edits, raise a V3.2 owner-approved graph amendment first, not silent cross-lease modification.
+**CURRENT (INSUFFICIENT) write surfaces:** tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js and tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js. **B01 MANDATORY PRE-R12:** explicitly amend approved V3.2 write leases to include Resolver-only File/Blob loader hooks in ui-adapted/xml-cii-adapted-events.js (source-binding section), ui-adapted/xml-cii-adapted-state.js (source session/revision/invalidation), any new named Resolver intake adapter, and deployed docs mirror equivalents, with writer order R12 first, R13 later for its distinct run/export sections. R12 has NO permission to modify these yet merely from this prose. Root/load must be Blob/byte snapshot rather than eager full stagedJsonText hydration, and not break unrelated XML/Preview/Weight loaders.
 
 | Unit | Implementation increment | Independent RED and expected visible behavior |
 | --- | --- | --- |
@@ -129,7 +129,7 @@ Pre-adoption independent RED negatives: a BRANCH lacking own Zone with a VALVE c
 
 ## 10. Phase 6 — Resolver JSON Trace computation / export: R13
 
-**Approved write surfaces currently:** tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js and tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js. Current actual expensive core is ALSO in xml-cii-trace-resolution-ledger.js, which **is not part of the R13 write lease**. R13 lead must decide and prove BEFORE coding: (A) existing ledger module can be imported unmodified into a dedicated Resolver application Worker with LFJ input/original identity and bounded selected source pages; or (B) incremental/refactored ledger or new Worker entrypoint is necessary, requiring approved V3.2 graph-diff/plan_update/write-lease expansion or responsibility split conserving semantic claims. Merely wrapping existing synchronous runStandaloneResolverJsonTrace in an async Promise is a FAIL.
+**CURRENT (INSUFFICIENT) write surfaces:** tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js and ui-adapted/xml-cii-adapted-events.js. **B02 BINDING ARCHITECTURE:** production large-source R13 uses a dedicated **Resolver application module Worker** consuming LFJ original-source identities, selected bounded pages and compact incremental engineering projections. Keep unmodified xml-cii-trace-resolution-ledger.js ONLY as a small-source semantic regression comparator, never as the accepted large-file Worker algorithm. Before product changes obtain an authorized V3.2 ENFORCED graph/lease amendment naming Worker entrypoint, ledger or compact-projection module, ui-adapted/xml-cii-adapted-resolver-json-trace.js renderer, trace tree/table and CSV/export helpers, ui-adapted/xml-cii-adapted-events.js trace-run/export region, and corresponding docs deployment copies/build steps. R12's earlier source-load edits must finish before R13 touches the overlapping events.js file. Inline Promise wrapping a whole-source trace is a FAIL.
 
 | Unit | Implementation increment | Independent test and acceptance |
 | --- | --- | --- |
@@ -144,7 +144,7 @@ Pre-adoption independent RED negatives: a BRANCH lacking own Zone with a VALVE c
 
 **G7.1** Source fact completeness: original owner 10,539,386-byte source SHA, 270 root items, 339,987 original JSON values; source/Zone ownership parity against independent golden; root/profile variants and negative profiles.
 
-**G7.2** Output correctness: independently authored XML, POS/PS/DTXR/bore/coordinates, trace result and actual selected/full output manifests; ensure expected output is NOT generated by the function under test. Golden unknowns remain UNQUALIFIED. No export authority from LFJ source facts alone.
+**G7.2** Output correctness: independently authored XML, POS/PS/DTXR/bore/coordinates, trace result and actual selected/full output manifests; ensure expected output is NOT generated by the function under test. Golden unknowns remain **NO_GOLDEN / NOT_QUALIFIED** rather than guessed; synthetic expected outputs can unblock coding but never confer original-source engineering authority. No export authority from LFJ source facts alone.
 
 **G7.3** Isolation and failure: real Chromium Worker, no foreground large parse/trace, missing Worker refusal, canceled/superseded source and error/terminal state; end-to-end source-to-page-to-trace invalidation.
 
@@ -173,13 +173,108 @@ Each existing leaf enters as: OWNER_INTENT readback → V3.2 already released re
 
 **Explicit hold points requiring Owner review before silent action:** (H1) correctness/output golden source custody unavailable; (H2) R13 trace ledger file ownership outside released write surface; (H3) any leaf exceeds V3.2 hard LOC/time budget or requires new semantic leaf/reweights; (H4) production original 10.54MB / populated 30/90MB is too slow; (H5) browser deployment requires docs mirror or service Worker changes outside allowed surfaces; (H6) request for actual HTTP API or non-Resolver adopter violates current priority. Replan with append-only authorised PLAN_UPDATE, not an informal issue comment that overrides the released execution graph.
 
-## 14. Review decisions requested from Owner
+## 14. Independent reviewer D1–D6 — binding execution decisions (not open-ended questions)
 
-- **D1 Priority:** Confirm Resolver-only actual integration milestone is first and other three named apps remain placeholders until their own acceptance.
-- **D2 Trace-worker architecture:** Prefer import existing unmodified trace ledger inside Resolver Worker as interim faithful semantic baseline; if source review proves it cannot meet bounded large-file behavior, authorize a claim-preserving V3.2 R13 write-surface replan for incremental ledger and dedicated Worker entrypoint. Do not choose by assumption.
-- **D3 Original goldens:** Identify an independent engineering custodian for actual Resolver XML/staged source pairs and accepted output manifests; fabricated synthetic examples are useful REDs, not engineering output authority.
-- **D4 Performance limits:** Confirm intended reference device/browser, 30MB/90MB populated source owners, and approve measured goals only after baseline.
-- **D5 API scope:** Versioned interface now, no deployed authenticated remote endpoint until separate R11 authorization.
-- **D6 Governance:** Keep existing released graph/130-point scope; do not accelerate by secretly bypassing R06–R10 or unadmitted R12/R13 dependencies.
+[Independent exact-source review #5460026352](https://github.com/reallaksh19/3D_Converters/pull/1077#issuecomment-5460026352) resolves D1–D6. **Implement these decisions, do not repeatedly ask the Owner for a generic planning approval:**
 
-**Review status:** PROPOSED — NO NEW PRODUCT CODE / NO NEW LEAF / NO GRAPH MUTATION from this workpack. Existing R06 draft #1075 separate and remains unmerged pending U04 qualification.
+| Decision | Resolved implementation instruction | Proof / veto |
+| --- | --- | --- |
+| D1: priority | LFJ reusable core, **Resolver / JSON Trace first and only adopter**. StagedJSON→XML, 3D Draft Edit, Revision Compare `PLACEHOLDER_NOT_WIRED`. | No other app imports LFJ or claims acceptance. |
+| D2: algorithm | Dedicated real Resolver application Worker + **incremental, bounded trace projection**. Existing whole-source trace ledger is a SMALL fixture comparator only. | No `JSON.parse` entire large source, retained raw tree, full clone or foreground trace; R13 exact leases approved before source changes. |
+| D3: goldens | Independently author expected small XML/staged-to-trace/CII/CSV oracles now. Real source authority and real approved output hashes acquired separately. | Original 10.54MB input census is **not** an output golden; missing original expected output = `NO_GOLDEN`, G7.2 `NOT_QUALIFIED`; coding may continue. |
+| D4: performance | Name Chromium build, OS/device/hardware; capture cold/warm p50/p95 UI, first scope/page, worker+UI memory, bytes, pressure, cancellation. | Proposed 100ms/50ms/200 rows values `PROPOSED_UNMEASURED` until ratified; no genuine 30/90MB source = `NO_SOURCE`, G7.4 `NOT_QUALIFIED`. |
+| D5: API | **R10** supplies a tested versioned local portable port envelope (§15); no deployed auth/HTTP service or R11 credit. | Node22/24 + actual browser Worker structured-clone/version/negative parity. |
+| D6: governance | Retain released 24-leaf/130-point proposal and dependency topology. **Amend write surfaces** only by explicit authorized, claim-preserving V3.2 `plan_updates`/ENFORCED graph-diff and lease-order readback. | No product modification outside currently admitted R06; no speculative R12/R13 admission/merge/title percentages. R18/R24 remain separate. |
+
+## 15. B01–B09 source corrections → executable boundaries and independent falsifiers
+
+These are **plan-level resolutions**, not claims that runtime defects are repaired. Every RED below is authored and committed separately before the corresponding product GREEN.
+
+### B01 — R12 real File/Blob intake, state and source invalidation
+
+The existing `bindSourceEvents` in `ui-adapted/xml-cii-adapted-events.js` eagerly uses `readTextFile(file)` for staged JSON (main L93–100); `ui-adapted/xml-cii-adapted-state.js` owns source/session/dependency revisions (main L248–333). Neither is currently leased to R12. **Before R12 code**: authorize R12-only intake/selection lease covering precisely these regions or an explicitly named delegated adapter, plus docs mirror. Implement source selection as direct `File/Blob → openBlobSourceSnapshot`, obtaining immutable SHA/revision and bounded byte reads; avoid full string hydration of large staged JSON in the foreground. The preexisting XML/other feature's file/text path remains unaffected. For events.js R12 owns only source and selection binding; **R13 owns only trace run, CSV, clipboard and export after R12 merges**, with an ordered writer fence and non-overlap confirmed by diff. RED independent `source select A → same-size changed interior B → A completes late` must never reuse A's index or publish stale selections. Typed Blob/unsupported profile and canceled scan are visible in the real served UI.
+
+### B02 — R13 computation, renderer, CSV and dedicated Worker
+
+Current main `xml-cii-trace-resolution-ledger.js` L196–251 performs full `JSON.parse` and recursive `walkStaged` retaining `raw`; L593–625 creates full groups and records. `ui-adapted/xml-cii-adapted-resolver-json-trace.js` L218–393 creates complete evidence tree, table rows and nested HTML even for inactive subtabs. `ui-adapted/xml-cii-adapted-events.js` L249–267 constructs a full CSV synchronously. **Binding decision**: a real dedicated Resolver module Worker imports app-neutral LFJ index/selection/page/ports, builds *bounded incremental engineering projection* within Resolver adapter and streams page-limited trace facts/manifests. Preserve branch, bore, original global sequence/occurrence, inherited points and coordinate calibration, POS/PS joins, ambiguity and XML/source rights. Legacy ledger is **small-case oracle comparator only**. Before code, grant R13 the explicit Worker entrypoint and projection, table/tree/CSV helper, renderer, export and docs deployment write surfaces, with claim/point conservation. RED: full vs scoped XML/POS/PS independent golden, repeated names, 1-row page, missing Worker, malformed source, incomplete page manifest. **Fail** if Worker merely moves source indexing while foreground continues large synchronous trace, or if one message clones all result rows.
+
+### B03 — actual served deployment (R10 and app mirror leases)
+
+**Verified source-level absence on main:** `docs/lfj/` returns 404, while `docs/tabs/xml-cii-2019-standalone/**` exists. R10's existing lease is only `lfj/ports/**`, so claim-preserving ENFORCED amendment must name **actual build/packaging script + `docs/lfj/**` (or reproducible equivalent)** and hosted deploy test before writing those files. Deterministic one-way packager emits versioned app-neutral module imports and valid browser module-Worker entrypoint URLs; served docs app resolves paths and required JS MIME/CSP/module semantics, deploy cache/version drift is invalidated. R12/R13 also lease mirrored docs/tabs sources or a single-source deterministic packager per exact file. **RED** serve docs entrypoint with LFJ worker URL removed/404, wrong MIME, blocked CSP, old bundle; real Chromium must show typed not-ready error and no inline JSON parse; Node source-tree tests are insufficient. Delivery gate checks source-to-doc content/build manifest parity and network import failures.
+
+### B04 — complete Resolver job/version/export identity
+
+R07's generic epoch must be extended by an R13 app-supplied **`ResolverExecutionBasis.v1`** whose stable digest derives at least:
+`{stagedSourceRefId, stagedSha256, stagedRevision, selectedScopeDigest, xmlSourceRefId, xmlRevisionOrSha256, effectiveResolverConfigRevision, effectiveSupportConfigRevision, sourceKind, branchSelectionRevision, runEpoch, exportAuthorityRevision}`.
+Do not use filename, string length, jobId alone or JSON digest alone. Bind every displayed result, matched/rejected status, save/config state, benchmark, clipboard, CSV and CII/export eligibility to the same current basis. Stage provisional Worker pages privately; **only atomically publish complete, basis-matching results**. On any dependency/source/mode/config edit cancel/invalidate existing job; the UI must not download old results while recalculation is pending. RED opposite-order completion A/B; same JSON with changed XML/config; save vs refresh; click CSV at cancellation boundary; source-kind and branch-selection changes. No stale provisional data becomes a zero-match or downloadable success.
+
+### B05 — malformed and unsupported roots must NOT become successful empty trace
+
+Legacy `buildStandaloneDtxrPositionGroups` catches failed `JSON.parse` and returns `[]` (ledger main L245–251). Its walker handles bare arrays and children arrays but may not traverse schema wrapper variants. Define `ResolverAdmittedProfile.v1` **separate** from LFJ `SchemaProfile`: root shape + version/producer + allowed engineering fields/rights + exact matching golden + explicit no-trace InputXML workflow semantics. Admit only profiles actually proven by expected engineering outputs; support for a LFJ root is NOT automatic Resolver export capability. Distinguish `VALID_EMPTY_SCOPE`, `INPUTXML_TRACE_NOT_REQUIRED`, `INVALID_JSON`, `UNSUPPORTED_ROOT`, `AMBIGUOUS_ENVELOPE`, `DUPLICATE_SOURCE_KEY`, `INVALID_UTF8`, `DEPTH_LIMIT`, `SOURCE_STALE`, `WORKER_UNAVAILABLE`; use project typed-error code casing consistently when implemented. Negative independently authored dual `objects`+`hierarchy`, unsupported wrappers, malformed bytes, repeated child Zone and unsupported deep source must reject visibly, **never return valid empty matches**. Valid legal empty scope remains possible with an independently proved complete index.
+
+### B06 — bound the entire engineering data path, not just R09 pages
+
+Define a compact Resolver-only `TraceOccurrenceProjection.v1`: `{sourceRefId,revision,path,ordinal,parent,ownAttributes,inheritedBranch,inheritedPoint,inheritedBore,xmlCandidateKeys,ambiguity,calibrationEvidence}` with explicit true global-context semantics. Query paging bounds **both source input and output serialization/structured clone**; XML matching may depend on global context outside selected output, which must be conserved by a bounded index (not dropped as "not selected"). Worker uses capped mutable working sets, measured spill/index/page budgets and no uncontrolled raw tree/complete group clone; UI renders at most an approved visible row/DOM budget, lazily materializes opened tree branches; subtab badges use counts/manifest, not prebuilding whole row arrays. CSV/export uses bounded streamed pages or equivalent bounded memory path and completeness digest; no foreground full CSV string. Acceptance measures retained heap, message max bytes, page/DOM row count, full-page union and output digest against independent oracle. **A capped display is never a capped engineering calculation**. Memory targets require real browser baseline; no guessed pass.
+
+### B07 — safe source-controlled DOM boundary
+
+Current `renderTraceTreeHtml` (main L275–301) concatenates `branch.branchName`, `bore.bore`, `position.label`, `position.concatenated` into an `innerHTML` string. R13 MUST replace interpolated source-derived values with DOM `textContent`/text nodes and safe element creation (or narrowly reviewed context-escaping with proof); never treat source data as HTML. Add real Chromium hostile source input with `<img onerror=...>`, `<svg onload=...>`, quotes and escaped text, assert zero execution, no DOM injection and correct literal rendering. Include docs/ mirror in the same writer/build custody. Do not retain old renderer unchanged under a Worker migration.
+
+### B08 — accountable local portable API envelope in R10 now
+
+R10 owns a *real tested* `LFJ.PortEnvelope.v1` under `lfj/ports/**`, schema-versioned and structured-clone safe across Node22, Node24 and Chromium Worker. Minimal request `{version,operation,requestId,jobId,source:{sourceRefId,sourceSha256,sourceRevision,profileId,capabilities},query:{selectionDigest,cursor,pageLimit},bounds:{maxSourcePageBytes,maxResultRows,maxResultBytes},optionalAuthContext}`; response `{version,requestId,jobId,kind:'ACCEPTED|PAGE|PROGRESS|COMPLETE|ERROR',sourceBasis,selectionDigest,counts,cursor,terminal,error:{code,detail}}`. Validate unknown versions, unsupported capability, malformed bounds and missing source/job/basis; typed refusal with no inline fallback. `optionalAuthContext` is data-only and cannot grant access. R11 owns real tenant/auth/quota/expiry/network services **later** and receives no progress now. Native/Chromium cross-clone and reject tests are mandatory, not a README-only API claim.
+
+### B09 — truth-aligned live R06 frontier / governance
+
+Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r06-worker-isolation`. U01 actual Worker provenance, U02 bounded ACK and U03 actual worker-consumed-byte **protocol** were evidenced at earlier exact candidate `4fa6cbfef7daa563e096ec8438afc77299e19773` via [TASK_EVIDENCE](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355). **Current branch at review:** U04 native RED-only `10a13b23c6fd18ee1d8c794f901064644d40735b`, U04 **NOT ACCEPTED**, no current-head U04 green. This does not prove the full R05 parser runs in a deployed Worker. On any continuation re-fetch PR and relevant commit workflows; stale prior evidence does not qualify new candidate until replay. Correct `resolver-first-vertical-slice.PLAN.md`, this document and PR description together; no hand-edited scoreboards.
+
+## 16. Explicit file → owner → permission → RED → deployment matrix (implementation source contract)
+
+**IMPORTANT:** Rows tagged `AMENDMENT_REQUIRED` are **requests, not currently granted permission**. Issue #1077 does not edit approved V3.2 graph. Each surface requires pinning to live source/file before binding, exact source-to-doc mirror/build paths and an ENFORCED claim-preserving lease approved **before product PR edits**. Only the named existing R06 write lease is active now.
+
+| File / module (source and/or deployment) | Responsible leaf; sequential writer / lease state | RED or independent oracle | Served deployment requirement |
+| --- | --- | --- | --- |
+| `lfj/transport/execution/**` | R06 existing exclusive #1075; ACTIVE, U04 RED | Crash before READY/after ACK, invalid/late protocol, no resource leak | Real native+browser Worker, no inline fallback |
+| `lfj/transport/lifecycle/**` | R07 AFTER R06; ADMISSION_REQUIRED | Cancel/crash/revision/retry stress | Worker cannot publish stale state |
+| `lfj/query/selection/**` | R08 AFTER R07; ADMISSION_REQUIRED | Own Zone, repeated siblings, nested exclusion | Same selected identity |
+| `lfj/query/pages/**` | R09 AFTER R08; ADMISSION_REQUIRED | page=1 complete union, stale cursor, cap | Complete selection despite tiny view |
+| `lfj/ports/**`, new R10 versioned envelope | R10 AFTER R09; ADMISSION_REQUIRED | Node22/24/Chromium clone/version/typed errors | Same results in served Worker |
+| LFJ browser module packager/build script and `docs/lfj/**` (currently absent) or equivalent | R10 extension **AMENDMENT_REQUIRED** | docs-site 404/MIME/CSP/cache RED | Served docs actually loads LFJ+module Worker |
+| `tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js` + ui-adapted `xml-cii-adapted-resolver-scope.js` | R12 existing proposed leaves, AFTER R10 | Child Zone isolation, exact source scope | `docs/tabs/xml-cii-2019-standalone/` parity |
+| ui-adapted `xml-cii-adapted-events.js` (File/Blob source handler L61–115), ui-adapted `xml-cii-adapted-state.js` and any named intake adapter | R12 extension **AMENDMENT_REQUIRED**, **FIRST WRITER** on events.js | 10.54MB Blob, equal-length edited interior, replacement | Corresponding docs mirror and no full foreground File.text |
+| `tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js` | R13 existing proposed leaf, AFTER R12 | Full/scoped XML/trace golden, malformed rejects | Corresponding docs mirror |
+| Resolver module Worker entrypoint, compact trace projection, `xml-cii-trace-resolution-ledger.js` if changed | R13 extension **AMENDMENT_REQUIRED**; comparator itself read-only until lease granted | Incremental global join, parse errors, group/bore/point semantic goldens | Worker URL/CSP/MIME and docs mirror |
+| ui-adapted `xml-cii-adapted-events.js` (Run/Refresh L207–229; export L249–267; clipboard) | R13 extension/current events writer **SECOND**, after merged R12 File/Blob region, no concurrent writer | Late A/B job, changed XML/config, CSV-at-cancel | Docs mirror; explicit export basis |
+| ui-adapted `xml-cii-adapted-resolver-json-trace.js` renderer + trace tree/table/CSV helpers | R13 extension **AMENDMENT_REQUIRED** | Malicious HTML, lazy rendered counts/rows and export complete digest | Docs mirror; no unsafe `innerHTML` |
+| `docs/tabs/xml-cii-2019-standalone/**` exact changed mirrors or deterministic builder | R12/R13 ordered extension **AMENDMENT_REQUIRED** | Diff/build parity, served network requests and E2E click | No missing imports/stale versions |
+| `lfj/api-port/**` authenticated remote service | R11 explicitly DEFERRED; NO IMPLEMENTATION CREDIT | Future tenant isolation/TTL/quota | NO DEPLOYED API |
+
+**Writer fence:** R10 packaging lease first; R12 scope+File/Blob+state and docs source deployment second; R13 trace Worker/computation+render/export/docs third, with exact existing events.js section separation. Main/PR diff must prove no Preview, Weight, unrelated source/CI mirror ownership contamination. A graph amendment needs approved plan update, strict ENFORCED `decompose-check`/`graph-diff`, source lease mapping, digest/claim/weight conservation and provider readback. A product writer does not receive permission via prose alone.
+
+## 17. Ordered execution and reviewer closure matrix
+
+| Step | Execute, only with admitted writer | Gate proving a working vertical slice rather than isolated PR statistics |
+| --- | --- | --- |
+| A1 R06 | Complete U04 native Worker crash/protocol/cleanup on #1075; replay U01–U03 on SAME head | Exact-head Node22/24 + real Worker/Chromium; TASK_RESULT; merge only if independently qualified |
+| A2 R07 | Cancel, crash partial rollback, all-source job fences, fresh retry | One terminal outcome; old source/result never commits |
+| A3–A4 R08/R09 | Semantic include/exclude and bounded page full union | Original source identity/count unchanged; invalid selection/cursor fails |
+| A5 R10 plus B03+B08 | Node/browser parity + real tested versioned envelope + reproducible docs LFJ+Worker packaging | Served docs Chromium import and Worker denial/404/CSP cases, no foreground fallback; **lease amendment first** |
+| A6 PRE-R12 | Claim-preserving R12/R13 and docs deploy writer amendment and readback | ALL B01/B02/B03/B07 paths present with ordered events.js ownership; no unapproved code |
+| A7 R12 | Blob source-load, exact ownership/scope, revision-safe cached selection and page-limited UI | Real served file control → LFJ source index → distinct scopes, page=1 full union, stale cache RED |
+| A8 R13 | Dedicated Resolver application Worker + bounded projection/joins/results, safe DOM and streamed complete exports | True clicked Build/Refresh trace off-main and output parity; source/XML/config/mode/epoch/authority stale block; hostile DOM test |
+| G7 independent Resolver | G7.1 original source, G7.2 independent true output, G7.3 faults, G7.4 hardware/browser 10.54+genuine 30/90MB, G7.5 served UI/download, G7.6 security and downstream | No final Resolver ACCEPTED without independent real output goldens and genuine populated large-source perf/heap; G7 NOT_QUALIFIED otherwise |
+
+**No progress invention:** Each original R07–R10/R12–R13 U01–U04 remains the only semantic unit denominator. B01–B09 are design/acceptance/falsification details **inside existing claim boundaries**, not nine new points, nine child issues, or mechanism-as-product. “API fields now” is R10 port compatibility, NOT a shortcut to R11 auth. “Deployment gate” is a cross-cutting R10/R12/R13 acceptance and write-surface contract, NOT evidence R18 multi-app JSON gate or R24 binary gate passed.
+
+### Re-review checklist / explicit residual blockers
+
+- [x] Review B01–B09 are translated into file-backed implementation boundaries with RED cases and observable app behavior.
+- [x] Six D1–D6 decisions are binding instructions, not repeated open-ended questions.
+- [x] Real `docs/lfj/` absence and `JSON.parse`→`[]` invalid-empty behavior are documented as source-level blockers.
+- [x] R06 truth is reconciled: U01–U03 previous-head evidence; U04 RED but unaccepted on live #1075.
+- [ ] **BEFORE WRITING PRODUCT:** authorized ENFORCED graph-diff/readback for R10 packager/docs and R12/R13 loader/state/Worker/ledger/DOM/CSV/docs write surfaces.
+- [ ] **BEFORE PRODUCT ACCEPTANCE:** genuine served docs browser app/Worker + original file/source parity and independent security/source failures.
+- [ ] **BEFORE RESOLVER RELEASE:** independent authentic XML/trace/CSV/CII output goldens (`NO_GOLDEN` until provided); genuine populated 30/90MB source and approved reference-device performance (`NO_SOURCE` until provided).
+- [ ] **BEFORE PLAN_APPROVED:** an independent new exact-head reviewer re-runs this matrix and grants explicit approval. This document and PR #1077 remain `PLAN_NOT_APPROVED` until then.
+
+**Current implementation authorization:** Existing R06 sole writer may continue. New application writes remain unadmitted. This document itself awards zero product completion.
