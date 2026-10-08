@@ -13,6 +13,10 @@ export class SourceOccurrenceIndexError extends Error {
 const fail=(code,detail)=>{throw new SourceOccurrenceIndexError(code,detail);};
 const validPositive=n=>Number.isSafeInteger(n)&&n>0;
 const escapePointer=s=>s.replace(/~/g,'~0').replace(/\//g,'~1');
+// Hard ceiling limits quadratic pointer amplification from nested long source keys.
+// UTF-16 code units are a conservative bounded wire/string resource budget;
+// distinct supported paths retain their full RFC6901 representation.
+const MAX_POINTER_CODE_UNITS=65536;
 const schema='LFJ.JSON.OccurrenceEvent.v1';
 const occurrenceId=(sourceRefId,revision,path)=>
   JSON.stringify(['lfj-json-value/v1',sourceRefId,revision,path]);
@@ -88,7 +92,10 @@ export async function streamJsonOccurrenceEvents(snapshot,{
       member=escapePointer(parent.pendingKey);
       parent.pendingKey=null;
     }
-    return {path:parent.path+'/'+member,parentId:parent.occurrenceId,localAttributesOwnerId};
+    const path=parent.path+'/'+member;
+    if(path.length>MAX_POINTER_CODE_UNITS)
+      fail('POINTER_LIMIT','original JSON Pointer exceeds protected 65536-code-unit source limit');
+    return {path,parentId:parent.occurrenceId,localAttributesOwnerId};
   }
   async function open(token,type){
     if(opened>=maxOccurrences)
