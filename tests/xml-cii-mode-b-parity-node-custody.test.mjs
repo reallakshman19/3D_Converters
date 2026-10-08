@@ -222,3 +222,31 @@ test('static runtime loads the refreshed parity writer and evidence modules as a
     'static P0 import chain must contain refreshed ' + modules[index],
   ));
 });
+
+
+test('non-numeric Preview labels do not create synthetic engineering zeros', async () => {
+  const one = '<PipeStressExport>' + branch(pl01, [
+    first.replace('<BoreMm>300</BoreMm>', ''),
+  ]) + '</PipeStressExport>';
+  const result = await applyStandaloneProcessParity(one, {}, '', [], {
+    previewBuilder: () => ({
+      branchRows: [{ branchName: pl01, p1: 'N/A', t1: 'N/A', corrosion: 'N/A' }],
+      nodeRows: [],
+      nodeBoreWallRows: [{
+        branchName: pl01, nodeNumber: '10', componentRefNo: '=1006649755/1898',
+        endpoint: '1', boreMm: 'N/A', wallThickness: 'N/A',
+      }],
+    }),
+  });
+  const doc = new DOMParser().parseFromString(result.xmlText, 'application/xml');
+  for (const field of ['BoreMm', 'WallThickness', 'CorrosionAllowance']) {
+    assert.equal(doc.getElementsByTagName(field).length, field === 'CorrosionAllowance' ? 1 : 0,
+      'an invalid numeric ' + field + ' cannot become a newly written 0');
+  }
+  assert.equal(doc.getElementsByTagName('CorrosionAllowance')[0]?.textContent, '0',
+    'existing PSI116 source corrosion 0 is preserved rather than overwritten by an invalid label');
+  assert.equal(doc.getElementsByTagName('Pressure1').length, 0);
+  assert.equal(doc.getElementsByTagName('Temperature1').length, 0);
+  assert.ok(result.expectedEntries.every(item =>
+    !['p1', 't1', 'corrosion', 'boreMm', 'wallThickness'].includes(item.field)));
+});
