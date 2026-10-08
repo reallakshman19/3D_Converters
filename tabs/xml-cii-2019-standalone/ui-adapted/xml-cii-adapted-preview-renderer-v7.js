@@ -166,7 +166,8 @@ export function previewV7HasRelevantMutation(records) {
   );
 }
 
-function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
+// Testable DOM observer seam. Presentation-only: not the GC-PW engineering contract.
+export function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
   if (!host || typeof MutationObserver === 'undefined') return;
   host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
   let timer = null;
