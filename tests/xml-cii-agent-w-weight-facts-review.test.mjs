@@ -11,6 +11,7 @@ import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '
 import { planVerifiedModeAExactMatch1, commitVerifiedModeAExactMatch1 } from '../converters/xml-cii2019-core/weight-facts-mode-a-exact-actions.js';
 import { planVerifiedFinalMatch2, commitVerifiedFinalMatch2 } from '../converters/xml-cii2019-core/weight-facts-final-review-actions.js';
 import { readVerifiedIndividualWeightReview, commitVerifiedIndividualWeightReview } from '../converters/xml-cii2019-core/weight-facts-individual-review.js';
+import { openVerifiedIndividualWeightReviewDialog } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-individual-dialog.js';
 import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
@@ -961,4 +962,45 @@ test('U4 view invalidated by other stage revision; no cross-stage CAS bypass',()
   assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'RigidMatch1'}).decisionRevision,null);
   throws(()=>readVerifiedIndividualWeightReview({basis:b,review:session.review},
     {sourceId:'one',occurrenceId:id}),'VERIFIED_SESSION_REQUIRED');
+});
+
+test('U4 individual dialog cancel never commits; explicit Match1 then Final clicks freeze distinct snapshots',async()=>{
+  class FakeElement {
+    constructor(tag){this.tag=tag;this.children=[];this.parent=null;this.listeners={};
+      this.value='';this.disabled=false;this.textContent='';this.attrs={};this.removed=false;}
+    appendChild(element){this.children.push(element);element.parent=this;return element;}
+    setAttribute(k,v){this.attrs[k]=v;}
+    addEventListener(name,callback){this.listeners[name]=callback;}
+    click(){this.listeners.click?.();}
+    remove(){this.removed=true;this.parent&&(this.parent.children=this.parent.children.filter(e=>e!==this));}
+    focus(){}
+    walk(){return [this,...this.children.flatMap(x=>x.walk())];}
+  }
+  const body=new FakeElement('body'),documentRef={body,createElement:tag=>new FakeElement(tag)};
+  const session=individualCase(),id=session.id,b=session.basis;
+  const cancelled=openVerifiedIndividualWeightReviewDialog({session,sourceId:'one',occurrenceId:id,documentRef});
+  assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+  body.walk().find(x=>x.tag==='button'&&x.textContent==='Cancel').click();
+  assert.equal((await cancelled).cancelled,true);
+  assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+  const started=openVerifiedIndividualWeightReviewDialog({session,sourceId:'one',occurrenceId:id,documentRef});
+  const select=body.walk().find(x=>x.tag==='select');
+  select.value=session.review.getProposals({basisId:b.basisId,occurrenceIds:[id]}).items[0].proposalId;
+  body.walk().find(x=>x.tag==='button'&&x.textContent==='Accept selected proposal').click();
+  const accepted=await started;
+  assert.equal(accepted.cancelled,false);
+  assert.equal(accepted.snapshot.stage,'RigidMatch1');
+  assert.equal(accepted.view.match1Kg,15);
+  const final=openVerifiedIndividualWeightReviewDialog({session,sourceId:'one',occurrenceId:id,
+    stage:'Rigidmatch2',documentRef});
+  const options=body.walk().find(x=>x.tag==='select');
+  assert.equal(options.disabled,true);
+  body.walk().find(x=>x.tag==='input').value='22';
+  body.walk().find(x=>x.tag==='textarea').value='Engineer accepted final actual 22 kg.';
+  body.walk().find(x=>x.tag==='button'&&x.textContent==='Accept Final kg').click();
+  const finalized=await final;
+  assert.equal(finalized.snapshot.stage,'Rigidmatch2');
+  assert.equal(finalized.view.match1Kg,15);
+  assert.equal(finalized.view.finalKg,22);
+  assert.equal(body.children.length,0);
 });
