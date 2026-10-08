@@ -185,6 +185,11 @@ export function createWorkerLifecycleSession({
      // cancellation already cleared staging. Every abort must be idempotent.
      try{abort();}catch{/* never accept failed rollback */}};
    indexTx={abort:rollback};
+   const rejectIndex=(code,reason)=>{
+     rollback();
+     if(!terminal){finish('FAILED',code);void stopWorker();}
+     fail(code,reason);
+   };
    const live=()=>{
      if(aborted||committed)fail('INDEX_ALREADY_TERMINAL','index transaction was settled');
      if(snapshot().kind!=='ADMITTED')fail('INDEX_JOB_STALE','source job no longer active');
@@ -195,33 +200,33 @@ export function createWorkerLifecycleSession({
        page.some(e=>e?.schema!=='LFJ.JSON.OccurrenceEvent.v1'||
          e.sourceRefId!==basis.sourceRefId||e.sourceSha256!==basis.sourceSha256||
          e.sourceRevision!==basis.sourceRevision||!['OPEN','SEAL'].includes(e.kind)))
-       fail('INDEX_PAGE_INVALID','provisional original source occurrence page is invalid');
+       rejectIndex('INDEX_PAGE_INVALID','provisional original source occurrence page is invalid');
      pending++;
      try{
        await stagePage(page);
        live();
        events+=page.length;
        for(const event of page){if(event.kind==='OPEN')opens++;else seals++;}
-     }catch(error){rollback();throw error;}
+     }catch(error){rollback();if(!terminal){finish('FAILED','INDEX_STAGING_FAILED');void stopWorker();}throw error;}
      finally{pending--;}
    }
    function commitIndex(summary,receipt){
      live();
      if(pending)fail('INDEX_STAGING_BUSY','source event sink has not settled');
      if(summary?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||summary.complete!==true)
-       fail('INDEX_SUMMARY_INCOMPLETE','complete R05 source index summary required');
+       rejectIndex('INDEX_SUMMARY_INCOMPLETE','complete R05 source index summary required');
      if(summary.sourceRefId!==basis.sourceRefId||
        summary.sourceSha256!==basis.sourceSha256||summary.sourceRevision!==basis.sourceRevision||
        summary.byteLength!==basis.byteLength||summary.eventCount!==events||
        summary.occurrenceCount!==opens||opens!==seals)
-       fail('INDEX_SOURCE_MISMATCH','complete source count and original identity differ');
+       rejectIndex('INDEX_SOURCE_MISMATCH','complete source count and original identity differ');
      if(receipt?.schema!=='LFJ.SourceTransferReceipt.v1'||
        receipt.jobId!==basis.jobId||receipt.sourceRefId!==basis.sourceRefId||
        receipt.sourceSha256!==basis.sourceSha256||
        receipt.sourceRevision!==basis.sourceRevision||receipt.byteLength!==basis.byteLength||
        receipt.acknowledgedBytes!==basis.byteLength||
        receipt.workerConsumedBytes!==basis.byteLength)
-       fail('INDEX_TRANSPORT_UNVERIFIED','native Worker-consumed original bytes not attested');
+       rejectIndex('INDEX_TRANSPORT_UNVERIFIED','native Worker-consumed original bytes not attested');
      try{
        const result=commit(summary);
        if(result&&typeof result.then==='function')
@@ -234,7 +239,8 @@ export function createWorkerLifecycleSession({
      void stopWorker();
      return complete;
    }
-   return Object.freeze({onEventPage,commit:commitIndex,abort:rollback});
+   const abortIndex=()=>{rollback();if(!terminal){finish('FAILED','INDEX_ABORTED');void stopWorker();}};
+   return Object.freeze({onEventPage,commit:commitIndex,abort:abortIndex});
  }
  async function retry(next){
    if(!terminal||!['CANCELLED','FAILED','STALE'].includes(terminal.kind))
