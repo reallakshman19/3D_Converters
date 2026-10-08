@@ -235,3 +235,46 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
 });
+
+test('scorer pins master rows against in-place mutation; proposal custody contains row and method', () => {
+  const b = basis(), config = { weight: {masterRows: [
+    {id: 'valve-row-77', boreMm: 100, rating: '150', lengthMm: 100, weight: 15, typeDesc: 'Gate Valve'},
+  ] } };
+  const score = createXmlCiiFactWeightScorer(config, 'rank-rev-1');
+  config.weight.masterRows[0].weight = 99;
+  const service = createWeightReviewService({score});
+  service.openBasis(b, {facts: fixture(b)});
+  const p = service.getProposals({basisId: b.basisId}).items[0];
+  assert.equal(p.value, 15);
+  assert.equal(p.extensions.candidate.masterRowOrdinal, 0);
+  assert.equal(p.extensions.candidate.masterRowId, 'valve-row-77');
+  assert.ok(p.evidenceRefs.includes('weight:master-row:0'));
+  assert.ok(p.proposalId.includes('rank-rev-1'));
+  const refreshed = createXmlCiiFactWeightScorer(config, 'rank-rev-2')(fixture(b), b)[0];
+  assert.equal(refreshed.value, 99);
+  assert.ok(refreshed.proposalId !== p.proposalId);
+  throws(() => service.applyDecisions({basisId: b.basisId, scopeId:'one',
+    commands: [command(b, 'stale-scoring', 'accept-proposal', null, {proposalId: refreshed.proposalId})],
+  }), 'STALE_PROPOSAL');
+});
+
+test('same-bore Rating flange fallback remains explicitly proposed; not auto-accepted', () => {
+  const b = basis();
+  const facts = legacyXmlCiiWeightFacts([{
+    key: 'BR::3', branchOccurrenceIndex:0, nodeOrdinal:0,
+    boreMm:100, rating:'150', lengthMm:150, nodeName:'FLAN1', componentType:'FLAN',
+    originalWeight: null,
+  }], b, 'one');
+  const score = createXmlCiiFactWeightScorer({ weight: { masterRows:[
+    { id:'flange-master', boreMm:100, rating:'150', lengthMm:100, weight:20, typeDesc:'Flange' },
+  ] } });
+  const service = createWeightReviewService({score});
+  service.openBasis(b,{facts});
+  const p = service.getProposals({basisId: b.basisId}).items[0];
+  assert.equal(p.value,30);
+  assert.equal(p.qualified,false);
+  assert.equal(p.extensions.candidate.flangeFallback,true);
+  throws(() => service.verifyRun({basisId: b.basisId,reviewedSnapshotIds:[],
+    outputBasis:{components:[{sourceId:'one',occurrenceId:'one/branch:0/physical:0',
+      children:[{childId:'flan',kg:30}]}]}}), 'UNRESOLVED_WEIGHT');
+});
