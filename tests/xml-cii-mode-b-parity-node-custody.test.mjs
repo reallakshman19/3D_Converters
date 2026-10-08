@@ -148,3 +148,30 @@ test('writer does not collapse identically named branch occurrences with indepen
   });
   assert.equal(proof.ok, true, JSON.stringify(proof.mismatches));
 });
+
+
+test('missing Preview numerics never synthesize zero or overwrite source engineering fields', async () => {
+  const one = '<PipeStressExport>' + branch(pl01, [
+    first.replace('<CorrosionAllowance>0</CorrosionAllowance>',
+      '<CorrosionAllowance>1.5</CorrosionAllowance>'),
+  ]).replace('</Branchname>',
+    '</Branchname><Temperature><Temperature1>-100000</Temperature1></Temperature>'
+    + '<Pressure><Pressure1>42</Pressure1></Pressure>') + '</PipeStressExport>';
+  const result = await applyStandaloneProcessParity(one, {}, '', [], {
+    previewBuilder: () => ({
+      branchRows: [{ branchName: pl01, pipingClass: 'S8810104' }],
+      nodeRows: [],
+      nodeBoreWallRows: [],
+    }),
+  });
+  const doc = new DOMParser().parseFromString(result.xmlText, 'application/xml');
+  const read = tag => doc.getElementsByTagName(tag)[0]?.textContent;
+  assert.equal(read('Temperature1'), '-100000', 'unassigned temperature is preserved');
+  assert.equal(read('Pressure1'), '42', 'unassigned pressure is preserved');
+  assert.equal(read('CorrosionAllowance'), '1.5', 'unassigned corrosion is preserved');
+  assert.equal(doc.getElementsByTagName('BoreMm').length, 0, 'unassigned nominal bore is not zero');
+  assert.equal(doc.getElementsByTagName('WallThickness').length, 0, 'unassigned wall is not zero');
+  assert.ok(result.expectedEntries.every(item =>
+    !['t1', 'p1', 'boreMm', 'wallThickness', 'corrosion'].includes(item.field)),
+    'only actually sourced Preview numbers are admitted to output authority');
+});
