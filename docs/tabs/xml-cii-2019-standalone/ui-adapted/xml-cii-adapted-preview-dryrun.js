@@ -156,8 +156,11 @@ export function buildStrictLineAuthorityCorePreview(
       }
       : blockedUnmappedRow(original);
     const branchName = text(original?.branchName);
-    if (branchName) nodeRows = nodeRows.filter((row) => text(row?.branchName) !== branchName);
-    if (replacementNodes.length) nodeRows.push(...replacementNodes);
+    if (branchName) nodeRows = nodeRows.filter((row) => Number.isSafeInteger(row?.branchOccurrenceIndex)
+      ? row.branchOccurrenceIndex !== index : text(row?.branchName) !== branchName);
+    if (replacementNodes.length) nodeRows.push(...replacementNodes.map((row) => ({
+      ...row, branchOccurrenceIndex: index,
+    })));
   }
   return {
     ...coreResult,
