@@ -43,7 +43,8 @@ window.runR10CommittedQuery=async json=>{
     blob,revision,expectedSha256:sha,sourceRefId,jobId:'R10-BROWSER-ACTUAL',
     selectionDigest:'branch-zero',selection:{mode:'EXPLICIT',includes:[selectedId],excludes:[]},
     createWorker:()=>new Worker(new URL('./source-browser-worker.mjs',import.meta.url),{type:'module'}),
-    trustedWorkerCtor:Worker,indexStore,selectedStore,pageEvents:2
+    trustedWorkerCtor:Worker,indexStore,selectedStore,pageEvents:2,
+    getCurrentBasis:()=>({sourceRefId,sourceSha256:sha,sourceRevision,byteLength:bytes.length,selectionDigest:'branch-zero',jobId:'R10-BROWSER-ACTUAL'})
   });
   try{
     let cursor=null,paths=[];
