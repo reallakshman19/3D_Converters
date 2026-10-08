@@ -51,14 +51,15 @@ function selectedIndexedStore(){
  };
 }
 async function run({mode='EXPLICIT',indexStore=sourceIndexStore(),selectedStore=selectedIndexedStore(),
-  expectedSha256=sha}={}){
+  expectedSha256=sha,getCurrentBasis}={}){
  let worker;
  const result=await runCommittedSourceQuery({
   blob:new Blob([bytes]),revision,expectedSha256,sourceRefId,jobId:'R10-ACTUAL-JOB',
   selectionDigest:'exact-'+mode,selection:{mode,includes:mode==='EXPLICIT'?[id('/0')]:[],excludes:[]},
   trustedWorkerCtor:Worker,
   createWorker:()=>{worker=new Worker(new URL('./source-node-worker.mjs',import.meta.url),{type:'module'});return worker;},
-  indexStore,selectedStore,pageEvents:2
+  indexStore,selectedStore,pageEvents:2,
+  getCurrentBasis:getCurrentBasis??(()=>({sourceRefId,sourceSha256:sha,sourceRevision,byteLength:bytes.length,selectionDigest:'exact-'+mode,jobId:'R10-ACTUAL-JOB'}))
  });
  return {result,indexStore,selectedStore,worker};
 }
@@ -118,7 +119,7 @@ test('R10/U04: absent actual Worker fails closed, no foreground scan/index commi
   jobId:'R10-NO-WORKER',selectionDigest:'all',
   selection:{mode:'ALL',includes:[],excludes:[]},
   trustedWorkerCtor:Worker,createWorker:()=>{throw new Error('no native Worker');},
-  indexStore,selectedStore
+  indexStore,selectedStore,getCurrentBasis:()=>({sourceRefId,sourceSha256:sha,sourceRevision,byteLength:bytes.length,selectionDigest:'all',jobId:'R10-NO-WORKER'})
  }),e=>e?.code==='WORKER_UNAVAILABLE');
  assert.equal(indexStore.committed,false);
  assert.equal(selectedStore.reads,0);
@@ -130,7 +131,7 @@ test('R10/U04: missing committed store refuses source execution before Worker ad
   jobId:'R10-NO-STORE',selectionDigest:'all',
   selection:{mode:'ALL',includes:[],excludes:[]},
   trustedWorkerCtor:Worker,createWorker:()=>{created++;throw Error('not reached');},
-  indexStore:sourceIndexStore(),selectedStore:null
+  indexStore:sourceIndexStore(),selectedStore:null,getCurrentBasis:()=>({sourceRefId,sourceSha256:sha,sourceRevision,byteLength:bytes.length,selectionDigest:'all',jobId:'R10-NO-STORE'})
  }),e=>e?.code==='SOURCE_PORT_REQUIRED');
  assert.equal(created,0);
 });
@@ -144,7 +145,7 @@ test('R10/U03: source-valid long R05 identities survive R08 staging into R09 ind
   sourceRefId,jobId:'R10-LONG-QUERY',selectionDigest:'long-all',
   selection:{mode:'ALL',includes:[],excludes:[]},trustedWorkerCtor:Worker,
   createWorker:()=>new Worker(new URL('./source-node-worker.mjs',import.meta.url),{type:'module'}),
-  indexStore,selectedStore,pageEvents:2
+  indexStore,selectedStore,pageEvents:2,getCurrentBasis:()=>({sourceRefId,sourceSha256:longSha,sourceRevision:revision+':sha256:'+longSha,byteLength:raw.length,selectionDigest:'long-all',jobId:'R10-LONG-QUERY'})
  });
  try{
   const one=await result.readPage({cursor:null,maxRows:1,maxBytes:131072});
