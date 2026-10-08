@@ -73,3 +73,11 @@ Do not mark WW1–WW6 or full project acceptance completed until the live-run ga
 **Trust boundary:** SHA-256 integrity does not authenticate an attacker who may rewrite both payload and checksum. The integrator-owned store must authorize/read the persisted value and bind it to authenticated source/basis custody. This module contains **no localStorage, IndexedDB, worker protocol or HTTP**; no durable storage was deployed. A resumed run must re-attest canonical input source/master/geometry and reject stale review snapshots.
 
 Independent test covers final override 22kg prevailing over Match-1 20kg after export/reopen/restore, child allocations 10kg+12kg, explicit 10x output conversion, digest tampering and same-basis accepted-state collision. Native browser/storage integration remains gated.
+
+## 8. Decision custody hardening (follow-up exact-head unit)
+
+- An unqualified inferred/fallback proposal remains selectable **only with an explicit engineering review reason**. Bulk exact qualification does not confer authority on extrapolated candidates. Manual positive kg remains an independent explicit command, not a promotion from an input placeholder.
+- Scorer audit and ranked proposal now use the same pinned master/config copy; post-open mutation of host config cannot change the rejected-candidate read model without a new basis.
+- A persisted frozen review at the current revision must match its decision ledger exactly, even if its integrity SHA is recomputed. Run verification independently compares frozen decisions against the current ledger.
+- Every selected physical-component occurrence must appear in run output even when an upstream adapter omitted a `mass.kg` field. Missing accepted mass still blocks independently. This is a completeness guard, not a replacement for original-source 19/871 oracles.
+- Native focused Node22 CI and real owner browser/CII acceptance must be rechecked at the new exact head. Shared worker/run/Preview/writer migration remains integrator-owned.

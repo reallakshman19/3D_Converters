@@ -242,10 +242,12 @@ test('scorer pins master rows against in-place mutation; proposal custody contai
   ] } };
   const score = createXmlCiiFactWeightScorer(config, 'rank-rev-1');
   config.weight.masterRows[0].weight = 99;
+  config.weight.masterRows[0].rating = '300';
   const service = createWeightReviewService({score});
   service.openBasis(b, {facts: fixture(b)});
   const p = service.getProposals({basisId: b.basisId}).items[0];
   assert.equal(p.value, 15);
+  assert.equal(service.getCandidateAudit({basisId:b.basisId, occurrenceId:'one/branch:0/physical:0'}).candidateCount, 1);
   assert.equal(p.extensions.candidate.masterRowOrdinal, 0);
   assert.equal(p.extensions.candidate.masterRowId, 'valve-row-77');
   assert.ok(p.evidenceRefs.includes('weight:master-row:0'));
@@ -317,4 +319,53 @@ test('sealed review state survives reopening, rejects tampering and respects bot
   rehashed.contentSha256 = await digestReview(body);
   await assert.rejects(() => reopened.restoreReviewState({basisId:b.basisId,payload:rehashed}),
     e => ['RESTORE_COLLISION','INVALID_REVIEW_WEIGHT'].includes(e.code));
+});
+
+test('inferred or fallback proposals need documented manual review before Match-1 acceptance', () => {
+  const b = basis();
+  const inferred = (records, currentBasis) => oracleScore(records, currentBasis).map(p => ({
+    ...p, qualified: false, method: 'length-extrapolated',
+    eligibilityReasons: ['inferred: outside exact ±6 mm length qualification'],
+  }));
+  const service = createWeightReviewService({score: inferred});
+  service.openBasis(b, {facts:fixture(b)});
+  const proposalId = service.getProposals({basisId:b.basisId}).items[0].proposalId;
+  throws(() => service.applyDecisions({basisId:b.basisId,scopeId:'one',
+    commands:[command(b,'inferred-no-reason','accept-proposal',null,{proposalId})],
+  }), 'UNQUALIFIED_PROPOSAL');
+  const committed = service.applyDecisions({basisId:b.basisId,scopeId:'one',
+    commands:[command(b,'inferred-reviewed','accept-proposal',null,{
+      proposalId,reason:'Engineer reviewed extrapolated master length and approved 15 kg',
+    })]})[0];
+  assert.equal(committed.state,'accepted');
+  assert.equal(committed.decisionRevision,'m1'); // rejected transaction changed nothing
+});
+
+test('a rehashed forged Final snapshot cannot gain authority; physical facts require full run coverage', async () => {
+  const canonical = (value) => Array.isArray(value)
+    ? '[' + value.map(canonical).join(',') + ']'
+    : value && typeof value === 'object'
+      ? '{' + Object.keys(value).sort().map(k => JSON.stringify(k)+':'+canonical(value[k])).join(',') + '}'
+      : JSON.stringify(value);
+  const digestReview = async payload => createHash('sha256').update(canonical(payload)).digest('hex');
+  const b = basis(), facts = fixture(b);
+  const service = createWeightReviewService({score:oracleScore,digestReview});
+  service.openBasis(b,{facts});
+  const final = service.applyDecisions({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2',
+    commands:[command(b,'final-legitimate','final-override',null,{value:22,unit:'kg'})]})[0];
+  service.freezeSnapshot({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2',
+    expectedDecisionRevision:final.decisionRevision});
+  const forged = await service.exportReviewState({basisId:b.basisId});
+  forged.frozenSnapshots[0].decisions['one/branch:0/physical:0'].value = 59;
+  const {contentSha256:_old,...body} = forged;
+  forged.contentSha256 = await digestReview(body);
+  const reopened = createWeightReviewService({score:oracleScore,digestReview});
+  reopened.openBasis(b,{facts});
+  await assert.rejects(() => reopened.restoreReviewState({basisId:b.basisId,payload:forged}),
+    error => error.code === 'SNAPSHOT_LEDGER_MISMATCH');
+  const missingMassFact = facts.filter(f => f.fieldId !== 'mass.kg');
+  const coverage = createWeightReviewService({score:oracleScore});
+  coverage.openBasis(b,{facts:missingMassFact});
+  throws(() => coverage.verifyRun({basisId:b.basisId,reviewedSnapshotIds:[],
+    outputBasis:{components:[]}}), 'INCOMPLETE_RUN');
 });

@@ -210,6 +210,8 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
         if (cmd.action === 'accept-proposal') {
           const proposal = makeProposals(opened, cmd.occurrenceId).find((p) => p.proposalId === cmd.proposalId);
           required(proposal, 'STALE_PROPOSAL', 'Proposal missing from exact basis');
+          required(proposal.qualified || (typeof cmd.reason === 'string' && cmd.reason.trim()),
+            'UNQUALIFIED_PROPOSAL', 'Inferred or fallback proposal requires an explicit engineering review reason');
           value = proposal.value;
           evidence = proposal.evidenceRefs;
         } else if (cmd.action === 'enter-manual' || final) {
@@ -317,6 +319,16 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
           && frozen.decisions && typeof frozen.decisions === 'object' && !Array.isArray(frozen.decisions),
           'INVALID_FROZEN_REVIEW', 'Invalid or cross-basis review freeze');
         required(!incomingSnapshots.has(frozen.snapshotRef), 'DUPLICATE_FROZEN_REVIEW', 'Repeated immutable snapshot');
+        const importedState = incomingLedger.get(slot(basisId, frozen.scopeId, frozen.stage))
+          || ledger.get(slot(basisId, frozen.scopeId, frozen.stage));
+        required(importedState || (frozen.revision === null && !Object.keys(frozen.decisions).length),
+          'SNAPSHOT_LEDGER_MISMATCH', 'Frozen review has no matching decision ledger');
+        if (importedState?.revision === frozen.revision) {
+          required(canonical(importedState.decisions) === canonical(frozen.decisions),
+            'SNAPSHOT_LEDGER_MISMATCH', 'Frozen review disagrees with its accepted decision revision');
+        }
+        required(frozen.revision !== null || !Object.keys(frozen.decisions).length,
+          'SNAPSHOT_LEDGER_MISMATCH', 'Empty revision cannot contain accepted decisions');
         const currentFrozen = snapshots.get(frozen.snapshotRef);
         required(!currentFrozen || canonical(currentFrozen) === canonical(frozen),
           'RESTORE_COLLISION', 'Cannot overwrite frozen accepted review');
@@ -333,7 +345,10 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
       for (const id of reviewedSnapshotIds) {
         const frozen = snapshots.get(id);
         required(frozen && frozen.basisId === basisId, 'STALE_SNAPSHOT', 'Unknown frozen review');
-        required(state(basisId, frozen.scopeId, frozen.stage).revision === frozen.revision, 'STALE_SNAPSHOT', 'Review changed after freeze');
+        const currentDecision = state(basisId, frozen.scopeId, frozen.stage);
+        required(currentDecision.revision === frozen.revision, 'STALE_SNAPSHOT', 'Review changed after freeze');
+        required(canonical(currentDecision.decisions) === canonical(frozen.decisions),
+          'SNAPSHOT_LEDGER_MISMATCH', 'Frozen decisions do not match accepted revision');
         review.set(frozen.scopeId + '|' + frozen.stage, frozen);
       }
       for (const sourceId of opened.sources) {
@@ -367,7 +382,7 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
         }
       }
       for (const [identity, facts] of opened.byOccurrence) {
-        if (facts.some((f) => f.fieldId === 'mass.kg')) {
+        if (facts.some((f) => f.subjectType === 'physical-component' || f.fieldId === 'mass.kg')) {
           required(seen.has(identity), 'INCOMPLETE_RUN', 'Required physical occurrence omitted from run');
         }
       }

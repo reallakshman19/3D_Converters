@@ -123,6 +123,6 @@ export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-
     });
   };
   scorer.audit = (records, basis) => ({ basisId: basis.basisId, occurrenceId: records[0]?.occurrenceId,
-    ...(() => { const ranking = rankedFromFacts(records, config); return { rejectedCandidates: ranking.rejectedCandidates.map(c => candidateSummary(c, rowOrdinal(c))), candidateCount: ranking.candidates.length }; })() });
+    ...(() => { const ranking = rankedFromFacts(records, pinnedConfig); return { rejectedCandidates: ranking.rejectedCandidates.map(c => candidateSummary(c, rowOrdinal(c))), candidateCount: ranking.candidates.length }; })() });
   return scorer;
 }
