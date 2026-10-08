@@ -64,24 +64,32 @@ function identifyRoot(value) {
 function identifyProfile(value, root) {
   if (!isObject(value)) return 'staged-generic/v1';
 
+  // Source metadata must be present on the source itself, not inherited via prototypes.
+  const own = (key) => Object.hasOwn(value, key) ? value[key] : undefined;
+  const schema = own('schema');
+  const profile = own('profile');
+  const converter = own('converter');
+  const converterSchema = own('converterSchema');
+  const units = own('units');
+
   // Recognizing an array wrapper is not permission to accept an unknown dialect.
-  if (value.schema !== undefined && value.schema !== MANAGED_STAGE_SCHEMA) {
+  if (schema !== undefined && schema !== MANAGED_STAGE_SCHEMA) {
     refuse('UNSUPPORTED_SCHEMA', 'Producer schema is unknown or unsupported');
   }
 
-  if (value.profile === undefined) return 'staged-generic/v1';
+  if (profile === undefined) return 'staged-generic/v1';
 
-  if (value.profile !== MARKUP_RVM_PROFILE) {
+  if (profile !== MARKUP_RVM_PROFILE) {
     refuse('UNSUPPORTED_PROFILE', 'Declared managed-stage consumer profile is unsupported');
   }
-  if (value.schema !== MANAGED_STAGE_SCHEMA) {
+  if (schema !== MANAGED_STAGE_SCHEMA) {
     refuse('UNSUPPORTED_SCHEMA', 'Strict managed-stage viewer profile requires declared source version');
   }
-  if (value.converter !== RICH_TOPOLOGY_CONVERTER ||
-      value.converterSchema !== RICH_TOPOLOGY_CONVERTER_SCHEMA) {
+  if (converter !== RICH_TOPOLOGY_CONVERTER ||
+      converterSchema !== RICH_TOPOLOGY_CONVERTER_SCHEMA) {
     refuse('CONVERTER_MISMATCH', 'Strict managed-stage rich topology converter identity is incorrect');
   }
-  if (value.units?.length !== 'mm') {
+  if (!isObject(units) || !Object.hasOwn(units, 'length') || units.length !== 'mm') {
     refuse('UNITS_MISMATCH', 'Strict managed-stage RVM requires millimetre length units');
   }
   if (root.rootKind !== 'hierarchy') {
