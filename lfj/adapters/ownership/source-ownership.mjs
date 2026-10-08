@@ -66,24 +66,28 @@ export function resolveSourceOwners(originalOccurrences) {
   if(!Array.isArray(originalOccurrences))
     fail('OCCURRENCES_REQUIRED','an explicit ordered occurrence list is required');
   const rows=originalOccurrences.map(record),byId=new Map();
+  const identity=(sourceId,occurrenceId)=>JSON.stringify([sourceId,occurrenceId]);
   for(const node of rows){
-    if(byId.has(node.occurrenceId))
-      fail('DUPLICATE_OCCURRENCE','duplicate occurrenceId '+node.occurrenceId);
-    byId.set(node.occurrenceId,node);
+    const id=identity(node.sourceId,node.occurrenceId);
+    if(byId.has(id))
+      fail('DUPLICATE_OCCURRENCE','duplicate original source occurrence '+id);
+    byId.set(id,node);
   }
   const cached=new Map(),visiting=new Set();
   function compute(node) {
-    if(cached.has(node.occurrenceId))return cached.get(node.occurrenceId);
-    if(visiting.has(node.occurrenceId))
-      fail('CYCLIC_PARENT','source parent graph contains a cycle at '+node.occurrenceId);
-    visiting.add(node.occurrenceId);
+    const id=identity(node.sourceId,node.occurrenceId);
+    if(cached.has(id))return cached.get(id);
+    if(visiting.has(id))
+      fail('CYCLIC_PARENT','source parent graph contains a cycle at '+id);
+    visiting.add(id);
     let parent=null;
     if(node.parentOccurrenceId!==null) {
-      const sourceParent=byId.get(node.parentOccurrenceId);
-      if(!sourceParent)
+      const sourceParent=byId.get(identity(node.sourceId,node.parentOccurrenceId));
+      if(!sourceParent){
+        if(rows.some(other=>other.occurrenceId===node.parentOccurrenceId))
+          fail('CROSS_SOURCE_PARENT','parent reference resolves only in another original source');
         fail('MISSING_PARENT','unknown source parent '+node.parentOccurrenceId);
-      if(sourceParent.sourceId!==node.sourceId)
-        fail('CROSS_SOURCE_PARENT','parent crosses original source identity');
+      }
       parent=compute(sourceParent);
     }
     const site=declared(node,'OWNER_SITE','SITE');
@@ -109,8 +113,8 @@ export function resolveSourceOwners(originalOccurrences) {
       rightsBasis:'ORIGINAL_OWN_ATTRIBUTE_OR_EXPLICIT_ANCESTOR_ONLY',
       engineeringReady:false,
     });
-    visiting.delete(node.occurrenceId);
-    cached.set(node.occurrenceId,result);
+    visiting.delete(id);
+    cached.set(id,result);
     return result;
   }
   return Object.freeze(rows.map(node=>compute(node)));
