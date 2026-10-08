@@ -10,6 +10,21 @@ import {attestXmlCiiModeBSourceCustody} from
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-modeb-custody.js';
 if(!globalThis.crypto?.subtle)globalThis.crypto=webcrypto;
 installWeightBasisXmlDom(globalThis);
+// The worker-side lightweight DOM shim intentionally omits native '*' wildcard
+// traversal. Restore that browser API in this TEST runtime only, so the existing
+// production Mode B combiner sees every NodeNumber (including positive IDs).
+const elementPrototype=Object.getPrototypeOf(new DOMParser()
+  .parseFromString('<Root><Leaf/></Root>','application/xml').documentElement);
+const baseGetElements=elementPrototype.getElementsByTagName;
+elementPrototype.getElementsByTagName=function(tag){
+  if(tag!=='*')return baseGetElements.call(this,tag);
+  const out=[];
+  const visit=node=>{for(const child of node.childNodes||[]){
+    if(child.nodeType===1){out.push(child);visit(child);}
+  }};
+  visit(this);
+  return out;
+};
 const ports={assertBasisDigest,assertContentDigest,digestCanonical,canonicalJson};
 const outer=pipe=>`<PipeStressExport xmlns="urn:psi116"><Units>mm</Units>
  <AmbientTemperature>20</AmbientTemperature>${pipe}<Source>PSI</Source></PipeStressExport>`;
