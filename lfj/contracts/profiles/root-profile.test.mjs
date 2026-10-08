@@ -105,6 +105,11 @@ test('U03 unknown object/scalar/null must fail rather than return an empty branc
   }
 });
 
+test('U03 inherited collection is not an actual source envelope property', () => {
+  const forged = Object.create({ hierarchy: a });
+  assert.equal(typedCode(() => inspect(forged)), 'UNSUPPORTED_ROOT');
+});
+
 test('U03 no source envelope key, unknown field, record or occurrence is rewritten', () => {
   const root = { hierarchy: a, unknownProducerField: { x: ['unchanged'] }, flags: [true, false] };
   const before = JSON.stringify(root);
