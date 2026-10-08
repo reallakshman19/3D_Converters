@@ -146,12 +146,33 @@ function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   );
 }
 
+// Only product/subtree changes should rebuild cache authority. Mutations from
+// our cache evidence, status notice or installed action are presentation output,
+// not a new engineering input. Counting them as inputs creates a self-sustaining
+// MutationObserver -> status DOM -> MutationObserver feedback loop.
+const PREVIEW_V7_PRESENTATION_SELECTOR =
+  '[data-mc-preview-cache-evidence], [data-mc-dtxr-rating-notice], [data-mc-dtxr-rating-fetch]';
+function previewV7OwnedNode(node) {
+  return node?.nodeType === 1 && (
+    node.matches?.(PREVIEW_V7_PRESENTATION_SELECTOR) ||
+    node.closest?.(PREVIEW_V7_PRESENTATION_SELECTOR)
+  );
+}
+export function previewV7HasRelevantMutation(records) {
+  return [...(records || [])].some(record =>
+    record?.type === 'childList' && !previewV7OwnedNode(record.target) &&
+    [...(record.addedNodes || []), ...(record.removedNodes || [])]
+      .some(node => !previewV7OwnedNode(node))
+  );
+}
+
 function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
   if (!host || typeof MutationObserver === 'undefined') return;
   host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
   let timer = null;
   let running = false;
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver((records) => {
+    if (!previewV7HasRelevantMutation(records)) return;
     if (timer) clearTimeout(timer);
     timer = setTimeout(async () => {
       timer = null;
