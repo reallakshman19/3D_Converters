@@ -1,0 +1,39 @@
+name: Native TXT Scope Output UX R5
+on:
+  pull_request:
+    paths:
+      - 'tabs/model-converters/att-native-scope-popup.js'
+      - 'docs/tabs/model-converters/att-native-scope-popup.js'
+      - 'tests/model-converters/test-att-native-scope-selection.mjs'
+      - 'scripts/test-att-native-tree-browser-chromium.mjs'
+      - '.github/workflows/att-native-txt-output-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scope-action-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source/docs mirror integrity
+        run: |
+          set -eu
+          for f in tabs/model-converters/att-native-scope-popup.js tabs/model-converters/att-native-scope-selection.js tabs/model-converters/legacy-adapter.js tabs/model-converters/ModelConvertersTab.js tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js tabs/model-converters/index.js tabs/model-converters-tab.js; do cmp "$f" "docs/$f"; done
+      - name: Canonical scope and output integrity
+        run: |
+          set -eu
+          node --check tabs/model-converters/att-native-scope-popup.js
+          node tests/model-converters/test-att-native-scope-selection.mjs
+          node tests/model-converters/test-att-native-tree-browser.mjs
+          node tests/model-converters/test-att-native-conversion-scope.mjs
+          node tests/model-converters/test-att-native-converter-outputs.mjs
+          node tests/model-converters/test-att-native-runtime-cache-chain.mjs
+          node tests/model-converters/test-rvmattr-scope-tree.mjs
+      - name: Honest nonclaims
+        run: |
+          echo "R5 exact synthetic format eligibility and source/docs passed."
+          echo "RVM→REV geometry output and private Owner 90MB browser remain unqualified."
