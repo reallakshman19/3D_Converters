@@ -17,6 +17,8 @@ const escapePointer=s=>s.replace(/~/g,'~0').replace(/\//g,'~1');
 // UTF-16 code units are a conservative bounded wire/string resource budget;
 // distinct supported paths retain their full RFC6901 representation.
 const MAX_POINTER_CODE_UNITS=65536;
+const MAX_REVISION_CODE_UNITS=1024;
+const MAX_OCCURRENCE_ID_CODE_UNITS=67584;
 const schema='LFJ.JSON.OccurrenceEvent.v1';
 const occurrenceId=(sourceRefId,revision,path)=>
   JSON.stringify(['lfj-json-value/v1',sourceRefId,revision,path]);
@@ -44,6 +46,7 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     fail('OCCURRENCE_LIMIT','source occurrence ceiling must be 1..2000000');
   if(!snapshot||typeof snapshot.sha256!=='string'||
       typeof snapshot.revision!=='string'||!snapshot.revision||
+      snapshot.revision.length>MAX_REVISION_CODE_UNITS||
       !Number.isSafeInteger(snapshot.byteLength))
     fail('INVALID_SOURCE_SNAPSHOT','exact immutable R03 source required');
 
@@ -103,6 +106,8 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     const {path,parentId,localAttributesOwnerId}=nextPath();
     const ordinal=opened++;
     const id=occurrenceId(sourceRefId,snapshot.revision,path);
+    if(id.length>MAX_OCCURRENCE_ID_CODE_UNITS)
+      fail('POINTER_LIMIT','source occurrence identity exceeds bounded transport string cap');
     const record={occurrenceId:id,ordinal,path,parentId,type,startByte:token.startByte};
     await publish({kind:'OPEN',...record});
     // Internal provenance only; emitted OPEN wire shape is unchanged.
