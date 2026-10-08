@@ -4,6 +4,10 @@ import {createPreviewBasis} from './xml-cii-adapted-preview-facts-basis.js';
 import {openActualPreviewSourceFactPages,installActualPreviewSourceFactPanel}
   from './xml-cii-adapted-preview-facts-browser-read.js';
 import {createXmlCiiPreviewJobController} from './xml-cii-adapted-preview-facts-job-controller.js';
+import {startAttestedModeBPreviewWorkerSession}
+  from './xml-cii-adapted-preview-facts-modeb-session.js';
+import {assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonicalJson}
+  from '../../../contracts/gc-pw-v1/contract.mjs';
 
 const jobs=new WeakMap();
 const esc=(v)=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
@@ -53,14 +57,14 @@ async function resolveStaged(options,config) {
 }
 function sourceScope(host,config,options) {
   const sourceId=String(options?.sourceId||host?.dataset?.mcPreviewSourceId||'').trim();
-  const manifest=options?.modeBManifest||options?.sourceOrderManifest||null;
+  const manifest=options?.modeBManifest||options?.sourceOrderManifest||config?.modeBManifest||null;
   const advertised=String(options?.previewSourceMode||options?.sourceMode||config?.sourceMode||'').toUpperCase();
   const explicitB=advertised==='B'||config?.modeB?.enabled===true||config?.modeB===true;
   const mode=explicitB||manifest?'B':'A';
   if(mode==='B'&&!manifest)throw fail('MODE_B_MANIFEST_REQUIRED','Mode B source order/offset manifest required');
-  // Domain source adapter never infers pipe lineage from duplicated branch names.
-  if(mode==='B')throw fail('MODE_B_BASIS_PENDING',
-    'Mode B must bind original per-source content digests before live Preview can compute');
+  // Mode B requires all original XML files, authenticated original->combined
+  // mapping and content digests. Only the B3A+B3B1 attested Worker path can run.
+  if(mode==='B')return {mode:'B',sourceId,manifest,selection:null};
   return {mode:'A',sourceId,manifest:null,selection:null};
 }
 function notice(host,{title,message='',code='',progress=null,showCancel=false,retry=null,cancel=null}) {
@@ -104,6 +108,46 @@ export async function runPreviewButtonSession({
     catch(error){throw fail('STAGED_SOURCE_FAILED',String(error?.message||error));}
     if(!current())return null;
     const scope=sourceScope(host,config,options);
+    if(scope.mode==='B'){
+      notice(host,{title:'Authenticating original Mode B XML files…',
+        message:'Checking every original file, combined XML, source order and master revision.',
+        showCancel:true,cancel});
+      // Original files must come from the authenticated importer/caller. Do not
+      // infer lineage from the combined XML, filenames or duplicated branch names.
+      const originals=typeof options.resolveModeBOriginalSources==='function'
+        ? await options.resolveModeBOriginalSources(config,scope)
+        : options.modeBOriginalSources;
+      if(!current())return null;
+      if(!Array.isArray(originals)||originals.length<2)
+        throw fail('MODE_B_ORIGINAL_SOURCES_REQUIRED',
+          'Mode B Preview needs all original XML files. Re-import originals, then retry.');
+      const ports={assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonicalJson};
+      const sessionJob=await startAttestedModeBPreviewWorkerSession({
+        originalSources:originals,
+        combinedSource:{sourceId:scope.sourceId,xmlText},
+        manifest:scope.manifest,config,stagedJsonText:staged.text,
+        ports,requestId:`modeb-preview-${begun}-${crypto.randomUUID?.()||'local'}`,
+        onProgress:(state)=>{
+          if(!current())return;
+          notice(host,{title:state.state==='queued'?'Mode B Preview queued…':
+            state.state==='running'?'Building Mode B Preview in Worker…':'Mode B Preview…',
+            progress:`${state.stage||'source-custody'} · ${state.completed}/${state.total}`,
+            message:'Original source identity remains separately attested.',
+            showCancel:true,cancel});
+        },
+      });
+      if(!current()){sessionJob.cancel();return null;}
+      session.controller=sessionJob;
+      const committed=await sessionJob.promise;
+      if(!current())return null;
+      const rendered=await renderResult(committed.result,staged);
+      if(!current())return null;
+      installActualPreviewSourceFactPanel(host,committed.sourcePages);
+      host.__xmlCiiPreviewOriginalOccurrences=committed.result.sourceOccurrences;
+      host.dataset.mcPreviewBasisId=committed.basis.basisId;
+      host.dataset.mcPreviewSourceMode='B';
+      return rendered;
+    }
     notice(host,{title:'Checking input and master revisions…',showCancel:true,cancel});
     const basis=await createPreviewButtonBasis({
       xmlText,config,stagedJsonText:staged.text,sourceId:scope.sourceId});
