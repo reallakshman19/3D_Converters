@@ -1830,6 +1830,10 @@
         {
           "responsibility_id": "R08",
           "ref": "reallaksh19/3D_Converters#1082"
+        },
+        {
+          "responsibility_id": "R09",
+          "ref": "reallaksh19/3D_Converters#1085"
         }
       ]
     }
@@ -1838,7 +1842,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 84
+      "reserve_weight": 80
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2333,6 +2337,68 @@
           "weight": 25,
           "outcome": "Incompatible scope is rejected",
           "verify": "Independent oracle: Independent complete selection oracle with repeated names; outcome: Incompatible scope is rejected"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1085",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 4,
+      "responsibility_id": "R09",
+      "work_class": "PRODUCT",
+      "outcome": "All selected occurrences remain reachable through bounded pages without changing source custody or accepting old cursors.",
+      "independence_basis": "Independent one-row page union and stale-cursor checks. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C3_PAGE"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/query/pages/"
+      ],
+      "acceptance_methods": [
+        "Independent one-row page union and stale-cursor checks",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1082"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Every page stays within row cap",
+          "verify": "Independent oracle: Independent one-row page union and stale-cursor checks; outcome: Every page stays within row cap"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Page union equals complete selection",
+          "verify": "Independent oracle: Independent one-row page union and stale-cursor checks; outcome: Page union equals complete selection"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Page order is deterministic",
+          "verify": "Independent oracle: Independent one-row page union and stale-cursor checks; outcome: Page order is deterministic"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Replaced source invalidates previous cursors",
+          "verify": "Independent oracle: Independent one-row page union and stale-cursor checks; outcome: Replaced source invalidates previous cursors"
         }
       ]
     }
