@@ -63,7 +63,9 @@ function setChildText(document, parent, name, value) {
 }
 
 function numeric(value) {
-  const n = Number(text(value).replace(/[^0-9.+-eE]/g, ''));
+  const supplied = text(value).trim();
+  if (!supplied) return null; // Absence is not a reviewed engineering zero.
+  const n = Number(supplied.replace(/[^0-9.+-eE]/g, ''));
   return Number.isFinite(n) ? n : null;
 }
 
