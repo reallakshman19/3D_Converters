@@ -31,11 +31,18 @@ test('U04 token-count and nested-depth limits are caller-bounded and never bypas
   const c=source('["12345678901234567890"]',2);
   await assert.rejects(()=>scanJsonDocument(c,{pageBytes:1,maxTokenBytes:8}),reject('TOKEN_LIMIT'));
   c.close();
-  for(const invalid of [{maxTokens:3000000},{maxDepth:300},{maxByteLength:1024**4}]){
+  for(const invalid of [{maxTokens:600*1024*1024},{maxDepth:300},{maxByteLength:1024**4}]){
     const s=source('[]',2);
     await assert.rejects(()=>scanJsonDocument(s,invalid),reject('INVALID_RESOURCE_LIMIT'));
     s.close();
   }
+});
+
+test('U04 admissible 90MB-class scan token budgets exceed the 2M-token tiny-source ceiling',async()=>{
+  const s=source('[1,2,3]',2);
+  const r=await scanJsonDocument(s,{maxTokens:20_000_000,maxByteLength:128*1024*1024});
+  assert.equal(r.rootFacts.rootCount,3);
+  s.close();
 });
 
 test('U04 already-cancelled byte scan cannot publish complete facts',async()=>{
