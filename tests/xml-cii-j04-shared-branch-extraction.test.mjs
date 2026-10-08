@@ -89,3 +89,28 @@ test('resolver never mutates supplied format configuration', () => {
   resolve(alternative, cfg);
   assert.equal(JSON.stringify(cfg), snapshot);
 });
+
+test('legacy support-config rating section is not mistaken for a standalone rating rule', () => {
+  const config = {
+    regexTester: { activeFormatIndex: 0 },
+    linelist: { lineKeyTokenPositions: '4' },
+    rating: { pipingClassTokenIndex: '5', pipingClassRegex: '^NO_SUCH_CLASS$' },
+    weight: { boreTokenIndex: '3' },
+  };
+  const r = resolve('/ASIM-1885-3"-S8811000-91261M7-HC-01/B1', config);
+  assert.equal(r.status, 'MATCHED');
+  assert.equal(r.candidates.length, 1);
+  assert.deepEqual([r.lineKey, r.pipingClass, r.matchedFormatIndex],
+    ['S8811000', '91261M7', 0]);
+});
+
+test('legacy token positions strip branch delimiters but preserve regex source text', () => {
+  const config = {
+    linelist: { lineKeyTokenPositions: '1', branchNameRegex: '^/ASIM-(1885)' },
+    rating: { pipingClassTokenIndex: 5 },
+  };
+  const result = resolve('/ASIM-1885-3"-S8811000-91261M7-HC-01/B1', config);
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.lineKey, '1885');
+  assert.equal(result.pipingClass, '91261M7');
+});
