@@ -222,6 +222,11 @@ test('static runtime loads the refreshed parity writer and evidence modules as a
     source.includes(modules[index] + '.js?v=20261008-p0-mode-b-parity-1'),
     'static P0 import chain must contain refreshed ' + modules[index],
   ));
+  const preview = await readFile(new URL(
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js',
+    import.meta.url), 'utf8');
+  assert.match(sources[4], /xml-cii-adapted-preview-dryrun\.js\?v=20261008-p0-mode-b-parity-1/);
+  assert.match(preview, /xml-cii-adapted-preview-bore-wall-authority\.js\?v=20261008-p0-mode-b-parity-1/);
 });
 
 
