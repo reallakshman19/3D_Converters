@@ -89,7 +89,12 @@ function emptyWeightAuthority(nodeRow, rating) {
 export function rerankPreviewNodeRows(nodeRows, branchRows, config) {
   const byBranch = new Map(branchRows.map((row) => [row.branchName, row]));
   return (nodeRows || []).map((nodeRow) => {
-    const branch = byBranch.get(nodeRow.branchName);
+    const indexed = Number.isSafeInteger(nodeRow.branchOccurrenceIndex);
+    const branch = indexed ? branchRows[nodeRow.branchOccurrenceIndex]
+      : byBranch.get(nodeRow.branchName);
+    if (indexed && branch?.branchName !== nodeRow.branchName) {
+      throw new Error('Combined Preview node rating branch occurrence drift; conversion blocked.');
+    }
     const rating = _toText(branch?.rating || '').trim();
     if (!rating) return emptyWeightAuthority(nodeRow, '');
     if (!Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) return emptyWeightAuthority(nodeRow, rating);
