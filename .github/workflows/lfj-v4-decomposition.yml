@@ -41,9 +41,15 @@ jobs:
         run: |
           python3 lfj/governance/pinned-v32/delp_projection_v32.py \
             validate-graph --graph lfj/governance/structured-data-v4.execution-graph.json
-          python3 lfj/governance/pinned-v32/delp_projection_v32.py \
+          # decompose-check intentionally exits 1 for a NOT_RELEASEABLE graph. Do
+          # not let bash -e hide the machine findings before reviewers see them.
+          if python3 lfj/governance/pinned-v32/delp_projection_v32.py \
             decompose-check --graph lfj/governance/structured-data-v4.execution-graph.json \
-            --mode ENFORCED --json > lfj-v4.decomposition-report.json
+            --mode ENFORCED --json > lfj-v4.decomposition-report.json; then
+            echo 'V3.2_DECOMPOSE_EXIT=0'
+          else
+            echo 'V3.2_DECOMPOSE_EXIT=NONZERO (inspect blockers below)'
+          fi
           python3 - <<'PY'
           import json
           from pathlib import Path
