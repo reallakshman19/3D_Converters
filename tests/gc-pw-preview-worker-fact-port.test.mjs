@@ -136,7 +136,9 @@ test('Worker original-branch+node census must agree with independently declared 
  const broken=worker();broken.sourceOccurrences.nodes=[];
  await assert.rejects(direct(makePort(model,{result:broken}),basis),
   getCode('WORKER_ORIGINAL_CENSUS_MISMATCH'));
- const port=makePort(model,{expectedOriginalCount:3,expectedModelOccurrenceCount:3});
+ const port=makePort(model,{expectedOriginalCount:3,expectedModelOccurrenceCount:3,
+  expectedOriginalOccurrences:[...clone(originalCensus),
+   {sourceId:SOURCE_ID,subjectType:'node',occurrenceId:JSON.stringify([SOURCE_ID,0,2,''])}]});
  await assert.rejects(direct(port,basis),getCode('WORKER_ORIGINAL_CENSUS_MISMATCH'));
 });
 
@@ -210,7 +212,7 @@ test('deployed docs mirror is byte-identical and executes the same trusted fact 
  const port=docsPort({
  startJob:({basis,requestId})=>({requestId,basisId:basis.basisId,
   promise:Promise.resolve(worker()),cancel:()=>true}),
- openFactModel:()=>model,expectedOriginalCount:2,
+ openFactModel:()=>model,expectedOriginalOccurrences:clone(originalCensus),expectedOriginalCount:2,
  expectedModelOccurrenceCount:3,expectedPhysicalFactCount:FIELDS.length,pageSize:3});
  assert.equal((await direct(port,basis)).flatMap(p=>p.items).length,FIELDS.length);
 });
