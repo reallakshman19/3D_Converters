@@ -30,7 +30,7 @@ function record(input,index) {
   const attrs=input.attributes??{};
   if(!attrs||typeof attrs!=='object'||Array.isArray(attrs))
     fail('INVALID_OWN_ATTRIBUTES','own attribute record required: '+occurrenceId);
-  for(const key of ['OWNER_SITE','OWNER_ZONE','OWNER']){
+  for(const key of ['OWNER_SITE','OWNER_ZONE','OWNER','SITE','ZONE_ID']){
     if(own(attrs,key)&&typeof attrs[key]!=='string')
       fail('INVALID_OWNER_VALUE',occurrenceId+' '+key+' must be a string');
   }
@@ -42,6 +42,12 @@ function local(owner,key){
   const s=clean(owner.attrs[key]);
   if(!s)fail('INVALID_OWNER_VALUE',owner.occurrenceId+' '+key+' cannot be blank');
   return s;
+}
+function declared(owner,primary,alias){
+  const a=local(owner,primary),b=local(owner,alias);
+  if(a!==null&&b!==null&&a!==b)
+    fail('OWNER_CONFLICT',owner.occurrenceId+' '+primary+' disagrees with '+alias);
+  return a??b;
 }
 
 /**
@@ -80,10 +86,16 @@ export function resolveSourceOwners(originalOccurrences) {
         fail('CROSS_SOURCE_PARENT','parent crosses original source identity');
       parent=compute(sourceParent);
     }
-    const site=local(node,'OWNER_SITE');
-    const zone=local(node,'OWNER_ZONE');
-    const mySite=site??(node.type==='SITE'?clean(node.name)||null:null);
-    const myZone=zone??(node.type==='ZONE'?clean(node.name)||null:null);
+    const site=declared(node,'OWNER_SITE','SITE');
+    const zone=declared(node,'OWNER_ZONE','ZONE_ID');
+    const typedSite=node.type==='SITE'?clean(node.name)||null:null;
+    const typedZone=node.type==='ZONE'?clean(node.name)||null:null;
+    if(site!==null&&typedSite!==null&&site!==typedSite)
+      fail('OWNER_CONFLICT',node.occurrenceId+' typed SITE name conflicts with owner attributes');
+    if(zone!==null&&typedZone!==null&&zone!==typedZone)
+      fail('OWNER_CONFLICT',node.occurrenceId+' typed ZONE name conflicts with owner attributes');
+    const mySite=site??typedSite;
+    const myZone=zone??typedZone;
     const branch=local(node,'OWNER');
     const result=Object.freeze({
       sourceId:node.sourceId,occurrenceId:node.occurrenceId,
