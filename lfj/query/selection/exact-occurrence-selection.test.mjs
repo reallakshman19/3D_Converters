@@ -49,7 +49,8 @@ async function committedFixture(){
 }
 async function select(view,query,pageRows=2){
   const staged=[];
-  const result=await selectCommittedOccurrences(view,query,{
+  const sourceBasis={sourceRefId:view.manifest.sourceRefId,sourceSha256:view.manifest.sourceSha256,sourceRevision:view.manifest.sourceRevision};
+  const result=await selectCommittedOccurrences(view,{...query,sourceBasis},{
     pageRows,
     onSelectedPage:async p=>staged.push(...p)
   });
@@ -78,5 +79,64 @@ test('R08/U01: ALL selects complete original source; NONE selects nothing withou
     assert.equal(none.result.scannedCount,goldenAll.length);
     assert.equal(none.result.selectedCount,0);
     assert.equal(all.result.sourceSha256,f.view.manifest.sourceSha256);
+  }finally{await f.close();}
+});
+test('R08/U02: parent include + child exclude wins even over attempted nested re-inclusion',async()=>{
+  const f=await committedFixture();
+  try{
+    const id=p=>f.opens.find(row=>row.path===p).occurrenceId;
+    const x=await select(f.view,{mode:'EXPLICIT',
+      includes:[id('/0'),id('/0/children/0/name')],
+      excludes:[id('/0/children/0')]},2);
+    assert.deepEqual(x.paths,['/0','/0/type','/0/name','/0/children']);
+    assert.equal(x.result.complete,true);
+  }finally{await f.close();}
+});
+test('R08/U03: repeated source property names cannot merge distinct occurrence identities',async()=>{
+  const f=await committedFixture();
+  try{
+    const a=f.opens.find(row=>row.path==='/0/name');
+    const b=f.opens.find(row=>row.path==='/1/name');
+    assert.notEqual(a.occurrenceId,b.occurrenceId);
+    const chosen=await select(f.view,{mode:'EXPLICIT',includes:[a.occurrenceId],excludes:[]},1);
+    assert.deepEqual(chosen.paths,['/0/name']);
+    assert.ok(!chosen.staged.some(row=>row.occurrenceId===b.occurrenceId));
+  }finally{await f.close();}
+});
+test('R08/U04 semantic RED: query must refuse mismatch to verified current source revision',async()=>{
+  const f=await committedFixture();
+  try{
+    const sourceBasis={sourceRefId:f.view.manifest.sourceRefId,
+      sourceSha256:f.view.manifest.sourceSha256+'-edited-interior',
+      sourceRevision:f.view.manifest.sourceRevision};
+    let staged=0;
+    await assert.rejects(()=>selectCommittedOccurrences(f.view,{
+      mode:'ALL',includes:[],excludes:[],sourceBasis
+    },{onSelectedPage:async page=>{staged+=page.length;}}),
+    e=>e?.code==='SOURCE_STALE');
+    assert.equal(staged,0,'stale query must fail before provisional publication');
+  }finally{await f.close();}
+});
+test('R08/U04 semantic RED: unbound query is not allowed to assume last committed source is current',async()=>{
+  const f=await committedFixture();
+  try{
+    await assert.rejects(()=>selectCommittedOccurrences(f.view,{
+      mode:'ALL',includes:[],excludes:[]
+    },{onSelectedPage:async()=>{}}),e=>e?.code==='SOURCE_BASIS_REQUIRED');
+  }finally{await f.close();}
+});
+test('R08/U04 semantic RED: live source changed while async staging must reject final completion',async()=>{
+  const f=await committedFixture();
+  try{
+    const sourceBasis={sourceRefId:f.view.manifest.sourceRefId,
+      sourceSha256:f.view.manifest.sourceSha256,sourceRevision:f.view.manifest.sourceRevision};
+    let live={...sourceBasis},staged=0;
+    await assert.rejects(()=>selectCommittedOccurrences(f.view,{
+      mode:'ALL',includes:[],excludes:[],sourceBasis,getCurrentBasis:()=>live
+    },{pageRows:1,onSelectedPage:async page=>{
+      staged+=page.length;
+      live={...sourceBasis,sourceRevision:sourceBasis.sourceRevision+'-NEW'};
+    }}),e=>e?.code==='SOURCE_STALE');
+    assert.ok(staged>0,'the test must actually race a pending output callback');
   }finally{await f.close();}
 });
