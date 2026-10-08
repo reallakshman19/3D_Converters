@@ -16,7 +16,7 @@ const legacy = await readFile(new URL('tabs/model-converters/legacy-adapter.js',
 const popup = await readFile(new URL('tabs/model-converters/att-native-scope-popup.js',root),'utf8');
 const converter = await readFile(new URL('tabs/model-converters/converters/rvmattr-to-xml.js',root),'utf8');
 assert.match(legacy,/scopeSelection = await openAttNativeScopePopup/);
-assert.match(legacy,/nativeScope/);
+assert.match(legacy,/runValues\.rvmScope = scopeSelection/);
 assert.match(popup,/data-native-full/);
 assert.match(popup,/data-native-confirm/);
 assert.match(popup,/partial.length/);
