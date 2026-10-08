@@ -7,6 +7,7 @@ on:
       - 'tests/xml-cii-agent-w-weight-canonical-integration.test.mjs'
       - 'tests/xml-cii-agent-w-weight-mode-a-final-dialog.test.mjs'
       - 'tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs'
+      - 'tests/xml-cii-agent-w-weight-approved-run-packet.test.mjs'
       - '.github/workflows/issue-1001-agent-w-weight-contract.yml'
   push:
     branches:
@@ -28,4 +29,4 @@ jobs:
         with:
           node-version: '22'
       - name: Native Node GC-PW contract and regression tests
-        run: node --test tests/xml-cii-agent-w-weight-facts-review.test.mjs tests/xml-cii-agent-w-weight-canonical-integration.test.mjs tests/xml-cii-agent-w-weight-mode-a-final-dialog.test.mjs tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs
+        run: node --test tests/xml-cii-agent-w-weight-facts-review.test.mjs tests/xml-cii-agent-w-weight-canonical-integration.test.mjs tests/xml-cii-agent-w-weight-mode-a-final-dialog.test.mjs tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs tests/xml-cii-agent-w-weight-approved-run-packet.test.mjs
