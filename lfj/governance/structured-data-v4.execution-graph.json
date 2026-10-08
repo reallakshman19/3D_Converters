@@ -2066,7 +2066,9 @@
           "outcome": "Same-name siblings remain distinct",
           "verify": "Independent oracle: Independent parent/child owner-site/zone fixtures; outcome: Same-name siblings remain distinct"
         }
-      ]
+      ],
+      "primary_pr": "reallaksh19/3D_Converters#1067",
+      "candidate_ref": "lfj/r02-source-ownership"
     }
   ],
   "plan_updates": [
