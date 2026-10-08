@@ -1,3 +1,4 @@
+import {runPreviewButtonSession} from './xml-cii-adapted-preview-facts-button-session.js';
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
 import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
 import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
@@ -123,8 +124,17 @@ async function _resolvePreviewStagedJsonText(options = {}, config = {}) {
 function _bindManualPreviewButton(host, rootEl, xmlText, config, options, label = 'Building preview...') {
   host?.querySelectorAll('[data-mc-preview-build]').forEach((button) => {
     button.addEventListener('click', () => {
-      host.innerHTML = `<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">${_esc(label)}</div>`;
-      setTimeout(() => xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true }), 0);
+      // Actual Build/Rebuild button: Worker-backed, awaited and classified.
+      // The existing editable table is still rendered from existing authority.
+      void runPreviewButtonSession({
+        host, rootEl, xmlText, config, options,
+        renderResult: (result, staged) => xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
+          ...options, forceBuild: true, skipLegacyCache: true,
+          precomputedPreview: result, precomputedStagedSource: staged,
+        }),
+      }).catch((error) => {
+        host.innerHTML = `<div role="alert" class="model-converters-workflow-detail-note">Preview session failed: ${_esc(error?.message || error)}</div>`;
+      });
     });
   });
 }
@@ -253,7 +263,7 @@ export function xmlCiiRenderPreviewPhase(xmlFile, config) {
 
   if (!llRows && !pcRows) return `<div class="model-converters-workflow-detail-title">4 Preview</div>${masterStatusHtml}<div class="model-converters-workflow-detail-note">⚠ Import at least one master in 2 Import Masters, then return here.</div>`;
 
-  return `<div class="model-converters-workflow-detail-title">4 Preview</div><div class="model-converters-workflow-detail-text">Dry-run enrichment preview per branch — inspect and override approximate matches.</div>${masterStatusHtml}<div id="mc-preview-table-host">${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">Preview is not auto-built. Click <strong>Build Preview</strong> after loading XML/master data.</div></div>`;
+  return `<div class="model-converters-workflow-detail-title">4 Preview</div><div class="model-converters-workflow-detail-text">Dry-run enrichment preview per branch — inspect and override approximate matches.</div>${masterStatusHtml}<div id="mc-preview-table-host" data-mc-preview-source-id="${_esc(xmlFile.name || '')}">${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">Preview is not auto-built. Click <strong>Build Preview</strong> after loading XML/master data.</div></div>`;
 }
 
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
@@ -276,6 +286,18 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     stagedSource = { text: '', label: '(from cache)' };
     branchRows = _pvCached.data.branchRows;
     nodeRows = _pvCached.data.nodeRows || [];
+  } else if (options.precomputedPreview) {
+    // A Worker result is already computed; do not rerun 10k-master matching in UI.
+    const prepared = options.precomputedPreview;
+    if (!Array.isArray(prepared.branchRows) || !Array.isArray(prepared.nodeRows)
+        || !Array.isArray(prepared.sourceOccurrences?.branches)
+        || !Array.isArray(prepared.sourceOccurrences?.nodes)
+        || prepared.sourceOccurrences.branchCount !== prepared.branchRows.length) {
+      throw Object.assign(new Error('Worker source/branch population was not complete'),
+        { code: 'WORKER_SOURCE_COVERAGE_MISMATCH' });
+    }
+    stagedSource = options.precomputedStagedSource || { text: '', label: '' };
+    ({ branchRows, nodeRows } = prepared);
   } else {
     stagedSource = await _resolvePreviewStagedJsonText(options, config);
     ({ branchRows, nodeRows } = xmlCiiDryRunPreview(xmlText, config, stagedSource.text));
@@ -440,7 +462,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   if (stagedSource.label) host.insertAdjacentHTML('afterbegin', `<div class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#2b6cb0;color:#1e3a8a;background:#eff6ff;">DTXR staged source: ${_esc(stagedSource.label)}</div>`);
   if (defaultRows.length) host.insertAdjacentHTML('afterbegin', `<div class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">${defaultRows.length} line${defaultRows.length === 1 ? '' : 's'} use config defaults. Default values are shown in dark red.</div>`);
 
-  if (!_pvFromCache) {
+  if (!_pvFromCache && !options.skipLegacyCache) {
     writeCache(PV_CACHE_KEY, _pvFp, { branchRows, nodeRows });
   }
 
