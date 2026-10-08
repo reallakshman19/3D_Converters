@@ -8,7 +8,7 @@
 
 **User-facing end state:** Open actual Resolver; load a real StagedJSON File/Blob and authoritative XML/CII source; Build/Refresh yields complete, revisable Site/Zone/branch scope tree; selecting All or a bounded scope indexes all original occurrences without main-thread parsing; Resolve/Trace runs off-main; POS/PS/DTXR, bore/coordinate, matches/rejections and engineering source lineage agree exactly with independently approved expected output; page small result portions while retaining whole-source counts; replacing/cancelling a source never publishes stale trace/export; worker absence fails visibly, not via hidden main-thread fallback. Preserve existing Preview/Weight/GC-PW and CII permission invariants. Until proven, call it ACTIVE_INTEGRATION_TARGET, NOT WIRED/ACCEPTED.
 
-**Current facts (reconciled at review):** R01–R05 native merged. R05 real 10,539,386-byte original staging JSON (SHA e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a): 270 array roots / 339,987 JSON values, Node census ~93.6s, not accepted responsiveness. R06 U01–U03 have prior exact-head Node22/24 and retained integration evidence [#1071](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355); U04 has independent RED-test candidate 10a13b23c6fd18ee1d8c794f901064644d40735b on draft #1075, **not** qualified U04 GREEN or accepted R06; re-fetch branch head before continuation. R07–R10 and R12–R13 not materialized. **No Resolver code currently calls the complete LFJ execution path**.
+**Current facts (reconciled at review):** R01–R05 native merged. R05 real 10,539,386-byte original staging JSON (SHA e465fa696c80516868349032af6cf1976d9a180c86ea2a7b9eab28c6436fa92a): 270 array roots / 339,987 JSON values, Node census ~93.6s, not accepted responsiveness. R06 U01–U04 now have **exact-head native protocol evidence** at `a6e9c422114d2b5bbb64190f5336e8ebd78b480e` on still-DRAFT [PR #1075](https://github.com/reallaksh19/3D_Converters/pull/1075): [Node22/24 20/20 tests](https://github.com/reallaksh19/3D_Converters/actions/runs/37814706210), [retained Node22/24+Chromium Preview 3/3](https://github.com/reallaksh19/3D_Converters/actions/runs/37814705862), and [R06 U04 source RED→GREEN facts](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6065186032). This is **not** independent merge acceptance nor deployed LFJ Chromium Worker qualification. Existing R07 is **provisionally proposed** in [child #1078](https://github.com/reallaksh19/3D_Converters/issues/1078) and [stacked governance draft #1079](https://github.com/reallaksh19/3D_Converters/pull/1079), target R06 branch, **NOT yet V3.2-admitted or product-coded**; R08–R10 and R12–R13 not materialized. **No Resolver code currently calls the complete LFJ execution path**.
 
 ## 1. Non-negotiable architecture / contract
 
@@ -226,7 +226,7 @@ R10 owns a *real tested* `LFJ.PortEnvelope.v1` under `lfj/ports/**`, schema-vers
 
 ### B09 — truth-aligned live R06 frontier / governance
 
-Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r06-worker-isolation`. U01 actual Worker provenance, U02 bounded ACK and U03 actual worker-consumed-byte **protocol** were evidenced at earlier exact candidate `4fa6cbfef7daa563e096ec8438afc77299e19773` via [TASK_EVIDENCE](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355). **Current branch at review:** U04 native RED-only `10a13b23c6fd18ee1d8c794f901064644d40735b`, U04 **NOT ACCEPTED**, no current-head U04 green. This does not prove the full R05 parser runs in a deployed Worker. On any continuation re-fetch PR and relevant commit workflows; stale prior evidence does not qualify new candidate until replay. Correct `resolver-first-vertical-slice.PLAN.md`, this document and PR description together; no hand-edited scoreboards.
+Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r06-worker-isolation`. U01 actual Worker provenance, U02 bounded ACK and U03 actual worker-consumed-byte **protocol** were evidenced at earlier exact candidate `4fa6cbfef7daa563e096ec8438afc77299e19773` via [TASK_EVIDENCE](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6064270355). **Current source checkpoint:** U04 native RED `10a13b23c6fd18ee1d8c794f901064644d40735b` led to code fix and additional fault negatives on still-DRAFT #1075. At exact `a6e9c422114d2b5bbb64190f5336e8ebd78b480e`, [R06 native Node22/24 20/20 green](https://github.com/reallaksh19/3D_Converters/actions/runs/37814706210) and [retained 3/3 nonregression green](https://github.com/reallaksh19/3D_Converters/actions/runs/37814705862), [TASK_EVIDENCE](https://github.com/reallaksh19/3D_Converters/issues/1071#issuecomment-6065186032); **NOT merged/independently source reviewed for final R06 acceptance**. This does not prove the full R05 parser runs in a deployed Worker. On any continuation re-fetch PR and relevant commit workflows; stale prior evidence does not qualify new candidate until replay. Correct `resolver-first-vertical-slice.PLAN.md`, this document and PR description together; no hand-edited scoreboards.
 
 ## 16. Explicit file → owner → permission → RED → deployment matrix (implementation source contract)
 
@@ -234,7 +234,7 @@ Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r
 
 | File / module (source and/or deployment) | Responsible leaf; sequential writer / lease state | RED or independent oracle | Served deployment requirement |
 | --- | --- | --- | --- |
-| `lfj/transport/execution/**` | R06 existing exclusive #1075; ACTIVE, U04 RED | Crash before READY/after ACK, invalid/late protocol, no resource leak | Real native+browser Worker, no inline fallback |
+| `lfj/transport/execution/**` | R06 existing exclusive #1075; U01–U04 native tests GREEN, independent source review/merge PENDING | Crash before READY/after ACK, invalid/late protocol, no resource leak | Real native+browser Worker, no inline fallback |
 | `lfj/transport/lifecycle/**` | R07 AFTER R06; ADMISSION_REQUIRED | Cancel/crash/revision/retry stress | Worker cannot publish stale state |
 | `lfj/query/selection/**` | R08 AFTER R07; ADMISSION_REQUIRED | Own Zone, repeated siblings, nested exclusion | Same selected identity |
 | `lfj/query/pages/**` | R09 AFTER R08; ADMISSION_REQUIRED | page=1 complete union, stale cursor, cap | Complete selection despite tiny view |
@@ -255,7 +255,7 @@ Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r
 
 | Step | Execute, only with admitted writer | Gate proving a working vertical slice rather than isolated PR statistics |
 | --- | --- | --- |
-| A1 R06 | Complete U04 native Worker crash/protocol/cleanup on #1075; replay U01–U03 on SAME head | Exact-head Node22/24 + real Worker/Chromium; TASK_RESULT; merge only if independently qualified |
+| A1 R06 | U04 real-Worker failure/cleanup source work done on #1075; independent reviewer source check and merge gate remain | Exact-head Node22/24 native 20/20 and retained Chromium Preview 3/3 proven; actual LFJ browser Worker awaits R10; deliberate merge only after independently qualified |
 | A2 R07 | Cancel, crash partial rollback, all-source job fences, fresh retry | One terminal outcome; old source/result never commits |
 | A3–A4 R08/R09 | Semantic include/exclude and bounded page full union | Original source identity/count unchanged; invalid selection/cursor fails |
 | A5 R10 plus B03+B08 | Node/browser parity + real tested versioned envelope + reproducible docs LFJ+Worker packaging | Served docs Chromium import and Worker denial/404/CSP cases, no foreground fallback; **lease amendment first** |
@@ -271,7 +271,7 @@ Canonical R06 issue #1071 and only active product PR #1075, source branch `lfj/r
 - [x] Review B01–B09 are translated into file-backed implementation boundaries with RED cases and observable app behavior.
 - [x] Six D1–D6 decisions are binding instructions, not repeated open-ended questions.
 - [x] Real `docs/lfj/` absence and `JSON.parse`→`[]` invalid-empty behavior are documented as source-level blockers.
-- [x] R06 truth is reconciled: U01–U03 previous-head evidence; U04 RED but unaccepted on live #1075.
+- [x] R06 truth re-reconciled: U01–U04 native green at `a6e9c422...` with exact-head evidence; R06 still draft/unmerged; R07 graph binding on unmerged stacked #1079 is **NOT** admission or product completion.
 - [ ] **BEFORE WRITING PRODUCT:** authorized ENFORCED graph-diff/readback for R10 packager/docs and R12/R13 loader/state/Worker/ledger/DOM/CSV/docs write surfaces.
 - [ ] **BEFORE PRODUCT ACCEPTANCE:** genuine served docs browser app/Worker + original file/source parity and independent security/source failures.
 - [ ] **BEFORE RESOLVER RELEASE:** independent authentic XML/trace/CSV/CII output goldens (`NO_GOLDEN` until provided); genuine populated 30/90MB source and approved reference-device performance (`NO_SOURCE` until provided).
