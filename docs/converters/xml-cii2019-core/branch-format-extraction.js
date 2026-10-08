@@ -11,7 +11,8 @@ function legacyFormat(config) {
   const line = record(config.linelist);
   const rating = record(config.rating);
   const weight = record(config.weight);
-  const hasStandaloneRules = ['lineKey', 'pipingClass', 'rating', 'bore'].some((key) => key in config);
+  const hasStandaloneRules = ['lineKey', 'pipingClass', 'bore'].some((key) => key in config)
+    || ['regex', 'group', 'tokenPosition'].some((key) => key in rating);
   if (hasStandaloneRules) {
     return {
       tokenDelimiter: text(config.tokenDelimiter) || '-',
@@ -50,7 +51,7 @@ function rulesFrom(config) {
   if (Array.isArray(root.formats)) {
     return { formats: root.formats, ratingSequence: root.ratingSequence || root.rating?.ratingSequence, legacy: false, origin: 'formats' };
   }
-  const legacy = legacyFormat(Object.keys(nested).length ? nested : root);
+  const legacy = legacyFormat(nested) || legacyFormat(root);
   return {
     formats: legacy ? [legacy] : [],
     ratingSequence: nested.ratingSequence || root.ratingSequence || root.rating?.ratingSequence,
@@ -64,7 +65,8 @@ function tokenField(source, rule, delimiter, joiner) {
   if (!positions.length || positions.some((pos) => !Number.isSafeInteger(pos) || pos < 1)) {
     return { value: '', method: 'NONE', reason: 'NO_VALID_TOKEN_POSITION' };
   }
-  const tokens = source.split(delimiter || '-').map((part) => part.trim());
+  const tokens = source.replace(/^\/+/, '').replace(/\/B\d+$/i, '')
+    .split(delimiter || '-').map((part) => part.trim());
   const values = positions.map((pos) => tokens[pos - 1] || '');
   if (values.some((value) => !value)) return { value: '', method: 'TOKEN', reason: 'TOKEN_MISSING' };
   return { value: values.join(joiner), method: 'TOKEN', reason: '' };
