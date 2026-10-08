@@ -34,10 +34,17 @@ function valueAtPath(parent, path = []) {
   return { found: true, value: text(current?.textContent) };
 }
 
+export function xmlCiiParityNodeSignature(node) {
+  return ['NodeNumber', 'ComponentRefNo', 'Endpoint', 'Position', 'ComponentType']
+    .map((field) => childText(node, field)).join('\u001f');
+}
+
 function authorityKey(entry) {
   return [
     entry?.scope || '',
     entry?.branchName || '',
+    Number.isSafeInteger(entry?.branchOccurrenceIndex) ? entry.branchOccurrenceIndex : '',
+    Number.isSafeInteger(entry?.nodeOrdinal) ? entry.nodeOrdinal : '',
     entry?.nodeKey || entry?.nodeNumber || '',
     ...(Array.isArray(entry?.path) ? entry.path : []),
   ].join('\u0000');
@@ -77,21 +84,38 @@ export function extractXmlCiiParityAuthorityEntries(xmlText, expectedEntries = [
   const document = new DOMParser().parseFromString(String(xmlText ?? ''), 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('The enriched XML could not be parsed for run parity verification.');
 
-  const branches = new Map();
-  for (const branch of [...document.getElementsByTagName('Branch')]) {
+  const branchElements = [...document.getElementsByTagName('Branch')];
+  const branchesByName = new Map();
+  for (const branch of branchElements) {
     const branchName = childText(branch, 'Branchname');
-    if (branchName && !branches.has(branchName)) branches.set(branchName, branch);
+    if (branchName && !branchesByName.has(branchName)) branchesByName.set(branchName, branch);
   }
 
   return (expectedEntries || []).map((entry) => {
-    const branch = branches.get(text(entry?.branchName));
-    if (!branch) return { ...entry, actual: '', found: false, missing: 'branch' };
+    const locatedByOccurrence = Number.isSafeInteger(entry?.branchOccurrenceIndex);
+    const branch = locatedByOccurrence
+      ? branchElements[entry.branchOccurrenceIndex] : branchesByName.get(text(entry?.branchName));
+    if (!branch || childText(branch, 'Branchname') !== text(entry?.branchName)) {
+      return { ...entry, actual: '', found: false,
+        missing: locatedByOccurrence ? 'branch-identity' : 'branch' };
+    }
     let owner = branch;
     if (entry?.scope === 'node') {
-      owner = childrenByName(branch, 'Node').find((node, index) => entry?.nodeKey
-        ? xmlCiiWeightReviewNodeOverrideKey(text(entry.branchName), node, index) === entry.nodeKey
-        : childText(node, 'NodeNumber') === text(entry?.nodeNumber)) || null;
-      if (!owner) return { ...entry, actual: '', found: false, missing: 'node' };
+      const nodes = childrenByName(branch, 'Node');
+      if (Number.isSafeInteger(entry.nodeOrdinal)) {
+        owner = nodes[entry.nodeOrdinal] || null;
+        if (!owner) return { ...entry, actual: '', found: false, missing: 'node' };
+        // Ordinal alone never authorizes a node: verify immutable geometry/ID facts.
+        if (!entry.nodeSignature || xmlCiiParityNodeSignature(owner) !== entry.nodeSignature) {
+          return { ...entry, actual: '', found: false, missing: 'node-identity' };
+        }
+      } else {
+        // Backward compatibility for legacy accepted weights and other existing callers.
+        owner = nodes.find((node, index) => entry?.nodeKey
+          ? xmlCiiWeightReviewNodeOverrideKey(text(entry.branchName), node, index) === entry.nodeKey
+          : childText(node, 'NodeNumber') === text(entry?.nodeNumber)) || null;
+        if (!owner) return { ...entry, actual: '', found: false, missing: 'node' };
+      }
     }
     const actual = valueAtPath(owner, entry?.path || []);
     return { ...entry, actual: actual.value, found: actual.found, missing: actual.found ? '' : 'field' };
