@@ -101,7 +101,27 @@ function ratingFromClass(pipingClass, sequence) {
   return '';
 }
 
+
+function unusedAlternativeTemplate(format, index) {
+  if (index === 0 || format.enabled === true) return false;
+  if (format.enabled === false) return true;
+  // Historical workbench state persists an untouched alternative editor slot
+  // with all four initial positional hints. This is not an engineered Format 2.
+  const positions = { lineKey: 3, pipingClass: 4, rating: 4, bore: 2 };
+  return Object.keys(positions).every((key) => {
+    const rule = record(format[key]);
+    return !text(rule.regex) && Number(rule.group ?? 1) === 1
+      && Number(rule.tokenPosition) === positions[key]
+      && rule.fallbackOnRegexMiss !== true;
+  }) && (text(format.tokenDelimiter) || '-') === '-'
+    && !text(format.lineKeyJoiner);
+}
+
 function evaluate(source, formatInput, index, sequence, legacy) {
+  if (unusedAlternativeTemplate(record(formatInput), index)) {
+    return { formatIndex: index, status: 'REJECTED', lineKey: '', pipingClass: '',
+      rating: '', bore: '', fieldMethods: {}, reasons: { format: 'UNCONFIGURED_ALTERNATIVE' } };
+  }
   const format = record(formatInput);
   const delimiter = text(format.tokenDelimiter) || '-';
   const line = extractField(source, format.lineKey, delimiter, String(format.lineKeyJoiner ?? ''), legacy);
