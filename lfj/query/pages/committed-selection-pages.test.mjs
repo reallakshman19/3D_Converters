@@ -15,7 +15,7 @@ const expectedAll=['','/0','/0/type','/0/name','/0/children','/0/children/0','/0
 const expectedA=expectedAll.slice(1,8);
 const sourceBasis=m=>({sourceRefId:m.sourceRefId,sourceSha256:m.sourceSha256,sourceRevision:m.sourceRevision});
 
-async function sourceView(json=sourceText) {
+async function sourceView(json=sourceText,paths=expectedAll) {
   const bytes=new TextEncoder().encode(json);
   const b=createSourceSnapshotBuilder({byteLength:bytes.length,revision:'R09-fixture'});
   b.append(bytes,0);const source=b.finalize();
@@ -37,7 +37,7 @@ async function sourceView(json=sourceText) {
     jobId,sourceRefId,pageBytes:32,onConsumed:()=>{}});
   const completion=tx.commit(manifest,receipt);
   const opens=eventPages.filter(x=>x.kind==='OPEN');
-  assert.deepEqual(opens.map(x=>x.path),expectedAll);
+  assert.deepEqual(opens.map(x=>x.path),paths);
   let scanned=0;
   const view={manifest,completion,async *readOrdered(){scanned++;for(const row of opens)yield row;}};
   return {view,source,opens,get scanned(){return scanned;},async close(){await worker?.terminate();source.close();}};
@@ -63,8 +63,8 @@ function memoryIndexedStore(){
     get state(){return {staged:staged.length,committed:committed?.length??null,aborted,readCalls,commitCalls};}
   };
 }
-async function prepared({mode='EXPLICIT',json=sourceText,store=memoryIndexedStore(),getCurrentBasis}={}){
- const f=await sourceView(json),m=f.view.manifest;
+async function prepared({mode='EXPLICIT',json=sourceText,paths=expectedAll,store=memoryIndexedStore(),getCurrentBasis}={}){
+ const f=await sourceView(json,paths),m=f.view.manifest;
  const basis=sourceBasis(m),scope='scope-'+mode,epoch='R09-JOB-v1';
  let live={...basis};
  const p=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:scope,
@@ -312,4 +312,19 @@ test('R09/U02 semantic RED: caller mutation after staging cannot alter indexed s
    assert.equal(received[0].path,'/0','stage must take a defensive immutable snapshot');
    assert.equal(Object.isFrozen(received[0]),true);
  }finally{await p.abort();await f.close();}
+});
+
+test('R09/U02 semantic RED: genuine valid R05 occurrence IDs beyond 1024 characters must remain page-reachable',async()=>{
+ // R05 explicitly permits long RFC6901 paths (up to 65,536 UTF-16 code units)
+ // and source occurrence IDs (up to 67,584 code units). R09 may NOT clip at 1024.
+ const longKey='k'.repeat(1100);
+ const path='/0/'+longKey;
+ const json='[{"'+longKey+'":"value"}]';
+ const f=await prepared({mode:'ALL',json,paths:['','/0',path]});
+ try{
+   const records=await union(f,1);
+   assert.deepEqual(records.out,['','/0',path]);
+   assert.equal(records.pages,3);
+   assert.ok(f.f.opens[2].occurrenceId.length>1024);
+ }finally{await f.close();}
 });
