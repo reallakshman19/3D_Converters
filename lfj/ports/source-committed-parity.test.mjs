@@ -134,3 +134,25 @@ test('R10/U04: missing committed store refuses source execution before Worker ad
  }),e=>e?.code==='SOURCE_PORT_REQUIRED');
  assert.equal(created,0);
 });
+
+test('R10/U03: source-valid long R05 identities survive R08 staging into R09 indexed pages',async()=>{
+ const longKey='k'.repeat(34000),raw=new TextEncoder().encode('{"'+longKey+'":"yes"}');
+ const longSha=createHash('sha256').update(raw).digest('hex');
+ const indexStore=sourceIndexStore(),selectedStore=selectedIndexedStore();
+ const result=await runCommittedSourceQuery({
+  blob:new Blob([raw]),revision,expectedSha256:longSha,
+  sourceRefId,jobId:'R10-LONG-QUERY',selectionDigest:'long-all',
+  selection:{mode:'ALL',includes:[],excludes:[]},trustedWorkerCtor:Worker,
+  createWorker:()=>new Worker(new URL('./source-node-worker.mjs',import.meta.url),{type:'module'}),
+  indexStore,selectedStore,pageEvents:2
+ });
+ try{
+  const one=await result.readPage({cursor:null,maxRows:1,maxBytes:131072});
+  assert.deepEqual(one.rows.map(r=>r.path),['']);
+  const next=await result.readPage({cursor:one.cursor,maxRows:1,maxBytes:131072});
+  assert.deepEqual(next.rows.map(r=>r.path),['/'+longKey]);
+  assert.equal(next.complete,true);
+  assert.equal(result.summary.occurrenceCount,2);
+  assert.equal(indexStore.reads,1);
+ }finally{await result.close();}
+});
