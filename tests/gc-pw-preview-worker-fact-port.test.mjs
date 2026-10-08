@@ -25,7 +25,7 @@ const ports = {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecor
 const getCode = c => e => { assert.equal(e?.code,c); return true; };
 const clone = x => structuredClone(x);
 const worker = () => ({sourceOccurrences:{branches:[{sourceId:SOURCE_ID,occurrenceId:originalCensus[0].occurrenceId}],nodes:[{sourceId:SOURCE_ID,occurrenceId:originalCensus[1].occurrenceId}]},
- coverage:{sourceBranchCount:1,originalNodeCount:1},branchRows:[{}],nodeRows:[],
+ coverage:{sourceBranchCount:1,originalNodeCount:1,engineeringBranchCount:1,legacyReviewNodeCount:0},branchRows:[{}],nodeRows:[],
  engineeringAcceptance:'VERIFIED',fullFactPopulationAccepted:true});
 
 function fact(basis, owner, fieldId, value) {
