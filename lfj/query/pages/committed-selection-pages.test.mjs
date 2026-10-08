@@ -232,3 +232,38 @@ test('R09/U04 semantic RED: abort during indexed read may never return accepted 
    await assert.rejects(pending,e=>e?.code==='PAGE_SESSION_ABORTED');
  }finally{await f.close();}
 });
+
+test('R09/U01: backend exceeding requested row cap cannot leak extra source facts',async()=>{
+ const store=memoryIndexedStore(),originalRead=store.readRange.bind(store);
+ store.readRange=async(start,maxRows,maxBytes)=>originalRead(start,maxRows+1,maxBytes);
+ const f=await prepared({store});
+ try{
+   await assert.rejects(()=>f.request(null,1),e=>e?.code==='PAGE_STORE_INVALID');
+ }finally{await f.close();}
+});
+test('R09/U01: backend ignoring requested byte cap refuses oversized page',async()=>{
+ const store=memoryIndexedStore(),originalRead=store.readRange.bind(store);
+ store.readRange=async(start,maxRows)=>originalRead(start,maxRows,1048576);
+ const f=await prepared({store});
+ try{
+   const bytes=new TextEncoder().encode(JSON.stringify(f.f.opens[1])).length;
+   assert.ok(bytes>256,'actual source event must exceed the small requested byte bound');
+   await assert.rejects(()=>f.request(null,1,256),e=>e?.code==='PAGE_STORE_OVERLIMIT');
+ }finally{await f.close();}
+});
+test('R09/U02: invalid/incomplete R08 selection cannot commit partial selected pages',async()=>{
+ const f=await sourceView(),basis=sourceBasis(f.view.manifest);
+ const store=memoryIndexedStore();
+ const pager=createCommittedSelectionPager({store,sourceBasis:basis,selectionDigest:'A',jobEpoch:'E'});
+ try{
+   await pager.stageSelectedPage([f.opens[1]]);
+   await assert.rejects(()=>pager.commitSelection({
+     schema:'LFJ.OccurrenceSelectionSummary.v1',complete:false,
+     ...basis,selectedCount:1,scannedCount:f.opens.length,
+     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+   }),e=>e?.code==='SELECTION_INCOMPLETE');
+   assert.equal(store.state.commitCalls,0,'provisional cannot publish');
+   await pager.abort();
+   assert.equal(store.state.committed,null);
+ }finally{await f.close();}
+});
