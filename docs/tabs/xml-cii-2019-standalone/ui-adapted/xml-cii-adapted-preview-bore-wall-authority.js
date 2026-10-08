@@ -275,7 +275,7 @@ function buildNodeBoreWallRows({
 
 function correctNodeRows(nodeRows, nodeBoreWallRows) {
   const byKey = new Map();
-  const contestedKeys = new Set((nodeRows || []).map((row) => row.key));
+  const contestedKeys = new Set((nodeRows || []).map((row) => nodeAuthorityKey(row)));
   for (const item of nodeBoreWallRows || []) {
     const existing = byKey.get(item.key);
     if (existing && contestedKeys.has(item.key)
