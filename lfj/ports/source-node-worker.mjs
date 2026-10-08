@@ -1,11 +1,13 @@
 /** R10 native WorkerThreads entry: never run source scan in caller thread. */
 import {isMainThread,parentPort} from 'node:worker_threads';
-import {scanSourceInsideWorker,SOURCE_WORKER_SCHEMA} from './source-worker-port.mjs';
+import {scanSourceInsideWorker,SOURCE_WORKER_SCHEMA,createSourcePageAckGate} from './source-worker-port.mjs';
 
 if(isMainThread||!parentPort)throw new Error('SOURCE_WORKER_REQUIRED');
 
 let claimed=false;
+const pageGate=createSourcePageAckGate(message=>parentPort.postMessage(message));
 parentPort.on('message',async message=>{
+  if(pageGate.receive(message))return;
   if(claimed){
     parentPort.postMessage({schema:SOURCE_WORKER_SCHEMA,kind:'FAILED',
       jobId:message?.jobId,code:'WORKER_BUSY'});
@@ -14,10 +16,7 @@ parentPort.on('message',async message=>{
   claimed=true;
   try{
     const summary=await scanSourceInsideWorker(message,{
-      publishPage:async rows=>parentPort.postMessage({
-        schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
-        jobId:message.jobId,sourceRefId:message.sourceRefId,rows
-      })
+      publishPage:async rows=>pageGate.publish(rows,{jobId:message.jobId,sourceRefId:message.sourceRefId})
     });
     parentPort.postMessage({
       schema:SOURCE_WORKER_SCHEMA,kind:'SCAN_DONE',
