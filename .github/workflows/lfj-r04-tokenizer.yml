@@ -1,0 +1,44 @@
+name: LFJ R04 incremental JSON token oracle
+
+on:
+  pull_request:
+    branches:
+      - lfj/r03-source-custody
+      - lfj/structured-data-plan-v4
+      - main
+    paths:
+      - 'lfj/tokenizer/**'
+      - '.github/workflows/lfj-r04-tokenizer.yml'
+  push:
+    branches:
+      - 'lfj/r04-*'
+    paths:
+      - 'lfj/tokenizer/**'
+      - '.github/workflows/lfj-r04-tokenizer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  token-u01:
+    name: R04 U01 Node ${{ matrix.node }} chunked JSON string byte oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Record exact R04 tested tree
+        run: |
+          echo "R04_TESTED_SHA=$(git rev-parse HEAD)"
+          node --version
+      - name: Test independent R04 RED/GREEN token cases
+        run: node --test lfj/tokenizer/*.test.mjs
+      - name: Verify no test changed source files
+        run: test -z "$(git status --porcelain)"
