@@ -2,7 +2,7 @@
 
 **Governance:** [parent 3D_Converters#1042](https://github.com/reallaksh19/3D_Converters/issues/1042) · [approved Pass-1 architecture](https://github.com/reallaksh19/3D_Converters/issues/1042#issuecomment-6057297345) · [Owner-approved scope addendum](https://github.com/reallaksh19/3D_Converters/issues/1042#issuecomment-6057797282) · [claim-first V3.2 protocol](https://github.com/reallaksh19/Common/tree/c8eb92a9d530869a8d48bf56616e908eff2ecebb/skills/engineering-pr-delivery-v3.2).
 
-**Execution source:** [structured-data-v4.execution-graph.json](./structured-data-v4.execution-graph.json). That file, not this prose, is the **pre-materialization, machine-checkable** leaf/claim allocation. The companion workflow runs the exact pinned V3.2 `decompose-check` against it. This plan is not product implementation.
+**Execution source:** [structured-data-v4.execution-graph.json](./structured-data-v4.execution-graph.json). That file, not this prose, is the **pre-materialization, machine-checkable** leaf/claim allocation. The companion workflow runs an exact blob-verified, pinned V3.2 `decompose-check` snapshot against it; the source Git blob is `c3666c16c4d0d0b113a05a6a1467b09d6cdc1858` from `Common@c8eb92a9d530869a8d48bf56616e908eff2ecebb`. This validator snapshot is governance-only, never an LFJ runtime dependency. This plan is not product implementation.
 
 **Owner intent retained, 2026-10-08:** Reuse large-file parsing, cancellation, queries and source identity across 3D_Converters, XML_Compare_Utilities Draft Edit, and 3DMarkupTool managed JSON viewer despite mild source/envelope variants. Where practical, support FBX/GLB (and structurally similar formats) without forcing unlike geometry into StagedJSON. The owner explicitly requested a V3.2-governed upgrade to the existing programme.
 
@@ -130,11 +130,11 @@ No semantic authority is transported by renaming a field. The shared execution p
 
 ## 7. V3.2 mechanical gate and next task
 
-Run on the exact pinned source, not a hand-built checklist:
+Run on the exact pinned Common V3.2 source, snapshotted read-only at `lfj/governance/pinned-v32/delp_projection_v32.py` because the 3D_Converters workflow token cannot checkout private Common. The workflow verifies its original Git blob SHA before invoking it, so the result is from the unmodified checker—not a recreated approximation:
 ```bash
-python3 common/skills/engineering-pr-delivery-v3.2/scripts/delp_projection_v32.py \
+python3 lfj/governance/pinned-v32/delp_projection_v32.py \
   validate-graph --graph lfj/governance/structured-data-v4.execution-graph.json
-python3 common/skills/engineering-pr-delivery-v3.2/scripts/delp_projection_v32.py \
+python3 lfj/governance/pinned-v32/delp_projection_v32.py \
   decompose-check --graph lfj/governance/structured-data-v4.execution-graph.json --mode ENFORCED --json > decompose-report.json
 ```
 Pass condition `report.mode == 'ENFORCED'` and `release_state == 'RELEASEABLE'` and `summary.not_releasable == 0`. Record its **real** `proposal_digest`, then bind exact immutable `released_proposal_digest` and only thereafter create R01 provider child.
