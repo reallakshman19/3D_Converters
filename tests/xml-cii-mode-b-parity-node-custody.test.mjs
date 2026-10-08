@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import { extractXmlCiiParityAuthorityEntries, compareXmlCiiParityAuthorityEntries, createStandaloneRunParityEvidence } from '../tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js';
 import { applyStandaloneProcessParity } from '../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js';
@@ -197,4 +198,14 @@ test('P0 reproduced: repeated PL-06 produces a false missing 200010 with first-n
   oldLookup.nodeKey = pl06 + '::200010';
   const oldEvidence = extractXmlCiiParityAuthorityEntries(triple, [oldLookup]);
   assert.deepEqual([oldEvidence[0].found, oldEvidence[0].missing], [false, 'node']);
+});
+
+
+test('static runtime loads the refreshed parity writer and evidence modules as a pair', async () => {
+  const [service, writer] = await Promise.all([
+    readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js', import.meta.url), 'utf8'),
+    readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js', import.meta.url), 'utf8'),
+  ]);
+  assert.match(service, /xml-cii-standalone-run-parity\.js\?v=20261008-p0-mode-b-parity-1/);
+  assert.match(writer, /xml-cii-run-parity-evidence\.js\?v=20261008-p0-mode-b-parity-1/);
 });
