@@ -1826,6 +1826,10 @@
         {
           "responsibility_id": "R07",
           "ref": "reallaksh19/3D_Converters#1078"
+        },
+        {
+          "responsibility_id": "R08",
+          "ref": "reallaksh19/3D_Converters#1082"
         }
       ]
     }
@@ -1834,7 +1838,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 88
+      "reserve_weight": 84
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -2266,6 +2270,69 @@
           "weight": 25,
           "outcome": "Retries never reuse old selections",
           "verify": "Independent oracle: Independent cancel/crash/stale-revision fault cases; outcome: Retries never reuse old selections"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1082",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 4,
+      "responsibility_id": "R08",
+      "work_class": "PRODUCT",
+      "outcome": "Source scopes include exactly intended occurrences and exclude every forbidden descendant.",
+      "independence_basis": "Independent complete selection oracle with repeated names. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C3_SELECT"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/query/selection/"
+      ],
+      "acceptance_methods": [
+        "Independent complete selection oracle with repeated names",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1068",
+        "reallaksh19/3D_Converters#1078"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Explicit includes select exact occurrences",
+          "verify": "Independent oracle: Independent complete selection oracle with repeated names; outcome: Explicit includes select exact occurrences"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Nested exclusions have declared priority",
+          "verify": "Independent oracle: Independent complete selection oracle with repeated names; outcome: Nested exclusions have declared priority"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Repeated names never merge selection",
+          "verify": "Independent oracle: Independent complete selection oracle with repeated names; outcome: Repeated names never merge selection"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Incompatible scope is rejected",
+          "verify": "Independent oracle: Independent complete selection oracle with repeated names; outcome: Incompatible scope is rejected"
         }
       ]
     }
