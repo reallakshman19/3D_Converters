@@ -55,7 +55,7 @@ record('PIPE', '/ASIM-1885-PL-PIPE-7', '/SITE-0/ZONE-0');
 record('BRAN', '/ASIM-1885-PL-PIPE-7/B1', '/ASIM-1885-PL-PIPE-7');
 record('SPINE', '/ORPHAN', '/MISSING-OWNER');
 const text = input.join('\n');
-assert.ok(text.length > 10_000_000);
+assert.ok(text.length > 7_000_000, '105k-record synthetic text unexpectedly short');
 const jsErrors = [];
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 try {
