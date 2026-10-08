@@ -85,6 +85,33 @@ test('U02 RED: native Worker crash after genuine provisional R05 pages aborts th
   assert.throws(()=>tx.commit(complete,{}),e=>e?.code==='INDEX_ALREADY_TERMINAL');
  }finally{await j.close();}
 });
+test('U02 RED: async index sink error permanently fails Worker job and aborts provisional store',async()=>{
+ const j=open();
+ try{
+  assert.equal((await j.s.start()).kind,'ADMITTED');
+  j.stager.stagePage=async p=>{j.history.staged.push(...p);throw new Error('storage rejected page');};
+  const tx=j.s.beginIndexTransaction(j.stager);
+  await assert.rejects(()=>streamJsonOccurrenceEvents(j.source,
+    {sourceRefId:'S',onEventPage:tx.onEventPage,pageEvents:2}),/storage rejected page/);
+  assert.equal(j.s.snapshot().kind,'FAILED','sink rejection cannot leave admitted job alive');
+  assert.equal(j.s.snapshot().engineeringReady,false);
+  assert.equal(j.history.committed.length,0);
+  assert.deepEqual(j.history.staged,[]);
+  assert.ok(j.history.aborts>0);
+ }finally{await j.close();}
+});
+test('U02 RED: malformed event page is a terminal protocol failure, never retry on same job',async()=>{
+ const j=open();
+ try{
+  assert.equal((await j.s.start()).kind,'ADMITTED');
+  const tx=j.s.beginIndexTransaction(j.stager);
+  await assert.rejects(()=>tx.onEventPage([{kind:'OPEN',schema:'wrong'}]),
+    e=>e?.code==='INDEX_PAGE_INVALID');
+  assert.equal(j.s.snapshot().kind,'FAILED');
+  assert.equal(j.history.committed.length,0);
+  assert.ok(j.history.aborts>0);
+ }finally{await j.close();}
+});
 test('U02 RED: rejected/incomplete source summary and ACK-only cannot commit',async()=>{
  const j=open();
  try{
@@ -96,10 +123,11 @@ test('U02 RED: rejected/incomplete source summary and ACK-only cannot commit',as
    sourceSha256:j.source.sha256,sourceRevision:j.source.revision,byteLength:j.source.byteLength,
    acknowledgedBytes:j.source.byteLength,pages:1,complete:false};
   assert.throws(()=>tx.commit(summary,bogus),e=>e?.code==='INDEX_TRANSPORT_UNVERIFIED');
-  assert.throws(()=>tx.commit({...summary,complete:false},bogus),e=>e?.code==='INDEX_SUMMARY_INCOMPLETE');
+  assert.equal(j.s.snapshot().kind,'FAILED','bad Worker receipt aborts this transaction permanently');
+  assert.throws(()=>tx.commit({...summary,complete:false},bogus),e=>e?.code==='INDEX_ALREADY_TERMINAL');
   const completedReceipt={...bogus,workerConsumedBytes:j.source.byteLength};
   assert.throws(()=>tx.commit({...summary,eventCount:summary.eventCount-1},completedReceipt),
-   e=>e?.code==='INDEX_SOURCE_MISMATCH');
+   e=>e?.code==='INDEX_ALREADY_TERMINAL');
   assert.equal(j.history.committed.length,0);
   await j.s.cancel();
   assert.ok(j.history.aborts>=1);
