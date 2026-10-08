@@ -30,6 +30,7 @@ export async function openAttNativeScopePopup(name, bytes) {
     '<summary>Compare expected Site / Zone list with this ATT file</summary>',
     '<p style="font-size:12px;margin:6px 0;">Paste exact native names copied from a separate model inventory. Each line: SITE /NAME or ZONE /NAME OWNER=/PARENT. Or paste JSON with nodes[] and complete:true for a full inventory. This does not read NWD/RVM automatically.</p>',
     '<textarea data-expected-entries aria-label="Expected Site or Zone identities" rows="3" placeholder="SITE /ASIM-1885-CU-PL&#10;ZONE /ASIM-1885-CU-PL-S OWNER=/ASIM-1885-CU-PL" style="width:100%;box-sizing:border-box;background:#0e1624;color:#fff;border:1px solid #77869f;border-radius:5px;"></textarea>',
+    '<label style="font-size:12px;display:block;padding:4px 0;">Or load an independently exported Site/Zone list (.txt or .json): <input data-expected-file type="file" accept=".txt,.json,application/json,text/plain"></label>',
     '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:5px 0;">',
     '<button type="button" data-compare-expected>Compare to ATT</button>',
     '<button type="button" data-clear-expected>Remove comparison</button></div>',
@@ -128,6 +129,22 @@ export async function openAttNativeScopePopup(name, bytes) {
       expectedReport = null;
       checkedExpectedText = '';
       displayCoverage(null);
+    });
+    el('[data-expected-file]').addEventListener('change', async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      expectedReport = null;
+      checkedExpectedText = '';
+      try {
+        expectedInput.value = await file.text();
+        displayCoverage(null);
+        expectedResult.textContent = 'Loaded expected inventory: ' + file.name
+          + '. Click Compare to ATT to validate; conversion remains blocked meanwhile.';
+      } catch (error) {
+        expectedInput.value = 'INVALID_EXPECTED_INVENTORY_UPLOAD';
+        displayCoverage(null);
+        expectedResult.textContent = 'Cannot read expected inventory: ' + error.message + '.';
+      }
     });
     el('[data-compare-expected]').addEventListener('click', () => {
       expectedReport = null;
