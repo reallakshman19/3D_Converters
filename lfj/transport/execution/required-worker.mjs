@@ -40,8 +40,14 @@ export async function runRequiredWorkerJob({
   const platformWorkerCtor=trustedWorkerCtor??globalThis.Worker;
   if(typeof platformWorkerCtor!=='function')
     fail('WORKER_UNAVAILABLE','trusted platform Worker constructor is required');
-  if(!(worker instanceof platformWorkerCtor))
-    fail('INVALID_WORKER_PORT','injected execution port is not a trusted platform Worker instance');
+  if(!(worker instanceof platformWorkerCtor)||
+     typeof platformWorkerCtor.prototype?.postMessage!=='function'||
+     typeof platformWorkerCtor.prototype?.terminate!=='function')
+    fail('INVALID_WORKER_PORT','native Worker method provenance is required');
+  // A forged plain object can inherit Worker.prototype and pass instanceof.
+  // Only the trusted platform native method checks the Worker's internal slots.
+  const nativePost=platformWorkerCtor.prototype.postMessage;
+  const nativeTerminate=platformWorkerCtor.prototype.terminate;
 
   const source={jobId,sourceRefId,sourceRevision,sourceSha256,byteLength};
   return new Promise((resolve,reject)=>{
@@ -63,7 +69,7 @@ export async function runRequiredWorkerJob({
       if(!error){resolve(Object.freeze(result));return;}
       // Failed admission owns this Worker: terminate and await native exit
       // before reporting the failure. A later job must use a fresh Worker.
-      Promise.resolve().then(()=>worker.terminate()).catch(()=>{}).then(()=>reject(error));
+      Promise.resolve().then(()=>nativeTerminate.call(worker)).catch(()=>{}).then(()=>reject(error));
     };
     const onError=e=>stop(new WorkerExecutionError('WORKER_FAILED',
       'isolated Worker reported an execution error',{cause:e?.error??e}));
@@ -93,8 +99,8 @@ export async function runRequiredWorkerJob({
     // job. Later R07 owns terminal lifecycle/retry orchestration.
     timer=setTimeout(()=>stop(new WorkerExecutionError('WORKER_UNAVAILABLE',
       'isolated Worker did not acknowledge admission')),5000);
-    try{worker.postMessage({schema:SCHEMA,kind:'START',...source});}
-    catch(e){stop(new WorkerExecutionError('WORKER_UNAVAILABLE',
-      'isolated Worker rejected the START envelope',{cause:e}));}
+    try{nativePost.call(worker,{schema:SCHEMA,kind:'START',...source});}
+    catch(e){stop(new WorkerExecutionError('INVALID_WORKER_PORT',
+      'trusted native Worker rejected the START receiver or envelope',{cause:e}));}
   });
 }
