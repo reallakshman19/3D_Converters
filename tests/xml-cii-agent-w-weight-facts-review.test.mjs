@@ -644,3 +644,67 @@ test('U2 exact qualification cannot silently promote preferred special factors o
   assert.equal(scored[0].qualified,true); // preserve direct exact master outcome
   assert.equal(scored[0].eligibilityReasons[0],'exact-bore-rating-length');
 });
+
+test('U2 held-out mini-master oracle: DTXR gate rank, exact 100, extrapolated 106 and rejected 106.1', () => {
+  // Hand-stated engineering oracle, independent of the application's ranked output:
+  // 100 mm gate = 15 kg direct; 106 mm gate = 9 * (100/106) = 8.491 kg
+  // when extrapolation is enabled; 106.1 mm is OUTSIDE the ±6 mm gate.
+  // Same-bore different Rating and same-Rating different bore cannot qualify.
+  const b = basis();
+  const rows = [
+    {id:'gate-exact-100',boreMm:100,rating:'150',lengthMm:100,weight:15,typeDesc:'Gate Valve'},
+    {id:'gate-near-106',boreMm:100,rating:'150',lengthMm:106,weight:9,typeDesc:'Gate Valve'},
+    {id:'gate-rejected-106.1',boreMm:100,rating:'150',lengthMm:106.1,weight:10,typeDesc:'Gate Valve'},
+    {id:'ball-exact',boreMm:100,rating:'150',lengthMm:100,weight:30,typeDesc:'Ball Valve'},
+    {id:'wrong-rating',boreMm:100,rating:'300',lengthMm:100,weight:500,typeDesc:'Gate Valve'},
+    {id:'wrong-bore',boreMm:200,rating:'150',lengthMm:100,weight:600,typeDesc:'Gate Valve'},
+  ];
+  const service = createWeightReviewService({score:createXmlCiiFactWeightScorer({
+    weight:{masterRows:rows,valveHintLengthToleranceMm:6,useWeightExtrapolation:true}
+  },'golden-mini-v1')});
+  const physical = fixture(b);
+  service.openBasis(b,{facts:physical});
+  const proposed = service.getProposals({basisId:b.basisId}).items;
+  assert.equal(proposed[0].extensions.candidate.masterRowId,'gate-exact-100');
+  assert.equal(proposed[0].value,15);
+  assert.equal(proposed[0].qualified,true);
+  assert.equal(proposed[1].extensions.candidate.masterRowId,'gate-near-106');
+  assert.equal(proposed[1].value,8.491);
+  assert.equal(proposed[1].method,'length-extrapolated');
+  assert.equal(proposed[1].qualified,false);
+  assert.ok(proposed.every(p=>p.value!==500 && p.value!==600));
+  assert.ok(!proposed.some(p=>p.extensions.candidate.masterRowId==='gate-rejected-106.1'));
+  const audit = service.getCandidateAudit({basisId:b.basisId,occurrenceId:physical[0].occurrenceId});
+  assert.ok(audit.rejectedCandidates.some(row=>
+    row.masterRowId==='gate-rejected-106.1' && /length failed/.test(row.rejectedReason)));
+  // The proposed value is NOT an accepted Match-1 decision.
+  assert.equal(service.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+});
+
+test('U2 held-out emergency factor: 20 kg control master proposes 40 kg, never exact bulk', () => {
+  const b = basis();
+  const records = legacyXmlCiiWeightFacts([{
+    key:'B::-1',branchOccurrenceIndex:0,nodeOrdinal:0,boreMm:100,rating:'150',
+    lengthMm:100,nodeName:'EMERGENCY-UZV-1',componentType:'VALV',
+    dtxr:'EMERGENCY UZV',originalWeight:null,
+  }],b,'one');
+  const service = createWeightReviewService({score:createXmlCiiFactWeightScorer({
+    weight:{masterRows:[{id:'control-20',boreMm:100,rating:'150',
+      lengthMm:100,weight:20,typeDesc:'Control Valve'}]}
+  },'golden-factor-v1')});
+  service.openBasis(b,{facts:records});
+  const p = service.getProposals({basisId:b.basisId}).items[0];
+  assert.equal(p.value,40); // independent 20 kg × rule factor 2
+  assert.equal(p.method,'special-factor');
+  assert.equal(p.qualified,false);
+  assert.equal(p.extensions.candidate.factor,true);
+  throws(()=>service.applyDecisions({basisId:b.basisId,scopeId:'one',commands:[
+    command(b,'factor-without-review','accept-proposal',null,{proposalId:p.proposalId})
+  ]}),'UNQUALIFIED_PROPOSAL');
+  const accepted=service.applyDecisions({basisId:b.basisId,scopeId:'one',commands:[
+    command(b,'factor-with-review','accept-proposal',null,{proposalId:p.proposalId,
+      reason:'Engineer reviewed UZV emergency factor against source Valve and Rating.'})
+  ]});
+  assert.equal(accepted[0].state,'accepted');
+  assert.equal(service.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisions[records[0].occurrenceId].value,40);
+});
