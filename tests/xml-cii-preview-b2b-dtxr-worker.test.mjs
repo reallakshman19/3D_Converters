@@ -86,7 +86,8 @@ test('V7 actual DTXR button no longer uses synchronous forceBuild path',async()=
 });
 test('P3-B2-B source and deployed docs are byte-identical',async()=>{
  for(const name of ['xml-cii-adapted-preview-facts-dtxr-transaction.js',
-  'xml-cii-adapted-preview-renderer-v7.js']){
+  'xml-cii-adapted-preview-renderer-v7.js',
+  'xml-cii-adapted-preview-rating-fetch.js']){
   const base='../tabs/xml-cii-2019-standalone/ui-adapted/'+name;
   const deployed='../docs/tabs/xml-cii-2019-standalone/ui-adapted/'+name;
   assert.equal(await readFile(new URL(base,import.meta.url),'utf8'),
