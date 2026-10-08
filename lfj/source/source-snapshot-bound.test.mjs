@@ -18,3 +18,10 @@ test('U02 a caller-supplied maxSpanBytes cannot turn bounded paging into full-so
   assert.deepEqual(snap.readRange(0,3,snap.revision), bytes.subarray(0,3));
   snap.close();
 });
+
+test('U01 oversized caller-configured ingestion chunk must not bypass 1MiB hard bound', () => {
+  assert.throws(
+    () => createSourceSnapshotBuilder({ byteLength:0, revision:'forged-large-chunk', maxChunkBytes:2*1024*1024 }),
+    error => error?.code==='CHUNK_LIMIT'
+  );
+});
