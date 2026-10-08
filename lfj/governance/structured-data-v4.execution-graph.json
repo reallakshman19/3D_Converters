@@ -1810,7 +1810,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 121
+      "reserve_weight": 115
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -1869,6 +1869,68 @@
       ],
       "primary_pr": "reallaksh19/3D_Converters#1053",
       "candidate_ref": "lfj/r01-root-profile-authority"
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1057",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 6,
+      "responsibility_id": "R03",
+      "work_class": "PRODUCT",
+      "outcome": "Each loaded input retains all original bytes and immutable identity even when an interior edit preserves length.",
+      "independence_basis": "Independent SHA256 and changed-interior byte oracle. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C2_CUSTODY"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/source/"
+      ],
+      "acceptance_methods": [
+        "Independent SHA256 and changed-interior byte oracle",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "R01"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Original bytes are fully represented",
+          "verify": "Independent oracle: Independent SHA256 and changed-interior byte oracle; outcome: Original bytes are fully represented"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Unicode source offsets remain truthful",
+          "verify": "Independent oracle: Independent SHA256 and changed-interior byte oracle; outcome: Unicode source offsets remain truthful"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Interior edits revoke stale identity",
+          "verify": "Independent oracle: Independent SHA256 and changed-interior byte oracle; outcome: Interior edits revoke stale identity"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Incomplete intake is rejected",
+          "verify": "Independent oracle: Independent SHA256 and changed-interior byte oracle; outcome: Incomplete intake is rejected"
+        }
+      ]
     }
   ],
   "plan_updates": [
