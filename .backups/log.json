@@ -1,5 +1,5 @@
 {
-  "lastId": 1221,
+  "lastId": 1222,
   "entries": [
     {
       "id": 1,
@@ -8547,6 +8547,13 @@
       "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
       "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
       "backupFile": "12816_issue980_invalid_numeric_regression.bak"
+    },
+    {
+      "id": 1222,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 exact-production-function runtime evidence and full UI cache chain",
+      "backupFile": "12817_issue980_report_runtime_proof.bak"
     }
   ]
 }
