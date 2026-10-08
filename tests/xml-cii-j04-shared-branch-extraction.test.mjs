@@ -128,7 +128,7 @@ test('untouched Format-2 UI template is not an eligible competing engineering ru
     rating: { regex: '', group: 1, tokenPosition: 4 },
     bore: { regex: '', group: 1, tokenPosition: 2 },
   };
-  const branch = 'ASIM-LN17-PC42';
+  const branch = 'ASIM-LN17-PC42-B51';
   const result = resolve(branch, { formats: [configured, untouched] });
   assert.equal(result.status, 'MATCHED');
   assert.equal(result.matchedFormatIndex, 0);
