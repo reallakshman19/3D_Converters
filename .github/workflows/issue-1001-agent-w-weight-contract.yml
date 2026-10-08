@@ -4,6 +4,7 @@ on:
     paths:
       - 'converters/xml-cii2019-core/weight-facts-*.js'
       - 'tests/xml-cii-agent-w-weight-facts-review.test.mjs'
+      - 'tests/xml-cii-agent-w-weight-canonical-integration.test.mjs'
       - '.github/workflows/issue-1001-agent-w-weight-contract.yml'
   push:
     branches:
@@ -11,6 +12,7 @@ on:
     paths:
       - 'converters/xml-cii2019-core/weight-facts-*.js'
       - 'tests/xml-cii-agent-w-weight-facts-review.test.mjs'
+      - 'tests/xml-cii-agent-w-weight-canonical-integration.test.mjs'
       - '.github/workflows/issue-1001-agent-w-weight-contract.yml'
 permissions:
   contents: read
@@ -24,4 +26,4 @@ jobs:
         with:
           node-version: '22'
       - name: Native Node GC-PW contract and regression tests
-        run: node --test tests/xml-cii-agent-w-weight-facts-review.test.mjs
+        run: node --test tests/xml-cii-agent-w-weight-facts-review.test.mjs tests/xml-cii-agent-w-weight-canonical-integration.test.mjs
