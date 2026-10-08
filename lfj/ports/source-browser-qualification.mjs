@@ -29,4 +29,20 @@ try{
  assert.equal(invalid.result.kind,'FAILED');
  assert.notEqual(invalid.result.summary?.complete,true);
  console.log('R10 REAL CHROMIUM WORKER parity: original SHA, 7 OPEN/7 SEAL, escaped pointer, stale-equal-length source and malformed source PASS');
+
+ await page.goto('http://127.0.0.1:4173/lfj/ports/source-committed-browser-qualification.html',{waitUntil:'load'});
+ await page.waitForFunction(()=>typeof window.runR10CommittedQuery==='function');
+ const committed=await page.evaluate(json=>window.runR10CommittedQuery(json),original);
+ assert.equal(committed.sha,nodeSha,'independent Chrome WebCrypto must equal Node crypto SHA');
+ assert.equal(committed.complete,'SOURCE_INDEX_COMPLETE');
+ assert.equal(committed.bytes,new TextEncoder().encode(original).length);
+ assert.equal(committed.originalValues,expected.length);
+ assert.equal(committed.selectedCount,expected.length-1);
+ assert.deepEqual(committed.paths,expected.slice(1));
+ assert.equal(committed.indexReads,1,'R08 must consume complete index once');
+ assert.equal(committed.pageReads,expected.length-1,'R09 must use indexed page source without reselect');
+ assert.equal(committed.engineeringReady,false);
+ assert.equal(committed.rightsBasis,'SOURCE_FACTS_ONLY');
+ console.log('R10 ACTUAL BROWSER R06/R07 committed source + R08/R09 complete branch-page union PASS');
+
 }finally{await browser.close();}
