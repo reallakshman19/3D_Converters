@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { withXmlCiiRigidWeightMatch1, resolveXmlCiiRigidWeight } from '../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2019-core/weight-facts-review-service.js';
-import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
+import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer, isXmlCiiDirectQualifiedCandidate } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
 import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
@@ -239,8 +239,8 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   assert.ok(final.includes('value="${attr(issue.acceptedWeight ?? \'\')}"'));
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
-  assert.ok(final.includes('function isDirectQualifiedCandidate(candidate)'));
-  assert.ok(final.includes('if (!isDirectQualifiedCandidate(best)'));
+  assert.ok(final.includes('isXmlCiiDirectQualifiedCandidate(best)'));
+  assert.ok(!final.includes('function isDirectQualifiedCandidate(candidate)'));
   assert.ok(final.includes('const nextEntries = [];'));
   assert.ok(final.includes('workingEntries.splice(0, workingEntries.length, ...nextEntries)'));
   assert.ok(final.includes('Refresh failed; previous suggestions preserved.'));
@@ -618,4 +618,24 @@ test('U1 strict Mode A and Mode B source lineage isolates duplicate negative nod
     facts:[aliased[0],...rows.slice(1)],
     custody:{...proof,occurrenceIdsBySource:{one:[idTwo,rows[1].occurrenceId],two:[idTwo]}},
   }),e=>e.code==='IDENTITY_CONFLICT');
+});
+
+test('U2 exact qualification cannot silently promote preferred special factors or inferred methods', () => {
+  const exact={preferred:true,lengthQualified:true,ratingExact:true,
+    weightMethod:'master',inferredWeight:false,flangeWeightFallback:false};
+  assert.equal(isXmlCiiDirectQualifiedCandidate(exact),true);
+  for (const extension of [
+    {specialFactorRule:true}, {flangeWeightFallback:true}, {fallbackSuggestion:true},
+    {oddEntry:true}, {inferredWeight:true}, {zeroFallback:true},
+    {lengthQualified:false}, {ratingExact:false},
+    {weightMethod:'length-interpolated'}, {weightMethod:'length-extrapolated'},
+    {weightMethod:'special-factor'}, {preferred:false},
+  ]) assert.equal(isXmlCiiDirectQualifiedCandidate({...exact,...extension}),false,
+    'unqualified candidate should require explicit review: '+JSON.stringify(extension));
+  const b=basis();
+  const scored=createXmlCiiFactWeightScorer({weight:{masterRows:[
+    {id:'row-1',boreMm:100,rating:'150',lengthMm:100,weight:15,typeDesc:'Gate Valve'},
+  ]}})(fixture(b),b);
+  assert.equal(scored[0].qualified,true); // preserve direct exact master outcome
+  assert.equal(scored[0].eligibilityReasons[0],'exact-bore-rating-length');
 });

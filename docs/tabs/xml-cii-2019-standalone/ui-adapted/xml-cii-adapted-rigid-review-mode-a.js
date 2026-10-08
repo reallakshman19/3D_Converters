@@ -1,4 +1,5 @@
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
+import { isXmlCiiDirectQualifiedCandidate } from '../../../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { flattenModeARigidReviewEntries } from './xml-cii-adapted-rigid-review-mode-a-state.js';
@@ -69,15 +70,6 @@ function staleMatch1Notice(issue) {
   const prior = Number(stale.weightKg);
   const priorText = Number.isFinite(prior) && prior > 0 ? `Prior Match-1 ${prior} kg invalidated` : 'Prior Match-1 invalidated';
   return `<div data-stale-match1 title="${attr(`Match-1 was rejected because its accepted geometry/rating/master basis is stale (${stale.reason || 'basis changed'}).${changed}`)}" style="margin-bottom:5px;color:#fca5a5;font-size:10px;font-weight:700;">⚠ ${esc(priorText)}${esc(changed)}</div>`;
-}
-
-function isDirectQualifiedCandidate(candidate) {
-  // A preferred rank alone is not proof of a directly qualified exact master value.
-  const method = text(candidate?.weightMethod);
-  return candidate?.preferred === true
-    && !candidate?.inferredWeight && !candidate?.flangeWeightFallback
-    && !candidate?.specialFactorRule && !candidate?.zeroFallback
-    && !/interpolat|extrapolat|factor|fallback|inferred/i.test(method);
 }
 
 function candidateButtons(issue, rowIndex) {
@@ -196,7 +188,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       rows.forEach((row, index) => {
         const best = row.candidates?.[0];
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
-        if (!isDirectQualifiedCandidate(best) || !Number.isFinite(value) || value <= 0) return;
+        if (!isXmlCiiDirectQualifiedCandidate(best) || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
         if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });

@@ -117,3 +117,7 @@ New tests exercise cancellation, out-of-order worker replies, stale/faulty sourc
 ## 14. U1 isolated two-source Mode A/Mode B custody challenge
 
 A synthetic dual-source negative fixture proves three distinct physical occurrences even with repeated `NodeNumber=-1`, source-scoped manual Match-1, cross-source decision rejection, missing original occurrence rejection and cross-source ID alias rejection. This fixture uses independently declared canonical producer IDs and does **not** count as original PL01/PL06 oracle or real Mode A browser acceptance. Integrator #1025 remains the only owner of the canonical XML producer↔consumer naming agreement.
+
+## 15. U2 shared direct-exact acceptance predicate (without ranking rewrite)
+
+The XML-CII scorer and owned Mode A Final exact-bulk UI now consume one exported pure `isXmlCiiDirectQualifiedCandidate` predicate from `weight-facts-xml-cii-adapter.js`. It does not reorder, truncate or recalculate master candidates. A preferred candidate that is interpolated, extrapolated, special-factor, inferred, flange/other fallback, zero or odd ratio cannot qualify for **automatic exact bulk**; it remains an explicit engineer-reviewed proposal. This prevents status drift between Match-1's headless `qualified` and Final's UI exact-action. Regression challenges 12 hypothetical negative flags/methods plus one positive real master 15kg exact rank. #999 still owns actual shared final workflow binding, and this isolated test is not an owner browser/source-to-CII pass.

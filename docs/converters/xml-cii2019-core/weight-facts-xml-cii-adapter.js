@@ -92,6 +92,15 @@ function rankedFromFacts(records, config) {
     : (amended.candidates || []);
   return { candidates, rejectedCandidates: amended.rejectedCandidates || [] };
 }
+// One direct-exact eligibility rule for proposal authority and Final UI bulk actions.
+// Keep the mature ranking untouched; qualification governs user acceptance only.
+export function isXmlCiiDirectQualifiedCandidate(candidate) {
+  if (candidate?.preferred !== true || candidate.lengthQualified === false ||
+      candidate.ratingExact === false || candidate.inferredWeight ||
+      candidate.specialFactorRule || candidate.flangeWeightFallback ||
+      candidate.fallbackSuggestion || candidate.zeroFallback || candidate.oddEntry) return false;
+  return !/interpolat|extrapolat|factor|fallback|inferred/i.test(String(candidate.weightMethod || ''));
+}
 export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-weight-rank/v1') {
   // A proposal's master identity cannot drift through a mutable host config or
   // the legacy ranker's WeakMap index while an acceptance popup is open.
@@ -112,8 +121,8 @@ export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-
           'master-row:' + rowOrdinal(candidate), 'rank:' + (index + 1),
           'method:' + (candidate.weightMethod || 'master'), 'kg:' + value].join('/'),
         value, unit: 'kg', method: candidate.weightMethod || 'master',
-        ranking: index + 1, qualified: !!candidate.preferred && !candidate.inferredWeight && !candidate.flangeWeightFallback,
-        eligibilityReasons: [candidate.preferred ? 'exact-bore-rating-length' : 'explicit-review-required', candidate.weightWarning || ''].filter(Boolean),
+        ranking: index + 1, qualified: isXmlCiiDirectQualifiedCandidate(candidate),
+        eligibilityReasons: [isXmlCiiDirectQualifiedCandidate(candidate) ? 'exact-bore-rating-length' : 'explicit-review-required', candidate.weightWarning || ''].filter(Boolean),
         evidenceRefs: [basis.basisId, basis.masters?.weight?.sha256 || '', identity.sourceId,
           rowOrdinal(candidate) < 0 ? 'weight:derived-fallback' : 'weight:master-row:' + rowOrdinal(candidate)].filter(Boolean),
         scoringRevision,
