@@ -1,8 +1,8 @@
 /**
  * LFJ R04/U01 incremental byte cursor and bounded JSON string tokenizer.
  * No JSON.parse, no full-document or fake AST array, no engineering rights.
- * U02 complete Unicode, U03 full document grammar, U04 global budgets remain
- * independently rejectable future work; don't interpret this as JSON-valid.
+ * U01 escaped strings, U02 complete Unicode, U03 complete JSON grammar,
+ * U04 limited scan budgets/cancellation. No full-document DOM is constructed.
  */
 export class JsonTokenError extends SyntaxError {
   constructor(code,offset,detail){
@@ -162,22 +162,39 @@ const digit=b=>b!==null&&b>=48&&b<=57;
 const nonzero=b=>b!==null&&b>=49&&b<=57;
 
 export async function scanJsonDocument(snapshot,{
-  pageBytes=65536,maxTokenBytes=65536,onToken=null,
+  pageBytes=65536,maxTokenBytes=65536,onToken=null,signal=null,
+  maxDepth=256,maxTokens=2000000,maxByteLength=128*1024*1024,
 }={}) {
   if(onToken!==null&&typeof onToken!=='function')
     fail('INVALID_TOKEN_SINK',0,'onToken must be a callable sink');
-  const cursor=createJsonByteCursor(snapshot,{pageBytes});
+  // Policy ceilings cannot be enlarged by an untrusted caller. These are
+  // protective defaults, not reference-hardware performance acceptance SLOs.
+  if(!safe(maxDepth)||maxDepth===0||maxDepth>256||
+     !safe(maxTokens)||maxTokens===0||maxTokens>2000000||
+     !safe(maxByteLength)||maxByteLength===0||maxByteLength>512*1024*1024)
+    fail('INVALID_RESOURCE_LIMIT',0,'depth/tokens/original-byte caps are invalid or too large');
+  if(!snapshot||!safe(snapshot.byteLength))
+    fail('INVALID_BYTE_SOURCE',0,'valid R03 snapshot length is required');
+  if(snapshot.byteLength>maxByteLength)
+    fail('BYTE_LIMIT',0,'original input exceeds declared byte budget');
+  const cursor=createJsonByteCursor(snapshot,{pageBytes,signal});
+  const checkSignal=()=>{
+    if(signal?.aborted)fail('SCAN_ABORTED',cursor.position,'scan was cancelled');
+  };
+  checkSignal();
   let tokenCount=0;
   const skip=async()=>{
     while(ASCII_WS.has(await cursor.peek()))await cursor.take();
   };
   const publish=async(type,start,value)=>{
-    if(++tokenCount>2000000)fail('TOKEN_COUNT_LIMIT',start,'maximum structural tokens exceeded');
+    checkSignal();
+    if(++tokenCount>maxTokens)fail('TOKEN_COUNT_LIMIT',start,'maximum structural tokens exceeded');
     if(onToken!==null)await onToken(Object.freeze({
       type,startByte:start,endByteExclusive:cursor.position,
       ...(value!==undefined?{value}:{}),
       sourceSha256:cursor.sourceSha256,sourceRevision:cursor.sourceRevision,
     }));
+    checkSignal(); // an asynchronous sink may have cancelled while awaiting output
   };
   const quoted=async(type)=>{
     const token=await scanQuotedJsonString(cursor,{maxTokenBytes});
@@ -221,7 +238,8 @@ export async function scanJsonDocument(snapshot,{
     return {type:'number'};
   };
   async function parseValue(depth,capture=null) {
-    if(depth>256)fail('DEPTH_LIMIT',cursor.position,'nested values exceed protected depth');
+    checkSignal();
+    if(depth>maxDepth)fail('DEPTH_LIMIT',cursor.position,'nested values exceed protected depth');
     await skip();
     const p=await cursor.peek();
     if(p===null)fail('EXPECTED_VALUE',cursor.position,'truncated JSON value');
@@ -294,8 +312,10 @@ export async function scanJsonDocument(snapshot,{
   await skip();
   const root=await parseValue(0,'root');
   await skip();
+  checkSignal();
   if(await cursor.peek()!==null)
     fail('TRAILING_CONTENT',cursor.position,'non-whitespace bytes follow complete JSON');
+  checkSignal();
   const rootFacts={
     schemaVersion:'lfj-token-root-facts/v1',
     rootType:root.type,complete:true,duplicateRootKeys:false,
