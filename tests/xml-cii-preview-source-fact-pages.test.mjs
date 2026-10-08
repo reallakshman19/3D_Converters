@@ -63,7 +63,7 @@ test('changed source with unchanged byte length and stale basis are rejected',as
   const changed=xmlText.replace('/ASIM-1836','/ASIM-1837');
   assert.equal(changed.length,xmlText.length);
   await assert.rejects(openActualPreviewSourceFactPages({
-    basis,xmlText:changed,sourceId,sourceOccurrences}),{code:'INCOMPLETE_SELECTED_POPULATION'});
+    basis,xmlText:changed,sourceId,sourceOccurrences}),{code:'CONTENT_DIGEST_MISMATCH'});
 });
 test('Mode B cannot be certified from one concatenated XML without raw original basis',async()=>{
   const {xmlText}=await setup();
