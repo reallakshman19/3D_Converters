@@ -3,7 +3,7 @@ import {
   ATT_BROWSER_ROW_HEIGHT, ATT_BROWSER_MAX_RENDER_ROWS, createAttNativeTreeBrowser,
 } from './att-native-tree-browser.js';
 import {
-  createAttScopeSelection, setAttScopeRule, attScopeNodeState,
+  createAttScopeSelection, setAttScopeRule, attScopeNodeState, removeAttScopeRule, listAttScopeRules,
   resolveAttScopeSelection, attScopePartiallyExcludedBranches,
 } from './att-native-scope-selection.js';
 
@@ -39,6 +39,7 @@ export async function openAttNativeScopePopup(name, bytes) {
     '<div data-native-rows role="tree" aria-label="TXT Site Zone hierarchy" tabindex="0" ',
     'style="flex:1;min-height:110px;overflow:auto;padding:0 12px;scrollbar-gutter:stable;font-size:12px;"></div>',
     '<div data-native-selection role="status" aria-live="polite" style="padding:9px 16px;border-top:1px solid #45516b;font-size:12px;"></div>',
+    '<div data-native-chips aria-label="Explicitly selected or excluded model areas" style="padding:0 16px 8px;display:flex;gap:5px;flex-wrap:wrap;max-height:84px;overflow:auto;font-size:11px;"></div>',
     '<div data-native-error role="alert" style="display:none;padding:5px 16px;color:#ffcfba;font-size:12px;"></div>',
     '<footer style="padding:12px 16px;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;">',
     '<button type="button" data-native-clear>Clear selection</button>',
@@ -53,6 +54,7 @@ export async function openAttNativeScopePopup(name, bytes) {
   const viewport = element('[data-native-rows]');
   const status = element('[data-native-stats]');
   const summary = element('[data-native-selection]');
+  const chips = element('[data-native-chips]');
   const search = element('[data-native-search]');
   const feedback = element('[data-native-error]');
   let index;
@@ -71,6 +73,7 @@ export async function openAttNativeScopePopup(name, bytes) {
   const browser = createAttNativeTreeBrowser(index);
   let selection = createAttScopeSelection();
   let selected = resolveAttScopeSelection(index, selection);
+  let chipLimit = 40;
   let pendingSearch = null;
   let lastScrollBeforeSearch = 0;
   let pendingFrame = false;
@@ -80,10 +83,38 @@ export async function openAttNativeScopePopup(name, bytes) {
     feedback.textContent = value || '';
   }
   function paintSummary() {
-    summary.textContent = selected.selectedNativeCount.toLocaleString()
-      + ' native records selected · ' + selected.selectedBranchIds.length
-      + ' convertible piping branches. Selected Sites/Zones include hidden descendants.';
-    element('[data-native-confirm]').disabled = !selected.explicitSelection || !selected.selectedNativeCount;
+    const rules = listAttScopeRules(index, selection);
+    const nSites = selected.byType.SITE || 0;
+    const nZones = selected.byType.ZONE || 0;
+    summary.textContent = nSites + ' Sites · ' + nZones + ' Zones · '
+      + selected.selectedNativeCount.toLocaleString() + ' TXT objects selected · '
+      + selected.selectedBranchIds.length + ' piping branches eligible for XML/JSON. '
+      + 'Selecting a Site or Zone includes descendants, even when collapsed.';
+    chips.innerHTML = rules.slice(0, chipLimit).map(rule =>
+      '<button type="button" data-native-remove-rule="' + escapeText(rule.id)
+      + '" title="Remove this explicit ' + (rule.checked ? 'selection' : 'exclusion') + '"'
+      + ' aria-label="Remove ' + (rule.checked ? 'selection of ' : 'exclusion of ') + escapeText(rule.name) + '"'
+      + ' style="border:1px solid #74849b;border-radius:12px;background:#203047;color:#eaf3ff;padding:4px 8px;">'
+      + (rule.checked ? '✓ ' : '− ') + escapeText(rule.type) + ' ' + escapeText(rule.name)
+      + ' <span aria-hidden="true">×</span></button>').join('')
+      + (rules.length > chipLimit
+        ? '<button type="button" data-native-more-chips>Show next ' + Math.min(40, rules.length - chipLimit)
+          + ' of ' + rules.length + ' rules</button>'
+        : '');
+    const blockedBranch = attScopePartiallyExcludedBranches(index, selection);
+    const noBranch = selected.explicitSelection && selected.selectedNativeCount > 0
+      && !selected.selectedBranchIds.length;
+    const blocked = noBranch || blockedBranch.length > 0;
+    element('[data-native-confirm]').disabled = !selected.explicitSelection
+      || !selected.selectedNativeCount || blocked;
+    if (noBranch) {
+      errorText('Selected areas have no piping branches eligible for XML/JSON. Equipment-only areas cannot be exported as piping geometry.');
+    } else if (blockedBranch.length) {
+      errorText('Conversion blocked: ' + blockedBranch.length
+        + ' selected piping branch(es) have excluded internal components. Whole-branch output would include unchecked geometry.');
+    } else {
+      errorText('');
+    }
   }
   function paintStats() {
     status.textContent = index.counts.typed.toLocaleString() + ' native TXT records · '
@@ -220,10 +251,20 @@ export async function openAttNativeScopePopup(name, bytes) {
         refresh({ withStats: true });
       }, 160);
     });
+    chips.addEventListener('click', event => {
+      const more = event.target.closest('[data-native-more-chips]');
+      if (more) { chipLimit += 40; paintSummary(); return; }
+      const remove = event.target.closest('[data-native-remove-rule]');
+      if (!remove) return;
+      selection = removeAttScopeRule(index, selection, remove.getAttribute('data-native-remove-rule'));
+      selected = resolveAttScopeSelection(index, selection);
+      paintSummary(); paintRows();
+    });
     element('[data-native-clear]').addEventListener('click', () => {
       selection = createAttScopeSelection();
       selected = resolveAttScopeSelection(index, selection);
-      paintSummary(); paintRows(); errorText('');
+      chipLimit = 40;
+      paintSummary(); paintRows();
     });
     element('[data-native-cancel]').addEventListener('click', () => done({ cancelled: true }));
     element('[data-native-full]').addEventListener('click', () => done({
