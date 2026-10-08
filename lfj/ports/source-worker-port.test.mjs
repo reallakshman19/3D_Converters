@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
+import {createSourcePageAckGate} from './source-worker-port.mjs';
 const original='[{"label":"A","a/b~":"μ","children":[{"label":"A"}]}]';
 const expectedPaths=['','/0','/0/label','/0/a~1b~0','/0/children','/0/children/0','/0/children/0/label'];
 async function inNativeWorker(json=original){
@@ -131,4 +132,14 @@ test('R10/U04 semantic RED: a large valid R05 event batch is split into <=1MiB n
    assert.ok(pages>=2,'one large valid source event batch needs multiple bounded wire messages');
    assert.ok(largestWire<=1048576,'entire serialized Worker message must be bounded');
  }finally{await worker.terminate();}
+});
+
+test('R10/U04: wrong-source ACK cannot release a pending native Worker page',async()=>{
+ let wire;
+ const gate=createSourcePageAckGate(x=>{wire=x;},{timeoutMs:1000});
+ const pending=gate.publish([{kind:'OPEN'}],{jobId:'R10-JOB',sourceRefId:'R10-FILE'});
+ assert.equal(wire.sequence,0);
+ gate.receive({schema:'LFJ.CrossRuntimeSourcePort.v1',kind:'PAGE_ACK',
+   jobId:'OTHER-JOB',sourceRefId:'R10-FILE',sequence:0});
+ await assert.rejects(pending,e=>e?.code==='PAGE_ACK_MISMATCH');
 });
