@@ -52,6 +52,24 @@ test('U02 RED: cancel after provisional R05 page aborts without index commit',as
   assert.ok(j.history.aborts>=1);
  }finally{await j.close();}
 });
+test('U02 RED: cancel during awaited page staging rolls back late provisional write',async()=>{
+ const j=open();
+ let entered,release;
+ const inStage=new Promise(r=>entered=r),resume=new Promise(r=>release=r);
+ try{
+  assert.equal((await j.s.start()).kind,'ADMITTED');
+  j.stager.stagePage=async p=>{entered();await resume;j.history.staged.push(...p);};
+  const tx=j.s.beginIndexTransaction(j.stager);
+  const scan=streamJsonOccurrenceEvents(j.source,{sourceRefId:'S',
+    onEventPage:tx.onEventPage,pageEvents:1});
+  await inStage;
+  await j.s.cancel();
+  release();
+  await assert.rejects(scan);
+  assert.deepEqual(j.history.staged,[],'late page cannot be left in provisional store after abort');
+  assert.equal(j.history.committed.length,0);
+ }finally{release?.();await j.close();}
+});
 test('U02 RED: native Worker crash after genuine provisional R05 pages aborts the index store',async()=>{
  const j=open('after-ready-exit');
  try{
