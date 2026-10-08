@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { runStandaloneRegexTester } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
+import { runStandaloneRegexTester, resetRegexTesterCacheForTests } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 import { _derivePipingClassFromBranchName } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js';
 
 const dominantBranch = '/ASIM-1885-3"-S8811000-91261M7-HC-01/B1';
@@ -37,7 +37,33 @@ const sourceText = [
   '</Plant>',
 ].join('');
 
-test('Regex and Preview share ordered Format 1 / Format 2 branch extraction authority', () => {
+function withDeclaredBranches(fn) {
+  const previousParser = globalThis.DOMParser;
+  globalThis.DOMParser = class {
+    parseFromString(xml, mediaType) {
+      assert.equal(xml, sourceText);
+      assert.equal(mediaType, 'application/xml');
+      const branches = [dominantBranch, alternativeBranch].map((name) => ({
+        getAttribute: () => '',
+        children: [{ localName: 'Branchname', textContent: name }],
+      }));
+      return {
+        querySelector: () => null,
+        getElementsByTagNameNS: (_namespace, tag) => tag === 'Branch' ? branches : [],
+        getElementsByTagName: (tag) => tag === 'Branch' ? branches : [],
+      };
+    }
+  };
+  resetRegexTesterCacheForTests();
+  try { return fn(); }
+  finally {
+    resetRegexTesterCacheForTests();
+    if (previousParser === undefined) delete globalThis.DOMParser;
+    else globalThis.DOMParser = previousParser;
+  }
+}
+
+test('Regex and Preview share ordered Format 1 / Format 2 branch extraction authority', () => withDeclaredBranches(() => {
   const result = runStandaloneRegexTester({
     sourceText,
     sourceKind: 'xml',
@@ -64,4 +90,4 @@ test('Regex and Preview share ordered Format 1 / Format 2 branch extraction auth
     '91261M7',
     'Preview must resolve the alternative branch through the same Format 2 authority as Regex',
   );
-});
+}));
