@@ -10,6 +10,7 @@ import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/we
 import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
 import { planVerifiedModeAExactMatch1, commitVerifiedModeAExactMatch1 } from '../converters/xml-cii2019-core/weight-facts-mode-a-exact-actions.js';
 import { planVerifiedFinalMatch2, commitVerifiedFinalMatch2 } from '../converters/xml-cii2019-core/weight-facts-final-review-actions.js';
+import { readVerifiedIndividualWeightReview, commitVerifiedIndividualWeightReview } from '../converters/xml-cii2019-core/weight-facts-individual-review.js';
 import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
@@ -849,4 +850,115 @@ test('U6 Final review cannot silently use unaccepted proposed 15 kg as physical 
   assert.equal(proposal.value,15);
   throws(()=>planVerifiedFinalMatch2(session,[]),'INCOMPLETE_FINAL_REVIEW');
   assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2'}).decisionRevision,null);
+});
+
+function individualCase({score=oracleScore,sourceWeight=null}={}) {
+  const b=basis('xml-cii/2019',['one','two']);
+  const id=JSON.stringify(['one',0,0,'gate-v1']);
+  const other=JSON.stringify(['two',0,0,'gate-v1']);
+  const row=(sourceId,occurrenceId,value)=>({
+    schemaVersion:WEIGHT_SCHEMA,domainId:b.domainId,basisId:b.basisId,
+    subjectType:'physical-component',sourceId,occurrenceId,fieldId:'mass.kg',
+    authority:value===null?'unresolved':'source',value,unit:'kg',
+    provenance:[{sourceRef:sourceId,locator:'original/0/0'}],diagnostics:[],
+  });
+  const review=createWeightReviewService({score});
+  review.openBasis(b,{facts:[row('one',id,sourceWeight),row('two',other,null)]});
+  return {basis:b,review,openedFacts:2,id,other};
+}
+
+test('U4 individual canonical exact proposal needs explicit action, and changing 59kg source needs reason',()=>{
+  const session=individualCase({sourceWeight:59}),id=session.id,b=session.basis;
+  const view=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id});
+  assert.equal(view.sourceKg,59);
+  assert.equal(view.effectiveKg,59);
+  assert.equal(view.proposals[0].value,15);
+  assert.equal(view.proposals[0].qualified,true);
+  assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+  throws(()=>commitVerifiedIndividualWeightReview(session,view,
+    {action:'accept-proposal',proposalId:view.proposals[0].proposalId}),'SOURCE_OVERRIDE_REASON_REQUIRED');
+  const applied=commitVerifiedIndividualWeightReview(session,view,
+    {action:'accept-proposal',proposalId:view.proposals[0].proposalId,
+      reason:'Engineering reviewed a corrected 15 kg master against original 59 kg source.'});
+  assert.equal(applied.result.state,'accepted');
+  assert.equal(applied.view.match1Kg,15);
+  assert.equal(applied.view.sourceKg,59);
+  assert.equal(applied.snapshot.stage,'RigidMatch1');
+  assert.equal(applied.snapshot.decisions[id].value,15);
+  assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'two'}).decisionRevision,null);
+  throws(()=>commitVerifiedIndividualWeightReview(session,view,
+    {action:'reject',reason:'old view cannot overwrite accepted'}),'STALE_INDIVIDUAL_REVIEW');
+});
+
+test('U4 individual inferred/factor suggestion requires a reason, manual and Final stages remain distinct',()=>{
+  const inferred=(rows,b)=>oracleScore(rows,b).map(p=>({...p,qualified:false,method:'special-factor'}));
+  const session=individualCase({score:inferred}),id=session.id,b=session.basis;
+  const view=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id});
+  throws(()=>commitVerifiedIndividualWeightReview(session,view,
+    {action:'accept-proposal',proposalId:view.proposals[0].proposalId}),'UNQUALIFIED_PROPOSAL');
+  throws(()=>commitVerifiedIndividualWeightReview(session,view,
+    {action:'accept-proposal',proposalId:'forged',reason:'reviewed'}),'STALE_PROPOSAL');
+  const m=commitVerifiedIndividualWeightReview(session,view,
+    {action:'enter-manual',value:20,unit:'kg',reason:'Verified physical valve mass from engineer.'});
+  assert.equal(m.view.match1Kg,20);
+  const f=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id,stage:'Rigidmatch2'});
+  assert.equal(f.effectiveKg,20);
+  throws(()=>commitVerifiedIndividualWeightReview(session,f,
+    {action:'accept-proposal',proposalId:view.proposals[0].proposalId}),'STAGE_CONFLICT');
+  throws(()=>commitVerifiedIndividualWeightReview(session,f,
+    {action:'final-override',value:22,unit:'kg'}),'ENGINEERING_REASON_REQUIRED');
+  const final=commitVerifiedIndividualWeightReview(session,f,
+    {action:'final-override',value:22,unit:'kg',
+      reason:'Final Rigid review selects 22 kg independent of Match-1.'});
+  assert.equal(final.snapshot.stage,'Rigidmatch2');
+  assert.equal(final.view.match1Kg,20);
+  assert.equal(final.view.finalKg,22);
+  assert.equal(final.view.effectiveKg,22);
+  const output={components:[
+    {sourceId:'one',occurrenceId:id,children:[{childId:'a',kg:10},{childId:'b',kg:12}],
+      output:{unit:'cii-force',scale:10,value:220}},
+    {sourceId:'two',occurrenceId:session.other,children:[{childId:'c',kg:15}],
+      output:{unit:'cii-force',scale:10,value:150}},
+  ]};
+  // A proposal for source two is still NOT accepted, despite being ranked.
+  throws(()=>session.review.verifyRun({basisId:b.basisId,
+    reviewedSnapshotIds:[m.snapshot.snapshotRef,final.snapshot.snapshotRef],outputBasis:output}),'UNRESOLVED_WEIGHT');
+});
+
+test('U4 individual Reject/Defer leave physical mass unresolved and revisions are source- and stage-scoped',()=>{
+  const session=individualCase(),id=session.id,b=session.basis;
+  const original=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id});
+  throws(()=>commitVerifiedIndividualWeightReview(session,original,{action:'defer'}),'ENGINEERING_REASON_REQUIRED');
+  const deferred=commitVerifiedIndividualWeightReview(session,original,
+    {action:'defer',reason:'Await independent original source valve mass.'});
+  assert.equal(deferred.result.state,'deferred');
+  const final=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id,stage:'Rigidmatch2'});
+  assert.equal(final.stageRevision,null);
+  assert.equal(final.match1Revision,'m1');
+  assert.equal(final.effectiveKg,null);
+  const rejected=commitVerifiedIndividualWeightReview(session,final,
+    {action:'reject',reason:'Final review cannot accept missing mass.'});
+  assert.equal(rejected.result.state,'rejected');
+  assert.equal(rejected.snapshot.stage,'Rigidmatch2');
+  assert.equal(rejected.view.effectiveKg,null);
+  throws(()=>readVerifiedIndividualWeightReview(session,{sourceId:'two',occurrenceId:id}),
+    'SOURCE_SCOPE_CONFLICT');
+  throws(()=>readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:'one/branch:0/physical:0'}),
+    'NONCANONICAL_WEIGHT_OCCURRENCE');
+});
+
+test('U4 view invalidated by other stage revision; no cross-stage CAS bypass',()=>{
+  const session=individualCase(),id=session.id,b=session.basis;
+  const stale=readVerifiedIndividualWeightReview(session,{sourceId:'one',occurrenceId:id,stage:'RigidMatch1'});
+  session.review.applyDecisions({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2',commands:[{
+    commandId:'out-of-band-final',basisId:b.basisId,scopeId:'one',occurrenceId:id,
+    expectedDecisionRevision:null,action:'final-override',value:22,unit:'kg',
+    reason:'Out-of-band reviewed Final change.'
+  }]});
+  throws(()=>commitVerifiedIndividualWeightReview(session,stale,
+    {action:'enter-manual',value:15,unit:'kg',reason:'Old Match-1 view.'}),
+    'STALE_INDIVIDUAL_REVIEW');
+  assert.equal(session.review.getDecisionState({basisId:b.basisId,scopeId:'one',stage:'RigidMatch1'}).decisionRevision,null);
+  throws(()=>readVerifiedIndividualWeightReview({basis:b,review:session.review},
+    {sourceId:'one',occurrenceId:id}),'VERIFIED_SESSION_REQUIRED');
 });
