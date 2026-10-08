@@ -1,0 +1,81 @@
+<!doctype html><meta charset="utf-8">
+<title>Agent P B2-B explicit DTXR Rating Worker rebuild</title>
+<main id="fixture"></main><pre id="record">RUNNING</pre>
+<script type="module">
+import {xmlCiiRenderPreviewPhase,xmlCiiBuildAndRenderPreview} from
+  '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js';
+const heartbeat=[];let last=performance.now();
+const clock=setInterval(()=>{const now=performance.now();heartbeat.push(Math.max(0,now-last-25));last=now;},25);
+const done=out=>{clearInterval(clock);globalThis.__P3B2B_RESULT__={
+  ...out,maxHeartbeatGapMs:Number(Math.max(0,...heartbeat).toFixed(2))};
+  document.querySelector('#record').textContent=JSON.stringify(globalThis.__P3B2B_RESULT__,null,2);
+};
+async function until(fn,label,ms=40000){
+  const expires=performance.now()+ms;
+  while(performance.now()<expires){
+    if(fn())return;await new Promise(r=>setTimeout(r,25));
+  }
+  throw Error('TIMEOUT '+label);
+}
+try{
+ localStorage.clear();
+ const xmlText=await fetch('../../Benchmarks/XML-CII-2019/SYS-001_Single.xml').then(r=>{
+   if(!r.ok)throw Error('source fixture unavailable');return r.text();
+ });
+ const config={
+  linelist:{masterRows:Array.from({length:385},(_,i)=>({
+   Service:'SYS','Line Number':String(200000+i),
+   'Piping Class':'P'+String(i%40).padStart(2,'0'),Rating:'150',Material:'A106-B',DN:String(50+(i%10)*25),
+  })),fieldMap:{lineKey1:'Service',lineKey2:'Line Number',lineSeqNo:'Line Number',
+   pipingClass:'Piping Class',rating:'Rating',material:'Material',convertedBore:'DN'}},
+  pipingClass:{masterRows:Array.from({length:10699},(_,i)=>({
+   pipingClass:'P'+String(i%40).padStart(2,'0'),convertedBore:50+(i%10)*25,
+   componentType:'PIPE',rating:'150',materialName:'A106-B',schedule:'40',
+   wallThickness:6+(i%3),corrosion:1.5,
+  }))},
+  material:{mapRows:Array.from({length:383},(_,i)=>({code:String(1000+i),material:'A106-B'}))},
+  weight:{masterRows:Array.from({length:1595},(_,i)=>({
+   componentType:'VALV',bore:50+(i%10)*25,rating:'150',length:100+(i%8),weight:10+i/10,
+  }))},overrides:{},
+ };
+ const opts={resolveStagedJsonText:()=>'',ensureOverrides:c=>c.overrides,
+  onSaveConfig(){},openOverridePopup(){}};
+ const root=document.querySelector('#fixture');
+ root.innerHTML=xmlCiiRenderPreviewPhase(new File([xmlText],'SYS-001_Single.xml'),config);
+ const host=root.querySelector('#mc-preview-table-host');
+ await xmlCiiBuildAndRenderPreview(root,xmlText,config,opts);
+ host.querySelector('[data-mc-preview-build]').click();
+ await until(()=>host.__xmlCiiPreviewOriginalOccurrences?.nodeCount===541&&
+  Boolean(host.__xmlCiiPreviewFactReadModel),'first real Worker Preview');
+ await until(()=>Boolean(host.querySelector('[data-mc-dtxr-rating-fetch]')),'V7 DTXR button');
+ const before=host.dataset.mcPreviewBasisId;
+ const rows=host.__xmlCiiPreviewResult.branchRows;
+ if(rows.length<2)throw Error('Insufficient independent source branches');
+ const automatic=rows[0].branchName,manual=rows[1].branchName;
+ if(automatic===manual)throw Error('Test needs separate branch names');
+ // Controlled DTXR proposals are a TEST FIXTURE, not claims from the actual
+ // original engineering input; this checks UI authority/worker transport only.
+ rows[0].ratingDtxr='300';rows[0].ratingDtxrRatings=['300'];
+ rows[1].ratingDtxr='600';rows[1].ratingDtxrRatings=['600'];
+ config.overrides.rating={[manual]:'900'};
+ config.overrides.__previewFillDown={rating:{[manual]:{fillState:'manual'}}};
+ config.overrides.processData={[manual]:{rating:'900'}};
+ const button=host.querySelector('[data-mc-dtxr-rating-fetch]');
+ button.click();
+ await until(()=>Boolean(config.overrides.__dtxrRatingKeys?.[automatic])
+   && host.dataset.mcPreviewBasisId!==before
+   && host.__xmlCiiPreviewOriginalOccurrences?.nodeCount===541,'DTXR Worker refreshed basis');
+ await until(()=>Boolean(host.querySelector('[data-mc-dtxr-rating-fetch]')),'DTXR action reinstalled');
+ done({ok:config.overrides.rating[automatic]==='300'&&
+   config.overrides.rating[manual]==='900'&&
+   config.overrides.processData[manual].rating==='900'&&
+   host.__xmlCiiPreviewOriginalOccurrences.branchCount===9,
+   ratingAuto:config.overrides.rating[automatic],
+   manualProtected:config.overrides.rating[manual],
+   originalNodes:host.__xmlCiiPreviewOriginalOccurrences.nodeCount,
+   originalBranches:host.__xmlCiiPreviewOriginalOccurrences.branchCount,
+   sourceFactPagesPresent:!!host.__xmlCiiPreviewFactReadModel,
+   basisChanged:before!==host.dataset.mcPreviewBasisId,
+   syntheticDtxrProposal:true,engineeringAccepted:false,privateOwnerDataVerified:false});
+}catch(error){done({ok:false,error:String(error?.stack||error)})}
+</script>
