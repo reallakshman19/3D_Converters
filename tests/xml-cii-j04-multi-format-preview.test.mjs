@@ -64,36 +64,48 @@ function withDeclaredBranches(fn) {
   }
 }
 
-test('Regex and Preview share ordered Format 1 / Format 2 branch extraction authority', () => withDeclaredBranches(() => {
-  const result = runStandaloneRegexTester({
-    sourceText,
-    sourceKind: 'xml',
-    extractionConfig,
-    supportConfigJson: '{}',
+function inspectBothFormats() {
+  return withDeclaredBranches(() => {
+    const result = runStandaloneRegexTester({
+      sourceText,
+      sourceKind: 'xml',
+      extractionConfig,
+      supportConfigJson: '{}',
+    });
+    return { result, config: JSON.parse(result.supportConfigJson) };
   });
+}
 
+test('U1 Regex controls: Format 1 and 2 independently match expected engineering roles', () => {
+  const { result, config } = inspectBothFormats();
   assert.equal(result.matchedRows.length, 2);
-  const dominant = result.matchedRows.find((row) => row.branchName === dominantBranch);
-  const alternative = result.matchedRows.find((row) => row.branchName === alternativeBranch);
+  assert.equal(config.regexTester.formats.length, 2);
+  const dominant = result.matchedRows.find(row => row.branchName === dominantBranch);
+  const alternative = result.matchedRows.find(row => row.branchName === alternativeBranch);
+  assert.deepEqual(
+    [dominant?.matchedFormatIndex, dominant?.lineKey, dominant?.pipingClass],
+    [0, 'S8811000', '91261M7'],
+  );
+  assert.deepEqual(
+    [alternative?.matchedFormatIndex, alternative?.lineKey, alternative?.pipingClass],
+    [1, 'S8822000', '91261M7'],
+  );
+});
 
-  assert.equal(dominant?.matchedFormatIndex, 0);
-  assert.equal(dominant?.lineKey, 'S8811000');
-  assert.equal(dominant?.pipingClass, '91261M7');
-
-  assert.equal(alternative?.matchedFormatIndex, 1);
-  assert.equal(alternative?.lineKey, 'S8822000');
-  assert.equal(alternative?.pipingClass, '91261M7');
-
-  const supportConfig = JSON.parse(result.supportConfigJson);
-  assert.equal(supportConfig.regexTester.formats.length, 2);
+test('U1 RED: Preview derives the Format-2 piping class instead of the shifted Line Key', () => {
+  const { config } = inspectBothFormats();
   assert.equal(
-    _derivePipingClassFromBranchName(alternativeBranch, supportConfig),
+    _derivePipingClassFromBranchName(alternativeBranch, config),
     '91261M7',
-    'Preview may coincidentally infer this class from legacy token 5; it is not proof of Format 2',
+    'Format 2 piping class must not silently fall back to the legacy shifted token',
   );
+});
+
+test('U1 RED: Preview derives the Format-2 line key instead of HOT', () => {
+  const { config } = inspectBothFormats();
   assert.equal(
-    deriveLineKeyFromBranchName(alternativeBranch, supportConfig),
+    deriveLineKeyFromBranchName(alternativeBranch, config),
     'S8822000',
-    'Preview must not return the legacy Format-1 token HOT where Regex Format 2 selects S8822000',
+    'Format 2 line key must not fall back to the legacy HOT token',
   );
-}));
+});
