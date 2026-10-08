@@ -60,14 +60,18 @@ export function createCommittedSelectionPager({
     if(digest!==selectionDigest||epoch!==jobEpoch)
       fail('CURSOR_STALE','scope or execution epoch differs from completed selection');
   }
+  async function rollbackStore(){
+    try{await store.abort();}catch{
+      // Remain fail-closed. The external store still owes durable rollback;
+      // this session will never publish or read an unproven committed result.
+    }
+  }
   async function abort(){
-    if(state==='ABORTED')return;
     state='ABORTED';
     terminalManifest=null;nextCursor=null;
-    try{await store.abort();}catch{
-      // Remain fail-closed even if external provider cannot complete rollback.
-      // Caller must not expose a provider with unproven abort durability.
-    }
+    // Repeat rollback after a late stage/commit finishes. Idempotent rollback
+    // is part of the injected store contract, not a one-shot UI cleanup.
+    await rollbackStore();
   }
   async function stageSelectedPage(page){
     if(state!=='STAGING'||busy)fail('STAGE_NOT_ACTIVE','no concurrent or late selection staging');
@@ -95,7 +99,7 @@ export function createCommittedSelectionPager({
       throw error;
     }finally{
       busy=false;
-      if(state==='ABORTED')await abort();
+      if(state==='ABORTED')await rollbackStore();
     }
   }
   async function commitSelection(summary){
@@ -148,6 +152,8 @@ export function createCommittedSelectionPager({
           fail('PAGE_STORE_INVALID','indexed store returned out-of-bounds page');
         if(rows.length===0)fail('PAGE_STORE_INCOMPLETE','committed store has no page at expected indexed offset');
       }
+      if(state!=='COMMITTED')
+        fail('PAGE_SESSION_ABORTED','indexed page was read after cancellation');
       current();
       let bytes=0,previous=lastPageOrdinal;
       for(const row of rows){
