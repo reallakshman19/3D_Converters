@@ -4,6 +4,9 @@ import test from 'node:test';
 import { runStandaloneRegexTester, resetRegexTesterCacheForTests } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 import { _derivePipingClassFromBranchName } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js';
 import { deriveLineKeyFromBranchName } from '../converters/xml-cii2019-core/regex-line-key.js';
+import { xmlCiiDryRunPreview } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js';
+import { resolveBranchProcessData } from '../converters/xml-cii2019-core/branch-process-resolver.js';
+import { buildPipingClassIndex } from '../converters/xml-cii2019-core/piping-class-resolver.js';
 
 const dominantBranch = '/ASIM-1885-3"-S8811000-91261M7-HC-01/B1';
 const alternativeBranch = '/ASIM-1885-PL-HOT-S8822000-91261M7-HC-01/B2';
@@ -108,4 +111,90 @@ test('U1 RED: Preview derives the Format-2 line key instead of HOT', () => {
     'S8822000',
     'Format 2 line key must not fall back to the legacy HOT token',
   );
+});
+
+
+function withMinimalPreviewDocument(callback) {
+  const previousParser = globalThis.DOMParser;
+  const branchElement = (name) => ({
+    localName: 'Branch', nodeType: 1,
+    childNodes: [{ localName: 'Branchname', nodeType: 1, textContent: name, childNodes: [] }],
+  });
+  globalThis.DOMParser = class {
+    parseFromString(xml, type) {
+      assert.equal(type, 'application/xml');
+      assert.equal(xml, sourceText);
+      const branches = [dominantBranch, alternativeBranch].map(branchElement);
+      return {
+        getElementsByTagName(tag) {
+          if (tag === 'Branch') return branches;
+          return [];
+        },
+      };
+    }
+  };
+  try { return callback(); }
+  finally {
+    if (previousParser === undefined) delete globalThis.DOMParser;
+    else globalThis.DOMParser = previousParser;
+  }
+}
+
+function persistedFormatConfig() {
+  return inspectBothFormats().config;
+}
+
+test('U3: actual Preview rows use Regex Format-2 authority for both engineering identity fields', () => {
+  const config = persistedFormatConfig();
+  const preview = withMinimalPreviewDocument(() => xmlCiiDryRunPreview(sourceText, config, ''));
+  assert.equal(preview.branchRows.length, 2);
+  const dominant = preview.branchRows.find(row => row.branchName === dominantBranch);
+  const alternative = preview.branchRows.find(row => row.branchName === alternativeBranch);
+  assert.deepEqual([dominant?.lineKey, dominant?.pipingClass, dominant?.matchedFormatIndex, dominant?.extractionStatus],
+    ['S8811000', '91261M7', 0, 'MATCHED']);
+  assert.deepEqual([alternative?.lineKey, alternative?.pipingClass, alternative?.matchedFormatIndex, alternative?.extractionStatus],
+    ['S8822000', '91261M7', 1, 'MATCHED']);
+});
+
+test('U3: a conflicting exact Line List class cannot silently overwrite configured class', () => {
+  const config = persistedFormatConfig();
+  config.linelist.masterRows = [{ lineKey: 'S8822000', pipingClass: '61440' }];
+  const preview = withMinimalPreviewDocument(() => xmlCiiDryRunPreview(sourceText, config, ''));
+  const alternative = preview.branchRows.find(row => row.branchName === alternativeBranch);
+  assert.equal(alternative?.extractionStatus, 'AMBIGUOUS');
+  assert.equal(alternative?.branchIdentityConflict, 'EXACT_LINE_LIST_CLASS_CONFLICT');
+  assert.equal(alternative?.pipingClass, '');
+  assert.equal(alternative?.materialCode, '');
+  assert.equal(alternative?.materialCodeNeedsReview, true);
+});
+
+test('U3: ambiguous formats fail closed through Preview into process and material authority', () => {
+  const config = persistedFormatConfig();
+  config.regexTester.formats.push({
+    tokenDelimiter: '-',
+    lineKey: { regex: '(S8822000)', group: 1 },
+    pipingClass: { regex: '(S8822000)', group: 1 },
+  });
+  const preview = withMinimalPreviewDocument(() => xmlCiiDryRunPreview(sourceText, config, ''));
+  const alternative = preview.branchRows.find(row => row.branchName === alternativeBranch);
+  assert.equal(alternative?.extractionStatus, 'AMBIGUOUS');
+  assert.equal(alternative?.pipingClass, '');
+  assert.equal(alternative?.rating, '');
+  assert.equal(alternative?.materialCode, '');
+  assert.equal(alternative?.wallThickness, '');
+});
+
+test('U3: process resolver accepts authoritative class rather than re-deriving from legacy tokens', () => {
+  const result = resolveBranchProcessData({
+    branchName: alternativeBranch,
+    lineKey: 'S8822000',
+    lineRow: { pipingClass: '61440' },
+    boreMm: 80,
+    componentType: 'PIPE',
+    pipingClassIndex: buildPipingClassIndex([]),
+    config: { rating: { pipingClassTokenIndex: 5 } },
+    branchIdentity: { status: 'MATCHED', lineKey: 'S8822000', pipingClass: '91261M7', matchedFormatIndex: 1 },
+  });
+  assert.equal(result.requestedPipingClass, '91261M7');
+  assert.equal(result.pipingClassSource, 'configured-branch-format');
 });
