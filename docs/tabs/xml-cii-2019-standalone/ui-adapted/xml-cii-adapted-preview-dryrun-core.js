@@ -421,7 +421,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
   const stagedIndex = buildStagedDtxrIndex(stagedJsonText || '', config);
   const materialMap = config.material?.mapRows || [];
 
-  for (const branch of [...document.getElementsByTagName('Branch')]) {
+  for (const [branchOccurrenceIndex, branch] of [...document.getElementsByTagName('Branch')].entries()) {
     const branchName = _xmlText(branch, 'Branchname');
     const lineKey = deriveLineKeyFromBranchName(branchName, config);
     let lineListRawMatch = lineKey ? _xmlCiiFindLineListRow(lineKey, config) : null;
@@ -552,12 +552,12 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw })
     });
 
-    _xmlCiiDryRunNodeRow({ branch, branchName, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows });
+    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows });
   }
   return { branchRows, nodeRows };
 }
 
-function _xmlCiiDryRunNodeRow({ branch, branchName, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows }) {
+function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows }) {
   let previousPosition = null;
   const branchNodes = _xmlChildrenByName(branch, 'Node');
   branchNodes.forEach((node, nodeIdx) => {
@@ -580,6 +580,8 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, boreMm, branchRating, resolv
       nodeRows.push({
         key: weightKey,
         branchName,
+        branchOccurrenceIndex,
+        nodeOrdinal: nodeIdx,
         nodeNumber,
         componentType,
         boreMm,

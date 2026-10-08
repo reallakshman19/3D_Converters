@@ -13,7 +13,7 @@ import {
   _toText,
   _xmlChildrenByName,
   _xmlText,
-} from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-preview-dryrun-core.js?v=20261008-p0-mode-b-parity-1';
 
 const BLOCKED_DTXR_RATING_TYPES = new Set(['SUPPORT', 'RESTRAINT', 'ATTA', 'GASK']);
 
@@ -88,8 +88,21 @@ function emptyWeightAuthority(nodeRow, rating) {
 
 export function rerankPreviewNodeRows(nodeRows, branchRows, config) {
   const byBranch = new Map(branchRows.map((row) => [row.branchName, row]));
+  const ratingsByName = new Map();
+  for (const branch of branchRows) {
+    if (!ratingsByName.has(branch.branchName)) ratingsByName.set(branch.branchName, new Set());
+    ratingsByName.get(branch.branchName).add(_toText(branch.rating).trim());
+  }
   return (nodeRows || []).map((nodeRow) => {
-    const branch = byBranch.get(nodeRow.branchName);
+    const indexed = Number.isSafeInteger(nodeRow.branchOccurrenceIndex);
+    if (!indexed && ratingsByName.get(nodeRow.branchName)?.size > 1) {
+      throw new Error('Combined Preview legacy node has ambiguous branch rating; conversion blocked.');
+    }
+    const branch = indexed ? branchRows[nodeRow.branchOccurrenceIndex]
+      : byBranch.get(nodeRow.branchName);
+    if (indexed && branch?.branchName !== nodeRow.branchName) {
+      throw new Error('Combined Preview node rating branch occurrence drift; conversion blocked.');
+    }
     const rating = _toText(branch?.rating || '').trim();
     if (!rating) return emptyWeightAuthority(nodeRow, '');
     if (!Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) return emptyWeightAuthority(nodeRow, rating);

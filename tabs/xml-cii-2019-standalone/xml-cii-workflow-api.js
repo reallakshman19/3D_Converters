@@ -1,6 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from './xml-cii-workflow-source-detect.js';
 import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
-import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261001-single-weight-owners-1';
+import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261008-p0-mode-b-parity-1';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
   const normalized = normalizeWorkflowJob(job);

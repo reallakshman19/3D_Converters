@@ -1,5 +1,5 @@
 {
-  "lastId": 1189,
+  "lastId": 1277,
   "entries": [
     {
       "id": 1,
@@ -8323,6 +8323,622 @@
       "file": "agents\\PR920_workreport.md",
       "context": "B2 #918 U4 record test-only qualification repair and current recovery state",
       "backupFile": "1189_agents_PR920_workreport_md.bak"
+    },
+    {
+      "id": 1190,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 pre-edit evidence verifier (connector-preserved)",
+      "backupFile": "1265_issue_980_parity_evidence_0.bak"
+    },
+    {
+      "id": 1191,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 pre-edit docs evidence verifier (connector-preserved)",
+      "backupFile": "1266_issue_980_parity_evidence_1.bak"
+    },
+    {
+      "id": 1192,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 pre-edit process parity writer (connector-preserved)",
+      "backupFile": "1267_issue_980_parity_writer_0.bak"
+    },
+    {
+      "id": 1193,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 pre-edit docs process parity writer (connector-preserved)",
+      "backupFile": "1268_issue_980_parity_writer_1.bak"
+    },
+    {
+      "id": 1194,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before occurrence-ordered output projection (connector-preserved)",
+      "backupFile": "1269_issue_980_parity_writer_order_0.bak"
+    },
+    {
+      "id": 1195,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before occurrence-ordered docs projection (connector-preserved)",
+      "backupFile": "12610_issue_980_parity_writer_order_1.bak"
+    },
+    {
+      "id": 1196,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 before exact PL-01 node metadata correction (connector-preserved)",
+      "backupFile": "1271_issue_980_real_pl01_fixture.bak"
+    },
+    {
+      "id": 1197,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before named parity writer test seam (connector-preserved)",
+      "backupFile": "1272_issue_980_parity_writer_test_seam_0.bak"
+    },
+    {
+      "id": 1198,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 before named docs parity writer test seam (connector-preserved)",
+      "backupFile": "1273_issue_980_parity_writer_test_seam_1.bak"
+    },
+    {
+      "id": 1199,
+      "timestamp": "2026-10-08 05:49:30",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 before actual writer/verifier integration regressions (connector-preserved)",
+      "backupFile": "1274_issue_980_process_integration_tests.bak"
+    },
+    {
+      "id": 1200,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 before missing Preview numeric source-preservation regression",
+      "backupFile": "1275_issue_980_numeric_source_custody_test.bak"
+    },
+    {
+      "id": 1201,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 before missing numeric Preview output writer fix",
+      "backupFile": "1276_issue_980_missing_numeric_writer_src.bak"
+    },
+    {
+      "id": 1202,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 before missing numeric Preview output docs fix",
+      "backupFile": "1277_issue_980_missing_numeric_writer_docs.bak"
+    },
+    {
+      "id": 1203,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 before exact duplicate PL-06 200010 missing-node regression",
+      "backupFile": "1278_issue_980_second_pl06_offset_regression.bak"
+    },
+    {
+      "id": 1204,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 fix absent XML bore independently from absent Preview authority",
+      "backupFile": "1279_issue_980_numeric_absent_fixture.bak"
+    },
+    {
+      "id": 1205,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 Issue980 truthful exact-head continuity after source-backed 3-source replay",
+      "backupFile": "1280_issue_980_reporting_checkpoint_0.bak"
+    },
+    {
+      "id": 1206,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 Issue980 truthful exact-head continuity after source-backed 3-source replay",
+      "backupFile": "1281_issue_980_reporting_checkpoint_1.bak"
+    },
+    {
+      "id": 1207,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1282_issue_980_static_cache_0_0.bak"
+    },
+    {
+      "id": 1208,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1283_issue_980_static_cache_0_1.bak"
+    },
+    {
+      "id": 1209,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1284_issue_980_static_cache_1_0.bak"
+    },
+    {
+      "id": 1210,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1285_issue_980_static_cache_1_1.bak"
+    },
+    {
+      "id": 1211,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1286_issue_980_static_import_proof_test.bak"
+    },
+    {
+      "id": 1212,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "1287_issue980_ui_cache_chain_0_0.bak"
+    },
+    {
+      "id": 1213,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "1288_issue980_ui_cache_chain_0_1.bak"
+    },
+    {
+      "id": 1214,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "1289_issue980_ui_cache_chain_1_0.bak"
+    },
+    {
+      "id": 1215,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "12810_issue980_ui_cache_chain_1_1.bak"
+    },
+    {
+      "id": 1216,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "12811_issue980_ui_cache_chain_2_0.bak"
+    },
+    {
+      "id": 1217,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "12812_issue980_ui_cache_chain_2_1.bak"
+    },
+    {
+      "id": 1218,
+      "timestamp": "2026-10-08 06:15:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
+      "backupFile": "12813_issue980_full_static_chain_test.bak"
+    },
+    {
+      "id": 1219,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12814_issue980_invalid_numeric_0.bak"
+    },
+    {
+      "id": 1220,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12815_issue980_invalid_numeric_1.bak"
+    },
+    {
+      "id": 1221,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12816_issue980_invalid_numeric_regression.bak"
+    },
+    {
+      "id": 1222,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 exact-production-function runtime evidence and full UI cache chain",
+      "backupFile": "12817_issue980_report_runtime_proof.bak"
+    },
+    {
+      "id": 1223,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1290_issue980_preview_occurrence_0.bak"
+    },
+    {
+      "id": 1224,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1291_issue980_preview_occurrence_1.bak"
+    },
+    {
+      "id": 1225,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1292_issue980_preview_occurrence_tests.bak"
+    },
+    {
+      "id": 1226,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1293_issue980_preview_load_0_0.bak"
+    },
+    {
+      "id": 1227,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1294_issue980_preview_load_0_1.bak"
+    },
+    {
+      "id": 1228,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1295_issue980_preview_load_1_0.bak"
+    },
+    {
+      "id": 1229,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1296_issue980_preview_load_1_1.bak"
+    },
+    {
+      "id": 1230,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1297_issue980_static_preview_guard.bak"
+    },
+    {
+      "id": 1231,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1298_issue980_node_key_format_guard_0.bak"
+    },
+    {
+      "id": 1232,
+      "timestamp": "2026-10-08 06:30:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 duplicate branch occurrence Preview bore/wall and cache custody; fail-closed conflicting key",
+      "backupFile": "1299_issue980_node_key_format_guard_1.bak"
+    },
+    {
+      "id": 1233,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1300_issue980_preview_core_0.bak"
+    },
+    {
+      "id": 1234,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1300_issue980_preview_core_1.bak"
+    },
+    {
+      "id": 1235,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1301_issue980_preview_weight_occurrence_0.bak"
+    },
+    {
+      "id": 1236,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1301_issue980_preview_weight_occurrence_1.bak"
+    },
+    {
+      "id": 1237,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1302_issue980_preview_rating_occurrence_0.bak"
+    },
+    {
+      "id": 1238,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1302_issue980_preview_rating_occurrence_1.bak"
+    },
+    {
+      "id": 1239,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1303_issue980_strict_line_occurrence_0.bak"
+    },
+    {
+      "id": 1240,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1303_issue980_strict_line_occurrence_1.bak"
+    },
+    {
+      "id": 1241,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1304_issue980_verifier_node_rating_0.bak"
+    },
+    {
+      "id": 1242,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1304_issue980_verifier_node_rating_1.bak"
+    },
+    {
+      "id": 1243,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1305_issue980_preview_core_rating_import_0.bak"
+    },
+    {
+      "id": 1244,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1305_issue980_preview_core_rating_import_1.bak"
+    },
+    {
+      "id": 1245,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1306_issue980_import_extra_preview_tests.bak"
+    },
+    {
+      "id": 1246,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1307_issue980_rating_legacy_ambiguous_0.bak"
+    },
+    {
+      "id": 1247,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1307_issue980_rating_legacy_ambiguous_1.bak"
+    },
+    {
+      "id": 1248,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tests/xml-cii-mode-b-preview-occurrence.test.mjs",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1308_issue980_preview_rating_negative_test.bak"
+    },
+    {
+      "id": 1249,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1309_issue980_rating_core_import_0.bak"
+    },
+    {
+      "id": 1250,
+      "timestamp": "2026-10-08 06:45:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-rating-authority.js",
+      "context": "P0 #980 Preview sparse-weight branch/node occurrence custody; independent bore and rating provenance; backing copies",
+      "backupFile": "1309_issue980_rating_core_import_1.bak"
+    },
+    {
+      "id": 1251,
+      "timestamp": "2026-10-08 06:50:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 Mode B sparse weight occurrence end-to-end Preview metadata and honest CI qualification handover",
+      "backupFile": "1310_issue980_sparse_occurrence_report_0.bak"
+    },
+    {
+      "id": 1252,
+      "timestamp": "2026-10-08 06:50:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 Mode B sparse weight occurrence end-to-end Preview metadata and honest CI qualification handover",
+      "backupFile": "1310_issue980_sparse_occurrence_report_1.bak"
+    },
+    {
+      "id": 1253,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13200_issue980_live_atta_mds_0_0.bak"
+    },
+    {
+      "id": 1254,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13201_issue980_live_atta_mds_0_1.bak"
+    },
+    {
+      "id": 1255,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13210_issue980_live_atta_mds_1_0.bak"
+    },
+    {
+      "id": 1256,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13211_issue980_live_atta_mds_1_1.bak"
+    },
+    {
+      "id": 1257,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13220_issue980_live_atta_mds_2_0.bak"
+    },
+    {
+      "id": 1258,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13221_issue980_live_atta_mds_2_1.bak"
+    },
+    {
+      "id": 1259,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13230_issue980_live_atta_mds_3_0.bak"
+    },
+    {
+      "id": 1260,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13231_issue980_live_atta_mds_3_1.bak"
+    },
+    {
+      "id": 1261,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13240_issue980_live_atta_mds_4_0.bak"
+    },
+    {
+      "id": 1262,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13241_issue980_live_atta_mds_4_1.bak"
+    },
+    {
+      "id": 1263,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13300_issue980_active_entry.bak"
+    },
+    {
+      "id": 1264,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13301_issue980_active_entry.bak"
+    },
+    {
+      "id": 1265,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13310_issue980_active_entry.bak"
+    },
+    {
+      "id": 1266,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13311_issue980_active_entry.bak"
+    },
+    {
+      "id": 1267,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13320_issue980_active_entry.bak"
+    },
+    {
+      "id": 1268,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13321_issue980_active_entry.bak"
+    },
+    {
+      "id": 1269,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13330_issue980_active_entry.bak"
+    },
+    {
+      "id": 1270,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13331_issue980_active_entry.bak"
+    },
+    {
+      "id": 1271,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone-tab.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13340_issue980_active_entry.bak"
+    },
+    {
+      "id": 1272,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone-tab.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13341_issue980_active_entry.bak"
+    },
+    {
+      "id": 1273,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tests/xml-cii-mode-b-preview-occurrence.test.mjs",
+      "context": "P0 exact live Single Run click graph and ATTA/MDS closure static regression",
+      "backupFile": "13350_issue980_live_route_test.bak"
+    },
+    {
+      "id": 1274,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13360_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1275,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13361_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1276,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/claims/PR981.yaml",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13362_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1277,
+      "timestamp": "2026-10-08 07:40:00",
+      "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
+      "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
+      "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
     }
   ]
 }

@@ -131,9 +131,8 @@ function sourceDocumentOrParse(xmlText, sourceDocument = null) {
   return parseXml(xmlText);
 }
 
-function branchMap(document) {
-  return new Map([...document.getElementsByTagName('Branch')]
-    .map((branch) => [childText(branch, 'Branchname'), branch]));
+function branchOccurrences(document) {
+  return [...document.getElementsByTagName('Branch')];
 }
 
 function nodeAuthorityKey({
@@ -168,9 +167,7 @@ function buildNodeBoreWallRows({
   indexes,
   config,
 }) {
-  const branchRows = new Map(
-    (correctedBranchRows || []).map((row) => [text(row.branchName), row]),
-  );
+  const branchRows = correctedBranchRows || [];
   const rows = [];
   const diagnostics = [];
   let traceIndex = null;
@@ -186,13 +183,16 @@ function buildNodeBoreWallRows({
     return traceIndex.get(Number(index)) || null;
   };
 
-  for (const branch of [...document.getElementsByTagName('Branch')]) {
+  for (const [branchOccurrenceIndex, branch] of branchOccurrences(document).entries()) {
     const branchName = childText(branch, 'Branchname');
-    const branchRow = branchRows.get(branchName) || null;
+    const branchRow = branchRows[branchOccurrenceIndex];
+    if (!branchRow || text(branchRow.branchName) !== branchName) {
+      throw new Error('Combined Preview bore/wall branch occurrence drift; conversion blocked.');
+    }
     const pipingClass = branchRow?.pipingClass || branchRow?.pipingClassDerived || '';
     const evidence = branchEvidence(branch, branchName, indexes.stagedWall);
 
-    for (const node of children(branch, 'Node')) {
+    for (const [nodeOrdinal, node] of children(branch, 'Node').entries()) {
       xmlIndex += 1;
       const stagedGeometry = resolveXmlCiiStagedGeometryForNode(
         node, indexes.stagedGeometry,
@@ -236,6 +236,8 @@ function buildNodeBoreWallRows({
           endpoint: childText(node, 'Endpoint'),
         }),
         branchName,
+        branchOccurrenceIndex,
+        nodeOrdinal,
         nodeNumber: childText(node, 'NodeNumber'),
         componentType: childText(node, 'ComponentType'),
         componentRefNo: childText(node, 'ComponentRefNo'),
@@ -274,12 +276,29 @@ function buildNodeBoreWallRows({
 }
 
 function correctNodeRows(nodeRows, nodeBoreWallRows) {
-  const byKey = new Map(
-    (nodeBoreWallRows || []).map((row) => [row.key, row]),
-  );
+  const byKey = new Map();
+  const byOccurrence = new Map();
+  const ambiguous = new Set();
+  for (const item of nodeBoreWallRows || []) {
+    const previous = byKey.get(item.key);
+    if (previous && ['boreMm', 'wallThickness', 'pipingClass']
+      .some((field) => text(previous[field]) !== text(item[field]))) ambiguous.add(item.key);
+    byKey.set(item.key, item);
+    byOccurrence.set(`${item.branchOccurrenceIndex}::${item.nodeOrdinal}`, item);
+  }
   return (nodeRows || []).map((row) => {
+    const qualified = Number.isSafeInteger(row.branchOccurrenceIndex)
+      && Number.isSafeInteger(row.nodeOrdinal);
     const key = nodeAuthorityKey(row);
-    const authority = byKey.get(key);
+    const authority = qualified
+      ? byOccurrence.get(`${row.branchOccurrenceIndex}::${row.nodeOrdinal}`)
+      : byKey.get(key);
+    if (qualified && (!authority || authority.key !== key)) {
+      throw new Error('Combined Preview node occurrence identity drift; conversion blocked.');
+    }
+    if (!qualified && ambiguous.has(key)) {
+      throw new Error('Combined Preview duplicate node key has conflicting bore/wall authority; conversion blocked.');
+    }
     if (!authority) return row;
     return {
       ...row,
@@ -304,15 +323,21 @@ export function applyPreviewBoreWallAuthority({
   if (!result || !Array.isArray(result.branchRows)) return result;
   const document = sourceDocumentOrParse(xmlText, sourceDocument);
   if (!document) return result;
-  const branches = branchMap(document);
+  const branches = branchOccurrences(document);
+  if (branches.length !== result.branchRows.length) {
+    throw new Error('Combined Preview branch population drift; conversion blocked.');
+  }
   const indexes = {
     stagedWall: buildStagedBranchWallEvidenceIndex(stagedJsonText),
     stagedGeometry: buildXmlCiiStagedGeometryIndex(stagedJsonText),
     classWall: buildExactClassWallIndex(config),
   };
-  const branchRows = result.branchRows.map((row) => correctedRow(
-    row, branches.get(row.branchName), indexes, config,
-  ));
+  const branchRows = result.branchRows.map((row, index) => {
+    if (text(row.branchName) !== childText(branches[index], 'Branchname')) {
+      throw new Error('Combined Preview branch order drift; conversion blocked.');
+    }
+    return correctedRow(row, branches[index], indexes, config);
+  });
   const nodeAuthority = buildNodeBoreWallRows({
     document,
     xmlText,
