@@ -73,7 +73,7 @@ assert.equal(resolveAttScopeSelection(index,selected).selectedNativeCount,
   beforeSelection.selectedNativeCount,'search never changes model-owned selection');
 browser.setSearch('1885');
 const misleading=browser.windowAt(0);
-assert.equal(browser.matchCount,2);
+assert.equal(browser.matchCount,index.records.filter(r => r.name.toLocaleLowerCase().includes('1885') || r.type.toLocaleLowerCase().includes('1885')).length, 'all genuine TXT name matches are counted without truncation');
 assert.ok(misleading.rows.some(row=>row.type==='PIPE'));
 assert.ok(misleading.rows.some(row=>row.type==='BRAN'));
 assert.ok(!misleading.rows.some(row=>row.type==='SITE' && row.name.includes('1885')),
