@@ -139,6 +139,30 @@ function _bindManualPreviewButton(host, rootEl, xmlText, config, options, label 
   });
 }
 
+/**
+ * Programmatic rebuilds must share the same Worker, InputBasis and stale-job
+ * fences as the actual Build Preview button. Unlike a button click, callers
+ * such as atomic class transactions need a rejection on failure in order to
+ * roll back their saved authority instead of claiming success.
+ */
+export async function xmlCiiRebuildPreviewThroughWorker(rootEl, xmlText, config, options = {}) {
+  const host = rootEl?.querySelector('#mc-preview-table-host');
+  if (!host) throw Object.assign(new Error('Preview host is unavailable'),
+    { code: 'PREVIEW_HOST_UNAVAILABLE' });
+  const rendered = await runPreviewButtonSession({
+    host, rootEl, xmlText, config, options,
+    renderResult: (result, staged) => xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
+      ...options, forceBuild: true, skipLegacyCache: true,
+      precomputedPreview: result, precomputedStagedSource: staged,
+    }),
+  });
+  if (!rendered) {
+    throw Object.assign(new Error('Worker Preview did not complete; the update must not be accepted'),
+      { code: 'PREVIEW_REBUILD_INCOMPLETE' });
+  }
+  return rendered;
+}
+
 function _renderManualPreviewIdle(host, rootEl, xmlText, config, options) {
   if (!host) return;
   host.innerHTML = `${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">Preview has not been built for this visit. Click <strong>Build Preview</strong> when ready.</div>`;
@@ -368,7 +392,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
           hydrateAuthority: async () => _hydrateEffectiveClassConfig(config, xmlText),
           persistConfig: async () => onSaveConfig?.(config),
           rebuildPreview: async ({ hydrationResult, rollback, error }) => {
-            await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+            await xmlCiiRebuildPreviewThroughWorker(rootEl, xmlText, config, options);
             const rebuiltHost = rootEl?.querySelector('#mc-preview-table-host');
             if (rollback) {
               _markPreviewSaved(rebuiltHost, `Piping Class update failed and was rolled back: ${_toText(error?.message || error)}`);
@@ -449,7 +473,11 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
         _markPreviewSaved(host, 'Branch mappings saved. Click Rebuild Preview to apply.');
       },
       onRebuildPreview: () => {
-        void xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+        void xmlCiiRebuildPreviewThroughWorker(rootEl, xmlText, config, options).catch((error) => {
+          const currentHost = rootEl?.querySelector('#mc-preview-table-host');
+          if (currentHost) _markPreviewSaved(currentHost,
+            'Branch mapping rebuild failed: ' + _toText(error?.message || error));
+        });
       }
     });
   }
