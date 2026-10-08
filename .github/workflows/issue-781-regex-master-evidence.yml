@@ -14,6 +14,13 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js'
       - 'tests/xml-cii-issue-781-regex-master-evidence.test.mjs'
       - 'tests/xml-cii-issue-781-live-regex-acceptance.test.mjs'
+      - 'tests/xml-cii-j04-multi-format-preview.test.mjs'
+      - 'tests/xml-cii-j04-shared-branch-extraction.test.mjs'
+      - 'tests/xml-cii-j04-mode-a-provenance.test.mjs'
+      - 'tests/xml-cii-j04-output-authority-readiness.test.mjs'
+      - 'tests/xml-cii-j04-service-release-gate.test.mjs'
+      - 'converters/xml-cii2019-core/branch-format-extraction.js'
+      - 'docs/converters/xml-cii2019-core/branch-format-extraction.js'
       - 'tests/browser/xml-cii-issue-781-live-regex-acceptance.html'
       - 'tests/xml-cii-issue-781-live-regex-browser.mjs'
       - 'scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs'
@@ -43,6 +50,11 @@ jobs:
           node --test
           tests/xml-cii-issue-781-regex-master-evidence.test.mjs
           tests/xml-cii-issue-781-live-regex-acceptance.test.mjs
+          tests/xml-cii-j04-multi-format-preview.test.mjs
+          tests/xml-cii-j04-shared-branch-extraction.test.mjs
+          tests/xml-cii-j04-mode-a-provenance.test.mjs
+          tests/xml-cii-j04-output-authority-readiness.test.mjs
+          tests/xml-cii-j04-service-release-gate.test.mjs
 
       - name: Run existing smart regex regressions
         run: >-

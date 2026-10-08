@@ -41,6 +41,10 @@ function compactPreviewRow(source, row) {
     fileName: source.fileName,
     alias: source.alias,
     branchName: row?.branchName || '',
+    extractionStatus: row?.extractionStatus || 'LEGACY',
+    matchedFormatIndex: row?.matchedFormatIndex ?? null,
+    agreeingFormatIndices: Array.isArray(row?.agreeingFormatIndices) ? [...row.agreeingFormatIndices] : [],
+    branchIdentityConflict: row?.branchIdentityConflict || '',
     lineKey: row?.lineKey || '',
     lineFrom: row?.lineFrom || '',
     lineTo: row?.lineTo || '',
@@ -172,6 +176,7 @@ export async function buildModeAConsolidatedPreview(stateOrRef = {}, runtime = {
     branchCount: rows.length,
     mappedCount: rows.filter((row) => !row.lineMiss).length,
     unmappedCount: rows.filter((row) => row.lineMiss).length,
+    identityBlockedCount: rows.filter((row) => ['AMBIGUOUS', 'UNMATCHED'].includes(row.extractionStatus)).length,
     defaultValueCount: rows.reduce((sum, row) => sum + [
       row.p1Source,
       row.hydroPressureSource,
@@ -348,7 +353,7 @@ function renderPreviewTable(panel, result) {
   const headers = [
     'Source XML', 'Branch Name', 'Line Key', 'From', 'To', 'Size', 'Piping Class', 'Material', 'Rating',
     'Material Code', 'P1 / Design Pressure', 'Hydro/Test Pressure', 'T1 (C)', 'T2 (C)', 'T3 (C)', 'Density',
-    'Wall Thk', 'Corrosion', 'Line Status', 'Individual',
+    'Wall Thk', 'Corrosion', 'Format', 'Extraction', 'Identity Issue', 'Line Status', 'Individual',
   ];
   const { wrap, tbody } = tableShell(headers);
   for (const row of result.rows || []) {
@@ -374,7 +379,10 @@ function renderPreviewTable(panel, result) {
       td(row.density, { defaultValue: isDefaultSource(row.densitySource), title: row.densitySource }),
       td(row.wallThickness, { defaultValue: isDefaultSource(row.wallThicknessSource), title: row.wallThicknessSource }),
       td(row.corrosion, { defaultValue: isDefaultSource(row.corrosionSource), title: row.corrosionSource }),
-      td(row.lineMiss ? 'UNMAPPED' : 'MAPPED'),
+      td(row.matchedFormatIndex == null ? '—' : `F${row.matchedFormatIndex + 1}`),
+      td(row.extractionStatus),
+      td(row.branchIdentityConflict),
+      td(['AMBIGUOUS', 'UNMATCHED'].includes(row.extractionStatus) ? 'BLOCKED' : (row.lineMiss ? 'UNMAPPED' : 'MAPPED')),
     );
     const action = createElement('td');
     action.appendChild(sourceButton(row.sourceId));
@@ -460,6 +468,7 @@ export function renderModeAConsolidatedPreviewPanel(parent, stateRef, render) {
       ['Branch rows', result.branchCount],
       ['Mapped', result.mappedCount],
       ['Unmapped', result.unmappedCount],
+      ['Extraction blocked', result.identityBlockedCount || 0],
       ['Default-value cells', result.defaultValueCount],
     ]);
     renderPreviewTable(panel, result);
