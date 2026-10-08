@@ -1,5 +1,5 @@
 {
-  "lastId": 1206,
+  "lastId": 1211,
   "entries": [
     {
       "id": 1,
@@ -8442,6 +8442,41 @@
       "file": "agents/status/PR981.yaml",
       "context": "P0 Issue980 truthful exact-head continuity after source-backed 3-source replay",
       "backupFile": "1281_issue_980_reporting_checkpoint_1.bak"
+    },
+    {
+      "id": 1207,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1282_issue_980_static_cache_0_0.bak"
+    },
+    {
+      "id": 1208,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1283_issue_980_static_cache_0_1.bak"
+    },
+    {
+      "id": 1209,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1284_issue_980_static_cache_1_0.bak"
+    },
+    {
+      "id": 1210,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1285_issue_980_static_cache_1_1.bak"
+    },
+    {
+      "id": 1211,
+      "timestamp": "2026-10-08 06:00:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 release-cache custody for Mode B verified writer/verifier import path",
+      "backupFile": "1286_issue_980_static_import_proof_test.bak"
     }
   ]
 }
