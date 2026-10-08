@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
-import { extractXmlCiiParityAuthorityEntries, compareXmlCiiParityAuthorityEntries } from '../tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js';
+import { extractXmlCiiParityAuthorityEntries, compareXmlCiiParityAuthorityEntries, createStandaloneRunParityEvidence } from '../tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js';
+import { applyStandaloneProcessParity } from '../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js';
 
 installWeightBasisXmlDom(globalThis);
 // Reduced original branch/node facts from PL-01_XML.xml and PL-06_XML.xml.
@@ -77,4 +78,73 @@ test('physical node identity changed: fail closed, never guess from an ordinal a
   const actual = extractXmlCiiParityAuthorityEntries(bad, [entry(identities[1])]);
   assert.equal(actual[0].found, false);
   assert.equal(actual[0].missing, 'node-identity');
+});
+
+
+const branchRows = [
+  { branchName: pl01, pipingClass: 'S8810104', rating: '300', corrosion: '0' },
+  { branchName: pl06, pipingClass: 'S8810105', rating: '900', corrosion: '0' },
+];
+const nodeFacts = [
+  { branchName: pl01, nodeNumber: '10', componentRefNo: '=1006649755/1898',
+    endpoint: '1', boreMm: 200, wallThickness: '6' },
+  { branchName: pl06, nodeNumber: '200010', componentRefNo: '=1006649755/1750',
+    endpoint: '1', boreMm: 300, wallThickness: '9' },
+  { branchName: pl06, nodeNumber: '-1', componentRefNo: '=1006657947/24',
+    endpoint: '1', boreMm: 300, wallThickness: '9' },
+  { branchName: pl06, nodeNumber: '-1', componentRefNo: '=1006657947/24',
+    endpoint: '2', boreMm: 250, wallThickness: '7' },
+];
+
+test('actual Preview-to-enriched-XML writer preserves per-node bores and parity PASS', async () => {
+  const process = await applyStandaloneProcessParity(xml, {}, '', [], {
+    previewBuilder: () => ({ branchRows, nodeRows: [], nodeBoreWallRows: nodeFacts }),
+  });
+  assert.equal(process.branchRows.length, 2);
+  assert.equal(process.expectedEntries.filter(item => item.scope === 'node').length > 0, true);
+  const doc = new DOMParser().parseFromString(process.xmlText, 'application/xml');
+  const branches = [...doc.getElementsByTagName('Branch')];
+  assert.equal(branches.length, 2);
+  assert.equal(branches[0].getElementsByTagName('PipingClass')[0]?.textContent, 'S8810104');
+  const nodes = [...branches[1].getElementsByTagName('Node')];
+  assert.deepEqual(nodes.map(n => n.getElementsByTagName('BoreMm')[0]?.textContent),
+    ['300', '300', '250']);
+  const proof = createStandaloneRunParityEvidence({
+    xmlText: process.xmlText, expectedEntries: process.expectedEntries,
+    branchRows: process.branchRows, nodeRows: [],
+  });
+  assert.equal(proof.ok, true, JSON.stringify(proof.mismatches));
+  assert.ok(proof.comparisons >= 15);
+});
+
+test('writer refuses missing or out-of-order node authority, never silently pairs by name', async () => {
+  const invalid = [nodeFacts[0], nodeFacts[1], nodeFacts[3], nodeFacts[2]];
+  await assert.rejects(
+    applyStandaloneProcessParity(xml, {}, '', [], {
+      previewBuilder: () => ({ branchRows, nodeRows: [], nodeBoreWallRows: invalid }),
+    }),
+    /node bore authority occurrence differs/,
+  );
+});
+
+test('writer does not collapse identically named branch occurrences with independent authority', async () => {
+  const duplicateXml = '<PipeStressExport>' + branch(pl06, [numbered])
+    + branch(pl06, [numbered]) + '</PipeStressExport>';
+  const rows = [
+    { branchName: pl06, pipingClass: 'S8810105', rating: '1500', corrosion: '0' },
+    { branchName: pl06, pipingClass: 'S8810105', rating: '900', corrosion: '0' },
+  ];
+  const facts = [nodeFacts[1], nodeFacts[1]];
+  const written = await applyStandaloneProcessParity(duplicateXml, {}, '', [], {
+    previewBuilder: () => ({ branchRows: rows, nodeRows: [], nodeBoreWallRows: facts }),
+  });
+  const doc = new DOMParser().parseFromString(written.xmlText, 'application/xml');
+  const branches = [...doc.getElementsByTagName('Branch')];
+  assert.deepEqual(branches.map(el => el.getElementsByTagName('Rating')[0]?.textContent),
+    ['1500', '900']);
+  const proof = createStandaloneRunParityEvidence({
+    xmlText: written.xmlText, expectedEntries: written.expectedEntries,
+    branchRows: written.branchRows, nodeRows: [],
+  });
+  assert.equal(proof.ok, true, JSON.stringify(proof.mismatches));
 });
