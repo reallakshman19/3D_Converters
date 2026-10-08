@@ -278,3 +278,43 @@ test('same-bore Rating flange fallback remains explicitly proposed; not auto-acc
     outputBasis:{components:[{sourceId:'one',occurrenceId:'one/branch:0/physical:0',
       children:[{childId:'flan',kg:30}]}]}}), 'UNRESOLVED_WEIGHT');
 });
+
+test('sealed review state survives reopening, rejects tampering and respects both snapshots', async () => {
+  const canonical = (value) => {
+    if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
+    if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}';
+    return JSON.stringify(value);
+  };
+  const digestReview = async (value) => createHash('sha256').update(canonical(value)).digest('hex');
+  const b = basis(), facts = fixture(b);
+  const service = createWeightReviewService({ score: oracleScore, digestReview });
+  service.openBasis(b, { facts });
+  const m = service.applyDecisions({basisId:b.basisId,scopeId:'one',
+    commands:[command(b,'persist-match1','enter-manual',null,{value:20,unit:'kg'})]})[0];
+  const frozenMatch1 = service.freezeSnapshot({basisId:b.basisId,scopeId:'one',stage:'RigidMatch1',
+    expectedDecisionRevision:m.decisionRevision});
+  const f2 = service.applyDecisions({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2',
+    commands:[command(b,'persist-final','final-override',null,{value:22,unit:'kg'})]})[0];
+  const frozenFinal = service.freezeSnapshot({basisId:b.basisId,scopeId:'one',stage:'Rigidmatch2',
+    expectedDecisionRevision:f2.decisionRevision});
+  const sealed = await service.exportReviewState({basisId:b.basisId});
+  assert.ok(/^[a-f0-9]{64}$/.test(sealed.contentSha256));
+  assert.equal(sealed.reviewStates.length,2);
+  const reopened = createWeightReviewService({score:oracleScore,digestReview});
+  reopened.openBasis(b,{facts});
+  assert.equal((await reopened.restoreReviewState({basisId:b.basisId,payload:sealed})).restoredSnapshots,2);
+  assert.equal((await reopened.restoreReviewState({basisId:b.basisId,payload:sealed})).restoredStages,2);
+  assert.equal(reopened.verifyRun({basisId:b.basisId,
+    reviewedSnapshotIds:[frozenMatch1.snapshotRef,frozenFinal.snapshotRef],
+    outputBasis:{components:[{sourceId:'one',occurrenceId:'one/branch:0/physical:0',
+      children:[{childId:'P1',kg:10},{childId:'P2',kg:12}],output:{unit:'cii-force',scale:10,value:220}}]}}).verified,true);
+  const tampered = JSON.parse(JSON.stringify(sealed));
+  tampered.reviewStates[1].decisions['one/branch:0/physical:0'].value=59;
+  await assert.rejects(() => reopened.restoreReviewState({basisId:b.basisId,payload:tampered}),
+    e => e.code === 'REVIEW_DIGEST_MISMATCH');
+  const rehashed = JSON.parse(JSON.stringify(tampered));
+  const {contentSha256: _oldDigest,...body}=rehashed;
+  rehashed.contentSha256 = await digestReview(body);
+  await assert.rejects(() => reopened.restoreReviewState({basisId:b.basisId,payload:rehashed}),
+    e => ['RESTORE_COLLISION','INVALID_REVIEW_WEIGHT'].includes(e.code));
+});
