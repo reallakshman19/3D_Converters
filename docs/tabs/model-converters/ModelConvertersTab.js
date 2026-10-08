@@ -3,7 +3,7 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260729-inputxml-live-release-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20261008-native-att-scope-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20261008-txt-tree-ux-1';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260729-fbx2-direct-pipe-1';
