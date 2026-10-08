@@ -61,6 +61,7 @@ try{
  config.overrides.__previewFillDown={rating:{[manual]:{fillState:'manual'}}};
  config.overrides.processData={[manual]:{rating:'900'}};
  const button=host.querySelector('[data-mc-dtxr-rating-fetch]');
+ globalThis.__P3B2B_DEBUG__={host,config,rows,automatic,manual,before,button};
  button.click();
  await until(()=>Boolean(config.overrides.__dtxrRatingKeys?.[automatic])
    && host.dataset.mcPreviewBasisId!==before
@@ -77,5 +78,22 @@ try{
    sourceFactPagesPresent:!!host.__xmlCiiPreviewFactReadModel,
    basisChanged:before!==host.dataset.mcPreviewBasisId,
    syntheticDtxrProposal:true,engineeringAccepted:false,privateOwnerDataVerified:false});
-}catch(error){done({ok:false,error:String(error?.stack||error)})}
+}catch(error){
+ const d=globalThis.__P3B2B_DEBUG__;
+ done({ok:false,error:String(error?.stack||error),
+  diagnostic:d?{
+   firstBranchRatingDtxr:d.rows[0]?.ratingDtxr,
+   autoBranchName:d.automatic,
+   manualBranchName:d.manual,
+   appliedFetched:d.config.overrides?.__dtxrRatingKeys?.[d.automatic]??null,
+   currentAutoRating:d.config.overrides?.rating?.[d.automatic]??null,
+   currentManualRating:d.config.overrides?.rating?.[d.manual]??null,
+   initialBasis:d.before,currentBasis:d.host.dataset.mcPreviewBasisId,
+   sourceNodes:d.host.__xmlCiiPreviewOriginalOccurrences?.nodeCount??null,
+   buttonDisabled:d.button.disabled,buttonConnected:d.button.isConnected,
+   notice:d.host.querySelector('[data-mc-dtxr-rating-notice]')?.textContent?.slice(0,500)??null,
+   jobMessage:d.host.querySelector('[data-mc-preview-job-state]')?.textContent?.slice(0,500)??null,
+  }:null,
+ });
+}
 </script>
