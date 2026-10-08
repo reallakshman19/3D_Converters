@@ -51,7 +51,7 @@ function fromFacts(records) {
   const out = {};
   for (const fact of records) {
     const property = fields[fact.fieldId];
-    if (property) out[property] = fact.value;
+    if (property) out[property] = ['conflict', 'unresolved', 'proposed'].includes(fact.authority) ? null : fact.value;
   }
   return out;
 }
