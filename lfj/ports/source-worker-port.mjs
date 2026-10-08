@@ -29,12 +29,33 @@ export async function scanSourceInsideWorker(message,{publishPage}={}) {
     revision:message.revision,expectedSha256:message.expectedSha256
   });
   try {
-    const summary=await streamJsonOccurrenceEvents(source,{
-      sourceRefId:message.sourceRefId,pageEvents:limit,
-      onEventPage:async events=>{
-        // Events are PROVISIONAL until separate R07 transaction commit.
-        await publishPage(Object.freeze(events));
+    const encoder=new TextEncoder();
+    // R05's pageEvents bound is a count, NOT a serialized byte budget.
+    // Cap upstream retained batches and split them again by transport bytes.
+    // 4KiB reserved for schema/job/ref/sequence JSON envelope.
+    const WIRE_PAYLOAD_LIMIT=1048576-4096;
+    const publishBounded=async events=>{
+      let batch=[],bytes=2;
+      const flush=async()=>{
+        if(batch.length){
+          await publishPage(Object.freeze(batch));
+          batch=[];bytes=2;
+        }
+      };
+      for(const event of events){
+        const rowBytes=encoder.encode(JSON.stringify(event)).byteLength+1;
+        if(rowBytes>WIRE_PAYLOAD_LIMIT){
+          const e=new Error('one R05 occurrence event exceeds transport page wire budget');
+          e.code='SOURCE_EVENT_WIRE_LIMIT';throw e;
+        }
+        if(batch.length&&bytes+rowBytes>WIRE_PAYLOAD_LIMIT)await flush();
+        batch.push(event);bytes+=rowBytes;
       }
+      await flush();
+    };
+    const summary=await streamJsonOccurrenceEvents(source,{
+      sourceRefId:message.sourceRefId,pageEvents:Math.min(limit,64),
+      onEventPage:publishBounded
     });
     return Object.freeze(summary);
   }finally{source.close();}
@@ -67,8 +88,11 @@ export function createSourcePageAckGate(post,{timeoutMs=5000}={}) {
         },timeoutMs);
         pending={n,jobId,sourceRefId,resolve,rejectPromise,timer};
         try {
-          post({schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
-            jobId,sourceRefId,sequence:n,rows});
+          const wire={schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
+            jobId,sourceRefId,sequence:n,rows};
+          if(new TextEncoder().encode(JSON.stringify(wire)).byteLength>1048576)
+            throw reject('PAGE_WIRE_LIMIT','entire Worker message exceeded 1MiB');
+          post(wire);
         }catch(e){
           clearTimeout(timer);pending=null;
           rejectPromise(reject('PAGE_POST_FAILED','native Worker could not post source page'));
