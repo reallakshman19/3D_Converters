@@ -3,7 +3,7 @@
 import {previewOccurrenceId} from './xml-cii-adapted-preview-facts-basis.js';
 import {buildXmlCiiSourceFactRecords,openPreviewFactReadModel}
   from './xml-cii-adapted-preview-facts-read-model.js';
-import {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage}
+import {assertBasisDigest,assertContentDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage}
   from '../../../contracts/gc-pw-v1/contract.mjs';
 
 const ports=Object.freeze({assertBasisDigest,canonicalJson,digestCanonical,
@@ -45,6 +45,9 @@ export async function openActualPreviewSourceFactPages({
   basis,xmlText,sourceId,sourceOccurrences,mode='A',
 }={}) {
   await assertBasisDigest(basis);
+  const sourceRef=basis.sourceRefs.find(x=>x.sourceId===sourceId);
+  if(!sourceRef)throw error('SOURCE_OUTSIDE_BASIS','Original source ID missing from InputBasis');
+  await assertContentDigest(xmlText,sourceRef.sha256);
   if(sourceOccurrences?.schemaVersion!=='gc-pw/1.0'
     ||sourceOccurrences?.domainId!==basis.domainId
     ||!Array.isArray(sourceOccurrences.branches)
