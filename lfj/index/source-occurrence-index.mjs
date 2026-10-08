@@ -57,9 +57,9 @@ export async function streamJsonOccurrenceEvents(snapshot,{
   // and after the awaited sink, to prevent more provisional events leaking
   // after a source is closed. The R03 reader itself enforces the revision.
   async function attestLive() {
-    if(signal?.aborted)fail('INDEX_ABORTED','original index scan was cancelled');
+    if(signal?.aborted)fail('SCAN_ABORTED','original index scan was cancelled');
     await snapshot.readRange(0,0,snapshot.revision);
-    if(signal?.aborted)fail('INDEX_ABORTED','original index scan was cancelled');
+    if(signal?.aborted)fail('SCAN_ABORTED','original index scan was cancelled');
   }
   async function flush(){
     if(!pending.length)return;
