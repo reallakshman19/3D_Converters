@@ -64,8 +64,8 @@ function validateFacts(b, facts, sources) {
     required(f.schemaVersion === WEIGHT_SCHEMA && f.domainId === b.domainId && f.basisId === b.basisId, 'STALE_FACT', 'Fact basis mismatch');
     required(sources.has(f.sourceId) && f.occurrenceId && f.subjectType && f.fieldId && AUTHORITIES.has(f.authority), 'INVALID_FACT', 'Fact identity/authority invalid');
     required(Array.isArray(f.provenance) && Array.isArray(f.diagnostics), 'INVALID_FACT', 'Fact provenance required');
-    required(plainJson(f) && ((f.authority !== 'unresolved' && f.authority !== 'conflict') || f.value === null), 'INVALID_FACT', 'Invalid JSON or non-null unresolved/conflict fact');
     required(f.value === null || (typeof f.value !== 'number' || Number.isFinite(f.value)), 'INVALID_NUMBER', 'Nonfinite fact value');
+    required(plainJson(f) && ((f.authority !== 'unresolved' && f.authority !== 'conflict') || f.value === null), 'INVALID_FACT', 'Invalid JSON or non-null unresolved/conflict fact');
     const composite = keyOf(f), identity = identities.get(f.occurrenceId);
     required(!identity || identity === f.sourceId, 'IDENTITY_CONFLICT', 'Occurrence aliases two sources');
     identities.set(f.occurrenceId, f.sourceId);
