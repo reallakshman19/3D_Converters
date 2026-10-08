@@ -94,6 +94,15 @@ export async function attestXmlCiiModeBSourceCustody({
   demand(refs.size===basis.sourceRefs.length,'DUPLICATE_BASIS_SOURCE','Basis references must be unique');
   demand(refs.size===originalSources.length+1,'BASIS_SOURCE_SCOPE_MISMATCH',
     'InputBasis must bind each original AND combined source');
+  // This unit attests an ALL-original-sources basis. Partial branch selections
+  // need a separately scoped occurrence challenge; never infer ALL from bytes.
+  demand(Array.isArray(basis.scope)&&basis.scope.length===originalSources.length
+    &&originalSources.every((entry,i)=>basis.scope[i]?.sourceId===entry.sourceId
+      &&basis.scope[i]?.selectionRef==='ALL'),
+    'SOURCE_SCOPE_MISMATCH','Basis selection must explicitly bind all original sources in order');
+  demand(basis.sourceRefs.every((entry,i)=>entry.sourceId===
+    (i<originalSources.length?originalSources[i].sourceId:combinedSource?.sourceId)),
+    'BASIS_SOURCE_ORDER_DRIFT','Basis source order must match original+combined order');
   const combinedId=combinedSource?.sourceId;
   demand(typeof combinedId==='string'&&combinedId.trim()&&!set.has(combinedId)
     &&refs.has(combinedId),'COMBINED_SOURCE_NOT_BOUND','Combined source must be in InputBasis');
