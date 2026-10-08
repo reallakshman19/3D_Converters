@@ -115,8 +115,9 @@ test('wrong Mode B source order, offset map and duplicate source ID all fail clo
  await assert.rejects(attestXmlCiiModeBSourceCustody({...f,basis,config,manifest:stale}),
   {code:'OFFSET_MANIFEST_DRIFT'});
  const duplicate=structuredClone(f.originalSources);duplicate[1].sourceId='PL01';
+ // Basis still selects PL06; swapped raw source IDs fail earlier at scope gate.
  await assert.rejects(attestXmlCiiModeBSourceCustody({...f,originalSources:duplicate}),
-  {code:'DUPLICATE_SOURCE_ID'});
+  {code:'SOURCE_SCOPE_MISMATCH'});
 });
 test('source count, missing original, wrong config SHA and altered root are rejected',async()=>{
  const f=await fixture();
