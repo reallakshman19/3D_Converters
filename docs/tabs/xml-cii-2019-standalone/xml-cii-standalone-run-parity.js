@@ -100,15 +100,23 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   if (Array.isArray(preview?.boreAuthorityDiagnostics)) diagnostics.push(...preview.boreAuthorityDiagnostics);
   if (!result.branchRows.length) return result;
 
-  const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
-  const byNodeAuthority = new Map(result.nodeBoreWallRows.map((row) => [text(row.key), row]));
+  // Names and abbreviated node keys are not unique in combined Mode B documents.
+  const expectedBranches = result.branchRows;
+  const authoritativeNodes = result.nodeBoreWallRows;
+  let nodeOccurrenceIndex = 0;
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
 
-  for (const [branchOccurrenceIndex, branch] of [...document.getElementsByTagName('Branch')].entries()) {
+  const actualBranches = [...document.getElementsByTagName('Branch')];
+  if (actualBranches.length !== expectedBranches.length) {
+    throw new Error('Combined XML branch occurrences differ from Preview; converter input blocked.');
+  }
+  for (const [branchOccurrenceIndex, branch] of actualBranches.entries()) {
     const branchName = childText(branch, 'Branchname');
-    const row = byBranch.get(branchName);
-    if (!row) continue;
+    const row = expectedBranches[branchOccurrenceIndex];
+    if (text(row?.branchName).trim() !== branchName) {
+      throw new Error('Combined XML branch occurrence order differs from Preview; converter input blocked.');
+    }
     const pressure = ensureChild(document, branch, 'Pressure');
     const temperature = ensureChild(document, branch, 'Temperature');
 
@@ -135,7 +143,15 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
     for (const [nodeIndex, node] of childrenByName(branch, 'Node').entries()) {
       const nodeNumber = childText(node, 'NodeNumber');
       const nodeKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIndex);
-      const nodeAuthority = byNodeAuthority.get(nodeAuthorityKey(branchName, node)) || null;
+      const nodeAuthority = authoritativeNodes.length ? authoritativeNodes[nodeOccurrenceIndex] : null;
+      if (authoritativeNodes.length && (!nodeAuthority
+        || text(nodeAuthority.branchName).trim() !== branchName
+        || text(nodeAuthority.nodeNumber).trim() !== nodeNumber
+        || normalizedRef(nodeAuthority.componentRefNo) !== normalizedRef(childText(node, 'ComponentRefNo'))
+        || text(nodeAuthority.endpoint).trim() !== childText(node, 'Endpoint'))) {
+        throw new Error('Combined XML node bore authority occurrence differs from Preview; converter input blocked.');
+      }
+      nodeOccurrenceIndex += 1;
       const nodeWrites = [
         { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
         { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
@@ -160,6 +176,9 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
     }
   }
 
+  if (authoritativeNodes.length && nodeOccurrenceIndex !== authoritativeNodes.length) {
+    throw new Error('Combined XML node bore authority count differs from Preview; converter input blocked.');
+  }
   if (!result.appliedFields) return result;
   diagnostics.push({
     type: 'standalone-process-parity-applied',
