@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import { extractXmlCiiParityAuthorityEntries, compareXmlCiiParityAuthorityEntries, createStandaloneRunParityEvidence } from '../tabs/xml-cii-2019-standalone/xml-cii-run-parity-evidence.js';
 import { applyStandaloneProcessParity } from '../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js';
+import { applyPreviewBoreWallAuthority } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
 
 installWeightBasisXmlDom(globalThis);
 // Reduced original branch/node facts from PL-01_XML.xml and PL-06_XML.xml.
@@ -249,4 +250,36 @@ test('non-numeric Preview labels do not create synthetic engineering zeros', asy
   assert.equal(doc.getElementsByTagName('Temperature1').length, 0);
   assert.ok(result.expectedEntries.every(item =>
     !['p1', 't1', 'corrosion', 'boreMm', 'wallThickness'].includes(item.field)));
+});
+
+
+test('Preview bore/wall owns repeated Branchname by occurrence, not by final-name Map', () => {
+  const repeatedXml = '<PipeStressExport>' + branch(pl06, [numbered])
+    + branch(pl06, [numbered]) + '</PipeStressExport>';
+  const preview = applyPreviewBoreWallAuthority({
+    xmlText: repeatedXml, stagedJsonText: '', config: {},
+    result: { branchRows: [
+      { branchName: pl06, pipingClass: 'CLASS-ONE', sizeMm: 300 },
+      { branchName: pl06, pipingClass: 'CLASS-TWO', sizeMm: 300 },
+    ], nodeRows: [] },
+  });
+  assert.deepEqual(preview.nodeBoreWallRows.map(item => item.pipingClass),
+    ['CLASS-ONE', 'CLASS-TWO']);
+});
+
+test('Preview refuses duplicate node keys with unequal bore/wall authority', () => {
+  const thin = numbered.replace('<BoreMm>300</BoreMm>', '<BoreMm>250</BoreMm>');
+  const repeatedXml = '<PipeStressExport>' + branch(pl06, [numbered])
+    + branch(pl06, [thin]) + '</PipeStressExport>';
+  assert.throws(() => applyPreviewBoreWallAuthority({
+    xmlText: repeatedXml, stagedJsonText: '', config: {},
+    result: {
+      branchRows: [
+        { branchName: pl06, pipingClass: 'S8810105', sizeMm: 300 },
+        { branchName: pl06, pipingClass: 'S8810105', sizeMm: 300 },
+      ],
+      nodeRows: [{ branchName: pl06, nodeNumber: '200010', key: pl06 + '::200010',
+        componentRefNo: '=1006649755/1750', endpoint: '1' }],
+    },
+  }), /duplicate node key has conflicting bore\/wall authority/);
 });
