@@ -1,4 +1,5 @@
 import { extractXmlCiiRatingFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-rating-resolver.js';
+import { planVerifiedModeAExactMatch1, commitVerifiedModeAExactMatch1 } from '../../../converters/xml-cii2019-core/weight-facts-mode-a-exact-actions.js';
 import { rankXmlCiiWeightCandidates } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { applyModeAWeightChanges } from './xml-cii-adapted-mode-a-weight-actions.js?v=20261001-weight-output-2';
 import { modeAQualifiedExactWeightRow } from './xml-cii-adapted-mode-a-bulk-weight.js?v=20260928-issue776-authority-2';
@@ -150,7 +151,7 @@ function toggleLengthConversion(panel, stateRef) {
   return config.weight.convertSmallLengthsInToMm === true;
 }
 
-export function installModeAConsolidatedWeightTools(panel, result, stateRef) {
+export function installModeAConsolidatedWeightTools(panel, result, stateRef, options = {}) {
   const toolbar = panel?.querySelector?.('[data-mode-a-weight-easy-toolbar]');
   if (!toolbar || toolbar.dataset.modeAWeightNativeTools === 'true') return false;
   toolbar.dataset.modeAWeightNativeTools = 'true';
@@ -194,6 +195,20 @@ export function installModeAConsolidatedWeightTools(panel, result, stateRef) {
   });
 
   preferred.addEventListener('click', () => {
+    // #999 may pass canonicalSession ONLY after complete original facts verification.
+    if (options.canonicalSession) {
+      try {
+        if (dtxrMode) throw new Error('DTXR display rerank is not the immutable Preview Rating basis. Restore Preview Rating first.');
+        const plan = planVerifiedModeAExactMatch1(options.canonicalSession);
+        const outcome = commitVerifiedModeAExactMatch1(options.canonicalSession, plan);
+        status.textContent = `${outcome.accepted} exact weight(s) accepted in the canonical Match-1 ledger across ${plan.sources.length} source(s); ${plan.preservedSourceWeights} source value(s) preserved and ${plan.unresolved} require review. CII integration is separate.`;
+      } catch (error) {
+        status.textContent = `Canonical Match-1 blocked: ${text(error?.message || error)}`;
+      }
+      // Do NOT write legacy rigidWeight overrides, infer canonical IDs from
+      // visible rows, or rebuild legacy state when a verified session exists.
+      return;
+    }
     const count = applyPreferredExact(panel, result, stateRef);
     status.textContent = count ? `Applied ${count} preferred exact weight(s). Review rows were not bulk accepted.` : 'No unresolved preferred 100% direct weights available.';
     panel.querySelector('[data-mode-a-consolidated-build="weight"]')?.click();

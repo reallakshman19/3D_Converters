@@ -8,6 +8,7 @@ import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2
 import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer, isXmlCiiDirectQualifiedCandidate } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
+import { planVerifiedModeAExactMatch1, commitVerifiedModeAExactMatch1 } from '../converters/xml-cii2019-core/weight-facts-mode-a-exact-actions.js';
 import { assertWeightInputCustody, createAttestedWeightReviewService } from '../converters/xml-cii2019-core/weight-facts-attested-session.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
@@ -707,4 +708,62 @@ test('U2 held-out emergency factor: 20 kg control master proposes 40 kg, never e
   ]});
   assert.equal(accepted[0].state,'accepted');
   assert.equal(service.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisions[records[0].occurrenceId].value,40);
+});
+
+test('U5 explicit verified Mode A Match-1 uses all off-page occurrences without overwriting source mass', () => {
+  const b=basis('xml-cii/2019',['one','two']),facts=[];
+  for(let i=0;i<512;i++) {
+    const source=i<510?'one':'two';
+    facts.push({schemaVersion:WEIGHT_SCHEMA,basisId:b.basisId,domainId:b.domainId,
+      subjectType:'physical-component',sourceId:source,
+      occurrenceId:JSON.stringify([source,0,i,'valve-'+i]),fieldId:'mass.kg',
+      authority:i===0?'source':'unresolved',value:i===0?59:null,unit:'kg',
+      provenance:[{sourceRef:source,locator:'original ordinal'}],diagnostics:[]});
+  }
+  const review=createWeightReviewService({score:oracleScore});
+  review.openBasis(b,{facts});
+  const session={basis:b,review,openedFacts:facts.length};
+  const plan=planVerifiedModeAExactMatch1(session);
+  assert.equal(plan.physicalCount,512);
+  assert.equal(plan.preservedSourceWeights,1);
+  assert.equal(plan.qualified,511);
+  assert.equal(plan.plans[0].commands.length,509); // beyond first 100 visible rows
+  assert.equal(plan.plans[1].commands.length,2);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+  const result=commitVerifiedModeAExactMatch1(session,plan);
+  assert.equal(result.accepted,511);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisions[facts[0].occurrenceId],undefined);
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'two'}).decisions[facts.at(-1).occurrenceId].value,15);
+  assert.equal(planVerifiedModeAExactMatch1(session).qualified,0);
+});
+
+test('U5 preflight fences stale later-source revision and tampered bulk acceptance before first source', () => {
+  const b=basis('xml-cii/2019',['one','two']);
+  const facts=[...fixture(b,'one'),...fixture(b,'two')];
+  const review=createWeightReviewService({score:oracleScore});
+  review.openBasis(b,{facts});
+  const session={basis:b,review,openedFacts:facts.length};
+  const stale=planVerifiedModeAExactMatch1(session);
+  const c={commandId:'source2-manual',basisId:b.basisId,scopeId:'two',
+    occurrenceId:facts.at(-1).occurrenceId,expectedDecisionRevision:null,
+    action:'enter-manual',value:22,unit:'kg'};
+  review.applyDecisions({basisId:b.basisId,scopeId:'two',commands:[c]});
+  throws(()=>commitVerifiedModeAExactMatch1(session,stale),'STALE_REVIEW_PLAN');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+  const fresh=planVerifiedModeAExactMatch1(session);
+  const tampered=JSON.parse(JSON.stringify(fresh));
+  tampered.plans[0].commands[0].action='enter-manual';
+  tampered.plans[0].commands[0].value=777;
+  tampered.plans[0].commands[0].unit='kg';
+  throws(()=>commitVerifiedModeAExactMatch1(session,tampered),'STALE_REVIEW_PLAN');
+  throws(()=>planVerifiedModeAExactMatch1({basis:b,review}),'VERIFIED_SESSION_REQUIRED');
+  assert.equal(review.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,null);
+});
+
+test('U5 optional owned Mode A toolbar does not legacy-persist a verified canonical session', () => {
+  const ui=fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-weight-tools.js',import.meta.url),'utf8');
+  assert.ok(ui.includes('options.canonicalSession'));
+  assert.ok(ui.includes('commitVerifiedModeAExactMatch1(options.canonicalSession, plan)'));
+  assert.ok(ui.includes('Do NOT write legacy rigidWeight overrides'));
+  assert.ok(ui.includes('if (dtxrMode) throw new Error'));
 });
