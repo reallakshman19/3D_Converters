@@ -1,0 +1,27 @@
+name: Agent-W GC-PW Weight Contract
+on:
+  pull_request:
+    paths:
+      - 'converters/xml-cii2019-core/weight-facts-*.js'
+      - 'tests/xml-cii-agent-w-weight-facts-review.test.mjs'
+      - '.github/workflows/issue-1001-agent-w-weight-contract.yml'
+  push:
+    branches:
+      - 'agent-w/gc-pw10-weight-review-1001'
+    paths:
+      - 'converters/xml-cii2019-core/weight-facts-*.js'
+      - 'tests/xml-cii-agent-w-weight-facts-review.test.mjs'
+      - '.github/workflows/issue-1001-agent-w-weight-contract.yml'
+permissions:
+  contents: read
+jobs:
+  gc-pw-weight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Native Node GC-PW contract and regression tests
+        run: node --test tests/xml-cii-agent-w-weight-facts-review.test.mjs

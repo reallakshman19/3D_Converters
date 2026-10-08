@@ -311,7 +311,8 @@ export function withXmlCiiRigidWeightMatch1(config, weightsByKey = {}, provenanc
     const nextProvenance = plainObject(provenanceByKey?.[key]);
     if (Object.keys(nextProvenance).length) provenance[key] = nextProvenance;
     else delete provenance[key];
-    delete final[key];
+    // An earlier Final Match-2 snapshot retains its separate authority.
+    // Updating Match-1 must not silently erase a later accepted final value.
   }
   next.overrides[XML_CII_RIGID_WEIGHT_BUCKETS.match1] = match1;
   if (Object.keys(provenance).length) next.overrides[XML_CII_RIGID_WEIGHT_BUCKETS.match1Provenance] = provenance;

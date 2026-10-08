@@ -3,7 +3,6 @@ import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core
 import {
   withXmlCiiEffectiveRigidWeightLegacyView,
   withXmlCiiRigidWeightMatch1,
-  withXmlCiiRigidWeightFinal,
   xmlCiiEffectiveRigidWeightMap,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 import {
@@ -190,7 +189,9 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
   }
   const manual = Object.fromEntries(Object.entries(changes).filter(([key]) => proposalMeta[key]?.acceptanceMethod === 'manual'));
   const candidates = Object.fromEntries(Object.entries(changes).filter(([key]) => !(key in manual)));
-  const staged = withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1(clean, candidates, proposalMeta), manual);
+  // Both candidate and typed manual values are explicit Match-1 decisions.
+  // Final Match-2 is a later independent review and must never be written here.
+  const staged = withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta);
   persistConfig(stateRef, staged);
   return staged;
 }
