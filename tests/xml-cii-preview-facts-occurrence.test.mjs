@@ -5,6 +5,7 @@ import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/
 import {projectXmlCiiOccurrences} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 installWeightBasisXmlDom(globalThis);
 
+
 // INDEPENDENT raw-XML oracle: 19 source branches and 871 *original* nodes,
 // of which 322 have repeated NodeNumber -1. These are synthetic and MUST NOT
 // be reported as private PL01/PL06 source replay.
@@ -98,4 +99,16 @@ test('deployed source adapter is byte identical',async()=>{
   const source=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/'+from,import.meta.url),'utf8');
   const docs=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/'+from,import.meta.url),'utf8');
   assert.equal(source,docs);
+});
+
+test('checked-in public source: independent XML census equals projected full population',async()=>{
+  const xmlText=await readFile(new URL('../Benchmarks/XML-CII-2019/SYS-001_Single.xml',import.meta.url),'utf8');
+  const parsed=new DOMParser().parseFromString(xmlText,'application/xml');
+  const expectedBranches=parsed.getElementsByTagName('Branch').length;
+  const expectedNodes=parsed.getElementsByTagName('Node').length;
+  const projected=projectXmlCiiOccurrences({xmlText,mode:'A',sourceId:'SYS001-public'});
+  assert.ok(expectedBranches>0);
+  assert.equal(projected.branchCount,expectedBranches);
+  assert.equal(projected.nodeCount,expectedNodes);
+  assert.equal(new Set(projected.nodes.map(n=>n.occurrenceId)).size,expectedNodes);
 });
