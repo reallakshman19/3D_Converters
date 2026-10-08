@@ -107,3 +107,26 @@ test('15 dominant + 13 alternative occurrences meet an independent engineering i
   assert.deepEqual([negative.failures[0].occurrenceIndex, negative.failures[0].reason],
     [16, 'ENGINEERING_IDENTITY_MISMATCH']);
 });
+
+test('U5: 28 selected branch occurrences require full per-occurrence Preview identity', () => {
+  const occurrences = Array.from({ length: 28 }, (_, i) => ({
+    branchName: i < 15 ? b1 : b2, branchOccurrenceId: `branch-${i}`,
+  }));
+  const reviewed = occurrences.map((branch, i) => ({
+    branchName: branch.branchName,
+    lineKey: i < 15 ? 'S8811000' : 'S8822000',
+    pipingClass: '91261M7', extractionStatus: 'MATCHED',
+    matchedFormatIndex: i < 15 ? 0 : 1,
+  }));
+  const good = auditConfiguredBranchFormats(occurrences, configured, reviewed);
+  assert.equal(good.checkedCount, 28);
+  assert.equal(good.blocked, false, JSON.stringify(good.failures));
+  const wrongClass = reviewed.map(row => ({ ...row }));
+  wrongClass[26].pipingClass = 'S8822000';
+  const bad = auditConfiguredBranchFormats(occurrences, configured, wrongClass);
+  assert.equal(bad.blocked, true);
+  assert.ok(bad.failures.some(f => f.occurrenceIndex === 26 && f.status === 'PREVIEW_DIVERGENCE'));
+  const dropped = auditConfiguredBranchFormats(occurrences, configured, reviewed.slice(0, 27));
+  assert.equal(dropped.blocked, true);
+  assert.ok(dropped.failures.some(f => f.reason === 'POPULATION_COUNT_MISMATCH'));
+});
