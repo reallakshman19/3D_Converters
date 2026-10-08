@@ -1,5 +1,5 @@
 {
-  "lastId": 1218,
+  "lastId": 1221,
   "entries": [
     {
       "id": 1,
@@ -8526,6 +8526,27 @@
       "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
       "context": "P0 Mode B UI Run->API->Service->Writer->Verifier versioned import chain",
       "backupFile": "12813_issue980_full_static_chain_test.bak"
+    },
+    {
+      "id": 1219,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12814_issue980_invalid_numeric_0.bak"
+    },
+    {
+      "id": 1220,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12815_issue980_invalid_numeric_1.bak"
+    },
+    {
+      "id": 1221,
+      "timestamp": "2026-10-08 06:19:00",
+      "file": "tests/xml-cii-mode-b-parity-node-custody.test.mjs",
+      "context": "P0 Mode B invalid numeric label cannot fabricate engineering zero",
+      "backupFile": "12816_issue980_invalid_numeric_regression.bak"
     }
   ]
 }
