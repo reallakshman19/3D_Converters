@@ -27,8 +27,13 @@ export async function transferBoundedSourcePages({
   if(typeof trusted!=='function')
     fail('WORKER_UNAVAILABLE','trusted isolated Worker constructor required');
   if(!(worker instanceof trusted)||
-     typeof worker.postMessage!=='function'||typeof worker.terminate!=='function')
-    fail('INVALID_WORKER_PORT','untrusted isolated source byte transfer port');
+     typeof trusted.prototype?.postMessage!=='function'||
+     typeof trusted.prototype?.terminate!=='function')
+    fail('INVALID_WORKER_PORT','trusted native source Worker methods required');
+  // Do not dispatch original bytes through overridable worker.postMessage:
+  // an Object.create(Worker.prototype) imposter passes instanceof.
+  const nativePost=trusted.prototype.postMessage;
+  const nativeTerminate=trusted.prototype.terminate;
   const browser=typeof worker.addEventListener==='function'&&
     typeof worker.removeEventListener==='function';
   const node=typeof worker.on==='function'&&typeof worker.off==='function';
@@ -117,14 +122,15 @@ export async function transferBoundedSourcePages({
       timer=setTimeout(()=>finish(new WorkerExecutionError('WORKER_ACK_TIMEOUT',
         'source page was not acknowledged before deadline')),ackTimeoutMs);
       try{
-        worker.postMessage({
+        nativePost.call(worker,{
           schema:SCHEMA,kind:'SOURCE_PAGE',jobId,sourceRefId,
           sourceRevision:revision,sourceSha256:sha,startByte:start,
           endByteExclusive:end,bytes:original,
         },[original.buffer]);
       }catch(error){
-        finish(new WorkerExecutionError('WORKER_FAILED',
-          'source page transfer failed',{cause:error}));
+        finish(new WorkerExecutionError(error instanceof TypeError?
+          'INVALID_WORKER_PORT':'WORKER_FAILED',
+          'trusted native source Worker rejected byte transfer',{cause:error}));
       }
     });
     acknowledgedBytes=end;start=end;pages++;
@@ -133,7 +139,7 @@ export async function transferBoundedSourcePages({
     // Any source/ACK/protocol/consumer failure invalidates the entire
     // transport job; no stale Worker can receive another page or be reused.
     // Native terminate() returns a Promise; browser terminate() is void.
-    try{await worker.terminate();}catch { /* Preserve original typed cause. */ }
+    try{await nativeTerminate.call(worker);}catch { /* Preserve original typed cause. */ }
     throw error;
   }
   return Object.freeze({
