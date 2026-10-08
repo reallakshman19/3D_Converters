@@ -1,6 +1,7 @@
 /** Release custody for explicitly configured branch formats.
  * Evaluates every selected occurrence, independently of Regex's interactive sample cap. */
 import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
+import { deriveMappedLineKeyForBranch } from '../../converters/xml-cii2019-core/regex-line-key.js';
 
 function text(value) { return String(value ?? '').trim(); }
 function configured(config) {
@@ -35,6 +36,16 @@ export function auditConfiguredBranchFormats(branchOccurrences = [], config = {}
         failures.push({ branchName: branch.branchName, occurrenceIndex: index,
           status: actual.extractionStatus || 'MISSING_PREVIEW_PROOF',
           reason: actual.branchIdentityConflict || 'PREVIEW_AUTHORITY_BLOCKED' });
+        continue;
+      }
+      const expectedLineKey = deriveMappedLineKeyForBranch(branch.branchName, config) || identity.lineKey;
+      const authorizedClassOverride = actual.pipingClassMethod === 'override';
+      if (text(actual.lineKey) !== text(expectedLineKey)
+        || (!authorizedClassOverride
+          && text(actual.pipingClass).toUpperCase() !== text(identity.pipingClass).toUpperCase())
+        || actual.matchedFormatIndex !== identity.matchedFormatIndex) {
+        failures.push({ branchName: branch.branchName, occurrenceIndex: index,
+          status: 'PREVIEW_DIVERGENCE', reason: 'ENGINEERING_IDENTITY_MISMATCH' });
       }
     }
     if (previewRows.length !== source.length) failures.push({
