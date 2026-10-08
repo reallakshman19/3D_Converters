@@ -1,0 +1,38 @@
+name: LFJ R06 worker-required isolation
+
+on:
+  push:
+    branches: ['lfj/r06-isolated-worker-1071']
+    paths:
+      - 'lfj/transport/execution/**'
+      - '.github/workflows/lfj-r06-worker.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/transport/execution/**'
+      - '.github/workflows/lfj-r06-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-native:
+    name: R06 Node ${{ matrix.node }} real worker + fail-closed source dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact tested candidate
+        run: git rev-parse HEAD && node --version
+      - name: Independent native Worker RED/GREEN
+        run: node --test lfj/transport/execution/*.test.mjs
+      - name: No mutations during test
+        run: test -z "$(git status --porcelain)"
