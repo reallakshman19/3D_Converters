@@ -41,6 +41,6 @@ assert.deepEqual(attScopePartiallyExcludedBranches(index,selection),[]);
 const converter = await readFile(new URL('../../tabs/model-converters/converters/rvmattr-to-xml.js',import.meta.url),'utf8');
 const popup = await readFile(new URL('../../tabs/model-converters/att-native-scope-popup.js',import.meta.url),'utf8');
 assert.match(converter,/nativeFiltered\s*\?/);
-assert.match(converter,/Native ATT zones cannot yet be applied to binary RVM/);
+assert.match(converter,/Selected native ATT zones cannot yet be applied to binary RVM/);
 assert.match(popup,/attScopePartiallyExcludedBranches/);
 console.log('test-att-native-conversion-scope: PASS exact structural selection and partial branch guard');
