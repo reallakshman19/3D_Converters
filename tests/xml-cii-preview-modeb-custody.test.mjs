@@ -25,6 +25,11 @@ elementPrototype.getElementsByTagName=function(tag){
   visit(this);
   return out;
 };
+// Native Document.importNode() is required by the real Mode B combiner.
+// Add it only to the Node test shim; browser uses native implementation.
+const documentPrototype=Object.getPrototypeOf(new DOMParser()
+  .parseFromString('<Root/>','application/xml'));
+documentPrototype.importNode=function(node,deep=false){ return node.cloneNode(Boolean(deep)); };
 const ports={assertBasisDigest,assertContentDigest,digestCanonical,canonicalJson};
 const outer=pipe=>`<PipeStressExport xmlns="urn:psi116"><Units>mm</Units>
  <AmbientTemperature>20</AmbientTemperature>${pipe}<Source>PSI</Source></PipeStressExport>`;
