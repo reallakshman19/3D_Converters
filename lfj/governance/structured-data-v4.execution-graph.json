@@ -1797,13 +1797,76 @@
           "parallel_ok": []
         }
       ],
-      "released_proposal_digest": "sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d"
+      "released_proposal_digest": "sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d",
+      "bindings": [
+        {
+          "responsibility_id": "R01",
+          "ref": "reallaksh19/3D_Converters#1052"
+        }
+      ]
     }
   },
   "nodes": [
     {
       "ref": "reallaksh19/3D_Converters#1042",
-      "kind": "ROOT"
+      "kind": "ROOT",
+      "reserve_weight": 121
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1052",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 9,
+      "responsibility_id": "R01",
+      "work_class": "PRODUCT",
+      "outcome": "Every supported staged root from all three adopter repositories is recognized by an explicit versioned profile with its source envelope preserved and disallowed ambiguities rejected.",
+      "independence_basis": "Independent source and expected format matrices from 3D_Converters, XML_Compare_Utilities and 3DMarkupTool can independently accept or reject every format/capability pair.",
+      "owns_claims": [
+        "C1_ROOT"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/contracts/profiles/"
+      ],
+      "acceptance_methods": [
+        "Independent array, hierarchy, objects, branches, single and dual-envelope matrix",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "weight": 25,
+          "verify": "Independent array, hierarchy, objects, branches and typed-single root cases from all three repos",
+          "outcome": "Root families used by all three repositories are distinguished without guesswork"
+        },
+        {
+          "id": "U02",
+          "weight": 25,
+          "verify": "Independent schema, profile, converterSchema, units and capability decision table",
+          "outcome": "Declared producer and converter rights govern allowed uses"
+        },
+        {
+          "id": "U03",
+          "weight": 25,
+          "verify": "Byte-preserving envelope and dual-key ambiguity negative oracles",
+          "outcome": "Outer source facts survive recognition and contradictory hints are refused"
+        },
+        {
+          "id": "U04",
+          "weight": 25,
+          "verify": "Three-repository compatibility and negative permissions matrix",
+          "outcome": "Each source variant receives correct read, view, edit and export permissions"
+        }
+      ]
     }
   ],
   "plan_updates": [
