@@ -115,8 +115,8 @@ export async function openPreviewFactReadModel({
     const subjectType=validateId(raw?.subjectType,'subjectType');
     // Portable core: e.g. instrument, beam, support, branch, node.
     // XML-only subject restrictions belong to buildXmlCiiSourceFactRecords().
-    const id=occurrenceKey({sourceId:validateId(raw.sourceId,'sourceId'),
-      occurrenceId:validateId(raw.occurrenceId,'occurrenceId')});
+    const id=occurrenceKey({sourceId:validateId(raw?.sourceId,'sourceId'),
+      occurrenceId:validateId(raw?.occurrenceId,'occurrenceId')});
     requireThat(!expected.has(id),'DUPLICATE_EXPECTED_OCCURRENCE','Expected occurrence repeated');
     expected.set(id,{subjectType,sourceId:raw.sourceId,occurrenceId:raw.occurrenceId});
   }
@@ -163,6 +163,9 @@ export async function openPreviewFactReadModel({
     computationStage:engineeringReady?'engineering-verified':'source-custody-only',
     engineeringReady,expectedOccurrenceCount:expected.size,totalFactCount:verifiedFacts.length,
   });
+  // Build each filtered view once; scrolling subsequent pages does not repeat
+  // an O(all facts) scan for every 200-item window.
+  const queryCache=new Map();
   return Object.freeze({
     info,
     async getFacts({basisId, cursor = null, limit = 100,
@@ -176,9 +179,14 @@ export async function openPreviewFactReadModel({
       }
       const query={sourceId,subjectType,fieldId};
       const queryHash=await ports.digestCanonical(query);
-      const filtered=verifiedFacts.filter(r => (sourceId === null || r.sourceId === sourceId)
-        && (subjectType === null || r.subjectType === subjectType)
-        && (fieldId === null || r.fieldId === fieldId));
+      const filterKey=JSON.stringify(query);
+      if (!queryCache.has(filterKey)) {
+        if (queryCache.size >= 16) queryCache.clear(); // bounded local index memory
+        queryCache.set(filterKey,verifiedFacts.filter(r => (sourceId === null || r.sourceId === sourceId)
+          && (subjectType === null || r.subjectType === subjectType)
+          && (fieldId === null || r.fieldId === fieldId)));
+      }
+      const filtered=queryCache.get(filterKey);
       let offset=0;
       if (cursor !== null) {
         requireThat(typeof cursor === 'string','INVALID_CURSOR','Cursor must be opaque string');
