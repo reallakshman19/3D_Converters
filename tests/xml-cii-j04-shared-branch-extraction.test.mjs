@@ -114,3 +114,25 @@ test('legacy token positions strip branch delimiters but preserve regex source t
   assert.equal(result.lineKey, '1885');
   assert.equal(result.pipingClass, '91261M7');
 });
+
+
+test('untouched Format-2 UI template is not an eligible competing engineering rule', () => {
+  const configured = {
+    lineKey: { regex: '(LN17)' },
+    pipingClass: { regex: '(PC42)' },
+  };
+  const untouched = {
+    tokenDelimiter: '-', lineKeyJoiner: '',
+    lineKey: { regex: '', group: 1, tokenPosition: 3 },
+    pipingClass: { regex: '', group: 1, tokenPosition: 4 },
+    rating: { regex: '', group: 1, tokenPosition: 4 },
+    bore: { regex: '', group: 1, tokenPosition: 2 },
+  };
+  const branch = 'ASIM-LN17-PC42';
+  const result = resolve(branch, { formats: [configured, untouched] });
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.matchedFormatIndex, 0);
+  assert.equal(result.candidates[1].reasons.format, 'UNCONFIGURED_ALTERNATIVE');
+  const active = resolve(branch, { formats: [configured, { ...untouched, enabled: true }] });
+  assert.equal(active.status, 'AMBIGUOUS', 'explicitly enabled fallback must still be evaluated');
+});
