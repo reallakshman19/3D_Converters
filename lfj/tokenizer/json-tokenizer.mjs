@@ -163,14 +163,14 @@ const nonzero=b=>b!==null&&b>=49&&b<=57;
 
 export async function scanJsonDocument(snapshot,{
   pageBytes=65536,maxTokenBytes=65536,onToken=null,signal=null,
-  maxDepth=256,maxTokens=2000000,maxByteLength=128*1024*1024,
+  maxDepth=256,maxTokens=128*1024*1024,maxByteLength=128*1024*1024,
 }={}) {
   if(onToken!==null&&typeof onToken!=='function')
     fail('INVALID_TOKEN_SINK',0,'onToken must be a callable sink');
   // Policy ceilings cannot be enlarged by an untrusted caller. These are
   // protective defaults, not reference-hardware performance acceptance SLOs.
   if(!safe(maxDepth)||maxDepth===0||maxDepth>256||
-     !safe(maxTokens)||maxTokens===0||maxTokens>2000000||
+     !safe(maxTokens)||maxTokens===0||maxTokens>512*1024*1024||
      !safe(maxByteLength)||maxByteLength===0||maxByteLength>512*1024*1024)
     fail('INVALID_RESOURCE_LIMIT',0,'depth/tokens/original-byte caps are invalid or too large');
   if(!snapshot||!safe(snapshot.byteLength))
