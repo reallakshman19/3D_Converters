@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {previewV7HasRelevantMutation} from
+import {previewV7HasRelevantMutation,installInternalRebuildCapture} from
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js';
 
 const target=(owned=false)=>({
@@ -11,6 +11,10 @@ const target=(owned=false)=>({
 });
 const mutation=(addedNodes,removedNodes=[],t=target())=>({type:'childList',
   target:t,addedNodes,removedNodes});
+
+test('browser fixture imports a real observer seam from the production V7 module',()=>{
+  assert.equal(typeof installInternalRebuildCapture,'function');
+});
 
 test('RED: V7 preview cache-status replacement cannot trigger its own recapture',()=>{
   assert.equal(previewV7HasRelevantMutation([
