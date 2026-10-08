@@ -167,7 +167,7 @@ test('candidate audit retains length-rejected semantics and unresolved Rating ne
   const facts = fixture(b);
   service.openBasis(b, { facts });
   const proposals = service.getProposals({ basisId: b.basisId, occurrenceIds: ['one/branch:0/physical:0'] });
-  assert.equal(proposals.items[0].value, 9);
+  assert.equal(proposals.items[0].value, 8.491); // existing length extrapolation: round(9 * 100 / 106, 3)
   const rejected = service.getCandidateAudit({ basisId: b.basisId, occurrenceId: 'one/branch:0/physical:0' }).rejectedCandidates;
   assert.ok(rejected.some((c) => c.rowLength === 106.1 && c.rejectedReason.includes('length failed')));
   const blocked = createWeightReviewService({ score: createXmlCiiFactWeightScorer(config) });
