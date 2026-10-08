@@ -1806,6 +1806,10 @@
       {
         "responsibility_id": "R03",
         "ref": "reallaksh19/3D_Converters#1057"
+      },
+      {
+        "responsibility_id": "R04",
+        "ref": "reallaksh19/3D_Converters#1062"
       }
     ]
     }
@@ -1814,7 +1818,7 @@
     {
       "ref": "reallaksh19/3D_Converters#1042",
       "kind": "ROOT",
-      "reserve_weight": 115
+      "reserve_weight": 110
     },
     {
       "ref": "reallaksh19/3D_Converters#1052",
@@ -1933,6 +1937,68 @@
           "weight": 25,
           "outcome": "Incomplete intake is rejected",
           "verify": "Independent oracle: Independent SHA256 and changed-interior byte oracle; outcome: Incomplete intake is rejected"
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1062",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1042",
+      "weight": 5,
+      "responsibility_id": "R04",
+      "work_class": "PRODUCT",
+      "outcome": "Every syntactic token is recognized across bounded input chunks without accepting malformed or partial documents.",
+      "independence_basis": "Independent escaped-string, multibyte, malformed and deep nesting corpus. This responsibility has independently rejectable outputs and negative cases.",
+      "owns_claims": [
+        "C2_TOKENS"
+      ],
+      "size_budget": {
+        "target_loc": 350,
+        "hard_loc": 900,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/tokenizer/"
+      ],
+      "acceptance_methods": [
+        "Independent escaped-string, multibyte, malformed and deep nesting corpus",
+        "Independent RED before GREEN on exact source",
+        "Exact head self-review and source/docs parity",
+        "Relevant failure, latency and memory metrics"
+      ],
+      "depends_on": [
+        "reallaksh19/3D_Converters#1057"
+      ],
+      "parallel_ok": [],
+      "units": [
+        {
+          "id": "U01",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Split escaped strings stay intact",
+          "verify": "Independent oracle: Independent escaped-string, multibyte, malformed and deep nesting corpus; outcome: Split escaped strings stay intact"
+        },
+        {
+          "id": "U02",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Split Unicode characters stay intact",
+          "verify": "Independent oracle: Independent escaped-string, multibyte, malformed and deep nesting corpus; outcome: Split Unicode characters stay intact"
+        },
+        {
+          "id": "U03",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Malformed tokens reject explicitly",
+          "verify": "Independent oracle: Independent escaped-string, multibyte, malformed and deep nesting corpus; outcome: Malformed tokens reject explicitly"
+        },
+        {
+          "id": "U04",
+          "kind": "SEMANTIC",
+          "weight": 25,
+          "outcome": "Excessive depth and scalars fail safely",
+          "verify": "Independent oracle: Independent escaped-string, multibyte, malformed and deep nesting corpus; outcome: Excessive depth and scalars fail safely"
         }
       ]
     }
