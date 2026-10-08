@@ -479,7 +479,7 @@ function attestedFixture() {
 test('U1 attested facts cannot open without exact canonical basis/content and selected identity', async () => {
   const {b,custody,facts,service} = attestedFixture();
   const weight = service();
-  assert.equal(weight.openBasisJob,undefined); // mock-only async path is not an authority bypass
+  assert.equal(typeof weight.openBasisJob,'function'); // strict attested job replaces the unverified mock path
   const opened = await weight.openBasis(b,{facts,custody});
   assert.equal(opened.attestation.physicalCount,2);
   assert.equal(weight.getFacts({basisId:b.basisId,subjectType:'physical-component'}).totalCount,2);
