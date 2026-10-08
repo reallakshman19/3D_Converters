@@ -1,0 +1,107 @@
+// Read-only XML-CII compatibility adapter. The canonical Preview fact producer replaces
+// this adapter without changing the portable ledger or the existing ranking algorithm.
+import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
+import { applyXmlCiiFlangeWeightFallbackToIssue } from './flange-weight-fallback.js';
+import { WEIGHT_SCHEMA } from './weight-facts-review-service.js';
+const ID = 'xml-cii/2019';
+const toText = (x) => x === undefined || x === null ? '' : String(x).trim();
+const num = (x) => x === '' || x === null || x === undefined ? null : (Number.isFinite(Number(x)) ? Number(x) : null);
+const fields = Object.freeze({
+  'bore.mm': 'boreMm', 'rating': 'rating', 'length.mm': 'lengthMm',
+  'node.name': 'nodeName', 'component.type': 'componentType',
+  'component.ref': 'componentRefNo', 'dtxr': 'dtxr',
+  'mass.kg': 'originalWeight', 'legacy.key': 'key',
+  'branch.name': 'branchName', 'node.number': 'nodeNumber',
+});
+function record(basis, sourceId, occurrenceId, fieldId, value, authority, unit, locator, diagnostics = []) {
+  return { schemaVersion: WEIGHT_SCHEMA, domainId: ID, basisId: basis.basisId,
+    subjectType: 'physical-component', sourceId, occurrenceId, fieldId, value,
+    unit, authority, provenance: [{ sourceRef: sourceId, locator, ruleId: 'xml-cii-legacy-weight-read-only/v1' }],
+    diagnostics, extensions: { adapter: 'legacy-read-only' } };
+}
+export function legacyXmlCiiWeightFacts(rows, basis, sourceId) {
+  if (basis?.domainId !== ID || !basis.scope?.some((s) => s.sourceId === sourceId)) throw new Error('XML-CII source outside InputBasis');
+  if (!Array.isArray(rows)) throw new TypeError('Legacy weight rows required');
+  const out = [], identities = new Set();
+  rows.forEach((row, index) => {
+    // A branch name or NodeNumber=-1 is NEVER a primary occurrence identity.
+    // The canonical producer supplies stable source/branch/node ordinals.
+    const branch = row.branchOccurrenceIndex ?? row.branchOrdinal ?? index;
+    const ordinal = row.nodeOrdinal ?? row.nodeIndex ?? index;
+    const occurrenceId = sourceId + '/branch:' + branch + '/physical:' + ordinal;
+    if (identities.has(occurrenceId)) throw new Error('Duplicate physical component occurrence: ' + occurrenceId);
+    identities.add(occurrenceId);
+    const uncertain = row.nodeOrdinal === undefined || row.branchOccurrenceIndex === undefined;
+    const diagnostic = uncertain ? ['legacy-row-order identity; snapshot must be rebuilt after any source reordering'] : [];
+    const locator = 'row:' + index + '/node:' + toText(row.nodeNumber);
+    for (const [fieldId, property] of Object.entries(fields)) {
+      let value = row[property], authority = 'derived', unit = null;
+      if (fieldId === 'bore.mm' || fieldId === 'length.mm') { value = num(value); unit = 'mm'; }
+      else if (fieldId === 'mass.kg') { value = num(value); unit = 'kg'; authority = value !== null && value > 0 ? 'source' : 'unresolved'; if (authority === 'unresolved') value = null; }
+      else value = toText(value);
+      if (value === null || value === '') authority = 'unresolved';
+      // Rating is read-only here: Preview/override is the normal rating authority.
+      if (fieldId === 'rating' && value !== '') authority = row.ratingSource === 'weight-match-manual' ? 'manual' : 'derived';
+      out.push(record(basis, sourceId, occurrenceId, fieldId, value, authority, unit, locator, diagnostic));
+    }
+  });
+  return out;
+}
+function fromFacts(records) {
+  const out = {};
+  for (const fact of records) {
+    const property = fields[fact.fieldId];
+    if (property) out[property] = ['conflict', 'unresolved', 'proposed'].includes(fact.authority) ? null : fact.value;
+  }
+  return out;
+}
+function candidateSummary(c) {
+  return {
+    type: toText(c.type || c.valveType), typeDesc: toText(c.typeDesc),
+    rowBore: num(c.rowBore), rowRating: toText(c.rowRating),
+    rowLength: num(c.rowLength), masterWeight: num(c.masterWeight),
+    lengthDelta: num(c.lengthDelta), lengthQualified: !!c.lengthQualified,
+    preferred: !!c.preferred, inferred: !!c.inferredWeight,
+    factor: !!c.specialFactorRule, flangeFallback: !!c.flangeWeightFallback,
+    warning: toText(c.weightWarning), rejectedReason: toText(c.rejectedReason),
+    score: num(c.score), semanticTier: num(c.semanticTier),
+  };
+}
+function rankedFromFacts(records, config) {
+  const values = fromFacts(records);
+  if (values.boreMm === null || values.lengthMm === null || !values.rating) return { candidates: [], rejectedCandidates: [] };
+  // Reuse the *existing* mature bore/rating index and ranking; never derive
+  // XML geometry or re-resolve Preview Rating in the weight scorer.
+  const rank = rankXmlCiiWeightCandidates({
+    boreMm: values.boreMm, lengthMm: values.lengthMm, rating: values.rating,
+    nodeName: values.nodeName, componentType: values.componentType,
+    componentRefNo: values.componentRefNo, dtxr: values.dtxr,
+  }, config, { includeRejected: true });
+  const amended = applyXmlCiiFlangeWeightFallbackToIssue({ ...values,
+    candidates: rank.candidates.slice(0, 5), rejectedCandidates: rank.rejectedCandidates }, config);
+  return { candidates: amended.candidates || [], rejectedCandidates: amended.rejectedCandidates || [] };
+}
+export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-weight-rank/v1') {
+  const scorer = (records, basis) => {
+    const identity = records[0];
+    if (!identity || basis.domainId !== ID || identity.domainId !== ID) throw new Error('XML-CII scorer requires matching FactRecord domain');
+    const ranking = rankedFromFacts(records, config);
+    return ranking.candidates.slice(0, 5).flatMap((candidate, index) => {
+      const value = num(candidate.selectedWeight ?? candidate.suggestedWeight ?? candidate.weight);
+      if (value === null || value <= 0 || candidate.zeroFallback) return [];
+      return [{
+        basisId: basis.basisId, domainId: ID, occurrenceId: identity.occurrenceId,
+        proposalId: basis.basisId + '/' + identity.occurrenceId + '/rank:' + (index + 1),
+        value, unit: 'kg', method: candidate.weightMethod || 'master',
+        ranking: index + 1, qualified: !!candidate.preferred && !candidate.inferredWeight && !candidate.flangeWeightFallback,
+        eligibilityReasons: [candidate.preferred ? 'exact-bore-rating-length' : 'explicit-review-required', candidate.weightWarning || ''].filter(Boolean),
+        evidenceRefs: [basis.basisId, basis.masters?.weight?.sha256 || '', identity.sourceId].filter(Boolean),
+        scoringRevision,
+        extensions: { candidate: candidateSummary(candidate), rejectedCandidates: index === 0 ? ranking.rejectedCandidates.map(candidateSummary) : [] },
+      }];
+    });
+  };
+  scorer.audit = (records, basis) => ({ basisId: basis.basisId, occurrenceId: records[0]?.occurrenceId,
+    ...(() => { const ranking = rankedFromFacts(records, config); return { rejectedCandidates: ranking.rejectedCandidates.map(candidateSummary), candidateCount: ranking.candidates.length }; })() });
+  return scorer;
+}
