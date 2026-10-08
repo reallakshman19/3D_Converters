@@ -156,15 +156,16 @@ test('complete population is all selected occurrences, never only visible page',
   const basis = await fixture();
   const a = page(basis.basisId, ['branch:0'], 'next');
   const b = page(basis.basisId, ['branch:1']);
-  assert.deepEqual(assertCompletePopulation([a, b], basis.basisId, item => item.id),
+  assert.deepEqual(assertCompletePopulation([a, b], basis.basisId, item => item.id, 2),
     { basisId: basis.basisId, totalCount: 2, verifiedCount: 2 });
-  fails(() => assertCompletePopulation([a], basis.basisId, item => item.id), 'TRUNCATED_POPULATION');
-  fails(() => assertCompletePopulation([page(basis.basisId, ['branch:0'])], basis.basisId, item => item.id),
+  fails(() => assertCompletePopulation([a], basis.basisId, item => item.id, 2), 'TRUNCATED_POPULATION');
+  fails(() => assertCompletePopulation([page(basis.basisId, ['branch:0'])], basis.basisId, item => item.id, 2),
     'INCOMPLETE_POPULATION');
-  fails(() => assertCompletePopulation([a, { ...b, complete: false }], basis.basisId, item => item.id),
+  fails(() => assertCompletePopulation([a, { ...b, complete: false }], basis.basisId, item => item.id, 2),
     'INCOMPLETE_BASIS');
-  fails(() => assertCompletePopulation([a, { ...b, items: [{ id: 'branch:0' }] }], basis.basisId, item => item.id),
+  fails(() => assertCompletePopulation([a, { ...b, items: [{ id: 'branch:0' }] }], basis.basisId, item => item.id, 2),
     'DUPLICATE_RESULT_IDENTITY');
+  fails(() => assertCompletePopulation([a, b], basis.basisId, item => item.id, 3), 'SOURCE_POPULATION_MISMATCH');
   fails(() => validatePage({ ...a, basisId: sha('0') }, basis.basisId), 'CROSS_BASIS_PAGE');
 });
 

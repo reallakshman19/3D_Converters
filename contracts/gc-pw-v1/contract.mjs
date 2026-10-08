@@ -211,8 +211,10 @@ export function validatePage(value, basisId) {
   return value;
 }
 // A renderer's last visible page is NOT evidence of a complete selected source population.
-export function assertCompletePopulation(pages, basisId, identity) {
+export function assertCompletePopulation(pages, basisId, identity, expectedTotalCount) {
   arr(pages, '$.pages');
+  integer(expectedTotalCount, '$.expectedTotalCount');
+  if (typeof identity !== 'function') reject('IDENTITY_FN_REQUIRED', '$.identity');
   if (!pages.length) reject('NO_PAGES', '$.pages');
   let total = null, read = 0;
   const cursors = new Set(), ids = new Set();
@@ -234,6 +236,7 @@ export function assertCompletePopulation(pages, basisId, identity) {
     read += page.items.length;
   }
   if (read !== total) reject('INCOMPLETE_POPULATION', '$.pages');
+  if (total !== expectedTotalCount) reject('SOURCE_POPULATION_MISMATCH', '$.expectedTotalCount');
   return { basisId, totalCount: total, verifiedCount: read };
 }
 export function validateJobEvent(value, basisId) {
