@@ -1,5 +1,5 @@
 /** Actual browser Worker module. This file MUST run in WorkerGlobalScope. */
-import {scanSourceInsideWorker,SOURCE_WORKER_SCHEMA,createSourcePageAckGate} from './source-worker-port.mjs';
+import {scanSourceInsideWorker,SOURCE_WORKER_SCHEMA,createSourcePageAckGate,receiveVerifiedSourceBytes} from './source-worker-port.mjs';
 if(typeof WorkerGlobalScope==='undefined'||!(self instanceof WorkerGlobalScope))
   throw new Error('SOURCE_WORKER_REQUIRED');
 let claimed=false;
@@ -7,6 +7,7 @@ const pageGate=createSourcePageAckGate(message=>self.postMessage(message));
 self.addEventListener('message',async event=>{
   const message=event.data;
   if(pageGate.receive(message))return;
+  if(receiveVerifiedSourceBytes(message,value=>self.postMessage(value)))return;
   if(claimed){
     self.postMessage({schema:SOURCE_WORKER_SCHEMA,kind:'FAILED',
       jobId:message?.jobId,code:'WORKER_BUSY'});
