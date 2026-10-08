@@ -1,5 +1,5 @@
 {
-  "lastId": 1273,
+  "lastId": 1276,
   "entries": [
     {
       "id": 1,
@@ -8911,6 +8911,27 @@
       "file": "tests/xml-cii-mode-b-preview-occurrence.test.mjs",
       "context": "P0 exact live Single Run click graph and ATTA/MDS closure static regression",
       "backupFile": "13350_issue980_live_route_test.bak"
+    },
+    {
+      "id": 1274,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/PR981_workreport.md",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13360_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1275,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/status/PR981.yaml",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13361_issue980_entrypoint_report.bak"
+    },
+    {
+      "id": 1276,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "agents/claims/PR981.yaml",
+      "context": "P0 live Single mode actual entrypoint Smart→ATTA→MDS patch qualification evidence",
+      "backupFile": "13362_issue980_entrypoint_report.bak"
     }
   ]
 }
