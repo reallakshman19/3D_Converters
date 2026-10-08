@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
+import fs from 'node:fs';
 import { performance } from 'node:perf_hooks';
+import { withXmlCiiRigidWeightMatch1, resolveXmlCiiRigidWeight } from '../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2019-core/weight-facts-review-service.js';
 import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 
@@ -211,4 +213,25 @@ test('strict GC-PW unresolved value and command uniqueness enforcement', () => {
       command(b, 'same', 'enter-manual', null, {value: 11, unit: 'kg'}),
       {...command(b, 'same', 'enter-manual', null, {value: 11, unit: 'kg'}), occurrenceId: 'one/branch:0/physical:0'},
     ]}), 'DUPLICATE_COMMAND');
+});
+
+test('Match-1 later edit leaves separately accepted Final Match-2 and precedence unchanged', () => {
+  const before = { overrides: { rigidWeightFinal: { 'B::12': 59 }, rigidWeightMatch1: { 'B::12': 15 } } };
+  const later = withXmlCiiRigidWeightMatch1(before, { 'B::12': 20 }, {
+    'B::12': { schema: 'xml-cii-rigid-weight-match1-provenance/v1', acceptanceMethod: 'manual' },
+  });
+  assert.equal(later.overrides.rigidWeightFinal['B::12'], 59);
+  assert.equal(later.overrides.rigidWeightMatch1['B::12'], 20);
+  assert.equal(resolveXmlCiiRigidWeight(later, ['B::12']).weightKg, 59);
+  assert.equal(before.overrides.rigidWeightMatch1['B::12'], 15);
+});
+
+test('Phase-6 and Final-review UI leave unselected weight proposals outside accepted inputs', () => {
+  const renderer = fs.readFileSync(new URL('../tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js', import.meta.url), 'utf8');
+  const final = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js', import.meta.url), 'utf8');
+  const match1 = fs.readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js', import.meta.url), 'utf8');
+  assert.ok(renderer.includes("const initial = issue.weight && issue.weight > 0 ? issue.weight : '';"));
+  assert.ok(final.includes("value=\\\"${attr(issue.acceptedWeight ?? '')}\\\""));
+  assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
+  assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
 });
