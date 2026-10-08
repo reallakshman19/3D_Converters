@@ -8,7 +8,7 @@
 // contains the Preview and Weight Match facts that were selected.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
-import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
+import { createStandaloneRunParityEvidence, xmlCiiParityNodeSignature } from './xml-cii-run-parity-evidence.js?v=20261001-weight-output-2';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { xmlCiiWeightReviewNodeOverrideKey } from '../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { deferStandaloneRigidWeights, prepareStandaloneRigidWeightAuthority, applyStandaloneAcceptedRigidWeights } from './xml-cii-weight-output-authority.js?v=20261001-weight-output-2';
@@ -70,6 +70,9 @@ function numeric(value) {
 function recordExpected(entries, {
   scope,
   branchName,
+  branchOccurrenceIndex = null,
+  nodeOrdinal = null,
+  nodeSignature = '',
   nodeNumber = '',
   nodeKey = '',
   path,
@@ -80,7 +83,8 @@ function recordExpected(entries, {
 }) {
   const expected = text(value).trim();
   if (!expected) return;
-  entries.push({ scope, branchName, nodeNumber, nodeKey, path, field, expected, kind, source });
+  entries.push({ scope, branchName, branchOccurrenceIndex, nodeOrdinal, nodeSignature,
+    nodeNumber, nodeKey, path, field, expected, kind, source });
 }
 
 async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
@@ -101,7 +105,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
 
-  for (const branch of [...document.getElementsByTagName('Branch')]) {
+  for (const [branchOccurrenceIndex, branch] of [...document.getElementsByTagName('Branch')].entries()) {
     const branchName = childText(branch, 'Branchname');
     const row = byBranch.get(branchName);
     if (!row) continue;
@@ -123,7 +127,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
       if (!valid || !setChildText(document, write.owner, write.name, write.value)) continue;
       result.appliedFields += 1;
       recordExpected(result.expectedEntries, {
-        scope: 'branch', branchName, path: write.path, field: write.field,
+        scope: 'branch', branchName, branchOccurrenceIndex, path: write.path, field: write.field,
         value: write.value, kind: write.kind, source: 'standalone-preview',
       });
     }
@@ -146,7 +150,9 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         if (!valid || !setChildText(document, node, write.name, write.value)) continue;
         result.appliedFields += 1;
         recordExpected(result.expectedEntries, {
-          scope: 'node', branchName, nodeNumber, nodeKey, path: [write.name], field: write.field,
+          scope: 'node', branchName, branchOccurrenceIndex, nodeOrdinal: nodeIndex,
+          nodeSignature: xmlCiiParityNodeSignature(node),
+          nodeNumber, nodeKey, path: [write.name], field: write.field,
           value: write.value, kind: write.kind, source: write.source || 'standalone-preview',
         });
       }
