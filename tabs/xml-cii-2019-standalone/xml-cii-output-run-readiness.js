@@ -1,4 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
+import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
+import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -46,11 +48,36 @@ function topologyRows(input, kind) {
   ];
 }
 
+function branchFormatAuthorityRows(input) {
+  const parsed = parseConfig(input.supportConfigJson);
+  if (!parsed.ok) return []; // The existing support-config-valid gate handles invalid JSON.
+  const config = object(parsed.value);
+  const explicit = Array.isArray(config.regexTester?.formats) || Array.isArray(config.formats);
+  if (!explicit) return []; // Legacy single-format flows retain their current readiness contract.
+  const selected = xmlCiiBranchScopeFromState(input);
+  if (!selected.applicable) return [];
+  const failures = [];
+  for (const branch of selected.selectedBranchOccurrences) {
+    const identity = extractBranchFieldsWithFormats(branch.branchName, config);
+    if (identity.status !== 'MATCHED') {
+      failures.push({ branchOccurrenceId: branch.branchOccurrenceId,
+        branchName: branch.branchName, status: identity.status });
+    }
+  }
+  const ok = !selected.blocked && failures.length === 0;
+  return [row('branch-format-authority', 'Configured branch format identity',
+    ok,
+    ok ? `${selected.selectedBranchOccurrences.length} selected branch occurrences have one resolved configured identity.`
+      : `${failures.length} of ${selected.selectedBranchOccurrences.length} selected branch occurrences have unresolved or conflicting configured formats.`,
+    { blocking: true, severity: 'error', detail: JSON.stringify(failures.slice(0, 20)) })];
+}
+
 function xmlRows(input) {
   const regex = !!input.regexTesterResult;
   const resolver = !!input.resolverJsonTraceResult;
   const manual = !!input.manualElementSideloadResult;
   return [
+    ...branchFormatAuthorityRows(input),
     row('regex', 'Regex status for XML mode', regex, regex ? 'Regex tester result is available.' : 'Regex tester has not been run yet.'),
     row('resolver-json', 'Resolver / JSON Trace status for XML mode', resolver, resolver ? 'Resolver / JSON Trace result is available.' : 'Resolver / JSON Trace has not been built yet.'),
     row('manual-restraints', 'Manual restraints status for XML mode', manual, manual ? 'Manual restraint review result is available.' : 'Manual restraint review has not been run yet.'),
