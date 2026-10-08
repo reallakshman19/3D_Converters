@@ -1,0 +1,36 @@
+name: LFJ R09 bounded committed selection paging
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/query/pages/**'
+      - '.github/workflows/lfj-r09-pages.yml'
+  push:
+    branches: [lfj/r09-committed-selection-pages]
+    paths:
+      - 'lfj/query/pages/**'
+      - '.github/workflows/lfj-r09-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-pages:
+    name: R09 selected page Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source provenance and cursor correctness
+        run: node --test lfj/query/pages/*.test.mjs
+      - name: No uncommitted modifications
+        run: test -z "$(git status --porcelain)"
