@@ -7,6 +7,7 @@ import { withXmlCiiRigidWeightMatch1, resolveXmlCiiRigidWeight } from '../conver
 import { createWeightReviewService, WEIGHT_SCHEMA } from '../converters/xml-cii2019-core/weight-facts-review-service.js';
 import { legacyXmlCiiWeightFacts, createXmlCiiFactWeightScorer } from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { weightMatchContentFingerprint } from '../converters/xml-cii2019-core/weight-facts-cache-custody.js';
+import { planExactSourceWeightCommands, commitExactSourceWeightCommands } from '../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
 
 const hash = (v) => createHash('sha256').update(String(v)).digest('hex');
 function basis(domainId = 'xml-cii/2019', sources = ['one'], master = 'master-v1') {
@@ -399,4 +400,37 @@ test('content-SHA cache custody rejects same-size source/staged/master changes a
   const second = await weightMatchContentFingerprint({...validWorker,
     masterRef:{...validWorker.masterRef,sha256:hash('same-size-changed-master')}});
   assert.notEqual(first,second);
+});
+
+test('all-source exact bulk planner covers off-page physical facts, preserves source and prior acceptances', () => {
+  const b = basis(), facts = [];
+  for (let i = 0; i < 610; i++) facts.push(...fixture(b, 'one', i === 0 ? 59 : null, i));
+  const service = createWeightReviewService({score:oracleScore});
+  service.openBasis(b,{facts});
+  const manual = service.applyDecisions({basisId:b.basisId,scopeId:'one',
+    commands:[{...command(b,'already-manual','enter-manual',null,{value:20,unit:'kg'}),
+      occurrenceId:'one/branch:1/physical:0'}]})[0];
+  const visibleFirstPage = service.getFacts({basisId:b.basisId,sourceId:'one',limit:5});
+  assert.equal(visibleFirstPage.items.length,5);
+  assert.ok(visibleFirstPage.nextCursor);
+  const planned = planExactSourceWeightCommands(service,{basisId:b.basisId,scopeId:'one',pageSize:113});
+  assert.equal(planned.physicalCount,610);
+  assert.equal(planned.preservedSourceWeights,1);
+  assert.equal(planned.alreadyReviewed,1);
+  assert.equal(planned.qualified,608); // unlike the visible 5 FactRecords
+  assert.equal(planned.unresolved,0);
+  assert.equal(new Set(planned.commands.map(x=>x.occurrenceId)).size,608);
+  assert.ok(planned.commands.every(c=>c.action==='accept-proposal' &&
+    c.expectedDecisionRevision===manual.decisionRevision));
+  assert.equal(service.getDecisionState({basisId:b.basisId,scopeId:'one'}).decisionRevision,'m1');
+  const results = commitExactSourceWeightCommands(service,planned);
+  assert.equal(results.length,608);
+  const state = service.getDecisionState({basisId:b.basisId,scopeId:'one'});
+  assert.equal(state.decisionRevision,'m2');
+  assert.equal(Object.keys(state.decisions).length,609);
+  assert.equal(state.decisions['one/branch:1/physical:0'].value,20);
+  assert.equal(state.decisions['one/branch:0/physical:0'],undefined); // preserve original XML 59kg
+  assert.equal(planExactSourceWeightCommands(service,{basisId:b.basisId,scopeId:'one'}).qualified,0);
+  const replay = { ...planned, commands: planned.commands.map(c=>({...c})) };
+  assert.deepEqual(commitExactSourceWeightCommands(service,replay),results); // idempotent click retry
 });

@@ -162,6 +162,13 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
       if (job.event === 'progress') { job.cancelled = true; job.event = 'cancelled'; }
       return this.subscribeJob(requestId);
     },
+    getDecisionState({ basisId, scopeId, stage = 'RigidMatch1' }) {
+      const opened = current(basisId); stageName(stage);
+      required(stage !== 'preview' && opened.sources.has(scopeId),
+        'SCOPE_CONFLICT', 'Review state is strictly scoped to an authorized source');
+      const entry = state(basisId, scopeId, stage);
+      return { basisId, scopeId, stage, decisionRevision: entry.revision, decisions: copy(entry.decisions) };
+    },
     getFacts({ basisId, subjectType, sourceId, cursor, limit }) {
       const opened = current(basisId);
       const rows = [...opened.byOccurrence.values()].flat().filter((f) => (!subjectType || f.subjectType === subjectType) && (!sourceId || f.sourceId === sourceId));
