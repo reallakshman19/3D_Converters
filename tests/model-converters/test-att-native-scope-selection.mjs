@@ -41,7 +41,7 @@ assert.equal(resolveAttScopeSelection(index,selection).explicitSelection,false);
 assert.throws(()=>setAttScopeRule(index,selection,'/fake',true),/Unknown/);
 const client = await readFile(new URL('../../tabs/model-converters/att-native-scope-popup.js',import.meta.url),'utf8');
 const legacy = await readFile(new URL('../../tabs/model-converters/legacy-adapter.js',import.meta.url),'utf8');
-assert.match(client, /projectAttNativeTree/);
+assert.match(client, /createAttNativeTreeBrowser/);
 assert.match(client, /openAttNativeScopePopup/);
 assert.match(client, /data-native-full/);
 assert.match(client, /selectedBranchIds/);
