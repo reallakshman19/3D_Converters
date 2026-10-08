@@ -72,7 +72,7 @@ test('P4-A2 negative: duplicate, missing or reindexed source identities reject a
    branches:duplicate.sourceOccurrences.branches.map(x=>({...x}))};
  duplicate.sourceOccurrences.branches[1].occurrenceId=duplicate.sourceOccurrences.branches[0].occurrenceId;
  assert.throws(()=>reconcilePreviewBranchEvidence(duplicate),{code:'DUPLICATE_ORIGINAL'});
- const missing=inputs();missing.sourceOccurrences.branches=[];
+ const missing=inputs();missing.sourceOccurrences={...missing.sourceOccurrences,branches:[]};
  assert.throws(()=>reconcilePreviewBranchEvidence(missing),{code:'SOURCE_CENSUS_REQUIRED'});
  const drift=inputs();drift.sourceOccurrences={
    ...drift.sourceOccurrences,
