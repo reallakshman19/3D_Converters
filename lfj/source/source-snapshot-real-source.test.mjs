@@ -34,9 +34,9 @@ test('R03 actual 10.54MB repository source: independent stream SHA, exact Blob r
   assert.equal(snap.byteLength,st.size);
   assert.equal(snap.sha256,independentlyReadSha);
   assert.equal(snap.backing,'immutable-blob');
-  assert.deepEqual(await snap.readRange(0,128,snap.revision),raw.subarray(0,128));
+  assert.deepEqual(await snap.readRange(0,128,snap.revision),Uint8Array.from(raw.subarray(0,128)));
   assert.deepEqual(await snap.readRange(raw.length-128,raw.length,snap.revision),
-    raw.subarray(raw.length-128));
+    Uint8Array.from(raw.subarray(raw.length-128)));
   // Independent aggregation over the LFJ paged source port must account for ALL bytes.
   const pageSha=createHash('sha256');let pageTotal=0,pageCount=0;
   for await(const page of snap.readChunks(snap.revision,131072)) {
