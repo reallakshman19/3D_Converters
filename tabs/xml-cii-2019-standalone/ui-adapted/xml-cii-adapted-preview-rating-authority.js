@@ -13,7 +13,7 @@ import {
   _toText,
   _xmlChildrenByName,
   _xmlText,
-} from './xml-cii-adapted-preview-dryrun-core.js?v=20261001-weight-output-2';
+} from './xml-cii-adapted-preview-dryrun-core.js?v=20261008-p0-mode-b-parity-1';
 
 const BLOCKED_DTXR_RATING_TYPES = new Set(['SUPPORT', 'RESTRAINT', 'ATTA', 'GASK']);
 
