@@ -5,6 +5,7 @@
 <pre id="result">RUNNING</pre>
 <script type="module">
 import { createDefaultRegexTesterConfig } from '../../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
+import { masterDatasetCoordinator } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js';
 import { createDefaultRegexSuggestionProfile } from '../../tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js';
 import { renderStandaloneRegexTesterPanel } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js';
 import { enhanceRegexSmartWorkbench } from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js';
@@ -37,6 +38,13 @@ function render(stateRef) {
   app.replaceChildren();
   renderStandaloneRegexTesterPanel(app, stateRef.current, stateRef, () => render(stateRef));
   enhanceRegexSmartWorkbench(app, stateRef.current, stateRef, () => render(stateRef));
+}
+
+function clickFormat(label) {
+  const button = [...app.querySelectorAll('.xml-cii-sub-phase-pill')]
+    .find((node) => node.textContent.trim() === label);
+  assert(button, label + ' selector is absent');
+  button.click();
 }
 
 function makeState(sourceText) {
@@ -75,6 +83,36 @@ try {
   render(stateRef);
   assert(stateRef.current.regexTesterResult.branchSamples.length === 41, 'Expected all 41 real branch samples');
 
+  clickRole(4, 'Line Key');
+  assert(stateRef.current.regexTesterConfig.formats[0].lineKey.tokenPosition === '4',
+    'Format 1 manual Line Key click must replace the previous selected column');
+  clickRole(4, 'Line Key');
+  assert(stateRef.current.regexTesterConfig.formats[0].lineKey.tokenPosition === '',
+    'Format 1 repeated manual Line Key click must deselect the sole selected column');
+
+  stateRef.current = makeState(sourceText);
+  stateRef.current.regexTesterConfig.formats[0].lineKey.tokenPosition = '3,4';
+  render(stateRef);
+  assert(stateRef.current.regexTesterConfig.formats[0].lineKey.tokenPosition === '3,4',
+    'Untouched legacy comma-separated Line Key selection must survive render/load');
+  clickRole(3, 'Line Key');
+  assert(stateRef.current.regexTesterConfig.formats[0].lineKey.tokenPosition === '3',
+    'Manual Line Key click over a legacy comma selection must explicitly reconcile to the clicked column');
+
+  stateRef.current = makeState(sourceText);
+  render(stateRef);
+  clickFormat('Format 2 (Alternative)');
+  assert(stateRef.current.regexTesterConfig.activeFormatIndex === 1,
+    'Format 2 selector did not activate the alternative format');
+  clickRole(4, 'Line Key');
+  assert(stateRef.current.regexTesterConfig.formats[1].lineKey.tokenPosition === '4',
+    'Format 2 manual Line Key click must replace the previous selected column');
+  clickRole(4, 'Line Key');
+  assert(stateRef.current.regexTesterConfig.formats[1].lineKey.tokenPosition === '',
+    'Format 2 repeated manual Line Key click must deselect the sole selected column');
+
+  stateRef.current = makeState(sourceText);
+  render(stateRef);
   clickRole(3, 'Bore');
   const manual = structuredClone(stateRef.current.regexTesterConfig.formats[0]);
   assert(manual.bore.tokenPosition === '3', 'Manual Bore click did not select token #3');
@@ -111,9 +149,24 @@ try {
     ...defaultProfile,
     formatPolicy: { ...defaultProfile.formatPolicy, maximumFormats: 1 },
   };
+  // Register actual worker-backed masters, not fabricated dataset IDs: a failed
+  // worker lookup is not equivalent to a governed BLOCKED preflight.
+  const encoder = new TextEncoder();
+  const buffer = (rows) => {
+    const bytes = encoder.encode(JSON.stringify(rows));
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  };
+  const lineFieldMap = blockedState.masterContext.config.linelist.fieldMap;
+  const classFieldMap = blockedState.masterContext.config.pipingClass.fieldMap;
+  const lineReady = await masterDatasetCoordinator.openBuffer(
+    'lineList', buffer(blockedState.masterContext.lineRows), 'j03-line-list.json', { fieldMapOverride: lineFieldMap },
+  );
+  const classReady = await masterDatasetCoordinator.openBuffer(
+    'pipingClass', buffer(blockedState.masterContext.pipingClassRows), 'j03-piping-class.json', { fieldMapOverride: classFieldMap },
+  );
   blockedState.masterContext.datasetRefs = {
-    lineList: { datasetId: 'resident-line-test', rowCount: 1, fieldMap: blockedState.masterContext.config.linelist.fieldMap },
-    pipingClass: { datasetId: 'resident-class-test', rowCount: 1, fieldMap: blockedState.masterContext.config.pipingClass.fieldMap },
+    lineList: { ...lineReady.metadata, fieldMap: lineFieldMap },
+    pipingClass: { ...classReady.metadata, fieldMap: classFieldMap },
   };
   blockedState.masterContext.rowCounts = { lineList: 1, pipingClass: 1 };
   const blockedBefore = structuredClone(blockedState.regexTesterConfig);
@@ -138,6 +191,7 @@ try {
   globalThis.__XML_CII_LIVE_REGEX_RESULT__ = {
     ok: true,
     branchCount: stateRef.current.regexTesterResult.branchSamples.length,
+    j03: { replacementStyle: true, legacyUntouchedUntilClick: true, format2: true },
     manual: { lineKey: manual.lineKey.tokenPosition, bore: manual.bore.tokenPosition },
     automatic: { lineKey: automatic.lineKey.tokenPosition, bore: automatic.bore.tokenPosition },
     badge: { lineKey: badgeResult.lineKey.tokenPosition, bore: badgeResult.bore.tokenPosition },
@@ -150,4 +204,5 @@ try {
   result.textContent = JSON.stringify(globalThis.__XML_CII_LIVE_REGEX_RESULT__, null, 2);
 }
 globalThis.__XML_CII_LIVE_REGEX_DONE__ = true;
+masterDatasetCoordinator.dispose();
 </script>

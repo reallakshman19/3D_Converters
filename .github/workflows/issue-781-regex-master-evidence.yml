@@ -7,10 +7,15 @@ on:
       - 'tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js'
       - 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-smart-suggestions.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js'
       - 'tests/xml-cii-issue-781-regex-master-evidence.test.mjs'
+      - 'tests/xml-cii-issue-781-live-regex-acceptance.test.mjs'
+      - 'tests/browser/xml-cii-issue-781-live-regex-acceptance.html'
+      - 'tests/xml-cii-issue-781-live-regex-browser.mjs'
       - 'scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs'
       - 'tests/browser/xml-cii-regex-bounded-evidence-scale-e2e.html'
       - '.github/workflows/issue-781-regex-master-evidence.yml'
@@ -34,7 +39,10 @@ jobs:
           node-version: '22'
 
       - name: Run Issue 781 regex master evidence regression
-        run: node --test tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+        run: >-
+          node --test
+          tests/xml-cii-issue-781-regex-master-evidence.test.mjs
+          tests/xml-cii-issue-781-live-regex-acceptance.test.mjs
 
       - name: Run existing smart regex regressions
         run: >-
@@ -67,6 +75,9 @@ jobs:
       - name: Start static server
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/issue-923-j02-http.log 2>&1 &
+
+      - name: Run J03 live Regex token interaction browser acceptance
+        run: node tests/xml-cii-issue-781-live-regex-browser.mjs
 
       - name: Run J02 10k / 50k / 100k bounded evidence browser scale
         run: node scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs
