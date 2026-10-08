@@ -2,7 +2,7 @@ import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js?v=20261001-single-weight-owners-1';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
 import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
-import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261001-single-weight-owners-1';
+import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261008-p0-mode-b-parity-1';
 import { buildXmlCiiBranchOccurrences } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 
