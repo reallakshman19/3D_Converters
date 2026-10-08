@@ -156,3 +156,41 @@ test('non-XML facts use identical transactions and never import XML schema', () 
   assert.equal(service.freezeSnapshot({ basisId: b.basisId, scopeId: 'one',
     stage: 'RigidMatch1', expectedDecisionRevision: result[0].decisionRevision }).decisions['one/part-1'].value, 7);
 });
+
+test('candidate audit retains length-rejected semantics and unresolved Rating never scores', () => {
+  const b = basis();
+  const config = { weight: { masterRows: [
+    { boreMm: 100, rating: '150', lengthMm: 106, weight: 9, typeDesc: 'Gate Valve' },
+    { boreMm: 100, rating: '150', lengthMm: 106.1, weight: 10, typeDesc: 'Gate Valve' },
+  ], valveHintLengthToleranceMm: 6 } };
+  const service = createWeightReviewService({ score: createXmlCiiFactWeightScorer(config) });
+  const facts = fixture(b);
+  service.openBasis(b, { facts });
+  const proposals = service.getProposals({ basisId: b.basisId, occurrenceIds: ['one/branch:0/physical:0'] });
+  assert.equal(proposals.items[0].value, 9);
+  const rejected = service.getCandidateAudit({ basisId: b.basisId, occurrenceId: 'one/branch:0/physical:0' }).rejectedCandidates;
+  assert.ok(rejected.some((c) => c.rowLength === 106.1 && c.rejectedReason.includes('length failed')));
+  const blocked = createWeightReviewService({ score: createXmlCiiFactWeightScorer(config) });
+  const conflict = facts.map((f) => f.fieldId === 'rating' ? { ...f, authority: 'conflict', diagnostics: ['unresolved Rating'] } : f);
+  blocked.openBasis(b, { facts: conflict });
+  assert.equal(blocked.getProposals({ basisId: b.basisId, occurrenceIds: ['one/branch:0/physical:0'] }).items.length, 0);
+});
+
+test('cancelled asynchronous fact job fences late worker completion; incomplete run fails', async () => {
+  const b = basis();
+  const service = createWeightReviewService({ score: oracleScore });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  service.openBasisJob(b, { requestId: 'worker-001', loadFacts: async () => gate });
+  assert.equal(service.subscribeJob('worker-001').event, 'progress');
+  service.cancelJob('worker-001');
+  release(fixture(b, 'one', 59));
+  assert.equal((await service.awaitJob('worker-001')).event, 'cancelled');
+  throws(() => service.getFacts({ basisId: b.basisId }), 'UNKNOWN_BASIS');
+  const newer = createWeightReviewService({ score: oracleScore });
+  newer.openBasis(b, { facts: [...fixture(b, 'one', 59), ...fixture(b, 'one', 60, 1)] });
+  throws(() => newer.verifyRun({ basisId: b.basisId, reviewedSnapshotIds: [], outputBasis: {
+    components: [{ sourceId: 'one', occurrenceId: 'one/branch:0/physical:0',
+      children: [{ childId: 'only', kg: 59 }] }],
+  } }), 'INCOMPLETE_RUN');
+});
