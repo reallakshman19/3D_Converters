@@ -1,5 +1,5 @@
 {
-  "lastId": 1252,
+  "lastId": 1273,
   "entries": [
     {
       "id": 1,
@@ -8764,6 +8764,153 @@
       "file": "agents/status/PR981.yaml",
       "context": "P0 Mode B sparse weight occurrence end-to-end Preview metadata and honest CI qualification handover",
       "backupFile": "1310_issue980_sparse_occurrence_report_1.bak"
+    },
+    {
+      "id": 1253,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13200_issue980_live_atta_mds_0_0.bak"
+    },
+    {
+      "id": 1254,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13201_issue980_live_atta_mds_0_1.bak"
+    },
+    {
+      "id": 1255,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13210_issue980_live_atta_mds_1_0.bak"
+    },
+    {
+      "id": 1256,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13211_issue980_live_atta_mds_1_1.bak"
+    },
+    {
+      "id": 1257,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13220_issue980_live_atta_mds_2_0.bak"
+    },
+    {
+      "id": 1258,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13221_issue980_live_atta_mds_2_1.bak"
+    },
+    {
+      "id": 1259,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13230_issue980_live_atta_mds_3_0.bak"
+    },
+    {
+      "id": 1260,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13231_issue980_live_atta_mds_3_1.bak"
+    },
+    {
+      "id": 1261,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13240_issue980_live_atta_mds_4_0.bak"
+    },
+    {
+      "id": 1262,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13241_issue980_live_atta_mds_4_1.bak"
+    },
+    {
+      "id": 1263,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13300_issue980_active_entry.bak"
+    },
+    {
+      "id": 1264,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13301_issue980_active_entry.bak"
+    },
+    {
+      "id": 1265,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13310_issue980_active_entry.bak"
+    },
+    {
+      "id": 1266,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13311_issue980_active_entry.bak"
+    },
+    {
+      "id": 1267,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13320_issue980_active_entry.bak"
+    },
+    {
+      "id": 1268,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13321_issue980_active_entry.bak"
+    },
+    {
+      "id": 1269,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13330_issue980_active_entry.bak"
+    },
+    {
+      "id": 1270,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13331_issue980_active_entry.bak"
+    },
+    {
+      "id": 1271,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tabs/xml-cii-2019-standalone-tab.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13340_issue980_active_entry.bak"
+    },
+    {
+      "id": 1272,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "docs/tabs/xml-cii-2019-standalone-tab.js",
+      "context": "P0 #980 active standalone entrypoint through Smart UI, ATTA, MDS and node-parity released module identities",
+      "backupFile": "13341_issue980_active_entry.bak"
+    },
+    {
+      "id": 1273,
+      "timestamp": "2026-10-08 07:00:00",
+      "file": "tests/xml-cii-mode-b-preview-occurrence.test.mjs",
+      "context": "P0 exact live Single Run click graph and ATTA/MDS closure static regression",
+      "backupFile": "13350_issue980_live_route_test.bak"
     }
   ]
 }
