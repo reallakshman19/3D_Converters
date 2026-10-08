@@ -111,7 +111,7 @@ test('conversion input 1207.3401/10 kg remains mass without extra conversion', (
   const b = basis(), physicalKg = 1207.3401 / 10;
   const service = createWeightReviewService({ score: oracleScore });
   service.openBasis(b, { facts: fixture(b, 'one', physicalKg) });
-  assert.equal(physicalKg, 120.73401);
+  assert.ok(Math.abs(physicalKg - 120.73401) < 1e-10);
   assert.equal(service.verifyRun({ basisId: b.basisId, reviewedSnapshotIds: [], outputBasis: {
     components: [{ sourceId: 'one', occurrenceId: 'one/branch:0/physical:0',
       children: [{ childId: 'only', kg: physicalKg }], output: { unit: 'cii-force', scale: 10, value: 1207.3401 } }],
