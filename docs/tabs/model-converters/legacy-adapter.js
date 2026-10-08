@@ -9448,7 +9448,7 @@ export function renderModelConvertersTab(container) {
         let scopeSelection = { cancelled: false, wildcard: '', selectedIds: [] };
         if (secondaryBytes) {
           scopeSelection = await openAttNativeScopePopup(
-            primaryFile?.name || secondaryFile?.name || 'RVM Attribute conversion',
+            secondaryFile?.name || primaryFile?.name || 'RVM Attribute conversion',
             secondaryBytes,
           );
           if (scopeSelection.cancelled) {
