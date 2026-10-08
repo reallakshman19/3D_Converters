@@ -1,6 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
-import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
+import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -56,20 +56,13 @@ function branchFormatAuthorityRows(input) {
   if (!explicit) return []; // Legacy single-format flows retain their current readiness contract.
   const selected = xmlCiiBranchScopeFromState(input);
   if (!selected.applicable) return [];
-  const failures = [];
-  for (const branch of selected.selectedBranchOccurrences) {
-    const identity = extractBranchFieldsWithFormats(branch.branchName, config);
-    if (identity.status !== 'MATCHED') {
-      failures.push({ branchOccurrenceId: branch.branchOccurrenceId,
-        branchName: branch.branchName, status: identity.status });
-    }
-  }
-  const ok = !selected.blocked && failures.length === 0;
+  const audit = auditConfiguredBranchFormats(selected.selectedBranchOccurrences, config);
+  const ok = !selected.blocked && !audit.blocked;
   return [row('branch-format-authority', 'Configured branch format identity',
     ok,
-    ok ? `${selected.selectedBranchOccurrences.length} selected branch occurrences have one resolved configured identity.`
-      : `${failures.length} of ${selected.selectedBranchOccurrences.length} selected branch occurrences have unresolved or conflicting configured formats.`,
-    { blocking: true, severity: 'error', detail: JSON.stringify(failures.slice(0, 20)) })];
+    ok ? `${audit.checkedCount} selected branch occurrences have one resolved configured identity.`
+      : `${audit.failures.length} of ${audit.checkedCount} selected branch occurrences have unresolved or conflicting configured formats.`,
+    { blocking: true, severity: 'error', detail: JSON.stringify(audit.failures.slice(0, 20)) })];
 }
 
 function xmlRows(input) {
