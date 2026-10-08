@@ -128,7 +128,7 @@ export function createSourceSnapshotBuilder({ byteLength, expectedSha256, revisi
         schema:'LFJ.SourceSnapshot.v1', byteLength, sha256, revision:snapshotRevision,
         sourceId:`sha256:${sha256}`, encoding:'UTF-8',
         readRange(start,end,expectedRevision,maxSpanBytes=1024*1024) {
-          if (!isCount(maxSpanBytes)||!maxSpanBytes) fail('INVALID_DECLARATION','maxSpanBytes must be bounded');
+          if (!isCount(maxSpanBytes)||!maxSpanBytes||maxSpanBytes>1024*1024) fail('RANGE_LIMIT','maxSpanBytes must be in 1..1MiB');
           return read(start,end,expectedRevision,maxSpanBytes);
         },
         *readChunks(expectedRevision,chunkSize=1024*1024) {
