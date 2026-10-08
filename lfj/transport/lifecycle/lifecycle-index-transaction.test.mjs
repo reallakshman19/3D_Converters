@@ -52,6 +52,21 @@ test('U02 RED: cancel after provisional R05 page aborts without index commit',as
   assert.ok(j.history.aborts>=1);
  }finally{await j.close();}
 });
+test('U02 RED: native Worker crash after genuine provisional R05 pages aborts the index store',async()=>{
+ const j=open('after-ready-exit');
+ try{
+  assert.equal((await j.s.start()).kind,'ADMITTED');
+  const tx=j.s.beginIndexTransaction(j.stager);
+  const complete=await streamJsonOccurrenceEvents(j.source,
+   {sourceRefId:'S',onEventPage:tx.onEventPage,pageEvents:2});
+  await new Promise(resolve=>j.worker.once('exit',resolve));
+  assert.equal(j.s.snapshot().kind,'FAILED');
+  assert.equal(j.history.committed.length,0);
+  assert.ok(j.history.aborts>0);
+  assert.deepEqual(j.history.staged,[]);
+  assert.throws(()=>tx.commit(complete,{}),e=>e?.code==='INDEX_ALREADY_TERMINAL');
+ }finally{await j.close();}
+});
 test('U02 RED: rejected/incomplete source summary and ACK-only cannot commit',async()=>{
  const j=open();
  try{
@@ -64,6 +79,9 @@ test('U02 RED: rejected/incomplete source summary and ACK-only cannot commit',as
    acknowledgedBytes:j.source.byteLength,pages:1,complete:false};
   assert.throws(()=>tx.commit(summary,bogus),e=>e?.code==='INDEX_TRANSPORT_UNVERIFIED');
   assert.throws(()=>tx.commit({...summary,complete:false},bogus),e=>e?.code==='INDEX_SUMMARY_INCOMPLETE');
+  const completedReceipt={...bogus,workerConsumedBytes:j.source.byteLength};
+  assert.throws(()=>tx.commit({...summary,eventCount:summary.eventCount-1},completedReceipt),
+   e=>e?.code==='INDEX_SOURCE_MISMATCH');
   assert.equal(j.history.committed.length,0);
   await j.s.cancel();
   assert.ok(j.history.aborts>=1);
