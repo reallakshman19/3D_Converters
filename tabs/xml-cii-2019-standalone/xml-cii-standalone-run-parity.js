@@ -98,7 +98,7 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
   }
   const previewBuilder = typeof runtime.previewBuilder === 'function'
     ? runtime.previewBuilder
-    : (await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2')).xmlCiiDryRunPreview;
+    : (await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js?v=20261008-p0-mode-b-parity-1')).xmlCiiDryRunPreview;
   const preview = previewBuilder(xmlText, config, stagedJsonText || '');
   result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
   result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
