@@ -1,5 +1,5 @@
 {
-  "lastId": 1226,
+  "lastId": 1227,
   "entries": [
     {
       "id": 1,
@@ -8442,6 +8442,13 @@
       "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js",
       "context": "J04 U3 stacked Mode-B P0 overlap audit, Preview node occurrence retained; full writer/service graft deferred until J03 stack is reconciled to main within 1500-line review budget",
       "backupFile": "1404_issue925_stacked_budget_1.bak"
+    },
+    {
+      "id": 1227,
+      "timestamp": "2026-10-08 08:15:00",
+      "file": "tests/xml-cii-j04-service-release-gate.test.mjs",
+      "context": "J04 U5 15+13 branch selected occurrence authority regression with late wrong class and dropped occurrence negative paths",
+      "backupFile": "1405_issue925_full_population_test.bak"
     }
   ]
 }
