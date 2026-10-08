@@ -24,7 +24,7 @@ const expected = [...originalCensus,{sourceId:SOURCE_ID,occurrenceId:physId,subj
 const ports = {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage};
 const getCode = c => e => { assert.equal(e?.code,c); return true; };
 const clone = x => structuredClone(x);
-const worker = () => ({sourceOccurrences:{branches:[{occurrenceId:originalCensus[0].occurrenceId}],nodes:[{occurrenceId:originalCensus[1].occurrenceId}]},
+const worker = () => ({sourceOccurrences:{branches:[{sourceId:SOURCE_ID,occurrenceId:originalCensus[0].occurrenceId}],nodes:[{sourceId:SOURCE_ID,occurrenceId:originalCensus[1].occurrenceId}]},
  coverage:{sourceBranchCount:1,originalNodeCount:1},branchRows:[{}],nodeRows:[],
  engineeringAcceptance:'VERIFIED',fullFactPopulationAccepted:true});
 
@@ -67,6 +67,7 @@ function makePort(model,custom={}) {
  startJob:custom.startJob||(({basis,requestId})=>({
   basisId:basis.basisId,requestId,promise:Promise.resolve(incoming),cancel:()=>true})),
  openFactModel:custom.openFactModel||(()=>model),
+ expectedOriginalOccurrences:custom.expectedOriginalOccurrences??clone(originalCensus),
  expectedOriginalCount:custom.expectedOriginalCount??2,
  expectedModelOccurrenceCount:custom.expectedModelOccurrenceCount??3,
  expectedPhysicalFactCount:custom.expectedPhysicalFactCount??FIELDS.length,
@@ -137,6 +138,18 @@ test('Worker original-branch+node census must agree with independently declared 
   getCode('WORKER_ORIGINAL_CENSUS_MISMATCH'));
  const port=makePort(model,{expectedOriginalCount:3,expectedModelOccurrenceCount:3});
  await assert.rejects(direct(port,basis),getCode('WORKER_ORIGINAL_CENSUS_MISMATCH'));
+});
+
+test('same-count worker source identity alias fails against independent original XML census',async()=>{
+ const {basis,model}=await fixture();
+ const changed=worker();
+ changed.sourceOccurrences.nodes[0].occurrenceId=JSON.stringify([SOURCE_ID,0,1,'']);
+ await assert.rejects(direct(makePort(model,{result:changed}),basis),
+  getCode('WORKER_ORIGINAL_ID_MISMATCH'));
+ const dup=worker();
+ dup.sourceOccurrences.nodes[0].occurrenceId=dup.sourceOccurrences.branches[0].occurrenceId;
+ await assert.rejects(direct(makePort(model,{result:dup}),basis),
+  getCode('WORKER_ORIGINAL_ID_MISMATCH'));
 });
 
 test('worker fact pages reject missing field population independently of self-declared total',async()=>{

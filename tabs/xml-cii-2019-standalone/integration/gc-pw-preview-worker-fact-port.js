@@ -24,13 +24,28 @@ const count = n => Number.isSafeInteger(n) && n >= 0;
  * independent engineering FactRecords and a verified read model exist.
  */
 export function createGcPwPreviewWorkerFactPort({
-  startJob, openFactModel, expectedOriginalCount, expectedModelOccurrenceCount, expectedPhysicalFactCount,
+  startJob, openFactModel, expectedOriginalOccurrences, expectedOriginalCount,
+  expectedModelOccurrenceCount, expectedPhysicalFactCount,
   pageSize = 100,
 } = {}) {
   check(typeof startJob === 'function', 'WORKER_JOB_PORT_REQUIRED', 'Preview job start port required');
   check(typeof openFactModel === 'function', 'FACT_READ_MODEL_PORT_REQUIRED', 'Preview fact reader port required');
   check(count(expectedOriginalCount) && expectedOriginalCount > 0,
     'INDEPENDENT_SOURCE_COUNT_REQUIRED', 'Independent original population required');
+  check(Array.isArray(expectedOriginalOccurrences)
+    && expectedOriginalOccurrences.length === expectedOriginalCount,
+    'INDEPENDENT_ORIGINAL_IDS_REQUIRED', 'Original source identity census must precede Worker execution');
+  const originalKey = (row, kind) => {
+    check(row && typeof row.sourceId === 'string' && row.sourceId.trim()
+      && typeof row.occurrenceId === 'string' && row.occurrenceId.trim(),
+      'INVALID_ORIGINAL_ID', 'Original occurrence source/ID required');
+    return JSON.stringify([kind, row.sourceId, row.occurrenceId]);
+  };
+  const sourceKeys = new Set(expectedOriginalOccurrences.map(row =>
+    originalKey(row, row.subjectType)));
+  check(sourceKeys.size === expectedOriginalCount &&
+    expectedOriginalOccurrences.every(row => ['branch','node'].includes(row.subjectType)),
+    'DUPLICATE_ORIGINAL_ID', 'Original census has repeated or unknown identities');
   check(count(expectedModelOccurrenceCount) && expectedModelOccurrenceCount >= expectedOriginalCount,
     'INDEPENDENT_MODEL_COUNT_REQUIRED', 'Reader scope must include independently counted original source population');
   check(count(expectedPhysicalFactCount) && expectedPhysicalFactCount > 0,
@@ -65,6 +80,11 @@ export function createGcPwPreviewWorkerFactPort({
       && originals.nodes.length === coverage.originalNodeCount
       && originals.branches.length + originals.nodes.length === expectedOriginalCount,
       'WORKER_ORIGINAL_CENSUS_MISMATCH', 'Worker lost original source occurrences');
+    const actualKeys = originals.branches.map(row => originalKey(row, 'branch'))
+      .concat(originals.nodes.map(row => originalKey(row, 'node')));
+    check(actualKeys.length === sourceKeys.size && new Set(actualKeys).size === sourceKeys.size
+      && actualKeys.every(key => sourceKeys.has(key)),
+      'WORKER_ORIGINAL_ID_MISMATCH', 'Worker changed original source/branch/node occurrence identities');
     const model = await openFactModel({basis, requestId, workerResult:result});
     if (cancelled()) fail('CANCELLED', 'Preview read model cancelled');
     check(model?.info?.basisId === basis.basisId

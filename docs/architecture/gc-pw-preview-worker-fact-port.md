@@ -14,7 +14,7 @@ This is a small **execution adapter**, not another GC-PW schema and not a change
 ## Bound responsibilities / proof
 
 1. **Job custody:** full digest validation before start; requestId/basisId binding; typed cancellation before and after async work; wrong worker lease never becomes fact authority.
-2. **Dual completion gate:** Worker must report independently verified population and original Branch+Node count, read model must separately be fully engineering-ready and include independent expected occurrence count. Runtime #1032/1035 correctly fails this gate until P's P3-B2/P4 work is delivered.
+2. **Dual completion gate:** Worker must report independently verified population and original Branch+Node **identities** as well as count; `expectedOriginalOccurrences` is a separately obtained source-local independent XML census with sourceId/occurrenceId/subjectType (not copied from Worker). The reader must separately be engineering-ready, with independently expected record population. Runtime #1032/1035 correctly fails this gate until P's P3-B2/P4 work is delivered.
 3. **Bounded pagination:** getFacts on physical-component (not review nodeRows), 1..200 page size; reject incomplete pages, cursor loops, changed total and count mismatches; never silently trim to viewport/first 100.
 4. **Real consumer demonstration:** tests import merged Preview job controller/read model and merged integrator/Weight session with real Node SHA-256; a positive **synthetic fully attested engineering fixture** opens Weight with revision null. Negative current-worker replay proves no product acceptance. Root/docs module parity checked.
 
