@@ -82,8 +82,10 @@ test('U04 ordinary sourceId is preserved and never replaced by an LFJ SHA-derive
 test('U04 very deep valid ancestor chain stays bounded by available heap, not JS call-stack depth',()=>{
  const depth=15000;
  const items=Array.from({length:depth},(_,i)=>fact('N'+i,i===0?null:'N'+(i-1),i===0?'SITE':'PIPE',i===0?'ROOT-SITE':'Part'));
+ // Deliberately deliver leaf-first: a recursive parent walker needs full depth.
+ items.reverse();
  const resolved=resolveOccurrenceOwnership(items);
  assert.equal(resolved.length,depth);
- assert.equal(resolved[depth-1].ownerSite,'ROOT-SITE');
- assert.equal(resolved[depth-1].occurrenceId,'N'+(depth-1));
+ assert.equal(resolved[0].ownerSite,'ROOT-SITE');
+ assert.equal(resolved[0].occurrenceId,'N'+(depth-1));
 });
