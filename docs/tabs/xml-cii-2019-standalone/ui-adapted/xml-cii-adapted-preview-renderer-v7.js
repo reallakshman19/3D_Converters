@@ -1,5 +1,6 @@
 import {
   xmlCiiBuildAndRenderPreview as buildLegacyPreview,
+  xmlCiiRebuildPreviewThroughWorker,
   xmlCiiRenderPreviewPhase,
 } from './xml-cii-adapted-preview-renderer.js?v=20261001-weight-output-2';
 import {
@@ -12,7 +13,7 @@ import {
   restorePreviewCacheV7,
   shortPreviewCacheDigest,
 } from './xml-cii-adapted-preview-cache-v7.js';
-import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
+import {runPreviewDtxrRatingTransaction} from './xml-cii-adapted-preview-facts-dtxr-transaction.js';
 
 export { xmlCiiRenderPreviewPhase };
 
@@ -109,20 +110,31 @@ function installDtxrRatingAction({ host, rootEl, xmlText, config, options, branc
   actionBar.appendChild(button);
   button.addEventListener('click', async () => {
     button.disabled = true;
-    const result = applyPreviewDtxrRatingOverrides(config, branchRows);
-    const changed = result.applied > 0 || result.cleared > 0;
-    if (!changed) {
-      addNotice(host, ratingFetchMessage(result), true);
-      button.disabled = false;
-      return;
-    }
     try {
-      await options?.onSaveConfig?.(config);
-      await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+      const result = await runPreviewDtxrRatingTransaction({
+        config, branchRows,
+        persist: async () => options?.onSaveConfig?.(config),
+        rebuild: async () => xmlCiiRebuildPreviewThroughWorker(rootEl, xmlText, config, options),
+      });
+      if (!result.changed) {
+        addNotice(host, ratingFetchMessage(result), true);
+        button.disabled = false;
+        return;
+      }
       const rebuiltHost = rootEl?.querySelector?.('#mc-preview-table-host');
       addNotice(rebuiltHost, ratingFetchMessage(result), result.applied === 0);
     } catch (error) {
-      addNotice(host, `DTXR Rating fetch failed: ${text(error?.message || error)}`, true);
+      const currentHost = rootEl?.querySelector?.('#mc-preview-table-host') || host;
+      const rollbackStatus = error?.concurrentEdit
+        ? 'Concurrent manual edit detected; automatic rollback skipped to preserve user authority.'
+        : (error?.ratingOverridesRestored
+          ? 'Fetched Rating overrides rolled back to prior authority.'
+          : 'Fetched Rating was not committed.');
+      const rollbackDetail = error?.rollbackError
+        ? ' Rollback rebuild also failed: ' + text(error.rollbackError?.message || error.rollbackError) : '';
+      addNotice(currentHost,
+        'DTXR Rating fetch failed: ' + text(error?.message || error) + '. ' +
+        rollbackStatus + rollbackDetail, true);
       button.disabled = false;
     }
   });
