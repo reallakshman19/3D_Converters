@@ -25,14 +25,16 @@ export function createWorkerLifecycleSession({
  const REVISION_FIELDS=Object.freeze(['sourceRefId','sourceSha256','sourceRevision',
    'byteLength','selectionDigest','dependencyRevision']);
  const sameBasis=candidate=>candidate!==null&&typeof candidate==='object'&&
-   REVISION_FIELDS.every(key=>candidate[key]===basis[key]);
+   REVISION_FIELDS.every(key=>candidate[key]===basis[key])&&
+   // Older source callbacks omit run identity, but a supplied jobId is binding.
+   (!Object.hasOwn(candidate,'jobId')||candidate.jobId===basis.jobId);
  const isCurrent=()=>{
    if(!getCurrentBasis)return true;
    try{return sameBasis(getCurrentBasis());}catch{return false;}
  };
  const listeners=new Set();
  const trusted=trustedWorkerCtor??globalThis.Worker;
- let worker=null,starting=null,terminal=null,termination=null,state='NEW';
+ let worker=null,starting=null,terminal=null,termination=null,state='NEW',indexTx=null;
  let releaseWorkerWatch=()=>{};
  function notify(event){
    for(const listener of [...listeners]) {
@@ -47,9 +49,11 @@ export function createWorkerLifecycleSession({
    terminal=Object.freeze({
      schema:'LFJ.WorkerLifecycle.v1',...basis,kind,terminal:true,
      ...(errorCode?{errorCode}:{}),
-     complete:false,engineeringReady:false,
+     complete:kind==='SOURCE_INDEX_COMPLETE',engineeringReady:false,
+     sourceIndexReady:kind==='SOURCE_INDEX_COMPLETE',rightsBasis:'SOURCE_FACTS_ONLY',
    });
    releaseWorkerWatch();
+   if(kind!=='SOURCE_INDEX_COMPLETE')indexTx?.abort();
    notify(terminal);
    return terminal;
  }
@@ -166,5 +170,84 @@ export function createWorkerLifecycleSession({
    }
    return snapshot();
  }
- return Object.freeze({start,cancel,subscribe,snapshot,supersede,dispose:cancel});
+
+ // An R05 page sink is PROVISIONAL until both genuine complete R05 summary
+ // and complete R06 Worker-consumed byte receipt authorize the same transaction.
+ // Storage commits are synchronous so a caller edit cannot interleave acceptance.
+ function beginIndexTransaction({stagePage,commit,abort}={}){
+   if(typeof stagePage!=='function'||typeof commit!=='function'||typeof abort!=='function')
+     fail('INVALID_INDEX_STAGER','transaction requires stagePage, atomic commit and abort');
+   if(indexTx)fail('INDEX_TRANSACTION_EXISTS','one staging transaction per job');
+   if(snapshot().kind!=='ADMITTED')fail('INDEX_NOT_ADMITTED','trusted Worker admission required');
+   let aborted=false,committed=false,pending=0,events=0,opens=0,seals=0;
+   const rollback=()=>{if(committed||aborted)return;aborted=true;try{abort();}catch{/* never accept failed rollback */}};
+   indexTx={abort:rollback};
+   const live=()=>{
+     if(aborted||committed)fail('INDEX_ALREADY_TERMINAL','index transaction was settled');
+     if(snapshot().kind!=='ADMITTED')fail('INDEX_JOB_STALE','source job no longer active');
+   };
+   async function onEventPage(page){
+     live();
+     if(!Array.isArray(page)||!page.length||page.length>4096||
+       page.some(e=>e?.schema!=='LFJ.JSON.OccurrenceEvent.v1'||
+         e.sourceRefId!==basis.sourceRefId||e.sourceSha256!==basis.sourceSha256||
+         e.sourceRevision!==basis.sourceRevision||!['OPEN','SEAL'].includes(e.kind)))
+       fail('INDEX_PAGE_INVALID','provisional original source occurrence page is invalid');
+     pending++;
+     try{
+       await stagePage(page);
+       live();
+       events+=page.length;
+       for(const event of page){if(event.kind==='OPEN')opens++;else seals++;}
+     }catch(error){rollback();throw error;}
+     finally{pending--;}
+   }
+   function commitIndex(summary,receipt){
+     live();
+     if(pending)fail('INDEX_STAGING_BUSY','source event sink has not settled');
+     if(summary?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||summary.complete!==true)
+       fail('INDEX_SUMMARY_INCOMPLETE','complete R05 source index summary required');
+     if(summary.sourceRefId!==basis.sourceRefId||
+       summary.sourceSha256!==basis.sourceSha256||summary.sourceRevision!==basis.sourceRevision||
+       summary.byteLength!==basis.byteLength||summary.eventCount!==events||
+       summary.occurrenceCount!==opens||opens!==seals)
+       fail('INDEX_SOURCE_MISMATCH','complete source count and original identity differ');
+     if(receipt?.schema!=='LFJ.SourceTransferReceipt.v1'||
+       receipt.jobId!==basis.jobId||receipt.sourceRefId!==basis.sourceRefId||
+       receipt.sourceSha256!==basis.sourceSha256||
+       receipt.sourceRevision!==basis.sourceRevision||receipt.byteLength!==basis.byteLength||
+       receipt.acknowledgedBytes!==basis.byteLength||
+       receipt.workerConsumedBytes!==basis.byteLength)
+       fail('INDEX_TRANSPORT_UNVERIFIED','native Worker-consumed original bytes not attested');
+     try{
+       const result=commit(summary);
+       if(result&&typeof result.then==='function')
+         fail('INDEX_COMMIT_ASYNC','atomic final publish must be synchronous');
+     }catch(error){
+       rollback();finish('FAILED','INDEX_COMMIT_FAILED');void stopWorker();throw error;
+     }
+     committed=true;
+     const complete=finish('SOURCE_INDEX_COMPLETE');
+     void stopWorker();
+     return complete;
+   }
+   return Object.freeze({onEventPage,commit:commitIndex,abort:rollback});
+ }
+ async function retry(next){
+   if(!terminal||!['CANCELLED','FAILED','STALE'].includes(terminal.kind))
+     fail('RETRY_NOT_TERMINAL','only a settled rejected job may be retried');
+   if(!next||!valid(next.jobId)||next.jobId===jobId)
+     fail('RETRY_EPOCH_REQUIRED','retry needs a new unique job identity');
+   if(typeof next.createWorker!=='function')
+     fail('WORKER_UNAVAILABLE','retry requires fresh native Worker factory');
+   await stopWorker();
+   return createWorkerLifecycleSession({...next,
+     trustedWorkerCtor:next.trustedWorkerCtor??trusted,
+     createWorker:()=>{const fresh=next.createWorker();
+       if(fresh===worker)fail('RETRY_WORKER_REUSED','old Worker handle cannot be retried');
+       return fresh;},
+   });
+ }
+
+ return Object.freeze({start,cancel,subscribe,snapshot,supersede,retry,beginIndexTransaction,dispose:cancel});
 }
