@@ -169,15 +169,20 @@ export function createCommittedSelectionPager({
       }
       const offset=start+rows.length,complete=offset===total;
       const token=complete?null:globalThis.crypto.randomUUID();
-      // Advance the cursor only after complete validation. No cursor can
-      // restart/replay a previously consumed page or outlive this session.
-      nextOffset=offset;nextCursor=token;lastPageOrdinal=previous;usedFirst=true;
-      return Object.freeze({
+      const output=Object.freeze({
         schema:'LFJ.CommittedSelectionPage.v1',complete,
         rows:Object.freeze(rows.map(row=>Object.freeze({...row}))),cursor:token,
         totalCount:total,...basis,selectionDigest,jobEpoch,
         rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
       });
+      // The caller's byte budget applies to the ENTIRE response including
+      // source/epoch/cursor metadata, not only the selected row array.
+      // A rejected response must not consume a cursor or advance an offset.
+      if(size(output)>maxBytes)
+        fail('PAGE_WIRE_OVERLIMIT','serialized page envelope exceeds byte cap');
+      // Advance only after the complete response and its budget are validated.
+      nextOffset=offset;nextCursor=token;lastPageOrdinal=previous;usedFirst=true;
+      return output;
     }finally{reading=false;}
   }
   return Object.freeze({stageSelectedPage,commitSelection,readPage,abort,
