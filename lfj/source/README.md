@@ -24,3 +24,5 @@ Finalized `LFJ.SourceSnapshot.v1` exposes `byteLength`, `sha256`, `sourceId`, `r
 - **Not in this branch:** full original-byte rehash of those two real fixtures, populated real 30/90MB, independently signed JSON/XML/CSV/trace outputs, browser/Node hosted performance and heap, or live source/docs deployment parity.
 
 **Direct test command:** `node --test lfj/source/*.test.mjs`. R03 exact GitHub runner still requires a distinct hosted qualification mechanism under an exclusive governance lease; do not infer it passed from local tests. No PR should merge from this note alone.
+
+**Hosted qualification:** The V4 planning branch owns `.github/workflows/lfj-r03-source.yml` (not the R03 product lease); it runs Node 22 and Node 24 independent byte/source tests when this PR targets the planning branch. Distinguish its tested PR merge SHA from the product branch head in TASK_EVIDENCE.
