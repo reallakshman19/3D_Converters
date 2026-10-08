@@ -86,12 +86,12 @@ function paginate(items, basisId, cursor, limit = 100) {
   const end = Math.min(offset + limit, items.length);
   return { schemaVersion: WEIGHT_SCHEMA, basisId, items: copy(items.slice(offset, end)), totalCount: items.length, nextCursor: end < items.length ? basisId + ':' + end : null, complete: true };
 }
-export function createWeightReviewService({ score } = {}) {
+export function createWeightReviewService({ score, digestReview = null } = {}) {
   required(typeof score === 'function', 'INVALID_SCORER', 'Inject a pure fact-based scorer');
   const bases = new Map(), ledger = new Map(), snapshots = new Map(), jobs = new Map();
   const current = (id) => { const v = bases.get(id); required(v, 'UNKNOWN_BASIS', 'Open basis before requests'); return v; };
   const stageName = (s) => { required(STAGES.has(s), 'INVALID_STAGE', 'Unknown review stage'); return s; };
-  const slot = (id, scopeId, stage) => id + '|' + scopeId + '|' + stage;
+  const slot = (id, scopeId, stage) => JSON.stringify([id, scopeId, stage]);
   const state = (id, scopeId, stage) => ledger.get(slot(id, scopeId, stage)) || { revision: null, decisions: {}, commands: {} };
   const makeProposals = (opened, occurrenceId) => {
     const source = opened.identities.get(occurrenceId);
@@ -238,7 +238,7 @@ export function createWeightReviewService({ score } = {}) {
       current(basisId); stageName(stage);
       const entry = state(basisId, scopeId, stage);
       required(stage !== 'preview' && expectedDecisionRevision === entry.revision, 'STALE_DECISION', 'Freeze current accepted review revision only');
-      const snapshotRef = slot(basisId, scopeId, stage) + '|' + (entry.revision || 'empty');
+      const snapshotRef = JSON.stringify([basisId, scopeId, stage, entry.revision || 'empty']);
       const snapshot = { snapshotRef, basisId, scopeId, stage, revision: entry.revision, decisions: copy(entry.decisions) };
       snapshots.set(snapshotRef, copy(snapshot));
       return copy(snapshot);
@@ -247,6 +247,84 @@ export function createWeightReviewService({ score } = {}) {
       current(basisId); stageName(stage);
       const found = [...snapshots.values()].filter((s) => s.basisId === basisId && s.stage === stage && (!scopeId || s.scopeId === scopeId) && (!revision || s.revision === revision));
       return copy(found);
+    },
+    async exportReviewState({ basisId }) {
+      const opened = current(basisId);
+      required(typeof digestReview === 'function', 'PERSISTENCE_UNAVAILABLE', 'Inject canonical SHA-256 digest adapter');
+      const reviewStates = [];
+      for (const scopeId of [...opened.sources].sort()) {
+        for (const stage of ['RigidMatch1', 'Rigidmatch2']) {
+          const entry = ledger.get(slot(basisId, scopeId, stage));
+          if (entry) reviewStates.push({ scopeId, stage, ...copy(entry) });
+        }
+      }
+      const frozenSnapshots = [...snapshots.values()].filter((s) => s.basisId === basisId)
+        .sort((a, b) => a.snapshotRef.localeCompare(b.snapshotRef)).map(copy);
+      const payload = { schemaVersion: WEIGHT_SCHEMA, basisId, reviewStates, frozenSnapshots };
+      const contentSha256 = await digestReview(copy(payload));
+      required(sha(contentSha256), 'INVALID_PERSISTENCE_HASH', 'Persisted reviews require canonical SHA-256');
+      return { ...payload, contentSha256 };
+    },
+    async restoreReviewState({ basisId, payload }) {
+      const opened = current(basisId);
+      required(typeof digestReview === 'function', 'PERSISTENCE_UNAVAILABLE', 'Inject canonical SHA-256 digest adapter');
+      required(plainJson(payload) && payload?.schemaVersion === WEIGHT_SCHEMA && payload.basisId === basisId
+        && sha(payload.contentSha256) && Array.isArray(payload.reviewStates) && Array.isArray(payload.frozenSnapshots),
+        'STALE_REVIEW', 'Invalid or cross-basis persisted review');
+      const { contentSha256, ...envelope } = payload;
+      const calculated = await digestReview(copy(envelope));
+      required(sha(calculated) && contentSha256 === calculated, 'REVIEW_DIGEST_MISMATCH', 'Persisted reviews changed or are corrupted');
+      const incomingLedger = new Map(), incomingSnapshots = new Map();
+      for (const entry of payload.reviewStates) {
+        const { scopeId, stage, revision, decisions, commands } = entry;
+        required(opened.sources.has(scopeId) && stage !== 'preview' && STAGES.has(stage) && typeof decisions === 'object'
+          && decisions !== null && !Array.isArray(decisions) && typeof commands === 'object' && commands !== null
+          && !Array.isArray(commands) && (revision === null || (typeof revision === 'string' && revision.length)),
+          'INVALID_REVIEW_STATE', 'Invalid source, stage, revision or persisted decision set');
+        const id = slot(basisId, scopeId, stage);
+        required(!incomingLedger.has(id), 'DUPLICATE_REVIEW_STATE', 'Duplicate source/stage review');
+        required(revision !== null || (!Object.keys(decisions).length && !Object.keys(commands).length),
+          'INVALID_REVIEW_STATE', 'Accepted commands require a decision revision');
+        for (const [occurrenceId, decision] of Object.entries(decisions)) {
+          required(opened.identities.get(occurrenceId) === scopeId && decision && ['accepted', 'rejected', 'deferred'].includes(decision.state)
+            && (!decision.value || finitePositive(decision.value)) && Array.isArray(decision.evidenceRefs),
+            'STALE_REVIEW_IDENTITY', 'Persisted decision does not match physical source occurrence');
+          if (decision.state === 'accepted') {
+            required(finitePositive(decision.value) && decision.unit === 'kg', 'INVALID_REVIEW_WEIGHT', 'Accepted persisted mass must be kg');
+            if (decision.action === 'accept-proposal') {
+              const currentProposal = makeProposals(opened, occurrenceId).find((p) => p.proposalId === decision.proposalId);
+              required(currentProposal && currentProposal.value === decision.value, 'STALE_PROPOSAL', 'Persisted proposal no longer ranks on the pinned basis');
+            }
+          }
+        }
+        for (const [commandId, event] of Object.entries(commands)) {
+          required(event && typeof event.payload === 'string' && event.result?.commandId === commandId, 'INVALID_REVIEW_COMMAND', 'Persisted command provenance malformed');
+          let cmd;
+          try { cmd = JSON.parse(event.payload); } catch { throw fault('INVALID_REVIEW_COMMAND', 'Malformed command payload'); }
+          required(cmd.commandId === commandId && cmd.basisId === basisId && cmd.scopeId === scopeId
+            && opened.identities.get(cmd.occurrenceId) === scopeId && event.payload === canonical(cmd),
+            'INVALID_REVIEW_COMMAND', 'Replayed command does not match source or basis');
+        }
+        const currentState = ledger.get(id);
+        required(!currentState || canonical(currentState) === canonical({ revision, decisions, commands }),
+          'RESTORE_COLLISION', 'Restore cannot overwrite a live accepted decision');
+        incomingLedger.set(id, copy({ revision, decisions, commands }));
+      }
+      for (const frozen of payload.frozenSnapshots) {
+        required(frozen?.basisId === basisId && opened.sources.has(frozen.scopeId)
+          && frozen.stage !== 'preview' && STAGES.has(frozen.stage)
+          && frozen.snapshotRef === JSON.stringify([basisId, frozen.scopeId, frozen.stage, frozen.revision || 'empty'])
+          && frozen.decisions && typeof frozen.decisions === 'object' && !Array.isArray(frozen.decisions),
+          'INVALID_FROZEN_REVIEW', 'Invalid or cross-basis review freeze');
+        required(!incomingSnapshots.has(frozen.snapshotRef), 'DUPLICATE_FROZEN_REVIEW', 'Repeated immutable snapshot');
+        const currentFrozen = snapshots.get(frozen.snapshotRef);
+        required(!currentFrozen || canonical(currentFrozen) === canonical(frozen),
+          'RESTORE_COLLISION', 'Cannot overwrite frozen accepted review');
+        incomingSnapshots.set(frozen.snapshotRef, copy(frozen));
+      }
+      for (const [id, entry] of incomingLedger) ledger.set(id, entry);
+      for (const [id, frozen] of incomingSnapshots) snapshots.set(id, frozen);
+      return { basisId, restoredStages: incomingLedger.size, restoredSnapshots: incomingSnapshots.size };
     },
     verifyRun({ basisId, reviewedSnapshotIds, outputBasis }) {
       const opened = current(basisId);
