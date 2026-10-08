@@ -473,7 +473,11 @@ export function normalizeLineListRow(row, fieldMap, index) {
     lineNoKey,
     lineNo: lineNoKey,
     lineKey: lineNoKey,
-    pipingClass: readRowValue(row, [fieldMap.pipingClass]),
+    // Preserve explicit canonical class authority when no column mapping is selected.
+    // An explicitly selected source column always takes precedence; never guess.
+    pipingClass: readRowValue(row, fieldMap.pipingClass
+      ? [fieldMap.pipingClass]
+      : ['pipingClass', 'Piping Class', 'PIPING_CLASS']),
     rating: readRowValue(row, [fieldMap.rating]),
     material: cleanMaterialText(materialText),
     convertedBore: readRowValue(row, [fieldMap.convertedBore]),

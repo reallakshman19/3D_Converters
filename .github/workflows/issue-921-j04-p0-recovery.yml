@@ -1,0 +1,38 @@
+name: Issue 921 J04 P0-Preserving Owner Acceptance
+on:
+  pull_request:
+    paths:
+      - 'converters/xml-cii2019-core/**'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-j04-*'
+      - '.github/workflows/issue-921-j04-p0-recovery.yml'
+  workflow_dispatch:
+jobs:
+  identity-and-p0:
+    name: Full-occurrence Format 2 identity and P0 custody
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify J04 format authority and end-to-end release guards
+        run: |
+          node --test \
+            tests/xml-cii-j04-shared-branch-extraction.test.mjs \
+            tests/xml-cii-j04-multi-format-preview.test.mjs \
+            tests/xml-cii-j04-mode-a-provenance.test.mjs \
+            tests/xml-cii-j04-output-authority-readiness.test.mjs \
+            tests/xml-cii-j04-service-release-gate.test.mjs \
+            tests/xml-cii-mode-b-parity-node-custody.test.mjs \
+            tests/xml-cii-mode-b-preview-occurrence.test.mjs \
+            tests/xml-cii-issue-776-deployment-parity.test.mjs
+      - name: Verify P0 parity import and source docs identity
+        run: |
+          set -eu
+          grep -Fq '20261008-p0-mode-b-parity-1' tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
+          grep -Fq 'xmlCiiParityNodeSignature' tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js
+          cmp tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
+          cmp tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js
+          cmp tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js docs/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js

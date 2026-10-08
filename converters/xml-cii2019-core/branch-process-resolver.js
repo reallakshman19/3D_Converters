@@ -452,10 +452,26 @@ export function resolveWallThicknessFromPipingClass({
 
 export function resolveBranchProcessData({
   branchName, lineKey, lineRow, boreMm, componentType, schedule, href, tref,
-  materialMap, pipingClassIndex, overrides = {}, xmlNode, xmlBranch, config = {},
+  materialMap, pipingClassIndex, overrides = {}, xmlNode, xmlBranch, config = {}, branchIdentity = null,
 }) {
+  // A configured multi-format mismatch cannot acquire material/class authority through legacy scanning.
+  if (branchIdentity && branchIdentity.status !== 'MATCHED') {
+    return {
+      branchName, lineKey, requestedPipingClass: '', resolvedPipingClass: '', pipingClass: '',
+      rating: '', ratingSource: 'blocked-extraction', material: '', materialCode: '',
+      materialSource: 'blocked-extraction', materialCodeNeedsReview: true,
+      pipingClassSource: 'blocked-extraction', pipingClassMatchMethod: 'blocked-extraction',
+      pipingClassNeedsReview: true, pipingClassConfidence: 0, pipingClassCandidates: branchIdentity.candidates || [],
+      corrosionAllowanceMm: null, corrosionSource: 'blocked-extraction',
+      wallThicknessMm: null, wallThicknessSource: 'blocked-extraction',
+      extractionStatus: branchIdentity.status,
+    };
+  }
   const lineListPipingClass = readAny(lineRow, ['pipingClass', 'Piping Class', 'PIPING_CLASS']);
-  const classSource = selectXmlCiiRequestedPipingClass({ branchName, lineListPipingClass, config });
+  const classSource = branchIdentity
+    ? { requestedPipingClass: branchIdentity.pipingClass, branchPipingClass: branchIdentity.pipingClass,
+        lineListPipingClass, source: 'configured-branch-format' }
+    : selectXmlCiiRequestedPipingClass({ branchName, lineListPipingClass, config });
   const requestedPipingClass = classSource.requestedPipingClass;
   const classMatch = findBestPipingClassRow({
     pipingClass: requestedPipingClass,
