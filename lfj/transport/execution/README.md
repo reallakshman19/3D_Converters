@@ -1,0 +1,22 @@
+# LFJ R06 Worker-required isolated execution — U01 native qualification
+
+**Parent owner:** [LFJ #1042](https://github.com/reallaksh19/3D_Converters/issues/1042), **admitted claim:** [R06 child #1071](https://github.com/reallaksh19/3D_Converters/issues/1071) / C3_ISOLATION 5 existing points in 130-point V3.2 proposal. [Governance PR #1072](https://github.com/reallaksh19/3D_Converters/pull/1072) merged at `f57b5799952e268ee57a91658ebae36ed723f43f` after pinned V3.2 [run #37800817690](https://github.com/reallaksh19/3D_Converters/actions/runs/37800817690) passed. **U01 only; U02–U04 not yet coded or qualified.**
+
+## Actual downstream boundary
+
+R05 original source index [PR #1070](https://github.com/reallaksh19/3D_Converters/pull/1070) merged at `c40bb61df80230c1dbd98ce5f6c28d1366de225c`, supplies source-revision-bound streaming original-value events. R06 never substitutes the R03 SHA for the caller's `sourceRefId` or accepted engineering `BasisRef`. Existing actual 4 Preview Worker session requires its own `start/subscribe/cancel/dispose` controller and source/combined XML custody, Weight Worker geometry has independent progression; R06 is not permitted to silently replace either. No source file under `tabs/**`, `converters/**`, `contracts/gc-pw-*/**` or any deployed mirrored consumer is touched.
+
+## U01 new Worker-only admission seam
+
+`runRequiredWorkerJob({createWorker,jobId,sourceRefId,sourceRevision,sourceSha256,byteLength})` accepts an **injected, already authorized Worker constructor**, not an inline callback. A missing/null/throwing factory rejects `WORKER_UNAVAILABLE`; a synchronous function posing as a Worker fails `INVALID_WORKER_PORT` **before postMessage is invoked**. The port must have asynchronous `message`/error subscription, `postMessage` and `terminate`; it supports browser Worker event listeners and Node WorkerThreads `on/off`. It sends versioned `LFJ.WorkerExecution.v1` `START`, receives matching `READY` with **the same job and source metadata** or fails `WORKER_PROTOCOL`; a hung admission times out rather than ever running JSON on the caller thread. Caller remains responsible for Worker termination in U01; R07 governs retries, cancellation, stale jobs and disposal.
+
+**Independent test proof:** [`required-worker.test.mjs`](./required-worker.test.mjs) committed first (RED until production `required-worker.mjs` added), plus real **native Node WorkerThreads fixture** `required-worker-fixture.mjs`. Tests assert actual `isMainThread===false` and `threadId>0` under an independently instantiated Worker, invalid source metadata fails before construction, unavailable factories and fake Worker shaped callbacks fail without inline work. [Exact Node 22/24 dedicated workflow #37801199693](https://github.com/reallaksh19/3D_Converters/actions/runs/37801199693) **PASSED both versions** at production + dedicated workflow head. This is actual Node Worker isolation in a native test, **not** a Chromium performance metric nor a universal assertion that any arbitrary injected port is truly isolated.
+
+## NEXT acceptance (not implemented)
+
+- **U02:** source-byte-transfer and page-ack pressure budget. A slow consumer must not retain or post unbounded queued copies; preserve exact R03 source SHA and R05 ordinal/revision, explicit page size and maximum unacknowledged byte budget; independent RED negative first.
+- **U03:** monotonic progress based on **acknowledged consumed original source bytes**, not fabricated node counts or Weight geometry.
+- **U04:** Worker absent/throws/errors, protocol mismatches, no-ACK/stale Worker and transport failure must fail closed with typed diagnostics; no inline fallback.
+- **R07:** terminal cancellation/superseded results, crash recovery, source epoch/retry, resource disposal, downstream acceptance. R18 retains actual populated 30/90MB Chromium worker heap/p95 and independently emitted XML/CII writer goldens.
+
+**No engineering export authority:** U01 `READY` proves only worker admission, not that source facts/selection, editable Preview or Rigid Weight have been approved. This draft must stay unmerged until all 4 native R06 units and direct relevant checks are independently qualified.
