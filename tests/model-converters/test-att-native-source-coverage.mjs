@@ -88,4 +88,6 @@ assert.match(popup,/comparisonAllowsConversion/);
 assert.match(popup,/disabled = blocked/);
 assert.match(popup,/No matching record in this ATT file/);
 assert.match(popup,/source-coverage\.js/);
+assert.match(popup,/EXPECTED_INVENTORY_LOADING/);
+assert.match(popup,/\.disabled = blocked/);
 console.log('test-att-native-source-coverage: PASS source absent 1885, wrong owner/type, full-vs-partial, editable fail closed and no fabricated roots');
