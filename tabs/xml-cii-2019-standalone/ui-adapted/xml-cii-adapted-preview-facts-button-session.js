@@ -97,7 +97,9 @@ export async function runPreviewButtonSession({
   const begun=Date.now();
   try {
     notice(host,{title:'Resolving staged source…',showCancel:true,cancel});
-    const staged=await resolveStaged(options,config);
+    let staged;
+    try{staged=await resolveStaged(options,config);}
+    catch(error){throw fail('STAGED_SOURCE_FAILED',String(error?.message||error));}
     if(!current())return null;
     const scope=sourceScope(host,config,options);
     notice(host,{title:'Checking input and master revisions…',showCancel:true,cancel});
