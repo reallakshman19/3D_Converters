@@ -40,12 +40,13 @@ export async function openAttNativeScopePopup(name, bytes) {
     'style="flex:1;min-height:110px;overflow:auto;padding:0 12px;scrollbar-gutter:stable;font-size:12px;"></div>',
     '<div data-native-selection role="status" aria-live="polite" style="padding:9px 16px;border-top:1px solid #45516b;font-size:12px;"></div>',
     '<div data-native-chips aria-label="Explicitly selected or excluded model areas" style="padding:0 16px 8px;display:flex;gap:5px;flex-wrap:wrap;max-height:84px;overflow:auto;font-size:11px;"></div>',
+    '<div data-native-output-scope aria-live="polite" style="padding:5px 16px;color:#c9d9ef;font-size:12px;"></div>',
     '<div data-native-error role="alert" style="display:none;padding:5px 16px;color:#ffcfba;font-size:12px;"></div>',
     '<footer style="padding:12px 16px;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;">',
     '<button type="button" data-native-clear>Clear selection</button>',
     '<button type="button" data-native-cancel>Cancel</button>',
-    '<button type="button" data-native-full>Convert entire TXT scope</button>',
-    '<button type="button" data-native-confirm disabled>Convert selected areas</button>',
+    '<button type="button" data-native-full title="Convert all objects without selected filtering" style="border:1px solid #8396af;background:transparent;color:#eaf2ff;padding:8px;border-radius:6px;">Entire TXT…</button>',
+    '<button type="button" data-native-confirm disabled style="border:1px solid #75a8ef;background:#2862aa;color:#fff;font-weight:700;padding:8px;border-radius:6px;">Convert selected areas</button>',
     '</footer>',
   ].join('');
   overlay.appendChild(card);
@@ -54,6 +55,7 @@ export async function openAttNativeScopePopup(name, bytes) {
   const viewport = element('[data-native-rows]');
   const status = element('[data-native-stats]');
   const summary = element('[data-native-selection]');
+  const output = element('[data-native-output-scope]');
   const chips = element('[data-native-chips]');
   const search = element('[data-native-search]');
   const feedback = element('[data-native-error]');
@@ -90,6 +92,11 @@ export async function openAttNativeScopePopup(name, bytes) {
       + selected.selectedNativeCount.toLocaleString() + ' TXT objects selected · '
       + selected.selectedBranchIds.length + ' piping branches eligible for XML/JSON. '
       + 'Selecting a Site or Zone includes descendants, even when collapsed.';
+    output.textContent = selected.selectedNativeCount
+      ? 'Output eligibility — XML/JSON: ' + selected.selectedBranchIds.length
+        + ' piping branches. STEP/STP: only structural members with supported source geometry/coordinates;'
+        + ' selected TXT names alone are not a guarantee of 3D solids.'
+      : 'Choose Site/Zone areas to select piping XML/JSON and supported structural STEP/STP output, or use Entire TXT for unfiltered conversion.';
     chips.innerHTML = rules.slice(0, chipLimit).map(rule =>
       '<button type="button" data-native-remove-rule="' + escapeText(rule.id)
       + '" title="Remove this explicit ' + (rule.checked ? 'selection' : 'exclusion') + '"'
@@ -267,9 +274,13 @@ export async function openAttNativeScopePopup(name, bytes) {
       paintSummary(); paintRows();
     });
     element('[data-native-cancel]').addEventListener('click', () => done({ cancelled: true }));
-    element('[data-native-full]').addEventListener('click', () => done({
-      cancelled: false, wildcard: '', selectedIds: [], nativeScope: { mode: 'FULL' },
-    }));
+    element('[data-native-full]').addEventListener('click', () => {
+      const confirmed = typeof window.confirm === 'function' && window.confirm(
+        'Convert the ENTIRE loaded TXT/ATT file? Any selected Sites or Zones will be ignored.'
+      );
+      if (!confirmed) return;
+      done({ cancelled: false, wildcard: '', selectedIds: [], nativeScope: { mode: 'FULL' } });
+    });
     element('[data-native-confirm]').addEventListener('click', () => {
       if (!selected.explicitSelection || !selected.selectedNativeCount) return;
       if (!selected.selectedBranchIds.length) {
