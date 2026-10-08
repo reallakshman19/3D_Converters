@@ -142,7 +142,12 @@ test('existing indexed ranker: ±6 mm, top five, inferred not exact, 1595-row sy
   assert.equal(proposals.items.length, 5);
   assert.ok(proposals.items.every((p) => p.value > 0 && p.unit === 'kg'));
   assert.equal(proposals.items[0].value, 15);
-  assert.equal(proposals.items.filter((p) => p.qualified).length, 5);
+  assert.equal(proposals.items.filter((p) => p.qualified).length, 1);
+  assert.equal(proposals.items.filter((p) => !p.qualified).length, 4);
+  assert.ok(proposals.items.slice(1).every((p) =>
+    p.method === 'length-extrapolated' && p.eligibilityReasons.includes('explicit-review-required')));
+  // ±6mm ranking preserves five display candidates; only the 100mm master
+  // has unscaled direct mass. Nearby rows are displayed but require engineer acceptance.
   const ms = performance.now() - t0;
   assert.ok(Number.isFinite(ms));
   console.log('SYNTHETIC_1595_WEIGHT_RANK_MS=' + ms.toFixed(2) + ' (NOT owner-scale browser evidence)');
@@ -567,7 +572,7 @@ test('U1 strict canonical session keeps portable non-XML domain and explicit sou
   const base={...b,domainId:domain,masters:{},sourceRefs:[{...b.sourceRefs[0],mediaType:'application/json'}]};
   delete base.basisId;
   base.basisId=canonicalSha(base);
-  const f=[{...facts[0],domainId,basisId:base.basisId,occurrenceId:'one/part:0',
+  const f=[{...facts[0],domainId:domain,basisId:base.basisId,occurrenceId:'one/part:0',
     subjectType:'physical-component',fieldId:'mass.kg',value:null,authority:'unresolved'}];
   const strict=createAttestedWeightReviewService({score:()=>[],
     digestUtf8:async text=>hash(text),digestCanonical:async value=>canonicalSha(value)});
