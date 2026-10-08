@@ -35,14 +35,16 @@ jobs:
           node --version
       - name: Four LFJ providers — profiles, ownership, original bytes and complete JSON tokens
         run: |
-          node --test \
+          for test_file in \
             lfj/contracts/profiles/*.test.mjs \
             lfj/adapters/ownership/*.test.mjs \
             lfj/source/*.test.mjs \
-            lfj/tokenizer/*.test.mjs
+            lfj/tokenizer/*.test.mjs; do
+            node --test "$test_file" || exit 1
+          done
       - name: Existing original-source Preview and Weight semantic regression
         run: |
-          node --test \
+          for test_file in \
             tests/xml-cii-preview-modeb-custody.test.mjs \
             tests/xml-cii-preview-modeb-basis.test.mjs \
             tests/xml-cii-preview-modeb-session.test.mjs \
@@ -50,7 +52,9 @@ jobs:
             tests/xml-cii-agent-w-weight-roundtrip.test.mjs \
             tests/xml-cii-agent-w-weight-review-checkpoint.test.mjs \
             tests/xml-cii-agent-w-weight-approved-run-packet.test.mjs \
-            tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs
+            tests/xml-cii-agent-w-weight-emitted-cii-handoff.test.mjs; do
+            node --test "$test_file" || exit 1
+          done
       - name: Attest real 10,539,386-byte owner source — original SHA, complete token census
         if: matrix.node == '24'
         env:
@@ -71,7 +75,8 @@ jobs:
       - name: Source-level original/combined Preview basis and live button checks
         run: |
           echo "PREVIEW_INTEGRATED_TESTED_SHA=$(git rev-parse HEAD)"
-          node --test tests/xml-cii-preview-modeb-session.test.mjs tests/xml-cii-preview-modeb-basis.test.mjs
+          node --test tests/xml-cii-preview-modeb-session.test.mjs
+          node --test tests/xml-cii-preview-modeb-basis.test.mjs
       - name: Install exact retained Preview browser runner
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
