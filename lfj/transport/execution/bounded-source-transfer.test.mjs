@@ -35,12 +35,12 @@ async function openWorker(snapshot,mode='ack',delayMs=0){
 }
 
 test('U02 RED: true Worker ACK gates each original byte page with one page maximum in flight',async()=>{
- const {snapshot,reads}=source(130071);
+ const {snapshot,port,reads}=source(130071);
  let worker;
  try{
   worker=await openWorker(snapshot,'ack',25);
   const result=await transferBoundedSourcePages({
-    worker,trustedWorkerCtor:Worker,snapshot,jobId:'R06-U02',sourceRefId:'PL01',
+    worker,trustedWorkerCtor:Worker,snapshot:port,jobId:'R06-U02',sourceRefId:'PL01',
     pageBytes:16384,ackTimeoutMs:2500,
   });
   assert.equal(result.schema,'LFJ.SourceTransferReceipt.v1');
@@ -59,12 +59,12 @@ test('U02 RED: true Worker ACK gates each original byte page with one page maxim
 });
 
 test('U02 RED: slow/no-ACK Worker may receive ONE original page, not unlimited queued pages',async()=>{
- const {snapshot,reads}=source(130071);
+ const {snapshot,port,reads}=source(130071);
  let worker;
  try{
   worker=await openWorker(snapshot,'no-ack');
   await assert.rejects(()=>transferBoundedSourcePages({
-    worker,trustedWorkerCtor:Worker,snapshot,jobId:'R06-U02',sourceRefId:'PL01',
+    worker,trustedWorkerCtor:Worker,snapshot:port,jobId:'R06-U02',sourceRefId:'PL01',
     pageBytes:16384,ackTimeoutMs:200,
   }),e=>e?.code==='WORKER_ACK_TIMEOUT');
   assert.equal(reads.length,1,'do not read the second page before first ACK');
