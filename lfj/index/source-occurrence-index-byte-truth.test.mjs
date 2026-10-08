@@ -6,7 +6,7 @@ import {createSourceSnapshotBuilder} from '../source/source-snapshot.mjs';
 import {streamJsonOccurrenceEvents} from './source-occurrence-index.mjs';
 import {resolveSourceOwners} from '../adapters/ownership/source-ownership.mjs';
 
-const input = String.raw`{"hierarchy":[{"type":"BRANCH","name":"β💡","children":[{"type":"PIPE","name":"~/x","attributes":{"OWNER_ZONE":"CHILD"}}],"attributes":{"OWNER_ZONE":"ROOT"}}],"note":"a\\\\\\\"},]"}`;
+const input = String.raw`{"hierarchy":[{"type":"BRANCH","name":"β💡","children":[{"type":"PIPE","name":"~/x","attributes":{"OWNER_ZONE":"CHILD"}}],"attributes":{"OWNER_ZONE":"ROOT"}}],"note":"a\\\"},]"}`;
 const EXPECTED = Object.freeze({
   root: [0, 180],
   branch: [14, 160],
