@@ -22,6 +22,119 @@ import {
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
 
+
+/**
+ * A06 explicit source-only pilot. The Resolver engineering trace/CSV remains
+ * gated under R13, not synthesized from LFJ R05/R02 typed candidates.
+ * A separate, clearly labelled LEGACY mode preserves existing small-input UI.
+ */
+const resolverLfjJobs=new WeakMap();
+function revokeResolverLfjJob(stateRef){
+  const previous=resolverLfjJobs.get(stateRef);
+  if(previous)previous.abort();
+  resolverLfjJobs.delete(stateRef);
+}
+function clearResolverLfjOutputs(patch={}){
+  return {
+    ...patch,
+    resolverJsonTraceResult:null,resolverJsonTraceJsonResult:null,
+    resolverJsonTraceExportStatus:'',resolverJsonTraceWriteBackStatus:'',
+    resolverLfjReport:null
+  };
+}
+async function runResolverLfjFileFromUi(file,stateRef,render){
+  const previous=resolverLfjJobs.get(stateRef);
+  previous?.abort();
+  const abort=new AbortController();
+  const token='lfj-ui-'+globalThis.crypto.randomUUID();
+  resolverLfjJobs.set(stateRef,abort);
+  replaceState(stateRef,updateWorkflowState(stateRef.current,
+    clearResolverLfjOutputs({
+      stagedJsonFile:file,stagedJsonText:'',
+      resolverLfjMode:'LFJ',resolverLfjJobToken:token,
+      resolverLfjStatus:file?'Scanning original source through LFJ Worker…':'No staged source selected.'
+    })),render);
+  if(!file)return;
+  try{
+    // Dynamic import avoids hiding the LEGACY engine behind missing deployed
+    // docs/lfj files. In LFJ mode a missing module FAILS, never falls back.
+    const {admitResolverLfjFile}=await import('../../../lfj/consumers/3d-converters/resolver-lfj-source-admission.mjs');
+    const result=await admitResolverLfjFile({
+      file,jobToken:token,signal:abort.signal,getState:()=>stateRef.current
+    });
+    if(abort.signal.aborted||stateRef.current.resolverLfjJobToken!==token)return;
+    replaceState(stateRef,updateWorkflowState(stateRef.current,{
+      resolverLfjReport:result,
+      resolverLfjStatus:'LFJ source-only index ready: '+result.selectedCount+
+        ' original facts, '+result.typedNodeCount+
+        ' typed candidates. Engineering Build/export blocked pending R13.'
+    }),render);
+  }catch(error){
+    if(abort.signal.aborted||stateRef.current.resolverLfjJobToken!==token)return;
+    replaceState(stateRef,updateWorkflowState(stateRef.current,
+      clearResolverLfjOutputs({
+        resolverLfjStatus:'LFJ source admission rejected ['+
+          String(error?.code||'IMPORT_OR_SOURCE_ERROR')+']: '+
+          String(error?.message||error)
+      })),render);
+  }finally{
+    if(resolverLfjJobs.get(stateRef)===abort)resolverLfjJobs.delete(stateRef);
+  }
+}
+function renderResolverLfjSourceControl(container,stateRef,render){
+  const target=container.querySelector('[data-action="build-resolver-index"]');
+  if(!target||!target.parentNode)return;
+  const label=document.createElement('label');
+  label.dataset.resolverLfjControl='true';
+  label.textContent='Staged source engine: ';
+  const select=document.createElement('select');
+  select.dataset.field='resolver-source-engine';
+  for(const [value,title] of [
+    ['LEGACY','Legacy synchronous engine (existing behavior)'],
+    ['LFJ','Native LFJ Worker source-only pilot (no engineering export)']
+  ]){
+    const option=document.createElement('option');option.value=value;
+    option.textContent=title;select.appendChild(option);
+  }
+  select.value=stateRef.current.resolverLfjMode==='LFJ'?'LFJ':'LEGACY';
+  label.appendChild(select);
+  target.parentNode.insertBefore(label,target);
+  const status=document.createElement('span');
+  status.dataset.resolverLfjStatus='true';
+  status.setAttribute('role','status');
+  status.textContent=stateRef.current.resolverLfjStatus||'';
+  target.parentNode.insertBefore(status,target);
+  select.addEventListener('change',async()=>{
+    revokeResolverLfjJob(stateRef);
+    const file=stateRef.current.stagedJsonFile;
+    if(select.value==='LFJ'){
+      await runResolverLfjFileFromUi(file,stateRef,render);
+      return;
+    }
+    replaceState(stateRef,updateWorkflowState(stateRef.current,
+      clearResolverLfjOutputs({
+        resolverLfjMode:'LEGACY',resolverLfjJobToken:'',
+        resolverLfjStatus:'Legacy engine explicitly selected.'
+      })),render);
+    // Legacy file.text only after the user selects the labelled legacy mode.
+    if(file){
+      try{
+        const text=await readTextFile(file);
+        if(stateRef.current.resolverLfjMode!=='LEGACY'||
+           stateRef.current.stagedJsonFile!==file)return;
+        replaceState(stateRef,updateWorkflowState(stateRef.current,{
+          stagedJsonText:text||''
+        }),render);
+      }catch(error){
+        if(stateRef.current.resolverLfjMode==='LEGACY')
+          replaceState(stateRef,updateWorkflowState(stateRef.current,{
+            resolverLfjStatus:'Legacy file read failed: '+String(error?.message||error)
+          }),render);
+      }
+    }
+  });
+}
+
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
   bindSourceEvents(container, stateRef, render);
@@ -91,12 +204,20 @@ export function bindSourceEvents(container, stateRef, render) {
     }
   });
   onChange(container, 'staged-json-file', async (_, event) => {
-    try {
-      const file = event.target.files?.[0] || null;
-      const text = file ? await readTextFile(file) : '';
-      replaceState(stateRef, updateWorkflowState(stateRef.current, { stagedJsonFile: file, stagedJsonText: text, result: null }), render);
-    } catch (err) {
-      console.error('Error reading staged json file:', err);
+    const file=event.target.files?.[0]||null;
+    revokeResolverLfjJob(stateRef);
+    if(stateRef.current.resolverLfjMode==='LFJ'){
+      await runResolverLfjFileFromUi(file,stateRef,render);
+      return;
+    }
+    try{
+      const text=file?await readTextFile(file):'';
+      if(stateRef.current.resolverLfjMode==='LFJ')return;
+      replaceState(stateRef,updateWorkflowState(stateRef.current,
+        clearResolverLfjOutputs({stagedJsonFile:file,stagedJsonText:text,result:null,
+          resolverLfjJobToken:'',resolverLfjStatus:'Legacy staged source selected.'})),render);
+    }catch(err){
+      console.error('Error reading legacy staged json file:',err);
     }
   });
   onChange(container, 'source-text', (value) => {
@@ -146,6 +267,7 @@ export function bindRegexEvents(container, stateRef, render) {
 }
 
 export function bindResolverEvents(container, stateRef, render) {
+  renderResolverLfjSourceControl(container,stateRef,render);
   onChange(container, 'resolver-json-config', (value) => { stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value); });
   const useDelimiterInput = container.querySelector('[data-field="resolver-use-delimiter"]');
   if (useDelimiterInput) {
@@ -205,6 +327,18 @@ export function bindActionEvents(container, stateRef, render) {
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
+  if(stateRef.current.resolverLfjMode==='LFJ'){
+    // Native R05 source facts are not R13 engineering trace/CSV facts.
+    const ready=stateRef.current.resolverLfjReport?.schema==='LFJ.3D.ResolverSourceAdmission.v1';
+    replaceState(stateRef,updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,resolverJsonTraceResult:null,
+      resolverJsonTraceJsonResult:null,resolverJsonTraceExportStatus:'',
+      resolverJsonTraceWriteBackStatus:ready
+        ? 'LFJ source-only admission complete; R13 XML/CII trace and CSV writer not yet authorized.'
+        : 'LFJ source admission incomplete/rejected; no legacy fallback or engineering output.'
+    }),render);
+    return;
+  }
   stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
@@ -251,6 +385,13 @@ function traceResult(state) {
 }
 
 export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
+  if(stateRef.current.resolverLfjMode==='LFJ'){
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceExportStatus:'LFJ source-only mode cannot export Resolver engineering CSV.'
+    });
+    render();
+    return;
+  }
   const result = traceResult(stateRef.current);
   const isEvidence = kind === 'evidence-tree';
   const rowCount = isEvidence ? buildEvidenceTreeRows(result).length : buildXmlNodeWiseTraceRows(result).length;
@@ -286,6 +427,12 @@ async function writeClipboardText(value) {
 }
 
 export async function copyMatchedFactsFromUi(stateRef, render) {
+  if(stateRef.current.resolverLfjMode==='LFJ'){
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceExportStatus:'No engineering matched facts are authorized by LFJ source admission.'
+    });
+    render();return;
+  }
   const result = traceResult(stateRef.current);
   const matchedRows = buildMatchedFactsRows(result);
   if (!matchedRows.length) {
