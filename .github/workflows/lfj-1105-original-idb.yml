@@ -34,5 +34,6 @@ jobs:
         run: |
           git rev-parse HEAD
           node lfj/runtime/original-idb-value-qualification.mjs
+          node lfj/runtime/indexed-pair-fault-qualification.mjs
       - name: Test must not mutate tracked sources
         run: test -z "$(git status --porcelain)"
