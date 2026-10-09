@@ -51,3 +51,21 @@ test('R12/U04 RED: oversized legacy JSON never scans or parses on foreground wit
  assert.throws(()=>buildJsonHierarchyScopeIndex(huge),
    e=>e?.code==='SOURCE_SCOPE_WORKER_REQUIRED');
 });
+
+test('R12/U04 RED: primitive root-array items must not vanish from a claimed complete scope index',()=>{
+ const source=JSON.stringify([
+   {type:'BRANCH',OWNER_ZONE:'SITE-A',name:'A'},17,
+   {type:'BRANCH',OWNER_ZONE:'SITE-A',name:'B'}
+ ]);
+ assert.throws(()=>buildJsonHierarchyScopeIndex(source),
+   e=>e?.code==='SOURCE_SCOPE_UNSUPPORTED_ITEM');
+});
+test('R12/U04 positive: multiple displayed rows never clip full small-source membership',()=>{
+ const objects=Array.from({length:127},(_,i)=>({type:'BRANCH',OWNER_ZONE:'SITE-A',name:'B'+i}));
+ const source=JSON.stringify(objects);
+ const index=buildJsonHierarchyScopeIndex(source);
+ const result=materializeJsonHierarchyScope(source,index,'SITE-A');
+ assert.equal(index.itemCount,objects.length);
+ assert.equal(index.scopes[0].itemCount,objects.length);
+ assert.deepEqual(result.value.map(x=>x.name),objects.map(x=>x.name));
+});
