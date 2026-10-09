@@ -8,12 +8,12 @@ window.runRealIndexedDBTests=async()=>{
  const sourceNs='source:'+sourceBasis.sourceRefId;
  const result={};
  try{
-  const originalRows=Array.from({length:21},(_,i)=>({schema:'LFJ.JSON.OccurrenceEvent.v1',kind:i%2===0?'OPEN':'SEAL',ordinal:Math.floor(i/2),sourceRefId:sourceBasis.sourceRefId,sourceSha256:sourceBasis.sourceSha256,sourceRevision:sourceBasis.sourceRevision,occurrenceId:'o'+i}));
+  const originalRows=Array.from({length:22},(_,i)=>({schema:'LFJ.JSON.OccurrenceEvent.v1',kind:i%2===0?'OPEN':'SEAL',ordinal:Math.floor(i/2),sourceRefId:sourceBasis.sourceRefId,sourceSha256:sourceBasis.sourceSha256,sourceRevision:sourceBasis.sourceRevision,occurrenceId:'o'+i}));
   let store=await openIndexedRecordStore({databaseName:dbName,namespace:sourceNs,generation:'JOB-1',basis:sourceBasis,kind:'source'});
   await store.stagePage(originalRows.slice(0,10));
   await store.stagePage(originalRows.slice(10));
   await failCode(async()=>{for await(const r of store.readOrdered())void r;},'STORE_NOT_COMMITTED');
-  const manifest={schema:'LFJ.JSON.OccurrenceIndexSummary.v1',...sourceBasis,complete:true,occurrenceCount:11,eventCount:21,rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
+  const manifest={schema:'LFJ.JSON.OccurrenceIndexSummary.v1',...sourceBasis,complete:true,occurrenceCount:11,eventCount:22,rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
   // The IDB commit is genuinely async; R07 must not mistake its return for a sync publish.
   const completion=store.commit(manifest);
   if(!(completion instanceof Promise))throw Error('IDB_COMMIT_NOT_ASYNC');
