@@ -32,7 +32,11 @@ jobs:
       - name: Parse changed research modules
         run: |
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Worker-compatible XML document preflight regression (16 negative / positive)
+        run: node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
       - name: Authentic XML census plus five negative controls
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
       - name: Verify no working tree mutation
