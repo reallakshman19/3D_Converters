@@ -4,6 +4,9 @@ on:
     branches: [main, lfj/1120-w2-unified-indexed-source]
     paths:
       - 'lfj/runtime/unified-*'
+      - 'lfj/index/source-occurrence-index.mjs'
+      - 'lfj/ports/source-worker-port.mjs'
+      - '.github/workflows/lfj-1120-unified-authentic.yml'
       - 'lfj/qualification/provisional/authentic-unified-idb.*'
       - '.github/workflows/lfj-1120-unified-authentic.yml'
   workflow_dispatch:
