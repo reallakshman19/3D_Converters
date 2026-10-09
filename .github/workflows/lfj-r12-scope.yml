@@ -32,6 +32,7 @@ jobs:
       - name: Source head and independent R12 source-cache oracle
         run: |
           echo "R12_SOURCE_HEAD=$(git rev-parse HEAD)"
+          node --test tests/xml-cii-json-hierarchy-scope.test.mjs
           node --test tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.test.mjs
           node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.test.mjs
       - name: No rewritten golden fixture
