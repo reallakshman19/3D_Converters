@@ -59,9 +59,21 @@ export async function openSourceSession(options={}){
     const {dependencyRevision:_opaque, ...sourceBasis}=live;
     return sourceBasis;
   }
-  const underlying=await runCommittedSourceQuery({
-    ...options,getCurrentBasis:projectedCurrentBasis
-  });
+  let underlying;
+  try{
+    underlying=await runCommittedSourceQuery({
+      ...options,getCurrentBasis:projectedCurrentBasis
+    });
+  }catch(error){
+    // The R10 legacy port may represent a stale lifecycle as the generic
+    // SOURCE_INDEX_UNCOMMITTED result. Preserve the more specific opaque
+    // dependency cancellation at this owner-controlled session boundary.
+    let live;
+    try{live=getCurrentBasis();}catch{}
+    if(live?.dependencyRevision!==initial.dependencyRevision)
+      fail('SOURCE_STALE','original dependency changed during native Worker index');
+    throw error;
+  }
   const basis=underlying.sourceBasis;
   const summary=underlying.summary;
   let closed=false;
