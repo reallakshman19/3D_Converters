@@ -36,6 +36,9 @@ try{
     'legitimate newer source HEAD remains readable after predecessor crash');
   assert.equal(result.abandonedStagedRows,0,
     'staged source records of abandoned uncommitted generation must be reclaimed');
+  assert.equal(result.pruneTransactionFailed,'CUSTODY_RECOVERY_ABORTED');
+  assert.equal(result.pruneResumedLeftovers,0,
+    'second cold writer must finish interrupted bounded orphan reclamation');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
