@@ -274,6 +274,51 @@ window.runUnifiedFaultMatrix=async()=>{
     successor.close();indexedDB.deleteDatabase(abandoned.databaseName);
   }
 
+  // Inject a recovery transaction failure after old staged facts exist.
+  // The IDB rollback must retain its recovery marker, so the *next* fresh
+  // writer resumes from the same original ordered generation frontier.
+  let retryClock=40000,interrupt=true;
+  const interruptedOld=await make('reclaim-resume',{
+    now:()=>retryClock,leaseTtlMs:1000});
+  await interruptedOld.port.stagePage(orphanRows);
+  interruptedOld.port.close();retryClock+=2000;
+  const rejected=await openUnifiedIndexedSourceStore({
+    databaseName:interruptedOld.databaseName,namespace,
+    generation:'retry-first',basis,now:()=>retryClock,leaseTtlMs:1000,
+    beforeReclaim:({tx})=>{
+      if(interrupt){interrupt=false;tx.abort();}
+    }
+  });
+  try{
+    try{await rejected.stagePage([open,seal]);
+      outcomes.pruneTransactionFailed='UNEXPECTED_STAGED';
+    }catch(e){outcomes.pruneTransactionFailed=e?.code;}
+  }finally{rejected.close();}
+  const resumed=await openUnifiedIndexedSourceStore({
+    databaseName:interruptedOld.databaseName,namespace,
+    generation:'retry-second',basis,now:()=>retryClock,leaseTtlMs:1000
+  });
+  try{
+    await resumed.stagePage([open,seal]);
+    await resumed.commitDurably(manifest);
+    const db=await new Promise((resolve,reject)=>{
+      const req=indexedDB.open(interruptedOld.databaseName);
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error);
+    });
+    try{
+      outcomes.pruneResumedLeftovers=await new Promise((resolve,reject)=>{
+        const req=db.transaction('pairs','readonly').objectStore('pairs').count(
+          IDBKeyRange.bound([namespace,interruptedOld.generation,''],
+            [namespace,interruptedOld.generation,'\\uffff']));
+        req.onsuccess=()=>resolve(req.result);
+        req.onerror=()=>reject(req.error);
+      });
+    }finally{db.close();}
+  }finally{
+    resumed.close();indexedDB.deleteDatabase(interruptedOld.databaseName);
+  }
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
