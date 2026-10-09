@@ -5,8 +5,10 @@ import assert from 'node:assert/strict';
 import {runNativeSourceOnlyTypedFile} from './native-source-only-file-intake.mjs';
 import {runNativeSourceOnlyFileIntakeCore} from './native-source-only-file-intake-core.mjs';
 
-const basis=Object.freeze({sourceRefId:'original',sourceSha256:'abc123',
-  sourceRevision:'source-v1',selectionDigest:'ALL',
+const originalSha='a'.repeat(64);
+const revisionLabel='original-label';
+const basis=Object.freeze({sourceRefId:'original',sourceSha256:originalSha,
+  sourceRevision:`${revisionLabel}:sha256:${originalSha}`,selectionDigest:'ALL',
   jobId:'job-1',dependencyRevision:'xml-master-v1',byteLength:5});
 const code=x=>e=>{assert.equal(e?.code,x);return true;};
 function casePorts({failAt=null,mutate=null,rights=false}={}){
@@ -60,7 +62,7 @@ function FakeWorker(){}
 const testPorts=req=>({...req.nativePorts,WorkerCtor:req.WorkerCtor,indexedDB:req.indexedDB});
 const runInjected=req=>runNativeSourceOnlyFileIntakeCore(req,testPorts(req));
 const request=p=>({
-  blob:new Blob(['abcde']),revision:basis.sourceRevision,
+  blob:new Blob(['abcde']),revision:revisionLabel,
   expectedBasis:basis,selection:{mode:'ALL',includes:[],excludes:[]},
   databaseName:'lfj-a05-test',WorkerCtor:FakeWorker,indexedDB:{open(){}},
   getCurrentBasis:p.getCurrentBasis,nativePorts:p.nativePorts
@@ -134,5 +136,20 @@ test('A05-P2 RED: original source revision mismatch fails before any indexed-sto
     }, testPorts(request(p))),
     code('NATIVE_CONSUMER_BASIS_INVALID')
   );
+  assert.deepEqual(p.opened,[]);
+});
+
+
+test('A05-P3 actual R03 revision is label:sha256:hash, not raw caller label',async()=>{
+  const p=casePorts();
+  const result=await runInjected(request(p));
+  assert.equal(result.engineeringReady,false);
+  assert.equal(p.opened.includes('source-session'),true);
+});
+test('A05-P3 forged revision with correct SHA but wrong suffix refuses before native stores',async()=>{
+  const p=casePorts();
+  await assert.rejects(runInjected({
+    ...request(p),expectedBasis:{...basis,sourceRevision:'other:sha256:'+originalSha}
+  }),code('NATIVE_CONSUMER_BASIS_INVALID'));
   assert.deepEqual(p.opened,[]);
 });
