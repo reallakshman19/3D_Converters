@@ -214,7 +214,7 @@
               "id": "U02",
               "kind": "SEMANTIC",
               "weight": 25,
-              "outcome": "Ambiguous or missing material remains unapproved, while uniquely supported evidence can be accepted with provenance.",
+              "outcome": "Ambiguous or missing material remains unapproved, while uniquely sourced material facts can be accepted with provenance.",
               "verify": "Class/material conflicting rows test fail-closed and unique positive"
             },
             {
