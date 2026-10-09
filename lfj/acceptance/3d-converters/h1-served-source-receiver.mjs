@@ -1,7 +1,8 @@
 // #1104 A03 independent RECEIVER H1 acceptance: actual docs origin LFJ runtime.
-// The ONLY test-only route is the #1104 consumer receiver itself, which DEPLOY
-// #1097 does not own. SourceSession, Worker, page/index/pair IDB and all transitive
-// LFJ imports MUST come from the real docs/ HTTP publication, never source tree.
+// ONLY test-only routes are #1104 consumer receiver and the independently
+// first-party source CAS sink, both outside #1097's docs/lfj/** write lease.
+// All NEUTRAL LFJ SourceSession, Worker, page/index/pair IndexedDB modules and
+// transitive imports MUST come from the real docs/ HTTP publication.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -13,6 +14,7 @@ const expectedPaths=['','/0','/0/name','/0/children','/0/children/0',
   '/1/children/0/name'];
 const sha=createHash('sha256').update(raw).digest('hex');
 const receiver=await readFile('lfj/consumers/3d-converters/source-facts-receiver.mjs','utf8');
+const generationStore=await readFile('lfj/consumers/3d-converters/source-generation-store.mjs','utf8');
 const browser=await chromium.launch({headless:true});
 try {
   const page=await browser.newPage();
@@ -23,15 +25,22 @@ try {
   await page.route('**/__lfj1104_receiver__.mjs',route=>route.fulfill({
     status:200,contentType:'text/javascript',body:receiver
   }));
+  await page.route('**/__lfj1104_generation__.mjs',route=>route.fulfill({
+    status:200,contentType:'text/javascript',body:generationStore
+  }));
   await page.goto('http://127.0.0.1:4186/lfj/served-durable-qualification.html',{waitUntil:'load'});
   const records=await page.evaluate(async({raw,sha})=>{
-    let receiverModule;
+    let receiverModule,generationModule;
     try {
-      receiverModule=await import('/__lfj1104_receiver__.mjs');
-      if(typeof receiverModule.consumeSelectedSourceFacts!=='function')
-        throw Error('missing receiver export');
+      [receiverModule,generationModule]=await Promise.all([
+        import('/__lfj1104_receiver__.mjs'),
+        import('/__lfj1104_generation__.mjs')
+      ]);
+      if(typeof receiverModule.consumeSelectedSourceFacts!=='function'||
+         typeof generationModule.createSourceFactsGenerationStore!=='function')
+        throw Error('missing first-party receiver or generation store export');
     } catch(e) {
-      return {kind:'A03_RECEIVER_FIXTURE_INVALID',error:String(e?.message||e)};
+      return {kind:'A03_CONSUMER_FIXTURE_INVALID',error:String(e?.message||e)};
     }
     let imports;
     try {
@@ -50,6 +59,7 @@ try {
     const [{openSourceSession},{openIndexedOccurrencePairStore,createPairedIndexStore},
       {openIndexedRecordStore}]=imports;
     const {consumeSelectedSourceFacts}=receiverModule;
+    const {createSourceFactsGenerationStore}=generationModule;
     const input=new TextEncoder().encode(raw);
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',input)),
       b=>b.toString(16).padStart(2,'0')).join('');
@@ -71,26 +81,25 @@ try {
       const pair=await openIndexedOccurrencePairStore({
         databaseName:databaseName+'-pairs',namespace:'source',generation:jobId,basis
       });
-      let session=null,commits=0,aborts=0,staged=[],published=[],receipt,error=null;
+      let session=null,commits=0,aborts=0,stagedCount=0,receipt,error=null;
+      // This is the actual #1104-owned source-only generation store module,
+      // not a mock-publishing browser closure. It performs the live app CAS and
+      // one-turn visibility swap; the wrapper below ONLY records test hooks.
+      const generation=createSourceFactsGenerationStore({
+        getCurrentBasis:()=>({...current}),maxFacts:64
+      });
       const txn={
-        async begin(){if(staged.length)throw Error('generation must start empty');},
-        async stage(f){
-          staged.push({path:f.row.path,occurrenceId:f.row.occurrenceId,
-            raw:f.bytes===null?null:new TextDecoder().decode(f.bytes)});
-          if(stale && staged.length===2)
+        begin:args=>generation.transaction.begin(args),
+        stage:f=>{
+          generation.transaction.stage(f);stagedCount++;
+          if(stale && stagedCount===2)
             current.dependencyRevision='superseded master after first page';
         },
-        async commit({receipt:complete,expectedBasis:expected,getCurrentBasis}){
-          // Single synchronous promotion with live compare-and-swap in fixture;
-          // *not* proof of an eventual production persistent app-owned sink.
-          if(Object.keys(expected).some(key=>expected[key]!==getCurrentBasis()[key]))
-            throw Object.assign(Error('stale app basis'),{code:'APP_CAS_STALE'});
-          published=staged.slice();commits++;
-          return {schema:'LFJ.3D.SourceFactsPublication.v1',committed:true,
-            ...expected,selectedCount:complete.selectedCount,
-            rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
+        commit:args=>{
+          const publication=generation.transaction.commit(args);
+          commits++;return publication;
         },
-        async abort(){aborts++;staged=[];}
+        abort:args=>{aborts++;return generation.transaction.abort(args);}
       };
       try {
         session=await openSourceSession({blob:new Blob([input]),
@@ -108,9 +117,16 @@ try {
             expectedBasis,getCurrentBasis:()=>({...current}),transaction:txn,
             maxRows:2,maxScalarBytes:2048,maxPageBytes:65536});
         }catch(e){error=e?.code||e?.message||String(e);}
+        const snapshot=generation.readPublished();
+        const published=snapshot?.facts.map(f=>({
+          path:f.row.path,occurrenceId:f.row.occurrenceId,
+          raw:f.bytes===null?null:new TextDecoder().decode(f.bytes)
+        }))??[];
         const summary={
           error,receipt,commits,aborts,published,
-          stagedRemaining:staged.length,
+          hiddenAfterFailure:snapshot===null,
+          publishedRights:snapshot?.rightsBasis??null,
+          publishedEngineeringReady:snapshot?.engineeringReady??null,
           workerBytes:session.receipt?.workerConsumedBytes,
           indexedOccurrences:session.summary?.occurrenceCount,
           sourceRights:session.pageManifest?.rightsBasis,
@@ -151,13 +167,16 @@ try {
   assert.notEqual(identicalNames[0].occurrenceId,identicalNames[1].occurrenceId);
   assert.deepEqual(identicalNames.map(x=>x.raw),['"é"','"é"']);
   assert.equal(p.commits,1);assert.equal(p.aborts,0);
+  assert.equal(p.publishedRights,'SOURCE_FACTS_ONLY');
+  assert.equal(p.publishedEngineeringReady,false);
   assert.equal(p.closeCode,'SESSION_CLOSED');
   const stale=records.staleDependency;
   assert.equal(stale.error,'CONSUMER_BASIS_STALE');
   assert.equal(stale.commits,0);assert.equal(stale.aborts,1);
   assert.deepEqual(stale.published,[]);
-  assert.equal(stale.stagedRemaining,0);
+  assert.equal(stale.hiddenAfterFailure,true,
+    'staging failure must leave NO visible first-party app result');
   assert.equal(stale.closeCode,'SESSION_CLOSED');
   assert.deepEqual(pageErrors,[]);
-  console.log('A03 real HTTP LFJ Worker+IndexedDB to #1104 receiver source-only original-byte union and supersession abort PASS; workflow determines PROVISIONAL versus authored docs origin');
+  console.log('A03 Worker+IndexedDB to actual #1104 source CAS generation store PASS; workflow distinguishes PROVISIONAL staging from canonical authored docs H1');
 } finally {await browser.close();}
