@@ -1,0 +1,39 @@
+name: LFJ V4.2 real native R07 durable async terminal
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/transport/lifecycle/lifecycle-session.mjs'
+      - 'lfj/transport/lifecycle/lifecycle-durable-acceptance.test.mjs'
+      - 'lfj/ports/committed-worker-query.mjs'
+      - '.github/workflows/lfj-v42-durable-bridge.yml'
+  push:
+    branches: [lfj/v42-r07-durable-bridge]
+    paths:
+      - 'lfj/transport/lifecycle/lifecycle-session.mjs'
+      - 'lfj/transport/lifecycle/lifecycle-durable-acceptance.test.mjs'
+      - 'lfj/ports/committed-worker-query.mjs'
+      - '.github/workflows/lfj-v42-durable-bridge.yml'
+permissions:
+  contents: read
+jobs:
+  real-native:
+    runs-on: ubuntu-latest
+    name: R07 async durable source gate Node ${{ matrix.node }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact head real Worker durable test, original R07 and R10 controls
+        run: |
+          git rev-parse HEAD
+          node --test lfj/transport/lifecycle/*.test.mjs
+          node --test lfj/ports/source-committed-parity.test.mjs
+      - name: No golden fixture modification
+        run: test -z "$(git status --porcelain)"
