@@ -1,0 +1,67 @@
+name: LFJ 1104 A03 PROVISIONAL original source receiver preflight
+on:
+  pull_request:
+    branches: [main, feat/1104-i3-consumer-source-facts-receiver]
+    paths:
+      - 'lfj/acceptance/3d-converters/h1-served-source-receiver.mjs'
+      - '.github/workflows/lfj-1104-a03-provisional-receiver.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-derived-receiver-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout literal #1104 receiver candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: receiver-candidate
+      - name: Verify consumer candidate SHA
+        working-directory: receiver-candidate
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Checkout pinned merged #1105 provisional staging implementation
+        uses: actions/checkout@v4
+        with:
+          ref: f3b1383be6707ec884325176bc6b98d9b40ca7c8
+          path: upstream-source
+      - name: Verify source provenance and build provisional origin OUTSIDE repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream-source rev-parse HEAD)" = "f3b1383be6707ec884325176bc6b98d9b40ca7c8"
+          stage_dir="$(mktemp -d "${RUNNER_TEMP}/lfj-1104-provisional-XXXXXX")"
+          echo "LFJ_1104_PROVISIONAL_ROOT=${stage_dir}" >> "${GITHUB_ENV}"
+          cd upstream-source
+          node lfj/qualification/provisional/stage-public-runtime.mjs --stage-dir "${stage_dir}"
+          cat "${stage_dir}/lfj/source-derived-staging-report.json"
+          test ! -e docs/lfj/runtime/source-session.mjs || echo "Authored deployment may have advanced: separate H1 gate still applies"
+      - name: Install exact Chromium engine
+        working-directory: receiver-candidate
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve source-derived temporary origin ONLY (NOT deployed docs)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd "${LFJ_1104_PROVISIONAL_ROOT}" && python3 -m http.server 4186 --bind 127.0.0.1 >/tmp/lfj-1104-preflight.log 2>&1) &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4186/lfj/served-durable-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1104-preflight.log
+          exit 1
+      - name: Real browser Worker + IDB source facts into consumer receiver (PROVISIONAL)
+        working-directory: receiver-candidate
+        run: |
+          git rev-parse HEAD
+          node lfj/acceptance/3d-converters/h1-served-source-receiver.mjs
+      - name: Upload source-derived origin SHA closure proof, not H1 approval
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-1104-provisional-receiver-source-closure
+          path: ${{ env.LFJ_1104_PROVISIONAL_ROOT }}/lfj/source-derived-staging-report.json
+          if-no-files-found: warn
