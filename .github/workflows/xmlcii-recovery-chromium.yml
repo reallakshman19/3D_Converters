@@ -1,0 +1,53 @@
+name: XML-CII Recovery Real Resolver Chromium RED
+on:
+  push:
+    branches:
+      - recovery/b5-1145-chromium-resolver-red
+    paths:
+      - 'tests/recovery-xmlcii/**'
+      - '.github/workflows/xmlcii-recovery-chromium.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/recovery-xmlcii/**'
+      - '.github/workflows/xmlcii-recovery-chromium.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-standalone-resolver:
+    name: Chromium ${{ matrix.corpus.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        corpus:
+          - {name: scoped-positive, file: ''}
+          - {name: authentic-733kb, file: 'Benchmarks/1885Sjson/Sjson.json'}
+          - {name: authentic-10mb, file: 'Benchmarks/1885_NC/1885_NC.json'}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check browser harness syntax
+        run: node --check tests/recovery-xmlcii/resolver-real-ui-chromium.mjs
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Exercise ACTUAL authored docs application
+        env:
+          RECOVERY_JSON: ${{ matrix.corpus.file }}
+          RECOVERY_EVIDENCE_DIR: recovery-artifacts/${{ matrix.corpus.name }}
+          RECOVERY_TIMEOUT_MS: '90000'
+        run: node tests/recovery-xmlcii/resolver-real-ui-chromium.mjs
+      - name: Preserve real browser result even when RED
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolver-chromium-${{ matrix.corpus.name }}
+          path: recovery-artifacts/${{ matrix.corpus.name }}/
+          if-no-files-found: warn
+          retention-days: 30
