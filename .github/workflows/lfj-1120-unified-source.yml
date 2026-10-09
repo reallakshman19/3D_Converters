@@ -1,7 +1,7 @@
 name: LFJ 1120 W2 unified native IndexedDB source HEAD
 on:
   pull_request:
-    branches: [main]
+    branches: [main, lfj/1120-w2-unified-indexed-source]
     paths:
       - 'lfj/runtime/unified-*'
       - '.github/workflows/lfj-1120-unified-source.yml'
