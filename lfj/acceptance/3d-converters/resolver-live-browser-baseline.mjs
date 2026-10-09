@@ -33,10 +33,13 @@ async function step(name,callback){
 }
 try{
  await page.addInitScript(()=>{
-  const obj={fileTextCalls:[],largeParseCalls:0,largeParseMaxChars:0,lfjWorkerUrls:[],workerUrls:[],indexedDbOpens:[],longTasks:[]};
+  const obj={fileTextCalls:[],fileReaderReadAsTextCalls:[],largeParseCalls:0,largeParseMaxChars:0,lfjWorkerUrls:[],workerUrls:[],indexedDbOpens:[],longTasks:[]};
   Object.defineProperty(window,'__LFJ_I2',{value:obj});
   const text=File.prototype.text;
   File.prototype.text=function(...args){obj.fileTextCalls.push({name:this.name,bytes:this.size});return text.apply(this,args);};
+  // Real XML→CII adapter uses FileReader.readAsText, not File.text; observe both ingress paths.
+  const reader=FileReader.prototype.readAsText;
+  FileReader.prototype.readAsText=function(blob,...args){obj.fileReaderReadAsTextCalls.push({name:blob?.name||'',bytes:blob?.size??null});return reader.call(this,blob,...args);};
   const parse=JSON.parse;
   JSON.parse=function(s,...rest){if(typeof s==='string'&&s.length>100000){obj.largeParseCalls++;obj.largeParseMaxChars=Math.max(obj.largeParseMaxChars,s.length);}return parse.call(this,s,...rest);};
   const NativeWorker=window.Worker;
@@ -108,7 +111,7 @@ try{
  const output={schema:'LFJ.3D.ResolverLiveBrowserLegacyBaseline.v1',classification:'REAL_DEPLOYED_UI_LEGACY_NO_LFJ_ADOPTION',exactContext:'docs/index.html + real app tab + default Single mode + original Resolver build and CSV',inputs:{xml:{path:'Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML',bytes:xml.length,sha256:sha(xml),role:'GENERATED_CANDIDATE_XML'},stagedJson:{path:js.path,bytes:js.bytes,sha256:js.sha256,role:js.role}},scope,metrics:indexUI,csv:nodeCsv,elapsedMs:{XMLUploadToStaged:stagedT-sourceT,stagedUploadToBuilt:t3-stagedT,XMLUploadToValidatedCsv:t4-t0},instrumentation:obs,steps,pageErrors,semantics:'NOT_INDEPENDENT_ENGINEERING_GOLDEN'};
  if(process.env.LFJ_I0_RECEIPT_DIR){mkdirSync(process.env.LFJ_I0_RECEIPT_DIR,{recursive:true});writeFileSync(join(process.env.LFJ_I0_RECEIPT_DIR,'resolver-browser-baseline.json'),JSON.stringify(output,null,2)+'\n');}
  console.log('LFJ_3D_RESOLVER_LIVE_BROWSER '+JSON.stringify(output));
- assert.ok(obs.fileTextCalls.some(x=>x.name==='EnrichedSjson.json'),'Real File.text still used for staged JSON');
+ assert.ok(obs.fileReaderReadAsTextCalls.some(x=>x.name==='EnrichedSjson.json'&&x.bytes===js.bytes),'Actual adapter must use original full staged FileReader.readAsText on legacy path');
  assert.ok(obs.largeParseCalls>0,'Legacy foreground parse must reproduce');
  assert.equal(obs.lfjWorkerUrls.length,0,'No LFJ Worker expected from legacy Resolver; if newly wired, revise acceptance');
  assert.ok(nodeCsv.rows>1);
