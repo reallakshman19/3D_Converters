@@ -239,3 +239,16 @@ test('A02P2 RED: consumer basis getter can reenter commit but cannot publish twi
   assert.equal(sink.readPublished(),null);
   sink.transaction.abort();
 });
+
+
+test('A02P2 RED: duplicate original path/occurrence cannot be published with a new ordinal',()=>{
+  const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...basis}),maxFacts:3});
+  sink.transaction.begin({expectedBasis:basis,selectedCount:2,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
+  sink.transaction.stage(fact(0,'','A'));
+  // Same canonical R05 pointer/ID with artificially increased ordinal.
+  assert.throws(()=>sink.transaction.stage(fact(1,'','B')),
+    code('GENERATION_FACT_INVALID'));
+  sink.transaction.abort();
+  assert.equal(sink.readPublished(),null);
+});
