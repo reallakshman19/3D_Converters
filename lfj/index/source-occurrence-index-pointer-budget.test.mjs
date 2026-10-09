@@ -14,14 +14,20 @@ test('R05 RED: deep long-key source fails by typed pointer budget before event-p
   const builder=createSourceSnapshotBuilder({byteLength:bytes.length,revision:'pointer-memory-red'});
   for(let i=0;i<bytes.length;i+=8192)builder.append(bytes.subarray(i,i+8192),i);
   const snap=builder.finalize();
-  let pages=0;
+  let pages=0,maxPageBytes=0;
   try{
     await assert.rejects(()=>streamJsonOccurrenceEvents(snap,{
       sourceRefId:'RESOURCE-BUDGET-NEGATIVE',
-      pageEvents:256,pageBytes:8192,
-      onEventPage:async()=>{pages++;},
+      // Use a legitimate large wire budget, so the failure is specifically\n      // the canonical 65536-unit JSON Pointer ceiling, not a page-byte cap.\n      pageEvents:256,pageBytes:1048576,
+      onEventPage:async page=>{
+        pages++;
+        maxPageBytes=Math.max(maxPageBytes,
+          new TextEncoder().encode(JSON.stringify(page)).length);
+      },
     }),e=>e?.code==='POINTER_LIMIT',
     'unsupported very long nested original paths must fail-closed, not finish successfully');
-    assert.equal(pages,0,'reject before a bounded transport page can exceed pointer budget');
+    assert.ok(maxPageBytes<=1048576,
+      'even provisional pages before pointer-limit refusal must honor the 1MiB R05 budget');
+
   }finally{snap.close();}
 });

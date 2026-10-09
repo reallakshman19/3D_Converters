@@ -25,7 +25,7 @@ function expectedSpan(fragment) {
 async function events(snapshot,options={}) {
  const pages=[];
  const summary=await streamJsonOccurrenceEvents(snapshot,{
-  sourceRefId:'REAL-PL01',pageBytes:1,pageEvents:2,
+  sourceRefId:'REAL-PL01',pageBytes:65536,pageEvents:2,
   onEventPage:async p=>pages.push(p),...options,
  });
  return {summary,open:pages.flat().filter(e=>e.kind==='OPEN'),

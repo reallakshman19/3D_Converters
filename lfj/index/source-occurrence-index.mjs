@@ -42,6 +42,11 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     fail('EVENT_SINK_REQUIRED','bounded asynchronous event-page sink required');
   if(!validPositive(pageEvents)||pageEvents>4096)
     fail('PAGE_LIMIT','event-page bound must be 1..4096');
+  // This is also R04's byte-cursor read bound. R05 owns an independent
+  // serialized event-buffer ceiling under the same explicit caller budget.
+  // Neither event count nor source read bytes can silently override the other.
+  if(!validPositive(pageBytes)||pageBytes>1048576)
+    fail('PAGE_LIMIT','event-page serialized byte budget must be 1..1MiB');
   if(!validPositive(maxOccurrences)||maxOccurrences>2000000)
     fail('OCCURRENCE_LIMIT','source occurrence ceiling must be 1..2000000');
   if(!snapshot||typeof snapshot.sha256!=='string'||
@@ -50,13 +55,24 @@ export async function streamJsonOccurrenceEvents(snapshot,{
       !Number.isSafeInteger(snapshot.byteLength))
     fail('INVALID_SOURCE_SNAPSHOT','exact immutable R03 source required');
 
-  let opened=0,sealed=0,sent=0,rootSeen=false,pending=[];
+  let opened=0,sealed=0,sent=0,rootSeen=false,pending=[],pendingBytes=2;
+  const encoder=new TextEncoder();
   const frames=[]; // only ancestors currently open; R04 enforces maxDepth
   async function publish(event){
-    pending.push(Object.freeze({
+    const row=Object.freeze({
       schema,sourceRefId,sourceSha256:snapshot.sha256,
       sourceRevision:snapshot.revision,...event,
-    }));
+    });
+    // Charge every source schema, revision, original path, occurrence ID and
+    // own-attributes byte ONCE, with exact UTF8 JSON row + array punctuation.
+    const width=encoder.encode(JSON.stringify(row)).byteLength;
+    if(width+2>pageBytes)
+      fail('SOURCE_EVENT_PAGE_LIMIT',
+        'one original R05 source fact exceeds caller serialized page budget');
+    if(pending.length&&(pending.length>=pageEvents||
+       pendingBytes+1+width>pageBytes))await flush();
+    pendingBytes+=width+(pending.length?1:0);
+    pending.push(row);
     if(pending.length>=pageEvents)await flush();
   }
   // Exact R03 snapshots can be closed while an R04 byte cursor holds its
@@ -72,7 +88,7 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     if(!pending.length)return;
     await attestLive();
     const batch=Object.freeze(pending);
-    pending=[];
+    pending=[];pendingBytes=2;
     await onEventPage(batch); // backpressure; propagate sink errors unchanged
     await attestLive();
     sent+=batch.length;
