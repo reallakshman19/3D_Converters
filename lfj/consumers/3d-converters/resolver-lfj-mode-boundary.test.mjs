@@ -100,3 +100,35 @@ test('A06/U07 committed LFJ source-only ready report invalidated by XML/master/c
       'stale original source report must be removed from application state');
   }
 });
+
+
+test('A06/U06 LFJ then LEGACY ABA mode switch still supersedes old pending Build',async()=>{
+  const actual=readFileSync(path,'utf8')
+    .replace(/^import[\s\S]*?;\s*$/gm,'')
+    .replace(/\bexport\s+/g,'');
+  let complete,computation=0;
+  const waitForXml=new Promise(resolve=>{complete=resolve;});
+  const code=new Function('updateWorkflowState','updateResolverJsonTraceConfig',
+    'readTextFile','runStandaloneResolverJsonTrace',
+    'applyStandaloneResolverJsonTraceResult','compareTraceResultsByComponentRef',
+    actual+'\nreturn {runResolverJsonTraceFromUi,revokeResolverLfjJob};');
+  const api=code((s,p)=>({...s,...p}),(s,x)=>({...s,resolverJsonTraceConfig:x}),
+    async file=>file.id==='XML'?waitForXml:'[]',
+    ()=>{computation++;return {resolvedFacts:[{}]};},
+    (s,r)=>({...s,resolverJsonTraceResult:r}),()=>({}));
+  const initial={resolverLfjMode:'LEGACY',resolverLfjJobToken:'',
+    sourceFile:{id:'XML'},stagedJsonFile:{id:'JSON'},
+    sourceText:'',stagedJsonText:'',resolverJsonTraceConfig:{},
+    resolverJsonTraceResult:null};
+  const stateRef={current:initial};
+  const pending=api.runResolverJsonTraceFromUi(
+    {querySelector:()=>null},stateRef,()=>{},false);
+  api.revokeResolverLfjJob(stateRef);
+  stateRef.current={...stateRef.current,resolverLfjMode:'LFJ'};
+  api.revokeResolverLfjJob(stateRef);
+  stateRef.current={...stateRef.current,resolverLfjMode:'LEGACY'};
+  complete('<Original/>');
+  await pending;
+  assert.equal(computation,0);
+  assert.equal(stateRef.current.resolverJsonTraceResult,null);
+});
