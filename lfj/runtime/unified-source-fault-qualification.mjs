@@ -14,7 +14,7 @@ try{
   assert.equal(result.headAbortInjected,true);
   assert.equal(result.headAbortedInvisible,'UNIFIED_ABORTED');
   assert.equal(result.preCommitVisible,'UNIFIED_NOT_COMMITTED');
-  assert.equal(result.casLoser,'UNIFIED_HEAD_ABORTED');
+  assert.equal(result.casLoser,'CUSTODY_WRITER_BUSY');
   assert.equal(result.casWinnerRetained,true);
   assert.equal(result.mutableInputIsolated,true,
     'ACKed original source facts cannot borrow caller mutable objects');
