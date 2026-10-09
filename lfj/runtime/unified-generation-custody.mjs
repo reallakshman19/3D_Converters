@@ -25,9 +25,13 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
     !Number.isSafeInteger(ttlMs)||ttlMs<1000||ttlMs>3600000)
     fail('CUSTODY_INVALID','finite generation, source and lease required');
   let claimed=false,ready=false,expiresAt=0,closed=false,joining=null;
+  let lastClock=-1;
   function clock(){
     const t=now();
-    if(!Number.isSafeInteger(t)||t<0)fail('CUSTODY_CLOCK','invalid custody clock');
+    if(!Number.isSafeInteger(t)||t<0||t<lastClock||
+      !Number.isSafeInteger(t+ttlMs))
+      fail('CUSTODY_CLOCK','invalid, overflowing or rewound custody clock');
+    lastClock=t;
     return t;
   }
   const owns=row=>row?.namespace===namespace&&row.generation===generation&&
