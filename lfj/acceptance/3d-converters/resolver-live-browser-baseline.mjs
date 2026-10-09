@@ -1,6 +1,6 @@
-/** #1104 I2: genuine docs/index.html Resolver user journey, not LFJ adoption/release.
+/** #1104 I2: genuine docs/index.html SINGLE-mode Resolver user journey, not LFJ adoption/release.
  * Start python3 -m http.server 4182 --directory docs, then run this file under Node.
- * Characterizes actual Mode-A XML+JSON file paths, live source scope, output CSV.
+ * Characterizes the actual default Single-mode XML+JSON file paths, source scope, CSV.
  */
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -70,11 +70,11 @@ try{
   await btn.waitFor({state:'visible',timeout:20000});
   assert.equal(await btn.isDisabled(),false,'Real XML mode must allow Resolver phase');
   await btn.click();
-  await page.locator('input[data-mode-a-staged-json-all]').waitFor({state:'attached',timeout:25000});
+  await page.locator('.xml-cii-standalone-root input[data-field="staged-json-file"]').waitFor({state:'attached',timeout:25000});
  });
  const stagedT=await step('real_staged_json_file_upload',async()=>{
-  await page.locator('input[data-mode-a-staged-json-all]').setInputFiles({name:'EnrichedSjson.json',mimeType:'application/json',buffer:staged});
-  await page.getByText(/EnrichedSjson.json applied to/).first().waitFor({timeout:45000});
+  await page.locator('.xml-cii-standalone-root input[data-field="staged-json-file"]').setInputFiles({name:'EnrichedSjson.json',mimeType:'application/json',buffer:staged});
+  await page.getByText('✅ Staged JSON: Loaded').first().waitFor({timeout:45000});
   return mark('R2-staged-json-loaded');
  });
  const scope=await step('real_resolver_scope_control',async()=>{
@@ -105,7 +105,7 @@ try{
  });
  const t4=await mark('R4-downloaded-and-validated');
  const obs=await page.evaluate(()=>window.__LFJ_I2);
- const output={schema:'LFJ.3D.ResolverLiveBrowserLegacyBaseline.v1',classification:'REAL_DEPLOYED_UI_LEGACY_NO_LFJ_ADOPTION',exactContext:'docs/index.html + real app tab + Mode-A batch + original Resolver build and CSV',inputs:{xml:{path:'Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML',bytes:xml.length,sha256:sha(xml),role:'GENERATED_CANDIDATE_XML'},stagedJson:{path:js.path,bytes:js.bytes,sha256:js.sha256,role:js.role}},scope,metrics:indexUI,csv:nodeCsv,elapsedMs:{XMLUploadToStaged:stagedT-sourceT,stagedUploadToBuilt:t3-stagedT,XMLUploadToValidatedCsv:t4-t0},instrumentation:obs,steps,pageErrors,semantics:'NOT_INDEPENDENT_ENGINEERING_GOLDEN'};
+ const output={schema:'LFJ.3D.ResolverLiveBrowserLegacyBaseline.v1',classification:'REAL_DEPLOYED_UI_LEGACY_NO_LFJ_ADOPTION',exactContext:'docs/index.html + real app tab + default Single mode + original Resolver build and CSV',inputs:{xml:{path:'Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML',bytes:xml.length,sha256:sha(xml),role:'GENERATED_CANDIDATE_XML'},stagedJson:{path:js.path,bytes:js.bytes,sha256:js.sha256,role:js.role}},scope,metrics:indexUI,csv:nodeCsv,elapsedMs:{XMLUploadToStaged:stagedT-sourceT,stagedUploadToBuilt:t3-stagedT,XMLUploadToValidatedCsv:t4-t0},instrumentation:obs,steps,pageErrors,semantics:'NOT_INDEPENDENT_ENGINEERING_GOLDEN'};
  if(process.env.LFJ_I0_RECEIPT_DIR){mkdirSync(process.env.LFJ_I0_RECEIPT_DIR,{recursive:true});writeFileSync(join(process.env.LFJ_I0_RECEIPT_DIR,'resolver-browser-baseline.json'),JSON.stringify(output,null,2)+'\n');}
  console.log('LFJ_3D_RESOLVER_LIVE_BROWSER '+JSON.stringify(output));
  assert.ok(obs.fileTextCalls.some(x=>x.name==='EnrichedSjson.json'),'Real File.text still used for staged JSON');
