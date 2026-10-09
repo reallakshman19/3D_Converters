@@ -22,6 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         size: [SMALL, LARGE]
+        mode: [AUTHENTIC, SOURCE_DERIVED_CONTROL]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +56,7 @@ jobs:
       - name: Actual original XML Node-wise and Evidence Tree SHA parity
         env:
           B0_SIZE: ${{ matrix.size }}
+          B0_XML_MODE: ${{ matrix.mode }}
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
       - name: Source tree unchanged
         run: test -z "$(git status --porcelain)"
