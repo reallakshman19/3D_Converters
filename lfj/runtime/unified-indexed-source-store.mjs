@@ -190,6 +190,7 @@ export async function openUnifiedIndexedSourceStore({
   const custody=createGenerationCustody({db,namespace,generation,now,
     ttlMs:leaseTtlMs,beforeReclaim});
   let state='STAGING',activeTx=null,buffer=[],bufferBytes=0;
+  let publishedHere=false;
   let stagedEvents=0,opens=0,seals=0,nextOrdinal=0,busy=false;
   function usable(){
     if(state==='ABORTED')fail('UNIFIED_ABORTED','source generation revoked');
@@ -219,7 +220,7 @@ export async function openUnifiedIndexedSourceStore({
       request.onsuccess=()=>{
         if(request.result?.generation===generation)heads.delete(namespace);
       };
-    });
+    },{allowCommitted:publishedHere});
     await done;
   }
   async function abort(){
@@ -385,7 +386,7 @@ export async function openUnifiedIndexedSourceStore({
       await done;
       if(changed)fail('UNIFIED_HEAD_SUPERSEDED','concurrent generation replaced original source');
       if(state!=='COMMITTING')fail('UNIFIED_ABORTED','late cancellation after HEAD');
-      state='COMMITTED';
+      state='COMMITTED';publishedHere=true;
       return Object.freeze({...manifest});
     }catch(error){
       state='ABORTED';
