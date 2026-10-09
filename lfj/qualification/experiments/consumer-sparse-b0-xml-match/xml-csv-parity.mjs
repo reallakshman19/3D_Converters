@@ -9,6 +9,10 @@ import {runStandaloneResolverJsonTrace} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
 import {buildEvidenceTreeCsv,buildXmlNodeWiseTraceCsv} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-trace-export.js';
+import {configuredJsonTraceFieldNames} from
+  '../../../../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
+import {resolveSourceSchema} from
+  '../../../../converters/xml-cii2019-core/source-schema-adapter.js';
 const HEAD_SCHEMA='LFJ.B0.ResolverProjection.v1',MATCH_SCHEMA='LFJ.B0.XmlCsvResearch.v1';
 const fail=(code,msg)=>{throw Object.assign(new Error(msg),{code});};
 const sha256=async value=>[...new Uint8Array(
@@ -63,6 +67,11 @@ export async function compareSourceProjectionToXml({
   try{
     db=await openDb(projectionDatabaseName);
     const head=await read(db.transaction('heads','readonly').objectStore('heads'),'active');
+    const expectedConsumerDigest=await sha256(JSON.stringify({
+      schema:HEAD_SCHEMA,config,toleranceMm:6,
+      enabledFields:configuredJsonTraceFieldNames(config),
+      resolvedSchema:resolveSourceSchema(config)
+    }));
     if(!head||head.schema!==HEAD_SCHEMA||!head.complete||
        head.sourceSha256!==expectedSha256||
        head.sourceGeneration!==sourceGeneration||
@@ -70,6 +79,8 @@ export async function compareSourceProjectionToXml({
        head.originalCount!==source.sourceCount||head.engineeringReady!==false||
        !Number.isInteger(head.factPageCount)||head.factPageCount<0)
       fail('PROJECTION_NOT_COMMITTED','source/projected consumer facts do not share an exact HEAD');
+    if(head.consumerManifestDigest!==expectedConsumerDigest)
+      fail('PROJECTION_CONFIG_STALE','consumer capture/aliases/tolerance differ from committed projection');
     const branches=[],records=[],factPages=[];
     let sourceFacts=0;
     for(let pageNo=0;pageNo<head.factPageCount;pageNo++){
