@@ -1,0 +1,42 @@
+name: LFJ 1147 B0-08 authentic small positive plus 10MB negative source/CSV parity
+on:
+  push:
+    branches: ['lfj/1147-b0-08-authentic-large-parity']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - '.github/workflows/lfj-1147-b0-08-authentic-large-parity.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - '.github/workflows/lfj-1147-b0-08-authentic-large-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  both-authentic-source-oracles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact input commit
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Static modules
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/original-source-slim-fixture.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/large-authentic-source-parity-oracle.mjs
+      - name: Authentic positive 164-match and independent negative first
+        run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+      - name: Authentic 10MB 3429-node negative full ledger and both CSVs
+        run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/large-authentic-source-parity-oracle.mjs
+      - name: No source mutation
+        run: test -z "$(git status --porcelain)"
