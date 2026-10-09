@@ -342,6 +342,7 @@ export async function openUnifiedIndexedSourceStore({
   }
   async function commitDurably(manifest){
     usable();
+    if(state==='STAGING')await custody.ensure();
     if(state!=='STAGING'||busy||!same(manifest,basis)||
       manifest?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||
       manifest.complete!==true||manifest.rightsBasis!=='SOURCE_FACTS_ONLY'||
@@ -360,18 +361,21 @@ export async function openUnifiedIndexedSourceStore({
       const complete=await census(db,namespace,generation,basis,manifest);
       if(complete!==opens)fail('UNIFIED_PAIR_CENSUS','not all pairs committed in original ordinal order');
       if(state!=='VERIFYING')fail('UNIFIED_ABORTED','generation superseded before HEAD');
+      await custody.ensure();
       state='COMMITTING';
-      const tx=db.transaction('heads','readwrite');
+      const tx=db.transaction(['heads','leases'],'readwrite');
       activeTx=tx;
       const done=txDone(tx,'UNIFIED_HEAD_ABORTED');
-      const heads=tx.objectStore('heads');
-      const req=heads.get(namespace);
       let changed=false;
-      req.onsuccess=()=>{
-        if((req.result?.generation??null)!==expectedHead){changed=true;tx.abort();return;}
-        heads.put({namespace,generation,count:opens,manifest});
-        try{beforeHeadCommit?.(tx);}catch{tx.abort();}
-      };
+      custody.fence(tx,()=>{
+        const heads=tx.objectStore('heads');
+        const req=heads.get(namespace);
+        req.onsuccess=()=>{
+          if((req.result?.generation??null)!==expectedHead){changed=true;tx.abort();return;}
+          heads.put({namespace,generation,count:opens,manifest});
+          try{beforeHeadCommit?.(tx);}catch{tx.abort();}
+        };
+      },{release:true});
       await done;
       if(changed)fail('UNIFIED_HEAD_SUPERSEDED','concurrent generation replaced original source');
       if(state!=='COMMITTING')fail('UNIFIED_ABORTED','late cancellation after HEAD');
@@ -424,6 +428,7 @@ export async function openUnifiedIndexedSourceStore({
     // SAME still-open transaction: db.close() alone merely waits for it
     // and could publish a HEAD after the caller believed custody ended.
     state='CLOSED';buffer=[];bufferBytes=0;
+    custody.closedNotice();
     try{activeTx?.abort();}catch{}
     db.close();
   }
