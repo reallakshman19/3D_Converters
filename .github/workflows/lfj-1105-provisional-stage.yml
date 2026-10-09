@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'lfj/qualification/provisional/stage-public-runtime.mjs'
+      - 'lfj/qualification/provisional/verify-served-runtime.mjs'
+      - 'lfj/qualification/provisional/verify-served-runtime.test.mjs'
       - '.github/workflows/lfj-1105-provisional-stage.yml'
   workflow_dispatch:
 permissions:
@@ -49,6 +51,8 @@ jobs:
           done
           cat /tmp/lfj-u03-staged.log
           exit 1
+      - name: Independently attest all served bytes, MIME and source commit with negative probes
+        run: node lfj/qualification/provisional/verify-served-runtime.test.mjs
       - name: Native Worker IDB and source-value from staged publication
         run: node lfj/qualification/provisional/served-source-session-qualification.mjs
       - name: Preserve provisional SHA inventory and honesty
