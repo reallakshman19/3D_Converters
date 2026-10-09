@@ -52,6 +52,32 @@ export function slimNode(fact){
   if(!node.bore&&fact.bore)node.bore=fact.bore;
   return node;
 }
+// A zero-row/partial Resolver result is never a valid "all unresolved" fixture.
+// Check all three independently exposed XML populations BEFORE hashing CSVs.
+// This does not reject a genuine negative match: 3,429 parsed XML nodes can
+// legitimately yield 3,429 UNRESOLVED records.
+export function assertCompleteResearchXmlLedger(result){
+  const count=result?.indexStats?.xmlNodeCount;
+  const indexed=result?.nodes;
+  const parsed=result?.traceResolutionLedger?.nodes;
+  const records=result?.traceResolutionLedger?.records;
+  if(!Number.isSafeInteger(count)||count<1||
+     !Array.isArray(indexed)||indexed.length!==count||
+     !Array.isArray(parsed)||parsed.length!==count||
+     !Array.isArray(records)||records.length!==count)
+    fail('XML_LEDGER_CENSUS',
+      'XML node population was empty/incomplete or Resolver ledger is invalid');
+  for(let i=0;i<count;i++){
+    const expected=i+1;
+    if(indexed[i]?.xmlIndex!==expected||
+       parsed[i]?.xmlIndex!==expected||
+       records[i]?.xmlIndex!==expected)
+      fail('XML_LEDGER_CENSUS',
+        'XML source occurrence identity/order diverged from resolution ledger');
+  }
+  return records;
+}
+
 export async function compareSourceProjectionToXml({
   sourceDatabaseName,sourceGeneration,
   projectionDatabaseName,projectionGeneration,
@@ -177,9 +203,9 @@ export async function compareSourceProjectionToXml({
       sourceText:xmlText,sourceKind:'xml',stagedJsonText:branches,
       jsonConfig:config
     });
+    const recordsOut=assertCompleteResearchXmlLedger(result);
     const nodeCsv=buildXmlNodeWiseTraceCsv(result);
     const evidenceCsv=buildEvidenceTreeCsv(result);
-    const recordsOut=result.traceResolutionLedger?.records||[];
     const statusCounts=recordsOut.reduce((a,row)=>{
       a[row.status]=(a[row.status]||0)+1;return a;
     },{});
