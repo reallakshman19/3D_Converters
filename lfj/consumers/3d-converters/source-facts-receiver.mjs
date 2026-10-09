@@ -113,7 +113,12 @@ export async function consumeSelectedSourceFacts({
     verifyRelease(session,expected,manifest);
     const total=session.pageManifest.selectedCount;
     txTouched=true; // abort even if begin() partially stages before rejecting
+    // The app sink must retain the SAME original Worker R05 census that
+    // authorized this SourceSession, not a fresh caller-invented profile.
+    // Legacy injected fixture ports may omit it; any production source-ledger
+    // implementation must reject an absent or mismatched census.
     await transaction.begin(Object.freeze({expectedBasis:expected,selectedCount:total,
+      sourceIndexSummary:session.summary,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false}));
     attest();
     let cursor=null,lastOrdinal=-1,count=0,scalars=0,containers=0,scalarBytes=0,pageCount=0;
