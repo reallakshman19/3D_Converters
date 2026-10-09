@@ -38,6 +38,12 @@ From repository root:
 - Benchmarks/1885_NC/1885_NC.json — 10232634 bytes; accompanying original topology XML, canonical topology, trace ledger are **candidate** oracles, not automatically accepted.
 - Authentically populated 30 MB / 90 MB — source files and independent expected output currently **NOT VERIFIED**. Synthetic repeats, whitespace padding or clones only count as artificial stress, never as real-source acceptance.
 
+## I1 actual served Chromium stage-boundary evidence (in progress)
+
+The initial real docs/ browser run uploaded **raw** `Benchmarks/1885Sjson/Sjson.json` and obtained a different ELBO wall than the committed fixture contract: 8.18 mm, whereas that fixture expects 12.7 mm. This does **not** establish an engineering defect, because `tools/generate-1885-stagedjson-fixtures.mjs` first applies `enrichStagedJson` with line-list, piping class, material-map and weight masters and **only then** invokes `runEnrichment` on generated `Benchmarks/1885Sjson/EnrichedSjson` (1,785,455 bytes, SHA256 `e9a51723444e9490f5dff9c1ff4a5c56191873033d11a289946746ff1072c5da`). The saved `fixture-contract-snapshot.json` belongs to that stage2 source, not to the unmastered raw original. The source and generated intermediate remain separate explicit register entries.
+
+`enrichment-browser-baseline.mjs` exercises the **actual served docs application and native download links**. Its stage2 candidate check preserves existing expected component engineering fields without rewriting any golden. Generated 1885 stage1/stage2 artifacts are **candidate semantic oracles**, not separately owner-approved engineering outputs. The raw one-stage path and the full master-loaded two-stage UI path must be qualified independently later; neither may silently inherit the other's expected values. Baseline browser green only proves the legacy served app's outputs under this particular stage2 candidate, not LFJ adoption.
+
 ## Required next real browser end-to-end benchmark, not executed by I0
 
 **Resolver:** fresh deployed docs app → actual File selection + original XML/master/config → LFJ source custody/Worker/durable IDB commit → ALL/Zone/explicit selection → real engineering Build/Refresh → trace first/mid/last paint → download node-wise and evidence CSV → independent full parsed output oracle.
