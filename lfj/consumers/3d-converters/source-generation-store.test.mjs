@@ -193,3 +193,49 @@ test('A02P2 aggregate budget must be bounded across individually valid UTF-8 sca
   sink.transaction.abort();
   assert.equal(sink.readPublished(),null);
 });
+
+
+test('A02P2 RED: receiver commit callback may mutate authoritative app basis before publication',()=>{
+  let current={...basis};
+  const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...current}),maxFacts:2});
+  sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
+  sink.transaction.stage(fact(0,'','first'));
+  assert.throws(()=>sink.transaction.commit({
+    receipt:receipt(1),expectedBasis:basis,
+    getCurrentBasis:()=>{
+      // Adversarial reentrancy: app state is superseded while the receiver
+      // callback is running; the callback returns its own old snapshot.
+      current={...current,dependencyRevision:'changed-during-commit'};
+      return {...basis};
+    }
+  }),code('APP_GENERATION_STALE'));
+  assert.equal(sink.readPublished(),null);
+  sink.transaction.abort();
+});
+
+test('A02P2 RED: consumer basis getter can reenter commit but cannot publish twice',()=>{
+  let current={...basis};
+  let sink,attempt=0,reentrantResult=null;
+  const consumerGetter=()=>{
+    if(attempt++===0){
+      try{
+        reentrantResult=sink.transaction.commit({
+          receipt:receipt(1),expectedBasis:basis,
+          getCurrentBasis:()=>({...basis})
+        });
+      }catch(e){reentrantResult=e.code;}
+    }
+    return {...current};
+  };
+  sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...current}),maxFacts:2});
+  sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
+  sink.transaction.stage(fact(0,'','first'));
+  assert.throws(()=>sink.transaction.commit({
+    receipt:receipt(1),expectedBasis:basis,getCurrentBasis:consumerGetter
+  }),code('GENERATION_REENTRANT'));
+  assert.equal(reentrantResult,'GENERATION_REENTRANT');
+  assert.equal(sink.readPublished(),null);
+  sink.transaction.abort();
+});
