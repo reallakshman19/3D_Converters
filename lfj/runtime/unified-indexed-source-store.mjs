@@ -288,6 +288,8 @@ export async function openUnifiedIndexedSourceStore({
     busy=true;
     try{
       await custody.ensure();
+      if(state!=='STAGING')
+        fail('UNIFIED_ABORTED','session revoked during asynchronous lease admission');
       let pageBytes=0,opensHere=0,sealsHere=0;
       for(const row of rows){
         if(row?.schema!==schema||!same(row,basis)||
