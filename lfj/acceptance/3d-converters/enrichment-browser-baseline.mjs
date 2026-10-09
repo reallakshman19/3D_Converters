@@ -34,7 +34,8 @@ const checkOutput=async xml=>{
       const found=nodes.filter(node=>node.getElementsByTagName('ComponentRefNo')[0]?.textContent===ref);
       actual[ref]={matches:found.length};
       if(found.length===1)for(const key of Object.keys(contract.xml)){
-        const v=found[0].getElementsByTagName(key)[0]?.textContent??null;
+        const tag=key[0].toUpperCase()+key.slice(1);
+        const v=found[0].getElementsByTagName(tag)[0]?.textContent??null;
         actual[ref][key]=v;
       }
     }
@@ -81,8 +82,8 @@ try{
  for(const [ref,expected] of Object.entries(contract.targets)){
   const actual=parsed.actual[ref];
   assert.equal(actual.matches,1,'Source physical ref lost/duplicated: '+ref);
-  for(const key of ['NodeNumber','ComponentType','Endpoint','OutsideDiameter','WallThickness','CorrosionAllowance','InsulationThickness','BendRadius']){
-    const expectation=expected.xml[key.charAt(0).toLowerCase()+key.slice(1)];
+  for(const key of ['nodeNumber','componentType','endpoint','outsideDiameter','wallThickness','corrosionAllowance','insulationThickness','bendRadius','bendType','alphaAngle']){
+    const expectation=expected.xml[key];
     if(expectation!==undefined&&expectation!==null){
       assert.equal(actual[key],String(expectation),'Mismatched golden candidate for '+ref+'/'+key);
     }
