@@ -84,6 +84,10 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
     },
     stage(fact){
       if(!active)fail('GENERATION_NOT_OPEN','no uncommitted consumer generation');
+      if(active.committing){
+        active.poisoned=true;
+        fail('GENERATION_REENTRANT','commit cannot be reentered by a staging callback');
+      }
       requireLive(active.expected);
       if(active.rows.length>=active.selectedCount||
          active.rows.length>=maxFacts)
@@ -103,31 +107,60 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
     // app source mutation between compare-and-swap and this pointer assignment.
     commit({receipt,expectedBasis,getCurrentBasis:receiptLive}={}){
       if(!active)fail('GENERATION_NOT_OPEN','cannot publish without an exclusive generation');
-      const expected=active.expected;
-      if(!same(copyBasis(expectedBasis),expected)||
-        receipt?.schema!=='LFJ.3D.ConsumerSourceFactsReceipt.v1'||
-        receipt.complete!==true||!sourceOnly(receipt)||
-        !same(receipt,expected)||
-        !nat(receipt.selectedCount)||
-        receipt.selectedCount!==active.selectedCount||
-        receipt.selectedCount!==active.rows.length)
-        fail('GENERATION_RECEIPT_INVALID','receipt, original basis and complete staged count must agree');
-      if(typeof receiptLive!=='function')
-        fail('APP_BASIS_REQUIRED','receiver live-basis callback required in commit');
-      requireLive(expected,receiptLive);
-      const stamp=Object.freeze({...receipt});
-      const ready=Object.freeze({receipt:stamp,facts:Object.freeze(active.rows.slice())});
-      const result=Object.freeze({
-        schema:'LFJ.3D.SourceFactsPublication.v1',committed:true,...expected,
-        selectedCount:receipt.selectedCount,
-        rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
-      });
-      visible=ready; // ONLY publication: single synchronous pointer assignment.
-      active=null;
-      return result;
+      // Callback-based checkers are untrusted with respect to reentrancy.
+      // Never allow a nested commit, stage, or abort to make staged data visible.
+      const working=active;
+      if(working.committing){
+        working.poisoned=true;
+        fail('GENERATION_REENTRANT','nested commit cannot publish any source generation');
+      }
+      working.committing=true;
+      try {
+        const expected=working.expected;
+        if(!same(copyBasis(expectedBasis),expected)||
+          receipt?.schema!=='LFJ.3D.ConsumerSourceFactsReceipt.v1'||
+          receipt.complete!==true||!sourceOnly(receipt)||
+          !same(receipt,expected)||
+          !nat(receipt.selectedCount)||
+          receipt.selectedCount!==working.selectedCount||
+          receipt.selectedCount!==working.rows.length)
+          fail('GENERATION_RECEIPT_INVALID',
+            'receipt, original basis and complete staged count must agree');
+        if(typeof receiptLive!=='function')
+          fail('APP_BASIS_REQUIRED','receiver live-basis callback required in commit');
+        // Prepare all immutable public records before the FINAL authoritative
+        // application getter: its evaluation is the last external callback
+        // before a single synchronous pointer promotion.
+        const stamp=Object.freeze({...receipt});
+        const ready=Object.freeze({
+          receipt:stamp,facts:Object.freeze(working.rows.slice())
+        });
+        const result=Object.freeze({
+          schema:'LFJ.3D.SourceFactsPublication.v1',committed:true,...expected,
+          selectedCount:receipt.selectedCount,
+          rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+        });
+        requireLive(expected,receiptLive);
+        if(working.poisoned||active!==working)
+          fail('GENERATION_REENTRANT','callback attempted to change or reenter the current generation');
+        // Receiver callback may mutate the live basis as a side effect while
+        // returning an old snapshot. Recheck ONLY the app-owned authoritative
+        // basis after all such callbacks and immediately before assignment.
+        if(!same(live(getCurrentBasis),expected)||working.poisoned||active!==working)
+          fail('APP_GENERATION_STALE','authoritative app basis changed before source generation promotion');
+        visible=ready; // no await or external callback between this CAS and assignment
+        active=null;
+        return result;
+      }finally {
+        working.committing=false;
+      }
     },
     abort(){
       // A failed or revoked generation never alters the last committed pointer.
+      if(active?.committing){
+        active.poisoned=true;
+        fail('GENERATION_REENTRANT','cannot abort from inside a publication callback');
+      }
       active=null;
     }
   });
