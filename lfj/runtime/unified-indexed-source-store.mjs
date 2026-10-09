@@ -11,6 +11,8 @@
  * Failures/cancellation leave no authorized head; no foreground JSON parser,
  * no synthetic row reconstruction, no app/engineering export authority.
  */
+import {createGenerationCustody} from './unified-generation-custody.mjs';
+
 export class UnifiedSourceIndexError extends Error {
   constructor(code,message){super(code+': '+message);this.name='UnifiedSourceIndexError';this.code=code;}
 }
@@ -43,7 +45,7 @@ function get(db,store,key){
 function openDb(databaseName,api){
   return new Promise((resolve,reject)=>{
     let req;
-    try{req=api.open(databaseName,1);}catch{
+    try{req=api.open(databaseName,2);}catch{
       reject(new UnifiedSourceIndexError('UNIFIED_IDB_REQUIRED','real IndexedDB open refused'));return;
     }
     req.onupgradeneeded=()=>{
@@ -55,6 +57,10 @@ function openDb(databaseName,api){
       }
       if(!db.objectStoreNames.contains('heads'))
         db.createObjectStore('heads',{keyPath:'namespace'});
+      if(!db.objectStoreNames.contains('leases'))
+        db.createObjectStore('leases',{keyPath:'namespace'});
+      if(!db.objectStoreNames.contains('recoveries'))
+        db.createObjectStore('recoveries',{keyPath:['namespace','generation']});
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(new UnifiedSourceIndexError('UNIFIED_IDB_REQUIRED','native IDB unavailable'));
@@ -168,7 +174,8 @@ function readOrdinalChunk(db,ns,gen,start){
  */
 export async function openUnifiedIndexedSourceStore({
   databaseName,namespace,generation,basis,
-  indexedDB:provided=globalThis.indexedDB,beforeHeadCommit
+  indexedDB:provided=globalThis.indexedDB,beforeHeadCommit,
+  now,leaseTtlMs,beforeReclaim
 }={}){
   if(!provided||typeof provided.open!=='function'||typeof IDBKeyRange==='undefined')
     fail('UNIFIED_IDB_REQUIRED','native IndexedDB with ranges required; no fallback');
@@ -180,6 +187,8 @@ export async function openUnifiedIndexedSourceStore({
   const db=await openDb(databaseName,provided);
   const previous=await get(db,'heads',namespace);
   const expectedHead=previous?.generation??null;
+  const custody=createGenerationCustody({db,namespace,generation,now,
+    ttlMs:leaseTtlMs,beforeReclaim});
   let state='STAGING',activeTx=null,buffer=[],bufferBytes=0;
   let stagedEvents=0,opens=0,seals=0,nextOrdinal=0,busy=false;
   function usable(){
@@ -272,6 +281,7 @@ export async function openUnifiedIndexedSourceStore({
       fail('UNIFIED_STAGE_LIMIT','one bounded source event page writer required');
     busy=true;
     try{
+      await custody.ensure();
       let pageBytes=0,opensHere=0,sealsHere=0;
       for(const row of rows){
         if(row?.schema!==schema||!same(row,basis)||
