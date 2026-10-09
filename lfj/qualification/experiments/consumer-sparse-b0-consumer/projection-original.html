@@ -53,8 +53,32 @@ window.runResolverProjectionOriginal=async({url,oracle,config={}})=>{
        result.factCount!==oracle.factCount||
        result.spatialGroupCount!==oracle.groups||
        result.traversedDomainObjects!==oracle.sourceObjects||
-       result.engineeringReady!==false||result.appWired!==false)
-      throw fail('DOMAIN_PROJECTION_ORACLE','source-derived consumer projection mismatch: '+JSON.stringify({actual:{facts:result.factCount,groups:result.spatialGroupCount,objects:result.traversedDomainObjects,digest:result.domainSha256,roots:result.rootBranches},expected:{facts:oracle.factCount,groups:oracle.groups,objects:oracle.sourceObjects,digest:oracle.domainSha256}}));
+       result.engineeringReady!==false||result.appWired!==false){
+      const db=await openDb(projectionDb),diffs=[];
+      try{
+        for(const entry of oracle.sampleFacts||[]){
+          const pageNo=Math.floor(entry.index/128);
+          const fact=await new Promise((resolve,reject)=>{
+            const req=db.transaction('pages','readonly').objectStore('pages').get([id,pageNo]);
+            req.onsuccess=()=>resolve(req.result?.rows?.[entry.index%128]||null);
+            req.onerror=()=>reject(req.error);
+          });
+          if(!fact){diffs.push({index:entry.index,missing:true});continue;}
+          const wrong=[];
+          for(const key of Object.keys(entry.expected)){
+            if(JSON.stringify(fact[key])!==JSON.stringify(entry.expected[key]))
+              wrong.push({key,expected:JSON.stringify(entry.expected[key])?.slice(0,150),
+                actual:JSON.stringify(fact[key])?.slice(0,150)});
+          }
+          if(wrong.length)diffs.push({index:entry.index,path:fact.path,wrong});
+        }
+      }finally{db.close();}
+      throw fail('DOMAIN_PROJECTION_ORACLE','source-derived consumer projection mismatch: '+JSON.stringify({
+        actual:{facts:result.factCount,groups:result.spatialGroupCount,
+          objects:result.traversedDomainObjects,digest:result.domainSha256,roots:result.rootBranches},
+        expected:{facts:oracle.factCount,groups:oracle.groups,
+          objects:oracle.sourceObjects,digest:oracle.domainSha256},diffs:diffs.slice(0,5)}));
+    }
     const db=await openDb(projectionDb);
     let head;
     try{head=await read(db,'active');}finally{db.close();}
