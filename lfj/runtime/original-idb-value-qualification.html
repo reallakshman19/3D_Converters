@@ -57,6 +57,12 @@ window.runOriginalIdbValue=async raw=>{
       rows.push(...page.rows.map(r=>r.path));
       cursor=page.cursor;
     }while(cursor!==null);
+    // Selected IndexedDB pages alone must not survive loss of original
+    // R07 committed source head, even with unchanged source/scope digest.
+    await sourceStore.abort();
+    let revokedPageCode='';
+    try{await session.readPage({cursor:null,maxRows:1,maxBytes:65536});}
+    catch(e){revokedPageCode=e?.code;}
     live.dependencyRevision='replaced-during-current-job';
     let staleCode='';
     try{await session.readOccurrence({
@@ -73,7 +79,7 @@ window.runOriginalIdbValue=async raw=>{
       rootText:new TextDecoder().decode(root.bytes),
       sourceCount:session.summary.occurrenceCount,
       eventCount:session.summary.eventCount,rows,
-      staleCode,closedCode,completion:session.completion.kind,
+      staleCode,closedCode,revokedPageCode,completion:session.completion.kind,
       rightsBasis:session.pageManifest.rightsBasis};
   }finally{
     try{await session?.close();}catch{}
