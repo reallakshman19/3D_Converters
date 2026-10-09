@@ -10,6 +10,11 @@
  * would duplicate unbounded original byte ranges. Individual scalar values
  * are read from their attested OPEN/SEAL spans and delivered one at a time.
  * The exclusive provided session is closed on success AND on any failure.
+ * A transaction port is compulsory: stage() is NEVER publication. Its commit()
+ * must atomically compare current app source/scope/dependency/job basis under
+ * the consumer's result-generation lock before making staged data visible.
+ * This source-only module cannot certify an arbitrary third-party sink;
+ * the real application sink needs its own independent CAS/fault acceptance.
  */
 export class ConsumerSourceError extends Error {
   constructor(code, message) {
@@ -69,10 +74,10 @@ function verifyRelease(session, expected, manifest) {
  * All source-only scalar bytes are delivered one at a time; no full-array result.
  */
 export async function consumeSelectedSourceFacts({
-  session,expectedBasis,getCurrentBasis,onOccurrence,signal,
+  session,expectedBasis,getCurrentBasis,transaction,onOccurrence,signal,
   maxRows=64,maxPageBytes=65536,maxScalarBytes=65536
 }={}) {
-  let expected,closed=false;
+  let expected,closed=false,txTouched=false,committed=false;
   const attest=()=>{
     if (signal?.aborted) fail('CONSUMER_CANCELLED','source consumer cancelled');
     let current;
@@ -80,13 +85,24 @@ export async function consumeSelectedSourceFacts({
     if (!fullMatches(current,expected)) fail('CONSUMER_BASIS_STALE','source, scope, dependency or job changed');
   };
   let failed=null;
+  async function closeExclusive(){
+    if(closed)return;
+    closed=true;
+    await session.close();
+  }
   try {
     expected=verifyExpected(expectedBasis);
     if (!session || typeof session.getCompletionManifest !== 'function' ||
         typeof session.readPage !== 'function' || typeof session.readOccurrence !== 'function' ||
-        typeof session.close !== 'function' || typeof getCurrentBasis !== 'function' ||
-        typeof onOccurrence !== 'function')
-      fail('CONSUMER_PORT_REQUIRED', 'live session, getter, callback and explicit close authority required');
+        typeof session.close !== 'function' || typeof getCurrentBasis !== 'function')
+      fail('CONSUMER_PORT_REQUIRED', 'live session, getter and explicit close authority required');
+    if(onOccurrence!==undefined ||
+       typeof transaction?.begin!=='function' ||
+       typeof transaction?.stage!=='function' ||
+       typeof transaction?.commit!=='function' ||
+       typeof transaction?.abort!=='function')
+      fail('CONSUMER_TRANSACTION_REQUIRED',
+        'nonpublishing stage + atomic basis-CAS commit + abort are mandatory; per-occurrence callbacks forbidden');
     if (!Number.isSafeInteger(maxRows) || maxRows<1 || maxRows>4096 ||
         !Number.isSafeInteger(maxPageBytes) || maxPageBytes<256 || maxPageBytes>1048576 ||
         !Number.isSafeInteger(maxScalarBytes) || maxScalarBytes<1 || maxScalarBytes>1048576)
@@ -96,6 +112,10 @@ export async function consumeSelectedSourceFacts({
     attest();
     verifyRelease(session,expected,manifest);
     const total=session.pageManifest.selectedCount;
+    txTouched=true; // abort even if begin() partially stages before rejecting
+    await transaction.begin(Object.freeze({expectedBasis:expected,selectedCount:total,
+      rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false}));
+    attest();
     let cursor=null,lastOrdinal=-1,count=0,scalars=0,containers=0,scalarBytes=0,pageCount=0;
     while (true) {
       attest();
@@ -151,8 +171,8 @@ export async function consumeSelectedSourceFacts({
         } else containers++;
         // Never mutate LFJ's committed row and never promote it into an app owner.
         const facts=Object.freeze({row:Object.freeze({...row}),bytes,sourceOnly:true});
-        await onOccurrence(facts);
-        attest(); // no successful callback response on late supersession
+        await transaction.stage(facts); // nonpublished storage generation only
+        attest(); // reject late supersession before proceeding with another row
         count++;
         if (count>total) fail('CONSUMER_CARDINALITY_INVALID','more source rows than committed selection');
       }
@@ -164,17 +184,47 @@ export async function consumeSelectedSourceFacts({
       cursor=page.cursor;
     }
     attest();
-    return Object.freeze({
+    const receipt=Object.freeze({
       schema:'LFJ.3D.ConsumerSourceFactsReceipt.v1',complete:true,
       sourceRefId:expected.sourceRefId,sourceSha256:expected.sourceSha256,
       sourceRevision:expected.sourceRevision,selectionDigest:expected.selectionDigest,
       jobId:expected.jobId,dependencyRevision:expected.dependencyRevision,
+      byteLength:expected.byteLength,
       selectedCount:count,scalarCount:scalars,containerCount:containers,
       deliveredScalarBytes:scalarBytes,pages:pageCount,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
     });
-  }catch(error){failed=error;throw error;}
-  finally{
+    // All source reads and the entire selected census finish before publication.
+    // A close failure must abort staging rather than leave a published result
+    // that appears to have failed.
+    await closeExclusive();
+    attest();
+    const publication=await transaction.commit(Object.freeze({
+      receipt,expectedBasis:expected,getCurrentBasis
+    }));
+    // The application-owned sink MUST execute its CAS and atomic promotion
+    // inside commit(), not between this check and its first visible write.
+    if(publication?.schema!=='LFJ.3D.SourceFactsPublication.v1' ||
+       publication?.committed!==true ||
+       !fullMatches(publication,expected) ||
+       publication.selectedCount!==count ||
+       publication.rightsBasis!=='SOURCE_FACTS_ONLY' ||
+       publication.engineeringReady!==false)
+      fail('CONSUMER_COMMIT_INVALID','trusted transaction did not attest exact atomic source-only publication');
+    committed=true;
+    return receipt;
+  }catch(error){
+    failed=error;
+    if(txTouched&&!committed){
+      try {await transaction.abort(Object.freeze({reason:error,expectedBasis:expected}));}
+      catch(rollbackError){
+        failed=new ConsumerSourceError('CONSUMER_ABORT_FAILED',
+          'staged source generation not provably discarded: '+String(rollbackError?.message||rollbackError));
+        failed.cause=error;
+      }
+    }
+    throw failed;
+  }finally{
     if(!closed && typeof session?.close==='function'){
       closed=true;
       try{await session.close();}catch(error){if(!failed)throw error;}
