@@ -24,6 +24,39 @@ const canonicalFields=[
   'path','capturedFields','semanticFields'
 ];
 const normalized=m=>Object.fromEntries(canonicalFields.map(key=>[key,m[key]??(key==='point'?null:'')]));
+const MATCH_FIELD_NAMES=[
+  // Actual legacy trace descriptors, source node fallbacks, support labels,
+  // spatial aliases and explicit component attachment evidence.
+  'DTXR','DESC','DESCRIPTION','RTEXT','SPRE','SPREF','DTXR_POS',
+  'DTXR_PS','DTXRPS','NAME','NodeName','SupportTag','PS','supportPs','psNo',
+  'ComponentRefNo','COMPONENTREFNO','COMPRE','ATTACHED_COMPONENT_REF',
+  'REF','RefNo','REFNO','JsonNodeNo','JSON_NODE_NO','NODE_NO',
+  'NodeNumber','NODE','SEQ','SEQUENCE','CMPSUPGAP','SUPPORT GAP',
+  'OWNER','BRANCH','PIPE','ABORE','LBORE','HBORE','BORE',
+  'SUPPORTCOORD','SUPPORT_COORD','POS','POSI','BPOS','APOS','LPOS',
+  'CPOS','HPOS','TPOS','SPOS','EPOS'
+];
+export function compactMatchingEvidence(raw,config){
+  const src=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+  const schema=resolveSourceSchema(config);
+  const wanted=new Set([
+    ...MATCH_FIELD_NAMES,...configuredJsonTraceFieldNames(config),
+    ...Object.values(schema.fields).flat()
+  ].map(k=>String(k).toUpperCase()));
+  const subset=object=>Object.fromEntries(Object.entries(object||{})
+    .filter(([key])=>wanted.has(key.toUpperCase())));
+  const attrs=src.attributes&&typeof src.attributes==='object'&&!Array.isArray(src.attributes)
+    ?src.attributes:{};
+  const direct=subset(src);
+  for(const name of ['type','name','position','point','bore']){
+    if(Object.prototype.hasOwnProperty.call(src,name))direct[name]=src[name];
+  }
+  const value={attributes:subset(attrs),direct};
+  if(encode(value).length>32768)
+    fail('MATCH_EVIDENCE_OVERSIZE','one engineering source-fact evidence exceeds bound');
+  return value;
+}
+
 const encode=x=>enc.encode(JSON.stringify(x));
 const txEnd=tx=>new Promise((resolve,reject)=>{
   tx.oncomplete=()=>resolve();
@@ -180,7 +213,8 @@ export async function createSourceBackedResolverProjection({
             jsonSequence:offset+item.jsonSequence}),
           sourceOrdinal:id,startByte:sourceRow.startByte,
           endByteExclusive:sourceRow.endByteExclusive,
-          fieldConflicts:conflicts
+          fieldConflicts:conflicts,
+          matchingEvidence:compactMatchingEvidence(item.raw,config)
         });
         digest=checksum(digest,normalized(fact));
         groupEntries.push({

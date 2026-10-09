@@ -1,0 +1,103 @@
+<!doctype html><meta charset="utf-8">
+<title>#1147 B0-05 Native Chromium original XML → sparse JSON matching and CSV oracle</title>
+<script type="module">
+const fail=(code,message)=>Object.assign(new Error(message),{code});
+const run=(file,payload)=>new Promise((resolve,reject)=>{
+  const w=new Worker(new URL(file,location.href),{type:'module'});
+  w.onmessage=({data})=>{
+    if(data?.type==='DONE'){w.terminate();resolve(data.result);}
+    else if(data?.type==='ERROR'){w.terminate();reject(fail(data.code,data.message));}
+  };
+  w.onerror=e=>{w.terminate();reject(fail('WORKER_ERROR',e.message));};
+  w.postMessage(payload);
+});
+window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
+  xmlTextOverride=null,mode='AUTHENTIC'})=>{
+  if(!jsonUrl.startsWith('/Benchmarks/')||!xmlUrl.startsWith('/Benchmarks/'))
+    throw fail('AUTHENTIC_ONLY','original tracked fixture required');
+  const j=await fetch(jsonUrl,{cache:'no-store'});
+  const x=await fetch(xmlUrl,{cache:'no-store'});
+  if(!j.ok||!x.ok)throw fail('FIXTURE_MISSING','expected original fixture HTTP');
+  const blob=await j.blob();
+  if(xmlTextOverride!==null&&mode!=='SOURCE_DERIVED_CONTROL')
+    throw fail('XML_CONTROL_MODE','source-derived XML must be explicitly labeled');
+  const xmlText=xmlTextOverride??await x.text();
+  const xmlSHA=[...new Uint8Array(await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(xmlText)))]
+    .map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(xmlSHA!==oracle.xmlSha256)throw fail('XML_SHA','XML source or control mismatched');
+  if(blob.size!==oracle.originalBytes||new TextEncoder().encode(xmlText).length!==oracle.xmlBytes)
+    throw fail('SOURCE_BYTES','original source or XML differs');
+  const id=crypto.randomUUID(),sourceDb='lfj-b0-match-source-'+id;
+  const projectionDb='lfj-b0-match-facts-'+id;
+  const longTasks=[],before=(await navigator.storage.estimate()).usage??null;
+  const observer=new PerformanceObserver(list=>{
+    for(const t of list.getEntries())if(t.duration>=50)longTasks.push(t.duration);
+  });
+  try{observer.observe({entryTypes:['longtask']});}catch{}
+  const started=performance.now();
+  try{
+    const source=await run('../consumer-sparse-b0/compact-paged.worker.mjs',{
+      type:'START',blob,expectedSha256:oracle.originalSha256,
+      generation:id,databaseName:sourceDb,revision:'B0-XML-CSV'
+    });
+    if(source.occurrenceCount!==oracle.sourceOccurrences)
+      throw fail('SOURCE_CENSUS','original source catalog does not equal golden');
+    const projection=await run('../consumer-sparse-b0-consumer/projection.worker.mjs',{
+      type:'PROJECT',sourceDatabaseName:sourceDb,sourceGeneration:id,
+      projectionDatabaseName:projectionDb,projectionGeneration:id,blob,
+      expectedSha256:oracle.originalSha256,config,toleranceMm:6
+    });
+    if(projection.factCount!==oracle.sourceFacts||
+       projection.domainSha256!==oracle.projectionSha256)
+      throw fail('PROJECTED_SOURCE','complete projection does not match real golden');
+    const result=await run('./matching.worker.mjs',{
+      type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+      projectionDatabaseName:projectionDb,projectionGeneration:id,
+      blob,expectedSha256:oracle.originalSha256,xmlText,config
+    });
+    const checks=[
+      ['xmlNodes',result.xmlNodes,oracle.xmlNodes],
+      ['matchedXmlNodes',result.matchedXmlNodes,oracle.matchedXmlNodes],
+      ['xmlRecordsSha256',result.xmlRecordsSha256,oracle.xmlRecordsSha256],
+      ['nodeWiseCsvSha256',result.nodeWiseCsvSha256,oracle.nodeWiseCsvSha256],
+      ['evidenceTreeCsvSha256',result.evidenceTreeCsvSha256,oracle.evidenceTreeCsvSha256],
+      ['nodeWiseCsvBytes',result.nodeWiseCsvBytes,oracle.nodeWiseCsvBytes],
+      ['evidenceTreeCsvBytes',result.evidenceTreeCsvBytes,oracle.evidenceTreeCsvBytes]
+    ];
+    const mismatches=checks.filter(([,actual,expected])=>actual!==expected);
+    if(mismatches.length)
+      throw fail('XML_CSV_SEMANTIC_MISMATCH',JSON.stringify({mismatches,
+        actual:result,expected:oracle}));
+    if(JSON.stringify(result.statusCounts)!==JSON.stringify(oracle.statusCounts))
+      throw fail('XML_STATUS_MISMATCH','status count mismatch');
+    if(result.engineeringReady!==false||result.downloadAuthorized!==false||
+       result.appWired!==false)
+      throw fail('RIGHTS','research is not product ready/export authorized');
+    // Exact config digest is part of the engineering result identity. Reusing
+    // old consumer facts with newly enabled source aliases MUST reject.
+    const changedConfig={...config,
+      captureFields:[{name:'SPREF',enabled:true},{name:'DTXR',enabled:false}]};
+    let configError='';
+    try{
+      await run('./matching.worker.mjs',{
+        type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+        projectionDatabaseName:projectionDb,projectionGeneration:id,
+        blob,expectedSha256:oracle.originalSha256,xmlText,
+        config:changedConfig
+      });
+    }catch(error){configError=error.code||'';}
+    if(configError!=='PROJECTION_CONFIG_STALE')
+      throw fail('CONFIG_STALE_ACCEPTED','changed aliases/capture config must reject, got '+(configError||'SUCCESS'));
+    const after=(await navigator.storage.estimate()).usage??null;
+    return {schema:'LFJ.B0.RealXmlCsvOriginalOracle.v1',source,
+      projection,matching:result,measurementMs:performance.now()-started,
+      storageDelta:before===null||after===null?null:after-before,
+      negatives:{configurationChanged:configError},
+      mainThreadLongTasks:longTasks.length,
+      mainThreadMaxLongTaskMs:Math.max(0,...longTasks),
+      qualification:'REAL_XML_CSV_SEMANTIC_PARITY_NOT_UI_PRODUCTION'};
+  }finally{observer.disconnect();}
+};
+window.__b0XmlCsvReady=true;
+</script>
