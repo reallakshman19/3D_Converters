@@ -152,6 +152,9 @@ export async function openUnifiedIndexedSourceStore({
   async function head(){
     usable();
     const h=await get(db,'heads',namespace);
+    // The native IDB await is a cancellation/replacement interleaving point.
+    // Never grant a HEAD merely because it was current before this await.
+    usable();
     if(h?.generation!==generation||!same(h?.manifest,basis)||
       h?.manifest?.complete!==true||h.manifest.engineeringReady!==false||
       h.manifest.rightsBasis!=='SOURCE_FACTS_ONLY')
@@ -330,11 +333,17 @@ export async function openUnifiedIndexedSourceStore({
       await head();
       if(chunk.length===0)fail('UNIFIED_INDEX_GAP','committed source ordinal range incomplete');
       for(const record of chunk){
+        // Paused generators retain bounded JS rows; even those prefetched
+        // rows must be unusable after local abort/close.
+        usable();
         if(record.ordinal!==start++)fail('UNIFIED_INDEX_GAP','missing/repeated source ordinal');
         verifyRecord(record,basis,active.manifest.byteLength);
         yield Object.freeze(asOpen(record,basis));
       }
     }
+    // Another source generation may supersede HEAD while the last record is
+    // handed to R08. Re-attest before exposing completion of the iterator.
+    await head();
   }
   async function lookupCommittedPair(id){
     const active=await head();
