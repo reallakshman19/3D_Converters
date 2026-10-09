@@ -26,6 +26,15 @@ const receipt=(n)=>Object.freeze({
   schema:'LFJ.3D.ConsumerSourceFactsReceipt.v1',complete:true,...basis,
   selectedCount:n,rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
 });
+const sourceSummary=Object.freeze({
+  schema:'LFJ.JSON.OccurrenceIndexSummary.v1',complete:true,
+  sourceRefId:basis.sourceRefId,sourceSha256:basis.sourceSha256,
+  sourceRevision:basis.sourceRevision,byteLength:basis.byteLength,
+  endByteExclusive:basis.byteLength,occurrenceCount:3,eventCount:6,
+  rootFacts:Object.freeze({schemaVersion:'lfj-token-root-facts/v1',
+    rootType:'array',rootCount:1,complete:true,duplicateRootKeys:false}),
+  rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+});
 const clone=v=>({...v});
 
 test('A02P2 begin/stage are invisible; only whole basis-CAS commit publishes immutable generation',async()=>{
@@ -251,4 +260,51 @@ test('A02P2 RED: duplicate original path/occurrence cannot be published with a n
     code('GENERATION_FACT_INVALID'));
   sink.transaction.abort();
   assert.equal(sink.readPublished(),null);
+});
+
+
+test('A02P3 RED: incomplete or mismatched original R05 summary must deny app generation',()=>{
+  const begin=(summary)=>({
+    expectedBasis:basis,selectedCount:1,sourceIndexSummary:summary,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+  });
+  for(const summary of [
+    undefined,
+    {...sourceSummary,sourceRevision:'stale-original'},
+    {...sourceSummary,sourceSha256:'forged-sha'},
+    {...sourceSummary,byteLength:sourceSummary.byteLength+1},
+    {...sourceSummary,occurrenceCount:0},
+    {...sourceSummary,rootFacts:null},
+    {...sourceSummary,rightsBasis:'ENGINEERING'}
+  ]){
+    const sink=createSourceFactsGenerationStore({
+      getCurrentBasis:()=>({...basis}),maxFacts:3
+    });
+    assert.throws(()=>sink.transaction.begin(begin(summary)),
+      code('GENERATION_SUMMARY_INVALID'),
+      'source-only app receipt cannot replace original R05 complete census');
+    assert.equal(sink.readPublished(),null);
+  }
+});
+
+test('A02P3 RED: application publication must preserve same immutable R05 summary by value',()=>{
+  const original=structuredClone(sourceSummary);
+  const sink=createSourceFactsGenerationStore({
+    getCurrentBasis:()=>({...basis}),maxFacts:3
+  });
+  sink.transaction.begin({
+    expectedBasis:basis,selectedCount:1,sourceIndexSummary:original,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+  });
+  sink.transaction.stage(fact(0,'','A'));
+  const pub=sink.transaction.commit({
+    receipt:receipt(1),expectedBasis:basis,getCurrentBasis:()=>({...basis})
+  });
+  assert.equal(pub.committed,true);
+  original.rootFacts.rootCount=9;
+  assert.deepEqual(sink.readPublished().sourceIndexSummary,sourceSummary);
+  const first=sink.readPublished();
+  first.sourceIndexSummary.rootFacts.rootCount=30;
+  assert.deepEqual(sink.readPublished().sourceIndexSummary,sourceSummary,
+    'returned R05 summary must be a detached copy of privately committed source census');
 });
