@@ -131,3 +131,37 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
     }
     return deleted;
   }
+  async function reclaim(){
+    active();
+    let batches=0,rows=0;
+    for(;;){
+      const target=await nextRecovery();
+      if(!target)return {batches,rows};
+      if(clock()>=expiresAt)fail('CUSTODY_REVOKED','lease expired during recovery');
+      if(clock()+ttlMs/3>=expiresAt)await renew();
+      rows+=await reclaimOnce(target);
+      if(++batches>1000000)
+        fail('CUSTODY_RECOVERY_LIMIT','source recovery iteration ceiling exceeded');
+    }
+  }
+  // Claim and recover BEFORE first provisional event ACK; every actual
+  // source write must additionally use fence() in the same IDB transaction.
+  async function ensure(){
+    active();
+    if(ready){
+      if(clock()>=expiresAt)fail('CUSTODY_REVOKED','source writer lease expired');
+      if(clock()+ttlMs/3>=expiresAt)await renew();
+      return;
+    }
+    if(joining)return joining;
+    joining=(async()=>{
+      if(!claimed)await claim();
+      await reclaim();
+      ready=true;
+    })();
+    try{await joining;}finally{joining=null;}
+  }
+  function closedNotice(){closed=true;}
+  return Object.freeze({ensure,fence,reclaim,closedNotice,
+    nonce,generation,leaseExpires:()=>expiresAt});
+}
