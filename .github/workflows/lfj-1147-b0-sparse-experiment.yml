@@ -1,0 +1,64 @@
+name: LFJ #1147 B0 opt-in compact source catalog research
+on:
+  push:
+    branches: ['lfj/1147-b0-sparse-catalog-experiment']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0/**'
+      - '.github/workflows/lfj-1147-b0-sparse-experiment.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0/**'
+      - '.github/workflows/lfj-1147-b0-sparse-experiment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [ROW, PAGED]
+        fixture:
+          - Benchmarks/1885Sjson/Sjson.json
+          - Benchmarks/1885_NC/1885_NC.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact source candidate
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static check experimental modules
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0/compact-research.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/compact.worker.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/real-fixture-oracle.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Exact-source downstream consumer-field manifest
+        run: node lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original git source/fixture, never authored docs
+        shell: bash
+        run: |
+          (python3 -m http.server 4197 --bind 127.0.0.1 >/tmp/lfj-b0-1147-http.log 2>&1) &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4197/lfj/qualification/experiments/consumer-sparse-b0/original-worker-oracle.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-b0-1147-http.log
+          exit 1
+      - name: Independent actual source/Chromium Worker/IDB oracle
+        env:
+          B0_BACKEND: ${{ matrix.backend }}
+        run: node lfj/qualification/experiments/consumer-sparse-b0/real-fixture-oracle.mjs --fixture "${{ matrix.fixture }}"
+      - name: Source tree unchanged
+        run: test -z "$(git status --porcelain)"
