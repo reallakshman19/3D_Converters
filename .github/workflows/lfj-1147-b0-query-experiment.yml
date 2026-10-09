@@ -1,0 +1,58 @@
+name: LFJ 1147 B0 exact original selection/paging query experiment
+on:
+  push:
+    branches: ['lfj/1147-b0-query-original-pages']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-query/**'
+      - '.github/workflows/lfj-1147-b0-query-experiment.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-query/**'
+      - '.github/workflows/lfj-1147-b0-query-experiment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-query-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture:
+          - Benchmarks/1885Sjson/Sjson.json
+          - Benchmarks/1885_NC/1885_NC.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check exact material HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static module syntax check and pinned original manifest
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-query/paged-query.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-query/query.worker.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-query/real-query-oracle.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve repository original SHA source/fixtures
+        shell: bash
+        run: |
+          (python3 -m http.server 4198 --bind 127.0.0.1 >/tmp/lfj-1147-b0-query.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4198/lfj/qualification/experiments/consumer-sparse-b0-query/query-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1147-b0-query.log
+          exit 1
+      - name: Actual original source native Worker and IDB selection union
+        run: node lfj/qualification/experiments/consumer-sparse-b0-query/real-query-oracle.mjs --fixture "${{ matrix.fixture }}"
+      - name: Source unchanged after tests
+        run: test -z "$(git status --porcelain)"
