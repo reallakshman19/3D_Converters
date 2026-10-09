@@ -31,7 +31,7 @@ const openDb=async name=>new Promise((resolve,reject)=>{
   req.onerror=()=>reject(req.error);
 });
 const nodeAliases=['JsonNodeNo','JSON_NODE_NO','NODE_NO','NodeNumber','NODE','SEQ','SEQUENCE'];
-function slimNode(fact){
+export function slimNode(fact){
   const evidence=fact.matchingEvidence;
   if(!evidence||typeof evidence!=='object')
     fail('MATCH_EVIDENCE_MISSING','consumer source evidence was not indexed');
