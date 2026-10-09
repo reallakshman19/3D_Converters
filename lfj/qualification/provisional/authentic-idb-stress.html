@@ -33,7 +33,37 @@ window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
   const pairs=await openIndexedOccurrencePairStore({
     databaseName:name+'-pairs',namespace:'source',generation:jobId,basis
   });
-  const indexStore=createPairedIndexStore({indexStore:source,pairPort:pairs});
+  const realIndex=createPairedIndexStore({indexStore:source,pairPort:pairs});
+  const stages={pages:0,events:0,stageMs:0,sourceOrderedEvents:0,
+    selectionPages:0,selectionRows:0,selectionStageMs:0};
+  // Diagnostic wrapper delegates to the actual production IndexedDB API.
+  // No mock transactions, altered rows, or bypass of committed heads.
+  const indexStore={
+    ...realIndex,
+    async stagePage(rows){
+      const start=performance.now();
+      try{return await realIndex.stagePage(rows);}
+      finally{stages.pages++;stages.events+=rows.length;
+        stages.stageMs+=performance.now()-start;}
+    },
+    async *readOrdered(){
+      for await(const row of realIndex.readOrdered()){
+        stages.sourceOrderedEvents++;
+        yield row;
+      }
+    }
+  };
+  const selectedStore={
+    stagePage:async rows=>{
+      const start=performance.now();
+      try{return await selection.stagePage(rows);}
+      finally{stages.selectionPages++;stages.selectionRows+=rows.length;
+        stages.selectionStageMs+=performance.now()-start;}
+    },
+    commit:manifest=>selection.commit(manifest),
+    abort:()=>selection.abort(),
+    readRange:(...args)=>selection.readRange(...args)
+  };
   let session,observer;
   const longTasks=[];
   if(typeof PerformanceObserver!=='undefined'){
@@ -52,8 +82,11 @@ window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
       trustedWorkerCtor:Worker,
       createWorker:()=>new Worker(new URL('/lfj/ports/source-browser-worker.mjs',
         location.origin),{type:'module'}),
-      indexStore,selectedStore:selection,
-      pageEvents:96,getCurrentBasis:()=>({...live})
+      indexStore,selectedStore,
+      // Both values are supported explicit R10 bounds; they test fewer
+      // durable transactions without silently changing production logic.
+      pageEvents:512,scanTimeoutMs:300000,
+      getCurrentBasis:()=>({...live})
     });
     const ready=performance.now();
     if(session.summary.complete!==true||
@@ -83,7 +116,7 @@ window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
     let totalRows=0,pageCalls=0,lastOrdinal=-1,cursor=null;
     if(scanPages){
       do{
-        const page=await session.readPage({cursor,maxRows:100,maxBytes:65536});
+        const page=await session.readPage({cursor,maxRows:32,maxBytes:131072});
         if(page.rows.length===0&&page.cursor!==null)
           throw Error('STALLED_SELECTION_PAGER');
         for(const row of page.rows){
@@ -112,6 +145,7 @@ window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
       storageUsageStart:storageStart,storageUsageAfter:beforeClose,
       storageUsageDelta:storageStart!==null&&beforeClose!==null
         ?beforeClose-storageStart:null,
+      stages,
       longTaskCount:longTasks.length,longTaskMaxMs:longTasks.length
         ?Math.round(Math.max(...longTasks)):0,
       metricsAre:'MEASURED_IN_RUN_NO_SLA_OR_DATABASE_ATOMICITY_CLAIM',
