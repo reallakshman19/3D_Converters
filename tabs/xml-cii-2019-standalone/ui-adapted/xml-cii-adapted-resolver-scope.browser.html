@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R12 real Chromium source scope control qualification</title>
+<div id="scope-root"></div>
+<script type="module">
+import {
+  ensureResolverHierarchyScope,
+  renderResolverHierarchyScopeControl
+} from './xml-cii-adapted-resolver-scope.js';
+import {materializeJsonHierarchyScope,buildJsonHierarchyScopeIndex}
+  from '../xml-cii-json-hierarchy-scope.js';
+
+window.runR12ActualScopeControl=()=>{
+  const a=JSON.stringify([{type:'BRANCH',name:'Parent',
+    attributes:{OWNER_SITE:'SITE-PARENT'},
+    children:[{type:'BRANCH',attributes:{OWNER_ZONE:'ZONE-CHILD'}}],
+    note:'x'.repeat(500)}]);
+  const b=a.replace('"note":"x','"note":"y');
+  const stateRef={current:{stagedJsonText:a,jsonTraceScopeId:'SITE-PARENT',
+    resolverJsonTraceResult:{old:true},resolverJsonTraceJsonResult:{old:true},
+    resolverJsonTraceExportStatus:'DONE'}};
+  let renders=0;
+  let scope=ensureResolverHierarchyScope(stateRef.current,stateRef);
+  const first=scope.index.scopes.map(s=>s.id);
+  stateRef.current={...stateRef.current,stagedJsonText:b};
+  scope=ensureResolverHierarchyScope(stateRef.current,stateRef);
+  const root=document.querySelector('#scope-root');
+  renderResolverHierarchyScopeControl(root,stateRef,()=>renders++,scope);
+  const selected=root.querySelector('select[data-field=resolver-hierarchy-scope]');
+  const before={
+    first,stale:scope.selectedScopeId,sourceSuperseded:scope.sourceSuperseded,
+    reset:stateRef.current.resolverJsonTraceResult===null&&stateRef.current.resolverJsonTraceJsonResult===null,
+    exportStatus:stateRef.current.resolverJsonTraceExportStatus,
+    options:[...selected.options].map(o=>({value:o.value,selected:o.selected})),
+    note:root.textContent
+  };
+  selected.value='SITE-PARENT';
+  selected.dispatchEvent(new Event('change',{bubbles:true}));
+  scope=ensureResolverHierarchyScope(stateRef.current,stateRef);
+  return {before,after:{selected:scope.selectedScopeId,
+    updatedStateScope:stateRef.current.jsonTraceScopeId,renders}};
+};
+window.runR12OriginalIndexGuard=()=>{
+ const a=JSON.stringify([{type:'BRANCH',name:'X',OWNER_ZONE:'SITE-A'}]);
+ const b=a.replace('SITE-A','SITE-B');
+ const index=buildJsonHierarchyScopeIndex(a);
+ try{
+  materializeJsonHierarchyScope(b,index,'SITE-A');
+  return {failedClosed:false};
+ }catch(e){return{failedClosed:true,code:e.code};}
+};
+</script>
