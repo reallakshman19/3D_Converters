@@ -18,6 +18,9 @@ const broken=[
   '<Root><Node/><!unknown></Root>',
   '<Root><Node/></Root>tail',
   '<Root><Node/></Root><?xml version="1.0"?>',
+  '<Root><!-- <Node></Node> --></Root>',
+  '<Root><![CDATA[<Node></Node>]]></Root>',
+  '<Root><!-- <PIPINGELEMENT/> --></Root>',
 ];
 for(const [index,xml] of broken.entries()){
   test('malformed input rejected '+index,()=>{
@@ -28,5 +31,6 @@ for(const [index,xml] of broken.entries()){
 test('valid XML prolog, nesting, attributes, comments and CDATA accepted',()=>{
   const xml='<?xml version="1.0"?><Root xmlns="URN"><!-- ok --><Node tag="&quot;"/>'+
     '<Node><V><![CDATA[x<y &z]]></V><T>&amp; &#x3e;</T></Node></Root>';
-  assert.deepEqual(assertResearchXmlDocument(xml),{rootCount:1,elementCount:5});
+  assert.deepEqual(assertResearchXmlDocument(xml),{rootCount:1,elementCount:5,
+    nodeElementCount:2,pipingElementCount:0});
 });
