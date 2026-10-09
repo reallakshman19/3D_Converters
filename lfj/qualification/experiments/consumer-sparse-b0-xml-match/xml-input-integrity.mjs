@@ -50,6 +50,7 @@ export function assertResearchXmlDocument(xml){
   let i=xml.charCodeAt(0)===0xfeff?1:0;
   const stack=[];
   let rootCount=0,elements=0,xmlDeclaration=false;
+  let nodeElements=0,pipingElements=0;
   const readName=()=>{
     const start=i;
     if(!startName.test(xml[i]||''))fail('Invalid XML element/attribute name');
@@ -115,6 +116,8 @@ export function assertResearchXmlDocument(xml){
       continue;
     }
     const name=readName();
+    if(name.toUpperCase()==='NODE')nodeElements++;
+    if(name.toUpperCase()==='PIPINGELEMENT')pipingElements++;
     if(stack.length===0&&++rootCount!==1)
       fail('Multiple XML document roots');
     elements++;
@@ -144,5 +147,12 @@ export function assertResearchXmlDocument(xml){
   }
   if(rootCount!==1||stack.length!==0)
     fail('Missing XML root or unclosed XML element');
-  return Object.freeze({rootCount,elementCount:elements});
+  // The legacy Resolver's regex parser also sees fake tag strings inside
+  // comments/CDATA. Refuse such inputs rather than inflate node population.
+  const rawNodes=(xml.match(/<Node\b/gi)||[]).length;
+  const rawPiping=(xml.match(/<PIPINGELEMENT\b/gi)||[]).length;
+  if(rawNodes!==nodeElements||rawPiping!==pipingElements)
+    fail('Legacy parser would see phantom XML nodes inside non-markup text');
+  return Object.freeze({rootCount,elementCount:elements,
+    nodeElementCount:nodeElements,pipingElementCount:pipingElements});
 }
