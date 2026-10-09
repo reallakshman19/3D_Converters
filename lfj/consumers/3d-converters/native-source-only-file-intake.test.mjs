@@ -110,3 +110,26 @@ test('A05 pre-cancelled input never opens original source',async()=>{
     code('NATIVE_CONSUMER_CANCELLED'));
   assert.deepEqual(p.opened,[]);
 });
+
+
+test('A05-P2 RED: public native File intake may NOT substitute fake Worker or IDB via call arguments',async()=>{
+  const p=casePorts();
+  await assert.rejects(
+    runNativeSourceOnlyTypedFile(request(p)),
+    code('NATIVE_CONSUMER_PORT_REQUIRED'),
+    'the public production call cannot honor nativePorts or injected fake Worker/IDB'
+  );
+  assert.deepEqual(p.opened,[],
+    'no injected first-party native store can be called by production entrypoint');
+});
+
+test('A05-P2 RED: original source revision mismatch fails before any indexed-store operation',async()=>{
+  const p=casePorts();
+  await assert.rejects(
+    runNativeSourceOnlyFileIntakeCore({
+      ...request(p),revision:'not-the-same-revision'
+    }, testPorts(p)),
+    code('NATIVE_CONSUMER_BASIS_INVALID')
+  );
+  assert.deepEqual(p.opened,[]);
+});
