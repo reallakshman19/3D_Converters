@@ -54,8 +54,12 @@ window.runRealIndexedDBTests=async()=>{
   const crashing=await openIndexedRecordStore({databaseName:dbName,namespace:'source:CRASH',generation:'CRASH-1',basis:sourceBasis,kind:'source',beforeHeadCommit:tx=>tx.abort()});
   await crashing.stagePage(originalRows.slice(0,4));
   await failCode(()=>crashing.commit({...manifest,eventCount:4,occurrenceCount:2}),'STORE_COMMIT_ABORTED');
-  await failCode(async()=>{for await(const e of crashing.readOrdered())void e;},'STORE_NOT_COMMITTED');
+  await failCode(async()=>{for await(const e of crashing.readOrdered())void e;},'STORE_ABORTED');
   crashing.close();
+  const afterCrash=await openIndexedRecordStore({databaseName:dbName,
+    namespace:'source:CRASH',generation:'CRASH-1',basis:sourceBasis,kind:'source'});
+  await failCode(async()=>{for await(const e of afterCrash.readOrdered())void e;},'STORE_NOT_COMMITTED');
+  afterCrash.close();
   result.abortBeforeCompleteInvisible=true;
   // Cancellation from inside the commit admission point must abort the SAME
   // IndexedDB transaction before any head becomes observable.
