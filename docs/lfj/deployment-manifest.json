@@ -1,0 +1,24 @@
+{
+  "schema": "LFJ.V4.1.DeployedModuleManifest.v1",
+  "scope": "REAL_BROWSER_SOURCE_MODULE_CLOSURE",
+  "sourceHead": "c7aef63b76e1a8ac6283c16376a57e5cce25fca5",
+  "sources": [
+    "lfj/ports/source-browser-worker.mjs",
+    "lfj/ports/committed-worker-query.mjs",
+    "lfj/ports/source-worker-port.mjs",
+    "lfj/source/source-snapshot.mjs",
+    "lfj/transport/lifecycle/lifecycle-session.mjs",
+    "lfj/transport/execution/bounded-source-transfer.mjs",
+    "lfj/query/selection/exact-occurrence-selection.mjs",
+    "lfj/query/pages/committed-selection-pages.mjs",
+    "lfj/index/source-occurrence-index.mjs",
+    "lfj/transport/execution/required-worker.mjs",
+    "lfj/tokenizer/json-tokenizer.mjs"
+  ],
+  "workerEntrypoint": "lfj/ports/source-browser-worker.mjs",
+  "coordinator": "lfj/ports/committed-worker-query.mjs",
+  "resolverWired": false,
+  "persistentStoreWired": false,
+  "engineeringReady": false,
+  "reason": "Closure and test-served Worker smoke are not actual application loader or durable commit integration; DEPLOY-GATE remains NOT_VERIFIED"
+}
