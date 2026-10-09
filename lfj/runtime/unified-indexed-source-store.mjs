@@ -247,6 +247,7 @@ export async function openUnifiedIndexedSourceStore({
     let invalid=null;
     try{
       custody.fence(tx,()=>{
+      try{
       for(const row of events){
         if(row.kind==='OPEN'){
           const parent=openFrames.at(-1);
@@ -286,6 +287,13 @@ export async function openUnifiedIndexedSourceStore({
           pairs.add(completed);
           openFrames.pop();openFrameBytes-=encoded(top);
         }
+      }
+      }catch(error){
+        // Preserve exact source corruption/resource code across the native
+        // asynchronous fence callback; abort alone returns a generic IDB
+        // transaction error and would erase the original failure diagnosis.
+        invalid=error;
+        try{tx.abort();}catch{}
       }
       });
       await done;
