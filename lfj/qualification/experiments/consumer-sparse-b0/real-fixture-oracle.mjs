@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 
 const filename=process.argv[process.argv.indexOf('--fixture')+1];
+const backend=process.env.B0_BACKEND||'ROW';
+assert.ok(['ROW','PAGED'].includes(backend));
 if(!['Benchmarks/1885Sjson/Sjson.json','Benchmarks/1885_NC/1885_NC.json'].includes(filename))
   throw new Error('ORIGINAL_TRACKED_FIXTURE_REQUIRED');
 const original=await readFile(filename);
@@ -43,16 +45,16 @@ try{
   await page.goto('http://127.0.0.1:4197/lfj/qualification/experiments/consumer-sparse-b0/original-worker-oracle.html');
   await page.waitForFunction(()=>window.__b0Ready===true);
   const result=await page.evaluate(input=>window.runCompactOriginalProbe(input),
-    {url:'/'+filename,oracle});
+    {url:'/'+filename,oracle,backend});
   assert.equal(result.schema,'LFJ.B0.SourceBrowserOracle.v1');
   assert.equal(result.occurrenceCount,oracle.occurrenceCount);
   assert.equal(result.sourceSha256,oracle.sha256);
   assert.ok(result.verified.every(s=>s.exact));
   assert.equal(result.appWired,false);
-  const malformed=await page.evaluate(()=>window.runCompactMalformedNegative());
+  const malformed=await page.evaluate(backend=>window.runCompactMalformedNegative(backend),backend);
   assert.equal(malformed.headPublished,false);
   assert.equal(malformed.rejected,true);
   console.log('B0_AUTHENTIC_BROWSER_RESEARCH_PASS '+JSON.stringify({
-    filename,...result,malformed,qualification:'SOURCE_ONLY_TEST_NOT_PRODUCTION'
+    filename,...result,backend,malformed,qualification:'SOURCE_ONLY_TEST_NOT_PRODUCTION'
   }));
 }finally{await browser.close();}
