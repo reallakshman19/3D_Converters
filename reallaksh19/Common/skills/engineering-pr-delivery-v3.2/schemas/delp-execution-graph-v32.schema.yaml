@@ -1,0 +1,396 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: relay-v3.2-delp-execution-graph
+title: DELP execution graph (the Coordinator's plan)
+description: >-
+  Plan authority: lineage, denominators and weights live here and only here. Agents never author it through facts.
+  Programme (ROOT) -> INTERMEDIATE responsibilities -> LEAF execution responsibilities. A LEAF owns declared
+  weighted units, at most one primary PR (or a candidate_ref when no PR exists yet) and optional delivery gates.
+  Parent issues are not execution workspaces: material work is always a LEAF.
+  The decomposition contract (outcome, size_budget, write_surface, depends_on, unit verify steps) is judged by the
+  decomposition gate against programme.decomposition_policy; the progress maths never reads it.
+$defs:
+  ref: {type: string, pattern: '^(?:[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?#)?[1-9][0-9]*$'}
+  item_key: {type: string, pattern: '^[^:\s]+:(?:gate:)?[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'}
+  claim_id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'}
+  digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+
+  proposed_unit:
+    type: object
+    additionalProperties: false
+    required: [id, kind, weight, outcome, verify]
+    properties:
+      id: {$ref: '#/$defs/claim_id'}
+      kind: {enum: [SEMANTIC, DELIVERY_GATE, MECHANICAL]}
+      weight: {type: integer, minimum: 1}
+      outcome: {type: string, minLength: 1, pattern: '.*\S.*'}
+      verify: {type: string, minLength: 1, pattern: '.*\S.*'}
+
+  mechanism_exception:
+    type: object
+    additionalProperties: false
+    required: [basis, claim_ids]
+    properties:
+      basis: {type: string, minLength: 1, pattern: '.*\S.*'}
+      claim_ids:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {$ref: '#/$defs/claim_id'}
+
+  claim_allocation:
+    type: object
+    additionalProperties: false
+    required: [claim_id, weight]
+    properties:
+      claim_id: {$ref: '#/$defs/claim_id'}
+      weight: {type: integer, minimum: 1}
+
+  proposed_responsibility:
+    type: object
+    additionalProperties: false
+    required:
+      [id, work_class, owns_claims, claim_allocations, outcome, independence_basis,
+       semantic_units, size_budget, write_surface, acceptance_methods]
+    properties:
+      id: {$ref: '#/$defs/claim_id'}
+      work_class: {enum: [PRODUCT, MECHANICAL, GATE]}
+      owns_claims:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {$ref: '#/$defs/claim_id'}
+      claim_allocations:
+        type: array
+        minItems: 1
+        items: {$ref: '#/$defs/claim_allocation'}
+      outcome: {type: string, minLength: 1, pattern: '.*\S.*'}
+      independence_basis: {type: string, minLength: 1, pattern: '.*\S.*'}
+      mechanism_exception: {$ref: '#/$defs/mechanism_exception'}
+      size_budget: {$ref: '#/$defs/size_budget'}
+      write_surface:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {type: string, minLength: 1, pattern: '^[^*?\[\]\\]+$'}
+      acceptance_methods:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {type: string, minLength: 1, pattern: '.*\S.*'}
+      depends_on:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/claim_id'}
+      parallel_ok:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/claim_id'}
+      parallel_ok_basis: {type: string, minLength: 1, pattern: '.*\S.*'}
+      semantic_units:
+        type: array
+        minItems: 1
+        items: {$ref: '#/$defs/proposed_unit'}
+
+  proposal_binding:
+    type: object
+    additionalProperties: false
+    required: [responsibility_id, ref]
+    properties:
+      responsibility_id: {$ref: '#/$defs/claim_id'}
+      ref: {$ref: '#/$defs/ref'}
+
+  decomposition_proposal:
+    type: object
+    additionalProperties: false
+    required: [version, responsibilities]
+    properties:
+      version: {const: V2}
+      released_proposal_digest: {$ref: '#/$defs/digest'}
+      delivery_gate_weight_exception_basis:
+        type: string
+        minLength: 1
+        pattern: '.*\S.*'
+        description: Explicit Owner/programme basis required only when DELIVERY_GATE claim weight is at least semantic claim weight.
+      bindings:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/proposal_binding'}
+      responsibilities:
+        type: array
+        minItems: 1
+        items: {$ref: '#/$defs/proposed_responsibility'}
+
+  acceptance_claim:
+    type: object
+    additionalProperties: false
+    required: [id, claim, kind]
+    properties:
+      id: {$ref: '#/$defs/claim_id'}
+      claim: {type: string, minLength: 1, pattern: '.*\S.*'}
+      kind: {enum: [SEMANTIC, DELIVERY_GATE]}
+      weight: {type: integer, minimum: 1}
+      shared:
+        type: boolean
+        default: false
+        description: True only when multiple leaves deliberately share responsibility for the same parent claim.
+      mechanism_exception_allowed:
+        type: boolean
+        default: false
+        description: >-
+          True only when this parent outcome is genuinely infrastructure/verification work for which a mechanism-shaped
+          PRODUCT responsibility boundary is semantically legitimate. The responsibility must still cite an explicit basis.
+
+  size_budget:
+    type: object
+    additionalProperties: false
+    properties:
+      target_loc: {type: integer, minimum: 1}
+      hard_loc: {type: integer, minimum: 1}
+      target_minutes: {type: integer, minimum: 1}
+      hard_minutes: {type: integer, minimum: 1}
+  successor_policy:
+    type: object
+    additionalProperties: false
+    required: [mode]
+    properties:
+      mode: {enum: [CONTINUITY, INDEPENDENT_RECONSTRUCTION]}
+      decision_at_risk: {type: string, minLength: 1, maxLength: 200, pattern: '^[^\\n]*$'}
+      protected_invariants:
+        type: array
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 200, pattern: '^[^\\n]*$'}
+    allOf:
+      - if:
+          properties: {mode: {const: INDEPENDENT_RECONSTRUCTION}}
+        then:
+          required: [decision_at_risk]
+type: object
+required: [programme, nodes]
+properties:
+  schema:
+    const: relay-v3.2-delp-execution-graph
+  programme:
+    type: object
+    required: [root]
+    properties:
+      id: {type: string, minLength: 1}
+      root: {$ref: '#/$defs/ref'}
+      repository:
+        type: string
+        description: >-
+          The repository this plan belongs to. A live sync-github requires it and refuses when it differs from
+          --repository, so a plan (or a shipped example, which declares example/delp-demo) can never write elsewhere.
+      base_ref:
+        type: string
+        minLength: 1
+        description: Branch that branch-only leaves (candidate_ref) are compared against to prove work exists. Default main.
+      fact_authors:
+        type: array
+        items: {type: string, minLength: 1}
+        description: Explicit GitHub logins whose CHECKPOINT_FACTS_V1 comments are trusted. When absent, repository OWNER/MEMBER/COLLABORATOR comments are trusted.
+      total_weight:
+        type: integer
+        minimum: 1
+        description: Display scale for unit points (default 10000). Shares are exact fractions; this never changes a percentage.
+      decomposition_proposal:
+        $ref: '#/$defs/decomposition_proposal'
+        description: >-
+          Pre-materialization claim-first responsibility topology. Proposed responsibilities have stable ids but no
+          provider child refs. decompose-check evaluates this layer before child issue creation; materialized nodes keep
+          their existing ref semantics.
+      acceptance_claims:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/acceptance_claim'}
+        description: >-
+          Parent outcome claims to be partitioned across leaves. SEMANTIC claims describe product/academic/architecture/
+          research outcomes; DELIVERY_GATE claims describe integration, verification, publication or other delivery gates.
+          New programme decompositions enable claim_first ENFORCED before releasing children.
+      health_policy:
+        type: object
+        additionalProperties: false
+        description: >-
+          Advisory delivery-continuity health (mode OFF by default; ADVISORY adds a health block to started leaves and their
+          ancestors). Health is observed or derived, never declared, and never moves a number, a state or a title or blocks work.
+          Defaults are the programme's written rules: checkpoint trigger 250 / hard ceiling 500 newly authored lines (400 / 700 changed),
+          and a handover is planned at the third stream loss in one executor lifecycle. Elapsed time alone is not a rule.
+        properties:
+          mode: {enum: [OFF, ADVISORY]}
+          checkpoint:
+            type: object
+            additionalProperties: false
+            properties:
+              watch_added_loc: {type: integer, minimum: 1}
+              at_risk_added_loc: {type: integer, minimum: 1}
+              watch_changed_loc: {type: integer, minimum: 1}
+              at_risk_changed_loc: {type: integer, minimum: 1}
+          drift:
+            type: object
+            additionalProperties: false
+            properties:
+              watch_behind: {type: integer, minimum: 1}
+              at_risk_behind: {type: integer, minimum: 1}
+          interruptions:
+            type: object
+            additionalProperties: false
+            properties:
+              watch: {type: integer, minimum: 1}
+              at_risk: {type: integer, minimum: 1}
+      decomposition_policy:
+        type: object
+        additionalProperties: false
+        description: >-
+          Omitted means mode OFF (behaviour identical to a graph without it). ADVISORY reports findings only.
+          ENFORCED turns a leaf with blockers into NOT_RELEASEABLE and makes every continuation answer FIX_PLAN.
+        properties:
+          mode: {enum: [OFF, ADVISORY, ENFORCED]}
+          units:
+            type: object
+            additionalProperties: false
+            properties:
+              min: {type: integer, minimum: 1}
+              max: {type: integer, minimum: 1}
+              max_share_percent: {type: integer, minimum: 1, maximum: 100}
+          leaf_budget:
+            type: object
+            additionalProperties: false
+            properties:
+              target_loc: {type: integer, minimum: 1}
+              hard_loc: {type: integer, minimum: 1}
+              target_minutes: {type: integer, minimum: 1}
+              hard_minutes: {type: integer, minimum: 1}
+          min_leaf_target_loc: {type: integer, minimum: 0}
+          claim_first:
+            type: object
+            additionalProperties: false
+            description: >-
+              Claim-first decomposition is OFF for historical graph compatibility. New programme decompositions MUST set
+              mode ENFORCED before child release. ADVISORY reports topology findings without blocking.
+            properties:
+              mode: {enum: [OFF, ADVISORY, ENFORCED]}
+              require_independence_basis: {type: boolean}
+          require:
+            type: object
+            additionalProperties: false
+            properties:
+              outcome: {type: boolean}
+              verify: {type: boolean}
+              write_surface: {type: boolean}
+              size_budget: {type: boolean}
+  plan_updates:
+    type: array
+    description: >-
+      Append-only record of deliberate scope, weight and policy changes. A re-plan that moves any unit or gate away from
+      its exact programme share must be covered by a NEW update here (graph-diff). owner_authorized is a record for review,
+      not proof of identity.
+    items:
+      type: object
+      required: [id, kind, reason]
+      properties:
+        id: {type: string, minLength: 1}
+        kind: {enum: [SCOPE_EXPANSION, SCOPE_REDUCTION, UNIT_REWEIGHT, UNIT_DROPPED, POLICY_CHANGE]}
+        reason: {type: string, minLength: 1}
+        owner_authorized: {type: boolean}
+        owner_basis: {type: string}
+        units:
+          type: array
+          items: {$ref: '#/$defs/item_key'}
+        nodes:
+          type: array
+          items: {$ref: '#/$defs/ref'}
+      allOf:
+        - if: {properties: {kind: {not: {const: POLICY_CHANGE}}}}
+          then:
+            anyOf:
+              - {required: [units], properties: {units: {minItems: 1}}}
+              - {required: [nodes], properties: {nodes: {minItems: 1}}}
+  nodes:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ref, kind]
+      properties:
+        ref: {type: string, pattern: '^(?:[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?#)?[1-9][0-9]*$'}
+        kind: {enum: [ROOT, INTERMEDIATE, LEAF]}
+        parent: {type: string}
+        weight:
+          type: integer
+          minimum: 1
+          description: Weight among siblings. Fixed by the plan; a split must conserve it.
+        reserve_weight:
+          type: integer
+          minimum: 0
+          description: Undecomposed reserve on ROOT/INTERMEDIATE; counts as zero progress and blocks COMPLETE.
+        responsibility_id: {type: string}
+        primary_pr: {type: string}
+        candidate_ref: {type: string, description: Branch/tag whose head is the candidate when there is no PR yet.}
+        critical: {type: boolean}
+        verification:
+          type: array
+          items: {enum: [VERIFIED, PARTIAL, FAILED, NOT_RUN, PENDING]}
+        contract_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        work_class:
+          enum: [PRODUCT, MECHANICAL, GATE]
+          description: PRODUCT (default) is held to the unit-count floor and share cap; MECHANICAL and GATE leaves are exempt from those two rules only.
+        outcome: {type: string, description: One sentence - what is observably true when the leaf is done.}
+        size_budget: {$ref: '#/$defs/size_budget'}
+        write_surface:
+          type: array
+          description: Repo-relative file paths or directory prefixes ending in '/'. No globs, no '..', no absolute paths.
+          items: {type: string, minLength: 1, pattern: '^[^*?\[\]\\]+$'}
+        depends_on:
+          type: array
+          items: {$ref: '#/$defs/ref'}
+          description: Leaves that must finish first. Orders leaves whose write surfaces overlap.
+        parallel_ok:
+          type: array
+          items: {$ref: '#/$defs/ref'}
+          description: Leaves whose overlapping write surface is safe to edit in parallel; needs parallel_ok_basis.
+        parallel_ok_basis: {type: string}
+        owns_claims:
+          type: array
+          uniqueItems: true
+          items: {$ref: '#/$defs/claim_id'}
+          description: Parent acceptance claim IDs owned by this leaf.
+        independence_basis:
+          type: string
+          minLength: 1
+          pattern: '.*\S.*'
+          description: Why this leaf can receive an independent responsibility verdict without completing its siblings.
+        acceptance_methods:
+          type: array
+          uniqueItems: true
+          items: {type: string, minLength: 1, pattern: '.*\S.*'}
+          description: Acceptance methods frozen by proposal-v2 when this leaf was materialized.
+        units:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [id, weight]
+            properties:
+              id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'}
+              weight: {type: integer, minimum: 1}
+              verify: {type: string, description: The check, command or evidence that proves this unit.}
+              outcome: {type: string}
+              successor_policy:
+                $ref: '#/$defs/successor_policy'
+                description: >-
+                  Optional takeover policy for this unit. It never changes weight/progress. CONTINUITY is non-blocking;
+                  INDEPENDENT_RECONSTRUCTION requires successor reconciliation only when a handover is actually offered.
+              moved_from: {$ref: '#/$defs/ref', description: The leaf this unit used to live in (same unit id). Only meaningful in the plan that moves it.}
+        coder_weight: {type: integer, minimum: 1}
+        delivery_gates:
+          type: array
+          items:
+            type: object
+            required: [id, weight]
+            properties:
+              id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'}
+              weight: {type: integer, minimum: 1}
+      allOf:
+        - if: {properties: {kind: {const: LEAF}}}
+          then: {required: [parent, weight, units]}
+        - if: {properties: {kind: {const: INTERMEDIATE}}}
+          then: {required: [parent, weight]}

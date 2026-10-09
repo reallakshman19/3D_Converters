@@ -1,0 +1,370 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+type: object
+$defs:
+  progressItem:
+    type: object
+    additionalProperties: false
+    required: [id, statement, state, reason_class, evidence]
+    properties:
+      id: {type: string, minLength: 1}
+      statement: {type: string, minLength: 1}
+      state: {enum: [PASS, PARTIAL, FAIL, NOT_RUN, PENDING, DEFERRED, NOT_APPLICABLE, UNKNOWN]}
+      reason_class:
+        enum: [CURRENT_TASK, UPSTREAM_DEPENDENCY, SIBLING_WORKSTREAM, PREEXISTING_UNRELATED, INFRASTRUCTURE, PROVIDER, OWNER_DECISION, UNKNOWN]
+      evidence:
+        type: array
+        items: {type: string, minLength: 1}
+      trace_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      remaining:
+        type: array
+        items: {type: string, minLength: 1}
+      owner: {type: [string, 'null']}
+      weight: {type: [number, 'null'], minimum: 0}
+      parent_mappings:
+        type: array
+        items: {type: string, minLength: 1}
+  progressModel:
+    type: object
+    additionalProperties: false
+    required: [criteria, summary, coverage]
+    properties:
+      criteria:
+        type: array
+        items: {$ref: '#/$defs/progressItem'}
+      summary:
+        type: object
+        additionalProperties: false
+        required: [pass, partial, fail, not_run, pending, deferred, not_applicable, unknown, total]
+        properties:
+          pass: {type: integer, minimum: 0}
+          partial: {type: integer, minimum: 0}
+          fail: {type: integer, minimum: 0}
+          not_run: {type: integer, minimum: 0}
+          pending: {type: integer, minimum: 0}
+          deferred: {type: integer, minimum: 0}
+          not_applicable: {type: integer, minimum: 0}
+          unknown: {type: integer, minimum: 0}
+          total: {type: integer, minimum: 0}
+      coverage:
+        type: object
+        additionalProperties: false
+        required: [satisfied, applicable_total, percent, basis]
+        properties:
+          satisfied: {type: number, minimum: 0}
+          applicable_total: {type: number, minimum: 0}
+          percent: {type: [number, 'null'], minimum: 0, maximum: 100}
+          basis: {enum: [UNWEIGHTED_CRITERIA, DECLARED_WEIGHTS, NO_DENOMINATOR]}
+required: [schema_version, authority, source_protocol, identity, purpose, lineage, parent_issue, programme_parent, planning, task_publications, parent_issue_progress, current_task_progress, offloads, pending_items, known_issues, improvement_vs_original_issue, scope, inputs, benchmarks, execution, material, acceptance, controls, knowledge_state, negative_knowledge, next, reconstruction_sources]
+properties:
+  schema_version: {const: relay-v3.1-task-snapshot}
+  authority: {const: DERIVED_READ_MODEL}
+  source_protocol: {enum: [V2_5, V3_1]}
+  protocol_basis:
+    type: object
+    additionalProperties: false
+    required: [protocol, common_repository, common_sha, two_pass_revision]
+    properties:
+      protocol: {const: V3.1}
+      common_repository: {const: reallaksh19/Common}
+      common_sha: {type: string, pattern: '^[0-9a-f]{40}$'}
+      two_pass_revision: {type: string, pattern: '^TPG-2P-'}
+      resolved_at: {type: [string, 'null'], format: date-time}
+  continuity:
+    type: [object, 'null']
+    additionalProperties: false
+    required: [current, further_tasks, predecessor_ref]
+    properties:
+      current:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [ref, custody_epoch, executor, status, continuation, exact_head, updated_at]
+        properties:
+          ref: {type: string, minLength: 1}
+          custody_epoch: {type: integer, minimum: 1}
+          executor: {type: string, minLength: 1}
+          status: {enum: [ACTIVE, HANDOFF_READY, COMPLETE, SUPERSEDED, BLOCKED]}
+          continuation: {enum: [NEW, HANDOFF, RECOVERY]}
+          exact_head: {type: [string, 'null']}
+          updated_at: {type: [string, 'null'], format: date-time}
+      further_tasks:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, state, statement, reason_class, dependency, expected_next_observable]
+          properties:
+            id: {type: string, pattern: '^FT-[1-9][0-9]*-[1-9][0-9]*$'}
+            state: {enum: [PENDING, ACTIVE, BLOCKED, DONE, SUPERSEDED, NOT_APPLICABLE]}
+            statement: {type: string, minLength: 1}
+            reason_class:
+              enum: [CURRENT_TASK, UPSTREAM_DEPENDENCY, SIBLING_WORKSTREAM, PREEXISTING_UNRELATED, INFRASTRUCTURE, PROVIDER, OWNER_DECISION, UNKNOWN]
+            dependency: {type: [string, 'null']}
+            expected_next_observable: {type: [string, 'null']}
+      predecessor_ref: {type: [string, 'null']}
+  reconstruction_context:
+    type: [object, 'null']
+    additionalProperties: false
+    required: [original_intent, latest_reconciliation, primary_conversation_refs, roadmap_refs, local_agent_refs, rll_refs]
+    properties:
+      original_intent:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [repository, issue_number, url]
+        properties:
+          repository: {type: string, pattern: '^[^/\s]+/[^/\s]+$'}
+          issue_number: {type: integer, minimum: 1}
+          url: {type: string, format: uri}
+          source_ref: {type: [string, 'null']}
+          digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      latest_reconciliation:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [ref]
+        properties:
+          ref: {type: string, minLength: 1}
+          observed_at: {type: [string, 'null'], format: date-time}
+          summary: {type: [string, 'null']}
+      primary_conversation_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      roadmap_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      local_agent_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      rll_refs:
+        type: array
+        items: {type: string, minLength: 1}
+  identity:
+    type: object
+    required: [work_package, ep, issue, delivery_vehicle]
+  purpose:
+    type: object
+    required: [programme_outcome, current_goal, task_outcome, why_this_task_exists]
+  lineage:
+    type: object
+    required: [predecessor_checkpoint, upstream_dependencies, roadmap_admission]
+  parent_issue:
+    type: object
+    additionalProperties: false
+    required: [repository, number, title, state, url, baseline, current, updates, disposition, relationships, handover_ledger]
+    properties:
+      repository: {type: [string, 'null']}
+      number: {type: [integer, 'null'], minimum: 1}
+      title: {type: [string, 'null']}
+      state: {type: [string, 'null']}
+      url: {type: [string, 'null']}
+      baseline: {type: [object, 'null']}
+      current: {type: [object, 'null']}
+      updates: {type: array}
+      disposition: {enum: [NO_CHANGE, UPDATE, LINK, TRANSFER, SPLIT, SUPERSEDE, CLOSE, UNKNOWN]}
+      relationships: {type: array}
+      handover_ledger:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [repository, issue_number, url]
+        properties:
+          repository: {type: string}
+          issue_number: {type: integer, minimum: 1}
+          url: {type: string}
+  programme_parent:
+    type: [object, 'null']
+    additionalProperties: false
+    required: [repository, number, title, url]
+    properties:
+      repository: {type: [string, 'null']}
+      number: {type: [integer, 'null'], minimum: 1}
+      title: {type: [string, 'null']}
+      url: {type: [string, 'null']}
+  planning:
+    type: object
+    additionalProperties: false
+    required: [state, provider_ref, revision, digest, observed_at, expected_next_observable]
+    properties:
+      state: {enum: [PRESENT, MISSING, STALE, UNKNOWN]}
+      provider_ref: {type: [string, 'null']}
+      revision: {type: [integer, 'null'], minimum: 1}
+      digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      observed_at: {type: [string, 'null'], format: date-time}
+      responsibility_basis_ref: {type: [string, 'null']}
+      responsibility_basis_digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      expected_next_observable:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [statement, evidence]
+        properties:
+          statement: {type: string, minLength: 1}
+          evidence:
+            type: array
+            items: {type: string, minLength: 1}
+  task_publications:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [type, ref, observed_at, summary]
+      properties:
+        type: {enum: [IMPLEMENTATION_PLAN, PLAN_UPDATE, TASK_EVIDENCE, TASK_RESULT]}
+        ref: {type: string, minLength: 1}
+        observed_at: {type: string, format: date-time}
+        summary: {type: string, minLength: 1}
+        exact_head: {type: [string, 'null']}
+  programme_progress:
+    anyOf:
+      - {$ref: '#/$defs/progressModel'}
+      - {type: 'null'}
+  work_issue_progress:
+    $ref: '#/$defs/progressModel'
+  plan_progress:
+    $ref: '#/$defs/progressModel'
+  task_acceptance_progress:
+    $ref: '#/$defs/progressModel'
+  verification:
+    type: object
+    additionalProperties: false
+    required: [state, observations, failure_origins]
+    properties:
+      state: {enum: [PASS, PARTIAL, FAIL, NOT_RUN, PENDING, UNKNOWN]}
+      observations:
+        type: array
+        items: {$ref: '#/$defs/progressItem'}
+      failure_origins:
+        type: object
+        additionalProperties:
+          type: integer
+          minimum: 0
+  delivery:
+    type: object
+    additionalProperties: false
+    required: [lifecycle]
+    properties:
+      pr: {type: [integer, 'null'], minimum: 1}
+      url: {type: [string, 'null']}
+      lifecycle: {enum: [NONE, DRAFT, OPEN, REVIEW_READY, CHANGES_REQUESTED, CONFLICTED, MERGED, CLOSED, UNKNOWN]}
+      base: {type: [string, 'null']}
+      head: {type: [string, 'null']}
+      mergeability: {type: [string, 'null']}
+  delivery_stack:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [pr, lifecycle, relationship]
+      properties:
+        pr: {type: integer, minimum: 1}
+        url: {type: [string, 'null']}
+        title: {type: [string, 'null']}
+        lifecycle: {enum: [NONE, DRAFT, OPEN, REVIEW_READY, CHANGES_REQUESTED, CONFLICTED, MERGED, CLOSED, UNKNOWN]}
+        relationship: {enum: [PRIMARY, STACK_PARENT, STACK_CHILD, RELATED]}
+        base: {type: [string, 'null']}
+        head: {type: [string, 'null']}
+        mergeability: {type: [string, 'null']}
+        note: {type: [string, 'null']}
+  completion:
+    type: object
+    additionalProperties: false
+    required: [overall_state, headline, implementation, verification, delivery, work_issue_acceptance, programme_contribution, provider_issue, what_done, what_remains, dependencies, owner_decisions]
+    properties:
+      overall_state: {enum: [COMPLETE, PARTIAL, OPEN, NOT_RUN, UNKNOWN]}
+      headline: {type: string, minLength: 1}
+      implementation: {enum: [COMPLETE, PARTIAL, OPEN, UNKNOWN]}
+      verification: {enum: [PASS, PARTIAL, FAIL, NOT_RUN, PENDING, UNKNOWN]}
+      delivery: {enum: [NONE, DRAFT, OPEN, REVIEW_READY, CHANGES_REQUESTED, CONFLICTED, MERGED, CLOSED, UNKNOWN]}
+      work_issue_acceptance: {enum: [SATISFIED, PARTIAL, OPEN, UNKNOWN]}
+      programme_contribution: {enum: [SATISFIED, PARTIAL, OPEN, UNKNOWN]}
+      provider_issue: {enum: [OPEN, CLOSED, UNKNOWN]}
+      what_done:
+        type: array
+        items: {type: string, minLength: 1}
+      what_remains:
+        type: array
+        items: {type: string, minLength: 1}
+      dependencies:
+        type: array
+        items: {type: string, minLength: 1}
+      owner_decisions:
+        type: array
+        items: {type: string, minLength: 1}
+  parent_issue_progress:
+    type: object
+    additionalProperties: false
+    required: [checklist, summary]
+    properties:
+      checklist: {type: array}
+      summary:
+        type: object
+        additionalProperties: false
+        required: [complete, partial, pending, blocked, deferred, not_applicable, unknown, total]
+        properties:
+          complete: {type: integer, minimum: 0}
+          partial: {type: integer, minimum: 0}
+          pending: {type: integer, minimum: 0}
+          blocked: {type: integer, minimum: 0}
+          deferred: {type: integer, minimum: 0}
+          not_applicable: {type: integer, minimum: 0}
+          unknown: {type: integer, minimum: 0}
+          total: {type: integer, minimum: 0}
+  current_task_progress:
+    type: object
+    additionalProperties: false
+    required: [checklist, summary]
+    properties:
+      checklist: {type: array}
+      summary:
+        type: object
+        additionalProperties: false
+        required: [complete, partial, pending, blocked, total]
+        properties:
+          complete: {type: integer, minimum: 0}
+          partial: {type: integer, minimum: 0}
+          pending: {type: integer, minimum: 0}
+          blocked: {type: integer, minimum: 0}
+          total: {type: integer, minimum: 0}
+  offloads: {type: array}
+  pending_items: {type: array}
+  known_issues: {type: array}
+  improvement_vs_original_issue:
+    type: object
+    additionalProperties: false
+    required: [baseline_digest, items]
+    properties:
+      baseline_digest: {type: [string, 'null']}
+      items: {type: array}
+  scope:
+    type: object
+    required: [write, read, protected, prohibited]
+  inputs: {type: array}
+  benchmarks: {type: array}
+  benchmark_debt:
+    type: object
+    required: [required_missing, stale, optional]
+  execution:
+    type: object
+    required: [lifecycle, lease_or_custody, executor, route, branch]
+  material:
+    type: object
+    required: [base, current_head]
+  acceptance: {type: array}
+  controls:
+    type: object
+    required: [material_write, checkpoint, handover, pr_ready, merge, release]
+  knowledge_state:
+    type: object
+    required: [known_true, known_false, unknown, assumptions]
+  negative_knowledge: {type: array}
+  preserve:
+    type: object
+    required: [accepted_do_not_reopen]
+  history:
+    type: object
+    required: [recent_events]
+  next:
+    type: object
+    required: [immediate_action, next_value_frontier, stop_conditions]
+  reconstruction_sources:
+    type: array
+    minItems: 1
+additionalProperties: false

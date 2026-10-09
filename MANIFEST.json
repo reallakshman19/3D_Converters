@@ -1,0 +1,979 @@
+{
+  "schema": "STAGE1_SOURCE_PACKAGE_MANIFEST_V1",
+  "case_id": "v32-succession-lfj-real-2026-10-09",
+  "package_role": "Fixture Preparer, not Runner B",
+  "source_commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+  "protocol_commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+  "stage2_access": "DENIED",
+  "runner_b_plan_frozen": false,
+  "verification_model": "byte SHA-256, content-addressed Git trees, offline independent recheck",
+  "coverage_note": "91 pinned source/fixture/protocol files, frozen prompt, sanitized issue body, 3 generated support files; receipt and manifest are self-referential exclusions",
+  "files": [
+    {
+      "archive_path": "intake/3D_Converters/issue-1152.owner-intent.md",
+      "repo": "reallaksh19/3D_Converters",
+      "commit": null,
+      "source_issue": "https://github.com/reallaksh19/3D_Converters/issues/1152",
+      "source_updated_at": "2026-10-09T11:30:29Z",
+      "source_kind": "issue_body_snapshot_not_git_file",
+      "path": "issue/1152#body",
+      "reason": "sanitized_owner_intent_only_no_comments",
+      "sha256": "c9b8ac953dd49cb5720f69deecb3b32f6560a6ffc1376d28af0f321a949b9b10",
+      "size": 8919
+    },
+    {
+      "archive_path": "ISOLATION_SETUP.md",
+      "repo": "fixture_preparer",
+      "commit": null,
+      "path": "ISOLATION_SETUP.md",
+      "reason": "generated_offline_runner_execution_instructions",
+      "sha256": "f4ae167f1df5f4ed513507b81ea1d6451c6c48e93e8460c94d35e77f7d165c57",
+      "size": 2716
+    },
+    {
+      "archive_path": "README.md",
+      "repo": "fixture_preparer",
+      "commit": null,
+      "path": "README.md",
+      "reason": "generated_scope_and_exception_document",
+      "sha256": "bdf7e1b6d97bc6d142852af2d20620ec0a340e459ac1cfbd800c58244b2dbb36",
+      "size": 2472
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885_NC/1885_NC.json",
+      "sha": "9ac18595acdf8938f01579b5c211f0deebc5dc0a",
+      "size": 10232634,
+      "reason": "authentic_1885_NC_original",
+      "sha256": "89f9c2ab7a9f1df15c1b9e1e0e30a8ca6c97ef994dcd56aec86c3a90f7d71646",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885_NC/1885_NC.json"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885_NC/1885_NC.topology.input.xml",
+      "sha": "e08eaae598bdf5b506eb8b62336086135a570986",
+      "size": 1067628,
+      "reason": "authentic_1885_NC_original",
+      "sha256": "516f61dce7074dcf55b3c43325612141c1b7c2fb006b6f6b67d07f112f88f8a2",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885_NC/1885_NC.topology.input.xml"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/EnrichedSjson",
+      "sha": "d6fbe847772b4418305a309a8e0752000729b2f8",
+      "size": 1785455,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "e9a51723444e9490f5dff9c1ff4a5c56191873033d11a289946746ff1072c5da",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/EnrichedSjson"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/EnrichedSjson.audit.json",
+      "sha": "2117b830276bc7ccb23d8abe9f2e4a35fc7292df",
+      "size": 380423,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "e8a6ccda307272bce8882e6226a25d32572e79b2aa5c480afb13a62c8b914b9a",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/EnrichedSjson.audit.json"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/EnrichedSjson.unresolved.csv",
+      "sha": "c4c31b2480186a27dd6b77c1f89a36a43bf22f48",
+      "size": 35888,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "767b73ea09db56fb83e56916b2346d893aaa1da83ba261fbbb46d14317f7ea76",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/EnrichedSjson.unresolved.csv"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/EnrichedSjsonbasedXML",
+      "sha": "e4f8e699f2556227d9e2cf1340285780c220eff3",
+      "size": 165530,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "5047662eb85bd9a6bbf29223fe15f5205be99dd6c2d6d7ecba675e17bee684da",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/EnrichedSjsonbasedXML"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML",
+      "sha": "f3c7404827e086c8a8a1bed713ce6c4c844cea6d",
+      "size": 144029,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "81b433de3ec1c6d58a3583e8b65cad9d42f1136869aa3191a478ea1bcb01c2d9",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/ExpectedEnrichedXML",
+      "sha": "a11057ff9b8b9624954d54411fc6ea3dc122a22b",
+      "size": 107375,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "6b8a0377077b0d53225e46909c63234dd66ba7567b483c6793edf420e785f876",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/ExpectedEnrichedXML"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/ExpectedXML",
+      "sha": "455201c2bd0e957ec17a38af7c68f05a5b2f7662",
+      "size": 156060,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "9ec2cd0215a69d016f54839ece9965e744834c761f2993d663d0c895b6c1b8d5",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/ExpectedXML"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/Firstpass CII",
+      "sha": "745bccaf3f34e49a9cb6aa36f80ace86b85a6803",
+      "size": 405582,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "9c6a9ec2896991700e986e9bb7d3b9a5359c356c7a274b6e46f90786865dffdb",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/Firstpass CII"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/FirstpassXML",
+      "sha": "9baed223d1fe10644bc4ea6be1b9e36b10eb3e1f",
+      "size": 144471,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/FirstpassXML"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/fixture-contract-snapshot.json",
+      "sha": "c30298e56c99125af2ddeb6f3e43ebfc8cd15c65",
+      "size": 3546,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "7caaf15f99add9bc3d632b51d3880aa7cecb17170fc7948cf5bc38187aa6b3d1",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/fixture-contract-snapshot.json"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/fixture-manifest.json",
+      "sha": "04816cb7562910c1fc37615ee91d5343bb2fbd91",
+      "size": 2453,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "ff755fe3b978ec90e8d23e1a45c5cae51b2287f0118e28c2f0dda768e4be69fd",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/fixture-manifest.json"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "Benchmarks/1885Sjson/Sjson.json",
+      "sha": "f3400dc9cbffa079d89ad850f0acc7a3709a21d9",
+      "size": 733806,
+      "reason": "authentic_1885Sjson_original_or_expected_fixture",
+      "sha256": "6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288",
+      "archive_path": "reallaksh19/3D_Converters/Benchmarks/1885Sjson/Sjson.json"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "contracts/stagedjson-contract.js",
+      "sha": "0ea59572ec932f1d3d54caa5b4a85b9b6f94da3e",
+      "reason": "direct_import_closure",
+      "size": 3392,
+      "sha256": "39eb595460b7872147395622db87843357978220e6081262700c5dec65d7704d",
+      "archive_path": "reallaksh19/3D_Converters/contracts/stagedjson-contract.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/branch-format-extraction.js",
+      "sha": "8db5213e99b34284f63f63b507ea6c3984a9c057",
+      "reason": "direct_import_closure",
+      "size": 8017,
+      "sha256": "6d1f9e31985fb01c8132c91876d8c99c5e74de0fbae0dd859c713f247e13d4d0",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/branch-format-extraction.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/branch-process-resolver.js",
+      "sha": "d029f5547cdc0fdbb30680062e7be3f7e1d64539",
+      "reason": "direct_import_closure",
+      "size": 21977,
+      "sha256": "7c008b218802b047ccd0116adef2fd64b1c606d86412be0d0b29dc678bff3009",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/branch-process-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/config.js",
+      "sha": "bd685941a1e0ce024a4beedf1b8a10bd7814f90b",
+      "reason": "direct_import_closure",
+      "size": 14573,
+      "sha256": "9d8dbd3f75e72c45ed518cbe4394778d8337da247961ce2117d229349baf7a54",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/config.js",
+      "inventory_index": 17
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/default-piping-class-material-code-rows.js",
+      "sha": "539a83e62b1c9c1a90328aeeace069f2416c02df",
+      "reason": "direct_import_closure",
+      "size": 6122,
+      "sha256": "eff9dac29ccd67635c34291a7e9d96f32e10472d80163cb9f5ab1e5ec733cd13",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/default-piping-class-material-code-rows.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/dtxr-rating-resolver.js",
+      "sha": "97a9abf0db508850dd811c71aa0f9d3daa789002",
+      "reason": "direct_import_closure",
+      "size": 4640,
+      "sha256": "b560b1404c69f43f5762d8071d53b00652353792fcf8f80e9e0f9a5ba9a9d9f4",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/dtxr-rating-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/line-density-resolver.js",
+      "sha": "cec73e0bffad63f72a9a60d5585085d473db1f49",
+      "reason": "direct_import_closure",
+      "size": 4161,
+      "sha256": "5abe3f41b3e15d015c4cb2b495b81de6471d5008d9220500ffbf8bbf947b255f",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/line-density-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/linelist-mapping.js",
+      "sha": "1f6dbbde8404f0cbed6786d0479a710b32dba980",
+      "reason": "direct_import_closure",
+      "size": 17856,
+      "sha256": "2809ecb167987edf0323ed5a9bd2f08438e5f82379bf1ba78ac3aab86029de26",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/linelist-mapping.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/material-code-fuzzy-resolver.js",
+      "sha": "1d1efaf9204362908b944018e5cd463e50665b8c",
+      "reason": "direct_import_closure",
+      "size": 9026,
+      "sha256": "a7053200726402c69f30f13a60fe244e0fd9761f162cbe2038821b8975a2b8a5",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/material-code-fuzzy-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/nps-bore-resolver.js",
+      "sha": "996245846d15d331a6f1f31b4f6270fdf06e2be9",
+      "reason": "direct_import_closure",
+      "size": 4381,
+      "sha256": "b3ee69307cc54985b48910e63e68cdb126c96226433277846dfed1672922a8e8",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/nps-bore-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/piping-class-material-code-resolver.js",
+      "sha": "84534b0e548d4fa29037ca5cd8ef783baf7eb7d0",
+      "reason": "direct_import_closure",
+      "size": 9531,
+      "sha256": "5f3eeaeb48c14e27e8a5102fa9307d3abc78b0a8a014370ec1e9189c1c059908",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/piping-class-material-code-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/piping-class-resolver.js",
+      "sha": "0c61a12b0198e4d5d8d7f8c51872db9cb8d7dd9f",
+      "reason": "direct_import_closure",
+      "size": 14321,
+      "sha256": "f1d44fe4b7f7d1f6c766764c9f46034ef1a059d25b290767ff738a433a82f72e",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/piping-class-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/piping-class-source-resolver.js",
+      "sha": "a4d4a213d810eba9e8894cefe5821a64b3c6f3d4",
+      "reason": "direct_import_closure",
+      "size": 3248,
+      "sha256": "5f205b33d87ca57b8591870aa0bbfc03d4724f579f22ea53032b53b4f38a2867",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/piping-class-source-resolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/regex-line-key.js",
+      "sha": "f0c4f8f9776dce9caad0740ffb93b14808ef4173",
+      "reason": "direct_import_closure",
+      "size": 5260,
+      "sha256": "5da7aa78f6d035181fff68f7ecfa3609f89f02c83e8d0e87be8c4b6d5932ee58",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/regex-line-key.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/service-process-fallback.js",
+      "sha": "8386e95b86ecedd4500190598dfe65f276f5a312",
+      "reason": "direct_import_closure",
+      "size": 9736,
+      "sha256": "281b0a2b9271302e15af86f049f31d548c03941e78b0c6fe7c13f71f02e64359",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/service-process-fallback.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/source-schema-adapter.js",
+      "sha": "2588b0064fa865f4eb0f82794b3b9ff7b517f227",
+      "reason": "original_allowlisted_module",
+      "size": 26944,
+      "sha256": "e61def9aa9bbb928e0fb665a5f699ff68c6e4b10fcf9741b9938f171c6e8890c",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/source-schema-adapter.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "converters/xml-cii2019-core/support-mapping-config.js",
+      "sha": "f8b9b3be15f49d0c5c0204411a236e92d7d3c9db",
+      "reason": "direct_import_closure",
+      "size": 14323,
+      "sha256": "75c1efd2db09ce6b1be61d49f95ff5c0361f4c0f83a1240a7adf9146d3a42fcf",
+      "archive_path": "reallaksh19/3D_Converters/converters/xml-cii2019-core/support-mapping-config.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/adapters/ownership/README.md",
+      "sha": "e135c2b6fe12c47779e6d3cfcfea8085b25e8108",
+      "size": 5972,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "b26eac20a592fb026901c22abeb2cf3cf92c7b1a62d21461d1fce43edfb50605",
+      "archive_path": "reallaksh19/3D_Converters/lfj/adapters/ownership/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/adapters/ownership/source-ownership.mjs",
+      "sha": "9e45ab386928a7cc9e2b00dd9a20b4c8f1593155",
+      "size": 5808,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "aa1ca6fe49e2610b3417b30f3ef4fa22941b9ed37274c67728baefda67edb28d",
+      "archive_path": "reallaksh19/3D_Converters/lfj/adapters/ownership/source-ownership.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/contracts/profiles/README.md",
+      "sha": "3a1c446c80c4c8e54e9b6e93ecc86c54df3a3d7f",
+      "size": 10391,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "382df7a92bfb22953337dcb971f0ad5d9e011c8149842c55a7de8baa2878c29c",
+      "archive_path": "reallaksh19/3D_Converters/lfj/contracts/profiles/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/contracts/profiles/root-profile.mjs",
+      "sha": "6cf82e79f820ddf1a8d28e21f4f994e063af60b4",
+      "size": 9742,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "4c037302e47497ed8edba416355f8e3474b2ee36734146bce265e9a5e703eda2",
+      "archive_path": "reallaksh19/3D_Converters/lfj/contracts/profiles/root-profile.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/index/README.md",
+      "sha": "4175eee4c573d13fa31940f6ab27d62b57d4b8bb",
+      "size": 8978,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "83351dc1d738685ab9b1eb16a9cf024ecacfe0831d3a017053025dd88e95d1f8",
+      "archive_path": "reallaksh19/3D_Converters/lfj/index/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/index/source-occurrence-index.mjs",
+      "sha": "84a1d6b49d1b67d8f930150f2216cb6fc62f82ce",
+      "size": 9756,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "f920e875784572f7392532f651126418e201685ef5ed26d4502e050afec8f33f",
+      "archive_path": "reallaksh19/3D_Converters/lfj/index/source-occurrence-index.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/ports/committed-worker-query.mjs",
+      "sha": "77ed323e302d1ff2891e2a851f9a2b67ca7cd90b",
+      "size": 7704,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "8babd3abb2a509afe1724d2622e4bbf5a1ef3b3443b6d16a99bc909fd9de1aba",
+      "archive_path": "reallaksh19/3D_Converters/lfj/ports/committed-worker-query.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/ports/README.md",
+      "sha": "132b3255e9ac5ada1b33ec64c9303bbfc761a2d9",
+      "size": 4972,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "c725740907ed41936a9888f33e00b2161a8d38e7bc1d326375f9bb6a0b93f9e8",
+      "archive_path": "reallaksh19/3D_Converters/lfj/ports/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/ports/source-browser-worker.mjs",
+      "sha": "2b7b12937f66faffdbd97c0da8c95875c05a8cc8",
+      "size": 1330,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "db9e8482056b8ad250773ea765e3bee90cba78fc060ac6749895cdc62003dee7",
+      "archive_path": "reallaksh19/3D_Converters/lfj/ports/source-browser-worker.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/ports/source-node-worker.mjs",
+      "sha": "767d1627d73401ef22bac36486a611c83a6c1843",
+      "size": 1360,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "bcfba8262095ba45b14f2f95970a83d1d64c58999bee5f5cbdfb5ed319f616eb",
+      "archive_path": "reallaksh19/3D_Converters/lfj/ports/source-node-worker.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/ports/source-worker-port.mjs",
+      "sha": "8fbc4cf0eae9b224b0b8bfbdbf12c0d42ce25838",
+      "size": 6887,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "0915d1301b64bdde77000cc8cce2122c1a502d0e186bf5ddc04f00501aa7ed3b",
+      "archive_path": "reallaksh19/3D_Converters/lfj/ports/source-worker-port.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/query/pages/committed-selection-pages.mjs",
+      "sha": "902f412c971e529db51ad33e66553ec1c2762062",
+      "size": 11380,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "dca16146494d7df56b3d465e1abc7723bfffd414eb935b061ea20a6a2b1a7b3a",
+      "archive_path": "reallaksh19/3D_Converters/lfj/query/pages/committed-selection-pages.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/query/pages/README.md",
+      "sha": "43ca80df3382c270eda5af57418f2c7804c11e49",
+      "size": 5452,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "2f2aeab0c5d2b456c56164884315bd9113ba24424e205d9afe4cd3fb4ce98f44",
+      "archive_path": "reallaksh19/3D_Converters/lfj/query/pages/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/query/selection/exact-occurrence-selection.mjs",
+      "sha": "18f18146e3aa9d8828e94256bb7b224e02ad2725",
+      "size": 7909,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "c5029182dd29b08a779861468d05469abde9563e2fdeeaba8c596001c2279c92",
+      "archive_path": "reallaksh19/3D_Converters/lfj/query/selection/exact-occurrence-selection.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/query/selection/README.md",
+      "sha": "760364f0536ecf1cd521d2ad43dda45d0092570d",
+      "size": 4619,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "9debf1e0abb845a421cad65a8258095a7bc749abca6e0c34b5352b5b8eadb60b",
+      "archive_path": "reallaksh19/3D_Converters/lfj/query/selection/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/runtime/indexed-occurrence-pairs.mjs",
+      "sha": "f9fdb4e6a147d6d89f24dd907104c5baa61312a6",
+      "size": 13705,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "99206490f62d053c8aac7c4f8811e93e0c213907c10c8e9dfc326805081e8c7c",
+      "archive_path": "reallaksh19/3D_Converters/lfj/runtime/indexed-occurrence-pairs.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/runtime/source-session.mjs",
+      "sha": "19a63aaff39811755f596cfb79e2312d68569cb5",
+      "size": 9686,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "f8d315c62865c49674e357ca05e2ae31f18e96903864b8665114b6f66cc88dbd",
+      "archive_path": "reallaksh19/3D_Converters/lfj/runtime/source-session.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/source/README.md",
+      "sha": "a74b1a9bc3e7c66d0f89b7703fe3d3ce4fb93e17",
+      "size": 8598,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "b01dbd6dde061253618a6ee2f44836d6c16d639f727187d2ba3be0d71022b32f",
+      "archive_path": "reallaksh19/3D_Converters/lfj/source/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/source/source-snapshot.mjs",
+      "sha": "c59bcc4bfe93c6c26e059d5457554adbb808f082",
+      "size": 11930,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "df627a778ffbbf7db4e245d575f2eafe360f2a35cb1b42daa0618a5e7226555e",
+      "archive_path": "reallaksh19/3D_Converters/lfj/source/source-snapshot.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/storage/browser/indexed-record-store.mjs",
+      "sha": "ec177642988009a66d1e792c282fe8dfd9ac6291",
+      "size": 10908,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "389f3763c50c64ce91599222eb5633a39087effae56cc056485e81531ad0a1e4",
+      "archive_path": "reallaksh19/3D_Converters/lfj/storage/browser/indexed-record-store.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/tokenizer/json-tokenizer.mjs",
+      "sha": "0437a907c8d532b97310918e16da4102b14948da",
+      "size": 15835,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "5e5a96a669a6fdf0343b5acb82cb5c9d26c914e2b784976276d0e2a73cb0384c",
+      "archive_path": "reallaksh19/3D_Converters/lfj/tokenizer/json-tokenizer.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/tokenizer/README.md",
+      "sha": "f7d86ea8186faec1661c424305687b67f02459b2",
+      "size": 8629,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "9b2315f0396ee7ef50fed90383d5d0ea250faf8ff2f1a84e0d09e5ca8e2c6f7e",
+      "archive_path": "reallaksh19/3D_Converters/lfj/tokenizer/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/transport/execution/bounded-source-transfer.mjs",
+      "sha": "2dcbf6742a8e2601f1da89f36e5e7cabe71c39c0",
+      "size": 7771,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "40d0457f58a684ef01641ce96b87107a7cbc2f5c8edb46409a68c4101115692c",
+      "archive_path": "reallaksh19/3D_Converters/lfj/transport/execution/bounded-source-transfer.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/transport/execution/README.md",
+      "sha": "5313af5e53e2d7416663eb9b964cbce6acc952a2",
+      "size": 12960,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "c2f3b3aee2ceac8af02baf9487361b2cf22acd44b9df64a79b0a69d46e888ad0",
+      "archive_path": "reallaksh19/3D_Converters/lfj/transport/execution/README.md"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/transport/execution/required-worker.mjs",
+      "sha": "0684a5d66f80306039e7c38ebe202fcae97ece7c",
+      "size": 5403,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "e2a4f90537c20920074febbcfda2e868a6f6ac13cdd48583813b948f313ebdec",
+      "archive_path": "reallaksh19/3D_Converters/lfj/transport/execution/required-worker.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "lfj/transport/lifecycle/lifecycle-session.mjs",
+      "sha": "0c883a8effc46659f6889501c22b4b21b4d9a89a",
+      "size": 14051,
+      "reason": "pinned_neutral_lfj_source_or_interface_contract",
+      "sha256": "dadd6d711bf795ddf977cb7ff464a9f760883faed88473af8026eeea76249144",
+      "archive_path": "reallaksh19/3D_Converters/lfj/transport/lifecycle/lifecycle-session.mjs"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "support/SupportKindResolver.js",
+      "sha": "8c60af16d645b74fc3da845aab3b694a43a8b6e0",
+      "reason": "direct_import_closure",
+      "size": 16316,
+      "sha256": "da57bbe09e6a945f739c79220de996146fd687604e715604756d8a21b9ff3b6c",
+      "archive_path": "reallaksh19/3D_Converters/support/SupportKindResolver.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-branch-context.js",
+      "sha": "fead6029155c5648aa6cb3a635d883dacaa20bda",
+      "reason": "original_allowlisted_module",
+      "size": 4942,
+      "sha256": "4b171ea9fa98ef47008ed8af34dcf86bd6fc684b3c70d7456d55c0b0d930281e",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-branch-context.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-audit.js",
+      "sha": "d5dd9138061c68d2dd4f16e30b7d96e4d5735190",
+      "reason": "direct_import_closure",
+      "size": 2960,
+      "sha256": "14c99186f594adfff11f4b4496d801ee35671be4353daf06232b157c4a373eff",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-audit.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-contract.js",
+      "sha": "aa3c64f72a15c8118a4eb3334730f06385a2e216",
+      "reason": "direct_import_closure",
+      "size": 4156,
+      "sha256": "a74b47602ab233ff71b8bff0647327d527219f688211f0ac0746fe33325416a1",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-contract.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-engine.js",
+      "sha": "6b21f051aed83730492225fbd4b2b77c811f99fb",
+      "reason": "original_allowlisted_module",
+      "size": 5015,
+      "sha256": "260b27c1094413c1f938088d8ea2156d38f85d7caa850a0aba79a16968be4a1b",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-engine.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-master-adapter.js",
+      "sha": "6e07c68c9b18a15249a5d2971ad814c0ef07ddd2",
+      "reason": "direct_import_closure",
+      "size": 1886,
+      "sha256": "f3e04beaa4e9813383a1f37592cf2e9841905d8274eaa4ad7bc246c6e77f2ff9",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-master-adapter.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-resolver-adapter.js",
+      "sha": "1163ba89f3a9d2bd34869918bba307af582fa2ff",
+      "reason": "direct_import_closure",
+      "size": 16665,
+      "sha256": "bbc83f3993f70efd0d77a178e20597c2b7fe731e7f94d13cb0fbfde815bc59fe",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-resolver-adapter.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js",
+      "sha": "a29ed52cb907d91a6009c158d718c9800a0c8f44",
+      "reason": "original_allowlisted_module",
+      "size": 6420,
+      "sha256": "11566d503484aba38ce6e88b978bcee8e8ebd785a854b48b2e9f591519b05e39",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js",
+      "sha": "51e03b2c21a829f8d0beec20ecfa320844a9250d",
+      "reason": "original_allowlisted_module",
+      "size": 7494,
+      "sha256": "24a81523655e38f37ac5f3d28075fdaff1b70743f15046636982e609cc21ba61",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js",
+      "sha": "d6e3f1cae8967a6c812ab9fc53b98c61144d881c",
+      "reason": "original_allowlisted_module",
+      "size": 14459,
+      "sha256": "eb16f000934ed808dc4a2cf8a3db48903ffab029424b62ee5ee6eee210e5d351",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-export.js",
+      "sha": "5701eefbf0cf593a18cdb3c1a2b06c5163e69d1c",
+      "reason": "original_allowlisted_module",
+      "size": 9097,
+      "sha256": "650a88a46ed7c8276de1717c43b29faa90fcd7c76d2f49620eced80ab62bbf2b",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-trace-export.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "sha": "faf632afeee59d72c861349c90dec9e10c1ea7a9",
+      "reason": "original_allowlisted_module",
+      "size": 26840,
+      "sha256": "544e1e9b35176eb99090de1978601cbdc03573212316743d30fb999f71be999c",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-spatial-index.js",
+      "sha": "b69953dda956d7a31ac6a1329ad95632f699499f",
+      "reason": "original_allowlisted_module",
+      "size": 3102,
+      "sha256": "a9ba5228a4ac8822ac29f7877fcc8d0c352bee6bb434d4387cc12d9dadf5ca69",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-trace-spatial-index.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-weight-match.js",
+      "sha": "b909e7557d291b7a7c61a11ee38736763c03d3e8",
+      "reason": "direct_import_closure",
+      "size": 7459,
+      "sha256": "24c35a6f2c6ee950e32ccd00eeff2b55fad847417e25457f7eb8e6a376cb761a",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-weight-match.js"
+    },
+    {
+      "repo": "reallaksh19/3D_Converters",
+      "commit": "1205639a43e9ce1589360479d2558678aebcfab7",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js",
+      "sha": "28bcc8b40b06947735f1d56c96a739efa6118e89",
+      "reason": "direct_import_closure",
+      "size": 2312,
+      "sha256": "fdd82a03518beb7284fdaaeef2b7640fa2ace0c5b59c7266a16cd2f0c415fd41",
+      "archive_path": "reallaksh19/3D_Converters/tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js"
+    },
+    {
+      "archive_path": "reallaksh19/Common/relay/AGENT_A_LFJ_20261009/STAGE1_RUNNER_B_PROMPT.md",
+      "repo": "reallaksh19/Common",
+      "commit": "5067aa1b408973102dccb20e684d9de5689af23a",
+      "path": "relay/AGENT_A_LFJ_20261009/STAGE1_RUNNER_B_PROMPT.md",
+      "sha": "7504bff62d0e6a495299019e88ee47541443acdb",
+      "reason": "frozen_stage1_prompt",
+      "sha256": "c74b73a01a4a0354f28000772b8a9bb480b645ce54d9fe87efa5677b2ca6131a",
+      "size": 16490
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/examples/publications/implementation-plan.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "628f87b987b7e8ff061e1f6290e3e5c7d5949741",
+      "size": 1478,
+      "sha256": "078661214c5df7a331dac286b4a10504bba2b3b8b069a3793115cad79c1f2c35",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/examples/publications/implementation-plan.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/examples/publications/task-evidence.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "b609d289ff9c6e156516b7ebdb48d177091b7dbb",
+      "size": 1693,
+      "sha256": "a557858d313ae10dd30f0bc65fae7e55dfa01a34afb6c87053599c4c99fb201c",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/examples/publications/task-evidence.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/agent-task-publication.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "7dd392e4cfc96d3f9b8627743aa23e0d814f0c81",
+      "size": 17575,
+      "sha256": "be95038ae2e573edbf728f21112ad55fe8b3def1e78a139786f0cf6d60a56809",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/agent-task-publication.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/architecture-preservation-contract.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "0cee0536571bdca0ebf8970fa4617ed5021be308",
+      "size": 8062,
+      "sha256": "5f171b57c504cf69ab05787e5ef8022be10bc1bc717a039741cceff982467e06",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/architecture-preservation-contract.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/authority-model.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "85e2ca0b75155c67046d914340b2aa339ffb66f7",
+      "size": 2845,
+      "sha256": "a12dd09066dc41b1f3d25fd49c6343366ce2b6a2a6158ff2d374a40e0828d5c1",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/authority-model.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/durable-execution-lineage-projection-v32.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "26954c342377001faaf2d1607bcba97f63706518",
+      "size": 47613,
+      "sha256": "9b17996a0ef87d80cb63dea0c0754e5bc8eedda5c0c96b483fc5dacbbda155b4",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/durable-execution-lineage-projection-v32.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/parent-handover-ledger.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "35636239a9998b20deed12ab7cb302dd96050b7e",
+      "size": 9234,
+      "sha256": "c2fa6001858a4fe19ef58a962d396106c24f26bf9259f2330c688a2b89924238",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/parent-handover-ledger.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/operating-model/responsibility-continuity-v32.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "d0b607ff55d4b971d8ceebb38db700fa3a896f0f",
+      "size": 9968,
+      "sha256": "38a9be117e032fe517e0bdd7c42535fda28bf825b84d8e36e9e2fa259d08edf6",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/operating-model/responsibility-continuity-v32.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/OWNER_CHECKPOINT_PROJECTION.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "aed668c30e2eac64a8df2bc37d098dfbe38e98a2",
+      "size": 8402,
+      "sha256": "ac04553790aa26b4eb615f47ffe474084ccb4916cf71174fc4889c69083023dd",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/OWNER_CHECKPOINT_PROJECTION.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/PROGRAMME_DECOMPOSITION_PROGRESS.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "af3c9b0cc195bea42e3f8cd92f320c48747a8090",
+      "size": 20162,
+      "sha256": "152684d0ad67b6fd82f22771c81fbd024dffd4e8d307dcff7e142ef7831d3274",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/PROGRAMME_DECOMPOSITION_PROGRESS.md"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/schemas/delp-execution-graph-v32.schema.yaml",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "73f92754e408c06cfd4a13653c983b9bf0552b5c",
+      "size": 16726,
+      "sha256": "f2347de05d8bbfe770a882841ab73ce87bccad63213023c70f1b1e411eeb2a2a",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/schemas/delp-execution-graph-v32.schema.yaml"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/schemas/handover-context.schema.yaml",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "b4f7a25abbf9620ee5c772b86eacb6536095917d",
+      "size": 23103,
+      "sha256": "5bbc2f40a2cadf201f719d3a73e3bdf79731951f5ca44b25bbf39fde9ee2a18c",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/schemas/handover-context.schema.yaml"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/schemas/handover-ledger.schema.yaml",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "9f8b196c2e0c670a1f9034334a3e0308e6f2480d",
+      "size": 10140,
+      "sha256": "d9df6495f720ab208b1278825a52bf87369e79a68136faf45e52b54c9c84498a",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/schemas/handover-ledger.schema.yaml"
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/schemas/parent-issue-observation.schema.yaml",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "10d05d022219bc899e684b2d96371c0728648c9f",
+      "size": 10977,
+      "sha256": "fa30354d2240f00541c08e8d5b991199651e9b01bcf919c61ef52051655a06aa",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/schemas/parent-issue-observation.schema.yaml",
+      "inventory_index": 85
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/schemas/task-snapshot.schema.yaml",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "9d9f5ed804108cd506077e7877dc1b2a5ddea98d",
+      "size": 14386,
+      "sha256": "55e2f9f37cec312ca9064906aa5c594323f40b9b7ac2b762fda7e75ff8d21f10",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/schemas/task-snapshot.schema.yaml",
+      "inventory_index": 86
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/SKILL.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "c6cbe524915281760b516660d4330ba0f51d44b4",
+      "size": 31386,
+      "sha256": "d388101796e09f396ac6c1edbb57ac0b002218478efed02d429687c95a6dff2f",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/SKILL.md",
+      "inventory_index": 87
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/templates/checkpoint-facts-v32.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "c52b3a2c01bf620f05da24e53a8f7ddcceeba613",
+      "size": 3814,
+      "sha256": "0252c787a5fa7f5fc02311161d53360c719f72ab5ccf34ec307c55046527486c",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/templates/checkpoint-facts-v32.md",
+      "inventory_index": 88
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/templates/further-task-v32.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "0a539365e2e7192cfd4c8e4e9be6c5fb916fe612",
+      "size": 2501,
+      "sha256": "92b4586edf78e80a4e96912bef207eaaf6f1e0e57e0940fc1d7d5ac32e9a7d59",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/templates/further-task-v32.md",
+      "inventory_index": 89
+    },
+    {
+      "repo": "reallaksh19/Common",
+      "commit": "13989969f6b7e432c4f7c1ddfe975449dba53593",
+      "path": "skills/engineering-pr-delivery-v3.2/templates/plan-for-local-agent.md",
+      "reason": "pinned_v32_skill_decomposition_handover_contract",
+      "sha": "c6eb18d731b968807e54d44730a522eeaee02568",
+      "size": 10461,
+      "sha256": "61d7701efd7849cab199f5e9ca1455781df55ef8f089adba60583d50e2d76d29",
+      "archive_path": "reallaksh19/Common/skills/engineering-pr-delivery-v3.2/templates/plan-for-local-agent.md",
+      "inventory_index": 90
+    },
+    {
+      "archive_path": "verify_package.py",
+      "repo": "fixture_preparer",
+      "commit": null,
+      "path": "verify_package.py",
+      "reason": "generated_byte_verifier",
+      "sha256": "22f24493374dfab9cb18ef780fee3eafdc297b0649e9b5d49ee46540f6053685",
+      "size": 1212
+    }
+  ]
+}

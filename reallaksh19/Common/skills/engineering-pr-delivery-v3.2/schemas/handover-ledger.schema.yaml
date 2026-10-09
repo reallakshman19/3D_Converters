@@ -1,0 +1,253 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+type: object
+$defs:
+  reconstructionContext:
+    type: object
+    additionalProperties: false
+    required: [original_intent, latest_reconciliation, primary_conversation_refs, roadmap_refs, local_agent_refs, rll_refs]
+    properties:
+      original_intent:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [repository, issue_number, url]
+        properties:
+          repository: {type: string, pattern: '^[^/\s]+/[^/\s]+$'}
+          issue_number: {type: integer, minimum: 1}
+          url: {type: string, format: uri}
+          source_ref: {type: [string, 'null']}
+          digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      latest_reconciliation:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [ref]
+        properties:
+          ref: {type: string, minLength: 1}
+          observed_at: {type: [string, 'null'], format: date-time}
+          summary: {type: [string, 'null']}
+      primary_conversation_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      roadmap_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      local_agent_refs:
+        type: array
+        items: {type: string, minLength: 1}
+      rll_refs:
+        type: array
+        items: {type: string, minLength: 1}
+  continuity:
+    type: object
+    additionalProperties: false
+    required: [current, further_tasks, predecessor_ref]
+    properties:
+      current:
+        type: [object, 'null']
+        additionalProperties: false
+        required: [ref, custody_epoch, executor, status, continuation, exact_head, updated_at]
+        properties:
+          ref: {type: string, minLength: 1}
+          custody_epoch: {type: integer, minimum: 1}
+          executor: {type: string, minLength: 1}
+          status: {enum: [ACTIVE, HANDOFF_READY, COMPLETE, SUPERSEDED, BLOCKED]}
+          continuation: {enum: [NEW, HANDOFF, RECOVERY]}
+          exact_head: {type: [string, 'null']}
+          updated_at: {type: [string, 'null'], format: date-time}
+      further_tasks:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, state, statement, reason_class, dependency, expected_next_observable]
+          properties:
+            id: {type: string, pattern: '^FT-[1-9][0-9]*-[1-9][0-9]*$'}
+            state: {enum: [PENDING, ACTIVE, BLOCKED, DONE, SUPERSEDED, NOT_APPLICABLE]}
+            statement: {type: string, minLength: 1}
+            reason_class:
+              enum: [CURRENT_TASK, UPSTREAM_DEPENDENCY, SIBLING_WORKSTREAM, PREEXISTING_UNRELATED, INFRASTRUCTURE, PROVIDER, OWNER_DECISION, UNKNOWN]
+            dependency: {type: [string, 'null']}
+            expected_next_observable: {type: [string, 'null']}
+      predecessor_ref: {type: [string, 'null']}
+required: [schema_version, authority, generated_from, parent_issue, handover_issue, current_frontier, parent_progress, ep_index, pending_items, known_issues, offloads, accepted_truth, material, negative_knowledge, accountability, active_change, delivery, records, next]
+properties:
+  schema_version: {const: relay-v3.1-handover-ledger}
+  authority: {const: DERIVED_PROVIDER_PROJECTION}
+  generated_from:
+    type: object
+    additionalProperties: false
+    required: [state_digest, task_snapshot_digest, roadmap_revision]
+    properties:
+      state_digest: {type: string, pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      task_snapshot_digest: {type: string, pattern: '^sha256:[0-9a-fA-F]{64}$'}
+      roadmap_revision: {type: string, minLength: 1}
+      provider_observation_digests:
+        type: array
+        items: {type: string, pattern: '^sha256:[0-9a-fA-F]{64}$'}
+  parent_issue:
+    type: object
+    additionalProperties: false
+    required: [repository, number, title, url, state, disposition, relationships]
+    properties:
+      repository: {type: string, pattern: '^[^/\s]+/[^/\s]+$'}
+      number: {type: integer, minimum: 1}
+      title: {type: string, minLength: 1}
+      url: {type: string, format: uri}
+      state: {enum: [OPEN, CLOSED, UNKNOWN]}
+      disposition: {enum: [NO_CHANGE, UPDATE, LINK, TRANSFER, SPLIT, SUPERSEDE, CLOSE, UNKNOWN]}
+      relationships: {type: array}
+  handover_issue:
+    type: [object, 'null']
+    additionalProperties: false
+    required: [repository, number, url]
+    properties:
+      repository: {type: string, pattern: '^[^/\s]+/[^/\s]+$'}
+      number: {type: integer, minimum: 1}
+      url: {type: string, format: uri}
+  reconstruction_context:
+    anyOf:
+      - {$ref: '#/$defs/reconstructionContext'}
+      - {type: 'null'}
+  current_frontier:
+    type: object
+    additionalProperties: false
+    required: [ep, work_package, lease, executor, status, continuation]
+    properties:
+      ep: {type: [string, 'null']}
+      work_package: {type: [string, 'null']}
+      lease: {type: [string, 'null']}
+      executor: {type: [string, 'null']}
+      custody_epoch: {type: [integer, 'null'], minimum: 0}
+      status: {enum: [ACTIVE, COMPLETE, RECOVERY_REQUIRED, UNKNOWN]}
+      continuation: {enum: [NEW, HANDOFF_PENDING, HANDOFF, RECOVERY, UNKNOWN]}
+  parent_progress:
+    type: object
+    required: [complete, partial, pending, blocked, deferred, not_applicable, unknown, total]
+  ep_index:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [ep, work_package, work_issue, implementation_plan, expected_next_observable, latest_publications, status, continuation, checkpoint, lease, executor, basis]
+      properties:
+        ep: {type: string, pattern: '^(?:EP-[A-Za-z0-9][A-Za-z0-9._-]*|EP\.(?:[1-9][0-9]*|REPO|INTERNAL)\.[1-9][0-9]*)$'}
+        work_package: {type: string, pattern: '^(?:WP-[A-Za-z0-9][A-Za-z0-9._-]*|WP\.[1-9][0-9]*(?:\.[1-9][0-9]*)?)$'}
+        work_issue:
+          type: [object, 'null']
+          additionalProperties: false
+          required: [repository, number, url]
+          properties:
+            repository: {type: string, pattern: '^[^/]+/[^/]+$'}
+            number: {type: integer, minimum: 1}
+            url: {type: string, format: uri}
+            title: {type: [string, 'null']}
+        reconstruction_context:
+          anyOf:
+            - {$ref: '#/$defs/reconstructionContext'}
+            - {type: 'null'}
+        continuity:
+          anyOf:
+            - {$ref: '#/$defs/continuity'}
+            - {type: 'null'}
+        implementation_plan:
+          type: object
+          additionalProperties: false
+          required: [state, provider_ref, revision, digest, observed_at]
+          properties:
+            state: {enum: [PRESENT, MISSING, STALE, UNKNOWN]}
+            provider_ref: {type: [string, 'null']}
+            revision: {type: [integer, 'null'], minimum: 1}
+            digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+            observed_at: {type: [string, 'null'], format: date-time}
+            responsibility_basis_ref: {type: [string, 'null']}
+            responsibility_basis_digest: {type: [string, 'null'], pattern: '^sha256:[0-9a-fA-F]{64}$'}
+        provider_issue_state: {enum: [OPEN, CLOSED, UNKNOWN]}
+        delivery:
+          type: object
+          additionalProperties: false
+          required: [lifecycle]
+          properties:
+            pr: {type: [integer, 'null'], minimum: 1}
+            url: {type: [string, 'null']}
+            lifecycle: {enum: [NONE, DRAFT, OPEN, REVIEW_READY, CHANGES_REQUESTED, CONFLICTED, MERGED, CLOSED, UNKNOWN]}
+            base: {type: [string, 'null']}
+            head: {type: [string, 'null']}
+            mergeability: {type: [string, 'null']}
+        expected_next_observable:
+          type: [object, 'null']
+          additionalProperties: false
+          required: [statement, evidence]
+          properties:
+            statement: {type: string, minLength: 1}
+            evidence:
+              type: array
+              items: {type: string, minLength: 1}
+        latest_publications:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [type, ref, observed_at, summary]
+            properties:
+              type: {enum: [IMPLEMENTATION_PLAN, PLAN_UPDATE, TASK_EVIDENCE, TASK_RESULT]}
+              ref: {type: string, minLength: 1}
+              observed_at: {type: string, format: date-time}
+              summary: {type: string, minLength: 1}
+              exact_head: {type: [string, 'null']}
+        status: {enum: [ACTIVE, COMPLETE, RECOVERY_REQUIRED, UNKNOWN]}
+        continuation: {enum: [NEW, HANDOFF_PENDING, HANDOFF, RECOVERY, UNKNOWN]}
+        checkpoint: {type: [string, 'null']}
+        lease: {type: [string, 'null']}
+        executor: {type: [string, 'null']}
+        custody_epoch: {type: [integer, 'null'], minimum: 0}
+        basis:
+          type: array
+          items: {type: string, minLength: 1}
+  pending_items: {type: array}
+  known_issues: {type: array}
+  offloads:
+    type: array
+    items:
+      type: object
+      additionalProperties: true
+      required: [origin_ep]
+      properties:
+        origin_ep: {type: string}
+  accepted_truth:
+    type: object
+    additionalProperties: true
+  material:
+    type: object
+    additionalProperties: true
+  negative_knowledge:
+    type: object
+    additionalProperties: true
+  accountability:
+    type: object
+    additionalProperties: true
+  active_change:
+    type: [object, 'null']
+    additionalProperties: true
+  delivery:
+    type: object
+    additionalProperties: true
+  records:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [event_id, type, timestamp, actor, subject, basis]
+      properties:
+        event_id: {type: string}
+        type: {type: string}
+        timestamp: {type: string}
+        actor: {type: string}
+        subject: {type: string}
+        basis: {type: array}
+  next:
+    type: object
+    additionalProperties: false
+    required: [action, stop_conditions]
+    properties:
+      action: {type: [string, 'null']}
+      stop_conditions: {type: array}
+additionalProperties: false
