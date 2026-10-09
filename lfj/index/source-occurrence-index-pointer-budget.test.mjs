@@ -18,7 +18,9 @@ test('R05 RED: deep long-key source fails by typed pointer budget before event-p
   try{
     await assert.rejects(()=>streamJsonOccurrenceEvents(snap,{
       sourceRefId:'RESOURCE-BUDGET-NEGATIVE',
-      // Use a legitimate large wire budget, so the failure is specifically\n      // the canonical 65536-unit JSON Pointer ceiling, not a page-byte cap.\n      pageEvents:256,pageBytes:1048576,sourceReadPageBytes:8192,
+      // Use a legitimate large wire budget, so the failure is specifically
+      // the canonical 65536-unit JSON Pointer ceiling, not a page-byte cap.
+      pageEvents:256,pageBytes:1048576,sourceReadPageBytes:8192,
       onEventPage:async page=>{
         pages++;
         maxPageBytes=Math.max(maxPageBytes,
