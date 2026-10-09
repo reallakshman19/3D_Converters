@@ -25,7 +25,7 @@ test('U01 RED: complete source-order OPEN census, including descendants and unse
   const summary=await streamJsonOccurrenceEvents(s,{
     sourceRefId:'PL01',pageEvents:3,
     onEventPage:async page=>pages.push(page),
-    // This test checks byte-truth and occurrence ordering, not an impossible\n    // one-byte JSON event page. R05 now enforces pageBytes on both R04 input\n    // reads and the full serialized source-event page.\n    pageBytes:65536,
+    // This test checks byte-truth and occurrence ordering, not an impossible\n    // one-byte JSON event page. R05 now enforces pageBytes on both R04 input\n    // reads and the full serialized source-event page.\n    pageBytes:65536,sourceReadPageBytes:1,
   });
   const all=pages.flat(),opens=all.filter(e=>e.kind==='OPEN'),seals=all.filter(e=>e.kind==='SEAL');
   assert.deepEqual(opens.map(e=>e.path),goldenPointers);
