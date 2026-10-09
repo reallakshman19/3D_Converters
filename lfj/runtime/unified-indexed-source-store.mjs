@@ -69,7 +69,8 @@ function asOpen(row,basis){
 function asSeal(row,basis){
   return {schema,kind:'SEAL',...basis,occurrenceId:row.occurrenceId,
     ordinal:row.ordinal,path:row.path,parentId:row.parentId,
-    type:row.type,endByteExclusive:row.endByteExclusive};
+    type:row.type,endByteExclusive:row.endByteExclusive,
+    ...(row.ownAttributes?{ownAttributes:row.ownAttributes}:{})};
 }
 function verifyRecord(row,basis,byteLength=Number.MAX_SAFE_INTEGER){
   if(!row||!integer(row.ordinal)||typeof row.path!=='string'||
@@ -208,12 +209,14 @@ export async function openUnifiedIndexedSourceStore({
               try{tx.abort();}catch{}
               return;
             }
-            pairs.put({...old,endByteExclusive:row.endByteExclusive});
+            pairs.put({...old,endByteExclusive:row.endByteExclusive,
+              ...(row.ownAttributes?{ownAttributes:row.ownAttributes}:{})});
           };
         }
       }
       await done;
-      if(state!=='STAGING')fail('UNIFIED_ABORTED','staging completed after cancellation');
+      if(state!=='STAGING'&&state!=='FLUSHING')
+        fail('UNIFIED_ABORTED','staging completed after cancellation');
       buffer=[];bufferBytes=0;
     }catch(error){
       state='ABORTED';buffer=[];bufferBytes=0;
@@ -281,9 +284,9 @@ export async function openUnifiedIndexedSourceStore({
       fail('UNIFIED_MANIFEST_MISMATCH','complete original source/OPEN/SEAL census required');
     state='FLUSHING';
     try{
-      // Pending buffered rows were admitted while STAGING. Re-enter that
-      // state during final bounded native flush; no concurrent staging allowed.
-      state='STAGING';await flush();state='VERIFYING';
+      // Keep FLUSHING state throughout awaited final persistence so no
+      // new source page can race with the final generation census.
+      await flush();state='VERIFYING';
       const complete=await census(db,namespace,generation,basis,manifest);
       if(complete!==opens)fail('UNIFIED_PAIR_CENSUS','not all pairs committed in original ordinal order');
       if(state!=='VERIFYING')fail('UNIFIED_ABORTED','generation superseded before HEAD');
