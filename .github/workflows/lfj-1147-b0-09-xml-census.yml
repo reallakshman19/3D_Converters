@@ -35,7 +35,7 @@ jobs:
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
-      - name: Worker-compatible XML document preflight regression (16 negative / positive)
+      - name: Worker-compatible XML document preflight regression (19 negative + 1 positive)
         run: node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
       - name: Authentic XML census plus five negative controls
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
