@@ -128,6 +128,18 @@ window.runUnifiedFaultMatrix=async()=>{
     parentId:occurrenceId,startByte:1};
   const childSeal={...seal,occurrenceId:refTwo,ordinal:1,endByteExclusive:3};
   const twoManifest={...manifest,occurrenceCount:2,eventCount:4};
+  // OPEN root → OPEN child → SEAL root is not an original R04/R05
+  // nested event sequence even when individual pair spans look valid.
+  // One native HEAD must never authorize a crossed/unsealed source stack.
+  const crossed=await make('crossed-source-seal');
+  try{
+    await crossed.port.stagePage([open,childOpen,seal,childSeal]);
+    try{await crossed.port.commitDurably(twoManifest);
+      outcomes.crossedSeal='UNEXPECTED_COMMITTED';
+    }catch(error){outcomes.crossedSeal=error?.code;}
+    outcomes.crossedSealInvisible=await lookup(crossed);
+  }finally{await cleanup(crossed);}
+
   const revoked=await make('revoke-mid-ordered-chunk');
   try{
     await revoked.port.stagePage([open,childOpen,childSeal,seal]);
@@ -210,11 +222,31 @@ window.runUnifiedFaultMatrix=async()=>{
         endByteExclusive:i*2+2});
     }
     events.push({...seal,endByteExclusive:count*2+2});
-    await wide.port.stagePage(events);
-    outcomes.widePrecommit=await lookup(wide);
-    await wide.port.commitDurably({...manifest,
-      occurrenceCount:count+1,eventCount:events.length,
-      byteLength:count*2+2});
+    // Instrument actual native IndexedDB request methods (not a mocked
+    // storage port). Previous OPEN(add)+SEAL(get/put) requires three requests
+    // per source value. One bounded OPEN/SEAL join must persist exactly once.
+    const nativeOps={add:0,get:0,put:0};
+    const originals=Object.fromEntries(['add','get','put'].map(
+      m=>[m,IDBObjectStore.prototype[m]]));
+    for(const method of Object.keys(originals)){
+      IDBObjectStore.prototype[method]=function(...args){
+        if(this.name==='pairs')nativeOps[method]++;
+        return originals[method].apply(this,args);
+      };
+    }
+    try{
+      await wide.port.stagePage(events);
+      outcomes.widePrecommit=await lookup(wide);
+      await wide.port.commitDurably({...manifest,
+        occurrenceCount:count+1,eventCount:events.length,
+        byteLength:count*2+2});
+    }finally{
+      for(const [method,original] of Object.entries(originals))
+        IDBObjectStore.prototype[method]=original;
+    }
+    outcomes.wideNativePairRequests=nativeOps;
+    outcomes.wideNativePairRequestTotal=
+      nativeOps.add+nativeOps.get+nativeOps.put;
     let rows=0;
     for await(const record of wide.port.readOrdered()){
       if(record.ordinal!==rows++)throw Error('UNIFIED_WIDE_ORDER');
