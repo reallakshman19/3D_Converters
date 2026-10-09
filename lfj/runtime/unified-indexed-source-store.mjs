@@ -128,17 +128,36 @@ function census(db,ns,gen,basis,manifest){
 }
 function readOrdinalChunk(db,ns,gen,start){
   return new Promise((resolve,reject)=>{
+    let tx,req,failed=null,rows=[],byteCount=0;
+    const PAGE_ROWS=64,PAGE_BYTES=1048576;
     try{
-      const tx=db.transaction('pairs','readonly');
+      tx=db.transaction('pairs','readonly');
       const index=tx.objectStore('pairs').index('byOrdinal');
-      const rows=[];
-      // At most 64 occurrences, with R05 max path ~=65KiB: finite memory.
-      const req=index.getAll(bounds(ns,gen,start,Number.MAX_SAFE_INTEGER),64);
-      req.onsuccess=()=>rows.push(...req.result);
-      req.onerror=()=>reject(new UnifiedSourceIndexError('UNIFIED_READ_FAILED','bounded ordered read failed'));
-      tx.oncomplete=()=>resolve(rows);
-      tx.onabort=()=>reject(new UnifiedSourceIndexError('UNIFIED_READ_FAILED','bounded ordered read aborted'));
-      tx.onerror=()=>reject(new UnifiedSourceIndexError('UNIFIED_READ_FAILED','bounded ordered read transaction failed'));
+      req=index.openCursor(bounds(ns,gen,start,Number.MAX_SAFE_INTEGER));
+      req.onsuccess=()=>{
+        const cursor=req.result;
+        if(!cursor)return;
+        try{
+          const record=cursor.value;
+          const bytes=encoded(record);
+          if(bytes>PAGE_BYTES)
+            fail('UNIFIED_READ_LIMIT','one stored original occurrence exceeds bounded read');
+          // A full or byte-limited page stops this native cursor in its
+          // current transaction, without loading a second page or source map.
+          if(rows.length>0&&byteCount+bytes>PAGE_BYTES)return;
+          rows.push(record);byteCount+=bytes;
+          if(rows.length<PAGE_ROWS)cursor.continue();
+        }catch(error){failed=error;try{tx.abort();}catch{}}
+      };
+      req.onerror=()=>{
+        failed=new UnifiedSourceIndexError('UNIFIED_READ_FAILED',
+          'native indexed ordinal cursor failed');
+      };
+      tx.oncomplete=()=>failed?reject(failed):resolve(rows);
+      tx.onerror=()=>reject(failed||new UnifiedSourceIndexError(
+        'UNIFIED_READ_FAILED','indexed ordinal read transaction failed'));
+      tx.onabort=()=>reject(failed||new UnifiedSourceIndexError(
+        'UNIFIED_READ_FAILED','indexed ordinal read aborted'));
     }catch(error){reject(error);}
   });
 }
