@@ -21,8 +21,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        size: [SMALL, LARGE]
-        mode: [AUTHENTIC, SOURCE_DERIVED_CONTROL]
+        include:
+          - size: SMALL
+            mode: AUTHENTIC
+          - size: SMALL
+            mode: SOURCE_DERIVED_CONTROL
+          - size: LARGE
+            mode: AUTHENTIC
+          - size: LARGE
+            mode: SOURCE_DERIVED_CONTROL
+          - size: FIRSTPASS
+            mode: AUTHENTIC
     steps:
       - uses: actions/checkout@v4
         with:
