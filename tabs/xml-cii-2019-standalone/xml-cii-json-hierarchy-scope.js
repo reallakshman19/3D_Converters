@@ -10,18 +10,48 @@ function decodeJsonString(raw) {
   try { return JSON.parse('"' + raw + '"'); } catch { return raw; }
 }
 
-function fieldString(source, key) {
-  const escaped = key.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
-  const match = source.match(new RegExp('"' + escaped + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"', 'i'));
-  return decodeJsonString(match?.[1] || '');
-}
-
-function firstField(source, keys) {
-  for (const key of keys) {
-    const value = fieldString(source, key);
-    if (value) return value;
+// Only *direct* string-valued members of this one source item can assign
+// ownership. Regex over the entire slice reads a descendant's OWNER_ZONE as
+// though it belonged to the ancestor; this scan ignores nested values.
+// This remains a small-source legacy UI adapter, NOT a substitute for R10 Worker.
+function ownStringFields(source) {
+  const wanted=new Set(['type','name','OWNER_ZONE','ZONE_ID','OWNER_SITE','SITE','ZONE']);
+  const values=new Map();
+  const white=c=>c===' '||c==='\n'||c==='\r'||c==='\t';
+  function endQuote(from){
+    for(let i=from+1;i<source.length;i++){
+      if(source[i]==='\\'){i++;continue;}
+      if(source[i]==='"')return i;
+    }
+    throw new SyntaxError('Unterminated JSON string in original hierarchy item');
   }
-  return '';
+  let depth=0;
+  for(let i=0;i<source.length;i++){
+    const char=source[i];
+    if(char==='"'){
+      const end=endQuote(i);
+      if(depth===1){
+        let colon=end+1;
+        while(white(source[colon]))colon++;
+        if(source[colon]===':'){
+          const key=JSON.parse(source.slice(i,end+1));
+          if(wanted.has(key)){
+            let valueStart=colon+1;
+            while(white(source[valueStart]))valueStart++;
+            if(source[valueStart]==='"'){
+              const valueEnd=endQuote(valueStart);
+              values.set(key,JSON.parse(source.slice(valueStart,valueEnd+1)));
+              i=valueEnd;continue;
+            }
+            values.delete(key);
+          }
+        }
+      }
+      i=end;
+    }else if(char==='{'||char==='['){depth++;}
+    else if(char==='}'||char===']'){depth--;}
+  }
+  return values;
 }
 
 function matchingBracket(source, start, open, close) {
@@ -122,9 +152,11 @@ function arrayItemRanges(source, region) {
 
 function itemMetadata(source, range, itemIndex) {
   const slice = source.slice(range.start, range.end);
-  const type = fieldString(slice, 'type').toUpperCase();
-  const name = fieldString(slice, 'name');
-  const ownerScope = firstField(slice, ['OWNER_ZONE', 'ZONE_ID', 'OWNER_SITE', 'SITE', 'ZONE']);
+  const fields = ownStringFields(slice);
+  const type = (fields.get('type') || '').toUpperCase();
+  const name = fields.get('name') || '';
+  const ownerScope = ['OWNER_ZONE','ZONE_ID','OWNER_SITE','SITE','ZONE']
+    .map(key=>fields.get(key)).find(value=>text(value)) || '';
   const explicitContainer = ['SITE', 'ZONE', 'GROUP'].includes(type);
   const scopeId = text(explicitContainer ? (name || ownerScope) : ownerScope) || UNSCOPED_ID;
   return {
