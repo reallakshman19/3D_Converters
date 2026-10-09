@@ -52,9 +52,13 @@ export async function runNativeSourceOnlyFileIntakeCore({
     fail('NATIVE_CONSUMER_PORT_REQUIRED',
       'actual File/Blob, Worker, IndexedDB, selection and app basis required');
   const expected=validated(expectedBasis,blob);
-  if(revision!==expected.sourceRevision)
+  // R03 adds the SHA to the caller revision label: `label:sha256:<hex>`.
+  // Comparing the label directly to sourceRevision would reject every native
+  // session with a legitimate sourceSnapshot revision.
+  if(!/^[a-f0-9]{64}$/.test(expected.sourceSha256)||
+    expected.sourceRevision!==`${revision}:sha256:${expected.sourceSha256}`)
     fail('NATIVE_CONSUMER_BASIS_INVALID',
-      'requested R03 revision must equal sourceRevision bound to original File/Blob');
+      'sourceRevision must bind the R03 revision label and the exact original SHA-256');
   if(signal?.aborted)fail('NATIVE_CONSUMER_CANCELLED','source intake cancelled');
   function attest(){
     if(signal?.aborted)fail('NATIVE_CONSUMER_CANCELLED','source intake cancelled');
