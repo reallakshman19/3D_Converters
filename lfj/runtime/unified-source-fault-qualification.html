@@ -328,11 +328,12 @@ window.runUnifiedFaultMatrix=async()=>{
   const historyDb=prefix+'-committed-history';
   const a=await openUnifiedIndexedSourceStore({
     databaseName:historyDb,namespace,generation:'history-A',basis});
-  const b=await openUnifiedIndexedSourceStore({
-    databaseName:historyDb,namespace,generation:'history-B',basis});
+  let b;
   try{
     await a.stagePage([open,seal]);
     await a.commitDurably(manifest);
+    b=await openUnifiedIndexedSourceStore({
+      databaseName:historyDb,namespace,generation:'history-B',basis});
     await b.stagePage([open,seal]);
     await b.commitDurably(manifest);
     const c=await openUnifiedIndexedSourceStore({
@@ -363,7 +364,7 @@ window.runUnifiedFaultMatrix=async()=>{
       }catch(error){outcomes.replacedHeadInvisible=error?.code;}
     }finally{c.close();}
   }finally{
-    a.close();b.close();indexedDB.deleteDatabase(historyDb);
+    a.close();b?.close();indexedDB.deleteDatabase(historyDb);
   }
 
   const accepted=await make('durable');
