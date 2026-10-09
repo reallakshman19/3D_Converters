@@ -370,7 +370,7 @@ export async function openUnifiedIndexedSourceStore({
       if(state!=='VERIFYING')fail('UNIFIED_ABORTED','generation superseded before HEAD');
       await custody.ensure();
       state='COMMITTING';
-      const tx=db.transaction(['heads','leases'],'readwrite');
+      const tx=db.transaction(['heads','leases','recoveries'],'readwrite');
       activeTx=tx;
       const done=txDone(tx,'UNIFIED_HEAD_ABORTED');
       let changed=false;
@@ -379,6 +379,15 @@ export async function openUnifiedIndexedSourceStore({
         const req=heads.get(namespace);
         req.onsuccess=()=>{
           if((req.result?.generation??null)!==expectedHead){changed=true;tx.abort();return;}
+          // A previously committed source may remain valid until this exact
+          // HEAD transaction publishes its successor. Queue the replaced
+          // generation for bounded future reclamation atomically with HEAD.
+          // No lease exists for a successful predecessor: queueing only in
+          // expired-writer admission would leak every old committed index.
+          if(req.result?.generation&&req.result.generation!==generation)
+            tx.objectStore('recoveries').put({
+              namespace,generation:req.result.generation,cursor:null
+            });
           heads.put({namespace,generation,count:opens,manifest});
           try{beforeHeadCommit?.(tx);}catch{tx.abort();}
         };
