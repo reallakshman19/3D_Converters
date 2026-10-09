@@ -12,8 +12,10 @@ const openDb=name=>new Promise((resolve,reject)=>{
   req.onsuccess=()=>resolve(req.result);
   req.onerror=()=>reject(req.error);
 });
-async function runWorker(blob,expectedSha256,databaseName,generation){
-  const worker=new Worker(new URL('./compact.worker.mjs',location.href),{type:'module'});
+async function runWorker(blob,expectedSha256,databaseName,generation,backend='ROW'){
+  if(!['ROW','PAGED'].includes(backend))throw fail('BACKEND_INVALID','unknown research backend');
+  const file=backend==='PAGED'?'./compact-paged.worker.mjs':'./compact.worker.mjs';
+  const worker=new Worker(new URL(file,location.href),{type:'module'});
   return await new Promise((resolve,reject)=>{
     worker.onmessage=event=>{
       if(event.data?.type==='DONE'){
@@ -27,7 +29,7 @@ async function runWorker(blob,expectedSha256,databaseName,generation){
       revision:'B0-ORIGINAL'});
   });
 }
-window.runCompactOriginalProbe=async({url,oracle})=>{
+window.runCompactOriginalProbe=async({url,oracle,backend='ROW'})=>{
   if(!url.startsWith('/Benchmarks/'))throw fail('TEST_URL','original tracked fixture required');
   const response=await fetch(url,{cache:'no-store'});
   if(!response.ok)throw fail('TEST_MISSING','original fixture HTTP '+response.status);
@@ -43,8 +45,10 @@ window.runCompactOriginalProbe=async({url,oracle})=>{
   const started=performance.now();
   let db;
   try{
-    const result=await runWorker(blob,oracle.sha256,databaseName,generation);
-    if(result.schema!=='LFJ.B0.CompactOccurrenceResearch.v1'||
+    const result=await runWorker(blob,oracle.sha256,databaseName,generation,backend);
+    const expectedSchema=backend==='PAGED'?'LFJ.B0.PagedOccurrenceResearch.v1':
+      'LFJ.B0.CompactOccurrenceResearch.v1';
+    if(result.schema!==expectedSchema||
        result.occurrenceCount!==oracle.occurrenceCount||
        result.sourceSha256!==oracle.sha256||result.originalBytes!==oracle.bytes||
        result.appWired!==false||result.sourceOnly!==true)
@@ -56,9 +60,30 @@ window.runCompactOriginalProbe=async({url,oracle})=>{
       throw fail('HEAD_INVALID','source generation not durably committed');
     const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
     const verified=[];
+    const directoryCache=new Map(),pageCache=new Map();
     const row=async ord=>{
-      const x=await readOne(db,'records',[generation,ord]);
-      if(!x||x.ordinal!==ord)throw fail('ORIGINAL_ROW_MISSING','missing source occurrence '+ord);
+      let x;
+      if(backend==='PAGED'){
+        const bucket=Math.floor(ord/4096);
+        let dir=directoryCache.get(bucket);
+        if(!dir){
+          dir=await readOne(db,'directory',[generation,bucket]);
+          if(!dir)throw fail('DIRECTORY_MISSING','source ordinal has no directory');
+          directoryCache.set(bucket,dir);
+        }
+        const slot=ord%4096,pageId=dir.pageRefs[slot]-1;
+        if(pageId<0||!Number.isSafeInteger(pageId))
+          throw fail('DIRECTORY_MISSING','source ordinal has no page');
+        let page=pageCache.get(pageId);
+        if(!page){
+          page=await readOne(db,'pages',[generation,pageId]);
+          if(!page)throw fail('PAGE_MISSING','directory references missing page');
+          pageCache.set(pageId,page);
+        }
+        x=page.rows[dir.rowRefs[slot]];
+      }else x=await readOne(db,'records',[generation,ord]);
+      if(!x||x.ordinal!==ord)
+        throw fail('ORIGINAL_ROW_MISSING','missing source occurrence '+ord);
       return x;
     };
     for(const sample of oracle.scalarSamples){
@@ -78,7 +103,7 @@ window.runCompactOriginalProbe=async({url,oracle})=>{
       verified.push({ordinal:sample.ordinal,path,byteCount:bytes.length,exact:true});
     }
     const after=(await navigator.storage.estimate()).usage??null;
-    return {...result,schema:'LFJ.B0.SourceBrowserOracle.v1',verified,
+    return {...result,schema:'LFJ.B0.SourceBrowserOracle.v1',backend,verified,
       measurementMs:performance.now()-started,
       storageDelta:before===null||after===null?null:after-before,
       longTaskCount:longTasks.length,longTaskMaxMs:Math.max(0,...longTasks),
@@ -87,10 +112,10 @@ window.runCompactOriginalProbe=async({url,oracle})=>{
     db?.close();observer?.disconnect();
   }
 };
-window.runCompactMalformedNegative=async()=>{
+window.runCompactMalformedNegative=async(backend='ROW')=>{
   const generation=crypto.randomUUID(),dbName='lfj-b0-bad-'+generation;
   let error=null;
-  try{await runWorker(new Blob(['{"broken": [1,}']),undefined,dbName,generation);}
+  try{await runWorker(new Blob(['{"broken": [1,}']),undefined,dbName,generation,backend);}
   catch(e){error=e.code;}
   if(!error)throw fail('MALFORMED_ACCEPTED','invalid JSON was accepted');
   const db=await openDb(dbName);
