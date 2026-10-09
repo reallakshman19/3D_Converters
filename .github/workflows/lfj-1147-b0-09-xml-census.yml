@@ -1,0 +1,39 @@
+name: LFJ 1147 B0-09 XML ledger census fail-closed gate
+on:
+  push:
+    branches: ['lfj/1147-b0-09-xml-ledger-census']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - '.github/workflows/lfj-1147-b0-09-xml-census.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - '.github/workflows/lfj-1147-b0-09-xml-census.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authentic-xml-census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Exact-head confirmation
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Parse changed research modules
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Authentic XML census plus five negative controls
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Verify no working tree mutation
+        run: test -z "$(git status --porcelain)"
