@@ -21,6 +21,7 @@ function eligible(view){
     view.receipt.complete!==true||view.receipt.rightsBasis!=='SOURCE_FACTS_ONLY'||
     view.receipt.engineeringReady!==false||
     view.rightsBasis!=='SOURCE_FACTS_ONLY'||view.engineeringReady!==false||
+    !Number.isSafeInteger(view.publicationSerial)||view.publicationSerial<1||
     !Array.isArray(view.facts)||
     !Number.isSafeInteger(view.receipt.selectedCount)||
     view.receipt.selectedCount!==view.facts.length||
@@ -63,7 +64,8 @@ export function projectPublishedSourceCandidate({
   if(!still)
     fail('APP_SOURCE_GENERATION_STALE','original source generation superseded during typed projection');
   eligible(still);
-  if([...sourceKeys,...epochKeys].some(k=>original.receipt[k]!==still.receipt[k])||
+  if(still.publicationSerial!==original.publicationSerial||
+    [...sourceKeys,...epochKeys].some(k=>original.receipt[k]!==still.receipt[k])||
     still.receipt.selectedCount!==original.receipt.selectedCount||
     still.sourceIndexSummary.occurrenceCount!==
       original.sourceIndexSummary.occurrenceCount||
