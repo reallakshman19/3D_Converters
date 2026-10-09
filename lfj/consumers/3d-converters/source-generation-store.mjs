@@ -50,6 +50,7 @@ function defensive(f){
 function publicCopy(entry){
   return Object.freeze({
     receipt:entry.receipt,
+    publicationSerial:entry.publicationSerial,
     // Detached copy of the SAME complete original Worker R05 census. This
     // does not grant engineering authority or prove the caller's custody.
     sourceIndexSummary:structuredClone(entry.sourceIndexSummary),
@@ -95,7 +96,7 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
   if(!Number.isSafeInteger(maxFacts)||maxFacts<1||maxFacts>4096||
     !Number.isSafeInteger(maxTotalBytes)||maxTotalBytes<1||maxTotalBytes>8388608)
     fail('SOURCE_LIMIT','bounded fact count 1..4096 and cumulative source bytes 1..8MiB required');
-  let active=null,visible=null;
+  let active=null,visible=null,publicationSerial=0;
   const live=(getter)=>{
     let value;
     try{value=getter();}catch{fail('APP_GENERATION_STALE','live application basis getter failed');}
@@ -169,14 +170,18 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
         // Prepare all immutable public records before the FINAL authoritative
         // application getter: its evaluation is the last external callback
         // before a single synchronous pointer promotion.
+        const nextSerial=publicationSerial+1;
+        if(!Number.isSafeInteger(nextSerial))
+          fail('GENERATION_SERIAL_EXHAUSTED','source generation publication identity exhausted');
         const stamp=Object.freeze({...receipt});
         const ready=Object.freeze({
-          receipt:stamp,sourceIndexSummary:working.sourceIndexSummary,
+          receipt:stamp,publicationSerial:nextSerial,
+          sourceIndexSummary:working.sourceIndexSummary,
           facts:Object.freeze(working.rows.slice())
         });
         const result=Object.freeze({
           schema:'LFJ.3D.SourceFactsPublication.v1',committed:true,...expected,
-          selectedCount:receipt.selectedCount,
+          selectedCount:receipt.selectedCount,publicationSerial:nextSerial,
           rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
         });
         requireLive(expected,receiptLive);
@@ -187,6 +192,7 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
         // basis after all such callbacks and immediately before assignment.
         if(!same(live(getCurrentBasis),expected)||working.poisoned||active!==working)
           fail('APP_GENERATION_STALE','authoritative app basis changed before source generation promotion');
+        publicationSerial=nextSerial;
         visible=ready; // no await or external callback between this CAS and assignment
         active=null;
         return result;
