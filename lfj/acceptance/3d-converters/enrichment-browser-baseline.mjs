@@ -59,7 +59,7 @@ try{
  });
  const response=await page.goto(base+'/tabs/stagedjson-to-enrichxml/index.html',{waitUntil:'load',timeout:30000});
  assert.equal(response.status(),200);
- await page.locator('#sj-dropzone input[type=file]').waitFor();
+ await page.locator('#sj-dropzone input[type=file]').waitFor({state:'attached'}); // native upload input is intentionally display:none
  const t0=await stamp('T0-before-file');
  await page.locator('#sj-dropzone input[type=file]').setInputFiles(join(root,fixture.path));
  await page.getByText('Sjson.json  (loaded)').waitFor({timeout:30000});
