@@ -1,0 +1,43 @@
+name: LFJ 1104 A03 independent deployed-source receiver H1
+on:
+  pull_request:
+    branches: [main, feat/1104-i3-consumer-source-facts-receiver]
+    paths:
+      - 'lfj/acceptance/3d-converters/h1-served-source-receiver.mjs'
+      - 'lfj/consumers/3d-converters/source-facts-receiver.mjs'
+      - '.github/workflows/lfj-1104-h1-deployed-receiver.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-docs-origin-consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Confirm literal exact candidate checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start browser server from canonical docs tree only
+        run: |
+          (cd docs && python3 -m http.server 4186 --bind 127.0.0.1 >/tmp/lfj-1104-a03-http.log 2>&1) &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4186/lfj/served-durable-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1104-a03-http.log
+          exit 1
+      - name: Actual served LFJ Worker IDB into independent 3D receiver
+        run: |
+          git rev-parse HEAD
+          node lfj/acceptance/3d-converters/h1-served-source-receiver.mjs
+      - name: Keep acceptance harness hermetic
+        run: test -z "$(git status --porcelain)"
