@@ -13,7 +13,7 @@ function source(text,revision='identity-test'){
 async function read(snapshot,sourceRefId){
   const pages=[];
   const result=await streamJsonOccurrenceEvents(snapshot,{
-    sourceRefId,pageEvents:2,pageBytes:65536,onEventPage:async p=>pages.push(p)
+    sourceRefId,pageEvents:2,pageBytes:65536,sourceReadPageBytes:1,onEventPage:async p=>pages.push(p)
   });
   return {result,open:pages.flat().filter(e=>e.kind==='OPEN'),seal:pages.flat().filter(e=>e.kind==='SEAL')};
 }

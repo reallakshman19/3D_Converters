@@ -67,6 +67,7 @@ export async function scanSourceInsideWorker(message,{publishPage}={}) {
     };
     const summary=await streamJsonOccurrenceEvents(source,{
       sourceRefId:message.sourceRefId,pageEvents:limit,pageBytes,
+      sourceReadPageBytes:65536,
       onEventPage:publishBounded
     });
     return Object.freeze(summary);

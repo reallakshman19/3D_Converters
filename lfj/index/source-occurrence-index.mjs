@@ -30,10 +30,13 @@ const occurrenceId=(sourceRefId,revision,path)=>
  * is falsely assigned a complete byte range. A port can commit only after the
  * returned summary is complete; intermediate pages are provisional.
  *
- * Memory: O(R04 max nesting depth + pageEvents) rather than O(all occurrences).
+ * Memory: O(R04 max nesting depth + bounded original event page bytes), never
+ * O(all occurrences). pageBytes caps serialized R05 output; sourceReadPageBytes
+ * independently caps R04 original-byte reads (including 1-byte boundary tests).
  */
 export async function streamJsonOccurrenceEvents(snapshot,{
   sourceRefId,onEventPage,pageEvents=256,pageBytes=65536,
+  sourceReadPageBytes=65536,
   maxOccurrences=2000000,signal=null,
 }={}) {
   if(typeof sourceRefId!=='string'||!sourceRefId.trim()||sourceRefId.length>512)
@@ -47,6 +50,11 @@ export async function streamJsonOccurrenceEvents(snapshot,{
   // Neither event count nor source read bytes can silently override the other.
   if(!validPositive(pageBytes)||pageBytes>1048576)
     fail('PAGE_LIMIT','event-page serialized byte budget must be 1..1MiB');
+  // R04 input read sizes and R05 output event sizes are independent budgets.
+  // Preserve adversarial 1-byte source reads without permitting a 1-byte
+  // serialized event page to claim an impossible successful transport.
+  if(!validPositive(sourceReadPageBytes)||sourceReadPageBytes>1048576)
+    fail('PAGE_LIMIT','source-read page byte budget must be 1..1MiB');
   if(!validPositive(maxOccurrences)||maxOccurrences>2000000)
     fail('OCCURRENCE_LIMIT','source occurrence ceiling must be 1..2000000');
   if(!snapshot||typeof snapshot.sha256!=='string'||
@@ -168,7 +176,7 @@ export async function streamJsonOccurrenceEvents(snapshot,{
     }
   }
 
-  const scan=await scanJsonDocument(snapshot,{pageBytes,signal,onToken});
+  const scan=await scanJsonDocument(snapshot,{pageBytes:sourceReadPageBytes,signal,onToken});
   if(!scan.complete||!rootSeen||frames.length||opened!==sealed||
      scan.sourceSha256!==snapshot.sha256||scan.sourceRevision!==snapshot.revision)
     fail('INCOMPLETE_OCCURRENCE_INDEX','source did not seal all original values on exact revision');
