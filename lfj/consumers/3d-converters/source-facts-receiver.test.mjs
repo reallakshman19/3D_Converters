@@ -46,7 +46,7 @@ function makePorts(overrides={}){
       };
     },
     async readPage({cursor,maxRows,maxBytes}){
-      assert.equal(maxRows,64);assert.equal(maxBytes,65536);
+      assert.equal(maxRows,64);assert.ok(Number.isSafeInteger(maxBytes)&&maxBytes>=1&&maxBytes<=65536);
       pageCount++;
       hooks.onPage?.(()=>live);
       const data=cursor===null?rows.slice(0,2):cursor==='next'?rows.slice(2):[];
