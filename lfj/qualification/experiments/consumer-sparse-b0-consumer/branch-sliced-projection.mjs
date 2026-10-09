@@ -74,7 +74,7 @@ export async function createSourceBackedResolverProjection({
     blob,expectedSha256
   });
   let db=null,success=false,branches=0,sourceObjects=0,facts=0,pageNo=0;
-  let offset=0,activePage=[],digest=2166136261,groupEntries=[];
+  let offset=0,activePage=[],digest=2166136261,groupEntries=[],pageDigests=[];
   let sourcePageReads=0,materializedBytes=0,maxBranchObserved=0;
   const begun=performance.now(),projectionDigest=await hashConfig(config);
   try{
@@ -123,6 +123,10 @@ export async function createSourceBackedResolverProjection({
     stagedNodes.clear();arrayBases.clear();
     async function flush(){
       if(!activePage.length)return;
+      const pageFactHash=await crypto.subtle.digest('SHA-256',
+        encode(activePage.map(normalized)));
+      pageDigests.push([...new Uint8Array(pageFactHash)]
+        .map(b=>b.toString(16).padStart(2,'0')).join(''));
       const tx=db.transaction('pages','readwrite'),done=txEnd(tx);
       tx.objectStore('pages').add({generation:projectionGeneration,pageNo,
         sourceSha256:expectedSha256,configDigest:projectionDigest,
@@ -177,6 +181,9 @@ export async function createSourceBackedResolverProjection({
     }
     await flush();
     const groups=groupTraceEntriesSpatially(groupEntries,toleranceMm).length;
+    const combined=await crypto.subtle.digest('SHA-256',enc.encode(pageDigests.join('\n')));
+    const domainSha256=[...new Uint8Array(combined)]
+      .map(b=>b.toString(16).padStart(2,'0')).join('');
     const tx=db.transaction('heads','readwrite'),done=txEnd(tx);
     tx.objectStore('heads').put({
       schema:SCHEMA,generation:projectionGeneration,
@@ -185,7 +192,7 @@ export async function createSourceBackedResolverProjection({
       originalCount:source.sourceCount,rootBranches:branches,
       traversedDomainObjects:sourceObjects,factCount:facts,
       factPageCount:pageNo,groups,domainDigest32:digest>>>0,
-      sourceOnly:true,engineeringReady:false
+      domainSha256,sourceOnly:true,engineeringReady:false
     },'active');
     await done;
     success=true;
@@ -194,7 +201,7 @@ export async function createSourceBackedResolverProjection({
       sourceOccurrences:source.sourceCount,rootBranches:branches,
       traversedDomainObjects:sourceObjects,factCount:facts,
       factPageCount:pageNo,spatialGroupCount:groups,
-      domainDigest32:digest>>>0,sourcePageReads,
+      domainDigest32:digest>>>0,domainSha256,sourcePageReads,
       sourceByteReadTotal:materializedBytes,maxBranchSpan:maxBranchObserved,
       elapsedMs:performance.now()-begun,sourceOnly:true,
       engineeringReady:false,appWired:false};
