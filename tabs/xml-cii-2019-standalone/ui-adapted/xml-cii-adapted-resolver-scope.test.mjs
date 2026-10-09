@@ -24,3 +24,24 @@ test('R12/U03 semantic RED: source replacement outside sampled slices invalidate
    'changed original hierarchy owner cannot inherit cached source-sample index');
  assert.notStrictEqual(second.index,firstIndex,'old scope index must not be reused');
 });
+
+test('R12/U03 RED: superseding source revokes old selected scope and finished trace, even with matching new scope label',()=>{
+ const a=JSON.stringify([{type:'BRANCH',name:'A',OWNER_ZONE:'ZONE-A',payload:'x'.repeat(300)}]);
+ const b=a.replace('"payload":"x','"payload":"y');
+ assert.equal(a.length,b.length);
+ const stateRef={current:{stagedJsonText:a,jsonTraceScopeId:'ZONE-A',
+  resolverJsonTraceResult:{old:true},resolverJsonTraceJsonResult:{old:true},
+  resolverJsonTraceExportStatus:'DONE'}};
+ ensureResolverHierarchyScope(stateRef.current,stateRef);
+ stateRef.current={...stateRef.current,stagedJsonText:b};
+ const out=ensureResolverHierarchyScope(stateRef.current,stateRef);
+ assert.equal(out.sourceSuperseded,true);
+ assert.equal(out.selectedScopeId,'__STALE_SOURCE_SCOPE__');
+ assert.equal(stateRef.current.jsonTraceScopeId,'__STALE_SOURCE_SCOPE__');
+ assert.equal(stateRef.current.resolverJsonTraceResult,null);
+ assert.equal(stateRef.current.resolverJsonTraceJsonResult,null);
+ assert.equal(stateRef.current.resolverJsonTraceExportStatus,'');
+ stateRef.current={...stateRef.current,jsonTraceScopeId:'ZONE-A'};
+ const selected=ensureResolverHierarchyScope(stateRef.current,stateRef);
+ assert.equal(selected.selectedScopeId,'ZONE-A','manual re-selection restores current source scope');
+});
