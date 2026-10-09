@@ -372,6 +372,9 @@ window.runUnifiedFaultMatrix=async()=>{
     await accepted.port.stagePage([open]);
     await accepted.port.stagePage([seal]); // OPEN and SEAL across ACK pages
     await accepted.port.commitDurably(manifest);
+    try{await accepted.port.commitDurably(manifest);
+      outcomes.duplicateCommitRefusal='UNEXPECTED_RECOMMITTED';
+    }catch(error){outcomes.duplicateCommitRefusal=error?.code;}
     const original=await accepted.port.lookupCommittedPair(occurrenceId);
     outcomes.pairExact=original.open.startByte===0&&original.seal.endByteExclusive===4;
     const ordered=[];
