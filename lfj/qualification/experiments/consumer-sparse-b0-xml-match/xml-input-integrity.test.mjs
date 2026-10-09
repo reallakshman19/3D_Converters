@@ -21,6 +21,10 @@ const broken=[
   '<Root><!-- <Node></Node> --></Root>',
   '<Root><![CDATA[<Node></Node>]]></Root>',
   '<Root><!-- <PIPINGELEMENT/> --></Root>',
+  '<Root><Node><T><![CDATA[</Node>]]></T></Node></Root>',
+  '<Root><Node><!-- </Node> --><NodeNumber>10</NodeNumber></Node></Root>',
+  '<Root><Node><?instruction </Node> ?><NodeNumber>10</NodeNumber></Node></Root>',
+  '<Root><Node>text</Node ></Root>',
 ];
 for(const [index,xml] of broken.entries()){
   test('malformed input rejected '+index,()=>{
