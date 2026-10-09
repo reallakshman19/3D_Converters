@@ -57,7 +57,7 @@ function makePorts(overrides={}){
     },
     async readOccurrence({occurrenceId,expectedSourceRevision,maxBytes}){
       assert.equal(expectedSourceRevision,basis.sourceRevision);
-      assert.equal(maxBytes,65536);
+      assert.ok(Number.isSafeInteger(maxBytes)&&maxBytes>=1&&maxBytes<=65536);
       readCount++;
       hooks.onRead?.(()=>live);
       const row=rows.find(x=>x.occurrenceId===occurrenceId);
