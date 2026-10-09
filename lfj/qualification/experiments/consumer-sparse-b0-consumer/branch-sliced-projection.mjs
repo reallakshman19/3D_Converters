@@ -23,7 +23,9 @@ const canonicalFields=[
   'description','dtxrPs','labeled','name','componentRef','tags','cmpSupGap',
   'path','capturedFields','semanticFields'
 ];
-const normalized=m=>Object.fromEntries(canonicalFields.map(key=>[key,m[key]??(key==='point'?null:'')]));
+export const normalizedResolverProjectionFact=m=>Object.fromEntries(
+  canonicalFields.map(key=>[key,m[key]??(key==='point'?null:'')]));
+const normalized=normalizedResolverProjectionFact;
 const MATCH_FIELD_NAMES=[
   // Actual legacy trace descriptors, source node fallbacks, support labels,
   // spatial aliases and explicit component attachment evidence.
