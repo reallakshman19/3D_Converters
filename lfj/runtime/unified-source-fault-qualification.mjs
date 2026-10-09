@@ -29,6 +29,9 @@ try{
   assert.equal(result.wrongParentInvisible,'UNIFIED_ABORTED');
   assert.equal(result.ownAttributesRoundTrip,true);
   assert.equal(result.ownAttributesCorruption,'UNIFIED_PAIR_CORRUPT');
+  assert.equal(result.widePrecommit,'UNIFIED_NOT_COMMITTED');
+  assert.equal(result.wideOriginalCensus,521);
+  assert.equal(result.wideLastValue,1040);
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
