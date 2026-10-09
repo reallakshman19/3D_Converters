@@ -50,7 +50,7 @@ export function assertResearchXmlDocument(xml){
   let i=xml.charCodeAt(0)===0xfeff?1:0;
   const stack=[];
   let rootCount=0,elements=0,xmlDeclaration=false;
-  let nodeElements=0,pipingElements=0;
+  let nodeElements=0,pipingElements=0,nodeEndElements=0;
   const readName=()=>{
     const start=i;
     if(!startName.test(xml[i]||''))fail('Invalid XML element/attribute name');
@@ -113,6 +113,7 @@ export function assertResearchXmlDocument(xml){
       if(xml[i]!=='>')fail('Malformed XML end tag');
       i++;
       if(stack.pop()!==close)fail('Mismatched/unbalanced XML end tag');
+      if(close.toUpperCase()==='NODE')nodeEndElements++;
       continue;
     }
     const name=readName();
@@ -151,8 +152,15 @@ export function assertResearchXmlDocument(xml){
   // comments/CDATA. Refuse such inputs rather than inflate node population.
   const rawNodes=(xml.match(/<Node\b/gi)||[]).length;
   const rawPiping=(xml.match(/<PIPINGELEMENT\b/gi)||[]).length;
-  if(rawNodes!==nodeElements||rawPiping!==pipingElements)
-    fail('Legacy parser would see phantom XML nodes inside non-markup text');
+  // The shipping Node-block regex also stops on the FIRST literal </Node>.
+  // A closing tag embedded in a legitimate comment, CDATA or processing
+  // instruction can truncate an otherwise syntactically valid engineering
+  // node. Compare regex-visible closes with lexically parsed structural closes.
+  // Also reject noncanonical </Node > spacing that the legacy regex skips.
+  const rawNodeEnds=(xml.match(/<\\/Node>/gi)||[]).length;
+  if(rawNodes!==nodeElements||rawPiping!==pipingElements||
+     rawNodeEnds!==nodeEndElements)
+    fail('Legacy parser would see phantom/missing XML node boundaries');
   return Object.freeze({rootCount,elementCount:elements,
     nodeElementCount:nodeElements,pipingElementCount:pipingElements});
 }
