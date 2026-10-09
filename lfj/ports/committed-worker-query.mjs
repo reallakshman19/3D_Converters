@@ -103,9 +103,11 @@ export async function runCommittedSourceQuery({
   });
   const start=await session.start();
   if(start.kind!=='ADMITTED')fail(start.errorCode??'WORKER_UNAVAILABLE','native source Worker not admitted');
+  const durableIndex=typeof indexStore.commitDurably==='function';
   tx=session.beginIndexTransaction({
    stagePage:p=>indexStore.stagePage(p),
    commit:summary=>indexStore.commit(summary),
+   ...(durableIndex?{commitDurably:summary=>indexStore.commitDurably(summary)}:{}),
    abort:()=>indexStore.abort()
   });
   // Real original-byte transfer and consumption by the SAME Worker that parses.
@@ -115,7 +117,12 @@ export async function runCommittedSourceQuery({
   });
   const summary=await receiveWorkerScan(worker,trustedWorkerCtor,job,blob,source.sha256,
     tx,pageEvents,scanTimeoutMs);
-  const completion=tx.commit(summary,receipt); // sole R07 SOURCE_INDEX_COMPLETE gate
+  // Real IndexedDB is asynchronous: R07 may publish SOURCE_INDEX_COMPLETE
+  // only AFTER transaction.complete. Existing synchronous stores retain their
+  // independently qualified legacy R07 path unchanged.
+  const completion=durableIndex
+    ? await tx.commitDurably(summary,receipt)
+    : tx.commit(summary,receipt);
   if(completion.kind!=='SOURCE_INDEX_COMPLETE')
    fail('SOURCE_INDEX_UNCOMMITTED','Worker source was not fully committed');
   const view={manifest:summary,completion,
