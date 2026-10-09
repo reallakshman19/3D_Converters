@@ -25,13 +25,20 @@ try {
   }));
   await page.goto('http://127.0.0.1:4186/lfj/served-durable-qualification.html',{waitUntil:'load'});
   const records=await page.evaluate(async({raw,sha})=>{
+    let receiverModule;
+    try {
+      receiverModule=await import('/__lfj1104_receiver__.mjs');
+      if(typeof receiverModule.consumeSelectedSourceFacts!=='function')
+        throw Error('missing receiver export');
+    } catch(e) {
+      return {kind:'A03_RECEIVER_FIXTURE_INVALID',error:String(e?.message||e)};
+    }
     let imports;
     try {
       imports=await Promise.all([
         import('/lfj/runtime/source-session.mjs'),
         import('/lfj/runtime/indexed-occurrence-pairs.mjs'),
-        import('/lfj/storage/browser/indexed-record-store.mjs'),
-        import('/__lfj1104_receiver__.mjs')
+        import('/lfj/storage/browser/indexed-record-store.mjs')
       ]);
     } catch(e) {
       return {kind:'H1_DEPLOY_IMPORT_REJECT',
@@ -41,7 +48,8 @@ try {
           '/lfj/storage/browser/indexed-record-store.mjs']};
     }
     const [{openSourceSession},{openIndexedOccurrencePairStore,createPairedIndexStore},
-      {openIndexedRecordStore},{consumeSelectedSourceFacts}]=imports;
+      {openIndexedRecordStore}]=imports;
+    const {consumeSelectedSourceFacts}=receiverModule;
     const input=new TextEncoder().encode(raw);
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',input)),
       b=>b.toString(16).padStart(2,'0')).join('');
