@@ -42,6 +42,7 @@ test('A02P2 begin/stage are invisible; only whole basis-CAS commit publishes imm
   const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>live,maxFacts:10});
   const f=fact(0,'','é');
   await sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
   await sink.transaction.stage(f);
   assert.equal(sink.readPublished(),null,'uncommitted original bytes never visible');
@@ -76,6 +77,7 @@ test('A02P2 stale source/selection/master must reject before publication, then a
     let live=clone(basis);
     const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>live,maxFacts:10});
     await sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+      sourceIndexSummary:sourceSummary,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
     await sink.transaction.stage(fact(0,'','some'));
     live={...live,...patch};
@@ -93,6 +95,7 @@ test('A02P2 a second generation cannot interleave before first commits/aborts',a
   let live=clone(basis);
   const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>live,maxFacts:2});
   const begin={expectedBasis:basis,selectedCount:1,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
   await sink.transaction.begin(begin);
   assert.throws(()=>sink.transaction.begin(begin),code('GENERATION_BUSY'));
@@ -118,6 +121,7 @@ test('A02P2 forged receipts, shortened selections and unsafe rights never commit
       getCurrentBasis:()=>clone(basis),maxFacts:10
     });
     await sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+      sourceIndexSummary:sourceSummary,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
     await sink.transaction.stage(fact(0,'','one'));
     assert.throws(()=>sink.transaction.commit({
@@ -144,6 +148,9 @@ test('A02P2 receiver actually consumes 2 selected scalar values through FIRST-PA
   }));
   const session={
     schema:'LFJ.SourceSession.v1',
+    summary:{...sourceSummary,byteLength:base.byteLength,
+      endByteExclusive:base.byteLength,
+      rootFacts:{...sourceSummary.rootFacts,rootCount:2}},
     completion:{kind:'SOURCE_INDEX_COMPLETE',complete:true,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false},
     pageManifest:{schema:'LFJ.CommittedSelectionPageManifest.v1',
@@ -194,6 +201,7 @@ test('A02P2 aggregate budget must be bounded across individually valid UTF-8 sca
     getCurrentBasis:()=>({...basis}),maxFacts:2,maxTotalBytes:4
   });
   sink.transaction.begin({expectedBasis:basis,selectedCount:2,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
   sink.transaction.stage(fact(0,'','A')); // 3 original UTF-8 bytes
   assert.throws(()=>sink.transaction.stage(fact(1,'/1','B')),
@@ -208,6 +216,7 @@ test('A02P2 RED: receiver commit callback may mutate authoritative app basis bef
   let current={...basis};
   const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...current}),maxFacts:2});
   sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
   sink.transaction.stage(fact(0,'','first'));
   assert.throws(()=>sink.transaction.commit({
@@ -239,6 +248,7 @@ test('A02P2 RED: consumer basis getter can reenter commit but cannot publish twi
   };
   sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...current}),maxFacts:2});
   sink.transaction.begin({expectedBasis:basis,selectedCount:1,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
   sink.transaction.stage(fact(0,'','first'));
   assert.throws(()=>sink.transaction.commit({
@@ -253,6 +263,7 @@ test('A02P2 RED: consumer basis getter can reenter commit but cannot publish twi
 test('A02P2 RED: duplicate original path/occurrence cannot be published with a new ordinal',()=>{
   const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...basis}),maxFacts:3});
   sink.transaction.begin({expectedBasis:basis,selectedCount:2,
+    sourceIndexSummary:sourceSummary,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
   sink.transaction.stage(fact(0,'','A'));
   // Same canonical R05 pointer/ID with artificially increased ordinal.
