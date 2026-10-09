@@ -19,6 +19,8 @@ import {buildEvidenceTreeCsv,buildXmlNodeWiseTraceCsv} from
 const fixtures={
   SMALL:{json:'Benchmarks/1885Sjson/Sjson.json',
     xml:'Benchmarks/1885Sjson/ExpectedXML'},
+  FIRSTPASS:{json:'Benchmarks/1885Sjson/Sjson.json',
+    xml:'Benchmarks/1885Sjson/FirstpassXML'},
   LARGE:{json:'Benchmarks/1885_NC/1885_NC.json',
     xml:'Benchmarks/1885_NC/1885_NC.topology.input.xml'}
 };
@@ -112,6 +114,12 @@ const oracle={
     (acc[r.status]=(acc[r.status]||0)+1,acc),{})
 };
 assert.ok(oracle.xmlNodes>0,'source XML must have real nodes');
+if(size==='FIRSTPASS'&&mode==='AUTHENTIC'){
+  assert.ok(oracle.matchedXmlNodes>0,
+    'real paired FirstpassXML must produce resolved source engineering matches');
+  assert.ok(oracle.evidenceTreeCsvBytes>103,
+    'real paired FirstpassXML must generate nonempty Evidence Tree CSV');
+}
 if(derivedControl){
   assert.equal(oracle.xmlNodes,3,'control must test 3 source-derived XML nodes');
   assert.equal(oracle.matchedXmlNodes,2,
