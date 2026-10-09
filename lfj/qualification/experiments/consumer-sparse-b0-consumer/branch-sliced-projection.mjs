@@ -15,7 +15,8 @@ import {groupTraceEntriesSpatially} from '../../../../tabs/xml-cii-2019-standalo
 
 const SCHEMA='LFJ.B0.ResolverProjection.v1';
 const MAX_BRANCH_BYTES=1024*1024,PAGE_FACTS=128;
-const fail=(code,message)=>Object.assign(new Error(message),{code});
+const makeError=(code,message)=>Object.assign(new Error(message),{code});
+const fail=(code,message)=>{throw makeError(code,message);};
 const enc=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const canonicalFields=[
   'jsonNodeNo','jsonSequence','branchName','point','bore','type',
@@ -26,8 +27,8 @@ const normalized=m=>Object.fromEntries(canonicalFields.map(key=>[key,m[key]??(ke
 const encode=x=>enc.encode(JSON.stringify(x));
 const txEnd=tx=>new Promise((resolve,reject)=>{
   tx.oncomplete=()=>resolve();
-  tx.onerror=()=>reject(tx.error||fail('PROJECTION_WRITE','IndexedDB error'));
-  tx.onabort=()=>reject(tx.error||fail('PROJECTION_ABORT','IndexedDB transaction abort'));
+  tx.onerror=()=>reject(tx.error||makeError('PROJECTION_WRITE','IndexedDB error'));
+  tx.onabort=()=>reject(tx.error||makeError('PROJECTION_ABORT','IndexedDB transaction abort'));
 });
 async function openProjectionDb(databaseName){
   return await new Promise((resolve,reject)=>{
