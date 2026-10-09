@@ -150,6 +150,16 @@ window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
         ?Math.round(Math.max(...longTasks)):0,
       metricsAre:'MEASURED_IN_RUN_NO_SLA_OR_DATABASE_ATOMICITY_CLAIM',
       sourceOnly:true,appWired:false};
+  }catch(error){
+    // An incomplete source is a HARD failure. Still expose where the
+    // accepted native/IDB work stopped; never manufacture a terminal manifest.
+    console.error('LFJ_AUTHENTIC_DIAGNOSTIC_FAILURE '+JSON.stringify({
+      code:error?.code??'UNCLASSIFIED',
+      message:error?.message,elapsedMs:Math.round(performance.now()-start),
+      stages,sourceCommitCompleted:!!session,sourceBytes:payload.length,
+      oracleOccurrences:oracle.occurrenceCount
+    }));
+    throw error;
   }finally{
     try{await session?.close();}catch{}
     observer?.disconnect();
