@@ -11,13 +11,21 @@ const run=(file,payload)=>new Promise((resolve,reject)=>{
   w.onerror=e=>{w.terminate();reject(fail('WORKER_ERROR',e.message));};
   w.postMessage(payload);
 });
-window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={}})=>{
+window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
+  xmlTextOverride=null,mode='AUTHENTIC'})=>{
   if(!jsonUrl.startsWith('/Benchmarks/')||!xmlUrl.startsWith('/Benchmarks/'))
     throw fail('AUTHENTIC_ONLY','original tracked fixture required');
   const j=await fetch(jsonUrl,{cache:'no-store'});
   const x=await fetch(xmlUrl,{cache:'no-store'});
   if(!j.ok||!x.ok)throw fail('FIXTURE_MISSING','expected original fixture HTTP');
-  const blob=await j.blob(),xmlText=await x.text();
+  const blob=await j.blob();
+  if(xmlTextOverride!==null&&mode!=='SOURCE_DERIVED_CONTROL')
+    throw fail('XML_CONTROL_MODE','source-derived XML must be explicitly labeled');
+  const xmlText=xmlTextOverride??await x.text();
+  const xmlSHA=[...new Uint8Array(await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(xmlText)))]
+    .map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(xmlSHA!==oracle.xmlSha256)throw fail('XML_SHA','XML source or control mismatched');
   if(blob.size!==oracle.originalBytes||new TextEncoder().encode(xmlText).length!==oracle.xmlBytes)
     throw fail('SOURCE_BYTES','original source or XML differs');
   const id=crypto.randomUUID(),sourceDb='lfj-b0-match-source-'+id;
