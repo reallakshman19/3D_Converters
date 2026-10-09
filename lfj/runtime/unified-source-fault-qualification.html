@@ -310,7 +310,7 @@ window.runUnifiedFaultMatrix=async()=>{
       outcomes.pruneResumedLeftovers=await new Promise((resolve,reject)=>{
         const req=db.transaction('pairs','readonly').objectStore('pairs').count(
           IDBKeyRange.bound([namespace,interruptedOld.generation,''],
-            [namespace,interruptedOld.generation,'\\uffff']));
+            [namespace,interruptedOld.generation,'\uffff']));
         req.onsuccess=()=>resolve(req.result);
         req.onerror=()=>reject(req.error);
       });
