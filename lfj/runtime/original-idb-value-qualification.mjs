@@ -24,6 +24,8 @@ try{
   assert.equal(found.sourceCount,expected.length);
   assert.equal(found.eventCount,expected.length*2);
   assert.deepEqual(found.rows,expected);
+  assert.equal(found.revokedPageCode,'STORE_ABORTED',
+    'selected pages cannot remain authorized after committed source head is revoked');
   assert.equal(found.staleCode,'SOURCE_STALE');
   assert.equal(found.closedCode,'SESSION_CLOSED');
   assert.equal(found.rightsBasis,'SOURCE_FACTS_ONLY');
