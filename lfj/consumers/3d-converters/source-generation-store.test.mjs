@@ -178,3 +178,18 @@ test('A02P2 receiver actually consumes 2 selected scalar values through FIRST-PA
   live={...live,sourceRevision:'superseded'};
   assert.equal(sink.readPublished(),null);
 });
+
+
+test('A02P2 aggregate budget must be bounded across individually valid UTF-8 scalar facts',()=>{
+  const sink=createSourceFactsGenerationStore({
+    getCurrentBasis:()=>({...basis}),maxFacts:2,maxTotalBytes:4
+  });
+  sink.transaction.begin({expectedBasis:basis,selectedCount:2,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
+  sink.transaction.stage(fact(0,'','A')); // 3 original UTF-8 bytes
+  assert.throws(()=>sink.transaction.stage(fact(1,'/1','B')),
+    code('SOURCE_LIMIT'),
+    'two individually small scalars cannot bypass cumulative source byte budget');
+  sink.transaction.abort();
+  assert.equal(sink.readPublished(),null);
+});
