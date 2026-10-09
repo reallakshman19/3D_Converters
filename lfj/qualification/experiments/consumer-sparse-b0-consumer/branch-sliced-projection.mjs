@@ -156,13 +156,26 @@ export async function createSourceBackedResolverProjection({
           'original DOM object path is not source-catalog-backed: '+originalPath);
         const sourceRow=await source.readOrdinal(id);
         const enriched=decorateJsonTraceMember(item,config);
+        // Real legacy walkStaged assigns fallback jsonNodeNo from the GLOBAL
+        // staged-object sequence, not the branch-local sequence. An explicit
+        // own node alias must retain its original value even when it happens
+        // to equal the local number.
+        const ownAttrs=item.raw?.attributes &&
+          typeof item.raw.attributes==='object' ? item.raw.attributes:{};
+        const nodeAliases=['JsonNodeNo','JSON_NODE_NO','NODE_NO',
+          'NodeNumber','NODE','SEQ','SEQUENCE'];
+        const explicitNode=Object.entries(ownAttrs).some(([key,value])=>
+          nodeAliases.some(alias=>alias.toUpperCase()===key.toUpperCase())&&
+          value!==null&&value!==undefined&&String(value).trim()!=='');
+        const jsonNodeNo=explicitNode?item.jsonNodeNo:
+          String(offset+item.jsonSequence);
         const conflicts={};
         for(const role of Object.keys(resolveSourceSchema(config).fields)){
           const ev=sourceFieldEvidence(item.raw,role,config);
           if(ev.conflict)conflicts[role]=ev.distinctValues;
         }
         const fact=Object.freeze({
-          ...normalized({...enriched,path:originalPath,
+          ...normalized({...enriched,path:originalPath,jsonNodeNo,
             jsonSequence:offset+item.jsonSequence}),
           sourceOrdinal:id,startByte:sourceRow.startByte,
           endByteExclusive:sourceRow.endByteExclusive,
