@@ -25,6 +25,10 @@ try{
   assert.equal(result.firstRowCorrect,true);
   assert.equal(result.postAbortPrefetch,'UNIFIED_ABORTED',
     'prefetched committed source rows must be inaccessible after abort');
+  assert.equal(result.wrongParent,'UNIFIED_PAIR_CORRUPT');
+  assert.equal(result.wrongParentInvisible,'UNIFIED_ABORTED');
+  assert.equal(result.ownAttributesRoundTrip,true);
+  assert.equal(result.ownAttributesCorruption,'UNIFIED_PAIR_CORRUPT');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
