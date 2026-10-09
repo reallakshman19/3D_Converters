@@ -46,8 +46,8 @@ function countStaged(value){
   if(!value||typeof value!=='object')return 0;
   return 1+(Array.isArray(value.children)?countStaged(value.children):0);
 }
-async function hashConfig(config){
-  const b=encode({schema:SCHEMA,config,enabledFields:configuredJsonTraceFieldNames(config),
+async function hashConfig(config,toleranceMm){
+  const b=encode({schema:SCHEMA,config,toleranceMm,enabledFields:configuredJsonTraceFieldNames(config),
     resolvedSchema:resolveSourceSchema(config)});
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256',b))]
     .map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -76,7 +76,7 @@ export async function createSourceBackedResolverProjection({
   let db=null,success=false,branches=0,sourceObjects=0,facts=0,pageNo=0;
   let offset=0,activePage=[],digest=2166136261,groupEntries=[],pageDigests=[];
   let sourcePageReads=0,materializedBytes=0,maxBranchObserved=0;
-  const begun=performance.now(),projectionDigest=await hashConfig(config);
+  const begun=performance.now(),projectionDigest=await hashConfig(config,toleranceMm);
   try{
     if(source.selectionKind!=='ALL'||source.sourceCount===0||
        source.engineeringReady!==false)
