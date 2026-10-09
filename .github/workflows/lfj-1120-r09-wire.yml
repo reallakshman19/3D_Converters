@@ -1,0 +1,34 @@
+name: LFJ 1120 R09 source page full-envelope successor
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/query/pages/**'
+      - '.github/workflows/lfj-1120-r09-wire.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r09-literal-head:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact product and test basis
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Independent complete-envelope prefix RED-to-GREEN and original paging suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test lfj/query/pages/*.test.mjs
+      - name: Source tree clean after test
+        run: test -z "$(git status --porcelain)"
