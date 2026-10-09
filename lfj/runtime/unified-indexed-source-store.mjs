@@ -283,14 +283,24 @@ export async function openUnifiedIndexedSourceStore({
         ...(row.ownAttributes?{ownAttributes:Object.freeze({...row.ownAttributes})}:{})
       }));
       // ACK means a bounded *owned* provisional batch, not an IDB HEAD.
-      if(buffer.length+accepted.length>MAX_STAGE_EVENTS||
-        bufferBytes+pageBytes>MAX_STAGE_BYTES)await flush();
-      if(accepted.length>MAX_STAGE_EVENTS||pageBytes>MAX_STAGE_BYTES){
-        // One larger yet <=1MiB original R05 event batch remains bounded
-        // and must complete an IDB transaction before its Worker ACK.
-        buffer=accepted;bufferBytes=pageBytes;
-        await flush();
-      }else{buffer.push(...accepted);bufferBytes+=pageBytes;}
+      // R10 may send up to 4096 rows/1MiB in a single valid transport
+      // message. Split that message into strictly <=1024/768KiB native
+      // IDB transactions; never temporarily promote the transport cap
+      // into a larger storage buffer just because the upstream chose it.
+      if(accepted.length<=MAX_STAGE_EVENTS&&pageBytes<=MAX_STAGE_BYTES){
+        if(buffer.length+accepted.length>MAX_STAGE_EVENTS||
+          bufferBytes+pageBytes>MAX_STAGE_BYTES)await flush();
+        buffer.push(...accepted);bufferBytes+=pageBytes;
+      }else{
+        for(const row of accepted){
+          const bytes=encoded(row);
+          if(bytes>MAX_STAGE_BYTES)
+            fail('UNIFIED_STAGE_LIMIT','one original source event exceeds native stage byte cap');
+          if(buffer.length>=MAX_STAGE_EVENTS||bufferBytes+bytes>MAX_STAGE_BYTES)
+            await flush();
+          buffer.push(row);bufferBytes+=bytes;
+        }
+      }
       nextOrdinal+=opensHere;opens+=opensHere;seals+=sealsHere;
       stagedEvents+=rows.length;
     }catch(error){
