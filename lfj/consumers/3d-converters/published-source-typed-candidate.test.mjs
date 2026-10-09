@@ -130,3 +130,42 @@ test('A04-COMPOSE wrong source-only read model and unbound store cannot grant en
     readPublished:()=>({receipt:{engineeringReady:true}})
   }}),code('APP_SOURCE_GENERATION_INVALID'));
 });
+
+
+test('A04-COMPOSE RED: same source/job metadata cannot conceal a replaced committed generation',async()=>{
+  const original=await realSource();
+  const {sink}=publish(original);
+  const first=sink.readPublished();
+  let reads=0;
+  const replacement={
+    ...first,
+    // Counterfeit other committed generation even though original R05 census,
+    // selection digest, source SHA, job and dependency remain identical.
+    publicationSerial:first.publicationSerial+1
+  };
+  const swapping={readPublished:()=>++reads===1?first:replacement};
+  assert.throws(()=>projectPublishedSourceCandidate({generationStore:swapping}),
+    code('APP_SOURCE_GENERATION_STALE'),
+    'a result assembled across two app publications is never acceptable');
+});
+
+test('A04-COMPOSE RED: independent committed generations get distinct monotonic publication identities',async()=>{
+  const original=await realSource();
+  const {sink}=publish(original);
+  const first=sink.readPublished();
+  assert.equal(Number.isSafeInteger(first.publicationSerial),true);
+  assert.ok(first.publicationSerial>0);
+  const basis={...original.expectedBasis};
+  sink.transaction.begin({expectedBasis:basis,selectedCount:original.facts.length,
+    sourceIndexSummary:original.summary,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
+  for(const fact of original.facts)sink.transaction.stage(fact);
+  sink.transaction.commit({receipt:{
+    schema:'LFJ.3D.ConsumerSourceFactsReceipt.v1',complete:true,
+    ...basis,selectedCount:original.facts.length,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+  },expectedBasis:basis,getCurrentBasis:()=>({...basis})});
+  const second=sink.readPublished();
+  assert.equal(second.publicationSerial,first.publicationSerial+1);
+  assert.deepEqual(second.facts.map(x=>x.row.path),first.facts.map(x=>x.row.path));
+});
