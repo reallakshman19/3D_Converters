@@ -1,0 +1,63 @@
+name: LFJ 1147 B0 source-derived Resolver projection original fixtures
+on:
+  push:
+    branches: ['lfj/1147-b0-consumer-branch-projection']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-consumer-projection.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-consumer-projection.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authentic-consumer-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: Benchmarks/1885Sjson/Sjson.json
+            config: DEFAULT
+          - fixture: Benchmarks/1885Sjson/Sjson.json
+            config: CUSTOM_CAPTURE
+          - fixture: Benchmarks/1885_NC/1885_NC.json
+            config: DEFAULT
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin original exact source
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static syntax and full original downstream manifest
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/projection.worker.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/real-projection-oracle.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Install original Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve real repository originals and exact source modules
+        shell: bash
+        run: |
+          (python3 -m http.server 4199 --bind 127.0.0.1 >/tmp/lfj-1147-b0-consumer.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4199/lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1147-b0-consumer.log
+          exit 1
+      - name: Independently compare full-source legacy domain vs bounded catalog projection
+        env:
+          B0_CONFIG: ${{ matrix.config }}
+        run: node lfj/qualification/experiments/consumer-sparse-b0-consumer/real-projection-oracle.mjs --fixture "${{ matrix.fixture }}"
+      - name: Assert clean worktree
+        run: test -z "$(git status --porcelain)"
