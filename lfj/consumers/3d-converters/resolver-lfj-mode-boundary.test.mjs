@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const path=new URL('../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',import.meta.url);
+const path=new URL('../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',import.meta.url);
 function eventHarness(){
   const actual=readFileSync(path,'utf8')
     .replace(/^import[\s\S]*?;\s*$/gm,'')
