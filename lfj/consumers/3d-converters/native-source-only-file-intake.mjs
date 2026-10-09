@@ -57,13 +57,17 @@ export async function runNativeSourceOnlyTypedFile({
       'actual File/Blob, Worker, IndexedDB, selection and app basis required');
   const expected=validated(expectedBasis,blob);
   if(signal?.aborted)fail('NATIVE_CONSUMER_CANCELLED','source intake cancelled');
-  let current;
-  try{current=getCurrentBasis();}catch{
-    fail('NATIVE_CONSUMER_BASIS_STALE','app source basis unavailable');
+  function attest(){
+    if(signal?.aborted)fail('NATIVE_CONSUMER_CANCELLED','source intake cancelled');
+    let current;
+    try{current=getCurrentBasis();}catch{
+      fail('NATIVE_CONSUMER_BASIS_STALE','app source basis unavailable');
+    }
+    if(B.some(k=>current?.[k]!==expected[k]))
+      fail('NATIVE_CONSUMER_BASIS_STALE',
+        'source, selection or XML/master changed before Worker admission');
   }
-  if(B.some(k=>current?.[k]!==expected[k]))
-    fail('NATIVE_CONSUMER_BASIS_STALE',
-      'source, selection or XML/master changed before Worker admission');
+  attest();
 
   const openRecord=nativePorts.openRecordStore??openIndexedRecordStore;
   const openPairs=nativePorts.openPairStore??openIndexedOccurrencePairStore;
@@ -81,11 +85,14 @@ export async function runNativeSourceOnlyTypedFile({
   try{
     source=await openRecord({databaseName,namespace:'source',
       generation:expected.jobId,basis,kind:'source',indexedDB});
+    attest();
     selected=await openRecord({databaseName,namespace:'selected',
       generation:expected.jobId,basis,kind:'selection',
       selectionDigest:expected.selectionDigest,jobEpoch:expected.jobId,indexedDB});
+    attest();
     pairs=await openPairs({databaseName:databaseName+'-pairs',
       namespace:'source',generation:expected.jobId,basis,indexedDB});
+    attest();
     const createWorker=()=>new WorkerCtor(
       new URL('../../ports/source-browser-worker.mjs',import.meta.url),
       {type:'module'}
@@ -98,10 +105,23 @@ export async function runNativeSourceOnlyTypedFile({
       selectedStore:selected,trustedWorkerCtor:WorkerCtor,createWorker,
       getCurrentBasis,signal,pageEvents
     });
-    return await consume({
+    attest();
+    const result=await consume({
       session,expectedBasis:expected,getCurrentBasis,signal,
       maxFacts,maxTotalBytes,maxRows,maxPageBytes,maxScalarBytes
     });
+    if(result?.schema!=='LFJ.3D.SourceOnlyTypedSessionResult.v1'||
+      result.engineeringReady!==false||
+      result.rightsBasis!=='SOURCE_ONLY_PROJECTED_CANDIDATE'||
+      result.candidate?.engineeringReady!==false||
+      result.candidate?.rightsBasis!=='SOURCE_ONLY_PROJECTED_CANDIDATE')
+      fail('NATIVE_CONSUMER_RIGHTS_INVALID',
+        'native File/Blob intake cannot return engineering/export authority');
+    // The real consumer closes the exclusive session itself; repeat close is
+    // idempotent on SourceSessionV1. An injected unit port must close here too.
+    await session.close();
+    attest();
+    return result;
   }catch(error){
     failed=true;
     if(session)try{await session.close();}catch{}
