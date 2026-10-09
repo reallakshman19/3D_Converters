@@ -114,8 +114,12 @@ const oracle={
 assert.ok(oracle.xmlNodes>0,'source XML must have real nodes');
 if(derivedControl){
   assert.equal(oracle.xmlNodes,3,'control must test 3 source-derived XML nodes');
-  assert.ok(oracle.matchedXmlNodes>=1,
-    'positive original coordinate control must resolve on the real legacy engine');
+  assert.equal(oracle.matchedXmlNodes,2,
+    'original POS and PS controls must BOTH resolve on the real legacy engine');
+  assert.equal(oracle.statusCounts.RESOLVED_POS,1,
+    'original coordinate positive control must be RESOLVED_POS');
+  assert.equal(oracle.statusCounts.RESOLVED_PS_FALLBACK,1,
+    'original support-tag fallback must be RESOLVED_PS_FALLBACK');
   assert.ok(oracle.evidenceTreeCsvBytes>103,
     'positive control must produce a nonempty Evidence Tree CSV');
   assert.ok((oracle.statusCounts.UNRESOLVED||0)>=1,
