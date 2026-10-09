@@ -63,6 +63,29 @@ window.runUnifiedFaultMatrix=async()=>{
     outcomes.headAbortedInvisible=await lookup(interrupted);
   }finally{await cleanup(interrupted);}
 
+  // Two generations sampled the same absent HEAD. Exactly one CAS may
+  // publish; the losing writer must not revoke the winning generation.
+  const casName=prefix+'-head-cas',winner=await openUnifiedIndexedSourceStore({
+    databaseName:casName,namespace,generation:'winner',basis});
+  const loser=await openUnifiedIndexedSourceStore({
+    databaseName:casName,namespace,generation:'loser',basis});
+  try{
+    await winner.stagePage([open,seal]);
+    await loser.stagePage([open,seal]);
+    try{await winner.lookupCommittedPair(occurrenceId);
+      outcomes.preCommitVisible='UNEXPECTED_ACCEPTED';
+    }catch(e){outcomes.preCommitVisible=e?.code;}
+    await winner.commitDurably(manifest);
+    try{await loser.commitDurably(manifest);
+      outcomes.casLoser='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.casLoser=e?.code;}
+    const unaffected=await winner.lookupCommittedPair(occurrenceId);
+    outcomes.casWinnerRetained=unaffected.seal.endByteExclusive===4;
+  }finally{
+    try{winner.close();loser.close();}catch{}
+    indexedDB.deleteDatabase(casName);
+  }
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
