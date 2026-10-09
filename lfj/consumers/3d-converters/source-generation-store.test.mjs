@@ -319,3 +319,28 @@ test('A02P3 RED: application publication must preserve same immutable R05 summar
   assert.deepEqual(sink.readPublished().sourceIndexSummary,sourceSummary,
     'returned R05 summary must be a detached copy of privately committed source census');
 });
+
+
+test('A02P3 RED: every committed first-party app generation has its own publication serial',()=>{
+  const sink=createSourceFactsGenerationStore({getCurrentBasis:()=>({...basis}),maxFacts:2});
+  const begin={expectedBasis:basis,selectedCount:1,
+    sourceIndexSummary:sourceSummary,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
+  sink.transaction.begin(begin);
+  sink.transaction.stage(fact(0,'','A'));
+  const firstResult=sink.transaction.commit({
+    receipt:receipt(1),expectedBasis:basis,getCurrentBasis:()=>({...basis})
+  });
+  const first=sink.readPublished();
+  assert.equal(Number.isSafeInteger(first.publicationSerial),true);
+  assert.equal(first.publicationSerial,firstResult.publicationSerial);
+  sink.transaction.begin(begin);
+  sink.transaction.stage(fact(0,'','A'));
+  const secondResult=sink.transaction.commit({
+    receipt:receipt(1),expectedBasis:basis,getCurrentBasis:()=>({...basis})
+  });
+  const second=sink.readPublished();
+  assert.equal(second.publicationSerial,first.publicationSerial+1);
+  assert.equal(second.publicationSerial,secondResult.publicationSerial);
+  assert.equal(first.publicationSerial!==second.publicationSerial,true);
+});
