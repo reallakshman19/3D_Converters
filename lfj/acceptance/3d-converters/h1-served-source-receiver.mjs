@@ -159,5 +159,5 @@ try {
   assert.equal(stale.stagedRemaining,0);
   assert.equal(stale.closeCode,'SESSION_CLOSED');
   assert.deepEqual(pageErrors,[]);
-  console.log('A03 exact docs origin Worker/IDB → #1104 receiver source-only original-byte union + late dependency abort ACCEPTABLE');
+  console.log('A03 real HTTP LFJ Worker+IndexedDB to #1104 receiver source-only original-byte union and supersession abort PASS; workflow determines PROVISIONAL versus authored docs origin');
 } finally {await browser.close();}
