@@ -170,3 +170,41 @@ test('A04 refuses non-object children and ineligible original root classificatio
     ...supported.rootProfile,capabilities:{...supported.rootProfile.capabilities,export:true}
   }}),codeIs('ROOT_PROFILE_REQUIRED'));
 });
+
+
+test('A04 census RED: a valid-looking selected prefix cannot masquerade as ALL original typed nodes',async()=>{
+  const original=await actualFacts([
+    {type:'BRANCH',name:'/FIRST',attributes:{OWNER_ZONE:'/A'}},
+    {type:'BRANCH',name:'/SECOND',attributes:{OWNER_ZONE:'/B'}}
+  ]);
+  const subset=original.facts.filter(x=>!x.row.path.startsWith('/1'));
+  assert.ok(subset.length<original.facts.length);
+  const selected={...original,facts:subset,receipt:{
+    ...original.receipt,selectedCount:subset.length
+  }};
+  assert.throws(()=>projectTypedOwnAttributes(selected),
+    codeIs('SOURCE_CENSUS_MISMATCH'),
+    'selectedCount agrees with a truncated prefix, but original R05 census does not');
+});
+
+test('A04 census RED: forged but structurally valid root profile cannot change original R05 profile authority',async()=>{
+  const original=await actualFacts({hierarchy:[{type:'BRANCH',name:'/B'}]});
+  const forged={...original,rootProfile:{...original.rootProfile,
+    profileId:'managed-stage-markup-rich/v2'}};
+  assert.throws(()=>projectTypedOwnAttributes(forged),
+    codeIs('ROOT_PROFILE_REQUIRED'),
+    'source R05 original rootFacts, not a caller-asserted profile, control typed projection');
+});
+
+test('A04 census RED: stale full-source revision/byte-length and missing rootFacts deny projection',async()=>{
+  const original=await actualFacts([{type:'BRANCH',name:'/B'}]);
+  for(const bad of [
+    {...original.summary,sourceRevision:'old-source-revision'},
+    {...original.summary,byteLength:original.summary.byteLength+1},
+    {...original.summary,rootFacts:null},
+    {...original.summary,occurrenceCount:original.summary.occurrenceCount+1}
+  ]){
+    assert.throws(()=>projectTypedOwnAttributes({...original,summary:bad}),
+      codeIs('SOURCE_CENSUS_MISMATCH'));
+  }
+});
