@@ -65,18 +65,44 @@ await mkdir(evidence, {recursive:true});
 let browser, page;
 try {
   const jsonBuffer = originalJson ? await readFile(originalJson) : synthetic;
-  const xmlBuffer = originalXml ? await readFile(originalXml) : syntheticXml;
+  const parsed = originalJson ? JSON.parse(jsonBuffer.toString('utf8')) : null;
+  // No provided XML accompanies these authentic source datasets. Create a
+  // TEST-ONLY XML node from ORIGINAL JSON POS/DTXR values; never claim Owner XML.
+  const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  let paired=null;
+  if(parsed && !originalXml) {
+    for(const b of Array.isArray(parsed) ? parsed : []) {
+      for(const child of Array.isArray(b.children) ? b.children : []) {
+        const a=child?.attributes||{},p=a.POS;
+        if(typeof a.DTXR!=='string'||!a.DTXR||!p||
+          ![p.x,p.y,p.z].every(v=>Number.isFinite(Number(v)))) continue;
+        const xml='<Root><Branch><Branchname>'+esc(b.name)+'</Branchname><Node>'+
+          '<NodeNumber>42</NodeNumber><NodeName>'+esc(a.NAME||child.name)+'</NodeName>'+
+          '<ComponentType>'+esc(child.type)+'</ComponentType><Position>'+
+          [p.x,p.y,p.z].join(' ')+'</Position></Node></Branch></Root>';
+        paired={xml,branch:b.name,nodeType:child.type,dtXR:a.DTXR,
+          position:[p.x,p.y,p.z],name:a.NAME||child.name};
+        break;
+      }
+      if(paired)break;
+    }
+    assert.ok(paired,'Authentic JSON has no original child POS and DTXR');
+  }
+  const xmlBuffer = originalXml ? await readFile(originalXml)
+    : paired ? Buffer.from(paired.xml) : syntheticXml;
   report.source = {
-    jsonPath: originalJson ? path.relative(root, originalJson) : 'inline-synthetic-2-zone',
-    xmlPath: originalXml ? path.relative(root, originalXml) : 'inline-synthetic-one-node',
-    jsonSha256: sha(jsonBuffer), jsonBytes: jsonBuffer.byteLength,
-    xmlSha256: sha(xmlBuffer), xmlBytes: xmlBuffer.byteLength,
-    originalCorpusAvailable: Boolean(originalJson),
+    jsonPath:originalJson ? path.relative(root,originalJson):'inline-synthetic-2-zone',
+    xmlPath:originalXml ? path.relative(root,originalXml)
+      : paired ? 'TEST_ONLY_DERIVED_XML_FROM_AUTHENTIC_JSON':'inline-synthetic-one-node',
+    jsonSha256:sha(jsonBuffer),jsonBytes:jsonBuffer.byteLength,
+    xmlSha256:sha(xmlBuffer),xmlBytes:xmlBuffer.byteLength,
+    originalCorpusAvailable:Boolean(originalJson),
+    pairedOracle:paired?{branch:paired.branch,nodeType:paired.nodeType,
+      expectedDtxr:paired.dtXR,position:paired.position,name:paired.name}:null,
   };
-  if (originalJson) {
-    const parsed = JSON.parse(jsonBuffer.toString('utf8')); // independent test-only source parse
-    report.source.rootType = Array.isArray(parsed) ? 'ARRAY' : typeof parsed;
-    report.source.rootEntries = Array.isArray(parsed) ? parsed.length : null;
+  if(parsed){
+    report.source.rootType=Array.isArray(parsed)?'ARRAY':typeof parsed;
+    report.source.rootEntries=Array.isArray(parsed)?parsed.length:null;
   }
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   browser = await chromium.launch({ headless: true });
@@ -170,12 +196,20 @@ try {
   const treeBytes=await readFile(treePath);
   report.downloads.evidenceTree={name:treeDl.suggestedFilename(),bytes:treeBytes.byteLength,sha256:sha(treeBytes)};
   check('tree-csv-header',()=>assert.match(treeBytes.toString('utf8'),/Branch,Bore,Source Node No/));
+  const csv=nodeBytes.toString('utf8');
   if(mode==='SYNTHETIC_POSITIVE') {
-    const csv=nodeBytes.toString('utf8');
     check('independent-zone-B-trace',()=>{
       assert.equal(rowCount,1,'one original XML node must remain one trace row');
       assert.match(csv,/REST-B/,'source B restraint must be resolved');
       assert.doesNotMatch(csv,/REST-A/,'unselected source A must not leak');
+    });
+  } else if(report.source.pairedOracle) {
+    check('authentic-original-DTXR-projection',()=>{
+      assert.equal(rowCount,1,'one paired source XML node expected');
+      assert.ok(csv.includes(report.source.pairedOracle.expectedDtxr),
+        'Original DTXR missing in node-wise CSV');
+      assert.ok(treeBytes.toString('utf8').includes(report.source.pairedOracle.expectedDtxr),
+        'Original DTXR missing in Evidence Tree CSV');
     });
   }
   report.status='PASS_BASELINE_ONLY';
@@ -195,6 +229,14 @@ try {
   }
   if(browser) await browser.close();
   if(server.listening) await new Promise(resolve=>server.close(resolve));
+  if(report.status==='PASS_BASELINE_ONLY' && mode==='AUTHENTIC_CHECKED_IN') {
+    report.performance.provisionalUiLongTaskTargetMs=250;
+    report.performance.targetApprovedByOwner=false;
+    if(report.performance.maxLongTaskMs>250) {
+      report.status='FAIL_PROVISIONAL_RESPONSIVENESS';
+      report.failure='Native Chromium long task exceeded proposed 250ms target';
+    }
+  }
   await writeFile(path.join(evidence,'run-manifest.json'),JSON.stringify(report,null,2)+'\n');
   console.log('XMLCII_RECOVERY_CHROMIUM '+JSON.stringify({
     mode:report.mode,status:report.status,source:report.source,
