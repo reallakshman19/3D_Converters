@@ -112,13 +112,14 @@ async function census(db,namespace,generation,basis){
 /** Genuine dedicated durable lookup port, with no page-level JS accumulation. */
 export async function openIndexedOccurrencePairStore({
   databaseName,namespace,generation,basis,
-  indexedDB:provided=globalThis.indexedDB
+  indexedDB:provided=globalThis.indexedDB,beforeHeadCommit
 }={}){
   if(!provided||typeof provided.open!=='function')
     fail('PAIR_IDB_UNAVAILABLE','no foreground/localStorage/in-memory fallback');
   if(!valid(databaseName)||!valid(namespace)||!valid(generation)||
     !valid(basis?.sourceRefId)||!valid(basis?.sourceSha256)||
-    !valid(basis?.sourceRevision))
+    !valid(basis?.sourceRevision)||
+    (beforeHeadCommit!==undefined&&typeof beforeHeadCommit!=='function'))
     fail('PAIR_BASIS_REQUIRED','original source identity and IDB generation required');
   const db=await openDb(databaseName,provided);
   const previous=await get(db,'heads',namespace);
@@ -200,6 +201,9 @@ export async function openIndexedOccurrencePairStore({
       request.onsuccess=()=>{
         if((request.result?.generation??null)!==expectedHead){tx.abort();return;}
         heads.put({namespace,generation,count:staged,manifest});
+        // This hook exists for a *real IDB* failure injection: request
+        // enqueue is not the transaction.complete durability frontier.
+        try{beforeHeadCommit?.(tx);}catch{tx.abort();}
       };
       await done;
       if(state!=='COMMITTING')fail('PAIR_ABORTED','cancel raced durable source commit');
