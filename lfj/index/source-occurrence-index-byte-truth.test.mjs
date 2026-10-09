@@ -30,7 +30,7 @@ function makeSnapshot(text) {
 async function events(source) {
   const pages = [];
   const summary = await streamJsonOccurrenceEvents(source, {
-    sourceRefId: 'PL01', pageBytes: 1, pageEvents: 2,
+    sourceRefId: 'PL01', pageBytes: 65536, sourceReadPageBytes:1, pageEvents: 2,
     onEventPage: async page => pages.push(page),
   });
   return { all: pages.flat(), summary };

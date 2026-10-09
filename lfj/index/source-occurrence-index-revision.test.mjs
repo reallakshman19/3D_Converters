@@ -13,7 +13,7 @@ function source(json,revision='R05-preserved-revision'){
 async function scan(snapshot,overrides={}){
  const pages=[];
  const result=await streamJsonOccurrenceEvents(snapshot,{
-  sourceRefId:'PL01',pageEvents:1,pageBytes:3,
+  sourceRefId:'PL01',pageEvents:1,pageBytes:65536,sourceReadPageBytes:3,
   onEventPage:async page=>pages.push(page),...overrides,
  });
  const all=pages.flat();
@@ -48,7 +48,7 @@ test('U04 source closed inside sink fails even if scanner holds cached page',asy
  const s=source('{"a":[1,2,3]}');
  let emitted=0;
  await assert.rejects(()=>scan(s,{
-  pageBytes:64,onEventPage:async page=>{
+  pageBytes:65536,sourceReadPageBytes:64,onEventPage:async page=>{
    emitted+=page.length;
    if(emitted===1)s.close();
   },
