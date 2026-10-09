@@ -207,7 +207,7 @@ export function createCommittedSelectionPager({
           if(!Array.isArray(probe)||probe.length!==1)
             fail('PAGE_STORE_INCOMPLETE','committed store has no first row at offset');
         }
-        fail('PAGE_ROW_OVERSIZE','single source record plus required page envelope exceeds byte cap');
+        fail('PAGE_WIRE_OVERLIMIT','single source record plus required page envelope exceeds byte cap');
       }
       if(start<total&&rows.length===0)
         fail('PAGE_STORE_INCOMPLETE','committed store has no page at expected indexed offset');
