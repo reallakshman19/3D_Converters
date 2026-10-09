@@ -56,7 +56,7 @@ function one(db,store,key){
  * kind: "selection" expects R08 selected OPEN facts and readRange().
  */
 export async function openIndexedRecordStore({
-  databaseName,namespace,generation,basis,kind,
+  databaseName,namespace,generation,basis,kind,selectionDigest,jobEpoch,
   indexedDB:provided=globalThis.indexedDB,beforeHeadCommit
 }={}){
   if(!provided||typeof provided.open!=='function')
@@ -66,6 +66,8 @@ export async function openIndexedRecordStore({
       !valid(basis?.sourceSha256)||!valid(basis?.sourceRevision)||
       (beforeHeadCommit!==undefined&&typeof beforeHeadCommit!=='function'))
     fail('STORE_BASIS_REQUIRED','explicit original source, generation, kind and IndexedDB name required');
+  if(kind==='selection'&&(!valid(selectionDigest)||!valid(jobEpoch)))
+    fail('STORE_SELECTION_BASIS_REQUIRED','selected source pages require exact scope digest and job epoch');
   const db=await openDb(databaseName,provided);
   const previous=await one(db,'heads',namespace);
   const expectedHead=previous?.generation??null;
@@ -77,7 +79,10 @@ export async function openIndexedRecordStore({
   async function head(){
     ensureActive();
     const current=await one(db,'heads',namespace);
-    if(!current||current.generation!==generation||!equals(current.manifest,basis)||
+    if(!current||current.generation!==generation||current.kind!==kind||
+       !equals(current.manifest,basis)||
+       (kind==='selection'&&(current.manifest?.selectionDigest!==selectionDigest||
+           current.manifest?.jobEpoch!==jobEpoch))||
        current.manifest?.complete!==true||
        current.manifest?.rightsBasis!=='SOURCE_FACTS_ONLY'||
        current.manifest?.engineeringReady!==false)
@@ -125,7 +130,8 @@ export async function openIndexedRecordStore({
          manifest.eventCount!==position||manifest.occurrenceCount*2!==position)
         fail('STORE_MANIFEST_MISMATCH','complete even OPEN/SEAL census required');
     }else if(manifest.schema!=='LFJ.CommittedSelectionPageManifest.v1'||
-      manifest.selectedCount!==position)
+      manifest.selectedCount!==position||
+      manifest.selectionDigest!==selectionDigest||manifest.jobEpoch!==jobEpoch)
       fail('STORE_MANIFEST_MISMATCH','complete selected page count required');
   }
   async function commit(manifest){
