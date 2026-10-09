@@ -70,12 +70,12 @@ test('A02P2 stale source/selection/master must reject before publication, then a
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
     await sink.transaction.stage(fact(0,'','some'));
     live={...live,...patch};
-    await assert.rejects(()=>sink.transaction.commit({
+    assert.throws(()=>sink.transaction.commit({
       receipt:receipt(1),expectedBasis:basis,getCurrentBasis:()=>live
     }),code('APP_GENERATION_STALE'));
     await sink.transaction.abort();
     assert.equal(sink.readPublished(),null);
-    await assert.rejects(()=>sink.transaction.stage(fact(1,'/late','bad')),
+    assert.throws(()=>sink.transaction.stage(fact(1,'/late','bad')),
       code('GENERATION_NOT_OPEN'));
   }
 });
@@ -86,9 +86,9 @@ test('A02P2 a second generation cannot interleave before first commits/aborts',a
   const begin={expectedBasis:basis,selectedCount:1,
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
   await sink.transaction.begin(begin);
-  await assert.rejects(()=>sink.transaction.begin(begin),code('GENERATION_BUSY'));
+  assert.throws(()=>sink.transaction.begin(begin),code('GENERATION_BUSY'));
   await sink.transaction.stage(fact(0,'','first'));
-  await assert.rejects(()=>sink.transaction.stage(fact(1,'/overflow','second')),
+  assert.throws(()=>sink.transaction.stage(fact(1,'/overflow','second')),
     code('SOURCE_LIMIT'));
   await sink.transaction.abort();
   await sink.transaction.begin(begin);
@@ -111,7 +111,7 @@ test('A02P2 forged receipts, shortened selections and unsafe rights never commit
     await sink.transaction.begin({expectedBasis:basis,selectedCount:1,
       rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false});
     await sink.transaction.stage(fact(0,'','one'));
-    await assert.rejects(()=>sink.transaction.commit({
+    assert.throws(()=>sink.transaction.commit({
       receipt:{...receipt(1),...patch},expectedBasis:basis,
       getCurrentBasis:()=>clone(basis)
     }),code('GENERATION_RECEIPT_INVALID'));
