@@ -68,16 +68,16 @@ test('I0 actual deployed manifest must reflect app readiness, not Worker smoke',
 });
 
 test('I0 real baseline source custody; generated output hashes are NOT approved goldens',()=>{
-  const entries=[
-    ['Benchmarks/1885Sjson/Sjson.json',733806],
-    ['Benchmarks/1885_NC/1885_NC.json',10232634],
-  ];
-  for(const [path,bytes] of entries){
+  const register=JSON.parse(readFileSync(fixture('lfj/acceptance/3d-converters/fixture-register.json'),'utf8'));
+  assert.equal(register.schema,'LFJ.3DIntegrationFixtureRegister.v1');
+  assert.equal(register.inputs.length,2);
+  for(const {path,bytes,sha256} of register.inputs){
     assert.equal(statSync(fixture(path)).size,bytes,path+': source size changed, requalify corpus');
     const hash=createHash('sha256').update(readFileSync(fixture(path))).digest('hex');
-    assert.match(hash,/^[a-f0-9]{64}$/);
+    assert.equal(hash,sha256,path+': raw input changed without governed fixture revision');
     console.log('LFJ_I0_FIXTURE_SHA256', JSON.stringify({path,bytes,sha256:hash}));
   }
+  assert.ok(register.unavailableRealPopulatedSources.every(x=>x.status==='MISSING_OR_NOT_VERIFIED'));
   const manifest=JSON.parse(readFileSync(fixture('Benchmarks/1885Sjson/fixture-manifest.json'),'utf8'));
   assert.equal(manifest.summary.sourceNodes,279);
   assert.equal(manifest.summary.enrichedNodes,279);
