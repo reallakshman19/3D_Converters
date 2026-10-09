@@ -131,3 +131,42 @@ test('A04 bounded preflight: no inferred domain authority, no unbounded collecto
     'source candidate ID is a compound namespace, not a physical GC-PW ID');
   assert.equal(v.engineeringReady,false);
 });
+
+
+test('A04 root profile variants retain source candidate rights, including typed-single',async()=>{
+  for(const [value,rootKind,expected] of [
+    [[{type:'BRANCH',name:'/A'}],'array','/A'],
+    [{branches:[{type:'BRANCH',name:'/B'}]},'branches','/B'],
+    [{objects:[{type:'BRANCH',name:'/O'}]},'objects','/O'],
+    [{type:'SITE',name:'/S',children:[]},'typed-single','/S']
+  ]){
+    const actual=await actualFacts(value);
+    const projected=projectTypedOwnAttributes(actual);
+    assert.equal(projected.rootKind,rootKind);
+    assert.equal(projected.nodes.length,1);
+    assert.equal(projected.nodes[0].name,expected);
+    assert.equal(projected.nodes[0].engineeringReady,false);
+    assert.equal(projected.engineeringReady,false);
+  }
+});
+
+test('A04 authoritative own attributes conflict or forged nonchild cannot be promoted',async()=>{
+  const conflict=await actualFacts({objects:[{type:'BRANCH',name:'/B',
+    attributes:{OWNER_ZONE:'/A',ZONE_ID:'/B'}}]});
+  assert.throws(()=>projectTypedOwnAttributes(conflict),codeIs('OWNER_CONFLICT'));
+  const fake=await actualFacts({objects:[{type:'BRANCH',name:'/B',
+    metadata:{type:'VALVE',name:'/NOT-AN-ENGINEERING-NODE',
+      attributes:{OWNER_ZONE:'/SHADOW'}}}]});
+  const v=projectTypedOwnAttributes(fake);
+  assert.equal(v.nodes.length,1);
+  assert.equal(v.nodes[0].ownerZone,null);
+});
+
+test('A04 refuses non-object children and ineligible original root classification',async()=>{
+  const child=await actualFacts([{type:'BRANCH',name:'/B',children:['bad']}]);
+  assert.throws(()=>projectTypedOwnAttributes(child),codeIs('SOURCE_GRAPH_INVALID'));
+  const supported=await actualFacts([{type:'BRANCH',name:'/B'}]);
+  assert.throws(()=>projectTypedOwnAttributes({...supported,rootProfile:{
+    ...supported.rootProfile,capabilities:{...supported.rootProfile.capabilities,export:true}
+  }}),codeIs('ROOT_PROFILE_REQUIRED'));
+});
