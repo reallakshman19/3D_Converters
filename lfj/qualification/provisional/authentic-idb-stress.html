@@ -1,0 +1,126 @@
+<!doctype html><meta charset="utf-8">
+<title>#1105 authentic benchmark native LFJ Worker and durable IndexedDB</title>
+<script type="module">
+import {openSourceSession} from '/lfj/runtime/source-session.mjs';
+import {openIndexedOccurrencePairStore,createPairedIndexStore}
+  from '/lfj/runtime/indexed-occurrence-pairs.mjs';
+import {openIndexedRecordStore} from '/lfj/storage/browser/indexed-record-store.mjs';
+
+window.runAuthenticLFJFixture=async({url,oracle,scanPages=true})=>{
+  if(!url.startsWith('/fixtures/'))throw Error('FIXTURE_URL_INVALID');
+  const response=await fetch(url,{cache:'no-store'});
+  if(response.status!==200)throw Error('FIXTURE_MISSING: '+response.status);
+  const payload=new Uint8Array(await response.arrayBuffer());
+  const sha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',payload)),
+    x=>x.toString(16).padStart(2,'0')).join('');
+  if(sha!==oracle.sha256||payload.byteLength!==oracle.bytes)
+    throw Error('REAL_FIXTURE_ORACLE_SHA_MISMATCH');
+  const sourceRefId='LFJ-AUTHENTIC-FIXTURE',revision='U04-REAL',
+    sourceRevision=revision+':sha256:'+sha,
+    selectionDigest='U04-ALL-SOURCE',jobId='U04-'+crypto.randomUUID();
+  const basis={sourceRefId,sourceRevision,sourceSha256:sha};
+  let live={...basis,byteLength:payload.length,selectionDigest,jobId,
+    dependencyRevision:'AUTHENTIC-STABLE'};
+  const name='lfj-u04-authentic-'+crypto.randomUUID();
+  const storageStart=(await navigator.storage.estimate()).usage??null;
+  const source=await openIndexedRecordStore({
+    databaseName:name,namespace:'source',generation:jobId,basis,kind:'source'
+  });
+  const selection=await openIndexedRecordStore({
+    databaseName:name,namespace:'selected',generation:jobId,basis,
+    kind:'selection',selectionDigest,jobEpoch:jobId
+  });
+  const pairs=await openIndexedOccurrencePairStore({
+    databaseName:name+'-pairs',namespace:'source',generation:jobId,basis
+  });
+  const indexStore=createPairedIndexStore({indexStore:source,pairPort:pairs});
+  let session,observer;
+  const longTasks=[];
+  if(typeof PerformanceObserver!=='undefined'){
+    try{
+      observer=new PerformanceObserver(list=>{
+        for(const e of list.getEntries())if(e.duration>=50)longTasks.push(e.duration);
+      });
+      observer.observe({entryTypes:['longtask']});
+    }catch{}
+  }
+  const start=performance.now();
+  try{
+    session=await openSourceSession({
+      blob:new Blob([payload]),revision,sourceRefId,jobId,selectionDigest,
+      expectedSha256:sha,selection:{mode:'ALL',includes:[],excludes:[]},
+      trustedWorkerCtor:Worker,
+      createWorker:()=>new Worker(new URL('/lfj/ports/source-browser-worker.mjs',
+        location.origin),{type:'module'}),
+      indexStore,selectedStore:selection,
+      pageEvents:96,getCurrentBasis:()=>({...live})
+    });
+    const ready=performance.now();
+    if(session.summary.complete!==true||
+      session.summary.occurrenceCount!==oracle.occurrenceCount||
+      session.summary.eventCount!==oracle.occurrenceCount*2||
+      session.selectionSummary.selectedCount!==oracle.occurrenceCount)
+      throw Error('REAL_FIXTURE_COMPLETE_CENSUS_MISMATCH: '+JSON.stringify({
+        actual:session.summary.occurrenceCount,expected:oracle.occurrenceCount,
+        selected:session.selectionSummary.selectedCount
+      }));
+    const samples=[];
+    for(const {path,expected} of oracle.scalarSamples){
+      const occurrenceId=JSON.stringify(['lfj-json-value/v1',
+        sourceRefId,sourceRevision,path]);
+      const item=await session.readOccurrence({
+        occurrenceId,expectedSourceRevision:sourceRevision,maxBytes:65536
+      });
+      const raw=payload.slice(item.startByte,item.endByteExclusive);
+      const exact=raw.length===item.bytes.length&&
+        raw.every((byte,i)=>byte===item.bytes[i]);
+      if(!exact||JSON.stringify(JSON.parse(new TextDecoder().decode(item.bytes)))!==
+        JSON.stringify(expected))
+        throw Error('REAL_FIXTURE_SOURCE_BYTE_VALUE_MISMATCH: '+path);
+      samples.push({path,start:item.startByte,end:item.endByteExclusive,
+        bytes:item.bytes.length,exact:true});
+    }
+    let totalRows=0,pageCalls=0,lastOrdinal=-1,cursor=null;
+    if(scanPages){
+      do{
+        const page=await session.readPage({cursor,maxRows:100,maxBytes:65536});
+        if(page.rows.length===0&&page.cursor!==null)
+          throw Error('STALLED_SELECTION_PAGER');
+        for(const row of page.rows){
+          if(row.ordinal<=lastOrdinal)
+            throw Error('NONMONOTONIC_SOURCE_ORDER: '+lastOrdinal+' -> '+row.ordinal);
+          lastOrdinal=row.ordinal;totalRows++;
+        }
+        cursor=page.cursor;pageCalls++;
+        if(pageCalls>oracle.occurrenceCount+1)throw Error('UNBOUNDED_PAGING');
+      }while(cursor!==null);
+      if(totalRows!==oracle.occurrenceCount)
+        throw Error('INCOMPLETE_PAGE_UNION: '+totalRows);
+    }
+    const elapsed=performance.now()-start;
+    const beforeClose=(await navigator.storage.estimate()).usage??null;
+    live.dependencyRevision='U04-SUPERSEDED';
+    let stale=null;
+    try{await session.readPage({cursor:null,maxRows:1,maxBytes:65536});}
+    catch(error){stale=error.code;}
+    if(stale!=='SOURCE_STALE')throw Error('STALE_BASIS_WAS_ACCEPTED: '+stale);
+    return {schema:'LFJ.AuthenticFixtureQualification.v1',sha256:sha,
+      bytes:payload.length,occurrences:session.summary.occurrenceCount,
+      events:session.summary.eventCount,selected:totalRows,pageCalls,
+      samples,stale,workerConsumedBytes:session.receipt.workerConsumedBytes,
+      scanAndCommitMs:Math.round(ready-start),totalMs:Math.round(elapsed),
+      storageUsageStart:storageStart,storageUsageAfter:beforeClose,
+      storageUsageDelta:storageStart!==null&&beforeClose!==null
+        ?beforeClose-storageStart:null,
+      longTaskCount:longTasks.length,longTaskMaxMs:longTasks.length
+        ?Math.round(Math.max(...longTasks)):0,
+      metricsAre:'MEASURED_IN_RUN_NO_SLA_OR_DATABASE_ATOMICITY_CLAIM',
+      sourceOnly:true,appWired:false};
+  }finally{
+    try{await session?.close();}catch{}
+    observer?.disconnect();
+    try{source.close();selection.close();pairs.close();}catch{}
+    indexedDB.deleteDatabase(name);indexedDB.deleteDatabase(name+'-pairs');
+  }
+};
+</script>
