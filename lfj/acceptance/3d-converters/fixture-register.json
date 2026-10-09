@@ -1,0 +1,40 @@
+{
+  "schema": "LFJ.3DIntegrationFixtureRegister.v1",
+  "authority": "3D_Converters#1104/I0",
+  "observation": {
+    "sourceMain": "09bf832711b04afd476e51cef50920983d17fffb",
+    "hostedRun": "https://github.com/reallaksh19/3D_Converters/actions/runs/37871608372",
+    "classification": "RAW_INPUT_CUSTODY_ONLY_NOT_ENGINEERING_GOLDEN"
+  },
+  "inputs": [
+    {
+      "id": "1885Sjson-small",
+      "path": "Benchmarks/1885Sjson/Sjson.json",
+      "bytes": 733806,
+      "sha256": "6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288",
+      "role": "original-input",
+      "expectedEngineeringOutputStatus": "GENERATED_CANDIDATE_REQUIRES_INDEPENDENT_APPROVAL"
+    },
+    {
+      "id": "1885_NC-real10",
+      "path": "Benchmarks/1885_NC/1885_NC.json",
+      "bytes": 10232634,
+      "sha256": "89f9c2ab7a9f1df15c1b9e1e0e30a8ca6c97ef994dcd56aec86c3a90f7d71646",
+      "role": "original-input",
+      "expectedEngineeringOutputStatus": "CANDIDATE_ORACLE_REQUIRES_SOURCE_LEVEL_VALIDATION"
+    }
+  ],
+  "unavailableRealPopulatedSources": [
+    {
+      "id": "REAL-30",
+      "status": "MISSING_OR_NOT_VERIFIED",
+      "minimum": "approximately 30MB populated owner-approved source and independent output oracle"
+    },
+    {
+      "id": "REAL-90",
+      "status": "MISSING_OR_NOT_VERIFIED",
+      "minimum": "approximately 90MB populated owner-approved source and independent output oracle"
+    }
+  ],
+  "releaseStatus": "NOT_VERIFIED"
+}
