@@ -70,7 +70,8 @@ test('I0 actual deployed manifest must reflect app readiness, not Worker smoke',
 test('I0 real baseline source custody; generated output hashes are NOT approved goldens',()=>{
   const register=JSON.parse(readFileSync(fixture('lfj/acceptance/3d-converters/fixture-register.json'),'utf8'));
   assert.equal(register.schema,'LFJ.3DIntegrationFixtureRegister.v1');
-  assert.equal(register.inputs.length,2);
+  assert.equal(register.inputs.filter(x=>x.role==='original-input').length,2);
+  assert.equal(register.inputs.filter(x=>x.role==='generated-master-enriched-intermediate').length,1);
   for(const {path,bytes,sha256} of register.inputs){
     assert.equal(statSync(fixture(path)).size,bytes,path+': source size changed, requalify corpus');
     const hash=createHash('sha256').update(readFileSync(fixture(path))).digest('hex');
@@ -83,4 +84,8 @@ test('I0 real baseline source custody; generated output hashes are NOT approved 
   assert.equal(manifest.summary.enrichedNodes,279);
   assert.equal(manifest.summary.stage2Records,163);
   assert.equal(manifest.generatedBy,'tools/generate-1885-stagedjson-fixtures.mjs');
+  const stage1=register.inputs.find(x=>x.id==='1885Sjson-stage1-generated');
+  assert.equal(stage1.sha256,manifest.artifacts.enrichedStagedJson.sha256);
+  assert.equal(stage1.bytes,manifest.artifacts.enrichedStagedJson.bytes);
+  assert.equal(stage1.path,manifest.artifacts.enrichedStagedJson.path);
 });
