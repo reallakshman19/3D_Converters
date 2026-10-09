@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'lfj/qualification/provisional/authentic-idb-stress.*'
+      - 'lfj/qualification/provisional/page-wire-boundary.test.mjs'
       - '.github/workflows/lfj-1105-authentic-source-stress.yml'
   workflow_dispatch:
 permissions:
@@ -59,3 +60,17 @@ jobs:
           node lfj/qualification/provisional/authentic-idb-stress.mjs --fixture "${{ matrix.fixture }}"
       - name: Check no tracked source file mutated
         run: test -z "$(git status --porcelain)"
+  page-wire-source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert literal R09 successor RED test source
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --test lfj/qualification/provisional/page-wire-boundary.test.mjs
