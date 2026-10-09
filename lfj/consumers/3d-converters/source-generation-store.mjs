@@ -80,7 +80,7 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
         !nat(selectedCount)||selectedCount>maxFacts)
         fail('SOURCE_LIMIT','bounded source-only declared selected count required');
       requireLive(expected);
-      active={expected,selectedCount,rows:[],lastOrdinal:-1,totalBytes:0};
+      active={expected,selectedCount,rows:[],ids:new Set(),lastOrdinal:-1,totalBytes:0};
     },
     stage(fact){
       if(!active)fail('GENERATION_NOT_OPEN','no uncommitted consumer generation');
@@ -96,11 +96,13 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
       const extra=f.bytes?.byteLength??0;
       if(active.totalBytes+extra>maxTotalBytes)
         fail('SOURCE_LIMIT','combined original UTF-8 scalar bytes exceed generation budget');
-      if(!sameSource(r,active.expected)||r.ordinal<=active.lastOrdinal||
+      if(active.ids.has(r.occurrenceId)||
+        !sameSource(r,active.expected)||r.ordinal<=active.lastOrdinal||
         r.startByte>=active.expected.byteLength)
         fail('GENERATION_FACT_INVALID','staged facts must match exact original source and increase in ordinal');
       active.lastOrdinal=r.ordinal;
       active.totalBytes+=extra;
+      active.ids.add(r.occurrenceId);
       active.rows.push(f);
     },
     // Intentionally synchronous: no await or independent JS task may interleave
