@@ -55,11 +55,13 @@ function slimNode(fact){
 export async function compareSourceProjectionToXml({
   sourceDatabaseName,sourceGeneration,
   projectionDatabaseName,projectionGeneration,
-  blob,expectedSha256,xmlText,config={}
+  blob,expectedSha256,xmlText,config={},onBeforeResolve
 }={}){
   if(!(blob instanceof Blob)||typeof xmlText!=='string'||!xmlText||
      typeof projectionDatabaseName!=='string'||!projectionDatabaseName)
     fail('INPUT_INVALID','original source/canonical XML and projection identity are required');
+  if(onBeforeResolve!==undefined&&typeof onBeforeResolve!=='function')
+    fail('INPUT_INVALID','research-only resolve barrier must be a callback');
   const source=await openPagedSourceQuery({
     databaseName:sourceDatabaseName,generation:sourceGeneration,
     blob,expectedSha256
@@ -85,6 +87,20 @@ export async function compareSourceProjectionToXml({
       fail('PROJECTION_NOT_COMMITTED','source/projected consumer facts do not share an exact HEAD');
     if(head.consumerManifestDigest!==expectedConsumerDigest)
       fail('PROJECTION_CONFIG_STALE','consumer capture/aliases/tolerance differ from committed projection');
+    const headIdentity=JSON.stringify(head);
+    async function assertHeadsCurrent(){
+      // The source and projection have separate active-HEAD transactions.
+      // Re-read BOTH identities at each observable result boundary. This
+      // detects honest supersession but is not an ABA-proof or a malicious
+      // writable HEAD authentication signature.
+      await source.assertActive();
+      const current=await read(db.transaction('heads','readonly')
+        .objectStore('heads'),'active');
+      if(!current||!current.complete||JSON.stringify(current)!==headIdentity)
+        fail('PROJECTION_SUPERSEDED',
+          'consumer fact HEAD was replaced during XML matching');
+      await source.assertActive();
+    }
     const branches=[],records=[],domainPageHashes=[],evidencePageHashes=[];
     let sourceFacts=0,previousOrdinal=-1;
     for(let pageNo=0;pageNo<head.factPageCount;pageNo++){
@@ -154,6 +170,9 @@ export async function compareSourceProjectionToXml({
     if(branches.some(b=>!b))
       fail('TOPOLOGY_NOT_PROVEN','empty source branch requires original source facts');
     const indexReadyMs=performance.now()-started;
+    await assertHeadsCurrent();
+    if(onBeforeResolve)await onBeforeResolve();
+    await assertHeadsCurrent();
     const result=runStandaloneResolverJsonTrace({
       sourceText:xmlText,sourceKind:'xml',stagedJsonText:branches,
       jsonConfig:config
@@ -165,7 +184,7 @@ export async function compareSourceProjectionToXml({
       a[row.status]=(a[row.status]||0)+1;return a;
     },{});
     const digest=await sha256(JSON.stringify(recordsOut));
-    return {schema:MATCH_SCHEMA,originalBytes:blob.size,
+    const output={schema:MATCH_SCHEMA,originalBytes:blob.size,
       originalSha256:expectedSha256,sourceOccurrenceCount:source.sourceCount,
       projectionFacts:head.factCount,projectionSha256:head.domainSha256,
       projectionConfigDigest:head.consumerManifestDigest,
@@ -180,5 +199,9 @@ export async function compareSourceProjectionToXml({
       indexReadyMs,elapsedMs:performance.now()-started,
       sourceOnly:true,engineeringReady:false,downloadAuthorized:false,
       appWired:false,validatedTopology:'FLAT_BRANCHES_ONLY'};
+    // No final evidence/CSV result may escape after either dependency HEAD
+    // was superseded during a long synchronous Resolver/async digest stage.
+    await assertHeadsCurrent();
+    return output;
   }finally{source.close();db?.close();}
 }
