@@ -5,6 +5,8 @@
  * No original full-JSON parse in Worker; no production UI/export authority.
  */
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
+import {normalizedResolverProjectionFact} from
+  '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
 import {runStandaloneResolverJsonTrace} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
 import {buildEvidenceTreeCsv,buildXmlNodeWiseTraceCsv} from
@@ -77,12 +79,14 @@ export async function compareSourceProjectionToXml({
        head.sourceGeneration!==sourceGeneration||
        head.generation!==projectionGeneration||
        head.originalCount!==source.sourceCount||head.engineeringReady!==false||
-       !Number.isInteger(head.factPageCount)||head.factPageCount<0)
+       !Number.isInteger(head.factPageCount)||head.factPageCount<0||
+       !/^[0-9a-f]{64}$/.test(head.domainSha256||'')||
+       !/^[0-9a-f]{64}$/.test(head.matchingEvidenceDigestSha256||''))
       fail('PROJECTION_NOT_COMMITTED','source/projected consumer facts do not share an exact HEAD');
     if(head.consumerManifestDigest!==expectedConsumerDigest)
       fail('PROJECTION_CONFIG_STALE','consumer capture/aliases/tolerance differ from committed projection');
-    const branches=[],records=[],factPages=[];
-    let sourceFacts=0;
+    const branches=[],records=[],domainPageHashes=[],evidencePageHashes=[];
+    let sourceFacts=0,previousOrdinal=-1;
     for(let pageNo=0;pageNo<head.factPageCount;pageNo++){
       const page=await read(db.transaction('pages','readonly').objectStore('pages'),
         [projectionGeneration,pageNo]);
@@ -91,16 +95,38 @@ export async function compareSourceProjectionToXml({
          page.configDigest!==head.consumerManifestDigest||
          !Array.isArray(page.rows)||page.rows.length<1||page.rows.length>128)
         fail('PROJECTION_PAGE_CORRUPT','consumer page is absent/mismatched or unbounded');
-      factPages.push(page.rows);
+      // Verify what will actually drive engineering decisions. A matching
+      // page has TWO committed digests: original full matching/provenance
+      // evidence and the canonical legacy-normalized fact oracle. A page
+      // count or source SHA label alone would not detect cache corruption.
+      evidencePageHashes.push(await sha256(JSON.stringify(page.rows)));
+      domainPageHashes.push(await sha256(JSON.stringify(
+        page.rows.map(normalizedResolverProjectionFact))));
       for(const fact of page.rows){
         if(!fact||!Number.isSafeInteger(fact.sourceOrdinal)||
-           fact.sourceOrdinal>=head.originalCount||typeof fact.path!=='string')
+           fact.sourceOrdinal<0||fact.sourceOrdinal>=head.originalCount||
+           fact.sourceOrdinal<=previousOrdinal||
+           !Number.isSafeInteger(fact.startByte)||
+           !Number.isSafeInteger(fact.endByteExclusive)||
+           fact.startByte<0||fact.endByteExclusive<=fact.startByte||
+           fact.endByteExclusive>blob.size||typeof fact.path!=='string')
           fail('PROJECTION_PROVENANCE','source ordinal or source path invalid');
+        previousOrdinal=fact.sourceOrdinal;
         records.push(fact);sourceFacts++;
       }
     }
     if(sourceFacts!==head.factCount)
       fail('PROJECTION_CENSUS','not every committed fact is present');
+    // Pages and HEAD share one commit-generation/source/config identity.
+    // Detect accidental tampering or partial IndexedDB writes before making
+    // ANY match, CSV hash, or engineering claim. This is an unkeyed integrity
+    // check, not an anti-malicious-writer authentication signature.
+    const domainDigest=await sha256(domainPageHashes.join('\n'));
+    const evidenceDigest=await sha256(evidencePageHashes.join('\n'));
+    if(domainDigest!==head.domainSha256||
+       evidenceDigest!==head.matchingEvidenceDigestSha256)
+      fail('PROJECTION_PAGE_INTEGRITY',
+        'committed consumer facts/evidence differ from original page checksum');
     // The current supported real corpus has root branch + leaf consumers only.
     // A nested non-fact component would affect fallback sequence/context; fail
     // closed rather than silently drop it in a reconstructed engineering input.
@@ -143,6 +169,7 @@ export async function compareSourceProjectionToXml({
       originalSha256:expectedSha256,sourceOccurrenceCount:source.sourceCount,
       projectionFacts:head.factCount,projectionSha256:head.domainSha256,
       projectionConfigDigest:head.consumerManifestDigest,
+      matchingEvidenceDigestSha256:evidenceDigest,
       xmlNodes:recordsOut.length,matchedXmlNodes:recordsOut.filter(r=>
         r.status.startsWith('RESOLVED_')).length,
       statusCounts,xmlRecordsSha256:digest,
