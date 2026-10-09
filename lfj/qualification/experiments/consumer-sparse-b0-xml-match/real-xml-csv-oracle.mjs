@@ -115,8 +115,16 @@ const oracle={
 };
 assert.ok(oracle.xmlNodes>0,'source XML must have real nodes');
 if(size==='FIRSTPASS'&&mode==='AUTHENTIC'){
-  assert.ok(oracle.matchedXmlNodes>0,
-    'real paired FirstpassXML must produce resolved source engineering matches');
+  // Exact ORIGINAL 1885Sjson + FirstpassXML source oracle observed by
+  // independently executing the unmodified baseline 3D_Converters Resolver.
+  // Guard true positive engineering acceptance, not only spatial candidates
+  // or two matching header-only CSV hashes. Every output byte is additionally
+  // SHA-compared with the actual legacy engine below.
+  assert.equal(oracle.xmlNodes,216,'authentic Firstpass XML node census drift');
+  assert.equal(oracle.matchedXmlNodes,164,'authentic Firstpass engineering-positive census drift');
+  assert.equal(oracle.statusCounts.RESOLVED_POS,139,'authentic positive POSITION match drift');
+  assert.equal(oracle.statusCounts.RESOLVED_POS_PS,25,'authentic combined POS+PS match drift');
+  assert.equal(oracle.statusCounts.UNRESOLVED,52,'authentic negative unmatched nodes drift');
   assert.ok(oracle.evidenceTreeCsvBytes>103,
     'real paired FirstpassXML must generate nonempty Evidence Tree CSV');
 }
