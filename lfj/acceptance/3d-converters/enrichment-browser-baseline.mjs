@@ -11,7 +11,7 @@ import {chromium} from 'playwright';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const register=JSON.parse(readFileSync(join(root,'lfj/acceptance/3d-converters/fixture-register.json'),'utf8'));
-const fixture=register.inputs.find(x=>x.id==='1885Sjson-small');
+const fixture=register.inputs.find(x=>x.id==='1885Sjson-stage1-generated');
 assert.ok(fixture);
 const bytes=readFileSync(join(root,fixture.path));
 assert.equal(bytes.length,fixture.bytes);
@@ -48,7 +48,7 @@ try{
   Object.defineProperty(window,'__LFJ_I0',{value:obj});
   const oldText=File.prototype.text;
   File.prototype.text=function(...args){
-    if(this.name==='Sjson.json'){obj.fileTextCalls++;obj.fileTextBytes+=this.size;}
+    if(this.name==='EnrichedSjson.json'){obj.fileTextCalls++;obj.fileTextBytes+=this.size;}
     return oldText.apply(this,args);
   };
   const oldParse=JSON.parse;
@@ -62,8 +62,9 @@ try{
  assert.equal(response.status(),200);
  await page.locator('#sj-dropzone input[type=file]').waitFor({state:'attached'}); // native upload input is intentionally display:none
  const t0=await stamp('T0-before-file');
- await page.locator('#sj-dropzone input[type=file]').setInputFiles(join(root,fixture.path));
- await page.getByText('Sjson.json  (loaded)').waitFor({timeout:30000});
+ // The generated stage1 fixture has no extension; preserve bytes but give the upload a usable .json filename.
+ await page.locator('#sj-dropzone input[type=file]').setInputFiles({name:'EnrichedSjson.json',mimeType:'application/json',buffer:bytes});
+ await page.getByText('EnrichedSjson.json  (loaded)').waitFor({timeout:30000});
  const t1=await stamp('T1-source-visible');
  await page.getByRole('button',{name:/Generate Enriched XML/}).click();
  const t2=await stamp('T2-generation-activated');
@@ -107,13 +108,13 @@ try{
  assert.ok(obs.largeParseCalls>=1,'Legacy foreground whole-source JSON.parse must reproduce until migrated');
  const receipt={
   schema:'LFJ.3D.LegacyBrowserE2EBaseline.v1',candidate:'LEGACY_NO_LFJ_ADOPTION',
-  source:{path:fixture.path,bytes:fixture.bytes,sha256:fixture.sha256},
+  source:{path:fixture.path,bytes:fixture.bytes,sha256:fixture.sha256,role:fixture.role,displayName:'EnrichedSjson.json',upstreamOriginalSourceId:fixture.upstreamOriginalSourceId},
   runtime:{url:base+'/tabs/stagedjson-to-enrichxml/index.html',userAgent:await page.evaluate(()=>navigator.userAgent)},
   timesMs:{fileToSourceVisible:t1-t0,clickToResultVisible:t3-t2,sourceToXmlDownloaded:t4-t0,sourceToAllArtifactsValidated:t5-t0},
   corpus:{xmlNodes:parsed.nodeCount,xmlBranches:parsed.branchCount,independentTargetRefs:Object.keys(contract.targets).length,csvLines:csv.split('\n').length},
   outputs:{xmlSha256:createHash('sha256').update(xml).digest('hex'),auditSha256:createHash('sha256').update(JSON.stringify(audit)).digest('hex'),csvSha256:createHash('sha256').update(csv).digest('hex')},
   foreground:{fileTextCalls:obs.fileTextCalls,fileTextBytes:obs.fileTextBytes,largeParseCalls:obs.largeParseCalls,largeParseMaxChars:obs.largeParseMaxChars,longTaskCount:obs.longTasks.length,maxLongTaskMs:Math.max(0,...obs.longTasks.map(e=>e.durationMs))},
-  validity:'SEMANTIC_CANDIDATE_NOT_INDEPENDENT_RELEASE_GOLDEN',errors,
+  validity:'GENERATED_STAGE1_TO_STAGE2_CANDIDATE_NOT_INDEPENDENT_RELEASE_GOLDEN',errors,
  };
  if(process.env.LFJ_I0_RECEIPT_DIR){mkdirSync(process.env.LFJ_I0_RECEIPT_DIR,{recursive:true});writeFileSync(join(process.env.LFJ_I0_RECEIPT_DIR,'enrichment-browser-baseline.json'),JSON.stringify(receipt,null,2)+'\n');}
  console.log('LFJ_3D_BROWSER_BASELINE '+JSON.stringify(receipt));
