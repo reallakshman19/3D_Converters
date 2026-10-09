@@ -113,14 +113,16 @@ export async function consumeSelectedSourceFacts({
           (page.complete!==true && page.complete!==false) ||
           (page.complete===true && page.cursor!==null) ||
           (page.complete===false && !string(page.cursor)) ||
-          (page.complete===false && page.cursor===cursor))
+          (page.complete===false && page.cursor===cursor) ||
+          new TextEncoder().encode(JSON.stringify(page)).byteLength>maxPageBytes)
         fail('CONSUMER_PAGE_INVALID', 'paged source is not a complete bounded exact-basis OPEN response');
       pageCount++;
       for (const row of page.rows) {
         attest();
         if (row?.kind!=='OPEN' || !sourceMatches(row,expected) ||
             !nat(row.ordinal) || row.ordinal<=lastOrdinal ||
-            !string(row.occurrenceId) || !string(row.path) ||
+            (typeof row.occurrenceId!=='string'||row.occurrenceId.length<1||row.occurrenceId.length>67584) ||
+            typeof row.path!=='string' ||
             !(row.parentId===null || typeof row.parentId==='string') ||
             !nat(row.startByte) ||
             !(SCALARS.has(row.type) || CONTAINERS.has(row.type)))
