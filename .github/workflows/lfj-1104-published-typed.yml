@@ -1,0 +1,37 @@
+name: LFJ 1104 A04 published original to typed preflight
+on:
+  pull_request:
+    branches: [feat/1104-a02-atomic-source-generation-sink]
+    paths:
+      - 'lfj/consumers/3d-converters/published-source-typed-candidate*.mjs'
+      - 'lfj/consumers/3d-converters/typed-own-attributes*.mjs'
+      - '.github/workflows/lfj-1104-published-typed.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-generation-to-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Require literal working source head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: First-party A04 R03 to committed consumer to R02 tests
+        run: |
+          node --test \
+            lfj/consumers/3d-converters/published-source-typed-candidate.test.mjs \
+            lfj/consumers/3d-converters/typed-own-attributes.test.mjs \
+            lfj/consumers/3d-converters/source-generation-store.test.mjs \
+            lfj/consumers/3d-converters/source-facts-receiver.test.mjs
+      - name: Source checkout unmodified
+        run: test -z "$(git status --porcelain)"
