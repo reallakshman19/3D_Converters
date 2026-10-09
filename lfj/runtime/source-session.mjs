@@ -30,11 +30,24 @@ export async function openSourceSession(options={}){
       typeof indexStore?.lookupCommittedPair!=='function')
     fail('SOURCE_SESSION_PORT_REQUIRED',
       'File/Blob and independently committed OPEN+SEAL pair lookup port required');
+  // Freeze the original dependency/selection/job BEFORE any awaited Worker or
+  // IndexedDB call. Capturing it only after R10 returns would bless mid-scan
+  // dependency supersession as the new (incorrect) initial basis.
+  let requested;
+  try{requested=getCurrentBasis();}catch{
+    fail('SOURCE_STALE','pre-admission source basis cannot be attested');
+  }
+  if(!requested||requested.sourceRefId!==sourceRefId||
+    requested.selectionDigest!==selectionDigest||requested.jobId!==jobId||
+    requested.byteLength!==blob.size||
+    (options.expectedSha256!==undefined&&
+      requested.sourceSha256!==options.expectedSha256))
+    fail('SOURCE_STALE','original source or selection changed before Worker admission');
+  const initial=Object.freeze({...requested});
   const underlying=await runCommittedSourceQuery(options);
   const basis=underlying.sourceBasis;
   const summary=underlying.summary;
   let closed=false;
-  let initial;
   function current(){
     if(closed)fail('SESSION_CLOSED','original source session already closed');
     let live;
@@ -47,12 +60,12 @@ export async function openSourceSession(options={}){
       live.byteLength!==summary.byteLength||
       live.selectionDigest!==selectionDigest||
       live.jobId!==jobId||
-      (initial!==undefined&&live.dependencyRevision!==initial.dependencyRevision))
+      live.dependencyRevision!==initial.dependencyRevision)
       fail('SOURCE_STALE','source, selection, dependency or job was superseded');
     return live;
   }
   try{
-    initial=current();
+    current();
     if(summary.complete!==true||summary.rightsBasis!=='SOURCE_FACTS_ONLY'||
       summary.engineeringReady!==false||summary.eventCount!==summary.occurrenceCount*2||
       blob.size!==summary.byteLength)
