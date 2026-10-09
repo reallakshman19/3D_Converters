@@ -30,6 +30,27 @@ import {
  */
 const resolverLfjJobs=new WeakMap();
 const resolverLfjEpochs=new WeakMap();
+const resolverLfjAttestations=new WeakMap();
+function resolverLfjCurrentBasis(state){
+  return {
+    file:state.stagedJsonFile,
+    sourceFile:state.sourceFile,sourceText:state.sourceText,
+    supportConfigJson:state.supportConfigJson,
+    masterContext:state.masterContext,
+    dependencyRevisions:JSON.stringify(state.dependencyRevisions??null),
+    config:JSON.stringify(state.resolverJsonTraceConfig??null),
+    scope:state.jsonTraceScopeId,
+    branch:JSON.stringify(state.branchSelection??null),
+    jobToken:state.resolverLfjJobToken
+  };
+}
+function resolverLfjReady(stateRef){
+  const current=stateRef.current,record=resolverLfjAttestations.get(stateRef);
+  if(current.resolverLfjMode!=='LFJ'||!record||
+     current.resolverLfjReport!==record.report)return false;
+  const check=resolverLfjCurrentBasis(current);
+  return Object.keys(check).every(key=>check[key]===record.basis[key]);
+}
 function revokeResolverLfjJob(stateRef){
   // Fence ALREADY-AWAITING legacy Build even if mode goes LFJ→LEGACY
   // and both file references are the same again (ABA supersession).
@@ -69,6 +90,9 @@ async function runResolverLfjFileFromUi(file,stateRef,render){
       file,jobToken:token,signal:abort.signal,getState:()=>stateRef.current
     });
     if(abort.signal.aborted||stateRef.current.resolverLfjJobToken!==token)return;
+    resolverLfjAttestations.set(stateRef,{
+      report:result,basis:resolverLfjCurrentBasis(stateRef.current)
+    });
     replaceState(stateRef,updateWorkflowState(stateRef.current,{
       resolverLfjReport:result,
       resolverLfjStatus:'LFJ source-only index ready: '+result.selectedCount+
@@ -88,6 +112,15 @@ async function runResolverLfjFileFromUi(file,stateRef,render){
   }
 }
 function renderResolverLfjSourceControl(container,stateRef,render){
+  // A separately updated XML/master/config/scope may invalidate an already
+  // committed SOURCE_ONLY report. A stale ready badge is never authority.
+  if(stateRef.current.resolverLfjMode==='LFJ'&&
+     stateRef.current.resolverLfjReport&&!resolverLfjReady(stateRef)){
+    stateRef.current=updateWorkflowState(stateRef.current,
+      clearResolverLfjOutputs({
+        resolverLfjStatus:'LFJ source admission stale after dependency or scope change; re-admit original file.'
+      }));
+  }
   const target=container.querySelector('[data-action="build-resolver-index"]');
   if(!target||!target.parentNode)return;
   // Renderer may rebind without replacing its entire subtree. Never
@@ -350,7 +383,8 @@ export async function testRegexFromUi(stateRef, render, save) { stateRef.current
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
   if(stateRef.current.resolverLfjMode==='LFJ'){
     // Native R05 source facts are not R13 engineering trace/CSV facts.
-    const ready=stateRef.current.resolverLfjReport?.schema==='LFJ.3D.ResolverSourceAdmission.v1';
+    const ready=resolverLfjReady(stateRef)&&
+      stateRef.current.resolverLfjReport?.schema==='LFJ.3D.ResolverSourceAdmission.v1';
     replaceState(stateRef,updateWorkflowState(stateRef.current,{
       resolverJsonTraceRunning:false,resolverJsonTraceResult:null,
       resolverJsonTraceJsonResult:null,
