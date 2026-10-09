@@ -80,3 +80,43 @@ test('R09 full wire-budget preserves complete ordinal union by selecting a fitti
   assert.deepEqual(all,rows.map(row=>row.occurrenceId));
   assert.ok(iterations>1,'frontier must require cursor continuation');
 });
+
+test('R09 unfit first record explicitly refuses and never consumes first cursor',async()=>{
+  const row={
+    schema:'LFJ.JSON.OccurrenceEvent.v1',kind:'OPEN',...sourceBasis,
+    occurrenceId:JSON.stringify(['lfj-json-value/v1',
+      sourceBasis.sourceRefId,sourceBasis.sourceRevision,'/0']),
+    path:'/0',parentId:null,type:'string',startByte:0,ordinal:0
+  };
+  const store={
+    async stagePage(){},
+    async commit(){},
+    async abort(){},
+    async readRange(_start,maxRows,maxBytes){
+      assert.ok(maxRows>=1);
+      return size(row)<=maxBytes?[row]:[];
+    }
+  };
+  const pager=createCommittedSelectionPager({
+    store,sourceBasis,selectionDigest:digest,jobEpoch:epoch,
+    getCurrentBasis:()=>({...sourceBasis})
+  });
+  await pager.stageSelectedPage([row]);
+  await pager.commitSelection({
+    schema:'LFJ.OccurrenceSelectionSummary.v1',...sourceBasis,
+    complete:true,scannedCount:1,selectedCount:1,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+  });
+  await assert.rejects(pager.readPage({
+    cursor:null,sourceBasis,selectionDigest:digest,jobEpoch:epoch,
+    maxRows:1,maxBytes:256
+  }),error=>error?.code==='PAGE_ROW_OVERSIZE',
+  'one record plus complete envelope cannot be silently clipped');
+  const valid=await pager.readPage({
+    cursor:null,sourceBasis,selectionDigest:digest,jobEpoch:epoch,
+    maxRows:1,maxBytes:4096
+  });
+  assert.equal(valid.complete,true);
+  assert.equal(valid.cursor,null);
+  assert.deepEqual(valid.rows.map(r=>r.occurrenceId),[row.occurrenceId]);
+});
