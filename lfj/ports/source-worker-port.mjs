@@ -12,7 +12,9 @@ export const SOURCE_WORKER_SCHEMA='LFJ.CrossRuntimeSourcePort.v1';
 export async function scanSourceInsideWorker(message,{publishPage}={}) {
   if(message?.schema!==SOURCE_WORKER_SCHEMA||message.kind!=='SCAN'||
       typeof message.jobId!=='string'||!message.jobId||
+      message.jobId.length>1024||
       typeof message.sourceRefId!=='string'||!message.sourceRefId||
+      message.sourceRefId.length>512||
       typeof message.revision!=='string'||!message.revision||
       !(message.blob instanceof Blob)||
       typeof publishPage!=='function') {
