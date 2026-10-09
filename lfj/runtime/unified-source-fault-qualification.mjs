@@ -39,6 +39,14 @@ try{
   assert.equal(result.pruneTransactionFailed,'CUSTODY_RECOVERY_ABORTED');
   assert.equal(result.pruneResumedLeftovers,0,
     'second cold writer must finish interrupted bounded orphan reclamation');
+  assert.equal(result.oldCommittedReclaimed,0,
+    'replaced committed HEAD A must eventually be reclaimed in bounded cursor batches');
+  assert.equal(result.currentCommittedRetained,1,
+    'still-current committed HEAD B cannot be reclaimed');
+  assert.equal(result.historyCurrent,true,
+    'new HEAD C must preserve exact original source pair');
+  assert.equal(result.replacedHeadInvisible,'UNIFIED_NOT_COMMITTED',
+    'replaced A cannot continue granting source HEAD authority');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
