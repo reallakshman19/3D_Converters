@@ -254,16 +254,22 @@ export async function openUnifiedIndexedSourceStore({
         pageBytes+=encoded(row);
         if(pageBytes>MAX_SOURCE_EVENT_BYTES)fail('UNIFIED_STAGE_LIMIT','event-page serialized bytes exceed cap');
       }
-      // Return Worker ACK while at most 768KiB/1024 events are buffered;
-      // flush to real IDB synchronously at each bounded frontier.
-      if(buffer.length+rows.length>MAX_STAGE_EVENTS||
+      // Snapshot original source events BEFORE any await or provisional
+      // Worker ACK. R05 event records are bounded, and future callers may
+      // mutate their own postMessage clones. Never retain their references.
+      // ownAttributes is the sole nested R05 event provenance object.
+      const accepted=rows.map(row=>Object.freeze({...row,
+        ...(row.ownAttributes?{ownAttributes:Object.freeze({...row.ownAttributes})}:{})
+      }));
+      // ACK means a bounded *owned* provisional batch, not an IDB HEAD.
+      if(buffer.length+accepted.length>MAX_STAGE_EVENTS||
         bufferBytes+pageBytes>MAX_STAGE_BYTES)await flush();
-      if(rows.length>MAX_STAGE_EVENTS||pageBytes>MAX_STAGE_BYTES){
-        // Genuine oversized single transport page is not buffered unchecked.
-        // One bounded native transaction can stage it directly.
-        buffer=rows.slice();bufferBytes=pageBytes;
+      if(accepted.length>MAX_STAGE_EVENTS||pageBytes>MAX_STAGE_BYTES){
+        // One larger yet <=1MiB original R05 event batch remains bounded
+        // and must complete an IDB transaction before its Worker ACK.
+        buffer=accepted;bufferBytes=pageBytes;
         await flush();
-      }else{buffer.push(...rows);bufferBytes+=pageBytes;}
+      }else{buffer.push(...accepted);bufferBytes+=pageBytes;}
       nextOrdinal+=opensHere;opens+=opensHere;seals+=sealsHere;
       stagedEvents+=rows.length;
     }catch(error){
@@ -344,7 +350,15 @@ export async function openUnifiedIndexedSourceStore({
     });
   }
   function commit(){fail('UNIFIED_DURABLE_REQUIRED','R07 must await native durable HEAD commit');}
-  function close(){db.close();state='CLOSED';buffer=[];bufferBytes=0;}
+  function close(){
+    if(state==='CLOSED')return;
+    // Closing a port during the native HEAD transaction MUST abort that
+    // SAME still-open transaction: db.close() alone merely waits for it
+    // and could publish a HEAD after the caller believed custody ended.
+    state='CLOSED';buffer=[];bufferBytes=0;
+    try{activeTx?.abort();}catch{}
+    db.close();
+  }
   return Object.freeze({schema:'LFJ.UnifiedSourceIndex.v1',
     stagePage,commit,commitDurably,readOrdered,lookupCommittedPair,
     abort,close,mode:'SINGLE_INDEXEDDB_SOURCE_HEAD'});
