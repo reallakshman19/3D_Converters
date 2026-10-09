@@ -72,17 +72,7 @@ export async function consumeSelectedSourceFacts({
   session,expectedBasis,getCurrentBasis,onOccurrence,signal,
   maxRows=64,maxPageBytes=65536,maxScalarBytes=65536
 }={}) {
-  const expected = verifyExpected(expectedBasis);
-  if (!session || typeof session.getCompletionManifest !== 'function' ||
-      typeof session.readPage !== 'function' || typeof session.readOccurrence !== 'function' ||
-      typeof session.close !== 'function' || typeof getCurrentBasis !== 'function' ||
-      typeof onOccurrence !== 'function')
-    fail('CONSUMER_PORT_REQUIRED', 'live session, getter, callback and explicit close authority required');
-  if (!Number.isSafeInteger(maxRows) || maxRows<1 || maxRows>4096 ||
-      !Number.isSafeInteger(maxPageBytes) || maxPageBytes<256 || maxPageBytes>1048576 ||
-      !Number.isSafeInteger(maxScalarBytes) || maxScalarBytes<1 || maxScalarBytes>1048576)
-    fail('CONSUMER_RESOURCE_BOUND', 'page and original scalar budgets are required');
-  let closed=false;
+  let expected,closed=false;
   const attest=()=>{
     if (signal?.aborted) fail('CONSUMER_CANCELLED','source consumer cancelled');
     let current;
@@ -91,6 +81,16 @@ export async function consumeSelectedSourceFacts({
   };
   let failed=null;
   try {
+    expected=verifyExpected(expectedBasis);
+    if (!session || typeof session.getCompletionManifest !== 'function' ||
+        typeof session.readPage !== 'function' || typeof session.readOccurrence !== 'function' ||
+        typeof session.close !== 'function' || typeof getCurrentBasis !== 'function' ||
+        typeof onOccurrence !== 'function')
+      fail('CONSUMER_PORT_REQUIRED', 'live session, getter, callback and explicit close authority required');
+    if (!Number.isSafeInteger(maxRows) || maxRows<1 || maxRows>4096 ||
+        !Number.isSafeInteger(maxPageBytes) || maxPageBytes<256 || maxPageBytes>1048576 ||
+        !Number.isSafeInteger(maxScalarBytes) || maxScalarBytes<1 || maxScalarBytes>1048576)
+      fail('CONSUMER_RESOURCE_BOUND', 'page and original scalar budgets are required');
     attest();
     const manifest=await session.getCompletionManifest();
     attest();
@@ -175,7 +175,7 @@ export async function consumeSelectedSourceFacts({
     });
   }catch(error){failed=error;throw error;}
   finally{
-    if(!closed){
+    if(!closed && typeof session?.close==='function'){
       closed=true;
       try{await session.close();}catch(error){if(!failed)throw error;}
     }
