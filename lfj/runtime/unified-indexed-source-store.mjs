@@ -70,7 +70,7 @@ function asSeal(row,basis){
   return {schema,kind:'SEAL',...basis,occurrenceId:row.occurrenceId,
     ordinal:row.ordinal,path:row.path,parentId:row.parentId,
     type:row.type,endByteExclusive:row.endByteExclusive,
-    ...(row.ownAttributes?{ownAttributes:row.ownAttributes}:{})};
+    ...(row.ownAttributes?{ownAttributes:Object.freeze({...row.ownAttributes})}:{})};
 }
 function verifyRecord(row,basis,byteLength=Number.MAX_SAFE_INTEGER){
   if(!row||!integer(row.ordinal)||typeof row.path!=='string'||
@@ -82,6 +82,24 @@ function verifyRecord(row,basis,byteLength=Number.MAX_SAFE_INTEGER){
     !['object','array','string','number','boolean','null'].includes(row.type)||
     (row.parentId!==null&&(typeof row.parentId!=='string'||row.parentId.length>67584)))
     fail('UNIFIED_PAIR_CORRUPT','invalid committed original source pair/span');
+  // Original R05 identities encode RFC6901 paths: the parent is the exact
+  // pointer prefix, never an arbitrary same-source ancestor claim.
+  const parentPath=row.path===''?null:row.path.slice(0,row.path.lastIndexOf('/'));
+  const expectedParent=parentPath===null?null:JSON.stringify([
+    'lfj-json-value/v1',basis.sourceRefId,basis.sourceRevision,parentPath]);
+  if((row.path===''&&row.ordinal!==0)||
+    (row.path!==''&&(!row.path.startsWith('/')||row.ordinal===0))||
+    row.parentId!==expectedParent)
+    fail('UNIFIED_PAIR_CORRUPT','original source ancestry/ordinal does not match pointer identity');
+  if(row.ownAttributes!==undefined){
+    const attrs=row.ownAttributes;
+    if(!attrs||typeof attrs!=='object'||Array.isArray(attrs)||
+      row.type!=='object'||!row.path.endsWith('/attributes')||
+      attrs.ownerOccurrenceId!==row.parentId||
+      attrs.startByte!==row.startByte||
+      attrs.endByteExclusive!==row.endByteExclusive)
+      fail('UNIFIED_PAIR_CORRUPT','R05 own-attributes source projection has inconsistent byte span or owner');
+  }
 }
 function census(db,ns,gen,basis,manifest){
   return new Promise((resolve,reject)=>{
