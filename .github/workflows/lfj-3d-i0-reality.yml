@@ -1,0 +1,28 @@
+name: LFJ 3D I0 Source Reality (RED only; not app release)
+on:
+  pull_request:
+    paths:
+      - 'lfj/acceptance/3d-converters/**'
+      - '.github/workflows/lfj-3d-i0-reality.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  independent-i0:
+    name: Legacy characterization + intentional integration RED
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Characterize actual old source functions and real benchmark files
+        run: node --test lfj/acceptance/3d-converters/source-reality-baseline.test.mjs
+      - name: Require known integration RED (do NOT interpret this as product pass)
+        run: |
+          if LFJ_I0_ACCEPTANCE=1 node --test lfj/acceptance/3d-converters/source-reality-baseline.test.mjs; then
+            echo "Old RED probe changed: audit live browser path before reporting PASS"
+            exit 1
+          fi
+          echo "KNOWN SOURCE DEFECTS REPRODUCED; LIVE INTEGRATION IS NOT VERIFIED."
