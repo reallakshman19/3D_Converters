@@ -37,3 +37,30 @@ jobs:
           node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.test.mjs
       - name: No rewritten golden fixture
         run: test -z "$(git status --porcelain)"
+
+  real-browser-ui:
+    name: R12 test-served Chromium actual hierarchy scope DOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser runner and real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve source-tree ES module DOM fixture
+        run: |
+          python3 -m http.server 4175 --bind 127.0.0.1 >/tmp/r12-served.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4175/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.browser.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/r12-served.log
+          exit 1
+      - name: Actual DOM source replacement and original index fail-close
+        run: |
+          git rev-parse HEAD
+          node tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.browser-test.mjs
