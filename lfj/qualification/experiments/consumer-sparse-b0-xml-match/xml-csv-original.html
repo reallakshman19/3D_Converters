@@ -30,14 +30,16 @@ async function mutateFactPage(databaseName,generation,mutate){
       t.onabort=()=>reject(t.error);
     });
     return async()=>{
-      await new Promise((resolve,reject)=>{
-        const t=db.transaction('pages','readwrite');
-        t.objectStore('pages').put(original);
-        t.oncomplete=resolve;t.onerror=()=>reject(t.error);
-        t.onabort=()=>reject(t.error);
-      });
+      try{
+        await new Promise((resolve,reject)=>{
+          const t=db.transaction('pages','readwrite');
+          t.objectStore('pages').put(original);
+          t.oncomplete=resolve;t.onerror=()=>reject(t.error);
+          t.onabort=()=>reject(t.error);
+        });
+      }finally{db.close();}
     };
-  }finally{db.close();}
+  }catch(err){db.close();throw err;}
 }
 const run=(file,payload)=>new Promise((resolve,reject)=>{
   const w=new Worker(new URL(file,location.href),{type:'module'});
