@@ -1,0 +1,39 @@
+name: LFJ 1147 B0 authentic Firstpass source matching and both CSV exact parity
+on:
+  push:
+    branches: ['lfj/1147-b0-xml-csv-parity']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-authentic-firstpass-source-parity.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-authentic-firstpass-source-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-firstpass-source-parity:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Original Firstpass and Expected XML true matching + complete two CSV oracle
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+      - name: No source mutation
+        run: test -z "$(git status --porcelain)"
