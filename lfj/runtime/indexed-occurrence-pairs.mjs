@@ -245,11 +245,27 @@ export function createPairedIndexStore({indexStore,pairPort}={}){
     typeof indexStore.abort!=='function'||!pairPort||
     ['stagePage','commitDurably','lookupCommittedPair','abort'].some(k=>typeof pairPort[k]!=='function'))
     fail('PAIR_PORT_REQUIRED','genuine durable source store and committed pair port required');
+  // A second database is not an authority on its own: validate the original
+  // durable R07 source HEAD around the pair lookup. readOrdered() performs a
+  // keyed source-head read, then reads only the first OPEN row; we never
+  // enumerate a full source index or build a whole-file map for each value.
+  async function attestOriginalHead(){
+    const iterator=indexStore.readOrdered()[Symbol.asyncIterator]();
+    try{
+      const first=await iterator.next();
+      if(first.done)fail('PAIR_SOURCE_UNCOMMITTED',
+        'JSON source must have a committed root OPEN in the original R07 index');
+    }finally{await iterator.return?.();}
+  }
   return Object.freeze({
     async stagePage(rows){
-      await indexStore.stagePage(rows);
-      try{await pairPort.stagePage(rows);}
-      catch(error){await Promise.allSettled([indexStore.abort(),pairPort.abort()]);throw error;}
+      try{
+        await indexStore.stagePage(rows);
+        await pairPort.stagePage(rows);
+      }catch(error){
+        await Promise.allSettled([indexStore.abort(),pairPort.abort()]);
+        throw error;
+      }
     },
     commit(){fail('PAIR_DURABLE_REQUIRED','R07 must await both transaction.complete receipts');},
     async commitDurably(manifest){
@@ -259,6 +275,11 @@ export function createPairedIndexStore({indexStore,pairPort}={}){
     },
     async abort(){await Promise.allSettled([indexStore.abort(),pairPort.abort()]);},
     readOrdered:()=>indexStore.readOrdered(),
-    lookupCommittedPair:id=>pairPort.lookupCommittedPair(id)
+    async lookupCommittedPair(id){
+      await attestOriginalHead();
+      const pair=await pairPort.lookupCommittedPair(id);
+      await attestOriginalHead(); // revocation may race awaited sidecar reads
+      return pair;
+    }
   });
 }
