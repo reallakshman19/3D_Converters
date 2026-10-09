@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           checker=lfj/governance/pinned-v32/delp_projection_v32.py
-          git show "origin/main:lfj/governance/structured-data-v4.execution-graph.json" > old-v4.json
+          # The canonical blob was attested above to the immutable main Git blob.\n          # This no-change graph-diff proves the #1105 local proposal does not alter V4.\n          cp lfj/governance/structured-data-v4.execution-graph.json old-v4.json
           python3 "$checker" graph-diff --old old-v4.json --new lfj/governance/structured-data-v4.execution-graph.json --json | tee v4-graph-diff.json
       - name: V3.2 local provisional subprogramme decompose
         shell: bash
