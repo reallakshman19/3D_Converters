@@ -280,8 +280,10 @@ export async function openUnifiedIndexedSourceStore({
       manifest.engineeringReady!==false||!integer(manifest.byteLength)||
       manifest.eventCount!==stagedEvents||
       opens!==seals||opens!==manifest.occurrenceCount||
-      stagedEvents!==opens*2)
+      stagedEvents!==opens*2){
+      await abort();
       fail('UNIFIED_MANIFEST_MISMATCH','complete original source/OPEN/SEAL census required');
+    }
     state='FLUSHING';
     try{
       // Keep FLUSHING state throughout awaited final persistence so no
