@@ -92,6 +92,21 @@ export async function openPagedSourceQuery({
     const check=()=>{
       if(closed)fail('SOURCE_CLOSED','source query is closed');
     };
+    // This query caches a pinned catalog generation for bounded reads.
+    // Re-attest its *current active HEAD* at a consumer transaction boundary.
+    // The original Blob SHA alone does not detect a concurrently superseded
+    // catalog; a source-only result cannot be published from a lost lease.
+    const headIdentity=JSON.stringify(head);
+    async function assertActive(){
+      check();
+      const current=await request(db.transaction('heads','readonly')
+        .objectStore('heads'),'active');
+      if(!current||!current.complete||
+         JSON.stringify(current)!==headIdentity)
+        fail('SOURCE_SUPERSEDED',
+          'original source catalog HEAD changed during consumer operation');
+      return true;
+    }
     async function byOrdinal(ordinal){
       check();
       if(!whole(ordinal)||ordinal>=head.occurrenceCount)
@@ -167,7 +182,7 @@ export async function openPagedSourceQuery({
       originalBytes:blob.size,sourceCount:head.occurrenceCount,
       selectionKind:selected.kind,selectedCount:selected.total,
       sourceOnly:true,engineeringReady:false,
-      readOrdinal:byOrdinal,readPage,
+      readOrdinal:byOrdinal,readPage,assertActive,
       async readOriginalRange(start,end){
         check();
         return snapshot.readRange(start,end,snapshot.revision);
