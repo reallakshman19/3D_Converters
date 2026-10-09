@@ -52,8 +52,8 @@ window.runRealIndexedDBTests=async()=>{
   recover.close();
   result.recoveredPage=true;
   const crashing=await openIndexedRecordStore({databaseName:dbName,namespace:'source:CRASH',generation:'CRASH-1',basis:sourceBasis,kind:'source',beforeHeadCommit:tx=>tx.abort()});
-  await crashing.stagePage(originalRows.slice(0,3));
-  await failCode(()=>crashing.commit(manifest),'STORE_COMMIT_ABORTED');
+  await crashing.stagePage(originalRows.slice(0,4));
+  await failCode(()=>crashing.commit({...manifest,eventCount:4,occurrenceCount:2}),'STORE_COMMIT_ABORTED');
   await failCode(async()=>{for await(const e of crashing.readOrdered())void e;},'STORE_NOT_COMMITTED');
   crashing.close();
   result.abortBeforeCompleteInvisible=true;
