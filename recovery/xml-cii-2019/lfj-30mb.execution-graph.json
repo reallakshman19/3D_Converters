@@ -72,7 +72,7 @@
               "id": "U01",
               "kind": "SEMANTIC",
               "weight": 30,
-              "outcome": "Original raw source identity and complete ordered occurrence census are established on authentic 733KB and 10MB fixtures.",
+              "outcome": "Original raw source identity and complete ordered occurrence census are established on authentic 733KB and 10MB source documents.",
               "verify": "Chromium independent original byte SHA and 23754/328156 census against LFJ page union"
             },
             {
