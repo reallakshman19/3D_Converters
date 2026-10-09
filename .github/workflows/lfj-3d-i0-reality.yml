@@ -55,6 +55,12 @@ jobs:
         run: |
           git rev-parse HEAD
           node lfj/acceptance/3d-converters/enrichment-browser-baseline.mjs
+      - name: Real deployed Resolver XML and staged JSON to scope, node-wise CSV (legacy baseline)
+        env:
+          LFJ_I0_RECEIPT_DIR: ${{ runner.temp }}/lfj-3d-receipts
+        run: |
+          git rev-parse HEAD
+          node lfj/acceptance/3d-converters/resolver-live-browser-baseline.mjs
       - name: Upload independently inspectable browser result receipt
         if: always()
         uses: actions/upload-artifact@v4
