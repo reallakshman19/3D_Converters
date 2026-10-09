@@ -1,7 +1,7 @@
 name: LFJ 1120 W2 authentic unified IDB populated sources
 on:
   pull_request:
-    branches: [main]
+    branches: [main, lfj/1120-w2-unified-indexed-source]
     paths:
       - 'lfj/runtime/unified-*'
       - 'lfj/qualification/provisional/authentic-unified-idb.*'
@@ -37,10 +37,12 @@ jobs:
           node lfj/qualification/provisional/stage-public-runtime.mjs --stage-dir "${stage_dir}"
           mkdir -p "${stage_dir}/lfj/runtime" "${stage_dir}/lfj/qualification/provisional" "${stage_dir}/fixtures"
           cp lfj/runtime/unified-indexed-source-store.mjs "${stage_dir}/lfj/runtime/"
+          cp lfj/runtime/unified-generation-custody.mjs "${stage_dir}/lfj/runtime/"
           cp lfj/qualification/provisional/authentic-unified-idb.html "${stage_dir}/lfj/qualification/provisional/"
           cp "${{ matrix.fixture }}" "${stage_dir}/fixtures/$(basename "${{ matrix.fixture }}")"
           sha256sum "${{ matrix.fixture }}"
           cmp lfj/runtime/unified-indexed-source-store.mjs "${stage_dir}/lfj/runtime/unified-indexed-source-store.mjs"
+          cmp lfj/runtime/unified-generation-custody.mjs "${stage_dir}/lfj/runtime/unified-generation-custody.mjs"
       - name: Install native Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0

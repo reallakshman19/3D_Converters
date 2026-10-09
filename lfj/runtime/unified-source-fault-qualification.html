@@ -71,14 +71,13 @@ window.runUnifiedFaultMatrix=async()=>{
     databaseName:casName,namespace,generation:'loser',basis});
   try{
     await winner.stagePage([open,seal]);
-    await loser.stagePage([open,seal]);
+    try{await loser.stagePage([open,seal]);
+      outcomes.casLoser='UNEXPECTED_STAGED';
+    }catch(e){outcomes.casLoser=e?.code;}
     try{await winner.lookupCommittedPair(occurrenceId);
       outcomes.preCommitVisible='UNEXPECTED_ACCEPTED';
     }catch(e){outcomes.preCommitVisible=e?.code;}
     await winner.commitDurably(manifest);
-    try{await loser.commitDurably(manifest);
-      outcomes.casLoser='UNEXPECTED_COMMITTED';
-    }catch(e){outcomes.casLoser=e?.code;}
     const unaffected=await winner.lookupCommittedPair(occurrenceId);
     outcomes.casWinnerRetained=unaffected.seal.endByteExclusive===4;
   }finally{
@@ -172,7 +171,7 @@ window.runUnifiedFaultMatrix=async()=>{
       valid.seal.ownAttributes?.ownerOccurrenceId===occurrenceId;
     attr.port.close();
     const txdb=await new Promise((resolve,reject)=>{
-      const req=indexedDB.open(attr.databaseName,1);
+      const req=indexedDB.open(attr.databaseName);
       req.onsuccess=()=>resolve(req.result);
       req.onerror=()=>reject(req.error);
     });
@@ -230,7 +229,9 @@ window.runUnifiedFaultMatrix=async()=>{
   // facts, then its owner tab disappeared without invoking async abort.
   // A later valid successor must not retain unbounded orphan rows forever.
   // This currently FAILS: no generation lease and no bounded cold cleanup.
-  const abandoned=await make('abandoned-staged-source');
+  let recoveryClock=10000;
+  const abandoned=await make('abandoned-staged-source',{
+    now:()=>recoveryClock,leaseTtlMs:1000});
   const orphanRoot={...open,endByteExclusive:undefined};
   const orphanRows=[open];
   for(let i=1;i<=520;i++){
@@ -244,15 +245,16 @@ window.runUnifiedFaultMatrix=async()=>{
   orphanRows.push({...seal,endByteExclusive:1100});
   await abandoned.port.stagePage(orphanRows);
   abandoned.port.close(); // tab death: no awaitable abort/rollback
+  recoveryClock+=2000; // deterministic recovery after expired source lease
   const successor=await openUnifiedIndexedSourceStore({
     databaseName:abandoned.databaseName,namespace,
-    generation:'successor',basis
+    generation:'successor',basis,now:()=>recoveryClock,leaseTtlMs:1000
   });
   try{
     await successor.stagePage([open,seal]);
     await successor.commitDurably(manifest);
     const db=await new Promise((resolve,reject)=>{
-      const request=indexedDB.open(abandoned.databaseName,1);
+      const request=indexedDB.open(abandoned.databaseName);
       request.onsuccess=()=>resolve(request.result);
       request.onerror=()=>reject(request.error);
     });
@@ -272,11 +274,107 @@ window.runUnifiedFaultMatrix=async()=>{
     successor.close();indexedDB.deleteDatabase(abandoned.databaseName);
   }
 
+  // Inject a recovery transaction failure after old staged facts exist.
+  // The IDB rollback must retain its recovery marker, so the *next* fresh
+  // writer resumes from the same original ordered generation frontier.
+  let retryClock=40000,interrupt=true;
+  const interruptedOld=await make('reclaim-resume',{
+    now:()=>retryClock,leaseTtlMs:1000});
+  await interruptedOld.port.stagePage(orphanRows);
+  interruptedOld.port.close();retryClock+=2000;
+  const rejected=await openUnifiedIndexedSourceStore({
+    databaseName:interruptedOld.databaseName,namespace,
+    generation:'retry-first',basis,now:()=>retryClock,leaseTtlMs:1000,
+    beforeReclaim:({tx})=>{
+      if(interrupt){interrupt=false;tx.abort();}
+    }
+  });
+  try{
+    try{await rejected.stagePage([open,seal]);
+      outcomes.pruneTransactionFailed='UNEXPECTED_STAGED';
+    }catch(e){outcomes.pruneTransactionFailed=e?.code;}
+  }finally{rejected.close();}
+  // The failed reclaimer's lease is still real and unexpired despite its
+  // closed connection. A successor may recover only after explicit expiry.
+  retryClock+=2000;
+  const resumed=await openUnifiedIndexedSourceStore({
+    databaseName:interruptedOld.databaseName,namespace,
+    generation:'retry-second',basis,now:()=>retryClock,leaseTtlMs:1000
+  });
+  try{
+    await resumed.stagePage([open,seal]);
+    await resumed.commitDurably(manifest);
+    const db=await new Promise((resolve,reject)=>{
+      const req=indexedDB.open(interruptedOld.databaseName);
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error);
+    });
+    try{
+      outcomes.pruneResumedLeftovers=await new Promise((resolve,reject)=>{
+        const req=db.transaction('pairs','readonly').objectStore('pairs').count(
+          IDBKeyRange.bound([namespace,interruptedOld.generation,''],
+            [namespace,interruptedOld.generation,'\uffff']));
+        req.onsuccess=()=>resolve(req.result);
+        req.onerror=()=>reject(req.error);
+      });
+    }finally{db.close();}
+  }finally{
+    resumed.close();indexedDB.deleteDatabase(interruptedOld.databaseName);
+  }
+
+  // Three committed generations: a prior published HEAD must remain
+  // intact until its successor publishes, then become a durable bounded
+  // recovery target even though the prior writer released its lease.
+  const historyDb=prefix+'-committed-history';
+  const a=await openUnifiedIndexedSourceStore({
+    databaseName:historyDb,namespace,generation:'history-A',basis});
+  let b;
+  try{
+    await a.stagePage([open,seal]);
+    await a.commitDurably(manifest);
+    b=await openUnifiedIndexedSourceStore({
+      databaseName:historyDb,namespace,generation:'history-B',basis});
+    await b.stagePage([open,seal]);
+    await b.commitDurably(manifest);
+    const c=await openUnifiedIndexedSourceStore({
+      databaseName:historyDb,namespace,generation:'history-C',basis});
+    try{
+      await c.stagePage([open,seal]); // claims lease + reclaims replaced A
+      const raw=await new Promise((resolve,reject)=>{
+        const request=indexedDB.open(historyDb);
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+      try{
+        const countFor=gen=>new Promise((resolve,reject)=>{
+          const tx=raw.transaction('pairs','readonly');
+          const req=tx.objectStore('pairs').count(
+            IDBKeyRange.bound([namespace,gen,''],[namespace,gen,'\uffff']));
+          req.onsuccess=()=>resolve(req.result);
+          req.onerror=()=>reject(req.error);
+        });
+        outcomes.oldCommittedReclaimed=await countFor('history-A');
+        outcomes.currentCommittedRetained=await countFor('history-B');
+      }finally{raw.close();}
+      await c.commitDurably(manifest);
+      outcomes.historyCurrent=(await c.lookupCommittedPair(occurrenceId))
+        .seal.endByteExclusive===4;
+      try{await a.lookupCommittedPair(occurrenceId);
+        outcomes.replacedHeadInvisible='UNEXPECTED_AUTHORIZED';
+      }catch(error){outcomes.replacedHeadInvisible=error?.code;}
+    }finally{c.close();}
+  }finally{
+    a.close();b?.close();indexedDB.deleteDatabase(historyDb);
+  }
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
     await accepted.port.stagePage([seal]); // OPEN and SEAL across ACK pages
     await accepted.port.commitDurably(manifest);
+    try{await accepted.port.commitDurably(manifest);
+      outcomes.duplicateCommitRefusal='UNEXPECTED_RECOMMITTED';
+    }catch(error){outcomes.duplicateCommitRefusal=error?.code;}
     const original=await accepted.port.lookupCommittedPair(occurrenceId);
     outcomes.pairExact=original.open.startByte===0&&original.seal.endByteExclusive===4;
     const ordered=[];
@@ -292,7 +390,7 @@ window.runUnifiedFaultMatrix=async()=>{
       outcomes.reopenExact=value.seal.endByteExclusive===4;
     }finally{again.close();}
     const direct=await new Promise((resolve,reject)=>{
-      const req=indexedDB.open(accepted.databaseName,1);
+      const req=indexedDB.open(accepted.databaseName);
       req.onsuccess=()=>resolve(req.result);
       req.onerror=()=>reject(req.error);
     });

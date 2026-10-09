@@ -11,6 +11,8 @@
  * Failures/cancellation leave no authorized head; no foreground JSON parser,
  * no synthetic row reconstruction, no app/engineering export authority.
  */
+import {createGenerationCustody} from './unified-generation-custody.mjs';
+
 export class UnifiedSourceIndexError extends Error {
   constructor(code,message){super(code+': '+message);this.name='UnifiedSourceIndexError';this.code=code;}
 }
@@ -43,7 +45,7 @@ function get(db,store,key){
 function openDb(databaseName,api){
   return new Promise((resolve,reject)=>{
     let req;
-    try{req=api.open(databaseName,1);}catch{
+    try{req=api.open(databaseName,2);}catch{
       reject(new UnifiedSourceIndexError('UNIFIED_IDB_REQUIRED','real IndexedDB open refused'));return;
     }
     req.onupgradeneeded=()=>{
@@ -55,6 +57,10 @@ function openDb(databaseName,api){
       }
       if(!db.objectStoreNames.contains('heads'))
         db.createObjectStore('heads',{keyPath:'namespace'});
+      if(!db.objectStoreNames.contains('leases'))
+        db.createObjectStore('leases',{keyPath:'namespace'});
+      if(!db.objectStoreNames.contains('recoveries'))
+        db.createObjectStore('recoveries',{keyPath:['namespace','generation']});
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(new UnifiedSourceIndexError('UNIFIED_IDB_REQUIRED','native IDB unavailable'));
@@ -168,7 +174,8 @@ function readOrdinalChunk(db,ns,gen,start){
  */
 export async function openUnifiedIndexedSourceStore({
   databaseName,namespace,generation,basis,
-  indexedDB:provided=globalThis.indexedDB,beforeHeadCommit
+  indexedDB:provided=globalThis.indexedDB,beforeHeadCommit,
+  now,leaseTtlMs,beforeReclaim
 }={}){
   if(!provided||typeof provided.open!=='function'||typeof IDBKeyRange==='undefined')
     fail('UNIFIED_IDB_REQUIRED','native IndexedDB with ranges required; no fallback');
@@ -180,7 +187,10 @@ export async function openUnifiedIndexedSourceStore({
   const db=await openDb(databaseName,provided);
   const previous=await get(db,'heads',namespace);
   const expectedHead=previous?.generation??null;
+  const custody=createGenerationCustody({db,namespace,generation,now,
+    ttlMs:leaseTtlMs,beforeReclaim});
   let state='STAGING',activeTx=null,buffer=[],bufferBytes=0;
+  let publishedHere=false;
   let stagedEvents=0,opens=0,seals=0,nextOrdinal=0,busy=false;
   function usable(){
     if(state==='ABORTED')fail('UNIFIED_ABORTED','source generation revoked');
@@ -199,14 +209,18 @@ export async function openUnifiedIndexedSourceStore({
     return h;
   }
   async function rollback(){
-    const tx=db.transaction(['pairs','heads'],'readwrite');
+    const tx=db.transaction(['pairs','heads','leases'],'readwrite');
     const done=txDone(tx,'UNIFIED_ROLLBACK_FAILED');
-    tx.objectStore('pairs').delete(bounds(namespace,generation,'','\uffff'));
-    const heads=tx.objectStore('heads');
-    const request=heads.get(namespace);
-    request.onsuccess=()=>{
-      if(request.result?.generation===generation)heads.delete(namespace);
-    };
+    custody.revoke(tx,()=>{
+      // A stale client may have lost the writer lease; it cannot delete
+      // another tab's same-namespace source or accepted generation.
+      tx.objectStore('pairs').delete(bounds(namespace,generation,'','\uffff'));
+      const heads=tx.objectStore('heads');
+      const request=heads.get(namespace);
+      request.onsuccess=()=>{
+        if(request.result?.generation===generation)heads.delete(namespace);
+      };
+    },{allowCommitted:publishedHere});
     await done;
   }
   async function abort(){
@@ -220,12 +234,13 @@ export async function openUnifiedIndexedSourceStore({
     if(!buffer.length)return;
     usable();
     const events=buffer;
-    const tx=db.transaction('pairs','readwrite');
+    const tx=db.transaction(['pairs','leases'],'readwrite');
     activeTx=tx;
     const done=txDone(tx,'UNIFIED_STAGE_FAILED');
     const pairs=tx.objectStore('pairs');
     let invalid=null;
     try{
+      custody.fence(tx,()=>{
       const sealed=new Set();
       for(const row of events){
         const key=eventsKey(namespace,generation,row.occurrenceId);
@@ -254,6 +269,7 @@ export async function openUnifiedIndexedSourceStore({
           };
         }
       }
+      });
       await done;
       if(state!=='STAGING'&&state!=='FLUSHING')
         fail('UNIFIED_ABORTED','staging completed after cancellation');
@@ -272,6 +288,9 @@ export async function openUnifiedIndexedSourceStore({
       fail('UNIFIED_STAGE_LIMIT','one bounded source event page writer required');
     busy=true;
     try{
+      await custody.ensure();
+      if(state!=='STAGING')
+        fail('UNIFIED_ABORTED','session revoked during asynchronous lease admission');
       let pageBytes=0,opensHere=0,sealsHere=0;
       for(const row of rows){
         if(row?.schema!==schema||!same(row,basis)||
@@ -330,6 +349,11 @@ export async function openUnifiedIndexedSourceStore({
   }
   async function commitDurably(manifest){
     usable();
+    // A duplicated commit request cannot turn an already authorized HEAD
+    // into an aborted generation or delete committed source records.
+    if(state==='COMMITTED')
+      fail('UNIFIED_ALREADY_COMMITTED','source HEAD was already durably published');
+    if(state==='STAGING')await custody.ensure();
     if(state!=='STAGING'||busy||!same(manifest,basis)||
       manifest?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||
       manifest.complete!==true||manifest.rightsBasis!=='SOURCE_FACTS_ONLY'||
@@ -348,22 +372,34 @@ export async function openUnifiedIndexedSourceStore({
       const complete=await census(db,namespace,generation,basis,manifest);
       if(complete!==opens)fail('UNIFIED_PAIR_CENSUS','not all pairs committed in original ordinal order');
       if(state!=='VERIFYING')fail('UNIFIED_ABORTED','generation superseded before HEAD');
+      await custody.ensure();
       state='COMMITTING';
-      const tx=db.transaction('heads','readwrite');
+      const tx=db.transaction(['heads','leases','recoveries'],'readwrite');
       activeTx=tx;
       const done=txDone(tx,'UNIFIED_HEAD_ABORTED');
-      const heads=tx.objectStore('heads');
-      const req=heads.get(namespace);
       let changed=false;
-      req.onsuccess=()=>{
-        if((req.result?.generation??null)!==expectedHead){changed=true;tx.abort();return;}
-        heads.put({namespace,generation,count:opens,manifest});
-        try{beforeHeadCommit?.(tx);}catch{tx.abort();}
-      };
+      custody.fence(tx,()=>{
+        const heads=tx.objectStore('heads');
+        const req=heads.get(namespace);
+        req.onsuccess=()=>{
+          if((req.result?.generation??null)!==expectedHead){changed=true;tx.abort();return;}
+          // A previously committed source may remain valid until this exact
+          // HEAD transaction publishes its successor. Queue the replaced
+          // generation for bounded future reclamation atomically with HEAD.
+          // No lease exists for a successful predecessor: queueing only in
+          // expired-writer admission would leak every old committed index.
+          if(req.result?.generation&&req.result.generation!==generation)
+            tx.objectStore('recoveries').put({
+              namespace,generation:req.result.generation,cursor:null
+            });
+          heads.put({namespace,generation,count:opens,manifest});
+          try{beforeHeadCommit?.(tx);}catch{tx.abort();}
+        };
+      },{release:true});
       await done;
       if(changed)fail('UNIFIED_HEAD_SUPERSEDED','concurrent generation replaced original source');
       if(state!=='COMMITTING')fail('UNIFIED_ABORTED','late cancellation after HEAD');
-      state='COMMITTED';
+      state='COMMITTED';publishedHere=true;
       return Object.freeze({...manifest});
     }catch(error){
       state='ABORTED';
@@ -412,6 +448,7 @@ export async function openUnifiedIndexedSourceStore({
     // SAME still-open transaction: db.close() alone merely waits for it
     // and could publish a HEAD after the caller believed custody ended.
     state='CLOSED';buffer=[];bufferBytes=0;
+    custody.closedNotice();
     try{activeTx?.abort();}catch{}
     db.close();
   }
