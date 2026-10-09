@@ -104,6 +104,22 @@ export async function openSourceSession(options={}){
     try{await underlying.close();}catch{}
     throw error;
   }
+  // The selected-result store can outlive the original source index head.
+  // Its page manifest is not authority on its own: re-attest the committed
+  // R07 source root before/after every separately awaited source/page read.
+  // Only first committed OPEN is read: never materialize the whole index.
+  async function attestOriginalHead(){
+    const iterator=indexStore.readOrdered()[Symbol.asyncIterator]();
+    try{
+      const first=await iterator.next();
+      const root=first?.value;
+      if(first.done||root?.kind!=='OPEN'||root.path!==''||
+        root.ordinal!==0||root.sourceRefId!==basis.sourceRefId||
+        root.sourceSha256!==basis.sourceSha256||
+        root.sourceRevision!==basis.sourceRevision)
+        fail('SOURCE_INDEX_UNVERIFIED','current committed original root event required');
+    }finally{await iterator.return?.();}
+  }
   function verifyPair(pair,occurrenceId){
     const a=pair?.open,b=pair?.seal;
     if(a?.kind!=='OPEN'||b?.kind!=='SEAL'||
@@ -134,14 +150,17 @@ export async function openSourceSession(options={}){
       fail('INVALID_OCCURRENCE','explicit exact original source occurrence ID required');
     if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>MAX_VALUE_BYTES)
       fail('RESOURCE_BOUND','original value budget must be in 1..1048576 bytes');
+    await attestOriginalHead();current();
     const pair=verifyPair(await indexStore.lookupCommittedPair(occurrenceId),occurrenceId);
+    await attestOriginalHead();
     current(); // source/scope/epoch/close can change during storage lookup
     const {open,seal}=pair;
     const n=seal.endByteExclusive-open.startByte;
     if(n>maxBytes)
       fail('RESOURCE_BOUND','complete original value exceeds bounded materialization budget');
     const buffer=await blob.slice(open.startByte,seal.endByteExclusive).arrayBuffer();
-    current(); // no stale response after awaited Blob materialization
+    await attestOriginalHead();
+    current(); // no stale result after Blob materialization or R07 head revocation
     const value=new Uint8Array(buffer);
     if(value.byteLength!==n)
       fail('SOURCE_RANGE_INVALID','source Blob returned incomplete original byte span');
@@ -155,8 +174,9 @@ export async function openSourceSession(options={}){
   }
   async function readPage(args){
     current();
+    await attestOriginalHead();current();
     const result=await underlying.readPage(args);
-    current();
+    await attestOriginalHead();current();
     return result;
   }
   async function close(){
