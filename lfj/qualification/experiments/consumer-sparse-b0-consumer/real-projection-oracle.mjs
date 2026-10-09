@@ -54,9 +54,18 @@ for(let n=0;n<facts.length;n+=128)
   pageDigests.push(createHash('sha256')
     .update(JSON.stringify(facts.slice(n,n+128))).digest('hex'));
 const domainSha256=createHash('sha256').update(pageDigests.join('\n')).digest('hex');
+const indexes=new Set([0,1,127,128,255,256,facts.length-1]);
+for(let i=1;i<facts.length;i++){
+  const a=facts[i-1].path.match(/^\\$\\[(\\d+)\\]/)?.[1];
+  const b=facts[i].path.match(/^\\$\\[(\\d+)\\]/)?.[1];
+  if(a!==b){indexes.add(i-1);indexes.add(i);}
+}
+const sampleFacts=[...indexes].filter(i=>i>=0&&i<facts.length)
+  .sort((a,b)=>a-b).map(i=>({index:i,expected:facts[i]}));
 const oracle={
   bytes:original.length,sha256:hash,occurrenceCount:occurrences,
-  factCount:facts.length,sourceObjects,groups:groups.length,domainSha256
+  factCount:facts.length,sourceObjects,groups:groups.length,domainSha256,
+  sampleFacts
 };
 console.log('B0_CONSUMER_REAL_LEGACY_GOLDEN '+JSON.stringify({
   fixture:filename,mode,...oracle,
