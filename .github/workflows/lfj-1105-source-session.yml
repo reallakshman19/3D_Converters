@@ -1,0 +1,25 @@
+name: LFJ 1108 original source session RED-GREEN
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/runtime/**'
+      - '.github/workflows/lfj-1105-source-session.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-node:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact-source runtime semantic qualification
+        run: node --test lfj/runtime/source-session.test.mjs
