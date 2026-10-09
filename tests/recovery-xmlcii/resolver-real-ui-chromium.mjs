@@ -108,15 +108,24 @@ try {
   const start=Date.now();
   await page.goto(url, {waitUntil:'domcontentloaded'});
   await page.getByRole('button',{name:'XML→CII 2019 Standalone'}).click();
-  await page.getByRole('button',{name:/3 Resolver \/ JSON Trace/}).click();
   report.timings.navigationMs=Date.now()-start;
-  const xmlInput=page.locator('.xml-cii-phase-panel input[data-field="source-file"]');
-  const jsonInput=page.locator('.xml-cii-phase-panel input[data-field="staged-json-file"]');
+  // File upload may return the real application to Source & Masters. Upload XML
+  // there first; then deliberately enter 3 Resolver before uploading staged JSON.
+  report.stage='xml-upload';
   const uploadStart=Date.now();
-  await xmlInput.setInputFiles({name:'recovery.xml',mimeType:'application/xml',buffer:xmlBuffer});
-  await page.waitForFunction(()=>document.querySelector('.xml-cii-phase-panel')?.textContent?.includes('XML source: Loaded'));
-  await jsonInput.setInputFiles({name:'recovery.json',mimeType:'application/json',buffer:jsonBuffer});
-  await page.waitForFunction(()=>document.querySelector('.xml-cii-phase-panel')?.textContent?.includes('Staged JSON: Loaded'),null,{timeout:maxMs});
+  await page.locator('input[data-field="source-file"]').first().setInputFiles({
+    name:'recovery.xml',mimeType:'application/xml',buffer:xmlBuffer
+  });
+  await page.waitForFunction(()=>document.querySelector('#app-layout')?.innerText
+    ?.includes('Active Source: Loaded'),null,{timeout:maxMs});
+  report.stage='resolver-navigation';
+  await page.getByRole('button',{name:/3 Resolver \/ JSON Trace/}).click();
+  await page.locator('.xml-cii-phase-panel input[data-field="staged-json-file"]').waitFor();
+  report.stage='json-upload';
+  await page.locator('.xml-cii-phase-panel input[data-field="staged-json-file"]')
+    .setInputFiles({name:'recovery.json',mimeType:'application/json',buffer:jsonBuffer});
+  await page.waitForFunction(()=>document.querySelector('.xml-cii-phase-panel')
+    ?.innerText?.includes('Staged JSON: Loaded'),null,{timeout:maxMs});
   report.timings.uploadAndIndexMs=Date.now()-uploadStart;
   const scope=page.locator('select[data-field="resolver-hierarchy-scope"]');
   await scope.waitFor();
