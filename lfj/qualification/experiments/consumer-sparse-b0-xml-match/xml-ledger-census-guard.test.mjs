@@ -7,7 +7,8 @@ import {readFile} from 'node:fs/promises';
 import {runStandaloneResolverJsonTrace} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
 import {assertCompleteResearchXmlLedger} from './xml-csv-parity.mjs';
-import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
+import {assertResearchXmlDocument,assertResearchXmlConsumerPopulation} from
+  './xml-input-integrity.mjs';
 
 const xml=await readFile('Benchmarks/1885Sjson/FirstpassXML','utf8');
 assert.equal(assertResearchXmlDocument(xml).rootCount,1,
@@ -17,10 +18,19 @@ const largeStructure=assertResearchXmlDocument(largeXml);
 assert.equal(largeStructure.rootCount,1,'authentic large XML document root');
 assert.ok(largeStructure.elementCount>3429,
   'authentic large XML tags must not disappear during source integrity validation');
+const largeParsed=runStandaloneResolverJsonTrace({
+  sourceKind:'xml',sourceText:largeXml,stagedJsonText:[],jsonConfig:{}
+});
+const largeRows=assertCompleteResearchXmlLedger(largeParsed);
+assert.equal(largeRows.length,3429,'authentic large parsed XML node census');
+assert.equal(assertResearchXmlConsumerPopulation(largeStructure,largeRows.length),
+  3429,'original large XML source population equals actual Resolver rows');
 const original=runStandaloneResolverJsonTrace({
   sourceKind:'xml',sourceText:xml,stagedJsonText:[],jsonConfig:{}
 });
 const rows=assertCompleteResearchXmlLedger(original);
+assert.equal(assertResearchXmlConsumerPopulation(assertResearchXmlDocument(xml),rows.length),
+  216,'original Firstpass structural node population equals actual Resolver rows');
 assert.equal(rows.length,216,'original authentic Firstpass XML parser census');
 assert.ok(rows.every(x=>x.status==='UNRESOLVED'),
   'test intentionally supplies no source JSON: matching is not qualified');
