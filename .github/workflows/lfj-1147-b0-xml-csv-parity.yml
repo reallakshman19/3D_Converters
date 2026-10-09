@@ -1,0 +1,60 @@
+name: LFJ 1147 B0 REAL XML matching + both CSV original-oracle parity
+on:
+  push:
+    branches: ['lfj/1147-b0-xml-csv-parity']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-xml-csv-parity.yml'
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
+      - '.github/workflows/lfj-1147-b0-xml-csv-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-xml-csv-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        size: [SMALL, LARGE]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static files and source schema/capture contracts
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original tracked XML and JSON from source worktree
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-1147-xml-csv.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1147-xml-csv.log
+          exit 1
+      - name: Actual original XML Node-wise and Evidence Tree SHA parity
+        env:
+          B0_SIZE: ${{ matrix.size }}
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
+      - name: Source tree unchanged
+        run: test -z "$(git status --porcelain)"
