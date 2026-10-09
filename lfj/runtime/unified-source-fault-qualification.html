@@ -143,6 +143,58 @@ window.runUnifiedFaultMatrix=async()=>{
     }catch(e){outcomes.postAbortPrefetch=e?.code;}
   }finally{await cleanup(revoked);}
 
+  // Source identity includes exact ancestral original JSON path, not just
+  // occurrence ID. A foreign parent must not be committed or value-readable.
+  const ancestry=await make('wrong-parent');
+  try{
+    await ancestry.port.stagePage([open,
+      {...childOpen,parentId:'forged-ancestor'},childSeal,seal]);
+    try{await ancestry.port.commitDurably(twoManifest);
+      outcomes.wrongParent='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.wrongParent=e?.code;}
+    outcomes.wrongParentInvisible=await lookup(ancestry);
+  }finally{await cleanup(ancestry);}
+
+  // R05 SEAL's ownAttributes attaches source-owned attributes to the exact
+  // original parent. It must not be silently reinterpreted in a compact row.
+  const attr=await make('own-attributes');
+  const attrOpen={...childOpen,path:'/attributes',
+    occurrenceId:JSON.stringify(['lfj-json-value/v1',basis.sourceRefId,
+      basis.sourceRevision,'/attributes']),type:'object'};
+  const attrSeal={...childSeal,occurrenceId:attrOpen.occurrenceId,
+    ownAttributes:{ownerOccurrenceId:occurrenceId,
+      startByte:attrOpen.startByte,endByteExclusive:childSeal.endByteExclusive}};
+  try{
+    await attr.port.stagePage([open,attrOpen,attrSeal,seal]);
+    await attr.port.commitDurably(twoManifest);
+    const valid=await attr.port.lookupCommittedPair(attrOpen.occurrenceId);
+    outcomes.ownAttributesRoundTrip=
+      valid.seal.ownAttributes?.ownerOccurrenceId===occurrenceId;
+    attr.port.close();
+    const txdb=await new Promise((resolve,reject)=>{
+      const req=indexedDB.open(attr.databaseName,1);
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error);
+    });
+    try{
+      await new Promise((resolve,reject)=>{
+        const tx=txdb.transaction('pairs','readwrite');
+        const store=tx.objectStore('pairs');
+        const req=store.get([namespace,attr.generation,attrOpen.occurrenceId]);
+        req.onsuccess=()=>store.put({...req.result,ownAttributes:{
+          ...req.result.ownAttributes,startByte:0}});
+        tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+        tx.onabort=()=>reject(new Error('attribute-poison transaction aborted'));
+      });
+    }finally{txdb.close();}
+    const poisoned=await openUnifiedIndexedSourceStore({
+      databaseName:attr.databaseName,namespace,generation:attr.generation,basis
+    });
+    try{outcomes.ownAttributesCorruption=await lookup({...attr,
+      port:{lookupCommittedPair:id=>poisoned.lookupCommittedPair(attrOpen.occurrenceId)}});
+    }finally{poisoned.close();}
+  }finally{await cleanup(attr);}
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
