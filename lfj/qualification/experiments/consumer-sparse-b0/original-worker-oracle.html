@@ -78,7 +78,7 @@ window.runCompactOriginalProbe=async({url,oracle})=>{
       verified.push({ordinal:sample.ordinal,path,byteCount:bytes.length,exact:true});
     }
     const after=(await navigator.storage.estimate()).usage??null;
-    return {schema:'LFJ.B0.SourceBrowserOracle.v1',...result,verified,
+    return {...result,schema:'LFJ.B0.SourceBrowserOracle.v1',verified,
       measurementMs:performance.now()-started,
       storageDelta:before===null||after===null?null:after-before,
       longTaskCount:longTasks.length,longTaskMaxMs:Math.max(0,...longTasks),
