@@ -1,0 +1,43 @@
+name: LFJ 1120 W2 unified native IndexedDB source HEAD
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/runtime/unified-*'
+      - '.github/workflows/lfj-1120-unified-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium-unified-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert literal exact source candidate
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual neutral source tree
+        shell: bash
+        run: |
+          python3 -m http.server 4188 --bind 127.0.0.1 >/tmp/lfj-1120-unified.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4188/lfj/runtime/unified-source-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-1120-unified.log
+          exit 1
+      - name: Real original SourceSession native Worker/one IDB HEAD and exact pairs
+        run: node lfj/runtime/unified-source-qualification.mjs
+      - name: Original source HEAD commit abort, incomplete and corrupt data must be denied
+        run: node lfj/runtime/unified-source-fault-qualification.mjs
+      - name: Source tree unchanged
+        run: test -z "$(git status --porcelain)"
