@@ -204,6 +204,9 @@ export async function openIndexedRecordStore({
     return rows;
   }
   function close(){db.close();state='CLOSED';}
-  return Object.freeze({stagePage,commit,abort,readOrdered,readRange,close,
-    note:'ASYNC_DURABLE_COMMIT_NOT_R07_SYNC_SOURCE_INDEX_COMPLETE'});
+  // R07 V4.2 opt-in bridge calls commitDurably and awaits this genuine
+  // IDB transaction.complete Promise before granting SOURCE_INDEX_COMPLETE.
+  // The old synchronous R07 index callback must NEVER call commit() directly.
+  return Object.freeze({stagePage,commit,commitDurably:commit,abort,readOrdered,readRange,close,
+    note:'ASYNC_DURABLE_COMMIT_REQUIRES_R07_V42_HANDOFF'});
 }
