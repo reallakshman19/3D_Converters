@@ -76,6 +76,7 @@ test('I0 real baseline source custody; generated output hashes are NOT approved 
     assert.equal(statSync(fixture(path)).size,bytes,path+': source size changed, requalify corpus');
     const hash=createHash('sha256').update(readFileSync(fixture(path))).digest('hex');
     assert.match(hash,/^[a-f0-9]{64}$/);
+    console.log('LFJ_I0_FIXTURE_SHA256', JSON.stringify({path,bytes,sha256:hash}));
   }
   const manifest=JSON.parse(readFileSync(fixture('Benchmarks/1885Sjson/fixture-manifest.json'),'utf8'));
   assert.equal(manifest.summary.sourceNodes,279);
