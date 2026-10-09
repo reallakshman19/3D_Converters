@@ -118,3 +118,14 @@ test('U01 admission RED: dependency changes during Worker indexing revoke source
   await assert.rejects(()=>import('./source-session.mjs').then(x=>x.openSourceSession(options)),
     e=>e?.code==='SOURCE_STALE');
 });
+
+test('U01 positive control: unchanged explicit dependency revision remains usable',async()=>{
+  const live={...makeBasis(),dependencyRevision:'stable-dependency-v1'};
+  const session=await (await import('./source-session.mjs')).openSourceSession(inputs(live));
+  try{
+    const value=await session.readOccurrence({
+      occurrenceId:id('/0/name'),expectedSourceRevision:sourceRevision,maxBytes:4096
+    });
+    assert.equal(new TextDecoder().decode(value.bytes),'"é"');
+  }finally{await session.close();}
+});
