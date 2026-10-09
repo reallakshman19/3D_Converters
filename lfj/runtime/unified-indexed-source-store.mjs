@@ -190,6 +190,12 @@ export async function openUnifiedIndexedSourceStore({
   const custody=createGenerationCustody({db,namespace,generation,now,
     ttlMs:leaseTtlMs,beforeReclaim});
   let state='STAGING',activeTx=null,buffer=[],bufferBytes=0;
+  // R05 OPEN/SEAL are a canonical nested stream. Retain only active
+  // ancestors, never a whole-source map or native unsealed OPEN index.
+  // R04 caps original nesting depth at 256; a terminal scalar may add one.
+  const MAX_OPEN_FRAMES=257;
+  let openFrames=[],openFrameBytes=0;
+  const MAX_OPEN_FRAME_BYTES=48*1024*1024;
   let publishedHere=false;
   let stagedEvents=0,opens=0,seals=0,nextOrdinal=0,busy=false;
   function usable(){
@@ -226,7 +232,7 @@ export async function openUnifiedIndexedSourceStore({
   async function abort(){
     if(state==='CLOSED')return;
     state='ABORTED';
-    buffer=[];bufferBytes=0;
+    buffer=[];bufferBytes=0;openFrames=[];openFrameBytes=0;
     try{activeTx?.abort();}catch{}
     await rollback();
   }
@@ -241,32 +247,44 @@ export async function openUnifiedIndexedSourceStore({
     let invalid=null;
     try{
       custody.fence(tx,()=>{
-      const sealed=new Set();
       for(const row of events){
-        const key=eventsKey(namespace,generation,row.occurrenceId);
         if(row.kind==='OPEN'){
-          // One native persisted compact row, never duplicate OPEN+SEAL copies.
-          pairs.add({namespace,generation,occurrenceId:row.occurrenceId,
+          const parent=openFrames.at(-1);
+          const expectedParent=parent?.occurrenceId??null;
+          const parentPath=row.path===''?null:
+            row.path.slice(0,row.path.lastIndexOf('/'));
+          if(row.parentId!==expectedParent||
+             (parent&&parent.path!==parentPath)||
+             (!parent&&row.path!=='')||
+             openFrames.length>=MAX_OPEN_FRAMES)
+            fail('UNIFIED_PAIR_CORRUPT',
+              'OPEN is not the next canonical bounded source child');
+          const frame={namespace,generation,occurrenceId:row.occurrenceId,
             ordinal:row.ordinal,path:row.path,parentId:row.parentId,
-            type:row.type,startByte:row.startByte});
+            type:row.type,startByte:row.startByte};
+          const frameBytes=encoded(frame);
+          if(openFrameBytes+frameBytes>MAX_OPEN_FRAME_BYTES)
+            fail('UNIFIED_STAGE_LIMIT',
+              'original nested OPEN stack exceeded protected memory budget');
+          openFrames.push(frame);openFrameBytes+=frameBytes;
         }else{
-          if(sealed.has(row.occurrenceId))
-            fail('UNIFIED_DUPLICATE_SEAL','source occurrence sealed twice in batch');
-          sealed.add(row.occurrenceId);
-          const req=pairs.get(key);
-          req.onsuccess=()=>{
-            const old=req.result;
-            if(!old||old.ordinal!==row.ordinal||
-               old.endByteExclusive!==undefined||
-               !integer(row.endByteExclusive)||row.endByteExclusive<=old.startByte){
-              invalid=new UnifiedSourceIndexError('UNIFIED_PAIR_CORRUPT',
-                'SEAL without exact original OPEN or duplicate SEAL');
-              try{tx.abort();}catch{}
-              return;
-            }
-            pairs.put({...old,endByteExclusive:row.endByteExclusive,
-              ...(row.ownAttributes?{ownAttributes:row.ownAttributes}:{})});
-          };
+          // R04/R05 source order requires SEAL of the most recently OPEN
+          // occurrence, including when the events cross Worker ACK pages.
+          const top=openFrames.at(-1);
+          if(!top||top.occurrenceId!==row.occurrenceId||
+             top.ordinal!==row.ordinal||
+             !integer(row.endByteExclusive)||
+             row.endByteExclusive<=top.startByte)
+            fail('UNIFIED_PAIR_CORRUPT',
+              'SEAL does not close the exact current original source frame');
+          const completed={...top,endByteExclusive:row.endByteExclusive,
+            ...(row.ownAttributes?{ownAttributes:row.ownAttributes}:{})};
+          verifyRecord(completed,basis);
+          // Exactly ONE persisted record per complete original occurrence.
+          // Native unique primary key and ordinal index independently
+          // reject duplicates. Never issue per-SEAL IDB get/put cycles.
+          pairs.add(completed);
+          openFrames.pop();openFrameBytes-=encoded(top);
         }
       }
       });
@@ -275,7 +293,7 @@ export async function openUnifiedIndexedSourceStore({
         fail('UNIFIED_ABORTED','staging completed after cancellation');
       buffer=[];bufferBytes=0;
     }catch(error){
-      state='ABORTED';buffer=[];bufferBytes=0;
+      state='ABORTED';buffer=[];bufferBytes=0;openFrames=[];openFrameBytes=0;
       try{activeTx?.abort();}catch{}
       try{await rollback();}catch{}
       throw invalid||error;
@@ -368,7 +386,10 @@ export async function openUnifiedIndexedSourceStore({
     try{
       // Keep FLUSHING state throughout awaited final persistence so no
       // new source page can race with the final generation census.
-      await flush();state='VERIFYING';
+      await flush();
+      if(openFrames.length||openFrameBytes!==0)
+        fail('UNIFIED_PAIR_CENSUS','source OPEN frames remain without canonical final SEAL');
+      state='VERIFYING';
       const complete=await census(db,namespace,generation,basis,manifest);
       if(complete!==opens)fail('UNIFIED_PAIR_CENSUS','not all pairs committed in original ordinal order');
       if(state!=='VERIFYING')fail('UNIFIED_ABORTED','generation superseded before HEAD');
@@ -447,7 +468,7 @@ export async function openUnifiedIndexedSourceStore({
     // Closing a port during the native HEAD transaction MUST abort that
     // SAME still-open transaction: db.close() alone merely waits for it
     // and could publish a HEAD after the caller believed custody ended.
-    state='CLOSED';buffer=[];bufferBytes=0;
+    state='CLOSED';buffer=[];bufferBytes=0;openFrames=[];openFrameBytes=0;
     custody.closedNotice();
     try{activeTx?.abort();}catch{}
     db.close();
