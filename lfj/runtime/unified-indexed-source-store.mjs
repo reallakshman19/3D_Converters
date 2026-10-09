@@ -208,14 +208,18 @@ export async function openUnifiedIndexedSourceStore({
     return h;
   }
   async function rollback(){
-    const tx=db.transaction(['pairs','heads'],'readwrite');
+    const tx=db.transaction(['pairs','heads','leases'],'readwrite');
     const done=txDone(tx,'UNIFIED_ROLLBACK_FAILED');
-    tx.objectStore('pairs').delete(bounds(namespace,generation,'','\uffff'));
-    const heads=tx.objectStore('heads');
-    const request=heads.get(namespace);
-    request.onsuccess=()=>{
-      if(request.result?.generation===generation)heads.delete(namespace);
-    };
+    custody.revoke(tx,()=>{
+      // A stale client may have lost the writer lease; it cannot delete
+      // another tab's same-namespace source or accepted generation.
+      tx.objectStore('pairs').delete(bounds(namespace,generation,'','\uffff'));
+      const heads=tx.objectStore('heads');
+      const request=heads.get(namespace);
+      request.onsuccess=()=>{
+        if(request.result?.generation===generation)heads.delete(namespace);
+      };
+    });
     await done;
   }
   async function abort(){
