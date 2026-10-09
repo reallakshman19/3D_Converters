@@ -32,6 +32,10 @@ try{
   assert.equal(result.widePrecommit,'UNIFIED_NOT_COMMITTED');
   assert.equal(result.wideOriginalCensus,521);
   assert.equal(result.wideLastValue,1040);
+  assert.equal(result.wideNativePairRequests.get,0,
+    'joining OPEN/SEAL must not issue one native pair get for each original occurrence');
+  assert.equal(result.wideNativePairRequestTotal,521,
+    '521 exact original source occurrences require only one native pair write each');
   assert.equal(result.successorExact,true,
     'legitimate newer source HEAD remains readable after predecessor crash');
   assert.equal(result.abandonedStagedRows,0,
