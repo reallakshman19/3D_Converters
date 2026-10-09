@@ -111,7 +111,8 @@ test('A04 fail closed: tampered original UTF-8 scalar, omitted name and non-own 
   assert.throws(()=>projectTypedOwnAttributes({...a,facts:fake}),codeIs('SCALAR_INVALID'));
   const noName=a.facts.filter(x=>x.row.path!=='/0/name');
   assert.throws(()=>projectTypedOwnAttributes({...a,facts:noName,
-    receipt:{...a.receipt,selectedCount:noName.length}}),codeIs('SOURCE_GRAPH_INVALID'));
+    receipt:{...a.receipt,selectedCount:noName.length}}),codeIs('SOURCE_CENSUS_MISMATCH'),
+    'omitted original value cannot be re-admitted by lowering the selected receipt');
   // Unsupported fake descriptor may not promote untrusted ordinary source.
   assert.throws(()=>projectTypedOwnAttributes({...a,receipt:{
     ...a.receipt,engineeringReady:true}}),codeIs('SOURCE_SCOPE_INCOMPLETE'));
