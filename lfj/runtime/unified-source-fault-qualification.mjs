@@ -47,6 +47,8 @@ try{
     'new HEAD C must preserve exact original source pair');
   assert.equal(result.replacedHeadInvisible,'UNIFIED_NOT_COMMITTED',
     'replaced A cannot continue granting source HEAD authority');
+  assert.equal(result.duplicateCommitRefusal,'UNIFIED_ALREADY_COMMITTED',
+    'a repeated commit may not abort a previously valid committed HEAD');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
