@@ -50,11 +50,44 @@ function defensive(f){
 function publicCopy(entry){
   return Object.freeze({
     receipt:entry.receipt,
+    // Detached copy of the SAME complete original Worker R05 census. This
+    // does not grant engineering authority or prove the caller's custody.
+    sourceIndexSummary:structuredClone(entry.sourceIndexSummary),
     facts:Object.freeze(entry.facts.map(f=>Object.freeze({
       row:f.row,bytes:f.bytes===null?null:new Uint8Array(f.bytes),sourceOnly:true
     }))),
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
   });
+}
+function sourceSummaryCopy(summary,expected,count){
+  if(!summary||summary.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||
+     summary.complete!==true||!sourceOnly(summary)||
+     !sameSource(summary,expected)||
+     summary.byteLength!==expected.byteLength||
+     summary.endByteExclusive!==expected.byteLength||
+     !Number.isSafeInteger(summary.occurrenceCount)||
+     summary.occurrenceCount<count||
+     !Number.isSafeInteger(summary.eventCount)||
+     summary.eventCount!==summary.occurrenceCount*2||
+     !summary.rootFacts||typeof summary.rootFacts!=='object'||
+     summary.rootFacts.schemaVersion!=='lfj-token-root-facts/v1'||
+     summary.rootFacts.complete!==true||
+     summary.rootFacts.duplicateRootKeys!==false)
+    fail('GENERATION_SUMMARY_INVALID',
+      'complete original R05 SourceSession census must match the exact source and selected subset');
+  // R01 token-derived root metadata is shallow but still caller-provided.
+  // Bound its transport size before copying, and never expose internal
+  // references to mutable original Worker facts.
+  let encoded;
+  try{encoded=JSON.stringify(summary.rootFacts);}catch{
+    fail('GENERATION_SUMMARY_INVALID','original root descriptor is not transportable');
+  }
+  if(typeof encoded!=='string'||
+     new TextEncoder().encode(encoded).byteLength>1048576)
+    fail('GENERATION_SUMMARY_INVALID','original root descriptor exceeds 1MiB transfer budget');
+  try{return structuredClone(summary);}catch{
+    fail('GENERATION_SUMMARY_INVALID','original index summary is not cloneable');
+  }
 }
 export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,maxTotalBytes=8388608}={}){
   if(typeof getCurrentBasis!=='function')
@@ -73,14 +106,17 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
       fail('APP_GENERATION_STALE','source, selection, job or master changed before promotion');
   }
   const transaction=Object.freeze({
-    begin({expectedBasis,selectedCount,rightsBasis,engineeringReady}={}){
+    begin({expectedBasis,selectedCount,sourceIndexSummary,
+      rightsBasis,engineeringReady}={}){
       if(active)fail('GENERATION_BUSY','overlapping generation staging is denied');
       const expected=copyBasis(expectedBasis);
       if(!sourceOnly({rightsBasis,engineeringReady})||
         !nat(selectedCount)||selectedCount>maxFacts)
         fail('SOURCE_LIMIT','bounded source-only declared selected count required');
       requireLive(expected);
-      active={expected,selectedCount,rows:[],ids:new Set(),lastOrdinal:-1,totalBytes:0};
+      const sourceCensus=sourceSummaryCopy(sourceIndexSummary,expected,selectedCount);
+      active={expected,selectedCount,sourceIndexSummary:sourceCensus,
+        rows:[],ids:new Set(),lastOrdinal:-1,totalBytes:0};
     },
     stage(fact){
       if(!active)fail('GENERATION_NOT_OPEN','no uncommitted consumer generation');
@@ -135,7 +171,8 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,
         // before a single synchronous pointer promotion.
         const stamp=Object.freeze({...receipt});
         const ready=Object.freeze({
-          receipt:stamp,facts:Object.freeze(working.rows.slice())
+          receipt:stamp,sourceIndexSummary:working.sourceIndexSummary,
+          facts:Object.freeze(working.rows.slice())
         });
         const result=Object.freeze({
           schema:'LFJ.3D.SourceFactsPublication.v1',committed:true,...expected,
