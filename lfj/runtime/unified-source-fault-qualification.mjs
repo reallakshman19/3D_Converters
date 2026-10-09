@@ -16,6 +16,12 @@ try{
   assert.equal(result.preCommitVisible,'UNIFIED_NOT_COMMITTED');
   assert.equal(result.casLoser,'UNIFIED_HEAD_ABORTED');
   assert.equal(result.casWinnerRetained,true);
+  assert.equal(result.mutableInputIsolated,true,
+    'ACKed original source facts cannot borrow caller mutable objects');
+  assert.equal(result.closeWhileCommitting,'UNIFIED_HEAD_ABORTED',
+    'close during native HEAD put must reject before transaction.complete');
+  assert.equal(result.closeDuringCommitVisible,'UNIFIED_NOT_COMMITTED',
+    'closed in-flight source must not publish durable HEAD on reopen');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
