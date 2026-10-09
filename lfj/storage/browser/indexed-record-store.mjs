@@ -69,7 +69,7 @@ export async function openIndexedRecordStore({
   const db=await openDb(databaseName,provided);
   const previous=await one(db,'heads',namespace);
   const expectedHead=previous?.generation??null;
-  let state='STAGING',position=0,busy=false;
+  let state='STAGING',position=0,busy=false,activeCommitTx=null;
   const ensureActive=()=>{
     if(state==='ABORTED')fail('STORE_ABORTED','session was aborted');
     if(state==='CLOSED')fail('STORE_CLOSED','database connection closed');
@@ -135,6 +135,7 @@ export async function openIndexedRecordStore({
     state='COMMITTING';
     let mismatch=false;
     const tx=db.transaction('heads','readwrite');
+    activeCommitTx=tx;
     const done=complete(tx,'STORE_COMMIT_ABORTED');
     const heads=tx.objectStore('heads');
     const check=heads.get(namespace);
@@ -155,7 +156,7 @@ export async function openIndexedRecordStore({
       await rollback();
       if(mismatch)fail('STORE_SUPERSEDED','another source generation committed first');
       throw e;
-    }
+    }finally{activeCommitTx=null;}
   }
   async function rollback(){
     const tx=db.transaction(['records','heads'],'readwrite');
@@ -172,6 +173,9 @@ export async function openIndexedRecordStore({
   async function abort(){
     if(state==='CLOSED')return;
     state='ABORTED';
+    // Abort the SAME still-open IDB head transaction. Queuing only a later
+    // cleanup transaction would permit transient visibility to other readers.
+    try{activeCommitTx?.abort();}catch{}
     await rollback(); // idempotent rollback; late stages also repeat cleanup
   }
   async function *readOrdered(){
