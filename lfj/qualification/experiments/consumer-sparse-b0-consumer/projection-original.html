@@ -50,6 +50,7 @@ window.runResolverProjectionOriginal=async({url,oracle,config={}})=>{
     if(result.schema!=='LFJ.B0.ResolverProjection.v1'||
        result.sourceOccurrences!==oracle.occurrenceCount||
        result.domainSha256!==oracle.domainSha256||
+       result.consumerManifestDigest!==oracle.consumerManifestDigest||
        result.factCount!==oracle.factCount||
        result.spatialGroupCount!==oracle.groups||
        result.traversedDomainObjects!==oracle.sourceObjects||
@@ -86,10 +87,43 @@ window.runResolverProjectionOriginal=async({url,oracle,config={}})=>{
        head.factCount!==oracle.factCount||head.sourceSha256!==oracle.sha256||
        head.consumerManifestDigest!==result.consumerManifestDigest)
       throw fail('PROJECTION_HEAD','incomplete or stale consumer projection head');
+    // A complete original source is not permission to publish a partial,
+    // wrongly bounded or stale consumer projection.
+    async function rejects(payload,wanted){
+      let code='';
+      try{await worker('./projection.worker.mjs',payload);}
+      catch(e){code=e.code;}
+      if(code!==wanted)throw fail('NEGATIVE_NOT_REJECTED',
+        wanted+' required; observed '+(code||'SUCCESS'));
+      return code;
+    }
+    const rejectBase={
+      type:'PROJECT',sourceDatabaseName:srcDb,sourceGeneration:id,
+      blob,expectedSha256:oracle.sha256,config,toleranceMm:6
+    };
+    const oversizedDb='lfj-b0-oversize-'+id;
+    const oversized=await rejects({
+      ...rejectBase,projectionDatabaseName:oversizedDb,
+      projectionGeneration:id+'-limited',branchSpanLimit:32
+    },'BRANCH_SPAN_LIMIT');
+    const oversizedStore=await openDb(oversizedDb);
+    try{
+      if(await read(oversizedStore,'active'))
+        throw fail('INVALID_HEAD','oversized source branch published a projection HEAD');
+    }finally{oversizedStore.close();}
+    const changedBlob=new Blob([blob.slice(0,blob.size-1),' ']);
+    if(changedBlob.size!==blob.size)throw fail('NEGATIVE_FIXTURE','byte length changed');
+    const changed=await rejects({
+      ...rejectBase,blob:changedBlob,
+      projectionDatabaseName:'lfj-b0-changed-'+id,
+      projectionGeneration:id+'-changed'
+    },'SOURCE_HASH_MISMATCH');
     const after=(await navigator.storage.estimate()).usage??null;
     return {schema:'LFJ.B0.ResolverSourceProjectionOracle.v1',
       originalBytes:blob.size,sourceCatalog,
       projection:result,verifiedFullDomainDigest:true,
+      negatives:{oversizedBranch:oversized,changedSource:changed,
+        oversizedHeadPublished:false},
       measurementMs:performance.now()-begin,
       storageDelta:before===null||after===null?null:after-before,
       mainThreadLongTasks:longTasks.length,
