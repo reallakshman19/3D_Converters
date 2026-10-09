@@ -32,6 +32,10 @@ try{
   assert.equal(result.widePrecommit,'UNIFIED_NOT_COMMITTED');
   assert.equal(result.wideOriginalCensus,521);
   assert.equal(result.wideLastValue,1040);
+  assert.equal(result.successorExact,true,
+    'legitimate newer source HEAD remains readable after predecessor crash');
+  assert.equal(result.abandonedStagedRows,0,
+    'staged source records of abandoned uncommitted generation must be reclaimed');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
