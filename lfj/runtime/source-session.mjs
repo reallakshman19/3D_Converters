@@ -44,7 +44,24 @@ export async function openSourceSession(options={}){
       requested.sourceSha256!==options.expectedSha256))
     fail('SOURCE_STALE','original source or selection changed before Worker admission');
   const initial=Object.freeze({...requested});
-  const underlying=await runCommittedSourceQuery(options);
+  // R10 is an accepted source-only port; it does not transport an opaque
+  // dependencyRevision. Its R07 lifecycle compares missing dependencyRevision
+  // with undefined and would reject a VALID external dependency if forwarded.
+  // Project the caller's source basis without that property while converting
+  // an observed dependency mutation into an explicit stale source revision.
+  // This permits R07's native Worker/commit fencing to fail closed as soon as
+  // it polls the supplied live basis, rather than after the source is accepted.
+  function projectedCurrentBasis(){
+    const live=getCurrentBasis();
+    if(live?.dependencyRevision!==initial.dependencyRevision)
+      return {...live,sourceRevision:'LFJ_DEPENDENCY_STALE'};
+    if(!live||typeof live!=='object')return live;
+    const {dependencyRevision:_opaque, ...sourceBasis}=live;
+    return sourceBasis;
+  }
+  const underlying=await runCommittedSourceQuery({
+    ...options,getCurrentBasis:projectedCurrentBasis
+  });
   const basis=underlying.sourceBasis;
   const summary=underlying.summary;
   let closed=false;
