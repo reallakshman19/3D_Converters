@@ -261,7 +261,7 @@ window.runUnifiedFaultMatrix=async()=>{
         const tx=db.transaction('pairs','readonly');
         const request=tx.objectStore('pairs').count(
           IDBKeyRange.bound([namespace,abandoned.generation,''],
-            [namespace,abandoned.generation,'\\uffff']));
+            [namespace,abandoned.generation,'\uffff']));
         request.onsuccess=()=>resolve(request.result);
         request.onerror=()=>reject(request.error);
       });
