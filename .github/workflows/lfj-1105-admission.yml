@@ -1,0 +1,75 @@
+name: LFJ 1105 provisional admission (V3.2 exact pinned checker)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/lfj-1105-admission.yml'
+      - 'lfj/governance/lfj-1105.provisional-graph.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-v32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attest exact checker and source graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object lfj/governance/pinned-v32/delp_projection_v32.py)" = "c3666c16c4d0d0b113a05a6a1467b09d6cdc1858"
+          python3 -m py_compile lfj/governance/pinned-v32/delp_projection_v32.py
+          test "$(git hash-object lfj/governance/structured-data-v4.execution-graph.json)" = "715af4f44f91dae107894679c57bc3875f4ab72e"
+          printf 'COMMON_PINNED_BLOB=c3666c16c4d0d0b113a05a6a1467b09d6cdc1858\n'
+          printf 'CANONICAL_LFJ_GRAPH_BLOB=715af4f44f91dae107894679c57bc3875f4ab72e\n'
+      - name: V3.2 ENFORCED canonical decomposition
+        shell: bash
+        run: |
+          set -euo pipefail
+          checker=lfj/governance/pinned-v32/delp_projection_v32.py
+          graph=lfj/governance/structured-data-v4.execution-graph.json
+          python3 "$checker" validate-graph --graph "$graph"
+          python3 "$checker" decompose-check --graph "$graph" --mode ENFORCED --json | tee canonical-decompose.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('canonical-decompose.json'))
+          print('CANONICAL_RELEASE_STATE=', x.get('release_state'))
+          print('CANONICAL_PROPOSAL_DIGEST=', x.get('proposal_digest'))
+          assert x.get('release_state')=='RELEASEABLE'
+          assert x.get('proposal_digest')=='sha256:a52f221e3ba736fe2f76c203ce5608b8b8fb612daa067f9d84958ceab8e11c9d'
+          PY
+      - name: V3.2 canonical graph-diff (preserve original programme)
+        shell: bash
+        run: |
+          set -euo pipefail
+          checker=lfj/governance/pinned-v32/delp_projection_v32.py
+          # The canonical blob was attested above to the immutable main Git blob.
+          # This no-change graph-diff proves the #1105 local proposal does not alter V4.
+          cp lfj/governance/structured-data-v4.execution-graph.json old-v4.json
+          python3 "$checker" graph-diff --old old-v4.json --new lfj/governance/structured-data-v4.execution-graph.json --json | tee v4-graph-diff.json
+      - name: V3.2 local provisional subprogramme decompose
+        shell: bash
+        run: |
+          set -euo pipefail
+          graph=lfj/governance/lfj-1105.provisional-graph.json
+          checker=lfj/governance/pinned-v32/delp_projection_v32.py
+          python3 "$checker" validate-graph --graph "$graph"
+          python3 "$checker" decompose-check --graph "$graph" --mode ENFORCED --json | tee provisional-decompose.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('provisional-decompose.json'))
+          print('PROVISIONAL_RELEASE_STATE=',x.get('release_state'))
+          print('PROVISIONAL_PROPOSAL_DIGEST=',x.get('proposal_digest'))
+          assert x.get('release_state')=='RELEASEABLE'
+          PY
+      - name: Preserve raw gate results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-1105-v32-admission
+          path: |
+            canonical-decompose.json
+            v4-graph-diff.json
+            provisional-decompose.json
+          if-no-files-found: warn
