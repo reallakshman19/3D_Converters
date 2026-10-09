@@ -12,6 +12,7 @@ try {
   assert.deepEqual(result.pageOrdinals,[90,91,92,93,94,95,96]);
   assert.equal(result.recoveredPage,true);
   assert.equal(result.abortBeforeCompleteInvisible,true);
+  assert.equal(result.cancelDuringCommitInvisible,true);
   assert.equal(result.noStorageExplicit,true);
   console.log('STORE-GATE actual IndexedDB source/selection indexed persistence + abort-before-complete: PASS');
 }finally{await browser.close();}
