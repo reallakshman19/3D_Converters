@@ -4,7 +4,8 @@
  * bounded, consumer-specific working tree from prior sparse projection facts.
  * No original full-JSON parse in Worker; no production UI/export authority.
  */
-import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
+import {assertResearchXmlDocument,assertResearchXmlConsumerPopulation} from
+  './xml-input-integrity.mjs';
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
 import {normalizedResolverProjectionFact} from
   '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
@@ -92,7 +93,7 @@ export async function compareSourceProjectionToXml({
   // A complete-looking ledger is not evidence that the XML itself was valid.
   // Reject malformed/unsupported document syntax before opening any source
   // index or invoking the legacy regex-based Resolver/CSV serializers.
-  assertResearchXmlDocument(xmlText);
+  const originalXmlPopulation=assertResearchXmlDocument(xmlText);
   const source=await openPagedSourceQuery({
     databaseName:sourceDatabaseName,generation:sourceGeneration,
     blob,expectedSha256
@@ -209,6 +210,7 @@ export async function compareSourceProjectionToXml({
       jsonConfig:config
     });
     const recordsOut=assertCompleteResearchXmlLedger(result);
+    assertResearchXmlConsumerPopulation(originalXmlPopulation,recordsOut.length);
     const nodeCsv=buildXmlNodeWiseTraceCsv(result);
     const evidenceCsv=buildEvidenceTreeCsv(result);
     const statusCounts=recordsOut.reduce((a,row)=>{
