@@ -1,0 +1,54 @@
+name: Stage 1 Fixture ZIP Readback Audit
+on:
+  push:
+    branches:
+      - stage1-fixture-zip-audit-20261009
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-immutable-zip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download exact GitHub ZIP, extract, run packaged verifier
+        shell: bash
+        env:
+          PACKAGE_SHA: 2f2cb686e7d5107b3e8f02dae941d4e3ad632cfa
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stage1-package
+          cd /tmp/stage1-package
+          curl --fail --location --silent --show-error --retry 4 --retry-all-errors \
+            "https://codeload.github.com/reallaksh19/3D_Converters/zip/${PACKAGE_SHA}" \
+            --output package.zip
+          python3 - <<'PY'
+          import zipfile, os, pathlib, hashlib
+          archive=pathlib.Path('package.zip')
+          print('ZIP_DOWNLOADED bytes=',archive.stat().st_size)
+          print('ZIP_SHA256=',hashlib.sha256(archive.read_bytes()).hexdigest())
+          with zipfile.ZipFile(archive) as z:
+              bad=z.testzip()
+              if bad: raise AssertionError('bad ZIP entry: '+bad)
+              names=z.namelist()
+              roots={n.split('/')[0] for n in names}
+              assert len(roots)==1,roots
+              for n in names:
+                  p=pathlib.PurePosixPath(n)
+                  assert not p.is_absolute() and '..' not in p.parts,n
+              z.extractall('extracted')
+          root=pathlib.Path('extracted')/next(iter(roots))
+          print('ZIP_EXTRACTED root=',root,'files=',sum(p.is_file() for p in root.rglob('*')))
+          print('ROOT='+str(root.resolve()))
+          target=root/'reallaksh19/Common/skills/engineering-pr-delivery-v3.2/SKILL.md'
+          content=target.read_bytes()
+          assert len(content)==31395,len(content)
+          assert hashlib.sha256(content).hexdigest()=='50c44b90e8d63fda0bacf5d6750578c2392ae5ad5fe0ca0ab78ee88363d8a1e5'
+          print('SKILL_BYTES_AND_SHA256=PASS',len(content))
+          os.chdir(root)
+          import subprocess
+          subprocess.run(['python3','verify_package.py'],check=True)
+          print('EXTRACTED_ARCHIVE_VERIFICATION=PASS')
+          PY
