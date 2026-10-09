@@ -1,4 +1,4 @@
-name: LFJ 1128 source page byte/count contract RED
+name: LFJ 1128 R05-R10 exact source page count and bytes
 on:
   pull_request:
     branches: [main]
@@ -25,7 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Independent original-source RED on actual Worker and R05 source
+      - name: Independent original-source count/UTF8 byte regression
         run: node --test lfj/qualification/provisional/source-page-wire-budget.test.mjs
-      - name: No production/source changes during RED
+      - name: Full R05 original byte/identity/revision/pointer native Node suite
+        run: node --test lfj/index/*.test.mjs
+      - name: Full R10 source port and selected-worker parity native Node suite
+        run: node --test lfj/ports/*.test.mjs
+      - name: Source tree unchanged after exact-head native tests
         run: test -z "$(git status --porcelain)"
