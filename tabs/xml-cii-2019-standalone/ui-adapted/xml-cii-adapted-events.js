@@ -84,6 +84,10 @@ async function runResolverLfjFileFromUi(file,stateRef,render){
 function renderResolverLfjSourceControl(container,stateRef,render){
   const target=container.querySelector('[data-action="build-resolver-index"]');
   if(!target||!target.parentNode)return;
+  // Renderer may rebind without replacing its entire subtree. Never
+  // accumulate duplicate controls/event listeners across rerenders.
+  target.parentNode.querySelector('[data-resolver-lfj-control="true"]')?.remove();
+  target.parentNode.querySelector('[data-resolver-lfj-status="true"]')?.remove();
   const label=document.createElement('label');
   label.dataset.resolverLfjControl='true';
   label.textContent='Staged source engine: ';
@@ -211,8 +215,16 @@ export function bindSourceEvents(container, stateRef, render) {
       return;
     }
     try{
+      // Explicit old-engine choice only. The selected File is registered
+      // before awaiting its text; a second pick supersedes the first read.
+      const legacyToken='legacy-ui-'+globalThis.crypto.randomUUID();
+      stateRef.current=updateWorkflowState(stateRef.current,{
+        stagedJsonFile:file,resolverLfjJobToken:legacyToken
+      });
       const text=file?await readTextFile(file):'';
-      if(stateRef.current.resolverLfjMode==='LFJ')return;
+      if(stateRef.current.resolverLfjMode==='LFJ'||
+         stateRef.current.resolverLfjJobToken!==legacyToken||
+         stateRef.current.stagedJsonFile!==file)return;
       replaceState(stateRef,updateWorkflowState(stateRef.current,
         clearResolverLfjOutputs({stagedJsonFile:file,stagedJsonText:text,result:null,
           resolverLfjJobToken:'',resolverLfjStatus:'Legacy staged source selected.'})),render);
@@ -322,7 +334,10 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'clear-master-context', () => clearMasterContextFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   for (const kind of ['enriched', 'cii', 'diagnostics', 'manifest']) onClick(container, `download-${kind}`, () => downloadArtifact(stateRef.current, kind));
-  onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
+  onClick(container, 'clear', () => {
+    revokeResolverLfjJob(stateRef);
+    replaceState(stateRef,resetWorkflowState(),render);
+  });
 }
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
