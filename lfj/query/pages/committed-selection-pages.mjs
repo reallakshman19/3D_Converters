@@ -157,31 +157,73 @@ export function createCommittedSelectionPager({
       if(state!=='COMMITTED')
         fail('PAGE_SESSION_ABORTED','indexed page was read after cancellation');
       current();
-      let bytes=0,previous=lastPageOrdinal;
+      // Validate the whole bounded backend batch *before* deciding which
+      // prefix to publish. A corrupted late row must not be hidden by
+      // envelope-fitting: its source/epoch/ordinal basis remains authoritative.
+      let rowBytes=0,previous=lastPageOrdinal;
+      const widths=[];
       for(const row of rows){
         if(row?.kind!=='OPEN'||!same(row,basis)||
            !validOccurrenceId(row.occurrenceId)||!Number.isSafeInteger(row.ordinal)||
            row.ordinal<=previous)
           fail('PAGE_ROW_INVALID','paged source record is not complete, ordered or current');
         previous=row.ordinal;
-        bytes+=size(row);
-        if(bytes>maxBytes)fail('PAGE_STORE_OVERLIMIT','backend exceeded requested serialized byte cap');
+        const width=size(row);
+        rowBytes+=width;
+        if(rowBytes>maxBytes)
+          fail('PAGE_STORE_OVERLIMIT','backend exceeded requested serialized row byte cap');
+        widths.push(width);
       }
-      const offset=start+rows.length,complete=offset===total;
-      const token=complete?null:globalThis.crypto.randomUUID();
-      const output=Object.freeze({
+      // The caller budgets the *entire* JSON wire envelope, not only records.
+      // Compute a fixed empty-envelope size for both cursor modes once; each
+      // row contributes its serialized bytes plus exactly one array comma.
+      // This is O(bounded returned records), not repeated whole-page stringify.
+      const candidateToken=globalThis.crypto.randomUUID();
+      const envelope=(selected,token,complete)=>({
         schema:'LFJ.CommittedSelectionPage.v1',complete,
-        rows:Object.freeze(rows.map(row=>Object.freeze({...row}))),cursor:token,
-        totalCount:total,...basis,selectionDigest,jobEpoch,
-        rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
+        rows:selected,cursor:token,totalCount:total,...basis,
+        selectionDigest,jobEpoch,rightsBasis:'SOURCE_FACTS_ONLY',
+        engineeringReady:false
       });
-      // The caller's byte budget applies to the ENTIRE response including
-      // source/epoch/cursor metadata, not only the selected row array.
-      // A rejected response must not consume a cursor or advance an offset.
+      const nonterminalOverhead=size(envelope([],candidateToken,false));
+      const terminalOverhead=size(envelope([],null,true));
+      let fitting=0,cumulative=0;
+      for(let i=0;i<rows.length;i++){
+        cumulative+=widths[i];
+        const count=i+1,terminal=start+count===total;
+        const envelopeBytes=(terminal?terminalOverhead:nonterminalOverhead)+
+          cumulative+(count-1); // JSON commas between serialized row entries
+        if(envelopeBytes<=maxBytes)fitting=count;
+      }
+      if(start<total&&fitting===0){
+        // A row which cannot fit with the required source+cursor envelope
+        // must fail with an explicit typed error; never emit an empty page
+        // and consume a cursor, and never silently omit that occurrence.
+        if(rows.length===0){
+          // Distinguish a physically absent committed row from a row whose
+          // own serialized bytes exhaust the caller's page budget.
+          const probe=await store.readRange(start,1,LIMIT_BYTES);
+          if(!Array.isArray(probe)||probe.length!==1)
+            fail('PAGE_STORE_INCOMPLETE','committed store has no first row at offset');
+        }
+        fail('PAGE_ROW_OVERSIZE','single source record plus required page envelope exceeds byte cap');
+      }
+      if(start<total&&rows.length===0)
+        fail('PAGE_STORE_INCOMPLETE','committed store has no page at expected indexed offset');
+      const offset=start+fitting,complete=offset===total;
+      const token=complete?null:candidateToken;
+      const chosen=rows.slice(0,fitting);
+      const output=Object.freeze(envelope(
+        Object.freeze(chosen.map(row=>Object.freeze({...row}))),token,complete
+      ));
+      // Recheck exact actual serialized representation rather than trusting
+      // even a mathematically equivalent estimate from an injected store.
       if(size(output)>maxBytes)
         fail('PAGE_WIRE_OVERLIMIT','serialized page envelope exceeds byte cap');
       // Advance only after the complete response and its budget are validated.
-      nextOffset=offset;nextCursor=token;lastPageOrdinal=previous;usedFirst=true;
+      nextOffset=offset;nextCursor=token;
+      lastPageOrdinal=fitting?rows[fitting-1].ordinal:lastPageOrdinal;
+      usedFirst=true;
       return output;
     }finally{reading=false;}
   }
