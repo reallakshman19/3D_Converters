@@ -56,11 +56,12 @@ function publicCopy(entry){
     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false
   });
 }
-export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096}={}){
+export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096,maxTotalBytes=8388608}={}){
   if(typeof getCurrentBasis!=='function')
     fail('APP_BASIS_REQUIRED','actual app source/scope/dependency getter is mandatory');
-  if(!Number.isSafeInteger(maxFacts)||maxFacts<1||maxFacts>4096)
-    fail('SOURCE_LIMIT','bounded source-fact generation 1..4096 required');
+  if(!Number.isSafeInteger(maxFacts)||maxFacts<1||maxFacts>4096||
+    !Number.isSafeInteger(maxTotalBytes)||maxTotalBytes<1||maxTotalBytes>8388608)
+    fail('SOURCE_LIMIT','bounded fact count 1..4096 and cumulative source bytes 1..8MiB required');
   let active=null,visible=null;
   const live=(getter)=>{
     let value;
@@ -79,7 +80,7 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096}
         !nat(selectedCount)||selectedCount>maxFacts)
         fail('SOURCE_LIMIT','bounded source-only declared selected count required');
       requireLive(expected);
-      active={expected,selectedCount,rows:[],lastOrdinal:-1};
+      active={expected,selectedCount,rows:[],lastOrdinal:-1,totalBytes:0};
     },
     stage(fact){
       if(!active)fail('GENERATION_NOT_OPEN','no uncommitted consumer generation');
@@ -88,10 +89,14 @@ export function createSourceFactsGenerationStore({getCurrentBasis,maxFacts=4096}
          active.rows.length>=maxFacts)
         fail('SOURCE_LIMIT','stage cannot exceed receipt or bounded generation ceiling');
       const f=defensive(fact),r=f.row;
+      const extra=f.bytes?.byteLength??0;
+      if(active.totalBytes+extra>maxTotalBytes)
+        fail('SOURCE_LIMIT','combined original UTF-8 scalar bytes exceed generation budget');
       if(!sameSource(r,active.expected)||r.ordinal<=active.lastOrdinal||
         r.startByte>=active.expected.byteLength)
         fail('GENERATION_FACT_INVALID','staged facts must match exact original source and increase in ordinal');
       active.lastOrdinal=r.ordinal;
+      active.totalBytes+=extra;
       active.rows.push(f);
     },
     // Intentionally synchronous: no await or independent JS task may interleave
