@@ -1,0 +1,44 @@
+name: LFJ V4.1 STORE real IndexedDB durability and paged query
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/storage/browser/**'
+      - '.github/workflows/lfj-v41-store.yml'
+  push:
+    branches: [lfj/v41-real-indexeddb-store]
+    paths:
+      - 'lfj/storage/browser/**'
+      - '.github/workflows/lfj-v41-store.yml'
+permissions:
+  contents: read
+jobs:
+  chromium-indexeddb:
+    name: Real Chromium IndexedDB source/selection persistence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact Playwright runner
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve real repo ES modules
+        run: |
+          python3 -m http.server 4181 --bind 127.0.0.1 >/tmp/lfj-v41-idb.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4181/lfj/storage/browser/indexed-store-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-v41-idb.log
+          exit 1
+      - name: Actual source/index range and crash visibility acceptance
+        run: |
+          git rev-parse HEAD
+          node lfj/storage/browser/indexed-store-qualification.mjs
+          node lfj/storage/browser/committed-indexeddb-qualification.mjs
+      - name: No fixture edits
+        run: test -z "$(git status --porcelain)"
