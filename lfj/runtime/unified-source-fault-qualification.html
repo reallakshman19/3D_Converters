@@ -195,6 +195,37 @@ window.runUnifiedFaultMatrix=async()=>{
     }finally{poisoned.close();}
   }finally{await cleanup(attr);}
 
+  // A valid R10 message may exceed the *native transaction* limit while
+  // remaining below its own 4096-event/1MiB wire cap. Prove the source port
+  // splits 1042 authentic-shaped original events without weakening the
+  // complete-generation manifest or leaking a precommit HEAD.
+  const wide=await make('over-1024-event-message');
+  try{
+    const count=520,events=[open];
+    for(let i=0;i<count;i++){
+      const path='/'+i,id=JSON.stringify(['lfj-json-value/v1',
+        basis.sourceRefId,basis.sourceRevision,path]);
+      events.push({...open,occurrenceId:id,ordinal:i+1,path,
+        parentId:occurrenceId,startByte:i*2+1});
+      events.push({...seal,occurrenceId:id,ordinal:i+1,
+        endByteExclusive:i*2+2});
+    }
+    events.push({...seal,endByteExclusive:count*2+2});
+    await wide.port.stagePage(events);
+    outcomes.widePrecommit=await lookup(wide);
+    await wide.port.commitDurably({...manifest,
+      occurrenceCount:count+1,eventCount:events.length,
+      byteLength:count*2+2});
+    let rows=0;
+    for await(const record of wide.port.readOrdered()){
+      if(record.ordinal!==rows++)throw Error('UNIFIED_WIDE_ORDER');
+    }
+    outcomes.wideOriginalCensus=rows;
+    outcomes.wideLastValue=(await wide.port.lookupCommittedPair(
+      JSON.stringify(['lfj-json-value/v1',basis.sourceRefId,
+        basis.sourceRevision,'/'+(count-1)]))).seal.endByteExclusive;
+  }finally{await cleanup(wide);}
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
