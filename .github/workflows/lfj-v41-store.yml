@@ -39,5 +39,6 @@ jobs:
         run: |
           git rev-parse HEAD
           node lfj/storage/browser/indexed-store-qualification.mjs
+          node lfj/storage/browser/committed-indexeddb-qualification.mjs
       - name: No fixture edits
         run: test -z "$(git status --porcelain)"
