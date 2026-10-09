@@ -16,6 +16,16 @@
       "expectedEngineeringOutputStatus": "GENERATED_CANDIDATE_REQUIRES_INDEPENDENT_APPROVAL"
     },
     {
+      "id": "1885Sjson-stage1-generated",
+      "path": "Benchmarks/1885Sjson/EnrichedSjson",
+      "bytes": 1785455,
+      "sha256": "e9a51723444e9490f5dff9c1ff4a5c56191873033d11a289946746ff1072c5da",
+      "role": "generated-master-enriched-intermediate",
+      "generatedBy": "tools/generate-1885-stagedjson-fixtures.mjs",
+      "expectedEngineeringOutputStatus": "STAGE2_GENERATED_CANDIDATE_NOT_INDEPENDENT_ORACLE",
+      "upstreamOriginalSourceId": "1885Sjson-small"
+    },
+    {
       "id": "1885_NC-real10",
       "path": "Benchmarks/1885_NC/1885_NC.json",
       "bytes": 10232634,
