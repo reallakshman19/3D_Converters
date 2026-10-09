@@ -117,7 +117,7 @@
               "weight": 25
             }
           ],
-          "outcome": "XML_Compare_Utilities contains a physically installed, source-pinned LFJ source-processing package usable from its actual Pages-staged browser origin and Node without changing live consumer behavior.",
+          "outcome": "XML_Compare_Utilities independently obtains a complete, source-backed LFJ session from its installed local release: original bytes remain readable after durable index completion, selections remain exhaustive, and invalid source generations fail closed without modifying existing applications.",
           "independence_basis": "Independent XCU real Pages staging and Chromium original-byte/Worker/IDB oracle with source/served asset SHA from upstream immutable commit.",
           "semantic_units": [
             {
@@ -145,7 +145,7 @@
               "id": "U04",
               "kind": "SEMANTIC",
               "weight": 25,
-              "outcome": "XCU pinned LFJ release survives coherent rollback/mixed cache negative tests without changing application files",
+              "outcome": "XCU retains a coherent previous source-processing release after rollback and rejects stale mixed-version artifacts or incompatible persisted generations without changing any existing application source or engineering authority.",
               "verify": "Compare prior supported runtime, corrupt missing module/IDB schema rollback, unchanged existing app source"
             }
           ],
