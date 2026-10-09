@@ -25,7 +25,10 @@ test('U01 RED: complete source-order OPEN census, including descendants and unse
   const summary=await streamJsonOccurrenceEvents(s,{
     sourceRefId:'PL01',pageEvents:3,
     onEventPage:async page=>pages.push(page),
-    pageBytes:1,
+    // This test checks byte-truth and occurrence ordering, not an impossible
+    // one-byte JSON event page. R05 now enforces independent input/output
+    // page budgets, preserving original 1-byte R04 reads.
+    pageBytes:65536,sourceReadPageBytes:1,
   });
   const all=pages.flat(),opens=all.filter(e=>e.kind==='OPEN'),seals=all.filter(e=>e.kind==='SEAL');
   assert.deepEqual(opens.map(e=>e.path),goldenPointers);
@@ -65,4 +68,16 @@ test('U01 RED: async page sink rejection must fail instead of returning an accep
     sourceRefId:'PL01',pageEvents:1,onEventPage:async()=>{throw expected;},
   }),e=>e===expected);
   s.close();
+});
+
+
+test('R05 source byte budget refuses an unfit original row without staged output',async()=>{
+  const s=snap('{"original":"long value"}',2),pages=[];
+  try{
+    await assert.rejects(()=>streamJsonOccurrenceEvents(s,{
+      sourceRefId:'R05-BUDGET-NEGATIVE',pageEvents:4096,pageBytes:1,
+      onEventPage:async p=>pages.push(p),
+    }),e=>e?.code==='SOURCE_EVENT_PAGE_LIMIT');
+    assert.equal(pages.length,0,'no incomplete or oversized source page was acknowledged');
+  }finally{s.close();}
 });
