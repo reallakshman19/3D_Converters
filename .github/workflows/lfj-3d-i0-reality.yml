@@ -26,3 +26,39 @@ jobs:
             exit 1
           fi
           echo "KNOWN SOURCE DEFECTS REPRODUCED; LIVE INTEGRATION IS NOT VERIFIED."
+
+  legacy-enrichment-browser:
+    name: Actual docs Enrichment UI file to engineering to downloads (baseline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real Chromium for UI journey
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve genuine deployment root, not test fixture app
+        run: |
+          python3 -m http.server 4182 --bind 127.0.0.1 --directory docs >/tmp/lfj-3d-docs.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4182/tabs/stagedjson-to-enrichxml/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-3d-docs.log
+          exit 1
+      - name: Actual user journey and source-domain output receipt (NOT LFJ release pass)
+        env:
+          LFJ_I0_RECEIPT_DIR: ${{ runner.temp }}/lfj-3d-receipts
+        run: |
+          git rev-parse HEAD
+          node lfj/acceptance/3d-converters/enrichment-browser-baseline.mjs
+      - name: Upload independently inspectable browser result receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-3d-enrichment-browser-baseline
+          path: ${{ runner.temp }}/lfj-3d-receipts/
+          if-no-files-found: warn
