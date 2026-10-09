@@ -21,6 +21,10 @@ try{
     'source first-head must be withdrawn when pair second-head aborts');
   assert.equal(found.headAbortPairVisible,'PAIR_ABORTED',
     'aborted pair port cannot return original source');
+  assert.equal(found.pairedBeforeSourceAbort,true,
+    'both source and pair heads must initially grant same generation');
+  assert.equal(found.orphanPairRefused,'STORE_ABORTED',
+    'pair head alone cannot authorize original source after original source head is aborted');
   assert.equal(found.reopenedPairValid,true,
     'source OPEN/SEAL pair must persist across fresh IndexedDB connection');
   assert.equal(found.corruptPair,'PAIR_CORRUPT',
