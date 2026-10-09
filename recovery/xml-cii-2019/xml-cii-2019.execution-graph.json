@@ -1,0 +1,393 @@
+{
+  "schema": "relay-v3.2-delp-execution-graph",
+  "programme": {
+    "id": "XMLCII2019-RECOVERY-20261009",
+    "root": "reallaksh19/3D_Converters#1136",
+    "repository": "reallaksh19/3D_Converters",
+    "base_ref": "main",
+    "total_weight": 100,
+    "acceptance_claims": [
+      {
+        "id": "PB1",
+        "kind": "SEMANTIC",
+        "weight": 22,
+        "claim": "4 Preview computes a complete source/master-revision-bound and reviewable engineering FactRecord population and actual UI button terminates visibly."
+      },
+      {
+        "id": "PB2",
+        "kind": "SEMANTIC",
+        "weight": 22,
+        "claim": "Weight Match-1 and Final Match-2 use the same physical facts/scorer but preserve separate explicit accepted decisions and full eligible population."
+      },
+      {
+        "id": "PB3",
+        "kind": "SEMANTIC",
+        "weight": 16,
+        "claim": "Class/material/B31.3 fields receive only governed sourced or explicitly accepted authority, rejecting ambiguity without wrong fallbacks."
+      },
+      {
+        "id": "PB4",
+        "kind": "SEMANTIC",
+        "weight": 28,
+        "claim": "Actual Mode A and Mode B execution emits independently correct original-occurrence enriched XML and final CII with conserved physical mass."
+      },
+      {
+        "id": "PG1",
+        "kind": "DELIVERY_GATE",
+        "weight": 12,
+        "claim": "The exact deployed standalone tab passes real owner-scale Chromium journeys, negative oracles, performance and artifact provenance."
+      }
+    ],
+    "decomposition_policy": {
+      "mode": "ENFORCED",
+      "units": {
+        "min": 3,
+        "max": 8,
+        "max_share_percent": 40
+      },
+      "leaf_budget": {
+        "target_loc": 700,
+        "hard_loc": 1500,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "claim_first": {
+        "mode": "ENFORCED",
+        "require_independence_basis": true
+      },
+      "require": {
+        "outcome": true,
+        "verify": true,
+        "write_surface": true,
+        "size_budget": true
+      }
+    },
+    "decomposition_proposal": {
+      "version": "V2",
+      "responsibilities": [
+        {
+          "id": "B1_PREVIEW",
+          "work_class": "PRODUCT",
+          "owns_claims": [
+            "PB1"
+          ],
+          "claim_allocations": [
+            {
+              "claim_id": "PB1",
+              "weight": 22
+            }
+          ],
+          "outcome": "The actual 4 Preview button produces complete, revision-bound engineering facts for all selected physical components at the four-master owner scale.",
+          "independence_basis": "Preview FactRecords and rendered actual browser UI can be checked against independent XML/master golden before Weight or Run.",
+          "semantic_units": [
+            {
+              "id": "U01",
+              "kind": "SEMANTIC",
+              "weight": 30,
+              "outcome": "Actual Preview click reveals measured hot paths and distinct rejected staged-source failure instead of unknown spinning.",
+              "verify": "Chromium owner-scale 385/10699/383/1595 data timings and pre-fix RED"
+            },
+            {
+              "id": "U02",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Every original physical component has exact basis-bound complete sourced/proposed/reviewable facts.",
+              "verify": "Independent XML+master FactRecord oracle with duplicate -1 and same-length source/master collision negatives"
+            },
+            {
+              "id": "U03",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Preview completes in bounded Worker-backed interaction or terminal recoverable error without skipping hidden components.",
+              "verify": "Chromium actual button + cancellation/retry/source switch + full-population paging"
+            },
+            {
+              "id": "U04",
+              "kind": "SEMANTIC",
+              "weight": 20,
+              "outcome": "Correct facts and UI at owner scale are observed in authored docs Chromium and protected source/docs parity.",
+              "verify": "Cold/warm browser metrics, screenshots, exact source/master field oracle"
+            }
+          ],
+          "size_budget": {
+            "target_loc": 450,
+            "hard_loc": 950,
+            "target_minutes": 15,
+            "hard_minutes": 20
+          },
+          "write_surface": [
+            "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js",
+            "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js",
+            "tests/recovery-preview/"
+          ],
+          "acceptance_methods": [
+            "owner-scale Chromium click",
+            "immutable input basis and original source census",
+            "full fact population independent oracle",
+            "rejected staging and worker crash fail-visible"
+          ]
+        },
+        {
+          "id": "B2_WEIGHT",
+          "work_class": "PRODUCT",
+          "owns_claims": [
+            "PB2"
+          ],
+          "claim_allocations": [
+            {
+              "claim_id": "PB2",
+              "weight": 22
+            }
+          ],
+          "outcome": "Match-1 and Match-2 keep separate accepted reviewed physical masses from one canonical scorer for all eligible original components.",
+          "independence_basis": "Actual Match-1 and single/consolidated Final review can be verified against weight golden with a stable contracted FactSnapshot.",
+          "semantic_units": [
+            {
+              "id": "U01",
+              "kind": "SEMANTIC",
+              "weight": 30,
+              "outcome": "Actual single and consolidated review surfaces reconcile exact original physical component weight basis.",
+              "verify": "Chromium 1595-row source/weight census, 59kg vs 15kg and explicit units"
+            },
+            {
+              "id": "U02",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "One deterministic ranker supplies candidates without auto-accepting guesses or writing default zero.",
+              "verify": "Independent ±6mm/bore/rating/top-five and reject oracle"
+            },
+            {
+              "id": "U03",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Explicit Match-1 and later Final Match-2 decisions are separately immutable, versioned and complete beyond visible pages.",
+              "verify": "Chromium revision-command tests, full bulk pagination, cancel and stale master rejection"
+            },
+            {
+              "id": "U04",
+              "kind": "SEMANTIC",
+              "weight": 20,
+              "outcome": "Both review journeys preserve correct final approved mass under source revisions and splits.",
+              "verify": "Chromium single/consolidated popups, 1595-row scale, child mass conservation golden"
+            }
+          ],
+          "size_budget": {
+            "target_loc": 450,
+            "hard_loc": 950,
+            "target_minutes": 15,
+            "hard_minutes": 20
+          },
+          "write_surface": [
+            "tabs/xml-cii-2019-standalone/weight-review/",
+            "tests/recovery-weight/"
+          ],
+          "acceptance_methods": [
+            "real Chromium Match-1 and both Final popups",
+            "independent accepted kg vs proposal oracle",
+            "1595-row weight dataset",
+            "stale/cancel/duplicate-node negative cases"
+          ]
+        },
+        {
+          "id": "B3_MATERIAL",
+          "work_class": "PRODUCT",
+          "owns_claims": [
+            "PB3"
+          ],
+          "claim_allocations": [
+            {
+              "claim_id": "PB3",
+              "weight": 16
+            }
+          ],
+          "outcome": "The exact class/material/B31.3 source facts, suggestions and accepted overrides remain distinct and final ambiguity blocks Run.",
+          "independence_basis": "A known class 91261/91261M7/106 and conflicting suggestions produce source-oracle expected authority before final mass or CII consumers.",
+          "semantic_units": [
+            {
+              "id": "U01",
+              "kind": "SEMANTIC",
+              "weight": 30,
+              "outcome": "Class, material, suffix/base applicability and fallback cases have independently sourced golden authority.",
+              "verify": "Real master 91261/91261M7/ASTM A106-B/106 vs 420 negative oracle"
+            },
+            {
+              "id": "U02",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Ambiguous or missing material remains unapproved, while uniquely supported evidence can be accepted with provenance.",
+              "verify": "Class/material conflicting rows test fail-closed and unique positive"
+            },
+            {
+              "id": "U03",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Approved material and B31.3 decisions are revision-bound through Preview to output with no policy weakening.",
+              "verify": "Same-length master revision invalidation and stale override deny"
+            },
+            {
+              "id": "U04",
+              "kind": "SEMANTIC",
+              "weight": 20,
+              "outcome": "Real Chromium Preview/Run shows correct positive and blocked negative material flow into parsed outputs.",
+              "verify": "Browser screenshots, dialogs, independent final XML/CII material diff"
+            }
+          ],
+          "size_budget": {
+            "target_loc": 450,
+            "hard_loc": 950,
+            "target_minutes": 15,
+            "hard_minutes": 20
+          },
+          "write_surface": [
+            "tabs/xml-cii-2019-standalone/material-governance/",
+            "tests/recovery-material/"
+          ],
+          "acceptance_methods": [
+            "91261 91261M7 governed evidence",
+            "B31.3 fail-closed negatives",
+            "actual Preview and Run Chromium",
+            "parsed final XML/CII material oracle"
+          ]
+        },
+        {
+          "id": "B4_CII",
+          "work_class": "PRODUCT",
+          "owns_claims": [
+            "PB4"
+          ],
+          "claim_allocations": [
+            {
+              "claim_id": "PB4",
+              "weight": 28
+            }
+          ],
+          "outcome": "Real Mode A/B consumes the approved common basis and produces complete original-source-exact enriched XML and CII with conserved split masses.",
+          "independence_basis": "An independent original PL01/PL06 XML and expected CII parse provides an end-to-end semantic verdict independently of renderer success.",
+          "semantic_units": [
+            {
+              "id": "U01",
+              "kind": "SEMANTIC",
+              "weight": 30,
+              "outcome": "Every original source and physical occurrence is mapped unambiguously through Preview and Run even for duplicate -1 identifiers.",
+              "verify": "Independent 19 branches 871 nodes 322 repeated -1 and old 356 error witness comparison"
+            },
+            {
+              "id": "U02",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Exact reviewed factual basis from LFJ/Preview/Weight/Material enters the real engine without regranting authority.",
+              "verify": "Schema and digest source revision/stale/ambiguity reject replay on actual Run call"
+            },
+            {
+              "id": "U03",
+              "kind": "SEMANTIC",
+              "weight": 25,
+              "outcome": "Mode A single/consolidated and Mode B output preserve all expected source occurrences and physical mass under splits.",
+              "verify": "Independent enriched XML and parsed CII golden including child mass sum"
+            },
+            {
+              "id": "U04",
+              "kind": "SEMANTIC",
+              "weight": 20,
+              "outcome": "Actual Chromium Run and downloads are correct after cold/warm restarts and source/config changes.",
+              "verify": "Browser click-path real modules and final output hashes with negative stale run"
+            }
+          ],
+          "size_budget": {
+            "target_loc": 450,
+            "hard_loc": 950,
+            "target_minutes": 15,
+            "hard_minutes": 20
+          },
+          "write_surface": [
+            "tabs/xml-cii-2019-standalone/integration/",
+            "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
+            "tests/recovery-final-cii/"
+          ],
+          "acceptance_methods": [
+            "PL01 PL06 19 branch/871 original census",
+            "review snapshot digest to writer",
+            "actual Mode A and Mode B browser run",
+            "final parsed CII mass and identity oracle"
+          ],
+          "depends_on": [
+            "B1_PREVIEW",
+            "B2_WEIGHT",
+            "B3_MATERIAL"
+          ]
+        },
+        {
+          "id": "B5_BROWSER",
+          "work_class": "GATE",
+          "owns_claims": [
+            "PG1"
+          ],
+          "claim_allocations": [
+            {
+              "claim_id": "PG1",
+              "weight": 12
+            }
+          ],
+          "outcome": "The published standalone application passes an exact deployed Chromium source-to-final-CII journey with reproducible positive and negative original-data oracles.",
+          "independence_basis": "A fixed browser source/download trace and original input oracle can be inspected independently of implementation leaves; the delivery gate has no production write rights.",
+          "semantic_units": [
+            {
+              "id": "U01",
+              "kind": "DELIVERY_GATE",
+              "weight": 30,
+              "outcome": "Every required original source, full master, config and independent golden is identified by byte digest and custody receipt.",
+              "verify": "Manifest with original PL01 PL06 SYS24 JSON30 and 385/10699/383/1595 count/digests or NOT_RUN blocker"
+            },
+            {
+              "id": "U02",
+              "kind": "DELIVERY_GATE",
+              "weight": 25,
+              "outcome": "Chromium drives real standalone tab upload through final Download via production modules with no mocks.",
+              "verify": "Playwright authored docs actual UI trace.zip, screenshots, network, logs"
+            },
+            {
+              "id": "U03",
+              "kind": "DELIVERY_GATE",
+              "weight": 25,
+              "outcome": "Downloaded enriched XML/CII have zero unexplained occurrence, field, material, mass or split mismatches and negatives block.",
+              "verify": "Independent XML/CII parser golden + malformed/stale/cancel/retry negative matrix"
+            },
+            {
+              "id": "U04",
+              "kind": "DELIVERY_GATE",
+              "weight": 20,
+              "outcome": "Actual deployed site JS SHA equals tested candidate and real browser after-merge journey reproduces qualified outputs.",
+              "verify": "Deployed HTTP asset digest and Chromium run manifest with replay command"
+            }
+          ],
+          "size_budget": {
+            "target_loc": 450,
+            "hard_loc": 950,
+            "target_minutes": 15,
+            "hard_minutes": 20
+          },
+          "write_surface": [
+            "tests/recovery-xmlcii/",
+            "docs/recovery-xmlcii/",
+            ".github/workflows/xmlcii-recovery-chromium.yml"
+          ],
+          "acceptance_methods": [
+            "owner corpus manifest/custody",
+            "authored docs and deployed actual Chromium",
+            "performance/console/network/trace artifacts",
+            "postmerge SHA and final golden"
+          ],
+          "depends_on": [
+            "B4_CII"
+          ]
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "ref": "reallaksh19/3D_Converters#1136",
+      "kind": "ROOT"
+    }
+  ]
+}
