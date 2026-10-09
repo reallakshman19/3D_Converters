@@ -294,6 +294,9 @@ window.runUnifiedFaultMatrix=async()=>{
       outcomes.pruneTransactionFailed='UNEXPECTED_STAGED';
     }catch(e){outcomes.pruneTransactionFailed=e?.code;}
   }finally{rejected.close();}
+  // The failed reclaimer's lease is still real and unexpired despite its
+  // closed connection. A successor may recover only after explicit expiry.
+  retryClock+=2000;
   const resumed=await openUnifiedIndexedSourceStore({
     databaseName:interruptedOld.databaseName,namespace,
     generation:'retry-second',basis,now:()=>retryClock,leaseTtlMs:1000
