@@ -152,7 +152,8 @@ export function createCommittedSelectionPager({
         rows=await store.readRange(start,maxRows,maxBytes);
         if(!Array.isArray(rows)||rows.length>maxRows||rows.length>total-start)
           fail('PAGE_STORE_INVALID','indexed store returned out-of-bounds page');
-        if(rows.length===0)fail('PAGE_STORE_INCOMPLETE','committed store has no page at expected indexed offset');
+        // Empty ranges are distinguished below: an oversized first record
+        // versus a physically missing committed row.
       }
       if(state!=='COMMITTED')
         fail('PAGE_SESSION_ABORTED','indexed page was read after cancellation');
