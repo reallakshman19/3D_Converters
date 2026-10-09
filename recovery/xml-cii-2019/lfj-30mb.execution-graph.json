@@ -237,6 +237,21 @@
             "owner 30MB selected scope browser A/B"
           ]
         }
+      ],
+      "released_proposal_digest": "sha256:4688722a1028d0ae0a72a15f1a34e36a58728e8361eb34f0128bcf392de2071b",
+      "bindings": [
+        {
+          "responsibility_id": "A1_CUSTODY",
+          "ref": "reallaksh19/3D_Converters#1138"
+        },
+        {
+          "responsibility_id": "A2_DEPLOY",
+          "ref": "reallaksh19/3D_Converters#1139"
+        },
+        {
+          "responsibility_id": "A3_RESOLVER",
+          "ref": "reallaksh19/3D_Converters#1140"
+        }
       ]
     }
   },
@@ -244,6 +259,172 @@
     {
       "ref": "reallaksh19/3D_Converters#1135",
       "kind": "ROOT"
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1138",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1135",
+      "weight": 40,
+      "responsibility_id": "A1_CUSTODY",
+      "work_class": "PRODUCT",
+      "outcome": "A complete selected original source and its byte-verified records remain reachable after persistent ingest, including a real 30 MB file.",
+      "size_budget": {
+        "target_loc": 450,
+        "hard_loc": 950,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/runtime/",
+        "lfj/index/"
+      ],
+      "owns_claims": [
+        "LA1"
+      ],
+      "independence_basis": "Exact independent source SHA, occurrence/path census and durable selection can be verified without Resolver or UI semantics.",
+      "acceptance_methods": [
+        "original-source independent census",
+        "actual Chromium File/Blob Worker IndexedDB",
+        "real 10.23MB and owner 30MB throughput profile",
+        "negative source/cancel/stale tests"
+      ],
+      "units": [
+        {
+          "id": "U01",
+          "weight": 30,
+          "verify": "Chromium independent original byte SHA and 23754/328156 census against LFJ page union",
+          "outcome": "Original raw source identity and complete ordered occurrence census are established on authentic 733KB and 10MB source documents."
+        },
+        {
+          "id": "U02",
+          "weight": 25,
+          "verify": "Chromium trace records page bytes, stage events, complete commit, and no partial success",
+          "outcome": "Every admitted chunk progresses to a bounded, durable complete committed source without 10MB staging timeout."
+        },
+        {
+          "id": "U03",
+          "weight": 25,
+          "verify": "Chromium negative/restart/cursor paginated full-union replay against independent oracle",
+          "outcome": "All selected occurrences and exact original values survive cold reload and reject stale, malformed, cancelled and crash recovery."
+        },
+        {
+          "id": "U04",
+          "weight": 20,
+          "verify": "Original owner corpus SHA+census and measured Chromium warm/cold Worker/IDB/memory/long tasks",
+          "outcome": "Owner 30MB original fully ingests and selects under an agreed precommitted responsiveness envelope."
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1139",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1135",
+      "weight": 25,
+      "responsibility_id": "A2_DEPLOY",
+      "work_class": "GATE",
+      "outcome": "The actual authored and published standalone site loads identical runtime and Worker modules and passes a genuine Chromium storage/import journey.",
+      "size_budget": {
+        "target_loc": 450,
+        "hard_loc": 950,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "docs/lfj/",
+        ".github/workflows/lfj-v41-deploy.yml"
+      ],
+      "owns_claims": [
+        "LG1"
+      ],
+      "independence_basis": "Authored docs deployment and browser module closure are directly verifiable from a served URL independent of Resolver engineering results.",
+      "acceptance_methods": [
+        "module hash manifest",
+        "authored docs HTTP native Chromium",
+        "Worker and IndexedDB positive and tamper negative",
+        "exact served asset SHA/deployment receipt"
+      ],
+      "units": [
+        {
+          "id": "U01",
+          "weight": 30,
+          "verify": "Hash manifest and import closure diff from source vs authored docs",
+          "outcome": "All transitive runtime and Worker imports exist with identical signed/source digests."
+        },
+        {
+          "id": "U02",
+          "weight": 25,
+          "verify": "HTTP Chromium import/Worker positive and broken-import negative",
+          "outcome": "The authored docs tree serves pinned ESM/Worker with correct MIME, CSP and no silent fallback."
+        },
+        {
+          "id": "U03",
+          "weight": 25,
+          "verify": "Playwright Chromium IndexedDB durable reload and stale denial artifact",
+          "outcome": "Native Chromium browser can persist and query a committed source from real served docs."
+        },
+        {
+          "id": "U04",
+          "weight": 20,
+          "verify": "Fetch deployed HTTP module SHA, compare candidate, include network/screenshot/trace",
+          "outcome": "Actual published site assets equal the accepted candidate and support rollback without cache confusion."
+        }
+      ]
+    },
+    {
+      "ref": "reallaksh19/3D_Converters#1140",
+      "kind": "LEAF",
+      "parent": "reallaksh19/3D_Converters#1135",
+      "weight": 35,
+      "responsibility_id": "A3_RESOLVER",
+      "work_class": "PRODUCT",
+      "outcome": "The real standalone Resolver Build produces a complete node-wise XML/JSON engineering trace and two original-source-correct CSV exports.",
+      "size_budget": {
+        "target_loc": 450,
+        "hard_loc": 950,
+        "target_minutes": 15,
+        "hard_minutes": 20
+      },
+      "write_surface": [
+        "lfj/consumers/3d-converters/",
+        "tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js",
+        "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js"
+      ],
+      "owns_claims": [
+        "LA2"
+      ],
+      "independence_basis": "Clicking actual Resolver controls and comparing CSVs against an independently derived XML/JSON golden proves this separately from Preview and Weight.",
+      "acceptance_methods": [
+        "legacy J01 real Chromium baseline",
+        "typed source to engineering resolver oracle",
+        "real Build and two CSV clicks",
+        "owner 30MB selected scope browser A/B"
+      ],
+      "units": [
+        {
+          "id": "U01",
+          "weight": 30,
+          "verify": "Chromium J01 actual Build, both CSV goldens, source/caching negative cases",
+          "outcome": "Legacy scoped JSON Trace is independently characterized for original XML and source JSON and exposes invalid-source behaviour."
+        },
+        {
+          "id": "U02",
+          "weight": 25,
+          "verify": "Exact original XML source matched expected typed LFJ values and conflict/fail-closed negatives",
+          "outcome": "LFJ selected original values are translated into the XML-CII-specific engineering branch/DTXR/POS/PS contract without granting invented authority."
+        },
+        {
+          "id": "U03",
+          "weight": 25,
+          "verify": "Chromium real upload, choose zone, Build, DOM original counts, both CSV parse and oracle diff",
+          "outcome": "The live standalone tab selection and Build display every expected matched source occurrence and export both verified CSVs."
+        },
+        {
+          "id": "U04",
+          "weight": 20,
+          "verify": "Hosted Chromium cold/warm original corpus tests; console/network/screenshots/download hashes",
+          "outcome": "Owner 30MB scoped Resolver is equivalent to its independent golden, responsive and safe under source changes and cancellation."
+        }
+      ]
     }
   ]
 }
