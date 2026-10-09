@@ -1,0 +1,45 @@
+name: LFJ V4.2 R07 durable successor writer authority
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/governance/amendments/v4.2-r07-durable-bridge.json'
+      - '.github/workflows/lfj-v42-bridge-authority.yml'
+permissions:
+  contents: read
+jobs:
+  source-successor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify immutable 24/130 V3.2 ancestor and exact closed R07/R10 source leases
+        run: |
+          python3 lfj/governance/pinned-v32/delp_projection_v32.py validate-graph --graph lfj/governance/structured-data-v4.execution-graph.json
+          python3 lfj/governance/pinned-v32/delp_projection_v32.py decompose-check --graph lfj/governance/structured-data-v4.execution-graph.json --mode ENFORCED --json >/tmp/v42-delp.json
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          m=json.loads(Path('lfj/governance/amendments/v4.2-r07-durable-bridge.json').read_text())
+          v=json.loads(Path('lfj/governance/amendments/v4.1-store-deploy.json').read_text())
+          g=json.loads(Path('lfj/governance/structured-data-v4.execution-graph.json').read_text())
+          d=json.loads(Path('/tmp/v42-delp.json').read_text())
+          p=g['programme']['decomposition_proposal']
+          assert m['schema']=='LFJ.V4.2.SuccessorWriterAmendment.v1'
+          assert m['predecessorV41']['gitBlob']==subprocess.check_output(['git','hash-object','lfj/governance/amendments/v4.1-store-deploy.json'],text=True).strip()
+          assert v['schema']=='LFJ.V4.1.OwnerApprovedGateAmendment.v1'
+          assert m['historicalOriginal']['proposalDigest']==p['released_proposal_digest']
+          assert len(p['responsibilities'])==24 and g['programme']['total_weight']==130
+          assert d['release_state']=='RELEASEABLE' and m['weight']==0
+          assert m['completion']=='NOT_VERIFIED'
+          expected={'R07':'lfj/transport/lifecycle/lifecycle-session.mjs','R10':'lfj/ports/committed-worker-query.mjs'}
+          actual={x['responsibility']:x['exactPath'] for x in m['supersedesCompletedOwners']}
+          assert actual==expected
+          for x in m['supersedesCompletedOwners']:
+            original=next(v for v in p['responsibilities'] if v['id']==x['responsibility'])
+            assert any(x['exactPath'].startswith(w) for w in original['write_surface'])
+          assert m['additionalTestPaths']==['lfj/transport/lifecycle/lifecycle-durable-acceptance.test.mjs','.github/workflows/lfj-v42-durable-bridge.yml']
+          print('V4.2_SUCCESSOR_WRITER: PASS (two exact source paths, zero points)')
+          print('V3.2_ORIGINAL_RELEASE:',d['release_state'],d['proposal_digest'])
+          print('V4.2_PRODUCT_STATUS: NOT_VERIFIED')
+          PY
