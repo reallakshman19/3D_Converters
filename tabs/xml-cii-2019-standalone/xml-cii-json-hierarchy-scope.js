@@ -10,13 +10,14 @@ function decodeJsonString(raw) {
   try { return JSON.parse('"' + raw + '"'); } catch { return raw; }
 }
 
-// Only *direct* string-valued members of this one source item can assign
-// ownership. Regex over the entire slice reads a descendant's OWNER_ZONE as
-// though it belonged to the ancestor; this scan ignores nested values.
+// Only direct item fields and direct "attributes" members can assign ownership.
+// Regex over the entire slice reads a descendant's OWNER_ZONE as the ancestor's;
+// this scan excludes fields inside descendant children.
 // This remains a small-source legacy UI adapter, NOT a substitute for R10 Worker.
 function ownStringFields(source) {
   const wanted=new Set(['type','name','OWNER_ZONE','ZONE_ID','OWNER_SITE','SITE','ZONE']);
   const values=new Map();
+  const ownOwnerKeys=new Set(['OWNER_ZONE','ZONE_ID','OWNER_SITE','SITE','ZONE']);
   const white=c=>c===' '||c==='\n'||c==='\r'||c==='\t';
   function endQuote(from){
     for(let i=from+1;i<source.length;i++){
@@ -25,19 +26,23 @@ function ownStringFields(source) {
     }
     throw new SyntaxError('Unterminated JSON string in original hierarchy item');
   }
-  let depth=0;
+  let depth=0,ownAttributesDepth=-1;
   for(let i=0;i<source.length;i++){
     const char=source[i];
     if(char==='"'){
       const end=endQuote(i);
-      if(depth===1){
+      if(depth===1||depth===ownAttributesDepth){
         let colon=end+1;
         while(white(source[colon]))colon++;
         if(source[colon]===':'){
           const key=JSON.parse(source.slice(i,end+1));
-          if(wanted.has(key)){
-            let valueStart=colon+1;
-            while(white(source[valueStart]))valueStart++;
+          let valueStart=colon+1;
+          while(white(source[valueStart]))valueStart++;
+          // A BRANCH's direct attributes object is its *own* metadata.
+          // The identically named attributes under children are NOT.
+          if(depth===1&&key==='attributes'&&source[valueStart]==='{')
+            ownAttributesDepth=depth+1;
+          if(wanted.has(key)&&(depth===1||ownOwnerKeys.has(key))){
             if(source[valueStart]==='"'){
               const valueEnd=endQuote(valueStart);
               values.set(key,JSON.parse(source.slice(valueStart,valueEnd+1)));
@@ -49,7 +54,10 @@ function ownStringFields(source) {
       }
       i=end;
     }else if(char==='{'||char==='['){depth++;}
-    else if(char==='}'||char===']'){depth--;}
+    else if(char==='}'||char===']'){
+      if(depth===ownAttributesDepth)ownAttributesDepth=-1;
+      depth--;
+    }
   }
   return values;
 }
