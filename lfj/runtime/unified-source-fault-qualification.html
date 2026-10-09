@@ -226,6 +226,52 @@ window.runUnifiedFaultMatrix=async()=>{
         basis.sourceRevision,'/'+(count-1)]))).seal.endByteExclusive;
   }finally{await cleanup(wide);}
 
+  // W2 COLD-RECOVERY RED: staging ACKs persisted more than 1024 event
+  // facts, then its owner tab disappeared without invoking async abort.
+  // A later valid successor must not retain unbounded orphan rows forever.
+  // This currently FAILS: no generation lease and no bounded cold cleanup.
+  const abandoned=await make('abandoned-staged-source');
+  const orphanRoot={...open,endByteExclusive:undefined};
+  const orphanRows=[open];
+  for(let i=1;i<=520;i++){
+    const path='/'+i,oid=JSON.stringify(['lfj-json-value/v1',
+      basis.sourceRefId,basis.sourceRevision,path]);
+    orphanRows.push({...open,occurrenceId:oid,ordinal:i,path,
+      parentId:occurrenceId,startByte:i*2+1});
+    orphanRows.push({...seal,occurrenceId:oid,ordinal:i,
+      endByteExclusive:i*2+2});
+  }
+  orphanRows.push({...seal,endByteExclusive:1100});
+  await abandoned.port.stagePage(orphanRows);
+  abandoned.port.close(); // tab death: no awaitable abort/rollback
+  const successor=await openUnifiedIndexedSourceStore({
+    databaseName:abandoned.databaseName,namespace,
+    generation:'successor',basis
+  });
+  try{
+    await successor.stagePage([open,seal]);
+    await successor.commitDurably(manifest);
+    const db=await new Promise((resolve,reject)=>{
+      const request=indexedDB.open(abandoned.databaseName,1);
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+    try{
+      outcomes.abandonedStagedRows=await new Promise((resolve,reject)=>{
+        const tx=db.transaction('pairs','readonly');
+        const request=tx.objectStore('pairs').count(
+          IDBKeyRange.bound([namespace,abandoned.generation,''],
+            [namespace,abandoned.generation,'\\uffff']));
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+      outcomes.successorExact=(await successor.lookupCommittedPair(
+        occurrenceId)).seal.endByteExclusive===4;
+    }finally{db.close();}
+  }finally{
+    successor.close();indexedDB.deleteDatabase(abandoned.databaseName);
+  }
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
