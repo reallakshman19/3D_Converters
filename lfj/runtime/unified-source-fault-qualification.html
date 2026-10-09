@@ -121,6 +121,28 @@ window.runUnifiedFaultMatrix=async()=>{
     }finally{reopened.close();}
   }finally{await cleanup(midCommit);}
 
+  // A prefetched 64-row ordered cursor must not leak its second record
+  // after the original source HEAD has been revoked between iterator.next().
+  const refTwo=JSON.stringify(['lfj-json-value/v1',basis.sourceRefId,
+    basis.sourceRevision,'/child']);
+  const childOpen={...open,occurrenceId:refTwo,ordinal:1,path:'/child',
+    parentId:occurrenceId,startByte:1};
+  const childSeal={...seal,occurrenceId:refTwo,ordinal:1,endByteExclusive:3};
+  const twoManifest={...manifest,occurrenceCount:2,eventCount:4};
+  const revoked=await make('revoke-mid-ordered-chunk');
+  try{
+    await revoked.port.stagePage([open,childOpen,childSeal,seal]);
+    await revoked.port.commitDurably(twoManifest);
+    const iterator=revoked.port.readOrdered()[Symbol.asyncIterator]();
+    const first=await iterator.next();
+    outcomes.firstRowCorrect=first.done===false&&
+      first.value.occurrenceId===occurrenceId;
+    await revoked.port.abort();
+    try{await iterator.next();
+      outcomes.postAbortPrefetch='UNEXPECTED_ACCEPTED';
+    }catch(e){outcomes.postAbortPrefetch=e?.code;}
+  }finally{await cleanup(revoked);}
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
