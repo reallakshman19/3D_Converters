@@ -87,6 +87,14 @@ window.runPairFaultMatrix=async()=>{
   try{
     await persisted.combined.stagePage([open,seal]);
     await persisted.combined.commitDurably(manifest);
+    // An orphaned pair head must NEVER be usable through the qualified
+    // SourceSession port once the original R07 durable head is revoked.
+    const accepted=await persisted.combined.lookupCommittedPair(identity);
+    outcomes.pairedBeforeSourceAbort=accepted.seal.endByteExclusive===4;
+    await persisted.source.abort();
+    try{await persisted.combined.lookupCommittedPair(identity);
+      outcomes.orphanPairRefused='UNEXPECTED_ACCEPTED';
+    }catch(e){outcomes.orphanPairRefused=e?.code;}
     persisted.pair.close();persisted.source.close();
     const again=await openIndexedOccurrencePairStore({
       databaseName:persisted.sideDb,namespace:'source',
