@@ -1,5 +1,24 @@
 const ALL_SCOPE_ID = '__ALL__';
 const UNSCOPED_ID = '__UNSCOPED__';
+// Legacy string materializer must not become an unbounded main-thread fallback.
+// This is a code-unit safety gate; only R10 Worker can process larger sources.
+const LEGACY_MAX_CODE_UNITS = 1048576;
+// Keep immutable original source association outside the serializable index.
+// Reusing source ranges on even an equal-length different string is forbidden.
+const sourceForIndex = new WeakMap();
+function scopeError(code, detail) {
+  const e = new Error(detail);
+  e.code = code;
+  throw e;
+}
+function requireLegacySource(source) {
+  if (source.length > LEGACY_MAX_CODE_UNITS)
+    scopeError('SOURCE_SCOPE_WORKER_REQUIRED','oversized source needs a qualified LFJ Worker-backed scoped reader');
+}
+function boundIndex(index, source) {
+  sourceForIndex.set(index, source);
+  return index;
+}
 
 function text(value) {
   return String(value ?? '').trim();
@@ -198,9 +217,10 @@ function scopeRows(items) {
 
 export function buildJsonHierarchyScopeIndex(stagedJsonText) {
   const source = String(stagedJsonText || '');
+  requireLegacySource(source);
   const region = rootArrayRegion(source);
   if (!region) {
-    return {
+    return boundIndex({
       schema: 'xml-cii-json-hierarchy-scope/v1',
       indexable: false,
       strategy: 'full-json-fallback',
@@ -208,11 +228,11 @@ export function buildJsonHierarchyScopeIndex(stagedJsonText) {
       itemCount: 0,
       scopes: [],
       defaultScopeId: ALL_SCOPE_ID,
-    };
+    }, source);
   }
   const items = arrayItemRanges(source, region).map((range, index) => itemMetadata(source, range, index));
   const scopes = scopeRows(items);
-  return {
+  return boundIndex({
     schema: 'xml-cii-json-hierarchy-scope/v1',
     indexable: items.length > 0,
     strategy: region.strategy,
@@ -220,14 +240,19 @@ export function buildJsonHierarchyScopeIndex(stagedJsonText) {
     itemCount: items.length,
     scopes,
     defaultScopeId: scopes[0]?.id || ALL_SCOPE_ID,
-  };
+  }, source);
 }
 
 export function materializeJsonHierarchyScope(stagedJsonText, index, scopeId) {
   const source = String(stagedJsonText || '');
-  const selectedId = text(scopeId) || index?.defaultScopeId || ALL_SCOPE_ID;
-  if (selectedId === ALL_SCOPE_ID || !index?.indexable) {
-    return { scopeId: ALL_SCOPE_ID, value: JSON.parse(source), itemCount: index?.itemCount || 0 };
+  requireLegacySource(source);
+  if (!index || sourceForIndex.get(index) !== source)
+    scopeError('SOURCE_SCOPE_STALE','original source differs from indexed source or index is untrusted');
+  const selectedId = text(scopeId) || index.defaultScopeId || ALL_SCOPE_ID;
+  if (selectedId !== ALL_SCOPE_ID && !index.indexable)
+    scopeError('SOURCE_SCOPE_UNKNOWN','unsupported original envelope has no requested named scope');
+  if (selectedId === ALL_SCOPE_ID) {
+    return { scopeId: ALL_SCOPE_ID, value: JSON.parse(source), itemCount: index.itemCount || 0 };
   }
   const scope = (index.scopes || []).find((item) => item.id === selectedId);
   if (!scope) throw new Error('Unknown JSON hierarchy scope: ' + selectedId);
