@@ -13,6 +13,9 @@ try{
   assert.equal(result.headAborted,'UNIFIED_HEAD_ABORTED');
   assert.equal(result.headAbortInjected,true);
   assert.equal(result.headAbortedInvisible,'UNIFIED_ABORTED');
+  assert.equal(result.preCommitVisible,'UNIFIED_NOT_COMMITTED');
+  assert.equal(result.casLoser,'UNIFIED_HEAD_ABORTED');
+  assert.equal(result.casWinnerRetained,true);
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
