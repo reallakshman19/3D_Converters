@@ -1,5 +1,10 @@
 name: LFJ #1147 B0 opt-in compact source catalog research
 on:
+  push:
+    branches: ['lfj/1147-b0-sparse-catalog-experiment']
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0/**'
+      - '.github/workflows/lfj-1147-b0-sparse-experiment.yml'
   pull_request:
     paths:
       - 'lfj/qualification/experiments/consumer-sparse-b0/**'
