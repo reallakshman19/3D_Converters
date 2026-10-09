@@ -1,0 +1,29 @@
+name: LFJ 1104 I3 Consumer Source Facts Receiver (no app release)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/consumers/3d-converters/**'
+      - '.github/workflows/lfj-1104-consumer-receiver.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  consumer-contract:
+    name: Node ${{ matrix.node }} independent receiver policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Check exact head and fail-closed source-consumer policy
+        run: |
+          git rev-parse HEAD
+          node --test lfj/consumers/3d-converters/source-facts-receiver.test.mjs
