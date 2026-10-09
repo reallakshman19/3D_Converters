@@ -53,6 +53,11 @@ try{
   const page=await browser.newPage();
   page.setDefaultTimeout(600000);
   page.on('pageerror',e=>console.error('LFJ_BROWSER_PAGEERROR',e.message));
+  page.on('console',m=>{
+    const msg=m.text();
+    if(msg.startsWith('LFJ_AUTHENTIC_DIAGNOSTIC_FAILURE'))
+      console.error(msg);
+  });
   await page.goto(pageUrl,{waitUntil:'load'});
   await page.waitForFunction(()=>typeof window.runAuthenticLFJFixture==='function');
   const fileUrl='/fixtures/'+filename.split('/').at(-1);
