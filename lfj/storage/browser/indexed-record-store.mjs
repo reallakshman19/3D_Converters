@@ -102,12 +102,14 @@ export async function openIndexedRecordStore({
       size+=encoded(row);
       if(size>BYTES_LIMIT)fail('STORE_STAGE_LIMIT','one source-event page exceeds serialized byte cap');
     }
-    const already=await one(db,'heads',namespace);
-    if(already?.generation===generation)
-      fail('STORE_ALREADY_COMMITTED','committed generation cannot be rewritten');
+    // Reserve the staging lease BEFORE the first asynchronous IDB lookup.
+    // Otherwise simultaneous calls can both claim the same position range.
     busy=true;
     const first=position;
     try {
+      const already=await one(db,'heads',namespace);
+      if(already?.generation===generation)
+        fail('STORE_ALREADY_COMMITTED','committed generation cannot be rewritten');
       const tx=db.transaction('records','readwrite');
       const done=complete(tx);
       const records=tx.objectStore('records');
