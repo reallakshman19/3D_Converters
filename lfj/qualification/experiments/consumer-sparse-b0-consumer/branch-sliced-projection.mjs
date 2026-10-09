@@ -36,7 +36,7 @@ const MATCH_FIELD_NAMES=[
   'SUPPORTCOORD','SUPPORT_COORD','POS','POSI','BPOS','APOS','LPOS',
   'CPOS','HPOS','TPOS','SPOS','EPOS'
 ];
-function compactMatchingEvidence(raw,config){
+export function compactMatchingEvidence(raw,config){
   const src=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const schema=resolveSourceSchema(config);
   const wanted=new Set([
