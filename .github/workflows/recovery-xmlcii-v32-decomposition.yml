@@ -1,0 +1,61 @@
+name: XML-CII Recovery V3.2 claim-first admission
+on:
+  push:
+    branches:
+      - recovery/1135-1136-v32-claim-first
+    paths:
+      - 'recovery/xml-cii-2019/**'
+      - '.github/workflows/recovery-xmlcii-v32-decomposition.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'recovery/xml-cii-2019/**'
+      - '.github/workflows/recovery-xmlcii-v32-decomposition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  claim-first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pinned Common V3.2 checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object recovery/xml-cii-2019/pinned-v32/delp_projection_v32.py)" = "804cacca930e47c4528bb0d245efaf941996e4cf"
+          python3 -m py_compile recovery/xml-cii-2019/pinned-v32/delp_projection_v32.py
+      - name: Enforce two claim-first proposal-v2 decompositions
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKER="recovery/xml-cii-2019/pinned-v32/delp_projection_v32.py"
+          for name in lfj-30mb xml-cii-2019; do
+            GRAPH="recovery/xml-cii-2019/${name}.execution-graph.json"
+            REPORT="recovery-${name}.decomposition-report.json"
+            python3 "$CHECKER" validate-graph --graph "$GRAPH"
+            python3 "$CHECKER" decompose-check --graph "$GRAPH" --mode ENFORCED --json > "$REPORT" || true
+            python3 - "$REPORT" "$name" <<'PY'
+          import json, sys
+          path, name = sys.argv[1:]
+          with open(path, encoding="utf-8") as f: r=json.load(f)
+          print("RECOVERY", name, "MODE", r.get("mode"), "STATE", r.get("release_state"), "DIGEST", r.get("proposal_digest"))
+          print("SUMMARY",json.dumps(r.get("summary"),sort_keys=True))
+          for k,v in (r.get("leaves") or {}).items():
+              if v.get("blockers"): print("BLOCKER",k,json.dumps(v["blockers"]))
+              if v.get("advisories"): print("ADVISORY",k,json.dumps(v["advisories"]))
+          assert r.get("mode")=="ENFORCED"
+          assert r.get("release_state")=="RELEASEABLE", "Do NOT materialize children or credit progress"
+          assert (r.get("summary") or {}).get("not_releasable")==0
+          assert str(r.get("proposal_digest") or "").startswith("sha256:")
+          PY
+          done
+      - name: Upload admission proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xmlcii-recovery-claim-first-v32
+          path: recovery-*.decomposition-report.json
+          if-no-files-found: ignore
