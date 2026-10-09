@@ -189,6 +189,9 @@ export function projectTypedOwnAttributes({
       for(const path of paths)queue.push({path,parentOccurrenceId:row.occurrenceId});
     }
   }
+  // The worklist can discover typed siblings before deeper children. Restore
+  // original R05 OPEN/source order before R02 and consumer presentation.
+  projected.sort((a,b)=>a.ordinal-b.ordinal);
   const resolved=resolveSourceOwners(projected);
   const nodes=Object.freeze(resolved.map((owner,i)=>Object.freeze({
     ...owner,sourcePath:projected[i].sourcePath,
