@@ -179,6 +179,13 @@ test('I3 port refuses fake H1 session, overlimit scalar, missing dependency and 
     delete invalid.expectedBasis.dependencyRevision;
     await assert.rejects(()=>consumeSelectedSourceFacts({...invalid,onOccurrence:()=>{}}),
       verifyCode('CONSUMER_BASIS_REQUIRED'));
+    assert.equal(p.counts().closeCount,1,'bad initial app basis must revoke exclusive session');
+  }
+  {
+    const p=makePorts();
+    await assert.rejects(()=>consumeSelectedSourceFacts({...p.input(),
+      maxRows:0,onOccurrence:()=>{}}),verifyCode('CONSUMER_RESOURCE_BOUND'));
+    assert.equal(p.counts().closeCount,1,'invalid initial byte/row limits must revoke session');
   }
   {
     const p=makePorts();const c=new AbortController();c.abort();
