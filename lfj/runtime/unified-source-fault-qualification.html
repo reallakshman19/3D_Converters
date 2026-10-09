@@ -322,6 +322,50 @@ window.runUnifiedFaultMatrix=async()=>{
     resumed.close();indexedDB.deleteDatabase(interruptedOld.databaseName);
   }
 
+  // Three committed generations: a prior published HEAD must remain
+  // intact until its successor publishes, then become a durable bounded
+  // recovery target even though the prior writer released its lease.
+  const historyDb=prefix+'-committed-history';
+  const a=await openUnifiedIndexedSourceStore({
+    databaseName:historyDb,namespace,generation:'history-A',basis});
+  const b=await openUnifiedIndexedSourceStore({
+    databaseName:historyDb,namespace,generation:'history-B',basis});
+  try{
+    await a.stagePage([open,seal]);
+    await a.commitDurably(manifest);
+    await b.stagePage([open,seal]);
+    await b.commitDurably(manifest);
+    const c=await openUnifiedIndexedSourceStore({
+      databaseName:historyDb,namespace,generation:'history-C',basis});
+    try{
+      await c.stagePage([open,seal]); // claims lease + reclaims replaced A
+      const raw=await new Promise((resolve,reject)=>{
+        const request=indexedDB.open(historyDb);
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+      try{
+        const countFor=gen=>new Promise((resolve,reject)=>{
+          const tx=raw.transaction('pairs','readonly');
+          const req=tx.objectStore('pairs').count(
+            IDBKeyRange.bound([namespace,gen,''],[namespace,gen,'\uffff']));
+          req.onsuccess=()=>resolve(req.result);
+          req.onerror=()=>reject(req.error);
+        });
+        outcomes.oldCommittedReclaimed=await countFor('history-A');
+        outcomes.currentCommittedRetained=await countFor('history-B');
+      }finally{raw.close();}
+      await c.commitDurably(manifest);
+      outcomes.historyCurrent=(await c.lookupCommittedPair(occurrenceId))
+        .seal.endByteExclusive===4;
+      try{await a.lookupCommittedPair(occurrenceId);
+        outcomes.replacedHeadInvisible='UNEXPECTED_AUTHORIZED';
+      }catch(error){outcomes.replacedHeadInvisible=error?.code;}
+    }finally{c.close();}
+  }finally{
+    a.close();b.close();indexedDB.deleteDatabase(historyDb);
+  }
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
