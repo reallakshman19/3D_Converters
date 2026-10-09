@@ -23,6 +23,9 @@ try{
   assert.equal(result.closeDuringCommitVisible,'UNIFIED_NOT_COMMITTED',
     'closed in-flight source must not publish durable HEAD on reopen');
   assert.equal(result.firstRowCorrect,true);
+  assert.equal(result.crossedSeal,'UNIFIED_PAIR_CORRUPT',
+    'one bounded original source stack forbids closing a parent before child');
+  assert.equal(result.crossedSealInvisible,'UNIFIED_ABORTED');
   assert.equal(result.postAbortPrefetch,'UNIFIED_ABORTED',
     'prefetched committed source rows must be inaccessible after abort');
   assert.equal(result.wrongParent,'UNIFIED_PAIR_CORRUPT');
