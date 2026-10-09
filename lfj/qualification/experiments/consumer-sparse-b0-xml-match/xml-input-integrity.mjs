@@ -157,7 +157,7 @@ export function assertResearchXmlDocument(xml){
   // instruction can truncate an otherwise syntactically valid engineering
   // node. Compare regex-visible closes with lexically parsed structural closes.
   // Also reject noncanonical </Node > spacing that the legacy regex skips.
-  const rawNodeEnds=(xml.match(/<\\/Node>/gi)||[]).length;
+  const rawNodeEnds=(xml.match(/<\/Node>/gi)||[]).length;
   if(rawNodes!==nodeElements||rawPiping!==pipingElements||
      rawNodeEnds!==nodeEndElements)
     fail('Legacy parser would see phantom/missing XML node boundaries');
