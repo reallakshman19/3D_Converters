@@ -156,6 +156,8 @@ function arrayItemRanges(source, region) {
   let itemStart = -1;
   for (let i = region.start + 1; i < region.end; i += 1) {
     const char = source[i];
+    if (!quoted && depth === 0 && char !== '{' && char !== ',' && !/\s/.test(char))
+      scopeError('SOURCE_SCOPE_UNSUPPORTED_ITEM','mixed/primitive hierarchy items require original Worker-index selection');
     if (quoted) {
       if (escaped) escaped = false;
       else if (char === '\\') escaped = true;
