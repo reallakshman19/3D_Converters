@@ -22,6 +22,9 @@ try{
     'close during native HEAD put must reject before transaction.complete');
   assert.equal(result.closeDuringCommitVisible,'UNIFIED_NOT_COMMITTED',
     'closed in-flight source must not publish durable HEAD on reopen');
+  assert.equal(result.firstRowCorrect,true);
+  assert.equal(result.postAbortPrefetch,'UNIFIED_ABORTED',
+    'prefetched committed source rows must be inaccessible after abort');
   assert.equal(result.pairExact,true);
   assert.equal(result.orderedExact,true);
   assert.equal(result.reopenExact,true);
