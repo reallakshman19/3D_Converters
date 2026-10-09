@@ -152,6 +152,11 @@ export function assertResearchXmlDocument(xml){
   // comments/CDATA. Refuse such inputs rather than inflate node population.
   const rawNodes=(xml.match(/<Node\b/gi)||[]).length;
   const rawPiping=(xml.match(/<PIPINGELEMENT\b/gi)||[]).length;
+  // The legacy Node-block regex requires an explicit closing tag: if a Node
+  // is self-closing it can be silently omitted while the derived ledger/index
+  // still agree. This research adapter must not silently claim completeness.
+  if(nodeElements!==nodeEndElements)
+    fail('Self-closing or incomplete Node elements cannot be faithfully resolved');
   // The shipping Node-block regex also stops on the FIRST literal </Node>.
   // A closing tag embedded in a legitimate comment, CDATA or processing
   // instruction can truncate an otherwise syntactically valid engineering
@@ -163,4 +168,26 @@ export function assertResearchXmlDocument(xml){
     fail('Legacy parser would see phantom/missing XML node boundaries');
   return Object.freeze({rootCount,elementCount:elements,
     nodeElementCount:nodeElements,pipingElementCount:pipingElements});
+}
+
+/**
+ * Independent lexical population versus the application's actual parsed rows.
+ * Both the legacy index and ledger share the same regex parser: agreement
+ * between them alone cannot expose lost original XML input occurrences.
+ * This intentionally admits only known Node / PIPINGELEMENT research forms.
+ */
+export function assertResearchXmlConsumerPopulation(structure,parsedCount){
+  const nodeCount=structure?.nodeElementCount;
+  const pipingCount=structure?.pipingElementCount;
+  if(!Number.isSafeInteger(nodeCount)||nodeCount<0||
+     !Number.isSafeInteger(pipingCount)||pipingCount<0||
+     (nodeCount>0&&pipingCount>0))
+    fail('Unsupported or inconsistent XML source element population');
+  const expected=nodeCount||pipingCount;
+  if(!expected)fail('No recognized engineering XML source elements');
+  if(!Number.isSafeInteger(parsedCount)||parsedCount!==expected)
+    throw Object.assign(new Error(
+      'Original XML source elements were omitted or duplicated by Resolver parsing'),
+      {code:'XML_LEDGER_CENSUS'});
+  return expected;
 }
