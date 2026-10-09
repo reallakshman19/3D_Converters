@@ -1,0 +1,109 @@
+<!doctype html><meta charset="utf-8">
+<title>LFJ W2 unified source native IndexedDB atomic HEAD fault matrix</title>
+<script type="module">
+import {openUnifiedIndexedSourceStore}
+  from './unified-indexed-source-store.mjs';
+window.runUnifiedFaultMatrix=async()=>{
+  const prefix='lfj-w2-fault-'+crypto.randomUUID(),namespace='source';
+  const basis={sourceRefId:'FAULT-SOURCE',sourceSha256:'a'.repeat(64),
+    sourceRevision:'FAULT-REVISION'};
+  const occurrenceId=JSON.stringify(['lfj-json-value/v1',basis.sourceRefId,
+    basis.sourceRevision,'']);
+  const open={schema:'LFJ.JSON.OccurrenceEvent.v1',...basis,
+    kind:'OPEN',occurrenceId,ordinal:0,path:'',
+    parentId:null,type:'string',startByte:0};
+  const seal={schema:'LFJ.JSON.OccurrenceEvent.v1',...basis,
+    kind:'SEAL',occurrenceId,ordinal:0,endByteExclusive:4};
+  const manifest={schema:'LFJ.JSON.OccurrenceIndexSummary.v1',
+    ...basis,complete:true,occurrenceCount:1,eventCount:2,byteLength:4,
+    rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false};
+  const outcomes={};
+  async function make(name,options={}){
+    const databaseName=prefix+'-'+name,generation='g';
+    const port=await openUnifiedIndexedSourceStore({
+      databaseName,namespace,generation,basis,...options});
+    return {databaseName,generation,port};
+  }
+  async function lookup(c){
+    try{await c.port.lookupCommittedPair(occurrenceId);return 'UNEXPECTED_COMMITTED';}
+    catch(e){return e?.code;}
+  }
+  async function cleanup(c){
+    try{c.port.close();}catch{}
+    indexedDB.deleteDatabase(c.databaseName);
+  }
+  const missing=await make('missing-seal');
+  try{
+    await missing.port.stagePage([open]);
+    try{await missing.port.commitDurably(manifest);
+      outcomes.missingSeal='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.missingSeal=e?.code;}
+    outcomes.missingSealInvisible=await lookup(missing);
+  }finally{await cleanup(missing);}
+
+  const wrong=await make('mismatch');
+  try{
+    await wrong.port.stagePage([open,{...seal,occurrenceId:occurrenceId+'-mismatch'}]);
+    try{await wrong.port.commitDurably(manifest);
+      outcomes.wrongSeal='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.wrongSeal=e?.code;}
+    outcomes.wrongSealInvisible=await lookup(wrong);
+  }finally{await cleanup(wrong);}
+
+  let called=false;
+  const interrupted=await make('head-aborted',{
+    beforeHeadCommit:tx=>{called=true;tx.abort();}
+  });
+  try{
+    await interrupted.port.stagePage([open,seal]);
+    try{await interrupted.port.commitDurably(manifest);
+      outcomes.headAborted='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.headAborted=e?.code;}
+    outcomes.headAbortInjected=called;
+    outcomes.headAbortedInvisible=await lookup(interrupted);
+  }finally{await cleanup(interrupted);}
+
+  const accepted=await make('durable');
+  try{
+    await accepted.port.stagePage([open]);
+    await accepted.port.stagePage([seal]); // OPEN and SEAL across ACK pages
+    await accepted.port.commitDurably(manifest);
+    const original=await accepted.port.lookupCommittedPair(occurrenceId);
+    outcomes.pairExact=original.open.startByte===0&&original.seal.endByteExclusive===4;
+    const ordered=[];
+    for await(const x of accepted.port.readOrdered())ordered.push(x.path);
+    outcomes.orderedExact=JSON.stringify(ordered)===JSON.stringify(['']);
+    accepted.port.close();
+    const again=await openUnifiedIndexedSourceStore({
+      databaseName:accepted.databaseName,namespace,
+      generation:accepted.generation,basis
+    });
+    try{
+      const value=await again.lookupCommittedPair(occurrenceId);
+      outcomes.reopenExact=value.seal.endByteExclusive===4;
+    }finally{again.close();}
+    const direct=await new Promise((resolve,reject)=>{
+      const req=indexedDB.open(accepted.databaseName,1);
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error);
+    });
+    try{
+      await new Promise((resolve,reject)=>{
+        const tx=direct.transaction('pairs','readwrite');
+        const store=tx.objectStore('pairs');
+        const req=store.get([namespace,accepted.generation,occurrenceId]);
+        req.onsuccess=()=>store.put({...req.result,endByteExclusive:0});
+        tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+        tx.onabort=()=>reject(new Error('poison transaction aborted'));
+      });
+    }finally{direct.close();}
+    const damaged=await openUnifiedIndexedSourceStore({
+      databaseName:accepted.databaseName,namespace,
+      generation:accepted.generation,basis
+    });
+    try{outcomes.poisonRejected=await lookup({...accepted,port:damaged});}
+    finally{damaged.close();}
+  }finally{await cleanup(accepted);}
+  return outcomes;
+};
+</script>
