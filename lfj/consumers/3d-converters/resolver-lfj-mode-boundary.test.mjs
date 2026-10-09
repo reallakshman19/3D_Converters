@@ -63,3 +63,40 @@ test('A06/U06 already-LFJ Build still denies synchronous legacy engine and CSV a
   assert.equal(v.stats().computes,0);
   assert.equal(v.stateRef.current.resolverJsonTraceResult,null);
 });
+
+
+test('A06/U07 committed LFJ source-only ready report invalidated by XML/master/config/scope edits',()=>{
+  const actual=readFileSync(path,'utf8')
+    .replace(/^import[\s\S]*?;\s*$/gm,'')
+    .replace(/\bexport\s+/g,'');
+  const inspect=new Function('updateWorkflowState',
+    actual+'\nreturn {basis:resolverLfjCurrentBasis,ready:resolverLfjReady,'+
+    'cache:resolverLfjAttestations,render:renderResolverLfjSourceControl};')(
+    (s,p)=>({...s,...p})
+  );
+  const invalidators=[
+    {sourceText:'<XML-CHANGED/>'},
+    {supportConfigJson:'{"changed":true}'},
+    {masterContext:{name:'NEW-MASTER'}},
+    {jsonTraceScopeId:'ZONE-OTHER'},
+    {dependencyRevisions:{sourceRevision:3}}
+  ];
+  for(const changed of invalidators){
+    const report={schema:'LFJ.3D.ResolverSourceAdmission.v1'};
+    const state={resolverLfjMode:'LFJ',resolverLfjReport:report,
+      stagedJsonFile:{name:'file.json'},sourceFile:{name:'file.xml'},
+      sourceText:'<ORIGINAL/>',supportConfigJson:'{}',
+      masterContext:{name:'MASTER-1'},dependencyRevisions:{sourceRevision:2},
+      resolverJsonTraceConfig:{join:'unique'},jsonTraceScopeId:'ALL',
+      branchSelection:[],resolverLfjJobToken:'original-job'};
+    const stateRef={current:state};
+    inspect.cache.set(stateRef,{report,basis:inspect.basis(state)});
+    assert.equal(inspect.ready(stateRef),true);
+    stateRef.current={...state,...changed};
+    assert.equal(inspect.ready(stateRef),false,
+      'a changed engineering dependency cannot retain SOURCE_ONLY READY');
+    inspect.render({querySelector:()=>null},stateRef,()=>{});
+    assert.equal(stateRef.current.resolverLfjReport,null,
+      'stale original source report must be removed from application state');
+  }
+});
