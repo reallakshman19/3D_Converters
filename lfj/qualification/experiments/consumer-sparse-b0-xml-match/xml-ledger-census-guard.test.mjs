@@ -7,8 +7,16 @@ import {readFile} from 'node:fs/promises';
 import {runStandaloneResolverJsonTrace} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
 import {assertCompleteResearchXmlLedger} from './xml-csv-parity.mjs';
+import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
 
 const xml=await readFile('Benchmarks/1885Sjson/FirstpassXML','utf8');
+assert.equal(assertResearchXmlDocument(xml).rootCount,1,
+  'authentic Firstpass XML must pass bounded document integrity');
+const largeXml=await readFile('Benchmarks/1885_NC/1885_NC.topology.input.xml','utf8');
+const largeStructure=assertResearchXmlDocument(largeXml);
+assert.equal(largeStructure.rootCount,1,'authentic large XML document root');
+assert.ok(largeStructure.elementCount>3429,
+  'authentic large XML tags must not disappear during source integrity validation');
 const original=runStandaloneResolverJsonTrace({
   sourceKind:'xml',sourceText:xml,stagedJsonText:[],jsonConfig:{}
 });
