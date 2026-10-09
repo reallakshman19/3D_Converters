@@ -174,16 +174,23 @@ export function createWorkerLifecycleSession({
  // An R05 page sink is PROVISIONAL until both genuine complete R05 summary
  // and complete R06 Worker-consumed byte receipt authorize the same transaction.
  // Storage commits are synchronous so a caller edit cannot interleave acceptance.
- function beginIndexTransaction({stagePage,commit,abort}={}){
+ function beginIndexTransaction({stagePage,commit,commitDurably,abort}={}){
    if(typeof stagePage!=='function'||typeof commit!=='function'||typeof abort!=='function')
      fail('INVALID_INDEX_STAGER','transaction requires stagePage, atomic commit and abort');
    if(indexTx)fail('INDEX_TRANSACTION_EXISTS','one staging transaction per job');
    if(snapshot().kind!=='ADMITTED')fail('INDEX_NOT_ADMITTED','trusted Worker admission required');
-   let aborted=false,committed=false,pending=0,events=0,opens=0,seals=0;
+   let aborted=false,committed=false,committing=false,pending=0,events=0,opens=0,seals=0;
+   const abortWaiters=[];
    const rollback=()=>{if(committed)return;aborted=true;
      // Re-abort after a pending async sink settles: it may have written AFTER
      // cancellation already cleared staging. Every abort must be idempotent.
-     try{abort();}catch{/* never accept failed rollback */}};
+     try{
+       const pendingAbort=abort();
+       if(pendingAbort&&typeof pendingAbort.then==='function'){
+         const waiter=Promise.resolve(pendingAbort).catch(()=>{});
+         abortWaiters.push(waiter);
+       }
+     }catch{/* never accept failed rollback */}};
    indexTx={abort:rollback};
    const rejectIndex=(code,reason)=>{
      rollback();
@@ -196,6 +203,7 @@ export function createWorkerLifecycleSession({
    };
    async function onEventPage(page){
      live();
+     if(committing)fail('INDEX_COMMITTING','no R05 event pages after beginning durable commit');
      if(!Array.isArray(page)||!page.length||page.length>4096||
        page.some(e=>e?.schema!=='LFJ.JSON.OccurrenceEvent.v1'||
          e.sourceRefId!==basis.sourceRefId||e.sourceSha256!==basis.sourceSha256||
@@ -210,7 +218,7 @@ export function createWorkerLifecycleSession({
      }catch(error){rollback();if(!terminal){finish('FAILED','INDEX_STAGING_FAILED');void stopWorker();}throw error;}
      finally{pending--;}
    }
-   function commitIndex(summary,receipt){
+   function verifyCompletion(summary,receipt){
      live();
      if(pending)fail('INDEX_STAGING_BUSY','source event sink has not settled');
      if(summary?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||summary.complete!==true)
@@ -227,6 +235,10 @@ export function createWorkerLifecycleSession({
        receipt.acknowledgedBytes!==basis.byteLength||
        receipt.workerConsumedBytes!==basis.byteLength)
        rejectIndex('INDEX_TRANSPORT_UNVERIFIED','native Worker-consumed original bytes not attested');
+   }
+   function commitIndex(summary,receipt){
+     if(committing)fail('INDEX_COMMITTING','durable commit already in progress');
+     verifyCompletion(summary,receipt);
      try{
        const result=commit(summary);
        if(result&&typeof result.then==='function')
@@ -239,8 +251,36 @@ export function createWorkerLifecycleSession({
      void stopWorker();
      return complete;
    }
+   // Opt-in durable acceptance: unlike commitIndex, the IDB head write must
+   // settle its transaction.complete Promise BEFORE R07 grants read authority.
+   async function commitIndexDurably(summary,receipt){
+     if(typeof commitDurably!=='function')
+       fail('INDEX_DURABLE_COMMIT_REQUIRED','explicit async durable store commit required');
+     if(committing)fail('INDEX_COMMITTING','one durable commit admission per job');
+     verifyCompletion(summary,receipt); // reject forged R05/R06 BEFORE DB publish
+     committing=true;
+     try{
+       const durablyCommitted=commitDurably(summary);
+       if(!durablyCommitted||typeof durablyCommitted.then!=='function')
+         fail('INDEX_DURABILITY_REQUIRED','durable transaction must expose completion Promise');
+       await durablyCommitted;
+       live(); // cancellation, source edits or Worker exit can supersede the wait
+       committed=true;
+       const accepted=finish('SOURCE_INDEX_COMPLETE');
+       void stopWorker();
+       return accepted;
+     }catch(error){
+       if(!committed){
+         rollback();
+         // Async IDB rollback must settle before a durable failure is reported.
+         await Promise.all(abortWaiters);
+         if(!terminal){finish('FAILED','INDEX_DURABLE_COMMIT_FAILED');void stopWorker();}
+       }
+       throw error;
+     }finally{committing=false;}
+   }
    const abortIndex=()=>{rollback();if(!terminal){finish('FAILED','INDEX_ABORTED');void stopWorker();}};
-   return Object.freeze({onEventPage,commit:commitIndex,abort:abortIndex});
+   return Object.freeze({onEventPage,commit:commitIndex,commitDurably:commitIndexDurably,abort:abortIndex});
  }
  async function retry(next){
    if(!terminal||!['CANCELLED','FAILED','STALE'].includes(terminal.kind))
