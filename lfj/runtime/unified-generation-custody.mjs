@@ -81,3 +81,53 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
       catch{try{tx.abort();}catch{}}
     };
   }
+  async function nextRecovery(){
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction('recoveries','readonly');
+      const req=tx.objectStore('recoveries').openCursor(pending(namespace));
+      req.onsuccess=()=>resolve(req.result?.value??null);
+      req.onerror=()=>reject(new SourceCustodyError(
+        'CUSTODY_RECOVERY_READ','recovery cursor unavailable'));
+    });
+  }
+  // Deletions and the resume cursor share one native transaction.
+  // One batch visits <=256 rows/1MiB; no unbounded JavaScript index.
+  async function reclaimOnce(target){
+    const tx=db.transaction(['pairs','heads','leases','recoveries'],'readwrite');
+    const finished=done(tx,'CUSTODY_RECOVERY_ABORTED');
+    const req=tx.objectStore('leases').get(namespace);
+    let deleted=0,weight=0,rejection=null;
+    req.onsuccess=()=>{
+      if(!owns(req.result)){rejection='CUSTODY_REVOKED';tx.abort();return;}
+      const head=tx.objectStore('heads').get(namespace);
+      head.onsuccess=()=>{
+        const recoveries=tx.objectStore('recoveries');
+        if(head.result?.generation===target.generation){
+          recoveries.delete([namespace,target.generation]);return;
+        }
+        const cursor=tx.objectStore('pairs').openCursor(
+          range(namespace,target.generation,target.cursor??null));
+        let last=target.cursor??null;
+        cursor.onsuccess=()=>{
+          const row=cursor.result;
+          if(!row){recoveries.delete([namespace,target.generation]);return;}
+          const n=size(row.value);
+          if(n>BYTES){rejection='CUSTODY_ROW_OVERSIZE';tx.abort();return;}
+          if(deleted>=ROWS||(deleted>0&&weight+n>BYTES)){
+            recoveries.put({namespace,generation:target.generation,cursor:last});
+            return;
+          }
+          deleted++;weight+=n;last=row.primaryKey[2];
+          row.delete();row.continue();
+        };
+        cursor.onerror=()=>{rejection='CUSTODY_RECOVERY_READ';tx.abort();};
+      };
+    };
+    try{beforeReclaim?.({tx,namespace,generation:target.generation});}
+    catch{try{tx.abort();}catch{}}
+    try{await finished;}catch(error){
+      if(rejection)fail(rejection,'recovery requires current writer lease');
+      throw error;
+    }
+    return deleted;
+  }
