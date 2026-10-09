@@ -81,6 +81,19 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
       catch{try{tx.abort();}catch{}}
     };
   }
+  // An old losing writer must never roll back another writer's staged
+  // generation or the current HEAD. Explicit local abort may revoke only
+  // when there is no different active namespace writer.
+  function revoke(tx,after){
+    const leases=tx.objectStore('leases'),req=leases.get(namespace);
+    req.onsuccess=()=>{
+      if(req.result&&req.result.nonce!==nonce)return;
+      try{
+        after();
+        if(req.result?.nonce===nonce)leases.delete(namespace);
+      }catch{try{tx.abort();}catch{}}
+    };
+  }
   async function nextRecovery(){
     return new Promise((resolve,reject)=>{
       const tx=db.transaction('recoveries','readonly');
@@ -162,6 +175,6 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
     try{await joining;}finally{joining=null;}
   }
   function closedNotice(){closed=true;}
-  return Object.freeze({ensure,fence,reclaim,closedNotice,
+  return Object.freeze({ensure,fence,revoke,reclaim,closedNotice,
     nonce,generation,leaseExpires:()=>expiresAt});
 }
