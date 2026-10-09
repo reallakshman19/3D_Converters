@@ -229,12 +229,13 @@ export async function openUnifiedIndexedSourceStore({
     if(!buffer.length)return;
     usable();
     const events=buffer;
-    const tx=db.transaction('pairs','readwrite');
+    const tx=db.transaction(['pairs','leases'],'readwrite');
     activeTx=tx;
     const done=txDone(tx,'UNIFIED_STAGE_FAILED');
     const pairs=tx.objectStore('pairs');
     let invalid=null;
     try{
+      custody.fence(tx,()=>{
       const sealed=new Set();
       for(const row of events){
         const key=eventsKey(namespace,generation,row.occurrenceId);
@@ -263,6 +264,7 @@ export async function openUnifiedIndexedSourceStore({
           };
         }
       }
+      });
       await done;
       if(state!=='STAGING'&&state!=='FLUSHING')
         fail('UNIFIED_ABORTED','staging completed after cancellation');
