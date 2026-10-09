@@ -134,6 +134,7 @@ export async function openPagedSourceQuery({
          !whole(maxBytes)||maxBytes<256||maxBytes>WIRE_MAX)
         fail('PAGE_LIMIT','maxRows 1..512, full-envelope maxBytes 256..1MiB');
       const rows=[];
+      let encodedRows=0;
       const envelope=(cursorNext,prefix)=>({
         schema:'LFJ.B0.SourcePage.v1',sourceSha256:head.sourceSha256,
         generation,selectionKind:selected.kind,
@@ -143,12 +144,16 @@ export async function openPagedSourceQuery({
       let next=cursor;
       while(next<selected.total&&rows.length<maxRows){
         const row=await byOrdinal(selectedOrdinal(selected,next));
-        const candidate=envelope(next+1,[...rows,row]);
-        if(valueSize(candidate)>maxBytes){
+        // Charge each source record once. Prefix-fit includes the complete
+        // response envelope and changing cursor, not just record payloads.
+        const candidateBytes=valueSize(envelope(next+1,[]))+
+          encodedRows+valueSize(row)+(rows.length?1:0);
+        if(candidateBytes>maxBytes){
           if(rows.length===0)
             fail('SOURCE_ROW_TOO_LARGE','single source catalog row cannot fit envelope');
           break;
         }
+        encodedRows+=valueSize(row)+(rows.length?1:0);
         rows.push(row);next++;
       }
       const output=envelope(next,rows);
