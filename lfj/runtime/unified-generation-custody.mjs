@@ -35,21 +35,28 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
   const active=()=>{if(closed)fail('CUSTODY_CLOSED','source writer closed');};
   async function claim(){
     active();
-    const t=clock(),tx=db.transaction(['leases','recoveries'],'readwrite');
+    const t=clock(),tx=db.transaction(['leases','recoveries','heads'],'readwrite');
     const finished=done(tx,'CUSTODY_CLAIM_ABORTED');
-    const store=tx.objectStore('leases'),req=store.get(namespace);
-    let busy=false;
-    req.onsuccess=()=>{
-      const prior=req.result;
-      if(prior&&prior.nonce!==nonce&&prior.expiresAt>t){
-        busy=true;tx.abort();return;
+    const store=tx.objectStore('leases'),head=tx.objectStore('heads').get(namespace);
+    let busy=false,already=false;
+    head.onsuccess=()=>{
+      if(head.result?.generation===generation){
+        already=true;tx.abort();return;
       }
-      if(prior&&prior.nonce!==nonce)
-        tx.objectStore('recoveries').put({namespace,
-          generation:prior.generation,cursor:null});
-      store.put({namespace,generation,nonce,expiresAt:t+ttlMs});
+      const req=store.get(namespace);
+      req.onsuccess=()=>{
+        const prior=req.result;
+        if(prior&&prior.nonce!==nonce&&prior.expiresAt>t){
+          busy=true;tx.abort();return;
+        }
+        if(prior&&prior.nonce!==nonce)
+          tx.objectStore('recoveries').put({namespace,
+            generation:prior.generation,cursor:null});
+        store.put({namespace,generation,nonce,expiresAt:t+ttlMs});
+      };
     };
     try{await finished;}catch(error){
+      if(already)fail('CUSTODY_ALREADY_COMMITTED','exact source generation already has a HEAD');
       if(busy)fail('CUSTODY_WRITER_BUSY','a live writer holds the source namespace');
       throw error;
     }
