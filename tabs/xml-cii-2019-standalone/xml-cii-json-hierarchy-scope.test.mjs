@@ -23,3 +23,11 @@ test('R12/U01 independent positive: explicit parent OWNER_ZONE remains its direc
  const index=buildJsonHierarchyScopeIndex(json);
  assert.deepEqual(index.scopes.map(s=>s.id),['ZONE-PARENT']);
 });
+
+test('R12/U01: direct item attributes OWNER_SITE is authoritative, descendant attributes cannot override it',()=>{
+ const json=JSON.stringify([{type:'BRANCH',name:'Parent',
+  attributes:{OWNER_SITE:'SITE-PARENT'},
+  children:[{type:'BRANCH',attributes:{OWNER_ZONE:'ZONE-CHILD'}}]}]);
+ const index=buildJsonHierarchyScopeIndex(json);
+ assert.deepEqual(index.scopes.map(s=>s.id),['SITE-PARENT']);
+});
