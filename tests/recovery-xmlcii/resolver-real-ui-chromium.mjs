@@ -151,7 +151,8 @@ try {
   check('node-csv-header',()=>assert.match(nodeBytes.toString('utf8'),/XML Node,XML Branch,Type/));
   await page.locator('[data-json-trace-sub-tab="tree"]').click();
   const treeButton=page.locator('[data-action="download-evidence-tree-csv"]');
-  check('evidence-tree-download-enabled',()=>assert.equal(await treeButton.isEnabled(),true));
+  const treeEnabled = await treeButton.isEnabled();
+  check('evidence-tree-download-enabled',()=>assert.equal(treeEnabled,true));
   const [treeDl]=await Promise.all([
     page.waitForEvent('download',{timeout:maxMs}),treeButton.click()
   ]);
