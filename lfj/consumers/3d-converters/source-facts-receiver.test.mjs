@@ -205,3 +205,37 @@ test('I3 selectedCount 0 NONE selection accepted only with complete empty exact 
   assert.equal(count,0);assert.equal(out.selectedCount,0);assert.equal(out.pages,1);
   assert.equal(p.counts().closeCount,1);
 });
+
+
+test('P0 RED: nontransactional per-occurrence callback cannot be a publication authority',async()=>{
+  const p=makePorts();
+  await assert.rejects(
+    ()=>consumeSelectedSourceFacts({...p.input(),onOccurrence:()=>{}}),
+    verifyCode('CONSUMER_TRANSACTION_REQUIRED')
+  );
+  assert.equal(p.counts().closeCount,1);
+});
+
+test('P0 RED: staged facts must not be visible when page completion fails',async()=>{
+  const p=makePorts();
+  let staged=0,published=0,aborted=0;
+  const original=p.session.readPage;
+  p.session.readPage=async args=>{
+    const out=await original(args);
+    return args.cursor===null?out:{...out,totalCount:999};
+  };
+  const transaction={
+    async begin(){},
+    async stage(){staged++;},
+    async commit(){published++;},
+    async abort(){aborted++;}
+  };
+  await assert.rejects(
+    ()=>consumeSelectedSourceFacts({...p.input(),transaction}),
+    verifyCode('CONSUMER_PAGE_INVALID')
+  );
+  assert.ok(staged>0,'earlier page must have been staged before later-page rejection');
+  assert.equal(published,0,'no result can be published from partial selection');
+  assert.equal(aborted,1,'staging generation must be aborted');
+  assert.equal(p.counts().closeCount,1);
+});
