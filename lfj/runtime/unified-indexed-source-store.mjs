@@ -349,6 +349,10 @@ export async function openUnifiedIndexedSourceStore({
   }
   async function commitDurably(manifest){
     usable();
+    // A duplicated commit request cannot turn an already authorized HEAD
+    // into an aborted generation or delete committed source records.
+    if(state==='COMMITTED')
+      fail('UNIFIED_ALREADY_COMMITTED','source HEAD was already durably published');
     if(state==='STAGING')await custody.ensure();
     if(state!=='STAGING'||busy||!same(manifest,basis)||
       manifest?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||
