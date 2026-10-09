@@ -1,9 +1,11 @@
 name: LFJ 1128 R05-R10 exact source page count and bytes
 on:
   pull_request:
-    branches: [main]
+    branches: [main, lfj/1120-w2-unified-indexed-source]
     paths:
       - 'lfj/qualification/provisional/source-page-wire-budget.test.mjs'
+      - 'lfj/index/**'
+      - 'lfj/ports/**'
       - '.github/workflows/lfj-1128-source-page-budget.yml'
   workflow_dispatch:
 permissions:
