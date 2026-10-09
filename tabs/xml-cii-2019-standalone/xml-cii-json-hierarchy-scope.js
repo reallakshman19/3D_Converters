@@ -255,7 +255,7 @@ export function materializeJsonHierarchyScope(stagedJsonText, index, scopeId) {
     return { scopeId: ALL_SCOPE_ID, value: JSON.parse(source), itemCount: index.itemCount || 0 };
   }
   const scope = (index.scopes || []).find((item) => item.id === selectedId);
-  if (!scope) throw new Error('Unknown JSON hierarchy scope: ' + selectedId);
+  if (!scope) scopeError('SOURCE_SCOPE_UNKNOWN','unknown or superseded JSON hierarchy scope: '+selectedId);
   const value = scope.items.map((item) => JSON.parse(source.slice(item.start, item.end)));
   return { scopeId: selectedId, value, itemCount: scope.itemCount };
 }
