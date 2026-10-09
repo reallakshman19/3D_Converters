@@ -1,0 +1,61 @@
+name: LFJ 1105 authentic populated source IndexedDB qualification
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lfj/qualification/provisional/authentic-idb-stress.*'
+      - '.github/workflows/lfj-1105-authentic-source-stress.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-browser-populated-source:
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture:
+          - Benchmarks/1885Sjson/Sjson.json
+          - Benchmarks/1885_NC/1885_NC.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert literal benchmark candidate SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Stage source-attested runtime and actual benchmark bytes outside tracked tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_dir="$(mktemp -d "${RUNNER_TEMP}/lfj-authentic-XXXXXX")"
+          echo "LFJ_STAGE_ROOT=${stage_dir}" >> "${GITHUB_ENV}"
+          node lfj/qualification/provisional/stage-public-runtime.mjs --stage-dir "${stage_dir}"
+          mkdir -p "${stage_dir}/lfj/qualification/provisional" "${stage_dir}/fixtures"
+          cp lfj/qualification/provisional/authentic-idb-stress.html "${stage_dir}/lfj/qualification/provisional/authentic-idb-stress.html"
+          cp "${{ matrix.fixture }}" "${stage_dir}/fixtures/$(basename "${{ matrix.fixture }}")"
+          wc -c "${{ matrix.fixture }}"
+          sha256sum "${{ matrix.fixture }}"
+      - name: Install real Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve same-origin original populated fixture and immutable source-derived LFJ modules
+        shell: bash
+        run: |
+          (cd "${LFJ_STAGE_ROOT}" && python3 -m http.server 4187 --bind 127.0.0.1 >/tmp/lfj-authentic-source.log 2>&1) &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4187/lfj/qualification/provisional/authentic-idb-stress.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-authentic-source.log
+          exit 1
+      - name: Independent Node corpus oracle versus native Chromium Worker, R07 IDB and exact source bytes
+        run: |
+          git rev-parse HEAD
+          node lfj/qualification/provisional/authentic-idb-stress.mjs --fixture "${{ matrix.fixture }}"
+      - name: Check no tracked source file mutated
+        run: test -z "$(git status --porcelain)"
