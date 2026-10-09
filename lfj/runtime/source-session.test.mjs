@@ -106,3 +106,15 @@ test('U01 semantic RED: public session retains original byte spans and rejects s
     occurrenceId:id('/0/name'),expectedSourceRevision:sourceRevision,maxBytes:4096
   }),e=>e?.code==='SESSION_CLOSED');
 });
+
+test('U01 admission RED: dependency changes during Worker indexing revoke source session',async()=>{
+  const live={...makeBasis(),dependencyRevision:'before-native-scan'};
+  const options=inputs(live);
+  const stage=options.indexStore.stagePage;
+  options.indexStore.stagePage=async batch=>{
+    live.dependencyRevision='during-native-scan';
+    return stage(batch);
+  };
+  await assert.rejects(()=>import('./source-session.mjs').then(x=>x.openSourceSession(options)),
+    e=>e?.code==='SOURCE_STALE');
+});
