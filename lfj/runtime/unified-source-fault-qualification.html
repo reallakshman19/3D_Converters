@@ -86,6 +86,41 @@ window.runUnifiedFaultMatrix=async()=>{
     indexedDB.deleteDatabase(casName);
   }
 
+  // Worker ACK is provisional custody transfer. A caller may modify its
+  // own JS objects AFTER await stagePage; no accepted original fact may drift.
+  const mutable=await make('mutable-after-ack');
+  try{
+    const callerOpen={...open},callerSeal={...seal};
+    await mutable.port.stagePage([callerOpen,callerSeal]);
+    callerOpen.path='/invented';callerOpen.startByte=99;
+    callerSeal.endByteExclusive=0;
+    await mutable.port.commitDurably(manifest);
+    const unchanged=await mutable.port.lookupCommittedPair(occurrenceId);
+    outcomes.mutableInputIsolated=unchanged.open.path===''&&
+      unchanged.open.startByte===0&&unchanged.seal.endByteExclusive===4;
+  }catch(e){outcomes.mutableInputIsolated=e?.code||'UNKNOWN_FAILED';}
+  finally{await cleanup(mutable);}
+
+  // Close during a HEAD put must abort the same still-open transaction,
+  // rather than resolve a rejected promise while publishing a durable HEAD.
+  let midCommit;
+  midCommit=await make('close-during-commit',{
+    beforeHeadCommit:()=>midCommit.port.close()
+  });
+  try{
+    await midCommit.port.stagePage([open,seal]);
+    try{await midCommit.port.commitDurably(manifest);
+      outcomes.closeWhileCommitting='UNEXPECTED_COMMITTED';
+    }catch(e){outcomes.closeWhileCommitting=e?.code;}
+    const reopened=await openUnifiedIndexedSourceStore({
+      databaseName:midCommit.databaseName,namespace,
+      generation:midCommit.generation,basis
+    });
+    try{
+      outcomes.closeDuringCommitVisible=await lookup({...midCommit,port:reopened});
+    }finally{reopened.close();}
+  }finally{await cleanup(midCommit);}
+
   const accepted=await make('durable');
   try{
     await accepted.port.stagePage([open]);
