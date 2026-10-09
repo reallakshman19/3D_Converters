@@ -1,0 +1,37 @@
+name: LFJ R12 original Resolver hierarchy scope correctness
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope*'
+      - '.github/workflows/lfj-r12-scope.yml'
+  push:
+    branches: [lfj/r12-resolver-scope-fence]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope*'
+      - '.github/workflows/lfj-r12-scope.yml'
+
+permissions:
+  contents: read
+jobs:
+  native-scope:
+    name: R12 Resolver source identity Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source head and independent R12 source-cache oracle
+        run: |
+          echo "R12_SOURCE_HEAD=$(git rev-parse HEAD)"
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.test.mjs
+      - name: No rewritten golden fixture
+        run: test -z "$(git status --porcelain)"
