@@ -1,7 +1,7 @@
 // R12/U01 independent direct-parent ownership regression against real Resolver index.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildJsonHierarchyScopeIndex, UNSCOPED_ID} from './xml-cii-json-hierarchy-scope.js';
+import {buildJsonHierarchyScopeIndex, materializeJsonHierarchyScope, UNSCOPED_ID} from './xml-cii-json-hierarchy-scope.js';
 
 test('R12/U01 semantic RED: child OWNER_ZONE cannot become parent BRANCH own owner',()=>{
  const json=JSON.stringify([{type:'BRANCH',name:'Parent',
