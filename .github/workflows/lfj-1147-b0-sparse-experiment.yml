@@ -31,6 +31,9 @@ jobs:
           node --check lfj/qualification/experiments/consumer-sparse-b0/compact-research.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0/compact.worker.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0/real-fixture-oracle.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
+      - name: Exact-source downstream consumer-field manifest
+        run: node lfj/qualification/experiments/consumer-sparse-b0/verify-consumer-manifest.mjs
       - name: Install real Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
