@@ -23,6 +23,9 @@ try{
   assert.equal(result.closeDuringCommitVisible,'UNIFIED_NOT_COMMITTED',
     'closed in-flight source must not publish durable HEAD on reopen');
   assert.equal(result.firstRowCorrect,true);
+  assert.equal(result.crossedSeal,'UNIFIED_PAIR_CORRUPT',
+    'one bounded original source stack forbids closing a parent before child');
+  assert.equal(result.crossedSealInvisible,'UNIFIED_ABORTED');
   assert.equal(result.postAbortPrefetch,'UNIFIED_ABORTED',
     'prefetched committed source rows must be inaccessible after abort');
   assert.equal(result.wrongParent,'UNIFIED_PAIR_CORRUPT');
@@ -32,6 +35,10 @@ try{
   assert.equal(result.widePrecommit,'UNIFIED_NOT_COMMITTED');
   assert.equal(result.wideOriginalCensus,521);
   assert.equal(result.wideLastValue,1040);
+  assert.equal(result.wideNativePairRequests.get,0,
+    'joining OPEN/SEAL must not issue one native pair get for each original occurrence');
+  assert.equal(result.wideNativePairRequestTotal,521,
+    '521 exact original source occurrences require only one native pair write each');
   assert.equal(result.successorExact,true,
     'legitimate newer source HEAD remains readable after predecessor crash');
   assert.equal(result.abandonedStagedRows,0,
