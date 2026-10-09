@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runNativeSourceOnlyTypedFile} from './native-source-only-file-intake.mjs';
+import {runNativeSourceOnlyFileIntakeCore} from './native-source-only-file-intake-core.mjs';
 
 const basis=Object.freeze({sourceRefId:'original',sourceSha256:'abc123',
   sourceRevision:'source-v1',selectionDigest:'ALL',
@@ -56,8 +57,10 @@ function casePorts({failAt=null,mutate=null,rights=false}={}){
     sessionClose:()=>sessionClose};
 }
 function FakeWorker(){}
+const testPorts=req=>({...req.nativePorts,WorkerCtor:req.WorkerCtor,indexedDB:req.indexedDB});
+const runInjected=req=>runNativeSourceOnlyFileIntakeCore(req,testPorts(req));
 const request=p=>({
-  blob:new Blob(['abcde']),revision:'source-rev-label',
+  blob:new Blob(['abcde']),revision:basis.sourceRevision,
   expectedBasis:basis,selection:{mode:'ALL',includes:[],excludes:[]},
   databaseName:'lfj-a05-test',WorkerCtor:FakeWorker,indexedDB:{open(){}},
   getCurrentBasis:p.getCurrentBasis,nativePorts:p.nativePorts
@@ -65,7 +68,7 @@ const request=p=>({
 
 test('A05 valid File/Blob source uses 3 stores, native Worker session and same-generation typed consumer',async()=>{
   const p=casePorts();
-  const r=await runNativeSourceOnlyTypedFile(request(p));
+  const r=await runInjected(request(p));
   assert.equal(r.engineeringReady,false);
   assert.deepEqual(p.opened,['source','selection','pairs','source-session','typed']);
   assert.deepEqual(p.closed,['pairs','selection','source']);
@@ -73,40 +76,40 @@ test('A05 valid File/Blob source uses 3 stores, native Worker session and same-g
 });
 test('A05 no Worker / no native IndexedDB rejects without creating ports',async()=>{
   const p=casePorts();
-  await assert.rejects(runNativeSourceOnlyTypedFile({...request(p),WorkerCtor:null}),
+  await assert.rejects(runInjected({...request(p),WorkerCtor:null}),
     code('NATIVE_CONSUMER_PORT_REQUIRED'));
-  await assert.rejects(runNativeSourceOnlyTypedFile({...request(p),indexedDB:null}),
+  await assert.rejects(runInjected({...request(p),indexedDB:null}),
     code('NATIVE_CONSUMER_PORT_REQUIRED'));
   assert.deepEqual(p.opened,[]);
 });
 test('A05 changed actual master while opening stores denies Worker intake',async()=>{
   const p=casePorts({mutate:'selection'});
-  await assert.rejects(runNativeSourceOnlyTypedFile(request(p)),
+  await assert.rejects(runInjected(request(p)),
     code('NATIVE_CONSUMER_BASIS_STALE'));
   assert.equal(p.opened.includes('source-session'),false);
   assert.deepEqual(p.closed,['selection','source']);
 });
 test('A05 fail closed if native Worker session opening fails after stores are staged',async()=>{
   const p=casePorts({failAt:'source-session'});
-  await assert.rejects(runNativeSourceOnlyTypedFile(request(p)),/WORKER_FAILED/);
+  await assert.rejects(runInjected(request(p)),/WORKER_FAILED/);
   assert.deepEqual(p.aborted,['pairs','selection','source']);
   assert.deepEqual(p.closed,['pairs','selection','source']);
 });
 test('A05 fail closed if app consumer throws after acquiring session',async()=>{
   const p=casePorts({failAt:'typed'});
-  await assert.rejects(runNativeSourceOnlyTypedFile(request(p)),/APP_SOURCE_FAILED/);
+  await assert.rejects(runInjected(request(p)),/APP_SOURCE_FAILED/);
   assert.equal(p.sessionClose(),1);
   assert.deepEqual(p.aborted,['pairs','selection','source']);
 });
 test('A05 injected consumer cannot promote engineering/export result',async()=>{
   const p=casePorts({rights:true});
-  await assert.rejects(runNativeSourceOnlyTypedFile(request(p)),
+  await assert.rejects(runInjected(request(p)),
     code('NATIVE_CONSUMER_RIGHTS_INVALID'));
   assert.deepEqual(p.aborted,['pairs','selection','source']);
 });
 test('A05 pre-cancelled input never opens original source',async()=>{
   const p=casePorts(),controller=new AbortController();controller.abort();
-  await assert.rejects(runNativeSourceOnlyTypedFile({...request(p),signal:controller.signal}),
+  await assert.rejects(runInjected({...request(p),signal:controller.signal}),
     code('NATIVE_CONSUMER_CANCELLED'));
   assert.deepEqual(p.opened,[]);
 });
@@ -128,7 +131,7 @@ test('A05-P2 RED: original source revision mismatch fails before any indexed-sto
   await assert.rejects(
     runNativeSourceOnlyFileIntakeCore({
       ...request(p),revision:'not-the-same-revision'
-    }, testPorts(p)),
+    }, testPorts(request(p))),
     code('NATIVE_CONSUMER_BASIS_INVALID')
   );
   assert.deepEqual(p.opened,[]);
