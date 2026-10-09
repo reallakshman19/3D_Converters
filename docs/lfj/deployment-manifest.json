@@ -1,7 +1,7 @@
 {
   "schema": "LFJ.V4.1.DeployedModuleManifest.v1",
   "scope": "REAL_BROWSER_SOURCE_MODULE_CLOSURE",
-  "sourceHead": "c7aef63b76e1a8ac6283c16376a57e5cce25fca5",
+  "sourceHead": "bed426c71d2d7ba241f20ed1b864ccdf68953549",
   "sources": [
     "lfj/ports/source-browser-worker.mjs",
     "lfj/ports/committed-worker-query.mjs",
