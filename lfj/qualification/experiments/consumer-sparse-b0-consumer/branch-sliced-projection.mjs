@@ -23,7 +23,9 @@ const canonicalFields=[
   'description','dtxrPs','labeled','name','componentRef','tags','cmpSupGap',
   'path','capturedFields','semanticFields'
 ];
-const normalized=m=>Object.fromEntries(canonicalFields.map(key=>[key,m[key]??(key==='point'?null:'')]));
+export const normalizedResolverProjectionFact=m=>Object.fromEntries(
+  canonicalFields.map(key=>[key,m[key]??(key==='point'?null:'')]));
+const normalized=normalizedResolverProjectionFact;
 const MATCH_FIELD_NAMES=[
   // Actual legacy trace descriptors, source node fallbacks, support labels,
   // spatial aliases and explicit component attachment evidence.
@@ -108,7 +110,7 @@ export async function createSourceBackedResolverProjection({
     blob,expectedSha256
   });
   let db=null,success=false,branches=0,sourceObjects=0,facts=0,pageNo=0;
-  let offset=0,activePage=[],digest=2166136261,groupEntries=[],pageDigests=[];
+  let offset=0,activePage=[],digest=2166136261,groupEntries=[],pageDigests=[],fullPageDigests=[];
   let sourcePageReads=0,materializedBytes=0,maxBranchObserved=0;
   const begun=performance.now(),projectionDigest=await hashConfig(config,toleranceMm);
   try{
@@ -160,6 +162,12 @@ export async function createSourceBackedResolverProjection({
       const pageFactHash=await crypto.subtle.digest('SHA-256',
         encode(activePage.map(normalized)));
       pageDigests.push([...new Uint8Array(pageFactHash)]
+        .map(b=>b.toString(16).padStart(2,'0')).join(''));
+      // All consumer bytes matter: matchingEvidence, original ordinals/spans,
+      // configured source conflicts AND normalized legacy facts. The original
+      // domainSha256 above remains unchanged for the independent legacy oracle.
+      const fullHash=await crypto.subtle.digest('SHA-256',encode(activePage));
+      fullPageDigests.push([...new Uint8Array(fullHash)]
         .map(b=>b.toString(16).padStart(2,'0')).join(''));
       const tx=db.transaction('pages','readwrite'),done=txEnd(tx);
       tx.objectStore('pages').add({generation:projectionGeneration,pageNo,
@@ -232,6 +240,10 @@ export async function createSourceBackedResolverProjection({
     const combined=await crypto.subtle.digest('SHA-256',enc.encode(pageDigests.join('\n')));
     const domainSha256=[...new Uint8Array(combined)]
       .map(b=>b.toString(16).padStart(2,'0')).join('');
+    const evidenceCombined=await crypto.subtle.digest('SHA-256',
+      enc.encode(fullPageDigests.join('\n')));
+    const matchingEvidenceDigestSha256=[...new Uint8Array(evidenceCombined)]
+      .map(b=>b.toString(16).padStart(2,'0')).join('');
     const tx=db.transaction('heads','readwrite'),done=txEnd(tx);
     tx.objectStore('heads').put({
       schema:SCHEMA,generation:projectionGeneration,
@@ -240,7 +252,8 @@ export async function createSourceBackedResolverProjection({
       originalCount:source.sourceCount,rootBranches:branches,
       traversedDomainObjects:sourceObjects,factCount:facts,
       factPageCount:pageNo,groups,domainDigest32:digest>>>0,
-      domainSha256,sourceOnly:true,engineeringReady:false
+      domainSha256,matchingEvidenceDigestSha256,
+      sourceOnly:true,engineeringReady:false
     },'active');
     await done;
     success=true;
@@ -249,7 +262,8 @@ export async function createSourceBackedResolverProjection({
       sourceOccurrences:source.sourceCount,rootBranches:branches,
       traversedDomainObjects:sourceObjects,factCount:facts,
       factPageCount:pageNo,spatialGroupCount:groups,
-      domainDigest32:digest>>>0,domainSha256,sourcePageReads,
+      domainDigest32:digest>>>0,domainSha256,matchingEvidenceDigestSha256,
+      sourcePageReads,
       sourceByteReadTotal:materializedBytes,maxBranchSpan:maxBranchObserved,
       elapsedMs:performance.now()-begun,sourceOnly:true,
       engineeringReady:false,appWired:false};

@@ -2,6 +2,45 @@
 <title>#1147 B0-05 Native Chromium original XML → sparse JSON matching and CSV oracle</title>
 <script type="module">
 const fail=(code,message)=>Object.assign(new Error(message),{code});
+// Independent browser-side corruption control. The test deliberately edits
+// IndexedDB AFTER a successful source-matched ledger result, then requires the
+// production Resolver entrypoint to FAIL CLOSED before computing CSV hashes.
+async function mutateFactPage(databaseName,generation,mutate){
+  const db=await new Promise((resolve,reject)=>{
+    const r=indexedDB.open(databaseName);
+    r.onsuccess=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error);
+    r.onupgradeneeded=()=>r.transaction.abort();
+  });
+  try{
+    const original=await new Promise((resolve,reject)=>{
+      const t=db.transaction('pages','readonly');
+      const r=t.objectStore('pages').get([generation,0]);
+      r.onsuccess=()=>resolve(r.result);
+      r.onerror=()=>reject(r.error);
+    });
+    if(!original?.rows?.length)
+      throw fail('CORRUPTION_SETUP','first original consumer page absent');
+    const changed=structuredClone(original);
+    mutate(changed.rows[0]);
+    await new Promise((resolve,reject)=>{
+      const t=db.transaction('pages','readwrite');
+      t.objectStore('pages').put(changed);
+      t.oncomplete=resolve;t.onerror=()=>reject(t.error);
+      t.onabort=()=>reject(t.error);
+    });
+    return async()=>{
+      try{
+        await new Promise((resolve,reject)=>{
+          const t=db.transaction('pages','readwrite');
+          t.objectStore('pages').put(original);
+          t.oncomplete=resolve;t.onerror=()=>reject(t.error);
+          t.onabort=()=>reject(t.error);
+        });
+      }finally{db.close();}
+    };
+  }catch(err){db.close();throw err;}
+}
 const run=(file,payload)=>new Promise((resolve,reject)=>{
   const w=new Worker(new URL(file,location.href),{type:'module'});
   w.onmessage=({data})=>{
@@ -89,11 +128,41 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
     }catch(error){configError=error.code||'';}
     if(configError!=='PROJECTION_CONFIG_STALE')
       throw fail('CONFIG_STALE_ACCEPTED','changed aliases/capture config must reject, got '+(configError||'SUCCESS'));
+    // A damaged page with correct sourceSHA/config/row count must be rejected
+    // by the actual matching Worker. Both attacks preserve the record census.
+    const runCorruptionNegative=async(kind,mutate)=>{
+      const restore=await mutateFactPage(projectionDb,id,mutate);
+      let code='';
+      try{
+        await run('./matching.worker.mjs',{
+          type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+          projectionDatabaseName:projectionDb,projectionGeneration:id,
+          blob,expectedSha256:oracle.originalSha256,xmlText,config
+        });
+      }catch(err){code=err.code||'';}
+      finally{await restore();}
+      if(code!=='PROJECTION_PAGE_INTEGRITY')
+        throw fail('CORRUPT_PAGE_ACCEPTED',kind+' must reject before matching: '+(code||'SUCCESS'));
+      return code;
+    };
+    const tamperedMatchingEvidence=await runCorruptionNegative(
+      'matchingEvidence',fact=>{
+        if(!fact.matchingEvidence||typeof fact.matchingEvidence!=='object')
+          throw fail('CORRUPTION_SETUP','expected original evidence');
+        fact.matchingEvidence.attributes={
+          ...fact.matchingEvidence.attributes,SPREF:'FORGED-PS-AUTHORITY'
+        };
+      });
+    const tamperedNormalizedFact=await runCorruptionNegative(
+      'normalizedFact',fact=>{
+        fact.jsonNodeNo=String(fact.jsonNodeNo)+'-FORGED';
+      });
     const after=(await navigator.storage.estimate()).usage??null;
     return {schema:'LFJ.B0.RealXmlCsvOriginalOracle.v1',source,
       projection,matching:result,measurementMs:performance.now()-started,
       storageDelta:before===null||after===null?null:after-before,
-      negatives:{configurationChanged:configError},
+      negatives:{configurationChanged:configError,
+        tamperedMatchingEvidence,tamperedNormalizedFact},
       mainThreadLongTasks:longTasks.length,
       mainThreadMaxLongTaskMs:Math.max(0,...longTasks),
       qualification:'REAL_XML_CSV_SEMANTIC_PARITY_NOT_UI_PRODUCTION'};
