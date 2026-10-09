@@ -81,7 +81,7 @@ test('R09 full wire-budget preserves complete ordinal union by selecting a fitti
   assert.ok(iterations>1,'frontier must require cursor continuation');
 });
 
-test('R09 unfit first record explicitly refuses and never consumes first cursor',async()=>{
+test('R09 unfit first record preserves legacy PAGE_WIRE_OVERLIMIT and first cursor',async()=>{
   const row={
     schema:'LFJ.JSON.OccurrenceEvent.v1',kind:'OPEN',...sourceBasis,
     occurrenceId:JSON.stringify(['lfj-json-value/v1',
@@ -110,7 +110,7 @@ test('R09 unfit first record explicitly refuses and never consumes first cursor'
   await assert.rejects(pager.readPage({
     cursor:null,sourceBasis,selectionDigest:digest,jobEpoch:epoch,
     maxRows:1,maxBytes:256
-  }),error=>error?.code==='PAGE_ROW_OVERSIZE',
+  }),error=>error?.code==='PAGE_WIRE_OVERLIMIT',
   'one record plus complete envelope cannot be silently clipped');
   const valid=await pager.readPage({
     cursor:null,sourceBasis,selectionDigest:digest,jobEpoch:epoch,
