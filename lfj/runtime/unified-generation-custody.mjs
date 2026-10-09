@@ -91,14 +91,23 @@ export function createGenerationCustody({db,namespace,generation,now=()=>Date.no
   // An old losing writer must never roll back another writer's staged
   // generation or the current HEAD. Explicit local abort may revoke only
   // when there is no different active namespace writer.
-  function revoke(tx,after){
+  function revoke(tx,after,{allowCommitted=false}={}){
     const leases=tx.objectStore('leases'),req=leases.get(namespace);
     req.onsuccess=()=>{
-      if(req.result&&req.result.nonce!==nonce)return;
-      try{
-        after();
-        if(req.result?.nonce===nonce)leases.delete(namespace);
-      }catch{try{tx.abort();}catch{}}
+      if(req.result?.nonce===nonce){
+        try{after();leases.delete(namespace);}
+        catch{try{tx.abort();}catch{}}
+        return;
+      }
+      if(req.result||!allowCommitted)return;
+      // A reopened read-only HEAD may never delete its generation after
+      // being denied write admission. Only the session which actually
+      // published this HEAD can explicitly revoke it.
+      const head=tx.objectStore('heads').get(namespace);
+      head.onsuccess=()=>{
+        if(head.result?.generation!==generation)return;
+        try{after();}catch{try{tx.abort();}catch{}}
+      };
     };
   }
   async function nextRecovery(){
