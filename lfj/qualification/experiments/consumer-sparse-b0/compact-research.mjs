@@ -65,6 +65,7 @@ function audit(db,gen,expected,sourceBytes){
 export async function runCompactResearch({blob,expectedSha256,databaseName,generation,revision='B0',signal}={}){
   if(!(blob instanceof Blob)||!databaseName||!generation)throw fail('INPUT_REQUIRED','original Blob, db and generation required');
   let db=null,source=null,complete=false,recordCount=0,flushCount=0,stagingMs=0;
+  let shaMs=0,scannerMs=0,censusMs=0,headMs=0;
   let batch=[],batchBytes=0,ordinal=0,stack=[];
   const start=performance.now();
   const enc=new TextEncoder();
@@ -101,7 +102,9 @@ export async function runCompactResearch({blob,expectedSha256,databaseName,gener
   }
   try{
     source=await openBlobSourceSnapshot(blob,{revision,expectedSha256,signal});
+    shaMs=performance.now()-start;
     db=await database(databaseName);
+    const scanStart=performance.now();
     const scan=await scanJsonDocument(source,{
       pageBytes:65536,signal,
       async onToken(token){
@@ -131,11 +134,15 @@ export async function runCompactResearch({blob,expectedSha256,databaseName,gener
         // remain completely validated by the existing R04 scanner.
       }
     });
+    scannerMs=performance.now()-scanStart;
     if(!scan.complete||scan.endByteExclusive!==source.byteLength||
        stack.length||recordCount!==ordinal)
       throw fail('CATALOG_INCOMPLETE','original source catalog did not close');
     await flush();
+    const censusStart=performance.now();
     const count=await audit(db,generation,ordinal,source.byteLength);
+    censusMs=performance.now()-censusStart;
+    const headStart=performance.now();
     const tx=db.transaction('heads','readwrite'),done=finish(tx);
     tx.objectStore('heads').put({
       schema:SCHEMA,complete:true,generation,
@@ -143,10 +150,12 @@ export async function runCompactResearch({blob,expectedSha256,databaseName,gener
       originalBytes:source.byteLength,occurrenceCount:count
     },'active');
     await done;
+    headMs=performance.now()-headStart;
     complete=true;
     return {schema:SCHEMA,sourceSha256:source.sha256,sourceRevision:source.revision,
       originalBytes:source.byteLength,occurrenceCount:count,stageTransactions:flushCount,
-      stageMs:stagingMs,elapsedMs:performance.now()-start,sourceOnly:true,
+      stageMs:stagingMs,shaMs,scannerMs,censusMs,headMs,
+      elapsedMs:performance.now()-start,sourceOnly:true,
       appWired:false,crashRecoveryQualified:false};
   }finally{
     source?.close();
