@@ -9,18 +9,6 @@ function text(value) {
   return String(value ?? '');
 }
 
-function sourceKey(value) {
-  const source = text(value);
-  const length = source.length;
-  const middle = Math.floor(length / 2);
-  return [
-    length,
-    source.slice(0, 96),
-    source.slice(Math.max(0, middle - 48), middle + 48),
-    source.slice(Math.max(0, length - 96)),
-  ].join('|');
-}
-
 function validScopeId(index, requested) {
   if (requested === ALL_SCOPE_ID) return requested;
   if ((index?.scopes || []).some((scope) => scope.id === requested)) return requested;
@@ -30,9 +18,12 @@ function validScopeId(index, requested) {
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const source = text(state.stagedJsonText);
   if (!source) return { index: null, selectedScopeId: ALL_SCOPE_ID };
-  const key = sourceKey(source);
+  // Compare the *entire* source value. Sampled string slices collide for
+  // equal-length interior edits and can reuse a superseded owner/scope index.
+  // The cache retains the existing immutable JS string; it is not a second
+  // parsed hierarchy or a generated substitute for R03 byte custody.
   const cached = state.resolverJsonTraceUiScopeCache;
-  const index = cached?.key === key
+  const index = cached?.source === source
     ? cached.index
     : buildJsonHierarchyScopeIndex(source);
   const selectedScopeId = validScopeId(
@@ -43,7 +34,7 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
     stateRef.current = {
       ...stateRef.current,
       jsonTraceScopeId: selectedScopeId,
-      resolverJsonTraceUiScopeCache: { key, index },
+      resolverJsonTraceUiScopeCache: { source, index },
     };
   }
   return { index, selectedScopeId };
