@@ -8,11 +8,14 @@ import {
 function text(value) {
   return String(value ?? '');
 }
+const STALE_SCOPE_ID = '__STALE_SOURCE_SCOPE__';
 
 function validScopeId(index, requested) {
-  if (requested === ALL_SCOPE_ID) return requested;
+  if (requested === ALL_SCOPE_ID || requested === STALE_SCOPE_ID) return requested;
+  if (!requested) return index?.indexable ? index.defaultScopeId : ALL_SCOPE_ID;
   if ((index?.scopes || []).some((scope) => scope.id === requested)) return requested;
-  return index?.indexable ? index.defaultScopeId : ALL_SCOPE_ID;
+  // An unknown saved choice cannot silently fall back to ALL/default.
+  return STALE_SCOPE_ID;
 }
 
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
@@ -26,23 +29,31 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const index = cached?.source === source
     ? cached.index
     : buildJsonHierarchyScopeIndex(source);
-  const selectedScopeId = validScopeId(
-    index,
-    text(state.jsonTraceScopeId) || index.defaultScopeId,
-  );
+  const sourceSuperseded = Boolean(cached && cached.source !== source);
+  const requested = text(state.jsonTraceScopeId);
+  const selectedScopeId = sourceSuperseded && requested
+    ? STALE_SCOPE_ID
+    : validScopeId(index, requested);
   if (stateRef?.current) {
     stateRef.current = {
       ...stateRef.current,
       jsonTraceScopeId: selectedScopeId,
+      ...(sourceSuperseded ? {
+        resolverJsonTraceResult: null,
+        resolverJsonTraceJsonResult: null,
+        resolverJsonTraceExportStatus: '',
+      } : {}),
       resolverJsonTraceUiScopeCache: { source, index },
     };
   }
-  return { index, selectedScopeId };
+  return { index, selectedScopeId, sourceSuperseded };
 }
 
 function scopeNote(scopeState) {
   const index = scopeState?.index;
   if (!index) return 'Load staged JSON to discover hierarchy scopes.';
+  if (scopeState.selectedScopeId === STALE_SCOPE_ID)
+    return 'Source or scope changed — explicitly reselect a scope before resolving.';
   if (!index.indexable) {
     return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
   }
@@ -60,6 +71,8 @@ function selectControl(scopeState) {
   const options = scopeState?.index
     ? jsonHierarchyScopeOptions(scopeState.index)
     : [{ id: ALL_SCOPE_ID, label: 'All scopes', itemCount: 0 }];
+  if (scopeState?.selectedScopeId === STALE_SCOPE_ID)
+    options.unshift({ id: STALE_SCOPE_ID, label: 'Source changed — choose scope', itemCount: 0 });
   for (const item of options) {
     const option = createElement('option', item.label + ' (' + item.itemCount + ')');
     option.value = item.id;
