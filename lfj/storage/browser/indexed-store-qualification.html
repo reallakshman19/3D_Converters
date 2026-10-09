@@ -53,6 +53,19 @@ window.runRealIndexedDBTests=async()=>{
   if(recovered.length!==1||recovered[0].ordinal!==136)throw Error('INDEXED_RESTART_FAILED');
   recover.close();
   result.recoveredPage=true;
+  // Two overlapping page writes must NEVER reserve the same ordinal range.
+  const concurrent=await openIndexedRecordStore({databaseName:dbName,
+    namespace:'source:CONCURRENT',generation:'CONCURRENT-1',basis:sourceBasis,kind:'source'});
+  const writes=await Promise.allSettled([
+    concurrent.stagePage(originalRows.slice(0,2)),
+    concurrent.stagePage(originalRows.slice(2,4))
+  ]);
+  if(writes.filter(x=>x.status==='fulfilled').length!==1||
+     writes.filter(x=>x.status==='rejected'&&x.reason?.code==='STORE_STAGE_BUSY').length!==1)
+    throw Error('STORE_CONCURRENT_STAGE_NOT_FENCED');
+  await concurrent.abort();
+  concurrent.close();
+  result.concurrentStagesSerialized=true;
   const crashing=await openIndexedRecordStore({databaseName:dbName,namespace:'source:CRASH',generation:'CRASH-1',basis:sourceBasis,kind:'source',beforeHeadCommit:tx=>tx.abort()});
   await crashing.stagePage(originalRows.slice(0,4));
   await failCode(()=>crashing.commit({...manifest,eventCount:4,occurrenceCount:2}),'STORE_COMMIT_ABORTED');
