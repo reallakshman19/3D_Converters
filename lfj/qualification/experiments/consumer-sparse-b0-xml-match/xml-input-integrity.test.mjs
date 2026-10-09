@@ -35,8 +35,8 @@ for(const [index,xml] of broken.entries()){
       e=>e?.code==='XML_INPUT_INVALID');
   });
 }
-test('valid XML prolog, nesting, attributes, comments and CDATA accepted',()=>{
-  const xml='<?xml version="1.0"?><Root xmlns="URN"><!-- ok --><Node tag="&quot;"/>'+
+test('supported XML prolog, nesting, attributes, comments and CDATA accepted',()=>{
+  const xml='<?xml version="1.0"?><Root xmlns="URN"><!-- ok --><Node tag="&quot;"></Node>'+
     '<Node><V><![CDATA[x<y &z]]></V><T>&amp; &#x3e;</T></Node></Root>';
   assert.deepEqual(assertResearchXmlDocument(xml),{rootCount:1,elementCount:5,
     nodeElementCount:2,pipingElementCount:0});
