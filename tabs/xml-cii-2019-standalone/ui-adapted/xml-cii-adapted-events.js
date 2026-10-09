@@ -29,7 +29,11 @@ import {
  * A separate, clearly labelled LEGACY mode preserves existing small-input UI.
  */
 const resolverLfjJobs=new WeakMap();
+const resolverLfjEpochs=new WeakMap();
 function revokeResolverLfjJob(stateRef){
+  // Fence ALREADY-AWAITING legacy Build even if mode goes LFJ→LEGACY
+  // and both file references are the same again (ABA supersession).
+  resolverLfjEpochs.set(stateRef,(resolverLfjEpochs.get(stateRef)||0)+1);
   const previous=resolverLfjJobs.get(stateRef);
   if(previous)previous.abort();
   resolverLfjJobs.delete(stateRef);
@@ -38,8 +42,10 @@ function clearResolverLfjOutputs(patch={}){
   return {
     ...patch,
     resolverJsonTraceResult:null,resolverJsonTraceJsonResult:null,
+    resolverJsonTraceTableResult:null,jsonTraceTableBenchmark:null,
+    resolverJsonTraceRunning:false,
     resolverJsonTraceExportStatus:'',resolverJsonTraceWriteBackStatus:'',
-    resolverLfjReport:null
+    result:null,outputRunReadinessReport:null,resolverLfjReport:null
   };
 }
 async function runResolverLfjFileFromUi(file,stateRef,render){
@@ -347,7 +353,9 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     const ready=stateRef.current.resolverLfjReport?.schema==='LFJ.3D.ResolverSourceAdmission.v1';
     replaceState(stateRef,updateWorkflowState(stateRef.current,{
       resolverJsonTraceRunning:false,resolverJsonTraceResult:null,
-      resolverJsonTraceJsonResult:null,resolverJsonTraceExportStatus:'',
+      resolverJsonTraceJsonResult:null,
+      resolverJsonTraceTableResult:null,jsonTraceTableBenchmark:null,
+      resolverJsonTraceExportStatus:'',
       resolverJsonTraceWriteBackStatus:ready
         ? 'LFJ source-only admission complete; R13 XML/CII trace and CSV writer not yet authorized.'
         : 'LFJ source admission incomplete/rejected; no legacy fallback or engineering output.'
@@ -358,9 +366,49 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
+  // Capture source/dependency/mode generation BEFORE awaiting either legacy
+  // file read. Without this, a pending Build could calculate after an LFJ
+  // mode switch and re-publish supposedly revoked XML/CII engineering rows.
+  const legacy=stateRef.current;
+  const epoch=resolverLfjEpochs.get(stateRef)||0;
+  const deps=JSON.stringify(legacy.dependencyRevisions??null);
+  const cfg=JSON.stringify(legacy.resolverJsonTraceConfig??null);
+  const scope=legacy.jsonTraceScopeId;
+  const branch=JSON.stringify(legacy.branchSelection??null);
+  const stillLegacy=()=>{
+    const current=stateRef.current;
+    return current.resolverLfjMode!=='LFJ' &&
+      (resolverLfjEpochs.get(stateRef)||0)===epoch &&
+      current.resolverLfjJobToken===legacy.resolverLfjJobToken &&
+      current.sourceFile===legacy.sourceFile &&
+      current.stagedJsonFile===legacy.stagedJsonFile &&
+      current.sourceText===legacy.sourceText &&
+      current.stagedJsonText===legacy.stagedJsonText &&
+      current.supportConfigJson===legacy.supportConfigJson &&
+      current.masterContext===legacy.masterContext &&
+      current.jsonTraceScopeId===scope &&
+      JSON.stringify(current.dependencyRevisions??null)===deps &&
+      JSON.stringify(current.resolverJsonTraceConfig??null)===cfg &&
+      JSON.stringify(current.branchSelection??null)===branch;
+  };
+  const revokePendingBuild=()=>{
+    if(stillLegacy())return false;
+    // LFJ mode has already cleared its own results; never overwrite it.
+    if(stateRef.current.resolverLfjMode!=='LFJ'){
+      stateRef.current=updateWorkflowState(stateRef.current,{
+        resolverJsonTraceRunning:false,
+        resolverJsonTraceWriteBackStatus:'Legacy Build superseded by input change.'
+      });
+      render();
+    }
+    return true;
+  };
   const sourceText = await sourceTextFromState(stateRef.current);
+  if(revokePendingBuild())return;
   const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
+  if(revokePendingBuild())return;
   const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
+  if(revokePendingBuild())return;
   const benchmark = stateRef.current.resolverJsonTraceTableResult
     ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
     : stateRef.current.jsonTraceTableBenchmark;
