@@ -7,6 +7,7 @@
  * Full 30/90MB projection requires a separate durable/bounded paging adapter.
  */
 import {resolveSourceOwners} from '../../adapters/ownership/source-ownership.mjs';
+import {inspectStructuredJsonRootFacts} from '../../contracts/profiles/root-profile.mjs';
 
 export class TypedOwnAttributesError extends TypeError {
   constructor(code,message){super(code+': '+message);this.name='TypedOwnAttributesError';this.code=code;}
@@ -48,12 +49,12 @@ function verifyProfile(rootProfile){
     fail('ROOT_PROFILE_REQUIRED','supported independently classified read-only original root required');
 }
 /**
- * @param {{facts:Array<{row,bytes,sourceOnly}>, receipt,rootProfile,maxRows?,maxScalarBytes?}} input
+ * @param {{facts:Array<{row,bytes,sourceOnly}>, receipt,summary,rootProfile,maxRows?,maxScalarBytes?}} input
  * Note: this bounded preflight is NOT a signed source/profile attestation.
  * SourceSession + source-facts-receiver remain the authoritative input gate.
  */
 export function projectTypedOwnAttributes({
-  facts,receipt,rootProfile,maxRows=4096,maxScalarBytes=65536
+  facts,receipt,summary,rootProfile,maxRows=4096,maxScalarBytes=65536
 }={}){
   if(!positive(maxRows)||maxRows>4096||!positive(maxScalarBytes)||maxScalarBytes>1048576)
     fail('SOURCE_LIMIT','preflight row and scalar resource budgets must be bounded');
@@ -73,6 +74,37 @@ export function projectTypedOwnAttributes({
     !positive(receipt.byteLength))
     fail('SOURCE_SCOPE_INCOMPLETE','whole verified source-facts receipt must cover exactly this selected set');
   verifyProfile(rootProfile);
+  // R05's complete original *source* census is separate from R09's selected
+  // page total. An ALL-shaped selected prefix is not an ALL-source attestation.
+  // The upstream provider must independently attest the summary to the raw
+  // R03 snapshot; this boundary only checks its exact normalized schema.
+  if(summary?.schema!=='LFJ.JSON.OccurrenceIndexSummary.v1'||
+    summary.complete!==true||summary.rightsBasis!=='SOURCE_FACTS_ONLY'||
+    summary.engineeringReady!==false||
+    summary.sourceRefId!==receipt.sourceRefId||
+    summary.sourceRevision!==receipt.sourceRevision||
+    summary.sourceSha256!==receipt.sourceSha256||
+    summary.byteLength!==receipt.byteLength||
+    summary.endByteExclusive!==receipt.byteLength||
+    !positive(summary.occurrenceCount)||
+    summary.occurrenceCount!==receipt.selectedCount||
+    summary.eventCount!==summary.occurrenceCount*2||
+    !summary.rootFacts)
+    fail('SOURCE_CENSUS_MISMATCH',
+      'a complete original R05 FULL-source census on this exact byte/revision basis is mandatory');
+  let derivedRootProfile;
+  try{
+    derivedRootProfile=inspectStructuredJsonRootFacts(summary.rootFacts);
+  }catch{
+    fail('SOURCE_CENSUS_MISMATCH',
+      'R05 original token-derived root facts must classify without error');
+  }
+  if(derivedRootProfile.rootKind!==rootProfile.rootKind||
+    derivedRootProfile.rootPath!==rootProfile.rootPath||
+    derivedRootProfile.rootKey!==rootProfile.rootKey||
+    derivedRootProfile.profileId!==rootProfile.profileId)
+    fail('ROOT_PROFILE_REQUIRED',
+      'caller root profile differs from independently token-derived original R05 root facts');
   // Exact R05 source identity and parent chain, not engineering attributes.
   const pathMap=new Map(),ids=new Set();
   let previousOrdinal=-1;
