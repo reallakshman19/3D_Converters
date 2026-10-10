@@ -125,6 +125,7 @@ try{
             <textarea data-field="resolver-json-config">{}</textarea>
             <input type="checkbox" data-field="lfj-indexed-export-consent">
             <button data-action="build-resolver-index">Build</button>
+            <button data-action="cancel-indexed-build">Cancel</button>
             <button data-action="download-node-wise-trace-csv">Node CSV</button>
             <button data-action="download-evidence-tree-csv">Evidence CSV</button>`;
           document.body.appendChild(ui);
@@ -161,6 +162,54 @@ try{
           HTMLAnchorElement.prototype.click=function(){};
         },xmlText);
         await page.setInputFiles('[data-field="staged-json-file"]',w.sourcePath);
+        if(w.expectedOutcome==='INDEXED_TWO_CSV'){
+          // Actual Owner 30 MB recovery qualification: allow SOURCE worker
+          // to commit an IndexedDB HEAD, intercept the PROJECT handoff,
+          // cancel in the actual UI, verify delete success, then restart.
+          await page.evaluate(()=>{
+            const ctx=window.__ownerA3;
+            ctx.projectHeld=false;
+            ctx.cancelledAfterCommittedSource=false;
+            window.Worker=class extends ctx.originalWorker{
+              constructor(...args){super(...args);ctx.workerCreates++;}
+              postMessage(payload,...rest){
+                if(payload?.type==='PROJECT'&&!ctx.projectHeld){
+                  ctx.projectHeld=true;
+                  return;
+                }
+                return super.postMessage(payload,...rest);
+              }
+            };
+          });
+          await page.click('[data-action="build-resolver-index"]');
+          await page.waitForFunction(()=>window.__ownerA3.projectHeld,
+            null,{timeout:240000});
+          const hadCommittedSource=await page.evaluate(async()=>{
+            const current=await indexedDB.databases();
+            return current.some(d=>d.name?.startsWith('lfj-ui-preview-source-'));
+          });
+          if(!hadCommittedSource)
+            throw Error('Owner source HEAD did not persist before Cancel');
+          await page.click('[data-action="cancel-indexed-build"]');
+          await page.waitForFunction(()=>!window.__ownerA3.ref.current.resolverJsonTraceRunning,
+            null,{timeout:20000});
+          await page.waitForFunction(async()=>!(await indexedDB.databases()).some(d=>
+            d.name?.startsWith('lfj-ui-preview-')),null,{timeout:30000});
+          const clean=await page.evaluate(()=>{
+            const {ref}=window.__ownerA3;
+            return !ref.current.lfjIndexedPreview &&
+              !ref.current.lfjIndexedExportReceipt &&
+              ref.current.lfjIndexedExportOptIn!==true;
+          });
+          if(!clean)throw Error('Cancelled Owner source could still export');
+          await page.evaluate(()=>{
+            const ctx=window.__ownerA3;
+            ctx.cancelledAfterCommittedSource=true;
+            window.Worker=class extends ctx.originalWorker{
+              constructor(...args){super(...args);ctx.workerCreates++;}
+            };
+          });
+        }
         await page.click('[data-action="build-resolver-index"]');
         await page.waitForFunction(()=>window.__ownerA3 &&
           !window.__ownerA3.ref.current.resolverJsonTraceRunning,
@@ -169,6 +218,7 @@ try{
           const {ui,ref,workerCreates,blobs}=window.__ownerA3;
           const output={workerCreates,
             buildStatus:ref.current.resolverJsonTraceExportStatus,
+            cancelledAfterCommittedSource:window.__ownerA3.cancelledAfterCommittedSource===true,
             inputBytes:ref.current.stagedJsonFile?.size,
             accepted:Boolean(ref.current.lfjIndexedPreview),
             tempDbCount:(await indexedDB.databases()).filter(d=>
@@ -183,6 +233,8 @@ try{
             output.result='EXPECTED_CAPACITY_REJECTION';
           }else{
             const preview=ref.current.lfjIndexedPreview;
+            if(!output.cancelledAfterCommittedSource)
+              throw Error('Owner 30MB source cancellation/restart not qualified');
             if(!preview||preview.xmlNodes!==expected.expectedXmlNodes||
               preview.matchedXmlNodes!==expected.expectedMatchedNodes||
               preview.nodeWiseCsvSha256!==expected.expectedNodeWiseCsvSha256||
