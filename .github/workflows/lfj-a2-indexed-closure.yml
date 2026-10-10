@@ -6,6 +6,8 @@ on:
       - 'docs/lfj/indexed-runtime-closure.test.mjs'
       - 'docs/lfj/pages-origin-probe.mjs'
       - 'docs/lfj/pages-origin-probe.test.mjs'
+      - 'docs/lfj/stage-indexed-runtime.mjs'
+      - 'docs/lfj/stage-indexed-runtime.test.mjs'
       - '.github/workflows/lfj-a2-indexed-closure.yml'
   workflow_dispatch:
 permissions:
@@ -35,6 +37,8 @@ jobs:
           node --test docs/lfj/indexed-runtime-closure.test.mjs
           node --check docs/lfj/pages-origin-probe.mjs
           node --test docs/lfj/pages-origin-probe.test.mjs
+          node --check docs/lfj/stage-indexed-runtime.mjs
+          node --test docs/lfj/stage-indexed-runtime.test.mjs
       - name: Real repository root versus docs check-in closure
         env:
           LFJ_A2_CHECK_REPOSITORY: '1'
@@ -61,4 +65,36 @@ jobs:
           node docs/lfj/pages-origin-probe.mjs
           echo 'Observation only: Owner-opened URL and published artifact not established by these candidate probes.' >> "$GITHUB_STEP_SUMMARY"
       - name: No source or deployment mutation
+        run: test -z "$(git status --porcelain)"
+
+  disposable-docs-native-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact raw head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine Chromium for original UI/Worker/IndexedDB
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Stage NON-PUBLISHING docs candidate and print V4.1 collision inventory
+        run: node docs/lfj/stage-indexed-runtime.mjs --stage-dir="$RUNNER_TEMP/lfj-a2-disposable-site" --test-fixtures
+      - name: Serve staged docs candidate over local HTTP
+        run: |
+          python3 -m http.server 4200 --bind 127.0.0.1 --directory "$RUNNER_TEMP/lfj-a2-disposable-site" >/tmp/lfj-a2-stage-http.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a2-stage-http.log
+          exit 1
+      - name: Real original File to native three Workers and consented two CSV clicks
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: Verify no checked-in docs or source were mutated by rehearsal
         run: test -z "$(git status --porcelain)"
