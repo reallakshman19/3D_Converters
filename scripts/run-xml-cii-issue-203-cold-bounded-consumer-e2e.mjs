@@ -195,12 +195,12 @@ try{
           // claim that raw null survived byte-identically as normalized data.
           // This is the sole scoped exception, and we record it separately.
           const isCanonicalizedNull=(field==='convertedBore'&&value===null
-            &&row[field]===''&&
-            refs.pipingClass.fieldMap?.convertedBore==='convertedBore');
+            &&row[field]==='');
           if(isCanonicalizedNull){
             explicitlyNormalizedNullCells.push({
               sourceClass:original.code,sourceRow:kind,field,
-              original:null,normalized:'',rule:'mapped-null-to-empty-string',
+              original:null,normalized:'',rule:'empty-or-null-field-mapping-to-empty-string',
+              fieldMapSource:String(refs.pipingClass.fieldMap?.convertedBore||''),
             });
           }else{
             ensure(row[field]===value,
