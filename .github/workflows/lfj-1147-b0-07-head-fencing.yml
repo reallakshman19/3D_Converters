@@ -7,12 +7,14 @@ on:
       - 'lfj/qualification/experiments/consumer-sparse-b0-query/**'
       - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
       - '.github/workflows/lfj-1147-b0-xml-csv-parity.yml'
+      - '.github/workflows/lfj-1147-b0-07-head-fencing.yml'
   pull_request:
     paths:
       - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/**'
       - 'lfj/qualification/experiments/consumer-sparse-b0-query/**'
       - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/**'
       - '.github/workflows/lfj-1147-b0-xml-csv-parity.yml'
+      - '.github/workflows/lfj-1147-b0-07-head-fencing.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,6 +57,21 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
           npx playwright install --with-deps chromium
+      - name: H06 exact raw-head full source, goldens and native Worker qualification
+        if: matrix.size == 'FIRSTPASS' && matrix.mode == 'AUTHENTIC'
+        shell: bash
+        env:
+          OWNER_PINNED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          REPORT=/tmp/lfj-h06-all-ci.json
+          code=0
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs --expected-head="$OWNER_PINNED_SHA" --mode=all --report="$REPORT" || code=$?
+          if test -f "$REPORT"; then
+            cat "$REPORT"
+          else
+            echo "H06 runner did not write expected report"
+          fi
+          exit "$code"
       - name: Serve original tracked XML and JSON from source worktree
         shell: bash
         run: |
