@@ -50,7 +50,9 @@ const bad=[
  ['metadata_nested_branch',wrap('<Metadata>'+bn('A')+'</Metadata>'+n())],
  ['metadata_line_key',wrap('<Metadata><LineKey>A</LineKey></Metadata>'+n())],
  ['empty_named_pipe',wrap(pipe(bn('')+n()))],
- ['unnamed_attribute_inside_pipe',wrap(pipe(bn('A')+'<PIPINGELEMENT NODE="10" POS="1 2 3" BRANCH="A"/>'+pipe('<PIPINGELEMENT NODE="20" POS="4 5 6"/>'))]
+ ['unnamed_attribute_inside_pipe',wrap(
+   pipe(bn('A')+'<PIPINGELEMENT NODE="10" POS="1 2 3" BRANCH="A"/>')+
+   pipe('<PIPINGELEMENT NODE="20" POS="4 5 6"/>'))]
 ];
 for(const [name,xml] of bad)
   test('H02 scoped identity fails closed: '+name,()=>{
