@@ -102,5 +102,8 @@ jobs:
           B0_XML_MODE: AUTHENTIC
           B0_RESEARCH_HANDOFF: '1'
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
+      - name: A3 native Chromium original Build, both CSVs and stale-source download veto
+        if: matrix.size == 'FIRSTPASS' && matrix.mode == 'AUTHENTIC'
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-resolver-stale-browser.mjs
       - name: Source tree unchanged
         run: test -z "$(git status --porcelain)"
