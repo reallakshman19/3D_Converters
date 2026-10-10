@@ -16,6 +16,9 @@ import {
   reconstructVerifiedSelectedMatchingView
 } from '../../../lfj/consumers/3d-converters/selected-source-matching-view.mjs';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
+import {
+  discoverIndexedOriginalFileScopes,isIndexedFileScopeDiscovery
+} from './xml-cii-adapted-lfj-scope-discovery.js';
 import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
 import {
@@ -283,7 +286,7 @@ for (const [label, patch] of [
     assert.equal(ref.current.lfjIndexedPreview, null);
     assert.equal(ref.current.lfjIndexedExportReceipt, null);
     assert.equal(ref.current.lfjIndexedExportOptIn, false);
-    assert.match(ref.current.resolverJsonTraceExportStatus, /All scopes only/);
+    assert.match(ref.current.resolverJsonTraceExportStatus, /verified original File scope scan/);
     assert.ok(renders >= 2);
   });
 }
@@ -604,4 +607,53 @@ test('T05c fails closed on mismatched source root, missing leaf and forged paths
     e=>e.code==='SCOPE_SOURCE_PROVENANCE');
   assert.throws(run(original,records,{...manifest,engineeringReady:true}),
     e=>e.code==='SCOPE_MANIFEST_INVALID');
+});
+
+test('T06b native Worker source scopes must be bound to the same original Blob',async()=>{
+  const blob=new Blob(['[{"type":"BRANCH","name":"A","children":[]}]']);
+  const sha256='a'.repeat(64);
+  const result={schema:'LFJ.A3.IndexedFileScopes.v1',
+    originalSha256:sha256,originalBytes:blob.size,originalRootCount:3,
+    scopes:[{id:'ONE',label:'ONE',itemCount:2},
+      {id:'TWO',label:'TWO',itemCount:1}],
+    sourceOnly:true,engineeringReady:false,downloadAuthorized:false};
+  const workerFactory=()=>({
+    postMessage(payload){assert.equal(payload.type,'DISCOVER');
+      queueMicrotask(()=>this.onmessage?.({data:{type:'DONE',result}}));},
+    terminate(){}
+  });
+  const discovered=await discoverIndexedOriginalFileScopes({
+    blob,workerFactory
+  });
+  assert.equal(isIndexedFileScopeDiscovery(discovered,blob),true);
+  assert.equal(isIndexedFileScopeDiscovery(discovered,new Blob([await blob.text()])),
+    false,'a second File with identical bytes is not the selected original identity');
+  for(const tampered of [
+    {...result,originalSha256:'b'},
+    {...result,originalRootCount:4},
+    {...result,scopes:[{id:'ONE',label:'ONE',itemCount:3},
+      {id:'ONE',label:'ONE',itemCount:1}]},
+    {...result,downloadAuthorized:true},
+    {...result,scopes:[{id:'__ALL__',label:'All',itemCount:3}]}
+  ])assert.equal(isIndexedFileScopeDiscovery({blob,result:tampered},blob),false);
+});
+
+test('T06b stale original-source scope worker cannot publish a scope list',async()=>{
+  const blob=new Blob(['[1]']);
+  let current=true;
+  const workerFactory=()=>({
+    postMessage(){queueMicrotask(()=>this.onmessage?.({data:{type:'DONE',
+      result:{schema:'LFJ.A3.IndexedFileScopes.v1',
+        originalSha256:'a'.repeat(64),originalBytes:blob.size,
+        originalRootCount:1,scopes:[{id:'Z',label:'Z',itemCount:1}],
+        sourceOnly:true,engineeringReady:false,downloadAuthorized:false}
+    }}));},
+    terminate(){}
+  });
+  await assert.rejects(discoverIndexedOriginalFileScopes({
+    blob,workerFactory,isCurrent:()=>{const value=current;current=false;return value;}
+  }),error=>error.code==='SCOPE_DISCOVERY_STALE');
+  await assert.rejects(discoverIndexedOriginalFileScopes({
+    blob,workerFactory,isCurrent:()=>false
+  }),error=>error.code==='SCOPE_DISCOVERY_STALE');
 });

@@ -166,7 +166,7 @@ export async function verifyIndexedPreviewHandoff(
  */
 export async function buildIndexedResolverPreview({
   blob, xmlText, config = {}, isCurrent = () => true,
-  selectedScopeId = undefined,
+  selectedScopeId = undefined,expectedSourceSha256=undefined,
   onProgress = () => {}, signal, workerFactory, timeoutMs = STAGE_LIMIT_MS
 } = {}) {
   // Reject over-capacity original files before any read, hashing,
@@ -200,6 +200,11 @@ export async function buildIndexedResolverPreview({
     stale(isCurrent);
     onProgress('Hashing original source');
     const originalSha256 = await hashOriginalBlobOffThread(blob,{signal,timeoutMs});
+    if(expectedSourceSha256!==undefined &&
+       (!/^[0-9a-f]{64}$/.test(expectedSourceSha256) ||
+        originalSha256!==expectedSourceSha256))
+      throw fail('LFJ_PREVIEW_SCOPE_SOURCE_DRIFT',
+        'Current original File SHA disagrees with the verified hierarchy scan');
     const xmlSha256 = await shaText(xmlText);
     stale(isCurrent);
     onProgress('Indexing original source occurrences');

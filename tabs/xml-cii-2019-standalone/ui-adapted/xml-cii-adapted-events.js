@@ -22,7 +22,8 @@ import {
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
 import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
-import { ALL_SCOPE_ID } from './xml-cii-adapted-resolver-scope.js';
+import {ALL_SCOPE_ID,cancelIndexedScopeDiscovery} from './xml-cii-adapted-resolver-scope.js';
+import {isIndexedFileScopeDiscovery} from './xml-cii-adapted-lfj-scope-discovery.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
 import { createIndexedExportReceipt, verifyIndexedProductCsv } from './xml-cii-adapted-lfj-indexed-export.js';
@@ -113,6 +114,7 @@ export function bindSourceEvents(container, stateRef, render) {
   });
   onChange(container, 'staged-json-file', async (_, event) => {
     const file = event.target.files?.[0] || null;
+    cancelIndexedScopeDiscovery(stateRef);
     const isLatest = beginLatestOperation(stateRef, 'staged-json-file');
     replaceState(stateRef, updateWorkflowState(stateRef.current, {
       stagedJsonFile: file, stagedJsonText: '', result: null
@@ -200,6 +202,7 @@ export function bindResolverEvents(container, stateRef, render) {
     render();
   });
   onChange(container, 'resolver-source-mode', value => {
+    cancelIndexedScopeDiscovery(stateRef);
     cancelIndexedBuild(stateRef);
     beginLatestOperation(stateRef,'resolver-build');
     stateRef.current = updateWorkflowState(stateRef.current, {
@@ -303,16 +306,20 @@ export function cancelIndexedBuildFromUi(stateRef,render){
   render();
   return true;
 }
-// The current indexed projection matches supported flat ALL source scope only.
-// A previously selected hierarchy/branch must never be silently exported as ALL.
+// Only exact off-thread discovered original File scopes are supported.
+// Arbitrary selected labels, changed Files, nested branch filters and unknown
+// topology must never silently substitute an ALL Build/receipt.
 function unsupportedIndexedScope(state) {
-  const scope = state?.jsonTraceScopeId;
-  if (scope != null && scope !== '' && scope !== ALL_SCOPE_ID) return true;
-  const branch = state?.branchSelection;
-  if (branch == null || branch === '' || branch === ALL_SCOPE_ID) return false;
-  if (Array.isArray(branch))
-    return branch.some(id => id !== ALL_SCOPE_ID);
-  return true;
+  const branch=state?.branchSelection;
+  if(Array.isArray(branch)){
+    if(branch.some(id=>id!==ALL_SCOPE_ID))return true;
+  }else if(branch!=null&&branch!==''&&branch!==ALL_SCOPE_ID)
+    return true;
+  const scope=state?.jsonTraceScopeId||ALL_SCOPE_ID;
+  if(scope===ALL_SCOPE_ID)return false;
+  const d=state?.lfjIndexedScopeDiscovery;
+  return !isIndexedFileScopeDiscovery(d,state?.stagedJsonFile) ||
+    !d.result.scopes.some(entry=>entry.id===scope);
 }
 
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
@@ -344,7 +351,7 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
       if (save) throw new Error('Indexed preview cannot write engineering config');
       if (unsupportedIndexedScope(stateRef.current))
-        throw new Error('Indexed LFJ Build supports All scopes only; selected hierarchy or branch is not implemented. Select All scopes and rebuild.');
+        throw new Error('Indexed LFJ Build needs a verified original File scope scan; selected label or branch is unsupported. Scan original scopes or select All.');
       const indexedConfigText = container.querySelector('[data-field="resolver-json-config"]');
       if (indexedConfigText) {
         try { JSON.parse(String(indexedConfigText.value || '{}')); }
@@ -369,6 +376,12 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
         preview=await buildIndexedResolverPreview({
           blob:input.stagedJsonFile,xmlText,
           config:input.resolverJsonTraceConfig||{},
+          ...(input.jsonTraceScopeId && input.jsonTraceScopeId!==ALL_SCOPE_ID
+            ? {
+              selectedScopeId:input.jsonTraceScopeId,
+              expectedSourceSha256:
+                input.lfjIndexedScopeDiscovery.result.originalSha256
+            } : {}),
           isCurrent:()=>isCurrent()&&isIndexedBuildCurrent(stateRef,controller),
           signal:controller.signal
         });
