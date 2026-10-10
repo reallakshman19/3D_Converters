@@ -1,0 +1,110 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const REPLAY_SCHEMA = 'XMLCII_C05_NATIVE_POSITIVE_REPLAY_V1';
+const nativeSchema = 'XMLCII_ISSUE_893_CONSUMER_AUTHORITY_V1';
+const sourcePath = 'docs/Masters/Piping_class_master.json';
+const checkedSourceHash = () => createHash('sha256').update(fs.readFileSync(sourcePath)).digest('hex');
+
+export function stableWitness(r) {
+  assert.equal(r?.schema, nativeSchema, 'native source receipt schema');
+  assert.equal(r?.ok, true, 'native browser receipt not successful');
+  const c = r.consumers || {}, refs = r.refs || {};
+  assert.ok(typeof c.positiveSourceToken === 'string' && c.positiveSourceToken.length > 0, 'missing real source token');
+  assert.ok(Number.isInteger(c.positiveWorkerMatchCount) && c.positiveWorkerMatchCount > 0, 'missing positive Worker hits');
+  assert.equal(c.regexIndexedRowFetches, 1, 'missing native IndexedDB indexed read');
+  assert.ok(Number.isInteger(c.positiveIndexedRowCount) && c.positiveIndexedRowCount > 0 && c.positiveIndexedRowCount <= 8,
+    'indexed row count outside 1..8 bound');
+  assert.ok(Array.isArray(c.positiveIndexedRowIndexes), 'missing index list');
+  assert.equal(c.positiveIndexedRowIndexes.length, c.positiveIndexedRowCount, 'index/row count mismatch');
+  assert.equal(new Set(c.positiveIndexedRowIndexes).size, c.positiveIndexedRowIndexes.length, 'duplicate index');
+  assert.ok(c.positiveIndexedRowIndexes.every(i => Number.isInteger(i) && i >= 0), 'invalid index');
+  assert.match(c.positiveIndexedRowSha256 || '', /^[a-f0-9]{64}$/, 'missing actual indexed-row sha256');
+  assert.equal(c.positiveRowSerialization, 'stable-key-json-v1', 'wrong canonicalization');
+  assert.equal(c.regexSampledBoundedRows, c.positiveIndexedRowCount, 'Regex indexed-row count mismatch');
+  for (const k of ['pipingClass', 'materialMap', 'weight']) {
+    assert.ok(typeof refs[k]?.datasetId === 'string' && refs[k].datasetId, 'missing ' + k + ' dataset ID');
+    assert.ok(Number.isInteger(refs[k].datasetRevision) && refs[k].datasetRevision > 0, 'missing ' + k + ' revision');
+  }
+  assert.ok(refs.weight.masterFingerprint, 'missing weight fingerprint');
+  assert.deepEqual([c.pipingClassRows, c.materialMapRows, c.weightRows], [10699,383,1595], 'real master row counts changed');
+  for (const key of [
+    'nativePositiveIndexedRowSha256Recorded','nativeWorkerIndexedRowRetrievalObserved',
+    'positiveSourceTokenRecoveredInIndexedRows','indexedWrongMasterFailsClosed',
+    'indexedStaleRevisionFailsClosed','indexedWeightFingerprintFailsClosed',
+    'noSecondMasterSourceImport','appliedRevisionsIndependent',
+  ]) assert.equal(r.assertions?.[key], true, 'missing native guard ' + key);
+  assert.match(r.guards?.wrongMasterIndexedError || '', /materialMap/, 'no wrong-master error');
+  assert.match(r.guards?.staleIndexedError || '', /revision mismatch/i, 'no stale-index error');
+  assert.match(r.guards?.fingerprintIndexedError || '', /fingerprint mismatch/i, 'no weight fingerprint error');
+  return {
+    token: c.positiveSourceToken,
+    canonicalRowsSha256: c.positiveIndexedRowSha256,
+    encoding: c.positiveRowSerialization,
+    workerMatchCount: c.positiveWorkerMatchCount,
+    indexedRowCount: c.positiveIndexedRowCount,
+    indexes: [...c.positiveIndexedRowIndexes],
+    revisions: [refs.pipingClass.datasetRevision, refs.materialMap.datasetRevision, refs.weight.datasetRevision],
+    fingerprint: refs.weight.masterFingerprint,
+    masterRowCounts: [c.pipingClassRows, c.materialMapRows, c.weightRows],
+  };
+}
+export function compareIndependentNativeReplays(first, second, sourceAssetSha256) {
+  const witnessA = stableWitness(first);
+  const witnessB = stableWitness(second);
+  assert.deepEqual(witnessB, witnessA, 'native indexed-row witness drift across two cold browser processes');
+  for (const key of ['pipingClass','materialMap','weight']) {
+    assert.notEqual(first.refs[key].datasetId, second.refs[key].datasetId,
+      'independent browser process reused ' + key + ' datasetId');
+  }
+  assert.match(sourceAssetSha256 || '', /^[a-f0-9]{64}$/, 'missing original Piping master source hash');
+  return {
+    schema: REPLAY_SCHEMA, nativePositive: true, replayCount: 2,
+    distinctImportIds: true, sourceAssetSha256, stableWitness: witnessA,
+    independentProtectedGolden: false, originalOwner30MbQualified: false,
+  };
+}
+export function compareNodeBrowserSummaries(first, second) {
+  assert.equal(first?.schema, REPLAY_SCHEMA, 'node22 summary schema');
+  assert.equal(second?.schema, REPLAY_SCHEMA, 'node24 summary schema');
+  for (const r of [first,second]) {
+    assert.equal(r.nativePositive, true, 'failed native positive replay');
+    assert.equal(r.replayCount, 2, 'missing independent browser process');
+    assert.equal(r.distinctImportIds, true, 'same session identity');
+    assert.equal(r.independentProtectedGolden, false, 'protected golden claimed');
+    assert.equal(r.originalOwner30MbQualified, false, 'original Owner fixture claimed');
+  }
+  assert.deepEqual(second.stableWitness, first.stableWitness, 'Node22/24 indexed rows or authority drifted');
+  assert.equal(second.sourceAssetSha256, first.sourceAssetSha256, 'Node22/24 original asset hash drifted');
+  return {
+    schema: 'XMLCII_C05_NODE22_NODE24_BROWSER_PARITY_V1',
+    sourceAssetSha256: first.sourceAssetSha256,
+    stableWitness: first.stableWitness,
+    nodeVersions: [22,24], distinctBrowserProcesses: 4,
+    nativePositiveIndexedReads: 4, independentProtectedGolden: false,
+  };
+}
+function read(file) { return JSON.parse(fs.readFileSync(file,'utf8')); }
+function write(file, record) {
+  fs.mkdirSync(path.dirname(file),{recursive:true});
+  fs.writeFileSync(file,JSON.stringify(record,null,2)+'\n');
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv[2] === '--compare') {
+    const [a,b,out] = process.argv.slice(3);
+    if (!a || !b || !out) throw Error('usage --compare node22 node24 output');
+    const result = compareNodeBrowserSummaries(read(a),read(b));
+    assert.equal(result.sourceAssetSha256, checkedSourceHash(), 'source bytes differ from browser summaries');
+    write(out,result);
+    console.log(JSON.stringify(result,null,2));
+  } else {
+    const [a,b,out] = process.argv.slice(2);
+    if (!a || !b || !out) throw Error('usage first-native.json second-native.json output.json');
+    const result = compareIndependentNativeReplays(read(a),read(b),checkedSourceHash());
+    write(out,result);
+    console.log(JSON.stringify(result,null,2));
+  }
+}
