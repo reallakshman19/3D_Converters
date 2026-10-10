@@ -193,3 +193,33 @@ jobs:
         run: LFJ_A3_FULL_PATH_COPIES=4 node lfj/consumers/3d-converters/source-backed-large-full-path-browser.mjs
       - name: Assert original fixtures/worktree not mutated
         run: test -z "$(git status --porcelain)"
+
+  full-derived-102mb-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact full-product tested head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual original 10MB XML and source from source tree
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-a3-full-large.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/Benchmarks/1885_NC/1885_NC.topology.input.xml >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a3-full-large.log
+          exit 1
+      - name: Derived 102MB full native source projection XML and two original output checks
+        run: LFJ_A3_FULL_PATH_COPIES=10 node lfj/consumers/3d-converters/source-backed-large-full-path-browser.mjs
+      - name: Assert original fixtures/worktree not mutated
+        run: test -z "$(git status --porcelain)"
