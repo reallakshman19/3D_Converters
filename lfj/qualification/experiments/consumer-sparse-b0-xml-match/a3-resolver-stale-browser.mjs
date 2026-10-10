@@ -34,7 +34,8 @@ try{
     let renderCount=0;
     const stateRef={current:updateWorkflowState(
       createXmlCiiAdaptedWorkflowState(),{
-        sourceKind:'xml',sourceText:xmlText,stagedJsonText:originalJson
+        sourceKind:'xml',sourceText:xmlText,stagedJsonText:originalJson,
+        resolverJsonTraceConfig:{} // Match the independently pinned baseline's exact config.
       })};
     bindSourceEvents(container,stateRef,()=>renderCount++);
     bindActionEvents(container,stateRef,()=>renderCount++);
