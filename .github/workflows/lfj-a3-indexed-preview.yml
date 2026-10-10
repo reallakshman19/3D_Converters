@@ -1,0 +1,73 @@
+name: LFJ A3 indexed source Build preview - original Chromium and Node
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-preview-browser.mjs'
+      - '.github/workflows/lfj-a3-indexed-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  indexed-preview-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check exact source HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax check actual product imports and indexed source unit
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.test.mjs
+      - name: LFJ preview basis, three Worker stages and fail-closed UI
+        run: node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.test.mjs
+      - name: Previous standalone source and export safety regressions
+        run: |
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-stale.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-race.test.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"
+  authentic-indexed-preview-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check exact source HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original sources and actual product modules
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-a3-indexed.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a3-indexed.log
+          exit 1
+      - name: Original Blob to indexed Worker and real Build/table; exports veto
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-preview-browser.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"
