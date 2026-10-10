@@ -1,0 +1,47 @@
+name: LFJ A3 standalone Resolver UI native Chromium smoke
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-resolver-stale-browser.mjs'
+      - '.github/workflows/lfj-a3-product-ui-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-ui-clicks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Node syntax and focused regression
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-latest-operation.js
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-race.test.mjs
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original tracked fixtures and authored UI
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/a3-ui.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/a3-ui.log
+          exit 1
+      - name: Original Build, full trace, two CSV byte goldens and failure veto
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-resolver-stale-browser.mjs
+      - name: Source tree unchanged
+        run: test -z "$(git status --porcelain)"

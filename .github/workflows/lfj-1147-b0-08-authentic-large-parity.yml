@@ -47,6 +47,12 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
           node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-stale.test.mjs
+      - name: A3 overlapping source upload and Resolver Build fail-closed regressions
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-latest-operation.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-race.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-latest-operation.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-source-race.test.mjs
       - name: Authentic positive 164-match and independent negative first
         run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
       - name: Authentic 10MB 3429-node negative full ledger and both CSVs

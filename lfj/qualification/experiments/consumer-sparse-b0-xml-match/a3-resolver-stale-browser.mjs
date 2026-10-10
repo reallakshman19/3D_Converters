@@ -100,9 +100,45 @@ try{
         throw Error('old trace CSV downloaded after source revision');
       if(!stateRef.current.resolverJsonTraceExportStatus.includes('blocked'))
         throw Error('missing visible stale-download error');
+      // Invalid typed Resolver JSON must not silently use the last config,
+      // leave Build running, or retain either accepted CSV download.
+      const config=document.createElement('textarea');
+      config.dataset.field='resolver-json-config';
+      config.value='{not valid json';
+      container.appendChild(config);
+      container.querySelector('[data-action="build-resolver-index"]').click();
+      if(stateRef.current.resolverJsonTraceRunning||
+         !stateRef.current.resolverJsonTraceExportStatus.includes(
+           'configuration JSON is invalid'))
+        throw Error('invalid config did not terminate Build with visible error');
+      for(const action of ['download-node-wise-trace-csv',
+        'download-evidence-tree-csv'])
+        container.querySelector('[data-action="'+action+'"]').click();
+      if(captures.length!==2)
+        throw Error('CSV exported after invalid Resolver config');
+      // Missing staged JSON must also terminate without leaking old results.
+      config.value='{}';
+      stateRef.current=updateWorkflowState(stateRef.current,{
+        stagedJsonText:'',stagedJsonFile:null
+      });
+      container.querySelector('[data-action="build-resolver-index"]').click();
+      const missingDeadline=performance.now()+10000;
+      while(stateRef.current.resolverJsonTraceRunning&&
+            performance.now()<missingDeadline)
+        await new Promise(resolve=>setTimeout(resolve,10));
+      if(stateRef.current.resolverJsonTraceRunning||
+         !stateRef.current.resolverJsonTraceExportStatus.includes('both required'))
+        throw Error('missing staged JSON did not fail closed');
+      for(const action of ['download-node-wise-trace-csv',
+        'download-evidence-tree-csv'])
+        container.querySelector('[data-action="'+action+'"]').click();
+      if(captures.length!==2)
+        throw Error('CSV exported after missing staged JSON');
       return {schema:'LFJ.A3.StaleExportBrowser.v1',originalXmlNodes:rows.length,
         originalMatchedNodes:matched,csvSha256:hashes,csvBytes:bytes,
         attemptedStaleDownloads:2,actualStaleDownloads:0,
+        attemptedFailedBuildDownloads:4,actualFailedBuildDownloads:0,
+        invalidConfigRejected:true,missingStagedJsonRejected:true,
         renderCount,qualification:'NATIVE_CHROMIUM_PRODUCT_EVENT_STALE_VETO_PASS'};
     }finally{
       URL.createObjectURL=originalCreate;
