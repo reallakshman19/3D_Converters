@@ -230,6 +230,48 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
       blob,expectedSha256:oracle.originalSha256,xmlText,config,
       includeResearchHandoff
     });
+    // T05c: exercise the ACTUAL matching Worker using the real committed
+    // original source's selected-root identity. This remains research-only:
+    // no release of the live non-ALL product Build/receipt/CSV click guards.
+    if(jsonUrl==='/Benchmarks/1885Sjson/Sjson.json' &&
+       mode==='AUTHENTIC' && xmlTextOverride===null){
+      const selection=rootManifest.census[0].scopeId;
+      const scoped=await run('./matching.worker.mjs',{
+        type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+        projectionDatabaseName:projectionDb,projectionGeneration:id,
+        blob,expectedSha256:oracle.originalSha256,xmlText,config,
+        selectedScopeId:selection
+      });
+      const proof=scoped.selectedScope;
+      if(proof?.requestedScopeId!==selection ||
+         proof?.originalRootCount!==rootManifest.originalRootCount ||
+         proof?.selectedRootCount!==rootManifest.census.filter(
+           row=>row.scopeId===selection).length ||
+         !/^[a-f0-9]{64}$/.test(proof.manifestDigestSha256) ||
+         proof.manifestDigestSha256===rootManifest.selectionDigestSha256 ||
+         proof?.sourceOnly!==true ||
+         proof?.engineeringReady!==false ||
+         proof?.downloadAuthorized!==false ||
+         scoped.xmlNodes!==result.xmlNodes ||
+         typeof scoped.nodeWiseCsvSha256!=='string' ||
+         typeof scoped.evidenceTreeCsvSha256!=='string')
+        throw fail('SELECTED_ORIGINAL_MATCH_UNATTESTED',
+          'real native Worker did not bind full XML census to selected original source');
+      // Explicit ALL selection must produce precisely the previous shipping
+      // whole-source original CSV bytes and ledger hashes.
+      const same=await run('./matching.worker.mjs',{
+        type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+        projectionDatabaseName:projectionDb,projectionGeneration:id,
+        blob,expectedSha256:oracle.originalSha256,xmlText,config,
+        selectedScopeId:'__ALL__'
+      });
+      if(same.nodeWiseCsvSha256!==result.nodeWiseCsvSha256 ||
+         same.evidenceTreeCsvSha256!==result.evidenceTreeCsvSha256 ||
+         same.xmlRecordsSha256!==result.xmlRecordsSha256 ||
+         same.xmlNodes!==result.xmlNodes)
+        throw fail('EXPLICIT_ALL_CHANGED',
+          'selection adapter changed unfiltered original XML ledger or CSV bytes');
+    }
     // H09: verify actual structured-cloned Worker payload from the same
     // attested source/HEAD/result, not a re-run of mutable matching on click.
     let handoffVerification=null;
