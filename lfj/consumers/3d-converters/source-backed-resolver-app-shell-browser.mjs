@@ -20,7 +20,13 @@ const originals=[
 ];
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({acceptDownloads:true});
-page.setDefaultTimeout(90000);
+// The authored UI hides the raw JSON config textarea behind its enhanced
+// controls. Qualify the original default {} via its existing persistence
+// input rather than typing into a hidden DOM field.
+await page.addInitScript(()=>{
+  try{localStorage.setItem('xml-cii-resolver-config-v1','{}');}catch{}
+});
+page.setDefaultTimeout(30000);
 const pageErrors=[];
 page.on('pageerror',error=>{pageErrors.push(error.message);console.error('A3_APP_PAGEERROR',error.message)});
 try{
@@ -52,9 +58,11 @@ try{
   const scope=page.locator('select[data-field="resolver-hierarchy-scope"]');
   await scope.waitFor();
   if(await scope.isEnabled())await scope.selectOption('__ALL__');
-  const config=page.locator('textarea[data-field="resolver-json-config"]');
-  await config.fill('{}');
-  await config.dispatchEvent('change');
+  // Navigate to the real Resolver Index. The app can hide its underlying
+  // config textarea after JSON-table enhancements; the persisted value is
+  // already the original qualification basis.
+  const index=page.locator('[data-json-trace-sub-tab="index"]');
+  if(await index.count())await index.click();
   await page.locator('button[data-action="build-resolver-lfj"]').click();
   // The live panel reports explicit product grant acceptance or typed failure.
   const deadline=Date.now()+130000;
