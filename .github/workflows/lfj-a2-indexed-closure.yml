@@ -134,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a2-p09-served-docs-root-${{ github.sha }}
+          name: a2-p09-served-docs-root-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ${{ runner.temp }}/a3-authored-indexed-root-*.zip
             ${{ runner.temp }}/a3-authored-indexed-root-last-*.png
