@@ -105,12 +105,12 @@ test('missing locking/enumeration and excess generations fail closed before dele
 test('real blocked IDB delete rejects without deleting other generation',async()=>{
   const h=harness();
   for(const name of indexedGenerationNames(ids[0]))h.names.add(name);
-  let count=0;
   h.databaseFactory.deleteDatabase=name=>{
-    count++;
+    // Snapshot each individual request's identity BEFORE the microtask.
+    const isBlocked=name===indexedGenerationNames(ids[0])[0];
     const r={};
     queueMicrotask(()=>{
-      if(count===1)r.onblocked();
+      if(isBlocked)r.onblocked();
       else {h.names.delete(name);r.onsuccess();}
     });
     return r;
