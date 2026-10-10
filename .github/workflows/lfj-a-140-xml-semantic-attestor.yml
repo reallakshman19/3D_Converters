@@ -1,0 +1,38 @@
+name: LFJ A-140 XML semantic attestor (author regression)
+on:
+  push:
+    branches:
+      - lfj/a-140-semantic-attestor-20261010
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor*'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs'
+      - '.github/workflows/lfj-a-140-xml-semantic-attestor.yml'
+permissions:
+  contents: read
+jobs:
+  source-attestor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Pin checked-out source and runner versions
+        run: |
+          git rev-parse HEAD
+          git status --porcelain
+          node --version
+      - name: Run author-side semantic regression and authentic XML source checks
+        run: node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.test.mjs
+      - name: Run retained B0 structural integrity checks
+        run: |
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
