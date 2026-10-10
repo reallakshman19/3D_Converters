@@ -124,6 +124,91 @@ const run=(file,payload)=>new Promise((resolve,reject)=>{
   w.onerror=e=>{w.terminate();reject(fail('WORKER_ERROR',e.message));};
   w.postMessage(payload);
 });
+// SOURCE_DERIVED_CONTROL only: original Firstpass structure with alternating
+// explicit zone ownership. This is NOT a new authentic Owner input or a
+// protected selected-scope golden; it tests actual Worker selection versus
+// the independent existing legacy pre-matching selection semantics.
+async function verifyDerivedMultiZoneSelectedMatching(originalBlob,xmlText,config) {
+  const roots=JSON.parse(await originalBlob.text());
+  if(!Array.isArray(roots)||roots.length<3)
+    throw fail('SCOPE_CONTROL_SETUP','Firstpass must contain multiple branches');
+  // Firstpass original roots already carry attributes.OWNER_SITE. Change
+  // that same direct owner field, without adding conflicting zone aliases.
+  const derived=roots.map((root,i)=>({...root,
+    attributes:{...(root.attributes||{}),
+      OWNER_SITE:i%2===0?'A3-TEST-ZONE-A':'A3-TEST-ZONE-B'}}));
+  const derivedText=JSON.stringify(derived);
+  const sourceBytes=new TextEncoder().encode(derivedText);
+  const blob=new Blob([sourceBytes],{type:'application/json'});
+  const hash=async bytes=>[...new Uint8Array(await crypto.subtle.digest(
+    'SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const expectedSha256=await hash(sourceBytes);
+  const id=crypto.randomUUID();
+  const sourceDatabaseName='lfj-a3-derived-zone-source-'+id;
+  const projectionDatabaseName='lfj-a3-derived-zone-facts-'+id;
+  try{
+    const source=await run('../consumer-sparse-b0/compact-paged.worker.mjs',{
+      type:'START',blob,expectedSha256,generation:id,
+      databaseName:sourceDatabaseName,revision:'A3-DERIVED-ZONE-CONTROL'
+    });
+    if(source?.sourceSha256!==expectedSha256)
+      throw fail('SCOPE_CONTROL_SOURCE','source-derived Worker did not commit original bytes');
+    const projection=await run('../consumer-sparse-b0-consumer/projection.worker.mjs',{
+      type:'PROJECT',sourceDatabaseName,sourceGeneration:id,
+      projectionDatabaseName,projectionGeneration:id,blob,expectedSha256,
+      config,toleranceMm:6
+    });
+    if(projection.rootBranches!==roots.length)
+      throw fail('SCOPE_CONTROL_PROJECTION','derived source projection lost roots');
+    const selected=await run('./matching.worker.mjs',{
+      type:'MATCH',sourceDatabaseName,sourceGeneration:id,
+      projectionDatabaseName,projectionGeneration:id,blob,expectedSha256,
+      xmlText,config,selectedScopeId:'A3-TEST-ZONE-A'
+    });
+    const legacyInput=derived.filter((_,i)=>i%2===0);
+    const {runStandaloneResolverJsonTrace}=await import(
+      '/tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js');
+    const {buildXmlNodeWiseTraceCsv,buildEvidenceTreeCsv}=await import(
+      '/tabs/xml-cii-2019-standalone/xml-cii-trace-export.js');
+    const baseline=runStandaloneResolverJsonTrace({
+      sourceText:xmlText,sourceKind:'xml',stagedJsonText:legacyInput,
+      jsonConfig:config
+    });
+    const expectedNode=await hash(new TextEncoder().encode(
+      buildXmlNodeWiseTraceCsv(baseline)));
+    const expectedEvidence=await hash(new TextEncoder().encode(
+      buildEvidenceTreeCsv(baseline)));
+    if(selected.selectedScope?.requestedScopeId!=='A3-TEST-ZONE-A' ||
+       selected.selectedScope.originalRootCount!==roots.length ||
+       selected.selectedScope.selectedRootCount!==legacyInput.length ||
+       selected.selectedScope.selectedRootCount>=roots.length ||
+       selected.xmlNodes!==baseline.indexStats.xmlNodeCount ||
+       selected.nodeWiseCsvSha256!==expectedNode ||
+       selected.evidenceTreeCsvSha256!==expectedEvidence ||
+       selected.engineeringReady!==false ||
+       selected.downloadAuthorized!==false)
+      throw fail('SCOPE_CONTROL_SEMANTICS',
+        'source-derived noncontiguous zone Worker differs from legacy pre-matching selection or CSV bytes');
+    const unknown=await run('./matching.worker.mjs',{
+      type:'MATCH',sourceDatabaseName,sourceGeneration:id,
+      projectionDatabaseName,projectionGeneration:id,blob,expectedSha256,
+      xmlText,config,selectedScopeId:'A3-UNKNOWN-ZONE'
+    }).then(()=>'UNEXPECTED_DONE',error=>error.code||'UNKNOWN');
+    if(unknown!=='SCOPE_UNKNOWN')
+      throw fail('SCOPE_CONTROL_UNKNOWN_ACCEPTED',
+        'unknown source zone must fail before producing any XML/CSV result: '+unknown);
+    return {schema:'LFJ.A3.SourceDerivedSelectedZoneControl.v1',
+      source:'SOURCE_DERIVED_CONTROL_NOT_OWNER_GOLDEN',
+      originalRoots:roots.length,selectedRoots:legacyInput.length,
+      xmlNodes:selected.xmlNodes,
+      matchingAndBothCsvHashesEqualLegacy:true,
+      invalidZoneRejected:unknown,
+      sourceOnly:true,downloadAuthorized:false};
+  }finally{
+    indexedDB.deleteDatabase(sourceDatabaseName);
+    indexedDB.deleteDatabase(projectionDatabaseName);
+  }
+}
 window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
   xmlTextOverride=null,mode='AUTHENTIC',includeResearchHandoff=false})=>{
   if(!jsonUrl.startsWith('/Benchmarks/')||!xmlUrl.startsWith('/Benchmarks/'))
@@ -230,6 +315,51 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
       blob,expectedSha256:oracle.originalSha256,xmlText,config,
       includeResearchHandoff
     });
+    // T05c: exercise the ACTUAL matching Worker using the real committed
+    // original source's selected-root identity. This remains research-only:
+    // no release of the live non-ALL product Build/receipt/CSV click guards.
+    if(jsonUrl==='/Benchmarks/1885Sjson/Sjson.json' &&
+       mode==='AUTHENTIC' && xmlTextOverride===null){
+      const selection=rootManifest.census[0].scopeId;
+      const scoped=await run('./matching.worker.mjs',{
+        type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+        projectionDatabaseName:projectionDb,projectionGeneration:id,
+        blob,expectedSha256:oracle.originalSha256,xmlText,config,
+        selectedScopeId:selection
+      });
+      const proof=scoped.selectedScope;
+      if(proof?.requestedScopeId!==selection ||
+         proof?.originalRootCount!==rootManifest.originalRootCount ||
+         proof?.selectedRootCount!==rootManifest.census.filter(
+           row=>row.scopeId===selection).length ||
+         !/^[a-f0-9]{64}$/.test(proof.manifestDigestSha256) ||
+         proof.manifestDigestSha256===rootManifest.selectionDigestSha256 ||
+         proof?.sourceOnly!==true ||
+         proof?.engineeringReady!==false ||
+         proof?.downloadAuthorized!==false ||
+         scoped.xmlNodes!==result.xmlNodes ||
+         typeof scoped.nodeWiseCsvSha256!=='string' ||
+         typeof scoped.evidenceTreeCsvSha256!=='string')
+        throw fail('SELECTED_ORIGINAL_MATCH_UNATTESTED',
+          'real native Worker did not bind full XML census to selected original source');
+      // A real multi-zone SELECTED vs legacy pre-match control, derived
+      // from original Firstpass for author regression only.
+      await verifyDerivedMultiZoneSelectedMatching(blob,xmlText,config);
+      // Explicit ALL selection must produce precisely the previous shipping
+      // whole-source original CSV bytes and ledger hashes.
+      const same=await run('./matching.worker.mjs',{
+        type:'MATCH',sourceDatabaseName:sourceDb,sourceGeneration:id,
+        projectionDatabaseName:projectionDb,projectionGeneration:id,
+        blob,expectedSha256:oracle.originalSha256,xmlText,config,
+        selectedScopeId:'__ALL__'
+      });
+      if(same.nodeWiseCsvSha256!==result.nodeWiseCsvSha256 ||
+         same.evidenceTreeCsvSha256!==result.evidenceTreeCsvSha256 ||
+         same.xmlRecordsSha256!==result.xmlRecordsSha256 ||
+         same.xmlNodes!==result.xmlNodes)
+        throw fail('EXPLICIT_ALL_CHANGED',
+          'selection adapter changed unfiltered original XML ledger or CSV bytes');
+    }
     // H09: verify actual structured-cloned Worker payload from the same
     // attested source/HEAD/result, not a re-run of mutable matching on click.
     let handoffVerification=null;

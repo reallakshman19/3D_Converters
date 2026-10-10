@@ -12,6 +12,9 @@ import {
 import {
   extractDirectOriginalRootMetadata
 } from '../../../lfj/consumers/3d-converters/verified-source-root-reader.mjs';
+import {
+  reconstructVerifiedSelectedMatchingView
+} from '../../../lfj/consumers/3d-converters/selected-source-matching-view.mjs';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
@@ -518,4 +521,87 @@ test('T05b exact direct root ownership does not change on reordered subtrees', (
   source.children.reverse();
   const after = extractDirectOriginalRootMetadata(source);
   assert.deepEqual(after,before,'nested owners cannot affect verified root scope');
+});
+
+test('T05c original-root selection preserves exact source facts and local legacy fallback IDs', async () => {
+  const basis=originalRootManifestFixture();
+  const manifest=await createOriginalToSelectedRootManifest(basis);
+  const facts=[
+    { path:'$[0].children[0]',sourceOrdinal:3,
+      matchingEvidence:{attributes:{},direct:{}} },
+    { path:'$[1].children[0]',sourceOrdinal:9,
+      matchingEvidence:{attributes:{},direct:{}} },
+    { path:'$[2].children[0]',sourceOrdinal:17,
+      matchingEvidence:{attributes:{JsonNodeNo:'ORIGINAL-77'},direct:{}} }
+  ];
+  const original=[
+    {type:'BRANCH',name:'LINE-A',children:[{attributes:{JsonNodeNo:'2'},name:'A'}]},
+    {type:'BRANCH',name:'LINE-B',children:[{attributes:{JsonNodeNo:'4'},name:'B'}]},
+    {type:'BRANCH',name:'LINE-C',children:[{attributes:{JsonNodeNo:'ORIGINAL-77'},name:'C'}]}
+  ];
+  const selected=reconstructVerifiedSelectedMatchingView({
+    completeBranches:original,authenticatedFacts:facts,rootManifest:manifest
+  });
+  assert.deepEqual(selected.map(b=>b.name),['LINE-A','LINE-C']);
+  assert.equal(selected[0].children[0].attributes.JsonNodeNo,'2');
+  assert.equal(selected[1].children[0].attributes.JsonNodeNo,'ORIGINAL-77');
+  assert.equal(original[2].children[0].attributes.JsonNodeNo,'ORIGINAL-77');
+  assert.equal(original[1].children[0].attributes.JsonNodeNo,'4');
+  assert.deepEqual(original.map(b=>b.name),['LINE-A','LINE-B','LINE-C'],
+    'complete original reconstruction remains untouched');
+  const same=await createOriginalToSelectedRootManifest(
+    originalRootManifestFixture({requestedScopeId:ALL_SOURCE_SCOPES}));
+  const all=reconstructVerifiedSelectedMatchingView({
+    completeBranches:original,authenticatedFacts:facts,rootManifest:same
+  });
+  assert.deepEqual(all.map(b=>b.name),original.map(b=>b.name));
+  assert.equal(all[2].children[0].attributes.JsonNodeNo,'ORIGINAL-77');
+});
+
+test('T05c local fallback numbering follows selected preorder across removed branch', async () => {
+  const manifest=await createOriginalToSelectedRootManifest(
+    originalRootManifestFixture());
+  const roots=[
+    {type:'BRANCH',name:'LINE-A',children:[{attributes:{JsonNodeNo:'2'}}]},
+    {type:'BRANCH',name:'LINE-B',children:[{attributes:{JsonNodeNo:'4'}}]},
+    {type:'BRANCH',name:'LINE-C',children:[{attributes:{JsonNodeNo:'6'}}]}
+  ];
+  const rows=roots.map((_,i)=>({
+    path:'$['+i+'].children[0]',sourceOrdinal:3+i*4,
+    matchingEvidence:{attributes:{},direct:{}}
+  }));
+  const result=reconstructVerifiedSelectedMatchingView({
+    completeBranches:roots,authenticatedFacts:rows,rootManifest:manifest
+  });
+  assert.equal(result[1].children[0].attributes.JsonNodeNo,'4',
+    'legacy filtered preorder is 1/2 for selected first root, 3/4 for second');
+  assert.equal(roots[2].children[0].attributes.JsonNodeNo,'6',
+    'original global fallback is not overwritten');
+});
+
+test('T05c fails closed on mismatched source root, missing leaf and forged paths', async()=>{
+  const manifest=await createOriginalToSelectedRootManifest(
+    originalRootManifestFixture());
+  const original=[
+    {type:'BRANCH',name:'LINE-A',children:[{attributes:{}}]},
+    {type:'BRANCH',name:'LINE-B',children:[{attributes:{}}]},
+    {type:'BRANCH',name:'LINE-C',children:[{attributes:{}}]}
+  ];
+  const records=[
+    {path:'$[0].children[0]',sourceOrdinal:3,
+      matchingEvidence:{attributes:{},direct:{}}},
+    {path:'$[2].children[0]',sourceOrdinal:11,
+      matchingEvidence:{attributes:{},direct:{}}}
+  ];
+  const run=(roots,rows,basis=manifest)=>()=>reconstructVerifiedSelectedMatchingView({
+    completeBranches:roots,authenticatedFacts:rows,rootManifest:basis
+  });
+  assert.throws(run([{...original[0],name:'OTHER'},...original.slice(1)],records),
+    e=>e.code==='SCOPE_ROOT_PROVENANCE');
+  assert.throws(run(original,records.slice(0,1)),
+    e=>e.code==='SCOPE_FACT_PROVENANCE');
+  assert.throws(run(original,[records[0],records[0],records[1]]),
+    e=>e.code==='SCOPE_SOURCE_PROVENANCE');
+  assert.throws(run(original,records,{...manifest,engineeringReady:true}),
+    e=>e.code==='SCOPE_MANIFEST_INVALID');
 });
