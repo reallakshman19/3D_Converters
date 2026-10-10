@@ -1,0 +1,198 @@
+/**
+ * Opt-in LFJ Indexed Build PREVIEW for the actual standalone Resolver UI.
+ *
+ * This is not a product release or an export-authority promotion. The existing
+ * three source-preserving research Workers run on the original Blob and yield
+ * a complete row-level preview after independent output re-serialization.
+ * Every returned result deliberately has downloadAuthorized:false.
+ */
+import {
+  XML_NODE_TRACE_HEADERS, EVIDENCE_TREE_HEADERS, serializeRowsToCsv
+} from '../xml-cii-trace-export.js';
+
+const SOURCE_WORKER = new URL(
+  '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
+  import.meta.url);
+const PROJECTION_WORKER = new URL(
+  '../../../lfj/qualification/experiments/consumer-sparse-b0-consumer/projection.worker.mjs',
+  import.meta.url);
+const MATCH_WORKER = new URL(
+  '../../../lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs',
+  import.meta.url);
+const MAX_PREVIEW_BYTES = 8 * 1024 * 1024;
+const MAX_ORIGINAL_BYTES = 32 * 1024 * 1024;
+const STAGE_LIMIT_MS = 180000;
+const fail = (code, message) =>
+  Object.assign(new Error(message), { code });
+const count = n => Number.isSafeInteger(n) && n >= 0;
+const encoder = new TextEncoder();
+
+async function sha256(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), x =>
+    x.toString(16).padStart(2, '0')).join('');
+}
+const shaText = text => sha256(encoder.encode(text));
+const stale = isCurrent => {
+  if (!isCurrent()) throw fail('LFJ_PREVIEW_SUPERSEDED',
+    'The original source or Resolver configuration changed during indexed Build');
+};
+function workerJob(url, payload, { signal, workerFactory = (u, options) =>
+  new Worker(u, options), timeoutMs = STAGE_LIMIT_MS } = {}) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled'));
+    let worker, done = false, timer;
+    const finish = (error, value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', cancelled);
+      worker?.terminate();
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const cancelled = () => finish(fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled'));
+    try {
+      worker = workerFactory(url, { type: 'module' });
+      worker.onmessage = ({ data }) => {
+        if (data?.type === 'DONE') finish(null, data.result);
+        else if (data?.type === 'ERROR') finish(fail(
+          data.code || 'LFJ_PREVIEW_WORKER_FAILED',
+          data.message || 'Indexed Worker rejected the source'));
+        else finish(fail('LFJ_PREVIEW_PROTOCOL', 'Unexpected indexed Worker response'));
+      };
+      worker.onerror = event => finish(fail(
+        'LFJ_PREVIEW_WORKER_ERROR', String(event?.message || 'Worker crashed')));
+      timer = setTimeout(() => finish(fail('LFJ_PREVIEW_TIMEOUT',
+        'Indexed Worker stage exceeded the preview time budget')), timeoutMs);
+      signal?.addEventListener('abort', cancelled, { once: true });
+      worker.postMessage(payload);
+    } catch (error) { finish(error); }
+  });
+}
+
+/** Independent UI-level row/byte boundary; no research rights are promoted. */
+export async function verifyIndexedPreviewHandoff(result, originalSha256, xmlSha256) {
+  const handoff = result?.researchHandoff;
+  const b = handoff?.basis;
+  if (handoff?.schema !== 'LFJ.B0.ResearchHandoff.v1' ||
+      handoff?.sourceOnly !== true ||
+      handoff?.engineeringReady !== false ||
+      handoff?.downloadAuthorized !== false ||
+      handoff?.appWired !== false ||
+      b?.originalSha256 !== originalSha256 ||
+      b?.xmlSha256 !== xmlSha256 ||
+      !count(result?.xmlNodes) || result.xmlNodes < 1 ||
+      result.xmlNodes !== b?.xmlNodes ||
+      !Array.isArray(handoff?.nodeWiseRows) ||
+      !Array.isArray(handoff?.evidenceTreeRows) ||
+      handoff.nodeWiseRows.length !== result.xmlNodes ||
+      !count(result?.matchedXmlNodes) ||
+      result.matchedXmlNodes > result.xmlNodes ||
+      b?.xmlRecordsSha256 !== result?.xmlRecordsSha256 ||
+      !count(handoff?.payloadBytes) ||
+      handoff.payloadBytes > MAX_PREVIEW_BYTES)
+    throw fail('LFJ_PREVIEW_BASIS', 'Incomplete source-pinned Worker handoff');
+  const pairs = [
+    [XML_NODE_TRACE_HEADERS, handoff.nodeWiseRows, handoff.nodeWiseCsv,
+      result.nodeWiseCsvSha256, result.nodeWiseCsvBytes,
+      handoff.nodeWiseCsvSha256, handoff.nodeWiseCsvBytes],
+    [EVIDENCE_TREE_HEADERS, handoff.evidenceTreeRows, handoff.evidenceTreeCsv,
+      result.evidenceTreeCsvSha256, result.evidenceTreeCsvBytes,
+      handoff.evidenceTreeCsvSha256, handoff.evidenceTreeCsvBytes]
+  ];
+  for (const [headers, rows, csv, expectedSha, expectedSize, handoffSha, handoffSize] of pairs) {
+    if (typeof csv !== 'string' || serializeRowsToCsv(headers, rows) !== csv ||
+        !count(expectedSize) || expectedSize !== encoder.encode(csv).byteLength ||
+        expectedSize !== handoffSize || expectedSha !== handoffSha ||
+        await shaText(csv) !== expectedSha)
+      throw fail('LFJ_PREVIEW_CSV_PARITY',
+        'Indexed trace/evidence rows diverge from exact shipping CSV serializers');
+  }
+  return Object.freeze({
+    mode: 'lfj-indexed-preview',
+    originalSha256, xmlSha256,
+    xmlNodes: result.xmlNodes, matchedXmlNodes: result.matchedXmlNodes,
+    nodeWiseRows: handoff.nodeWiseRows,
+    evidenceTreeRows: handoff.evidenceTreeRows,
+    nodeWiseCsvSha256: result.nodeWiseCsvSha256,
+    evidenceTreeCsvSha256: result.evidenceTreeCsvSha256,
+    sourceOnly: true,
+    engineeringReady: false,
+    downloadAuthorized: false,
+    status: 'SOURCE_PINNED_PREVIEW_ONLY'
+  });
+}
+
+/**
+ * Only original File/Blob bytes enter the indexed pipeline, never a JSON.parse
+ * of stagedJsonText. A new isolated IndexedDB generation is used per request;
+ * both source and projection HEADs are attested by the matching Worker.
+ */
+export async function buildIndexedResolverPreview({
+  blob, xmlText, config = {}, isCurrent = () => true,
+  onProgress = () => {}, signal, workerFactory, timeoutMs = STAGE_LIMIT_MS
+} = {}) {
+  if (!(blob instanceof Blob) || blob.size < 1 ||
+      blob.size > MAX_ORIGINAL_BYTES || typeof xmlText !== 'string' ||
+      !xmlText.trim() || typeof isCurrent !== 'function')
+    throw fail('LFJ_PREVIEW_INPUT', 'Original JSON Blob (up to 32 MiB) and XML are required');
+  if (signal?.aborted) throw fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled');
+  const token = crypto.randomUUID();
+  const sourceDatabaseName = 'lfj-ui-preview-source-' + token;
+  const projectionDatabaseName = 'lfj-ui-preview-projection-' + token;
+  const sourceGeneration = token, projectionGeneration = token;
+  const run = (url, payload) => workerJob(url, payload,
+    { signal, workerFactory, timeoutMs });
+  try {
+    stale(isCurrent);
+    onProgress('Hashing original source');
+    const originalSha256 = await sha256(await blob.arrayBuffer());
+    const xmlSha256 = await shaText(xmlText);
+    stale(isCurrent);
+    onProgress('Indexing original source occurrences');
+    const source = await run(SOURCE_WORKER, {
+      type: 'START', blob, expectedSha256: originalSha256,
+      databaseName: sourceDatabaseName, generation: sourceGeneration,
+      revision: 'LFJ_UI_PREVIEW_V1'
+    });
+    stale(isCurrent);
+    if (source?.sourceSha256 !== originalSha256 ||
+        !count(source?.occurrenceCount) || source.occurrenceCount < 1)
+      throw fail('LFJ_PREVIEW_SOURCE_CENSUS', 'Source occurrence index incomplete');
+    onProgress('Constructing bounded source-backed Resolver projection');
+    const projection = await run(PROJECTION_WORKER, {
+      type: 'PROJECT', blob, expectedSha256: originalSha256, config, toleranceMm: 6,
+      sourceDatabaseName, sourceGeneration, projectionDatabaseName,
+      projectionGeneration
+    });
+    stale(isCurrent);
+    if (projection?.sourceSha256 !== originalSha256 ||
+        projection?.sourceOccurrences !== source.occurrenceCount ||
+        !count(projection?.factCount) || projection.factCount < 1)
+      throw fail('LFJ_PREVIEW_PROJECTION', 'No complete source-backed facts');
+    onProgress('Resolving original XML through indexed Worker');
+    const matching = await run(MATCH_WORKER, {
+      type: 'MATCH', blob, expectedSha256: originalSha256, xmlText, config,
+      sourceDatabaseName, sourceGeneration, projectionDatabaseName,
+      projectionGeneration, includeResearchHandoff: true
+    });
+    stale(isCurrent);
+    if (matching?.originalSha256 !== originalSha256 ||
+        matching?.sourceOccurrenceCount !== source.occurrenceCount ||
+        matching?.projectionFacts !== projection.factCount)
+      throw fail('LFJ_PREVIEW_MATCH_BASIS', 'Indexed matching basis is incomplete or changed');
+    const verified = await verifyIndexedPreviewHandoff(
+      matching, originalSha256, xmlSha256);
+    stale(isCurrent);
+    return verified;
+  } finally {
+    // Each request owns unique generations. Never reuse partially written
+    // IndexedDB heads after cancellation, failure or supersession.
+    if (typeof indexedDB !== 'undefined') {
+      for (const name of [sourceDatabaseName, projectionDatabaseName]) {
+        try { indexedDB.deleteDatabase(name); } catch {}
+      }
+    }
+  }
+}

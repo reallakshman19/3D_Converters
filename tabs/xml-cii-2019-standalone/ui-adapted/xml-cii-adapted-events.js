@@ -23,6 +23,7 @@ import {
 } from '../xml-cii-trace-export.js';
 import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
+import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -106,6 +107,9 @@ export function bindSourceEvents(container, stateRef, render) {
     replaceState(stateRef, updateWorkflowState(stateRef.current, {
       stagedJsonFile: file, stagedJsonText: '', result: null
     }), render);
+    // Indexed preview passes the genuine Blob to a Worker: never read/parse
+    // the original 10–30 MB JSON on the foreground UI thread.
+    if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') return;
     try {
       const text = file ? await readTextFile(file) : '';
       if (!isLatest() || stateRef.current.stagedJsonFile !== file) return;
@@ -169,6 +173,14 @@ export function bindRegexEvents(container, stateRef, render) {
 }
 
 export function bindResolverEvents(container, stateRef, render) {
+  onChange(container, 'resolver-source-mode', value => {
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
+      stagedJsonText: value === 'lfj-indexed-preview' && stateRef.current.stagedJsonFile ? '' : stateRef.current.stagedJsonText,
+      lfjIndexedPreview: null, lfjIndexedPreviewStatus: ''
+    });
+    render();
+  });
   onChange(container, 'resolver-json-config', (value) => { stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value); });
   const useDelimiterInput = container.querySelector('[data-field="resolver-use-delimiter"]');
   if (useDelimiterInput) {
@@ -233,7 +245,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
   stateRef.current = updateWorkflowState(stateRef.current, {
     resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '',
     resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
-    resolverJsonTraceAcceptedRevision: null
+    resolverJsonTraceAcceptedRevision: null, lfjIndexedPreview: null,
+    lfjIndexedPreviewStatus: ''
   });
   render();
   let requestedRevision = null;
@@ -247,6 +260,46 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     return null;
   };
   try {
+    // The indexed path is opt-in and PREVIEW-ONLY until a distinct product
+    // acceptance contract authorizes both CSV exports. Never treat the
+    // research handoff's downloadAuthorized:false as a product permission.
+    if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
+      if (save) throw new Error('Indexed preview cannot write engineering config');
+      const indexedConfigText = container.querySelector('[data-field="resolver-json-config"]');
+      if (indexedConfigText) {
+        try { JSON.parse(String(indexedConfigText.value || '{}')); }
+        catch { throw new Error('Resolver configuration JSON is invalid'); }
+        stateRef.current = updateResolverJsonTraceConfig(
+          stateRef.current, indexedConfigText.value);
+      }
+      const requested = currentResolverTraceRevision(stateRef.current);
+      requestedRevision = requested;
+      const input = stateRef.current;
+      if (!(input.stagedJsonFile instanceof Blob))
+        throw new Error('Select the original JSON file for indexed preview');
+      const xmlText = await sourceTextFromState(input);
+      if (!isLatest()) return null;
+      if (currentResolverTraceRevision(stateRef.current) !== requested)
+        return rejectChanged();
+      const isCurrent = () => isLatest() &&
+        currentResolverTraceRevision(stateRef.current) === requested;
+      const preview = await buildIndexedResolverPreview({
+        blob: input.stagedJsonFile, xmlText,
+        config: input.resolverJsonTraceConfig || {}, isCurrent
+      });
+      if (!isCurrent()) return rejectChanged();
+      stateRef.current = updateWorkflowState(stateRef.current, {
+        lfjIndexedPreview: preview, lfjIndexedPreviewStatus:
+          'Indexed source preview complete; production CSV exports remain blocked.',
+        resolverJsonTraceRunning: false,
+        resolverJsonTraceExportStatus:
+          'Indexed preview only: two CSV downloads require product qualification.',
+        resolverJsonTraceWriteBackStatus:
+          `Indexed preview: ${preview.xmlNodes} XML nodes, ${preview.matchedXmlNodes} matched.`
+      });
+      render();
+      return preview;
+    }
     const tx = container.querySelector('[data-field="resolver-json-config"]');
     if (tx) {
       try { JSON.parse(String(tx.value || '{}')); }
@@ -296,6 +349,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
       .replace(/\s+/g, ' ').slice(0, 240);
     stateRef.current = updateWorkflowState(stateRef.current, {
       resolverJsonTraceRunning: false,
+      lfjIndexedPreview: null,
+      lfjIndexedPreviewStatus: `Indexed Build failed: ${message}`,
       resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
       resolverJsonTraceAcceptedRevision: null,
       resolverJsonTraceExportStatus: `Resolver Build failed: ${message}`,
@@ -330,7 +385,8 @@ function traceResult(state) {
 
 export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
   const state=stateRef.current;
-  if(state.resolverJsonTraceRunning||
+  if(state.resolverSourceMode === 'lfj-indexed-preview'||
+     state.resolverJsonTraceRunning||
      state.resolverJsonTraceAcceptedRevision===null||
      state.resolverJsonTraceAcceptedRevision===undefined||
      state.resolverJsonTraceAcceptedRevision!==currentResolverTraceRevision(state)){
