@@ -110,7 +110,9 @@ function evidenceSummary(plan, lineEvidence, classEvidence, hasDatasetEvidence) 
   const complete = !plan.queryOverflow.lineList
     && !plan.queryOverflow.pipingClass
     && !lineEvidence.totalIndexOverflow
-    && !classEvidence.totalIndexOverflow;
+    && !classEvidence.totalIndexOverflow
+    && !lineEvidence.truncatedQueryCount
+    && !classEvidence.truncatedQueryCount;
   return Object.freeze({
     mode: 'BOUNDED_MASTER_EVIDENCE',
     complete,

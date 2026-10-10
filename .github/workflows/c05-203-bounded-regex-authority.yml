@@ -1,0 +1,138 @@
+name: C05 203 current J02 bounded Regex authority independent-of-historic-oracles
+on:
+  pull_request:
+    paths:
+      - 'tests/xml-cii-issue-203-bounded-regex-authority.test.mjs'
+      - 'tests/xml-cii-issue-203-bounded-completeness-and-provenance.test.mjs'
+      - 'tests/xml-cii-issue-203-index-census-integrity.test.mjs'
+      - 'tests/xml-cii-issue-203-source-custody.test.mjs'
+      - 'tests/xml-cii-issue-203-source-index-oracle.test.mjs'
+      - 'tests/fixtures/xml-cii-203-tracked-piping-class-index-oracle.json'
+      - '.github/workflows/c05-203-bounded-regex-authority.yml'
+      - 'tests/browser/xml-cii-regex-bounded-evidence-scale-e2e.html'
+      - 'scripts/run-xml-cii-issue-203-cold-bounded-consumer-e2e.mjs'
+      - 'scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  current-contract-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Reject mismatched checkout and check native syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Distinguish full master row count from bounded evidence rows, verify fail-closed authority
+        run: node --test tests/xml-cii-issue-203-bounded-regex-authority.test.mjs tests/xml-cii-issue-203-source-custody.test.mjs tests/xml-cii-issue-203-source-index-oracle.test.mjs tests/xml-cii-issue-203-bounded-completeness-and-provenance.test.mjs tests/xml-cii-issue-203-index-census-integrity.test.mjs
+      - name: No tracked mutation
+        run: test -z "$(git status --porcelain)"
+  current-j02-native-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Pin exact tested source
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real browser
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original source and true Worker modules
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/c05-203-http.log 2>&1 &
+          for n in $(seq 1 40); do
+            curl -sf http://127.0.0.1:4173/tests/browser/xml-cii-regex-bounded-evidence-scale-e2e.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/c05-203-http.log
+          exit 1
+      - name: Native J02 current authority 10k/50k/100k bounded-index and full extraction coverage
+        env:
+          XML_CII_REGEX_BOUNDED_SCALE_OUTPUT: ${{ runner.temp }}/c05-203-j02-current-bounded-scale.json
+        run: node scripts/run-xml-cii-regex-bounded-evidence-scale-e2e.mjs
+      - name: Explicit release/old-test boundary
+        run: |
+          {
+            echo '## C05 #203 current-contract proof: NOT old C05.6.2 qualification'
+            echo '- This job runs native J02 bounded Regex semantics on the exact PR head.'
+            echo '- Historic #893 full-master materialization and old cache tokens remain unresolved; this workflow does not waive them.'
+            echo '- All-repo C05, public Pages/Opera, Owner 30MB and independent semantics remain separate.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Unmodified tracked source
+        run: test -z "$(git status --porcelain)"
+      - name: Retain genuine Chromium bounded evidence / negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c05-203-j02-native-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/c05-203-j02-current-bounded-scale.json
+            /tmp/c05-203-http.log
+
+  current-real-three-master-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Pin checked out raw source
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse cold-reload current-consumer browser harness
+        run: node --check scripts/run-xml-cii-issue-203-cold-bounded-consumer-e2e.mjs
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve unchanged tracked three master fixtures and native Worker ESM
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/c05-203-three-master-http.log 2>&1 &
+          for n in $(seq 1 40); do
+            curl -sf http://127.0.0.1:4173/tests/browser/xml-cii-issue-892-three-master-cold-reload-e2e.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/c05-203-three-master-http.log
+          exit 1
+      - name: Real cold IndexedDB three-master bounded-positive, zero-sample and wrong-authority negatives
+        env:
+          XML_CII_203_OUTPUT: ${{ runner.temp }}/c05-203-cold-bounded-consumer.json
+        run: node scripts/run-xml-cii-issue-203-cold-bounded-consumer-e2e.mjs
+      - name: Verify unchanged tracked source
+        run: test -z "$(git status --porcelain)"
+      - name: Retain actual source/Worker/IndexedDB native browser receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c05-203-cold-bounded-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/c05-203-cold-bounded-consumer.json
+            /tmp/c05-203-three-master-http.log
