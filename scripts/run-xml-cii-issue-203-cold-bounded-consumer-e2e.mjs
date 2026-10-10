@@ -88,38 +88,31 @@ try{
     ensure(empty.boundedEvidence?.complete===true,'zero-sample bounded evidence incomplete');
     ensure(context.pipingClassRows?.length===0,'Regex mutated long-lived Piping Class resident rows');
 
-    // Build an observed positive query from the actual cold-hydrated IndexedDB source,
-    // never from synthetic stubbed workers or a hardcoded nonmatching class.
-    const preview=context.previewRows.pipingClass||[];
-    const candidates=new Set();
-    for(const row of preview)for(const value of Object.values(row||{})){
-      for(const match of String(value??'').toUpperCase().matchAll(/[A-Z0-9]*\d{3,}[A-Z0-9]*/g)){
-        if(match[0].length<=24)candidates.add(match[0]);
-      }
+    // Sparse, bounded native Worker scans: take ONLY the normalized Piping Class
+    // field, not arbitrary numeric substrings from Rating/Size/SCH/raw rows.
+    // A source-specific code must hit <= 12 Worker indexes, all with EXACT class
+    // equality. The candidate is discovered, not hardcoded to an expected token.
+    const scanStep=128,scanCap=96;
+    let positive=null,probes=0;
+    const classField=row=>String(row?.['Piping Class']??row?.pipingClass??'').trim().toUpperCase();
+    for(let offset=0;offset<refs.pipingClass.rowCount&&probes<scanCap;offset+=scanStep){
+      probes++;
+      const source=await runtime.getMasterDatasetRows(
+        'pipingClass',refs.pipingClass.datasetId,offset,1,refs.pipingClass);
+      const token=classField(source?.rows?.[0]);
+      if(!/^[A-Z0-9]{3,24}$/.test(token))continue;
+      const found=await runtime.searchMasterDatasetRows('pipingClass',refs.pipingClass.datasetId,token);
+      const indexes=Array.isArray(found?.indexes)?found.indexes:[];
+      if(indexes.length<1||indexes.length>12)continue;
+      const original=await runtime.getMasterDatasetRowsByIndexes(
+        'pipingClass',refs.pipingClass.datasetId,indexes,refs.pipingClass);
+      if(!Array.isArray(original.rows)||original.rows.length!==indexes.length)continue;
+      if(!original.rows.every(row=>classField(row)===token))continue;
+      positive={token,indexes,matchingMasterRows:indexes.length,
+        derivedFromExactClassField:true,observedWorkerOffset:offset};
+      break;
     }
-    // A genuinely selected source-specific token is preferable to the previous
-    // broad "100" probe: rank observed source tokens by specificity, verify
-    // returned normalized source cells, and require the source-indexed row match.
-    const ranked=[...candidates].sort((a,b)=>b.length-a.length||a.localeCompare(b));
-    const queryCandidates=[...ranked,'91261M7','100','150','200'];
-    let positive=null,fallback=null,probes=0;
-    for(const token of [...new Set(queryCandidates)]){
-      if(probes++>=90)break;
-      const result=await runtime.searchMasterDatasetRows('pipingClass',refs.pipingClass.datasetId,token);
-      if(!Array.isArray(result?.indexes)||!result.indexes.length)continue;
-      const first=await runtime.getMasterDatasetRowsByIndexes(
-        'pipingClass',refs.pipingClass.datasetId,[result.indexes[0]],refs.pipingClass);
-      const firstRow=first?.rows?.[0];
-      if(!firstRow||!JSON.stringify(firstRow).toUpperCase().includes(token))continue;
-      const trial={token,indexes:result.indexes.slice(0,12),
-        matchingMasterRows:Number(result.matchCount??result.indexes.length),
-        derivedFromSourcePreview:candidates.has(token)};
-      if(!fallback)fallback=trial;
-      if(trial.matchingMasterRows<=12&&trial.derivedFromSourcePreview){positive=trial;break;}
-    }
-    positive ||= fallback;
-    ensure(positive,'No source-consistent query found within the actual 10,699-row test master; current consumer BLOCKED');
-
+    ensure(positive,'No selective exact Piping Class code found in <=96 sparse Worker probes; fail rather than claim substring evidence');
     const sample={branchName:'/AREA-DN100-'+positive.token+'/B1'};
     const sampleState={...stateRef.current,regexTesterConfig:{activeFormatIndex:0,formats:[{tokenDelimiter:'-'}]},
       regexTesterResult:{branchSamples:[sample],matchedRows:[],rejectedRows:[sample]}};
@@ -146,11 +139,22 @@ try{
       'pipingClass',refs.pipingClass.datasetId,seenFetch[0],refs.pipingClass);
     ensure(JSON.stringify(bounded.masterContext.pipingClassRows)===JSON.stringify(independent.rows),
       'bounded evidence rows do not match separately queried Worker indexed originals');
-    ensure(independent.rows.some(row=>JSON.stringify(row).toUpperCase().includes(positive.token)),
-      'selected positive search query not represented by any original normalized source row');
-    const matchingSourceFields=[...new Set(independent.rows.flatMap(row=>Object.entries(row||{})
-      .filter(([,value])=>String(value??'').toUpperCase().includes(positive.token))
-      .map(([key])=>key)))];
+    ensure(independent.rows.length===positive.matchingMasterRows,
+      'source-indexed row count differs from selective exact class census');
+    ensure(independent.rows.every(row=>classField(row)===positive.token),
+      'some indexed row is merely a substring hit, not an exact Piping Class value');
+    const matchingSourceFields=['Piping Class'];
+    const alternateSample={branchName:'/UNRELATED-ALPHA-NOCODE/B2'};
+    const twoBucketState={...sampleState,
+      regexTesterResult:{branchSamples:[sample,alternateSample],
+        matchedRows:[],rejectedRows:[sample,alternateSample]}};
+    const twoBucket=await regex.materializeRegexSmartMasterContext(twoBucketState);
+    ensure(twoBucket.selectedBucketCount===2&&twoBucket.analysisSampleCount===2,
+      'two representative structural buckets were not both selected');
+    ensure(twoBucket.pipingClassRowCount===positive.matchingMasterRows,
+      'adding a no-class-query second structural sample changed indexed Piping Class evidence');
+    ensure(twoBucket.boundedEvidence?.complete===true,
+      'two-bucket bounded evidence no longer complete');
     ensure(bounded.evidenceBasis.includes(refs.pipingClass.datasetId),'evidence not bound to source dataset');
     ensure(bounded.evidenceBasis.includes('"mappingRevision":'+context.appliedMappingRevision.pipingClass),
       'evidence lost source mapping revision');
@@ -194,12 +198,16 @@ try{
       noSamples:{evidenceRows:empty.pipingClassRowCount,masterRowCount:refs.pipingClass.rowCount,
         complete:empty.boundedEvidence.complete},
       positive:{token:positive.token,queryProbeCount:probes,
-        derivedFromSourcePreview:positive.derivedFromSourcePreview,
+        derivedFromExactClassField:positive.derivedFromExactClassField,
+        observedWorkerOffset:positive.observedWorkerOffset,
         matchingMasterRows:positive.matchingMasterRows,
         matchedNormalizedSourceFields:matchingSourceFields,
         selectedSourceSample:sample.branchName,
         actualQueries:seenSearch,indexes:seenFetch[0],rowCount:bounded.pipingClassRowCount,
-        fullMasterRowCount:refs.pipingClass.rowCount,sourceRowContainsQuery:true},
+        fullMasterRowCount:refs.pipingClass.rowCount,
+        exactClassValueInEveryIndexedRow:true,
+        twoStructuralBucketsKeptPositive:true,
+        sourceRowContainsQuery:true},
       negatives:{wrongRevision,crossMaster,weightFingerprint,nonWeightRank,
         deliberateAbsentToken,absentQueryNoMatches:true},
       genericFullRowConsumerSeparate:true,compactWeightNoFullRows:true,
