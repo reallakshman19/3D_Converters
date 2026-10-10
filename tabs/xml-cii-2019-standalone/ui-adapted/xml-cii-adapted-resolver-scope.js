@@ -1,4 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
+import {updateWorkflowState} from './xml-cii-adapted-state.js';
 import {
   ALL_SCOPE_ID,
   buildJsonHierarchyScopeIndex,
@@ -28,6 +29,10 @@ function validScopeId(index, requested) {
 }
 
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
+  // Native source-backed preview must not reparse the whole original JSON
+  // just to render its UI. This view is explicitly ALL-scopes only.
+  if(state.resolverResearchView || state.resolverResearchBuildToken)
+    return {index:null,selectedScopeId:ALL_SCOPE_ID};
   const source = text(state.stagedJsonText);
   if (!source) return { index: null, selectedScopeId: ALL_SCOPE_ID };
   const key = sourceKey(source);
@@ -98,13 +103,16 @@ export function renderResolverHierarchyScopeControl(parent, stateRef, render, sc
   const select = selectControl(scopeState);
   select.addEventListener('change', (event) => {
     if (!stateRef?.current) return;
-    stateRef.current = {
-      ...stateRef.current,
-      jsonTraceScopeId: event.target.value,
-      resolverJsonTraceResult: null,
-      resolverJsonTraceJsonResult: null,
-      resolverJsonTraceExportStatus: '',
-    };
+    // Route scope mutations through the same revision guard as source and
+    // config; direct object mutation would preserve a stale Worker preview.
+    stateRef.current = updateWorkflowState(stateRef.current,{
+      jsonTraceScopeId:event.target.value,
+      resolverJsonTraceResult:null,
+      resolverJsonTraceJsonResult:null,
+      resolverResearchView:null,
+      resolverJsonTraceAcceptedRevision:null,
+      resolverJsonTraceExportStatus:'Hierarchy scope changed; rebuild before export.'
+    });
     render?.();
   });
   bar.appendChild(select);

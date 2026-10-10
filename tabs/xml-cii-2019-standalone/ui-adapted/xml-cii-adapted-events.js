@@ -1,3 +1,5 @@
+import {runProductSourceBackedResolver} from '../../../lfj/consumers/3d-converters/source-backed-resolver-build.mjs';
+import {admitSourceBackedCsvProductGrant,selectSourceBackedCsvForDownload} from '../../../lfj/consumers/3d-converters/source-backed-resolver-export.mjs';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
@@ -185,6 +187,7 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
+  onClick(container, 'build-resolver-lfj', () => runSourceBackedResolverPreviewFromUi(stateRef, render));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
   onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
   onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
@@ -206,7 +209,7 @@ export function bindActionEvents(container, stateRef, render) {
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
-  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
+  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '', resolverResearchView: null, resolverResearchBuildToken: null, resolverProductCsvGrant: null });
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
@@ -240,6 +243,91 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     });
   render();
 }
+/**
+ * Explicit opt-in research preview inside the REAL standalone Build panel.
+ * It uses original native source/projection/matching Workers. All legacy
+ * downloads remain denied: the source-only capsule is NOT a product export.
+ */
+export async function runSourceBackedResolverPreviewFromUi(stateRef, render) {
+  const token={};
+  const initial=stateRef.current;
+  const requestedRevision=currentResolverTraceRevision(initial);
+  const stillCurrent=()=>stateRef.current.resolverResearchBuildToken===token &&
+    currentResolverTraceRevision(stateRef.current)===requestedRevision;
+  stateRef.current=updateWorkflowState(initial,{
+    resolverJsonTraceRunning:true,resolverResearchBuildToken:token,
+    resolverResearchView:null,resolverProductCsvGrant:null,resolverJsonTraceResult:null,
+    resolverJsonTraceJsonResult:null,resolverJsonTraceAcceptedRevision:null,
+    resolverJsonTraceExportStatus:'LFJ native source-backed Worker Build in progress (preview only).'
+  });
+  render();
+  try {
+    const xmlText=await sourceTextFromState(initial);
+    if(!stillCurrent())return null;
+    const sourceKind=initial.sourceKind==='auto'
+      ?detectXmlCiiWorkflowSourceKind(xmlText,'xml'):initial.sourceKind;
+    if(sourceKind!=='xml')throw Object.assign(
+      new Error('LFJ Worker preview requires a source XML document'),
+      {code:'A3_XML_REQUIRED'});
+    // Research projection currently qualifies only the full flat-branch
+    // source population. A narrower UI scope would misrepresent the result.
+    const mode=initial.branchScope?.manifest?.mode;
+    const selection=initial.branchSelection;
+    const explicitWithoutManifest=!mode&&(
+      (Array.isArray(selection)&&selection.length>0) ||
+      (typeof selection==='string'&&selection!=='__ALL__'&&selection!=='') ||
+      (selection&&typeof selection==='object'&&
+        (selection.selectedBranchNames?.length>0 ||
+         selection.selectedBranchOccurrenceIds?.length>0)));
+    if((initial.jsonTraceScopeId && initial.jsonTraceScopeId!=='__ALL__') ||
+       (mode && mode!=='all' && mode!=='not-applicable') ||
+       explicitWithoutManifest)
+      throw Object.assign(new Error(
+        'LFJ Worker Build requires full original branch and hierarchy scope'),
+        {code:'A3_SCOPE_UNSUPPORTED'});
+    // Source JSON is passed as an original Blob. No full JSON.parse on main;
+    // this view does not modify existing Preview/Weight product authority.
+    const blob=typeof initial.stagedJsonText==='string'&&initial.stagedJsonText
+      ?new Blob([initial.stagedJsonText],{type:'application/json'})
+      :initial.stagedJsonFile;
+    const view=await runProductSourceBackedResolver({
+      blob,xmlText,config:initial.resolverJsonTraceConfig||{},
+      revision:requestedRevision,
+      currentRevision:()=>stillCurrent()?requestedRevision:-1
+    });
+    if(!stillCurrent())return null;
+    // Product-owned acceptance is separate from the research capsule rights.
+    // Verify full output hashes again before binding real CSV buttons.
+    const productGrant=await admitSourceBackedCsvProductGrant(view,{
+      revision:requestedRevision,
+      currentRevision:()=>stillCurrent()?requestedRevision:-1
+    });
+    if(!stillCurrent())return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,resolverResearchBuildToken:null,
+      resolverResearchView:view,resolverProductCsvGrant:productGrant,
+      resolverJsonTraceExportStatus:
+        'LFJ source-backed Build verified: '+view.xmlNodes+
+        ' XML rows. Both CSVs are bound to this input revision (draft product candidate).',
+      resolverJsonTraceWriteBackStatus:
+        'Source-backed LFJ Worker: '+view.xmlNodes+' nodes, '+
+        view.matchedXmlNodes+' matches; original CSV bytes independently rechecked.'
+    });
+    render();
+    return view;
+  }catch(error){
+    if(!stillCurrent())return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,resolverResearchBuildToken:null,
+      resolverResearchView:null,resolverProductCsvGrant:null,
+      resolverJsonTraceExportStatus:
+        'LFJ Worker Build blocked ['+(error?.code||'A3_WORKER_FAILED')+
+        ']: '+String(error?.message||error)
+    });
+    render();
+    return null;
+  }
+}
 export async function runManualElementSideloadFromUi(container, stateRef, render, save) {
   stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });
   render();
@@ -265,6 +353,10 @@ function traceResult(state) {
 
 export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
   const state=stateRef.current;
+  // Native source-backed outputs are accepted by a separate product-owned
+  // grant, NEVER by the legacy trace revision or the research Worker flag.
+  if(state.resolverResearchView || state.resolverProductCsvGrant)
+    return downloadSourceBackedResolverCsvFromUi(stateRef,render,kind);
   if(state.resolverJsonTraceAcceptedRevision===null||
      state.resolverJsonTraceAcceptedRevision===undefined||
      state.resolverJsonTraceAcceptedRevision!==currentResolverTraceRevision(state)){
@@ -290,6 +382,37 @@ export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
   return { fileName, rowCount, content };
 }
 
+/** Actual A3 two-button source-backed download with a post-await rev fence. */
+export async function downloadSourceBackedResolverCsvFromUi(stateRef,render,kind){
+  const snapshot=stateRef.current;
+  try{
+    const selected=await selectSourceBackedCsvForDownload(stateRef,kind);
+    // The selector rechecks the live same-object grant after async hashing.
+    // No await or other observable yield may occur before issuing the Blob.
+    downloadTextFile(selected.fileName,selected.content,'text/csv;charset=utf-8');
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceExportStatus:
+        'Downloaded '+selected.rowCount+' verified original LFJ '+
+        (kind==='evidence-tree'?'evidence':'node-trace')+
+        ' rows; '+selected.bytes+' UTF-8 bytes at source revision '+selected.revision+'.'
+    });
+    render();
+    return selected;
+  }catch(error){
+    // An old click must not overwrite the newer source or Build status.
+    if(stateRef.current.resolverJsonTraceInputRevision !==
+       snapshot.resolverJsonTraceInputRevision ||
+       stateRef.current.resolverResearchView!==snapshot.resolverResearchView ||
+       stateRef.current.resolverProductCsvGrant!==snapshot.resolverProductCsvGrant)
+      return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceExportStatus:'LFJ CSV export blocked ['+
+        (error?.code||'A3_EXPORT_REJECTED')+']: '+String(error?.message||error)
+    });
+    render();
+    return null;
+  }
+}
 async function writeClipboardText(value) {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);

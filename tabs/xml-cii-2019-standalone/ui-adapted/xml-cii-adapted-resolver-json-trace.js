@@ -7,6 +7,7 @@ import {
 } from './xml-cii-adapted-resolver-scope.js';
 import {
   XML_NODE_TRACE_HEADERS,
+  EVIDENCE_TREE_HEADERS,
   buildEvidenceTreeRows,
   buildMatchedFactsRows,
   buildXmlNodeWiseTraceRows,
@@ -143,6 +144,10 @@ function fieldFor(header) {
     'DTXR_PS Value': 'dtxrPsValue',
     'Effective Source': 'effectiveSource',
     'Derived Restraints': 'derivedRestraints',
+    Branch:'branch',Bore:'bore','Source Node No':'sourceNodeNo',
+    Position:'position','Object Type':'objectType',DTXR_POS:'dtxrPos',
+    NAME:'name',CMPSUPGAP:'cmpSupGap',ComponentRefNo:'componentRefNo',
+    'Source Path':'sourcePath',
     Status: 'status',
   }[header] || header;
 }
@@ -221,17 +226,22 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
   section.appendChild(createElement('h3', 'Resolver Index'));
   renderResolverHierarchyScopeControl(section, stateRef, render, scopeState);
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
-  const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
+  const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index', state.resolverJsonTraceRunning);
   if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
     Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
-  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config'), createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  actions.append(buildBtn,
+    actionButton('build-resolver-lfj', state.resolverJsonTraceRunning ? 'LFJ Worker running…' : 'Build with LFJ native Workers (verified CSV)',state.resolverJsonTraceRunning),
+    actionButton('save-resolver-json-config', 'Save to config'),
+    createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  if(state.resolverJsonTraceExportStatus)
+    actions.appendChild(createElement('p',state.resolverJsonTraceExportStatus,'xml-cii-phase-help'));
   section.appendChild(actions);
   renderDelimiterControls(section, state);
 
   const metrics = createElement('div', '', 'xml-cii-resolver-metrics');
-  metrics.append(metric('XML nodes', stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
+  metrics.append(metric('XML nodes', state.resolverResearchView?.xmlNodes ?? stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
   section.appendChild(metrics);
 
   const diagnostics = result?.diagnostics || [];
@@ -256,6 +266,24 @@ function renderJsonConfig(parent, state) {
 }
 
 function renderTraceTreeHtml(parent, state) {
+  // Research Worker returns source-owned, already serialized original rows,
+  // not the legacy nested matchedFacts graph. Do not invent that graph.
+  const view=state.resolverResearchView;
+  if(view){
+    const section=createElement('section','','xml-cii-resolver-panel');
+    section.appendChild(sectionTitleBar('Evidence Tree (LFJ Worker preview)',[
+      actionButton('download-evidence-tree-csv',
+        state.resolverProductCsvGrant?'⬇ Verified LFJ CSV ('+view.evidenceTreeRows.length+')':'CSV requires current Build',
+        !state.resolverProductCsvGrant)
+    ]));
+    section.appendChild(createElement('p',
+      'Original source-backed evidence rows; downloads require the separate same-revision product grant.',
+      'xml-cii-phase-help'));
+    addFilter(section,table(EVIDENCE_TREE_HEADERS,view.evidenceTreeRows,
+      'No matched source evidence.','xml-cii-evidence-source-table'),
+      'Filter LFJ original evidence...');
+    parent.appendChild(section);return;
+  }
   const result = state.resolverJsonTraceResult;
   const traceRows = result?.matchedFacts || [];
   const delimiter = state.regexTesterConfig?.tokenDelimiter || '-';
@@ -306,10 +334,13 @@ function addFilter(section, tableEl, placeholder) {
 
 function renderXmlNodeWiseTraceTable(parent, state) {
   const result = state.resolverJsonTraceResult;
-  const nodeWiseRows = buildXmlNodeWiseTraceRows(result);
+  const view=state.resolverResearchView;
+  const nodeWiseRows = view?.nodeWiseRows || buildXmlNodeWiseTraceRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(sectionTitleBar('XML Node Wise Trace', [
-    actionButton('download-node-wise-trace-csv', `⬇ CSV (${nodeWiseRows.length})`, nodeWiseRows.length === 0),
+    actionButton('download-node-wise-trace-csv',
+      view?(state.resolverProductCsvGrant?'⬇ Verified LFJ CSV ('+nodeWiseRows.length+')':'CSV requires current Build'):`⬇ CSV (${nodeWiseRows.length})`,
+      view?!state.resolverProductCsvGrant:nodeWiseRows.length===0),
   ]));
   if (!nodeWiseRows.length) {
     section.appendChild(createElement('div', 'No XML trace rows. Load source XML and staged JSON, then rebuild the resolver index.', 'xml-cii-phase-help'));
@@ -317,6 +348,7 @@ function renderXmlNodeWiseTraceTable(parent, state) {
     return;
   }
   section.appendChild(createElement('p', 'One authoritative row per XML node. DTXR_POS is primary; DTXR_PS is shown as the NAME-specific fallback evidence.', 'xml-cii-phase-help'));
+  if(view)section.appendChild(createElement('p','LFJ native Worker original rows. Two complete CSV exports use a separate, short-lived application grant; release review is still pending.','xml-cii-phase-help'));
   addFilter(section, table(XML_NODE_TRACE_HEADERS, nodeWiseRows, 'No trace rows matched.', 'xml-cii-node-wise-table'), '🔍 Filter node trace...');
   parent.appendChild(section);
 }
@@ -355,8 +387,8 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   ];
   const subTabHasData = {
     tableImport: rows(state.jsonTraceTableRows).length > 0 || !!state.resolverJsonTraceTableResult,
-    tree: buildEvidenceTreeRows(result).length > 0,
-    nodeTrace: buildXmlNodeWiseTraceRows(result).length > 0,
+    tree: rows(state.resolverResearchView?.evidenceTreeRows).length > 0 || buildEvidenceTreeRows(result).length > 0,
+    nodeTrace: rows(state.resolverResearchView?.nodeWiseRows).length > 0 || buildXmlNodeWiseTraceRows(result).length > 0,
     matched: buildMatchedFactsRows(result).length > 0,
     rejected: rows(result?.rejectedFacts).length > 0,
   };

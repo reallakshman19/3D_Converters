@@ -9,7 +9,7 @@ self.addEventListener('message',async ({data})=>{
     const result=await runPagedCompactResearch({
       blob:data.blob,expectedSha256:data.expectedSha256,
       databaseName:data.databaseName,generation:data.generation,
-      revision:data.revision
+      revision:data.revision,maxValues:data.maxValues
     });
     self.postMessage({type:'DONE',result});
   }catch(e){
