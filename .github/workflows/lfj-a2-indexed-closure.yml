@@ -1,0 +1,157 @@
+name: LFJ A2 indexed Resolver checked-in runtime closure preflight
+on:
+  pull_request:
+    paths:
+      - 'docs/lfj/indexed-runtime-closure.mjs'
+      - 'docs/lfj/indexed-runtime-closure.test.mjs'
+      - 'docs/lfj/pages-origin-probe.mjs'
+      - 'docs/lfj/pages-origin-probe.test.mjs'
+      - 'docs/lfj/stage-indexed-runtime.mjs'
+      - 'docs/lfj/stage-indexed-runtime.test.mjs'
+      - '.github/workflows/lfj-a2-indexed-closure.yml'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/**'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-scope-state.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js'
+      - 'lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: read
+jobs:
+  indexed-runtime-source-closure:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source scanner syntax + fail-closed fixture tests
+        run: |
+          node --check docs/lfj/indexed-runtime-closure.mjs
+          node --check docs/lfj/indexed-runtime-closure.test.mjs
+          node --test docs/lfj/indexed-runtime-closure.test.mjs
+          node --check docs/lfj/pages-origin-probe.mjs
+          node --test docs/lfj/pages-origin-probe.test.mjs
+          node --check docs/lfj/stage-indexed-runtime.mjs
+          node --test docs/lfj/stage-indexed-runtime.test.mjs
+      - name: Real repository root versus docs check-in closure
+        env:
+          LFJ_A2_CHECK_REPOSITORY: '1'
+        run: node --test docs/lfj/indexed-runtime-closure.test.mjs
+      - name: Refuse stale original-File root shell and events in tracked docs
+        run: |
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-scope-state.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-scope-state.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+      - name: No checked-in files mutated by validation
+        run: test -z "$(git status --porcelain)"
+
+  public-pages-origin-observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only Pages API + historical URL candidate HTTP observation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node docs/lfj/pages-origin-probe.mjs
+          echo 'Observation only: Owner-opened URL and published artifact not established by these candidate probes.' >> "$GITHUB_STEP_SUMMARY"
+      - name: No source or deployment mutation
+        run: test -z "$(git status --porcelain)"
+
+  generated-docs-native-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact raw head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine Chromium for original UI/Worker/IndexedDB
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Negative ownership collision MUST refuse before writing ANY generated doc
+        run: |
+          NEG="$RUNNER_TEMP/lfj-a2-guard-negative"
+          cp -a docs "$NEG"
+          mkdir -p "$NEG/lfj/qualification/experiments/consumer-sparse-b0-xml-match"
+          printf 'UNAUTHORIZED COLLISION' > "$NEG/lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs"
+          before="$(sha256sum "$NEG/index.html")"
+          if LFJ_PAGES_OUTPUT_DIR="$NEG" node scripts/build-github-pages-docs.mjs >/tmp/a2-guard-failure.log 2>&1; then
+            echo "ERROR: generator accepted unowned divergent LFJ asset" >&2
+            exit 1
+          fi
+          grep -q 'A2_LFJ_OWNERSHIP_COLLISION' /tmp/a2-guard-failure.log
+          test "$before" = "$(sha256sum "$NEG/index.html")"
+      - name: Run REAL Pages docs generator twice in disposable branch-Pages mirror
+        run: |
+          SITE="$RUNNER_TEMP/lfj-a2-disposable-site"
+          cp -a docs "$SITE"
+          LFJ_PAGES_OUTPUT_DIR="$SITE" node scripts/build-github-pages-docs.mjs
+          cp "$SITE/.lfj-indexed-runtime-overlay-manifest.json" /tmp/a2-first-overlay.json
+          LFJ_PAGES_OUTPUT_DIR="$SITE" node scripts/build-github-pages-docs.mjs
+          cmp -s /tmp/a2-first-overlay.json "$SITE/.lfj-indexed-runtime-overlay-manifest.json"
+          SITE="$SITE" node --input-type=module -e "import {readFileSync} from 'node:fs'; import {createHash} from 'node:crypto'; import path from 'node:path'; const m=JSON.parse(readFileSync(path.join(process.env.SITE,'.lfj-indexed-runtime-overlay-manifest.json'))); if(m.files.length<10 || !m.files.some(x=>x.ownership==='V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT')) throw Error('Missing shared source custody'); for(const x of m.files){let b=readFileSync(path.join(process.env.SITE,x.path));if(createHash('sha256').update(b).digest('hex')!==x.sha256)throw Error('Generated closure mismatch: '+x.path)} console.log('A2_GENERATED_DOCS_SOURCE_SHA_PARITY_PASS '+m.files.length); console.log('A2_GENERATED_DOCS_OVERLAY_MANIFEST '+JSON.stringify(m))"
+          mkdir -p "$SITE/Benchmarks/1885Sjson" "$SITE/lfj/qualification/experiments/consumer-sparse-b0-xml-match"
+          cp Benchmarks/1885Sjson/Sjson.json "$SITE/Benchmarks/1885Sjson/Sjson.json"
+          cp Benchmarks/1885Sjson/FirstpassXML "$SITE/Benchmarks/1885Sjson/FirstpassXML"
+          cp lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html "$SITE/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html"
+      - name: Serve staged docs candidate over local HTTP
+        run: |
+          python3 -m http.server 4200 --bind 127.0.0.1 --directory "$RUNNER_TEMP/lfj-a2-disposable-site" >/tmp/lfj-a2-stage-http.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a2-stage-http.log
+          exit 1
+      - name: Real original File to native three Workers and consented two CSV clicks
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: Real served-docs /index.html selected original Build and two Playwright downloads
+        run: node lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs
+      - name: Preserve real root Playwright trace and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-p09-served-docs-root-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/a3-authored-indexed-root-*.zip
+            ${{ runner.temp }}/a3-authored-indexed-root-last-*.png
+            ${{ runner.temp }}/a3-authored-indexed-selected-build.png
+          if-no-files-found: warn
+      - name: Serve SAME disposable candidate for retained V4.1 Worker/IDB oracles
+        run: |
+          python3 -m http.server 4182 --bind 127.0.0.1 --directory "$RUNNER_TEMP/lfj-a2-disposable-site" >/tmp/lfj-a2-v41-stage.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4182/lfj/served-worker-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a2-v41-stage.log
+          exit 1
+      - name: V4.1 genuine legacy Worker plus reopened committed IndexedDB, same staged collision
+        run: |
+          node docs/lfj/served-worker-qualification.mjs
+          node docs/lfj/served-durable-qualification.mjs
+      - name: Verify no checked-in docs or source were mutated by rehearsal
+        run: test -z "$(git status --porcelain)"
