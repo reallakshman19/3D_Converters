@@ -243,7 +243,8 @@ try {
         appliedRevisionsIndependent: true,
         noSecondMasterSourceImport: true,
         emptyRegexHasNoBulkHydration: true,
-        genuineWorkerIndexedSearchBounded: true,
+        nativeWorkerBoundedSearchQueriesObserved: searched.length > 0,
+        nativeWorkerIndexedRowRetrievalObserved: rowFetches.length > 0,
         regexSourceRevisionPreserved: true,
       },
     };
