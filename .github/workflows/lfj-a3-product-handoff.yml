@@ -34,6 +34,8 @@ jobs:
         run: node --test lfj/consumers/3d-converters/verified-xml-csv-handoff.test.mjs
       - name: A3 product CSV grants, original bytes and concurrent stale click negatives
         run: node --test lfj/consumers/3d-converters/source-backed-resolver-export.test.mjs
+      - name: A3 strict bounded source catalog budget rejection tests
+        run: node --test lfj/consumers/3d-converters/source-catalog-budget.test.mjs
       - name: A3 native Worker product preview state and scope negatives
         run: node --test lfj/consumers/3d-converters/source-backed-resolver-build.test.mjs
       - name: A3 retained shipping stale source and export veto
