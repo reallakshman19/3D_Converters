@@ -1,0 +1,31 @@
+{
+  "schema": "LFJ.A3.OwnerLargeQualification.v1",
+  "provenanceClass": "NOT_STAGED",
+  "ownerEvidenceReference": "",
+  "workloads": [
+    {
+      "id": "owner-30mb",
+      "sourcePath": "",
+      "xmlPath": "",
+      "sourceBytes": null,
+      "sourceSha256": "",
+      "xmlSha256": "",
+      "sourceEvidenceReference": "",
+      "expectedOutcome": "INDEXED_TWO_CSV",
+      "expectedXmlNodes": null,
+      "expectedMatchedNodes": null,
+      "expectedNodeWiseCsvSha256": "",
+      "expectedEvidenceTreeCsvSha256": ""
+    },
+    {
+      "id": "owner-90mb",
+      "sourcePath": "",
+      "xmlPath": "",
+      "sourceBytes": null,
+      "sourceSha256": "",
+      "xmlSha256": "",
+      "sourceEvidenceReference": "",
+      "expectedOutcome": "REJECT_CURRENT_32MIB_LIMIT"
+    }
+  ]
+}
