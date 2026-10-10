@@ -163,9 +163,8 @@ try{
         await page.setInputFiles('[data-field="staged-json-file"]',w.sourcePath);
         await page.click('[data-action="build-resolver-index"]');
         await page.waitForFunction(()=>window.__ownerA3 &&
-          !window.__ownerA3.ref.current.resolverJsonTraceRunning,{
-            timeout:w.expectedOutcome==='INDEXED_TWO_CSV'?300000:20000
-        });
+          !window.__ownerA3.ref.current.resolverJsonTraceRunning,
+          null,{timeout:w.expectedOutcome==='INDEXED_TWO_CSV'?300000:20000});
         const result=await page.evaluate(async expected=>{
           const {ui,ref,workerCreates,blobs}=window.__ownerA3;
           const output={workerCreates,
