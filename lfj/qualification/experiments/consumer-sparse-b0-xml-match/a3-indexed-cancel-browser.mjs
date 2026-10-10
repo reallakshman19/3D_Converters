@@ -87,7 +87,40 @@ try{
       const cancelledDb=await idleDb();
       if(cancelledDb.length)throw Error('Cancellation leaked original source DB');
     }finally{window.Worker=RealWorker;}
-    // After cancellation the SAME actual original Blob must still Build cleanly.
+    // Second cancellation is deliberately LATER: source index and active HEAD
+    // already exist in real IndexedDB before holding the native PROJECT post.
+    let heldProjection=null,projectWorkerTerminated=0,committedSourceDb=0;
+    window.Worker=class extends RealWorker{
+      postMessage(data,...rest){
+        if(data?.type==='PROJECT'&&!heldProjection){
+          heldProjection={worker:this,data};return;
+        }
+        return super.postMessage(data,...rest);
+      }
+      terminate(){projectWorkerTerminated++;super.terminate();}
+    };
+    try{
+      ui.querySelector('[data-action="build-resolver-index"]').click();
+      await wait(()=>heldProjection!==null,
+        'source index committed before PROJECT cancellation',180000);
+      const beforeCancel=await idleDb();
+      committedSourceDb=beforeCancel.filter(d=>d.name?.startsWith(
+        'lfj-ui-preview-source-')).length;
+      if(committedSourceDb!==1)
+        throw Error('Real source HEAD was not created before cancellation: '+
+          JSON.stringify(beforeCancel));
+      ui.querySelector('[data-action="cancel-indexed-build"]').click();
+      await wait(()=>ref.current.resolverJsonTraceRunning===false,
+        'committed source cancellation left running UI');
+      await wait(async()=>(await idleDb()).length===0,
+        'committed source and projection DB actually deleted',30000);
+      if(ref.current.lfjIndexedExportReceipt!==null||
+         ref.current.lfjIndexedExportOptIn!==false||
+         ref.current.lfjIndexedPreview!==null||
+         projectWorkerTerminated<2)
+        throw Error('Committed-source cancellation did not revoke or terminate');
+    }finally{window.Worker=RealWorker;}
+    // After both cancellations the SAME original Blob must still Build cleanly.
     ui.querySelector('[data-action="build-resolver-index"]').click();
     await wait(()=>!ref.current.resolverJsonTraceRunning,
       'replacement real indexed Build',270000);
@@ -116,7 +149,8 @@ try{
     return {
       schema:'LFJ.A3.CancelCleanupBrowser.v1',
       interceptedNativeStart:true,terminatedNativeWorkers:terminated,
-      cancelledDbCount:cancelledDb.length,
+      cancelledDbCount:cancelledDb.length,committedSourceDb,
+      cancelledAfterCommittedSource:true,projectWorkerTerminated,
       restoredOriginalBlobBuild:true,xmlNodes:216,matched:164,
       cleanupAfterSuccess:0,sourceRevoked:true,
       renders,qualification:'NATIVE_CHROMIUM_INDEXED_CANCEL_CLEANUP_PASS'
