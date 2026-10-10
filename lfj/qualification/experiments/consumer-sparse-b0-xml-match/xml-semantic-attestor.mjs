@@ -193,12 +193,16 @@ function attributeNode(name,attrs,branch,index){
 /** Parse supported XML into source semantics without invoking the legacy parser. */
 export function independentXmlSemanticView(xml){
   if(typeof xml!=='string'||!xml)invalid('empty document');
-  let i=xml.charCodeAt(0)===0xfeff?1:0,roots=0,lastBranch='';
+  let i=xml.charCodeAt(0)===0xfeff?1:0,roots=0,lastFlatBranch='';
   const stack=[],nodes=[],attrNodes=[];
+  // The original flat <Root><Branchname>...<Node> form uses a sequential
+  // root-local label. A <Pipe> or <Branch> is instead an independent scope;
+  // never inherit identity from an already-closed sibling container.
+  const scopeNames=new Set(['Pipe','Branch']);
   const branch=()=>{
     for(let k=stack.length-1;k>=0;k--)
-      if(stack[k].isBranch)return stack[k].branch||'';
-    return lastBranch;
+      if(stack[k].isBranchScope)return stack[k].branch;
+    return lastFlatBranch;
   };
   const append=(raw,cdata=false)=>{
     if(!stack.length){if(raw.trim())invalid('text outside root');return;}
@@ -214,8 +218,18 @@ export function independentXmlSemanticView(xml){
       parent.fields[ctx.name]=value;
     }
     if(branchKeys.includes(ctx.name)){
-      if(parent?.isBranch)parent.branch=value;
-      lastBranch=value;
+      if(!parent||(!parent.isBranchScope&&stack.length!==1))
+        invalid('unscoped branch identity field '+ctx.name);
+      if(parent.isBranchScope){
+        if(parent.branchDeclared)
+          invalid('duplicate branch identity in '+parent.name+' scope');
+        parent.branchDeclared=true;
+        parent.branch=value;
+      }else{
+        // Root-flat compatibility only. A named inner Pipe/Branch must never
+        // escape into this fallback after its closing tag.
+        lastFlatBranch=value;
+      }
     }
     if(ctx.isNode)nodes.push(node(ctx.fields,ctx.branch,nodes.length+1));
   };
@@ -265,11 +279,23 @@ export function independentXmlSemanticView(xml){
     if(parent?.capture)invalid('markup inside scalar field unsupported');
     if(!stack.length&&++roots!==1)invalid('multiple roots');
     const b=branch();
-    const ctx={raw,name,isNode:name==='Node',isBranch:name==='Branch',
-      branch:name==='Branch'?'':b,fields:{},capture:fieldNames.has(name),text:''};
+    const isBranchScope=scopeNames.has(name);
+    // Every explicit scope starts anonymous until it declares its own name.
+    // A root-flat label remains legal only outside such scopes.
+    if((name==='Node'||name==='PIPINGELEMENT')&&!b&&
+       stack.some(ancestor=>ancestor.isBranchScope))
+      invalid('node without branch identity inside Pipe/Branch scope');
+    const ctx={raw,name,isNode:name==='Node',isBranchScope,
+      branch:isBranchScope?'':b,branchDeclared:false,
+      fields:{},capture:fieldNames.has(name),text:''};
     if(name!=='Node'){
       const candidate=attributeNode(name,attrs,b,attrNodes.length+1);
-      if(candidate)attrNodes.push(candidate);
+      if(candidate){
+        if(!candidate.xmlBranch&&
+           stack.some(ancestor=>ancestor.isBranchScope))
+          invalid('attribute node lacks scoped branch identity');
+        attrNodes.push(candidate);
+      }
     }
     stack.push(ctx);
     if(selfClose){stack.pop();finish(ctx);}
