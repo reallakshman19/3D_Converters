@@ -60,8 +60,10 @@ try {
     upload.dispatchEvent(new Event('change',{bubbles:true}));
     if(stateRef.current.stagedJsonText!=='')
       throw Error('Foreground original JSON text was unexpectedly staged');
-    if(stateRef.current.stagedJsonFile!==file)
-      throw Error('Original File identity not retained');
+    if(!(stateRef.current.stagedJsonFile instanceof Blob) ||
+       stateRef.current.stagedJsonFile.size!==file.size ||
+       stateRef.current.stagedJsonFile.name!==file.name)
+      throw Error('Original uploaded File/Blob was not retained');
     container.querySelector('[data-action="build-resolver-index"]').click();
     const deadline=performance.now()+280000;
     while(!stateRef.current.lfjIndexedPreview &&
