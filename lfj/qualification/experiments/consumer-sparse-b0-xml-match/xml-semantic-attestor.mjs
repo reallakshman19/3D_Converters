@@ -282,7 +282,7 @@ export function independentXmlSemanticView(xml){
     const isBranchScope=scopeNames.has(name);
     // Every explicit scope starts anonymous until it declares its own name.
     // A root-flat label remains legal only outside such scopes.
-    if((name==='Node'||name==='PIPINGELEMENT')&&!b&&
+    if(name==='Node'&&!b&&
        stack.some(ancestor=>ancestor.isBranchScope))
       invalid('node without branch identity inside Pipe/Branch scope');
     const ctx={raw,name,isNode:name==='Node',isBranchScope,
