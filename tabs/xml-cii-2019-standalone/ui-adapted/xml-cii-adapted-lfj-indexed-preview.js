@@ -89,6 +89,7 @@ export async function verifyIndexedPreviewHandoff(result, originalSha256, xmlSha
       handoff.nodeWiseRows.length !== result.xmlNodes ||
       !count(result?.matchedXmlNodes) ||
       result.matchedXmlNodes > result.xmlNodes ||
+      b?.xmlRecordsSha256 !== result?.xmlRecordsSha256 ||
       !count(handoff?.payloadBytes) ||
       handoff.payloadBytes > MAX_PREVIEW_BYTES)
     throw fail('LFJ_PREVIEW_BASIS', 'Incomplete source-pinned Worker handoff');
@@ -156,7 +157,8 @@ export async function buildIndexedResolverPreview({
       revision: 'LFJ_UI_PREVIEW_V1'
     });
     stale(isCurrent);
-    if (!count(source?.occurrenceCount) || source.occurrenceCount < 1)
+    if (source?.sourceSha256 !== originalSha256 ||
+        !count(source?.occurrenceCount) || source.occurrenceCount < 1)
       throw fail('LFJ_PREVIEW_SOURCE_CENSUS', 'Source occurrence index incomplete');
     onProgress('Constructing bounded source-backed Resolver projection');
     const projection = await run(PROJECTION_WORKER, {
@@ -165,7 +167,9 @@ export async function buildIndexedResolverPreview({
       projectionGeneration
     });
     stale(isCurrent);
-    if (!count(projection?.factCount) || projection.factCount < 1)
+    if (projection?.sourceSha256 !== originalSha256 ||
+        projection?.sourceOccurrences !== source.occurrenceCount ||
+        !count(projection?.factCount) || projection.factCount < 1)
       throw fail('LFJ_PREVIEW_PROJECTION', 'No complete source-backed facts');
     onProgress('Resolving original XML through indexed Worker');
     const matching = await run(MATCH_WORKER, {
@@ -174,6 +178,10 @@ export async function buildIndexedResolverPreview({
       projectionGeneration, includeResearchHandoff: true
     });
     stale(isCurrent);
+    if (matching?.originalSha256 !== originalSha256 ||
+        matching?.sourceOccurrenceCount !== source.occurrenceCount ||
+        matching?.projectionFacts !== projection.factCount)
+      throw fail('LFJ_PREVIEW_MATCH_BASIS', 'Indexed matching basis is incomplete or changed');
     const verified = await verifyIndexedPreviewHandoff(
       matching, originalSha256, xmlSha256);
     stale(isCurrent);
