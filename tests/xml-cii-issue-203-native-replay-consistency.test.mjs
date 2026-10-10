@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { REPLAY_SCHEMA,stableWitness,compareIndependentNativeReplays,compareNodeBrowserSummaries,assertNonprotectedDiagnosticAnchor } from '../scripts/check-xml-cii-issue-203-native-replay.mjs';
+import { REPLAY_SCHEMA,stableWitness,compareIndependentNativeReplays,compareNodeBrowserSummaries,assertNonprotectedDiagnosticAnchor,secondaryNativeWitness,nativeWorkerLifecycleWitness } from '../scripts/check-xml-cii-issue-203-native-replay.mjs';
+import { createMasterDatasetClient } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-client.js';
 
 const sourceSha = 'a'.repeat(64);
 const copy = x => structuredClone(x);
@@ -19,6 +20,10 @@ function record(id) {
       positiveSourceToken:'11000',positiveWorkerMatchCount:30,
       positiveIndexedRowCount:4,positiveIndexedRowIndexes:[0,1,2,3],
       positiveIndexedRowSha256:'b'.repeat(64),positiveRowSerialization:'stable-key-json-v1',
+      secondaryPositive:{token:'12000',workerMatchCount:7,indexes:[4,5],indexedRowCount:2,
+        indexedRowSha256:'c'.repeat(64)},
+      workerLifecycleCreatedCount:2,workerLifecycleTerminatedCount:2,
+      workerReleaseRehydratedRows:4,workerReleaseRehydratedSha256:'b'.repeat(64),
     },
     guards:{
       wrongMasterIndexedError:'dataset belongs to materialMap',
@@ -30,6 +35,7 @@ function record(id) {
       'positiveSourceTokenRecoveredInIndexedRows','indexedWrongMasterFailsClosed',
       'indexedStaleRevisionFailsClosed','indexedWeightFingerprintFailsClosed',
       'noSecondMasterSourceImport','appliedRevisionsIndependent',
+      'nativeTwoDistinctPositiveTokens','nativeWorkerReleaseAndColdRehydrate','nativeWorkerTerminateObserved',
     ].map(key=>[key,true])),
   };
 }
@@ -164,4 +170,92 @@ test('P16 tampered status cannot promote a diagnostic source witness to release 
   const unsupported = anchoredSummary();
   unsupported.schema = 'C05_FAKE_SEMANTIC_RELEASE_GREEN';
   assert.throws(() => checkDiagnostic(unsupported), /unsupported actual hosted replay schema/);
+});
+
+
+test('P18 second genuine positive token and content digest bind independent Chromium receipts',()=>{
+  const a=record('a'),b=record('b');
+  assert.equal(secondaryNativeWitness(a).token,'12000');
+  assert.deepEqual(secondaryNativeWitness(a).indexes,[4,5]);
+  const replay=compareIndependentNativeReplays(a,b,sourceSha);
+  assert.equal(replay.secondaryWitness.sha256,'c'.repeat(64));
+  assert.equal(replay.workerLifecycle.workerCount,2);
+});
+test('P18 altered secondary token, SHA256, indexes and worker hits fail closed',()=>{
+  const mutations=[
+    r=>{r.consumers.secondaryPositive.token='11000'},
+    r=>{r.consumers.secondaryPositive.indexedRowSha256='bad'},
+    r=>{r.consumers.secondaryPositive.indexes=[4,4]},
+    r=>{r.consumers.secondaryPositive.workerMatchCount=0},
+    r=>{r.consumers.secondaryPositive.indexedRowCount=5},
+  ];
+  for(const mutate of mutations){
+    const bad=record('bad');mutate(bad);
+    assert.throws(()=>secondaryNativeWitness(bad));
+  }
+  const moved=record('moved');moved.consumers.secondaryPositive.indexedRowSha256='d'.repeat(64);
+  assert.throws(()=>compareIndependentNativeReplays(record('other'),moved,sourceSha),
+    /second native token or row content drifted/);
+});
+test('P19 forged Worker cleanup, leaked terminate or altered durable rows fail closed',()=>{
+  const mutations=[
+    r=>{r.assertions.nativeWorkerReleaseAndColdRehydrate=false},
+    r=>{r.assertions.nativeWorkerTerminateObserved=false},
+    r=>{r.consumers.workerLifecycleTerminatedCount=1},
+    r=>{r.consumers.workerLifecycleCreatedCount=1},
+    r=>{r.consumers.workerReleaseRehydratedRows=0},
+    r=>{r.consumers.workerReleaseRehydratedSha256='d'.repeat(64)},
+  ];
+  for(const mutate of mutations){
+    const bad=record('bad');mutate(bad);
+    assert.throws(()=>nativeWorkerLifecycleWitness(bad));
+  }
+});
+test('P19 pending native transport request rejects on dispose and stale response cannot revive it',async()=>{
+  const instances=[];
+  const client=createMasterDatasetClient({
+    workerFactory(){
+      const listeners=new Map(),messages=[];
+      const worker={
+        messages,terminated:false,
+        addEventListener(type,listener){listeners.set(type,listener)},
+        postMessage(payload){messages.push(payload)},
+        terminate(){this.terminated=true},
+        emit(type,data){listeners.get(type)?.({data})},
+      };
+      instances.push(worker);
+      return worker;
+    },
+  });
+  const pending=client.search('real-piping-id','11000');
+  assert.equal(instances.length,1);
+  const envelope=instances[0].messages[0];
+  assert.equal(envelope.type,'SEARCH');
+  client.dispose();
+  await assert.rejects(pending,/Master dataset client disposed/);
+  assert.equal(instances[0].terminated,true);
+  instances[0].emit('message',{
+    type:'SEARCH_RESULT',requestId:envelope.requestId,
+    datasetId:'real-piping-id',indexes:[0],matchCount:1,
+  });
+  const fresh=client.search('real-piping-id','12000');
+  assert.equal(instances.length,2,'client restart must not reuse dead Worker');
+  const newEnvelope=instances[1].messages[0];
+  instances[1].emit('message',{
+    type:'SEARCH_RESULT',requestId:newEnvelope.requestId,
+    datasetId:'real-piping-id',indexes:[1],matchCount:1,
+  });
+  const accepted=await fresh;
+  assert.deepEqual(accepted.indexes,[1]);
+  client.dispose();
+  assert.equal(instances[1].terminated,true);
+});
+test('P18/P19 Node22/24 summaries refuse secondary or lifecycle drift independently',()=>{
+  const a=compareIndependentNativeReplays(record('a'),record('b'),sourceSha);
+  const b=compareIndependentNativeReplays(record('c'),record('d'),sourceSha);
+  b.secondaryWitness.sha256='d'.repeat(64);
+  assert.throws(()=>compareNodeBrowserSummaries(a,b),/second native token\/indexed-row content drifted/);
+  b.secondaryWitness.sha256='c'.repeat(64);
+  b.workerLifecycle.terminatedCount=1;
+  assert.throws(()=>compareNodeBrowserSummaries(a,b),/Worker lifecycle evidence drifted/);
 });
