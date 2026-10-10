@@ -235,6 +235,21 @@ try{
       await new Promise(r=>setTimeout(r,60));
       if(captures.length!==staleBefore)
         throw Error('Old selected scope exported after manual zone change');
+      // A visually typed value is not a trustworthy source catalogue. Only
+      // the original Blob/committed native catalogue may authorize a scope.
+      c.querySelector('[data-action="build-resolver-index"]').click();
+      await wait(()=>!ref.current.resolverJsonTraceRunning,
+        'negative unknown original owner zone Build');
+      if(ref.current.lfjIndexedPreview!==null ||
+         ref.current.lfjIndexedExportReceipt!==null ||
+         !/scope|selected|unknown|absent|root/i.test(
+           ref.current.resolverJsonTraceExportStatus||''))
+        throw Error('Unknown original Owner zone bypassed native source rejection');
+      for(const action of ['download-node-wise-trace-csv','download-evidence-tree-csv'])
+        c.querySelector('[data-action="'+action+'"]').click();
+      await new Promise(r=>setTimeout(r,45));
+      if(captures.length!==staleBefore)
+        throw Error('Rejected unknown-zone Build exported a CSV');
       if(selected.selectedScopeId!==selectedScopeId ||
          !/^[a-f0-9]{64}$/.test(selected.selectionDigestSha256) ||
          selected.sourceOnly!==true||selected.downloadAuthorized!==false ||
@@ -274,6 +289,7 @@ try{
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
         unconsentedExports:0,consentedExports:4,
         manualSelectedScopeId:selectedScopeId,selectedUiBuild:true,
+        missingOwnerZoneBuildRejected:true,
         rejectedTamperedOrStaleExports:4,
         offThreadSourceShaJobs:shaWorkerJobs,foregroundSourceReads,
         boundedShaChunkBytes:1024*1024,shaWorkerCensusCount:shaWorkerCensus.length,
