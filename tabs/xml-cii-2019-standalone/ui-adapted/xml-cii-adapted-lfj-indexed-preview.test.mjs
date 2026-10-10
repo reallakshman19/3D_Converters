@@ -155,8 +155,8 @@ test('real UI Build publishes indexed rows but refuses both CSV buttons',async()
     assert.equal(ref.current.resolverJsonTraceResult,null);
     assert.equal(ref.current.resolverJsonTraceAcceptedRevision,null);
     assert.equal(ref.current.resolverJsonTraceRunning,false);
-    assert.equal(downloadResolverTraceCsvFromUi(ref,()=>{},'node-wise-trace'),null);
-    assert.equal(downloadResolverTraceCsvFromUi(ref,()=>{},'evidence-tree'),null);
+    assert.equal(await downloadResolverTraceCsvFromUi(ref,()=>{},'node-wise-trace'),null);
+    assert.equal(await downloadResolverTraceCsvFromUi(ref,()=>{},'evidence-tree'),null);
   });
 });
 
@@ -214,7 +214,7 @@ test('mid-Worker original source supersession rejects preview and both downloads
     assert.equal(result,null);
     assert.equal(ref.current.lfjIndexedPreview,null);
     assert.equal(ref.current.resolverJsonTraceAcceptedRevision,null);
-    assert.equal(downloadResolverTraceCsvFromUi(ref,()=>{},'evidence-tree'),null);
+    assert.equal(await downloadResolverTraceCsvFromUi(ref,()=>{},'evidence-tree'),null);
   },{onMessage:payload=>{
     if(payload.type==='START')
       ref.current=updateWorkflowState(ref.current,{sourceText:'<Root><Node>new</Node></Root>'});
