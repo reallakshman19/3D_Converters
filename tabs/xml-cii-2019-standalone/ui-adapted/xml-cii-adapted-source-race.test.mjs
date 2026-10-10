@@ -9,6 +9,9 @@ import {
   createOriginalToSelectedRootManifest,
   ALL_SOURCE_SCOPES, UNSCOPED_SOURCE_ID
 } from '../../../lfj/consumers/3d-converters/source-root-selection-manifest.mjs';
+import {
+  extractDirectOriginalRootMetadata
+} from '../../../lfj/consumers/3d-converters/verified-source-root-reader.mjs';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
@@ -470,4 +473,49 @@ test('T05a refuses unverified root ordinals, scope evidence and topology', async
         ? { ...row, ownerScope: '', scopeEvidence: 'NONE', scopeKey: '' } : row)
     }));
   assert.deepEqual(unscoped.selected.map(x => x.originalRootIndex), [1]);
+});
+
+test('T05b accepts directly evidenced original root zone but never nested-only label', () => {
+  const root = { type:'BRANCH', name:'BR-A',
+    attributes:{ OWNER_ZONE:'ZONE-1', ZONE_ID:'ZONE-1' },
+    children:[{ type:'COMPONENT', name:'leaf', OWNER_ZONE:'FAKE-NESTED' }] };
+  assert.deepEqual(extractDirectOriginalRootMetadata(root), {
+    type:'BRANCH', name:'BR-A', ownerScope:'ZONE-1',
+    scopeEvidence:'DIRECT_ATTRIBUTES', scopeKey:'OWNER_ZONE'
+  });
+  const nestedOnly = { type:'BRANCH', name:'BR-NEST',
+    children:[{ type:'COMPONENT', OWNER_ZONE:'ZONE-9' }] };
+  assert.deepEqual(extractDirectOriginalRootMetadata(nestedOnly), {
+    type:'BRANCH', name:'BR-NEST', ownerScope:'',
+    scopeEvidence:'NONE', scopeKey:''
+  }, 'a nested child label must NOT silently establish root source authority');
+});
+
+test('T05b rejects ambiguous direct source zone, malformed root and root topology', () => {
+  const base = { type:'BRANCH', name:'LINE', children:[] };
+  const bad = [
+    [ {...base, OWNER_ZONE:'ZONE-1', attributes:{ZONE_ID:'ZONE-2'} },
+      'SCOPE_EVIDENCE_AMBIGUOUS' ],
+    [ {...base, TYPE:'ZONE'}, 'ROOT_METADATA_AMBIGUOUS' ],
+    [ {...base, attributes:[]}, 'ROOT_METADATA_INVALID' ],
+    [ {...base, children:null}, 'TOPOLOGY_NOT_PROVEN' ],
+    [ {...base, type:'ZONE'}, 'TOPOLOGY_NOT_PROVEN' ],
+    [ {...base, name:''}, 'TOPOLOGY_NOT_PROVEN' ],
+    [ {...base, OWNER_ZONE:'A', owner_zone:'B'}, 'ROOT_METADATA_AMBIGUOUS' ]
+  ];
+  for (const [value, code] of bad)
+    assert.throws(() => extractDirectOriginalRootMetadata(value),
+      error => error.code === code, code);
+});
+
+test('T05b exact direct root ownership does not change on reordered subtrees', () => {
+  const source = {
+    type:'BRANCH', name:'LINE-A', OWNER_ZONE:'ZONE-1',
+    children:[{type:'COMPONENT', name:'child1',attributes:{OWNER_ZONE:'ZONE-X'}},
+      {type:'COMPONENT', name:'child2',OWNER_ZONE:'ZONE-Y'}]
+  };
+  const before = extractDirectOriginalRootMetadata(source);
+  source.children.reverse();
+  const after = extractDirectOriginalRootMetadata(source);
+  assert.deepEqual(after,before,'nested owners cannot affect verified root scope');
 });
