@@ -27,9 +27,24 @@ try{
   await page.goto('http://127.0.0.1:4200/index.html',{waitUntil:'domcontentloaded'});
   await page.locator('.app-tab[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('.xml-cii-adapted-workflow-shell').waitFor();
+  // Select real PSI116 XML before uploading the original Firstpass fixture.
+  // Otherwise the shell may switch the active phase on a source-kind update.
+  const kind=page.locator('select[data-field="source-kind"]');
+  if(await kind.count())await kind.selectOption('xml');
   await page.locator('button[data-phase="json-trace"]').click();
   const sourceUpload=page.locator('input[data-field="source-file"]');
   await sourceUpload.setInputFiles(XML);
+  // Source uploads can intentionally re-render the shell and return to the
+  // source phase. Reenter the actual Resolver panel via its phase rail.
+  if(!(await page.locator('input[data-field="staged-json-file"]').count())){
+    console.log('A3_APP_AFTER_XML_PHASE '+JSON.stringify(await page.evaluate(()=>({
+      active:document.querySelector('.xml-cii-phase-pill.is-active')?.dataset.phase||'',
+      hasSource:!!document.querySelector('input[data-field="source-file"]'),
+      hasResolver:!!document.querySelector('[data-action="build-resolver-lfj"]'),
+      tab:document.querySelector('main.app-content')?.dataset.activeTab||''
+    }))));
+    await page.locator('button[data-phase="json-trace"]').click();
+  }
   await page.locator('input[data-field="staged-json-file"]').setInputFiles(SOURCE);
   // The actual standalone page initially selects a bounded hierarchy scope.
   // Explicitly choose full original scope so source Worker matches the
