@@ -42,6 +42,11 @@ jobs:
         run: |
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
           node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
+      - name: H10 research-only UTF-8 handoff cap and rejection regression
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.test.mjs
       - name: A3 Node22/24 original standalone trace revision and stale CSV veto
         run: |
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
