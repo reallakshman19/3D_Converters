@@ -36,3 +36,37 @@ jobs:
         run: |
           node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
           node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+
+  native-browser-negatives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify raw source candidate
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --version
+      - name: Install native Chromium for independent Worker execution
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original immutable repository fixtures
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 > /tmp/lfj-a140-web.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a140-web.log
+          exit 1
+      - name: Thirteen original-source native Worker semantic negatives
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.browser-negative.mjs
+      - name: Ensure tracked source remains untouched
+        run: test -z "$(git status --porcelain)"
