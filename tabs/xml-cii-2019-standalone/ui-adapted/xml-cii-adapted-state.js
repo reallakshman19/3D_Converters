@@ -252,7 +252,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
     supportConfigJson: configJson,
     regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
-    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '', resolverJsonTraceInputRevision: 0, resolverJsonTraceAcceptedRevision: null, resolverJsonTraceExportStatus: '', resolverSourceMode: 'legacy', lfjIndexedPreview: null, lfjIndexedPreviewStatus: '', lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false, lfjIndexedManualScopeFile: null,
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '', resolverJsonTraceInputRevision: 0, resolverJsonTraceAcceptedRevision: null, resolverJsonTraceExportStatus: '', resolverSourceMode: 'legacy', lfjIndexedPreview: null, lfjIndexedPreviewStatus: '', lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false, lfjIndexedManualScopeFile: null, lfjIndexedOriginalScopeChoices: null, lfjIndexedScopeDiscoveryStatus: '',
     jsonTraceTableText: '', jsonTraceTableRows: [], jsonTraceTableFieldMap: {}, jsonTraceTableConfig: createDefaultTraceTableConfig(), jsonTraceTableSourceName: '', jsonTraceTableSheetNames: [], jsonTraceTableActiveSheet: '', jsonTraceTableWorkbookData: null, jsonTraceTableStatus: '', jsonTraceTableBenchmark: null,
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
@@ -353,6 +353,14 @@ export function updateWorkflowState(state, patch = {}) {
   const traceRevision=currentResolverTraceRevision(state)+(changedTrace?1:0);
   return { ...next, ...dependency, result,
     resolverJsonTraceInputRevision:traceRevision,
+    lfjIndexedOriginalScopeChoices:
+      (state.stagedJsonFile!==next.stagedJsonFile ||
+       (state.resolverSourceMode!==next.resolverSourceMode))
+        ?null:next.lfjIndexedOriginalScopeChoices,
+    lfjIndexedScopeDiscoveryStatus:
+      (state.stagedJsonFile!==next.stagedJsonFile ||
+       (state.resolverSourceMode!==next.resolverSourceMode))
+        ?'':next.lfjIndexedScopeDiscoveryStatus,
     lfjIndexedPreview:changedTrace?null:next.lfjIndexedPreview,
     lfjIndexedPreviewStatus:changedTrace?'':next.lfjIndexedPreviewStatus,
     lfjIndexedExportReceipt:changedTrace?null:next.lfjIndexedExportReceipt,
