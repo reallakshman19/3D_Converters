@@ -1,3 +1,4 @@
+import {runProductSourceBackedResolver} from '../../../lfj/consumers/3d-converters/source-backed-resolver-build.mjs';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
@@ -185,6 +186,7 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
+  onClick(container, 'build-resolver-lfj', () => runSourceBackedResolverPreviewFromUi(stateRef, render));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
   onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
   onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
@@ -206,7 +208,7 @@ export function bindActionEvents(container, stateRef, render) {
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
-  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
+  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '', resolverResearchView: null, resolverResearchBuildToken: null });
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
@@ -239,6 +241,68 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
       resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
     });
   render();
+}
+/**
+ * Explicit opt-in research preview inside the REAL standalone Build panel.
+ * It uses original native source/projection/matching Workers. All legacy
+ * downloads remain denied: the source-only capsule is NOT a product export.
+ */
+export async function runSourceBackedResolverPreviewFromUi(stateRef, render) {
+  const token={};
+  const initial=stateRef.current;
+  const requestedRevision=currentResolverTraceRevision(initial);
+  const stillCurrent=()=>stateRef.current.resolverResearchBuildToken===token &&
+    currentResolverTraceRevision(stateRef.current)===requestedRevision;
+  stateRef.current=updateWorkflowState(initial,{
+    resolverJsonTraceRunning:true,resolverResearchBuildToken:token,
+    resolverResearchView:null,resolverJsonTraceResult:null,
+    resolverJsonTraceJsonResult:null,resolverJsonTraceAcceptedRevision:null,
+    resolverJsonTraceExportStatus:'LFJ native source-backed Worker Build in progress (preview only).'
+  });
+  render();
+  try {
+    const xmlText=await sourceTextFromState(initial);
+    if(!stillCurrent())return null;
+    const sourceKind=initial.sourceKind==='auto'
+      ?detectXmlCiiWorkflowSourceKind(xmlText,'xml'):initial.sourceKind;
+    if(sourceKind!=='xml')throw Object.assign(
+      new Error('LFJ Worker preview requires a source XML document'),
+      {code:'A3_XML_REQUIRED'});
+    // Source JSON is passed as an original Blob. No full JSON.parse on main;
+    // this view does not modify existing Preview/Weight product authority.
+    const blob=typeof initial.stagedJsonText==='string'&&initial.stagedJsonText
+      ?new Blob([initial.stagedJsonText],{type:'application/json'})
+      :initial.stagedJsonFile;
+    const view=await runProductSourceBackedResolver({
+      blob,xmlText,config:initial.resolverJsonTraceConfig||{},
+      revision:requestedRevision,
+      currentRevision:()=>stillCurrent()?requestedRevision:-1
+    });
+    if(!stillCurrent())return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,resolverResearchBuildToken:null,
+      resolverResearchView:view,
+      resolverJsonTraceExportStatus:
+        'LFJ native Worker preview verified: '+view.xmlNodes+
+        ' XML rows. Research-only: CSV downloads remain blocked.',
+      resolverJsonTraceWriteBackStatus:
+        'Source-backed LFJ Worker preview: '+view.xmlNodes+' nodes, '+
+        view.matchedXmlNodes+' matches; no product export rights.'
+    });
+    render();
+    return view;
+  }catch(error){
+    if(!stillCurrent())return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,resolverResearchBuildToken:null,
+      resolverResearchView:null,
+      resolverJsonTraceExportStatus:
+        'LFJ Worker Build blocked ['+(error?.code||'A3_WORKER_FAILED')+
+        ']: '+String(error?.message||error)
+    });
+    render();
+    return null;
+  }
 }
 export async function runManualElementSideloadFromUi(container, stateRef, render, save) {
   stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });
