@@ -130,6 +130,45 @@ test('missing original source or staged JSON ends Build and blocks both CSVs', a
   assert.equal(downloadResolverTraceCsvFromUi(ref, () => {}, 'node-wise-trace'), null);
 });
 
+test('late older Build cannot override newer Build on identical inputs', async () => {
+  await withDeferredFileReader(async readers => {
+    const ref = { current: createState() };
+    ref.current.sourceFile = { name: 'same.xml' };
+    const container = fakeContainer();
+    const first = runResolverJsonTraceFromUi(container, ref, () => {}, false);
+    const second = runResolverJsonTraceFromUi(container, ref, () => {}, false);
+    assert.equal(readers.length, 2);
+    readers[1].result = '<Root>newer</Root>';
+    readers[1].onload();
+    await second;
+    const newerStatus = ref.current.resolverJsonTraceExportStatus;
+    assert.match(newerStatus, /both required/);
+    readers[0].result = '<Root>older</Root>';
+    readers[0].onload();
+    await first;
+    assert.equal(ref.current.resolverJsonTraceExportStatus, newerStatus);
+    assert.equal(ref.current.resolverJsonTraceRunning, false);
+    assert.equal(ref.current.resolverJsonTraceAcceptedRevision, null);
+  });
+});
+
+test('unreadable selected source fails closed rather than preserving old bytes', async () => {
+  await withDeferredFileReader(async readers => {
+    const ref = { current: createState() };
+    ref.current.sourceText = '<Root>old</Root>';
+    const container = fakeContainer();
+    bindSourceEvents(container, ref, () => {});
+    const pending = container.change('source-file', '', [{ name: 'empty.xml' }]);
+    assert.equal(ref.current.sourceText, '');
+    readers[0].result = '';
+    readers[0].onload();
+    await pending;
+    assert.equal(ref.current.sourceFile, null);
+    assert.equal(ref.current.sourceText, '');
+    assert.match(ref.current.resolverJsonTraceWriteBackStatus, /read failed/);
+  });
+});
+
 test('CSV actions reject an in-progress Build even with a former accepted epoch', () => {
   const ref = { current: createState() };
   ref.current.resolverJsonTraceAcceptedRevision = 0;
