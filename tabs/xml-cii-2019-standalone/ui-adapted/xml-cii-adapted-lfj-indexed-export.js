@@ -9,6 +9,7 @@
 import {
   XML_NODE_TRACE_HEADERS, EVIDENCE_TREE_HEADERS, serializeRowsToCsv
 } from '../xml-cii-trace-export.js';
+import { hashOriginalBlobOffThread } from './xml-cii-adapted-lfj-source-sha.js';
 
 const enc = new TextEncoder();
 const fail = (code, reason) => Object.assign(new Error(reason), {code});
@@ -99,7 +100,7 @@ export async function verifyIndexedProductCsv({
     throw fail('LFJ_EXPORT_NOT_ADMITTED',
       'Select verified indexed Build, enable downloads, and keep original source/config');
   // Hash again at the actual download boundary. The File is never parsed.
-  const originalSha256 = await sha256(await sourceFile.arrayBuffer());
+  const originalSha256 = await hashOriginalBlobOffThread(sourceFile);
   assertFresh(isCurrent);
   if (originalSha256 !== receipt.originalSha256 ||
       await digestText(xmlText) !== receipt.xmlSha256)
