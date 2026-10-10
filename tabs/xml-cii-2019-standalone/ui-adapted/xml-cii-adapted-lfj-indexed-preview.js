@@ -84,6 +84,12 @@ export async function verifyIndexedPreviewHandoff(
 ) {
   const handoff = result?.researchHandoff;
   const b = handoff?.basis;
+  if (selectedScopeId === undefined &&
+      (result?.selectedScope !== undefined ||
+       b?.selectedScopeId !== undefined ||
+       b?.selectionDigestSha256 !== undefined))
+    throw fail('LFJ_PREVIEW_SCOPE_BASIS',
+      'A source-selected matching result cannot be accepted as an unscoped Build');
   // A selected original-file Build must carry the same native Worker-authored
   // source manifest SHA in its matching result AND research handoff basis.
   // No caller-supplied bare digest, or absence of evidence, is admissible.
