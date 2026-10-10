@@ -171,6 +171,16 @@ function tableBody(headers, data) {
 function fieldFor(header) {
   return {
     Path: 'path',
+    Branch: 'branch',
+    Bore: 'bore',
+    'Source Node No': 'sourceNodeNo',
+    Position: 'position',
+    'Object Type': 'objectType',
+    DTXR_POS: 'dtxrPos',
+    NAME: 'name',
+    CMPSUPGAP: 'cmpSupGap',
+    ComponentRefNo: 'componentRefNo',
+    'Source Path': 'sourcePath',
     Node: 'nodeKey',
     PS: 'psKey',
     POS: 'posKey',
