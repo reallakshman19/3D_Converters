@@ -176,6 +176,25 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
        !/^[a-f0-9]{64}$/.test(rootManifest.selectionDigestSha256))
       throw fail('ROOT_MANIFEST_UNATTESTED',
         'original source catalogue root selection and SHA must be verified');
+    // Confirm a genuine selected-source root set, including non-ALL scopes,
+    // is derived from the ORIGINAL catalog/Blob rather than guessed metadata.
+    const sampleScope=rootManifest.census[0].scopeId;
+    const selectedManifest=await readVerifiedOriginalRootManifest({
+      sourceDatabaseName:sourceDb,sourceGeneration:id,blob,
+      expectedSha256:oracle.originalSha256,xmlSha256:xmlSHA,
+      configDigest,requestedScopeId:sampleScope
+    });
+    const expectedSelected=rootManifest.census.filter(
+      root=>root.scopeId===sampleScope);
+    if(selectedManifest.selectedRootCount!==expectedSelected.length ||
+       selectedManifest.selected.some((entry,i)=>
+         entry.originalOrdinal!==expectedSelected[i].ordinal ||
+         entry.originalPath!==expectedSelected[i].originalPath ||
+         entry.displayPath!=='$['+i+']') ||
+       selectedManifest.selectionDigestSha256===
+         rootManifest.selectionDigestSha256)
+      throw fail('ROOT_SCOPE_IDENTITY_DRIFT',
+        'selected original root ordinals/paths or scope SHA do not agree with the attested source');
     const projection=await run('../consumer-sparse-b0-consumer/projection.worker.mjs',{
       type:'PROJECT',sourceDatabaseName:sourceDb,sourceGeneration:id,
       projectionDatabaseName:projectionDb,projectionGeneration:id,blob,
