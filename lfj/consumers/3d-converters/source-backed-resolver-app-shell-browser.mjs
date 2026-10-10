@@ -40,6 +40,12 @@ try{
   await page.locator('button[data-phase="json-trace"]').click();
   const sourceUpload=page.locator('input[data-field="source-file"]');
   await sourceUpload.setInputFiles(XML);
+  // FileReader is asynchronous; wait until the real UI has committed the
+  // original sourceFile and rendered its filename. Checking the phase before
+  // this point races the old Resolver input DOM against Source rerender.
+  await page.waitForFunction(()=>[...document.querySelectorAll(
+    '.xml-cii-file-summary')].some(el=>el.textContent.includes('FirstpassXML')),
+    null,{timeout:15000});
   // Source uploads can intentionally re-render the shell and return to the
   // source phase. Reenter the actual Resolver panel via its phase rail.
   if(!(await page.locator('input[data-field="staged-json-file"]').count())){
@@ -52,6 +58,11 @@ try{
     await page.locator('button[data-phase="json-trace"]').click();
   }
   await page.locator('input[data-field="staged-json-file"]').setInputFiles(SOURCE);
+  // Likewise, do not Build until the *actual UI* has accepted the uploaded
+  // JSON FileReader result; no synthetic state injection or fixed delays.
+  await page.waitForFunction(()=>[...document.querySelectorAll(
+    '.xml-cii-file-summary')].some(el=>el.textContent.includes('Sjson.json')),
+    null,{timeout:15000});
   // The actual standalone page initially selects a bounded hierarchy scope.
   // Explicitly choose full original scope so source Worker matches the
   // original independent all-branches golden rather than a filtered view.
