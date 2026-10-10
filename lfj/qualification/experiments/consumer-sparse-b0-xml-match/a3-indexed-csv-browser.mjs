@@ -228,6 +228,88 @@ try{
       }
       if(wrongScopeAccepted)
         throw Error('Selected source receipt accepted a forged zone');
+      // T06b LIVE product picker: no JSON main-thread parse, real bounded
+      // native source-catalog/Blob scan, actual selectable hierarchy control,
+      // selected Worker Build, consent and TWO real download event captures.
+      const {
+        ensureResolverHierarchyScope,renderResolverHierarchyScopeControl
+      }=await import(
+        '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js');
+      ref.current=updateWorkflowState(ref.current,{sourceText:xmlText});
+      const scopePanel=document.createElement('section');
+      document.body.appendChild(scopePanel);
+      try{
+        const showScopes=()=>{
+          scopePanel.replaceChildren();
+          renderResolverHierarchyScopeControl(scopePanel,ref,showScopes,
+            ensureResolverHierarchyScope(ref.current,ref));
+        };
+        showScopes();
+        const scan=scopePanel.querySelector(
+          '[data-action="discover-indexed-scopes"]');
+        if(!scan)throw Error('Original source scope scan UI is absent');
+        scan.click();
+        await wait(()=>Boolean(ref.current.lfjIndexedScopeDiscovery)||
+          /blocked/i.test(ref.current.lfjIndexedScopeDiscoveryStatus||''),
+          'original native File-scope discovery');
+        const discovered=ref.current.lfjIndexedScopeDiscovery;
+        const realScope='/ASIM-1885-CU-PI';
+        if(discovered?.result?.schema!=='LFJ.A3.IndexedFileScopes.v1' ||
+           discovered.blob!==originalFile ||
+           discovered.result.originalBytes!==originalFile.size ||
+           discovered.result.originalRootCount!==13 ||
+           discovered.result.scopes.length!==1 ||
+           discovered.result.scopes[0].id!==realScope)
+          throw Error('Native original source scan mismatched direct-root site');
+        showScopes();
+        const select=scopePanel.querySelector(
+          '[data-field="resolver-hierarchy-scope"]');
+        if(!select||!Array.from(select.options).some(o=>o.value===realScope))
+          throw Error('Verified original File scope not selectable in UI');
+        select.value=realScope;
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        if(ref.current.jsonTraceScopeId!==realScope||
+           ref.current.lfjIndexedExportReceipt!==null||
+           ref.current.lfjIndexedExportOptIn!==false)
+          throw Error('Selecting original hierarchy did not revoke old Build');
+        c.querySelector('[data-action="build-resolver-index"]').click();
+        await wait(()=>!ref.current.resolverJsonTraceRunning,
+          'selected original indexed Build');
+        const selectedPreview=ref.current.lfjIndexedPreview;
+        if(selectedPreview?.selectedScopeId!==realScope ||
+           !/^[0-9a-f]{64}$/.test(selectedPreview.selectionDigestSha256) ||
+           selectedPreview.xmlNodes!==216 ||
+           selectedPreview.matchedXmlNodes!==164 ||
+           selectedPreview.nodeWiseCsvSha256!==originalHashes[0] ||
+           selectedPreview.evidenceTreeCsvSha256!==originalHashes[1])
+          throw Error('Selected product Build changed original Firstpass golden or rejected scope: '+
+            ref.current.resolverJsonTraceExportStatus);
+        consent.checked=true;
+        consent.dispatchEvent(new Event('change',{bubbles:true}));
+        if(ref.current.lfjIndexedExportOptIn!==true)
+          throw Error('Selected product scope consent was not obtained');
+        for(const action of ['download-node-wise-trace-csv',
+          'download-evidence-tree-csv'])
+          c.querySelector('[data-action="'+action+'"]').click();
+        await wait(()=>captures.length===4,'selected original scope two CSVs');
+        const selectedBuffers=await Promise.all(
+          captures.slice(2).map(b=>b.arrayBuffer()));
+        const selectedDigests=await Promise.all(selectedBuffers.map(sha));
+        if(selectedDigests.some((h,i)=>
+          goldenBytesBySha.get(h)!==selectedBuffers[i].byteLength))
+          throw Error('Live selected original-scope CSV SHA/bytes drifted');
+        select.value='__ALL__';
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        if(ref.current.lfjIndexedExportReceipt!==null||
+           ref.current.lfjIndexedExportOptIn!==false)
+          throw Error('Scope change did not revoke the selected receipt');
+        for(const action of ['download-node-wise-trace-csv',
+          'download-evidence-tree-csv'])
+          c.querySelector('[data-action="'+action+'"]').click();
+        await new Promise(resolve=>setTimeout(resolve,100));
+        if(captures.length!==4)
+          throw Error('Stale selected source scope exported after revocation');
+      }finally{scopePanel.remove();}
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
