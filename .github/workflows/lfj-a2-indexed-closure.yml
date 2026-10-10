@@ -4,6 +4,8 @@ on:
     paths:
       - 'docs/lfj/indexed-runtime-closure.mjs'
       - 'docs/lfj/indexed-runtime-closure.test.mjs'
+      - 'docs/lfj/a2-exact-head-matrix.mjs'
+      - 'docs/lfj/a2-exact-head-matrix.test.mjs'
       - 'docs/lfj/pages-origin-probe.mjs'
       - 'docs/lfj/pages-origin-probe.test.mjs'
       - 'docs/lfj/stage-indexed-runtime.mjs'
@@ -156,3 +158,36 @@ jobs:
             ${{ runner.temp }}/a3-authored-indexed-selected-build.png
             ${{ runner.temp }}/a3-authored-indexed-root-*.zip
             ${{ runner.temp }}/a3-authored-indexed-root-last-*.png
+
+  exact-head-evidence-matrix:
+    if: always()
+    needs: [indexed-runtime-source-closure, public-pages-origin-observation, generated-docs-native-chromium]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test fail-closed exact-head evidence rules
+        run: node --test docs/lfj/a2-exact-head-matrix.test.mjs
+      - name: Check live PR and frozen checkout; summarize prerequisite results
+        env:
+          A2_TRIGGER_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          A2_PR_NUMBER: ${{ github.event.pull_request.number }}
+          A2_NEEDS_JSON: ${{ toJSON(needs) }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node docs/lfj/a2-exact-head-matrix.mjs
+      - name: Publish machine-readable exact-head evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-exact-head-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: ${{ runner.temp }}/a2-exact-head-evidence.json
