@@ -232,7 +232,7 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
   actions.append(buildBtn,
-    actionButton('build-resolver-lfj', state.resolverJsonTraceRunning ? 'LFJ Worker running…' : 'Build with LFJ native Workers (preview)',state.resolverJsonTraceRunning),
+    actionButton('build-resolver-lfj', state.resolverJsonTraceRunning ? 'LFJ Worker running…' : 'Build with LFJ native Workers (verified CSV)',state.resolverJsonTraceRunning),
     actionButton('save-resolver-json-config', 'Save to config'),
     createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
   if(state.resolverJsonTraceExportStatus)
@@ -272,10 +272,12 @@ function renderTraceTreeHtml(parent, state) {
   if(view){
     const section=createElement('section','','xml-cii-resolver-panel');
     section.appendChild(sectionTitleBar('Evidence Tree (LFJ Worker preview)',[
-      actionButton('download-evidence-tree-csv','CSV pending product acceptance',true)
+      actionButton('download-evidence-tree-csv',
+        state.resolverProductCsvGrant?'⬇ Verified LFJ CSV ('+view.evidenceTreeRows.length+')':'CSV requires current Build',
+        !state.resolverProductCsvGrant)
     ]));
     section.appendChild(createElement('p',
-      'Original source-backed evidence rows; research verification is not download authorization.',
+      'Original source-backed evidence rows; downloads require the separate same-revision product grant.',
       'xml-cii-phase-help'));
     addFilter(section,table(EVIDENCE_TREE_HEADERS,view.evidenceTreeRows,
       'No matched source evidence.','xml-cii-evidence-source-table'),
@@ -336,7 +338,9 @@ function renderXmlNodeWiseTraceTable(parent, state) {
   const nodeWiseRows = view?.nodeWiseRows || buildXmlNodeWiseTraceRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(sectionTitleBar('XML Node Wise Trace', [
-    actionButton('download-node-wise-trace-csv',view?'CSV pending product acceptance':`⬇ CSV (${nodeWiseRows.length})`,view?true:nodeWiseRows.length===0),
+    actionButton('download-node-wise-trace-csv',
+      view?(state.resolverProductCsvGrant?'⬇ Verified LFJ CSV ('+nodeWiseRows.length+')':'CSV requires current Build'):`⬇ CSV (${nodeWiseRows.length})`,
+      view?!state.resolverProductCsvGrant:nodeWiseRows.length===0),
   ]));
   if (!nodeWiseRows.length) {
     section.appendChild(createElement('div', 'No XML trace rows. Load source XML and staged JSON, then rebuild the resolver index.', 'xml-cii-phase-help'));
@@ -344,7 +348,7 @@ function renderXmlNodeWiseTraceTable(parent, state) {
     return;
   }
   section.appendChild(createElement('p', 'One authoritative row per XML node. DTXR_POS is primary; DTXR_PS is shown as the NAME-specific fallback evidence.', 'xml-cii-phase-help'));
-  if(view)section.appendChild(createElement('p','LFJ native Worker original rows: pending product release; exports disabled.','xml-cii-phase-help'));
+  if(view)section.appendChild(createElement('p','LFJ native Worker original rows. Two complete CSV exports use a separate, short-lived application grant; release review is still pending.','xml-cii-phase-help'));
   addFilter(section, table(XML_NODE_TRACE_HEADERS, nodeWiseRows, 'No trace rows matched.', 'xml-cii-node-wise-table'), '🔍 Filter node trace...');
   parent.appendChild(section);
 }
