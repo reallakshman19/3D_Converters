@@ -1,6 +1,13 @@
 /** Native Node regressions against the REAL UI event and state handlers. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
+import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
+import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
+import {
+  ALL_SCOPE_ID, ensureResolverHierarchyScope,
+  renderResolverHierarchyScopeControl, selectResolverHierarchyScope
+} from './xml-cii-adapted-resolver-scope.js';
 import { bindSourceEvents, runResolverJsonTraceFromUi,
   downloadResolverTraceCsvFromUi } from './xml-cii-adapted-events.js';
 
@@ -176,3 +183,93 @@ test('CSV actions reject an in-progress Build even with a former accepted epoch'
   assert.equal(downloadResolverTraceCsvFromUi(ref, () => {}, 'evidence-tree'), null);
   assert.match(ref.current.resolverJsonTraceExportStatus, /blocked/);
 });
+
+test('hierarchy changes revoke current indexed preview, receipt and consent immediately', () => {
+  const ref = { current: {
+    ...createState(), resolverSourceMode: 'lfj-indexed-preview',
+    jsonTraceScopeId: ALL_SCOPE_ID, stagedJsonFile: new Blob(['{}']),
+    lfjIndexedPreview: { nodeWiseRows: [] },
+    lfjIndexedExportReceipt: { schema: 'test-receipt' },
+    lfjIndexedExportOptIn: true,
+    resolverJsonTraceAcceptedRevision: 0, resolverJsonTraceRunning: true
+  } };
+  const stillLatest = beginLatestOperation(ref, 'resolver-build');
+  const running = beginIndexedBuild(ref);
+  assert.equal(selectResolverHierarchyScope(ref, 'zone-1'), true);
+  assert.equal(running.signal.aborted, true);
+  assert.equal(stillLatest(), false);
+  assert.equal(currentResolverTraceRevision(ref.current), 1);
+  assert.equal(ref.current.resolverJsonTraceAcceptedRevision, null);
+  assert.equal(ref.current.lfjIndexedPreview, null);
+  assert.equal(ref.current.lfjIndexedExportReceipt, null);
+  assert.equal(ref.current.lfjIndexedExportOptIn, false);
+  assert.equal(ref.current.resolverJsonTraceRunning, false);
+  assert.match(ref.current.resolverJsonTraceExportStatus, /rebuild before exporting/);
+  assert.equal(selectResolverHierarchyScope(ref, 'zone-1'), false,
+    'identical selection must not invent another revision');
+});
+
+test('scope control offers an explicit All reset for original indexed File', () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement(tag) {
+      return {
+        tag, style: {}, dataset: {}, children: [], listeners: {},
+        appendChild(child) { this.children.push(child); },
+        addEventListener(event, callback) { this.listeners[event] = callback; }
+      };
+    }
+  };
+  try {
+    const ref = { current: {
+      ...createState(), resolverSourceMode: 'lfj-indexed-preview',
+      jsonTraceScopeId: 'old-zone', stagedJsonFile: new Blob(['{}']),
+      lfjIndexedExportReceipt: { schema: 'old' }, lfjIndexedExportOptIn: true
+    }};
+    const scope = ensureResolverHierarchyScope(ref.current, ref);
+    assert.equal(scope.selectedScopeId, 'old-zone',
+      'do not silently relabel the previous scope as All');
+    assert.equal(scope.index, null);
+    const parent = { children: [], appendChild(el) { this.children.push(el); } };
+    let renders = 0;
+    renderResolverHierarchyScopeControl(parent, ref, () => renders++, scope);
+    const bar = parent.children[0];
+    const select = bar.children.find(el => el.tag === 'select');
+    assert.ok(select);
+    assert.equal(select.disabled, false, 'user must be able to reset unsupported scope');
+    select.listeners.change({ target: { value: ALL_SCOPE_ID } });
+    assert.equal(ref.current.jsonTraceScopeId, ALL_SCOPE_ID);
+    assert.equal(currentResolverTraceRevision(ref.current), 1);
+    assert.equal(ref.current.lfjIndexedExportReceipt, null);
+    assert.equal(ref.current.lfjIndexedExportOptIn, false);
+    assert.equal(renders, 1);
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
+
+for (const [label, patch] of [
+  ['hierarchy', { jsonTraceScopeId: 'zone-1' }],
+  ['branch', { branchSelection: ['BR-01'] }]
+]) {
+  test('indexed Build refuses unsupported selected ' + label + ' before starting Workers', async () => {
+    const ref = { current: updateWorkflowState(createState(), {
+      resolverSourceMode: 'lfj-indexed-preview',
+      stagedJsonFile: new Blob(['{"source":true}']),
+      sourceText: '<Root><Node /></Root>',
+      jsonTraceScopeId: ALL_SCOPE_ID,
+      ...patch
+    }) };
+    let renders = 0;
+    const result = await runResolverJsonTraceFromUi(fakeContainer(), ref,
+      () => renders++, false);
+    assert.equal(result, null);
+    assert.equal(ref.current.resolverJsonTraceRunning, false);
+    assert.equal(ref.current.lfjIndexedPreview, null);
+    assert.equal(ref.current.lfjIndexedExportReceipt, null);
+    assert.equal(ref.current.lfjIndexedExportOptIn, false);
+    assert.match(ref.current.resolverJsonTraceExportStatus, /All scopes only/);
+    assert.ok(renders >= 2);
+  });
+}
