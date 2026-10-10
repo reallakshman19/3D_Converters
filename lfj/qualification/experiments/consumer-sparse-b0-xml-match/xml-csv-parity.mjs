@@ -4,8 +4,7 @@
  * bounded, consumer-specific working tree from prior sparse projection facts.
  * No original full-JSON parse in Worker; no production UI/export authority.
  */
-import {assertResearchXmlDocument,assertResearchXmlConsumerPopulation} from
-  './xml-input-integrity.mjs';
+import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
 import {generateAttestedResearchCsv} from './xml-csv-serializer-boundary.mjs';
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
 import {normalizedResolverProjectionFact} from
