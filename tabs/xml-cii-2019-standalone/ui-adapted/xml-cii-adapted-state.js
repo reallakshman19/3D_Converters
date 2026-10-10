@@ -252,7 +252,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
     supportConfigJson: configJson,
     regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
-    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '', resolverJsonTraceInputRevision: 0, resolverJsonTraceAcceptedRevision: null, resolverJsonTraceExportStatus: '',
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '', resolverJsonTraceInputRevision: 0, resolverJsonTraceAcceptedRevision: null, resolverJsonTraceExportStatus: '', resolverSourceMode: 'legacy', lfjIndexedPreview: null, lfjIndexedPreviewStatus: '',
     jsonTraceTableText: '', jsonTraceTableRows: [], jsonTraceTableFieldMap: {}, jsonTraceTableConfig: createDefaultTraceTableConfig(), jsonTraceTableSourceName: '', jsonTraceTableSheetNames: [], jsonTraceTableActiveSheet: '', jsonTraceTableWorkbookData: null, jsonTraceTableStatus: '', jsonTraceTableBenchmark: null,
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
@@ -318,7 +318,7 @@ function invalidateBatchOutputs(previous, next, dependency) {
 // A3 source and configuration epoch. File object identity matters even if two
 // uploaded files share a displayed name; view-only changes must not veto CSVs.
 function resolverTraceBasisChanged(previous, next) {
-  for (const key of ['sourceKind','sourceText','stagedJsonText',
+  for (const key of ['sourceKind','resolverSourceMode','sourceText','stagedJsonText',
     'supportConfigJson','branchSelection']) {
     if (JSON.stringify(previous?.[key]) !== JSON.stringify(next?.[key]))
       return true;
@@ -353,6 +353,8 @@ export function updateWorkflowState(state, patch = {}) {
   const traceRevision=currentResolverTraceRevision(state)+(changedTrace?1:0);
   return { ...next, ...dependency, result,
     resolverJsonTraceInputRevision:traceRevision,
+    lfjIndexedPreview:changedTrace?null:next.lfjIndexedPreview,
+    lfjIndexedPreviewStatus:changedTrace?'':next.lfjIndexedPreviewStatus,
     resolverJsonTraceResult:changedTrace?null:next.resolverJsonTraceResult,
     resolverJsonTraceJsonResult:changedTrace?null:next.resolverJsonTraceJsonResult,
     resolverJsonTraceAcceptedRevision:changedTrace?null:next.resolverJsonTraceAcceptedRevision,
