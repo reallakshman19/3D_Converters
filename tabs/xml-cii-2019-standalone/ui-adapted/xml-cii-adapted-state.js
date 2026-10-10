@@ -319,7 +319,7 @@ function invalidateBatchOutputs(previous, next, dependency) {
 // uploaded files share a displayed name; view-only changes must not veto CSVs.
 function resolverTraceBasisChanged(previous, next) {
   for (const key of ['sourceKind','resolverSourceMode','sourceText','stagedJsonText',
-    'supportConfigJson','branchSelection']) {
+    'supportConfigJson','branchSelection','jsonTraceScopeId']) {
     if (JSON.stringify(previous?.[key]) !== JSON.stringify(next?.[key]))
       return true;
   }
@@ -347,7 +347,7 @@ export function updateWorkflowState(state, patch = {}) {
     : String(state.sourceText || '') !== String(next.sourceText || '')
       || supportConfigSignature(parseSupportConfigForState(state.supportConfigJson)) !== supportConfigSignature(revisionConfig);
   const inputChanged = revisionChanged
-    || ['stagedJsonText', 'branchSelection', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
+    || ['stagedJsonText', 'branchSelection', 'jsonTraceScopeId', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
   const result = inputChanged && next.result === state.result ? null : next.result;
   const changedTrace=resolverTraceBasisChanged(state,next);
   const traceRevision=currentResolverTraceRevision(state)+(changedTrace?1:0);
