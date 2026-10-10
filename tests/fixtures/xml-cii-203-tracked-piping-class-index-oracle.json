@@ -1,0 +1,95 @@
+{
+  "schema": "XMLCII_C05_203_TRACKED_CLASS_INDEX_ORACLE_V1",
+  "source": "docs/Masters/Piping_class_master.json",
+  "sourceGitBlob": "af218bf3692acd66c93e190635633e14ccfb30ac",
+  "sourceRows": 10699,
+  "sourceAuthority": "TRACKED_TEST_FIXTURE_NOT_OWNER_INDEPENDENT",
+  "matchingCriterion": "EXACT_RAW_PIPING_CLASS_VALUE",
+  "cases": [
+    {
+      "code": "11210",
+      "indexes": [
+        1277,
+        1278,
+        1279,
+        1280,
+        1281,
+        1282,
+        1283
+      ],
+      "sourceCells": {
+        "first": {
+          "Piping Class": "11210",
+          "Size": "2",
+          "SCH": "80",
+          "Rating": "150",
+          "Material_Name": "ASTM A106-B",
+          "convertedBore": 50
+        },
+        "last": {
+          "Piping Class": "11210",
+          "Size": "12",
+          "SCH": "80",
+          "Rating": "150",
+          "Material_Name": "ASTM A106-B",
+          "convertedBore": 300
+        }
+      }
+    },
+    {
+      "code": "153052",
+      "indexes": [
+        3220,
+        3221,
+        3222,
+        3223,
+        3224,
+        3225,
+        3226
+      ],
+      "sourceCells": {
+        "first": {
+          "Piping Class": "153052",
+          "Size": "0.5",
+          "SCH": "80S",
+          "Rating": "1500",
+          "Material_Name": "ASTM A312-TP321",
+          "convertedBore": 15
+        },
+        "last": {
+          "Piping Class": "153052",
+          "Size": "4",
+          "SCH": "80S",
+          "Rating": "1500",
+          "Material_Name": "ASTM A312-TP321",
+          "convertedBore": 100
+        }
+      }
+    },
+    {
+      "code": "25190",
+      "indexes": [
+        10678,
+        10679,
+        10680,
+        10681,
+        10682,
+        10683
+      ],
+      "sourceCells": {
+        "first": {
+          "Piping Class": "25190",
+          "Size": "0",
+          "SCH": "2500",
+          "convertedBore": null
+        },
+        "last": {
+          "Piping Class": "25190",
+          "Size": "0",
+          "SCH": "2500",
+          "convertedBore": null
+        }
+      }
+    }
+  ]
+}
