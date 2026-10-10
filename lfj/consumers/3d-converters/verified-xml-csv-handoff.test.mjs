@@ -65,6 +65,11 @@ function fixture() {
     revision:3,currentRevision:()=>3};
   return {result,basis,c};
 }
+const syncBytes=c=>{
+  const size=x=>Buffer.byteLength(x,'utf8');
+  c.payloadBytes=size(c.nodeWiseCsv)+size(c.evidenceTreeCsv)+
+    size(JSON.stringify(c.nodeWiseRows))+size(JSON.stringify(c.evidenceTreeRows));
+};
 const check=(r,b)=>verifyResolverResearchHandoff(r,b);
 const rejected=async (r,b,code)=>assert.rejects(()=>check(r,b),e=>e?.code===code);
 
@@ -117,12 +122,14 @@ test('A3 rejects input revision changed while async digest pending',async()=>{
 test('A3 rejects mutated DOM row despite unchanged CSV bytes/hashes',async()=>{
   const {result,basis,c}=fixture();
   c.nodeWiseRows[0].xmlNode='FORGED';
+  syncBytes(c); // attacker rewrites size label: row/CSV equality must still reject
   await rejected(result,basis,'A3_HANDOFF_ROWS_CSV');
 });
 
 test('A3 rejects mutated CSV despite unchanged visible rows',async()=>{
   const {result,basis,c}=fixture();
   c.evidenceTreeCsv+='FORGED';
+  syncBytes(c); // attacker rewrites size label: row/CSV equality must still reject
   await rejected(result,basis,'A3_HANDOFF_ROWS_CSV');
 });
 
