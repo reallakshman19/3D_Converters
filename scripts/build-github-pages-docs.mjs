@@ -51,7 +51,8 @@ for (const entry of indexedSources) {
     sharedException = true;
   }
   indexedOverlay.push({path:entry.path,sha256:entry.sha256,
-    kind:previous===null?'NEW':sharedException?'V41_COMPATIBLE_EXPORT':'UNCHANGED'});
+    ownership:entry.path==='lfj/source/source-snapshot.mjs'?
+      'V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT':'A3_INDEXED_SOURCE_MIRROR'});
 }
 const sourceDocsTemp = path.join(tempDir, 'source-docs');
 const manifestPath = path.join(docsDir, '.pages-mirror-manifest.json');
