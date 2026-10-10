@@ -67,5 +67,7 @@ jobs:
           exit 1
       - name: Actual A3 LFJ Build, original rows, two browser CSV Blob downloads and stale veto
         run: node lfj/consumers/3d-converters/source-backed-resolver-browser.mjs
+      - name: Real standalone app tab original file uploads and two actual browser downloads
+        run: node lfj/consumers/3d-converters/source-backed-resolver-app-shell-browser.mjs
       - name: Source unchanged after browser qualification
         run: test -z "$(git status --porcelain)"
