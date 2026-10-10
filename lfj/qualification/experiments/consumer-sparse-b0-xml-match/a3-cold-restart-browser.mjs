@@ -90,10 +90,11 @@ try{
   assert.equal(activeProbe.result.recovered,0);
   assert.equal(activeProbe.names.length,1);
 
-  // Real cold interruption: close the page WITHOUT any cancellation handler.
-  // The browser releases its Web Lock; its source HEAD/IDB remain on disk.
+  // Real tab interruption. Chromium may itself finish the pending finally
+  // while closing the page. Record that behavior precisely: it is NOT proof
+  // that orphan reclamation ran, and must not be reported as recovered.
   await page1.close();
-  const cold=await page2.evaluate(async()=>{
+  const postClose=await page2.evaluate(async()=>{
     const {recoverAbandonedIndexedGenerations}=await import(
       '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-cold-recovery.js');
     const before=(await indexedDB.databases())
@@ -102,6 +103,51 @@ try{
     const after=(await indexedDB.databases())
       .filter(d=>d.name?.includes('-r2-')).map(d=>d.name);
     return {before,result,after};
+  });
+  assert.equal(postClose.after.length,0);
+  assert.equal(postClose.result.recovered,postClose.before.length);
+
+  // Force the harder orphan boundary deterministically: an ORIGINAL source
+  // Worker commits a complete source HEAD with a versioned UUID and exits,
+  // but the owning browser generation lease is absent (as after a hard crash).
+  // This is a real source catalog, not a fabricated empty IndexedDB record.
+  const cold=await page2.evaluate(async()=>{
+    const {indexedGenerationNames,recoverAbandonedIndexedGenerations}=
+      await import('/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-cold-recovery.js');
+    const input=await fetch('/Benchmarks/1885Sjson/Sjson.json',{cache:'no-store'});
+    if(!input.ok)throw Error('Authentic JSON source missing for orphan fixture');
+    const blob=await input.blob();
+    const sha=[...new Uint8Array(await crypto.subtle.digest('SHA-256',
+      await blob.arrayBuffer()))].map(x=>x.toString(16).padStart(2,'0')).join('');
+    const uuid=crypto.randomUUID();
+    const [sourceDb,projectionDb]=indexedGenerationNames(uuid);
+    const worker=new Worker(
+      '/lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
+      {type:'module'});
+    const source=await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(Error('Real orphan source index timed out')),120000);
+      worker.onmessage=({data})=>{
+        if(data.type==='DONE'){clearTimeout(timer);resolve(data.result);}
+        else if(data.type==='ERROR'){clearTimeout(timer);reject(Error(data.message));}
+      };
+      worker.onerror=e=>{clearTimeout(timer);reject(Error(e.message));};
+      worker.postMessage({
+        type:'START',blob,expectedSha256:sha,
+        databaseName:sourceDb,generation:uuid,revision:'LFJ_UI_PREVIEW_V1'
+      });
+    }).finally(()=>worker.terminate());
+    if(source.sourceSha256!==sha||source.occurrenceCount<1)
+      throw Error('Real unowned source generation did not commit expected HEAD');
+    const before=(await indexedDB.databases())
+      .filter(d=>d.name===sourceDb||d.name===projectionDb).map(d=>d.name);
+    if(before.length!==1)throw Error('Original orphan source DB not persisted');
+    const result=await recoverAbandonedIndexedGenerations();
+    const after=(await indexedDB.databases())
+      .filter(d=>d.name===sourceDb||d.name===projectionDb).map(d=>d.name);
+    if(result.recovered!==1||after.length!==0)
+      throw Error('Ownerless committed original source not reclaimed');
+    return {before,result,after,originalOccurrences:source.occurrenceCount,
+      originalSha256:sha,fixture:'REAL_ORIGINAL_SOURCE_ORPHAN_SIMULATED_LEASE_LOSS'};
   });
   assert.equal(cold.before.length,1);
   assert.equal(cold.result.recovered,1);
@@ -203,6 +249,9 @@ try{
     schema:'LFJ.A3.ColdRestartChromium.v1',
     liveLockedGenerationProtected:true,
     uncleanTabClosedWithoutCancel:true,
+    postCloseDbCount:postClose.before.length,
+    postCloseAutomaticOrRecoveryDeleteCount:postClose.result.recovered,
+    simulatedLossOfLeaseAfterRealSourceCommit:true,
     orphanSourceDbBeforeRecovery:cold.before.length,
     recoveredOrphanGenerations:cold.result.recovered,
     orphanDbAfterRecovery:cold.after.length,
