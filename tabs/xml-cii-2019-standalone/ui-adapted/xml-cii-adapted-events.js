@@ -271,12 +271,19 @@ export async function runSourceBackedResolverPreviewFromUi(stateRef, render) {
       {code:'A3_XML_REQUIRED'});
     // Research projection currently qualifies only the full flat-branch
     // source population. A narrower UI scope would misrepresent the result.
-    if((initial.jsonTraceScopeId && initial.jsonTraceScopeId!=='__ALL__')||
-      (Array.isArray(initial.branchSelection) && initial.branchSelection.length)||
-      (initial.branchSelection && !Array.isArray(initial.branchSelection) &&
-        initial.branchSelection!=='__ALL__'))
+    const mode=initial.branchScope?.manifest?.mode;
+    const selection=initial.branchSelection;
+    const explicitWithoutManifest=!mode&&(
+      (Array.isArray(selection)&&selection.length>0) ||
+      (typeof selection==='string'&&selection!=='__ALL__'&&selection!=='') ||
+      (selection&&typeof selection==='object'&&
+        (selection.selectedBranchNames?.length>0 ||
+         selection.selectedBranchOccurrenceIds?.length>0)));
+    if((initial.jsonTraceScopeId && initial.jsonTraceScopeId!=='__ALL__') ||
+       (mode && mode!=='all' && mode!=='not-applicable') ||
+       explicitWithoutManifest)
       throw Object.assign(new Error(
-        'LFJ Worker preview requires All hierarchy/branch scopes'),
+        'LFJ Worker Build requires full original branch and hierarchy scope'),
         {code:'A3_SCOPE_UNSUPPORTED'});
     // Source JSON is passed as an original Blob. No full JSON.parse on main;
     // this view does not modify existing Preview/Weight product authority.
