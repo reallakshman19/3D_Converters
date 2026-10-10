@@ -95,5 +95,12 @@ jobs:
           B0_SIZE: ${{ matrix.size }}
           B0_XML_MODE: ${{ matrix.mode }}
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
+      - name: H09 original Firstpass opt-in research handoff capsule and both real CSV byte goldens
+        if: matrix.size == 'FIRSTPASS' && matrix.mode == 'AUTHENTIC'
+        env:
+          B0_SIZE: FIRSTPASS
+          B0_XML_MODE: AUTHENTIC
+          B0_RESEARCH_HANDOFF: '1'
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/real-xml-csv-oracle.mjs
       - name: Source tree unchanged
         run: test -z "$(git status --porcelain)"
