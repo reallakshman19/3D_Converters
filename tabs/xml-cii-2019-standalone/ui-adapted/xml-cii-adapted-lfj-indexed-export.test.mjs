@@ -166,8 +166,11 @@ test('real indexed download handlers generate both exact Blob bytes',async()=>{
     assert.equal(one.sha256,await sha(f.nodeCsv));
     assert.equal(two.sha256,await sha(f.evidenceCsv));
     assert.equal(captures.length,2);
-    const texts=await Promise.all(captures.map(x=>x.text()));
-    assert.deepEqual(texts,[f.nodeCsv,f.evidenceCsv]);
+    // Blob.text() intentionally strips a UTF-8 BOM while decoding.
+    // Compare the immutable original BYTES, not decoded/re-encoded text.
+    const bytes=await Promise.all(captures.map(x=>x.arrayBuffer()));
+    assert.deepEqual(bytes.map(x=>Buffer.from(x).toString('hex')),
+      [f.nodeCsv,f.evidenceCsv].map(x=>Buffer.from(x,'utf8').toString('hex')));
     assert.deepEqual(await Promise.all(captures.map(async b=>
       Array.from(new Uint8Array(await b.arrayBuffer()).slice(0,3)))),
       [[239,187,191],[239,187,191]]);
