@@ -65,6 +65,11 @@ try{
     try{
       controls.querySelector('[data-action="build-resolver-lfj"]').click();
       await wait(()=>!ref.current.resolverJsonTraceRunning);
+      const a3Databases=(await indexedDB.databases()).filter(row=>
+        row.name?.startsWith('lfj-a3-'));
+      if(a3Databases.length)
+        throw Error('product Build retained ephemeral IndexedDB stores: '+
+          a3Databases.map(row=>row.name).join(', '));
       const view=ref.current.resolverResearchView,grant=ref.current.resolverProductCsvGrant;
       if(!view||!grant)throw Error('LFJ Build did not admit original CSVs: '+
         ref.current.resolverJsonTraceExportStatus);
@@ -129,6 +134,7 @@ try{
         downloadedSha256:hash,downloadedBytes:buffers.map(x=>x.byteLength),
         workers:view.nativeWorkerStages,renderCount:renders,
         validCsvDownloads:downloads,staleAttempts:3,staleDownloads:0,
+        ephemeralIndexedDbAfterBuild:0,
         researchDownloadAuthorized:view.downloadAuthorized};
     }finally{
       URL.createObjectURL=originalCreate;
