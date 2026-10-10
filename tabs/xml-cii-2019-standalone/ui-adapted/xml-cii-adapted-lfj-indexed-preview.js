@@ -151,7 +151,10 @@ export async function buildIndexedResolverPreview({
   // generation behind. Reclaim only inactive r2 generations before creating
   // another source/index, and never trust their prior HEADs for downloads.
   stale(isCurrent);
-  await recoverAbandonedIndexedGenerations();
+  // Node-only deterministic Worker tests have no browser IndexedDB or Web
+  // Locks; the real browser must NEVER skip cold recovery.
+  if(typeof window!=='undefined')
+    await recoverAbandonedIndexedGenerations();
   stale(isCurrent);
   if(signal?.aborted)throw fail('LFJ_PREVIEW_CANCELLED','Indexed Build was cancelled');
   const token = crypto.randomUUID();
