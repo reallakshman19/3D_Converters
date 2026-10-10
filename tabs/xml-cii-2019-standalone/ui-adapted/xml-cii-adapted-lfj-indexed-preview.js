@@ -10,6 +10,7 @@ import {
   XML_NODE_TRACE_HEADERS, EVIDENCE_TREE_HEADERS, serializeRowsToCsv
 } from '../xml-cii-trace-export.js';
 import { deleteIndexedBuildDatabases } from './xml-cii-adapted-lfj-db-cleanup.js';
+import { requireIndexedSourceAdmission } from './xml-cii-adapted-lfj-size-admission.js';
 
 const SOURCE_WORKER = new URL(
   '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
@@ -21,7 +22,7 @@ const MATCH_WORKER = new URL(
   '../../../lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs',
   import.meta.url);
 const MAX_PREVIEW_BYTES = 8 * 1024 * 1024;
-const MAX_ORIGINAL_BYTES = 32 * 1024 * 1024;
+
 const STAGE_LIMIT_MS = 180000;
 const fail = (code, message) =>
   Object.assign(new Error(message), { code });
@@ -134,10 +135,12 @@ export async function buildIndexedResolverPreview({
   blob, xmlText, config = {}, isCurrent = () => true,
   onProgress = () => {}, signal, workerFactory, timeoutMs = STAGE_LIMIT_MS
 } = {}) {
-  if (!(blob instanceof Blob) || blob.size < 1 ||
-      blob.size > MAX_ORIGINAL_BYTES || typeof xmlText !== 'string' ||
-      !xmlText.trim() || typeof isCurrent !== 'function')
-    throw fail('LFJ_PREVIEW_INPUT', 'Original JSON Blob (up to 32 MiB) and XML are required');
+  // Reject over-capacity original files before any read, hashing,
+  // IndexedDB allocation or Worker creation.
+  requireIndexedSourceAdmission(blob);
+  if (typeof xmlText !== 'string' || !xmlText.trim() ||
+      typeof isCurrent !== 'function')
+    throw fail('LFJ_PREVIEW_INPUT', 'Original XML and revision guard are required');
   if (signal?.aborted) throw fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled');
   const token = crypto.randomUUID();
   const sourceDatabaseName = 'lfj-ui-preview-source-' + token;
