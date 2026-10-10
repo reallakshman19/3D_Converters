@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { REPLAY_SCHEMA,stableWitness,compareIndependentNativeReplays,compareNodeBrowserSummaries } from '../scripts/check-xml-cii-issue-203-native-replay.mjs';
+import fs from 'node:fs';
+import { REPLAY_SCHEMA,stableWitness,compareIndependentNativeReplays,compareNodeBrowserSummaries,assertNonprotectedDiagnosticAnchor } from '../scripts/check-xml-cii-issue-203-native-replay.mjs';
 
 const sourceSha = 'a'.repeat(64);
 const copy = x => structuredClone(x);
@@ -79,4 +80,88 @@ test('P13 cross-version row digest or source drift cannot pass',()=>{
   assert.throws(()=>compareNodeBrowserSummaries(a,altered),/rows or authority drifted/);
   const asset=copy(b);asset.sourceAssetSha256='c'.repeat(64);
   assert.throws(()=>compareNodeBrowserSummaries(a,asset),/asset hash drifted/);
+});
+
+
+// P15/P16: These are deliberately SOURCE-DERIVED REGRESSION DIAGNOSTICS.
+// They are not the protected LFJ/CII semantic golden or Owner 30 MiB evidence.
+const diagnosticAnchor = JSON.parse(fs.readFileSync(
+  new URL('./fixtures/c05-issue203-nonprotected-positive-row-diagnostic.v1.json', import.meta.url), 'utf8'));
+const originalMasterBytes = fs.readFileSync(
+  new URL('../docs/Masters/Piping_class_master.json', import.meta.url));
+const deployedMirrorBytes = fs.readFileSync(
+  new URL('../docs/docs/Masters/Piping_class_master.json', import.meta.url));
+
+function anchoredSummary() {
+  return {
+    schema: REPLAY_SCHEMA,
+    sourceAssetSha256: diagnosticAnchor.source.sha256,
+    stableWitness: structuredClone(diagnosticAnchor.stableWitness),
+    independentProtectedGolden: false,
+  };
+}
+function checkDiagnostic(r, a = diagnosticAnchor, source = originalMasterBytes, mirror = deployedMirrorBytes) {
+  return assertNonprotectedDiagnosticAnchor(r,a,source,mirror);
+}
+
+test('P15 reviewed nonprotected anchor binds actual source bytes, deployed mirror and observed native witness', () => {
+  const summary = anchoredSummary();
+  assert.equal(checkDiagnostic(summary), true);
+  assert.equal(diagnosticAnchor.releaseAuthority, false);
+  assert.equal(diagnosticAnchor.protectedGolden, false);
+  assert.equal(diagnosticAnchor.ownerOriginal30MbQualified, false);
+  assert.equal(diagnosticAnchor.provenance.githubWorkflowRun, 38092619920);
+  assert.deepEqual(diagnosticAnchor.provenance.githubArtifactIds,
+    [11684995551,11684791442,11684995577]);
+});
+
+test('P16 any uniform drift in token, row content, indexes, revisions and fingerprint fails reviewed diagnostic', () => {
+  const variations = [
+    r => { r.stableWitness.canonicalRowsSha256 = '0'.repeat(64); },
+    r => { r.stableWitness.token = 'changed-class-token'; },
+    r => { r.stableWitness.indexes = [0,1,2,4]; },
+    r => { r.stableWitness.revisions = [2,1,1]; },
+    r => { r.stableWitness.fingerprint = 'wrong-weight-fp'; },
+    r => { r.stableWitness.masterRowCounts = [1,383,1595]; },
+    r => { r.stableWitness.workerMatchCount = 29; },
+    r => { r.stableWitness.indexedRowCount = 0; },
+  ];
+  for (const mutate of variations) {
+    const summary = anchoredSummary();
+    mutate(summary);
+    assert.throws(() => checkDiagnostic(summary), /drifted from reviewed diagnostic anchor/);
+  }
+});
+
+test('P16 mismatch in source, mirror, declared SHA or replay SHA fails independently', () => {
+  assert.throws(() => checkDiagnostic(anchoredSummary(), diagnosticAnchor,
+    Buffer.concat([originalMasterBytes, Buffer.from('drift')]), deployedMirrorBytes),
+  /mirror differs/);
+  assert.throws(() => checkDiagnostic(anchoredSummary(), diagnosticAnchor,
+    originalMasterBytes, Buffer.concat([deployedMirrorBytes, Buffer.from('drift')])),
+  /mirror differs/);
+  const fabricated = structuredClone(diagnosticAnchor);
+  fabricated.source.sha256 = 'e'.repeat(64);
+  assert.throws(() => checkDiagnostic(anchoredSummary(), fabricated), /checked-in source drifted/);
+  const badSummary = anchoredSummary();
+  badSummary.sourceAssetSha256 = 'e'.repeat(64);
+  assert.throws(() => checkDiagnostic(badSummary), /replay source SHA256 differs/);
+});
+
+test('P16 tampered status cannot promote a diagnostic source witness to release authority', () => {
+  const variants = [
+    r => { r.releaseAuthority = true; },
+    r => { r.protectedGolden = true; },
+    r => { r.ownerOriginal30MbQualified = true; },
+    r => { r.purpose = 'SIGNED_SEMANTIC_GOLDEN'; },
+    r => { r.provenance.updatePolicy = 'AUTO_REGENERATE'; },
+  ];
+  for (const mutate of variants) {
+    const a = structuredClone(diagnosticAnchor);
+    mutate(a);
+    assert.throws(() => checkDiagnostic(anchoredSummary(),a));
+  }
+  const unsupported = anchoredSummary();
+  unsupported.schema = 'C05_FAKE_SEMANTIC_RELEASE_GREEN';
+  assert.throws(() => checkDiagnostic(unsupported), /unsupported actual hosted replay schema/);
 });
