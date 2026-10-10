@@ -91,12 +91,12 @@ if(process.env.LFJ_A2_CHECK_REPOSITORY==='1'){
       unresolved:result.unresolved,checkedFiles:result.checkedFiles}));
     assert.ok(result.checkedFiles>=15);
   });
-  test('checked-in docs is reported honestly, not accepted as complete A3',async()=>{
+  test('checked-in docs now contains exact A3 source and native Worker closure',async()=>{
     const result=await evaluateClosure({repoRoot,artifact:'docs'});
     assert.equal(result.origin,'CHECKED_IN_TREE_NOT_PUBLIC_SITE');
-    assert.ok(result.missingArtifact.length>0 || result.divergedArtifact.length>0,
-      'docs closure may have been fixed: update the expected baseline only after source-digest review');
-    assert.throws(()=>requireComplete(result),{code:'CLOSURE_INCOMPLETE'});
-    assert.ok(result.missingArtifact.some(s=>s.endsWith('matching.worker.mjs')));
+    assert.equal(result.checkedFiles,31,'the pinned indexed source graph changed');
+    assert.deepEqual(result.missingArtifact,[],'missing an indexed ESM/Worker');
+    assert.deepEqual(result.divergedArtifact,[],'stale indexed runtime bytes');
+    requireComplete(result);
   });
 }

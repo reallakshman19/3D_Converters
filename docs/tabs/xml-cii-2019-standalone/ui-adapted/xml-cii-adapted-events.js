@@ -21,6 +21,12 @@ import {
   buildXmlNodeWiseTraceCsv,
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
+import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
+import { ALL_SCOPE_ID } from './xml-cii-adapted-resolver-scope.js';
+import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
+import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
+import { createIndexedExportReceipt, verifyIndexedProductCsv } from './xml-cii-adapted-lfj-indexed-export.js';
+import {beginIndexedBuild,cancelIndexedBuild,releaseIndexedBuild,isIndexedBuildCurrent} from './xml-cii-adapted-lfj-build-lifecycle.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -37,7 +43,14 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindSubTabEvents(container, stateRef, render);
 }
 
-export function replaceState(stateRef, nextState, render) { stateRef.current = nextState; render(); }
+export function replaceState(stateRef, nextState, render) {
+  if(currentResolverTraceRevision(stateRef.current)!==
+     currentResolverTraceRevision(nextState)){
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
+  }
+  stateRef.current=nextState;render();
+}
 export function patchState(stateRef, patch, render) { replaceState(stateRef, updateWorkflowState(stateRef.current, patch), render); }
 export function patchOptions(stateRef, optionPatch) { stateRef.current = updateWorkflowOptions(stateRef.current, optionPatch); }
 
@@ -69,48 +82,72 @@ export function bindSourceEvents(container, stateRef, render) {
     replaceState(stateRef, nextState, render);
   });
   onChange(container, 'source-file', async (_, event) => {
+    const file = event.target.files?.[0] || null;
+    const isLatest = beginLatestOperation(stateRef, 'source-file');
+    // Revoke the previous basis before FileReader yields to a newer upload.
+    replaceState(stateRef, updateWorkflowState(stateRef.current, {
+      sourceFile: file, sourceText: '', result: null,
+      regexTesterResult: null, format1SelectedSample: '',
+      format2SelectedSample: ''
+    }), render);
     try {
-      const file = event.target.files?.[0] || null;
       const text = file ? await readTextFile(file) : '';
+      if (!isLatest() || stateRef.current.sourceFile !== file) return;
+      if (file && !text) throw new Error('Selected XML file is empty or unreadable');
       const nextState = updateWorkflowState(stateRef.current, {
-        sourceFile: file,
-        sourceText: text,
-        result: null,
-        regexTesterResult: null,
-        format1SelectedSample: '',
-        format2SelectedSample: ''
+        sourceFile: file, sourceText: text, result: null
       });
       const detected = detectXmlCiiWorkflowSourceKind(text, 'xml');
       const actual = nextState.sourceKind === 'auto' ? detected : nextState.sourceKind;
-      if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace') {
+      if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace')
         nextState.activePhaseId = 'source';
-      }
       replaceState(stateRef, nextState, render);
     } catch (err) {
+      if (!isLatest() || stateRef.current.sourceFile !== file) return;
       console.error('Error reading source file:', err);
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        sourceFile: null, sourceText: '', result: null,
+        resolverJsonTraceWriteBackStatus: 'XML source read failed; select the file again.'
+      }), render);
     }
   });
   onChange(container, 'staged-json-file', async (_, event) => {
+    const file = event.target.files?.[0] || null;
+    const isLatest = beginLatestOperation(stateRef, 'staged-json-file');
+    replaceState(stateRef, updateWorkflowState(stateRef.current, {
+      stagedJsonFile: file, stagedJsonText: '', result: null
+    }), render);
+    // Indexed preview passes the genuine Blob to a Worker: never read/parse
+    // the original 10–30 MB JSON on the foreground UI thread.
+    if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') return;
     try {
-      const file = event.target.files?.[0] || null;
       const text = file ? await readTextFile(file) : '';
-      replaceState(stateRef, updateWorkflowState(stateRef.current, { stagedJsonFile: file, stagedJsonText: text, result: null }), render);
+      if (!isLatest() || stateRef.current.stagedJsonFile !== file) return;
+      if (file && !text) throw new Error('Selected JSON file is empty or unreadable');
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        stagedJsonFile: file, stagedJsonText: text, result: null
+      }), render);
     } catch (err) {
+      if (!isLatest() || stateRef.current.stagedJsonFile !== file) return;
       console.error('Error reading staged json file:', err);
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        stagedJsonFile: null, stagedJsonText: '', result: null,
+        resolverJsonTraceWriteBackStatus: 'Staged JSON read failed; select the file again.'
+      }), render);
     }
   });
   onChange(container, 'source-text', (value) => {
+    beginLatestOperation(stateRef, 'source-file');
     const nextState = clearWorkflowResult(updateWorkflowState(stateRef.current, {
-      sourceText: value,
+      sourceFile: null, sourceText: value,
       regexTesterResult: null,
       format1SelectedSample: '',
       format2SelectedSample: ''
     }));
     const detected = detectXmlCiiWorkflowSourceKind(value, 'xml');
     const actual = nextState.sourceKind === 'auto' ? detected : nextState.sourceKind;
-    if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace') {
+    if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace')
       nextState.activePhaseId = 'source';
-    }
     replaceState(stateRef, nextState, render);
   });
   onChange(container, 'element-side-load', (value) => { stateRef.current = clearWorkflowResult(updateWorkflowState(stateRef.current, { elementSideLoadText: value })); render(); });
@@ -146,25 +183,67 @@ export function bindRegexEvents(container, stateRef, render) {
 }
 
 export function bindResolverEvents(container, stateRef, render) {
-  onChange(container, 'resolver-json-config', (value) => { stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value); });
+  const consent = container.querySelector('[data-field="lfj-indexed-export-consent"]');
+  consent?.addEventListener('change', event => {
+    const state = stateRef.current;
+    const allowed = event.target.checked === true &&
+      state.resolverSourceMode === 'lfj-indexed-preview' &&
+      !state.resolverJsonTraceRunning &&
+      state.lfjIndexedPreview &&
+      state.lfjIndexedExportReceipt;
+    stateRef.current = updateWorkflowState(state, {
+      lfjIndexedExportOptIn: Boolean(allowed),
+      resolverJsonTraceExportStatus: allowed
+        ? 'Local CSV exports enabled; each click verifies original SHA and CSV bytes. Not downstream CII approval.'
+        : 'Local indexed CSV exports disabled.'
+    });
+    render();
+  });
+  onChange(container, 'resolver-source-mode', value => {
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false,
+      resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
+      stagedJsonText: value === 'lfj-indexed-preview' && stateRef.current.stagedJsonFile ? '' : stateRef.current.stagedJsonText,
+      lfjIndexedPreview: null, lfjIndexedPreviewStatus: ''
+    });
+    render();
+  });
+  onChange(container, 'resolver-json-config', (value) => {
+    const before=currentResolverTraceRevision(stateRef.current);
+    stateRef.current=updateResolverJsonTraceConfig(stateRef.current,value);
+    if(currentResolverTraceRevision(stateRef.current)!==before){
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+    }
+  });
   const useDelimiterInput = container.querySelector('[data-field="resolver-use-delimiter"]');
   if (useDelimiterInput) {
     useDelimiterInput.addEventListener('change', (event) => {
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
       stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { useDelimiter: !!event.target.checked });
       render();
     });
   }
   onChange(container, 'resolver-delimiter', (value) => {
-    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { delimiter: value || '|' });
+    cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+      stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { delimiter: value || '|' });
     render();
   });
   onChange(container, 'resolver-join-mode', (value) => {
-    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { joinMode: value || 'unique' });
+    cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+      stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { joinMode: value || 'unique' });
     render();
   });
   onChange(container, 'resolver-coordinate-tolerance', (value) => {
     const tol = parseFloat(value);
     if (Number.isFinite(tol) && tol >= 0) {
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
       stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { coordinateTolerance: tol });
       render();
     }
@@ -184,9 +263,10 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
+  onClick(container, 'cancel-indexed-build', () => cancelIndexedBuildFromUi(stateRef,render));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
-  onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
-  onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
+  onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree', container));
+  onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace', container));
   onClick(container, 'copy-matched-facts', () => copyMatchedFactsFromUi(stateRef, render));
   onClick(container, 'run-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, false));
   onClick(container, 'save-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, true));
@@ -200,32 +280,179 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'clear-master-context', () => clearMasterContextFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   for (const kind of ['enriched', 'cii', 'diagnostics', 'manifest']) onClick(container, `download-${kind}`, () => downloadArtifact(stateRef.current, kind));
-  onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
+  onClick(container, 'clear', () => {
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
+    replaceState(stateRef, resetWorkflowState(), render);
+  });
 }
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
+export function cancelIndexedBuildFromUi(stateRef,render){
+  if(stateRef.current.resolverSourceMode!=='lfj-indexed-preview'||
+     !stateRef.current.resolverJsonTraceRunning)return false;
+  beginLatestOperation(stateRef,'resolver-build');
+  cancelIndexedBuild(stateRef);
+  stateRef.current=updateWorkflowState(stateRef.current,{
+    resolverJsonTraceRunning:false,lfjIndexedPreview:null,
+    lfjIndexedExportReceipt:null,lfjIndexedExportOptIn:false,
+    lfjIndexedPreviewStatus:'Indexed Build cancelled by user.',
+    resolverJsonTraceExportStatus:'Indexed Build cancelled; CSV downloads unavailable.',
+    resolverJsonTraceWriteBackStatus:'Indexed Build cancelled.'
+  });
+  render();
+  return true;
+}
+// The current indexed projection matches supported flat ALL source scope only.
+// A previously selected hierarchy/branch must never be silently exported as ALL.
+function unsupportedIndexedScope(state) {
+  const scope = state?.jsonTraceScopeId;
+  if (scope != null && scope !== '' && scope !== ALL_SCOPE_ID) return true;
+  const branch = state?.branchSelection;
+  if (branch == null || branch === '' || branch === ALL_SCOPE_ID) return false;
+  if (Array.isArray(branch))
+    return branch.some(id => id !== ALL_SCOPE_ID);
+  return true;
+}
+
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
-  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
+  cancelIndexedBuild(stateRef);
+  const isLatest = beginLatestOperation(stateRef, 'resolver-build');
+  // A new Build must not leave the previous CSVs authorized or on screen.
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '',
+    resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
+    resolverJsonTraceAcceptedRevision: null, lfjIndexedPreview: null,
+    lfjIndexedPreviewStatus: '', lfjIndexedExportReceipt: null,
+    lfjIndexedExportOptIn: false
+  });
   render();
-  const tx = container.querySelector('[data-field="resolver-json-config"]');
-  if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
-  const sourceText = await sourceTextFromState(stateRef.current);
-  const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
-  const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
-  const benchmark = stateRef.current.resolverJsonTraceTableResult
-    ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
-    : stateRef.current.jsonTraceTableBenchmark;
-  stateRef.current = save ?
-    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: '' }) :
-    updateWorkflowState(stateRef.current, {
-      resolverJsonTraceResult: result,
-      resolverJsonTraceJsonResult: result,
-      jsonTraceTableBenchmark: benchmark,
+  let requestedRevision = null;
+  const rejectChanged = () => {
+    if (!isLatest()) return null;
+    stateRef.current = updateWorkflowState(stateRef.current, {
       resolverJsonTraceRunning: false,
-      resolverJsonTraceExportStatus: '',
-      resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
+      resolverJsonTraceExportStatus: 'Resolver inputs changed during Build; rerun before export.'
     });
-  render();
+    render();
+    return null;
+  };
+  try {
+    // The indexed path is opt-in and PREVIEW-ONLY until a distinct product
+    // acceptance contract authorizes both CSV exports. Never treat the
+    // research handoff's downloadAuthorized:false as a product permission.
+    if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
+      if (save) throw new Error('Indexed preview cannot write engineering config');
+      if (unsupportedIndexedScope(stateRef.current))
+        throw new Error('Indexed LFJ Build supports All scopes only; selected hierarchy or branch is not implemented. Select All scopes and rebuild.');
+      const indexedConfigText = container.querySelector('[data-field="resolver-json-config"]');
+      if (indexedConfigText) {
+        try { JSON.parse(String(indexedConfigText.value || '{}')); }
+        catch { throw new Error('Resolver configuration JSON is invalid'); }
+        stateRef.current = updateResolverJsonTraceConfig(
+          stateRef.current, indexedConfigText.value);
+      }
+      const requested = currentResolverTraceRevision(stateRef.current);
+      requestedRevision = requested;
+      const input = stateRef.current;
+      if (!(input.stagedJsonFile instanceof Blob))
+        throw new Error('Select the original JSON file for indexed preview');
+      const xmlText = await sourceTextFromState(input);
+      if (!isLatest()) return null;
+      if (currentResolverTraceRevision(stateRef.current) !== requested)
+        return rejectChanged();
+      const isCurrent = () => isLatest() &&
+        currentResolverTraceRevision(stateRef.current) === requested;
+      const controller=beginIndexedBuild(stateRef);
+      let preview;
+      try{
+        preview=await buildIndexedResolverPreview({
+          blob:input.stagedJsonFile,xmlText,
+          config:input.resolverJsonTraceConfig||{},
+          isCurrent:()=>isCurrent()&&isIndexedBuildCurrent(stateRef,controller),
+          signal:controller.signal
+        });
+      }finally{
+        releaseIndexedBuild(stateRef,controller);
+      }
+      if (!isCurrent()) return rejectChanged();
+      const receipt = createIndexedExportReceipt({
+        preview, config: input.resolverJsonTraceConfig || {},
+        revision: requested, sourceFile: input.stagedJsonFile
+      });
+      stateRef.current = updateWorkflowState(stateRef.current, {
+        lfjIndexedExportReceipt: receipt, lfjIndexedExportOptIn: false,
+        lfjIndexedPreview: preview, lfjIndexedPreviewStatus:
+          'Indexed Build complete. Enable locally verified CSV downloads; downstream engineering approval remains separate.',
+        resolverJsonTraceRunning: false,
+        resolverJsonTraceExportStatus:
+          'Indexed Build source-verified. Local CSV downloads require explicit opt-in.',
+        resolverJsonTraceWriteBackStatus:
+          `Indexed preview: ${preview.xmlNodes} XML nodes, ${preview.matchedXmlNodes} matched.`
+      });
+      render();
+      return preview;
+    }
+    const tx = container.querySelector('[data-field="resolver-json-config"]');
+    if (tx) {
+      try { JSON.parse(String(tx.value || '{}')); }
+      catch { throw new Error('Resolver configuration JSON is invalid'); }
+      stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
+    }
+    requestedRevision = currentResolverTraceRevision(stateRef.current);
+    const sourceText = await sourceTextFromState(stateRef.current);
+    const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
+    if (!isLatest()) return null;
+    if (currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    if (!sourceText.trim() || !stagedJsonText.trim())
+      throw new Error('XML source and staged JSON are both required');
+    const result = runStandaloneResolverJsonTrace({
+      ...stateRef.current, sourceText, stagedJsonText,
+      jsonConfig: stateRef.current.resolverJsonTraceConfig
+    });
+    if (!isLatest()) return null;
+    if (currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    if (!result || !Array.isArray(result.traceResolutionLedger?.records))
+      throw new Error('Resolver returned no complete trace ledger');
+    const benchmark = stateRef.current.resolverJsonTraceTableResult
+      ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
+      : stateRef.current.jsonTraceTableBenchmark;
+    stateRef.current = save
+      ? updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), {
+          jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: ''
+        })
+      : updateWorkflowState(stateRef.current, {
+          resolverJsonTraceResult: result, resolverJsonTraceJsonResult: result,
+          resolverJsonTraceAcceptedRevision: requestedRevision,
+          jsonTraceTableBenchmark: benchmark, resolverJsonTraceRunning: false,
+          resolverJsonTraceExportStatus: '',
+          resolverJsonTraceWriteBackStatus:
+            `Resolver index built: ${result.resolvedFacts.length} facts processed.`
+        });
+    render();
+    return result;
+  } catch (error) {
+    if (!isLatest()) return null;
+    if (requestedRevision !== null &&
+        currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    const message = String(error?.message || 'Unknown error')
+      .replace(/\s+/g, ' ').slice(0, 240);
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceRunning: false,
+      lfjIndexedPreview: null, lfjIndexedExportReceipt: null,
+      lfjIndexedExportOptIn: false,
+      lfjIndexedPreviewStatus: `Indexed Build failed: ${message}`,
+      resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
+      resolverJsonTraceAcceptedRevision: null,
+      resolverJsonTraceExportStatus: `Resolver Build failed: ${message}`,
+      resolverJsonTraceWriteBackStatus: `Resolver Build failed: ${message}`
+    });
+    render();
+    return null;
+  }
 }
 export async function runManualElementSideloadFromUi(container, stateRef, render, save) {
   stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });
@@ -250,7 +477,70 @@ function traceResult(state) {
   return state?.resolverJsonTraceResult || state?.resolverJsonTraceJsonResult || null;
 }
 
-export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
+async function downloadIndexedVerifiedCsv(stateRef, render, kind, container) {
+  const initial = stateRef.current;
+  const revision = currentResolverTraceRevision(initial);
+  const isLatest = beginLatestOperation(stateRef, 'indexed-csv-' + kind);
+  const isCurrent = () => isLatest() &&
+    stateRef.current.resolverSourceMode === 'lfj-indexed-preview' &&
+    stateRef.current.lfjIndexedPreview === initial.lfjIndexedPreview &&
+    stateRef.current.lfjIndexedExportReceipt === initial.lfjIndexedExportReceipt &&
+    stateRef.current.lfjIndexedExportOptIn === true &&
+    stateRef.current.stagedJsonFile === initial.stagedJsonFile &&
+    stateRef.current.sourceText === initial.sourceText &&
+    !stateRef.current.resolverJsonTraceRunning &&
+    currentResolverTraceRevision(stateRef.current) === revision;
+  try {
+    const input = container?.querySelector?.('[data-field="resolver-json-config"]');
+    if (input) {
+      let parsed;
+      try { parsed = JSON.parse(String(input.value || '{}')); }
+      catch { throw new Error('Unsaved Resolver configuration JSON is invalid'); }
+      if (JSON.stringify(parsed) !== JSON.stringify(initial.resolverJsonTraceConfig))
+        throw new Error('Resolver configuration edited since Build; rebuild before CSV');
+    }
+    const result = await verifyIndexedProductCsv({
+      receipt: initial.lfjIndexedExportReceipt,
+      preview: initial.lfjIndexedPreview,
+      kind, sourceFile: initial.stagedJsonFile,
+      xmlText: initial.sourceText, config: initial.resolverJsonTraceConfig,
+      revision, optIn: initial.lfjIndexedExportOptIn, isCurrent
+    });
+    if (!isCurrent()) return null;
+    downloadTextFile(result.fileName, result.content, 'text/csv;charset=utf-8');
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceExportStatus:
+        `Locally verified ${result.rowCount} rows (${result.bytes} bytes, SHA-256 ${result.sha256}); downstream CII approval not granted.`
+    });
+    render();
+    return result;
+  } catch (error) {
+    if (!isLatest() || currentResolverTraceRevision(stateRef.current) !== revision)
+      return null;
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceExportStatus: 'Indexed CSV download blocked: ' +
+        String(error?.message || error).replace(/\s+/g, ' ').slice(0, 230)
+    });
+    render();
+    return null;
+  }
+}
+
+export function downloadResolverTraceCsvFromUi(stateRef, render, kind, container = null) {
+  if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview')
+    return downloadIndexedVerifiedCsv(stateRef, render, kind, container);
+  const state=stateRef.current;
+  if(state.resolverSourceMode === 'lfj-indexed-preview'||
+     state.resolverJsonTraceRunning||
+     state.resolverJsonTraceAcceptedRevision===null||
+     state.resolverJsonTraceAcceptedRevision===undefined||
+     state.resolverJsonTraceAcceptedRevision!==currentResolverTraceRevision(state)){
+    stateRef.current=updateWorkflowState(state,{
+      resolverJsonTraceExportStatus:'Trace CSV export blocked: Build the current source and config first.'
+    });
+    render();
+    return null;
+  }
   const result = traceResult(stateRef.current);
   const isEvidence = kind === 'evidence-tree';
   const rowCount = isEvidence ? buildEvidenceTreeRows(result).length : buildXmlNodeWiseTraceRows(result).length;
