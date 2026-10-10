@@ -96,7 +96,7 @@ try {
         traceDom+'/'+evidenceDom);
     const attempted=['node-wise-trace','evidence-tree'];
     for(const kind of attempted){
-      if(downloadResolverTraceCsvFromUi(stateRef,()=>renders++,kind)!==null)
+      if(await downloadResolverTraceCsvFromUi(stateRef,()=>renders++,kind)!==null)
         throw Error('Indexed preview silently authorized download: '+kind);
     }
     const rejected=stateRef.current.resolverJsonTraceAcceptedRevision===null &&
