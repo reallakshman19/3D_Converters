@@ -54,12 +54,15 @@ test('truncated per-query selected evidence must not assert complete master evid
 
 test('total-index overflow marks incomplete without reading whole source',async()=>{
   let read=0;
-  const answer=await materializeRegexSmartMasterContext(state(),{
+  const both=state();
+  both.regexTesterResult.branchSamples.push({branchName:'/AREA-DN100-153052/B2'});
+  const answer=await materializeRegexSmartMasterContext(both,{
     maxIndexesPerQuery:1,maxTotalIndexes:1,
-    search:async(_key,id,query)=>({datasetId:id,query,indexes:[1]}),
+    search:async(_key,id,query)=>({datasetId:id,query,indexes:[query==='11210'?1:2]}),
     getRowsByIndexes:async(...args)=>{read+=args[2].length;return shapedFetch(...args);},
   });
   assert.equal(answer.boundedEvidence.pipingClass.rowIndexCount,1);
+  assert.equal(answer.boundedEvidence.pipingClass.queryCount,2);
   assert.equal(read,1);
   assert.equal(answer.boundedEvidence.complete,false,'second distinct query is clipped by total bound');
 });
