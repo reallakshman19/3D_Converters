@@ -29,6 +29,26 @@ const choices = Object.freeze({
     sha: 'evidenceTreeCsvSha256', fileName: 'xml-cii-evidence-tree.csv'
   }
 });
+const ALL_SCOPE_ID='__ALL__';
+const exactScope=id=>id==null||id===''?ALL_SCOPE_ID:id;
+// A source-selected Worker preview carries a real source+XML+config manifest
+// SHA; a preview missing this proof is ONLY admissible as legacy ALL.
+function requireSelectionBasis(preview,scopeId){
+  const requested=exactScope(scopeId);
+  if(typeof requested!=='string'||!requested.trim())
+    throw fail('LFJ_EXPORT_SCOPE','Invalid selected original source scope');
+  const returned=preview?.selectedScopeId;
+  const digest=preview?.selectionDigestSha256;
+  if(returned===undefined){
+    if(requested!==ALL_SCOPE_ID||digest!==undefined)
+      throw fail('LFJ_EXPORT_SCOPE','Selected source lacks original Worker manifest proof');
+    return {selectedScopeId:ALL_SCOPE_ID,selectionDigestSha256:null};
+  }
+  if(returned!==requested||!hex(digest))
+    throw fail('LFJ_EXPORT_SCOPE',
+      'Original source selection differs from Worker-attested Build');
+  return {selectedScopeId:requested,selectionDigestSha256:digest};
+}
 function assertFresh(isCurrent) {
   if (typeof isCurrent !== 'function' || !isCurrent())
     throw fail('LFJ_EXPORT_STALE', 'Original source, config or Build changed during export');
@@ -36,7 +56,7 @@ function assertFresh(isCurrent) {
 
 /** Called only after an actual completed indexed Worker Build. */
 export function createIndexedExportReceipt({
-  preview, config, revision, sourceFile
+  preview, config, revision, sourceFile, selectedScopeId=undefined
 } = {}) {
   if (preview?.mode !== 'lfj-indexed-preview' ||
       preview?.status !== 'SOURCE_PINNED_PREVIEW_ONLY' ||
@@ -53,12 +73,14 @@ export function createIndexedExportReceipt({
       !(sourceFile instanceof Blob) ||
       !integer(revision) || !config || typeof config !== 'object')
     throw fail('LFJ_EXPORT_RECEIPT', 'Indexed preview is not a complete original-source result');
+  const selection=requireSelectionBasis(preview,selectedScopeId);
   return Object.freeze({
     schema:'LFJ.A3.IndexedCsvReceipt.v1', revision, sourceFile,
     originalSha256: preview.originalSha256, xmlSha256: preview.xmlSha256,
     nodeWiseCsvSha256: preview.nodeWiseCsvSha256,
     evidenceTreeCsvSha256: preview.evidenceTreeCsvSha256,
     xmlNodes: preview.xmlNodes,
+    ...selection,
     configJson: JSON.stringify(config),
     preview
   });
@@ -72,14 +94,17 @@ export function createIndexedExportReceipt({
  */
 export async function verifyIndexedProductCsv({
   receipt, preview, kind, sourceFile, xmlText, config,
-  revision, optIn, isCurrent
+  revision, optIn, isCurrent, selectedScopeId=undefined
 } = {}) {
   const choice = choices[kind];
   assertFresh(isCurrent);
+  const selection=requireSelectionBasis(preview,selectedScopeId);
   if (!choice || optIn !== true ||
       receipt?.schema !== 'LFJ.A3.IndexedCsvReceipt.v1' ||
       !Object.isFrozen(receipt) ||
       receipt?.revision !== revision ||
+      receipt?.selectedScopeId !== selection.selectedScopeId ||
+      receipt?.selectionDigestSha256 !== selection.selectionDigestSha256 ||
       receipt?.sourceFile !== sourceFile || receipt?.preview !== preview ||
       !(sourceFile instanceof Blob) ||
       typeof xmlText !== 'string' || !xmlText.trim() ||
