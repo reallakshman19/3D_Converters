@@ -1,0 +1,70 @@
+name: LFJ 141 author-only exact-head authentic original replay
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-141-authentic-replay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-frozen-source-and-goldens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify trigger and raw checkout identity before using fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD:lfj/qualification/experiments/consumer-sparse-b0-xml-match/authentic-original-output-goldens.mjs)" = 7f70e0c73bcb384b24d17afe49e2e829a07f6261
+          test "$(git hash-object Benchmarks/1885Sjson/Sjson.json)" = f3400dc9cbffa079d89ad850f0acc7a3709a21d9
+          test "$(git hash-object Benchmarks/1885Sjson/FirstpassXML)" = 9baed223d1fe10644bc4ea6be1b9e36b10eb3e1f
+          test "$(git hash-object Benchmarks/1885_NC/1885_NC.json)" = 9ac18595acdf8938f01579b5c211f0deebc5dc0a
+          test "$(git hash-object Benchmarks/1885_NC/1885_NC.topology.input.xml)" = e08eaae598bdf5b506eb8b62336086135a570986
+          test -z "$(git status --porcelain)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify immutable golden and source validation entrypoints
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/large-authentic-source-parity-oracle.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs --self-test
+      - name: Install actual Chromium only for Node22 full browser replay
+        if: matrix.node == 22
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Run frozen source/original/full CSV native ledger replay at exact HEAD
+        shell: bash
+        env:
+          ORIGINAL_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          NODE_VERSION_MATRIX: ${{ matrix.node }}
+        run: |
+          set -euo pipefail
+          if test "$NODE_VERSION_MATRIX" = 22; then
+            node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
+              --expected-head="$ORIGINAL_HEAD" --mode=all --report="$RUNNER_TEMP/lfj-141-replay-node22.json"
+          else
+            node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
+              --expected-head="$ORIGINAL_HEAD" --mode=source --report="$RUNNER_TEMP/lfj-141-replay-node24-source.json"
+            node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
+              --expected-head="$ORIGINAL_HEAD" --mode=golden --report="$RUNNER_TEMP/lfj-141-replay-node24-golden.json"
+          fi
+          test -z "$(git status --porcelain)"
+      - name: Preserve raw exact-head author replay evidence for independent #141 holder
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-141-author-replay-node${{ matrix.node }}-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: ${{ runner.temp }}/lfj-141-replay-node*.json
