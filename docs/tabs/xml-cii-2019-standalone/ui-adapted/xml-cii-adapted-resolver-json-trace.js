@@ -1,4 +1,5 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
+import { inspectIndexedSourceAdmission } from './xml-cii-adapted-lfj-size-admission.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
 import {
@@ -7,6 +8,7 @@ import {
 } from './xml-cii-adapted-resolver-scope.js';
 import {
   XML_NODE_TRACE_HEADERS,
+  EVIDENCE_TREE_HEADERS,
   buildEvidenceTreeRows,
   buildMatchedFactsRows,
   buildXmlNodeWiseTraceRows,
@@ -53,8 +55,11 @@ function sectionTitleBar(title, actions = []) {
   return bar;
 }
 
+const TABLE_DOM_PAGE_ROWS=1000;
 function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
   if (!data.length) return createElement('div', emptyText, 'xml-cii-phase-help');
+  // Keep the COMPLETE source-backed row set immutable in memory; cap only DOM
+  // rendering. Previous slice(0,1000) silently made rows 1001+ unreachable.
   const tableEl = createElement('table', '', idClass);
   if (tableEl.style) Object.assign(tableEl.style, { width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', color: '#cbd5e1', background: '#0f172a', borderRadius: '8px', overflow: 'hidden' });
   const head = createElement('thead');
@@ -66,10 +71,52 @@ function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
     hr.appendChild(th);
   }
   head.appendChild(hr);
-  tableEl.append(head, tableBody(headers, data));
-  const wrapper = createElement('div');
-  if (wrapper.style) Object.assign(wrapper.style, { maxHeight: '420px', overflow: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
-  wrapper.appendChild(tableEl);
+  tableEl.appendChild(head);
+  const scroll = createElement('div');
+  if (scroll.style) Object.assign(scroll.style, { maxHeight: '420px', overflow: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
+  scroll.appendChild(tableEl);
+  const wrapper=createElement('div');
+  const pager=createElement('div','','xml-cii-resolver-table-pager');
+  if(pager.style)Object.assign(pager.style,{
+    display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap',
+    margin:'4px 0 8px'
+  });
+  const range=createElement('span');
+  range.dataset.field='table-visible-range';
+  const prev=createElement('button','Previous');
+  prev.type='button';prev.dataset.action='table-previous-page';
+  const next=createElement('button','Next');
+  next.type='button';next.dataset.action='table-next-page';
+  pager.append(range,prev,next);
+  wrapper.append(pager,scroll);
+  let page=0,query='',filtered=data;
+  function paint(){
+    filtered=query?data.filter(item=>headers.some(header=>
+      String(item[fieldFor(header)]??'').toLowerCase().includes(query))):data;
+    const maxPage=Math.max(0,Math.ceil(filtered.length/TABLE_DOM_PAGE_ROWS)-1);
+    page=Math.min(Math.max(0,page),maxPage);
+    const begin=page*TABLE_DOM_PAGE_ROWS;
+    const end=Math.min(begin+TABLE_DOM_PAGE_ROWS,filtered.length);
+    const oldBody=tableEl.querySelector('tbody');
+    const replacement=tableBody(headers,filtered.slice(begin,end));
+    if(oldBody)oldBody.replaceWith(replacement);
+    else tableEl.appendChild(replacement);
+    range.textContent='Showing '+(filtered.length?begin+1:0)+'–'+end+
+      ' of '+filtered.length+
+      (query?' (filtered from '+data.length+' original rows)':' original rows');
+    prev.disabled=page===0;
+    next.disabled=end>=filtered.length;
+    // A page turn only changes visible DOM, never the underlying CSV rows.
+    scroll.scrollTop=0;
+  }
+  prev.addEventListener('click',()=>{if(page>0){page--;paint();}});
+  next.addEventListener('click',()=>{
+    if((page+1)*TABLE_DOM_PAGE_ROWS<filtered.length){page++;paint();}
+  });
+  wrapper.setSourceFilter=value=>{
+    query=String(value||'').toLowerCase().trim();page=0;paint();
+  };
+  paint();
   return wrapper;
 }
 
@@ -84,7 +131,7 @@ function statusStyle(value) {
 function tableBody(headers, data) {
   const body = createElement('tbody');
   let isEven = false;
-  for (const item of data.slice(0, 1000)) {
+  for (const item of data) {
     const tr = createElement('tr');
     if (tr.style) {
       Object.assign(tr.style, { borderBottom: '1px solid rgba(148, 163, 184, 0.06)', background: isEven ? 'rgba(30, 41, 59, 0.15)' : 'transparent', transition: 'background-color 0.15s ease' });
@@ -124,6 +171,16 @@ function tableBody(headers, data) {
 function fieldFor(header) {
   return {
     Path: 'path',
+    Branch: 'branch',
+    Bore: 'bore',
+    'Source Node No': 'sourceNodeNo',
+    Position: 'position',
+    'Object Type': 'objectType',
+    DTXR_POS: 'dtxrPos',
+    NAME: 'name',
+    CMPSUPGAP: 'cmpSupGap',
+    ComponentRefNo: 'componentRefNo',
+    'Source Path': 'sourcePath',
     Node: 'nodeKey',
     PS: 'psKey',
     POS: 'posKey',
@@ -220,18 +277,53 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(createElement('h3', 'Resolver Index'));
   renderResolverHierarchyScopeControl(section, stateRef, render, scopeState);
+  // Indexed LFJ is a first-class Build path, explicitly preview-only.
+  const processingMode = appendLabeledControl(section, 'JSON source processing:', createElement('select'));
+  processingMode.dataset.field = 'resolver-source-mode';
+  for (const [value, label] of [
+    ['legacy', 'Legacy JSON Build (existing exports)'],
+    ['lfj-indexed-preview', 'Indexed LFJ Worker Build — preview only']
+  ]) {
+    const option = createElement('option', label);
+    option.value = value;
+    processingMode.appendChild(option);
+  }
+  processingMode.value = state.resolverSourceMode || 'legacy';
+  if (state.resolverSourceMode === 'lfj-indexed-preview') {
+    section.appendChild(createElement('p',
+      'Indexed LFJ Build uses original JSON File bytes and source-pinned Workers. CSV downloads require explicit local opt-in and are not downstream CII engineering approval.',
+      'xml-cii-phase-help'));
+    const sizeAdmission=inspectIndexedSourceAdmission(state.stagedJsonFile);
+    section.appendChild(createElement('p',
+      sizeAdmission.message,'xml-cii-phase-help'));
+    const consent = createElement('input');
+    consent.type = 'checkbox';
+    consent.dataset.field = 'lfj-indexed-export-consent';
+    consent.checked = state.lfjIndexedExportOptIn === true;
+    consent.disabled = !state.lfjIndexedPreview || !state.lfjIndexedExportReceipt ||
+      state.resolverJsonTraceRunning;
+    appendLabeledControl(section,
+      'Enable locally verified indexed CSV downloads (experimental; not final engineering approval):',
+      consent);
+  }
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
   const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
   if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
     Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
-  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config'), createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  actions.append(buildBtn);
+  if (state.resolverSourceMode === 'lfj-indexed-preview' && state.resolverJsonTraceRunning)
+    actions.append(actionButton('cancel-indexed-build', 'Cancel indexed Build'));
+  actions.append(actionButton('save-resolver-json-config', 'Save to config',
+    state.resolverSourceMode === 'lfj-indexed-preview'),
+    createElement('span', state.resolverJsonTraceWriteBackStatus ||
+      'Resolver config not saved yet.', 'xml-cii-phase-help'));
   section.appendChild(actions);
   renderDelimiterControls(section, state);
 
   const metrics = createElement('div', '', 'xml-cii-resolver-metrics');
-  metrics.append(metric('XML nodes', stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
+  metrics.append(metric('XML nodes', state.resolverSourceMode === 'lfj-indexed-preview' ? (state.lfjIndexedPreview?.xmlNodes ?? '—') : stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')),  metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
   section.appendChild(metrics);
 
   const diagnostics = result?.diagnostics || [];
@@ -257,6 +349,25 @@ function renderJsonConfig(parent, state) {
 
 function renderTraceTreeHtml(parent, state) {
   const result = state.resolverJsonTraceResult;
+  if (state.resolverSourceMode === 'lfj-indexed-preview') {
+    const evidence = state.lfjIndexedPreview?.evidenceTreeRows || [];
+    const section = createElement('section', '', 'xml-cii-resolver-panel');
+    const verified = state.lfjIndexedExportOptIn === true &&
+      !!state.lfjIndexedExportReceipt && !state.resolverJsonTraceRunning &&
+      evidence.length > 0;
+    section.appendChild(sectionTitleBar('Indexed LFJ Evidence Preview', [
+      actionButton('download-evidence-tree-csv',
+        verified ? `⬇ Verified CSV (${evidence.length})` : 'CSV — enable verified local downloads',
+        !verified),
+    ]));
+    section.appendChild(createElement('p',
+      'Full source-backed evidence rows. Local downloads require current-source SHA and exact output SHA verification on every click; downstream CII approval is separate.',
+      'xml-cii-phase-help'));
+    section.appendChild(table(EVIDENCE_TREE_HEADERS, evidence,
+      'Run Indexed LFJ Build to display evidence rows.'));
+    parent.appendChild(section);
+    return;
+  }
   const traceRows = result?.matchedFacts || [];
   const delimiter = state.regexTesterConfig?.tokenDelimiter || '-';
   const treeData = buildAdaptedJsonTraceTree(traceRows, delimiter);
@@ -299,17 +410,27 @@ function addFilter(section, tableEl, placeholder) {
   if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
   filterInput.addEventListener('input', () => {
     const query = filterInput.value.toLowerCase().trim();
-    tableEl.querySelectorAll?.('tbody tr').forEach((tr) => { tr.style.display = !query || tr.textContent.toLowerCase().includes(query) ? '' : 'none'; });
+    if(typeof tableEl.setSourceFilter==='function')
+      tableEl.setSourceFilter(query);
+    else tableEl.querySelectorAll?.('tbody tr').forEach((tr) => {
+      tr.style.display = !query || tr.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
   });
   section.append(filterInput, tableEl);
 }
 
 function renderXmlNodeWiseTraceTable(parent, state) {
   const result = state.resolverJsonTraceResult;
-  const nodeWiseRows = buildXmlNodeWiseTraceRows(result);
+  const indexed = state.resolverSourceMode === 'lfj-indexed-preview';
+  const nodeWiseRows = indexed ? (state.lfjIndexedPreview?.nodeWiseRows || []) : buildXmlNodeWiseTraceRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(sectionTitleBar('XML Node Wise Trace', [
-    actionButton('download-node-wise-trace-csv', `⬇ CSV (${nodeWiseRows.length})`, nodeWiseRows.length === 0),
+    actionButton('download-node-wise-trace-csv',
+      indexed ? (state.lfjIndexedExportOptIn && state.lfjIndexedExportReceipt && !state.resolverJsonTraceRunning ?
+        `⬇ Verified CSV (${nodeWiseRows.length})` :
+        'CSV — enable verified local downloads') : `⬇ CSV (${nodeWiseRows.length})`,
+      nodeWiseRows.length === 0 || (indexed && (!state.lfjIndexedExportOptIn ||
+        !state.lfjIndexedExportReceipt || state.resolverJsonTraceRunning))),
   ]));
   if (!nodeWiseRows.length) {
     section.appendChild(createElement('div', 'No XML trace rows. Load source XML and staged JSON, then rebuild the resolver index.', 'xml-cii-phase-help'));
@@ -340,6 +461,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
 
   const subTabId = state.jsonTraceActiveSubTabId || 'index';
   const result = state.resolverJsonTraceResult;
+  const indexed = state.resolverSourceMode === 'lfj-indexed-preview';
   const scopeState = ensureResolverHierarchyScope(state, stateRef);
 
   const container = createElement('div', '', 'xml-cii-sub-tabs-layout');
@@ -355,8 +477,8 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   ];
   const subTabHasData = {
     tableImport: rows(state.jsonTraceTableRows).length > 0 || !!state.resolverJsonTraceTableResult,
-    tree: buildEvidenceTreeRows(result).length > 0,
-    nodeTrace: buildXmlNodeWiseTraceRows(result).length > 0,
+    tree: indexed ? (state.lfjIndexedPreview?.evidenceTreeRows?.length || 0) > 0 : buildEvidenceTreeRows(result).length > 0,
+    nodeTrace: indexed ? (state.lfjIndexedPreview?.nodeWiseRows?.length || 0) > 0 : buildXmlNodeWiseTraceRows(result).length > 0,
     matched: buildMatchedFactsRows(result).length > 0,
     rejected: rows(result?.rejectedFacts).length > 0,
   };
