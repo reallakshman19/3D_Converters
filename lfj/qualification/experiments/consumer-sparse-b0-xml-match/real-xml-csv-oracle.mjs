@@ -161,6 +161,8 @@ try{
   assert.equal(result.matching.xmlRecordsSha256,oracle.xmlRecordsSha256);
   assert.equal(result.matching.nodeWiseCsvSha256,oracle.nodeWiseCsvSha256);
   assert.equal(result.matching.evidenceTreeCsvSha256,oracle.evidenceTreeCsvSha256);
+  assert.equal(result.negatives.invalidHandoffSwitch,'INPUT_INVALID',
+    'native Worker must reject non-boolean research handoff switch');
   if(includeResearchHandoff){
     assert.equal(result.handoffVerification?.schema,
       'LFJ.B0.ResearchHandoff.v1');
