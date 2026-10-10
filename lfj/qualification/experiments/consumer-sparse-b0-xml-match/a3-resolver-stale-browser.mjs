@@ -65,12 +65,20 @@ try{
         'download-evidence-tree-csv'])
         container.querySelector('[data-action="'+action+'"]').click();
       if(captures.length!==2)throw Error('two baseline CSV exports missing');
-      const texts=await Promise.all(captures.map(blob=>blob.text()));
-      const digest=async text=>Array.from(new Uint8Array(
-        await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))))
+      // CSV exports intentionally include a UTF-8 BOM. Blob.text() strips
+      // that signature during decoding (three bytes), so compare the actual
+      // bytes a user receives, not decoded/re-encoded text.
+      const buffers=await Promise.all(captures.map(blob=>blob.arrayBuffer()));
+      const digest=async buffer=>Array.from(new Uint8Array(
+        await crypto.subtle.digest('SHA-256',buffer)))
         .map(x=>x.toString(16).padStart(2,'0')).join('');
-      const hashes=await Promise.all(texts.map(digest));
-      const bytes=texts.map(x=>new TextEncoder().encode(x).length);
+      const hashes=await Promise.all(buffers.map(digest));
+      const bytes=buffers.map(x=>x.byteLength);
+      for(const buffer of buffers){
+        const mark=Array.from(new Uint8Array(buffer).slice(0,3));
+        if(mark.join(',')!=='239,187,191')
+          throw Error('original CSV UTF-8 BOM bytes missing');
+      }
       const expected=[
         ['0d8bb4482ed4a9d0d116faeac5e68ce564f07b6bba2dd73dfc3676b72ec2eddc',57945],
         ['653485ff968bf478fa0001488432bb210a9ce6e85a901e9cc19f368f53a24809',50399]
