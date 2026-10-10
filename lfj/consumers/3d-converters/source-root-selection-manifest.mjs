@@ -96,7 +96,7 @@ export async function createOriginalToSelectedRootManifest({
     schema: SCHEMA, sourceSha256, sourceGeneration, originalSourceBytes,
     xmlSha256, configDigest, requestedScopeId,
     originalRootCount: census.length, selectedRootCount: selected.length,
-    census, selected
+    census: Object.freeze(census), selected: Object.freeze(selected)
   };
   if (!globalThis.crypto?.subtle)
     fail('SCOPE_DIGEST_UNAVAILABLE', 'native SHA-256 required for selected original manifest');
