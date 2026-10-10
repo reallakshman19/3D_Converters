@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'tests/xml-cii-issue-203-bounded-regex-authority.test.mjs'
+      - 'tests/xml-cii-issue-203-bounded-completeness-and-provenance.test.mjs'
       - 'tests/xml-cii-issue-203-source-custody.test.mjs'
       - 'tests/xml-cii-issue-203-source-index-oracle.test.mjs'
       - 'tests/fixtures/xml-cii-203-tracked-piping-class-index-oracle.json'
@@ -36,7 +37,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Distinguish full master row count from bounded evidence rows, verify fail-closed authority
-        run: node --test tests/xml-cii-issue-203-bounded-regex-authority.test.mjs tests/xml-cii-issue-203-source-custody.test.mjs tests/xml-cii-issue-203-source-index-oracle.test.mjs
+        run: node --test tests/xml-cii-issue-203-bounded-regex-authority.test.mjs tests/xml-cii-issue-203-source-custody.test.mjs tests/xml-cii-issue-203-source-index-oracle.test.mjs tests/xml-cii-issue-203-bounded-completeness-and-provenance.test.mjs
       - name: No tracked mutation
         run: test -z "$(git status --porcelain)"
   current-j02-native-chromium:
