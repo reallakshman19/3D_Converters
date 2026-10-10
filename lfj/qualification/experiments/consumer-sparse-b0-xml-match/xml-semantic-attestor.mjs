@@ -221,10 +221,23 @@ export function independentXmlSemanticView(xml){
       if(!parent||(!parent.isBranchScope&&stack.length!==1))
         invalid('unscoped branch identity field '+ctx.name);
       if(parent.isBranchScope){
-        if(parent.branchDeclared)
-          invalid('duplicate branch identity in '+parent.name+' scope');
-        parent.branchDeclared=true;
-        parent.branch=value;
+        const primary=ctx.name==='Branchname'||ctx.name==='BranchName';
+        if(primary){
+          if(parent.branchDeclared)
+            invalid('duplicate branch identity in '+parent.name+' scope');
+          parent.branchDeclared=true;
+          parent.branch=value;
+        }else{
+          // Authentic PipeStressXML includes a terminal LineNo after each
+          // Branchname and its Nodes. This is metadata, NOT a second name.
+          if(parent.auxBranchFields.has(ctx.name))
+            invalid('duplicate branch metadata '+ctx.name);
+          parent.auxBranchFields.add(ctx.name);
+          if(!parent.branchDeclared){
+            parent.branchDeclared=true;
+            parent.branch=value; // Flat older scoped formats can use LineNo.
+          }
+        }
       }else{
         // Root-flat compatibility only. A named inner Pipe/Branch must never
         // escape into this fallback after its closing tag.
@@ -287,6 +300,7 @@ export function independentXmlSemanticView(xml){
       invalid('node without branch identity inside Pipe/Branch scope');
     const ctx={raw,name,isNode:name==='Node',isBranchScope,
       branch:isBranchScope?'':b,branchDeclared:false,
+      auxBranchFields:isBranchScope?new Set():null,
       fields:{},capture:fieldNames.has(name),text:''};
     if(name!=='Node'){
       const candidate=attributeNode(name,attrs,b,attrNodes.length+1);
