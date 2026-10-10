@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {normalizeMasterRows} from '../tabs/xml-cii-2019-standalone/workers/master-dataset-normalize.js';
 
 const fixture=JSON.parse(await fs.readFile(new URL('./fixtures/xml-cii-203-tracked-piping-class-index-oracle.json',import.meta.url),'utf8'));
 const bytes=await fs.readFile(new URL('../docs/Masters/Piping_class_master.json',import.meta.url));
@@ -67,4 +68,17 @@ test('mutated raw source Piping Class field fails without modifying checked-in f
   const copy=rows.slice();
   copy[1277]={...copy[1277],'Piping Class':'FORGED'};
   assert.throws(()=>enforce(copy,fixture),/source independent full exact census/);
+});
+
+test('raw null convertedBore is explicitly canonicalized to empty only in mapped normalized Worker field',()=>{
+  const raw=rows[10678];
+  assert.equal(raw['Piping Class'],'25190');
+  assert.equal(raw.convertedBore,null,'the tracked original raw null must remain visible in the source oracle');
+  const normalized=normalizeMasterRows([raw],{pipingClass:'Piping Class',convertedBore:'convertedBore'},'pipingClass')[0];
+  assert.equal(normalized['Piping Class'],'25190');
+  assert.equal(normalized.pipingClass,'25190');
+  assert.equal(normalized.convertedBore,'','current normalizer maps null with ?? empty-string fallback');
+  assert.equal(raw.convertedBore,null,'the source row must never be rewritten by canonicalization');
+  const unMapped=normalizeMasterRows([raw],{pipingClass:'Piping Class'},'pipingClass')[0];
+  assert.equal(unMapped.convertedBore,null,'null survives only when field is not mapped');
 });
