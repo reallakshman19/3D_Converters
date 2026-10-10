@@ -145,3 +145,14 @@ jobs:
           node docs/lfj/served-durable-qualification.mjs
       - name: Verify no checked-in docs or source were mutated by rehearsal
         run: test -z "$(git status --porcelain)"
+      - name: Retain real staged-docs Chromium screenshots and Playwright trace for independent review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-p09-docs-indexed-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/a3-authored-indexed-selected-build.png
+            ${{ runner.temp }}/a3-authored-indexed-root-*.zip
+            ${{ runner.temp }}/a3-authored-indexed-root-last-*.png
