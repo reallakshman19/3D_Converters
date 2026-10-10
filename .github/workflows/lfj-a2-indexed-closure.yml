@@ -1,0 +1,38 @@
+name: LFJ A2 indexed Resolver checked-in runtime closure preflight
+on:
+  pull_request:
+    paths:
+      - 'docs/lfj/indexed-runtime-closure.mjs'
+      - 'docs/lfj/indexed-runtime-closure.test.mjs'
+      - '.github/workflows/lfj-a2-indexed-closure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  indexed-runtime-source-closure:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source scanner syntax + fail-closed fixture tests
+        run: |
+          node --check docs/lfj/indexed-runtime-closure.mjs
+          node --check docs/lfj/indexed-runtime-closure.test.mjs
+          node --test docs/lfj/indexed-runtime-closure.test.mjs
+      - name: Real repository root versus docs check-in closure
+        env:
+          LFJ_A2_CHECK_REPOSITORY: '1'
+        run: node --test docs/lfj/indexed-runtime-closure.test.mjs
+      - name: No checked-in files mutated by validation
+        run: test -z "$(git status --porcelain)"
