@@ -3,15 +3,57 @@ import {
   mkdir,
   readFile,
   readdir,
+  realpath,
   rm,
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {createHash} from 'node:crypto';
+import {evaluateClosure,requireComplete} from '../docs/lfj/indexed-runtime-closure.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const docsDir = path.join(repoRoot, 'docs');
-const tempDir = path.join(repoRoot, '.pages-docs-build-tmp');
+const requestedOutput = process.env.LFJ_PAGES_OUTPUT_DIR;
+if (requestedOutput && !path.isAbsolute(requestedOutput))
+  throw new Error('LFJ_PAGES_OUTPUT_DIR must be an absolute disposable directory');
+const docsDir = requestedOutput ? path.resolve(requestedOutput) : path.join(repoRoot, 'docs');
+if (requestedOutput) {
+  // Read the real target to reject symlink aliases of checked-in source/docs.
+  const actual = await realpath(docsDir);
+  const rel = path.relative(repoRoot, actual);
+  if (!rel || (rel !== '..' && !rel.startsWith('..'+path.sep) && !path.isAbsolute(rel)))
+    throw new Error('Refusing temporary Pages output inside the source repository');
+}
+const tempDir = path.join(path.dirname(docsDir), '.pages-docs-build-tmp');
+const indexedManifestName = '.lfj-indexed-runtime-overlay-manifest.json';
+const indexedManifestPath = path.join(docsDir, indexedManifestName);
+const sha256 = b => createHash('sha256').update(b).digest('hex');
+const indexedSources = requireComplete(await evaluateClosure({repoRoot,artifact:'root'}))
+  .files.filter(x=>x.path.startsWith('lfj/'));
+const indexedOverlay = [];
+// Validate BEFORE any generator copy/delete, including the one already
+// browser-tested V4.1 collision. Unknown divergences fail with no mutation.
+for (const entry of indexedSources) {
+  const source = await readFile(path.join(repoRoot, entry.path));
+  if (sha256(source) !== entry.sha256)
+    throw new Error('A2_INDEXED_SOURCE_CHANGED: '+entry.path);
+  let previous = null;
+  try { previous = await readFile(path.join(docsDir, entry.path)); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  let sharedException = false;
+  if (previous && sha256(previous) !== entry.sha256) {
+    const rootText = source.toString('utf8');
+    const isShared = entry.path === 'lfj/source/source-snapshot.mjs' &&
+      rootText.includes('export class Sha256 {') &&
+      previous.toString('utf8') === rootText.replace('export class Sha256 {','class Sha256 {');
+    if (!isShared)
+      throw new Error('A2_LFJ_OWNERSHIP_COLLISION: '+entry.path);
+    sharedException = true;
+  }
+  indexedOverlay.push({path:entry.path,sha256:entry.sha256,
+    ownership:entry.path==='lfj/source/source-snapshot.mjs'?
+      'V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT':'A3_INDEXED_SOURCE_MIRROR'});
+}
 const sourceDocsTemp = path.join(tempDir, 'source-docs');
 const manifestPath = path.join(docsDir, '.pages-mirror-manifest.json');
 
@@ -116,6 +158,7 @@ const sourceDocNames = docsEntries
   .filter(name =>
     name !== 'docs' &&
     name !== '.pages-mirror-manifest.json' &&
+    name !== indexedManifestName &&
     !RUNTIME_ENTRY_SET.has(name) &&
     !previousGenerated.has(name)
   );
@@ -147,6 +190,7 @@ for (const name of entriesToRemove) {
 }
 await rm(path.join(docsDir, 'docs'), { recursive: true, force: true });
 await rm(manifestPath, { force: true });
+await rm(indexedManifestPath, { force: true });
 
 // Copy runtime root files
 const copiedRootFiles = [];
@@ -182,6 +226,21 @@ for (const name of RUNTIME_ROOT_DIRECTORIES) {
   });
   copiedRootDirectories.push(name);
 }
+
+
+// Narrow A3 LFJ module import/Worker closure, NEVER the whole LFJ directory.
+// Existing V4.1 docs/lfj files remain, except the explicitly attested
+// additive Sha256 export already replayed in original V4.1 Chromium.
+for (const entry of indexedOverlay) {
+  const target = path.join(docsDir, entry.path);
+  await mkdir(path.dirname(target), {recursive:true});
+  await cp(path.join(repoRoot, entry.path), target, {force:true});
+}
+await writeFile(indexedManifestPath, JSON.stringify({
+  schema:'LFJ.A2.IndexedRuntimeOverlayManifest.v1',
+  source:'CHECKED_IN_A3_MODULE_CLOSURE_NOT_DEPLOYMENT_ATTESTATION',
+  files:indexedOverlay
+},null,2)+'\n', 'utf8');
 
 // Runtime code historically fetches "docs/..." URLs. Under a /docs Pages source,
 // those URLs map to repository docs/docs/..., so retain a nested copy of source docs.
