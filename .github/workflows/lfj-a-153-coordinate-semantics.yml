@@ -1,0 +1,78 @@
+name: LFJ A-153 strict coordinate semantic hardening
+on:
+  push:
+    branches:
+      - lfj/a-153-coordinate-semantic-hardening
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening*'
+      - '.github/workflows/lfj-a-153-coordinate-semantics.yml'
+permissions:
+  contents: read
+jobs:
+  coordinates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Assert exact source candidate
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git status --porcelain
+          node --version
+      - name: Static syntax
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening.test.mjs
+      - name: Strict coordinate boundary, author semantics and retained structural tests
+        run: |
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
+      - name: Retained XML census guard
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Original source untouched
+        run: test -z "$(git status --porcelain)"
+
+  native-worker-coordinate-negatives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert exact tested head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authentic immutable benchmark fixture paths
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-a153-http.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a153-http.log
+          exit 1
+      - name: Five real Worker invalid-coordinates must produce zero CSV results
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening.browser-negative.mjs
+      - name: No tracked files modified
+        run: test -z "$(git status --porcelain)"

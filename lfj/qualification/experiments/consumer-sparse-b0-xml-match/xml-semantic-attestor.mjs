@@ -95,13 +95,68 @@ function point(value){
   return values.length>=3&&values.slice(0,3).every(Number.isFinite)
     ? {x:values[0],y:values[1],z:values[2]}:null;
 }
+/**
+ * The shipping point extractor can infer a point from three numbers anywhere
+ * in a description. Reject correlated false coordinate interpretations at
+ * the independent source boundary; leave shipping geometry unchanged.
+ * Position/POS are explicit coordinate fields; DTXR_POS may be descriptive.
+ */
+const coordinateNumber='[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[Ee][+-]?\\d+)?';
+const coordinateSeparator='(?:\\s+|\\s*[,;]\\s*)';
+const plainCoordinates=new RegExp('^\\s*('+coordinateNumber+')'+
+  coordinateSeparator+'('+coordinateNumber+')'+coordinateSeparator+
+  '('+coordinateNumber+')\\s*$');
+const labeledCoordinates=new RegExp('(EL|E|W|N|S|U|D)\\s*[:=]?\\s*('+
+  coordinateNumber+')','gi');
+function strictCoordinatePoint(value){
+  const source=trim(value);
+  if(!source)return null;
+  const plain=source.match(plainCoordinates);
+  if(plain){
+    const [x,y,z]=plain.slice(1).map(Number);
+    return [x,y,z].every(Number.isFinite)?{x,y,z}:null;
+  }
+  const axes={},seen=new Set();
+  let cursor=0,count=0;
+  for(const match of source.matchAll(labeledCoordinates)){
+    if(!/^[\s,;]*$/.test(source.slice(cursor,match.index)))return null;
+    const value=Number(match[2]),direction=match[1].toUpperCase();
+    const axis=direction==='E'||direction==='W'?'x':
+      direction==='N'||direction==='S'?'y':'z';
+    if(!Number.isFinite(value)||seen.has(axis))return null;
+    seen.add(axis);
+    axes[axis]=['W','S','D'].includes(direction)?-value:value;
+    count++;
+    cursor=match.index+match[0].length;
+  }
+  if(count!==3||!/^[\s,;]*$/.test(source.slice(cursor))||
+     !['x','y','z'].every(axis=>seen.has(axis)))return null;
+  return axes;
+}
+function attestCoordinateValue(raw,kind,index,required){
+  if(!trim(raw))return null;
+  const precise=strictCoordinatePoint(raw);
+  const legacy=point(raw);
+  if(!precise){
+    if(required||legacy)
+      invalid('ambiguous coordinate at XML occurrence '+index+' field '+kind);
+    return null;
+  }
+  if(!legacy||['x','y','z'].some(axis=>
+    Math.abs(precise[axis]-legacy[axis])>1e-9))
+    invalid('coordinate differs from Resolver at XML occurrence '+index+' field '+kind);
+  return precise;
+}
 function first(attrs,keys){
   for(const key of keys)if(trim(attrs[key]))return trim(attrs[key]);
   return '';
 }
 function node(fields,branch,index){
-  const pos=first(fields,['Position','DTXR_POS','DtxrPos']);
-  const number=trim(fields.NodeNumber),p=point(pos);
+  const directPosition=first(fields,['Position']);
+  const pos=directPosition||first(fields,['DTXR_POS','DtxrPos']);
+  const number=trim(fields.NodeNumber);
+  const p=attestCoordinateValue(pos,directPosition?'Position':'DTXR_POS',
+    index,!!directPosition);
   return {xmlIndex:index,tagName:'Node',attrs:{},
     nodeKeys:number?[number]:[],xmlNodeNumber:number,
     xmlNodeName:trim(fields.NodeName),componentType:trim(fields.ComponentType),
@@ -115,9 +170,17 @@ function attributeNode(name,attrs,branch,index){
   const pos=first(attrs,['DTXR_POS','POS','Pos','position','Position']);
   const xyz=attrs.X!==undefined&&attrs.Y!==undefined&&attrs.Z!==undefined
     ?point([attrs.X,attrs.Y,attrs.Z]):null;
-  const p=point(pos)||xyz;
   const ps=first(attrs,['DTXR_PS','PS','Ps','supportPs','psNo']);
-  if(!keys.length&&!pos&&!p&&!ps)return null;
+  if(!keys.length&&!pos&&!xyz&&!ps)return null;
+  const directPos=first(attrs,['POS','Pos','position','Position']);
+  const strictPos=attestCoordinateValue(pos,directPos?'Position':'DTXR_POS',
+    index,!!directPos);
+  const hasXyz=['X','Y','Z'].some(key=>Object.hasOwn(attrs,key));
+  if(hasXyz&&(!['X','Y','Z'].every(key=>Object.hasOwn(attrs,key))||
+       !['X','Y','Z'].every(key=>new RegExp('^'+coordinateNumber+'$')
+         .test(trim(attrs[key])))))
+    invalid('invalid X/Y/Z attributes at XML occurrence '+index);
+  const p=strictPos||xyz;
   const b=first(attrs,['LINE_ID','BRANCH','Branchname','PIPELINE_REF','LINE_NO'])||branch;
   return {xmlIndex:index,tagName:name,attrs,nodeKeys:keys,
     xmlNodeNumber:keys[0]||'',xmlNodeName:ps,
