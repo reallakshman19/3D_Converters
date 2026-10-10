@@ -30,6 +30,11 @@ export async function scanOriginalFileScopes(blob){
   // Reuse the product's existing 32MiB original File admission.
   if(blob.size>32*1024*1024)
     fail('SCOPE_SOURCE_OVERSIZE','original File exceeds the indexed product capacity');
+  // A DedicatedWorker has no window, which would otherwise trigger the
+  // Node-only fallback in the shared custody helper. Native browser scope
+  // discovery MUST have Web Locks before any durable IDB catalogue write.
+  if(!globalThis.navigator?.locks?.request)
+    fail('SCOPE_LOCKS_REQUIRED','native Worker Web Locks required for original source custody');
   const id=crypto.randomUUID();
   const [sourceDatabaseName,projectionDatabaseName]=indexedGenerationNames(id);
   return withIndexedGenerationCustody(id,async()=>{
