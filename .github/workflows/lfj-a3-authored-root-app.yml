@@ -1,0 +1,62 @@
+name: LFJ A3 actual authored root selected source and both CSV downloads
+on:
+  pull_request:
+    paths:
+      - 'lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs'
+      - '.github/workflows/lfj-a3-authored-root-app.yml'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-trace-export.js'
+      - 'index.html'
+      - 'main-rhbg-fitguard.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authored-root-original-selected-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact candidate HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check authored acceptance source syntax and original inputs
+        run: |
+          node --check lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-scope-discovery.worker.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          test -s Benchmarks/1885Sjson/Sjson.json
+          test -s Benchmarks/1885Sjson/FirstpassXML
+          test -s index.html
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual source worktree and original fixture files
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"$RUNNER_TEMP/lfj-a3-root-http.log" 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/lfj-a3-root-http.log"
+          exit 1
+      - name: Real authored root /index.html selected indexed Worker, actual two browser CSV downloads
+        run: node lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs
+      - name: Publish exact-head trace and UI screenshot for reproducibility
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a3-authored-root-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/a3-authored-indexed-root-*.zip
+            ${{ runner.temp }}/a3-authored-indexed-selected-build.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Verify source checkout unmodified
+        run: test -z "$(git status --porcelain)"
