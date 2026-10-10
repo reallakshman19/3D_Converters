@@ -1,0 +1,91 @@
+{
+  "schema": "LFJ.A2.IndexedRuntimeOverlayManifest.v1",
+  "source": "CHECKED_IN_A3_MODULE_CLOSURE_NOT_DEPLOYMENT_ATTESTATION",
+  "files": [
+    {
+      "path": "lfj/consumers/3d-converters/selected-source-matching-view.mjs",
+      "sha256": "6325408b562daf8c6bc5c3a9511329e83f05d0db7c7ff078ec4168d46d9b7f34",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/consumers/3d-converters/source-root-selection-manifest.mjs",
+      "sha256": "72eb1516ae85eb18ee0875647af57b97d3793ac73a7361da98652d9607fe77a8",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/consumers/3d-converters/verified-source-root-reader.mjs",
+      "sha256": "246f43febd9d36ae36ec4e9f897d677bcc6a0bd35fc7e854c66c82acd0718b2f",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs",
+      "sha256": "118578d52b0361dfbeefaa6c2f8029cabb70bdf5b181e045003252ec688afecf",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.mjs",
+      "sha256": "d487a6aaacd45e2aabc51d19fecfc5d65c0b5ddaa26c0200eaeba1f676ac3fb2",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/projection.worker.mjs",
+      "sha256": "77b750768d90738aefe445687834578f24ec683d5f4dce04b6c265876fe0cfe6",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-query/paged-query.mjs",
+      "sha256": "cf84d833b335b5df62f405a1551cc94f5042abcd742068d65de4132cccb5d42b",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs",
+      "sha256": "41aa3bf1d12100382e163aaf90078e222ebf06428539bd352cee5c76af735f23",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs",
+      "sha256": "dc6dd11b09d97a3499f10b3aa356eadb8341e35513f0e11133dd2feb3ae54318",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.mjs",
+      "sha256": "457848edec7f56ef96876028e0c0f2d6a8fca905d36921cec4a21e30c98800b0",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.mjs",
+      "sha256": "b64933f9c0c7ee4b1932987d6a4fa0bb49af0dca58c9596ff27fc15b727d3752",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.mjs",
+      "sha256": "1f437eb2501e431b79e870bd51f7ffa589fbbfb268f45182df33d2549edc1178",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs",
+      "sha256": "fcda3537f092e57f1c9788ee3c3ed6c60e4b5a7cbe07cf7487c859f63fef9f24",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs",
+      "sha256": "f81477730d98a8b5c7081fa1c62eaf2a4da1063b8b9417ebd07ab80f7fabd5e1",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs",
+      "sha256": "cbc21b18b2dd4cc9fb34a3084597ceeef50c6c73b58e0c4ce5d7e9af70f61ca6",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/source/source-snapshot.mjs",
+      "sha256": "e5f224f2e5639359ca376258cee81681dcc71db5d62edcc526633818c5524058",
+      "ownership": "V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT"
+    },
+    {
+      "path": "lfj/tokenizer/json-tokenizer.mjs",
+      "sha256": "f15c383ceed78a351444c504fde39fd70a300cc585b496d44efb8aa07b867fbd",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    }
+  ]
+}
