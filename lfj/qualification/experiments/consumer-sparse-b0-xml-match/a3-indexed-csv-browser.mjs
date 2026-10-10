@@ -310,6 +310,55 @@ try{
         if(captures.length!==4)
           throw Error('Stale selected source scope exported after revocation');
       }finally{scopePanel.remove();}
+      // T07 SOURCE_DERIVED_PAGINATION_CONTROL: UI-only 3429-row full
+      // census; NOT a fabricated original Worker golden. The preceding
+      // native source Build and real two CSV byte hashes remain authoritative.
+      const pageControl=Array.from({length:3429},(_,i)=>({
+        xmlNode:String(i+1),status:'UNRESOLVED',
+        xmlBranch:'Synthetic pagination control '+(i+1)
+      }));
+      const evidenceControl=Array.from({length:3429},(_,i)=>({
+        branch:'Branch '+(i+1),sourcePath:'$['+i+'].children[0]',
+        path:'$['+i+'].children[0]',
+        sourceNodeNo:String(i+1)
+      }));
+      const pageState={...ref.current,resolverSourceMode:'lfj-indexed-preview',
+        lfjIndexedPreview:{nodeWiseRows:pageControl,
+          evidenceTreeRows:evidenceControl},
+        lfjIndexedExportReceipt:null,lfjIndexedExportOptIn:false,
+        resolverJsonTraceRunning:false};
+      const uiPage=document.createElement('div');
+      const allPages=(tab,tableClass,leaf)=>{
+        uiPage.replaceChildren();
+        renderStandaloneResolverJsonTracePanel(uiPage,
+          {...pageState,jsonTraceActiveSubTabId:tab},ref,()=>{});
+        const sel='.'+tableClass+' tbody tr';
+        if(uiPage.querySelectorAll(sel).length!==1000)
+          throw Error('Source-backed table did not show first bounded page '+tab);
+        const visible=uiPage.querySelector('[data-field="table-visible-range"]');
+        if(!visible?.textContent.includes('1–1000 of 3429'))
+          throw Error('Missing complete census range '+String(visible?.textContent));
+        const next=uiPage.querySelector('[data-action="table-next-page"]');
+        if(!next)throw Error('Missing UI next-page control');
+        next.click();next.click();next.click();
+        if(uiPage.querySelectorAll(sel).length!==429||
+           !visible.textContent.includes('3001–3429 of 3429')||
+           !uiPage.querySelector(sel+':last-child')?.textContent.includes(leaf))
+          throw Error('Final original display row is inaccessible '+tab);
+        if(!next.disabled)throw Error('Last page should disable Next');
+        const previous=uiPage.querySelector('[data-action="table-previous-page"]');
+        previous.click();
+        if(!visible.textContent.includes('2001–3000 of 3429'))
+          throw Error('Previous navigation lost original ordinal window');
+      };
+      allPages('nodeTrace','xml-cii-node-wise-table','3429');
+      const filter=uiPage.querySelector('input[placeholder*="Filter node trace"]');
+      filter.value='3429';filter.dispatchEvent(new Event('input',{bubbles:true}));
+      if(uiPage.querySelectorAll('.xml-cii-node-wise-table tbody tr').length!==1||
+         !uiPage.querySelector('[data-field="table-visible-range"]')
+           ?.textContent.includes('filtered from 3429'))
+        throw Error('T07 filter did not search all original 3429 rows');
+      allPages('tree','xml-cii-resolver-table','3429');
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
