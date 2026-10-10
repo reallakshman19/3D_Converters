@@ -6,6 +6,7 @@
  */
 import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
 import {generateAttestedResearchCsv} from './xml-csv-serializer-boundary.mjs';
+import {assertResearchHandoffPayloadBytes} from './xml-research-handoff-budget.mjs';
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
 import {normalizedResolverProjectionFact} from
   '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
@@ -249,9 +250,9 @@ export async function compareSourceProjectionToXml({
         fail('RESEARCH_HANDOFF_CENSUS','attested trace table is incomplete');
       // An opt-in Worker postMessage duplicates this data. Bound the transfer
       // until a product-owned content-addressed IndexedDB handle is proven.
-      const payloadBytes=new TextEncoder().encode(
-        nodeCsv+evidenceCsv+JSON.stringify(nodeWiseRows)+
-        JSON.stringify(evidenceTreeRows)).length;
+      const payloadBytes=assertResearchHandoffPayloadBytes({
+        nodeCsv,evidenceCsv,nodeWiseRows,evidenceTreeRows
+      });
       if(payloadBytes>8*1024*1024)
         fail('RESEARCH_HANDOFF_TOO_LARGE',
           'research-only inline result exceeds the bounded transfer budget');
