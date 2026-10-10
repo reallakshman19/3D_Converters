@@ -1,0 +1,75 @@
+name: LFJ H02 XML branch scope hardening
+on:
+  push:
+    branches:
+      - lfj/a-h02-branch-identity-hardening
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.test.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening*'
+      - '.github/workflows/lfj-h02-branch-scope.yml'
+permissions:
+  contents: read
+jobs:
+  node-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source head and engine
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --version
+      - name: Syntax and both new/retained XML semantics suites
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Tracked source untouched
+        run: test -z "$(git status --porcelain)"
+  native-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify raw head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start readonly authentic fixture web server
+        shell: bash
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 > /tmp/lfj-h02-http.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-h02-http.log
+          exit 1
+      - name: Six authentic original-JSON branch negatives must fail before CSV
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening.browser-negative.mjs
+      - name: Tracked source untouched
+        run: test -z "$(git status --porcelain)"

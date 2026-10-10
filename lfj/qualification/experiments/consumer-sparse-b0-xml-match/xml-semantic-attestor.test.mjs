@@ -76,11 +76,15 @@ test('malformed and unsupported XML forms fail closed',()=>{
 test('valid namespace, branch scoping, numeric entities and optional aliases',()=>{
   const xml='<R xmlns="urn:example"><Branch><Branchname>A</Branchname>'+
     '<Node><NodeNumber>10</NodeNumber><NodeName>PS10</NodeName></Node></Branch>'+
-    '<Branch><Node><NodeNumber>&#50;0</NodeNumber></Node></Branch></R>';
+    '<Branch><Branchname>B</Branchname>'+
+    '<Node><NodeNumber>&#50;0</NodeNumber></Node></Branch></R>';
   const view=independentXmlSemanticView(xml);
   assert.equal(view[0].xmlBranch,'A');
-  assert.equal(view[1].xmlBranch,'');
+  assert.equal(view[1].xmlBranch,'B');
   assert.equal(view[1].xmlNodeNumber,'20');
+  assert.throws(()=>independentXmlSemanticView(xml.replace(
+    '<Branchname>B</Branchname>','')),
+    {code:'XML_SEMANTIC_DOCUMENT_INVALID'});
   const n=structuredClone(view[0]),r=rows([n])[0];
   delete r.posPoint;delete r.posKey;
   const single='<R><Node><NodeNumber>10</NodeNumber></Node></R>';
