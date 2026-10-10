@@ -113,7 +113,8 @@ jobs:
           node scripts/check-xml-cii-issue-203-native-replay.mjs --compare ValidationRecords/replays/c05-p11-replay-node-22/c05-p11-replay-summary.json ValidationRecords/replays/c05-p11-replay-node-24/c05-p11-replay-summary.json ValidationRecords/c05-p11-node22-node24-parity.json
       - name: Record cross-Node exact checkout
         if: always()
-        run: echo 'C05 P11/P13 cross-Node replay HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo 'C05 P11/P13 cross-Node replay HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
       - name: Upload checked native browser parity proof
         if: always()
         uses: actions/upload-artifact@v4
