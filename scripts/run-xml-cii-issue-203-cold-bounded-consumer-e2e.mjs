@@ -91,22 +91,34 @@ try{
     // Build an observed positive query from the actual cold-hydrated IndexedDB source,
     // never from synthetic stubbed workers or a hardcoded nonmatching class.
     const preview=context.previewRows.pipingClass||[];
-    const candidates=new Set(['100','150','200','300','304','316','400','500','91261M7']);
+    const candidates=new Set();
     for(const row of preview)for(const value of Object.values(row||{})){
       for(const match of String(value??'').toUpperCase().matchAll(/[A-Z0-9]*\d{3,}[A-Z0-9]*/g)){
         if(match[0].length<=24)candidates.add(match[0]);
       }
     }
-    let positive=null,probes=0;
-    for(const token of candidates){
-      if(probes++>=100)break;
+    // A genuinely selected source-specific token is preferable to the previous
+    // broad "100" probe: rank observed source tokens by specificity, verify
+    // returned normalized source cells, and require the source-indexed row match.
+    const ranked=[...candidates].sort((a,b)=>b.length-a.length||a.localeCompare(b));
+    const queryCandidates=[...ranked,'91261M7','100','150','200'];
+    let positive=null,fallback=null,probes=0;
+    for(const token of [...new Set(queryCandidates)]){
+      if(probes++>=90)break;
       const result=await runtime.searchMasterDatasetRows('pipingClass',refs.pipingClass.datasetId,token);
-      if(Array.isArray(result?.indexes)&&result.indexes.length){
-        positive={token,indexes:result.indexes.slice(0,12)};
-        break;
-      }
+      if(!Array.isArray(result?.indexes)||!result.indexes.length)continue;
+      const first=await runtime.getMasterDatasetRowsByIndexes(
+        'pipingClass',refs.pipingClass.datasetId,[result.indexes[0]],refs.pipingClass);
+      const firstRow=first?.rows?.[0];
+      if(!firstRow||!JSON.stringify(firstRow).toUpperCase().includes(token))continue;
+      const trial={token,indexes:result.indexes.slice(0,12),
+        matchingMasterRows:Number(result.matchCount??result.indexes.length),
+        derivedFromSourcePreview:candidates.has(token)};
+      if(!fallback)fallback=trial;
+      if(trial.matchingMasterRows<=12&&trial.derivedFromSourcePreview){positive=trial;break;}
     }
-    ensure(positive,'No positive numeric class query found within the actual 10,699-row test master; fixture-positive evidence BLOCKED');
+    positive ||= fallback;
+    ensure(positive,'No source-consistent query found within the actual 10,699-row test master; current consumer BLOCKED');
 
     const sample={branchName:'/AREA-DN100-'+positive.token+'/B1'};
     const sampleState={...stateRef.current,regexTesterConfig:{activeFormatIndex:0,formats:[{tokenDelimiter:'-'}]},
@@ -134,11 +146,21 @@ try{
       'pipingClass',refs.pipingClass.datasetId,seenFetch[0],refs.pipingClass);
     ensure(JSON.stringify(bounded.masterContext.pipingClassRows)===JSON.stringify(independent.rows),
       'bounded evidence rows do not match separately queried Worker indexed originals');
+    ensure(independent.rows.some(row=>JSON.stringify(row).toUpperCase().includes(positive.token)),
+      'selected positive search query not represented by any original normalized source row');
+    const matchingSourceFields=[...new Set(independent.rows.flatMap(row=>Object.entries(row||{})
+      .filter(([,value])=>String(value??'').toUpperCase().includes(positive.token))
+      .map(([key])=>key)))];
     ensure(bounded.evidenceBasis.includes(refs.pipingClass.datasetId),'evidence not bound to source dataset');
     ensure(bounded.evidenceBasis.includes('"mappingRevision":'+context.appliedMappingRevision.pipingClass),
       'evidence lost source mapping revision');
     ensure(context.pipingClassRows.length===0,'bounded consumer retained complete Piping Class rows');
 
+    const deliberateAbsentToken='C05_203_NONEXISTENT_NOMATCH_999999999999';
+    const absent=await runtime.searchMasterDatasetRows(
+      'pipingClass',refs.pipingClass.datasetId,deliberateAbsentToken);
+    ensure(Array.isArray(absent?.indexes)&&absent.indexes.length===0,
+      'absent query unexpectedly returned Piping Class Worker evidence');
     const wrongRevision=await reject(
       ()=>runtime.getMasterDatasetRowsByIndexes('pipingClass',refs.pipingClass.datasetId,[seenFetch[0][0]],
         {...refs.pipingClass,datasetRevision:refs.pipingClass.datasetRevision+1}),
@@ -150,6 +172,11 @@ try{
       ()=>runtime.getMasterDatasetRowsByIndexes('weight',refs.weight.datasetId,[0],
         {...refs.weight,masterFingerprint:'wrong-fingerprint-c05-203'}),
       /Dataset fingerprint mismatch for weight/i,'Weight fingerprint substitution');
+    const nonWeightRank=await reject(
+      ()=>runtime.rankMasterDatasetWeightIssues('weight',refs.materialMap.datasetId,[],
+        {weight:{masterFingerprint:refs.weight.masterFingerprint}},
+        {ratingMode:'preview',previewRatingSnapshot:{}}),
+      /Weight Match requires a weight dataset/i,'non-Weight dataset passed to Weight Rank');
 
     const compactWeight=await weightModule.weightMatchConfigFromState(stateRef.current,{
       materializeRows:async()=>{throw Error('unexpected Weight compatibility reimport');},
@@ -166,10 +193,15 @@ try{
         [key,{datasetId:ref.datasetId,datasetRevision:ref.datasetRevision,rowCount:ref.rowCount}])),
       noSamples:{evidenceRows:empty.pipingClassRowCount,masterRowCount:refs.pipingClass.rowCount,
         complete:empty.boundedEvidence.complete},
-      positive:{token:positive.token,queryProbeCount:probes,selectedSourceSample:sample.branchName,
+      positive:{token:positive.token,queryProbeCount:probes,
+        derivedFromSourcePreview:positive.derivedFromSourcePreview,
+        matchingMasterRows:positive.matchingMasterRows,
+        matchedNormalizedSourceFields:matchingSourceFields,
+        selectedSourceSample:sample.branchName,
         actualQueries:seenSearch,indexes:seenFetch[0],rowCount:bounded.pipingClassRowCount,
-        fullMasterRowCount:refs.pipingClass.rowCount},
-      negatives:{wrongRevision,crossMaster,weightFingerprint},
+        fullMasterRowCount:refs.pipingClass.rowCount,sourceRowContainsQuery:true},
+      negatives:{wrongRevision,crossMaster,weightFingerprint,nonWeightRank,
+        deliberateAbsentToken,absentQueryNoMatches:true},
       genericFullRowConsumerSeparate:true,compactWeightNoFullRows:true,
       noSecondOriginalSourceFetch:true,appliedRevisionsUnchanged:true,
       browserProducer:'NATIVE_CHROMIUM_WORKER_INDEXEDDB_COLD_RELOAD',
