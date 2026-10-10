@@ -69,7 +69,7 @@ test('C05.4.2 Valve Weight commit retains datasetRevision without changing finge
   }
 });
 
-test('C05.4.2 deliberately leaves weight cold datasetRevision RED for #857', async () => {
+test('C05.4.2 successor cold hydration preserves Weight revision and independent fingerprint/masterRevision authority', async () => {
   const storage = installStorage({
     'xml-cii-master-source-weight': JSON.stringify({
       source: 'wtValveweights.json',
@@ -102,7 +102,14 @@ test('C05.4.2 deliberately leaves weight cold datasetRevision RED for #857', asy
     }), true);
 
     const ref = stateRef.current.masterContext.datasetRefs.weight;
-    assert.equal(ref.datasetRevision, undefined);
+    // C05.4.3 was implemented after this historical RED milestone. The
+    // complete pipeline must retain its row-version authority at cold start.
+    assert.equal(ref.datasetRevision, 5);
+    assert.equal(ref.datasetId, 'issue856:wt:r5');
+    assert.equal(ref.rowCount, 1);
+    assert.equal(ref.persistence, 'indexeddb');
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.weight, undefined);
+    assert.deepEqual(stateRef.current.masterContext.weightMasterRows || [], []);
     assert.equal(ref.masterFingerprint, 'fp-856');
     assert.equal(stateRef.current.masterContext.appliedMappingRevision.weight, 11);
     assert.equal(stateRef.current.masterContext.config.weight.masterRevision, 11);
