@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs'
       - 'tests/xml-cii-issue-203-native-bounded-evidence.test.mjs'
+      - 'tests/xml-cii-issue-203-native-replay-consistency.test.mjs'
+      - 'scripts/check-xml-cii-issue-203-native-replay.mjs'
       - '.github/workflows/lfj-c05-p07-native-positive-indexed-readiness.yml'
   workflow_dispatch:
 
@@ -30,7 +32,7 @@ jobs:
           node-version: '${{ matrix.node }}'
       - name: Test bounded query planning, duplicate/index caps and source integrity
         run: |
-          node --test tests/xml-cii-issue-203-native-bounded-evidence.test.mjs tests/xml-cii-issue-893-consumer-authority.test.mjs tests/xml-cii-issue-883-restore-failure-identity.test.mjs
+          node --test tests/xml-cii-issue-203-native-bounded-evidence.test.mjs tests/xml-cii-issue-203-native-replay-consistency.test.mjs tests/xml-cii-issue-893-consumer-authority.test.mjs tests/xml-cii-issue-883-restore-failure-identity.test.mjs
       - name: Record exact contract checkout
         if: always()
         run: |
@@ -39,6 +41,58 @@ jobs:
   actual-chromium-indexed-rows:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node }}'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start checked-out source static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/c05-p11-http.log 2>&1 &
+      - name: Fresh Chromium process A with real native indexed rows
+        env:
+          XML_CII_ISSUE_893_OUTPUT: ValidationRecords/c05-p11-replay-A.json
+        run: node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
+      - name: Independent Chromium process B with new import IDs
+        env:
+          XML_CII_ISSUE_893_OUTPUT: ValidationRecords/c05-p11-replay-B.json
+        run: node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
+      - name: Assert stable positive SHA256 across both native processes
+        run: |
+          node scripts/check-xml-cii-issue-203-native-replay.mjs ValidationRecords/c05-p11-replay-A.json ValidationRecords/c05-p11-replay-B.json ValidationRecords/c05-p11-replay-summary.json
+      - name: Record exact source checkout and fixture bytes
+        if: always()
+        run: |
+          echo 'C05 P11 native Chromium Node ${{ matrix.node }} HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
+          sha256sum docs/Masters/Piping_class_master.json >> "$GITHUB_STEP_SUMMARY"
+          for f in ValidationRecords/c05-p11-replay-*.json; do if test -f "$f"; then sha256sum "$f" >> "$GITHUB_STEP_SUMMARY"; fi; done
+      - name: Upload two native Chromium session receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c05-p11-replay-node-${{ matrix.node }}
+          path: |
+            ValidationRecords/c05-p11-replay-A.json
+            ValidationRecords/c05-p11-replay-B.json
+            ValidationRecords/c05-p11-replay-summary.json
+          if-no-files-found: error
+          retention-days: 14
+
+  compare-node-22-24-native-replays:
+    needs: actual-chromium-indexed-rows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@v4
@@ -48,28 +102,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright Chromium
+      - name: Download Node22 and Node24 browser artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: c05-p11-replay-node-*
+          path: ValidationRecords/replays
+          merge-multiple: false
+      - name: Require cross-Node positive row SHA256 and source parity
         run: |
-          npm install --no-save --ignore-scripts playwright@1.52.0
-          npx playwright install --with-deps chromium
-      - name: Start checked-out source static server
-        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/c05-p07-http.log 2>&1 &
-      - name: Require actual native Worker positive IndexedDB row retrieval
-        run: |
-          node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
-          node --input-type=module -e 'import fs from "node:fs"; const r = JSON.parse(fs.readFileSync("ValidationRecords/xml-cii-issue-893-consumer-authority.json", "utf8")); if (!r.ok || r.consumers.positiveIndexedRowCount < 1 || r.consumers.regexIndexedRowFetches < 1 || r.assertions.nativeWorkerIndexedRowRetrievalObserved !== true || r.assertions.indexedWrongMasterFailsClosed !== true || r.assertions.indexedStaleRevisionFailsClosed !== true || r.assertions.indexedWeightFingerprintFailsClosed !== true) process.exit(1); console.log(JSON.stringify({positiveIndexedRowCount:r.consumers.positiveIndexedRowCount,positiveToken:r.consumers.positiveSourceToken,actualWorkerMatches:r.consumers.positiveWorkerMatchCount,indexes:r.consumers.positiveIndexedRowIndexes,assertions:r.assertions},null,2));'
-      - name: Record exact browser checkout
+          node scripts/check-xml-cii-issue-203-native-replay.mjs --compare ValidationRecords/replays/c05-p11-replay-node-22/c05-p11-replay-summary.json ValidationRecords/replays/c05-p11-replay-node-24/c05-p11-replay-summary.json ValidationRecords/c05-p11-node22-node24-parity.json
+      - name: Record cross-Node exact checkout
         if: always()
-        run: |
-          echo 'C05 P07/P08 native Chromium source HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
-          if test -f ValidationRecords/xml-cii-issue-893-consumer-authority.json; then sha256sum ValidationRecords/xml-cii-issue-893-consumer-authority.json >> "$GITHUB_STEP_SUMMARY"; else echo 'No positive browser receipt produced' >> "$GITHUB_STEP_SUMMARY"; fi
-      - name: Upload positive native browser receipt
+        run: echo 'C05 P11/P13 cross-Node replay HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload checked native browser parity proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: c05-p07-actual-positive-indexed-rows
-          path: |
-            ValidationRecords/xml-cii-issue-893-consumer-authority.json
-            /tmp/c05-p07-http.log
+          name: c05-p11-node22-24-parity
+          path: ValidationRecords/c05-p11-node22-node24-parity.json
           if-no-files-found: error
           retention-days: 14
