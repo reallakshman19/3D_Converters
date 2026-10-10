@@ -50,9 +50,11 @@ try{
     let held=null,terminated=0,created=0;
     const wait=async(predicate,label,ms=20000)=>{
       const until=performance.now()+ms;
-      while(!predicate()&&performance.now()<until)
+      while(performance.now()<until){
+        if(await predicate())return;
         await new Promise(r=>setTimeout(r,20));
-      if(!predicate())throw Error('Timed out: '+label);
+      }
+      if(!await predicate())throw Error('Timed out: '+label);
     };
     const idleDb=async()=>{
       const existing=await indexedDB.databases();
