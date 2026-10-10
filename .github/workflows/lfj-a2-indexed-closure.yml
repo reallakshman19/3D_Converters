@@ -96,5 +96,18 @@ jobs:
           exit 1
       - name: Real original File to native three Workers and consented two CSV clicks
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: Serve SAME disposable candidate for retained V4.1 Worker/IDB oracles
+        run: |
+          python3 -m http.server 4182 --bind 127.0.0.1 --directory "$RUNNER_TEMP/lfj-a2-disposable-site" >/tmp/lfj-a2-v41-stage.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4182/lfj/served-worker-qualification.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-a2-v41-stage.log
+          exit 1
+      - name: V4.1 genuine legacy Worker plus reopened committed IndexedDB, same staged collision
+        run: |
+          node docs/lfj/served-worker-qualification.mjs
+          node docs/lfj/served-durable-qualification.mjs
       - name: Verify no checked-in docs or source were mutated by rehearsal
         run: test -z "$(git status --porcelain)"
