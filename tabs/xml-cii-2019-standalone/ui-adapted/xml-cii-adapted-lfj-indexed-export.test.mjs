@@ -203,3 +203,66 @@ test('invalid unsaved config prevents even the first indexed download',async()=>
     assert.match(ref.current.resolverJsonTraceExportStatus,/blocked/);
   }finally{URL.createObjectURL=oldUrl;}
 });
+
+test('T06 cryptographic selection identity binds both local CSV receipts and each click',async()=>{
+  const f=await fixture();
+  const preview={...f.preview,
+    selectedScopeId:'A3-ZONE-A',selectionDigestSha256:'a'.repeat(64)};
+  const receipt=createIndexedExportReceipt({
+    preview,config:f.config,revision:f.revision,sourceFile:f.sourceFile,
+    selectedScopeId:'A3-ZONE-A'
+  });
+  assert.equal(receipt.selectedScopeId,'A3-ZONE-A');
+  assert.equal(receipt.selectionDigestSha256,'a'.repeat(64));
+  for(const [kind,expected] of [
+    ['node-wise-trace',f.nodeCsv],['evidence-tree',f.evidenceCsv]
+  ]){
+    const verified=await verifyIndexedProductCsv({
+      ...args(f,kind),preview,receipt,selectedScopeId:'A3-ZONE-A'
+    });
+    assert.equal(verified.content,expected);
+    assert.equal(verified.downstreamEngineeringAuthorized,false);
+  }
+  for(const patch of [
+    {selectedScopeId:'A3-ZONE-B'},
+    {selectedScopeId:'__ALL__'},
+    {preview:{...preview,selectedScopeId:'A3-ZONE-B'}},
+    {preview:{...preview,selectionDigestSha256:'b'.repeat(64)}},
+    {preview:{...preview,selectionDigestSha256:'not-a-hash'}},
+    {receipt:{...receipt,selectionDigestSha256:'b'.repeat(64)}}
+  ]){
+    await assert.rejects(verifyIndexedProductCsv({
+      ...args(f),preview,receipt,selectedScopeId:'A3-ZONE-A',...patch
+    }),e=>/^LFJ_EXPORT_/.test(e?.code));
+  }
+  assert.throws(()=>createIndexedExportReceipt({
+    preview,config:f.config,revision:f.revision,sourceFile:f.sourceFile
+  }),e=>e.code==='LFJ_EXPORT_SCOPE');
+  assert.throws(()=>createIndexedExportReceipt({
+    preview:f.preview,config:f.config,revision:f.revision,
+    sourceFile:f.sourceFile,selectedScopeId:'A3-ZONE-A'
+  }),e=>e.code==='LFJ_EXPORT_SCOPE');
+});
+
+test('T06 real state invalidates local CSV scope after selection changes',async()=>{
+  const f=await fixture();
+  const preview={...f.preview,
+    selectedScopeId:'A3-ZONE-A',selectionDigestSha256:'c'.repeat(64)};
+  const receipt=createIndexedExportReceipt({
+    preview,config:{},revision:1,sourceFile:f.sourceFile,
+    selectedScopeId:'A3-ZONE-A'
+  });
+  const state={
+    activePhaseId:'json-trace',sourceKind:'xml',sourceText:xml,
+    stagedJsonFile:f.sourceFile,resolverSourceMode:'lfj-indexed-preview',
+    jsonTraceScopeId:'A3-ZONE-A',resolverJsonTraceConfig:{},
+    resolverJsonTraceInputRevision:1,lfjIndexedPreview:preview,
+    lfjIndexedExportReceipt:receipt,lfjIndexedExportOptIn:true,
+    masterContext:null
+  };
+  const next=updateWorkflowState(state,{jsonTraceScopeId:'A3-ZONE-B'});
+  assert.equal(next.lfjIndexedPreview,null);
+  assert.equal(next.lfjIndexedExportReceipt,null);
+  assert.equal(next.lfjIndexedExportOptIn,false);
+  assert.equal(next.resolverJsonTraceInputRevision,2);
+});

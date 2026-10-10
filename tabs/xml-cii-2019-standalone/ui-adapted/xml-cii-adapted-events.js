@@ -378,7 +378,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
       if (!isCurrent()) return rejectChanged();
       const receipt = createIndexedExportReceipt({
         preview, config: input.resolverJsonTraceConfig || {},
-        revision: requested, sourceFile: input.stagedJsonFile
+        revision: requested, sourceFile: input.stagedJsonFile,
+        selectedScopeId: input.jsonTraceScopeId || ALL_SCOPE_ID
       });
       stateRef.current = updateWorkflowState(stateRef.current, {
         lfjIndexedExportReceipt: receipt, lfjIndexedExportOptIn: false,
@@ -487,6 +488,8 @@ async function downloadIndexedVerifiedCsv(stateRef, render, kind, container) {
     stateRef.current.lfjIndexedExportReceipt === initial.lfjIndexedExportReceipt &&
     stateRef.current.lfjIndexedExportOptIn === true &&
     stateRef.current.stagedJsonFile === initial.stagedJsonFile &&
+    (stateRef.current.jsonTraceScopeId || ALL_SCOPE_ID) ===
+      (initial.jsonTraceScopeId || ALL_SCOPE_ID) &&
     stateRef.current.sourceText === initial.sourceText &&
     !stateRef.current.resolverJsonTraceRunning &&
     currentResolverTraceRevision(stateRef.current) === revision;
@@ -504,7 +507,8 @@ async function downloadIndexedVerifiedCsv(stateRef, render, kind, container) {
       preview: initial.lfjIndexedPreview,
       kind, sourceFile: initial.stagedJsonFile,
       xmlText: initial.sourceText, config: initial.resolverJsonTraceConfig,
-      revision, optIn: initial.lfjIndexedExportOptIn, isCurrent
+      revision, optIn: initial.lfjIndexedExportOptIn, isCurrent,
+      selectedScopeId: initial.jsonTraceScopeId || ALL_SCOPE_ID
     });
     if (!isCurrent()) return null;
     downloadTextFile(result.fileName, result.content, 'text/csv;charset=utf-8');

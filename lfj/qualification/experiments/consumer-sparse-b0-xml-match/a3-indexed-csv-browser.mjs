@@ -179,6 +179,55 @@ try{
         s.chunkReads!==Math.ceil(originalFile.size/(1024*1024)) ||
         s.maxReadBytes!==Math.min(originalFile.size,1024*1024)))
         throw Error('Real original source SHA Worker did not attest bounded full-source census');
+      // T06 research-only selected product preview and local CSV verifier
+      // against the REAL original Firstpass Worker pipeline. Firstpass roots
+      // all share this directly evidenced OWNER_SITE; this proves receipt
+      // plumbing, not an independent multi-zone Owner positive golden.
+      const [
+        {buildIndexedResolverPreview},
+        {createIndexedExportReceipt,verifyIndexedProductCsv}
+      ]=await Promise.all([
+        import('/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.js'),
+        import('/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-export.js')
+      ]);
+      const selectedScopeId='/ASIM-1885-CU-PI';
+      const selected=await buildIndexedResolverPreview({
+        blob:originalFile,xmlText,config:{},selectedScopeId
+      });
+      if(selected.selectedScopeId!==selectedScopeId ||
+         !/^[a-f0-9]{64}$/.test(selected.selectionDigestSha256) ||
+         selected.sourceOnly!==true||selected.downloadAuthorized!==false ||
+         selected.xmlNodes!==216 ||
+         selected.nodeWiseCsvSha256!==originalHashes[0] ||
+         selected.evidenceTreeCsvSha256!==originalHashes[1])
+        throw Error('Real native selected Worker handoff not admitted');
+      const scopedReceipt=createIndexedExportReceipt({
+        preview:selected,sourceFile:originalFile,revision:17,config:{},
+        selectedScopeId
+      });
+      for(const kind of ['node-wise-trace','evidence-tree']){
+        const authorized=await verifyIndexedProductCsv({
+          receipt:scopedReceipt,preview:selected,kind,sourceFile:originalFile,
+          xmlText,config:{},revision:17,optIn:true,isCurrent:()=>true,
+          selectedScopeId
+        });
+        if(authorized.downstreamEngineeringAuthorized!==false ||
+           authorized.content.charCodeAt(0)!==0xFEFF)
+          throw Error('Native selected scope has escaped local CSV rights');
+      }
+      let wrongScopeAccepted=false;
+      try{
+        await verifyIndexedProductCsv({
+          receipt:scopedReceipt,preview:selected,kind:'node-wise-trace',
+          sourceFile:originalFile,xmlText,config:{},revision:17,optIn:true,
+          isCurrent:()=>true,selectedScopeId:'A3-FORGED-ZONE'
+        });
+        wrongScopeAccepted=true;
+      }catch(error){
+        if(!/^LFJ_EXPORT_/.test(error.code||''))throw error;
+      }
+      if(wrongScopeAccepted)
+        throw Error('Selected source receipt accepted a forged zone');
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,

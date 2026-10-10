@@ -79,9 +79,33 @@ function workerJob(url, payload, { signal, workerFactory = (u, options) =>
 }
 
 /** Independent UI-level row/byte boundary; no research rights are promoted. */
-export async function verifyIndexedPreviewHandoff(result, originalSha256, xmlSha256) {
+export async function verifyIndexedPreviewHandoff(
+  result, originalSha256, xmlSha256, selectedScopeId = undefined
+) {
   const handoff = result?.researchHandoff;
   const b = handoff?.basis;
+  if (selectedScopeId === undefined &&
+      (result?.selectedScope !== undefined ||
+       b?.selectedScopeId !== undefined ||
+       b?.selectionDigestSha256 !== undefined))
+    throw fail('LFJ_PREVIEW_SCOPE_BASIS',
+      'A source-selected matching result cannot be accepted as an unscoped Build');
+  // A selected original-file Build must carry the same native Worker-authored
+  // source manifest SHA in its matching result AND research handoff basis.
+  // No caller-supplied bare digest, or absence of evidence, is admissible.
+  if (selectedScopeId !== undefined &&
+      (typeof selectedScopeId !== 'string' || !selectedScopeId.trim() ||
+       result?.selectedScope?.requestedScopeId !== selectedScopeId ||
+       !/^[a-f0-9]{64}$/.test(
+         result?.selectedScope?.manifestDigestSha256 || '') ||
+       result.selectedScope?.sourceOnly !== true ||
+       result.selectedScope?.engineeringReady !== false ||
+       result.selectedScope?.downloadAuthorized !== false ||
+       b?.selectedScopeId !== selectedScopeId ||
+       b?.selectionDigestSha256 !==
+         result.selectedScope.manifestDigestSha256))
+    throw fail('LFJ_PREVIEW_SCOPE_BASIS',
+      'Selected original source scope lacks matching Worker/CSV handoff proof');
   if (handoff?.schema !== 'LFJ.B0.ResearchHandoff.v1' ||
       handoff?.sourceOnly !== true ||
       handoff?.engineeringReady !== false ||
@@ -120,6 +144,10 @@ export async function verifyIndexedPreviewHandoff(result, originalSha256, xmlSha
     mode: 'lfj-indexed-preview',
     originalSha256, xmlSha256,
     xmlNodes: result.xmlNodes, matchedXmlNodes: result.matchedXmlNodes,
+    ...(selectedScopeId === undefined ? {} : {
+      selectedScopeId,
+      selectionDigestSha256:result.selectedScope.manifestDigestSha256
+    }),
     nodeWiseRows: handoff.nodeWiseRows,
     evidenceTreeRows: handoff.evidenceTreeRows,
     nodeWiseCsvSha256: result.nodeWiseCsvSha256,
@@ -138,6 +166,7 @@ export async function verifyIndexedPreviewHandoff(result, originalSha256, xmlSha
  */
 export async function buildIndexedResolverPreview({
   blob, xmlText, config = {}, isCurrent = () => true,
+  selectedScopeId = undefined,
   onProgress = () => {}, signal, workerFactory, timeoutMs = STAGE_LIMIT_MS
 } = {}) {
   // Reject over-capacity original files before any read, hashing,
@@ -146,6 +175,9 @@ export async function buildIndexedResolverPreview({
   if (typeof xmlText !== 'string' || !xmlText.trim() ||
       typeof isCurrent !== 'function')
     throw fail('LFJ_PREVIEW_INPUT', 'Original XML and revision guard are required');
+  if (selectedScopeId !== undefined &&
+      (typeof selectedScopeId !== 'string' || !selectedScopeId.trim()))
+    throw fail('LFJ_PREVIEW_SCOPE_INPUT','Selected source scope must be an exact nonempty ID');
   if (signal?.aborted) throw fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled');
   // A cold browser/tab relaunch may leave a complete or partially staged
   // generation behind. Reclaim only inactive r2 generations before creating
@@ -195,7 +227,8 @@ export async function buildIndexedResolverPreview({
     const matching = await run(MATCH_WORKER, {
       type: 'MATCH', blob, expectedSha256: originalSha256, xmlText, config,
       sourceDatabaseName, sourceGeneration, projectionDatabaseName,
-      projectionGeneration, includeResearchHandoff: true
+      projectionGeneration, includeResearchHandoff: true,
+      ...(selectedScopeId === undefined ? {} : {selectedScopeId})
     });
     stale(isCurrent);
     if (matching?.originalSha256 !== originalSha256 ||
@@ -203,7 +236,7 @@ export async function buildIndexedResolverPreview({
         matching?.projectionFacts !== projection.factCount)
       throw fail('LFJ_PREVIEW_MATCH_BASIS', 'Indexed matching basis is incomplete or changed');
     const verified = await verifyIndexedPreviewHandoff(
-      matching, originalSha256, xmlSha256);
+      matching, originalSha256, xmlSha256, selectedScopeId);
     stale(isCurrent);
     return verified;
   } catch(error) {
