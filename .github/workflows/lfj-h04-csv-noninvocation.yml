@@ -1,0 +1,47 @@
+name: LFJ H04 Zero CSV Serializer Calls on XML Rejection
+on:
+  push:
+    branches:
+      - lfj/a-h04-csv-serializer-noninvocation
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary*'
+      - '.github/workflows/lfj-h04-csv-noninvocation.yml'
+permissions:
+  contents: read
+jobs:
+  exact-serializer-counts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact candidate head and source syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --version
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.test.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs
+      - name: Count both serializer invocations on passing and failing XML
+        run: |
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.test.mjs
+      - name: Preserve inherited H02 H01 A140 source semantics and population
+        run: |
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-coordinate-semantic-hardening.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.test.mjs
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-ledger-census-guard.test.mjs
+      - name: Protect tracked files
+        run: test -z "$(git status --porcelain)"
