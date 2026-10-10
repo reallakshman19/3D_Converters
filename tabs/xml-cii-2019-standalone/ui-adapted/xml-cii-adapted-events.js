@@ -21,6 +21,7 @@ import {
   buildXmlNodeWiseTraceCsv,
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
+import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -209,8 +210,19 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
+  const requestedRevision=currentResolverTraceRevision(stateRef.current);
   const sourceText = await sourceTextFromState(stateRef.current);
   const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
+  // File reads can yield while a new file/config is selected. Never let an
+  // older Build publish a trace (or unblock either CSV action) after that.
+  if(currentResolverTraceRevision(stateRef.current)!==requestedRevision){
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      resolverJsonTraceRunning:false,
+      resolverJsonTraceExportStatus:'Resolver inputs changed during Build; rerun before export.'
+    });
+    render();
+    return null;
+  }
   const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
   const benchmark = stateRef.current.resolverJsonTraceTableResult
     ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
@@ -220,6 +232,7 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     updateWorkflowState(stateRef.current, {
       resolverJsonTraceResult: result,
       resolverJsonTraceJsonResult: result,
+      resolverJsonTraceAcceptedRevision:requestedRevision,
       jsonTraceTableBenchmark: benchmark,
       resolverJsonTraceRunning: false,
       resolverJsonTraceExportStatus: '',
@@ -251,6 +264,16 @@ function traceResult(state) {
 }
 
 export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
+  const state=stateRef.current;
+  if(state.resolverJsonTraceAcceptedRevision===null||
+     state.resolverJsonTraceAcceptedRevision===undefined||
+     state.resolverJsonTraceAcceptedRevision!==currentResolverTraceRevision(state)){
+    stateRef.current=updateWorkflowState(state,{
+      resolverJsonTraceExportStatus:'Trace CSV export blocked: Build the current source and config first.'
+    });
+    render();
+    return null;
+  }
   const result = traceResult(stateRef.current);
   const isEvidence = kind === 'evidence-tree';
   const rowCount = isEvidence ? buildEvidenceTreeRows(result).length : buildXmlNodeWiseTraceRows(result).length;
