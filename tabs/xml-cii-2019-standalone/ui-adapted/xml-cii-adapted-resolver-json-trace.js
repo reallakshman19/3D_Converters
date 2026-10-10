@@ -7,6 +7,7 @@ import {
 } from './xml-cii-adapted-resolver-scope.js';
 import {
   XML_NODE_TRACE_HEADERS,
+  EVIDENCE_TREE_HEADERS,
   buildEvidenceTreeRows,
   buildMatchedFactsRows,
   buildXmlNodeWiseTraceRows,
