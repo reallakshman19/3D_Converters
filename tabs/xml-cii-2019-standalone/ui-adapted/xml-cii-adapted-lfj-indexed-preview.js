@@ -12,6 +12,10 @@ import {
 import { deleteIndexedBuildDatabases } from './xml-cii-adapted-lfj-db-cleanup.js';
 import { requireIndexedSourceAdmission } from './xml-cii-adapted-lfj-size-admission.js';
 import { hashOriginalBlobOffThread } from './xml-cii-adapted-lfj-source-sha.js';
+import {
+  indexedGenerationNames,withIndexedGenerationCustody,
+  recoverAbandonedIndexedGenerations
+} from './xml-cii-adapted-lfj-cold-recovery.js';
 
 const SOURCE_WORKER = new URL(
   '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
@@ -143,12 +147,19 @@ export async function buildIndexedResolverPreview({
       typeof isCurrent !== 'function')
     throw fail('LFJ_PREVIEW_INPUT', 'Original XML and revision guard are required');
   if (signal?.aborted) throw fail('LFJ_PREVIEW_CANCELLED', 'Indexed Build was cancelled');
+  // A cold browser/tab relaunch may leave a complete or partially staged
+  // generation behind. Reclaim only inactive r2 generations before creating
+  // another source/index, and never trust their prior HEADs for downloads.
+  stale(isCurrent);
+  await recoverAbandonedIndexedGenerations();
+  stale(isCurrent);
+  if(signal?.aborted)throw fail('LFJ_PREVIEW_CANCELLED','Indexed Build was cancelled');
   const token = crypto.randomUUID();
-  const sourceDatabaseName = 'lfj-ui-preview-source-' + token;
-  const projectionDatabaseName = 'lfj-ui-preview-projection-' + token;
+  const [sourceDatabaseName,projectionDatabaseName]=indexedGenerationNames(token);
   const sourceGeneration = token, projectionGeneration = token;
   const run = (url, payload) => workerJob(url, payload,
     { signal, workerFactory, timeoutMs });
+  return withIndexedGenerationCustody(token,async()=>{
   let failure=null;
   try {
     stale(isCurrent);
@@ -209,4 +220,5 @@ export async function buildIndexedResolverPreview({
       failure.cleanupError=cleanupError.code||'LFJ_IDB_CLEANUP_ERROR';
     }
   }
+  }); // Web Lock releases only AFTER complete IDB deletion or explicit failure
 }
