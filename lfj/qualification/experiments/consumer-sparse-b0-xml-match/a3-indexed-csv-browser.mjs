@@ -31,6 +31,7 @@ try{
     const originalFileArrayBuffer=File.prototype.arrayBuffer;
     const originalWorker=window.Worker;
     let foregroundSourceReads=0,shaWorkerJobs=0;
+    const shaWorkerCensus=[];
     File.prototype.arrayBuffer=function(...args){
       if(this.name==='Sjson.json'){
         foregroundSourceReads++;
@@ -39,6 +40,13 @@ try{
       return originalFileArrayBuffer.apply(this,args);
     };
     window.Worker=class extends originalWorker {
+      constructor(...args){
+        super(...args);
+        if(String(args[0]).includes('lfj-sha.worker.mjs'))
+          this.addEventListener('message',event=>{
+            if(event.data?.type==='DONE') shaWorkerCensus.push(event.data);
+          });
+      }
       postMessage(data,...args){
         if(data?.type==='HASH') shaWorkerJobs++;
         return super.postMessage(data,...args);
@@ -158,12 +166,20 @@ try{
       if(foregroundSourceReads!==0 || shaWorkerJobs<4)
         throw Error('Original source hashing was not confined to native Workers: '+
           JSON.stringify({foregroundSourceReads,shaWorkerJobs}));
+      if(shaWorkerCensus.length!==shaWorkerJobs || shaWorkerCensus.some(s=>
+        s.sizeBytes!==originalFile.size ||
+        s.bytesHashed!==originalFile.size ||
+        s.chunkLimitBytes!==1024*1024 ||
+        s.chunkReads!==Math.ceil(originalFile.size/(1024*1024)) ||
+        s.maxReadBytes!==Math.min(originalFile.size,1024*1024)))
+        throw Error('Real original source SHA Worker did not attest bounded full-source census');
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
         unconsentedExports:0,consentedExports:2,
         rejectedTamperedOrStaleExports:4,
         offThreadSourceShaJobs:shaWorkerJobs,foregroundSourceReads,
+        boundedShaChunkBytes:1024*1024,shaWorkerCensusCount:shaWorkerCensus.length,
         downstreamEngineeringAuthorized:false,renderCount,
         qualification:'NATIVE_CHROMIUM_SOURCE_FENCED_TWO_CSV_PASS'};
     }finally{
