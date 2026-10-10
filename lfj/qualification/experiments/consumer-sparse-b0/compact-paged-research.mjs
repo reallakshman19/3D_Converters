@@ -15,7 +15,7 @@ import {scanJsonDocument} from '../../../tokenizer/json-tokenizer.mjs';
 
 const SCHEMA='LFJ.B0.PagedOccurrenceResearch.v1';
 const PAGE_ROWS=384, PAGE_BYTES=786432, DIR_ROWS=4096;
-const MAX_VALUES=2000000;
+const DEFAULT_MAX_VALUES=2000000,MAX_EXTENDED_VALUES=4000000;
 const fail=(code,message)=>Object.assign(new Error(message),{code});
 const valid=n=>Number.isSafeInteger(n)&&n>=0;
 const transactionDone=tx=>new Promise((resolve,reject)=>{
@@ -73,10 +73,15 @@ async function auditPages(db,generation,expected,originalLength){
 }
 
 export async function runPagedCompactResearch({
-  blob,expectedSha256,databaseName,generation,revision='B0',signal
+  blob,expectedSha256,databaseName,generation,revision='B0',signal,
+  maxValues=DEFAULT_MAX_VALUES
 }={}){
   if(!(blob instanceof Blob)||!databaseName||!generation)
     throw fail('INPUT_REQUIRED','original Blob/databaseName/generation required');
+  // Research default stays at 2m. Product may explicitly opt into a bounded
+  // 4m directory for genuinely populated >=90MiB sources; never unlimited.
+  if(maxValues!==DEFAULT_MAX_VALUES&&maxValues!==MAX_EXTENDED_VALUES)
+    throw fail('BUDGET_INVALID','catalog maximum must be exactly 2m or 4m values');
 
   const start=performance.now(),enc=new TextEncoder();
   let source=null,db=null,success=false;
@@ -84,12 +89,12 @@ export async function runPagedCompactResearch({
   let pagesWritten=0,shaMs=0,scanMs=0,auditMs=0,directoryMs=0,headMs=0;
   let frameStack=[],batch=[];
   // Directory is 6 bytes/value and grows geometrically under an explicit
-  // resource limit (max 12MiB at MAX_VALUES, plus bounded scan page buffers).
+  // resource limit (12MiB default or 24MiB extended, plus bounded buffers).
   let pageRefs=new Uint32Array(4096),rowRefs=new Uint16Array(4096);
   const capacity=n=>{
-    if(n>=MAX_VALUES)throw fail('OCCURRENCE_LIMIT','research directory exceeded fixed budget');
+    if(n>=maxValues)throw fail('OCCURRENCE_LIMIT','research directory exceeded fixed budget');
     if(n<pageRefs.length)return;
-    const len=Math.min(MAX_VALUES,Math.max(n+1,pageRefs.length*2));
+    const len=Math.min(maxValues,Math.max(n+1,pageRefs.length*2));
     const nextPages=new Uint32Array(len),nextRows=new Uint16Array(len);
     nextPages.set(pageRefs);nextRows.set(rowRefs);
     pageRefs=nextPages;rowRefs=nextRows;
@@ -205,6 +210,7 @@ export async function runPagedCompactResearch({
       sourceSha256:source.sha256,sourceRevision:source.revision,
       occurrenceCount:ordinal,pageCount:pagesWritten,
       storageWrites:pagesWritten+Math.ceil(ordinal/DIR_ROWS)+1,
+      maxValues,
       shaMs,scanMs,stageMs,auditMs,directoryMs,headMs,
       elapsedMs:performance.now()-start,
       sourceOnly:true,appWired:false,crashRecoveryQualified:false};
