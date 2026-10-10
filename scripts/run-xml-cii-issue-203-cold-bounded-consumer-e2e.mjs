@@ -175,6 +175,7 @@ try{
       'test oracle must never be represented as Owner independent acceptance');
     ensure(oracle.sourceRows===refs.pipingClass.rowCount,'oracle master row census drift');
     const actualClasses=[];
+    const explicitlyNormalizedNullCells=[];
     for(const original of oracle.cases){
       const result=await runtime.searchMasterDatasetRows(
         'pipingClass',refs.pipingClass.datasetId,original.code);
@@ -189,14 +190,32 @@ try{
       for(const [kind,row] of [['first',actual.rows[0]],['last',actual.rows.at(-1)]]){
         const expected=original.sourceCells[kind];
         for(const [field,value] of Object.entries(expected)){
-          ensure(row[field]===value,
-            original.code+' '+kind+' native normalized source field '+field+' changed from original tracked master');
+          // The current documented non-LineList normalization maps source null
+          // to empty string via (row[sourceHeader] ?? ''). Do NOT falsely
+          // claim that raw null survived byte-identically as normalized data.
+          // This is the sole scoped exception, and we record it separately.
+          const isCanonicalizedNull=(field==='convertedBore'&&value===null
+            &&row[field]===''&&
+            refs.pipingClass.fieldMap?.convertedBore==='convertedBore');
+          if(isCanonicalizedNull){
+            explicitlyNormalizedNullCells.push({
+              sourceClass:original.code,sourceRow:kind,field,
+              original:null,normalized:'',rule:'mapped-null-to-empty-string',
+            });
+          }else{
+            ensure(row[field]===value,
+              original.code+' '+kind+' normalized field '+field+
+              ' unexpectedly differs from original: expected '+JSON.stringify(value)+
+              ', actual '+JSON.stringify(row[field]));
+          }
         }
       }
       actualClasses.push({code:original.code,indexes:result.indexes,
         verifiedOriginalFields:Object.keys(original.sourceCells.first),
         exactSourceCodeEquality:true,independentlyMatchedSourceCells:true});
     }
+    ensure(explicitlyNormalizedNullCells.length===2,
+      'expected two explicit raw-null -> empty normalized convertedBore cells in class 25190 first/last');
     const combinedSamples=oracle.cases.map(x=>({branchName:'/AREA-DN100-'+x.code+'/B1'}));
     combinedSamples.push({branchName:'/UNRELATED-ALPHA-NOCODE/B2'});
     const combined=await regex.materializeRegexSmartMasterContext({
@@ -267,7 +286,8 @@ try{
         twoStructuralBucketsKeptPositive:true,
         sourceRowContainsQuery:true},
       independentOriginalClassOracle:{schema:oracle.schema,sourceGitBlob:oracle.sourceGitBlob,
-        threeClasses:actualClasses,combinedIndexedRows:combined.pipingClassRowCount,
+        threeClasses:actualClasses,explicitlyNormalizedNullCells,
+        combinedIndexedRows:combined.pipingClassRowCount,
         selectedStructuralBuckets:combined.selectedBucketCount},
       negatives:{wrongRevision,crossMaster,weightFingerprint,nonWeightRank,
         deliberateAbsentToken,absentQueryNoMatches:true},
