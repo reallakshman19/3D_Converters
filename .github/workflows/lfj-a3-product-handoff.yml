@@ -1,0 +1,38 @@
+name: LFJ A3 Product Handoff Boundary
+on:
+  pull_request:
+    paths:
+      - 'lfj/consumers/3d-converters/**'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-trace-export.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - '.github/workflows/lfj-a3-product-handoff.yml'
+  push:
+    paths:
+      - 'lfj/consumers/3d-converters/**'
+      - '.github/workflows/lfj-a3-product-handoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-node:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert actual tested head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: A3 source capsule currentness and output bytes
+        run: node --test lfj/consumers/3d-converters/verified-xml-csv-handoff.test.mjs
+      - name: A3 retained shipping stale source and export veto
+        run: node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-stale.test.mjs
+      - name: Ensure tests did not mutate source
+        run: test -z "$(git status --porcelain)"
