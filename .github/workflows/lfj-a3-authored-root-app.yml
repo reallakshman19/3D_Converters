@@ -30,6 +30,8 @@ jobs:
           node --check lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-scope-discovery.worker.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-scope-state.js
+          node --test tests/xml-cii-branch-scope-state-proxy.test.mjs
           test -s Benchmarks/1885Sjson/Sjson.json
           test -s Benchmarks/1885Sjson/FirstpassXML
           test -s index.html
