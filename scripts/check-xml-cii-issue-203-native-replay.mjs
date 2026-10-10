@@ -52,6 +52,47 @@ export function stableWitness(r) {
     masterRowCounts: [c.pipingClassRows, c.materialMapRows, c.weightRows],
   };
 }
+export function assertNonprotectedDiagnosticAnchor(record, anchor, sourceBytes, mirrorBytes) {
+  assert.equal(anchor?.schema, 'XMLCII_C05_NONPROTECTED_DIAGNOSTIC_ANCHOR_V1',
+    'missing versioned NON-PROTECTED diagnostic anchor');
+  assert.equal(anchor?.purpose, 'SOURCE_DRIFT_DIAGNOSTIC_ONLY_NOT_AN_INDEPENDENT_SEMANTIC_GOLDEN',
+    'diagnostic anchor must never imply accepted semantic oracle');
+  assert.equal(anchor.releaseAuthority, false, 'source witness cannot claim release authority');
+  assert.equal(anchor.protectedGolden, false, 'source witness is not a protected golden');
+  assert.equal(anchor.ownerOriginal30MbQualified, false, 'source witness is not Owner original fixture');
+  assert.equal(anchor.provenance?.updatePolicy,
+    'REVIEW_EXPLICIT_WITNESS_AND_SOURCE_DIFF_NO_AUTOREGEN',
+    'anchor silently permits regeneration');
+  assert.match(String(anchor.provenance?.sourceCandidateCommit || ''), /^[a-f0-9]{40}$/,
+    'diagnostic witness missing exact original source commit');
+  assert.equal(anchor.source?.repoPath, 'docs/Masters/Piping_class_master.json');
+  assert.equal(anchor.source?.mirrorPath, 'docs/docs/Masters/Piping_class_master.json');
+  assert.match(anchor.source?.sha256 || '', /^[a-f0-9]{64}$/);
+  assert.ok(Buffer.isBuffer(sourceBytes) && Buffer.isBuffer(mirrorBytes),
+    'source and mirror must be read as genuine checked-out bytes');
+  assert.ok(sourceBytes.equals(mirrorBytes),
+    'Piping Class deployed source mirror differs from original checked-in master bytes');
+  const actualSha = createHash('sha256').update(sourceBytes).digest('hex');
+  assert.equal(actualSha, anchor.source.sha256,
+    'Piping Class checked-in source drifted from reviewed diagnostic anchor');
+  assert.equal(record?.sourceAssetSha256, actualSha,
+    'browser/replay source SHA256 differs from original checked-in asset');
+  assert.deepEqual(record?.stableWitness, anchor.stableWitness,
+    'native positive indexed-row content or authority drifted from reviewed diagnostic anchor');
+  assert.equal(record?.independentProtectedGolden, false,
+    'unapproved golden must not be inferred from source diagnostic');
+  assert.ok(record?.schema === REPLAY_SCHEMA ||
+      record?.schema === 'XMLCII_C05_NODE22_NODE24_BROWSER_PARITY_V1',
+    'unsupported actual hosted replay schema for source drift pin');
+  return true;
+}
+function checkCheckoutDiagnosticAnchor(record) {
+  const anchor = read('tests/fixtures/c05-issue203-nonprotected-positive-row-diagnostic.v1.json');
+  return assertNonprotectedDiagnosticAnchor(record, anchor,
+    fs.readFileSync(anchor.source.repoPath),
+    fs.readFileSync(anchor.source.mirrorPath));
+}
+
 export function compareIndependentNativeReplays(first, second, sourceAssetSha256) {
   const witnessA = stableWitness(first);
   const witnessB = stableWitness(second);
@@ -93,11 +134,17 @@ function write(file, record) {
   fs.writeFileSync(file,JSON.stringify(record,null,2)+'\n');
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === '--compare') {
+  if (process.argv[2] === '--verify-anchor') {
+    const [file] = process.argv.slice(3);
+    if (!file) throw Error('usage --verify-anchor native-replay-summary.json');
+    checkCheckoutDiagnosticAnchor(read(file));
+    console.log('NONPROTECTED_C05_DIAGNOSTIC_ANCHOR_VERIFIED', file);
+  } else if (process.argv[2] === '--compare') {
     const [a,b,out] = process.argv.slice(3);
     if (!a || !b || !out) throw Error('usage --compare node22 node24 output');
     const result = compareNodeBrowserSummaries(read(a),read(b));
     assert.equal(result.sourceAssetSha256, checkedSourceHash(), 'source bytes differ from browser summaries');
+    checkCheckoutDiagnosticAnchor(result);
     write(out,result);
     console.log(JSON.stringify(result,null,2));
   } else {
