@@ -132,8 +132,11 @@ async function verifyDerivedMultiZoneSelectedMatching(originalBlob,xmlText,confi
   const roots=JSON.parse(await originalBlob.text());
   if(!Array.isArray(roots)||roots.length<3)
     throw fail('SCOPE_CONTROL_SETUP','Firstpass must contain multiple branches');
+  // Firstpass original roots already carry attributes.OWNER_SITE. Change
+  // that same direct owner field, without adding conflicting zone aliases.
   const derived=roots.map((root,i)=>({...root,
-    OWNER_ZONE:i%2===0?'A3-TEST-ZONE-A':'A3-TEST-ZONE-B'}));
+    attributes:{...(root.attributes||{}),
+      OWNER_SITE:i%2===0?'A3-TEST-ZONE-A':'A3-TEST-ZONE-B'}}));
   const derivedText=JSON.stringify(derived);
   const sourceBytes=new TextEncoder().encode(derivedText);
   const blob=new Blob([sourceBytes],{type:'application/json'});
