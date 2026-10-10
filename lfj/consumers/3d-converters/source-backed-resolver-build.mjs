@@ -114,11 +114,15 @@ export async function runProductSourceBackedResolver({
   const sourceDb='lfj-a3-source-'+generation;
   const projectionDb='lfj-a3-projection-'+generation;
   const started=performance.now();
+  // Deliberate, documented opt-in to the extended 4m occurrence directory.
+  // The native research default remains 2m for other clients.
+  const sourceCatalogMaxValues=blob.size>=48*1024*1024?4000000:2000000;
   try{
   const source=await nativeStep(
     '../../qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
     {type:'START',blob,expectedSha256:originalSha256,
-      generation,databaseName:sourceDb,revision:generation},
+      generation,databaseName:sourceDb,revision:generation,
+      maxValues:sourceCatalogMaxValues},
     {assertCurrent:current,signal});
   if(source?.occurrenceCount<1)fail('A3_SOURCE_CENSUS','empty source catalog');
   const projection=await nativeStep(
@@ -151,6 +155,7 @@ export async function runProductSourceBackedResolver({
     nativeWorkerStages:3,
     elapsedMs:performance.now()-started,
     originalBytes:blob.size,
+    sourceCatalogMaxValues,
     matchedXmlNodes:result.matchedXmlNodes,
     indexedDbCleanup:'required-before-return',
     // Explicitly not a product export authorization or committed acceptance.
