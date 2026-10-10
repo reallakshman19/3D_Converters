@@ -105,13 +105,44 @@ try {
     requireValue(context.pipingClassRows.length === 0,
       'Regex evidence must not retain whole Piping Class rows in application state');
 
-    // Exercise the genuine native Worker/IndexedDB search path with a source
-    // branch sample, while enforcing the bounded query and index limits.
+    // P07: derive a positive probe from the REAL checked-in 10,699-row
+    // master already restored from IndexedDB. No synthetic golden or
+    // author-picked nonmatching string may qualify positive native retrieval.
+    const candidates = new Set();
+    for (const row of generic.pipingClass.masterRows) {
+      for (const [field, value] of Object.entries(row || {})) {
+        if (/^(?:_|rowindex|rownumber|ordinal|sequence)$/i.test(field)) continue;
+        if (typeof value !== 'string' && typeof value !== 'number') continue;
+        for (const match of String(value).toUpperCase().matchAll(/\b[A-Z0-9]*\d{3,}[A-Z0-9]*\b/g)) {
+          if (match[0].length >= 3 && match[0].length <= 36) candidates.add(match[0]);
+        }
+      }
+      if (candidates.size >= 64) break;
+    }
+
+    let actualMatch = null;
+    let positiveProbeAttempts = 0;
+    for (const token of candidates) {
+      if (positiveProbeAttempts >= 64) break;
+      positiveProbeAttempts += 1;
+      const result = await runtime.searchMasterDatasetRows('pipingClass', refs.pipingClass.datasetId, token);
+      const indexes = Array.isArray(result?.indexes) ? result.indexes : [];
+      if (indexes.some((index) => Number.isInteger(index) && index >= 0)) {
+        actualMatch = { token, firstIndex: indexes[0], matchCount: indexes.length };
+        break;
+      }
+    }
+    requireValue(actualMatch,
+      'No native positive Piping Class Worker search match in ' + positiveProbeAttempts
+      + ' real row-derived candidates; do not certify indexed retrieval.');
+
     const searched = [];
     const rowFetches = [];
     const regexWithSamples = await regexModule.materializeRegexSmartMasterContext({
       ...stateRef.current,
-      regexTesterResult: { branchSamples: [{ branchName: '/LINE12345-C1234M1' }] },
+      regexTesterResult: { branchSamples: [
+        { branchName: '/LINE12345-' + actualMatch.token },
+      ] },
     }, {
       async search(masterKey, datasetId, query) {
         searched.push({ masterKey, datasetId, query });
@@ -125,19 +156,53 @@ try {
           'Regex bounded row fetch used wrong master authority');
         requireValue(datasetRef.datasetRevision === refs.pipingClass.datasetRevision,
           'Regex bounded fetch lost the restored source revision');
-        requireValue(indexes.length <= 8, 'Regex bounded fetch exceeds requested maximum indexes');
+        requireValue(indexes.length > 0 && indexes.length <= 8,
+          'Regex bounded fetch must have positive indexes under maxTotalIndexes=8');
+        requireValue(indexes.every((n) => Number.isInteger(n) && n >= 0),
+          'Regex bounded fetch contained invalid worker row indexes');
         return runtime.getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes, datasetRef);
       },
       maxIndexesPerQuery: 4,
       maxTotalIndexes: 8,
     });
     requireValue(searched.length > 0, 'Regex branch sample did not trigger indexed search');
+    requireValue(searched.some((q) => q.query.toUpperCase() === actualMatch.token),
+      'Regex plan dropped actual source row token');
+    requireValue(rowFetches.length === 1,
+      'Regex must perform exactly one bounded IndexedDB indexed-row fetch');
+    requireValue(regexWithSamples.pipingClassRowCount > 0 &&
+      regexWithSamples.pipingClassRowCount <= 8,
+      'Regex positive native evidence must be nonempty and bounded to 8 rows');
+    requireValue(regexWithSamples.masterContext.pipingClassRows.some((row) =>
+      JSON.stringify(row).toUpperCase().includes(actualMatch.token)),
+      'native indexed row must actually contain the positive source-derived token');
     requireValue(regexWithSamples.evidenceBasis.includes(refs.pipingClass.datasetId),
       'sampled Regex evidence lost Piping Class dataset identity');
-    requireValue(regexWithSamples.pipingClassRowCount <= 8,
-      'sampled Regex evidence fetched more than the explicitly bounded row limit');
-    requireValue(context.pipingClassRows.length === 0,
+    requireValue(regexWithSamples.evidenceBasis.includes('"mappingRevision"'),
+      'positive Regex evidence lost applied mapping revision');
+    requireValue(context.pipingClassRows.length === 0 &&
+      (context.rawRows.pipingClass || []).length === 0,
       'transient sampled Regex rows leaked into durable application context');
+
+    // P08: the indexed path, not just full-row materialization, must reject
+    // wrong-master, stale revision, and Weight fingerprint substitutions.
+    const wrongMasterIndexedError = await expectReject(
+      () => runtime.getMasterDatasetRowsByIndexes(
+        'pipingClass', refs.materialMap.datasetId, [0], refs.materialMap),
+      /dataset belongs to materialMap/i, 'indexed wrong-master substitution');
+    const staleIndexedError = await expectReject(
+      () => runtime.getMasterDatasetRowsByIndexes(
+        'pipingClass', refs.pipingClass.datasetId, [0], {
+          ...refs.pipingClass,
+          datasetRevision: Number(refs.pipingClass.datasetRevision) + 1,
+        }),
+      /Dataset revision mismatch for pipingClass/i, 'indexed stale revision');
+    const fingerprintIndexedError = await expectReject(
+      () => runtime.getMasterDatasetRowsByIndexes(
+        'weight', refs.weight.datasetId, [0], {
+          ...refs.weight, masterFingerprint: 'invalid-weight-fingerprint-203',
+        }),
+      /Dataset fingerprint mismatch for weight/i, 'indexed Weight fingerprint');
 
     const weightConfig = await weightModule.weightMatchConfigFromState(stateRef.current, {
       materializeRows: async () => { throw new Error('Weight Match compact authority must not trigger compatibility materialization'); },
@@ -223,6 +288,12 @@ try {
         regexSampledBoundedRows: regexWithSamples.pipingClassRowCount,
         regexSearches: searched.length,
         regexIndexedRowFetches: rowFetches.length,
+        positiveSourceToken: actualMatch.token,
+        positiveSourceProbeAttempts: positiveProbeAttempts,
+        positiveWorkerMatchCount: actualMatch.matchCount,
+        positiveWorkerFirstIndex: actualMatch.firstIndex,
+        positiveIndexedRowCount: regexWithSamples.pipingClassRowCount,
+        positiveIndexedRowIndexes: rowFetches[0]?.indexes || [],
         materialMapRows: generic.material.mapRows.length,
         weightRows: generic.weight.masterRows.length,
         weightRankDatasetId: rankResult.datasetId,
@@ -234,6 +305,9 @@ try {
         staleRevisionError,
         staleFingerprintError,
         nonWeightRankError,
+        wrongMasterIndexedError,
+        staleIndexedError,
+        fingerprintIndexedError,
       },
       assertions: {
         correctConsumerBinding: true,
@@ -244,7 +318,13 @@ try {
         noSecondMasterSourceImport: true,
         emptyRegexHasNoBulkHydration: true,
         nativeWorkerBoundedSearchQueriesObserved: searched.length > 0,
-        nativeWorkerIndexedRowRetrievalObserved: rowFetches.length > 0,
+        nativeWorkerIndexedRowRetrievalObserved: rowFetches.length === 1 &&
+          regexWithSamples.pipingClassRowCount > 0,
+        positiveSourceTokenRecoveredInIndexedRows: true,
+        positiveWorkerSearchMatches: actualMatch.matchCount > 0,
+        indexedWrongMasterFailsClosed: true,
+        indexedStaleRevisionFailsClosed: true,
+        indexedWeightFingerprintFailsClosed: true,
         regexSourceRevisionPreserved: true,
       },
     };
