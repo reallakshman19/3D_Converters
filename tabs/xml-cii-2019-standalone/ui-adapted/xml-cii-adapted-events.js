@@ -450,7 +450,7 @@ async function downloadIndexedVerifiedCsv(stateRef, render, kind, container) {
       return null;
     stateRef.current = updateWorkflowState(stateRef.current, {
       resolverJsonTraceExportStatus: 'Indexed CSV download blocked: ' +
-        String(error?.message || error).replace(/\\s+/g, ' ').slice(0, 230)
+        String(error?.message || error).replace(/\s+/g, ' ').slice(0, 230)
     });
     render();
     return null;
