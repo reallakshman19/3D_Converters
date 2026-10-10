@@ -5,7 +5,7 @@ import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {A3_RUNTIME_ENTRIES,evaluateClosure,requireComplete,scanLiteralEdges} from './indexed-runtime-closure.mjs';
+import {A3_RUNTIME_ENTRIES,A3_INTEGRATION_WITNESSES,evaluateClosure,requireComplete,scanLiteralEdges} from './indexed-runtime-closure.mjs';
 
 const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 async function makeFixture(t,files){
@@ -82,6 +82,8 @@ test('real pinned source entrypoints are declared (pure contract)',()=>{
   assert.ok(A3_RUNTIME_ENTRIES.some(s=>s.endsWith('indexed-preview.js')));
   assert.ok(A3_RUNTIME_ENTRIES.some(s=>s.endsWith('indexed-export.js')));
   assert.ok(A3_RUNTIME_ENTRIES.some(s=>s.endsWith('sha.worker.mjs')));
+  assert.ok(A3_INTEGRATION_WITNESSES.some(s=>s.endsWith('xml-cii-adapted-branch-scope-state.js')),
+    'post-T08 original-file preservation adapter must be mirrored');
 });
 // Full checked-in source/docs fixture tests are run by CI with the actual repo.
 if(process.env.LFJ_A2_CHECK_REPOSITORY==='1'){

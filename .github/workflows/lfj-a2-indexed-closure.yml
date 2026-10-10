@@ -9,6 +9,14 @@ on:
       - 'docs/lfj/stage-indexed-runtime.mjs'
       - 'docs/lfj/stage-indexed-runtime.test.mjs'
       - '.github/workflows/lfj-a2-indexed-closure.yml'
+      - 'docs/.lfj-indexed-runtime-overlay-manifest.json'
+      - 'scripts/build-github-pages-docs.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/**'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/**'
+      - 'lfj/consumers/3d-converters/**'
+      - 'docs/lfj/consumers/3d-converters/**'
+      - 'lfj/qualification/experiments/consumer-sparse-b0*/**'
+      - 'docs/lfj/qualification/experiments/consumer-sparse-b0*/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -120,6 +128,8 @@ jobs:
           exit 1
       - name: Real original File to native three Workers and consented two CSV clicks
         run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: Actual deployed-layout docs/index.html original upload, selected Build and both byte-golden CSVs
+        run: node lfj/consumers/3d-converters/a3-indexed-original-app-shell-browser.mjs
       - name: Serve SAME disposable candidate for retained V4.1 Worker/IDB oracles
         run: |
           python3 -m http.server 4182 --bind 127.0.0.1 --directory "$RUNNER_TEMP/lfj-a2-disposable-site" >/tmp/lfj-a2-v41-stage.log 2>&1 &

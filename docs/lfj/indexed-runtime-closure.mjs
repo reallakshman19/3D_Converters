@@ -20,6 +20,7 @@ export const A3_RUNTIME_ENTRIES=Object.freeze([
 ]);
 export const A3_INTEGRATION_WITNESSES=Object.freeze([
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-branch-scope-state.js',
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js',
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js'
 ]);
