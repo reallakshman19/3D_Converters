@@ -265,6 +265,13 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     // research handoff's downloadAuthorized:false as a product permission.
     if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
       if (save) throw new Error('Indexed preview cannot write engineering config');
+      const indexedConfigText = container.querySelector('[data-field="resolver-json-config"]');
+      if (indexedConfigText) {
+        try { JSON.parse(String(indexedConfigText.value || '{}')); }
+        catch { throw new Error('Resolver configuration JSON is invalid'); }
+        stateRef.current = updateResolverJsonTraceConfig(
+          stateRef.current, indexedConfigText.value);
+      }
       const requested = currentResolverTraceRevision(stateRef.current);
       requestedRevision = requested;
       const input = stateRef.current;
