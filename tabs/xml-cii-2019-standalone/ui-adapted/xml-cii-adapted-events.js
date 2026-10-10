@@ -22,6 +22,7 @@ import {
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
 import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
+import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -70,48 +71,69 @@ export function bindSourceEvents(container, stateRef, render) {
     replaceState(stateRef, nextState, render);
   });
   onChange(container, 'source-file', async (_, event) => {
+    const file = event.target.files?.[0] || null;
+    const isLatest = beginLatestOperation(stateRef, 'source-file');
+    // Revoke the previous basis before FileReader yields to a newer upload.
+    replaceState(stateRef, updateWorkflowState(stateRef.current, {
+      sourceFile: file, sourceText: '', result: null,
+      regexTesterResult: null, format1SelectedSample: '',
+      format2SelectedSample: ''
+    }), render);
     try {
-      const file = event.target.files?.[0] || null;
       const text = file ? await readTextFile(file) : '';
+      if (!isLatest() || stateRef.current.sourceFile !== file) return;
+      if (file && !text) throw new Error('Selected XML file is empty or unreadable');
       const nextState = updateWorkflowState(stateRef.current, {
-        sourceFile: file,
-        sourceText: text,
-        result: null,
-        regexTesterResult: null,
-        format1SelectedSample: '',
-        format2SelectedSample: ''
+        sourceFile: file, sourceText: text, result: null
       });
       const detected = detectXmlCiiWorkflowSourceKind(text, 'xml');
       const actual = nextState.sourceKind === 'auto' ? detected : nextState.sourceKind;
-      if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace') {
+      if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace')
         nextState.activePhaseId = 'source';
-      }
       replaceState(stateRef, nextState, render);
     } catch (err) {
+      if (!isLatest() || stateRef.current.sourceFile !== file) return;
       console.error('Error reading source file:', err);
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        sourceFile: null, sourceText: '', result: null,
+        resolverJsonTraceWriteBackStatus: 'XML source read failed; select the file again.'
+      }), render);
     }
   });
   onChange(container, 'staged-json-file', async (_, event) => {
+    const file = event.target.files?.[0] || null;
+    const isLatest = beginLatestOperation(stateRef, 'staged-json-file');
+    replaceState(stateRef, updateWorkflowState(stateRef.current, {
+      stagedJsonFile: file, stagedJsonText: '', result: null
+    }), render);
     try {
-      const file = event.target.files?.[0] || null;
       const text = file ? await readTextFile(file) : '';
-      replaceState(stateRef, updateWorkflowState(stateRef.current, { stagedJsonFile: file, stagedJsonText: text, result: null }), render);
+      if (!isLatest() || stateRef.current.stagedJsonFile !== file) return;
+      if (file && !text) throw new Error('Selected JSON file is empty or unreadable');
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        stagedJsonFile: file, stagedJsonText: text, result: null
+      }), render);
     } catch (err) {
+      if (!isLatest() || stateRef.current.stagedJsonFile !== file) return;
       console.error('Error reading staged json file:', err);
+      replaceState(stateRef, updateWorkflowState(stateRef.current, {
+        stagedJsonFile: null, stagedJsonText: '', result: null,
+        resolverJsonTraceWriteBackStatus: 'Staged JSON read failed; select the file again.'
+      }), render);
     }
   });
   onChange(container, 'source-text', (value) => {
+    beginLatestOperation(stateRef, 'source-file');
     const nextState = clearWorkflowResult(updateWorkflowState(stateRef.current, {
-      sourceText: value,
+      sourceFile: null, sourceText: value,
       regexTesterResult: null,
       format1SelectedSample: '',
       format2SelectedSample: ''
     }));
     const detected = detectXmlCiiWorkflowSourceKind(value, 'xml');
     const actual = nextState.sourceKind === 'auto' ? detected : nextState.sourceKind;
-    if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace') {
+    if (actual === 'inputxml' && nextState.activePhaseId === 'json-trace')
       nextState.activePhaseId = 'source';
-    }
     replaceState(stateRef, nextState, render);
   });
   onChange(container, 'element-side-load', (value) => { stateRef.current = clearWorkflowResult(updateWorkflowState(stateRef.current, { elementSideLoadText: value })); render(); });
@@ -206,39 +228,82 @@ export function bindActionEvents(container, stateRef, render) {
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
-  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
+  const isLatest = beginLatestOperation(stateRef, 'resolver-build');
+  // A new Build must not leave the previous CSVs authorized or on screen.
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '',
+    resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
+    resolverJsonTraceAcceptedRevision: null
+  });
   render();
-  const tx = container.querySelector('[data-field="resolver-json-config"]');
-  if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
-  const requestedRevision=currentResolverTraceRevision(stateRef.current);
-  const sourceText = await sourceTextFromState(stateRef.current);
-  const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
-  // File reads can yield while a new file/config is selected. Never let an
-  // older Build publish a trace (or unblock either CSV action) after that.
-  if(currentResolverTraceRevision(stateRef.current)!==requestedRevision){
-    stateRef.current=updateWorkflowState(stateRef.current,{
-      resolverJsonTraceRunning:false,
-      resolverJsonTraceExportStatus:'Resolver inputs changed during Build; rerun before export.'
+  let requestedRevision = null;
+  const rejectChanged = () => {
+    if (!isLatest()) return null;
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceRunning: false,
+      resolverJsonTraceExportStatus: 'Resolver inputs changed during Build; rerun before export.'
+    });
+    render();
+    return null;
+  };
+  try {
+    const tx = container.querySelector('[data-field="resolver-json-config"]');
+    if (tx) {
+      try { JSON.parse(String(tx.value || '{}')); }
+      catch { throw new Error('Resolver configuration JSON is invalid'); }
+      stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
+    }
+    requestedRevision = currentResolverTraceRevision(stateRef.current);
+    const sourceText = await sourceTextFromState(stateRef.current);
+    const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
+    if (!isLatest()) return null;
+    if (currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    if (!sourceText.trim() || !stagedJsonText.trim())
+      throw new Error('XML source and staged JSON are both required');
+    const result = runStandaloneResolverJsonTrace({
+      ...stateRef.current, sourceText, stagedJsonText,
+      jsonConfig: stateRef.current.resolverJsonTraceConfig
+    });
+    if (!isLatest()) return null;
+    if (currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    if (!result || !Array.isArray(result.traceResolutionLedger?.records))
+      throw new Error('Resolver returned no complete trace ledger');
+    const benchmark = stateRef.current.resolverJsonTraceTableResult
+      ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
+      : stateRef.current.jsonTraceTableBenchmark;
+    stateRef.current = save
+      ? updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), {
+          jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: ''
+        })
+      : updateWorkflowState(stateRef.current, {
+          resolverJsonTraceResult: result, resolverJsonTraceJsonResult: result,
+          resolverJsonTraceAcceptedRevision: requestedRevision,
+          jsonTraceTableBenchmark: benchmark, resolverJsonTraceRunning: false,
+          resolverJsonTraceExportStatus: '',
+          resolverJsonTraceWriteBackStatus:
+            `Resolver index built: ${result.resolvedFacts.length} facts processed.`
+        });
+    render();
+    return result;
+  } catch (error) {
+    if (!isLatest()) return null;
+    if (requestedRevision !== null &&
+        currentResolverTraceRevision(stateRef.current) !== requestedRevision)
+      return rejectChanged();
+    const message = String(error?.message || 'Unknown error')
+      .replace(/\s+/g, ' ').slice(0, 240);
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceRunning: false,
+      resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
+      resolverJsonTraceAcceptedRevision: null,
+      resolverJsonTraceExportStatus: `Resolver Build failed: ${message}`,
+      resolverJsonTraceWriteBackStatus: `Resolver Build failed: ${message}`
     });
     render();
     return null;
   }
-  const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
-  const benchmark = stateRef.current.resolverJsonTraceTableResult
-    ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
-    : stateRef.current.jsonTraceTableBenchmark;
-  stateRef.current = save ?
-    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: '' }) :
-    updateWorkflowState(stateRef.current, {
-      resolverJsonTraceResult: result,
-      resolverJsonTraceJsonResult: result,
-      resolverJsonTraceAcceptedRevision:requestedRevision,
-      jsonTraceTableBenchmark: benchmark,
-      resolverJsonTraceRunning: false,
-      resolverJsonTraceExportStatus: '',
-      resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
-    });
-  render();
 }
 export async function runManualElementSideloadFromUi(container, stateRef, render, save) {
   stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });
@@ -265,7 +330,8 @@ function traceResult(state) {
 
 export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
   const state=stateRef.current;
-  if(state.resolverJsonTraceAcceptedRevision===null||
+  if(state.resolverJsonTraceRunning||
+     state.resolverJsonTraceAcceptedRevision===null||
      state.resolverJsonTraceAcceptedRevision===undefined||
      state.resolverJsonTraceAcceptedRevision!==currentResolverTraceRevision(state)){
     stateRef.current=updateWorkflowState(state,{
