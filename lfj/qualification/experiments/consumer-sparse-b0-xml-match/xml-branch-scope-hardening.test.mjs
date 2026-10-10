@@ -30,6 +30,9 @@ const positives=[
  ['flat_repeated_labels',wrap(bn('A')+n(10)+bn('A')+n(20)),['A','A']],
  ['unnamed_flat_no_guess',wrap(n()),['']],
  ['pipe_branch_single',wrap(pipe(br(bn('C')+n()))),['C']],
+ ['terminal_line_number_is_auxiliary',wrap(pipe(
+   br(bn('A')+n(10)+'<LineNo>S8811956</LineNo>')+
+   br(bn('B')+n(20)+'<LineNo>S8810110</LineNo>'))),['A','B']],
  ['direct_attribute_branch_in_pipe',
    wrap(pipe('<PIPINGELEMENT NODE="10" POS="1 2 3" BRANCH="A"/>')),['A']]
 ];
@@ -50,6 +53,10 @@ const bad=[
  ['metadata_nested_branch',wrap('<Metadata>'+bn('A')+'</Metadata>'+n())],
  ['metadata_line_key',wrap('<Metadata><LineKey>A</LineKey></Metadata>'+n())],
  ['empty_named_pipe',wrap(pipe(bn('')+n()))],
+ ['duplicate_terminal_line_number',wrap(pipe(br(
+   bn('A')+n()+'<LineNo>ONE</LineNo><LineNo>TWO</LineNo>')))],
+ ['line_number_must_not_name_next_branch',wrap(pipe(
+   br(bn('A')+n(10)+'<LineNo>ONE</LineNo>')+br(n(20))))],
  ['unnamed_attribute_inside_pipe',wrap(
    pipe(bn('A')+'<PIPINGELEMENT NODE="10" POS="1 2 3" BRANCH="A"/>')+
    pipe('<PIPINGELEMENT NODE="20" POS="4 5 6"/>'))]
