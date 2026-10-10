@@ -220,3 +220,56 @@ test('mid-Worker original source supersession rejects preview and both downloads
       ref.current=updateWorkflowState(ref.current,{sourceText:'<Root><Node>new</Node></Root>'});
   }});
 });
+
+test('T06 selected Worker/CSV handoff demands identical native manifest digest',async()=>{
+  const expected=await completeHandoff();
+  const id='A3-SCOPE-ZONE-A',digest='c'.repeat(64);
+  expected.selectedScope={requestedScopeId:id,manifestDigestSha256:digest,
+    sourceOnly:true,engineeringReady:false,downloadAuthorized:false};
+  expected.researchHandoff.basis.selectedScopeId=id;
+  expected.researchHandoff.basis.selectionDigestSha256=digest;
+  const verified=await verifyIndexedPreviewHandoff(
+    expected,expected.originalSha256,expected.xmlSha256,id);
+  assert.equal(verified.selectedScopeId,id);
+  assert.equal(verified.selectionDigestSha256,digest);
+  for(const mutate of [
+    x=>{delete x.selectedScope;},
+    x=>{delete x.researchHandoff.basis.selectionDigestSha256;},
+    x=>{x.researchHandoff.basis.selectionDigestSha256='d'.repeat(64);},
+    x=>{x.selectedScope.engineeringReady=true;},
+    x=>{x.selectedScope.manifestDigestSha256='short';},
+    x=>{x.researchHandoff.basis.selectedScopeId='A3-SCOPE-ZONE-B';}
+  ]){
+    const changed=copy(expected);mutate(changed);
+    await assert.rejects(verifyIndexedPreviewHandoff(
+      changed,expected.originalSha256,expected.xmlSha256,id),
+      e=>e.code==='LFJ_PREVIEW_SCOPE_BASIS');
+  }
+  await assert.rejects(verifyIndexedPreviewHandoff(
+    expected,expected.originalSha256,expected.xmlSha256,'A3-SCOPE-ZONE-B'),
+    e=>e.code==='LFJ_PREVIEW_SCOPE_BASIS');
+});
+
+test('T06 indexed selected Worker request does not bypass original preview proof',async()=>{
+  const id='A3-SCOPE-ZONE-A',digest='d'.repeat(64);
+  await mockedWorkers(async({result,messages})=>{
+    // Research Worker is normally responsible for writing these two values.
+    result.selectedScope={requestedScopeId:id,manifestDigestSha256:digest,
+      sourceOnly:true,engineeringReady:false,downloadAuthorized:false};
+    result.researchHandoff.basis.selectedScopeId=id;
+    result.researchHandoff.basis.selectionDigestSha256=digest;
+    const ready=await buildIndexedResolverPreview({
+      blob:new Blob([json]),xmlText:xml,config:{},selectedScopeId:id
+    });
+    assert.equal(messages.find(x=>x.type==='MATCH').selectedScopeId,id);
+    assert.equal(ready.selectedScopeId,id);
+    assert.equal(ready.selectionDigestSha256,digest);
+    assert.equal(ready.downloadAuthorized,false);
+  });
+  await mockedWorkers(async()=>{
+    await assert.rejects(buildIndexedResolverPreview({
+      blob:new Blob([json]),xmlText:xml,config:{},selectedScopeId:id
+    }),e=>e.code==='LFJ_PREVIEW_SCOPE_BASIS',
+    'missing selected Worker handoff must not be accepted as ALL');
+  });
+});
