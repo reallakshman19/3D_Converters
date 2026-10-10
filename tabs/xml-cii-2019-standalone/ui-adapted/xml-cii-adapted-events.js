@@ -25,6 +25,7 @@ import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
 import { createIndexedExportReceipt, verifyIndexedProductCsv } from './xml-cii-adapted-lfj-indexed-export.js';
+import {beginIndexedBuild,cancelIndexedBuild,releaseIndexedBuild,isIndexedBuildCurrent} from './xml-cii-adapted-lfj-build-lifecycle.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -41,7 +42,14 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindSubTabEvents(container, stateRef, render);
 }
 
-export function replaceState(stateRef, nextState, render) { stateRef.current = nextState; render(); }
+export function replaceState(stateRef, nextState, render) {
+  if(currentResolverTraceRevision(stateRef.current)!==
+     currentResolverTraceRevision(nextState)){
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
+  }
+  stateRef.current=nextState;render();
+}
 export function patchState(stateRef, patch, render) { replaceState(stateRef, updateWorkflowState(stateRef.current, patch), render); }
 export function patchOptions(stateRef, optionPatch) { stateRef.current = updateWorkflowOptions(stateRef.current, optionPatch); }
 
@@ -191,6 +199,8 @@ export function bindResolverEvents(container, stateRef, render) {
     render();
   });
   onChange(container, 'resolver-source-mode', value => {
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
     stateRef.current = updateWorkflowState(stateRef.current, {
       lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false,
       resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
@@ -199,25 +209,40 @@ export function bindResolverEvents(container, stateRef, render) {
     });
     render();
   });
-  onChange(container, 'resolver-json-config', (value) => { stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value); });
+  onChange(container, 'resolver-json-config', (value) => {
+    const before=currentResolverTraceRevision(stateRef.current);
+    stateRef.current=updateResolverJsonTraceConfig(stateRef.current,value);
+    if(currentResolverTraceRevision(stateRef.current)!==before){
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+    }
+  });
   const useDelimiterInput = container.querySelector('[data-field="resolver-use-delimiter"]');
   if (useDelimiterInput) {
     useDelimiterInput.addEventListener('change', (event) => {
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
       stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { useDelimiter: !!event.target.checked });
       render();
     });
   }
   onChange(container, 'resolver-delimiter', (value) => {
-    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { delimiter: value || '|' });
+    cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+      stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { delimiter: value || '|' });
     render();
   });
   onChange(container, 'resolver-join-mode', (value) => {
-    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { joinMode: value || 'unique' });
+    cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
+      stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { joinMode: value || 'unique' });
     render();
   });
   onChange(container, 'resolver-coordinate-tolerance', (value) => {
     const tol = parseFloat(value);
     if (Number.isFinite(tol) && tol >= 0) {
+      cancelIndexedBuild(stateRef);
+      beginLatestOperation(stateRef,'resolver-build');
       stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { coordinateTolerance: tol });
       render();
     }
@@ -237,6 +262,7 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
+  onClick(container, 'cancel-indexed-build', () => cancelIndexedBuildFromUi(stateRef,render));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
   onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree', container));
   onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace', container));
@@ -253,11 +279,31 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'clear-master-context', () => clearMasterContextFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   for (const kind of ['enriched', 'cii', 'diagnostics', 'manifest']) onClick(container, `download-${kind}`, () => downloadArtifact(stateRef.current, kind));
-  onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
+  onClick(container, 'clear', () => {
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef,'resolver-build');
+    replaceState(stateRef, resetWorkflowState(), render);
+  });
 }
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
+export function cancelIndexedBuildFromUi(stateRef,render){
+  if(stateRef.current.resolverSourceMode!=='lfj-indexed-preview'||
+     !stateRef.current.resolverJsonTraceRunning)return false;
+  beginLatestOperation(stateRef,'resolver-build');
+  cancelIndexedBuild(stateRef);
+  stateRef.current=updateWorkflowState(stateRef.current,{
+    resolverJsonTraceRunning:false,lfjIndexedPreview:null,
+    lfjIndexedExportReceipt:null,lfjIndexedExportOptIn:false,
+    lfjIndexedPreviewStatus:'Indexed Build cancelled by user.',
+    resolverJsonTraceExportStatus:'Indexed Build cancelled; CSV downloads unavailable.',
+    resolverJsonTraceWriteBackStatus:'Indexed Build cancelled.'
+  });
+  render();
+  return true;
+}
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
+  cancelIndexedBuild(stateRef);
   const isLatest = beginLatestOperation(stateRef, 'resolver-build');
   // A new Build must not leave the previous CSVs authorized or on screen.
   stateRef.current = updateWorkflowState(stateRef.current, {
@@ -302,10 +348,18 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
         return rejectChanged();
       const isCurrent = () => isLatest() &&
         currentResolverTraceRevision(stateRef.current) === requested;
-      const preview = await buildIndexedResolverPreview({
-        blob: input.stagedJsonFile, xmlText,
-        config: input.resolverJsonTraceConfig || {}, isCurrent
-      });
+      const controller=beginIndexedBuild(stateRef);
+      let preview;
+      try{
+        preview=await buildIndexedResolverPreview({
+          blob:input.stagedJsonFile,xmlText,
+          config:input.resolverJsonTraceConfig||{},
+          isCurrent:()=>isCurrent()&&isIndexedBuildCurrent(stateRef,controller),
+          signal:controller.signal
+        });
+      }finally{
+        releaseIndexedBuild(stateRef,controller);
+      }
       if (!isCurrent()) return rejectChanged();
       const receipt = createIndexedExportReceipt({
         preview, config: input.resolverJsonTraceConfig || {},

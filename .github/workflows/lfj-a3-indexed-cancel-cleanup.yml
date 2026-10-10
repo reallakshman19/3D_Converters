@@ -1,0 +1,71 @@
+name: LFJ A3 indexed native cancellation and temporary DB cleanup
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-cancel-browser.mjs'
+      - '.github/workflows/lfj-a3-indexed-cancel-cleanup.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cancellation-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax, controller lifecycle, IDB blocked/timeouts and real UI cancellation
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-db-cleanup.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-build-lifecycle.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-cancel-cleanup.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-export.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.test.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"
+  native-cancel-cleanup-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authentic fixtures and real standalone UI modules
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/a3-lifecycle.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/a3-lifecycle.log
+          exit 1
+      - name: Actual Cancel; native Worker termination, restart and zero orphan IndexedDB
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-cancel-browser.mjs
+      - name: Original two CSVs still downloadable with source SHA checks
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"

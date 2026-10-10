@@ -9,6 +9,7 @@
 import {
   XML_NODE_TRACE_HEADERS, EVIDENCE_TREE_HEADERS, serializeRowsToCsv
 } from '../xml-cii-trace-export.js';
+import { deleteIndexedBuildDatabases } from './xml-cii-adapted-lfj-db-cleanup.js';
 
 const SOURCE_WORKER = new URL(
   '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
@@ -144,6 +145,7 @@ export async function buildIndexedResolverPreview({
   const sourceGeneration = token, projectionGeneration = token;
   const run = (url, payload) => workerJob(url, payload,
     { signal, workerFactory, timeoutMs });
+  let failure=null;
   try {
     stale(isCurrent);
     onProgress('Hashing original source');
@@ -186,13 +188,21 @@ export async function buildIndexedResolverPreview({
       matching, originalSha256, xmlSha256);
     stale(isCurrent);
     return verified;
+  } catch(error) {
+    failure=error;
+    throw error;
   } finally {
-    // Each request owns unique generations. Never reuse partially written
-    // IndexedDB heads after cancellation, failure or supersession.
-    if (typeof indexedDB !== 'undefined') {
-      for (const name of [sourceDatabaseName, projectionDatabaseName]) {
-        try { indexedDB.deleteDatabase(name); } catch {}
-      }
+    // A scheduled deletion is not a completed deletion: native IDB onblocked,
+    // onerror and timeout must fail closed. Attempt both names independently.
+    try {
+      await deleteIndexedBuildDatabases([
+        sourceDatabaseName,projectionDatabaseName
+      ]);
+    } catch(cleanupError) {
+      if(!failure) throw cleanupError;
+      // Preserve the original cancel/source failure for the UI, but attach
+      // cleanup failure so diagnostics cannot mistake it for verified cleanup.
+      failure.cleanupError=cleanupError.code||'LFJ_IDB_CLEANUP_ERROR';
     }
   }
 }

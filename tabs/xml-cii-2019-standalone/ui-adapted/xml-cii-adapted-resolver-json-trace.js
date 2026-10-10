@@ -253,7 +253,13 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
-  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config', state.resolverSourceMode === 'lfj-indexed-preview'), createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  actions.append(buildBtn);
+  if (state.resolverSourceMode === 'lfj-indexed-preview' && state.resolverJsonTraceRunning)
+    actions.append(actionButton('cancel-indexed-build', 'Cancel indexed Build'));
+  actions.append(actionButton('save-resolver-json-config', 'Save to config',
+    state.resolverSourceMode === 'lfj-indexed-preview'),
+    createElement('span', state.resolverJsonTraceWriteBackStatus ||
+      'Resolver config not saved yet.', 'xml-cii-phase-help'));
   section.appendChild(actions);
   renderDelimiterControls(section, state);
 
