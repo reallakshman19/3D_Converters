@@ -101,3 +101,33 @@ jobs:
         run: node lfj/consumers/3d-converters/source-backed-populated-30mib-browser.mjs
       - name: Source and original fixture custody after stress
         run: test -z "$(git status --porcelain)"
+
+  populated-90mib-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact populated 90MiB test head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium for populated source stress
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original 10 MB populated source and application modules
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-90mib.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/Benchmarks/1885_NC/1885_NC.json >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-90mib.log
+          exit 1
+      - name: Native 90MiB populated source catalog and IndexedDB cleanup
+        run: LFJ_A3_STRESS_COPIES=10 node lfj/consumers/3d-converters/source-backed-populated-30mib-browser.mjs
+      - name: Source and original fixture custody after stress
+        run: test -z "$(git status --porcelain)"
