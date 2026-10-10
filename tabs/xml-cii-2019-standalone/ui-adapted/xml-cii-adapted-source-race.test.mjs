@@ -441,6 +441,8 @@ test('T05a refuses unverified root ordinals, scope evidence and topology', async
     [{ ...base.roots[0], type: 'SITE' }, 'TOPOLOGY_NOT_PROVEN'],
     [{ ...base.roots[0], scopeEvidence: 'NESTED_ONLY' }, 'SCOPE_EVIDENCE_INVALID'],
     [{ ...base.roots[0], scopeEvidence: 'NONE' }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], ownerScope: UNSCOPED_SOURCE_ID }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], ownerScope: ALL_SOURCE_SCOPES }, 'SCOPE_EVIDENCE_INVALID'],
     [{ ...base.roots[0], ordinal: 0 }, 'ROOT_PROVENANCE_INVALID'],
     [{ ...base.roots[0], endByteExclusive: 1500 }, 'ROOT_PROVENANCE_INVALID']
   ];
