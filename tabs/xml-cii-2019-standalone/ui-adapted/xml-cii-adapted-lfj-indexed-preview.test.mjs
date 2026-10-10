@@ -33,7 +33,7 @@ async function completeHandoff(blobText=json, xmlText=xml) {
   const originalSha256=await sha(blobText), xmlSha256=await sha(xmlText);
   const handoff={
     schema:'LFJ.B0.ResearchHandoff.v1',
-    basis:{originalSha256,xmlSha256,xmlNodes:1},
+    basis:{originalSha256,xmlSha256,xmlNodes:1,xmlRecordsSha256:'a'.repeat(64)},
     nodeWiseRows:rows,evidenceTreeRows:evidence,
     nodeWiseCsv,evidenceTreeCsv,
     nodeWiseCsvSha256,evidenceTreeCsvSha256,
@@ -43,6 +43,7 @@ async function completeHandoff(blobText=json, xmlText=xml) {
   };
   return {
     originalSha256,xmlSha256,xmlNodes:1,matchedXmlNodes:1,
+    sourceOccurrenceCount:10,projectionFacts:1,xmlRecordsSha256:'a'.repeat(64),
     nodeWiseCsvSha256,evidenceTreeCsvSha256,
     nodeWiseCsvBytes,evidenceTreeCsvBytes,researchHandoff:handoff
   };
@@ -89,8 +90,8 @@ async function mockedWorkers(fn, options={}) {
       options.onMessage?.(data);
       queueMicrotask(()=>{
         let output;
-        if(data.type==='START') output={occurrenceCount:10};
-        else if(data.type==='PROJECT') output={factCount:1};
+        if(data.type==='START') output={occurrenceCount:10,sourceSha256:result.originalSha256};
+        else if(data.type==='PROJECT') output={factCount:1,sourceSha256:result.originalSha256,sourceOccurrences:10};
         else output=result;
         this.onmessage?.({data:{type:'DONE',result:output}});
       });
