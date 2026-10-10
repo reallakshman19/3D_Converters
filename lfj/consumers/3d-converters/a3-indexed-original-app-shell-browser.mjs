@@ -70,9 +70,32 @@ try{
   if(!(await page.locator('[data-action="discover-indexed-scopes"]').count()))
     await phase('json-trace');
   await page.locator('[data-json-trace-sub-tab="index"]').click();
-  // An unsupported old scope cannot be assumed from localStorage.
+  // A genuine root-shell render cannot be substituted with an injected
+  // component. Publish a bounded DOM snapshot if it fails to retain mode/file.
   const scan=page.locator('[data-action="discover-indexed-scopes"]');
-  await scan.waitFor();
+  if(!(await scan.count())){
+    const diagnosis=await page.evaluate(()=>({
+      selectedMode:document.querySelector(
+        '[data-field="resolver-source-mode"]')?.value||null,
+      activePhase:document.querySelector(
+        'button[data-phase].is-active')?.dataset.phase||null,
+      activeResolverTab:document.querySelector(
+        '[data-json-trace-sub-tab].is-active')?.dataset.jsonTraceSubTab||null,
+      jsonFileSummary:[...document.querySelectorAll(
+        '.xml-cii-file-summary')].map(x=>x.textContent.slice(0,150)),
+      sourceFileInputCount:document.querySelectorAll(
+        'input[data-field="staged-json-file"]').length,
+      scopeOptions:[...document.querySelectorAll(
+        'select[data-field="resolver-hierarchy-scope"] option')]
+        .map(x=>({id:x.value,text:x.textContent})),
+      controls:[...document.querySelectorAll(
+        '.xml-cii-resolver-scope-control button')].map(x=>x.textContent),
+      visibleHelp:[...document.querySelectorAll('.xml-cii-phase-help')]
+        .slice(0,12).map(x=>x.textContent.slice(0,160))
+    }));
+    console.error('A3_ROOT_SCOPE_MISSING '+JSON.stringify({diagnosis,pageErrors,internal404}));
+    throw Error('Actual root authored mode/file scope discovery control is missing');
+  }
   await scan.click();
   await page.waitForFunction(site=>{
     const select=document.querySelector(
@@ -166,6 +189,9 @@ try{
     qualification:'NATIVE_CHROMIUM_ROOT_AUTHORED_SELECTED_TWO_CSV'
   }));
 }finally{
+  await page.screenshot({path:join(artifactDir,
+    'a3-authored-indexed-root-last-'+finish+'.png'),fullPage:true})
+    .catch(()=>{});
   await profile.tracing.stop({
     path:join(artifactDir,'a3-authored-indexed-root-'+finish+'.zip')
   }).catch(()=>{});
