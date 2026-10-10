@@ -1,0 +1,71 @@
+name: LFJ A3 indexed large-source capacity boundaries and Owner harness contract
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-*.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-large-admission-browser.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-owner-large-*'
+      - '.github/workflows/lfj-a3-large-source-admission.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  large-source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact commit
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Parse capacity module, actual Build imports and Owner runner
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-size-admission.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-owner-large-qualify.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-size-admission.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-owner-large-manifest.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-cancel-cleanup.test.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"
+  synthetic-capacity-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact commit
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original standalone modules and tracked benchmark controls
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/a3-large.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/a3-large.log
+          exit 1
+      - name: Native 30/32MiB admission and 90MiB zero-work rejection — synthetic only
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-large-admission-browser.mjs
+      - name: Original File native Build and two source-SHA CSVs unchanged
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: No tracked source mutation
+        run: test -z "$(git status --porcelain)"
