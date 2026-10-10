@@ -128,7 +128,7 @@ test('semantic or CSV tampering is rejected even with matching row count',async(
     const modified=copy(original);change(modified);
     await assert.rejects(
       verifyIndexedPreviewHandoff(modified,original.originalSha256,original.xmlSha256),
-      /LFJ_PREVIEW_/);
+      error => /^LFJ_PREVIEW_/.test(error?.code || ''));
   }
 });
 
