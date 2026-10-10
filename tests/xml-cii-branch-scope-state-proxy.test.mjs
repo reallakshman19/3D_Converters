@@ -64,3 +64,51 @@ test('loading a new source through a processing-phase file input resets selectio
   assert.deepEqual(baseRef.current.branchSelection.selectedBranchNames, ['/B/B1']);
   assert.notEqual(baseRef.current.branchSelection.sourceDigest, oldSelection.sourceDigest);
 });
+test('A3 indexed Resolver receives the original Blob and complete XML while legacy still strips File', () => {
+  const selection=normalizeXmlCiiBranchSelection(SOURCE_A,{});
+  selection.selectedBranchNames=['/A/B2'];
+  const json=new Blob(['[{"type":"BRANCH","name":"RAW","children":[]}]'],{
+    type:'application/json'
+  });
+  const xmlFile=new Blob([SOURCE_A],{type:'application/xml'});
+  const base={current:ensureXmlCiiBranchSelectionState({
+    activePhaseId:'json-trace',sourceKind:'xml',
+    resolverSourceMode:'lfj-indexed-preview',
+    sourceText:SOURCE_A,sourceFile:xmlFile,
+    stagedJsonFile:json,stagedJsonText:'',
+    branchSelection:selection,jsonTraceScopeId:'__ALL__'
+  })};
+  const proxy=createXmlCiiBranchScopedStateRef(base);
+  const indexed=proxy.current;
+  assert.equal(indexed.stagedJsonFile,json,
+    'real original-file Indexed Build must retain exact Blob identity');
+  assert.equal(indexed.sourceFile,xmlFile);
+  assert.equal(indexed.sourceText,SOURCE_A,
+    'all original XML nodes stay available even with an old branch filter');
+  assert.equal(indexed.stagedJsonText,'');
+  proxy.current={...indexed,jsonTraceScopeId:'OWNER_ZONE_A'};
+  assert.equal(base.current.stagedJsonFile,json);
+  assert.equal(base.current.jsonTraceScopeId,'OWNER_ZONE_A');
+  proxy.current={...proxy.current,resolverSourceMode:'legacy'};
+  const legacy=proxy.current;
+  assert.equal(legacy.stagedJsonFile,null);
+  assert.equal(legacy.sourceFile,null);
+  assert.doesNotMatch(legacy.sourceText,/\/A\/B1/,
+    'legacy selected branch must still use the bounded filtered XML');
+});
+
+test('A3 indexed original File upload survives processing proxy setter and later UI rerenders', () => {
+  const base={current:ensureXmlCiiBranchSelectionState({
+    activePhaseId:'json-trace',sourceKind:'xml',
+    resolverSourceMode:'lfj-indexed-preview',sourceText:SOURCE_A,
+    sourceFile:null,stagedJsonText:'',stagedJsonFile:null
+  })};
+  const proxy=createXmlCiiBranchScopedStateRef(base);
+  const newFile=new Blob(['[1]'],{type:'application/json'});
+  proxy.current={...proxy.current,stagedJsonFile:newFile,result:null};
+  assert.equal(base.current.stagedJsonFile,newFile);
+  assert.equal(proxy.current.stagedJsonFile,newFile);
+  proxy.current={...proxy.current,jsonTraceActiveSubTabId:'index'};
+  assert.equal(proxy.current.stagedJsonFile,newFile);
+  assert.equal(proxy.current.sourceText,SOURCE_A);
+});

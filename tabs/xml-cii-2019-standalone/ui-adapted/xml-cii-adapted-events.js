@@ -309,10 +309,24 @@ export function cancelIndexedBuildFromUi(stateRef,render){
 // Only exact off-thread discovered original File scopes are supported.
 // Arbitrary selected labels, changed Files, nested branch filters and unknown
 // topology must never silently substitute an ALL Build/receipt.
-function unsupportedIndexedScope(state) {
+export function unsupportedIndexedScope(state) {
   const branch=state?.branchSelection;
   if(Array.isArray(branch)){
     if(branch.some(id=>id!==ALL_SCOPE_ID))return true;
+  }else if(branch && typeof branch==='object'){
+    // The AUTHORED root shell carries an XML branchSelection object even
+    // for ALL original XML branches. Its previously blanket-denied object
+    // prevented any indexed selected JSON-zone Build. Admit only a
+    // source-derived, complete XML branch census; a subset, empty selection,
+    // old source digest or ungrounded object must still fail closed.
+    const scoped=state?.branchScope;
+    const manifest=scoped?.manifest;
+    if(scoped?.blocked||!manifest||
+       !['all','not-applicable'].includes(scoped.mode)||
+       !Number.isSafeInteger(manifest.sourceBranchCount)||
+       manifest.sourceBranchCount!==manifest.selectedBranchCount||
+       (branch.sourceDigest && branch.sourceDigest!==manifest.sourceDigest))
+      return true;
   }else if(branch!=null&&branch!==''&&branch!==ALL_SCOPE_ID)
     return true;
   const scope=state?.jsonTraceScopeId||ALL_SCOPE_ID;

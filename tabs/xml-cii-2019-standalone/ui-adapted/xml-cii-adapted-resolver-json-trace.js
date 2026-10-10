@@ -55,8 +55,11 @@ function sectionTitleBar(title, actions = []) {
   return bar;
 }
 
+const TABLE_DOM_PAGE_ROWS=1000;
 function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
   if (!data.length) return createElement('div', emptyText, 'xml-cii-phase-help');
+  // Keep the COMPLETE source-backed row set immutable in memory; cap only DOM
+  // rendering. Previous slice(0,1000) silently made rows 1001+ unreachable.
   const tableEl = createElement('table', '', idClass);
   if (tableEl.style) Object.assign(tableEl.style, { width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', color: '#cbd5e1', background: '#0f172a', borderRadius: '8px', overflow: 'hidden' });
   const head = createElement('thead');
@@ -68,10 +71,52 @@ function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
     hr.appendChild(th);
   }
   head.appendChild(hr);
-  tableEl.append(head, tableBody(headers, data));
-  const wrapper = createElement('div');
-  if (wrapper.style) Object.assign(wrapper.style, { maxHeight: '420px', overflow: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
-  wrapper.appendChild(tableEl);
+  tableEl.appendChild(head);
+  const scroll = createElement('div');
+  if (scroll.style) Object.assign(scroll.style, { maxHeight: '420px', overflow: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
+  scroll.appendChild(tableEl);
+  const wrapper=createElement('div');
+  const pager=createElement('div','','xml-cii-resolver-table-pager');
+  if(pager.style)Object.assign(pager.style,{
+    display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap',
+    margin:'4px 0 8px'
+  });
+  const range=createElement('span');
+  range.dataset.field='table-visible-range';
+  const prev=createElement('button','Previous');
+  prev.type='button';prev.dataset.action='table-previous-page';
+  const next=createElement('button','Next');
+  next.type='button';next.dataset.action='table-next-page';
+  pager.append(range,prev,next);
+  wrapper.append(pager,scroll);
+  let page=0,query='',filtered=data;
+  function paint(){
+    filtered=query?data.filter(item=>headers.some(header=>
+      String(item[fieldFor(header)]??'').toLowerCase().includes(query))):data;
+    const maxPage=Math.max(0,Math.ceil(filtered.length/TABLE_DOM_PAGE_ROWS)-1);
+    page=Math.min(Math.max(0,page),maxPage);
+    const begin=page*TABLE_DOM_PAGE_ROWS;
+    const end=Math.min(begin+TABLE_DOM_PAGE_ROWS,filtered.length);
+    const oldBody=tableEl.querySelector('tbody');
+    const replacement=tableBody(headers,filtered.slice(begin,end));
+    if(oldBody)oldBody.replaceWith(replacement);
+    else tableEl.appendChild(replacement);
+    range.textContent='Showing '+(filtered.length?begin+1:0)+'–'+end+
+      ' of '+filtered.length+
+      (query?' (filtered from '+data.length+' original rows)':' original rows');
+    prev.disabled=page===0;
+    next.disabled=end>=filtered.length;
+    // A page turn only changes visible DOM, never the underlying CSV rows.
+    scroll.scrollTop=0;
+  }
+  prev.addEventListener('click',()=>{if(page>0){page--;paint();}});
+  next.addEventListener('click',()=>{
+    if((page+1)*TABLE_DOM_PAGE_ROWS<filtered.length){page++;paint();}
+  });
+  wrapper.setSourceFilter=value=>{
+    query=String(value||'').toLowerCase().trim();page=0;paint();
+  };
+  paint();
   return wrapper;
 }
 
@@ -86,7 +131,7 @@ function statusStyle(value) {
 function tableBody(headers, data) {
   const body = createElement('tbody');
   let isEven = false;
-  for (const item of data.slice(0, 1000)) {
+  for (const item of data) {
     const tr = createElement('tr');
     if (tr.style) {
       Object.assign(tr.style, { borderBottom: '1px solid rgba(148, 163, 184, 0.06)', background: isEven ? 'rgba(30, 41, 59, 0.15)' : 'transparent', transition: 'background-color 0.15s ease' });
@@ -126,6 +171,16 @@ function tableBody(headers, data) {
 function fieldFor(header) {
   return {
     Path: 'path',
+    Branch: 'branch',
+    Bore: 'bore',
+    'Source Node No': 'sourceNodeNo',
+    Position: 'position',
+    'Object Type': 'objectType',
+    DTXR_POS: 'dtxrPos',
+    NAME: 'name',
+    CMPSUPGAP: 'cmpSupGap',
+    ComponentRefNo: 'componentRefNo',
+    'Source Path': 'sourcePath',
     Node: 'nodeKey',
     PS: 'psKey',
     POS: 'posKey',
@@ -355,7 +410,11 @@ function addFilter(section, tableEl, placeholder) {
   if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
   filterInput.addEventListener('input', () => {
     const query = filterInput.value.toLowerCase().trim();
-    tableEl.querySelectorAll?.('tbody tr').forEach((tr) => { tr.style.display = !query || tr.textContent.toLowerCase().includes(query) ? '' : 'none'; });
+    if(typeof tableEl.setSourceFilter==='function')
+      tableEl.setSourceFilter(query);
+    else tableEl.querySelectorAll?.('tbody tr').forEach((tr) => {
+      tr.style.display = !query || tr.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
   });
   section.append(filterInput, tableEl);
 }

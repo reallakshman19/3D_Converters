@@ -26,7 +26,8 @@ import {
   renderResolverHierarchyScopeControl, selectResolverHierarchyScope
 } from './xml-cii-adapted-resolver-scope.js';
 import { bindSourceEvents, runResolverJsonTraceFromUi,
-  downloadResolverTraceCsvFromUi } from './xml-cii-adapted-events.js';
+  downloadResolverTraceCsvFromUi, unsupportedIndexedScope
+} from './xml-cii-adapted-events.js';
 
 function createState() {
   return {
@@ -656,4 +657,37 @@ test('T06b stale original-source scope worker cannot publish a scope list',async
   await assert.rejects(discoverIndexedOriginalFileScopes({
     blob,workerFactory,isCurrent:()=>false
   }),error=>error.code==='SCOPE_DISCOVERY_STALE');
+});
+
+test('T08 authored complete XML branch manifest is admissible; any partial/forged branch stays denied',()=>{
+  const branchSelection={
+    sourceDigest:'original-xml-branch-digest',
+    selectedBranchNames:['/A/BR1','/A/BR2'],
+    selectedBranchOccurrenceIds:['A-1','A-2']
+  };
+  const scoped={
+    mode:'all',blocked:false,
+    manifest:{mode:'all',sourceDigest:branchSelection.sourceDigest,
+      sourceBranchCount:2,selectedBranchCount:2}
+  };
+  const base={
+    resolverSourceMode:'lfj-indexed-preview',
+    branchSelection,branchScope:scoped,jsonTraceScopeId:ALL_SCOPE_ID
+  };
+  assert.equal(unsupportedIndexedScope(base),false,
+    'normal authored root selection of ALL XML branches is not a nested JSON scope');
+  for(const altered of [
+    {branchScope:{...scoped,mode:'explicit-selection'}},
+    {branchScope:{...scoped,manifest:{...scoped.manifest,
+      selectedBranchCount:1}}},
+    {branchScope:{...scoped,manifest:{...scoped.manifest,
+      sourceDigest:'different-xml'}}},
+    {branchScope:{...scoped,blocked:true}},
+    {branchScope:null},
+    {branchSelection:['BR1']},
+    {branchSelection:{sourceDigest:'forged'}}
+  ]){
+    assert.equal(unsupportedIndexedScope({...base,...altered}),true,
+      'unsupported or forged XML branch selection must not reach indexed Worker');
+  }
 });
