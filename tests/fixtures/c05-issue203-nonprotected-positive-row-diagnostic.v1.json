@@ -1,0 +1,47 @@
+{
+  "schema": "XMLCII_C05_NONPROTECTED_DIAGNOSTIC_ANCHOR_V1",
+  "purpose": "SOURCE_DRIFT_DIAGNOSTIC_ONLY_NOT_AN_INDEPENDENT_SEMANTIC_GOLDEN",
+  "releaseAuthority": false,
+  "protectedGolden": false,
+  "ownerOriginal30MbQualified": false,
+  "provenance": {
+    "githubWorkflowRun": 38092619920,
+    "githubArtifactIds": [
+      11684995551,
+      11684791442,
+      11684995577
+    ],
+    "sourceCandidateCommit": "f915db6399c628c2415d2b3f45e89484fdbbb528",
+    "recordedDate": "2026-10-11",
+    "updatePolicy": "REVIEW_EXPLICIT_WITNESS_AND_SOURCE_DIFF_NO_AUTOREGEN"
+  },
+  "source": {
+    "repoPath": "docs/Masters/Piping_class_master.json",
+    "mirrorPath": "docs/docs/Masters/Piping_class_master.json",
+    "sha256": "74997209ffbbf4c5e1eacc9948ec89a5e2f59ad87cc3dd7cfca6d24166d7fab1"
+  },
+  "stableWitness": {
+    "token": "11000",
+    "canonicalRowsSha256": "a38008cd9b4b3cdd01cd26f23318ca63c39cfdacbce6be58a61e50d52678bae8",
+    "encoding": "stable-key-json-v1",
+    "workerMatchCount": 30,
+    "indexedRowCount": 4,
+    "indexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "revisions": [
+      1,
+      1,
+      1
+    ],
+    "fingerprint": "1595:fnv1a:8995ce56",
+    "masterRowCounts": [
+      10699,
+      383,
+      1595
+    ]
+  }
+}
