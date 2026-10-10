@@ -268,6 +268,15 @@ export async function runSourceBackedResolverPreviewFromUi(stateRef, render) {
     if(sourceKind!=='xml')throw Object.assign(
       new Error('LFJ Worker preview requires a source XML document'),
       {code:'A3_XML_REQUIRED'});
+    // Research projection currently qualifies only the full flat-branch
+    // source population. A narrower UI scope would misrepresent the result.
+    if((initial.jsonTraceScopeId && initial.jsonTraceScopeId!=='__ALL__')||
+      (Array.isArray(initial.branchSelection) && initial.branchSelection.length)||
+      (initial.branchSelection && !Array.isArray(initial.branchSelection) &&
+        initial.branchSelection!=='__ALL__'))
+      throw Object.assign(new Error(
+        'LFJ Worker preview requires All hierarchy/branch scopes'),
+        {code:'A3_SCOPE_UNSUPPORTED'});
     // Source JSON is passed as an original Blob. No full JSON.parse on main;
     // this view does not modify existing Preview/Weight product authority.
     const blob=typeof initial.stagedJsonText==='string'&&initial.stagedJsonText
