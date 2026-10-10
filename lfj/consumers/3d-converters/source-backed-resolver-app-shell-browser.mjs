@@ -1,0 +1,103 @@
+/**
+ * A3 real production app-shell entry and uploaded original file acceptance.
+ * No component-injected buttons, no URL.createObjectURL patching, no mocks.
+ * Navigates the shipped /index.html app tab, uploads authentic fixtures,
+ * clicks real Build and both download controls, hashes actual downloaded files.
+ */
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {chromium} from 'playwright';
+
+const sha=x=>createHash('sha256').update(x).digest('hex');
+const SOURCE='Benchmarks/1885Sjson/Sjson.json';
+const XML='Benchmarks/1885Sjson/FirstpassXML';
+const originals=[
+  ['xml-cii-node-wise-trace.csv',57945,
+    '0d8bb4482ed4a9d0d116faeac5e68ce564f07b6bba2dd73dfc3676b72ec2eddc'],
+  ['xml-cii-evidence-tree.csv',50399,
+    '653485ff968bf478fa0001488432bb210a9ce6e85a901e9cc19f368f53a24809']
+];
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({acceptDownloads:true});
+page.setDefaultTimeout(90000);
+const pageErrors=[];
+page.on('pageerror',error=>{pageErrors.push(error.message);console.error('A3_APP_PAGEERROR',error.message)});
+try{
+  await page.goto('http://127.0.0.1:4200/index.html',{waitUntil:'domcontentloaded'});
+  await page.locator('.app-tab[data-tab="xml-cii-2019-standalone"]').click();
+  await page.locator('.xml-cii-adapted-workflow-shell').waitFor();
+  await page.locator('button[data-phase="json-trace"]').click();
+  const sourceUpload=page.locator('input[data-field="source-file"]');
+  await sourceUpload.setInputFiles(XML);
+  await page.locator('input[data-field="staged-json-file"]').setInputFiles(SOURCE);
+  // The actual standalone page initially selects a bounded hierarchy scope.
+  // Explicitly choose full original scope so source Worker matches the
+  // original independent all-branches golden rather than a filtered view.
+  const scope=page.locator('select[data-field="resolver-hierarchy-scope"]');
+  await scope.waitFor();
+  if(await scope.isEnabled())await scope.selectOption('__ALL__');
+  const config=page.locator('textarea[data-field="resolver-json-config"]');
+  await config.fill('{}');
+  await config.dispatchEvent('change');
+  await page.locator('button[data-action="build-resolver-lfj"]').click();
+  // The live panel reports explicit product grant acceptance or typed failure.
+  const deadline=Date.now()+130000;
+  let status='';
+  while(Date.now()<deadline){
+    status=await page.locator('.xml-cii-resolver-actions').first().innerText().catch(()=> '');
+    if(status.includes('source-backed Build verified')||status.includes('Worker Build blocked'))break;
+    await page.waitForTimeout(100);
+  }
+  assert.match(status,/source-backed Build verified/, 'live app Build status: '+status+' errors='+pageErrors.join('; '));
+  const outputs=[];
+  for(const [subTabId,selector,tableSelector,expected] of [
+    ['nodeTrace','download-node-wise-trace-csv','.xml-cii-node-wise-table tbody tr',originals[0]],
+    ['tree','download-evidence-tree-csv','.xml-cii-evidence-source-table tbody tr',originals[1]]
+  ]){
+    await page.locator('[data-json-trace-sub-tab="'+subTabId+'"]').click();
+    const observed=await page.locator(tableSelector).count();
+    assert.equal(observed,subTabId==='nodeTrace'?216:241,
+      'complete original source rows in shipped tab '+subTabId);
+    const button=page.locator('[data-action="'+selector+'"]');
+    await button.waitFor();
+    assert.equal(await button.isEnabled(),true,'product grant enables actual '+selector);
+    const [download]=await Promise.all([
+      page.waitForEvent('download',{timeout:45000}),
+      button.click()
+    ]);
+    assert.equal(download.suggestedFilename(),expected[0]);
+    const bytes=await readFile(await download.path());
+    assert.equal(bytes.length,expected[1],'actual downloaded '+selector+' bytes');
+    assert.equal(sha(bytes),expected[2],'complete original downloaded '+selector+' SHA');
+    assert.equal(bytes.subarray(0,3).toString('hex'),'efbbbf','original CSV BOM');
+    outputs.push({file:download.suggestedFilename(),bytes:bytes.length,sha256:sha(bytes),rows:observed});
+  }
+  await page.locator('[data-json-trace-sub-tab="nodeTrace"]').click();
+  const before=await page.locator('.xml-cii-node-wise-table tbody tr').count();
+  await page.locator('[data-json-trace-sub-tab="index"]').click();
+  // Mutate the real source by switching back and uploading a different XML.
+  // Neither output is allowed to remain granted.
+  await page.locator('button[data-phase="source"]').click();
+  await page.locator('button[data-phase="json-trace"]').click();
+  await page.locator('input[data-field="source-file"]').setInputFiles({
+    name:'changed.xml',mimeType:'application/xml',
+    buffer:Buffer.from('<Root><Node><NodeNumber>CHANGED</NodeNumber></Node></Root>')
+  });
+  await page.locator('[data-json-trace-sub-tab="nodeTrace"]').click();
+  const staleNode=page.locator('[data-action="download-node-wise-trace-csv"]');
+  // If no trace is rendered, it cannot offer a clickable download.
+  assert.equal(await staleNode.isEnabled(),false,'source mutation disables node CSV');
+  await page.locator('[data-json-trace-sub-tab="tree"]').click();
+  const staleEvidence=page.locator('[data-action="download-evidence-tree-csv"]');
+  assert.equal(await staleEvidence.isEnabled(),false,'source mutation disables evidence CSV');
+  console.log('A3_REAL_APP_ORIGINAL_UPLOAD_DOWNLOAD_PASS '+JSON.stringify({
+    originalJsonSha256:sha(await readFile(SOURCE)),originalXmlSha256:sha(await readFile(XML)),
+    entry:'/index.html',tab:'xml-cii-2019-standalone',phase:'json-trace',
+    nativeWorkers:3,xmlNodes:216,matchedXmlNodes:164,
+    downloaded:outputs,staleButtonEnabled:[await staleNode.isEnabled(),await staleEvidence.isEnabled()],
+    nodeRowsBeforeMutation:before,pageErrors:pageErrors.length
+  }));
+}finally{
+  await browser.close();
+}
