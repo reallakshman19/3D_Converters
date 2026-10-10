@@ -52,6 +52,44 @@ export function stableWitness(r) {
     masterRowCounts: [c.pipingClassRows, c.materialMapRows, c.weightRows],
   };
 }
+export function secondaryNativeWitness(r) {
+  const c = r?.consumers || {};
+  const v = c.secondaryPositive || {};
+  assert.equal(r?.assertions?.nativeTwoDistinctPositiveTokens, true,
+    'second independent native positive search/fetch not attested');
+  assert.ok(typeof v.token === 'string' && v.token.length > 0 &&
+    v.token !== c.positiveSourceToken, 'second source token missing or duplicates original');
+  assert.ok(Number.isInteger(v.workerMatchCount) && v.workerMatchCount > 0,
+    'second source token has no native Worker hits');
+  assert.ok(Number.isInteger(v.indexedRowCount) && v.indexedRowCount >= 1 &&
+    v.indexedRowCount <= 4, 'second native indexed row bound violation');
+  assert.ok(Array.isArray(v.indexes) && v.indexes.length === v.indexedRowCount,
+    'second indexed row indexes missing');
+  assert.equal(new Set(v.indexes).size, v.indexes.length, 'duplicate secondary indexes');
+  assert.ok(v.indexes.every(index => Number.isInteger(index) && index >= 0),
+    'invalid secondary index');
+  assert.match(v.indexedRowSha256 || '', /^[a-f0-9]{64}$/,
+    'second native indexed row digest missing');
+  return {
+    token: v.token, matchCount: v.workerMatchCount,
+    indexes: [...v.indexes], rowCount: v.indexedRowCount, sha256: v.indexedRowSha256,
+  };
+}
+export function nativeWorkerLifecycleWitness(r) {
+  const c = r?.consumers || {};
+  assert.equal(r?.assertions?.nativeWorkerReleaseAndColdRehydrate, true,
+    'native release/IndexedDB rehydrate not attested');
+  assert.equal(r?.assertions?.nativeWorkerTerminateObserved, true,
+    'native worker terminate not attested');
+  assert.equal(c.workerLifecycleCreatedCount, 2, 'expected two independent Worker instances');
+  assert.equal(c.workerLifecycleTerminatedCount, 2, 'both Worker instances must terminate');
+  assert.equal(c.workerReleaseRehydratedRows, c.positiveIndexedRowCount,
+    'post-release indexed rows differ from original');
+  assert.equal(c.workerReleaseRehydratedSha256, c.positiveIndexedRowSha256,
+    'post-release IndexedDB rows differ from primary native row digest');
+  return { workerCount: 2, terminatedCount: 2, durableRowCount: c.workerReleaseRehydratedRows,
+    durableSha256: c.workerReleaseRehydratedSha256 };
+}
 export function assertNonprotectedDiagnosticAnchor(record, anchor, sourceBytes, mirrorBytes) {
   assert.equal(anchor?.schema, 'XMLCII_C05_NONPROTECTED_DIAGNOSTIC_ANCHOR_V1',
     'missing versioned NON-PROTECTED diagnostic anchor');
@@ -97,6 +135,13 @@ export function compareIndependentNativeReplays(first, second, sourceAssetSha256
   const witnessA = stableWitness(first);
   const witnessB = stableWitness(second);
   assert.deepEqual(witnessB, witnessA, 'native indexed-row witness drift across two cold browser processes');
+  const secondaryA = secondaryNativeWitness(first);
+  const secondaryB = secondaryNativeWitness(second);
+  assert.deepEqual(secondaryB, secondaryA, 'second native token or row content drifted between browser processes');
+  const workerLifecycleA = nativeWorkerLifecycleWitness(first);
+  const workerLifecycleB = nativeWorkerLifecycleWitness(second);
+  assert.deepEqual(workerLifecycleB, workerLifecycleA,
+    'Worker release/rehydration differed between browser processes');
   for (const key of ['pipingClass','materialMap','weight']) {
     assert.notEqual(first.refs[key].datasetId, second.refs[key].datasetId,
       'independent browser process reused ' + key + ' datasetId');
@@ -105,6 +150,7 @@ export function compareIndependentNativeReplays(first, second, sourceAssetSha256
   return {
     schema: REPLAY_SCHEMA, nativePositive: true, replayCount: 2,
     distinctImportIds: true, sourceAssetSha256, stableWitness: witnessA,
+    secondaryWitness: secondaryA, workerLifecycle: workerLifecycleA,
     independentProtectedGolden: false, originalOwner30MbQualified: false,
   };
 }
@@ -119,11 +165,20 @@ export function compareNodeBrowserSummaries(first, second) {
     assert.equal(r.originalOwner30MbQualified, false, 'original Owner fixture claimed');
   }
   assert.deepEqual(second.stableWitness, first.stableWitness, 'Node22/24 indexed rows or authority drifted');
+  assert.ok(first.secondaryWitness && second.secondaryWitness, 'second independent native token missing');
+  assert.deepEqual(second.secondaryWitness, first.secondaryWitness,
+    'second native token/indexed-row content drifted between Node22 and Node24');
+  assert.ok(first.workerLifecycle && second.workerLifecycle,
+    'native Worker release/termination lifecycle evidence missing');
+  assert.deepEqual(second.workerLifecycle, first.workerLifecycle,
+    'Worker lifecycle evidence drifted between Node22 and Node24');
   assert.equal(second.sourceAssetSha256, first.sourceAssetSha256, 'Node22/24 original asset hash drifted');
   return {
     schema: 'XMLCII_C05_NODE22_NODE24_BROWSER_PARITY_V1',
     sourceAssetSha256: first.sourceAssetSha256,
     stableWitness: first.stableWitness,
+    secondaryWitness: first.secondaryWitness,
+    workerLifecycle: first.workerLifecycle,
     nodeVersions: [22,24], distinctBrowserProcesses: 4,
     nativePositiveIndexedReads: 4, independentProtectedGolden: false,
   };
