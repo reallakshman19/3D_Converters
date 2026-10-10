@@ -50,6 +50,43 @@ function nativeStep(file,data,{assertCurrent,signal}){
   }).then(result=>{assertCurrent();return result;});
 }
 
+/**
+ * Remove A3's ephemeral source/projection stores after every attempt.
+ * Worker steps terminate before this runs; a blocked delete is a hard
+ * product acceptance failure rather than a hidden storage leak.
+ */
+export async function cleanupSourceBackedResearchDatabases(names,{timeoutMs=8000}={}){
+  if(!Array.isArray(names)||names.length!==2 ||
+     names.some(name=>typeof name!=='string'||!/^lfj-a3-(source|projection)-[a-f0-9-]+$/.test(name)))
+    fail('A3_IDB_NAMES','only this exact Build’s two ephemeral databases may be removed');
+  const results=await Promise.allSettled(names.map(name=>new Promise((resolve,reject)=>{
+    let done=false,request;
+    const finish=error=>{
+      if(done)return;
+      done=true;clearTimeout(timer);
+      if(error)reject(error);else resolve(name);
+    };
+    const timer=setTimeout(()=>finish(Object.assign(
+      new Error('ephemeral IndexedDB deletion timed out: '+name),
+      {code:'A3_IDB_CLEANUP'})),timeoutMs);
+    try{
+      request=indexedDB.deleteDatabase(name);
+      request.onsuccess=()=>finish(null);
+      request.onerror=()=>finish(Object.assign(
+        new Error('ephemeral IndexedDB deletion failed: '+name),
+        {code:'A3_IDB_CLEANUP'}));
+      request.onblocked=()=>finish(Object.assign(
+        new Error('ephemeral IndexedDB deletion was blocked: '+name),
+        {code:'A3_IDB_CLEANUP'}));
+    }catch(error){finish(Object.assign(
+      new Error('ephemeral IndexedDB deletion threw: '+name+': '+String(error)),
+      {code:'A3_IDB_CLEANUP'}));}
+  })));
+  const failure=results.find(row=>row.status==='rejected');
+  if(failure)throw failure.reason;
+  return Object.freeze({deleted:names.length});
+}
+
 /** The caller owns the live revision callback and source Blob identity. */
 export async function runProductSourceBackedResolver({
   blob,xmlText,config={},revision,currentRevision,signal
@@ -77,6 +114,7 @@ export async function runProductSourceBackedResolver({
   const sourceDb='lfj-a3-source-'+generation;
   const projectionDb='lfj-a3-projection-'+generation;
   const started=performance.now();
+  try{
   const source=await nativeStep(
     '../../qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
     {type:'START',blob,expectedSha256:originalSha256,
@@ -114,6 +152,12 @@ export async function runProductSourceBackedResolver({
     elapsedMs:performance.now()-started,
     originalBytes:blob.size,
     matchedXmlNodes:result.matchedXmlNodes,
+    indexedDbCleanup:'required-before-return',
     // Explicitly not a product export authorization or committed acceptance.
     downloadAuthorized:false,appWired:false});
+  }finally{
+    // Never let a successful CSV grant escape while its source pages remain
+    // in the browser's persistent store, even after an abort or Worker error.
+    await cleanupSourceBackedResearchDatabases([sourceDb,projectionDb]);
+  }
 }
