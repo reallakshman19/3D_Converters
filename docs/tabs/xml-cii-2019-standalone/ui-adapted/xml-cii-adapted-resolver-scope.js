@@ -1,4 +1,7 @@
 import { createElement } from './xml-cii-adapted-dom.js';
+import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
+import { cancelIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import {
   ALL_SCOPE_ID,
   buildJsonHierarchyScopeIndex,
@@ -27,9 +30,27 @@ function validScopeId(index, requested) {
   return index?.indexable ? index.defaultScopeId : ALL_SCOPE_ID;
 }
 
+// The scope is a Build input, not view-only UI state. Invalidate its product
+// receipt immediately and supersede an in-flight indexed Worker on selection.
+export function selectResolverHierarchyScope(stateRef, selectedScopeId) {
+  if (!stateRef?.current) return false;
+  const before = stateRef.current;
+  const next = updateWorkflowState(before, { jsonTraceScopeId: selectedScopeId });
+  if (currentResolverTraceRevision(before) !== currentResolverTraceRevision(next)) {
+    cancelIndexedBuild(stateRef);
+    beginLatestOperation(stateRef, 'resolver-build');
+  }
+  stateRef.current = next;
+  return currentResolverTraceRevision(before) !== currentResolverTraceRevision(next);
+}
+
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const source = text(state.stagedJsonText);
-  if (!source) return { index: null, selectedScopeId: ALL_SCOPE_ID };
+  if (!source) {
+    // The original File is not a foreground string in indexed mode. Retain a
+    // previously selected scope in the UI until the user explicitly chooses ALL.
+    return { index: null, selectedScopeId: text(state.jsonTraceScopeId) || ALL_SCOPE_ID };
+  }
   const key = sourceKey(source);
   const cached = state.resolverJsonTraceUiScopeCache;
   const index = cached?.key === key
@@ -40,9 +61,10 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
     text(state.jsonTraceScopeId) || index.defaultScopeId,
   );
   if (stateRef?.current) {
+    if (text(stateRef.current.jsonTraceScopeId) !== selectedScopeId)
+      selectResolverHierarchyScope(stateRef, selectedScopeId);
     stateRef.current = {
       ...stateRef.current,
-      jsonTraceScopeId: selectedScopeId,
       resolverJsonTraceUiScopeCache: { key, index },
     };
   }
@@ -51,7 +73,11 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
 
 function scopeNote(scopeState) {
   const index = scopeState?.index;
-  if (!index) return 'Load staged JSON to discover hierarchy scopes.';
+  if (!index) {
+    return scopeState?.selectedScopeId !== ALL_SCOPE_ID
+      ? 'Previously selected hierarchy is not supported by indexed Build. Select All scopes before Building.'
+      : 'Only All scopes is available for original-File indexed Build until native hierarchy selection is implemented.';
+  }
   if (!index.indexable) {
     return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
   }
@@ -68,14 +94,21 @@ function selectControl(scopeState) {
   select.dataset.field = 'resolver-hierarchy-scope';
   const options = scopeState?.index
     ? jsonHierarchyScopeOptions(scopeState.index)
-    : [{ id: ALL_SCOPE_ID, label: 'All scopes', itemCount: 0 }];
+    : [
+      { id: ALL_SCOPE_ID, label: 'All scopes', itemCount: 0 },
+      ...(scopeState?.selectedScopeId && scopeState.selectedScopeId !== ALL_SCOPE_ID
+        ? [{ id: scopeState.selectedScopeId, label: 'Previous selection (unsupported)', itemCount: 0 }]
+        : []),
+    ];
   for (const item of options) {
     const option = createElement('option', item.label + ' (' + item.itemCount + ')');
     option.value = item.id;
     option.selected = item.id === scopeState.selectedScopeId;
     select.appendChild(option);
   }
-  select.disabled = !scopeState?.index;
+  // Let a user clear an old non-ALL selection even without materializing the
+  // original JSON into stagedJsonText (which indexed mode intentionally avoids).
+  select.disabled = !scopeState?.index && scopeState?.selectedScopeId === ALL_SCOPE_ID;
   return select;
 }
 
@@ -98,13 +131,7 @@ export function renderResolverHierarchyScopeControl(parent, stateRef, render, sc
   const select = selectControl(scopeState);
   select.addEventListener('change', (event) => {
     if (!stateRef?.current) return;
-    stateRef.current = {
-      ...stateRef.current,
-      jsonTraceScopeId: event.target.value,
-      resolverJsonTraceResult: null,
-      resolverJsonTraceJsonResult: null,
-      resolverJsonTraceExportStatus: '',
-    };
+    selectResolverHierarchyScope(stateRef, event.target.value);
     render?.();
   });
   bar.appendChild(select);

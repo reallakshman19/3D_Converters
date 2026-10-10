@@ -252,7 +252,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
     supportConfigJson: configJson,
     regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
-    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '', resolverJsonTraceInputRevision: 0, resolverJsonTraceAcceptedRevision: null, resolverJsonTraceExportStatus: '', resolverSourceMode: 'legacy', lfjIndexedPreview: null, lfjIndexedPreviewStatus: '', lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false,
     jsonTraceTableText: '', jsonTraceTableRows: [], jsonTraceTableFieldMap: {}, jsonTraceTableConfig: createDefaultTraceTableConfig(), jsonTraceTableSourceName: '', jsonTraceTableSheetNames: [], jsonTraceTableActiveSheet: '', jsonTraceTableWorkbookData: null, jsonTraceTableStatus: '', jsonTraceTableBenchmark: null,
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
@@ -315,6 +315,26 @@ function invalidateBatchOutputs(previous, next, dependency) {
   return { ...next.sourceBatch, sources };
 }
 
+// A3 source and configuration epoch. File object identity matters even if two
+// uploaded files share a displayed name; view-only changes must not veto CSVs.
+function resolverTraceBasisChanged(previous, next) {
+  for (const key of ['sourceKind','resolverSourceMode','sourceText','stagedJsonText',
+    'supportConfigJson','branchSelection','jsonTraceScopeId']) {
+    if (JSON.stringify(previous?.[key]) !== JSON.stringify(next?.[key]))
+      return true;
+  }
+  if (previous?.sourceFile !== next?.sourceFile ||
+      previous?.stagedJsonFile !== next?.stagedJsonFile)
+    return true;
+  return JSON.stringify(previous?.resolverJsonTraceConfig) !==
+    JSON.stringify(next?.resolverJsonTraceConfig);
+}
+
+export function currentResolverTraceRevision(state) {
+  const rev=state?.resolverJsonTraceInputRevision;
+  return Number.isSafeInteger(rev) && rev>=0 ? rev : 0;
+}
+
 export function updateWorkflowState(state, patch = {}) {
   const next = { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
   const configChanged = Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson');
@@ -327,9 +347,25 @@ export function updateWorkflowState(state, patch = {}) {
     : String(state.sourceText || '') !== String(next.sourceText || '')
       || supportConfigSignature(parseSupportConfigForState(state.supportConfigJson)) !== supportConfigSignature(revisionConfig);
   const inputChanged = revisionChanged
-    || ['stagedJsonText', 'branchSelection', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
+    || ['stagedJsonText', 'branchSelection', 'jsonTraceScopeId', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
   const result = inputChanged && next.result === state.result ? null : next.result;
-  return { ...next, ...dependency, result, sourceBatch: invalidateBatchOutputs(state, next, dependency) };
+  const changedTrace=resolverTraceBasisChanged(state,next);
+  const traceRevision=currentResolverTraceRevision(state)+(changedTrace?1:0);
+  return { ...next, ...dependency, result,
+    resolverJsonTraceInputRevision:traceRevision,
+    lfjIndexedPreview:changedTrace?null:next.lfjIndexedPreview,
+    lfjIndexedPreviewStatus:changedTrace?'':next.lfjIndexedPreviewStatus,
+    lfjIndexedExportReceipt:changedTrace?null:next.lfjIndexedExportReceipt,
+    lfjIndexedExportOptIn:changedTrace?false:next.lfjIndexedExportOptIn,
+    resolverJsonTraceResult:changedTrace?null:next.resolverJsonTraceResult,
+    resolverJsonTraceJsonResult:changedTrace?null:next.resolverJsonTraceJsonResult,
+    resolverJsonTraceAcceptedRevision:changedTrace?null:next.resolverJsonTraceAcceptedRevision,
+    resolverJsonTraceRunning:changedTrace?false:next.resolverJsonTraceRunning,
+    resolverJsonTraceExportStatus:changedTrace?
+      'Resolver inputs changed; rebuild before exporting CSV.':
+      next.resolverJsonTraceExportStatus,
+    sourceBatch: invalidateBatchOutputs(state, next, dependency)
+  };
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return updateWorkflowState(state, { options: { ...state.options, ...optionPatch } }); }
@@ -439,7 +475,19 @@ export function patchResolverJsonTraceConfig(state, patch = {}) {
 
 
 export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
-  return updateWorkflowState(state, { resolverJsonTraceResult, resolverJsonTraceJsonResult: resolverJsonTraceResult, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.', supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson, result: null });
+  // The Resolver's own saved support-config writeback may advance the basis.
+  // Accept the real new result only AFTER that writeback, never an older trace.
+  const basis=updateWorkflowState(state, {
+    supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson,
+    result:null
+  });
+  return updateWorkflowState(basis, {
+    resolverJsonTraceResult, resolverJsonTraceJsonResult:resolverJsonTraceResult,
+    resolverJsonTraceAcceptedRevision:currentResolverTraceRevision(basis),
+    resolverJsonTraceExportStatus:'',resolverJsonTraceRunning:false,
+    resolverJsonTraceWriteBackStatus:'Resolver config saved into standalone config.',
+    result:null
+  });
 }
 
 export function updateManualElementSideloadConfig(state, field, value) {

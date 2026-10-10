@@ -1,0 +1,76 @@
+{
+  "schema": "LFJ.A2.IndexedRuntimeOverlayManifest.v1",
+  "source": "CHECKED_IN_A3_MODULE_CLOSURE_NOT_DEPLOYMENT_ATTESTATION",
+  "files": [
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs",
+      "sha256": "118578d52b0361dfbeefaa6c2f8029cabb70bdf5b181e045003252ec688afecf",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.mjs",
+      "sha256": "d487a6aaacd45e2aabc51d19fecfc5d65c0b5ddaa26c0200eaeba1f676ac3fb2",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-consumer/projection.worker.mjs",
+      "sha256": "77b750768d90738aefe445687834578f24ec683d5f4dce04b6c265876fe0cfe6",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-query/paged-query.mjs",
+      "sha256": "cf84d833b335b5df62f405a1551cc94f5042abcd742068d65de4132cccb5d42b",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs",
+      "sha256": "41aa3bf1d12100382e163aaf90078e222ebf06428539bd352cee5c76af735f23",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs",
+      "sha256": "d40a12b3a239a4cc6f86e114050631478992fa0dd6fdf6d3ca658c34f80a049c",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.mjs",
+      "sha256": "457848edec7f56ef96876028e0c0f2d6a8fca905d36921cec4a21e30c98800b0",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-input-integrity.mjs",
+      "sha256": "b64933f9c0c7ee4b1932987d6a4fa0bb49af0dca58c9596ff27fc15b727d3752",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.mjs",
+      "sha256": "1f437eb2501e431b79e870bd51f7ffa589fbbfb268f45182df33d2549edc1178",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs",
+      "sha256": "fcda3537f092e57f1c9788ee3c3ed6c60e4b5a7cbe07cf7487c859f63fef9f24",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs",
+      "sha256": "f81477730d98a8b5c7081fa1c62eaf2a4da1063b8b9417ebd07ab80f7fabd5e1",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs",
+      "sha256": "cbc21b18b2dd4cc9fb34a3084597ceeef50c6c73b58e0c4ce5d7e9af70f61ca6",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/source/source-snapshot.mjs",
+      "sha256": "e5f224f2e5639359ca376258cee81681dcc71db5d62edcc526633818c5524058",
+      "ownership": "V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT"
+    },
+    {
+      "path": "lfj/tokenizer/json-tokenizer.mjs",
+      "sha256": "f15c383ceed78a351444c504fde39fd70a300cc585b496d44efb8aa07b867fbd",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    }
+  ]
+}
