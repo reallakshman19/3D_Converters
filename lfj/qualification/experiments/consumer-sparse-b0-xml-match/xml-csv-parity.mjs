@@ -11,7 +11,8 @@ import {normalizedResolverProjectionFact} from
   '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
 import {runStandaloneResolverJsonTrace} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
-import {buildEvidenceTreeCsv,buildXmlNodeWiseTraceCsv} from
+import {buildEvidenceTreeCsv,buildXmlNodeWiseTraceCsv,
+  buildEvidenceTreeRows,buildXmlNodeWiseTraceRows} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-trace-export.js';
 import {configuredJsonTraceFieldNames} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
@@ -83,13 +84,16 @@ export function assertCompleteResearchXmlLedger(result){
 export async function compareSourceProjectionToXml({
   sourceDatabaseName,sourceGeneration,
   projectionDatabaseName,projectionGeneration,
-  blob,expectedSha256,xmlText,config={},onBeforeResolve
+  blob,expectedSha256,xmlText,config={},onBeforeResolve,
+  includeResearchHandoff=false
 }={}){
   if(!(blob instanceof Blob)||typeof xmlText!=='string'||!xmlText||
      typeof projectionDatabaseName!=='string'||!projectionDatabaseName)
     fail('INPUT_INVALID','original source/canonical XML and projection identity are required');
   if(onBeforeResolve!==undefined&&typeof onBeforeResolve!=='function')
     fail('INPUT_INVALID','research-only resolve barrier must be a callback');
+  if(typeof includeResearchHandoff!=='boolean')
+    fail('INPUT_INVALID','research-only handoff switch must be boolean');
   // A complete-looking ledger is not evidence that the XML itself was valid.
   // Reject malformed/unsupported document syntax before opening any source
   // index or invoking the legacy regex-based Resolver/CSV serializers.
@@ -234,6 +238,41 @@ export async function compareSourceProjectionToXml({
       indexReadyMs,elapsedMs:performance.now()-started,
       sourceOnly:true,engineeringReady:false,downloadAuthorized:false,
       appWired:false,validatedTopology:'FLAT_BRANCHES_ONLY'};
+    // H09: explicitly opted-in *research-only* delivery contract. The two
+    // complete CSVs already passed the H04 XML semantic guard above. Preserve
+    // exact shipping serializer bytes and the rows used to generate them.
+    // Do NOT treat this result as approval for a product download button.
+    if(includeResearchHandoff){
+      const nodeWiseRows=buildXmlNodeWiseTraceRows(result);
+      const evidenceTreeRows=buildEvidenceTreeRows(result);
+      if(nodeWiseRows.length!==recordsOut.length)
+        fail('RESEARCH_HANDOFF_CENSUS','attested trace table is incomplete');
+      // An opt-in Worker postMessage duplicates this data. Bound the transfer
+      // until a product-owned content-addressed IndexedDB handle is proven.
+      const payloadBytes=new TextEncoder().encode(
+        nodeCsv+evidenceCsv+JSON.stringify(nodeWiseRows)+
+        JSON.stringify(evidenceTreeRows)).length;
+      if(payloadBytes>8*1024*1024)
+        fail('RESEARCH_HANDOFF_TOO_LARGE',
+          'research-only inline result exceeds the bounded transfer budget');
+      output.researchHandoff={
+        schema:'LFJ.B0.ResearchHandoff.v1',
+        basis:{originalSha256:expectedSha256,sourceGeneration,
+          projectionGeneration,projectionSha256:head.domainSha256,
+          projectionConfigDigest:head.consumerManifestDigest,
+          matchingEvidenceDigestSha256:evidenceDigest,
+          xmlSha256:await sha256(xmlText),
+          xmlNodes:recordsOut.length,xmlRecordsSha256:digest},
+        nodeWiseRows,evidenceTreeRows,nodeWiseCsv:nodeCsv,
+        evidenceTreeCsv:evidenceCsv,payloadBytes,
+        nodeWiseCsvSha256:output.nodeWiseCsvSha256,
+        evidenceTreeCsvSha256:output.evidenceTreeCsvSha256,
+        nodeWiseCsvBytes:output.nodeWiseCsvBytes,
+        evidenceTreeCsvBytes:output.evidenceTreeCsvBytes,
+        sourceOnly:true,engineeringReady:false,
+        downloadAuthorized:false,appWired:false
+      };
+    }
     // No final evidence/CSV result may escape after either dependency HEAD
     // was superseded during a long synchronous Resolver/async digest stage.
     await assertHeadsCurrent();
