@@ -5,25 +5,27 @@ This is a **research-only, local-source test runner**, not a product-release aut
 ### Run it
 
 ```bash
-# From the repository root, at your exact checked-out candidate commit:
+# From the repository root, select the reviewed PR SHA *externally*.
+# Do NOT derive the expected SHA from the checkout under test:
+: "${OWNER_PINNED_SHA:?Set the exact reviewed 40-hex GitHub PR SHA first}"
 git rev-parse HEAD
 
 # Smallest rigorous original-source test suite (includes H05/H04/H02/H01/A140):
 node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
-  --expected-head="$(git rev-parse HEAD)" --mode=source
+  --expected-head="$OWNER_PINNED_SHA" --mode=source
 
 # Original immutable full ledger and both CSV output oracles (Firstpass + 10MB negative):
 node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
-  --expected-head="$(git rev-parse HEAD)" --mode=golden
+  --expected-head="$OWNER_PINNED_SHA" --mode=golden
 
 # Native Chromium: requires existing local playwright package + Chromium executable;
 # uses a temporary localhost:4200 read-only HTTP server; no npm install performed:
 node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
-  --expected-head="$(git rev-parse HEAD)" --mode=browser
+  --expected-head="$OWNER_PINNED_SHA" --mode=browser
 
 # All real Node/browser checks and source/fixture custody in one command:
 node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs \
-  --expected-head="$(git rev-parse HEAD)" --mode=all \
+  --expected-head="$OWNER_PINNED_SHA" --mode=all \
   --report=/tmp/lfj-local-evidence.json
 
 # Safe harness self-test only; can run without a repository:
