@@ -1,4 +1,5 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
+import { inspectIndexedSourceAdmission } from './xml-cii-adapted-lfj-size-admission.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
 import {
@@ -237,6 +238,9 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     section.appendChild(createElement('p',
       'Indexed LFJ Build uses original JSON File bytes and source-pinned Workers. CSV downloads require explicit local opt-in and are not downstream CII engineering approval.',
       'xml-cii-phase-help'));
+    const sizeAdmission=inspectIndexedSourceAdmission(state.stagedJsonFile);
+    section.appendChild(createElement('p',
+      sizeAdmission.message,'xml-cii-phase-help'));
     const consent = createElement('input');
     consent.type = 'checkbox';
     consent.dataset.field = 'lfj-indexed-export-consent';
