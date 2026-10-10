@@ -4,9 +4,8 @@
  * bounded, consumer-specific working tree from prior sparse projection facts.
  * No original full-JSON parse in Worker; no production UI/export authority.
  */
-import {assertResearchXmlDocument,assertResearchXmlConsumerPopulation} from
-  './xml-input-integrity.mjs';
-import {assertResearchXmlSemanticLedger} from './xml-semantic-attestor.mjs';
+import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
+import {generateAttestedResearchCsv} from './xml-csv-serializer-boundary.mjs';
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
 import {normalizedResolverProjectionFact} from
   '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
@@ -211,10 +210,11 @@ export async function compareSourceProjectionToXml({
       jsonConfig:config
     });
     const recordsOut=assertCompleteResearchXmlLedger(result);
-    assertResearchXmlConsumerPopulation(originalXmlPopulation,recordsOut.length);
-    assertResearchXmlSemanticLedger(xmlText,result.traceResolutionLedger.nodes,recordsOut);
-    const nodeCsv=buildXmlNodeWiseTraceCsv(result);
-    const evidenceCsv=buildEvidenceTreeCsv(result);
+    const {nodeCsv,evidenceCsv}=generateAttestedResearchCsv({
+      xmlText,originalXmlPopulation,result,records:recordsOut,
+      buildNodeCsv:buildXmlNodeWiseTraceCsv,
+      buildEvidenceCsv:buildEvidenceTreeCsv
+    });
     const statusCounts=recordsOut.reduce((a,row)=>{
       a[row.status]=(a[row.status]||0)+1;return a;
     },{});
