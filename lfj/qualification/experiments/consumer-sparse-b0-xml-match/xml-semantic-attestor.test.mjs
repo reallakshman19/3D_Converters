@@ -52,7 +52,7 @@ test('fake closing tag cannot defeat structural preflight',()=>{
   assert.throws(()=>assertResearchXmlDocument(xml),{code:'XML_INPUT_INVALID'});
 });
 test('record-only corruption, reorder and omission are detected',()=>{
-  const xml=root+start+start+tail;
+  const xml=root+start+start.replace('<NodeNumber>10</NodeNumber>','<NodeNumber>20</NodeNumber>')+tail;
   const nodes=parseStandaloneDtxrXmlNodes(xml);
   const records=rows(nodes);
   assert.equal(assertResearchXmlSemanticLedger(xml,nodes,records).length,2);
