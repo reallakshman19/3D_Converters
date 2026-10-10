@@ -56,6 +56,7 @@ jobs:
           path: |
             ${{ runner.temp }}/a3-authored-indexed-root-*.zip
             ${{ runner.temp }}/a3-authored-indexed-selected-build.png
+            ${{ runner.temp }}/a3-authored-indexed-root-last-*.png
           if-no-files-found: warn
           retention-days: 14
       - name: Verify source checkout unmodified
