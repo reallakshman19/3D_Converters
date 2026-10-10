@@ -12,6 +12,7 @@ import {buildStandaloneDtxrPositionGroups} from '../../../../tabs/xml-cii-2019-s
 import {decorateJsonTraceMember,configuredJsonTraceFieldNames} from '../../../../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
 import {sourceFieldEvidence,resolveSourceSchema} from '../../../../converters/xml-cii2019-core/source-schema-adapter.js';
 import {groupTraceEntriesSpatially} from '../../../../tabs/xml-cii-2019-standalone/xml-cii-trace-spatial-index.js';
+import {createProjectionRetentionBudget} from './projection-retention-budget.mjs';
 
 const SCHEMA='LFJ.B0.ResolverProjection.v1';
 const MAX_BRANCH_BYTES=1024*1024,PAGE_FACTS=128;
@@ -112,6 +113,7 @@ export async function createSourceBackedResolverProjection({
   let db=null,success=false,branches=0,sourceObjects=0,facts=0,pageNo=0;
   let offset=0,activePage=[],digest=2166136261,groupEntries=[],pageDigests=[],fullPageDigests=[];
   let sourcePageReads=0,materializedBytes=0,maxBranchObserved=0;
+  const retention=createProjectionRetentionBudget();
   const begun=performance.now(),projectionDigest=await hashConfig(config,toleranceMm);
   try{
     if(source.selectionKind!=='ALL'||source.sourceCount===0||
@@ -135,12 +137,15 @@ export async function createSourceBackedResolverProjection({
            Number.isSafeInteger(row.member)){
           const prefix=arrayBases.get(row.parent);
           const path=prefix+'['+row.member+']';
+          retention.stagePath(path);
           stagedNodes.set(row.ordinal,path);
-          if(row.parent===0)roots.push({row,path});
+          if(row.parent===0){retention.rootBranch();roots.push({row,path});}
           // Only stage-object occurrences are retained, not the whole source.
         }else if(row.type==='array'&&row.member==='children'&&
                  stagedNodes.has(row.parent)){
-          arrayBases.set(row.ordinal,stagedNodes.get(row.parent)+'.children');
+          const childrenBase=stagedNodes.get(row.parent)+'.children';
+          retention.stagePath(childrenBase);
+          arrayBases.set(row.ordinal,childrenBase);
         }
       }
       cursor=page.nextCursor;sourcePageReads++;
@@ -225,10 +230,12 @@ export async function createSourceBackedResolverProjection({
           matchingEvidence:compactMatchingEvidence(item.raw,config)
         });
         digest=checksum(digest,normalized(fact));
-        groupEntries.push({
+        const groupEntry={
           branch:item.branch,point:item.point,
           jsonNodeNo:item.jsonNodeNo,tags:item.tags
-        });
+        };
+        retention.spatialEntry(groupEntry);
+        groupEntries.push(groupEntry);
         activePage.push(fact);facts++;
         if(activePage.length>=PAGE_FACTS)await flush();
       }
@@ -263,7 +270,7 @@ export async function createSourceBackedResolverProjection({
       traversedDomainObjects:sourceObjects,factCount:facts,
       factPageCount:pageNo,spatialGroupCount:groups,
       domainDigest32:digest>>>0,domainSha256,matchingEvidenceDigestSha256,
-      sourcePageReads,
+      sourcePageReads,retainedMetadata:retention.summary(),
       sourceByteReadTotal:materializedBytes,maxBranchSpan:maxBranchObserved,
       elapsedMs:performance.now()-begun,sourceOnly:true,
       engineeringReady:false,appWired:false};

@@ -1,0 +1,43 @@
+name: LFJ A3 projection retained-metadata budget contracts
+on:
+  pull_request:
+    paths:
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.test.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html'
+      - '.github/workflows/lfj-a3-projection-retention.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retained-metadata-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify candidate SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Guard and actual Worker syntax
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-consumer/branch-sliced-projection.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-consumer/projection-retention-budget.test.mjs
+      - name: Source-custody compatibility retained
+        run: |
+          node --test lfj/source/source-snapshot-backing.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.test.mjs
+      - name: No tracked mutations
+        run: test -z "$(git status --porcelain)"
+# The native original Firstpass / 10MB source and XML/CSV B0-07 Chromium
+# workflow also runs on this PR and independently checks this new metadata
+# from the actual source-backed projection Worker, with original goldens.
