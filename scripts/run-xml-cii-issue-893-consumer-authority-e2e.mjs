@@ -186,6 +186,28 @@ try {
 
     // P08: the indexed path, not just full-row materialization, must reject
     // wrong-master, stale revision, and Weight fingerprint substitutions.
+    // P11: hash actual native indexed row content, not random import datasetId
+    // or a fabricated fixture. Canonicalize nested field order before SHA-256.
+    // This receipt is a source-derived stability witness, not the protected golden.
+    function canonical(value) {
+      if (Array.isArray(value)) return value.map(canonical);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.keys(value).sort()
+          .map((key) => [key, canonical(value[key])]));
+      }
+      return value;
+    }
+    const positiveRows = regexWithSamples.masterContext.pipingClassRows;
+    requireValue(Array.isArray(positiveRows) && positiveRows.length > 0,
+      'native indexed-row digest cannot hash empty synthetic evidence');
+    const positiveCanonicalRowJson = JSON.stringify(canonical(positiveRows));
+    const digestBytes = await crypto.subtle.digest('SHA-256',
+      new TextEncoder().encode(positiveCanonicalRowJson));
+    const positiveIndexedRowSha256 = [...new Uint8Array(digestBytes)]
+      .map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    requireValue(/^[a-f0-9]{64}$/.test(positiveIndexedRowSha256),
+      'native indexed rows did not yield valid SHA-256 proof');
+
     const wrongMasterIndexedError = await expectReject(
       () => runtime.getMasterDatasetRowsByIndexes(
         'pipingClass', refs.materialMap.datasetId, [0], refs.materialMap),
@@ -294,6 +316,8 @@ try {
         positiveWorkerFirstIndex: actualMatch.firstIndex,
         positiveIndexedRowCount: regexWithSamples.pipingClassRowCount,
         positiveIndexedRowIndexes: rowFetches[0]?.indexes || [],
+        positiveIndexedRowSha256,
+        positiveRowSerialization: 'stable-key-json-v1',
         materialMapRows: generic.material.mapRows.length,
         weightRows: generic.weight.masterRows.length,
         weightRankDatasetId: rankResult.datasetId,
@@ -321,6 +345,7 @@ try {
         nativeWorkerIndexedRowRetrievalObserved: rowFetches.length === 1 &&
           regexWithSamples.pipingClassRowCount > 0,
         positiveSourceTokenRecoveredInIndexedRows: true,
+        nativePositiveIndexedRowSha256Recorded: true,
         positiveWorkerSearchMatches: actualMatch.matchCount > 0,
         indexedWrongMasterFailsClosed: true,
         indexedStaleRevisionFailsClosed: true,
