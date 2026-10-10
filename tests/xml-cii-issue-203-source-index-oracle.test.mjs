@@ -79,6 +79,10 @@ test('raw null convertedBore is explicitly canonicalized to empty only in mapped
   assert.equal(normalized.pipingClass,'25190');
   assert.equal(normalized.convertedBore,'','current normalizer maps null with ?? empty-string fallback');
   assert.equal(raw.convertedBore,null,'the source row must never be rewritten by canonicalization');
+  const blankMapped=normalizeMasterRows([raw],
+    {pipingClass:'Piping Class',convertedBore:''},'pipingClass')[0];
+  assert.equal(blankMapped.convertedBore,'',
+    'missing/empty canonical header also yields empty normalized bore');
   const unMapped=normalizeMasterRows([raw],{pipingClass:'Piping Class'},'pipingClass')[0];
   assert.equal(unMapped.convertedBore,null,'null survives only when field is not mapped');
 });
