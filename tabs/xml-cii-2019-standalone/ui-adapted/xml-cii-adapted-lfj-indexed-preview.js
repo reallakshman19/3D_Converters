@@ -11,6 +11,7 @@ import {
 } from '../xml-cii-trace-export.js';
 import { deleteIndexedBuildDatabases } from './xml-cii-adapted-lfj-db-cleanup.js';
 import { requireIndexedSourceAdmission } from './xml-cii-adapted-lfj-size-admission.js';
+import { hashOriginalBlobOffThread } from './xml-cii-adapted-lfj-source-sha.js';
 
 const SOURCE_WORKER = new URL(
   '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged.worker.mjs',
@@ -152,7 +153,7 @@ export async function buildIndexedResolverPreview({
   try {
     stale(isCurrent);
     onProgress('Hashing original source');
-    const originalSha256 = await sha256(await blob.arrayBuffer());
+    const originalSha256 = await hashOriginalBlobOffThread(blob,{signal,timeoutMs});
     const xmlSha256 = await shaText(xmlText);
     stale(isCurrent);
     onProgress('Indexing original source occurrences');
