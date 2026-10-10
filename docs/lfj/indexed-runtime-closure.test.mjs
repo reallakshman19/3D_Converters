@@ -1,7 +1,7 @@
 /** A2 explicit source/docs closure diagnostics and fail-closed regression. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -90,6 +90,21 @@ if(process.env.LFJ_A2_CHECK_REPOSITORY==='1'){
     assert.equal(result.complete,true,JSON.stringify({missingSource:result.missingSource,
       unresolved:result.unresolved,checkedFiles:result.checkedFiles}));
     assert.ok(result.checkedFiles>=15);
+  });
+  test('checked-in Pages overlay manifest exactly matches the latest A3 source dependency graph',async()=>{
+    const root=await evaluateClosure({repoRoot,artifact:'root'});
+    requireComplete(root);
+    const declared=JSON.parse(await readFile(
+      path.join(repoRoot,'docs/.lfj-indexed-runtime-overlay-manifest.json'),'utf8'));
+    assert.equal(declared.schema,'LFJ.A2.IndexedRuntimeOverlayManifest.v1');
+    assert.equal(declared.source,'CHECKED_IN_A3_MODULE_CLOSURE_NOT_DEPLOYMENT_ATTESTATION');
+    const expected=root.files.filter(x=>x.path.startsWith('lfj/'))
+      .map(x=>({path:x.path,sha256:x.sha256}));
+    assert.deepEqual(declared.files.map(x=>({path:x.path,sha256:x.sha256})),expected,
+      'stale/missing/unowned LFJ mirror manifest must not appear deployable');
+    assert.equal(declared.files.filter(x=>
+      x.ownership==='V41_BROWSER_QUALIFIED_ADDITIVE_EXPORT').length,1,
+      'do not silently change V4.1 source-snapshot ownership');
   });
   test('checked-in docs now contains exact A3 source and native Worker closure',async()=>{
     const result=await evaluateClosure({repoRoot,artifact:'docs'});
