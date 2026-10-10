@@ -73,7 +73,7 @@ try{
     }
     const revisionSnapshot=JSON.stringify(context.appliedMappingRevision);
     const countSourceLoads=()=>performance.getEntriesByType('resource')
-      .filter(x=>/Piping_class_master\\.json|PCF_MAT_MAP\\.TXT|wtValveweights\\.json/i.test(x.name)).length;
+      .filter(x=>/Piping_class_master\.json|PCF_MAT_MAP\.TXT|wtValveweights\.json/i.test(x.name)).length;
     const loadsBefore=countSourceLoads();
 
     const generic=await configModule.materializeXmlCiiDatasetBackedConfig({},stateRef.current);
@@ -93,7 +93,7 @@ try{
     const preview=context.previewRows.pipingClass||[];
     const candidates=new Set(['100','150','200','300','304','316','400','500','91261M7']);
     for(const row of preview)for(const value of Object.values(row||{})){
-      for(const match of String(value??'').toUpperCase().matchAll(/[A-Z0-9]*\\d{3,}[A-Z0-9]*/g)){
+      for(const match of String(value??'').toUpperCase().matchAll(/[A-Z0-9]*\d{3,}[A-Z0-9]*/g)){
         if(match[0].length<=24)candidates.add(match[0]);
       }
     }
