@@ -160,6 +160,27 @@ test('real UI Build publishes indexed rows but refuses both CSV buttons',async()
   });
 });
 
+test('indexed Build rejects invalid unsaved config before starting any Worker',async()=>{
+  const previous=globalThis.Worker;
+  let created=0;
+  globalThis.Worker=class {constructor(){created++;}};
+  try {
+    const ref={current:state()};
+    const ui={querySelector:selector=>selector==='[data-field="resolver-json-config"]'?
+      {value:'{unsaved-bad-config'}:null};
+    const result=await runResolverJsonTraceFromUi(ui,ref,()=>{},false);
+    assert.equal(result,null);
+    assert.equal(created,0);
+    assert.equal(ref.current.lfjIndexedPreview,null);
+    assert.equal(ref.current.resolverJsonTraceAcceptedRevision,null);
+    assert.equal(ref.current.resolverJsonTraceRunning,false);
+    assert.match(ref.current.resolverJsonTraceExportStatus,/configuration JSON is invalid/);
+  }finally{
+    if(previous===undefined)delete globalThis.Worker;
+    else globalThis.Worker=previous;
+  }
+});
+
 test('staged JSON selection in indexed mode never invokes foreground FileReader',async()=>{
   const old=globalThis.FileReader;
   globalThis.FileReader=class { constructor(){throw Error('Foreground read forbidden')} };
