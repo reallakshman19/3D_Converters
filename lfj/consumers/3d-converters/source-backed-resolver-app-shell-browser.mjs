@@ -58,10 +58,12 @@ try{
     await page.locator('button[data-phase="json-trace"]').click();
   }
   await page.locator('input[data-field="staged-json-file"]').setInputFiles(SOURCE);
-  // Likewise, do not Build until the *actual UI* has accepted the uploaded
-  // JSON FileReader result; no synthetic state injection or fixed delays.
+  // Mode-A enhanced views do not always show the original filename. The
+  // real Resolver panel does expose the FileReader-derived "Loaded" badge.
+  // Re-enter the real phase after upload in case a source rerender moved it.
+  await page.locator('button[data-phase="json-trace"]').click();
   await page.waitForFunction(()=>[...document.querySelectorAll(
-    '.xml-cii-file-summary')].some(el=>el.textContent.includes('Sjson.json')),
+    '.xml-cii-phase-help')].some(el=>el.textContent.includes('Staged JSON: Loaded')),
     null,{timeout:15000});
   // The actual standalone page initially selects a bounded hierarchy scope.
   // Explicitly choose full original scope so source Worker matches the
