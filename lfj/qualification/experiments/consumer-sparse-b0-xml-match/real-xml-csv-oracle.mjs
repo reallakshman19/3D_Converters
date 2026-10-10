@@ -26,8 +26,12 @@ const fixtures={
 };
 const size=process.env.B0_SIZE||'SMALL',files=fixtures[size];
 const mode=process.env.B0_XML_MODE||'AUTHENTIC';
+const includeResearchHandoff=process.env.B0_RESEARCH_HANDOFF==='1';
 assert.ok(['AUTHENTIC','SOURCE_DERIVED_CONTROL'].includes(mode));
 assert.ok(files,'SMALL or LARGE authentic input is required');
+if(includeResearchHandoff)
+  assert.ok(size==='FIRSTPASS'&&mode==='AUTHENTIC',
+    'H09 live capsule qualification must use original Firstpass authentic files');
 const original=await readFile(files.json),xml=await readFile(files.xml);
 const full=JSON.parse(original.toString('utf8'));
 const sha=x=>createHash('sha256').update(x).digest('hex');
@@ -152,10 +156,26 @@ try{
   await page.waitForFunction(()=>window.__b0XmlCsvReady);
   const result=await page.evaluate(input=>window.runB0RealXmlCsv(input),
     {jsonUrl:'/'+files.json,xmlUrl:'/'+files.xml,oracle,config,
-      xmlTextOverride:derivedControl?.text||null,mode});
+      xmlTextOverride:derivedControl?.text||null,mode,includeResearchHandoff});
   assert.equal(result.schema,'LFJ.B0.RealXmlCsvOriginalOracle.v1');
   assert.equal(result.matching.xmlRecordsSha256,oracle.xmlRecordsSha256);
   assert.equal(result.matching.nodeWiseCsvSha256,oracle.nodeWiseCsvSha256);
   assert.equal(result.matching.evidenceTreeCsvSha256,oracle.evidenceTreeCsvSha256);
+  if(includeResearchHandoff){
+    assert.equal(result.handoffVerification?.schema,
+      'LFJ.B0.ResearchHandoff.v1');
+    assert.equal(result.handoffVerification?.qualification,
+      'RESEARCH_CAPSULE_BYTES_ONLY');
+    assert.equal(result.handoffVerification?.nodeWiseRows,216);
+    assert.equal(result.handoffVerification?.nodeWiseCsvSha256,
+      oracle.nodeWiseCsvSha256);
+    assert.equal(result.handoffVerification?.evidenceTreeCsvSha256,
+      oracle.evidenceTreeCsvSha256);
+    console.log('B0_RESEARCH_HANDOFF_NATIVE_PASS '+
+      JSON.stringify({headTest:'FIRSTPASS:AUTHENTIC',
+        result:result.handoffVerification}));
+  }else{
+    assert.equal(result.handoffVerification,null);
+  }
   console.log('B0_REAL_XML_CSV_CHROMIUM_PASS '+JSON.stringify({size,mode,...result}));
 }finally{await browser.close();}
