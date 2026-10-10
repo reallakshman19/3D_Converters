@@ -1,0 +1,75 @@
+name: LFJ C05 P07 Native Positive Indexed Readiness
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs'
+      - 'tests/xml-cii-issue-203-native-bounded-evidence.test.mjs'
+      - '.github/workflows/lfj-c05-p07-native-positive-indexed-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node }}'
+      - name: Test bounded query planning, duplicate/index caps and source integrity
+        run: |
+          node --test tests/xml-cii-issue-203-native-bounded-evidence.test.mjs tests/xml-cii-issue-893-consumer-authority.test.mjs tests/xml-cii-issue-883-restore-failure-identity.test.mjs
+      - name: Record exact contract checkout
+        if: always()
+        run: |
+          echo 'C05 P07/P08 Node ${{ matrix.node }} source HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
+
+  actual-chromium-indexed-rows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Start checked-out source static server
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/c05-p07-http.log 2>&1 &
+      - name: Require actual native Worker positive IndexedDB row retrieval
+        run: |
+          node scripts/run-xml-cii-issue-893-consumer-authority-e2e.mjs
+          node --input-type=module -e 'import fs from "node:fs"; const r = JSON.parse(fs.readFileSync("ValidationRecords/xml-cii-issue-893-consumer-authority.json", "utf8")); if (!r.ok || r.consumers.positiveIndexedRowCount < 1 || r.consumers.regexIndexedRowFetches < 1 || r.assertions.nativeWorkerIndexedRowRetrievalObserved !== true || r.assertions.indexedWrongMasterFailsClosed !== true || r.assertions.indexedStaleRevisionFailsClosed !== true || r.assertions.indexedWeightFingerprintFailsClosed !== true) process.exit(1); console.log(JSON.stringify({positiveIndexedRowCount:r.consumers.positiveIndexedRowCount,positiveToken:r.consumers.positiveSourceToken,actualWorkerMatches:r.consumers.positiveWorkerMatchCount,indexes:r.consumers.positiveIndexedRowIndexes,assertions:r.assertions},null,2));'
+      - name: Record exact browser checkout
+        if: always()
+        run: |
+          echo 'C05 P07/P08 native Chromium source HEAD: '$(git rev-parse HEAD) >> "$GITHUB_STEP_SUMMARY"
+          if test -f ValidationRecords/xml-cii-issue-893-consumer-authority.json; then sha256sum ValidationRecords/xml-cii-issue-893-consumer-authority.json >> "$GITHUB_STEP_SUMMARY"; else echo 'No positive browser receipt produced' >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Upload positive native browser receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c05-p07-actual-positive-indexed-rows
+          path: |
+            ValidationRecords/xml-cii-issue-893-consumer-authority.json
+            /tmp/c05-p07-http.log
+          if-no-files-found: error
+          retention-days: 14
