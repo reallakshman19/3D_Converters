@@ -5,6 +5,10 @@ import {
   buildJsonHierarchyScopeIndex, materializeJsonHierarchyScope, UNSCOPED_ID
 } from '../xml-cii-json-hierarchy-scope.js';
 import { buildStandaloneDtxrPositionGroups } from '../xml-cii-trace-resolution-ledger.js';
+import {
+  createOriginalToSelectedRootManifest,
+  ALL_SOURCE_SCOPES, UNSCOPED_SOURCE_ID
+} from '../../../lfj/consumers/3d-converters/source-root-selection-manifest.mjs';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
@@ -351,4 +355,119 @@ test('T04 unscoped and root-children legacy labels are distinct from indexed adm
     'legacy accepts this shape, but the native indexed profile only accepts root arrays');
   assert.deepEqual(materializeJsonHierarchyScope(wrapper, wrappedIndex, 'ZONE-2')
     .value.map(x => x.name), ['LINE-B']);
+});
+
+function originalRootManifestFixture(patch = {}) {
+  return {
+    sourceSha256: 'a'.repeat(64), sourceGeneration: 'original-gen-1',
+    originalSourceBytes: 1200, xmlSha256: 'b'.repeat(64),
+    configDigest: 'c'.repeat(64), requestedScopeId: 'ZONE-1',
+    rootProfile: 'root-array',
+    roots: [
+      { ordinal: 1, parentOrdinal: 0, member: 0,
+        startByte: 2, endByteExclusive: 190, type: 'BRANCH',
+        name: 'LINE-A', ownerScope: 'ZONE-1',
+        scopeEvidence: 'DIRECT_ROOT', scopeKey: 'OWNER_ZONE' },
+      { ordinal: 7, parentOrdinal: 0, member: 1,
+        startByte: 220, endByteExclusive: 420, type: 'BRANCH',
+        name: 'LINE-B', ownerScope: 'ZONE-2',
+        scopeEvidence: 'DIRECT_ATTRIBUTES', scopeKey: 'ZONE_ID' },
+      { ordinal: 14, parentOrdinal: 0, member: 2,
+        startByte: 480, endByteExclusive: 660, type: 'BRANCH',
+        name: 'LINE-C', ownerScope: 'ZONE-1',
+        scopeEvidence: 'DIRECT_ROOT', scopeKey: 'OWNER_ZONE' }
+    ],
+    ...patch
+  };
+}
+
+test('T05a selected manifest maps noncontiguous original roots into dense view', async () => {
+  const source = originalRootManifestFixture();
+  const manifest = await createOriginalToSelectedRootManifest(source);
+  assert.equal(manifest.schema, 'LFJ.A3.OriginalToSelectedRootManifest.v1');
+  assert.equal(manifest.originalRootCount, 3);
+  assert.equal(manifest.selectedRootCount, 2);
+  assert.deepEqual(manifest.selected.map(x => [
+    x.originalOrdinal, x.originalPath, x.displayPath, x.branchName
+  ]), [
+    [1, '$[0]', '$[0]', 'LINE-A'],
+    [14, '$[2]', '$[1]', 'LINE-C']
+  ]);
+  assert.match(manifest.selectionDigestSha256, /^[a-f0-9]{64}$/);
+  assert.equal(manifest.sourceOnly, true);
+  assert.equal(manifest.engineeringReady, false);
+  assert.equal(manifest.downloadAuthorized, false);
+  assert.ok(Object.isFrozen(manifest));
+  assert.ok(Object.isFrozen(manifest.census),
+    'original root evidence must not be mutable after the manifest is hashed');
+  assert.ok(Object.isFrozen(manifest.selected),
+    'selected root order must not be mutable after the manifest is hashed');
+  assert.ok(Object.isFrozen(manifest.selected[0]));
+  assert.throws(() => manifest.selected.reverse(), TypeError,
+    'an earlier selection must never mutate after SHA binding');
+  const repeat = await createOriginalToSelectedRootManifest(source);
+  assert.equal(repeat.selectionDigestSha256, manifest.selectionDigestSha256,
+    'same ordered original metadata and basis => identical digest');
+  const all = await createOriginalToSelectedRootManifest(
+    originalRootManifestFixture({ requestedScopeId: ALL_SOURCE_SCOPES }));
+  assert.equal(all.selectedRootCount, 3);
+  assert.deepEqual(all.selected.map(x => x.displayPath),
+    ['$[0]', '$[1]', '$[2]']);
+  assert.notEqual(all.selectionDigestSha256, manifest.selectionDigestSha256,
+    'ALL and restricted scope must never share receipt basis');
+});
+
+test('T05a source, XML, config and zone identity are all digest-bound', async () => {
+  const basis = originalRootManifestFixture();
+  const full = await createOriginalToSelectedRootManifest(basis);
+  for (const patch of [
+    { sourceSha256: 'd'.repeat(64) }, { sourceGeneration: 'original-gen-2' },
+    { xmlSha256: 'e'.repeat(64) }, { configDigest: 'f'.repeat(64) },
+    { requestedScopeId: 'ZONE-2' },
+    { roots: basis.roots.map((root, i) => i === 2
+      ? { ...root, endByteExclusive: 665 } : root) }
+  ]) {
+    const modified = await createOriginalToSelectedRootManifest(
+      originalRootManifestFixture(patch));
+    assert.notEqual(modified.selectionDigestSha256, full.selectionDigestSha256);
+  }
+});
+
+test('T05a refuses unverified root ordinals, scope evidence and topology', async () => {
+  const base = originalRootManifestFixture();
+  const corruptions = [
+    [{ ...base.roots[0], parentOrdinal: 7 }, 'ROOT_PROVENANCE_INVALID'],
+    [{ ...base.roots[0], member: 1 }, 'ROOT_PROVENANCE_INVALID'],
+    [{ ...base.roots[0], type: 'SITE' }, 'TOPOLOGY_NOT_PROVEN'],
+    [{ ...base.roots[0], scopeEvidence: 'NESTED_ONLY' }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], scopeEvidence: 'NONE' }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], ownerScope: UNSCOPED_SOURCE_ID }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], ownerScope: ALL_SOURCE_SCOPES }, 'SCOPE_EVIDENCE_INVALID'],
+    [{ ...base.roots[0], ordinal: 0 }, 'ROOT_PROVENANCE_INVALID'],
+    [{ ...base.roots[0], endByteExclusive: 1500 }, 'ROOT_PROVENANCE_INVALID']
+  ];
+  for (const [bad, expected] of corruptions) {
+    await assert.rejects(
+      createOriginalToSelectedRootManifest({
+        ...base, roots: [bad, ...base.roots.slice(1)]
+      }), e => e.code === expected, expected);
+  }
+  for (const [patch, expected] of [
+    [{ requestedScopeId: 'NOT-PRESENT' }, 'SCOPE_UNKNOWN'],
+    [{ requestedScopeId: '' }, 'SCOPE_INVALID'],
+    [{ rootProfile: 'root-children-array' }, 'ROOT_PROFILE_UNSUPPORTED'],
+    [{ roots: [] }, 'SCOPE_EMPTY'],
+    [{ sourceSha256: 'bad' }, 'SCOPE_BASIS_INVALID']
+  ]) {
+    await assert.rejects(
+      createOriginalToSelectedRootManifest(originalRootManifestFixture(patch)),
+      e => e.code === expected, expected);
+  }
+  const unscoped = await createOriginalToSelectedRootManifest(
+    originalRootManifestFixture({
+      requestedScopeId: UNSCOPED_SOURCE_ID,
+      roots: base.roots.map((row, i) => i === 1
+        ? { ...row, ownerScope: '', scopeEvidence: 'NONE', scopeKey: '' } : row)
+    }));
+  assert.deepEqual(unscoped.selected.map(x => x.originalRootIndex), [1]);
 });
