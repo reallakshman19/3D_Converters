@@ -2,11 +2,72 @@ import { createElement } from './xml-cii-adapted-dom.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { cancelIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
+import { discoverIndexedOriginalScopes } from './xml-cii-adapted-lfj-original-scope-discovery.js';
 import {
   ALL_SCOPE_ID,
   buildJsonHierarchyScopeIndex,
   jsonHierarchyScopeOptions,
 } from '../xml-cii-json-hierarchy-scope.js';
+
+const activeDiscovery=new WeakMap();
+export function cancelIndexedScopeDiscovery(stateRef){
+  activeDiscovery.get(stateRef)?.abort();
+  activeDiscovery.delete(stateRef);
+  if(stateRef)beginLatestOperation(stateRef,'indexed-scope-discovery');
+}
+
+// Source-only scan is on-demand: no original full JSON goes through stagedJsonText.
+// Result binds only to this exact File object and is not a Build/CSV permission.
+export async function discoverIndexedScopeChoicesFromUi(stateRef,render=()=>{},
+    discover=discoverIndexedOriginalScopes){
+  const state=stateRef?.current;
+  if(state?.resolverSourceMode!=='lfj-indexed-preview'||
+     !(state.stagedJsonFile instanceof Blob))return null;
+  cancelIndexedScopeDiscovery(stateRef);
+  const file=state.stagedJsonFile;
+  const latest=beginLatestOperation(stateRef,'indexed-scope-discovery');
+  const controller=new AbortController();
+  activeDiscovery.set(stateRef,controller);
+  const isCurrent=()=>latest()&&!controller.signal.aborted&&
+    stateRef.current.stagedJsonFile===file&&
+    stateRef.current.resolverSourceMode==='lfj-indexed-preview';
+  stateRef.current=updateWorkflowState(stateRef.current,{
+    lfjIndexedOriginalScopeChoices:null,
+    lfjIndexedScopeDiscoveryStatus:'Discovering original owner zones off-thread…'
+  });
+  render();
+  try{
+    const result=await discover(file,{
+      signal:controller.signal,isCurrent
+    });
+    if(!isCurrent())return null;
+    // The native Worker returns a complete bounded full-source and direct-root
+    // attested catalogue, never a guessed UI label or export grant.
+    if(result?.schema!=='LFJ.A3.OriginalScopeChoices.v1'||
+       result.sourceOnly!==true||result.downloadAuthorized!==false||
+       !Array.isArray(result.choices))
+      throw new Error('Unverified native original owner catalogue');
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      lfjIndexedOriginalScopeChoices:{sourceFile:file,...result},
+      lfjIndexedScopeDiscoveryStatus:
+        result.choices.length+' source-verified owner choice(s); Build still reattests the original File.'
+    });
+    render();
+    return result;
+  }catch(error){
+    if(!isCurrent())return null;
+    stateRef.current=updateWorkflowState(stateRef.current,{
+      lfjIndexedOriginalScopeChoices:null,
+      lfjIndexedScopeDiscoveryStatus:'Original owner discovery failed: '+
+        String(error?.message||error).slice(0,180)
+    });
+    render();
+    return null;
+  }finally{
+    if(activeDiscovery.get(stateRef)===controller)
+      activeDiscovery.delete(stateRef);
+  }
+}
 
 function text(value) {
   return String(value ?? '');
@@ -63,9 +124,12 @@ export function selectIndexedOriginalScope(stateRef, rawValue) {
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const source = text(state.stagedJsonText);
   if (!source) {
-    // The original File is not a foreground string in indexed mode. Retain a
-    // previously selected scope in the UI until the user explicitly chooses ALL.
-    return { index: null, selectedScopeId: text(state.jsonTraceScopeId) || ALL_SCOPE_ID };
+    // Old selections never become All automatically. Discovery is bound to
+    // the actual original Blob and only direct top-level owner evidence.
+    const found=state.lfjIndexedOriginalScopeChoices;
+    return {index:null,
+      scopeChoices:found?.sourceFile===state.stagedJsonFile?found:null,
+      selectedScopeId:text(state.jsonTraceScopeId)||ALL_SCOPE_ID};
   }
   const key = sourceKey(source);
   const cached = state.resolverJsonTraceUiScopeCache;
@@ -90,9 +154,11 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
 function scopeNote(scopeState) {
   const index = scopeState?.index;
   if (!index) {
-    return 'Original-File indexed mode: type an exact direct owner zone/site ID below. '
-      + 'This is NOT a discovered choice; native Workers verify the real File during Build. '
-      + 'All scopes stays available. Unsupported or absent zones are rejected.';
+    return scopeState?.scopeChoices
+      ? 'These zone/site IDs were discovered from the complete original File catalogue. '
+        + 'Selected Build and each CSV click independently reverify original source and revision.'
+      : 'Discover real owner zones from the original File, or enter an exact zone manually. '
+        + 'Manual labels are NOT verified until Build; unsupported zones fail closed.';
   }
   if (!index.indexable) {
     return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
@@ -108,9 +174,17 @@ function scopeNote(scopeState) {
 function selectControl(scopeState) {
   const select = createElement('select');
   select.dataset.field = 'resolver-hierarchy-scope';
+  const choices=scopeState?.scopeChoices?.choices;
   const options = scopeState?.index
     ? jsonHierarchyScopeOptions(scopeState.index)
-    : [
+    : Array.isArray(choices) ? [
+      {id:ALL_SCOPE_ID,label:'All scopes',itemCount:scopeState.scopeChoices.originalRootCount},
+      ...choices.map(c=>({id:c.id,label:c.id,itemCount:c.rootCount})),
+      ...(scopeState?.selectedScopeId!==ALL_SCOPE_ID &&
+          !choices.some(c=>c.id===scopeState.selectedScopeId)
+         ?[{id:scopeState.selectedScopeId,label:'Previous selection (unverified)',itemCount:0}]
+         :[])
+    ] : [
       { id: ALL_SCOPE_ID, label: 'All scopes', itemCount: 0 },
       ...(scopeState?.selectedScopeId && scopeState.selectedScopeId !== ALL_SCOPE_ID
         ? [{ id: scopeState.selectedScopeId, label: 'Previous selection (unsupported)', itemCount: 0 }]
@@ -124,7 +198,8 @@ function selectControl(scopeState) {
   }
   // Let a user clear an old non-ALL selection even without materializing the
   // original JSON into stagedJsonText (which indexed mode intentionally avoids).
-  select.disabled = !scopeState?.index && scopeState?.selectedScopeId === ALL_SCOPE_ID;
+  select.disabled = !scopeState?.index && !scopeState?.scopeChoices &&
+    scopeState?.selectedScopeId === ALL_SCOPE_ID;
   return select;
 }
 
@@ -147,13 +222,31 @@ export function renderResolverHierarchyScopeControl(parent, stateRef, render, sc
   const select = selectControl(scopeState);
   select.addEventListener('change', (event) => {
     if (!stateRef?.current) return;
-    selectResolverHierarchyScope(stateRef, event.target.value);
+    const selected=event.target.value;
+    if(scopeState?.scopeChoices && selected!==ALL_SCOPE_ID) {
+      if(!scopeState.scopeChoices.choices.some(c=>c.id===selected))return;
+      selectIndexedOriginalScope(stateRef,selected);
+    }else if(selected===ALL_SCOPE_ID && stateRef.current.resolverSourceMode==='lfj-indexed-preview'){
+      selectIndexedOriginalScope(stateRef,ALL_SCOPE_ID);
+    }else{
+      selectResolverHierarchyScope(stateRef,selected);
+    }
     render?.();
   });
   bar.appendChild(select);
   const state=stateRef?.current;
   if (state?.resolverSourceMode==='lfj-indexed-preview' &&
       state.stagedJsonFile instanceof Blob) {
+    const discover=createElement('button','Discover zones from original File');
+    discover.type='button';
+    discover.dataset.action='discover-indexed-original-scopes';
+    discover.addEventListener('click',()=>{
+      void discoverIndexedScopeChoicesFromUi(stateRef,render);
+    });
+    bar.appendChild(discover);
+    if(state.lfjIndexedScopeDiscoveryStatus)
+      bar.appendChild(createElement('span',
+        state.lfjIndexedScopeDiscoveryStatus,'xml-cii-phase-help'));
     const label=createElement('label','Exact original owner zone/site ID (manual; verified only on Build):');
     const input=createElement('input');
     input.dataset.field='resolver-indexed-original-scope';

@@ -70,10 +70,9 @@ export function extractDirectOriginalRootMetadata(value) {
  * original Blob, checks the committed generation and validates each page
  * directory/ordinal. Never treats arbitrary provided metadata as custody.
  */
-export async function readVerifiedOriginalRootManifest({
-  sourceDatabaseName, sourceGeneration, blob, expectedSha256,
-  xmlSha256, configDigest, requestedScopeId
-} = {}) {
+async function withVerifiedOriginalRoots({
+  sourceDatabaseName, sourceGeneration, blob, expectedSha256
+} = {}, useRoots) {
   let source;
   try {
     source = await openPagedSourceQuery({
@@ -127,14 +126,66 @@ export async function readVerifiedOriginalRootManifest({
     if (!roots.length)
       fail('ROOT_CATALOG_EMPTY', 'original committed catalog contains no root branches');
     await source.assertActive();
-    const manifest = await createOriginalToSelectedRootManifest({
-      sourceSha256: expectedSha256, sourceGeneration,
-      originalSourceBytes: blob.size, xmlSha256, configDigest,
-      requestedScopeId, rootProfile: 'root-array', roots
-    });
+    // Both selected manifest and discovery must pass the SAME direct-root,
+    // complete-catalog, original-Blob and current-HEAD validation.
+    const result = await useRoots(roots);
     await source.assertActive();
-    return manifest;
+    return result;
   } finally {
     source?.close();
   }
+}
+
+/** T05b original manifest semantics unchanged; T06c only shares the reader. */
+export async function readVerifiedOriginalRootManifest({
+  sourceDatabaseName, sourceGeneration, blob, expectedSha256,
+  xmlSha256, configDigest, requestedScopeId
+} = {}) {
+  return withVerifiedOriginalRoots({
+    sourceDatabaseName, sourceGeneration, blob, expectedSha256
+  }, roots => createOriginalToSelectedRootManifest({
+    sourceSha256: expectedSha256, sourceGeneration,
+    originalSourceBytes: blob.size, xmlSha256, configDigest,
+    requestedScopeId, rootProfile: 'root-array', roots
+  }));
+}
+
+const MAX_SCOPE_OPTIONS=128,MAX_SCOPE_LABEL=256;
+const ALL_SCOPE='__ALL__',UNSCOPED_SCOPE='__UNSCOPED__';
+
+/** Source-only index of *direct original BRANCH* owner site/zone labels.
+ * Not a user selection manifest, matching proof, CSV permission or CII grant.
+ */
+export async function readVerifiedOriginalScopeChoices({
+  sourceDatabaseName, sourceGeneration, blob, expectedSha256
+} = {}) {
+  return withVerifiedOriginalRoots({
+    sourceDatabaseName, sourceGeneration, blob, expectedSha256
+  }, roots => {
+    const choices=new Map();
+    for(const root of roots) {
+      const id=root.ownerScope || UNSCOPED_SCOPE;
+      if(id.length>MAX_SCOPE_LABEL || id===ALL_SCOPE ||
+         (root.ownerScope && id===UNSCOPED_SCOPE))
+        fail('SCOPE_LABEL_INVALID',
+          'direct original owner label exceeds discovery budget or reserved ID');
+      if(!choices.has(id)) {
+        if(choices.size>=MAX_SCOPE_OPTIONS)
+          fail('SCOPE_CHOICE_LIMIT','original source has too many distinct scopes');
+        choices.set(id,{id,rootCount:0});
+      }
+      choices.get(id).rootCount++;
+    }
+    const options=Array.from(choices.values()).map(x=>Object.freeze(x));
+    if(options.reduce((n,x)=>n+x.rootCount,0)!==roots.length)
+      fail('SCOPE_CENSUS_INVALID','original root ownership census is incomplete');
+    return Object.freeze({
+      schema:'LFJ.A3.OriginalScopeChoices.v1',
+      originalSha256:expectedSha256,
+      originalBytes:blob.size,sourceGeneration,
+      originalRootCount:roots.length,
+      choices:Object.freeze(options),
+      sourceOnly:true,engineeringReady:false,downloadAuthorized:false
+    });
+  });
 }

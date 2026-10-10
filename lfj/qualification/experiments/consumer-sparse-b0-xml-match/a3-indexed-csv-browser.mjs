@@ -250,6 +250,58 @@ try{
       await new Promise(r=>setTimeout(r,45));
       if(captures.length!==staleBefore)
         throw Error('Rejected unknown-zone Build exported a CSV');
+      // T06c: discover real owner labels from the original File via *native*
+      // SHA + persisted packed source catalogue + bounded direct root reads.
+      // This is the actual button and dropdown, not an invented label fixture.
+      const discover=c.querySelector('[data-action="discover-indexed-original-scopes"]');
+      if(!discover)throw Error('Real original File has no on-demand zone discovery control');
+      discover.click();
+      await wait(()=>!!ref.current.lfjIndexedOriginalScopeChoices ||
+        /failed:/i.test(ref.current.lfjIndexedScopeDiscoveryStatus||''),
+        'source-verified original owner catalogue');
+      const observed=ref.current.lfjIndexedOriginalScopeChoices;
+      if(!observed)throw Error('Original zone discovery denied: '+
+        ref.current.lfjIndexedScopeDiscoveryStatus);
+      if(observed.sourceFile!==originalFile ||
+         observed.originalBytes!==originalFile.size ||
+         observed.originalRootCount!==13 ||
+         observed.choices.length!==1 ||
+         observed.choices[0].id!==selectedScopeId ||
+         observed.choices[0].rootCount!==13 ||
+         observed.downloadAuthorized!==false)
+        throw Error('Native original Owner-zone choices are not source-attested');
+      const discoveredUi=document.createElement('div');
+      c.appendChild(discoveredUi);
+      renderResolverHierarchyScopeControl(discoveredUi,ref,()=>renderCount++,
+        ensureResolverHierarchyScope(ref.current,ref));
+      const dropdown=discoveredUi.querySelector(
+        '[data-field="resolver-hierarchy-scope"]');
+      if(!dropdown || !Array.from(dropdown.options).some(option=>
+           option.value===selectedScopeId&&option.textContent.includes('13')))
+        throw Error('Actual original File dropdown omitted directly proven zone/count');
+      dropdown.value=selectedScopeId;
+      dropdown.dispatchEvent(new Event('change',{bubbles:true}));
+      if(ref.current.jsonTraceScopeId!==selectedScopeId ||
+         ref.current.lfjIndexedManualScopeFile!==originalFile)
+        throw Error('Discovered original zone did not bind same File/build revision');
+      c.querySelector('[data-action="build-resolver-index"]').click();
+      await wait(()=>!ref.current.resolverJsonTraceRunning,
+        'discovered original owner zone indexed UI Build');
+      if(!ref.current.lfjIndexedPreview||
+         ref.current.lfjIndexedExportReceipt?.selectedScopeId!==selectedScopeId||
+         ref.current.lfjIndexedPreview.nodeWiseCsvSha256!==originalHashes[0]||
+         ref.current.lfjIndexedPreview.evidenceTreeCsvSha256!==originalHashes[1])
+        throw Error('Source discovered zone native selected Worker Build not attested');
+      consent.checked=true;consent.dispatchEvent(new Event('change',{bubbles:true}));
+      for(const action of ['download-node-wise-trace-csv','download-evidence-tree-csv'])
+        c.querySelector('[data-action="'+action+'"]').click();
+      await wait(()=>captures.length===6,'discovered original zone two CSV downloads');
+      const discoveredHashes=await Promise.all(captures.slice(4).map(async b=>
+        sha(await b.arrayBuffer())));
+      if(new Set(discoveredHashes).size!==2 ||
+         discoveredHashes.some(x=>!originalHashes.includes(x)))
+        throw Error('Discovered original zone exported non-original CSV bytes');
+      discoveredUi.remove();
       if(selected.selectedScopeId!==selectedScopeId ||
          !/^[a-f0-9]{64}$/.test(selected.selectionDigestSha256) ||
          selected.sourceOnly!==true||selected.downloadAuthorized!==false ||
@@ -287,7 +339,9 @@ try{
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
-        unconsentedExports:0,consentedExports:4,
+        unconsentedExports:0,consentedExports:6,
+        nativeDiscoveredOwnerZones:1,nativeDiscoveredOriginalRoots:13,
+        discoveredUiBuild:true,
         manualSelectedScopeId:selectedScopeId,selectedUiBuild:true,
         missingOwnerZoneBuildRejected:true,
         rejectedTamperedOrStaleExports:4,

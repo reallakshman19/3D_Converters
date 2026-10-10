@@ -21,8 +21,10 @@ import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-ada
 import {
   ALL_SCOPE_ID, ensureResolverHierarchyScope,
   renderResolverHierarchyScopeControl, selectResolverHierarchyScope,
-  selectIndexedOriginalScope
+  selectIndexedOriginalScope,discoverIndexedScopeChoicesFromUi,
+  cancelIndexedScopeDiscovery
 } from './xml-cii-adapted-resolver-scope.js';
+import { verifyIndexedOriginalScopeChoices } from './xml-cii-adapted-lfj-original-scope-discovery.js';
 import { bindSourceEvents, runResolverJsonTraceFromUi,
   downloadResolverTraceCsvFromUi } from './xml-cii-adapted-events.js';
 
@@ -360,6 +362,91 @@ test('replacing the original File clears manual scope authority',async()=>{
   const result=await runResolverJsonTraceFromUi(container,ref,()=>{},false);
   assert.equal(result,null);
   assert.match(ref.current.resolverJsonTraceExportStatus,/All scopes only/);
+});
+
+
+test('T06c source choice verifier rejects wrong SHA, duplicate, incomplete census and false rights',()=>{
+  const good={schema:'LFJ.A3.OriginalScopeChoices.v1',
+    originalSha256:'a'.repeat(64),originalBytes:733806,
+    sourceGeneration:'12345678-1234-1234-1234-123456789abc',
+    originalRootCount:3,choices:[
+      {id:'ZONE-A',rootCount:2},{id:'ZONE-B',rootCount:1}],
+    sourceOnly:true,engineeringReady:false,downloadAuthorized:false};
+  const basis={originalSha256:good.originalSha256,
+    originalBytes:733806,sourceGeneration:good.sourceGeneration};
+  const valid=verifyIndexedOriginalScopeChoices(good,basis);
+  assert.ok(Object.isFrozen(valid));
+  assert.ok(Object.isFrozen(valid.choices));
+  assert.deepEqual(valid.choices.map(c=>[c.id,c.rootCount]),
+    [['ZONE-A',2],['ZONE-B',1]]);
+  for(const bad of [
+    {...good,originalSha256:'b'.repeat(64)},
+    {...good,downloadAuthorized:true},
+    {...good,choices:[good.choices[0],good.choices[0]]},
+    {...good,originalRootCount:4},
+    {...good,choices:[{id:'__ALL__',rootCount:3}]},
+    {...good,choices:[{id:'ZONE',rootCount:0}]}
+  ])assert.throws(()=>verifyIndexedOriginalScopeChoices(bad,basis),
+      /source|choice|census|Source|Malformed|Original/i);
+});
+test('T06c discovery picker uses File-backed source-only choice and revokes old CSV',async()=>{
+  const previous=globalThis.document;
+  globalThis.document={createElement(tag){return {
+    tag,style:{},dataset:{},children:[],listeners:{},
+    appendChild(el){this.children.push(el);},
+    addEventListener(event,fn){this.listeners[event]=fn;}
+  };}};
+  try{
+    const file=new Blob(['[]']);
+    const ref={current:updateWorkflowState(createState(),{
+      resolverSourceMode:'lfj-indexed-preview',
+      jsonTraceScopeId:ALL_SCOPE_ID,stagedJsonFile:file
+    })};
+    const scan=async(blob,{isCurrent})=>{
+      assert.equal(blob,file);assert.equal(isCurrent(),true);
+      return {schema:'LFJ.A3.OriginalScopeChoices.v1',sourceOnly:true,
+        downloadAuthorized:false,originalRootCount:3,
+        choices:[{id:'ZONE-A',rootCount:2},{id:'ZONE-B',rootCount:1}]};
+    };
+    assert.ok(await discoverIndexedScopeChoicesFromUi(ref,()=>{},scan));
+    let scope=ensureResolverHierarchyScope(ref.current,ref);
+    assert.deepEqual(scope.scopeChoices.choices.map(x=>x.id),['ZONE-A','ZONE-B']);
+    const holder={children:[],appendChild(el){this.children.push(el);}};
+    renderResolverHierarchyScopeControl(holder,ref,()=>{},scope);
+    const dropdown=holder.children[0].children.find(el=>el.tag==='select');
+    assert.ok(dropdown.children.some(x=>x.value==='ZONE-B'));
+    ref.current.lfjIndexedExportReceipt={schema:'old'};
+    ref.current.lfjIndexedExportOptIn=true;
+    dropdown.listeners.change({target:{value:'ZONE-B'}});
+    assert.equal(ref.current.jsonTraceScopeId,'ZONE-B');
+    assert.equal(ref.current.lfjIndexedManualScopeFile,file);
+    assert.equal(ref.current.lfjIndexedExportReceipt,null);
+    assert.equal(ref.current.lfjIndexedExportOptIn,false);
+    assert.equal(ref.current.lfjIndexedOriginalScopeChoices.sourceFile,file);
+    // Unsupported fabricated dropdown value cannot become a new selection.
+    dropdown.listeners.change({target:{value:'FORGED'}});
+    assert.equal(ref.current.jsonTraceScopeId,'ZONE-B');
+  }finally{
+    if(previous===undefined)delete globalThis.document;
+    else globalThis.document=previous;
+  }
+});
+test('T06c stale discovery result cannot overwrite a replaced original File',async()=>{
+  const first=new Blob(['[]']),second=new Blob(['[]']);
+  const ref={current:updateWorkflowState(createState(),{
+    resolverSourceMode:'lfj-indexed-preview',stagedJsonFile:first
+  })};
+  let resolve;
+  const delayed=()=>new Promise(r=>{resolve=r;});
+  const pending=discoverIndexedScopeChoicesFromUi(ref,()=>{},delayed);
+  // Await microtask so the injected scanner begins, then supersede.
+  await Promise.resolve();
+  cancelIndexedScopeDiscovery(ref);
+  ref.current=updateWorkflowState(ref.current,{stagedJsonFile:second});
+  resolve({schema:'LFJ.A3.OriginalScopeChoices.v1',sourceOnly:true,
+    downloadAuthorized:false,choices:[{id:'OLD',rootCount:1}]});
+  assert.equal(await pending,null);
+  assert.equal(ref.current.lfjIndexedOriginalScopeChoices,null);
 });
 
 function legacyScopeFixture() {
