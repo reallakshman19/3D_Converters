@@ -24,6 +24,7 @@ import {
 import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
+import { createIndexedExportReceipt, verifyIndexedProductCsv } from './xml-cii-adapted-lfj-indexed-export.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -173,8 +174,25 @@ export function bindRegexEvents(container, stateRef, render) {
 }
 
 export function bindResolverEvents(container, stateRef, render) {
+  const consent = container.querySelector('[data-field="lfj-indexed-export-consent"]');
+  consent?.addEventListener('change', event => {
+    const state = stateRef.current;
+    const allowed = event.target.checked === true &&
+      state.resolverSourceMode === 'lfj-indexed-preview' &&
+      !state.resolverJsonTraceRunning &&
+      state.lfjIndexedPreview &&
+      state.lfjIndexedExportReceipt;
+    stateRef.current = updateWorkflowState(state, {
+      lfjIndexedExportOptIn: Boolean(allowed),
+      resolverJsonTraceExportStatus: allowed
+        ? 'Local CSV exports enabled; each click verifies original SHA and CSV bytes. Not downstream CII approval.'
+        : 'Local indexed CSV exports disabled.'
+    });
+    render();
+  });
   onChange(container, 'resolver-source-mode', value => {
     stateRef.current = updateWorkflowState(stateRef.current, {
+      lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false,
       resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
       stagedJsonText: value === 'lfj-indexed-preview' && stateRef.current.stagedJsonFile ? '' : stateRef.current.stagedJsonText,
       lfjIndexedPreview: null, lfjIndexedPreviewStatus: ''
@@ -220,8 +238,8 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
-  onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
-  onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
+  onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree', container));
+  onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace', container));
   onClick(container, 'copy-matched-facts', () => copyMatchedFactsFromUi(stateRef, render));
   onClick(container, 'run-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, false));
   onClick(container, 'save-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, true));
@@ -246,7 +264,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '',
     resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
     resolverJsonTraceAcceptedRevision: null, lfjIndexedPreview: null,
-    lfjIndexedPreviewStatus: ''
+    lfjIndexedPreviewStatus: '', lfjIndexedExportReceipt: null,
+    lfjIndexedExportOptIn: false
   });
   render();
   let requestedRevision = null;
@@ -288,12 +307,17 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
         config: input.resolverJsonTraceConfig || {}, isCurrent
       });
       if (!isCurrent()) return rejectChanged();
+      const receipt = createIndexedExportReceipt({
+        preview, config: input.resolverJsonTraceConfig || {},
+        revision: requested, sourceFile: input.stagedJsonFile
+      });
       stateRef.current = updateWorkflowState(stateRef.current, {
+        lfjIndexedExportReceipt: receipt, lfjIndexedExportOptIn: false,
         lfjIndexedPreview: preview, lfjIndexedPreviewStatus:
-          'Indexed source preview complete; production CSV exports remain blocked.',
+          'Indexed Build complete. Enable locally verified CSV downloads; downstream engineering approval remains separate.',
         resolverJsonTraceRunning: false,
         resolverJsonTraceExportStatus:
-          'Indexed preview only: two CSV downloads require product qualification.',
+          'Indexed Build source-verified. Local CSV downloads require explicit opt-in.',
         resolverJsonTraceWriteBackStatus:
           `Indexed preview: ${preview.xmlNodes} XML nodes, ${preview.matchedXmlNodes} matched.`
       });
@@ -349,7 +373,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
       .replace(/\s+/g, ' ').slice(0, 240);
     stateRef.current = updateWorkflowState(stateRef.current, {
       resolverJsonTraceRunning: false,
-      lfjIndexedPreview: null,
+      lfjIndexedPreview: null, lfjIndexedExportReceipt: null,
+      lfjIndexedExportOptIn: false,
       lfjIndexedPreviewStatus: `Indexed Build failed: ${message}`,
       resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null,
       resolverJsonTraceAcceptedRevision: null,
@@ -383,7 +408,58 @@ function traceResult(state) {
   return state?.resolverJsonTraceResult || state?.resolverJsonTraceJsonResult || null;
 }
 
-export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
+async function downloadIndexedVerifiedCsv(stateRef, render, kind, container) {
+  const initial = stateRef.current;
+  const revision = currentResolverTraceRevision(initial);
+  const isLatest = beginLatestOperation(stateRef, 'indexed-csv-' + kind);
+  const isCurrent = () => isLatest() &&
+    stateRef.current.resolverSourceMode === 'lfj-indexed-preview' &&
+    stateRef.current.lfjIndexedPreview === initial.lfjIndexedPreview &&
+    stateRef.current.lfjIndexedExportReceipt === initial.lfjIndexedExportReceipt &&
+    stateRef.current.lfjIndexedExportOptIn === true &&
+    stateRef.current.stagedJsonFile === initial.stagedJsonFile &&
+    stateRef.current.sourceText === initial.sourceText &&
+    !stateRef.current.resolverJsonTraceRunning &&
+    currentResolverTraceRevision(stateRef.current) === revision;
+  try {
+    const input = container?.querySelector?.('[data-field="resolver-json-config"]');
+    if (input) {
+      let parsed;
+      try { parsed = JSON.parse(String(input.value || '{}')); }
+      catch { throw new Error('Unsaved Resolver configuration JSON is invalid'); }
+      if (JSON.stringify(parsed) !== JSON.stringify(initial.resolverJsonTraceConfig))
+        throw new Error('Resolver configuration edited since Build; rebuild before CSV');
+    }
+    const result = await verifyIndexedProductCsv({
+      receipt: initial.lfjIndexedExportReceipt,
+      preview: initial.lfjIndexedPreview,
+      kind, sourceFile: initial.stagedJsonFile,
+      xmlText: initial.sourceText, config: initial.resolverJsonTraceConfig,
+      revision, optIn: initial.lfjIndexedExportOptIn, isCurrent
+    });
+    if (!isCurrent()) return null;
+    downloadTextFile(result.fileName, result.content, 'text/csv;charset=utf-8');
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceExportStatus:
+        `Locally verified ${result.rowCount} rows (${result.bytes} bytes, SHA-256 ${result.sha256}); downstream CII approval not granted.`
+    });
+    render();
+    return result;
+  } catch (error) {
+    if (!isLatest() || currentResolverTraceRevision(stateRef.current) !== revision)
+      return null;
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      resolverJsonTraceExportStatus: 'Indexed CSV download blocked: ' +
+        String(error?.message || error).replace(/\\s+/g, ' ').slice(0, 230)
+    });
+    render();
+    return null;
+  }
+}
+
+export function downloadResolverTraceCsvFromUi(stateRef, render, kind, container = null) {
+  if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview')
+    return downloadIndexedVerifiedCsv(stateRef, render, kind, container);
   const state=stateRef.current;
   if(state.resolverSourceMode === 'lfj-indexed-preview'||
      state.resolverJsonTraceRunning||
