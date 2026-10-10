@@ -22,6 +22,22 @@ function processingState(base) {
   if (!PROCESSING_PHASES.has(base.activePhaseId)) return base;
   const normalized = ensureXmlCiiBranchSelectionState(base);
   const scope = xmlCiiBranchScopeFromState(normalized);
+  // The legacy branch-filtered processing view deliberately strips File
+  // identity and narrows sourceText. That view is NOT valid for the A3 indexed
+  // original-Blob Resolver: source custody, SHA/HEAD reattestation, the complete
+  // original XML node ledger and per-click CSV receipt must see the original
+  // File, never an empty stagedJsonFile or a filtered source-text substitute.
+  // Only this exact indexed Resolver phase gets the original-file basis.
+  if(base.activePhaseId==='json-trace' &&
+     base.resolverSourceMode==='lfj-indexed-preview'){
+    return {
+      ...normalized,sourceText:base.sourceText,
+      sourceFile:base.sourceFile||null,
+      stagedJsonFile:base.stagedJsonFile||null,
+      stagedJsonText:'',branchScope:scope,
+      sourceNameOverride:base.sourceFile?.name||base.sourceNameOverride||''
+    };
+  }
   return {
     ...normalized,
     sourceFile: null,
