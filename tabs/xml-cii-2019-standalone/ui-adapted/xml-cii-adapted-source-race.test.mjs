@@ -1,6 +1,10 @@
 /** Native Node regressions against the REAL UI event and state handlers. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  buildJsonHierarchyScopeIndex, materializeJsonHierarchyScope, UNSCOPED_ID
+} from '../xml-cii-json-hierarchy-scope.js';
+import { buildStandaloneDtxrPositionGroups } from '../xml-cii-trace-resolution-ledger.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
@@ -273,3 +277,78 @@ for (const [label, patch] of [
     assert.ok(renders >= 2);
   });
 }
+
+function legacyScopeFixture() {
+  return [
+    { type: 'BRANCH', name: 'LINE-A', OWNER_ZONE: 'ZONE-1',
+      children: [{ type: 'COMPONENT', name: 'A source item', position: [1, 2, 3] }] },
+    { type: 'BRANCH', name: 'LINE-B', OWNER_ZONE: 'ZONE-2',
+      children: [{ type: 'COMPONENT', name: 'B source item', position: [11, 12, 13] }] },
+    { type: 'BRANCH', name: 'LINE-C', OWNER_ZONE: 'ZONE-1',
+      children: [{ type: 'COMPONENT', name: 'C source item', position: [21, 22, 23],
+        attributes: { JsonNodeNo: 'ORIGINAL-77' } }] }
+  ];
+}
+
+function originalFactEntries(staged) {
+  return buildStandaloneDtxrPositionGroups(staged).flatMap(g => g.entries)
+    .sort((a, b) => a.jsonSequence - b.jsonSequence);
+}
+
+test('T04 legacy scope selects noncontiguous source roots before matching', () => {
+  const data = legacyScopeFixture();
+  const json = JSON.stringify(data);
+  const index = buildJsonHierarchyScopeIndex(json);
+  assert.equal(index.strategy, 'root-array');
+  assert.equal(index.indexable, true);
+  assert.deepEqual(index.scopes.map(s => [s.id, s.itemCount]),
+    [['ZONE-1', 2], ['ZONE-2', 1]]);
+  const all = materializeJsonHierarchyScope(json, index, ALL_SCOPE_ID);
+  assert.deepEqual(all.value, data);
+  const selected = materializeJsonHierarchyScope(json, index, 'ZONE-1');
+  assert.deepEqual(selected.value.map(x => x.name), ['LINE-A', 'LINE-C']);
+  assert.equal(selected.itemCount, 2);
+  const onlyOther = materializeJsonHierarchyScope(json, index, 'ZONE-2');
+  assert.deepEqual(onlyOther.value.map(x => x.name), ['LINE-B']);
+  assert.throws(() => materializeJsonHierarchyScope(json, index, 'UNKNOWN-ZONE'),
+    /Unknown JSON hierarchy scope/);
+});
+
+test('T04 selected view sequence/paths differ from original source custody', () => {
+  const json = JSON.stringify(legacyScopeFixture());
+  const index = buildJsonHierarchyScopeIndex(json);
+  const all = originalFactEntries(json);
+  const selected = originalFactEntries(materializeJsonHierarchyScope(
+    json, index, 'ZONE-1').value);
+  assert.deepEqual(all.map(x => x.path),
+    ['$[0].children[0]', '$[1].children[0]', '$[2].children[0]']);
+  assert.deepEqual(all.map(x => x.jsonSequence), [2, 4, 6]);
+  assert.deepEqual(selected.map(x => x.path),
+    ['$[0].children[0]', '$[1].children[0]']);
+  assert.deepEqual(selected.map(x => x.jsonSequence), [2, 4]);
+  assert.equal(selected[0].jsonNodeNo, '2',
+    'fallback node identity follows the filtered legacy preorder');
+  assert.equal(selected[1].jsonNodeNo, 'ORIGINAL-77',
+    'explicit node identity survives filtered input materialization');
+  assert.equal(all[2].path, '$[2].children[0]',
+    'original source provenance path must not be overwritten by the selected view');
+  assert.equal(selected[1].branchName, 'LINE-C');
+});
+
+test('T04 unscoped and root-children legacy labels are distinct from indexed admission', () => {
+  const items = [...legacyScopeFixture(), {
+    type: 'BRANCH', name: 'NO-OWNER-ZONE',
+    children: [{ type: 'COMPONENT', name: 'unscoped', position: [1, 2, 3] }]
+  }];
+  const json = JSON.stringify(items);
+  const index = buildJsonHierarchyScopeIndex(json);
+  assert.equal(index.scopes.find(s => s.id === UNSCOPED_ID)?.itemCount, 1);
+  assert.deepEqual(materializeJsonHierarchyScope(json, index, UNSCOPED_ID)
+    .value.map(x => x.name), ['NO-OWNER-ZONE']);
+  const wrapper = JSON.stringify({ children: items });
+  const wrappedIndex = buildJsonHierarchyScopeIndex(wrapper);
+  assert.equal(wrappedIndex.strategy, 'root-children-array',
+    'legacy accepts this shape, but the native indexed profile only accepts root arrays');
+  assert.deepEqual(materializeJsonHierarchyScope(wrapper, wrappedIndex, 'ZONE-2')
+    .value.map(x => x.name), ['LINE-B']);
+});
