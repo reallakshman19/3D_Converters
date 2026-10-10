@@ -319,7 +319,7 @@ function invalidateBatchOutputs(previous, next, dependency) {
 // uploaded files share a displayed name; view-only changes must not veto CSVs.
 function resolverTraceBasisChanged(previous, next) {
   for (const key of ['sourceKind','sourceText','stagedJsonText',
-    'supportConfigJson','branchSelection']) {
+    'supportConfigJson','branchSelection','jsonTraceScopeId']) {
     if (JSON.stringify(previous?.[key]) !== JSON.stringify(next?.[key]))
       return true;
   }
