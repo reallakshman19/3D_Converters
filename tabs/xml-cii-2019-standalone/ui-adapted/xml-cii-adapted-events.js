@@ -115,7 +115,8 @@ export function bindSourceEvents(container, stateRef, render) {
     const file = event.target.files?.[0] || null;
     const isLatest = beginLatestOperation(stateRef, 'staged-json-file');
     replaceState(stateRef, updateWorkflowState(stateRef.current, {
-      stagedJsonFile: file, stagedJsonText: '', result: null
+      stagedJsonFile: file, stagedJsonText: '', result: null,
+      lfjIndexedManualScopeFile: null
     }), render);
     // Indexed preview passes the genuine Blob to a Worker: never read/parse
     // the original 10–30 MB JSON on the foreground UI thread.
@@ -205,6 +206,7 @@ export function bindResolverEvents(container, stateRef, render) {
     stateRef.current = updateWorkflowState(stateRef.current, {
       lfjIndexedExportReceipt: null, lfjIndexedExportOptIn: false,
       resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
+      lfjIndexedManualScopeFile: null,
       stagedJsonText: value === 'lfj-indexed-preview' && stateRef.current.stagedJsonFile ? '' : stateRef.current.stagedJsonText,
       lfjIndexedPreview: null, lfjIndexedPreviewStatus: ''
     });
@@ -303,11 +305,15 @@ export function cancelIndexedBuildFromUi(stateRef,render){
   render();
   return true;
 }
-// The current indexed projection matches supported flat ALL source scope only.
-// A previously selected hierarchy/branch must never be silently exported as ALL.
+// An inherited legacy hierarchy is NOT an authorized indexed scope. A typed
+// original-File scope may proceed ONLY if this same File was explicitly chosen
+// in the indexed UI; the matching Worker must reattest the exact Owner scope.
+// Branch selection remains unsupported and is never silently mapped to ALL.
 function unsupportedIndexedScope(state) {
   const scope = state?.jsonTraceScopeId;
-  if (scope != null && scope !== '' && scope !== ALL_SCOPE_ID) return true;
+  if (scope != null && scope !== '' && scope !== ALL_SCOPE_ID &&
+      (state?.lfjIndexedManualScopeFile !== state?.stagedJsonFile ||
+       !(state.stagedJsonFile instanceof Blob))) return true;
   const branch = state?.branchSelection;
   if (branch == null || branch === '' || branch === ALL_SCOPE_ID) return false;
   if (Array.isArray(branch))
@@ -344,7 +350,7 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
       if (save) throw new Error('Indexed preview cannot write engineering config');
       if (unsupportedIndexedScope(stateRef.current))
-        throw new Error('Indexed LFJ Build supports All scopes only; selected hierarchy or branch is not implemented. Select All scopes and rebuild.');
+        throw new Error('Indexed LFJ Build supports All scopes only unless a direct original owner zone is explicitly entered for this File; branch selection remains unsupported.');
       const indexedConfigText = container.querySelector('[data-field="resolver-json-config"]');
       if (indexedConfigText) {
         try { JSON.parse(String(indexedConfigText.value || '{}')); }
@@ -369,6 +375,8 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
         preview=await buildIndexedResolverPreview({
           blob:input.stagedJsonFile,xmlText,
           config:input.resolverJsonTraceConfig||{},
+          ...(input.jsonTraceScopeId && input.jsonTraceScopeId !== ALL_SCOPE_ID
+            ? {selectedScopeId:input.jsonTraceScopeId} : {}),
           isCurrent:()=>isCurrent()&&isIndexedBuildCurrent(stateRef,controller),
           signal:controller.signal
         });

@@ -44,6 +44,22 @@ export function selectResolverHierarchyScope(stateRef, selectedScopeId) {
   return currentResolverTraceRevision(before) !== currentResolverTraceRevision(next);
 }
 
+// An exact manually typed owner zone is a request, never a verified catalogue
+// choice. The matching Worker must independently attest it from the ORIGINAL
+// File's direct BRANCH ownership and immutable source generation.
+export function selectIndexedOriginalScope(stateRef, rawValue) {
+  if (!stateRef?.current || !(stateRef.current.stagedJsonFile instanceof Blob) ||
+      stateRef.current.resolverSourceMode !== 'lfj-indexed-preview')
+    return false;
+  const value=String(rawValue ?? '').trim();
+  const selected=value && value!==ALL_SCOPE_ID ? value : ALL_SCOPE_ID;
+  const changed=selectResolverHierarchyScope(stateRef,selected);
+  stateRef.current=updateWorkflowState(stateRef.current,{
+    lfjIndexedManualScopeFile:selected===ALL_SCOPE_ID?null:stateRef.current.stagedJsonFile
+  });
+  return changed;
+}
+
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const source = text(state.stagedJsonText);
   if (!source) {
@@ -74,9 +90,9 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
 function scopeNote(scopeState) {
   const index = scopeState?.index;
   if (!index) {
-    return scopeState?.selectedScopeId !== ALL_SCOPE_ID
-      ? 'Previously selected hierarchy is not supported by indexed Build. Select All scopes before Building.'
-      : 'Only All scopes is available for original-File indexed Build until native hierarchy selection is implemented.';
+    return 'Original-File indexed mode: type an exact direct owner zone/site ID below. '
+      + 'This is NOT a discovered choice; native Workers verify the real File during Build. '
+      + 'All scopes stays available. Unsupported or absent zones are rejected.';
   }
   if (!index.indexable) {
     return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
@@ -135,6 +151,22 @@ export function renderResolverHierarchyScopeControl(parent, stateRef, render, sc
     render?.();
   });
   bar.appendChild(select);
+  const state=stateRef?.current;
+  if (state?.resolverSourceMode==='lfj-indexed-preview' &&
+      state.stagedJsonFile instanceof Blob) {
+    const label=createElement('label','Exact original owner zone/site ID (manual; verified only on Build):');
+    const input=createElement('input');
+    input.dataset.field='resolver-indexed-original-scope';
+    input.type='text';
+    input.placeholder='e.g. an exact direct OWNER_SITE value';
+    input.value=scopeState?.selectedScopeId===ALL_SCOPE_ID?'':scopeState?.selectedScopeId||'';
+    input.addEventListener('change',event=>{
+      selectIndexedOriginalScope(stateRef,event.target.value);
+      render?.();
+    });
+    label.appendChild(input);
+    bar.appendChild(label);
+  }
   const note = createElement('span', scopeNote(scopeState), 'xml-cii-phase-help');
   if (note.style) note.style.fontSize = '11px';
   bar.appendChild(note);

@@ -20,7 +20,8 @@ import { beginIndexedBuild } from './xml-cii-adapted-lfj-build-lifecycle.js';
 import { currentResolverTraceRevision, updateWorkflowState } from './xml-cii-adapted-state.js';
 import {
   ALL_SCOPE_ID, ensureResolverHierarchyScope,
-  renderResolverHierarchyScopeControl, selectResolverHierarchyScope
+  renderResolverHierarchyScopeControl, selectResolverHierarchyScope,
+  selectIndexedOriginalScope
 } from './xml-cii-adapted-resolver-scope.js';
 import { bindSourceEvents, runResolverJsonTraceFromUi,
   downloadResolverTraceCsvFromUi } from './xml-cii-adapted-events.js';
@@ -287,6 +288,79 @@ for (const [label, patch] of [
     assert.ok(renders >= 2);
   });
 }
+
+
+test('explicit original File scope entry invalidates receipt, cancel and stale lease',()=>{
+  const file=new Blob(['[{"type":"BRANCH","name":"A","attributes":{"OWNER_SITE":"ZONE"},"children":[]}]']);
+  const ref={current:updateWorkflowState(createState(),{
+    resolverSourceMode:'lfj-indexed-preview',stagedJsonFile:file,
+    jsonTraceScopeId:ALL_SCOPE_ID
+  })};
+  const running=beginIndexedBuild(ref);
+  const wasLatest=beginLatestOperation(ref,'resolver-build');
+  ref.current.lfjIndexedExportReceipt={schema:'old'};
+  ref.current.lfjIndexedExportOptIn=true;
+  assert.equal(selectIndexedOriginalScope(ref,'ZONE'),true);
+  assert.equal(ref.current.jsonTraceScopeId,'ZONE');
+  assert.equal(ref.current.lfjIndexedManualScopeFile,file);
+  assert.equal(running.signal.aborted,true);
+  assert.equal(wasLatest(),false);
+  assert.equal(ref.current.lfjIndexedExportReceipt,null);
+  assert.equal(ref.current.lfjIndexedExportOptIn,false);
+  assert.equal(selectIndexedOriginalScope(ref,'  '),true);
+  assert.equal(ref.current.jsonTraceScopeId,ALL_SCOPE_ID);
+  assert.equal(ref.current.lfjIndexedManualScopeFile,null);
+});
+test('manual original scope input is visible, never misrepresented as discovered source scope',()=>{
+  const previous=globalThis.document;
+  globalThis.document={createElement(tag){return {
+    tag,style:{},dataset:{},children:[],listeners:{},
+    appendChild(el){this.children.push(el);},
+    addEventListener(event,fn){this.listeners[event]=fn;}
+  };}};
+  try{
+    const file=new Blob(['[]']);
+    const ref={current:updateWorkflowState(createState(),{
+      resolverSourceMode:'lfj-indexed-preview',stagedJsonFile:file,
+      jsonTraceScopeId:ALL_SCOPE_ID
+    })};
+    const scope=ensureResolverHierarchyScope(ref.current,ref);
+    const parent={children:[],appendChild(el){this.children.push(el);}};
+    let renders=0;
+    renderResolverHierarchyScopeControl(parent,ref,()=>renders++,scope);
+    const bar=parent.children[0];
+    const label=bar.children.find(el=>el.tag==='label');
+    assert.ok(label,'original owner label must render');
+    const input=label.children.find(el=>el.tag==='input');
+    assert.equal(input.dataset.field,'resolver-indexed-original-scope');
+    input.listeners.change({target:{value:'ZONE-B'}});
+    assert.equal(ref.current.jsonTraceScopeId,'ZONE-B');
+    assert.equal(ref.current.lfjIndexedManualScopeFile,file);
+    assert.equal(renders,1);
+    assert.equal(selectIndexedOriginalScope(ref,'UNKNOWN'),true,
+      'an unknown typed label is not automatically verified by UI');
+    assert.equal(ref.current.jsonTraceScopeId,'UNKNOWN');
+  }finally{
+    if(previous===undefined)delete globalThis.document;
+    else globalThis.document=previous;
+  }
+});
+test('replacing the original File clears manual scope authority',async()=>{
+  const file=new Blob(['[]']),replacement=new Blob(['[]']);
+  const ref={current:updateWorkflowState(createState(),{
+    resolverSourceMode:'lfj-indexed-preview',stagedJsonFile:file,jsonTraceScopeId:ALL_SCOPE_ID
+  })};
+  selectIndexedOriginalScope(ref,'ZONE');
+  const container=fakeContainer();
+  bindSourceEvents(container,ref,()=>{});
+  await container.change('staged-json-file','',[replacement]);
+  assert.equal(ref.current.stagedJsonFile,replacement);
+  assert.equal(ref.current.lfjIndexedManualScopeFile,null);
+  assert.equal(ref.current.jsonTraceScopeId,'ZONE','never relabel previous chosen zone as All');
+  const result=await runResolverJsonTraceFromUi(container,ref,()=>{},false);
+  assert.equal(result,null);
+  assert.match(ref.current.resolverJsonTraceExportStatus,/All scopes only/);
+});
 
 function legacyScopeFixture() {
   return [
