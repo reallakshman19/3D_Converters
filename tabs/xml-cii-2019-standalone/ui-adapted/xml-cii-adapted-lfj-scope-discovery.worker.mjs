@@ -8,7 +8,7 @@
 import {Sha256} from '../../../lfj/source/source-snapshot.mjs';
 import {runPagedCompactResearch} from '../../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs';
 import {readVerifiedOriginalRootManifest} from '../../../lfj/consumers/3d-converters/verified-source-root-reader.mjs';
-import {indexedGenerationNames} from './xml-cii-adapted-lfj-cold-recovery.js';
+import {indexedGenerationNames,withIndexedGenerationCustody} from './xml-cii-adapted-lfj-cold-recovery.js';
 import {deleteIndexedBuildDatabases} from './xml-cii-adapted-lfj-db-cleanup.js';
 
 const MAX_SCOPES=128,MAX_LABEL_LENGTH=256,CHUNK=1024*1024;
@@ -32,6 +32,7 @@ export async function scanOriginalFileScopes(blob){
     fail('SCOPE_SOURCE_OVERSIZE','original File exceeds the indexed product capacity');
   const id=crypto.randomUUID();
   const [sourceDatabaseName,projectionDatabaseName]=indexedGenerationNames(id);
+  return withIndexedGenerationCustody(id,async()=>{
   let problem=null;
   try{
     const originalSha256=await hashOriginal(blob);
@@ -76,6 +77,7 @@ export async function scanOriginalFileScopes(blob){
       problem.cleanupError=cleanup.code||'LFJ_SCOPE_CLEANUP';
     }
   }
+  }); // Hold the versioned Web Lock until completed temp-IDB deletion.
 }
 if(typeof self!=='undefined'&&typeof self.addEventListener==='function')
   self.addEventListener('message',async({data})=>{
