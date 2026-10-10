@@ -140,6 +140,10 @@ export async function verifyResolverResearchHandoff(result, {
     nodeWiseRows:copyRows(nodeRows),
     evidenceTreeRows:copyRows(evidenceRows),
     nodeWiseCsv:c.nodeWiseCsv, evidenceTreeCsv:c.evidenceTreeCsv,
+    nodeWiseCsvSha256:c.nodeWiseCsvSha256,
+    evidenceTreeCsvSha256:c.evidenceTreeCsvSha256,
+    nodeWiseCsvBytes:c.nodeWiseCsvBytes,
+    evidenceTreeCsvBytes:c.evidenceTreeCsvBytes,
     // Product readiness requires a separate owned source/Build/DOM integration
     // and an independently accepted consumer authority. Never upgrade here.
     sourceOnly:true, engineeringReady:false,
