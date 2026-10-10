@@ -59,7 +59,7 @@ try{
   await page.locator('input[data-field="source-file"]').setInputFiles(ORIGINAL_XML);
   await page.waitForFunction(()=>
     [...document.querySelectorAll('.xml-cii-file-summary')].some(x=>
-      x.textContent.includes('FirstpassXML')),{timeout:30000});
+      x.textContent.includes('FirstpassXML')),null,{timeout:30000});
   await phase('json-trace');
   // Opt in to the REAL indexed pathway BEFORE selecting large original JSON.
   const mode=page.locator('select[data-field="resolver-source-mode"]');
@@ -92,7 +92,7 @@ try{
     const consent=document.querySelector(
       '[data-field="lfj-indexed-export-consent"]');
     return !!consent && !consent.disabled;
-  },{timeout:240000});
+  },null,{timeout:240000});
   const help=(await page.locator('.xml-cii-resolver-panel').first().innerText())
     .slice(0,3500);
   assert.match(help,/Indexed Build complete|Indexed preview:/,
