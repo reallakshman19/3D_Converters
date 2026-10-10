@@ -176,6 +176,7 @@ export function bindResolverEvents(container, stateRef, render) {
   onChange(container, 'resolver-source-mode', value => {
     stateRef.current = updateWorkflowState(stateRef.current, {
       resolverSourceMode: value === 'lfj-indexed-preview' ? value : 'legacy',
+      stagedJsonText: value === 'lfj-indexed-preview' && stateRef.current.stagedJsonFile ? '' : stateRef.current.stagedJsonText,
       lfjIndexedPreview: null, lfjIndexedPreviewStatus: ''
     });
     render();
@@ -265,6 +266,7 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     if (stateRef.current.resolverSourceMode === 'lfj-indexed-preview') {
       if (save) throw new Error('Indexed preview cannot write engineering config');
       const requested = currentResolverTraceRevision(stateRef.current);
+      requestedRevision = requested;
       const input = stateRef.current;
       if (!(input.stagedJsonFile instanceof Blob))
         throw new Error('Select the original JSON file for indexed preview');
