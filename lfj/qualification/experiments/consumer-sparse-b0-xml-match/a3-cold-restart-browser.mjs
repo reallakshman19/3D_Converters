@@ -99,13 +99,23 @@ try{
       '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-cold-recovery.js');
     const before=(await indexedDB.databases())
       .filter(d=>d.name?.includes('-r2-')).map(d=>d.name);
-    const result=await recoverAbandonedIndexedGenerations();
-    const after=(await indexedDB.databases())
-      .filter(d=>d.name?.includes('-r2-')).map(d=>d.name);
-    return {before,result,after};
+    let result=null,after=[],recovered=0,attempts=0;
+    const deadline=performance.now()+12000;
+    do{
+      result=await recoverAbandonedIndexedGenerations();
+      recovered+=result.recovered;attempts++;
+      after=(await indexedDB.databases())
+        .filter(d=>d.name?.includes('-r2-')).map(d=>d.name);
+      if(after.length===0)break;
+      // The renderer/page-close may release its Web Lock asynchronously.
+      // Never delete the live-locked generation; bounded retry is test-only.
+      await new Promise(resolve=>setTimeout(resolve,100));
+    }while(performance.now()<deadline);
+    return {before,result,after,recovered,attempts};
   });
-  assert.equal(postClose.after.length,0);
-  assert.equal(postClose.result.recovered,postClose.before.length);
+  assert.equal(postClose.after.length,0,
+    'Browser tab-close generation remained locked/persisted past 12s recovery bound');
+  assert.equal(postClose.recovered,postClose.before.length);
 
   // Force the harder orphan boundary deterministically: an ORIGINAL source
   // Worker commits a complete source HEAD with a versioned UUID and exits,
