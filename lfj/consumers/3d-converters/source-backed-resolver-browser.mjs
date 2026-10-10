@@ -145,4 +145,50 @@ try{
   });
   assert.equal(out.qualification,'A3_NATIVE_WORKER_PRODUCT_DOWNLOAD_PASS');
   console.log('A3_NATIVE_WORKER_PRODUCT_DOWNLOAD_PASS '+JSON.stringify(out));
+  // Abort AFTER a real source Worker has sealed an IndexedDB head, just as
+  // the native projection Worker starts. Confirm no orphan catalog remains.
+  const aborted=await page.evaluate(async()=>{
+    const {runProductSourceBackedResolver}=await import(
+      '/lfj/consumers/3d-converters/source-backed-resolver-build.mjs');
+    const [source,xml]=await Promise.all([
+      fetch('/Benchmarks/1885Sjson/Sjson.json').then(r=>r.blob()),
+      fetch('/Benchmarks/1885Sjson/FirstpassXML').then(r=>r.text())
+    ]);
+    const controller=new AbortController();
+    const NativeWorker=globalThis.Worker;
+    let projectionStarted=false;
+    globalThis.Worker=class extends NativeWorker {
+      postMessage(data,...args){
+        super.postMessage(data,...args);
+        if(data?.type==='PROJECT'){
+          projectionStarted=true;
+          queueMicrotask(()=>controller.abort());
+        }
+      }
+    };
+    let refusal='';
+    try{
+      try{
+        await runProductSourceBackedResolver({
+          blob:source,xmlText:xml,config:{},revision:1,
+          currentRevision:()=>1,signal:controller.signal
+        });
+        throw Error('cancelled source Build incorrectly succeeded');
+      }catch(error){
+        refusal=error.code||'';
+        if(refusal!=='A3_CANCELLED')
+          throw Error('unexpected aborted Worker outcome '+refusal+': '+error.message);
+      }
+      if(!projectionStarted)throw Error('abort did not reach real projection Worker');
+      const remnants=(await indexedDB.databases()).filter(x=>
+        x.name?.startsWith('lfj-a3-'));
+      if(remnants.length)
+        throw Error('source/Projection IndexedDB survived cancellation');
+      return {code:refusal,projectionStarted,leakedA3Databases:0};
+    }finally{
+      globalThis.Worker=NativeWorker;
+    }
+  });
+  assert.equal(aborted.code,'A3_CANCELLED');
+  console.log('A3_NATIVE_WORKER_CANCEL_CLEANUP_PASS '+JSON.stringify(aborted));
 }finally{await browser.close();}
