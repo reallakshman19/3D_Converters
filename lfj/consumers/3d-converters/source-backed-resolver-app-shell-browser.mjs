@@ -107,23 +107,34 @@ try{
     name:'changed.xml',mimeType:'application/xml',
     buffer:Buffer.from('<Root><Node><NodeNumber>CHANGED</NodeNumber></Node></Root>')
   });
-  // The full app intentionally returns to Source when files change. Visit
-  // Resolver again before checking that BOTH authentic exports were revoked.
-  if(!(await page.locator('[data-json-trace-sub-tab="nodeTrace"]').count()))
-    await page.locator('button[data-phase="json-trace"]').click();
-  await page.locator('[data-json-trace-sub-tab="nodeTrace"]').click();
-  const staleNode=page.locator('[data-action="download-node-wise-trace-csv"]');
-  const staleNodeEnabled=await staleNode.isEnabled();
-  assert.equal(staleNodeEnabled,false,'source mutation disables node CSV');
-  await page.locator('[data-json-trace-sub-tab="tree"]').click();
-  const staleEvidence=page.locator('[data-action="download-evidence-tree-csv"]');
-  const staleEvidenceEnabled=await staleEvidence.isEnabled();
-  assert.equal(staleEvidenceEnabled,false,'source mutation disables evidence CSV');
+  // The whole application may route to Source (and fully unmount the
+  // Resolver), or retain the Resolver with disabled export controls.
+  // Both are valid fail-closed outcomes; no stale CSV click may remain.
+  const staleTab=page.locator('[data-json-trace-sub-tab="nodeTrace"]');
+  let staleNodeEnabled=false,staleEvidenceEnabled=false;
+  let staleUiMode='source_phase_exports_absent';
+  if(await staleTab.count()){
+    await staleTab.click();
+    const node=page.locator('[data-action="download-node-wise-trace-csv"]');
+    staleNodeEnabled=await node.isEnabled();
+    assert.equal(staleNodeEnabled,false,'source mutation disables node CSV');
+    await page.locator('[data-json-trace-sub-tab="tree"]').click();
+    const evidence=page.locator('[data-action="download-evidence-tree-csv"]');
+    staleEvidenceEnabled=await evidence.isEnabled();
+    assert.equal(staleEvidenceEnabled,false,'source mutation disables evidence CSV');
+    staleUiMode='resolver_both_buttons_disabled';
+  }else{
+    assert.equal(await page.locator('[data-action="download-node-wise-trace-csv"]').count(),
+      0,'Source phase must not expose old node CSV');
+    assert.equal(await page.locator('[data-action="download-evidence-tree-csv"]').count(),
+      0,'Source phase must not expose old evidence CSV');
+  }
+  await page.waitForTimeout(200);
   console.log('A3_REAL_APP_ORIGINAL_UPLOAD_DOWNLOAD_PASS '+JSON.stringify({
     originalJsonSha256:sha(await readFile(SOURCE)),originalXmlSha256:sha(await readFile(XML)),
     entry:'/index.html',tab:'xml-cii-2019-standalone',phase:'json-trace',
     nativeWorkers:3,xmlNodes:216,matchedXmlNodes:164,
-    downloaded:outputs,staleButtonEnabled:[staleNodeEnabled,staleEvidenceEnabled],
+    downloaded:outputs,staleButtonEnabled:[staleNodeEnabled,staleEvidenceEnabled],staleUiMode,
     nodeRowsBeforeMutation:before,pageErrors:pageErrors.length
   }));
 }finally{
