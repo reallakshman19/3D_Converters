@@ -3,8 +3,8 @@
  *
  * Mode 1 uses the AUTHENTIC, protected 10,232,634-byte 1885_NC JSON/XML
  * negative fixture and its fixed, independently authored CSV/ledger goldens.
- * Mode 4 repeats EVERY real populated original branch and therefore tests a
- * derived 40.9MB valid JSON input against the same original XML. It is an
+ * Modes 4/10 repeat EVERY real populated original branch and test derived
+ * 40.9MB / 102.3MB valid JSON inputs against the same original XML. It is an
  * adversarial source-scale negative case, NOT an owner-pinned large golden.
  * No mock Worker, fake source padding or fabricated XML.
  */
@@ -14,12 +14,12 @@ import {ORIGINAL_B0_OUTPUT_GOLDENS_V1} from
   '../../qualification/experiments/consumer-sparse-b0-xml-match/authentic-original-output-goldens.mjs';
 
 const copies=Number(process.env.LFJ_A3_FULL_PATH_COPIES||1);
-assert.ok(copies===1||copies===4,'supported full-path sources: original or 4x original');
+assert.ok([1,4,10].includes(copies),'supported full-path sources: original, 4x or 10x original');
 const base=ORIGINAL_B0_OUTPUT_GOLDENS_V1.largeNegative;
 const browser=await chromium.launch({headless:true});
 try{
   const page=await browser.newPage();
-  page.setDefaultTimeout(copies===4?540000:240000);
+  page.setDefaultTimeout(copies===10?1200000:(copies===4?540000:240000));
   await page.goto('http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html');
   const report=await page.evaluate(async({copies,base})=>{
     const {runProductSourceBackedResolver}=await import(
@@ -41,14 +41,19 @@ try{
        await sha(new TextEncoder().encode(xmlText))!==base.xmlSha256)
       throw Error('original immutable 1885_NC JSON/XML identity changed');
     let blob=originalBlob;
-    if(copies===4){
+    if(copies>1){
       const original=String(await originalBlob.text()).trim();
       if(!original.startsWith('[')||!original.endsWith(']'))
         throw Error('original source is not an array');
       const data=original.slice(1,-1).trim();
-      blob=new Blob(['[',data,',',data,',',data,',',data,']'],
-        {type:'application/json'});
-      if(blob.size<30*1024*1024)
+      const pieces=['['];
+      for(let i=0;i<copies;i++){
+        if(i)pieces.push(',');
+        pieces.push(data);
+      }
+      pieces.push(']');
+      blob=new Blob(pieces,{type:'application/json'});
+      if(blob.size<(copies===10?90:30)*1024*1024)
         throw Error('derived populated source was too small');
     }
     const begin=performance.now();
@@ -109,7 +114,8 @@ try{
       throw Error('full large Worker flow left persistent A3 databases');
     return {
       schema:'LFJ.A3.FullNativeLargeNegativeParity.v1',
-      mode:copies===1?'AUTHENTIC_10MB_NEGATIVE':'DERIVED_4X_40MB_NEGATIVE',
+      mode:copies===1?'AUTHENTIC_10MB_NEGATIVE':
+        (copies===4?'DERIVED_4X_40MB_NEGATIVE':'DERIVED_10X_102MB_NEGATIVE'),
       provenance:copies===1?'ORIGINAL_1885_NC':'DERIVED_REPEATED_AUTHENTIC_BRANCHES',
       originalJsonSha256:base.jsonSha256,originalXmlSha256:base.xmlSha256,
       sourceBytes:blob.size,xmlNodes:view.xmlNodes,
@@ -117,6 +123,7 @@ try{
       nodeRows:view.nodeWiseRows.length,evidenceRows:view.evidenceTreeRows.length,
       outputs,grantSchema:grant.schema,
       workerStages:view.nativeWorkerStages,
+      sourceCatalogMaxValues:view.sourceCatalogMaxValues,
       elapsedMs,heartbeatGapMs,leakedA3Databases:retained.length,
       protectedOwner30MBGoldensAccepted:false,
       releasedToProduction:false
