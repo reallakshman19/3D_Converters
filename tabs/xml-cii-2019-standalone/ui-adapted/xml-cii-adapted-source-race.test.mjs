@@ -283,7 +283,7 @@ for (const [label, patch] of [
     assert.equal(ref.current.lfjIndexedPreview, null);
     assert.equal(ref.current.lfjIndexedExportReceipt, null);
     assert.equal(ref.current.lfjIndexedExportOptIn, false);
-    assert.match(ref.current.resolverJsonTraceExportStatus, /All scopes only/);
+    assert.match(ref.current.resolverJsonTraceExportStatus, /verified original File scope scan/);
     assert.ok(renders >= 2);
   });
 }
