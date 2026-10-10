@@ -25,6 +25,25 @@ try{
     if(!j.ok||!x.ok)throw Error('Original tracked inputs unavailable');
     const [jsonBytes,xmlText]=await Promise.all([j.arrayBuffer(),x.text()]);
     const originalFile=new File([jsonBytes],'Sjson.json',{type:'application/json'});
+    // A main-thread File.arrayBuffer of the original would be a regression.
+    // Worker realms have their own Blob/File prototypes, so the dedicated
+    // SHA Worker can still read and hash original source bytes there.
+    const originalFileArrayBuffer=File.prototype.arrayBuffer;
+    const originalWorker=window.Worker;
+    let foregroundSourceReads=0,shaWorkerJobs=0;
+    File.prototype.arrayBuffer=function(...args){
+      if(this.name==='Sjson.json'){
+        foregroundSourceReads++;
+        throw Error('Full original JSON Blob read on UI thread');
+      }
+      return originalFileArrayBuffer.apply(this,args);
+    };
+    window.Worker=class extends originalWorker {
+      postMessage(data,...args){
+        if(data?.type==='HASH') shaWorkerJobs++;
+        return super.postMessage(data,...args);
+      }
+    };
     const c=document.createElement('section');
     c.innerHTML=`<input type="file" data-field="staged-json-file">
       <select data-field="resolver-source-mode">
@@ -136,16 +155,23 @@ try{
       await new Promise(r=>setTimeout(r,40));
       if(captures.length!==2)
         throw Error('Stale original exported after source mutation');
+      if(foregroundSourceReads!==0 || shaWorkerJobs<4)
+        throw Error('Original source hashing was not confined to native Workers: '+
+          JSON.stringify({foregroundSourceReads,shaWorkerJobs}));
       return {schema:'LFJ.A3.LocalCsvExportBrowser.v1',nativeIndexedWorkers:3,
         originalXmlNodes:216,originalMatched:164,
         traceDom,evidenceDom,originalCsvSha256:got,originalCsvBytes:sizes,
         unconsentedExports:0,consentedExports:2,
         rejectedTamperedOrStaleExports:4,
+        offThreadSourceShaJobs:shaWorkerJobs,foregroundSourceReads,
         downstreamEngineeringAuthorized:false,renderCount,
         qualification:'NATIVE_CHROMIUM_SOURCE_FENCED_TWO_CSV_PASS'};
     }finally{
       URL.createObjectURL=oldURL;URL.revokeObjectURL=oldRevoke;
-      HTMLAnchorElement.prototype.click=oldClick;c.remove();
+      HTMLAnchorElement.prototype.click=oldClick;
+      File.prototype.arrayBuffer=originalFileArrayBuffer;
+      window.Worker=originalWorker;
+      c.remove();
     }
   });
   assert.equal(results.qualification,'NATIVE_CHROMIUM_SOURCE_FENCED_TWO_CSV_PASS');
