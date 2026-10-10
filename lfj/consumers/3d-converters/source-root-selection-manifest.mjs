@@ -60,6 +60,7 @@ export async function createOriginalToSelectedRootManifest({
     const ownerScope = text(root.ownerScope);
     const scopeEvidence = text(root.scopeEvidence);
     if (!EVIDENCE.has(scopeEvidence) ||
+        (ownerScope && (ownerScope === ALL_SOURCE_SCOPES || ownerScope === UNSCOPED_SOURCE_ID)) ||
         (ownerScope && scopeEvidence === 'NONE') ||
         (!ownerScope && scopeEvidence !== 'NONE') ||
         (ownerScope && !OWNER_KEYS.has(root.scopeKey)) ||
