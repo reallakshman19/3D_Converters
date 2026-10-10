@@ -233,10 +233,20 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     processingMode.appendChild(option);
   }
   processingMode.value = state.resolverSourceMode || 'legacy';
-  if (state.resolverSourceMode === 'lfj-indexed-preview')
+  if (state.resolverSourceMode === 'lfj-indexed-preview') {
     section.appendChild(createElement('p',
-      'Original JSON stays in the indexed Worker. Preview is source-pinned; CSV downloads are disabled until product verification.',
+      'Indexed LFJ Build uses original JSON File bytes and source-pinned Workers. CSV downloads require explicit local opt-in and are not downstream CII engineering approval.',
       'xml-cii-phase-help'));
+    const consent = createElement('input');
+    consent.type = 'checkbox';
+    consent.dataset.field = 'lfj-indexed-export-consent';
+    consent.checked = state.lfjIndexedExportOptIn === true;
+    consent.disabled = !state.lfjIndexedPreview || !state.lfjIndexedExportReceipt ||
+      state.resolverJsonTraceRunning;
+    appendLabeledControl(section,
+      'Enable locally verified indexed CSV downloads (experimental; not final engineering approval):',
+      consent);
+  }
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
   const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
   if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
@@ -248,7 +258,7 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
   renderDelimiterControls(section, state);
 
   const metrics = createElement('div', '', 'xml-cii-resolver-metrics');
-  metrics.append(metric('XML nodes', stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
+  metrics.append(metric('XML nodes', state.resolverSourceMode === 'lfj-indexed-preview' ? (state.lfjIndexedPreview?.xmlNodes ?? '—') : stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')),  metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
   section.appendChild(metrics);
 
   const diagnostics = result?.diagnostics || [];
@@ -277,12 +287,16 @@ function renderTraceTreeHtml(parent, state) {
   if (state.resolverSourceMode === 'lfj-indexed-preview') {
     const evidence = state.lfjIndexedPreview?.evidenceTreeRows || [];
     const section = createElement('section', '', 'xml-cii-resolver-panel');
+    const verified = state.lfjIndexedExportOptIn === true &&
+      !!state.lfjIndexedExportReceipt && !state.resolverJsonTraceRunning &&
+      evidence.length > 0;
     section.appendChild(sectionTitleBar('Indexed LFJ Evidence Preview', [
       actionButton('download-evidence-tree-csv',
-        'CSV — pending product verification', true),
+        verified ? `⬇ Verified CSV (${evidence.length})` : 'CSV — enable verified local downloads',
+        !verified),
     ]));
     section.appendChild(createElement('p',
-      'Full source-backed evidence rows; download authorization not granted.',
+      'Full source-backed evidence rows. Local downloads require current-source SHA and exact output SHA verification on every click; downstream CII approval is separate.',
       'xml-cii-phase-help'));
     section.appendChild(table(EVIDENCE_TREE_HEADERS, evidence,
       'Run Indexed LFJ Build to display evidence rows.'));
@@ -342,7 +356,12 @@ function renderXmlNodeWiseTraceTable(parent, state) {
   const nodeWiseRows = indexed ? (state.lfjIndexedPreview?.nodeWiseRows || []) : buildXmlNodeWiseTraceRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(sectionTitleBar('XML Node Wise Trace', [
-    actionButton('download-node-wise-trace-csv', indexed ? 'CSV — pending product verification' : `⬇ CSV (${nodeWiseRows.length})`, indexed || nodeWiseRows.length === 0),
+    actionButton('download-node-wise-trace-csv',
+      indexed ? (state.lfjIndexedExportOptIn && state.lfjIndexedExportReceipt && !state.resolverJsonTraceRunning ?
+        `⬇ Verified CSV (${nodeWiseRows.length})` :
+        'CSV — enable verified local downloads') : `⬇ CSV (${nodeWiseRows.length})`,
+      nodeWiseRows.length === 0 || (indexed && (!state.lfjIndexedExportOptIn ||
+        !state.lfjIndexedExportReceipt || state.resolverJsonTraceRunning))),
   ]));
   if (!nodeWiseRows.length) {
     section.appendChild(createElement('div', 'No XML trace rows. Load source XML and staged JSON, then rebuild the resolver index.', 'xml-cii-phase-help'));
