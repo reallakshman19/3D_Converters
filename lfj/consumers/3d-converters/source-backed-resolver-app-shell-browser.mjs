@@ -107,18 +107,23 @@ try{
     name:'changed.xml',mimeType:'application/xml',
     buffer:Buffer.from('<Root><Node><NodeNumber>CHANGED</NodeNumber></Node></Root>')
   });
+  // The full app intentionally returns to Source when files change. Visit
+  // Resolver again before checking that BOTH authentic exports were revoked.
+  if(!(await page.locator('[data-json-trace-sub-tab="nodeTrace"]').count()))
+    await page.locator('button[data-phase="json-trace"]').click();
   await page.locator('[data-json-trace-sub-tab="nodeTrace"]').click();
   const staleNode=page.locator('[data-action="download-node-wise-trace-csv"]');
-  // If no trace is rendered, it cannot offer a clickable download.
-  assert.equal(await staleNode.isEnabled(),false,'source mutation disables node CSV');
+  const staleNodeEnabled=await staleNode.isEnabled();
+  assert.equal(staleNodeEnabled,false,'source mutation disables node CSV');
   await page.locator('[data-json-trace-sub-tab="tree"]').click();
   const staleEvidence=page.locator('[data-action="download-evidence-tree-csv"]');
-  assert.equal(await staleEvidence.isEnabled(),false,'source mutation disables evidence CSV');
+  const staleEvidenceEnabled=await staleEvidence.isEnabled();
+  assert.equal(staleEvidenceEnabled,false,'source mutation disables evidence CSV');
   console.log('A3_REAL_APP_ORIGINAL_UPLOAD_DOWNLOAD_PASS '+JSON.stringify({
     originalJsonSha256:sha(await readFile(SOURCE)),originalXmlSha256:sha(await readFile(XML)),
     entry:'/index.html',tab:'xml-cii-2019-standalone',phase:'json-trace',
     nativeWorkers:3,xmlNodes:216,matchedXmlNodes:164,
-    downloaded:outputs,staleButtonEnabled:[await staleNode.isEnabled(),await staleEvidence.isEnabled()],
+    downloaded:outputs,staleButtonEnabled:[staleNodeEnabled,staleEvidenceEnabled],
     nodeRowsBeforeMutation:before,pageErrors:pageErrors.length
   }));
 }finally{
