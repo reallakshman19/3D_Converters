@@ -288,6 +288,14 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
       sourceGeneration:id,projectionDatabaseName:projectionDb,
       projectionGeneration:id,blob,expectedSha256:oracle.originalSha256,
       xmlText,config,includeResearchHandoff};
+    // H10: invalid opt-in must fail at the real Worker input boundary,
+    // never send DONE or a partial research handoff.
+    const invalidHandoffSwitch=await run('./matching.worker.mjs',{
+      ...baseMatch,includeResearchHandoff:'true'
+    }).then(()=>'UNEXPECTED_DONE',error=>error.code||'UNKNOWN');
+    if(invalidHandoffSwitch!=='INPUT_INVALID')
+      throw fail('RESEARCH_HANDOFF_INPUT_LEAK',
+        'non-boolean research flag accepted by native Worker');
     const supersededSourceHead=await expectHeadSwitchFailure(
       baseMatch,sourceDb,'SOURCE_SUPERSEDED');
     const supersededProjectionHead=await expectHeadSwitchFailure(
@@ -299,6 +307,7 @@ window.runB0RealXmlCsv=async({jsonUrl,xmlUrl,oracle,config={},
       storageDelta:before===null||after===null?null:after-before,
       negatives:{configurationChanged:configError,
         tamperedMatchingEvidence,tamperedNormalizedFact,
+        invalidHandoffSwitch,
         supersededSourceHead,supersededProjectionHead},
       mainThreadLongTasks:longTasks.length,
       mainThreadMaxLongTaskMs:Math.max(0,...longTasks),
