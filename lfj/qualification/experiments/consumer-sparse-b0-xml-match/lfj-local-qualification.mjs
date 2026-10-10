@@ -3,7 +3,7 @@
 import {createHash} from 'node:crypto';
 import {existsSync,createReadStream,readFileSync,statSync,writeFileSync} from 'node:fs';
 import {createServer} from 'node:http';
-import {dirname,extname,isAbsolute,join,relative,resolve,sep} from 'node:path';
+import {extname,isAbsolute,join,relative,resolve,sep} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync,spawn} from 'node:child_process';
 import {createRequire} from 'node:module';
@@ -133,14 +133,15 @@ async function main(){
  if(options.selfTest)return selfTest();
  const root=resolve(process.cwd());
  const reportPath=options.report?resolve(options.report):join(tmpdir(),'lfj-local-'+options.head+'-'+options.mode+'.json');
- if(relative(root,reportPath)!==''&&!relative(root,reportPath).startsWith('..')){
+ const reportRelative=relative(root,reportPath);
+ if(reportRelative===''||!(reportRelative==='..'||reportRelative.startsWith('..'+sep))){
   console.error('Report path must be outside tracked worktree');return 2;
  }
  const report={schema:LABEL,generatedAt:now(),mode:options.mode,expectedHead:options.head,
   environment:{node:process.version,platform:process.platform,cwd:root},
   claims:{githubCiPassed:false,independentOracleAccepted:false,
    engineeringReady:false,downloadAuthorized:false,appWired:false},
-  preflight:[],tests:[],qualification:'NOT_RUN'};
+  preflight:[],postflight:[],tests:[],qualification:'NOT_RUN'};
  const write=()=>{writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');
   console.log('LOCAL_EVIDENCE_REPORT '+reportPath);};
  try{
@@ -184,7 +185,10 @@ async function main(){
     finally{server.close();}
    }
   }
-  report.qualification=report.tests.length&&report.tests.every(x=>x.status==='PASS')?
+  report.postflight=capturePreflight(root,options.head);
+  report.qualification=report.postflight.some(x=>x.status!=='PASS')?
+   'POSTFLIGHT_INTEGRITY_FAILURE':
+   report.tests.length&&report.tests.every(x=>x.status==='PASS')?
    (options.mode==='all'?'LOCAL_FULL_PASS':'LOCAL_'+options.mode.toUpperCase()+'_PASS'):
    report.tests.some(x=>x.status==='FAIL')?'LOCAL_TEST_FAILURE':'LOCAL_INCOMPLETE';
   write();return report.qualification.endsWith('_PASS')?0:1;
