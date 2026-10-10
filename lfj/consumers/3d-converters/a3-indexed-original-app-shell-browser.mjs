@@ -65,8 +65,35 @@ try{
   const mode=page.locator('select[data-field="resolver-source-mode"]');
   await mode.selectOption('lfj-indexed-preview');
   // Never load original JSON into the legacy on-main-thread FileReader.
+  // Observe the ACTUAL browser input change without forging its event,
+  // replacing a File or modifying the application's state.
+  await page.evaluate(()=>{
+    window.__a3StagedFileEvents=[];
+    document.addEventListener('change',event=>{
+      if(event.target?.dataset?.field==='staged-json-file'){
+        window.__a3StagedFileEvents.push({
+          filename:event.target.files?.[0]?.name||null,
+          size:event.target.files?.[0]?.size||0,
+          activePhase:document.querySelector(
+            'button[data-phase].is-active')?.dataset.phase||null,
+          mode:document.querySelector(
+            '[data-field="resolver-source-mode"]')?.value||null
+        });
+      }
+    },true);
+  });
   await page.locator('input[data-field="staged-json-file"]')
     .setInputFiles(ORIGINAL_JSON);
+  const afterOriginalUpload=await page.evaluate(()=>({
+    observedEvents:window.__a3StagedFileEvents,
+    uploadedFile:document.querySelector(
+      'input[data-field="staged-json-file"]')?.files?.[0]?.name||null,
+    stagedSummaries:[...document.querySelectorAll(
+      '.xml-cii-file-summary')].map(e=>e.textContent.slice(0,160)),
+    selectedMode:document.querySelector(
+      '[data-field="resolver-source-mode"]')?.value||null
+  }));
+  console.log('A3_ROOT_ORIGINAL_FILE_CHANGE '+JSON.stringify(afterOriginalUpload));
   if(!(await page.locator('[data-action="discover-indexed-scopes"]').count()))
     await phase('json-trace');
   await page.locator('[data-json-trace-sub-tab="index"]').click();
@@ -93,7 +120,8 @@ try{
       visibleHelp:[...document.querySelectorAll('.xml-cii-phase-help')]
         .slice(0,12).map(x=>x.textContent.slice(0,160))
     }));
-    console.error('A3_ROOT_SCOPE_MISSING '+JSON.stringify({diagnosis,pageErrors,internal404}));
+    console.error('A3_ROOT_SCOPE_MISSING '+JSON.stringify({diagnosis,
+      afterOriginalUpload,pageErrors,internal404}));
     throw Error('Actual root authored mode/file scope discovery control is missing');
   }
   await scan.click();
