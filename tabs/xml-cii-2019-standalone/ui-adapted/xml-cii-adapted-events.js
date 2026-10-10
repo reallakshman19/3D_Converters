@@ -22,7 +22,7 @@ import {
   buildXmlNodeWiseTraceRows,
 } from '../xml-cii-trace-export.js';
 import { currentResolverTraceRevision } from './xml-cii-adapted-state.js';
-import { ALL_SCOPE_ID } from './xml-cii-adapted-resolver-scope.js';
+import { ALL_SCOPE_ID, cancelIndexedScopeDiscovery } from './xml-cii-adapted-resolver-scope.js';
 import { beginLatestOperation } from './xml-cii-adapted-latest-operation.js';
 import { buildIndexedResolverPreview } from './xml-cii-adapted-lfj-indexed-preview.js';
 import { createIndexedExportReceipt, verifyIndexedProductCsv } from './xml-cii-adapted-lfj-indexed-export.js';
@@ -113,6 +113,7 @@ export function bindSourceEvents(container, stateRef, render) {
   });
   onChange(container, 'staged-json-file', async (_, event) => {
     const file = event.target.files?.[0] || null;
+    cancelIndexedScopeDiscovery(stateRef);
     const isLatest = beginLatestOperation(stateRef, 'staged-json-file');
     replaceState(stateRef, updateWorkflowState(stateRef.current, {
       stagedJsonFile: file, stagedJsonText: '', result: null,
@@ -201,6 +202,7 @@ export function bindResolverEvents(container, stateRef, render) {
     render();
   });
   onChange(container, 'resolver-source-mode', value => {
+    cancelIndexedScopeDiscovery(stateRef);
     cancelIndexedBuild(stateRef);
     beginLatestOperation(stateRef,'resolver-build');
     stateRef.current = updateWorkflowState(stateRef.current, {
