@@ -72,6 +72,14 @@ jobs:
             echo "H06 runner did not write expected report"
           fi
           exit "$code"
+      - name: Preserve H06 exact-head machine-readable evidence
+        if: always() && matrix.size == 'FIRSTPASS' && matrix.mode == 'AUTHENTIC'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-h06-full-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/lfj-h06-all-ci.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Serve original tracked XML and JSON from source worktree
         shell: bash
         run: |
