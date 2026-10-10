@@ -33,9 +33,17 @@ jobs:
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.test.mjs
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs
       - name: Count both serializer invocations on passing and failing XML
         run: |
           node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-serializer-boundary.test.mjs
+      - name: H05 authentic original XML metamorphic source semantics and no CSV calls
+        run: |
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
+      - name: H06 exact-HEAD local qualification CLI integrity self-test
+        run: |
+          node lfj/qualification/experiments/consumer-sparse-b0-xml-match/lfj-local-qualification.mjs --self-test
       - name: Preserve inherited H02 H01 A140 source semantics and population
         run: |
           node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-branch-scope-hardening.test.mjs
