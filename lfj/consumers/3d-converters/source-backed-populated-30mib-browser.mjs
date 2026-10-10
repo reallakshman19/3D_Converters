@@ -68,7 +68,8 @@ try{
               reject(Error('source Worker '+data.code+': '+data.message));
           };
           worker.postMessage({type:'START',blob,expectedSha256:sourceSha,
-            databaseName:sourceDb,generation,revision:generation});
+            databaseName:sourceDb,generation,revision:generation,
+            maxValues:copies===10?4000000:2000000});
         }),
         new Promise((_,reject)=>setTimeout(()=>reject(
           Error('populated source catalog exceeded browser deadline')),
@@ -77,7 +78,8 @@ try{
       if(summary.originalBytes!==blob.size||
          summary.sourceSha256!==sourceSha||
          summary.occurrenceCount<10000||
-         summary.pageCount<3)
+         summary.pageCount<3||
+         summary.maxValues!==(copies===10?4000000:2000000))
         throw Error('populated source catalog evidence incomplete');
       const names=(await indexedDB.databases()).map(x=>x.name);
       if(!names.includes(sourceDb))
@@ -98,6 +100,7 @@ try{
       originalJsonSha256:pinned,originalJsonBytes:originalBytes.byteLength,
       occurrenceCount:summary.occurrenceCount,
       pageCount:catalogPages,storageWrites:summary.storageWrites,
+      sourceCatalogMaxValues:summary.maxValues,
       workerElapsedMs:summary.elapsedMs,
       fullElapsedMs:performance.now()-start,
       maxHeartbeatGapMs,leakedA3Databases:leaked.length,
