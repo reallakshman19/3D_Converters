@@ -38,6 +38,11 @@ jobs:
         run: |
           node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
           node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-metamorphic-source-attestation.test.mjs
+      - name: H10 UTF-8 research handoff budget exact-limit and reject tests
+        run: |
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.mjs
+          node --check lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.test.mjs
+          node --test lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-research-handoff-budget.test.mjs
       - name: Authentic positive 164-match and independent negative first
         run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
       - name: Authentic 10MB 3429-node negative full ledger and both CSVs
