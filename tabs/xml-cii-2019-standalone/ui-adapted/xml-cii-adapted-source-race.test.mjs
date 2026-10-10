@@ -398,7 +398,13 @@ test('T05a selected manifest maps noncontiguous original roots into dense view',
   assert.equal(manifest.engineeringReady, false);
   assert.equal(manifest.downloadAuthorized, false);
   assert.ok(Object.isFrozen(manifest));
+  assert.ok(Object.isFrozen(manifest.census),
+    'original root evidence must not be mutable after the manifest is hashed');
+  assert.ok(Object.isFrozen(manifest.selected),
+    'selected root order must not be mutable after the manifest is hashed');
   assert.ok(Object.isFrozen(manifest.selected[0]));
+  assert.throws(() => manifest.selected.reverse(), TypeError,
+    'an earlier selection must never mutate after SHA binding');
   const repeat = await createOriginalToSelectedRootManifest(source);
   assert.equal(repeat.selectionDigestSha256, manifest.selectionDigestSha256,
     'same ordered original metadata and basis => identical digest');
