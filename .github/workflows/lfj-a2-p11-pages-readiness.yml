@@ -1,0 +1,45 @@
+name: LFJ A2 P11 registered public Pages parity — release blocker
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-a2-p11-pages-readiness.yml'
+      - 'docs/lfj/pages-release-readiness.mjs'
+      - 'docs/lfj/pages-release-readiness.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: read
+jobs:
+  registered-public-byte-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert exact checkout SHA
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Eight fail-closed release-parity negative tests
+        run: |
+          node --check docs/lfj/pages-release-readiness.mjs
+          node --test docs/lfj/pages-release-readiness.test.mjs
+      - name: Observe registered Pages API and HTTP assets; fail on mismatched public bytes
+        env:
+          A2_EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node docs/lfj/pages-release-readiness.mjs
+      - name: Retain deployment blocker report even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-p11-public-parity-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/a2-pages-public-parity.json
+      - name: Read-only integrity
+        if: always()
+        run: test -z "$(git status --porcelain)"
