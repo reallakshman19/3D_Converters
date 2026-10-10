@@ -47,7 +47,7 @@ try{
     upload.dispatchEvent(new Event('change',{bubbles:true}));
     if(ref.current.stagedJsonText!=='')throw Error('Main-thread original JSON was read');
     const RealWorker=window.Worker;
-    let held=null,terminated=0,created=0;
+    let held=null,terminated=0,created=0,cancelledDbCount=0;
     const wait=async(predicate,label,ms=20000)=>{
       const until=performance.now()+ms;
       while(performance.now()<until){
@@ -84,8 +84,8 @@ try{
          ref.current.lfjIndexedPreview!==null)
         throw Error('Cancel failed to kill active Worker or revoke downloads');
       await wait(async()=> (await idleDb()).length===0,'cancelled DB cleanup');
-      const cancelledDb=await idleDb();
-      if(cancelledDb.length)throw Error('Cancellation leaked original source DB');
+      cancelledDbCount=(await idleDb()).length;
+      if(cancelledDbCount)throw Error('Cancellation leaked original source DB');
     }finally{window.Worker=RealWorker;}
     // Second cancellation is deliberately LATER: source index and active HEAD
     // already exist in real IndexedDB before holding the native PROJECT post.
@@ -149,7 +149,7 @@ try{
     return {
       schema:'LFJ.A3.CancelCleanupBrowser.v1',
       interceptedNativeStart:true,terminatedNativeWorkers:terminated,
-      cancelledDbCount:cancelledDb.length,committedSourceDb,
+      cancelledDbCount,committedSourceDb,
       cancelledAfterCommittedSource:true,projectWorkerTerminated,
       restoredOriginalBlobBuild:true,xmlNodes:216,matched:164,
       cleanupAfterSuccess:0,sourceRevoked:true,
