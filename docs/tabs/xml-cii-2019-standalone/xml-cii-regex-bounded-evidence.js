@@ -133,6 +133,10 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
 
   const perQuery = Math.max(1, Math.min(512, Number(input.maxIndexesPerQuery) || DEFAULT_INDEXES_PER_QUERY));
   const totalLimit = Math.max(perQuery, Math.min(2000, Number(input.maxTotalIndexes) || DEFAULT_TOTAL_INDEXES));
+  const sourceRowCount = datasetRef.rowCount == null ? null : Number(datasetRef.rowCount);
+  if (sourceRowCount !== null && (!Number.isSafeInteger(sourceRowCount) || sourceRowCount < 0)) {
+    throw new Error(`Dataset source rowCount invalid for ${masterKey}.`);
+  }
   const indexSet = new Set();
   let truncatedQueryCount = 0;
   let matchedQueryCount = 0;
@@ -150,11 +154,24 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
       throw new Error(`Dataset search query mismatch for ${masterKey}: expected ${query}, received ${result.query}.`);
     }
     const indexes = Array.isArray(result?.indexes) ? result.indexes : [];
-    if (indexes.length) matchedQueryCount += 1;
-    if (indexes.length > perQuery) truncatedQueryCount += 1;
+    // A provider can limit its index list while truthfully advertising the
+    // entire search census. Do not mistake missing indexes for full evidence.
+    const advertisedMatches = result?.matchCount == null ? null : Number(result.matchCount);
+    if (advertisedMatches !== null
+        && (!Number.isSafeInteger(advertisedMatches)
+          || advertisedMatches < 0 || advertisedMatches < indexes.length)) {
+      throw new Error(`Dataset search matchCount mismatch or invalid for ${masterKey}.`);
+    }
+    if (indexes.length || (advertisedMatches !== null && advertisedMatches > 0)) matchedQueryCount += 1;
+    if (indexes.length > perQuery || (advertisedMatches !== null && advertisedMatches > indexes.length)) {
+      truncatedQueryCount += 1;
+    }
     for (const value of indexes.slice(0, perQuery)) {
       const index = Number(value);
-      if (!Number.isInteger(index) || index < 0) continue;
+      if (!Number.isSafeInteger(index) || index < 0
+          || (sourceRowCount !== null && index >= sourceRowCount)) {
+        throw new Error(`Dataset search index out of range or invalid for ${masterKey}.`);
+      }
       if (indexSet.size >= totalLimit) {
         totalIndexOverflow = true;
         break;
@@ -170,6 +187,11 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
     : { rows: [] };
   const rows = Array.isArray(result?.rows) ? result.rows : [];
   if (indexes.length) {
+    if (result?.rowCount != null
+        && (!Number.isSafeInteger(Number(result.rowCount))
+          || (sourceRowCount !== null && Number(result.rowCount) !== sourceRowCount))) {
+      throw new Error(`Dataset indexed rowCount mismatch or invalid for ${masterKey}.`);
+    }
     if (result?.datasetId != null && String(result.datasetId) !== datasetId) {
       throw new Error(`Dataset authority mismatch for ${masterKey}: indexed result datasetId mismatch.`);
     }
