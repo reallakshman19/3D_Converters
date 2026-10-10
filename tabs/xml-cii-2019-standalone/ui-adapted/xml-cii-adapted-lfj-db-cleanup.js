@@ -9,7 +9,7 @@ export async function deleteIndexedBuildDatabases(names,{
   timeoutMs=15000
 }={}){
   if(!Array.isArray(names)||names.length!==2||
-     names.some(x=>typeof x!=='string'||!/^lfj-ui-preview-(source|projection)-[\da-f-]+$/.test(x))||
+     names.some(x=>typeof x!=='string'||!/^lfj-ui-preview-(source|projection)-(?:r2-)?[\da-f-]+$/.test(x))||
      names[0]===names[1])
     throw fail('LFJ_IDB_CLEANUP_INPUT','Two distinct indexed source/projection names required');
   if(!databaseFactory || typeof databaseFactory.deleteDatabase!=='function')
