@@ -15,9 +15,10 @@ export async function deleteIndexedBuildDatabases(names,{
   if(!databaseFactory || typeof databaseFactory.deleteDatabase!=='function')
     return Object.freeze({verified:false,unavailable:true});
   const outcomes=await Promise.allSettled(names.map(name=>new Promise((resolve,reject)=>{
-    let request,settled=false;
-    const timer=setTimeout(()=>finish(fail('LFJ_IDB_CLEANUP_TIMEOUT',
-      'Temporary indexed database deletion timed out: '+name)),timeoutMs);
+    let request,settled=false,blocked=false;
+    const timer=setTimeout(()=>finish(fail(
+      blocked?'LFJ_IDB_CLEANUP_BLOCKED':'LFJ_IDB_CLEANUP_TIMEOUT',
+      'Temporary indexed database deletion did not complete: '+name)),timeoutMs);
     function finish(error){
       if(settled)return;
       settled=true;clearTimeout(timer);
@@ -29,8 +30,10 @@ export async function deleteIndexedBuildDatabases(names,{
       request.onsuccess=()=>finish();
       request.onerror=()=>finish(fail('LFJ_IDB_CLEANUP_ERROR',
         'Temporary indexed database deletion failed: '+name));
-      request.onblocked=()=>finish(fail('LFJ_IDB_CLEANUP_BLOCKED',
-        'Temporary indexed database still has an open connection: '+name));
+      // Browsers may briefly report blocked while a terminated Worker releases
+      // its connection. Do not claim failure until the bounded deadline; only
+      // onsuccess is proof of completed deletion.
+      request.onblocked=()=>{blocked=true;};
     }catch(error){
       finish(fail('LFJ_IDB_CLEANUP_ERROR',
         String(error?.message||error)));
