@@ -6,21 +6,30 @@
  * builds fail CLOSED if Worker support is absent, never silently fall back.
  */
 import {requireIndexedSourceAdmission} from './xml-cii-adapted-lfj-size-admission.js';
+import { Sha256 } from '../../../lfj/source/source-snapshot.mjs';
 const WORKER_URL=new URL('./xml-cii-adapted-lfj-sha.worker.mjs',import.meta.url);
 const fail=(code,message)=>Object.assign(new Error(message),{code});
 const isHash=x=>typeof x==='string'&&/^[0-9a-f]{64}$/.test(x);
+const CHUNK_BYTES=1024*1024;
 export async function hashOriginalBlobOffThread(blob,{
   signal,timeoutMs=180000,workerFactory
 }={}){
   requireIndexedSourceAdmission(blob);
   if(signal?.aborted)throw fail('LFJ_SHA_CANCELLED','Original source hashing cancelled');
   if(typeof window==='undefined' && !workerFactory){
-    // Node regression environment only; never used by browser product UI.
-    const bytes=await blob.arrayBuffer();
+    // Node regression environment only. Mirror bounded 1 MiB semantics
+    // without loading the complete original Blob into a single ArrayBuffer.
+    const incremental=new Sha256();
+    for(let offset=0;offset<blob.size;offset+=CHUNK_BYTES){
+      if(signal?.aborted)throw fail('LFJ_SHA_CANCELLED','Original source hashing cancelled');
+      const end=Math.min(blob.size,offset+CHUNK_BYTES);
+      const bytes=new Uint8Array(await blob.slice(offset,end).arrayBuffer());
+      if(bytes.byteLength!==end-offset)
+        throw fail('LFJ_SHA_SOURCE_DRIFT','Original source slice size drifted');
+      incremental.update(bytes);
+    }
     if(signal?.aborted)throw fail('LFJ_SHA_CANCELLED','Original source hashing cancelled');
-    const result=await crypto.subtle.digest('SHA-256',bytes);
-    return [...new Uint8Array(result)]
-      .map(n=>n.toString(16).padStart(2,'0')).join('');
+    return incremental.hex();
   }
   const create=workerFactory || ((url,options)=>new Worker(url,options));
   return new Promise((resolve,reject)=>{
@@ -43,9 +52,14 @@ export async function hashOriginalBlobOffThread(blob,{
           data.code||'LFJ_SHA_WORKER_FAILED',
           String(data.message||'Source hashing failed')));
         if(data?.type!=='DONE'||!isHash(data.sha256)||
-           data.sizeBytes!==blob.size)
+           data.sizeBytes!==blob.size ||
+           data.bytesHashed!==blob.size ||
+           data.chunkLimitBytes!==CHUNK_BYTES ||
+           data.chunkReads!==Math.ceil(blob.size/CHUNK_BYTES) ||
+           !Number.isSafeInteger(data.maxReadBytes) ||
+           data.maxReadBytes!==Math.min(blob.size,CHUNK_BYTES))
           return finish(fail('LFJ_SHA_PROTOCOL',
-            'Original source hash Worker returned invalid digest/size'));
+            'Original source hash Worker returned invalid digest/chunk census'));
         finish(null,data.sha256);
       };
       worker.onerror=event=>finish(fail('LFJ_SHA_WORKER_FAILED',
