@@ -19,6 +19,10 @@ import {configuredJsonTraceFieldNames} from
   '../../../../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
 import {resolveSourceSchema} from
   '../../../../converters/xml-cii2019-core/source-schema-adapter.js';
+import {readVerifiedOriginalRootManifest} from
+  '../../../consumers/3d-converters/verified-source-root-reader.mjs';
+import {reconstructVerifiedSelectedMatchingView} from
+  '../../../consumers/3d-converters/selected-source-matching-view.mjs';
 const HEAD_SCHEMA='LFJ.B0.ResolverProjection.v1',MATCH_SCHEMA='LFJ.B0.XmlCsvResearch.v1';
 const fail=(code,msg)=>{throw Object.assign(new Error(msg),{code});};
 const sha256=async value=>[...new Uint8Array(
@@ -86,7 +90,7 @@ export async function compareSourceProjectionToXml({
   sourceDatabaseName,sourceGeneration,
   projectionDatabaseName,projectionGeneration,
   blob,expectedSha256,xmlText,config={},onBeforeResolve,
-  includeResearchHandoff=false
+  includeResearchHandoff=false,selectedScopeId=undefined
 }={}){
   if(!(blob instanceof Blob)||typeof xmlText!=='string'||!xmlText||
      typeof projectionDatabaseName!=='string'||!projectionDatabaseName)
@@ -95,6 +99,9 @@ export async function compareSourceProjectionToXml({
     fail('INPUT_INVALID','research-only resolve barrier must be a callback');
   if(typeof includeResearchHandoff!=='boolean')
     fail('INPUT_INVALID','research-only handoff switch must be boolean');
+  if(selectedScopeId!==undefined &&
+     (typeof selectedScopeId!=='string'||!selectedScopeId.trim()))
+    fail('SCOPE_INVALID','selected original source scope must be a nonempty exact ID');
   // A complete-looking ledger is not evidence that the XML itself was valid.
   // Reject malformed/unsupported document syntax before opening any source
   // index or invoking the legacy regex-based Resolver/CSV serializers.
@@ -208,10 +215,31 @@ export async function compareSourceProjectionToXml({
       fail('TOPOLOGY_NOT_PROVEN','empty source branch requires original source facts');
     const indexReadyMs=performance.now()-started;
     await assertHeadsCurrent();
+    // Explicit selected source is research-only until a product-owned
+    // revision/receipt proves the same scope on BOTH CSV download actions.
+    let rootManifest=null,matchingBranches=branches;
+    if(selectedScopeId!==undefined){
+      rootManifest=await readVerifiedOriginalRootManifest({
+        sourceDatabaseName,sourceGeneration,blob,expectedSha256,
+        xmlSha256:await sha256(xmlText),
+        configDigest:await sha256(JSON.stringify(config)),
+        requestedScopeId:selectedScopeId
+      });
+      if(rootManifest.originalRootCount!==head.rootBranches ||
+         rootManifest.sourceSha256!==expectedSha256 ||
+         rootManifest.sourceGeneration!==sourceGeneration ||
+         rootManifest.originalSourceBytes!==blob.size)
+        fail('SCOPE_SOURCE_BASIS','selected scope differs from complete committed source projection');
+      if(selectedScopeId!=='__ALL__')
+        matchingBranches=reconstructVerifiedSelectedMatchingView({
+          completeBranches:branches,authenticatedFacts:records,rootManifest
+        });
+      await assertHeadsCurrent();
+    }
     if(onBeforeResolve)await onBeforeResolve();
     await assertHeadsCurrent();
     const result=runStandaloneResolverJsonTrace({
-      sourceText:xmlText,sourceKind:'xml',stagedJsonText:branches,
+      sourceText:xmlText,sourceKind:'xml',stagedJsonText:matchingBranches,
       jsonConfig:config
     });
     const recordsOut=assertCompleteResearchXmlLedger(result);
@@ -239,6 +267,16 @@ export async function compareSourceProjectionToXml({
       indexReadyMs,elapsedMs:performance.now()-started,
       sourceOnly:true,engineeringReady:false,downloadAuthorized:false,
       appWired:false,validatedTopology:'FLAT_BRANCHES_ONLY'};
+    if(rootManifest) {
+      output.selectedScope={
+        requestedScopeId:rootManifest.requestedScopeId,
+        manifestDigestSha256:rootManifest.selectionDigestSha256,
+        originalRootCount:rootManifest.originalRootCount,
+        selectedRootCount:rootManifest.selectedRootCount,
+        originalSourcePaths:rootManifest.selected.map(entry=>entry.originalPath),
+        sourceOnly:true,engineeringReady:false,downloadAuthorized:false
+      };
+    }
     // H09: explicitly opted-in *research-only* delivery contract. The two
     // complete CSVs already passed the H04 XML semantic guard above. Preserve
     // exact shipping serializer bytes and the rows used to generate them.
@@ -263,7 +301,9 @@ export async function compareSourceProjectionToXml({
           projectionConfigDigest:head.consumerManifestDigest,
           matchingEvidenceDigestSha256:evidenceDigest,
           xmlSha256:await sha256(xmlText),
-          xmlNodes:recordsOut.length,xmlRecordsSha256:digest},
+          xmlNodes:recordsOut.length,xmlRecordsSha256:digest,
+          ...(rootManifest ? {selectedScopeId,
+            selectionDigestSha256:rootManifest.selectionDigestSha256} : {})},
         nodeWiseRows,evidenceTreeRows,nodeWiseCsv:nodeCsv,
         evidenceTreeCsv:evidenceCsv,payloadBytes,
         nodeWiseCsvSha256:output.nodeWiseCsvSha256,
