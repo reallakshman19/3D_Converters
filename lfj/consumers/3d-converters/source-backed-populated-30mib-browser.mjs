@@ -7,12 +7,14 @@
  */
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
+const copies=Number(process.env.LFJ_A3_STRESS_COPIES||4);
+assert.ok(copies===4||copies===10,'supported stress sizes: 4x or 10x authentic source');
 const browser=await chromium.launch({headless:true});
 try{
   const page=await browser.newPage();
-  page.setDefaultTimeout(170000);
+  page.setDefaultTimeout(copies===10?540000:170000);
   await page.goto('http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html');
-  const result=await page.evaluate(async()=>{
+  const result=await page.evaluate(async({copies})=>{
     const sourceUrl='/Benchmarks/1885_NC/1885_NC.json';
     const sourceResponse=await fetch(sourceUrl,{cache:'no-store'});
     if(!sourceResponse.ok)throw Error('authentic 10MB source unavailable');
@@ -27,11 +29,18 @@ try{
     if(source[0]!=='['||source.at(-1)!==']')
       throw Error('authentic source is not a top-level branch array');
     const inner=source.slice(1,-1).trim();
-    // Real repeated branches: 4 x original 10.23MB (>= 30 MiB).
-    const blob=new Blob(['[',inner,',',inner,',',inner,',',inner,']'],
-      {type:'application/json'});
-    if(blob.size<30*1024*1024||blob.size>45*1024*1024)
-      throw Error('expected >=30MiB genuine populated input: '+blob.size);
+    // Reuse whole original populated branch arrays, never empty padding.
+    const parts=['['];
+    for(let i=0;i<copies;i++){
+      if(i)parts.push(',');
+      parts.push(inner);
+    }
+    parts.push(']');
+    const blob=new Blob(parts,{type:'application/json'});
+    const target=copies===10?90:30;
+    const max=copies===10?110:45;
+    if(blob.size<target*1024*1024||blob.size>max*1024*1024)
+      throw Error('expected >='+target+'MiB populated input: '+blob.size);
     const sourceSha=await digest(await blob.arrayBuffer());
     const generation=crypto.randomUUID();
     const sourceDb='lfj-a3-source-'+generation;
@@ -62,7 +71,8 @@ try{
             databaseName:sourceDb,generation,revision:generation});
         }),
         new Promise((_,reject)=>setTimeout(()=>reject(
-          Error('30MiB source catalog exceeded 140s browser deadline')),140000))
+          Error('populated source catalog exceeded browser deadline')),
+          copies===10?450000:140000))
       ]);
       if(summary.originalBytes!==blob.size||
          summary.sourceSha256!==sourceSha||
@@ -83,7 +93,7 @@ try{
     if(leaked.length)throw Error('source stress leaked A3 source databases');
     return {
       schema:'LFJ.A3.PopulatedSourceStress.v1',
-      provenance:'DERIVED_4X_AUTHENTIC_1885_NC_SOURCE_NOT_OWNER_30MB',
+      provenance:'DERIVED_'+copies+'X_AUTHENTIC_1885_NC_SOURCE_NOT_OWNER_GOLDEN',
       sourceSha256:sourceSha,sourceBytes:blob.size,
       originalJsonSha256:pinned,originalJsonBytes:originalBytes.byteLength,
       occurrenceCount:summary.occurrenceCount,
@@ -94,9 +104,9 @@ try{
       productResolverMatchingQualified:false,
       independentGoldenAccepted:false
     };
-  });
+  },{copies});
   assert.equal(result.leakedA3Databases,0);
-  assert.ok(result.sourceBytes>=30*1024*1024);
+  assert.ok(result.sourceBytes>=(copies===10?90:30)*1024*1024);
   assert.ok(result.occurrenceCount>=10000);
-  console.log('A3_POPULATED_30MIB_SOURCE_CATALOG_PASS '+JSON.stringify(result));
+  console.log('A3_POPULATED_'+(copies===10?'90':'30')+'MIB_SOURCE_CATALOG_PASS '+JSON.stringify(result));
 }finally{await browser.close();}
