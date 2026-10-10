@@ -90,10 +90,54 @@ try {
     requireValue(generic.weight?.masterFingerprint === refs.weight.masterFingerprint,
       'Weight generic consumer fingerprint mismatch');
 
-    const regex = await regexModule.materializeRegexSmartMasterContext(stateRef.current);
-    requireValue(regex.pipingClassRowCount === 10699, 'Regex/Piping Class consumer row count mismatch');
+    // Later bounded Regex evidence deliberately does NOT rehydrate 10,699
+    // master rows without sample-derived queries. The old test expected the
+    // deprecated full-array behavior; preserve the stronger no-bulk guarantee.
+    const regex = await regexModule.materializeRegexSmartMasterContext(stateRef.current, {
+      async search() { throw new Error('EMPTY_SAMPLE_MUST_NOT_SEARCH_MASTER'); },
+      async getRowsByIndexes() { throw new Error('EMPTY_SAMPLE_MUST_NOT_READ_MASTER'); },
+      async materializeRows() { throw new Error('UNBOUNDED_REGEX_MASTER_ROWS_FORBIDDEN'); },
+    });
+    requireValue(regex.pipingClassRowCount === 0,
+      'Regex without branch samples must not hydrate the full Piping Class dataset');
     requireValue(regex.evidenceBasis.includes(refs.pipingClass.datasetId),
       'Regex/Piping Class evidence did not bind restored datasetId');
+    requireValue(context.pipingClassRows.length === 0,
+      'Regex evidence must not retain whole Piping Class rows in application state');
+
+    // Exercise the genuine native Worker/IndexedDB search path with a source
+    // branch sample, while enforcing the bounded query and index limits.
+    const searched = [];
+    const rowFetches = [];
+    const regexWithSamples = await regexModule.materializeRegexSmartMasterContext({
+      ...stateRef.current,
+      regexTesterResult: { branchSamples: [{ branchName: '/LINE12345-C1234M1' }] },
+    }, {
+      async search(masterKey, datasetId, query) {
+        searched.push({ masterKey, datasetId, query });
+        requireValue(masterKey === 'pipingClass' && datasetId === refs.pipingClass.datasetId,
+          'Regex bounded search used wrong master authority');
+        return runtime.searchMasterDatasetRows(masterKey, datasetId, query);
+      },
+      async getRowsByIndexes(masterKey, datasetId, indexes, datasetRef) {
+        rowFetches.push({ masterKey, datasetId, indexes, datasetRevision: datasetRef.datasetRevision });
+        requireValue(masterKey === 'pipingClass' && datasetId === refs.pipingClass.datasetId,
+          'Regex bounded row fetch used wrong master authority');
+        requireValue(datasetRef.datasetRevision === refs.pipingClass.datasetRevision,
+          'Regex bounded fetch lost the restored source revision');
+        requireValue(indexes.length <= 8, 'Regex bounded fetch exceeds requested maximum indexes');
+        return runtime.getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes, datasetRef);
+      },
+      maxIndexesPerQuery: 4,
+      maxTotalIndexes: 8,
+    });
+    requireValue(searched.length > 0, 'Regex branch sample did not trigger indexed search');
+    requireValue(regexWithSamples.evidenceBasis.includes(refs.pipingClass.datasetId),
+      'sampled Regex evidence lost Piping Class dataset identity');
+    requireValue(regexWithSamples.pipingClassRowCount <= 8,
+      'sampled Regex evidence fetched more than the explicitly bounded row limit');
+    requireValue(context.pipingClassRows.length === 0,
+      'transient sampled Regex rows leaked into durable application context');
 
     const weightConfig = await weightModule.weightMatchConfigFromState(stateRef.current, {
       materializeRows: async () => { throw new Error('Weight Match compact authority must not trigger compatibility materialization'); },
@@ -176,6 +220,9 @@ try {
       consumers: {
         pipingClassRows: generic.pipingClass.masterRows.length,
         regexPipingClassRows: regex.pipingClassRowCount,
+        regexSampledBoundedRows: regexWithSamples.pipingClassRowCount,
+        regexSearches: searched.length,
+        regexIndexedRowFetches: rowFetches.length,
         materialMapRows: generic.material.mapRows.length,
         weightRows: generic.weight.masterRows.length,
         weightRankDatasetId: rankResult.datasetId,
@@ -195,6 +242,9 @@ try {
         staleFingerprintSubstitutionFailsClosed: true,
         appliedRevisionsIndependent: true,
         noSecondMasterSourceImport: true,
+        emptyRegexHasNoBulkHydration: true,
+        genuineWorkerIndexedSearchBounded: true,
+        regexSourceRevisionPreserved: true,
       },
     };
   });
