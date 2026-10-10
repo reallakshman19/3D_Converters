@@ -134,8 +134,14 @@ try{
         await crypto.subtle.digest('SHA-256',buffer)))
         .map(x=>x.toString(16).padStart(2,'0')).join('');
       const got=await Promise.all(buffers.map(sha));
-      if(sizes[0]!==57945||sizes[1]!==50399||
-         got.some((v,i)=>v!==originalHashes[i]))
+      // The two concurrent clicks may finish SHA hashing in either order.
+      // Identify each actual download by its independently protected bytes,
+      // never by which asynchronous Worker resolves first.
+      const goldenBytesBySha=new Map([
+        [originalHashes[0],57945],[originalHashes[1],50399]
+      ]);
+      if(got.length!==2||new Set(got).size!==2||
+         got.some((digest,i)=>goldenBytesBySha.get(digest)!==sizes[i]))
         throw Error('Actual downloaded CSV byte digest mismatch '+JSON.stringify({sizes,got}));
       for(const buf of buffers)
         if(Array.from(new Uint8Array(buf).slice(0,3)).join(',')!=='239,187,191')
