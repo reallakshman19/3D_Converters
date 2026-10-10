@@ -1,0 +1,80 @@
+name: LFJ A3 bounded 1MiB source SHA and original CSV parity
+on:
+  pull_request:
+    paths:
+      - 'lfj/source/source-snapshot.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-sha.worker.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-source-sha.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-source-sha.test.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-bounded-sha-browser.mjs'
+      - 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs'
+      - '.github/workflows/lfj-a3-bounded-source-sha.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-sha-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22,24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked out candidate
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax and bounded SHA Worker/consumer protocol tests
+        run: |
+          node --check lfj/source/source-snapshot.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-sha.worker.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-source-sha.js
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-source-sha.test.mjs
+      - name: Underlying LFJ immutable source custody SHA regression
+        run: |
+          node --test lfj/source/source-snapshot.test.mjs
+          node --test lfj/source/source-snapshot-backing.test.mjs
+          node --test lfj/source/source-snapshot-bound.test.mjs
+          node --test lfj/source/source-snapshot-limits.test.mjs
+      - name: Existing indexed exports and on-screen source identity
+        run: |
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-export.test.mjs
+          node --test tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-indexed-preview.test.mjs
+      - name: Tracked source unchanged
+        run: test -z "$(git status --porcelain)"
+  incremental-hash-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked out candidate
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve original fixed inputs and real indexed UI modules
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >/tmp/lfj-bounded-sha.log 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-original.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/lfj-bounded-sha.log
+          exit 1
+      - name: Genuine native SHA Worker multi-slice and cancel/restart checksum
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-bounded-sha-browser.mjs
+      - name: Original Firstpass Build and both exact BOM CSV downloads unchanged
+        run: node lfj/qualification/experiments/consumer-sparse-b0-xml-match/a3-indexed-csv-browser.mjs
+      - name: Tracked source unchanged
+        run: test -z "$(git status --porcelain)"
