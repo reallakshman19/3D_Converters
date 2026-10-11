@@ -1,0 +1,34 @@
+name: LFJ A3 #209 Reviewer Evidence UI
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js'
+      - 'tests/xml-cii-a3-reviewer-evidence-ui.test.mjs'
+      - '.github/workflows/lfj-a3-reviewer-evidence-ui.yml'
+  push:
+    branches:
+      - 'lfj/a3-209-sourcewide-evidence-review-20261011'
+permissions:
+  contents: read
+jobs:
+  reviewer-evidence-ui:
+    name: Node ${{ matrix.node }} source-wide reviewer UI
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Pin checkout SHA in log
+        run: git rev-parse HEAD
+      - name: Test production renderer with synthetic large-row UI data and mirror equality
+        run: node --test tests/xml-cii-a3-reviewer-evidence-ui.test.mjs
+      - name: Tests do not modify repository
+        run: test -z "$(git status --porcelain)"
