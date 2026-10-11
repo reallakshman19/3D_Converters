@@ -194,8 +194,11 @@ test('C05.6.2 generic downstream config binds each master key to its own restore
   assert.deepEqual(state.masterContext.appliedMappingRevision, beforeRevisions);
 });
 
-test('C05.6.2 Piping Class regex evidence consumes the restored pipingClass ref', async () => {
+test('C05.6.2 Piping Class regex bounded evidence uses the restored keyed ref, not full row materialization', async () => {
   const state = {
+    regexTesterResult: { branchSamples: [
+      { branchName: '/LINE12345-C1234M1' },
+    ] },
     masterContext: {
       config: { pipingClass: { fieldMap: { pipingClass: 'Class' } } },
       lineRows: [],
@@ -207,18 +210,39 @@ test('C05.6.2 Piping Class regex evidence consumes the restored pipingClass ref'
       appliedMappingRevision: { pipingClass: 12 },
     },
   };
-  const calls = [];
+  const searched = [];
+  const retrieved = [];
   const hydrated = await materializeRegexSmartMasterContext(state, {
-    async materializeRows(masterKey, ref) {
-      calls.push([masterKey, ref.datasetId, ref.datasetRevision]);
-      return [{ Class: 'A1' }, { Class: 'B2' }];
+    async materializeRows() {
+      throw new Error('UNBOUNDED_FULL_DATASET_MATERIALIZATION_IS_FORBIDDEN');
     },
+    async search(masterKey, datasetId, query) {
+      searched.push({ masterKey, datasetId, query });
+      assert.equal(masterKey, 'pipingClass');
+      assert.equal(datasetId, 'pc-cold-r7');
+      return { indexes: [0, 1] };
+    },
+    async getRowsByIndexes(masterKey, datasetId, indexes, datasetRef) {
+      retrieved.push({ masterKey, datasetId, indexes, datasetRef });
+      return { rows: [{ Class: 'A1' }, { Class: 'B2' }] };
+    },
+    maxIndexesPerQuery: 4,
+    maxTotalIndexes: 8,
   });
 
-  assert.deepEqual(calls, [['pipingClass', 'pc-cold-r7', 7]]);
+  assert.ok(searched.length > 0, 'original branch samples must cause a bounded source-indexed query');
+  assert.equal(retrieved.length, 1);
+  assert.equal(retrieved[0].masterKey, 'pipingClass');
+  assert.equal(retrieved[0].datasetId, 'pc-cold-r7');
+  assert.deepEqual(retrieved[0].indexes, [0, 1]);
+  assert.equal(retrieved[0].datasetRef.datasetRevision, 7);
   assert.equal(hydrated.pipingClassRowCount, 2);
+  assert.equal(hydrated.masterContext.pipingClassRows.length, 2);
+  assert.equal(state.masterContext.pipingClassRows.length, 0,
+    'bounded evidence is transient and must never retain full master rows');
   assert.match(hydrated.evidenceBasis, /pc-cold-r7/);
   assert.match(hydrated.evidenceBasis, /"mappingRevision":12/);
+  assert.equal(hydrated.boundedEvidence?.mode, 'BOUNDED_MASTER_EVIDENCE');
 });
 
 test('C05.6.2 Weight Match result authority validates datasetId revision and fingerprint', () => {
@@ -250,6 +274,7 @@ test('C05.6.2 Weight Match result authority validates datasetId revision and fin
 
 test('C05.6.2 changed source/docs mirrors remain byte-identical and cache chain is coherent', async () => {
   const version = '20261007-c05-6-2-consumer-authority-1';
+  const successorModeB = '20261008-p0-mode-b-parity-1';
   const mirrorPaths = [
     'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
     'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
@@ -275,6 +300,12 @@ test('C05.6.2 changed source/docs mirrors remain byte-identical and cache chain 
   const cachePaths = mirrorPaths.filter((path) => !path.endsWith('master-dataset-service.js'));
   for (const sourcePath of cachePaths) {
     const source = await fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8');
-    assert.ok(source.includes(version), sourcePath + ' missing consumer-authority cache generation');
+    // The entrypoint was advanced by P0 Mode-B on 2026-10-08 after C05.6.2.
+    // Demand the successor cache generation there, while retaining C05.6.2
+    // import-chain custody in its remaining modules and byte-identical docs.
+    const expectedGeneration = sourcePath === 'tabs/xml-cii-2019-standalone-tab.js'
+      ? successorModeB : version;
+    assert.ok(source.includes(expectedGeneration),
+      sourcePath + ' missing current documented consumer-authority cache generation');
   }
 });
