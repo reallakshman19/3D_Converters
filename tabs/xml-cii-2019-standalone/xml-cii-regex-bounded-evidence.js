@@ -133,6 +133,10 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
 
   const perQuery = Math.max(1, Math.min(512, Number(input.maxIndexesPerQuery) || DEFAULT_INDEXES_PER_QUERY));
   const totalLimit = Math.max(perQuery, Math.min(2000, Number(input.maxTotalIndexes) || DEFAULT_TOTAL_INDEXES));
+  const sourceRowCount = datasetRef.rowCount == null ? null : Number(datasetRef.rowCount);
+  if (sourceRowCount !== null && (!Number.isSafeInteger(sourceRowCount) || sourceRowCount < 0)) {
+    throw new Error(`Dataset source rowCount invalid for ${masterKey}.`);
+  }
   const indexSet = new Set();
   let truncatedQueryCount = 0;
   let matchedQueryCount = 0;
@@ -140,12 +144,34 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
 
   for (const query of queries) {
     const result = await input.search(masterKey, datasetId, query);
+    // Native Worker search returns datasetId/query. Reject an echoed source or
+    // query substitution rather than materializing indexes from wrong authority.
+    // Absence of optional fields stays compatible with existing test providers.
+    if (result?.datasetId != null && String(result.datasetId) !== datasetId) {
+      throw new Error(`Dataset authority mismatch for ${masterKey}: search datasetId mismatch.`);
+    }
+    if (result?.query != null && String(result.query) !== query) {
+      throw new Error(`Dataset search query mismatch for ${masterKey}: expected ${query}, received ${result.query}.`);
+    }
     const indexes = Array.isArray(result?.indexes) ? result.indexes : [];
-    if (indexes.length) matchedQueryCount += 1;
-    if (indexes.length > perQuery) truncatedQueryCount += 1;
+    // A provider can limit its index list while truthfully advertising the
+    // entire search census. Do not mistake missing indexes for full evidence.
+    const advertisedMatches = result?.matchCount == null ? null : Number(result.matchCount);
+    if (advertisedMatches !== null
+        && (!Number.isSafeInteger(advertisedMatches)
+          || advertisedMatches < 0 || advertisedMatches < indexes.length)) {
+      throw new Error(`Dataset search matchCount mismatch or invalid for ${masterKey}.`);
+    }
+    if (indexes.length || (advertisedMatches !== null && advertisedMatches > 0)) matchedQueryCount += 1;
+    if (indexes.length > perQuery || (advertisedMatches !== null && advertisedMatches > indexes.length)) {
+      truncatedQueryCount += 1;
+    }
     for (const value of indexes.slice(0, perQuery)) {
       const index = Number(value);
-      if (!Number.isInteger(index) || index < 0) continue;
+      if (!Number.isSafeInteger(index) || index < 0
+          || (sourceRowCount !== null && index >= sourceRowCount)) {
+        throw new Error(`Dataset search index out of range or invalid for ${masterKey}.`);
+      }
       if (indexSet.size >= totalLimit) {
         totalIndexOverflow = true;
         break;
@@ -160,6 +186,37 @@ export async function resolveRegexBoundedDatasetEvidence(input = {}) {
     ? await input.getRowsByIndexes(masterKey, datasetId, indexes, datasetRef)
     : { rows: [] };
   const rows = Array.isArray(result?.rows) ? result.rows : [];
+  if (indexes.length) {
+    if (result?.rowCount != null
+        && (!Number.isSafeInteger(Number(result.rowCount))
+          || (sourceRowCount !== null && Number(result.rowCount) !== sourceRowCount))) {
+      throw new Error(`Dataset indexed rowCount mismatch or invalid for ${masterKey}.`);
+    }
+    if (result?.datasetId != null && String(result.datasetId) !== datasetId) {
+      throw new Error(`Dataset authority mismatch for ${masterKey}: indexed result datasetId mismatch.`);
+    }
+    if (result?.masterKey != null && String(result.masterKey) !== masterKey) {
+      throw new Error(`Dataset authority mismatch for ${masterKey}: indexed result belongs to ${result.masterKey}.`);
+    }
+    const expectedRevision = Number(datasetRef.datasetRevision || 0);
+    if (expectedRevision > 0 && result?.datasetRevision != null
+        && Number(result.datasetRevision) !== expectedRevision) {
+      throw new Error(`Dataset revision mismatch for ${masterKey}: indexed result revision mismatch.`);
+    }
+    const expectedFingerprint = text(datasetRef.masterFingerprint);
+    if (expectedFingerprint && result?.masterFingerprint != null
+        && text(result.masterFingerprint) !== expectedFingerprint) {
+      throw new Error(`Dataset fingerprint mismatch for ${masterKey}: indexed result fingerprint mismatch.`);
+    }
+    if (Array.isArray(result?.indexes)
+        && (result.indexes.length !== indexes.length
+          || result.indexes.some((value, index) => Number(value) !== indexes[index]))) {
+      throw new Error(`Dataset indexed result indexes mismatch for ${masterKey}.`);
+    }
+    if (rows.length !== indexes.length) {
+      throw new Error(`Dataset indexed row count mismatch for ${masterKey}: expected ${indexes.length}, received ${rows.length}.`);
+    }
+  }
 
   return Object.freeze({
     masterKey,
