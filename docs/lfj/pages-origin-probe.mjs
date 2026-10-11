@@ -12,7 +12,8 @@ const FIELDS=Object.freeze([
   'index.html',
   'main-rhbg-fitguard.js',
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
-  'lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs'
+  'lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js'
 ]);
 export function allowedSite(value,repoName='3D_Converters'){
   try{

@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {allowedSite,probePages} from './pages-origin-probe.mjs';
 const required=['index.html','main-rhbg-fitguard.js',
  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
- 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs'];
+ 'lfj/qualification/experiments/consumer-sparse-b0-xml-match/matching.worker.mjs',
+ 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js'];
 const valid=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 export function checkPublishedAssets(obs,expectedSite){
  const problems=[],rows=[],w=obs?.sourceWitnesses||{};
