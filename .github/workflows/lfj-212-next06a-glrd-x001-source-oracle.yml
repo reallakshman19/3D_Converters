@@ -1,0 +1,31 @@
+name: LFJ 212 NEXT-06A authentic GLRD X001 source oracle test only
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next06a-glrd-x001-source-oracle.yml'
+      - 'tests/recovery-final-cii/xml-cii-next06a-glrd-x001-source-oracle.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  x001-source-negative-oracle:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact original blob and negative source test
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object 'Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml')" = '8769ffe538ecacc621daf39919ca00ba27008211'
+          sha256sum 'Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml'
+          node --check tests/recovery-final-cii/xml-cii-next06a-glrd-x001-source-oracle.test.mjs
+          node --test tests/recovery-final-cii/xml-cii-next06a-glrd-x001-source-oracle.test.mjs
