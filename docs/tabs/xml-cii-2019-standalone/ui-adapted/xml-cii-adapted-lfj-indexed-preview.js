@@ -124,6 +124,21 @@ export async function verifyIndexedPreviewHandoff(
       !count(handoff?.payloadBytes) ||
       handoff.payloadBytes > MAX_PREVIEW_BYTES)
     throw fail('LFJ_PREVIEW_BASIS', 'Incomplete source-pinned Worker handoff');
+  const sf=handoff?.sourceFactRecords;
+  if(sf!==undefined){
+    const rows=sf?.records;
+    if(sf?.schema!=='LFJ.B0.SourceFactRecords.v1'||
+       sf?.sourceOnly!==true||sf?.engineeringReady!==false||
+       !Array.isArray(rows)||rows.length!==result.xmlNodes||
+       rows.some((r,i)=>r?.xmlIndex!==i+1||
+         !['UNRESOLVED','RESOLVED_POS','RESOLVED_POS_PS'].includes(r?.status)||
+         (r.status.startsWith('RESOLVED_')&&(!Array.isArray(r.sourcePaths)||!r.sourcePaths.length)))||
+       rows.filter(r=>r.status.startsWith('RESOLVED_')).length!==result.matchedXmlNodes||
+       sf.matchedCount!==result.matchedXmlNodes||
+       new TextEncoder().encode(JSON.stringify(rows)).byteLength!==sf.bytes||
+       await shaText(JSON.stringify(rows))!==sf.recordsSha256)
+      throw fail('LFJ_PREVIEW_ORIGINAL_FACTS','Worker source occurrence facts differ from complete original ledger');
+  }
   const pairs = [
     [XML_NODE_TRACE_HEADERS, handoff.nodeWiseRows, handoff.nodeWiseCsv,
       result.nodeWiseCsvSha256, result.nodeWiseCsvBytes,
@@ -149,6 +164,8 @@ export async function verifyIndexedPreviewHandoff(
       selectionDigestSha256:result.selectedScope.manifestDigestSha256
     }),
     nodeWiseRows: handoff.nodeWiseRows,
+    ...(sf===undefined ? {sourceFactUnavailable:handoff?.sourceFactUnavailable||'NOT_TRANSPORTED'}
+      : {sourceFactRecords:sf.records,sourceFactRecordsSha256:sf.recordsSha256}),
     evidenceTreeRows: handoff.evidenceTreeRows,
     nodeWiseCsvSha256: result.nodeWiseCsvSha256,
     evidenceTreeCsvSha256: result.evidenceTreeCsvSha256,

@@ -6,7 +6,8 @@
  */
 import {assertResearchXmlDocument} from './xml-input-integrity.mjs';
 import {generateAttestedResearchCsv} from './xml-csv-serializer-boundary.mjs';
-import {assertResearchHandoffPayloadBytes} from './xml-research-handoff-budget.mjs';
+import {assertResearchHandoffPayloadBytes,RESEARCH_HANDOFF_MAX_BYTES} from './xml-research-handoff-budget.mjs';
+import {buildBoundedOriginalXmlSourceFacts} from './xml-source-fact-handoff.mjs';
 import {openPagedSourceQuery} from '../consumer-sparse-b0-query/paged-query.mjs';
 import {normalizedResolverProjectionFact} from
   '../consumer-sparse-b0-consumer/branch-sliced-projection.mjs';
@@ -294,6 +295,9 @@ export async function compareSourceProjectionToXml({
       if(payloadBytes>8*1024*1024)
         fail('RESEARCH_HANDOFF_TOO_LARGE',
           'research-only inline result exceeds the bounded transfer budget');
+      const sourceFacts=buildBoundedOriginalXmlSourceFacts(recordsOut,{
+        remainingBytes:RESEARCH_HANDOFF_MAX_BYTES-payloadBytes
+      });
       output.researchHandoff={
         schema:'LFJ.B0.ResearchHandoff.v1',
         basis:{originalSha256:expectedSha256,sourceGeneration,
@@ -305,6 +309,13 @@ export async function compareSourceProjectionToXml({
           ...(rootManifest ? {selectedScopeId,
             selectionDigestSha256:rootManifest.selectionDigestSha256} : {})},
         nodeWiseRows,evidenceTreeRows,nodeWiseCsv:nodeCsv,
+        ...(sourceFacts.available?{sourceFactRecords:{
+          schema:'LFJ.B0.SourceFactRecords.v1',
+          records:sourceFacts.records,bytes:sourceFacts.bytes,
+          matchedCount:sourceFacts.matchedCount,
+          recordsSha256:await sha256(JSON.stringify(sourceFacts.records)),
+          sourceOnly:true,engineeringReady:false
+        }}:{sourceFactUnavailable:sourceFacts.code}),
         evidenceTreeCsv:evidenceCsv,payloadBytes,
         nodeWiseCsvSha256:output.nodeWiseCsvSha256,
         evidenceTreeCsvSha256:output.evidenceTreeCsvSha256,
