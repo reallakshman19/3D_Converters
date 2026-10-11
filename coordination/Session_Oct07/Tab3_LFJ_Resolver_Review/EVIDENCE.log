@@ -1,0 +1,3 @@
+# Tab3 append-only evidence log — established 2026-10-11 for chat 6acae97c
+2026-10-11 | chat=6acae97c | issue=#209 | mode=source-reconcile | start=#210@1d5ec0f20bade2014d7e8aee697fcf13073631fc | integration=#211@e7be6e26099ebef482dd89dd12898d3661bd6405 | baseline=#201@c9662912b18903f7a2696ccb17e13874eaa02921 | findings=separate-draft-heads,reviewer-source-docs-blob-dd4838d87df998638ef3468a562e6f817745d56c,CI-210-19pass15fail,CI-211-19pass15fail | scope=review-only
+2026-10-11 | chat=6acae97c | event=PLAN_UPDATE-R2 | issue_comment=6104491119 | roadmap=#129:6104492819 | approved=XS-S-only | S01=existing-#204-public-parity-reviewer-witness | forbidden=M-L-coding,existing-PR-overwrite,main,Pages,protected-oracles
