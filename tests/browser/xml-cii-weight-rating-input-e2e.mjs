@@ -154,7 +154,7 @@ try {
     if (initial[index].pipingClass === source.pipingClass) assert.equal(filled[index].rating, '300');
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
-  assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
+  assert.equal(filled[sourceIndex].accepted, 'false', 'Rating change must not display stale Match-1 as freshly accepted');
   assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5);
   assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
