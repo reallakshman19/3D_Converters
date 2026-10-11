@@ -1,0 +1,82 @@
+name: LFJ 212 S Preview original source occurrence repair
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js'
+      - 'tests/recovery-final-cii/xml-cii-preview-original-node-ordinal.test.mjs'
+      - '.github/workflows/lfj-212-s-preview-original-occurrence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-node-ordinals:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Original-source and docs-mirror source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cmp tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js
+          node --test tests/recovery-final-cii/xml-cii-preview-original-node-ordinal.test.mjs
+  real-browser-no-identity-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual authored app
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"$RUNNER_TEMP/s-preview-http.log" 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/s-preview-http.log"
+          exit 1
+      - name: Replay native Owner Firstpass and actual Preview Build button
+        run: node tests/recovery-final-cii/xml-cii-next03-native-preview-benchmark.mjs
+      - name: Enforce S identity fix only; do NOT certify selected physical Preview
+        run: |
+          node --input-type=module -e "
+          import {readFileSync} from 'node:fs';
+          const receipt=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/next03-browser-benchmark-receipt.json','utf8'));
+          const attempts=(receipt.metrics||[]).filter(x=>/_actual_preview_button$/.test(x.stage));
+          if(receipt.firstError || attempts.length===0) throw Error('The real Preview button was not exercised');
+          if(attempts.some(x=>/Combined Preview node occurrence identity drift/i.test(JSON.stringify(x.readModel||{}))))
+            throw Error('S original node ordinal repair FAILED: same physical identity drift remains');
+          console.log('S identity guard replay: old exact drift absent; receipt result='+receipt.result+
+            '; new Preview outcome='+attempts.map(x=>x.outcome+':'+x.code).join(','));
+          console.log('This is NOT selected scope or full engineering Preview acceptance.');
+          "
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lfj-212-s-original-occurrence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next03-*.json
+            ${{ runner.temp }}/next03-*.png
+            ${{ runner.temp }}/next03-trace.zip
+            ${{ runner.temp }}/s-preview-http.log
+          if-no-files-found: warn
+          retention-days: 14
