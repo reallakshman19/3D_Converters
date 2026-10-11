@@ -1,0 +1,49 @@
+name: LFJ 212 NEXT-06D original restraint to native CII custody
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next06d-original-native-restraint-custody.yml'
+      - 'tests/recovery-final-cii/next06d-runtime-probe.py'
+      - 'tests/recovery-final-cii/xml-cii-next06d-original-to-native-restraint-custody.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  glrd-original-to-native-slots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Freeze original Git blob and exact branch SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object 'Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml')" = '8769ffe538ecacc621daf39919ca00ba27008211'
+          echo '923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba  Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml' | sha256sum --check
+          node --check tests/recovery-final-cii/xml-cii-next06d-original-to-native-restraint-custody.test.mjs
+          python3 -m py_compile tests/recovery-final-cii/next06d-runtime-probe.py
+      - name: Verify all original restraints, full in-process model, six serialized slots and negatives
+        run: |
+          node --test tests/recovery-final-cii/xml-cii-next06d-original-to-native-restraint-custody.test.mjs
+      - name: Preserve exact native CII, full diagnostics, original and negative ledgers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-next06d-native-custody-node${{ matrix.node }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next06d-*.json
+            ${{ runner.temp }}/next06d-original.cii
+          if-no-files-found: warn
+          retention-days: 14
