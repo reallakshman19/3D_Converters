@@ -1,0 +1,82 @@
+name: LFJ 212 NEXT-08B original selected scope to GC-PW InputBasis
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next08b-selected-original-preview-inputbasis.yml'
+      - 'tests/recovery-preview/next08b-selected-preview-basis-candidate.mjs'
+      - 'tests/recovery-preview/xml-cii-next08b-original-scope-to-gcpw-inputbasis.test.mjs'
+      - 'tests/browser/lfj-next08c-authentic-firstpass-scope-to-basis.html'
+      - 'tests/recovery-preview/xml-cii-next08c-authentic-firstpass-scope-browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selected-original-preview-basis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Check exact HEAD, test-only source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --check tests/recovery-preview/next08b-selected-preview-basis-candidate.mjs
+          node --check tests/recovery-preview/xml-cii-next08b-original-scope-to-gcpw-inputbasis.test.mjs
+      - name: Prove original noncontiguous selected scope is distinguishable in unmodified GC-PW basis
+        run: |
+          node --test tests/recovery-preview/xml-cii-next08b-original-scope-to-gcpw-inputbasis.test.mjs
+
+  authentic-firstpass-source-to-b1-basis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact source and syntax without changing originals
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --check tests/recovery-preview/xml-cii-next08c-authentic-firstpass-scope-browser.mjs
+          test -s Benchmarks/1885Sjson/Sjson.json
+          test -s Benchmarks/1885Sjson/FirstpassXML
+          echo '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json' | sha256sum --check
+          echo 'feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38  Benchmarks/1885Sjson/FirstpassXML' | sha256sum --check
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual original files and tested browser module
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"${{ runner.temp }}/next08c-http.log" 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/tests/browser/lfj-next08c-authentic-firstpass-scope-to-basis.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat "${{ runner.temp }}/next08c-http.log"
+          exit 1
+      - name: Existing A3 real original Blob plus committed IDB manifest to unmodified GC-PW InputBasis
+        run: |
+          node tests/recovery-preview/xml-cii-next08c-authentic-firstpass-scope-browser.mjs
+      - name: Preserve real native Chromium receipt and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-next08c-authentic-firstpass-selected-basis-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next08c-authentic-firstpass-scope-basis.json
+            ${{ runner.temp }}/next08c-authentic-firstpass-basis.png
+          if-no-files-found: warn
+          retention-days: 14
