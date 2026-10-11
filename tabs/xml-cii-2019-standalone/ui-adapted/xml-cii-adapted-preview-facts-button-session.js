@@ -55,12 +55,38 @@ async function resolveStaged(options,config) {
       label:String(supplied.label??supplied.sourceLabel??'')};
   return {text:String(supplied??''),label:String(options.stagedSourceLabel??'')};
 }
+/**
+ * A selected LFJ Owner/zone is NOT equivalent to a GC-PW content hash.
+ * Until B1 consumes the A3 verified original-root manifest and dispatches
+ * only selected engineering sources to its Worker, never silently run ALL.
+ * The absent/default ALL case preserves the established Mode A behaviour.
+ */
+function requestedOriginalScope(options) {
+  const keys=['selectedScopeId','requestedOwnerZoneScopeId','jsonTraceScopeId'];
+  const supplied=[];
+  for(const key of keys) {
+    if(!Object.prototype.hasOwnProperty.call(options||{},key))continue;
+    const value=options[key];
+    if(typeof value!=='string'||!value.trim())
+      throw fail('PREVIEW_SCOPE_INVALID','Requested original Owner/zone scope '+key+' must be a nonempty string');
+    supplied.push(value.trim()==='ALL'?'__ALL__':value.trim());
+  }
+  if(new Set(supplied).size>1)
+    throw fail('PREVIEW_SCOPE_CONFLICT','Multiple original Owner/zone selection claims disagree');
+  return supplied[0]||'__ALL__';
+}
+
 function sourceScope(host,config,options) {
   const sourceId=String(options?.sourceId||host?.dataset?.mcPreviewSourceId||'').trim();
   const manifest=options?.modeBManifest||options?.sourceOrderManifest||config?.modeBManifest||null;
   const advertised=String(options?.previewSourceMode||options?.sourceMode||config?.sourceMode||'').toUpperCase();
   const explicitB=advertised==='B'||config?.modeB?.enabled===true||config?.modeB===true;
   const mode=explicitB||manifest?'B':'A';
+  const requestedScopeId=requestedOriginalScope(options);
+  if(requestedScopeId!=='__ALL__') {
+    throw fail('PREVIEW_SELECTED_SCOPE_NOT_INTEGRATED',
+      'Original Owner/zone '+requestedScopeId+' is selected, but this Preview Worker is not bound to an A3 verified selected-source manifest. Select All to run unfiltered Preview, or complete the authenticated selected Preview integration.');
+  }
   if(mode==='B'&&!manifest)throw fail('MODE_B_MANIFEST_REQUIRED','Mode B source order/offset manifest required');
   // Mode B requires all original XML files, authenticated original->combined
   // mapping and content digests. Only the B3A+B3B1 attested Worker path can run.
@@ -102,12 +128,14 @@ export async function runPreviewButtonSession({
   const retry=()=>void runPreviewButtonSession({host,rootEl,xmlText,config,options,renderResult});
   const begun=Date.now();
   try {
+    // Verify explicit selected scope BEFORE reading a large staged JSON File
+    // or starting the GC-PW Worker; unsupported non-ALL is never expanded to ALL.
+    const scope=sourceScope(host,config,options);
     notice(host,{title:'Resolving staged source…',showCancel:true,cancel});
     let staged;
     try{staged=await resolveStaged(options,config);}
     catch(error){throw fail('STAGED_SOURCE_FAILED',String(error?.message||error));}
     if(!current())return null;
-    const scope=sourceScope(host,config,options);
     if(scope.mode==='B'){
       notice(host,{title:'Authenticating original Mode B XML files…',
         message:'Checking every original file, combined XML, source order and master revision.',

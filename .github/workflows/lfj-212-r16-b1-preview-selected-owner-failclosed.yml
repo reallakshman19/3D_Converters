@@ -1,0 +1,81 @@
+name: LFJ 212 R16 B1 original selected owner Preview fail-closed
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-r16-b1-preview-selected-owner-failclosed.yml'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js'
+      - 'tests/recovery-preview/xml-cii-r16-selected-owner-preview-failclosed.test.mjs'
+      - 'tests/browser/lfj-r16-real-firstpass-preview-nonall-button.html'
+      - 'tests/recovery-preview/xml-cii-r16-real-firstpass-preview-button-browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  modea-explicit-nonall-failclosed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact head, source/docs byte parity and code syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cmp tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js
+          node --check tests/recovery-preview/xml-cii-r16-selected-owner-preview-failclosed.test.mjs
+      - name: Actual Preview session source-selected negative and legacy ALL basis checks
+        run: |
+          node --test tests/recovery-preview/xml-cii-r16-selected-owner-preview-failclosed.test.mjs
+          node --test tests/xml-cii-preview-button-basis.test.mjs
+  authentic-firstpass-browser-button:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin authentic original Firstpass files
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json' | sha256sum --check
+          echo 'feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38  Benchmarks/1885Sjson/FirstpassXML' | sha256sum --check
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual root assets and authentic browser test
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"${{ runner.temp }}/r16-http.log" 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/tests/browser/lfj-r16-real-firstpass-preview-nonall-button.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat "${{ runner.temp }}/r16-http.log"
+          exit 1
+      - name: Actual Firstpass Build Preview Button and Retry fail closed before unselected Worker
+        run: |
+          node tests/recovery-preview/xml-cii-r16-real-firstpass-preview-button-browser.mjs
+      - name: Archive actual Preview failure state and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-212-r16-firstpass-preview-nonall-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/r16-firstpass-preview-nonall-receipt.json
+            ${{ runner.temp }}/r16-firstpass-preview-nonall-denied.png
+          if-no-files-found: warn
+          retention-days: 14
