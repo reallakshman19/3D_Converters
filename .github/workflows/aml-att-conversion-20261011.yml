@@ -1,0 +1,59 @@
+name: One-time AML ATT-only staged JSON via native converter
+on:
+  push:
+    branches:
+      - conversion/aml-att-20261011
+    paths:
+      - .github/workflows/aml-att-conversion-20261011.yml
+permissions:
+  contents: read
+jobs:
+  run-original-3dconverter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout unchanged native converter from exact execution head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download authenticated public source ZIP and check frozen source digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p conversion-input conversion-output
+          SOURCE_ZIP=conversion-input/AML_2026Oct06-1417.zip
+          EXPECTED_ZIP=5613b81694161834601e1bde254f0381a2ffead57feaa872fa3deeedb6f87c06
+          curl --fail --location --retry 3 --retry-delay 2 \
+            'https://drive.google.com/uc?export=download&id=1-tvX5kwmSZQ5dXiOjKAb7hAmQV2glG9K' \
+            --output "$SOURCE_ZIP"
+          if ! printf '%s  %s\n' "$EXPECTED_ZIP" "$SOURCE_ZIP" | sha256sum --status --check; then
+            echo 'First public Google Drive download endpoint did not match original SHA; trying authenticated-public direct endpoint.'
+            curl --fail --location --retry 3 --retry-delay 2 \
+              'https://drive.usercontent.google.com/download?id=1-tvX5kwmSZQ5dXiOjKAb7hAmQV2glG9K&export=download&confirm=t' \
+              --output "$SOURCE_ZIP"
+          fi
+          printf '%s  %s\n' "$EXPECTED_ZIP" "$SOURCE_ZIP" | sha256sum --check
+          unzip -p "$SOURCE_ZIP" AML_2026Oct06-1417.txt > conversion-input/AML_2026Oct06-1417.txt
+          printf '%s  %s\n' \
+            1c1702d3a352c9f62f0b85f41c8185d2a64501e75fcd85c94a0662efad1853f5 \
+            conversion-input/AML_2026Oct06-1417.txt | sha256sum --check
+      - name: Run actual unmodified ATT-only converter and validate JSON output
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --max-old-space-size=5200 scripts/aml-att-only-20261011.mjs
+          test -s conversion-output/AML_2026Oct06-1417_managed_stage.json
+          test -s conversion-output/AML_2026Oct06-1417_rvmattr_to_xml.xml
+      - name: Retain downloadable converted outputs and exact provenance
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: AML-20261011-native-ATT-XML-JSON-STP
+          path: conversion-output/
+          if-no-files-found: warn
+          retention-days: 5
+          compression-level: 1
