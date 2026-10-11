@@ -1,0 +1,85 @@
+{
+  "schema": "aml-att-20261011-3dconverters-run/v1",
+  "process": "3D Model Converters > Converter > ATT/RVM -> XML+JSON+STP > ATT/TXT-only",
+  "repository": "reallakshman19/3D_Converters",
+  "exactHead": "0560e642ec1b72dd2596e255edb40dd27d41dfc4",
+  "inputZip": {
+    "name": "AML_2026Oct06-1417.zip",
+    "bytes": 3599929,
+    "sha256": "5613b81694161834601e1bde254f0381a2ffead57feaa872fa3deeedb6f87c06"
+  },
+  "originalAtt": {
+    "name": "AML_2026Oct06-1417.txt",
+    "bytes": 90852184,
+    "sha256": "1c1702d3a352c9f62f0b85f41c8185d2a64501e75fcd85c94a0662efad1853f5",
+    "sourceFileLines": 2204593,
+    "sourceNewBlocks": 105602,
+    "sourceBranRecords": 778
+  },
+  "selection": {
+    "mode": "FULL",
+    "wildcard": "",
+    "selectedIds": [],
+    "rvmPresent": false
+  },
+  "output": {
+    "branches": 778,
+    "childNodes": 11047,
+    "childTypes": {
+      "FLAN": 1699,
+      "PIPE": 2600,
+      "ELBO": 1023,
+      "SUPPORT": 2534,
+      "GASK": 1757,
+      "VALV": 587,
+      "TEE": 395,
+      "OLET": 155,
+      "INST": 191,
+      "REDU": 106
+    },
+    "files": [
+      {
+        "name": "AML_2026Oct06-1417_rvmattr_to_xml.xml",
+        "bytes": 14328174,
+        "sha256": "fbb67a3b3bccc68d65af429dbf8c462aea90fc489ece075c1ddf75e669bb4b14",
+        "mime": "text/xml;charset=utf-8"
+      },
+      {
+        "name": "AML_2026Oct06-1417_managed_stage.json",
+        "bytes": 24192939,
+        "sha256": "bc7728e9905e468a4e7af2e023869b1c0f3c93763311684364aed2ae9c6d6e8a",
+        "mime": "application/json;charset=utf-8"
+      },
+      {
+        "name": "AML_2026Oct06-1417_supports.stp",
+        "bytes": 9262644,
+        "sha256": "3aac7fecbfb15dd09bb8035b0f70d5fd83acad0d3d199053908335f646a1ef64",
+        "mime": "text/plain;charset=utf-8"
+      }
+    ]
+  },
+  "converter": {
+    "stdout": [
+      "ATT/TXT parsed into 778 branch(es).",
+      "Generated 21301 node(s) into PSI-style XML.",
+      "Support mapper conversion pass: scanned=2534, mapped=454.",
+      "Generated STP for structural members."
+    ],
+    "stderr": [
+      "Skipped 191 component(s) with incomplete coordinates."
+    ]
+  },
+  "durationSeconds": 15.79,
+  "memoryBytes": {
+    "rss": 715120640,
+    "heapTotal": 159498240,
+    "heapUsed": 115007104,
+    "external": 126330979,
+    "arrayBuffers": 124332578
+  },
+  "notes": [
+    "Actual unmodified ATT/RVM converter run on original extracted input; full native ATT scope.",
+    "Any .stp output is ATT-derived structural/support polyline representation, not RVM binary-model geometry.",
+    "Output JSON is the bare engineering branch hierarchy, not a lossless 105602-record native ATT index."
+  ]
+}

@@ -1,0 +1,51 @@
+name: LFJ 212 C05 companion + GC-PW selected-source boundary
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-c05-integration-characterization.yml'
+      - 'tests/recovery-final-cii/xml-cii-gcpw-selected-source-boundary.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  companion-integration-contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact PR source head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run original #884 underlying regressions as separate integration signal
+        run: |
+          node --test \
+            tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs \
+            tests/xml-cii-issue-882-session-precedence.test.mjs \
+            tests/xml-cii-issue-883-restore-failure-identity.test.mjs \
+            tests/xml-cii-issue-858-hydrated-weight-match.test.mjs \
+            tests/xml-cii-issue-872-worker-session-fallback.test.mjs \
+            tests/xml-cii-issue-873-session-custody.test.mjs \
+            tests/xml-cii-master-dataset-startup-hydration.test.mjs \
+            tests/xml-cii-master-dataset-rollback-custody.test.mjs \
+            tests/xml-cii-master-weight-fingerprint-metadata.test.mjs
+      - name: Check LFJ to GC-PW selected-source and Run veto boundary
+        run: node --test tests/recovery-final-cii/xml-cii-gcpw-selected-source-boundary.test.mjs
+      - name: Protect shipping source/docs guard parity
+        run: |
+          cmp -s tabs/xml-cii-2019-standalone/integration/xml-cii-lfj-engineering-authority.js docs/tabs/xml-cii-2019-standalone/integration/xml-cii-lfj-engineering-authority.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-worker-entry.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-worker-entry.js
+      - name: Clean checkout
+        run: test -z "$(git status --porcelain)"
+# Historical #884 child-only diff precondition and protected #880/#893 expectations
+# are intentionally untouched. This companion does NOT waive/replace those gates.

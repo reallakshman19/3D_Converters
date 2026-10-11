@@ -1,0 +1,58 @@
+name: LFJ 212 NEXT-03 real authored 4 Preview browser characterization
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next03-native-preview-browser.yml'
+      - 'tests/recovery-final-cii/xml-cii-next03-native-preview-benchmark.mjs'
+  push:
+    branches:
+      - 'lfj/212-tab3-tab4-consolidated-20261011'
+    paths:
+      - '.github/workflows/lfj-212-next03-native-preview-browser.yml'
+      - 'tests/recovery-final-cii/xml-cii-next03-native-preview-benchmark.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-authored-firstpass-to-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source head and converter-owned golden inputs
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --check tests/recovery-final-cii/xml-cii-next03-native-preview-benchmark.mjs
+          sha256sum Benchmarks/1885Sjson/Sjson.json Benchmarks/1885Sjson/FirstpassXML
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine native Chromium browser
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authored application root with unchanged original files
+        run: |
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"$RUNNER_TEMP/next03-http.log" 2>&1) &
+          for n in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4200/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next03-http.log"
+          exit 1
+      - name: Actual selected Firstpass LFJ and native 4 Preview button cold/warm baseline
+        run: node tests/recovery-final-cii/xml-cii-next03-native-preview-benchmark.mjs
+      - name: Upload exact-head timing receipt, screenshots, trace and browser errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-212-next03-native-preview-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next03-*.json
+            ${{ runner.temp }}/next03-*.png
+            ${{ runner.temp }}/next03-trace.zip
+          if-no-files-found: warn
+          retention-days: 14

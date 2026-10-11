@@ -1,0 +1,39 @@
+name: LFJ 212 GC-PW A0 four original master source census
+on:
+  pull_request:
+    paths:
+      - 'scripts/xml-cii-gcpw-a0-master-source-census.py'
+      - '.github/workflows/lfj-212-gcpw-a0-master-census.yml'
+      - 'docs/Masters/ImportedRawLineListLL.xlsx'
+      - 'docs/Masters/LineDump.xlsx'
+      - 'docs/Masters/Piping_class_master.json'
+      - 'docs/Masters/PCF_MAT_MAP.TXT'
+      - 'docs/Masters/wtValveweights.json'
+  push:
+    branches:
+      - 'lfj/212-tab3-tab4-consolidated-20261011'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only-four-master-census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Exact raw candidate HEAD
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Read all four source bytes and produce SHA-pinned census
+        run: python3 scripts/xml-cii-gcpw-a0-master-source-census.py --out "$RUNNER_TEMP/gcpw-a0-master-source-census.json"
+      - name: Store replayable source-only input receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcpw-a0-source-census
+          path: ${{ runner.temp }}/gcpw-a0-master-source-census.json
+          if-no-files-found: warn
+      - name: No tracked mutation
+        run: test -z "$(git status --porcelain)"
