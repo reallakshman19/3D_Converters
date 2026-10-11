@@ -1,0 +1,45 @@
+name: LFJ 212 NEXT-06C independent actual CII geometry reconstruction
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next06c-glrd-parsed-cii-geometry.yml'
+      - 'tests/recovery-final-cii/xml-cii-next06c-glrd-parsed-cii-x001-geometry.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  glrd-full-coordinate-graph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact source and executable syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object 'Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml')" = '8769ffe538ecacc621daf39919ca00ba27008211'
+          node --check tests/recovery-final-cii/xml-cii-next06c-glrd-parsed-cii-x001-geometry.test.mjs
+      - name: Reconstruct native GLRD CII ELEMENTS and COORDS and reject graph inconsistencies
+        run: node --test tests/recovery-final-cii/xml-cii-next06c-glrd-parsed-cii-x001-geometry.test.mjs
+      - name: Preserve actual CII and independent graph receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-next06c-x001-graph-node${{ matrix.node }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next06c-*.cii
+            ${{ runner.temp }}/next06c-*.json
+          if-no-files-found: warn
+          retention-days: 14
