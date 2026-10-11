@@ -50,6 +50,30 @@ def xlsx_sheets(path):
         sheets = workbook.find(f"{MAIN}sheets")
         if sheets is None or not len(sheets):
             raise ValueError(f"{path}: workbook contains no sheets")
+        shared_strings = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            strings_root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+            shared_strings = [
+                "".join(node.text or "" for node in entry.iter(f"{MAIN}t"))
+                for entry in strings_root.findall(f"{MAIN}si")
+            ]
+
+        def cell_value(cell):
+            raw = cell.find(f"{MAIN}v")
+            inline = cell.find(f"{MAIN}is")
+            if cell.attrib.get("t") == "s" and raw is not None:
+                index = int(raw.text)
+                if index < 0 or index >= len(shared_strings):
+                    raise ValueError(f"{path}: shared string index out of bounds")
+                return shared_strings[index].strip()
+            if raw is not None and raw.text is not None:
+                return raw.text.strip()
+            if inline is not None:
+                return "".join(node.text or "" for node in inline.iter(f"{MAIN}t")).strip()
+            if cell.find(f"{MAIN}f") is not None:
+                return "<FORMULA_WITHOUT_CACHED_VALUE>"
+            return ""
+
         results = []
         for tab in sheets:
             relation = tab.attrib.get(f"{OFFICE_REL}id")
@@ -62,12 +86,34 @@ def xlsx_sheets(path):
             root = ET.fromstring(archive.read(member))
             grid = root.find(f"{MAIN}sheetData")
             populated = []
+            distinct = {}
+            counts = {}
+            header = {}
+            first_data_row = {}
             for row in ([] if grid is None else grid.findall(f"{MAIN}row")):
-                cells = row.findall(f"{MAIN}c")
-                if any(cell.find(f"{MAIN}v") is not None
-                       or cell.find(f"{MAIN}is") is not None
-                       or cell.find(f"{MAIN}f") is not None for cell in cells):
+                values = {}
+                for cell in row.findall(f"{MAIN}c"):
+                    ref = cell.attrib.get("r", "")
+                    match = re.match(r"^[A-Z]+", ref)
+                    if match is None:
+                        continue
+                    value = cell_value(cell)
+                    if value:
+                        values[match.group()] = value
+                if values:
                     populated.append(int(row.attrib["r"]))
+                    if len(populated) == 1:
+                        header = values
+                    else:
+                        if not first_data_row:
+                            first_data_row = values
+                        for column, value in values.items():
+                            distinct.setdefault(column, set()).add(value)
+                            counts[column] = counts.get(column, 0) + 1
+            # The header is an observed candidate, never asserted to be
+            # the authorized Line List mapping. Count ALL physical rows,
+            # and report unique values separately rather than picking 385.
+            columns = sorted(set(header) | set(counts), key=lambda x: (len(x), x))
             results.append({
                 "name": tab.attrib.get("name", ""),
                 "worksheet": member,
@@ -75,6 +121,13 @@ def xlsx_sheets(path):
                 "firstPopulatedRow": populated[0] if populated else None,
                 "lastPopulatedRow": populated[-1] if populated else None,
                 "rowsAfterFirstHeaderCandidate": max(0, len(populated) - 1),
+                "columnCensus": [
+                    {"column": col, "headerCandidate": header.get(col, "")[:100],
+                     "firstDataExample": first_data_row.get(col, "")[:80],
+                     "nonEmptyAfterHeader": counts.get(col, 0),
+                     "distinctAfterHeader": len(distinct.get(col, set()))}
+                    for col in columns[:40]
+                ],
             })
         return results
 
@@ -110,6 +163,10 @@ def main():
         if observations[key] != want:
             raise ValueError(f"{key} source census mismatch: observed {observations[key]}, expected {want}")
     sheets = xlsx_sheets(root / FILES["lineList"])
+    secondary_path = root / "docs/Masters/LineDump.xlsx"
+    secondary_info = source_info(secondary_path)
+    secondary_info["path"] = str(Path(secondary_info["path"]).relative_to(root))
+    secondary_sheets = xlsx_sheets(secondary_path)
     if not sheets or not any(item["populatedRowCount"] > 1 for item in sheets):
         raise ValueError("Line List XLSX has no populated candidate data sheet")
     try:
@@ -125,6 +182,8 @@ def main():
         "observed": observations,
         "expectedUnambiguous": EXPECTED,
         "lineListSheets": sheets,
+        "secondaryLineListCandidate": secondary_info,
+        "secondaryLineListSheets": secondary_sheets,
         "notProven": [
             "Line List authoritative mapped sheet and actual 385 logical rows",
             "Full selected Owner hierarchy and independent master mapping authority",
