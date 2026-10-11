@@ -60,28 +60,37 @@ function custody(masterKey, overrides = {}) {
   return JSON.stringify({ ...defaults, ...overrides });
 }
 
-async function expectRestoreFailure({ name, custodyEntries, store, pattern }) {
+async function expectRestoreFailure({ name, custodyEntries, store, pattern, code, stage }) {
   const storage = installStorage(custodyEntries);
   const stateRef = activeState();
   const before = JSON.parse(JSON.stringify(stateRef.current));
+  const keys = Object.keys(custodyEntries);
+  assert.equal(keys.length, 1, 'failure isolation fixture must target exactly one master');
+  const masterKey = keys[0].replace(/^xml-cii-master-source-/, '');
+  const datasetId = JSON.parse(custodyEntries[keys[0]]).datasetId;
   try {
-    let observed = null;
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, { store }),
-      (error) => {
-        observed = String(error?.message || error);
-        assert.match(observed, pattern);
-        return true;
-      },
-    );
-    assert.deepEqual(stateRef.current, before, `${name}: active-session authority mutated on rejected restore`);
+    // C05.5.4.2–4.4 replaced global throw-on-one-bad-master with fail-closed
+    // typed per-master receipts, allowing other independently valid masters.
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, { store }), true);
+    const identity = stateRef.current.masterRestoreFailureIdentity?.[masterKey];
+    assert.deepEqual(identity, {
+      masterKey, datasetId, domain: 'restore-storage', code, stage,
+    }, name + ': wrong storage-failure identity');
+    const receipt = stateRef.current.masterRestoreFailures?.[masterKey];
+    assert.equal(receipt?.masterKey, masterKey);
+    assert.equal(receipt?.datasetId, datasetId);
+    assert.equal(receipt?.stage, 'startup-hydration');
+    assert.equal(receipt?.name, 'Error');
+    assert.match(receipt.message, pattern);
+    assert.equal(stateRef.current.masterContext.datasetRefs[masterKey], undefined,
+      name + ': rejected persisted master cannot become active');
+    assert.deepEqual(stateRef.current.masterContext, before.masterContext,
+      name + ': unrelated active session Weight/config mutated by corrupt restore');
+    assert.equal(stateRef.current.supportConfigJson, before.supportConfigJson);
     return {
-      case: name,
-      rejected: true,
-      activeSessionPreserved: true,
-      failedPersistedAuthorityAttached: false,
-      message: observed,
-      failureDomain: 'RESTORE_STORAGE',
+      case: name, quarantined: true, code, stage,
+      activeSessionPreserved: true, failedPersistedAuthorityAttached: false,
+      message: receipt.message, failureDomain: 'RESTORE_STORAGE',
       parseFailure: false,
     };
   } finally {
@@ -89,13 +98,15 @@ async function expectRestoreFailure({ name, custodyEntries, store, pattern }) {
   }
 }
 
-test('C05.5.4.1 RED matrix: corrupt persisted restore failures reject before mutation', async (t) => {
+test('C05.5.4.1 successor matrix quarantines corrupt masters with typed identities', async (t) => {
   const rows = [{ Marker: 'A' }, { Marker: 'B' }];
 
   const results = [];
 
   results.push(await expectRestoreFailure({
     name: 'MISSING_METADATA',
+    code: 'MISSING_DATASET',
+    stage: 'metadata-validate',
     custodyEntries: {
       'xml-cii-master-source-materialMap': custody('materialMap'),
     },
@@ -109,6 +120,8 @@ test('C05.5.4.1 RED matrix: corrupt persisted restore failures reject before mut
 
   results.push(await expectRestoreFailure({
     name: 'ROW_COUNT_MISMATCH',
+    code: 'ROW_COUNT_MISMATCH',
+    stage: 'metadata-validate',
     custodyEntries: {
       'xml-cii-master-source-materialMap': custody('materialMap', { rowCount: 2 }),
     },
@@ -129,6 +142,8 @@ test('C05.5.4.1 RED matrix: corrupt persisted restore failures reject before mut
 
   results.push(await expectRestoreFailure({
     name: 'REVISION_MISMATCH',
+    code: 'REVISION_MISMATCH',
+    stage: 'metadata-validate',
     custodyEntries: {
       'xml-cii-master-source-materialMap': custody('materialMap', { datasetRevision: 3 }),
     },
@@ -149,6 +164,8 @@ test('C05.5.4.1 RED matrix: corrupt persisted restore failures reject before mut
 
   results.push(await expectRestoreFailure({
     name: 'PREVIEW_UNAVAILABLE',
+    code: 'PREVIEW_ROWS_UNAVAILABLE',
+    stage: 'preview-read',
     custodyEntries: {
       'xml-cii-master-source-materialMap': custody('materialMap'),
     },
@@ -170,13 +187,13 @@ test('C05.5.4.1 RED matrix: corrupt persisted restore failures reject before mut
 
   t.diagnostic(JSON.stringify(results));
   assert.equal(results.length, 4);
-  assert.ok(results.every((entry) => entry.rejected));
+  assert.ok(results.every((entry) => entry.quarantined));
   assert.ok(results.every((entry) => entry.activeSessionPreserved));
   assert.ok(results.every((entry) => entry.failureDomain === 'RESTORE_STORAGE'));
   assert.ok(results.every((entry) => entry.parseFailure === false));
 });
 
-test('C05.5.4.1 RED: one corrupt persisted master suppresses an otherwise valid sibling restore', async (t) => {
+test('C05.5.4.1 valid Piping sibling restores while corrupt Mat Map is isolated', async (t) => {
   const storage = installStorage({
     'xml-cii-master-source-pipingClass': custody('pipingClass', {
       datasetId: 'issue880:pipingClass:r4',
@@ -190,101 +207,100 @@ test('C05.5.4.1 RED: one corrupt persisted master suppresses an otherwise valid 
       appliedRevision: 3,
     }),
   });
-
   const stateRef = activeState();
-  const before = JSON.parse(JSON.stringify(stateRef.current));
+  const activeWeight = structuredClone(stateRef.current.masterContext.datasetRefs.weight);
   const pipingRows = [{ Marker: 'PC-1' }, { Marker: 'PC-2' }];
-
+  let badMapReadAttempts = 0;
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata(id) {
-            if (id === 'issue880:pipingClass:r4') {
-              return {
-                datasetId: id,
-                datasetRevision: 4,
-                rowCount: 2,
-                fileName: 'Piping_class_master.json',
-                mappingRows: pipingRows,
-              };
-            }
-            if (id === 'issue880:materialMap:r3') return null;
-            return null;
-          },
-          async getRowsRange(id, offset, limit) {
-            if (id === 'issue880:pipingClass:r4') return pipingRows.slice(offset, offset + limit);
-            throw new Error('corrupt materialMap rows must not be read');
-          },
-          async getRows(id) {
-            return id === 'issue880:pipingClass:r4' ? pipingRows : null;
-          },
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata(id) {
+          if (id === 'issue880:pipingClass:r4') return {
+            datasetId: id, datasetRevision: 4, rowCount: 2,
+            fileName: 'Piping_class_master.json', mappingRows: pipingRows,
+          };
+          if (id === 'issue880:materialMap:r3') return null;
+          throw Error('unexpected dataset id ' + id);
         },
-      }),
-      /Persisted materialMap dataset is unavailable/,
-    );
-
-    // Current RED: Promise.all rejects before applyLoadedDatasets(), so valid pipingClass is not restored either.
-    assert.equal(stateRef.current.masterContext.datasetRefs.pipingClass, undefined);
-    assert.deepEqual(stateRef.current, before);
-
+        async getRowsRange(id, offset, limit) {
+          if (id === 'issue880:pipingClass:r4')
+            return pipingRows.slice(offset, offset + limit);
+          badMapReadAttempts++;
+          throw Error('corrupt Mat Map rows must never be read');
+        },
+        async getRows(id) {
+          if (id === 'issue880:pipingClass:r4') return pipingRows;
+          badMapReadAttempts++;
+          throw Error('corrupt Mat Map rows must never be read');
+        },
+      },
+    }), true);
+    const context = stateRef.current.masterContext;
+    assert.equal(badMapReadAttempts, 0);
+    assert.equal(context.datasetRefs.pipingClass.datasetId, 'issue880:pipingClass:r4');
+    assert.equal(context.datasetRefs.pipingClass.datasetRevision, 4);
+    assert.equal(context.datasetRefs.pipingClass.persistence, 'indexeddb');
+    assert.equal(context.appliedMappingRevision.pipingClass, 2);
+    assert.deepEqual(context.previewRows.pipingClass, pipingRows);
+    assert.deepEqual(context.pipingClassRows || [], [],
+      'valid sibling full rows must remain out of retained context');
+    assert.equal(context.datasetRefs.materialMap, undefined);
+    assert.equal(context.appliedMappingRevision.materialMap, undefined);
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity.materialMap, {
+      masterKey: 'materialMap', datasetId: 'issue880:materialMap:r3',
+      domain: 'restore-storage', code: 'MISSING_DATASET', stage: 'metadata-validate',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.materialMap.message,
+      /Persisted materialMap dataset is unavailable/);
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.pipingClass, undefined);
+    assert.deepEqual(context.datasetRefs.weight, activeWeight,
+      'corrupt sibling must never replace unrelated session Weight');
     t.diagnostic(JSON.stringify({
-      validSibling: 'pipingClass',
-      corruptSibling: 'materialMap',
-      validSiblingSuppressed: true,
-      corruptAuthorityAttached: false,
-      preExistingActiveWeightPreserved: true,
-      failureClass: 'ALL_OR_NOTHING_RESTORE_COUPLING',
-      repairOwner: 881,
+      validSiblingRestored: true, corruptSiblingQuarantined: true,
+      activeWeightPreserved: true, badMapReadAttempts,
     }));
   } finally {
     storage.restore();
   }
 });
 
-test('C05.5.4.1 RED: legacy Weight fingerprint migration row failure is restore/storage, not parse', async (t) => {
+test('C05.5.4.1 legacy Weight fingerprint migration failure retains active session authority', async (t) => {
   const storage = installStorage({
     'xml-cii-master-source-weight': JSON.stringify({
-      source: 'wtValveweights.json',
-      datasetId: 'issue880:weight:r5',
-      datasetRevision: 5,
-      rowCount: 2,
-      fieldMap: {},
-      appliedRevision: 11,
-      persistenceMode: 'indexeddb',
-      masterFingerprint: '',
+      source: 'wtValveweights.json', datasetId: 'issue880:weight:r5',
+      datasetRevision: 5, rowCount: 2, fieldMap: {},
+      appliedRevision: 11, persistenceMode: 'indexeddb', masterFingerprint: '',
     }),
   });
   const stateRef = activeState();
-  const before = JSON.parse(JSON.stringify(stateRef.current));
-
+  const before = structuredClone(stateRef.current.masterContext);
+  let readCount = 0;
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata() {
-            return {
-              datasetId: 'issue880:weight:r5',
-              datasetRevision: 5,
-              rowCount: 2,
-              fileName: 'wtValveweights.json',
-              masterFingerprint: '',
-            };
-          },
-          async getRowsRange() { return [{ Marker: 'WT-1' }]; },
-          async getRows() { return [{ Marker: 'WT-1' }]; },
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata() {
+          return { datasetId: 'issue880:weight:r5', datasetRevision: 5,
+            rowCount: 2, fileName: 'wtValveweights.json', masterFingerprint: '' };
         },
-      }),
-      /fingerprint migration requires 2 rows/,
-    );
-
-    assert.deepEqual(stateRef.current, before);
+        async getRowsRange() { return [{ Marker: 'WT-1' }]; },
+        async getRows() { readCount++; return [{ Marker: 'WT-1' }]; },
+      },
+    }), true);
+    assert.equal(readCount, 1, 'legacy fingerprint migration should attempt bounded proof of full rows once');
+    assert.deepEqual(stateRef.current.masterContext, before,
+      'session Weight identity and applied revision must not be overwritten');
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity.weight, {
+      masterKey: 'weight', datasetId: 'issue880:weight:r5',
+      domain: 'restore-storage', code: 'FINGERPRINT_MIGRATION_FAILED',
+      stage: 'fingerprint-migration',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.weight.message,
+      /fingerprint migration requires 2 rows/);
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.persistence, 'session');
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.masterFingerprint, 'active-weight-fp');
     t.diagnostic(JSON.stringify({
-      case: 'WEIGHT_FINGERPRINT_MIGRATION_ROWS_UNAVAILABLE',
-      activeSessionPreserved: true,
-      failureDomain: 'RESTORE_STORAGE',
-      parseFailure: false,
-      classificationOwner: 883,
+      activeSessionPreserved: true, code: 'FINGERPRINT_MIGRATION_FAILED',
+      failureDomain: 'RESTORE_STORAGE', parseFailure: false, readCount,
     }));
   } finally {
     storage.restore();
