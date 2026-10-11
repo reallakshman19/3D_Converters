@@ -23,10 +23,11 @@ const mime=file=>({'.html':'text/html','.js':'text/javascript','.mjs':'text/java
 const server=createServer(async(req,res)=>{
   try{
     const route=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
-    const full=path.resolve(root,'.'+(route==='/'?'/docs/index.html':route));
+    const full=path.resolve(root,'.'+(route==='/'?'/docs/index.html':route.endsWith('/')?route+'index.html':route));
     if(!full.startsWith(root+path.sep))throw Error('PATH_OUTSIDE');
+    const body=await readFile(full);
     res.writeHead(200,{'Content-Type':mime(full),'Cache-Control':'no-store'});
-    res.end(await readFile(full));
+    res.end(body);
   }catch(e){res.writeHead(404);res.end(String(e));}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
