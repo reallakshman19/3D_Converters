@@ -1,3 +1,4 @@
+import { requireIndexedEngineeringRunAuthority } from './integration/xml-cii-lfj-engineering-authority.js';
 import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
@@ -106,6 +107,8 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
 }
 
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
+  // Indexed CSV-preview evidence never authorizes engineering CII by itself.
+  requireIndexedEngineeringRunAuthority(state);
   const [sourceFileText, stagedFileText] = await Promise.all([
     readTextFile(state.sourceFile),
     readTextFile(state.stagedJsonFile),

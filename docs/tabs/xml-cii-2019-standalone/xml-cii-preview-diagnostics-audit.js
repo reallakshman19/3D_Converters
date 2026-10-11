@@ -36,7 +36,23 @@ function regexFacts(input = {}) {
   };
 }
 
+function sourceOnlyIndexedFacts(input = {}) {
+  if(input.resolverSourceMode!=='lfj-indexed-preview')return null;
+  const p=input.lfjIndexedPreview,r=input.lfjIndexedExportReceipt;
+  if(p?.sourceOnly!==true||p?.engineeringReady!==false||
+      r?.preview!==p||r?.sourceFile!==input.stagedJsonFile||
+      r?.selectedScopeId!==(input.jsonTraceScopeId||'__ALL__')||
+      !Array.isArray(p.sourceFactRecords)||p.sourceFactRecords.length!==p.xmlNodes)
+    return {matched:[],rejected:[]};
+  const map=row=>({source:'lfj-indexed-source-only',key:'xml-occurrence:'+row.xmlIndex,
+    detail:'SOURCE ONLY '+row.status+' '+row.sourcePaths.join(' | '),
+    raw:{...row,sourceOnly:true,engineeringReady:false}});
+  return {matched:p.sourceFactRecords.filter(row=>row.status.startsWith('RESOLVED_')).map(map),
+    rejected:p.sourceFactRecords.filter(row=>!row.status.startsWith('RESOLVED_')).map(map)};
+}
 function resolverFacts(input = {}) {
+  const indexed=sourceOnlyIndexedFacts(input);
+  if(indexed)return indexed;
   return {
     matched: array(input.resolverJsonTraceResult?.matchedFacts).map((item) => ({ source: 'resolver', key: item.nodeKey || item.psKey || item.posKey || item.path, detail: `hits=${item.hitCount || 0}`, raw: item })),
     rejected: array(input.resolverJsonTraceResult?.rejectedFacts).map((item) => ({ source: 'resolver', key: item.nodeKey || item.psKey || item.posKey || item.path, detail: 'no index hit', raw: item })),
@@ -84,7 +100,7 @@ function previewRows(input = {}) {
     { section: 'source', name: 'sourceTextBytes', value: String(input.sourceText || '').length },
     { section: 'masters', name: 'totalMasterRows', value: Object.values(input.masterContext?.rowCounts || {}).reduce((sum, value) => sum + Number(value || 0), 0) },
     { section: 'regex', name: 'matched/rejected', value: `${count(input.regexTesterResult?.matchedRows)} / ${count(input.regexTesterResult?.rejectedRows)}` },
-    { section: 'resolver', name: 'matched/rejected', value: `${count(input.resolverJsonTraceResult?.matchedFacts)} / ${count(input.resolverJsonTraceResult?.rejectedFacts)}` },
+    { section: 'resolver', name: 'matched/rejected', value: `${resolverFacts(input).matched.length} / ${resolverFacts(input).rejected.length}` },
     { section: 'side-load', name: 'matched/unmatched', value: `${count(input.manualElementSideloadResult?.matchedSideLoadRows)} / ${count(input.manualElementSideloadResult?.unmatchedSideLoadRows)}` },
     { section: 'output', name: 'enrichedBytes', value: String(input.result?.enrichedText || '').length },
     { section: 'output', name: 'ciiBytes', value: String(input.result?.ciiText || '').length },
@@ -98,8 +114,8 @@ function summary(input, facts, diagnostics) {
     masterCounts,
     regexMatched: count(input.regexTesterResult?.matchedRows),
     regexRejected: count(input.regexTesterResult?.rejectedRows),
-    resolverMatched: count(input.resolverJsonTraceResult?.matchedFacts),
-    resolverRejected: count(input.resolverJsonTraceResult?.rejectedFacts),
+    resolverMatched: resolverFacts(input).matched.length,
+    resolverRejected: resolverFacts(input).rejected.length,
     manualMatched: count(input.manualElementSideloadResult?.matchedFacts),
     manualRejected: count(input.manualElementSideloadResult?.rejectedFacts),
     sideLoadMatched: count(input.manualElementSideloadResult?.matchedSideLoadRows),

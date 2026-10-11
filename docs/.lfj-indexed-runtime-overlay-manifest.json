@@ -44,7 +44,7 @@
     },
     {
       "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-csv-parity.mjs",
-      "sha256": "dc6dd11b09d97a3499f10b3aa356eadb8341e35513f0e11133dd2feb3ae54318",
+      "sha256": "888e8cbd2fab450d23a2c43fc1161c5096779c4d9474a42fda77c473f9533ffd",
       "ownership": "A3_INDEXED_SOURCE_MIRROR"
     },
     {
@@ -65,6 +65,11 @@
     {
       "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-semantic-attestor.mjs",
       "sha256": "fcda3537f092e57f1c9788ee3c3ed6c60e4b5a7cbe07cf7487c859f63fef9f24",
+      "ownership": "A3_INDEXED_SOURCE_MIRROR"
+    },
+    {
+      "path": "lfj/qualification/experiments/consumer-sparse-b0-xml-match/xml-source-fact-handoff.mjs",
+      "sha256": "87664edbc4002455adc6965893717ecb0115686bc5adac8cdde95f0e686826f4",
       "ownership": "A3_INDEXED_SOURCE_MIRROR"
     },
     {

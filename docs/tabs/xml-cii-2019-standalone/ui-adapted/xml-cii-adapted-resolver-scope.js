@@ -118,7 +118,9 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   }
   const key = sourceKey(source);
   const cached = state.resolverJsonTraceUiScopeCache;
-  const index = cached?.key === key
+  // Sampled keys can collide when only an owner/zone label changes outside
+  // their windows. Verify exact original JSON text before reusing UI scope.
+  const index = cached?.key === key && cached?.source === source
     ? cached.index
     : buildJsonHierarchyScopeIndex(source);
   const selectedScopeId = validScopeId(
@@ -130,7 +132,7 @@ export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
       selectResolverHierarchyScope(stateRef, selectedScopeId);
     stateRef.current = {
       ...stateRef.current,
-      resolverJsonTraceUiScopeCache: { key, index },
+      resolverJsonTraceUiScopeCache: { key, source, index },
     };
   }
   return { index, selectedScopeId };

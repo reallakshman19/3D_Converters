@@ -1,3 +1,4 @@
+import { inspectIndexedEngineeringRunAuthority } from './integration/xml-cii-lfj-engineering-authority.js';
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
@@ -127,7 +128,13 @@ function commonRows(input) {
 
 export function buildOutputRunChecklist(input = {}) {
   const kind = resolvedKind(input);
-  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input), ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
+  const indexed = inspectIndexedEngineeringRunAuthority(input);
+  const indexedRow = indexed.applicable
+    ? [row('lfj-engineering-authority', 'Indexed LFJ engineering source authority',
+      indexed.ready, indexed.message || 'Complete source-attested engineering FactRecords are available.',
+      {blocking:true,severity:'error'})]
+    : [];
+  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input), ...indexedRow, ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
 }
 
 function artifact(kind, label, name, value, mime) {
