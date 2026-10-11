@@ -121,7 +121,7 @@ test('C05.2 piping class keeps dataset revision through compact restart custody 
   }
 });
 
-test('C05.2 does not pre-complete Mat_Map or Valve Weight revision custody', async () => {
+test('C05.2 successors retain independent Mat Map and Weight dataset revisions without staging full rows', async () => {
   const storage = installStorage({
     'xml-cii-master-source-materialMap': JSON.stringify({
       source: 'PCF_MAT_MAP.TXT',
@@ -166,15 +166,24 @@ test('C05.2 does not pre-complete Mat_Map or Valve Weight revision custody', asy
   const stateRef = startupState();
   try {
     assert.equal(await hydratePersistedMasterDatasets(stateRef, { store }), true);
-    assert.equal(stateRef.current.masterContext.datasetRefs.materialMap.datasetRevision, undefined);
-    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, undefined);
+    // C05.3/C05.4 extended the original C05.2 milestone to all three master
+    // revisions. Preserve this stronger custody contract; never drop the
+    // revisions to satisfy the former one-master temporal assertion.
+    assert.equal(stateRef.current.masterContext.datasetRefs.materialMap.datasetRevision, 2);
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, 5);
+    assert.equal(stateRef.current.masterContext.datasetRefs.materialMap.datasetId, 'issue836:mat:r2');
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetId, 'issue836:wt:r5');
+    assert.deepEqual(stateRef.current.masterContext.materialMapRows || [], []);
+    assert.deepEqual(stateRef.current.masterContext.weightMasterRows || [], []);
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.materialMap, undefined);
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.weight, undefined);
   } finally {
     storage.restore();
   }
 });
 
 
-test('C05.2 piping class rejects stale restart revision against IndexedDB metadata', async () => {
+test('C05.2 stale Piping Class revision is quarantined with typed failure and cannot restore rows', async () => {
   const storage = installStorage({
     'xml-cii-master-source-pipingClass': JSON.stringify({
       source: 'Piping class master.xlsx',
@@ -187,24 +196,38 @@ test('C05.2 piping class rejects stale restart revision against IndexedDB metada
     }),
   });
   const stateRef = startupState();
+  let readAfterStale = 0;
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata() {
-            return {
-              datasetId: 'issue836:pc:r4',
-              datasetRevision: 5,
-              rowCount: 1,
-              fileName: 'Piping class master.xlsx',
-            };
-          },
-          async getRowsRange() { return [{ Marker: 'PC' }]; },
-          async getRows() { return [{ Marker: 'PC' }]; },
+    // C05.5.4.4 supersedes the old top-level assert.rejects: failures are
+    // classified per master so unaffected masters may restore independently.
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata() {
+          return {
+            datasetId: 'issue836:pc:r4',
+            datasetRevision: 5,
+            rowCount: 1,
+            fileName: 'Piping class master.xlsx',
+          };
         },
-      }),
-      /pipingClass dataset revision mismatch: expected 4, received 5/,
-    );
+        async getRowsRange() { readAfterStale++; throw new Error('MUST_NOT_READ_STALE_ROWS'); },
+        async getRows() { readAfterStale++; throw new Error('MUST_NOT_READ_STALE_ROWS'); },
+      },
+    }), true);
+    assert.equal(readAfterStale, 0, 'stale identity must be vetoed before row materialization');
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity.pipingClass, {
+      masterKey: 'pipingClass',
+      datasetId: 'issue836:pc:r4',
+      domain: 'restore-storage',
+      code: 'REVISION_MISMATCH',
+      stage: 'metadata-validate',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.pipingClass.message,
+      /Persisted pipingClass dataset revision mismatch: expected 4, received 5/);
+    assert.equal(stateRef.current.masterContext.datasetRefs.pipingClass, undefined,
+      'stale datasetRef must never become current source authority');
+    assert.equal(stateRef.current.masterContext.appliedMappingRevision.pipingClass, undefined,
+      'no stale mapping revision may be applied');
   } finally {
     storage.restore();
   }

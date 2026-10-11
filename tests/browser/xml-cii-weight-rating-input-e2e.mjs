@@ -21,9 +21,10 @@ const server = createServer(async (request, response) => {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const target = path.resolve(root, `.${route.endsWith('/') ? `${route}index.html` : route}`);
     if (!target.toLowerCase().startsWith(`${root.toLowerCase()}${path.sep}`)) throw new Error('Outside root');
-    const types = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
+    const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
+    const payload = await readFile(target);
     response.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-    response.end(await readFile(target));
+    response.end(payload);
   } catch (error) { response.writeHead(404); response.end(String(error)); }
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -33,17 +34,34 @@ try {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
   const errors = [], modules = [], timings = [];
-  page.on('pageerror', (error) => errors.push(String(error)));
+  page.on('pageerror', (error) => errors.push('pageerror: '+String(error)));
+  page.on('console', (message) => { if (message.type() === 'error') errors.push('console: '+message.text()); });
+  page.on('response', (response) => { if (response.status() >= 400) errors.push('HTTP '+response.status()+': '+response.url()); });
   page.on('request', (request) => { if (/\.js(?:\?|$)/.test(request.url())) modules.push(request.url()); });
   const seed = createDefaultRegexTesterConfig();
   for (const format of seed.formats) {
     format.lineKey.tokenPosition = '4'; format.pipingClass.tokenPosition = '5'; format.bore.tokenPosition = '3';
   }
-  await page.addInitScript((json) => {
+  await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
+  // Seed only after the page has a real same-origin storage context. A
+  // preload init-script may execute before the app's source phase mounts.
+  await page.evaluate((json) => {
     if (!localStorage.getItem('xml-cii-regex-config-v1')) localStorage.setItem('xml-cii-regex-config-v1', json);
   }, JSON.stringify(seed));
-  await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // Explicitly navigate to the authored Source/Loader phase after tab mount:
+  // a persisted active sub-tab must not hide the original source input.
+  try {
+    await page.locator('button[data-phase="source"]').waitFor({ timeout: 45000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({ title: document.title,
+      body: document.body?.innerText?.slice(0,500) || '',
+      phaseButtons: [...document.querySelectorAll('[data-phase]')].map(n => n.getAttribute('data-phase')) }));
+    throw new Error('ACTUAL_STANDALONE_SOURCE_NOT_MOUNTED '+JSON.stringify({state,errors,cause:String(error)}));
+  }
+  await page.locator('button[data-phase="source"]').click();
+  if (await page.locator('button[data-sub-tab="loader"]').count())
+    await page.locator('button[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /Valve Weights/ }).click();
   await page.locator('input[data-master-file="weight"]').setInputFiles(path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx'));
@@ -59,6 +77,19 @@ try {
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')).config.rating.ratingSequence.some(([p, r]) => p === '3' && r === '600')));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // Explicitly navigate to the authored Source/Loader phase after tab mount:
+  // a persisted active sub-tab must not hide the original source input.
+  try {
+    await page.locator('button[data-phase="source"]').waitFor({ timeout: 45000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({ title: document.title,
+      body: document.body?.innerText?.slice(0,500) || '',
+      phaseButtons: [...document.querySelectorAll('[data-phase]')].map(n => n.getAttribute('data-phase')) }));
+    throw new Error('ACTUAL_STANDALONE_SOURCE_NOT_MOUNTED '+JSON.stringify({state,errors,cause:String(error)}));
+  }
+  await page.locator('button[data-phase="source"]').click();
+  if (await page.locator('button[data-sub-tab="loader"]').count())
+    await page.locator('button[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /^6 Weight Match/ }).click();
   await page.locator('#mc-wm-refresh').waitFor();
@@ -109,10 +140,12 @@ try {
   assert.equal(persisted.overrides.rating[source.line || source.branch], '900', 'A second save must preserve the first');
   const input = rows().nth(sourceIndex).locator('.mc-rigid-review-input');
   await input.fill('10.5'); await input.dispatchEvent('change');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5,
-    'Typed weights use manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], undefined,
-    'A typed value must not become a candidate match');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5,
+    'Typed and explicitly confirmed weight is manual Match-1, never automatic Final Match-2');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1Provenance?.[source.key]?.acceptanceMethod, 'manual',
+    'Manual Match-1 must retain explicit provenance');
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined,
+    'Manual Match-1 cannot silently become separate Final Match-2');
 
   await measure(async () => { await rows().nth(sourceIndex).locator('.mc-wm-rating-input').fill('300');
     await rows().nth(sourceIndex).locator('[data-wm-rating-fill-class]').click(); }, 'class fill Rating 300');
@@ -121,8 +154,9 @@ try {
     if (initial[index].pipingClass === source.pipingClass) assert.equal(filled[index].rating, '300');
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
-  assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5);
+  assert.equal(filled[sourceIndex].accepted, 'false', 'Rating change must not display stale Match-1 as freshly accepted');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
   await measure(() => page.locator('#mc-wm-refresh').click(), 'repeat Build after class fill');
   assert.equal((await readRows())[sourceIndex].rating, '300');
@@ -140,7 +174,7 @@ try {
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,
     editedPrefix: ['3', '600'], manual: ['900', '450'], classFill: { pipingClass: source.pipingClass, rating: '300', rows: filledCount },
-    manualFinalPreservedAfterRatingChange: 10.5, typedCandidateMatchAbsent: true,
+    manualMatch1PreservedAfterRatingChange: 10.5, automaticFinalAbsent: true,
     repeatBuild: true, reopen: true, timings, errors };
   if (process.env.XML_CII_RATING_EVIDENCE_DIR) {
     const dir = process.env.XML_CII_RATING_EVIDENCE_DIR;
