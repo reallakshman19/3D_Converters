@@ -186,8 +186,13 @@ export function buildJsonHierarchyScopeIndex(stagedJsonText) {
 export function materializeJsonHierarchyScope(stagedJsonText, index, scopeId) {
   const source = String(stagedJsonText || '');
   const selectedId = text(scopeId) || index?.defaultScopeId || ALL_SCOPE_ID;
-  if (selectedId === ALL_SCOPE_ID || !index?.indexable) {
+  if (selectedId === ALL_SCOPE_ID) {
     return { scopeId: ALL_SCOPE_ID, value: JSON.parse(source), itemCount: index?.itemCount || 0 };
+  }
+  // An explicit selected owner/zone is a source boundary, not a hint.
+  // Unindexable JSON cannot silently broaden that selection to ALL.
+  if (!index?.indexable) {
+    throw new Error('Unsupported JSON hierarchy scope: source is not indexable; select All scopes explicitly.');
   }
   const scope = (index.scopes || []).find((item) => item.id === selectedId);
   if (!scope) throw new Error('Unknown JSON hierarchy scope: ' + selectedId);

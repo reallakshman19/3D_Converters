@@ -1,0 +1,60 @@
+name: LFJ 208 combined A2 A3 C05 exact-head source and CSV acceptance preflight
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-208-integrated-acceptance.yml'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
+      - 'tests/lfj-208-integrated-index-census.test.mjs'
+      - 'tests/lfj-208-unsupported-owner-scope.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-source-and-authentic-oracles:
+    name: combined J02 index and original source ledger (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Exact raw PR HEAD and unmodified inputs
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Assert source/docs byte identity for both current-mode modules
+        run: |
+          cmp -s tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js docs/tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js
+          cmp -s tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js docs/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js
+      - name: Exact current J02 matchCount/index/census and original owner scope fail-closed regression
+        run: node --test tests/lfj-208-integrated-index-census.test.mjs tests/lfj-208-unsupported-owner-scope.test.mjs
+      - name: Frozen original Firstpass full ledger and two CSV oracle (author preflight)
+        run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
+      - name: Frozen original NC 10.23MiB negative full ledger and two CSV oracle
+        run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/large-authentic-source-parity-oracle.mjs
+      - name: Source preserved and acceptance boundary visible
+        run: |
+          test -z "$(git status --porcelain)"
+          {
+            echo '## LFJ #208 combined source/CII-mode boundary'
+            echo '- Source+docs current J02 guards: verified exact raw head'
+            echo '- Original Firstpass POS/PS full ledger and two CSVs: existing frozen author oracle only'
+            echo '- 10.23 MiB NC: negative zero-match, NOT positive Owner 30 MiB'
+            echo '- Real root Build/exports requires independent native browser job at this same SHA'
+            echo '- G01–G06 independent #141, multi-zone, Owner file, published Pages, B1–B5 and release: HOLD'
+          } >> "$GITHUB_STEP_SUMMARY"
