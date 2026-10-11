@@ -1,0 +1,65 @@
+name: Publish verified AML staged JSON into existing XML-CII draft docs
+on:
+  push:
+    branches: [conversion/aml-att-20261011]
+    paths:
+      - '.github/workflows/aml-docs-publish-20261011.yml'
+permissions:
+  contents: write
+jobs:
+  publish-unaltered-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout the exact isolated conversion runner
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch and verify exact original Google Drive ATT file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p conversion-input conversion-output
+          curl --fail --location --retry 3 \
+            'https://drive.google.com/uc?export=download&id=1-tvX5kwmSZQ5dXiOjKAb7hAmQV2glG9K' \
+            --output conversion-input/AML_2026Oct06-1417.zip
+          echo '5613b81694161834601e1bde254f0381a2ffead57feaa872fa3deeedb6f87c06  conversion-input/AML_2026Oct06-1417.zip' | sha256sum --check
+          unzip -p conversion-input/AML_2026Oct06-1417.zip AML_2026Oct06-1417.txt > conversion-input/AML_2026Oct06-1417.txt
+          echo '1c1702d3a352c9f62f0b85f41c8185d2a64501e75fcd85c94a0662efad1853f5  conversion-input/AML_2026Oct06-1417.txt' | sha256sum --check
+      - name: Produce exact native ATT-only staged JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --max-old-space-size=5200 scripts/aml-att-only-20261011.mjs
+          echo 'bc7728e9905e468a4e7af2e023869b1c0f3c93763311684364aed2ae9c6d6e8a  conversion-output/AML_2026Oct06-1417_managed_stage.json' | sha256sum --check
+      - name: Checkout target #216 existing draft branch
+        uses: actions/checkout@v4
+        with:
+          ref: lfj/212-tab3-tab4-consolidated-20261011
+          path: docs-target
+          persist-credentials: true
+      - name: Commit only user-requested staged JSON and provenance into docs of existing draft PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd docs-target
+          CURRENT="$(git rev-parse HEAD)"
+          EXPECTED="af575b4ceb16b6f693a117a1bc9f7e24fcf00c26"
+          if [ "$CURRENT" != "$EXPECTED" ]; then
+            echo "::error::Target PR #216 moved; refusing stale write $CURRENT vs $EXPECTED."
+            exit 1
+          fi
+          mkdir -p docs/Inputs/ATT-RVM
+          cp ../conversion-output/AML_2026Oct06-1417_managed_stage.json docs/Inputs/ATT-RVM/AML_2026Oct06-1417_managed_stage.json
+          cp ../conversion-output/AML_2026Oct06-1417_conversion-manifest.json docs/Inputs/ATT-RVM/AML_2026Oct06-1417_conversion-manifest.json
+          echo 'bc7728e9905e468a4e7af2e023869b1c0f3c93763311684364aed2ae9c6d6e8a  docs/Inputs/ATT-RVM/AML_2026Oct06-1417_managed_stage.json' | sha256sum --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/Inputs/ATT-RVM/AML_2026Oct06-1417_managed_stage.json docs/Inputs/ATT-RVM/AML_2026Oct06-1417_conversion-manifest.json
+          git diff --cached --stat
+          git commit -m "data(xml-cii): preserve authenticated AML ATT-only staged JSON under docs"
+          git push origin HEAD:refs/heads/lfj/212-tab3-tab4-consolidated-20261011
