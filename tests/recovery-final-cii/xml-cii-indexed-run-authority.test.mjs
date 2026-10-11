@@ -4,9 +4,9 @@ import {
   LFJ_ENGINEERING_SOURCE_BASIS_SCHEMA,
   inspectIndexedEngineeringRunAuthority,
   requireIndexedEngineeringRunAuthority,
-} from '../tabs/xml-cii-2019-standalone/integration/xml-cii-lfj-engineering-authority.js';
-import { buildOutputRunChecklist } from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
-import { buildXmlCiiWorkflowJobFromUiState } from '../tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js';
+} from '../../tabs/xml-cii-2019-standalone/integration/xml-cii-lfj-engineering-authority.js';
+import { buildOutputRunChecklist } from '../../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
+import { buildXmlCiiWorkflowJobFromUiState } from '../../tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js';
 
 const hex = n => String(n).repeat(64);
 function fixture() {
