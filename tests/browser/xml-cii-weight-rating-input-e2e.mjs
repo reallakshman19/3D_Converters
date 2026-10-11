@@ -140,10 +140,12 @@ try {
   assert.equal(persisted.overrides.rating[source.line || source.branch], '900', 'A second save must preserve the first');
   const input = rows().nth(sourceIndex).locator('.mc-rigid-review-input');
   await input.fill('10.5'); await input.dispatchEvent('change');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5,
-    'Typed weights use manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], undefined,
-    'A typed value must not become a candidate match');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5,
+    'Typed and explicitly confirmed weight is manual Match-1, never automatic Final Match-2');
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1Provenance?.[source.key]?.acceptanceMethod, 'manual',
+    'Manual Match-1 must retain explicit provenance');
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined,
+    'Manual Match-1 cannot silently become separate Final Match-2');
 
   await measure(async () => { await rows().nth(sourceIndex).locator('.mc-wm-rating-input').fill('300');
     await rows().nth(sourceIndex).locator('[data-wm-rating-fill-class]').click(); }, 'class fill Rating 300');
@@ -153,7 +155,8 @@ try {
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
   assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
   await measure(() => page.locator('#mc-wm-refresh').click(), 'repeat Build after class fill');
   assert.equal((await readRows())[sourceIndex].rating, '300');
@@ -171,7 +174,7 @@ try {
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,
     editedPrefix: ['3', '600'], manual: ['900', '450'], classFill: { pipingClass: source.pipingClass, rating: '300', rows: filledCount },
-    manualFinalPreservedAfterRatingChange: 10.5, typedCandidateMatchAbsent: true,
+    manualMatch1PreservedAfterRatingChange: 10.5, automaticFinalAbsent: true,
     repeatBuild: true, reopen: true, timings, errors };
   if (process.env.XML_CII_RATING_EVIDENCE_DIR) {
     const dir = process.env.XML_CII_RATING_EVIDENCE_DIR;
