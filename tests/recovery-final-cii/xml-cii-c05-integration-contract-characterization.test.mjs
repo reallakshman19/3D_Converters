@@ -89,8 +89,8 @@ function serviceWith(rows,metadata) {
     getXlsx:async()=>{throw Error('No XLSX needed');},
     store:{
       async persistDataset(){},
-      async getMetadata:id=>metadata[id]||null,
-      async getRows:id=>rows[id]||null
+      getMetadata:async id=>metadata[id]||null,
+      getRows:async id=>rows[id]||null
     },
     prepareDataset:(_key,items)=>({fieldMap:{},rows:items,
       searchCorpus:items.map(x=>JSON.stringify(x).toLowerCase())}),
