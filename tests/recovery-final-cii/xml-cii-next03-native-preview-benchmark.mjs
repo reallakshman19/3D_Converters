@@ -91,6 +91,25 @@ try {
   stamp.metrics.push({stage:'native_load_default_master_context',durationMs:Math.round(performance.now()-t)});
   const masterPanel=await page.locator('.xml-cii-phase-panel').innerText();
   stamp.masterPanelSummary=masterPanel.slice(0,2000);
+  // Default context supplies 383 Material + 1595 Weight but zero Line List
+  // and Piping Class. Do not confuse that precondition with a Preview pass.
+  // Upload the real checked-in full owner Piping XLSX using its AUTHORED picker.
+  const picker=page.locator('input[data-master-file="pipingClass"]');
+  assert.equal(await picker.count(),1,'native Piping Class file picker must exist');
+  t=performance.now();
+  await picker.setInputFiles('docs/Masters/Piping class master.xlsx');
+  let imported=false;
+  try {
+    await page.waitForFunction(()=>{
+      const card=document.querySelector('[data-master="pipingClass"]');
+      const summary=card?.textContent||'';
+      return /Imported Piping class master\.xlsx/i.test(document.querySelector('.xml-cii-phase-panel')?.textContent||'')
+        || (card && /ROWS\s*[1-9]\d*/i.test(summary) && !/ROWS\s*0/i.test(summary));
+    },null,{timeout:180000,polling:250});
+    imported=true;
+  }catch(e){stamp.notes.push('Original XLSX native Piping import did not reach ready state: '+String(e?.message||e).slice(0,190));}
+  stamp.metrics.push({stage:'native_original_piping_master_xlsx_import',durationMs:Math.round(performance.now()-t),imported});
+  stamp.afterPipingImport=await page.locator('.xml-cii-phase-panel').innerText().then(x=>x.slice(0,2200));
   await phase('preview');
   await page.locator('.xml-cii-phase-panel[data-active-phase="preview"]').waitFor({timeout:45000});
   const host=page.locator('#mc-preview-table-host');
