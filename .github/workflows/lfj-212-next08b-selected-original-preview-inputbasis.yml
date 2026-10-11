@@ -60,12 +60,12 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Serve actual original files and tested browser module
         run: |
-          (python3 -m http.server 4200 --bind 127.0.0.1 >"$${{ runner.temp }}/next08c-http.log" 2>&1) &
+          (python3 -m http.server 4200 --bind 127.0.0.1 >"${{ runner.temp }}/next08c-http.log" 2>&1) &
           for n in $(seq 1 30); do
             curl -sf http://127.0.0.1:4200/tests/browser/lfj-next08c-authentic-firstpass-scope-to-basis.html >/dev/null && exit 0
             sleep 1
           done
-          cat "$${{ runner.temp }}/next08c-http.log"
+          cat "${{ runner.temp }}/next08c-http.log"
           exit 1
       - name: Existing A3 real original Blob plus committed IDB manifest to unmodified GC-PW InputBasis
         run: |
