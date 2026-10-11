@@ -7,7 +7,7 @@ export function buildBoundedOriginalXmlSourceFacts(records,{remainingBytes=8*102
   for(let i=0;i<records.length;i++){
     const row=records[i]||{},status=String(row.status||'');
     if(row.xmlIndex!==i+1)return {available:false,code:'LFJ_FACT_XML_ORDER'};
-    if(status!=='UNRESOLVED'&&!status.startsWith('RESOLVED_'))return {available:false,code:'LFJ_FACT_STATUS'};
+    if(!['UNRESOLVED','RESOLVED_POS','RESOLVED_POS_PS'].includes(status))return {available:false,code:'LFJ_FACT_STATUS'};
     const members=Array.isArray(row.positionMembers)?row.positionMembers:[];
     const paths=Array.isArray(row.sourcePaths)?row.sourcePaths.filter(x=>typeof x==='string'&&x.length):[];
     if(!paths.length)for(const m of members){const p=m?.sourcePath||m?.path;if(typeof p==='string'&&p&&!paths.includes(p))paths.push(p);}
