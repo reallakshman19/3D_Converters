@@ -113,8 +113,13 @@ try {
   await phase('preview');
   await page.locator('.xml-cii-phase-panel[data-active-phase="preview"]').waitFor({timeout:45000});
   const host=page.locator('#mc-preview-table-host');
+  // renderStandalonePreviewReportPanel is async (dataset materialization),
+  // so a phase-heading paint is NOT evidence that its Preview body has settled.
+  let nativePreviewHostReady=false;
+  try{await host.waitFor({state:'attached',timeout:75000});nativePreviewHostReady=true;}
+  catch(e){stamp.notes.push('Preview panel did not attach host after 75s: '+String(e?.message||e).slice(0,190));}
   stamp.previewEntry=await page.locator('.xml-cii-phase-panel').innerText().then(x=>x.slice(0,2100));
-  if(!(await host.count())){
+  if(!nativePreviewHostReady){
     result='BLOCKED_NO_NATIVE_PREVIEW_HOST';
     stamp.notes.push('Native Preview refused to render a Build button: source or master prerequisite unavailable. Not a physical Preview pass.');
   }else{
