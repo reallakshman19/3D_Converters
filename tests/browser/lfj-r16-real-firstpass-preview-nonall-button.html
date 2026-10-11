@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>#212 R16: genuine Build Preview button denies unbound original selected Owner</title>
+<div id="fixture"></div><pre id="evidence">RUNNING</pre>
+<script type="module">
+import {xmlCiiRenderPreviewPhase,xmlCiiBuildAndRenderPreview} from
+ '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js';
+const failures=[],codes=[];
+const fail=(message)=>{throw Error(message)};
+const until=async predicate=>{
+ const began=performance.now();
+ while(performance.now()-began<15000){
+  if(predicate())return;
+  await new Promise(resolve=>setTimeout(resolve,40));
+ }
+ fail('REAL_BUTTON_SELECTED_SCOPE_TERMINAL_TIMEOUT');
+};
+const html=await fetch('../../Benchmarks/1885Sjson/FirstpassXML');
+if(!html.ok)fail('Authentic FirstpassXML missing');
+const xml=await html.text();
+const sourceBranches=(xml.match(/<Branch(?:\s[^>]*)?>/g)||[]).length;
+const sourceNodes=(xml.match(/<Node(?:\s[^>]*)?>/g)||[]).length;
+if(sourceBranches!==5||sourceNodes!==216)
+ fail('Authentic Firstpass XML source census changed');
+const config={
+ sourceMode:'A',
+ linelist:{masterRows:[{Service:'S',Line:'1'}],fieldMap:{}},
+ pipingClass:{masterRows:[{Code:'P01'}],fieldMap:{}},
+ material:{mapRows:[{Material:'M1'}],fieldMap:{}},
+ weight:{masterRows:[{Node:'V1'}],fieldMap:{}},
+ overrides:{},
+};
+const opts={
+ sourceId:'FirstpassXML',previewSourceMode:'A',
+ selectedScopeId:'/ASIM-1885-CU-PI',
+ resolveStagedJsonText:()=>{fail('FAIL_CLOSED_MUST_NOT_READ_STAGED_JSON');},
+};
+const root=document.querySelector('#fixture');
+try{
+ root.innerHTML=xmlCiiRenderPreviewPhase(new File([xml],'FirstpassXML'),config);
+ await xmlCiiBuildAndRenderPreview(root,xml,config,opts);
+ const host=root.querySelector('#mc-preview-table-host');
+ if(!host)fail('Real original Preview host absent');
+ const button=host.querySelector('[data-mc-preview-build]');
+ if(!button)fail('Real original Build Preview button missing');
+ button.click();
+ await until(()=>host.querySelector('[data-mc-preview-job-state] code'));
+ const first=host.querySelector('[data-mc-preview-job-state] code')?.textContent?.trim();
+ codes.push(first);
+ if(first!=='PREVIEW_SELECTED_SCOPE_NOT_INTEGRATED')
+  fail('First real selected Owner incorrectly accepted: '+first);
+ if(host.__xmlCiiPreviewResult?.branchRows?.length||host.__xmlCiiPreviewFactReadModel)
+  fail('Unapproved selected Owner launched or committed engineering preview');
+ // After a changed external explicit Owner selection, the REAL Retry control
+ // must refuse again; no stale ALL result or source-only fact authorization.
+ opts.selectedScopeId='/UNRECOGNIZED/ZONE-2';
+ const retry=host.querySelector('[data-mc-preview-job-retry]');
+ if(!retry)fail('Real Preview retry button missing');
+ retry.click();
+ await until(()=>host.querySelector('[data-mc-preview-job-state] code'));
+ const second=host.querySelector('[data-mc-preview-job-state] code')?.textContent?.trim();
+ codes.push(second);
+ if(second!=='PREVIEW_SELECTED_SCOPE_NOT_INTEGRATED')
+  fail('Second selected Owner incorrectly accepted: '+second);
+ if(host.__xmlCiiPreviewResult?.branchRows?.length||host.__xmlCiiPreviewFactReadModel)
+  fail('Second unapproved selected Owner launched preview');
+ const result={
+  ok:true,original:'Benchmarks/1885Sjson/FirstpassXML',
+  originalBranches:sourceBranches,originalNodes:sourceNodes,
+  realBuildPreviewButton:true,realRetryPreviewButton:true,
+  errors:codes,stagedOriginalRead:false,selectedWorkerDispatched:false,
+  sourceOnly:true,engineeringReady:false,approved385:false,
+  factRecordsComputed:false,runAuthorized:false,
+  qualification:'REAL_APP_PREVIEW_B1_SELECTED_SCOPE_FAIL_CLOSED',
+ };
+ globalThis.__R16_REAL_PREVIEW_RESULT__=result;
+ document.querySelector('#evidence').textContent=JSON.stringify(result,null,2);
+}catch(error){
+ const result={ok:false,code:error?.code||null,message:String(error?.stack||error),codes};
+ failures.push(result);
+ globalThis.__R16_REAL_PREVIEW_RESULT__=result;
+ document.querySelector('#evidence').textContent=JSON.stringify(result,null,2);
+}
+</script>
