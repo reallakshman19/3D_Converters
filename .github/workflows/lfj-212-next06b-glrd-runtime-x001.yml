@@ -1,0 +1,46 @@
+name: LFJ 212 NEXT-06B actual GLRD standalone runtime X001 characterization
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next06b-glrd-runtime-x001.yml'
+      - 'tests/recovery-final-cii/xml-cii-next06b-real-runtime-x001-characterization.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-glrd-runtime-characterization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check original GLRD source blob and untouched invoked runtime
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object 'Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml')" = '8769ffe538ecacc621daf39919ca00ba27008211'
+          echo '923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba  Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml' | sha256sum --check
+          node --check tests/recovery-final-cii/xml-cii-next06b-real-runtime-x001-characterization.test.mjs
+      - name: Native original GLRD conversion and corrupt Position failure
+        run: node --test tests/recovery-final-cii/xml-cii-next06b-real-runtime-x001-characterization.test.mjs
+      - name: Keep full real CII and both diagnostic receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-next06b-x001-real-runtime-node${{ matrix.node }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/next06b-*.cii
+            ${{ runner.temp }}/next06b-*.json
+          if-no-files-found: warn
+          retention-days: 14
