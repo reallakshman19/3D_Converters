@@ -67,6 +67,46 @@ try {
     return result;
   });
   assert.equal(receipt.passed, true);
+  const legacy = await page.evaluate(async () => {
+    const { renderStandaloneResolverJsonTracePanel } =
+      await import('/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js');
+    const payload = '<img src=x onerror=window.__a3ReviewerInjected=1>';
+    const branch = '/ZONE<svg/onload=window.__a3ReviewerInjected=1>/B1';
+    window.__a3ReviewerInjected = 0;
+    const result={ matchedFacts:[{
+      hitCount:1, branchName:branch, stagedBore:'25'+payload,
+      posKey:'PS-'+payload, positionMembers:[{
+        capturedFields:{DTXR:payload}, name:payload,
+      }],
+    }]};
+    const state={
+      sourceKind:'xml',stagedJsonText:'',jsonTraceActiveSubTabId:'tree',
+      resolverSourceMode:'legacy',resolverJsonTraceResult:result,
+    };
+    const host=document.createElement('section');
+    host.id='a3-209-legacy-inert-tree';
+    document.body.appendChild(host);
+    renderStandaloneResolverJsonTracePanel(host,state,{current:state},()=>{});
+    const container=host.querySelector('.xml-cii-tree-container');
+    if(!container)throw Error('No legacy evidence tree');
+    if(container.querySelector('img,svg,script,iframe,[onerror],[onload]'))
+      throw Error('Active markup from original source became DOM');
+    if(container.querySelectorAll('details').length!==3 ||
+       container.querySelectorAll('summary').length!==3)
+      throw Error('Legacy collapsible branch/bore/position structure changed');
+    if(!container.textContent.includes(payload) ||
+       !container.textContent.includes('25'+payload) ||
+       !container.textContent.includes('PS-'+payload) ||
+       !container.textContent.includes(branch.replace(/\/B1$/,'')))
+      throw Error('Source labels/descriptors were lost or escaped visibly');
+    if(window.__a3ReviewerInjected!==0)
+      throw Error('Source-derived event handler executed');
+    host.remove();
+    return {legacyTreeInert:true,detailsCount:3,sourcePayloadVisible:true,
+      injectedEvents:0};
+  });
+  assert.equal(legacy.legacyTreeInert,true);
+  console.log('A3_209_LEGACY_TREE_SAFE ' + JSON.stringify(legacy));
   console.log('A3_209_NATIVE_REVIEWER_PASS ' + JSON.stringify(receipt));
   await page.screenshot({
     path: join(process.env.RUNNER_TEMP || process.cwd(), 'a3-209-reviewer-ui-chromium.png'),

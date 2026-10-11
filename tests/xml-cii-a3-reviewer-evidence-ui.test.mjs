@@ -134,3 +134,32 @@ test('source reviewer renderer equals authored docs mirror byte-for-byte', async
   const docs=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js',import.meta.url));
   assert.deepEqual(source,docs);
 });
+
+test('legacy evidence tree preserves source markup literally without active HTML nodes', () => {
+  const unsafe = '<img src=x onerror=window.__a3Injected=1>';
+  const branchUnsafe = '/ZONE<svg/onload=window.__a3Injected=1>/B1';
+  const result = { matchedFacts: [{
+    hitCount:1, branchName:branchUnsafe,
+    stagedBore:'25'+unsafe, posKey:'PS-'+unsafe,
+    positionMembers:[{ capturedFields:{ DTXR:unsafe }, name:unsafe }],
+  }]};
+  const stateLegacy={...state('tree',result,[]),resolverSourceMode:'legacy'};
+  const root=setup(stateLegacy);
+  const tree=root.find(e=>e.className==='xml-cii-tree-container');
+  assert.ok(tree,'legacy collapsible evidence tree is present');
+  assert.ok(tree.textContent.includes(branchUnsafe.replace(/\/B1$/, '')));
+  assert.ok(tree.textContent.includes('25'+unsafe));
+  assert.ok(tree.textContent.includes('PS-'+unsafe));
+  assert.ok(tree.textContent.includes(unsafe),'source member text is still visible');
+  assert.equal(root.find(e=>['IMG','SVG','SCRIPT','IFRAME'].includes(e.tagName)),null,
+    'untrusted source strings must never materialize HTML elements');
+  let details=0,summaries=0;
+  function walk(el) {
+    if(el.tagName==='DETAILS')details++;
+    if(el.tagName==='SUMMARY')summaries++;
+    for(const c of el.children)if(typeof c!=='string')walk(c);
+  }
+  walk(tree);
+  assert.equal(details,3,'branch/bore/position remain collapsible');
+  assert.equal(summaries,3,'all three source-group labels remain displayed');
+});
