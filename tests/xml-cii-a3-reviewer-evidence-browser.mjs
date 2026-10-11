@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 // Synthetic evidence tests the actual authored docs/ browser UI; this is NOT
@@ -67,7 +68,10 @@ try {
   });
   assert.equal(receipt.passed, true);
   console.log('A3_209_NATIVE_REVIEWER_PASS ' + JSON.stringify(receipt));
-  await page.screenshot({ path: 'a3-209-reviewer-ui-chromium.png', fullPage: false });
+  await page.screenshot({
+    path: join(process.env.RUNNER_TEMP || process.cwd(), 'a3-209-reviewer-ui-chromium.png'),
+    fullPage: false,
+  });
 } finally {
   await browser.close();
 }
