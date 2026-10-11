@@ -5,12 +5,18 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {chromium} from 'playwright';
 
 const sha=x=>createHash('sha256').update(x).digest('hex');
+// In pull_request workflows GITHUB_SHA may be a synthetic merge commit, not
+// the PR-head commit that actions/checkout explicitly selected.
+const checkedOutHead=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+if(process.env.PR_HEAD_SHA)assert.equal(checkedOutHead,process.env.PR_HEAD_SHA,
+  'browser benchmark checkout must equal the declared PR head');
 const input={xml:'Benchmarks/1885Sjson/FirstpassXML',json:'Benchmarks/1885Sjson/Sjson.json'};
 const expected={
   xml:'feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38',
@@ -20,7 +26,8 @@ const stamp={rootEntry:'http://127.0.0.1:4200/index.html',
   owner:'/ASIM-1885-CU-PI', qualification:'NEXT03_AUTHOR_BROWSER_DIAGNOSTIC_ONLY',
   firstpassSourceSha:{xml:sha(await readFile(input.xml)),json:sha(await readFile(input.json))},
   selection: 'OWNER_SELECTED_IN_LFJ_BUT_PREVIEW_ALL_FALLBACK_NOT_PROVEN',
-  exactHead:process.env.GITHUB_SHA||null, metrics:[],pageErrors:[],http404:[],
+  exactHead:checkedOutHead, workflowEventSha:process.env.GITHUB_SHA||null,
+  metrics:[],pageErrors:[],http404:[],
   screenshots:[],sourceCountChecks:{},notes:[]};
 for (const k of ['xml','json'])assert.equal(stamp.firstpassSourceSha[k],expected[k],'unaltered original fixture '+k);
 const out=process.env.RUNNER_TEMP||join(tmpdir(),'next03');
