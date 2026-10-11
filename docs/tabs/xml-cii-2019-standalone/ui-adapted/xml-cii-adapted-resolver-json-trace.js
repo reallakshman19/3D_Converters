@@ -83,6 +83,9 @@ function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
   });
   const range=createElement('span');
   range.dataset.field='table-visible-range';
+  range.setAttribute('role','status');
+  range.setAttribute('aria-live','polite');
+  range.setAttribute('aria-atomic','true');
   const prev=createElement('button','Previous');
   prev.type='button';prev.dataset.action='table-previous-page';
   const next=createElement('button','Next');
@@ -103,7 +106,8 @@ function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
     else tableEl.appendChild(replacement);
     range.textContent='Showing '+(filtered.length?begin+1:0)+'–'+end+
       ' of '+filtered.length+
-      (query?' (filtered from '+data.length+' original rows)':' original rows');
+      (query?' (filtered from '+data.length+' original rows)':' original rows')+
+      (query && !filtered.length ? ' — no matching rows' : '');
     prev.disabled=page===0;
     next.disabled=end>=filtered.length;
     // A page turn only changes visible DOM, never the underlying CSV rows.
@@ -363,8 +367,9 @@ function renderTraceTreeHtml(parent, state) {
     section.appendChild(createElement('p',
       'Full source-backed evidence rows. Local downloads require current-source SHA and exact output SHA verification on every click; downstream CII approval is separate.',
       'xml-cii-phase-help'));
-    section.appendChild(table(EVIDENCE_TREE_HEADERS, evidence,
-      'Run Indexed LFJ Build to display evidence rows.'));
+    addFilter(section, table(EVIDENCE_TREE_HEADERS, evidence,
+      'Run Indexed LFJ Build to display evidence rows.'),
+      'Filter indexed evidence across all source paths and values');
     parent.appendChild(section);
     return;
   }
@@ -405,8 +410,9 @@ function renderTraceTreeHtml(parent, state) {
 
 function addFilter(section, tableEl, placeholder) {
   const filterInput = createElement('input');
-  filterInput.type = 'text';
+  filterInput.type = 'search';
   filterInput.placeholder = placeholder;
+  filterInput.setAttribute('aria-label', placeholder);
   if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
   filterInput.addEventListener('input', () => {
     const query = filterInput.value.toLowerCase().trim();
@@ -449,7 +455,10 @@ function renderMatchedFacts(parent, state, result) {
     actionButton('copy-matched-facts', '⧉ Copy', matchedRows.length === 0),
   ]));
   if (state.resolverJsonTraceExportStatus) section.appendChild(createElement('p', state.resolverJsonTraceExportStatus, 'xml-cii-phase-help'));
-  section.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], matchedRows, 'No matched JSON facts yet.'));
+  if (matchedRows.length) addFilter(section,
+    table(['Path', 'Node', 'PS', 'POS', 'Hits'], matchedRows, 'No matched JSON facts yet.'),
+    'Filter matched facts across all source paths and keys');
+  else section.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], matchedRows, 'No matched JSON facts yet.'));
   parent.appendChild(section);
 }
 
@@ -508,7 +517,11 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   } else if (subTabId === 'matched') {
     renderMatchedFacts(workspace, state, result);
   } else if (subTabId === 'rejected') {
-    workspace.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], buildMatchedFactsRows({ matchedFacts: result?.rejectedFacts || [] }), 'No rejected JSON facts.'));
+    const rejectedRows = buildMatchedFactsRows({ matchedFacts: result?.rejectedFacts || [] });
+    if (rejectedRows.length) addFilter(workspace,
+      table(['Path', 'Node', 'PS', 'POS', 'Hits'], rejectedRows, 'No rejected JSON facts.'),
+      'Filter rejected facts across all source paths and keys');
+    else workspace.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], rejectedRows, 'No rejected JSON facts.'));
   }
   container.appendChild(workspace);
   card.appendChild(container);
