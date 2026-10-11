@@ -47,8 +47,8 @@ try {
   // Explicitly navigate to the authored Source/Loader phase after tab mount:
   // a persisted active sub-tab must not hide the original source input.
   await page.locator('button[data-phase="source"]').click();
-  const loader = page.locator('button[data-sub-tab="loader"]');
-  if (await loader.count()) await loader.click();
+  if (await page.locator('button[data-sub-tab="loader"]').count())
+    await page.locator('button[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /Valve Weights/ }).click();
   await page.locator('input[data-master-file="weight"]').setInputFiles(path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx'));
@@ -67,8 +67,8 @@ try {
   // Explicitly navigate to the authored Source/Loader phase after tab mount:
   // a persisted active sub-tab must not hide the original source input.
   await page.locator('button[data-phase="source"]').click();
-  const loader = page.locator('button[data-sub-tab="loader"]');
-  if (await loader.count()) await loader.click();
+  if (await page.locator('button[data-sub-tab="loader"]').count())
+    await page.locator('button[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /^6 Weight Match/ }).click();
   await page.locator('#mc-wm-refresh').waitFor();
