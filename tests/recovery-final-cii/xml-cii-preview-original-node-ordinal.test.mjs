@@ -40,10 +40,10 @@ test('S: original ordinal survives GASK and short-element filtering with repeate
 
 test('S: authentic Firstpass 216 original XML nodes preserve exact source ordinals after 22 GASK removals', async () => {
   const source = await readFile(new URL('../../Benchmarks/1885Sjson/FirstpassXML', import.meta.url), 'utf8');
-  const blocks = [...source.matchAll(/<Branch(?:\\s[^>]*)?>([\\s\\S]*?)<\\/Branch>/g)];
+  const blocks = [...source.matchAll(/<Branch(?:\s[^>]*)?>([\s\S]*?)<\/Branch>/g)];
   const get = (xml, tag) => xml.match(new RegExp('<' + tag + '>([\\s\\S]*?)</' + tag + '>'))?.[1]?.trim() || '';
   const branches = blocks.map(([, xml]) => branch(
-    [...xml.matchAll(/<Node(?:\\s[^>]*)?>([\\s\\S]*?)<\\/Node>/g)]
+    [...xml.matchAll(/<Node(?:\s[^>]*)?>([\s\S]*?)<\/Node>/g)]
       .map(([, data]) => sourceNode({
         kind: get(data, 'ComponentType'),
         nodeNumber: get(data, 'NodeNumber'),
@@ -84,9 +84,9 @@ test('S: real Preview core forwards captured original ordinal to authority and w
     new URL('../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun-core.js', import.meta.url),
     'utf8',
   );
-  assert.match(source, /const originalNodeOrdinals = captureXmlCiiOriginalNodeOrdinals\\(document\\)/);
-  assert.match(source, /const originalNodeOrdinal = originalNodeOrdinals\\.get\\(node\\)/);
+  assert.match(source, /const originalNodeOrdinals = captureXmlCiiOriginalNodeOrdinals\(document\)/);
+  assert.match(source, /const originalNodeOrdinal = originalNodeOrdinals\.get\(node\)/);
   assert.match(source, /nodeOrdinal: originalNodeOrdinal/);
-  assert.match(source, /xmlCiiWeightReviewNodeOverrideKey\\(branchName, node, originalNodeOrdinal\\)/);
+  assert.match(source, /xmlCiiWeightReviewNodeOverrideKey\(branchName, node, originalNodeOrdinal\)/);
   assert.doesNotMatch(source, /nodeOrdinal: nodeIdx/);
 });
