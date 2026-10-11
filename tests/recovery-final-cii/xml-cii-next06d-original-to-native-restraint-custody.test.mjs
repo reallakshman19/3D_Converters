@@ -144,12 +144,17 @@ async function runCase(xmlPath,label,outputDir=target){
  return {...result,assessed};
 }
 function changeSupport(original,replacement){
- const pattern=/<Node>[\s\S]*?<NodeName>PS00371\.1<\/NodeName>[\s\S]*?<\/Node>/g;
- const matches=[...original.matchAll(pattern)];
- assert.equal(matches.length,1,'Mutate one original named source Node without touching protected input');
- const updated=original.replace(pattern,record=>replacement(record));
- assert.notEqual(updated,original);
- return updated;
+ const name='<NodeName>PS00371.1</NodeName>';
+ assert.equal(original.split(name).length-1,1,'Exact one original target support name');
+ const at=original.indexOf(name),start=original.lastIndexOf('<Node>',at);
+ const end=original.indexOf('</Node>',at)+'</Node>'.length;
+ assert.ok(start>=0&&end>at,'Target support must belong to one XML Node');
+ const node=original.slice(start,end);
+ assert.ok(!node.slice('<Node>'.length).includes('<Node>'),
+  'Fixture target may not include earlier unrelated XML Nodes');
+ const changed=replacement(node);
+ assert.notEqual(changed,node,'Fixture mutation must change target XML node');
+ return original.slice(0,start)+changed+original.slice(end);
 }
 test('NEXT-06D-01 exhaustive original → retained model → all six real CII slots',async()=>{
  const raw=await readFile(input);
