@@ -169,6 +169,16 @@ test('NEXT-06D-01 exhaustive original → retained model → all six real CII sl
  assert.equal(result.original.restraints.length,51,'Every raw original restraint retained by independent census');
  assert.ok(result.original.restraints.every(r=>r.type==='+Y'&&r.auditAdmissionIssues.length===0));
  assert.equal(result.runtime.auditEvents.length,51,'In-process full audit, NEVER truncated stderr');
+ const fullStatus=Object.fromEntries(['retained','transferred','unresolved','ambiguous']
+  .map(k=>[k,result.runtime.auditEvents.filter(e=>e.status===k).length]));
+ assert.deepEqual(fullStatus,{retained:10,transferred:27,unresolved:12,ambiguous:2},
+  'All 51 actual in-process audit events, unlike the earlier truncated stderr tail');
+ assert.deepEqual(Object.fromEntries([
+   ['candidate',result.assessed.rows.filter(r=>r.disposition==='CANDIDATE_SLOT_PROVENANCE_NOT_PROVEN').length],
+   ['unresolved',result.assessed.rows.filter(r=>r.disposition==='UNKNOWN_NO_RETAINED_CANDIDATE').length],
+   ['ambiguous',result.assessed.rows.filter(r=>r.disposition==='UNKNOWN_AMBIGUOUS_RETAINED_CANDIDATES').length],
+  ]),{candidate:37,unresolved:12,ambiguous:2},
+  'Even a complete event and native slot candidate is not an approved original occurrence mapping');
  assert.equal(result.cii.blockCount,49);
  assert.equal(result.cii.all.length,49*6,'No elided/folded native slots');
  assert.equal(result.cii.active.length,49);
@@ -179,6 +189,13 @@ test('NEXT-06D-01 exhaustive original → retained model → all six real CII sl
  const source30=result.assessed.rows.find(x=>x.sourcePath==='/PipeStressExport/Pipe/Branch[1]/Node[3]/Restraint[1]');
  assert.equal(source30.nodeNumber,'30');
  assert.equal(source30.nodeName,'PS00371.1');
+ assert.equal(source30.auditStatus,'transferred',
+  'Complete runtime audit resolves former truncated-log UNKNOWN: source 30 candidate 20');
+ assert.deepEqual(source30.retainedCandidateNodeNumbers,[20]);
+ assert.deepEqual(source30.nativeSlotCandidates.map(x=>[x.blockOrdinal,x.slotOrdinal,x.nodeNumber]),
+  [[1,1,20]],'Real native model and CII identify candidate block 1 slot 1');
+ assert.equal(source30.originToEmittedSlotProven,false,
+  'Candidate transfer is not itself Owner-approved identical physical support conservation');
  assert.ok(!result.cii.active.some(s=>s.nodeNumber===30&&s.typeCode===14),
   'FIRST DIVERGENCE: source original #30 has no same-number CII RESTRANT slot');
  assert.ok(result.cii.active.some(s=>s.nodeNumber===20&&s.typeCode===14),
