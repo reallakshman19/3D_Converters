@@ -166,7 +166,13 @@ async function build() {
   statusObserver.disconnect();
   if (status && statusHistory.at(-1) !== status) statusHistory.push(status);
   const rows = root.querySelectorAll('#mc-wm-content tbody tr').length;
+  // Match-1 is a distinct reviewed decision: showing a matching candidate
+  // must never silently enter or accept 25kg in the authority input.
   const inputValue = root.querySelector('.mc-rigid-review-input')?.value || '';
+  const candidateWeights = [...root.querySelectorAll('#mc-wm-content tbody tr [data-wm-weight]')]
+    .map((button) => Number(button.dataset.wmWeight));
+  const selectedProposalAvailable = candidateWeights.some((value) => value === 25);
+  const authorityInputAccepted = root.querySelector('.mc-rigid-review-input')?.dataset.wmAccepted === 'true';
   const lineKey = root.querySelector('#mc-wm-content tbody tr td:nth-child(3)')?.textContent?.trim() || '';
   const rating = root.querySelector('#mc-wm-content tbody tr .mc-wm-rating-input')?.value || '';
   const dtxr = root.querySelector('#mc-wm-content tbody tr td:nth-child(9)')?.textContent || '';
@@ -179,7 +185,9 @@ async function build() {
     && !/Preparing Weight Match basis/i.test(status)
     && !statusHistory.some((value) => /Applying staged geometry/i.test(value))
     && rows === 1
-    && Number(inputValue) === 25
+    && inputValue === ''
+    && selectedProposalAvailable
+    && !authorityInputAccepted
     && lineKey === 'P0310051'
     && rating === '150';
 
@@ -203,6 +211,9 @@ async function build() {
     dtxrResolvedText: dtxr,
     rows,
     inputValue,
+    selectedProposalAvailable,
+    candidateWeights,
+    authorityInputAccepted,
     lineKey,
     rating,
     status,
