@@ -104,7 +104,7 @@ test('C05.3 Mat_Map keeps dataset revision through compact restart custody and c
   }
 });
 
-test('C05.3 preserves Piping Class green and does not pre-complete Valve Weight revision custody', async () => {
+test('C05.3 later three-master custody retains independent Piping Class and Weight revisions', async () => {
   const storage = installStorage({
     'xml-cii-master-source-pipingClass': JSON.stringify({
       source: 'Piping class master.xlsx', datasetId: 'issue837:pc:r4', datasetRevision: 4,
@@ -139,14 +139,24 @@ test('C05.3 preserves Piping Class green and does not pre-complete Valve Weight 
   try {
     assert.equal(await hydratePersistedMasterDatasets(stateRef, { store }), true);
     assert.equal(stateRef.current.masterContext.datasetRefs.pipingClass.datasetRevision, 4);
-    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, undefined);
+    // Successor C05.4 promoted Weight revision custody. Do not undo that
+    // stronger protection merely to satisfy the old C05.3 milestone.
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, 5);
+    assert.equal(stateRef.current.masterContext.datasetRefs.pipingClass.datasetId, 'issue837:pc:r4');
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetId, 'issue837:wt:r5');
+    assert.equal(stateRef.current.masterContext.appliedMappingRevision.weight, 6);
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.masterFingerprint, 'fp');
+    assert.deepEqual(stateRef.current.masterContext.pipingClassRows || [], []);
+    assert.deepEqual(stateRef.current.masterContext.weightMasterRows || [], []);
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.pipingClass, undefined);
+    assert.equal(stateRef.current.masterRestoreFailureIdentity.weight, undefined);
   } finally {
     storage.restore();
   }
 });
 
 
-test('C05.3 Mat_Map rejects stale restart revision against IndexedDB metadata', async () => {
+test('C05.3 rejects a stale Mat_Map revision with typed failure and no row access', async () => {
   const storage = installStorage({
     'xml-cii-master-source-materialMap': JSON.stringify({
       source: 'PCF_MAT_MAP.TXT',
@@ -159,24 +169,38 @@ test('C05.3 Mat_Map rejects stale restart revision against IndexedDB metadata', 
     }),
   });
   const stateRef = startupState();
+  let staleRowReads = 0;
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata() {
-            return {
-              datasetId: 'issue837:mat:r3',
-              datasetRevision: 4,
-              rowCount: 1,
-              fileName: 'PCF_MAT_MAP.TXT',
-            };
-          },
-          async getRowsRange() { return [{ Marker: 'MAT' }]; },
-          async getRows() { return [{ Marker: 'MAT' }]; },
+    // After C05.5.4.4, a bad master is quarantined individually and reported
+    // via a stable typed identity rather than rejecting the entire hydrate call.
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata() {
+          return {
+            datasetId: 'issue837:mat:r3',
+            datasetRevision: 4,
+            rowCount: 1,
+            fileName: 'PCF_MAT_MAP.TXT',
+          };
         },
-      }),
-      /materialMap dataset revision mismatch: expected 3, received 4/,
-    );
+        async getRowsRange() { staleRowReads++; throw Error('MUST_NOT_READ_STALE_MAT_MAP'); },
+        async getRows() { staleRowReads++; throw Error('MUST_NOT_READ_STALE_MAT_MAP'); },
+      },
+    }), true);
+    assert.equal(staleRowReads, 0, 'Mat Map revision mismatch must veto row materialization');
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity.materialMap, {
+      masterKey: 'materialMap',
+      datasetId: 'issue837:mat:r3',
+      domain: 'restore-storage',
+      code: 'REVISION_MISMATCH',
+      stage: 'metadata-validate',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.materialMap.message,
+      /Persisted materialMap dataset revision mismatch: expected 3, received 4/);
+    assert.equal(stateRef.current.masterContext.datasetRefs.materialMap, undefined,
+      'a stale Mat Map revision cannot become active authority');
+    assert.equal(stateRef.current.masterContext.appliedMappingRevision.materialMap, undefined,
+      'stale Mat Map applied revision cannot reach live configuration');
   } finally {
     storage.restore();
   }
