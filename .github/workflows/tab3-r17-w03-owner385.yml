@@ -1,0 +1,49 @@
+name: Tab3 R17 W03 Original 385 Owner Decision Matrix
+on:
+  push:
+    branches:
+      - 'lfj/212-r17-w03-owner385-attestation-matrix-20261011'
+  pull_request:
+    paths:
+      - 'tests/recovery-preview/tab3-r17-w03-owner385-matrix.py'
+      - '.github/workflows/tab3-r17-w03-owner385.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only-exact-original-audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11','3.12']
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Reject changed candidate originals
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo 'a73d86cfb8a69ed0aad7e4656dd7a8d62075ffe1c3bf1bae0959601afbfdadbc  docs/Masters/ImportedRawLineListLL.xlsx' | sha256sum --check
+          echo '60d30737680e6b6f2d23bc3f9aeafb794b326cb3087d79f6d8e9902b64758fb5  docs/Masters/LineDump.xlsx' | sha256sum --check
+      - name: Legacy source census regression and independent 385 matrix
+        run: |
+          python tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py --self-test
+          python tests/recovery-preview/tab3-r17-w03-owner385-matrix.py --self-test
+          python tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py --out "${{ runner.temp }}/tab3-w03-prior-census.json"
+          python tests/recovery-preview/tab3-r17-w03-owner385-matrix.py --out "${{ runner.temp }}/tab3-w03-owner385-matrix.json"
+      - name: Preserve original exact SHA and candidate-key matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tab3-w03-owner385-py${{ matrix.python }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/tab3-w03-prior-census.json
+            ${{ runner.temp }}/tab3-w03-owner385-matrix.json
+          retention-days: 14
+          if-no-files-found: warn
