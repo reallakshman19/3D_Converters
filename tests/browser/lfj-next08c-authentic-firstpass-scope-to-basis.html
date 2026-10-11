@@ -1,0 +1,182 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>LFJ #212 R15 native browser authentic Firstpass selected source to GC-PW InputBasis (test-only)</title>
+<main><h1>Firstpass original source → selected A3 manifest → GC-PW basis</h1><pre id="result">RUNNING</pre></main>
+<script type="module">
+import {runPagedCompactResearch} from '../../lfj/qualification/experiments/consumer-sparse-b0/compact-paged-research.mjs';
+import {readVerifiedOriginalRootManifest} from '../../lfj/consumers/3d-converters/verified-source-root-reader.mjs';
+import {createPreviewBasis} from '../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js';
+
+const SOURCE_SHA='6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288';
+const XML_SHA='feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38';
+const SITE='/ASIM-1885-CU-PI';
+const MASTERS=[
+ ['linelist','../../docs/Masters/ImportedRawLineListLL.xlsx','a73d86cfb8a69ed0aad7e4656dd7a8d62075ffe1c3bf1bae0959601afbfdadbc'],
+ ['pipingClass','../../docs/Masters/Piping_class_master.json','74997209ffbbf4c5e1eacc9948ec89a5e2f59ad87cc3dd7cfca6d24166d7fab1'],
+ ['material','../../docs/Masters/PCF_MAT_MAP.TXT','84b2e94488e5bceb135557a9272b0a75a87d9a53c46783865373b18f7c4dda29'],
+ ['weight','../../docs/Masters/wtValveweights.json','c6dc8cb1347d7250666979eb64a7e2a9e56dce216aeecaf4dc38b165137b6ada']
+];
+const digest=async data=>{
+ const bytes=typeof data==='string'?new TextEncoder().encode(data):data;
+ const hash=await crypto.subtle.digest('SHA-256',bytes);
+ return Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('');
+};
+const fail=(code,detail)=>{throw Object.assign(new Error(detail),{code});};
+const check=(value,code,message)=>{if(!value)fail(code,message);};
+const sourceURL='../../Benchmarks/1885Sjson/Sjson.json';
+const xmlURL='../../Benchmarks/1885Sjson/FirstpassXML';
+async function fetched(url){
+ const response=await fetch(url,{cache:'no-store'});
+ check(response.ok,'ORIGINAL_UNAVAILABLE','Could not fetch checked-in original '+url);
+ return await response.arrayBuffer();
+}
+function finish(result){
+ globalThis.__NEXT08C_RESULT__=result;
+ document.getElementById('result').textContent=JSON.stringify(result,null,2);
+}
+let sourceDb=null,committed=false,step='start';
+try{
+ const start=performance.now();
+ step='read originals';
+ const sourceBuffer=await fetched(sourceURL),xmlBuffer=await fetched(xmlURL);
+ const sourceSha256=await digest(sourceBuffer),xmlSha256=await digest(xmlBuffer);
+ check(sourceSha256===SOURCE_SHA,'SOURCE_SHA_MISMATCH','Real Firstpass original staged JSON drift');
+ check(xmlSha256===XML_SHA,'XML_SHA_MISMATCH','Real Firstpass original XML drift');
+ const blob=new Blob([sourceBuffer],{type:'application/json'});
+ check(blob.size===733806,'SOURCE_SIZE_MISMATCH','Original staged JSON size changed');
+ const xmlText=new TextDecoder('utf-8',{fatal:true}).decode(xmlBuffer);
+ const generation='r15-'+crypto.randomUUID();
+ sourceDb='lfj-next08c-'+generation;
+ const config={units:'mm',mode:'A',qualification:'SOURCE_ONLY_NOT_APPROVED'};
+ const configDigest=await digest(JSON.stringify(config));
+ step='commit actual original Blob catalog';
+ const committedSource=await runPagedCompactResearch({
+  blob,expectedSha256:sourceSha256,databaseName:sourceDb,
+  generation,revision:'R15_AUTHENTIC_FIRSTPASS_SOURCE_READ_ONLY'
+ });
+ check(committedSource.sourceSha256===SOURCE_SHA &&
+   committedSource.originalBytes===733806,'SOURCE_CATALOG_MISMATCH',
+ 'Actual committed catalog source hash/byte count drift');
+ committed=true;
+
+ step='A3 actual verified root reader';
+ const params={sourceDatabaseName:sourceDb,sourceGeneration:generation,
+   blob,expectedSha256:sourceSha256,xmlSha256,configDigest};
+ const selected=await readVerifiedOriginalRootManifest({
+  ...params,requestedScopeId:SITE
+ });
+ const all=await readVerifiedOriginalRootManifest({
+  ...params,requestedScopeId:'__ALL__'
+ });
+ check(selected.sourceSha256===SOURCE_SHA && selected.xmlSha256===XML_SHA,
+   'SOURCE_MANIFEST_MISMATCH','Original manifest must bind real full bytes');
+ check(selected.census.every(r=>r.scopeEvidence==='DIRECT_ATTRIBUTES'||r.scopeEvidence==='DIRECT_ROOT'),
+  'SOURCE_SCOPE_NOT_DIRECT','Original scope should come from direct root/attributes, not nested child');
+ check(selected.selectedRootCount>0 && selected.selectedRootCount<=selected.originalRootCount,
+   'SOURCE_SELECT_EMPTY','Site must select actual original roots');
+ check(selected.selected.every((r,i)=>r.selectedIndex===i &&
+   r.originalPath==='$['+r.originalRootIndex+']' && r.displayPath==='$['+i+']'),
+   'SOURCE_ORDER_LOST','Real indexed source original path and local display order lost');
+ check(selected.selectionDigestSha256!==all.selectionDigestSha256,
+   'SOURCE_SELECTION_DIGEST_MERGED','Selected SITE and explicit ALL must have distinct digests');
+ let unknownCode=null;
+ try{
+  await readVerifiedOriginalRootManifest({...params,
+   requestedScopeId:'/UNKNOWN-OWNER-ZONE-NEVER-IN-SOURCE'});
+ }catch(e){unknownCode=e?.code||e?.name;}
+ check(unknownCode==='SCOPE_UNKNOWN','UNKNOWN_SCOPE_NOT_REJECTED',
+   'Real attested original source reader must fail closed on unknown SITE');
+ let driftCode=null;
+ try{
+  await readVerifiedOriginalRootManifest({...params,
+   expectedSha256:'0'.repeat(64),requestedScopeId:SITE});
+ }catch(e){driftCode=e?.code||e?.name;}
+ check(Boolean(driftCode),'SOURCE_DRIFT_NOT_REJECTED',
+   'Real reader must reject fake SHA not silently use committed generation');
+
+ step='four pinned original master files: source fingerprints only';
+ const masters={};
+ const masterCensus={};
+ for(const [key,url,expectedSha] of MASTERS){
+  const bytes=await fetched(url);
+  const sha=await digest(bytes);
+  check(sha===expectedSha,'MASTER_SOURCE_SHA_MISMATCH','Original master '+key+' changed');
+  masterCensus[key]={bytes:bytes.byteLength,sha256:sha,sourceOnly:true};
+  masters[key]={
+   datasetId:'UNAPPROVED_SOURCE_FILE:'+key,
+   revision:sha,
+   rows:[{
+    originalSourceFileSha256:sha,originalSourceBytes:bytes.byteLength,
+    status:'SOURCE_CUSTODY_ONLY_NOT_PARSED_OR_OWNER_APPROVED'
+   }],
+   mapping:{
+    status:'MAPPING_NOT_APPROVED',
+    logicalLineList385:false,
+    engineeringFieldsResolved:false
+   }
+  };
+ }
+ step='unmodified real GC-PW InputBasis';
+ const stagedSource=new TextDecoder('utf-8',{fatal:true}).decode(sourceBuffer);
+ const build=async manifest=>createPreviewBasis({
+  domainId:'xml-cii/2019',
+  sources:[{sourceId:'FirstpassXML',mediaType:'application/xml',text:xmlText}],
+  stagedSource,
+  selection:[{
+    sourceId:'FirstpassXML',
+    selectionRef:'a3-original-selected:'+manifest.requestedScopeId+':'+manifest.selectionDigestSha256
+  }],
+  masters,config:{...config,originalSelectionDigest:manifest.selectionDigestSha256},
+  overrides:{},
+  sha256:digest
+ });
+ const selectedBasis=await build(selected),allBasis=await build(all);
+ check(selectedBasis.sourceRefs[0].sha256===XML_SHA &&
+   selectedBasis.stagedSourceSha256===SOURCE_SHA,
+   'INPUTBASIS_ORIGINAL_SOURCE_MISSING','Full original source not sealed');
+ check(selectedBasis.basisId!==allBasis.basisId &&
+   selectedBasis.selectionSha256!==allBasis.selectionSha256,
+   'INPUTBASIS_SELECTION_MERGED','Original explicit SITE and ALL not separated');
+ check(selectedBasis.scope[0].selectionRef.startsWith('a3-original-selected:'+SITE+':'),
+   'INPUTBASIS_NOT_SELECTED','GC-PW selectionRef lacks A3 chosen SITE/manifest');
+
+ finish({
+  ok:true,stage:'REAL_ORIGINAL_FIRSTPASS_A3_SOURCE_READER_TO_GCPW_BASIS',
+  nativeBrowser:true,temporaryOriginalIndexedDbCommitted:committed,
+  actualSourceSha256:sourceSha256,actualXmlSha256:xmlSha256,
+  originalJsonBytes:blob.size,
+  originalCatalogOccurrences:committedSource.occurrenceCount,
+  originalRootCount:selected.originalRootCount,
+  selectedScope:SITE,selectedRootCount:selected.selectedRootCount,
+  selectedRootSourcePaths:selected.selected.map(x=>x.originalPath),
+  selectedDisplayPaths:selected.selected.map(x=>x.displayPath),
+  sourceOwnershipEvidence:[...new Set(selected.census.map(x=>x.scopeEvidence))],
+  explicitAllManifestSeparate:selected.selectionDigestSha256!==all.selectionDigestSha256,
+  selectedBasisId:selectedBasis.basisId,
+  allBasisId:allBasis.basisId,
+  masterCensus,
+  rejectedUnknownScope:unknownCode,
+  rejectedOriginalShaDrift:driftCode,
+  ownerApproved385:false,
+  physicalFactsComputed:false,
+  realPreviewButtonIntegrated:false,
+  productionA3IndexedReceiptIssued:false,
+  productionSourceGenerationAuthenticated:false,
+  engineeringReady:false,
+  runAuthorized:false,
+  qualification:'AUTHENTIC_FIRSTPASS_SOURCE_ONLY_B1_CONSUMER_CANDIDATE',
+  elapsedMs:Number((performance.now()-start).toFixed(1))
+ });
+}catch(e){finish({ok:false,stage:step,error:String(e?.stack||e),
+ code:e?.code||'UNCLASSIFIED'});}
+finally{
+ // The research IDB is an isolated ephemeral qualification generation.
+ // No production catalogue, locks or user settings are touched.
+ if(sourceDb){
+  const req=indexedDB.deleteDatabase(sourceDb);
+  await new Promise(resolve=>{
+   req.onsuccess=resolve;req.onerror=resolve;req.onblocked=resolve;
+  });
+ }
+}
+</script>
