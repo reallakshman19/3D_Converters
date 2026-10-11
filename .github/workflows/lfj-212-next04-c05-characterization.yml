@@ -1,0 +1,39 @@
+name: LFJ 212 NEXT-04 C05 integration policy-neutral characterization
+on:
+  push:
+    branches: ['lfj/212-tab3-tab4-consolidated-20261011']
+    paths:
+      - 'tests/recovery-final-cii/xml-cii-c05-integration-contract-characterization.test.mjs'
+      - '.github/workflows/lfj-212-next04-c05-characterization.yml'
+  pull_request:
+    paths:
+      - 'tests/recovery-final-cii/xml-cii-c05-integration-contract-characterization.test.mjs'
+      - '.github/workflows/lfj-212-next04-c05-characterization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  observed-contracts-only:
+    name: Observed C05 restore and original full-Piping consumer, Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify actual checked-out source
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --check tests/recovery-final-cii/xml-cii-c05-integration-contract-characterization.test.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Policy-neutral exact-source characterizations (historic test expectations unchanged)
+        run: |
+          node --test tests/recovery-final-cii/xml-cii-c05-integration-contract-characterization.test.mjs
+          node --test tests/xml-cii-issue-881-per-master-restore-isolation.test.mjs tests/xml-cii-issue-893-consumer-authority-baseline.test.mjs
