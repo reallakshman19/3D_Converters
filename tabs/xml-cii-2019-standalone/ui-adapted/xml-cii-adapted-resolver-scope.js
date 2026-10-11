@@ -79,7 +79,9 @@ function sourceKey(value) {
 function validScopeId(index, requested) {
   if (requested === ALL_SCOPE_ID) return requested;
   if ((index?.scopes || []).some((scope) => scope.id === requested)) return requested;
-  return index?.indexable ? index.defaultScopeId : ALL_SCOPE_ID;
+  // Preserve an explicitly selected unsupported owner/zone as an invalid
+  // selection. The real Build must reject it; never choose another owner or ALL.
+  return requested || index?.defaultScopeId || ALL_SCOPE_ID;
 }
 
 // The scope is a Build input, not view-only UI state. Invalidate its product
@@ -142,7 +144,7 @@ function scopeNote(scopeState) {
       : 'Only All scopes is available for original-File indexed Build until native hierarchy selection is implemented.';
   }
   if (!index.indexable) {
-    return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
+    return 'This JSON shape cannot be indexed. Select All scopes explicitly; a selected owner/zone will be rejected.';
   }
   const selected = (index.scopes || []).find((scope) => scope.id === scopeState.selectedScopeId);
   if (scopeState.selectedScopeId === ALL_SCOPE_ID) {
