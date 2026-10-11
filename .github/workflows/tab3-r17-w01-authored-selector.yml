@@ -1,0 +1,65 @@
+name: Tab3 R17 W01 Authored Selector Preview Diagnostic
+on:
+  push:
+    branches:
+      - 'lfj/212-r17-w01-authored-selector-diagnostic-20261011'
+  pull_request:
+    paths:
+      - 'tests/recovery-preview/tab3-r17-w01-*'
+      - '.github/workflows/tab3-r17-w01-authored-selector.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-boundary-characterization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact checkout and three source-path baseline observations
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          node --test tests/recovery-preview/tab3-r17-w01-source-seam.test.mjs
+  actual-authored-docs-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin original Firstpass input bytes at exact head
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json' | sha256sum --check
+          echo 'feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38  Benchmarks/1885Sjson/FirstpassXML' | sha256sum --check
+          node --check tests/recovery-preview/tab3-r17-w01-authored-selector-browser.mjs
+      - name: Install reproducible native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Characterize real authored docs UI selector -> actual Preview click
+        run: node tests/recovery-preview/tab3-r17-w01-authored-selector-browser.mjs
+      - name: Archive diagnostic receipt, screenshot even on red
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tab3-r17-w01-authored-selector-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/r17-w01-authored-selector-receipt.json
+            ${{ runner.temp }}/r17-w01-authored-selected-preview.png
+          if-no-files-found: warn
+          retention-days: 14
