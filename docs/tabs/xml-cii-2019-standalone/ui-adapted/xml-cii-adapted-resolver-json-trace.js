@@ -388,22 +388,53 @@ function renderTraceTreeHtml(parent, state) {
   }
   const container = createElement('div', '', 'xml-cii-tree-container');
   if (container.style) Object.assign(container.style, { maxHeight: '400px', overflowY: 'auto', backgroundColor: '#0b1329', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', padding: '12px' });
-  const renderPosition = (position) => `
-    <details style="margin-left: 12px; margin-top: 4px;">
-      <summary style="font-size: 0.78rem; color: #fbbf24; cursor: pointer;">📍 ${position.label} (${position.count} items)</summary>
-      <div style="margin-left: 18px; font-size: 0.74rem; color: #94a3b8; font-family: monospace; border-left: 2px solid rgba(148,163,184,0.15); padding-left: 6px; margin-top: 2px; white-space: pre-wrap; word-break: break-all;">${position.concatenated}</div>
-    </details>`;
-  const renderBore = (bore) => `
-    <details style="margin-left: 12px; margin-top: 4px;">
-      <summary style="font-size: 0.84rem; color: #e2e8f0; font-weight: bold; cursor: pointer;">🪈 Bore: ${bore.bore} (${bore.count} items)</summary>
-      ${bore.positions.map(renderPosition).join('')}
-    </details>`;
-  const renderBranch = (branch) => `
-    <details style="margin-top: 6px; border-bottom: 1px solid rgba(148,163,184,0.06); padding-bottom: 6px;">
-      <summary style="font-size: 0.88rem; color: #38bdf8; font-weight: bold; cursor: pointer;">🌿 Branch: ${branch.branchName} (${branch.count} rows)</summary>
-      ${branch.bores.map(renderBore).join('')}
-    </details>`;
-  container.innerHTML = treeData.map(renderBranch).join('');
+  // Original engineering source strings are display text, never HTML.
+  // They are loaded from XML/JSON and may legitimately contain "<", quotes,
+  // entity-looking strings or arbitrary labels.
+  const makeDetails = (styles) => {
+    const element = createElement('details');
+    if (element.style) Object.assign(element.style, styles);
+    return element;
+  };
+  const makeSummary = (label, styles) => {
+    const element = createElement('summary', label);
+    if (element.style) Object.assign(element.style, styles);
+    return element;
+  };
+  for (const branch of treeData) {
+    const branchDetails = makeDetails({
+      marginTop: '6px', borderBottom: '1px solid rgba(148,163,184,0.06)',
+      paddingBottom: '6px',
+    });
+    branchDetails.appendChild(makeSummary(
+      '🌿 Branch: ' + branch.branchName + ' (' + branch.count + ' rows)',
+      { fontSize: '0.88rem', color: '#38bdf8', fontWeight: 'bold', cursor: 'pointer' },
+    ));
+    for (const bore of branch.bores) {
+      const boreDetails = makeDetails({ marginLeft: '12px', marginTop: '4px' });
+      boreDetails.appendChild(makeSummary(
+        '🪈 Bore: ' + bore.bore + ' (' + bore.count + ' items)',
+        { fontSize: '0.84rem', color: '#e2e8f0', fontWeight: 'bold', cursor: 'pointer' },
+      ));
+      for (const position of bore.positions) {
+        const positionDetails = makeDetails({ marginLeft: '12px', marginTop: '4px' });
+        positionDetails.appendChild(makeSummary(
+          '📍 ' + position.label + ' (' + position.count + ' items)',
+          { fontSize: '0.78rem', color: '#fbbf24', cursor: 'pointer' },
+        ));
+        const members = createElement('div', position.concatenated);
+        if (members.style) Object.assign(members.style, {
+          marginLeft: '18px', fontSize: '0.74rem', color: '#94a3b8',
+          fontFamily: 'monospace', borderLeft: '2px solid rgba(148,163,184,0.15)',
+          paddingLeft: '6px', marginTop: '2px', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+        });
+        positionDetails.appendChild(members);
+        boreDetails.appendChild(positionDetails);
+      }
+      branchDetails.appendChild(boreDetails);
+    }
+    container.appendChild(branchDetails);
+  }
   section.appendChild(container);
   parent.appendChild(section);
 }
