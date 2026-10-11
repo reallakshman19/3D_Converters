@@ -21,9 +21,10 @@ const server = createServer(async (request, response) => {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const target = path.resolve(root, `.${route.endsWith('/') ? `${route}index.html` : route}`);
     if (!target.toLowerCase().startsWith(`${root.toLowerCase()}${path.sep}`)) throw new Error('Outside root');
-    const types = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
+    const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
+    const payload = await readFile(target);
     response.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-    response.end(await readFile(target));
+    response.end(payload);
   } catch (error) { response.writeHead(404); response.end(String(error)); }
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
