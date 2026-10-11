@@ -1,0 +1,50 @@
+name: LFJ 212 NEXT-08A B1 original Line List and selected Preview basis
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lfj-212-next08a-b1-line-source-custody.yml'
+      - 'tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py'
+      - 'tests/recovery-preview/xml-cii-next08a-b1-selected-preview-contract.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  b1-original-line-key-and-scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check exact source and diagnostic syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object 'docs/Masters/ImportedRawLineListLL.xlsx')" = "$(git rev-parse HEAD:'docs/Masters/ImportedRawLineListLL.xlsx')"
+          node --check tests/recovery-preview/xml-cii-next08a-b1-selected-preview-contract.test.mjs
+          python3 -m py_compile tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py
+      - name: Independent B1 original workbook/key mapping candidates
+        run: |
+          python3 tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py --self-test
+          python3 tests/recovery-preview/next08a-b1-linelist-key-candidate-probe.py --out ${{ runner.temp }}/next08a-b1-original-line-key-receipt.json
+      - name: Actual Preview button basis ignores external Owner-zone selection
+        run: |
+          node --test tests/recovery-preview/xml-cii-next08a-b1-selected-preview-contract.test.mjs
+      - name: Persist full read-only original candidate census and explicit nonapproval
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-next08a-b1-source-candidates-node${{ matrix.node }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/next08a-b1-original-line-key-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
