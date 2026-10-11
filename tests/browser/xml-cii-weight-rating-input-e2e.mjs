@@ -39,13 +39,21 @@ try {
   for (const format of seed.formats) {
     format.lineKey.tokenPosition = '4'; format.pipingClass.tokenPosition = '5'; format.bore.tokenPosition = '3';
   }
-  await page.addInitScript((json) => {
+  await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
+  // Seed only after the page has a real same-origin storage context. A
+  // preload init-script may execute before the app's source phase mounts.
+  await page.evaluate((json) => {
     if (!localStorage.getItem('xml-cii-regex-config-v1')) localStorage.setItem('xml-cii-regex-config-v1', json);
   }, JSON.stringify(seed));
-  await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
   // Explicitly navigate to the authored Source/Loader phase after tab mount:
   // a persisted active sub-tab must not hide the original source input.
+  if (await page.locator('button[data-phase="source"]').count() === 0) {
+    const state = await page.evaluate(() => ({ title: document.title,
+      body: document.body?.innerText?.slice(0,500) || '',
+      phaseButtons: [...document.querySelectorAll('[data-phase]')].map(n => n.getAttribute('data-phase')) }));
+    throw new Error('ACTUAL_STANDALONE_SOURCE_NOT_MOUNTED '+JSON.stringify({state,errors}));
+  }
   await page.locator('button[data-phase="source"]').click();
   if (await page.locator('button[data-sub-tab="loader"]').count())
     await page.locator('button[data-sub-tab="loader"]').click();
@@ -66,6 +74,12 @@ try {
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
   // Explicitly navigate to the authored Source/Loader phase after tab mount:
   // a persisted active sub-tab must not hide the original source input.
+  if (await page.locator('button[data-phase="source"]').count() === 0) {
+    const state = await page.evaluate(() => ({ title: document.title,
+      body: document.body?.innerText?.slice(0,500) || '',
+      phaseButtons: [...document.querySelectorAll('[data-phase]')].map(n => n.getAttribute('data-phase')) }));
+    throw new Error('ACTUAL_STANDALONE_SOURCE_NOT_MOUNTED '+JSON.stringify({state,errors}));
+  }
   await page.locator('button[data-phase="source"]').click();
   if (await page.locator('button[data-sub-tab="loader"]').count())
     await page.locator('button[data-sub-tab="loader"]').click();
