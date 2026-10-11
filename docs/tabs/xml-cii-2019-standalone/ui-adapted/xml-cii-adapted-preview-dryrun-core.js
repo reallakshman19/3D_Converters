@@ -401,9 +401,23 @@ function previewWorkingDocument(xmlText, sourceDocument = null) {
   }
 }
 
+// Preserve ORIGINAL source node ordinals even when Preview removes calculation
+// nodes. DOM node identity is authoritative: NodeNumber=-1 and duplicate branch
+// names must not collapse separate XML source occurrences.
+export function captureXmlCiiOriginalNodeOrdinals(document) {
+  const ordinals = new WeakMap();
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    _xmlChildrenByName(branch, 'Node').forEach((node, index) => {
+      ordinals.set(node, index);
+    });
+  }
+  return ordinals;
+}
+
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {}) {
   const document = previewWorkingDocument(xmlText, runtime.sourceDocument);
   if (!document) return { branchRows: [], nodeRows: [] };
+  const originalNodeOrdinals = captureXmlCiiOriginalNodeOrdinals(document);
 
   // Node Block Invariant Cleanup Sync (Parity with xml-cii-node-block-cleanup.js)
   const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
@@ -577,15 +591,19 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw })
     });
 
-    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows });
+    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows, originalNodeOrdinals });
   }
   return { branchRows, nodeRows };
 }
 
-function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows }) {
+function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows, originalNodeOrdinals }) {
   let previousPosition = null;
   const branchNodes = _xmlChildrenByName(branch, 'Node');
   branchNodes.forEach((node, nodeIdx) => {
+    const originalNodeOrdinal = originalNodeOrdinals.get(node);
+    if (!Number.isSafeInteger(originalNodeOrdinal)) {
+      throw new Error('Combined Preview original node occurrence identity missing; conversion blocked.');
+    }
     const positionText = _xmlText(node, 'Position');
     const computedLengthMm = previousPosition ? _pointDistanceMm(previousPosition, positionText) : null;
     const explicitLengthMm = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm'));
@@ -596,7 +614,7 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreM
     const dtxrRes = weightEligible ? resolveXmlCiiNodeDtxr(node, stagedIndex, config) : { value: '', source: 'not-weight-eligible', matchedKey: '' };
     const ranking = (weightEligible && boreMm != null && branchRating && lengthMm != null) ? rankXmlCiiWeightCandidates({ boreMm, rating: branchRating, lengthMm, nodeName: _xmlText(node, 'NodeName'), componentType, componentRefNo: _xmlText(node, 'ComponentRefNo'), dtxr: dtxrRes.value || '' }, config, { includeRejected: true }) : { nodeHint: null, candidates: [], rejectedCandidates: [], best: null };
     const candidates = ranking.candidates.slice(0, 5);
-    const weightKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx);
+    const weightKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, originalNodeOrdinal);
     const overrideWeight = Number(config?.overrides?.rigidWeight?.[weightKey]);
     const selectedWeight = Number.isFinite(overrideWeight) && overrideWeight > 0 ? overrideWeight : null;
     const selectedMatch = selectedWeight != null ? { ...(candidates[0] || {}), selectedWeight, suggestedWeight: selectedWeight, weight: selectedWeight, selectedOverride: true } : (ranking.best || null);
@@ -606,7 +624,7 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreM
         key: weightKey,
         branchName,
         branchOccurrenceIndex,
-        nodeOrdinal: nodeIdx,
+        nodeOrdinal: originalNodeOrdinal,
         nodeNumber,
         componentType,
         boreMm,
