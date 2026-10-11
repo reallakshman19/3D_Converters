@@ -200,6 +200,31 @@ test('NEXT-06D-01 exhaustive original → retained model → all six real CII sl
   'FIRST DIVERGENCE: source original #30 has no same-number CII RESTRANT slot');
  assert.ok(result.cii.active.some(s=>s.nodeNumber===20&&s.typeCode===14),
   'First coincident source #20 does have real CII RESTRANT block');
+ // First unambiguous diagnostic-contract defect: native cleanup says it
+ // transferred twelve source supports by short hops <=6mm, but the separate
+ // 0.5mm audit rejects every candidate. These are not proven lost restraints.
+ const cleanupPairs=[[630,620],[640,620],[1070,1060],[1080,1060],
+  [1510,1500],[1520,1500],[1950,1940],[1960,1940],
+  [2390,2380],[2400,2380],[2830,2820],[2840,2820]];
+ for(const [sourceNumber,assignedNumber] of cleanupPairs){
+  const src=result.assessed.rows.find(r=>r.nodeNumber===String(sourceNumber));
+  const assigned=result.runtime.assignments.find(a=>a.nodeNumber===assignedNumber);
+  assert.ok(src&&assigned,'Read exact original+native assigned source nodes');
+  assert.equal(src.auditStatus,'unresolved',
+   '0.5mm audit claims no surviving candidate for original '+sourceNumber);
+  const reported=result.runtime.droppedShortNodes.some(message=>
+    message.includes('NodeNumber '+sourceNumber+':')
+    &&message.includes('restraint transferred to NodeNumber '+assignedNumber));
+  assert.equal(reported,true,
+    'Native cleanup independently records transfer '+sourceNumber+'→'+assignedNumber);
+  const distance=Math.hypot(...src.position.map((x,i)=>x-assigned.position[i]));
+  assert.ok(distance>0.5&&distance<=6,
+   'Cleanup <=6mm transfer exceeds audit 0.5mm locality, distance='+distance);
+  assert.ok(result.cii.active.some(slot=>slot.nodeNumber===assignedNumber&&slot.typeCode===14),
+   'Real CII has type14 assigned block at retained node '+assignedNumber);
+  assert.equal(src.originToEmittedSlotProven,false,
+   'Cleanup diagnostic is numeric-only, not an approved original occurrence→slot contract');
+ }
  console.log('NEXT06D_01_RECEIPT '+JSON.stringify({
   sourceSha256:result.sourceSha256,outputSha256:result.outputSha256,
   sourceRestraintOccurrences:51,fullAuditEvents:result.runtime.auditEvents.length,
