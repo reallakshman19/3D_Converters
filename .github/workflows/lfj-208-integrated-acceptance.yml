@@ -8,6 +8,11 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js'
       - 'tests/lfj-208-integrated-index-census.test.mjs'
+      - 'tests/lfj-208-unsupported-owner-scope.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js'
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,8 +39,10 @@ jobs:
         run: |
           cmp -s tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js docs/tabs/xml-cii-2019-standalone/xml-cii-regex-bounded-evidence.js
           cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js
-      - name: Exact current J02 matchCount/index/census fail-closed regression
-        run: node --test tests/lfj-208-integrated-index-census.test.mjs
+          cmp -s tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js docs/tabs/xml-cii-2019-standalone/xml-cii-json-hierarchy-scope.js
+          cmp -s tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-scope.js
+      - name: Exact current J02 matchCount/index/census and original owner scope fail-closed regression
+        run: node --test tests/lfj-208-integrated-index-census.test.mjs tests/lfj-208-unsupported-owner-scope.test.mjs
       - name: Frozen original Firstpass full ledger and two CSV oracle (author preflight)
         run: node --max-old-space-size=2048 lfj/qualification/experiments/consumer-sparse-b0-xml-match/firstpass-source-parity-oracle.mjs
       - name: Frozen original NC 10.23MiB negative full ledger and two CSV oracle
