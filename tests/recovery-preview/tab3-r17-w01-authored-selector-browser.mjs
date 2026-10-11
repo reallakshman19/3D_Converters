@@ -70,11 +70,11 @@ try{
   await page.getByRole('button',{name:/Piping Class/}).last().click();
   await page.locator('input[data-master-file="pipingClass"]').setInputFiles({
     name:'r17-synthetic-piping.csv',mimeType:'text/csv',
-    buffer:Buffer.from('PipingClass,Material\\n31441C4,ASTM A106-B\\n')});
+    buffer:Buffer.from('PipingClass,Material\n31441C4,ASTM A106-B\n')});
   await page.getByRole('button',{name:/Line List/}).last().click();
   await page.locator('input[data-master-file="lineList"]').setInputFiles({
     name:'r17-synthetic-lines.csv',mimeType:'text/csv',
-    buffer:Buffer.from('lineKey1,lineKey2\\nP,8810021\\n')});
+    buffer:Buffer.from('lineKey1,lineKey2\nP,8810021\n')});
   log('SYNTHETIC_MASTER_CONTROLS_LOADED_NOT_APPROVED');
   step='actual-indexed-resolver-mode';
   await page.locator('button[data-phase="json-trace"]').click();
