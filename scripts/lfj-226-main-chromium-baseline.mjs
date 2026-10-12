@@ -108,7 +108,8 @@ async function run(browser,item){
     if(!nav)return data;
     const sourceOK=await stage(page,session,data,'upload-original-xml',async()=>{
       await page.locator('[data-field="source-file"]').setInputFiles(item.xml);
-      await page.locator('[data-phase="json-trace"]').click();
+      await page.waitForFunction(()=>document.querySelector('.xml-cii-header-status-row')?.textContent?.includes('Source: Loaded'),null,{timeout:30000});
+      await page.evaluate(()=>document.querySelector('[data-phase="json-trace"]')?.click());
     },()=>page.locator('[data-field="staged-json-file"]').waitFor({timeout:10000}));
     if(!sourceOK)return data;
     const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-field="staged-json-file"]').setInputFiles(item.source.file),
@@ -148,11 +149,13 @@ try{
     {kind:'FIRSTPASS',source:await original(FIRST),xml:'Benchmarks/1885Sjson/FirstpassXML'},
     {kind:'NC_NEGATIVE',source:await original(NC),xml:'Benchmarks/1885_NC/1885_NC.topology.input.xml'}
   ];
-  for(const size of [30,60,100])cases.push({
+  const only=process.env.LFJ226_ONLY||'';
+  for(const size of [30,60,100].filter(n=>!only||only==='GENERATED_CAPACITY_'+n+'MiB'))cases.push({
     kind:'GENERATED_CAPACITY_'+size+'MiB',source:await generated(size),
     xml:'Benchmarks/1885Sjson/FirstpassXML'
   });
   for(const item of cases){
+    if(only&&item.kind!==only)continue;
     const result=await run(browser,item);
     results.cases.push(result);
     await persist();
