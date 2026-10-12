@@ -59,7 +59,7 @@ try{
    await page.waitForFunction(()=>{const s=document.querySelector('[data-lfj-o1-status]')?.textContent||'';
      return s.startsWith('O1 matched trace source-path verified')||s.includes('domain blocked')||s.includes('Worker FAILED');},{},{timeout:100000});
  }
- const snap=async(step)=>{record.steps.push({step,status:await status(),controls:await exports(),workers:record.workers.length,downloads:record.downloads.length});};
+ const snap=async(step)=>{record.steps.push({step,status:await page.locator('[data-lfj-o1-status]').count()?await status():'O1 panel absent (JSON Trace disabled)',controls:await exports(),workers:record.workers.length,downloads:record.downloads.length});};
  if(kind==='race'){
    await load(original,'W08-A.json');await committed(sha(original));await snap('A-committed');
    await load(B,'W08-B.json');await load(C,'W08-C-last-user.json');
