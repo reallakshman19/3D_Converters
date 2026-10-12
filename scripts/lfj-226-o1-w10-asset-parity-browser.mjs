@@ -24,6 +24,7 @@ const record={schema:'LFJ226.O1.W10.ActualRouteAssetParity.v1',variant,route,
   workers:[],downloads:[],failedRuntimeResponses:[],pageErrors:[],pass:false};
 const browser=await chromium.launch({headless:true});
 let page,byteFile,countFile;
+record.downloadEvents=0;
 const start=performance.now();
 function note(phase,detail){record.steps.push({phase,atMs:Math.round(performance.now()-start),detail});}
 async function prepareEdges(){
@@ -80,10 +81,10 @@ async function refuse(file,code,label){
   label+' visible typed refusal required: '+status);
  assert.equal(await page.locator('[data-lfj-o1-action^="export-"]').count(),0,
   label+' must remove prior CSV export controls');
- const previous=record.downloads.length;
+ const previous=record.downloadEvents;
  await page.locator('[data-action="download-node-wise-trace-csv"]').click().catch(()=>{});
  await page.waitForTimeout(350);
- assert.equal(record.downloads.length,previous,'no old authorized O1 CSV');
+ assert.equal(record.downloadEvents,previous,'no stale browser download after refusal');
  record.steps.push({phase:label,code,status,zeroControls:true,
    atMs:Math.round(performance.now()-start)});
 }
@@ -91,6 +92,7 @@ try{
  page=await browser.newPage({acceptDownloads:true});
  page.setDefaultTimeout(30000);
  page.on('worker',w=>record.workers.push(w.url()));
+ page.on('download',()=>record.downloadEvents++);
  page.on('pageerror',e=>record.pageErrors.push(String(e).slice(0,350)));
  page.on('response',r=>{
   const url=r.url();
