@@ -171,6 +171,15 @@ export async function startLfjO1Domain(session,stateRef){
   const sourceText=state.sourceText||'';
   const sourceKind=state.sourceKind||'auto';
   if(!sourceText||sourceKind==='inputxml')throw typed('O1_ORIGINAL_XML_REQUIRED');
+  const scopeId=state.jsonTraceScopeId||'';
+  if(scopeId&&scopeId!=='__ALL__'){
+    const model=state.resolverJsonTraceO1ScopeReadModel;
+    if(model?.schema!=='LFJ.O1.HierarchyScopes.v1'||
+       model.sourceRefId!==job.ref||model.sourceSha256!==job.basis.sourceSha256||
+       model.sourceRevision!==job.basis.sourceRevision||model.indexable!==true||
+       !model.scopes?.some(s=>s.id===scopeId&&s.itemCount===model.itemCount))
+      throw typed('O1_SCOPE_NOT_SOURCE_AUTHORIZED');
+  }
   const rootId=JSON.stringify(['lfj-json-value/v1',job.ref,job.basis.sourceRevision,'']);
   const root=await job.store.lookupCommittedPair(rootId);
   if(session.job!==job||job.cancelled)throw typed('O1_SOURCE_STALE');

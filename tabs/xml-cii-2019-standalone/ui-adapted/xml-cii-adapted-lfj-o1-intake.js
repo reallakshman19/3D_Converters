@@ -9,8 +9,43 @@ import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/sourc
 import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
+import {refreshResolverHierarchyScopeControl} from './xml-cii-adapted-resolver-scope.js';
 
 const sessions=new WeakMap();
+const SCOPE_SCHEMA='LFJ.O1.HierarchyScopes.v1';
+const ALL_SCOPE='__ALL__';
+function clearScope(stateRef,container){
+ if(!stateRef?.current)return;
+ stateRef.current={...stateRef.current,jsonTraceScopeId:ALL_SCOPE,
+   resolverJsonTraceO1ScopeReadModel:null};
+ refreshResolverHierarchyScopeControl(container,stateRef);
+}
+async function discoverWorkerScopes(job,session,stateRef,container){
+ const model=await new Promise((resolve,reject)=>{
+  const worker=new Worker(new URL('../workers/lfj-o1-hierarchy-scope-worker.mjs',import.meta.url),{type:'module'});
+  job.scopeWorker=worker;
+  const timer=setTimeout(()=>{worker.terminate();reject(error('O1_SCOPE_WORKER_TIMEOUT'));},60000);
+  worker.onerror=()=>{clearTimeout(timer);worker.terminate();reject(error('O1_SCOPE_WORKER_FAILED'));};
+  worker.onmessage=({data:m})=>{
+   clearTimeout(timer);worker.terminate();job.scopeWorker=null;
+   if(m?.schema!==SCOPE_SCHEMA||m.kind!=='SCOPE_RESULT'||
+      m.jobId!==job.id||m.sourceRefId!==job.ref||
+      m.sourceSha256!==job.basis.sourceSha256||
+      m.sourceRevision!==job.basis.sourceRevision){
+     reject(error('O1_SCOPE_SOURCE_BASIS'));return;
+   }
+   resolve(m);
+  };
+  worker.postMessage({schema:SCOPE_SCHEMA,kind:'DISCOVER',
+    jobId:job.id,sourceRefId:job.ref,sourceSha256:job.basis.sourceSha256,
+    sourceRevision:job.basis.sourceRevision,blob:job.file});
+ });
+ if(session.job!==job||job.cancelled)return;
+ stateRef.current={...stateRef.current,
+   resolverJsonTraceO1ScopeReadModel:model,jsonTraceScopeId:ALL_SCOPE};
+ refreshResolverHierarchyScopeControl(container,stateRef);
+}
+
 const error=(code)=>Object.assign(new Error(code),{code});
 const safeCode=e=>{
   const code=String(e?.code||e?.message||'LFJ_SOURCE_FAILED').slice(0,100);
@@ -43,6 +78,7 @@ async function revoke(job){
   if(!job)return;
   job.cancelled=true;
   try{job.worker?.terminate();}catch{}
+  try{job.scopeWorker?.terminate();}catch{}
   try{await job.store?.abort();}catch{}
   try{job.store?.close();}catch{}
   await deleteDb(job.databaseName);
@@ -87,7 +123,8 @@ async function finish(job,m){
   job.summary=s;
   return s;
 }
-async function scan(file,session){
+async function scan(file,session,stateRef,container){
+  clearScope(stateRef,container);
   // Intent is ordered at the browser change event, not after asynchronous IDB
   // cleanup. A prior scan must never install a job after a newer selection.
   const request=++session.requestSeq;
@@ -103,7 +140,7 @@ async function scan(file,session){
   if(file.size>O1_SOURCE_MAX_BYTES)throw error('O1_SOURCE_BYTE_LIMIT');
   const uuid=crypto.randomUUID();
   const job={id:uuid,ref:'lfj226-'+uuid,databaseName:'lfj226-source-'+uuid,
-    file,worker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
+    file,worker:null,scopeWorker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
   session.job=job;
   status(session,'LFJ Worker: reading original Blob off the UI thread...');
   return await new Promise((resolve,reject)=>{
@@ -140,6 +177,14 @@ async function scan(file,session){
     status(session,'LFJ source index COMMITTED: '+summary.occurrenceCount+
       ' original occurrences; SHA '+summary.sourceSha256.slice(0,12)+
       '. Trace/CSV NOT authorized by this intake.');
+    void discoverWorkerScopes(job,session,stateRef,container).catch(e=>{
+      if(session.job!==job||job.cancelled)return;
+      stateRef.current={...stateRef.current,jsonTraceScopeId:ALL_SCOPE,
+        resolverJsonTraceO1ScopeReadModel:{schema:SCOPE_SCHEMA,sourceRefId:job.ref,
+          sourceSha256:job.basis.sourceSha256,sourceRevision:job.basis.sourceRevision,
+          indexable:false,scopes:[],reason:String(e?.code||'O1_SCOPE_WORKER_FAILED')}};
+      refreshResolverHierarchyScopeControl(container,stateRef);
+    });
     return summary;
   }).catch(async e=>{
     if(request===session.requestSeq&&session.job===job){
@@ -213,7 +258,7 @@ export function installLfjO1SourceIntake(container,stateRef){
     event.stopImmediatePropagation();
     const file=event.target.files?.[0];
     if(!file)return;
-    void scan(file,session).catch(e=>{
+    void scan(file,session,stateRef,container).catch(e=>{
       // A superseded request is not a failure of the newer user selection.
       if(e?.code!=='LFJ_SOURCE_SUPERSEDED'&&session.status.startsWith('LFJ Worker:'))
         status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');

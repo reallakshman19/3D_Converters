@@ -58,22 +58,43 @@ try{
  assert.equal(record.originalCsvControls,2);
  assert.ok(record.workers.some(w=>w.includes('source-browser-worker.mjs'))&&
    record.workers.some(w=>w.includes('lfj-o1-resolver-domain-worker.mjs')));
- // Since the original Worker-backed File never entered stagedJsonText, this
- // selector cannot be used to claim an active-scope transition was tested.
- record.userScopePositive=record.scopeAfter.disabled?'NOT_PROVEN_SELECTOR_DISABLED':'SELECTOR_ENABLED_NOT_TESTED';
- record.scopeReadModelGap=!!(index.indexable&&record.scopeAfter.disabled);
- // Real config invalidation while trace ready — must revoke both exports.
- const control=page.locator('[data-field="resolver-join-mode"]');
- const old=await control.inputValue();
- await control.selectOption(old==='unique'?'first':'unique');
- record.postConfigExportControls=await page.locator('[data-lfj-o1-action^="export-"]').count();
- assert.equal(record.postConfigExportControls,0);
- assert.equal(record.downloadEvents,0);
- record.nc.positiveOracleAvailable=ncXml.length>0;
- record.nc.note=ncXml.length===0?'checked-in NC topology XML is ZERO BYTES, cannot be a compatible PSI116 original XML witness':'not verified compatible';
+ await page.waitForFunction(()=>{
+   const el=document.querySelector('[data-field="resolver-hierarchy-scope"]');
+   return el&&!el.disabled&&[...el.options].some(o=>o.value==='/ASIM-1885-CU-PI');
+ },null,{timeout:60000});
+ record.scopeAfter={count:await scope.count(),disabled:await scope.isDisabled(),
+   options:await scope.locator('option').allTextContents(),selected:await scope.inputValue()};
+ assert.equal(record.scopeAfter.disabled,false);
+ await scope.selectOption('/ASIM-1885-CU-PI');
+ record.postScopeExportControls=await page.locator('[data-lfj-o1-action^="export-"]').count();
+ assert.equal(record.postScopeExportControls,0,'scope change revokes previous outputs');
+ await page.locator('[data-action="build-resolver-index"]').click();
+ await page.waitForFunction(()=>{
+   const s=document.querySelector('[data-lfj-o1-status]')?.textContent||'';
+   return s.startsWith('O1 matched trace source-path verified')||s.startsWith('O1 domain blocked');
+ },null,{timeout:180000});
+ const scopedStatus=await page.locator('[data-lfj-o1-status]').textContent();
+ assert.ok(scopedStatus.startsWith('O1 matched trace source-path verified'),scopedStatus);
+ const expected=[['node','0d8bb4482ed4a9d0d116faeac5e68ce564f07b6bba2dd73dfc3676b72ec2eddc',216],
+   ['evidence','653485ff968bf478fa0001488432bb210a9ce6e85a901e9cc19f368f53a24809',241]];
+ record.scopedCsv=[];
+ for(const [type,expectedHash,rows] of expected){
+  const pending=page.waitForEvent('download',{timeout:30000});
+  await page.locator('[data-lfj-o1-action="export-'+type+'"]').click();
+  const download=await pending,bytes=await readFile(await download.path());
+  assert.equal(sha(bytes),expectedHash,'scoped original '+type+' CSV SHA');
+  record.scopedCsv.push({type,rows,bytes:bytes.length,sha256:sha(bytes)});
+ }
+ await scope.selectOption('__ALL__');
+ record.postScopeResetExports=await page.locator('[data-lfj-o1-action^="export-"]').count();
+ assert.equal(record.postScopeResetExports,0,'scope reset immediately revokes selected exports');
+ record.userScopePositive='ORIGINAL_SCOPE_CSV_SHA_VERIFIED';
  record.pass=record.pageErrors.length===0;
- record.steps.push({kind:'original-Worker-source',status:committed},{kind:'original-domain',status:matched},
-   {kind:'config-revocation',exportControls:record.postConfigExportControls,downloadEvents:record.downloadEvents});
+ record.steps.push({kind:'original-source',status:committed},
+  {kind:'original-domain',status:matched},{kind:'selected-scope',status:scopedStatus},
+  {kind:'scope-revocation',exports:record.postScopeResetExports});
+ record.nc.positiveOracleAvailable=ncXml.length>0;
+ record.nc.note='CAESARII InputXML source kind; no compatible PSI116 matched NC oracle';
 }catch(e){record.error=String(e.stack||e).slice(0,1100)}
 finally{
  await mkdir('ValidationRecords',{recursive:true});
