@@ -45,6 +45,7 @@ jobs:
       - name: Diagnose ordinary unchecked vs opted-in user route
         env:
           W07_CASE: ${{ matrix.case }}
+          W07_DEFAULT_ADOPTION: '1'
           EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/lfj-226-o1-default-route-browser.mjs
       - name: Preserve individual failures and positive receipts
