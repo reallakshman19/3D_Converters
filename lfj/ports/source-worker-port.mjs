@@ -8,6 +8,9 @@ import {openBlobSourceSnapshot} from '../source/source-snapshot.mjs';
 import {streamJsonOccurrenceEvents} from '../index/source-occurrence-index.mjs';
 
 export const SOURCE_WORKER_SCHEMA='LFJ.CrossRuntimeSourcePort.v1';
+// Owner D-AIM-2 Option A (2026-10-12): both byte and original-value caps apply.
+// The Worker must enforce the byte fence independently of untrusted UI checks.
+export const O1_SOURCE_MAX_BYTES=100*1024*1024;
 
 export async function scanSourceInsideWorker(message,{publishPage}={}) {
   if(message?.schema!==SOURCE_WORKER_SCHEMA||message.kind!=='SCAN'||
@@ -20,6 +23,13 @@ export async function scanSourceInsideWorker(message,{publishPage}={}) {
       typeof publishPage!=='function') {
     const error=new Error('invalid Worker source scan request');
     error.code='SOURCE_PORT_INVALID';
+    throw error;
+  }
+  // Reject oversized original Blob before hashing, parsing, or provisional pages.
+  // No page, source commit, matching or CSV right can follow this exception.
+  if(message.blob.size>O1_SOURCE_MAX_BYTES){
+    const error=new Error('O1_SOURCE_BYTE_LIMIT');
+    error.code='O1_SOURCE_BYTE_LIMIT';
     throw error;
   }
   const limit=message.pageEvents??256;
