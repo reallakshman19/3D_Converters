@@ -109,10 +109,10 @@ async function run(browser,item){
     const sourceOK=await stage(page,session,data,'upload-original-xml',async()=>{
       await page.locator('[data-field="source-file"]').setInputFiles(item.xml);
       await page.locator('[data-phase="json-trace"]').click();
-    },()=>page.locator('[data-mode-a-staged-json-all]').waitFor({timeout:10000}));
+    },()=>page.locator('[data-field="staged-json-file"]').waitFor({timeout:10000}));
     if(!sourceOK)return data;
-    const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-mode-a-staged-json-all]').setInputFiles(item.source.file),
-      ()=>page.waitForFunction(()=>{const t=document.body.innerText;return t.includes('1/1 enabled XML sources currently have staged JSON text');},null,{timeout:30000}));
+    const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-field="staged-json-file"]').setInputFiles(item.source.file),
+      ()=>page.getByText('✅ Staged JSON: Loaded').first().waitFor({timeout:30000}));
     if(!jsonOK)return data;
     const traceOK=await stage(page,session,data,'build-and-render-resolver-trace',async()=>{
       await page.locator('[data-action="build-resolver-index"]').click({timeout:90000});
