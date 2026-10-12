@@ -107,17 +107,17 @@ async function run(browser,item){
     },()=>page.locator('[data-field="source-file"]').waitFor());
     if(!nav)return data;
     const sourceOK=await stage(page,session,data,'upload-original-xml',()=>page.locator('[data-field="source-file"]').setInputFiles(item.xml),
-      ()=>page.getByText('✅ XML source: Loaded').first().waitFor({timeout:90000}));
+      ()=>page.waitForFunction(()=>!!document.querySelector('[data-mode-a-staged-json-all]'),null,{timeout:10000}));
     if(!sourceOK)return data;
-    const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-field="staged-json-file"]').setInputFiles(item.source.file),
-      ()=>page.getByText('✅ Staged JSON: Loaded').first().waitFor({timeout:90000}));
+    const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-mode-a-staged-json-all]').setInputFiles(item.source.file),
+      ()=>page.waitForFunction(()=>{const t=document.body.innerText;return /[1-9]\\d*\\/\\d+ enabled XML sources currently have staged JSON text/.test(t);},null,{timeout:30000}));
     if(!jsonOK)return data;
     const traceOK=await stage(page,session,data,'build-and-render-resolver-trace',async()=>{
       await page.locator('[data-action="build-resolver-index"]').click({timeout:90000});
     },()=>page.waitForFunction(()=>{
       const b=document.querySelector('[data-action="download-node-wise-trace-csv"]');
       return !!b && !b.disabled;
-    },null,{timeout:90000}));
+    },null,{timeout:30000}));
     if(!traceOK)return data;
     data.metrics=await page.locator('.xml-cii-resolver-metric').allTextContents();
     if(item.kind==='FIRSTPASS'||item.kind==='NC_NEGATIVE'){
