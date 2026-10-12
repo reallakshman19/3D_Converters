@@ -1,5 +1,5 @@
 /**
- * O1/W01: opt-in original-File LFJ Worker admission in the actual Mode-A JSON
+ * O1/W01: opt-in original-File LFJ Worker admission in the actual standalone JSON
  * input. Source-facts ONLY: no matching, Preview or CSV rights are inferred.
  * Uses the existing R10 Worker and R07 IndexedDB ports unchanged.
  */
@@ -123,7 +123,7 @@ async function scan(file,session){
   });
 }
 export function installLfjO1SourceIntake(container,stateRef){
-  const field=container.querySelector('[data-mode-a-staged-json-all]');
+  const field=container.querySelector('[data-mode-a-staged-json-all], [data-field="staged-json-file"]');
   if(!field)return;
   const session=getSession(stateRef);
   const group=document.createElement('div');
@@ -148,7 +148,7 @@ export function installLfjO1SourceIntake(container,stateRef){
       status(session,'LFJ Worker opt-in disabled. No source output was promoted.');
     }
   });
-  // Registered before legacy Mode-A handler. Existing default path is unchanged.
+  // Registered before legacy Single / Mode-A handler. Existing default path is unchanged.
   field.addEventListener('change',event=>{
     if(!session.optIn)return;
     event.stopImmediatePropagation();
