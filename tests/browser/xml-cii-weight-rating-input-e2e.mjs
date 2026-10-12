@@ -32,9 +32,13 @@ const browser = await chromium.launch({ headless: true,
 try {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
-  const errors = [], modules = [], timings = [];
+  const errors = [], modules = [], timings = [], failedRequests = [], badResponses = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   page.on('request', (request) => { if (/\.js(?:\?|$)/.test(request.url())) modules.push(request.url()); });
+  page.on('requestfailed', (request) => failedRequests.push({ url: request.url(), reason: request.failure()?.errorText || 'unknown' }));
+  page.on('response', (response) => {
+    if (response.status() >= 400) badResponses.push({ status: response.status(), url: response.url() });
+  });
   const seed = createDefaultRegexTesterConfig();
   for (const format of seed.formats) {
     format.lineKey.tokenPosition = '4'; format.pipingClass.tokenPosition = '5'; format.bore.tokenPosition = '3';
@@ -63,7 +67,7 @@ try {
       errorPanel: document.querySelector('.tab-error')?.textContent || '',
     }));
     console.error('ISSUE_781_SOURCE_UI_MOUNT_DIAGNOSTIC',
-      JSON.stringify({ ...domDiagnostic, pageErrors: errors.slice(0, 12), moduleRequests: modules.slice(-25) }, null, 2));
+      JSON.stringify({ ...domDiagnostic, pageErrors: errors.slice(0, 12), failedRequests: failedRequests.slice(0, 25), badResponses: badResponses.slice(0, 50), moduleRequests: modules.slice(-25) }, null, 2));
     throw error;
   }
   await page.locator('[data-phase="source"]').click();
