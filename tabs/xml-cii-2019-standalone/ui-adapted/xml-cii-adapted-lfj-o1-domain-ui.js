@@ -56,6 +56,15 @@ function dispose(session){
   d.pending.clear();d.ready=false;
   try{d.worker?.terminate();}catch{}
   session.domain=null;
+  // Invalidating the source must also remove previously rendered export
+  // controls; a new committed source and Build are required to restore them.
+  if(session.domainPanel){
+    session.domainPanel.replaceChildren();
+    const note=document.createElement('p');
+    note.dataset.lfjO1TraceStatus='true';
+    note.textContent='Previous source trace and CSV exports revoked; load a valid source and Build again.';
+    session.domainPanel.append(note);
+  }
 }
 export function revokeLfjO1Domain(session){dispose(session);}
 async function auditSourcePaths(session,d,ready){
