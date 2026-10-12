@@ -5,6 +5,7 @@
  */
 import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
 import {SOURCE_WORKER_SCHEMA} from '../../../lfj/ports/source-worker-port.mjs';
+import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
 
 const sessions=new WeakMap();
 const error=(code)=>Object.assign(new Error(code),{code});
@@ -69,17 +70,19 @@ async function finish(job,m){
       s.sourceRevision!==job.basis.sourceRevision||
       s.eventCount!==s.occurrenceCount*2)throw error('LFJ_UNCOMMITTED_SOURCE');
   await job.store.commit(s);
+  job.summary=s;
   return s;
 }
 async function scan(file,session){
   status(session,'LFJ Worker: replacing original source; previous receipt invalid.');
+  revokeLfjO1Domain(session);
   const old=session.job;
   session.job=null;
   if(old)await revoke(old);
   if(!(file instanceof File)||!file.size)throw error('LFJ_SOURCE_MISSING');
   const uuid=crypto.randomUUID();
   const job={id:uuid,ref:'lfj226-'+uuid,databaseName:'lfj226-source-'+uuid,
-    worker:null,store:null,basis:null,next:0,pages:0,cancelled:false};
+    file,worker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
   session.job=job;
   status(session,'LFJ Worker: reading original Blob off the UI thread...');
   return await new Promise((resolve,reject)=>{
@@ -144,6 +147,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   toggle.addEventListener('change',()=>{
     session.optIn=toggle.checked;
     if(!toggle.checked){
+      revokeLfjO1Domain(session);
       const old=session.job;session.job=null;
       void revoke(old);
       status(session,'LFJ Worker opt-in disabled. No source output was promoted.');
@@ -157,13 +161,22 @@ export function installLfjO1SourceIntake(container,stateRef){
     if(!file)return;
     void scan(file,session).catch(e=>status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.'));
   },true);
-  // Source facts alone must never trigger synchronous legacy Build or CSV.
+  // Opt-in is a distinct O1 owned Worker flow. Capture Build/CSV before
+  // legacy listeners; never synchronously parse staged JSON in the UI.
   for(const action of ['build-resolver-index','save-resolver-json-config',
     'download-node-wise-trace-csv','download-evidence-tree-csv']){
     container.querySelector('[data-action="'+action+'"]')?.addEventListener('click',e=>{
       if(!session.optIn)return;
       e.preventDefault();e.stopImmediatePropagation();
-      status(session,'LFJ original index only: matching/CSV bridge not yet qualified.');
+      if(action==='build-resolver-index'||action==='save-resolver-json-config'){
+        void startLfjO1Domain(session,stateRef).catch(err=>
+          status(session,'O1 domain blocked: '+safeCode(err)+'; no output rights.'));
+      }else{
+        const kind=action==='download-node-wise-trace-csv'?'node':'evidence';
+        void exportLfjO1Csv(session,kind).catch(err=>
+          status(session,'O1 CSV blocked: '+safeCode(err)+'; no output rights.'));
+      }
     },true);
   }
+  mountLfjO1DomainUi(group,session);
 }
