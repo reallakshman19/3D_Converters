@@ -40,6 +40,10 @@ try {
     format.lineKey.tokenPosition = '4'; format.pipingClass.tokenPosition = '5'; format.bore.tokenPosition = '3';
   }
   await page.addInitScript((json) => {
+    // Persist the actual XML→CII tab before application startup. Otherwise
+    // the default heavyweight Model Converters import may still be pending
+    // while this test switches tabs, leaving a non-ready loading surface.
+    localStorage.setItem('format-converters.activeTabId', 'xml-cii-2019-standalone');
     if (!localStorage.getItem('xml-cii-regex-config-v1')) localStorage.setItem('xml-cii-regex-config-v1', json);
   }, JSON.stringify(seed));
   await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
