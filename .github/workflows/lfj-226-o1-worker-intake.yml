@@ -4,6 +4,10 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js'
+      - 'tabs/xml-cii-2019-standalone/workers/lfj-o1-resolver-domain-worker.mjs'
+      - 'lfj/storage/browser/indexed-page-record-store.mjs'
+      - 'scripts/lfj-226-o1-resolver-domain-browser.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
       - 'tests/browser/lfj-226-o1-intake.html'
       - 'scripts/lfj-226-o1-worker-intake-browser.mjs'
@@ -24,6 +28,10 @@ jobs:
         run: |
           test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
           node --check scripts/lfj-226-o1-worker-intake-browser.mjs
+          node --check scripts/lfj-226-o1-resolver-domain-browser.mjs
+          node --check lfj/storage/browser/indexed-page-record-store.mjs
+          node --check tabs/xml-cii-2019-standalone/workers/lfj-o1-resolver-domain-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js
           echo "LFJ226_HEAD=$(git rev-parse HEAD)"
       - uses: actions/setup-node@v4
@@ -38,6 +46,8 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-o1-http.log 2>&1 &
       - name: Chromium native LFJ index Firstpass, NC and malformed negative
         run: node scripts/lfj-226-o1-worker-intake-browser.mjs
+      - name: Chromium original XML plus Firstpass matched Worker trace and both CSVs
+        run: node scripts/lfj-226-o1-resolver-domain-browser.mjs
       - name: Upload source-provenance and frame evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,6 +55,7 @@ jobs:
           name: lfj-226-o1-native-worker-intake
           path: |
             ValidationRecords/lfj-226-o1-intake.json
+            ValidationRecords/lfj-226-o1-trace.json
             /tmp/lfj226-o1-http.log
           if-no-files-found: warn
           retention-days: 30
