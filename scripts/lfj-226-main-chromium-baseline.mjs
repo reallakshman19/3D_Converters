@@ -106,8 +106,10 @@ async function run(browser,item){
       await page.locator('[data-phase="json-trace"]').click();
     },()=>page.locator('[data-field="source-file"]').waitFor());
     if(!nav)return data;
-    const sourceOK=await stage(page,session,data,'upload-original-xml',()=>page.locator('[data-field="source-file"]').setInputFiles(item.xml),
-      ()=>page.waitForFunction(()=>!!document.querySelector('[data-mode-a-staged-json-all]'),null,{timeout:10000}));
+    const sourceOK=await stage(page,session,data,'upload-original-xml',async()=>{
+      await page.locator('[data-field="source-file"]').setInputFiles(item.xml);
+      await page.locator('[data-phase="json-trace"]').click();
+    },()=>page.locator('[data-mode-a-staged-json-all]').waitFor({timeout:10000}));
     if(!sourceOK)return data;
     const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-mode-a-staged-json-all]').setInputFiles(item.source.file),
       ()=>page.waitForFunction(()=>{const t=document.body.innerText;return t.includes('1/1 enabled XML sources currently have staged JSON text');},null,{timeout:30000}));
