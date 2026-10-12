@@ -11,6 +11,8 @@ import {performance} from 'node:perf_hooks';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright';
 const sizeMiB=Number(process.env.O1_CAPACITY_MIB||30);
+const shape=process.env.O1_CAPACITY_SHAPE||'repeated-firstpass';
+assert.ok(['repeated-firstpass','byte-heavy'].includes(shape),'known capacity shape required');
 assert.ok([30,60,100].includes(sizeMiB),'only authorized proposed capacity sizes');
 const target=sizeMiB*1048576;
 const original=await readFile('Benchmarks/1885Sjson/Sjson.json','utf8');
@@ -22,15 +24,27 @@ const digest=createHash('sha256');let bytes=0,copies=0;
 async function append(part){const b=Buffer.from(part);await file.write(b);digest.update(b);bytes+=b.byteLength;}
 try{
  await append('[');
- while(bytes+Buffer.byteLength(fragment)+2<=target){
-   if(copies)await append(',');
-   await append(fragment);copies++;
+ if(shape==='byte-heavy'){
+   // One real Firstpass semantic fragment plus nonsemantic 32KiB JSON scalar
+   // padding. Original XML evidence remains the sole matching authority.
+   // This deliberately tests BYTE CAPACITY below the 2M-occurrence fence.
+   await append(fragment);copies=1;
+   while(target-bytes-1>3){
+     const n=Math.min(32768,target-bytes-1-3);
+     await append(',"'+'x'.repeat(n)+'"');
+   }
+ }else{
+   // Stress event cardinality independently of byte volume.
+   while(bytes+Buffer.byteLength(fragment)+2<=target){
+     if(copies)await append(',');
+     await append(fragment);copies++;
+   }
  }
  await append(']');
 }finally{await file.close();}
 const sourceSha256=digest.digest('hex');
 const data={schema:'LFJ226.O1.CapacityEvidence.v1',status:'NOT_RUN',targetMiB:sizeMiB,
-  generated:true,notSemanticGolden:true,originalFixtureSha256:originalSha,
+  generated:true,notSemanticGolden:true,shape,originalFixtureSha256:originalSha,
   originalXmlFile:'Benchmarks/1885Sjson/FirstpassXML',sourceSha256,bytes,copies,
   capacityPolicy:'100MiB and 200ms rAF are PROPOSED; OWNER D-AIM-2 not approved',
   memoryQualification:'CDP page/renderer heaps and sampled aggregate Chromium process RSS; not peak',
@@ -139,6 +153,6 @@ try{
 }finally{
  clearInterval(memoryTimer);
  await mkdir('ValidationRecords',{recursive:true});
- await writeFile('ValidationRecords/lfj-226-o1-capacity-'+sizeMiB+'MiB.json',JSON.stringify(data,null,2)+'\n');
+ await writeFile('ValidationRecords/lfj-226-o1-capacity-'+sizeMiB+'MiB-'+shape+'.json',JSON.stringify(data,null,2)+'\n');
  await browser.close();await unlink(filePath).catch(()=>{});
 }
