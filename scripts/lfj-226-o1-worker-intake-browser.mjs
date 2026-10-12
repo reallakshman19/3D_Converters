@@ -23,10 +23,10 @@ try{
    const start=Date.now();
    await page.evaluate(()=>window.__lfj226Metrics.start());
    await field.setInputFiles(input.path);
-   await page.waitForFunction(()=>{
+   await page.waitForFunction((expected)=>{
      const status=document.querySelector('[data-lfj-o1-status]')?.textContent??'';
-     return status.startsWith('LFJ source index COMMITTED')||status.startsWith('LFJ Worker FAILED');
-   },null,{timeout:180000});
+     return (status.startsWith('LFJ source index COMMITTED')&&status.includes(expected))||status.startsWith('LFJ Worker FAILED');
+   },sha.slice(0,12),{timeout:180000});
    const status=await page.locator('[data-lfj-o1-status]').textContent();
    const frames=await page.evaluate(()=>window.__lfj226Metrics.stop());
    const row={name:input.name,sizeBytes:original.length,sha256:sha,elapsedMs:Date.now()-start,
