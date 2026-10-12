@@ -36,7 +36,7 @@ function validatePage(m,job){
   if(m.schema!==SOURCE_WORKER_SCHEMA||m.jobId!==job.id||
       m.sourceRefId!==job.ref||!Number.isSafeInteger(m.sequence)||
       m.sequence!==job.next||!Array.isArray(m.rows)||!m.rows.length||
-      m.rows.length>64)throw error('LFJ_PAGE_IDENTITY');
+      m.rows.length>1024)throw error('LFJ_PAGE_IDENTITY');
   if(!job.basis){
     const row=m.rows[0];
     if(typeof row.sourceSha256!=='string'||!/^[a-f0-9]{64}$/.test(row.sourceSha256)||
