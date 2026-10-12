@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check baseline script syntax
+        run: node --check scripts/lfj-226-main-chromium-baseline.mjs
       - name: Install Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
