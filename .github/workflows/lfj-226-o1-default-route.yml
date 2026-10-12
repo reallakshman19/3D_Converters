@@ -1,0 +1,59 @@
+name: LFJ 226 O1 W07 real default-user route discriminator
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-default-route-browser.mjs'
+      - '.github/workflows/lfj-226-o1-default-route.yml'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'lfj/**'
+      - 'scripts/build-github-pages-docs.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-default-and-worker:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        case: [default-root, optin-root, default-docs, optin-docs, combined-optin]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Pin direct-main checkout and test source
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-default-route-browser.mjs
+          echo "W07_ACTUAL_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Build canonical docs runtime
+        run: node scripts/build-github-pages-docs.mjs
+      - name: Serve real authored app and docs
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w07-http.log 2>&1 &
+      - name: Diagnose ordinary unchecked vs opted-in user route
+        env:
+          W07_CASE: ${{ matrix.case }}
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/lfj-226-o1-default-route-browser.mjs
+      - name: Preserve individual failures and positive receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-W07-${{ matrix.case }}
+          path: |
+            ValidationRecords/lfj-226-o1-W07-${{ matrix.case }}.json
+            /tmp/lfj226-w07-http.log
+          if-no-files-found: warn
+          retention-days: 30
