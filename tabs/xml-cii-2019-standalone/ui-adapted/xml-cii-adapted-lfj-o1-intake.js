@@ -195,6 +195,14 @@ export function installLfjO1SourceIntake(container,stateRef){
       ' [data-field="support-config"], [data-field="resolver-json-config"],'+
       ' [data-field^="resolver-"], [data-field*="scope"],'+
       ' [data-branch-select], [data-branch-scope], [data-mode-a-enable]')){
+      const originalXmlChanged=el.matches('[data-field="source-file"], [data-field="source-kind"]');
+      // XML file/source kind is part of the job's user selection. Cancel
+      // source admission too so a late receipt cannot revive old authority.
+      if(originalXmlChanged){
+        session.requestSeq++;
+        const old=session.job;session.job=null;
+        void revoke(old);
+      }
       revokeLfjO1Domain(session);
       status(session,'O1 source/config/selection changed; prior trace and CSV revoked. Build again.');
     }
