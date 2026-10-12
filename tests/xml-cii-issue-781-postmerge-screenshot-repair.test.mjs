@@ -88,10 +88,29 @@ for (const path of releasePaths) {
     const liveShell = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js');
     assert.ok(liveShell.includes(activation.release),
       'live shell must still load the activated shared Weight owners');
+  } else if (currentConsumerParents.has(path)) {
+    const importingParent = await read(currentConsumerParents.get(path));
+    const filename = path.split('/').at(-1);
+    const escapedFilename = filename.replace(/[.*+?^\${}()|[\]\\]/g, '\\  } else {
+    assert.ok(source.includes(expectedRelease), `live acceptance cache release missing from ${path}`);
+  }');
+    assert.match(importingParent, new RegExp(escapedFilename + '\\\\?v=20261007-c05-6-2-consumer-authority-1'),
+      `live C05 consumer import must point to the exact updated child: ${path}`);
   } else {
     assert.ok(source.includes(expectedRelease), `live acceptance cache release missing from ${path}`);
   }
 }
+
+// The C05 consumer-owner update advanced these modules past the 2026-10-01
+// Weight release token. Verify the *actual importing parent* instead of
+// requiring a stale child import literal that no longer appears in its source.
+const currentConsumerParents = new Map([
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-client.js', 'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', 'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js'],
+]);
 
 const mirrorPairs = [
   ['main-rhbg-fitguard.js', 'docs/main-rhbg-fitguard.js'],
