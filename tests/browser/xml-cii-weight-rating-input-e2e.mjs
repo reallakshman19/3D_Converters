@@ -141,10 +141,13 @@ try {
   assert.equal(persisted.overrides.rating[source.line || source.branch], '900', 'A second save must preserve the first');
   const input = rows().nth(sourceIndex).locator('.mc-rigid-review-input');
   await input.fill('10.5'); await input.dispatchEvent('change');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5,
-    'Typed weights use manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], undefined,
-    'A typed value must not become a candidate match');
+  const typedWeightConfig = await savedConfig();
+  assert.equal(typedWeightConfig.overrides.rigidWeightMatch1?.[source.key], 10.5,
+    'Typed weight must be an explicitly accepted manual Match-1 decision');
+  assert.equal(typedWeightConfig.overrides.rigidWeightMatch1Provenance?.[source.key]?.acceptanceMethod, 'manual',
+    'Manual input must retain manual provenance, never be mislabeled as candidate');
+  assert.equal(typedWeightConfig.overrides.rigidWeightFinal?.[source.key], undefined,
+    'Typing a Weight Match value must not silently authorize separate Final Match-2');
 
   await measure(async () => { await rows().nth(sourceIndex).locator('.mc-wm-rating-input').fill('300');
     await rows().nth(sourceIndex).locator('[data-wm-rating-fill-class]').click(); }, 'class fill Rating 300');
@@ -153,8 +156,10 @@ try {
     if (initial[index].pipingClass === source.pipingClass) assert.equal(filled[index].rating, '300');
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
-  assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5);
+  // The accepted value remains recorded for audit, but changed Rating must
+  // require fresh source-bound Match-1 validation instead of silent Final.
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
   await measure(() => page.locator('#mc-wm-refresh').click(), 'repeat Build after class fill');
   assert.equal((await readRows())[sourceIndex].rating, '300');
@@ -165,14 +170,18 @@ try {
   assert.equal((await readRows())[sourceIndex].rating, '300');
   assert.equal((await readRows())[otherIndex].rating, '300');
   for (const file of ['weight-match-renderer', 'xml-cii-adapted-regex-rating', 'xml-cii-adapted-weight-match-v2', 'master-dataset-worker']) {
-    const expectedRelease = activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
-      ? activated.release : release;
+    const currentC05Consumer = file === 'master-dataset-worker' || file === 'xml-cii-adapted-weight-match-v2';
+    const expectedRelease = currentC05Consumer
+      ? '20261007-c05-6-2-consumer-authority-1'
+      : (activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
+        ? activated.release : release);
     assert.ok(modules.some((url) => url.includes(`${file}.js?v=${expectedRelease}`)), `Missing active release ${file}`);
   }
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,
     editedPrefix: ['3', '600'], manual: ['900', '450'], classFill: { pipingClass: source.pipingClass, rating: '300', rows: filledCount },
-    manualFinalPreservedAfterRatingChange: 10.5, typedCandidateMatchAbsent: true,
+    manualMatch1RecordedForAudit: 10.5, typedManualProvenance: true,
+    noImplicitFinalMatch2: true,
     repeatBuild: true, reopen: true, timings, errors };
   if (process.env.XML_CII_RATING_EVIDENCE_DIR) {
     const dir = process.env.XML_CII_RATING_EVIDENCE_DIR;
