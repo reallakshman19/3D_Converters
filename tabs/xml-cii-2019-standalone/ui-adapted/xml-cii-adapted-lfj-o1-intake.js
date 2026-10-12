@@ -18,7 +18,7 @@ const safeCode=e=>{
     'O1_SOURCE_BYTE_LIMIT (original JSON must be at most 100 MiB / 104857600 bytes)':code;
 };
 const getSession=ref=>{
-  if(!sessions.has(ref))sessions.set(ref,{optIn:true,job:null,status:'O1 Worker ready; load original PSI116 XML and JSON, then Build.'});
+  if(!sessions.has(ref))sessions.set(ref,{optIn:true,job:null,requestSeq:0,status:'O1 Worker ready; load original PSI116 XML and JSON, then Build.'});
   return sessions.get(ref);
 };
 function eligibleSource(state){
@@ -88,11 +88,15 @@ async function finish(job,m){
   return s;
 }
 async function scan(file,session){
+  // Intent is ordered at the browser change event, not after asynchronous IDB
+  // cleanup. A prior scan must never install a job after a newer selection.
+  const request=++session.requestSeq;
   status(session,'LFJ Worker: replacing original source; previous receipt invalid.');
   revokeLfjO1Domain(session);
   const old=session.job;
   session.job=null;
   if(old)await revoke(old);
+  if(request!==session.requestSeq)throw error('LFJ_SOURCE_SUPERSEDED');
   if(!(file instanceof File)||!file.size)throw error('LFJ_SOURCE_MISSING');
   // Visible fail-closed policy rejection; prior source/domain/export rights
   // were revoked above before any new job or Worker is admitted.
@@ -138,7 +142,9 @@ async function scan(file,session){
       '. Trace/CSV NOT authorized by this intake.');
     return summary;
   }).catch(async e=>{
-    if(session.job===job){session.job=null;status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');}
+    if(request===session.requestSeq&&session.job===job){
+      session.job=null;status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
+    }
     await revoke(job);
     throw e;
   });
@@ -172,19 +178,38 @@ export function installLfjO1SourceIntake(container,stateRef){
   toggle.addEventListener('change',()=>{
     session.optIn=toggle.checked;
     if(!toggle.checked){
+      session.requestSeq++;
       revokeLfjO1Domain(session);
       const old=session.job;session.job=null;
       void revoke(old);
       status(session,'LFJ Worker opt-in disabled. No source output was promoted.');
     }
   });
-  // Registered before legacy Single / Mode-A handler. Existing default path is unchanged.
+  // Captured against the entire authored workspace. Original XML selection,
+  // resolver configuration, or branch/scope change revokes old CSV controls
+  // immediately, before the legacy handler mutates state asynchronously.
+  container.addEventListener('change',event=>{
+    const el=event.target;
+    if(!(el instanceof Element))return;
+    if(el.matches('[data-field="source-file"], [data-field="source-kind"],'+
+      ' [data-field="support-config"], [data-field="resolver-json-config"],'+
+      ' [data-field^="resolver-"], [data-field*="scope"],'+
+      ' [data-branch-select], [data-branch-scope], [data-mode-a-enable]')){
+      revokeLfjO1Domain(session);
+      status(session,'O1 source/config/selection changed; prior trace and CSV revoked. Build again.');
+    }
+  },true);
+  // Registered before legacy Single / Mode-A handler; intercept only supported O1.
   field.addEventListener('change',event=>{
     if(!session.optIn||!eligibleSource(stateRef.current))return;
     event.stopImmediatePropagation();
     const file=event.target.files?.[0];
     if(!file)return;
-    void scan(file,session).catch(e=>status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.'));
+    void scan(file,session).catch(e=>{
+      // A superseded request is not a failure of the newer user selection.
+      if(e?.code!=='LFJ_SOURCE_SUPERSEDED'&&session.status.startsWith('LFJ Worker:'))
+        status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
+    });
   },true);
   // Opt-in is a distinct O1 owned Worker flow. Capture Build/CSV before
   // legacy listeners; never synchronously parse staged JSON in the UI.
