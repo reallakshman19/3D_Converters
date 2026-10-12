@@ -1,9 +1,9 @@
 /**
  * O1/W01: opt-in original-File LFJ Worker admission in the actual standalone JSON
  * input. Source-facts ONLY: no matching, Preview or CSV rights are inferred.
- * Uses the existing R10 Worker and R07 IndexedDB ports unchanged.
+ * Uses the existing R10 Worker and an independent page-batched, durable IndexedDB adapter.
  */
-import {openIndexedRecordStore} from '../../../lfj/storage/browser/indexed-record-store.mjs';
+import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
 import {SOURCE_WORKER_SCHEMA} from '../../../lfj/ports/source-worker-port.mjs';
 
 const sessions=new WeakMap();
@@ -50,7 +50,7 @@ function validatePage(m,job){
 }
 async function recordPage(job,m){
   validatePage(m,job);
-  if(!job.store)job.store=await openIndexedRecordStore({
+  if(!job.store)job.store=await openIndexedPageRecordStore({
     databaseName:job.databaseName,namespace:job.ref,generation:job.id,
     basis:job.basis,kind:'source'
   });
