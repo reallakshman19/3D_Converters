@@ -151,6 +151,22 @@ export async function openIndexedPageRecordStore({
       }
     }
   }
+  async function *readCommittedPages(){
+    requireValue(kind==='source','PAGE_KIND','source index required');
+    const h=await committed();
+    for(let i=0;i<h.pageCount;i++){
+      const p=await read(db,'pages',[namespace,generation,i]);
+      requireValue(p?.page===i&&p.start>=0&&Array.isArray(p.rows)&&
+        p.rows.length>0&&p.rows.length<=MAX_ROWS,
+        'PAGE_ROW_MISSING','missing bounded committed source page');
+      for(const row of p.rows)
+        requireValue(basisEquals(row,basis)&&['OPEN','SEAL'].includes(row.kind),
+          'PAGE_SOURCE_STALE','source page contains foreign or invalid event');
+      await committed();
+      yield Object.freeze({page:i,rows:p.rows});
+    }
+    await committed();
+  }
   async function lookupCommittedPair(occurrenceId){
     requireValue(kind==='source'&&typeof occurrenceId==='string'&&occurrenceId.length>0&&
       occurrenceId.length<=67584,'PAGE_PAIR_INPUT','exact original occurrence required');
@@ -193,6 +209,6 @@ export async function openIndexedPageRecordStore({
   }
   function close(){if(phase==='CLOSED')return;db.close();phase='CLOSED';}
   return Object.freeze({stagePage,commit,commitDurably:commit,abort,
-    readOrdered,lookupCommittedPair,readRange,close,
+    readOrdered,readCommittedPages,lookupCommittedPair,readRange,close,
     note:'O1 native IDB one transaction/write per bounded original event page'});
 }
