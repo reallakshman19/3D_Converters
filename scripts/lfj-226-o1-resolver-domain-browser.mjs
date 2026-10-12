@@ -60,6 +60,8 @@ try{
      lines:bytes.toString('utf8').split('\r\n').length-2};
    assert.ok(bytes.length>64&&output.bom==='efbbbf');
    assert.ok(output.lines>=1,'original exporter should contain at least one fact');
+   await mkdir('ValidationRecords',{recursive:true});
+   await writeFile('ValidationRecords/lfj-226-o1-'+kind+'-original.csv',bytes);
    record.cases.push(output);
  }
  // Replace source with malformed original: all former output rights revoked.
