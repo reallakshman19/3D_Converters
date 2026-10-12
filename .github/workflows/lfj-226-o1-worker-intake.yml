@@ -9,6 +9,8 @@ on:
       - 'lfj/storage/browser/indexed-page-record-store.mjs'
       - 'scripts/lfj-226-o1-resolver-domain-browser.mjs'
       - 'scripts/lfj-226-o1-source-authority-browser.mjs'
+      - 'scripts/build-github-pages-docs.mjs'
+      - 'scripts/lfj-226-o1-pages-parity.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
       - 'tests/browser/lfj-226-o1-intake.html'
       - 'scripts/lfj-226-o1-worker-intake-browser.mjs'
@@ -31,6 +33,7 @@ jobs:
           node --check scripts/lfj-226-o1-worker-intake-browser.mjs
           node --check scripts/lfj-226-o1-resolver-domain-browser.mjs
           node --check scripts/lfj-226-o1-source-authority-browser.mjs
+          node --check scripts/lfj-226-o1-pages-parity.mjs
           node --check lfj/storage/browser/indexed-page-record-store.mjs
           node --check tabs/xml-cii-2019-standalone/workers/lfj-o1-resolver-domain-worker.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js
@@ -52,6 +55,10 @@ jobs:
         run: node scripts/lfj-226-o1-worker-intake-browser.mjs
       - name: Chromium original XML plus Firstpass matched Worker trace and both CSVs
         run: node scripts/lfj-226-o1-resolver-domain-browser.mjs
+      - name: Build canonical docs-served runtime mirror, including LFJ
+        run: node scripts/build-github-pages-docs.mjs
+      - name: Real Chromium docs-mirror native O1 Worker parity
+        run: node scripts/lfj-226-o1-pages-parity.mjs
       - name: Upload source-provenance and frame evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,6 +67,7 @@ jobs:
           path: |
             ValidationRecords/lfj-226-o1-intake.json
             ValidationRecords/lfj-226-o1-authority-negatives.json
+            ValidationRecords/lfj-226-o1-docs-parity.json
             ValidationRecords/lfj-226-o1-trace.json
             ValidationRecords/lfj-226-o1-node-original.csv
             ValidationRecords/lfj-226-o1-evidence-original.csv
