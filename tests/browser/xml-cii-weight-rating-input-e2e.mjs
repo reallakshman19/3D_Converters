@@ -44,6 +44,10 @@ try {
   }, JSON.stringify(seed));
   await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // The tab can reopen on a remembered phase/subtab. Navigate explicitly
+  // to the actual Source loader before selecting the original XML.
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /Valve Weights/ }).click();
   await page.locator('input[data-master-file="weight"]').setInputFiles(path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx'));
@@ -59,6 +63,10 @@ try {
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')).config.rating.ratingSequence.some(([p, r]) => p === '3' && r === '600')));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // The tab can reopen on a remembered phase/subtab. Navigate explicitly
+  // to the actual Source loader before selecting the original XML.
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /^6 Weight Match/ }).click();
   await page.locator('#mc-wm-refresh').waitFor();
