@@ -29,7 +29,8 @@ async function run(m){
    !(m.jsonBlob instanceof Blob)||!Number.isSafeInteger(m.byteLength)||
    m.jsonBlob.size!==m.byteLength||!m.committedRoot||
    m.committedRoot.startByte<0||
-   m.committedRoot.endByteExclusive!==m.byteLength||
+   m.committedRoot.endByteExclusive>m.byteLength||
+   m.committedRoot.endByteExclusive<=m.committedRoot.startByte||
    typeof m.sourceText!=='string'||!m.sourceText.trim())
    throw Object.assign(new Error('original source/index/XML basis required'),{code:'DOMAIN_BASIS'});
  active={jobId:id,ref:m.sourceRefId,sha:m.sourceSha256,revision:m.sourceRevision,
@@ -48,11 +49,17 @@ async function run(m){
    node:buildXmlNodeWiseTraceRows(result),
    evidence:buildEvidenceTreeRows(result)
  };
+ active.paths=[...new Set([
+   ...(result.resolutionLedger||[]).filter(r=>String(r.status).startsWith('RESOLVED_'))
+     .flatMap(r=>r.sourcePaths||[]),
+   ...active.rows.evidence.map(row=>row.sourcePath)
+ ].filter(Boolean))];
  send('READY',id,{
    sourceRefId:active.ref,sourceSha256:active.sha,sourceRevision:active.revision,
    byteLength:m.byteLength,selectionDigest:active.selectionDigest,
    counts:{node:active.rows.node.length,evidence:active.rows.evidence.length,
-     matched:result.matchedFacts?.length||0,rejected:result.rejectedFacts?.length||0},
+     matched:result.matchedFacts?.length||0,rejected:result.rejectedFacts?.length||0,
+     paths:active.paths.length},
    // Source-attested source-only index does not bless domain values for output.
    rightsBasis:'SOURCE_MATCH_PENDING_ORACLE',engineeringReady:false
  });
@@ -97,6 +104,13 @@ onmessage=async({data:m})=>{
    if(m.kind==='CANCEL'){active=null;close();return;}
    if(m.kind==='RUN'){await run(m);return;}
    if(m.kind==='PAGE'){page(m);return;}
+   if(m.kind==='PATH_PAGE'&&same(m)){
+     const start=m.start;
+     if(!Number.isSafeInteger(start)||start<0)throw Object.assign(
+       new Error('bad path cursor'),{code:'DOMAIN_PATH_CURSOR'});
+     send('PATH_PAGE',m.jobId,{start,paths:active.paths.slice(start,start+128),
+       total:active.paths.length});return;
+   }
    if(m.kind==='EXPORT'){exportCsv(m);return;}
    if(m.kind==='EXPORT_ACK'&&same(m)){
      const stream=active.exports.get(m.token);
