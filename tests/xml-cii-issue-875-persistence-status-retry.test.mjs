@@ -511,30 +511,41 @@ test('C05.5.5 modified runtime modules and docs mirrors are byte-identical', asy
   }
 });
 
-test('C05.5.5 runtime cache chain carries one retry generation from tab to worker', async () => {
-  const version = '20261006-c05-5-5-persistence-retry-1';
-  const paths = [
-    'tabs/xml-cii-2019-standalone-tab.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js',
-    'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js',
-    'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js',
-    'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
-    'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
+test('C05.5.5 retry custody remains reachable through successor C05 and P0 import generations', async () => {
+  // Strictly pin the successor cache chain for each exact original module:
+  // C05.6.2 authority and Mode-B legitimately superseded some 20261006 tags.
+  // The retry handler/worker must keep the original retry-generation boundary.
+  const retry = '20261006-c05-5-5-persistence-retry-1';
+  const authority = '20261007-c05-6-2-consumer-authority-1';
+  const modeB = '20261008-p0-mode-b-parity-1';
+  const graph = [
+    ['tabs/xml-cii-2019-standalone-tab.js', modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js', modeB, authority],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js', authority],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js', modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-cii-zip.js', modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js', modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-smart.js', retry, authority],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-smart.js', modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js', retry],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js', retry, modeB],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-events.js', retry],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js', retry],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-worker-events.js', retry],
+    ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', authority],
+    ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', authority],
+    ['tabs/xml-cii-2019-standalone/workers/master-dataset-client.js', retry, authority],
+    ['tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', retry, authority],
+    ['tabs/xml-cii-2019-standalone/workers/master-dataset-service.js', retry],
   ];
-  for (const sourcePath of paths) {
-    const source = await fs.readFile(new URL('../' + sourcePath, import.meta.url), 'utf8');
-    assert.ok(source.includes(version), sourcePath);
+  assert.equal(graph.length, 18, 'all original retry-import graph modules must remain covered');
+  for (const [path, ...requiredGenerations] of graph) {
+    const [source, deployed] = await Promise.all([
+      fs.readFile(new URL('../' + path, import.meta.url), 'utf8'),
+      fs.readFile(new URL('../docs/' + path, import.meta.url), 'utf8'),
+    ]);
+    assert.equal(source, deployed, path + ' source/docs mirror mismatch');
+    for (const generation of requiredGenerations)
+      assert.ok(source.includes(generation), path + ' missing required import version ' + generation);
   }
 });
