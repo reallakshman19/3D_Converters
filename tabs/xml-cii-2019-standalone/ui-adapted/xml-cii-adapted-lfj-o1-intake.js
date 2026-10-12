@@ -4,7 +4,7 @@
  * Uses the existing R10 Worker and an independent page-batched, durable IndexedDB adapter.
  */
 import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
-import {SOURCE_WORKER_SCHEMA} from '../../../lfj/ports/source-worker-port.mjs';
+import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/source-worker-port.mjs';
 import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
 
 const sessions=new WeakMap();
@@ -80,6 +80,9 @@ async function scan(file,session){
   session.job=null;
   if(old)await revoke(old);
   if(!(file instanceof File)||!file.size)throw error('LFJ_SOURCE_MISSING');
+  // Visible fail-closed policy rejection; prior source/domain/export rights
+  // were revoked above before any new job or Worker is admitted.
+  if(file.size>O1_SOURCE_MAX_BYTES)throw error('O1_SOURCE_BYTE_LIMIT');
   const uuid=crypto.randomUUID();
   const job={id:uuid,ref:'lfj226-'+uuid,databaseName:'lfj226-source-'+uuid,
     file,worker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
