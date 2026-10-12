@@ -1,0 +1,52 @@
+name: LFJ 226 O1 W04 exact Owner Option A boundary (diagnostic)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-policy-edge-browser.mjs'
+      - '.github/workflows/lfj-226-o1-policy-boundaries.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  option-a-policy-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        edge: [byte-in, byte-out, count-in, count-out]
+    env:
+      O1_EDGE_KIND: ${{ matrix.edge }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Pin exact source branch and syntax
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-policy-edge-browser.mjs
+          echo "LFJ226_W04_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real headless Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authored standalone with production module URLs
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w04-http.log 2>&1 &
+      - name: Test exact Owner byte/value boundaries and both original CSVs
+        run: node scripts/lfj-226-o1-policy-edge-browser.mjs
+      - name: Always retain precise input, status, CSV and rAF record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-W04-${{ matrix.edge }}
+          path: |
+            ValidationRecords/lfj-226-o1-W04-${{ matrix.edge }}.json
+            /tmp/lfj226-w04-http.log
+          if-no-files-found: warn
+          retention-days: 30
