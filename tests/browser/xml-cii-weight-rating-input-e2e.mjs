@@ -46,6 +46,20 @@ try {
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
   // The tab can reopen on a remembered phase/subtab. Navigate explicitly
   // to the actual Source loader before selecting the original XML.
+  try {
+    await page.locator('[data-phase="source"]').waitFor({ state: 'attached', timeout: 8000 });
+  } catch (error) {
+    const domDiagnostic = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      appHTML: document.querySelector('#app-layout')?.innerHTML?.slice(0, 2500) || '',
+      navButtons: [...document.querySelectorAll('button')].slice(0, 35).map((button) => button.textContent.trim()),
+      sourceInputCount: document.querySelectorAll('input[data-field="source-file"]').length,
+    }));
+    console.error('ISSUE_781_SOURCE_UI_MOUNT_DIAGNOSTIC',
+      JSON.stringify({ ...domDiagnostic, pageErrors: errors.slice(0, 12), moduleRequests: modules.slice(-25) }, null, 2));
+    throw error;
+  }
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
