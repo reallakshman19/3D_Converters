@@ -36,7 +36,9 @@ jobs:
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-http.log 2>&1 &
           echo $! > /tmp/lfj226-http.pid
-      - name: Real standalone File upload, source trace, CSV and frame/memory timing
+      - name: NC-only authored baseline correction (full size curve from prior artifact)
+        env:
+          LFJ226_ONLY: NC_NEGATIVE
         run: node scripts/lfj-226-main-chromium-baseline.mjs
       - name: Attach baseline, including partial failures
         if: always()
