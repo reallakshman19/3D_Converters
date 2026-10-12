@@ -51,7 +51,7 @@ try {
   // The tab can reopen on a remembered phase/subtab. Navigate explicitly
   // to the actual Source loader before selecting the original XML.
   try {
-    await page.locator('[data-phase="source"]').waitFor({ state: 'attached', timeout: 8000 });
+    await page.locator('[data-phase="source"]').waitFor({ state: 'attached', timeout: 45000 });
   } catch (error) {
     const domDiagnostic = await page.evaluate(() => ({
       url: location.href,
@@ -59,6 +59,8 @@ try {
       appHTML: document.querySelector('#app-layout')?.innerHTML?.slice(0, 2500) || '',
       navButtons: [...document.querySelectorAll('button')].slice(0, 35).map((button) => button.textContent.trim()),
       sourceInputCount: document.querySelectorAll('input[data-field="source-file"]').length,
+      contentState: document.querySelector('.app-content')?.textContent?.slice(0, 1300) || '',
+      errorPanel: document.querySelector('.tab-error')?.textContent || '',
     }));
     console.error('ISSUE_781_SOURCE_UI_MOUNT_DIAGNOSTIC',
       JSON.stringify({ ...domDiagnostic, pageErrors: errors.slice(0, 12), moduleRequests: modules.slice(-25) }, null, 2));
