@@ -80,6 +80,22 @@ try{
  await page.locator('[data-field="source-file"]').setInputFiles(xmlFile);
  await page.locator('[data-phase="json-trace"]').click();
  await page.locator('[data-lfj-o1-enable]').check();
+ // Over-byte refusal must also revoke a PREVIOUSLY AUTHORIZED user export.
+ if(kind==='byte-out'){
+  await page.locator('[data-field="staged-json-file"]').setInputFiles(firstpass);
+  await page.waitForFunction(()=>document.querySelector('[data-lfj-o1-status]')
+   ?.textContent?.startsWith('LFJ source index COMMITTED'),null,{timeout:90000});
+  await page.locator('[data-action="build-resolver-index"]').click();
+  await page.waitForFunction(()=>document.querySelector('[data-lfj-o1-status]')
+   ?.textContent?.startsWith('O1 matched trace source-path verified'),null,{timeout:90000});
+  const [oldDownload]=await Promise.all([
+   page.waitForEvent('download',{timeout:60000}),
+   page.locator('[data-lfj-o1-action="export-node"]').click()
+  ]);
+  record.observed.priorAuthorizedCsvBytes=(await readFile(await oldDownload.path())).length;
+  assert.ok(record.observed.priorAuthorizedCsvBytes>64,
+   'previous source was entitled to download before oversized replacement');
+ }
  await page.evaluate(()=>window.__lfj226Metrics.start());
  const started=performance.now();
  await page.locator('[data-field="staged-json-file"]').setInputFiles(filePath);
