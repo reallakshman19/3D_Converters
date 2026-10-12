@@ -15,9 +15,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mib: [30, 60, 100]
+        include:
+          - {mib: 30, shape: repeated-firstpass}
+          - {mib: 60, shape: repeated-firstpass}
+          - {mib: 100, shape: repeated-firstpass}
+          - {mib: 100, shape: byte-heavy}
     env:
       O1_CAPACITY_MIB: ${{ matrix.mib }}
+      O1_CAPACITY_SHAPE: ${{ matrix.shape }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,9 +49,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lfj-226-o1-proposed-${{ matrix.mib }}MiB
+          name: lfj-226-o1-proposed-${{ matrix.mib }}MiB-${{ matrix.shape }}
           path: |
-            ValidationRecords/lfj-226-o1-capacity-${{ matrix.mib }}MiB.json
+            ValidationRecords/lfj-226-o1-capacity-${{ matrix.mib }}MiB-${{ matrix.shape }}.json
             /tmp/lfj226-capacity-http.log
           if-no-files-found: warn
           retention-days: 30
