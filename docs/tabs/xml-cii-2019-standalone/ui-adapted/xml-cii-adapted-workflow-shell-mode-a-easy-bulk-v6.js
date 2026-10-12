@@ -14,6 +14,7 @@ import { installModeACompactMultiUi } from './xml-cii-adapted-mode-a-compact-ui.
 import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { disposeAdaptedGeometryPreviews } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { installLfjO1SourceIntake } from './xml-cii-adapted-lfj-o1-intake.js';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 installRigidReviewActionsEnhancement();
@@ -83,5 +84,6 @@ function renderWorkflow(container, stateRef, render) {
   workspace.appendChild(main);
   root.appendChild(workspace);
   container.appendChild(root);
+  installLfjO1SourceIntake(container, stateRef);
   bindAdaptedWorkflowEvents(container, effectiveRef, render);
 }
