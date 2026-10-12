@@ -151,7 +151,7 @@ export async function startLfjO1Domain(session,stateRef){
   dispose(session);
   const state=stateRef.current;
   const sourceText=state.sourceText||'';
-  const sourceKind=state.sourceKind==='auto'?'xml':state.sourceKind;
+  const sourceKind=state.sourceKind||'auto';
   if(!sourceText||sourceKind==='inputxml')throw typed('O1_ORIGINAL_XML_REQUIRED');
   const rootId=JSON.stringify(['lfj-json-value/v1',job.ref,job.basis.sourceRevision,'']);
   const root=await job.store.lookupCommittedPair(rootId);
