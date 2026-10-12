@@ -5,6 +5,9 @@ on:
     paths:
       - 'scripts/lfj-226-o1-policy-edge-browser.mjs'
       - '.github/workflows/lfj-226-o1-policy-boundaries.yml'
+      - 'scripts/lfj-226-o1-worker-byte-limit.test.mjs'
+      - 'lfj/ports/source-worker-port.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js'
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +30,8 @@ jobs:
         run: |
           test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
           node --check scripts/lfj-226-o1-policy-edge-browser.mjs
+          node --check scripts/lfj-226-o1-worker-byte-limit.test.mjs
+          node scripts/lfj-226-o1-worker-byte-limit.test.mjs
           echo "LFJ226_W04_HEAD=$(git rev-parse HEAD)"
       - uses: actions/setup-node@v4
         with:
