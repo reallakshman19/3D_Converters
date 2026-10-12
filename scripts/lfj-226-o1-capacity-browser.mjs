@@ -55,10 +55,10 @@ async function sample(){
   // RSS is a sampled *aggregate* of Chromium processes, not a true peak or
   // a single Worker heap. Each matrix job runs in its own hosted runner.
   const lines=execFileSync('ps',['-eo','rss=,comm='],
-    {encoding:'utf8',timeout:1800}).trim().split('\\n');
+    {encoding:'utf8',timeout:1800}).trim().split('\n');
   let rss=0;
   for(const line of lines){
-   const row=line.trim().match(/^(\\d+)\\s+(\\S+)/);
+   const row=line.trim().match(/^(\d+)\s+(\S+)/);
    if(row&&/^(chrome|chromium|headless_shell|chrome-headless)/.test(row[2]))
     rss+=Number(row[1]);
   }
