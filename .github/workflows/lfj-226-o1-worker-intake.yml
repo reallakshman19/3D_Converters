@@ -19,10 +19,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 8
+          fetch-depth: 0
       - name: Verify direct-main and syntax before browser
         run: |
-          git fetch origin main --depth=1
           test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
           node --check scripts/lfj-226-o1-worker-intake-browser.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js
