@@ -56,6 +56,8 @@ jobs:
           path: |
             ValidationRecords/lfj-226-o1-intake.json
             ValidationRecords/lfj-226-o1-trace.json
+            ValidationRecords/lfj-226-o1-node-original.csv
+            ValidationRecords/lfj-226-o1-evidence-original.csv
             /tmp/lfj226-o1-http.log
           if-no-files-found: warn
           retention-days: 30
