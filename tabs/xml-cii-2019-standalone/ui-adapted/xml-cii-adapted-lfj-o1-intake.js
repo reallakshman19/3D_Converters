@@ -1,11 +1,14 @@
 /**
- * O1/W01: opt-in original-File LFJ Worker admission in the actual standalone JSON
- * input. Source-facts ONLY: no matching, Preview or CSV rights are inferred.
+ * O1/W09: ordinary single-source PSI116 XML→CII JSON uploads now use the
+ * existing independent native source/domain Workers by default. Other modes
+ * retain existing behavior. Source-facts never imply Preview/Weight rights.
  * Uses the existing R10 Worker and an independent page-batched, durable IndexedDB adapter.
  */
 import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
 import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/source-worker-port.mjs';
 import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
+import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
+import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
 
 const sessions=new WeakMap();
 const error=(code)=>Object.assign(new Error(code),{code});
@@ -15,9 +18,16 @@ const safeCode=e=>{
     'O1_SOURCE_BYTE_LIMIT (original JSON must be at most 100 MiB / 104857600 bytes)':code;
 };
 const getSession=ref=>{
-  if(!sessions.has(ref))sessions.set(ref,{optIn:false,job:null,status:'Worker indexing is optional; existing path unchanged.'});
+  if(!sessions.has(ref))sessions.set(ref,{optIn:true,job:null,status:'O1 Worker ready; load original PSI116 XML and JSON, then Build.'});
   return sessions.get(ref);
 };
+function eligibleSource(state){
+  // The standalone resolver is proved for Single PSI116 XML+JSON. Do not
+  // silently promote Mode-A/B multi-source or InputXML to this authority.
+  return xmlCiiProcessingMode(state)==='single'&&
+    ['auto','xml'].includes(state?.sourceKind||'auto')&&
+    detectXmlCiiWorkflowSourceKind(state?.sourceText,'xml')==='xml';
+}
 function status(session,text){
   session.status=text;
   if(session.label)session.label.textContent=text;
@@ -137,17 +147,25 @@ export function installLfjO1SourceIntake(container,stateRef){
   const field=container.querySelector('[data-mode-a-staged-json-all], [data-field="staged-json-file"]');
   if(!field)return;
   const session=getSession(stateRef);
+  const supported=eligibleSource(stateRef.current);
+  if(!supported&&session.job){
+    const old=session.job;session.job=null;
+    revokeLfjO1Domain(session);void revoke(old);
+  }
   const group=document.createElement('div');
   group.dataset.lfjO1Intake='true';
   group.style.cssText='padding:8px;border:1px solid #475569;margin:8px 0';
   const label=document.createElement('label');
-  label.textContent=' O1: Use existing LFJ native Worker source indexing (experimental; no trace/CSV yet)';
+  label.textContent=supported
+    ? ' O1: Responsive native Worker trace (on by default for single PSI116 XML + JSON)'
+    : ' O1: Standalone Worker trace applies to single PSI116 XML + JSON only';
   const toggle=document.createElement('input');
-  toggle.type='checkbox';toggle.dataset.lfjO1Enable='true';toggle.checked=session.optIn;
+  toggle.type='checkbox';toggle.dataset.lfjO1Enable='true';
+  toggle.checked=session.optIn&&supported;toggle.disabled=!supported;
   label.prepend(toggle);
   const progress=document.createElement('div');
   progress.dataset.lfjO1Status='true';
-  progress.textContent=session.status;
+  progress.textContent=supported?session.status:'O1 Worker unavailable for this source kind or processing mode; no Worker trace/CSV rights.';
   session.label=progress;
   group.append(label,progress);
   (field.parentElement?.parentElement || field.parentElement)?.appendChild(group);
@@ -162,7 +180,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   });
   // Registered before legacy Single / Mode-A handler. Existing default path is unchanged.
   field.addEventListener('change',event=>{
-    if(!session.optIn)return;
+    if(!session.optIn||!eligibleSource(stateRef.current))return;
     event.stopImmediatePropagation();
     const file=event.target.files?.[0];
     if(!file)return;
@@ -173,7 +191,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   for(const action of ['build-resolver-index','save-resolver-json-config',
     'download-node-wise-trace-csv','download-evidence-tree-csv']){
     container.querySelector('[data-action="'+action+'"]')?.addEventListener('click',e=>{
-      if(!session.optIn)return;
+      if(!session.optIn||!eligibleSource(stateRef.current))return;
       e.preventDefault();e.stopImmediatePropagation();
       if(action==='build-resolver-index'||action==='save-resolver-json-config'){
         void startLfjO1Domain(session,stateRef).catch(err=>
