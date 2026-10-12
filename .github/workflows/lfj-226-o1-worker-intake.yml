@@ -1,0 +1,50 @@
+name: LFJ 226 O1 actual standalone Worker intake
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
+      - 'tests/browser/lfj-226-o1-intake.html'
+      - 'scripts/lfj-226-o1-worker-intake-browser.mjs'
+      - '.github/workflows/lfj-226-o1-worker-intake.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 8
+      - name: Verify direct-main and syntax before browser
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-worker-intake-browser.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js
+          echo "LFJ226_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Host exact authored application
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-o1-http.log 2>&1 &
+      - name: Chromium native LFJ index Firstpass, NC and malformed negative
+        run: node scripts/lfj-226-o1-worker-intake-browser.mjs
+      - name: Upload source-provenance and frame evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-native-worker-intake
+          path: |
+            ValidationRecords/lfj-226-o1-intake.json
+            /tmp/lfj226-o1-http.log
+          if-no-files-found: warn
+          retention-days: 30
