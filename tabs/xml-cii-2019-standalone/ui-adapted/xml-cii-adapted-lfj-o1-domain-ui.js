@@ -73,10 +73,19 @@ async function auditSourcePaths(session,d,ready){
   const wanted=requested.size;let scanned=0;
   // Native committed HEAD checked inside readOrdered. All attested source
   // paths are exact RFC6901 paths from the R05 OPEN source index.
-  for await(const row of d.job.store.readOrdered()){
+  if(typeof d.job.store.readCommittedPages!=='function')
+    throw typed('O1_COMMITTED_PAGE_PORT_REQUIRED');
+  for await(const page of d.job.store.readCommittedPages()){
     if(!currentBasis(session,d.job,d.basis))throw typed('O1_SOURCE_STALE');
-    requested.delete(row.path);
-    if(++scanned%512===0)await new Promise(resolve=>requestAnimationFrame(resolve));
+    for(const row of page.rows){
+      if(row.kind!=='OPEN')continue;
+      requested.delete(row.path);
+      scanned++;
+    }
+    // A complete bounded event page is attested atomically. Yield once per
+    // page so DOM/events remain responsive, not once per individual source fact.
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    if(!currentBasis(session,d.job,d.basis))throw typed('O1_SOURCE_STALE');
   }
   if(requested.size)throw typed('O1_ORIGINAL_PATH_NOT_COMMITTED');
   return {wanted,scanned};
