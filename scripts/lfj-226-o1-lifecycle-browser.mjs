@@ -69,21 +69,24 @@ try{
    if(record.lastUserShaCorrect){await build();await snap('last-C-matched');}
    record.pass=record.lastUserShaCorrect&&String(record.steps.at(-1).status).includes('source-path verified');
  }else if(kind==='nc-kind'){
-   // Authentic NC JSON, explicitly incompatible element-based InputXML.
+   // Real original NC JSON first gets source-only Worker indexing under PSI116.
+   // Switching to deliberately incompatible InputXML must remove all O1 domain
+   // and trace/CSV rights. Compatible NC XML is NOT an established golden.
+   const ncb=await readFile(nc);record.originalNcSha256=sha(ncb);
+   await source.setInputFiles(nc);
+   await page.waitForFunction(()=>{const s=document.querySelector('[data-lfj-o1-status]')?.textContent||'';
+     return s.includes('COMMITTED:')||s.startsWith('LFJ Worker FAILED');},null,{timeout:120000});
+   await snap('authentic-NC-source-only-index');
    await page.locator('[data-phase="source"]').click();
    await page.locator('[data-field="source-file"]').setInputFiles({
      name:'W08-incompatible-NC.inputxml',mimeType:'application/xml',
      buffer:Buffer.from('<CAESARII XML_TYPE="Input"><PIPINGMODEL/></CAESARII>')});
-   await page.locator('[data-phase="json-trace"]').click();
-   await snap('inputxml-kind');
-   record.toggleDisabled=await page.locator('[data-lfj-o1-enable]').isDisabled();
-   record.toggleChecked=await page.locator('[data-lfj-o1-enable]').isChecked();
-   if(await page.locator('[data-field="staged-json-file"]').count()){
-     await page.locator('[data-field="staged-json-file"]').setInputFiles(nc);
-   }
-   await snap('NC-json-not-promoted');
-   record.pass=record.toggleDisabled&&!record.toggleChecked&&await exports()===0&&
-     !record.workers.some(w=>w.includes('lfj-o1'));
+   const jsonPhase=page.locator('[data-phase="json-trace"]');
+   await jsonPhase.waitFor();record.inputXmlJsonTraceDisabled=await jsonPhase.isDisabled();
+   await snap('NC-json-with-incompatible-InputXML');
+   record.protectedCompatibleNcXml='NOT_PROVEN: authentic compatible NC XML pair absent';
+   record.pass=record.inputXmlJsonTraceDisabled&&await exports()===0&&
+     !record.workers.some(w=>w.includes('lfj-o1-resolver-domain-worker'));
  }else if(kind==='inflight'){
    await load(original,'W08-before-inflight.json');await committed(sha(original));
    await page.locator('[data-action="build-resolver-index"]').click();
