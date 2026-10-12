@@ -110,7 +110,7 @@ async function run(browser,item){
       ()=>page.waitForFunction(()=>!!document.querySelector('[data-mode-a-staged-json-all]'),null,{timeout:10000}));
     if(!sourceOK)return data;
     const jsonOK=await stage(page,session,data,'upload-staged-json',()=>page.locator('[data-mode-a-staged-json-all]').setInputFiles(item.source.file),
-      ()=>page.waitForFunction(()=>{const t=document.body.innerText;return /[1-9]\\d*\\/\\d+ enabled XML sources currently have staged JSON text/.test(t);},null,{timeout:30000}));
+      ()=>page.waitForFunction(()=>{const t=document.body.innerText;return t.includes('1/1 enabled XML sources currently have staged JSON text');},null,{timeout:30000}));
     if(!jsonOK)return data;
     const traceOK=await stage(page,session,data,'build-and-render-resolver-trace',async()=>{
       await page.locator('[data-action="build-resolver-index"]').click({timeout:90000});
