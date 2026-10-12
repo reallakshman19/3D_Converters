@@ -72,6 +72,7 @@ async function finish(job,m){
   return s;
 }
 async function scan(file,session){
+  status(session,'LFJ Worker: replacing original source; previous receipt invalid.');
   const old=session.job;
   session.job=null;
   if(old)await revoke(old);
@@ -98,7 +99,7 @@ async function scan(file,session){
         try{
           if(m?.kind==='PROVISIONAL_PAGE'){
             await recordPage(job,m);
-            if(job.pages===1||job.pages%32===0)
+            if(job.pages===1||job.pages%8===0)
               status(session,'LFJ Worker: '+job.pages+' bounded pages staged (not committed)');
           }else if(m?.kind==='SCAN_DONE'){
             const summary=await finish(job,m);
@@ -108,7 +109,7 @@ async function scan(file,session){
         }catch(e){settle(e);}
       };
       worker.postMessage({schema:SOURCE_WORKER_SCHEMA,kind:'SCAN',
-        jobId:job.id,sourceRefId:job.ref,revision:job.id,blob:file,pageEvents:64});
+        jobId:job.id,sourceRefId:job.ref,revision:job.id,blob:file,pageEvents:1024});
     }catch(e){settle(e);}
   }).then(summary=>{
     if(session.job!==job||job.cancelled)throw error('LFJ_SOURCE_SUPERSEDED');
@@ -154,7 +155,7 @@ export function installLfjO1SourceIntake(container,stateRef){
     event.stopImmediatePropagation();
     const file=event.target.files?.[0];
     if(!file)return;
-    void scan(file,session).catch(()=>{});
+    void scan(file,session).catch(e=>status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.'));
   },true);
   // Source facts alone must never trigger synchronous legacy Build or CSV.
   for(const action of ['build-resolver-index','save-resolver-json-config',
