@@ -139,7 +139,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   progress.textContent=session.status;
   session.label=progress;
   group.append(label,progress);
-  field.parentElement?.appendChild(group);
+  (field.parentElement?.parentElement || field.parentElement)?.appendChild(group);
   toggle.addEventListener('change',()=>{
     session.optIn=toggle.checked;
     if(!toggle.checked){
