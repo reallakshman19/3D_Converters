@@ -12,7 +12,11 @@ import {chromium} from 'playwright';
 
 const mode=process.env.W07_CASE||'default-root';
 assert.ok(['default-root','default-docs','optin-root','optin-docs','combined-optin'].includes(mode));
-const opted=mode.startsWith('optin')||mode==='combined-optin';
+// W07 baseline used unchecked=false. W09 repeats the identical authored
+// five-case oracle with ordinary default Worker adoption required.
+const adoptedDefault=process.env.W07_DEFAULT_ADOPTION==='1';
+const explicitlyOpted=mode.startsWith('optin')||mode==='combined-optin';
+const opted=explicitlyOpted||adoptedDefault;
 const route=mode.endsWith('docs')?'docs/index.html':'index.html';
 const xml='Benchmarks/1885Sjson/FirstpassXML';
 const json='Benchmarks/1885Sjson/Sjson.json';
@@ -106,8 +110,8 @@ try{
     await page.locator('[data-phase="json-trace"]').click();
     await page.locator('[data-field="staged-json-file"]').waitFor();
     result.optInInitially=await page.locator('[data-lfj-o1-enable]').isChecked();
-    assert.equal(result.optInInitially,false,'fresh ordinary user is unchecked');
-    if(opted)await page.locator('[data-lfj-o1-enable]').check();
+    assert.equal(result.optInInitially,adoptedDefault,'ordinary user Worker default matches expected adoption');
+    if(explicitlyOpted)await page.locator('[data-lfj-o1-enable]').check();
   })){
     await step('authored-original-JSON-file-upload',async()=>{
       await page.locator('[data-field="staged-json-file"]').setInputFiles(file,{timeout:240000});
