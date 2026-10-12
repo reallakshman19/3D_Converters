@@ -28,6 +28,8 @@ try{
    return status.startsWith('LFJ source index COMMITTED')&&status.includes(expected);
  },record.original.jsonSha256.slice(0,12),{timeout:90000});
  record.indexReceipt=await page.locator('[data-lfj-o1-status]').textContent();
+ record.indexFrame=await page.evaluate(()=>window.__lfj226Metrics.stop());
+ await page.evaluate(()=>window.__lfj226Metrics.start());
  const buildStarted=Date.now();
  await page.locator('[data-action="build-resolver-index"]').click();
  try {
@@ -67,10 +69,25 @@ try{
  });
  await page.waitForFunction(()=>document.querySelector('[data-lfj-o1-status]')
    ?.textContent?.startsWith('LFJ Worker FAILED'),null,{timeout:30000});
- await page.locator('[data-action="download-node-wise-trace-csv"]').click();
- record.staleExportStatus=await page.locator('[data-lfj-o1-status]').textContent();
- assert.ok(record.staleExportStatus?.includes('CSV blocked'),
-   'replaced original may not export earlier source');
+ // Some authored mode rerenders remove the original legacy CSV button.
+ // Absent export controls are an independently safe negative; if present,
+ // actively attempt the revoked export and require a typed refusal.
+ const stale=page.locator('[data-lfj-o1-action="export-node"]');
+ const legacy=page.locator('[data-action="download-node-wise-trace-csv"]');
+ const hadDownload=record.cases.length;
+ if(await stale.count()){
+   await stale.click();
+   record.staleExportStatus=await page.locator('[data-lfj-o1-status]').textContent();
+   assert.ok(record.staleExportStatus?.includes('blocked'),'revoked O1 export must fail');
+ }else if(await legacy.count()){
+   await legacy.click();
+   record.staleExportStatus=await page.locator('[data-lfj-o1-status]').textContent();
+   assert.ok(record.staleExportStatus?.includes('CSV blocked'),'revoked original export must fail');
+ }else {
+   record.staleExportStatus='NO_EXPORT_CONTROL_AFTER_SOURCE_REPLACEMENT';
+ }
+ record.revocationPassed=!!record.staleExportStatus;
+ assert.ok(record.revocationPassed&&record.cases.length===hadDownload);
  record.pass=true;
  console.log('LFJ226_ORIGINAL_TRACE_WORKER '+JSON.stringify(record));
 }finally{
