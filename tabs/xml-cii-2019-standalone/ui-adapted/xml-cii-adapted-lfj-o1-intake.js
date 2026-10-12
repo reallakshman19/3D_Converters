@@ -9,7 +9,11 @@ import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} fr
 
 const sessions=new WeakMap();
 const error=(code)=>Object.assign(new Error(code),{code});
-const safeCode=e=>String(e?.code||e?.message||'LFJ_SOURCE_FAILED').slice(0,100);
+const safeCode=e=>{
+  const code=String(e?.code||e?.message||'LFJ_SOURCE_FAILED').slice(0,100);
+  return code==='O1_SOURCE_BYTE_LIMIT'?
+    'O1_SOURCE_BYTE_LIMIT (original JSON must be at most 100 MiB / 104857600 bytes)':code;
+};
 const getSession=ref=>{
   if(!sessions.has(ref))sessions.set(ref,{optIn:false,job:null,status:'Worker indexing is optional; existing path unchanged.'});
   return sessions.get(ref);
