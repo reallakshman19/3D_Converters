@@ -29,6 +29,7 @@ const RUNTIME_ROOT_DIRECTORIES = Object.freeze([
   'engineering',
   'interchange',
   'js',
+  'lfj',
   'opt',
   'overlays',
   'parser',
