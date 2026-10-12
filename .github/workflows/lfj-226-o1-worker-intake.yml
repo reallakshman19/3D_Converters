@@ -8,6 +8,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/workers/lfj-o1-resolver-domain-worker.mjs'
       - 'lfj/storage/browser/indexed-page-record-store.mjs'
       - 'scripts/lfj-226-o1-resolver-domain-browser.mjs'
+      - 'scripts/lfj-226-o1-source-authority-browser.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
       - 'tests/browser/lfj-226-o1-intake.html'
       - 'scripts/lfj-226-o1-worker-intake-browser.mjs'
@@ -29,6 +30,7 @@ jobs:
           test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
           node --check scripts/lfj-226-o1-worker-intake-browser.mjs
           node --check scripts/lfj-226-o1-resolver-domain-browser.mjs
+          node --check scripts/lfj-226-o1-source-authority-browser.mjs
           node --check lfj/storage/browser/indexed-page-record-store.mjs
           node --check tabs/xml-cii-2019-standalone/workers/lfj-o1-resolver-domain-worker.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js
@@ -44,6 +46,8 @@ jobs:
       - name: Host exact authored application
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-o1-http.log 2>&1 &
+      - name: Chromium original committed source authority and stale/CAS negative tests
+        run: node scripts/lfj-226-o1-source-authority-browser.mjs
       - name: Chromium native LFJ index Firstpass, NC and malformed negative
         run: node scripts/lfj-226-o1-worker-intake-browser.mjs
       - name: Chromium original XML plus Firstpass matched Worker trace and both CSVs
@@ -55,6 +59,7 @@ jobs:
           name: lfj-226-o1-native-worker-intake
           path: |
             ValidationRecords/lfj-226-o1-intake.json
+            ValidationRecords/lfj-226-o1-authority-negatives.json
             ValidationRecords/lfj-226-o1-trace.json
             ValidationRecords/lfj-226-o1-node-original.csv
             ValidationRecords/lfj-226-o1-evidence-original.csv
