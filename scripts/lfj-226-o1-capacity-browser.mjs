@@ -8,6 +8,7 @@ import {readFile,open,mkdir,writeFile,stat,unlink} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {performance} from 'node:perf_hooks';
+import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright';
 const sizeMiB=Number(process.env.O1_CAPACITY_MIB||30);
 assert.ok([30,60,100].includes(sizeMiB),'only authorized proposed capacity sizes');
@@ -32,6 +33,7 @@ const data={schema:'LFJ226.O1.CapacityEvidence.v1',status:'NOT_RUN',targetMiB:si
   generated:true,notSemanticGolden:true,originalFixtureSha256:originalSha,
   originalXmlFile:'Benchmarks/1885Sjson/FirstpassXML',sourceSha256,bytes,copies,
   capacityPolicy:'100MiB and 200ms rAF are PROPOSED; OWNER D-AIM-2 not approved',
+  memoryQualification:'CDP page/renderer heaps and sampled aggregate Chromium process RSS; not peak',
   steps:[],memory:{maxObservedPageHeapBytes:0,maxRendererHeapBytes:0,
     maxChromiumProcessRssKiB:0},pass:false};
 const browser=await chromium.launch({headless:true});
@@ -48,6 +50,20 @@ async function sample(){
  }catch{}
  try{const pageHeap=await page.evaluate(()=>performance.memory?.usedJSHeapSize||0);
   data.memory.maxObservedPageHeapBytes=Math.max(data.memory.maxObservedPageHeapBytes,pageHeap);
+ }catch{}
+ try{
+  // RSS is a sampled *aggregate* of Chromium processes, not a true peak or
+  // a single Worker heap. Each matrix job runs in its own hosted runner.
+  const lines=execFileSync('ps',['-eo','rss=,comm='],
+    {encoding:'utf8',timeout:1800}).trim().split('\\n');
+  let rss=0;
+  for(const line of lines){
+   const row=line.trim().match(/^(\\d+)\\s+(\\S+)/);
+   if(row&&/^(chrome|chromium|headless_shell|chrome-headless)/.test(row[2]))
+    rss+=Number(row[1]);
+  }
+  data.memory.maxChromiumProcessRssKiB=
+   Math.max(data.memory.maxChromiumProcessRssKiB,rss);
  }catch{}
 }
 const memoryTimer=setInterval(()=>{void sample();},750);
