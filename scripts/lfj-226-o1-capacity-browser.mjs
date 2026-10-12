@@ -46,8 +46,11 @@ const sourceSha256=digest.digest('hex');
 const data={schema:'LFJ226.O1.CapacityEvidence.v1',status:'NOT_RUN',targetMiB:sizeMiB,
   generated:true,notSemanticGolden:true,shape,originalFixtureSha256:originalSha,
   originalXmlFile:'Benchmarks/1885Sjson/FirstpassXML',sourceSha256,bytes,copies,
-  capacityPolicy:'100MiB and 200ms rAF are PROPOSED; OWNER D-AIM-2 not approved',
+  capacityPolicy:'OWNER D-AIM-2 Option A: bytes<=104857600 AND originals<=2000000; typed refusal beyond either. 200ms rAF is diagnostic only',
   memoryQualification:'CDP page/renderer heaps and sampled aggregate Chromium process RSS; not peak',
+  estimatedOriginalOccurrences:shape==='repeated-firstpass'?1+copies*23753:null,
+  expectedResult:shape==='repeated-firstpass'&&1+copies*23753>2000000?
+    'REFUSE_OCCURRENCE_LIMIT':'TRACE_AND_EXPORT',
   steps:[],memory:{maxObservedPageHeapBytes:0,maxRendererHeapBytes:0,
     maxChromiumProcessRssKiB:0},pass:false};
 const browser=await chromium.launch({headless:true});
@@ -145,9 +148,18 @@ try{
  const maxGap=Math.max(0,...data.steps.map(x=>x.frame?.maxFrameGapMs||0));
  data.maxMeasuredFrameGapMs=maxGap;
  data.proposedFrameBudgetPassed=maxGap<=200;
- data.pass=!!(data.sourceCommitted&&data.domainReady&&data.nodeCsv?.rows>0&&
-  data.evidenceCsv?.rows>0&&data.visibleRows<=64&&maxGap<=200);
- data.status=data.pass?'CAPACITY_PROVEN_AT_PROPOSED_SIZE':'CAPACITY_NOT_PROVEN';
+ if(data.expectedResult==='REFUSE_OCCURRENCE_LIMIT'){
+  data.typedRefusalObserved=!!(data.intakeStatus?.startsWith('LFJ Worker FAILED: OCCURRENCE_LIMIT'));
+  data.refusedNoOutputControls=await page.locator('[data-lfj-o1-action^="export-"]').count()===0;
+  data.pass=!!(data.typedRefusalObserved&&!data.sourceCommitted&&
+    !data.domainReady&&!data.nodeCsv&&!data.evidenceCsv&&
+    data.refusedNoOutputControls&&maxGap<=200);
+  data.status=data.pass?'EXPECTED_OWNER_POLICY_REFUSAL':'POLICY_REFUSAL_NOT_PROVEN';
+ }else{
+  data.pass=!!(data.sourceCommitted&&data.domainReady&&data.nodeCsv?.rows>0&&
+    data.evidenceCsv?.rows>0&&data.visibleRows<=64&&maxGap<=200);
+  data.status=data.pass?'IN_RANGE_TRACE_AND_EXPORT_PROVEN':'CAPACITY_NOT_PROVEN';
+ }
  console.log('LFJ226_GENERATED_CAPACITY '+JSON.stringify(data));
  if(!data.pass)process.exitCode=1;
 }finally{
