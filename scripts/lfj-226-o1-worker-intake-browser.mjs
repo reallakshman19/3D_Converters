@@ -12,7 +12,7 @@ try{
  await page.waitForFunction(()=>window.__lfj226Mounted===true);
  await page.locator('[data-phase="json-trace"]').click();
  await page.locator('[data-lfj-o1-enable]').check();
- const field=page.locator('[data-mode-a-staged-json-all]');
+ const field=page.locator('[data-field="staged-json-file"]');
  const sources=[
    {name:'FIRSTPASS',path:'Benchmarks/1885Sjson/Sjson.json'},
    {name:'NC_SOURCE_NEGATIVE',path:'Benchmarks/1885_NC/1885_NC.json'}
