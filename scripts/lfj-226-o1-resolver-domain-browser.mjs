@@ -14,6 +14,13 @@ try{
  const source=await readFile(firstpass),xml=await readFile(originalXml);
  record.original={jsonBytes:source.length,jsonSha256:sha(source),
    xmlBytes:xml.length,xmlSha256:sha(xml)};
+ // Exact original fixture identities, distinct from generated capacity tests.
+ assert.equal(record.original.jsonSha256,'6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288');
+ assert.equal(record.original.xmlSha256,'feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38');
+ const golden={node:{rows:216,sha256:'0d8bb4482ed4a9d0d116faeac5e68ce564f07b6bba2dd73dfc3676b72ec2eddc'},
+   evidence:{rows:241,sha256:'653485ff968bf478fa0001488432bb210a9ce6e85a901e9cc19f368f53a24809'}};
+ // These output hashes are frozen Firstpass regression snapshots from the
+ // prior real-UI independent run, NOT independent engineering semantic truth.
  await page.goto('http://127.0.0.1:4173/tests/browser/lfj-226-o1-intake.html',
    {waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__lfj226Mounted===true);
@@ -59,7 +66,8 @@ try{
      sha256:sha(bytes),bom:bytes.subarray(0,3).toString('hex'),
      lines:bytes.toString('utf8').split('\r\n').length-2};
    assert.ok(bytes.length>64&&output.bom==='efbbbf');
-   assert.ok(output.lines>=1,'original exporter should contain at least one fact');
+   assert.equal(output.lines,golden[kind].rows,'original XML node/evidence row count changed');
+   assert.equal(output.sha256,golden[kind].sha256,'original complete CSV output drifted');
    await mkdir('ValidationRecords',{recursive:true});
    await writeFile('ValidationRecords/lfj-226-o1-'+kind+'-original.csv',bytes);
    record.cases.push(output);
