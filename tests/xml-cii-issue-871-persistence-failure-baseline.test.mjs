@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createMasterDatasetService } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-service.js';
-import { MASTER_DATASET_COMMAND } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
+import { MASTER_DATASET_COMMAND, MASTER_DATASET_EVENT } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-protocol.js';
 import { persistChangedMasterDetailed } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-runtime.js';
 import { hydratePersistedMasterDatasets } from '../tabs/xml-cii-2019-standalone/workers/master-dataset-startup-hydration.js';
 
@@ -46,7 +46,7 @@ function installStorage(entries = {}, options = {}) {
   return { values, restore: () => { globalThis.localStorage = previous; } };
 }
 
-test('C05.5.1 RED: IndexedDB rejection aborts DATASET_READY after parse although worker rows already exist in session', async (t) => {
+test('C05.5.1 IndexedDB failure returns explicit session-only DATASET_READY and keeps parsed rows accessible', async (t) => {
   const persistenceError = Object.assign(new Error('IndexedDB quota exceeded'), { name: 'QuotaExceededError' });
   let persistCalls = 0;
   const service = createService({
@@ -68,11 +68,15 @@ test('C05.5.1 RED: IndexedDB rejection aborts DATASET_READY after parse although
     currentMap: {},
   };
 
-  await assert.rejects(service.handle(open), (error) => {
-    assert.equal(error.name, 'QuotaExceededError');
-    assert.match(error.message, /IndexedDB quota exceeded/);
-    return true;
-  });
+  const ready = await service.handle(open);
+  assert.equal(ready.type, MASTER_DATASET_EVENT.DATASET_READY);
+  assert.equal(ready.metadata.datasetId, 'job-pc:pipingClass:rows:r1');
+  assert.equal(ready.metadata.persistenceMode, 'session');
+  assert.equal(ready.persistence.persisted, false,
+    'IndexedDB quota failure must not pretend that rows are durable');
+  assert.equal(ready.persistence.failure.name, 'QuotaExceededError');
+  assert.match(ready.persistence.failure.message, /IndexedDB quota exceeded/);
+  assert.equal(ready.persistence.quotaLimited, true);
   assert.equal(persistCalls, 1);
 
   // finalizeDataset() registers the parsed dataset before awaiting persistence.
@@ -88,8 +92,9 @@ test('C05.5.1 RED: IndexedDB rejection aborts DATASET_READY after parse although
   t.diagnostic(JSON.stringify({
     parseSucceeded: true,
     sessionDatasetReadableAfterPersistenceFailure: true,
-    dataSetReadyReturned: false,
-    failureSurface: 'INDEXEDDB_PERSIST_REJECTION_ESCAPES_IMPORT',
+    dataSetReadyReturned: true,
+    durability: 'SESSION_ONLY',
+    failureSurface: 'TYPED_INDEXEDDB_FAILURE_WITH_SESSION_ROWS',
     nextOwner: 872,
   }));
 });
@@ -167,7 +172,7 @@ test('C05.5.1 localStorage custody failure is returned as persistence failure wi
   }
 });
 
-test('C05.5.1 corrupt cold restore rejects before mutation and preserves pre-existing active-session authority', async (t) => {
+test('C05.5.1 corrupt cold restore isolates bad master and preserves pre-existing active-session authority', async (t) => {
   const storage = installStorage({
     'xml-cii-master-source-materialMap': JSON.stringify({
       source: 'PCF_MAT_MAP.TXT',
@@ -212,22 +217,35 @@ test('C05.5.1 corrupt cold restore rejects before mutation and preserves pre-exi
   const before = JSON.parse(JSON.stringify(stateRef.current));
 
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata() { return null; },
-          async getRowsRange() { throw new Error('must not read rows after missing metadata'); },
-          async getRows() { throw new Error('must not read rows after missing metadata'); },
-        },
-      }),
-      /Persisted materialMap dataset is unavailable/,
-    );
-    assert.deepEqual(stateRef.current, before);
+    let invalidRowReads = 0;
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata() { return null; },
+        async getRowsRange() { invalidRowReads++; throw new Error('must not read rows after missing metadata'); },
+        async getRows() { invalidRowReads++; throw new Error('must not read rows after missing metadata'); },
+      },
+    }), true);
+    assert.equal(invalidRowReads, 0,
+      'corrupt persisted Mat Map must never reach indexed row reads');
+    assert.deepEqual(stateRef.current.masterContext, before.masterContext,
+      'active Weight session authority must survive isolated Mat Map failure');
+    assert.equal(stateRef.current.supportConfigJson, before.supportConfigJson);
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity?.materialMap, {
+      masterKey: 'materialMap',
+      datasetId: 'corrupt:mat:r3',
+      domain: 'restore-storage',
+      code: 'MISSING_DATASET',
+      stage: 'metadata-validate',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.materialMap.message,
+      /Persisted materialMap dataset is unavailable/);
+    assert.equal(stateRef.current.masterContext.datasetRefs.materialMap, undefined,
+      'missing Mat Map metadata must never become active authority');
 
     t.diagnostic(JSON.stringify({
       corruptPersistedAuthorityAttached: false,
       activeSessionAuthorityPreserved: true,
-      failureSurface: 'COLD_RESTORE_REJECTION',
+      failureSurface: 'PER_MASTER_TYPED_FAILURE_QUARANTINE',
       userVisibleStatusWrittenHere: false,
       nextOwners: [874, 875],
     }));
