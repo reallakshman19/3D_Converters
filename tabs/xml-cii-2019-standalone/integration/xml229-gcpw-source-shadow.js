@@ -15,6 +15,60 @@ const check=(ok,code,message)=>{if(!ok)fail(code,message);};
 const keyed=(x)=>JSON.stringify([x?.subjectType,x?.sourceId,x?.occurrenceId]);
 const isOrdinal=(n)=>Number.isSafeInteger(n)&&n>=0;
 const own=(o,key)=>Object.prototype.hasOwnProperty.call(o,key);
+// Authenticate the real Worker's original physical SOURCE facts, without
+// converting them into reviewed engineering facts. Independent second parser
+// is deliberate here: a shadow verifier must not attest the Worker's own data.
+const direct=(node,key)=>[...(node?.childNodes||[])].filter(x=>
+  x.nodeType===1&&String(x.localName||x.nodeName).replace(/^.*:/,'')===key);
+function verifyPhysicalAudit({audit,basis,source,projection,parseXml}) {
+  check(audit?.schema==='xml229-physical-source-audit/v1'
+    &&audit.sourceOnly===true&&audit.engineeringReady===false
+    &&Array.isArray(audit.pages)&&audit.originalNodeCount===projection.nodeCount
+    &&audit.sourceFactCount===projection.nodeCount*4,
+    'UNVERIFIED_PHYSICAL_AUDIT','Worker source observation counts or authority not verified');
+  const xml=(parseXml||((value)=>new DOMParser().parseFromString(value,'application/xml')))(source.text);
+  const originalNodes=direct(xml.documentElement,'Pipe')
+    .flatMap(p=>direct(p,'Branch').flatMap(b=>direct(b,'Node')));
+  check(originalNodes.length===projection.nodes.length,'PHYSICAL_ORIGINAL_MISMATCH',
+    'Independent raw XML occurrence census disagrees with Worker');
+  const spec=[['source.position.xyz','Position'],['source.outsideDiameter.mm','OutsideDiameter'],
+    ['source.wallThickness.mm','WallThickness'],['source.weight.kg','Weight']];
+  const all=[];let offset=0;
+  for(const page of audit.pages){
+    check(page?.basisId===basis.basisId&&page.schemaVersion==='gc-pw/1.0'
+      &&page.complete===false&&page.totalCount===audit.sourceFactCount
+      &&Array.isArray(page.items)&&page.items.length>0&&page.items.length<=200,
+      'PHYSICAL_PAGE_INVALID','Source-only page or basis signature is invalid');
+    offset+=page.items.length;
+    check(page.nextCursor===(offset<audit.sourceFactCount?String(offset):null),
+      'PHYSICAL_PAGE_ORDER','Physical source pages are reordered/truncated');
+    all.push(...page.items);
+  }
+  check(all.length===audit.sourceFactCount,'PHYSICAL_PAGE_TRUNCATED','Source physical facts are missing');
+  for(let index=0;index<projection.nodes.length;index++){
+    const occurrence=projection.nodes[index],node=originalNodes[index];
+    for(let field=0;field<spec.length;field++){
+      const [fieldId,tag]=spec[field],record=all[index*4+field];
+      const raw=String(direct(node,tag)[0]?.textContent||'').trim();
+      const parsed=tag==='Position'
+        ?(raw?raw.split(/\s+/).map(Number):[])
+        :raw===''?null:Number(raw);
+      const expected=tag==='Position'
+        ?parsed.length===3&&parsed.every(Number.isFinite)?parsed:null
+        :parsed!==null&&Number.isFinite(parsed)?parsed:null;
+      check(record?.subjectType==='node'&&record?.sourceId===occurrence.sourceId
+        &&record.occurrenceId===occurrence.occurrenceId
+        &&record.basisId===basis.basisId&&record.fieldId===fieldId
+        &&record.extensions?.originalText===(raw||null)
+        &&JSON.stringify(record.value)===JSON.stringify(expected)
+        &&record.authority===(expected===null?'unresolved':'source')
+        &&record.provenance?.[0]?.sourceRef===occurrence.sourceId,
+        'PHYSICAL_FIELD_MISMATCH','Source observation does not match independent original node '
+          +JSON.stringify([index,fieldId]));
+    }
+  }
+  return all;
+}
 
 /**
  * An additive, source-only GC-PW custody probe for one exact Mode-A XML source.
@@ -30,7 +84,7 @@ const own=(o,key)=>Object.prototype.hasOwnProperty.call(o,key);
 export async function openXml229SourceShadow({
   source,sourceGeneration,scope,masters,config={},overrides={},stagedSource=null,
   expectedOccurrences,expectedSelectedPopulation,isCancelled=()=>false,
-  sha256=digestUtf8,parseXml=null,
+  sha256=digestUtf8,parseXml=null,workerSourcePhysicalAudit=null,
 }={}) {
   check(source&&typeof source.sourceId==='string'&&!!source.sourceId.trim()
     &&source.mediaType==='application/xml'&&typeof source.text==='string'&&!!source.text.trim(),
@@ -95,6 +149,12 @@ export async function openXml229SourceShadow({
   // Keep full source field custody, including negative NodeNumber and repeated
   // Branchname. No conversion into physical engineering facts is authorized.
   const records=buildXmlCiiSourceFactRecords({basisId:basis.basisId,projection});
+  if(workerSourcePhysicalAudit!==null){
+    check(scope.mode==='all','PHYSICAL_SCOPED_WORKER_PENDING',
+      'Current physical Worker cannot attest selected-zone original source');
+    records.push(...verifyPhysicalAudit({audit:workerSourcePhysicalAudit,
+      basis,source,projection,parseXml}));
+  }
   const ports={assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage};
   const model=await openPreviewFactReadModel({basis,expectedOccurrences,records,ports});
   cancelled();
