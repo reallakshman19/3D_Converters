@@ -7,9 +7,12 @@ import { buildPipeDataWeightRows } from './pipe-component-data-adapter.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from './default-weight-master-rows.js';
 import { DEFAULT_MATERIAL_MAP_ROWS } from './default-material-map-rows.js';
 
+// These defaults must contain actual master ROWS, not the Specwise index.json
+// metadata manifest (whose rowCount is not proof that rows were hydrated).
+// Keep both route variants for the standalone docs/ page and hosted root entry.
 export const DEFAULT_PIPING_CLASS_MASTER_URLS = Object.freeze([
-  '../docs/Masters/SpecwisePipingClass/index.json',
-  'docs/Masters/SpecwisePipingClass/index.json',
+  '../docs/Masters/Piping_class_master.json',
+  'docs/Masters/Piping_class_master.json',
 ]);
 
 export const DEFAULT_MATERIAL_MAP_URLS = Object.freeze([
