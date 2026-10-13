@@ -1,0 +1,37 @@
+name: XML229 A2 GC-PW Source Shadow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/xml-cii-229-gcpw-source-shadow.yml'
+      - 'tests/recovery-preview/xml229-gcpw-source-shadow.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-gcpw-source-shadow.js'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-gcpw-source-shadow.js'
+
+permissions:
+  contents: read
+
+jobs:
+  source-shadow:
+    name: Exact source-census / schema safety (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Checkout exact draft head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Original GLRD + selected source custody + adversarial tests
+        run: node --test tests/recovery-preview/xml229-gcpw-source-shadow.test.mjs
+      - name: Root/served shadow parity
+        run: diff -u tabs/xml-cii-2019-standalone/integration/xml229-gcpw-source-shadow.js docs/tabs/xml-cii-2019-standalone/integration/xml229-gcpw-source-shadow.js
