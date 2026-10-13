@@ -1,3 +1,5 @@
+import { selectXmlCiiBlankWeightSuggestion } from '../../../converters/xml-cii2019-core/weight-blank-fill-policy.js';
+import { buildXmlCiiRigidWeightMatch1Provenance } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { xmlCiiDryRunPreview } from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
@@ -11,7 +13,7 @@ import {
   specialValveFactorRows,
   rankXmlCiiWeightCandidates
 } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v1';
@@ -274,7 +276,7 @@ export function renderAdaptedWeightMatchPanel(card, stateOrRef, render) {
     <div id="mc-wm-hint-panel"></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;">
       <button type="button" id="mc-wm-refresh" style="cursor:pointer;padding:8px 16px;border-radius:6px;background:#1e4ed8;color:#fff;border:none;">Build Weight Data</button>
-      <button type="button" id="mc-wm-fill-best" style="cursor:pointer;padding:8px 16px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;">Use all ★ preferred</button>
+      <button type="button" id="mc-wm-fill-best" style="cursor:pointer;padding:8px 16px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;">Apply suggestion to blank cells</button>
       <button type="button" id="mc-wm-length-toggle" style="cursor:pointer;padding:8px 16px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;" title="Convert small master lengths (<100) from inch to mm. Default OFF.">⇄ in→mm: OFF</button>
       <span id="mc-wm-status" style="font-size:12px;font-weight:600;margin-left:8px;">Ready to build</span>
     </div>
@@ -286,11 +288,18 @@ export function renderAdaptedWeightMatchPanel(card, stateOrRef, render) {
   bindParentWeightMatchPhase(card, stateRef, render);
 }
 
-function persistWeightMatchConfig(stateRef, config) {
+export function persistWeightMatchConfig(stateRef, config) {
   const nextJson = JSON.stringify(config, null, 2);
   const context = stateRef.current.masterContext || {};
-  context.config = config;
-  stateRef.current = { ...stateRef.current, supportConfigJson: nextJson, masterContext: { ...context, config } };
+  // Invoke the same revision-aware state updater used by Run and Regex.
+  // Invalidate the cached Run verdict in *all* supported application builds:
+  // a selected weight must never inherit another config's old READY/BLOCKED.
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    supportConfigJson: nextJson,
+    masterContext: { ...context, config },
+    outputRunReadinessReport: null,
+    outputRunReadinessStatus: '',
+  });
   saveMasterContextToLocalStorage(stateRef.current.masterContext);
 }
 
@@ -357,14 +366,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
   };
 
   const activeConfig = () => xmlCiiEnrichedConfigFromState(stateRef.current);
-  const onSaveConfig = (newCfg) => {
-    const nextJson = JSON.stringify(newCfg, null, 2);
-    stateRef.current.supportConfigJson = nextJson;
-    if (stateRef.current.masterContext) {
-      stateRef.current.masterContext.config = newCfg;
-      saveMasterContextToLocalStorage(stateRef.current.masterContext);
-    }
-  };
+  const onSaveConfig = (newCfg) => persistWeightMatchConfig(stateRef, newCfg);
 
   const syncToggle = () => {
     if (!toggleEl) return;
@@ -383,7 +385,22 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
     const cfg = activeConfig();
     if (!cfg.overrides) cfg.overrides = {};
     cfg.overrides.rigidWeight = { ...(cfg.overrides.rigidWeight || {}), [key]: value };
+    const rowIndex = Number(input.getAttribute('data-wm-row-index'));
+    const issue = Number.isInteger(rowIndex) ? localIssues[rowIndex] : null;
+    if (issue) {
+      const candidate = (issue.candidates || []).find(
+        entry => Math.abs(Number(selectedWeight(entry)) - value) <= 0.0005,
+      ) || null;
+      cfg.overrides.rigidWeightProposalMeta = {
+        ...(cfg.overrides.rigidWeightProposalMeta || {}),
+        [key]: buildXmlCiiRigidWeightMatch1Provenance(issue, cfg, candidate, {
+          weightKg: value,
+          acceptanceMethod: input.dataset.wmSelectionOrigin === 'candidate' ? 'candidate' : 'manual',
+        }),
+      };
+    }
     onSaveConfig(cfg);
+    input.dataset.wmAccepted = 'true';
   };
 
   const drawRows = (issues) => {
@@ -393,7 +410,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
     }
     const rows = issues.map((issue, rowIndex) => {
       const best = issue.candidates?.[0];
-      const initial = issue.weight && issue.weight > 0 ? issue.weight : (best ? selectedWeight(best) : '');
+      const initial = issue.weight && issue.weight > 0 ? issue.weight : ''; // Unaccepted proposal is a chip, not a populated Weight(kg).
       const rowStyle = issue.mapped ? 'background:#0f2a1b;border-left:4px solid #2f9e63;' : (best?.zeroFallback ? 'background:#3a1010;border-left:4px solid #ef4444;' : (best?.inferredWeight ? 'background:#302607;border-left:4px solid #d9a441;' : 'background:#3a240f;border-left:4px solid #d08a22;'));
       const inputStyle = `width:86px;padding:4px;border-radius:4px;font-size:12px;color:#e6edf5;background:#0f172a;border:1px solid #334155;${best?.zeroFallback ? 'background:#3a1010;border:1px solid #ef4444;color:#ffd6d6;' : (best?.inferredWeight ? 'background:#352706;border:1px solid #d9a441;color:#fff1b8;' : '')}`;
       const accepted = (issue.candidates || []).map((candidate) => renderAcceptedChip(candidate, rowIndex, issue)).join('');
@@ -412,7 +429,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
         <td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
         <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.valveHint || '')}</td>
         <td title="${attr(issue.elementLengthSource || '')}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
-        <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td>
+        <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" data-wm-row-index="${rowIndex}" data-wm-accepted="${issue.mapped ? 'true' : 'false'}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td>
         <td style="max-width:540px;padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td>
       </tr>`;
     }).join('');
@@ -449,10 +466,13 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
   const fillBest = () => {
     let count = 0;
     contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => {
-      const best = localIssues[index]?.candidates?.[0];
-      if (!best || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return;
-      input.value = String(selectedWeight(best));
-      saveInput(input);
+      const selection = selectXmlCiiBlankWeightSuggestion({
+        input, issue: localIssues[index], config: activeConfig(),
+      });
+      if (!selection) return;
+      input.value = String(selection.weight);
+      input.dataset.wmSelectionOrigin = 'candidate';
+      try { saveInput(input); } finally { delete input.dataset.wmSelectionOrigin; }
       count += 1;
     });
     return count;
@@ -565,7 +585,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
   });
   detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => {
     const count = fillBest();
-    status(`Applied ${count} preferred weight(s)`, count ? 'ok' : 'bad');
+    status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`, count ? 'ok' : 'bad');
   });
   panelEl?.addEventListener('change', () => {
     try {
