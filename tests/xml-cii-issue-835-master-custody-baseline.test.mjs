@@ -190,12 +190,70 @@ for (const masterCase of CASES) {
       {
         save: 'PASS',
         discovery: 'PASS',
-        identityRevision: 'RED',
+        identityRevision: 'PASS',
         hydrate: 'PASS',
         runtimeReattach: 'PASS',
-        classification: 'IDENTITY_REVISION',
+        classification: 'NONE',
       },
       `${masterCase.key} C04-head baseline changed; update C05 serial responsibility evidence before continuing`,
     );
+  });
+}
+
+/*
+ * The original #835 baseline was an intentionally RED snapshot of a lost
+ * datasetRevision. C05.2/C05.3/C05.4 now preserve it. In integrated #228,
+ * keep the positive three-master custody oracle and negative fail-closed
+ * regression together; do not turn the historical failure into a skip.
+ */
+for (const masterCase of CASES) {
+  test(`C05.1 ${masterCase.key} refuses stale persisted revision before row access`, async () => {
+    const custody = {
+      source: masterCase.source,
+      datasetId: masterCase.datasetId,
+      datasetRevision: 4,
+      rowCount: 1,
+      fieldMap: {},
+      appliedRevision: 7,
+      persistenceMode: 'indexeddb',
+      ...(masterCase.masterFingerprint ? { masterFingerprint: masterCase.masterFingerprint } : {}),
+    };
+    const storage = installStorage({
+      [`xml-cii-master-source-${masterCase.key}`]: JSON.stringify(custody),
+    });
+    const stateRef = startupState();
+    let invalidRowReads = 0;
+    try {
+      assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+        store: {
+          async getMetadata(id) {
+            assert.equal(id, masterCase.datasetId);
+            return {
+              datasetId: id,
+              datasetRevision: 5,
+              rowCount: 1,
+              fileName: masterCase.source,
+              ...(masterCase.masterFingerprint ? { masterFingerprint: masterCase.masterFingerprint } : {}),
+            };
+          },
+          async getRowsRange() { invalidRowReads++; throw Error('STALE_CUSTODY_ROWS_FORBIDDEN'); },
+          async getRows() { invalidRowReads++; throw Error('STALE_CUSTODY_ROWS_FORBIDDEN'); },
+        },
+      }), true);
+      assert.equal(invalidRowReads, 0, 'revision mismatch must veto indexed row reads');
+      assert.deepEqual(stateRef.current.masterRestoreFailureIdentity?.[masterCase.key], {
+        masterKey: masterCase.key,
+        datasetId: masterCase.datasetId,
+        domain: 'restore-storage',
+        code: 'REVISION_MISMATCH',
+        stage: 'metadata-validate',
+      });
+      assert.equal(stateRef.current.masterContext.datasetRefs?.[masterCase.key], undefined,
+        'stale persisted authority must not become active');
+      assert.equal(stateRef.current.masterContext.appliedMappingRevision?.[masterCase.key], undefined,
+        'stale applied mapping revision must not activate');
+    } finally {
+      storage.restore();
+    }
   });
 }
