@@ -59,7 +59,7 @@ try{
     ensureOverrides:cfg=>(cfg.overrides ||= {}),
     resolveStagedJsonText:async()=>({text:''}),
     weightDatasetRef:{datasetId:'witness',masterFingerprint:'known',datasetRevision:1},
-    prepareWeightBasis:async()=>({issues,match1Validation:{stale:{},staleCount:0},effectiveRigidWeight:{}}),
+    prepareWeightBasis:async()=>({issues,match1Validation:{stale:{stale:{reason:'basis-changed'}},staleCount:1},effectiveRigidWeight:{}}),
     rankWeightIssues:async rows=>({datasetId:'witness',issues:rows}),
   });
   document.querySelector('#mc-wm-refresh').click();
