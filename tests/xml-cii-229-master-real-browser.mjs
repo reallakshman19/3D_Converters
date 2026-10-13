@@ -73,6 +73,9 @@ try {
     return root && root.textContent.includes('Masters: 1/4 loaded');
   },null,{timeout:30000});
   const bootText=await boot.locator('#xml229-real-standalone-app .xml-cii-standalone-header').textContent();
+  const rootText=await boot.locator('#xml229-real-standalone-app').textContent();
+  const bootBadge=await boot.locator('#xml229-real-standalone-app .xml-cii-standalone-badge').allTextContents();
+  console.log('COLD_UI_DIAGNOSTIC',JSON.stringify({headerText:bootText?.slice(0,650),badges:bootBadge,rootHasLoaded:rootText?.includes('Masters: 1/4 loaded'),bootMasterRequests:bootMasters.length,errors:bootErrors}));
   assert(bootText.includes('Masters: 1/4 loaded'),'Header DOM must reflect physical autoload without upload');
   assert.equal(bootMasters.length,1,'Cold start must fetch exactly one actual master');
   assert.deepEqual(bootErrors,[],'Fresh standalone UI boot errors');
