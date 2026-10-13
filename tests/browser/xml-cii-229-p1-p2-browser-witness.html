@@ -77,6 +77,7 @@ try {
   assert(outcome.result.rejectedRows.length===28, 'Initial Regex Tester must reject stale regex');
   // A real DOM click selects token authority while preserving the authored regex for undo.
   clickRole(4,'Line Key');
+  assert(stateRef.current.outputRunReadinessReport===null, 'Token click must invalidate cached blocked Run report');
   let f1 = stateRef.current.regexTesterConfig.formats[0];
   assert(f1.lineKey.extractMode==='TOKEN' && f1.lineKey.regex==='(NEVER)', 'Click failed explicit TOKEN override');
   outcome=runReport();
@@ -95,6 +96,7 @@ try {
   // A manual regex edit switches effective method back to regex; missing capture remains a hard veto.
   renderRegex();
   editRegex('(NEVER)');
+  assert(stateRef.current.outputRunReadinessReport===null, 'Regex edit must invalidate cached ready Run report');
   assert(stateRef.current.regexTesterConfig.formats[0].lineKey.extractMode==='REGEX','Regex edit did not take authority');
   outcome=runReport();
   assert(outcome.gate.blocking,'Invalid authored regex bypassed Run refusal');
@@ -108,6 +110,7 @@ try {
   assert(runApp.querySelectorAll('script,img,iframe').length===0,'Diagnostics injected markup');
   renderRegex();
   editRegex('(S8811000)');
+  assert(stateRef.current.outputRunReadinessReport===null, 'Corrected regex must drop cached blocker');
   outcome=runReport();
   assert(!outcome.gate.blocking && outcome.result.matchedRows.length===28,'Correct regex did not restore ready authority');
   assert(runtimeErrors.length===0,'Browser errors '+runtimeErrors.join(' | '));
