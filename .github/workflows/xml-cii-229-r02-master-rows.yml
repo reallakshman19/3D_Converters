@@ -8,6 +8,11 @@ on:
       - 'docs/converters/xml-cii2019-core/master-context.js'
       - 'tests/xml-cii-229-master-row-autoload.test.mjs'
       - 'tests/xml-cii-229-master-real-browser.mjs'
+      - 'tests/xml-cii-229-master-cold-start.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js'
       - '.github/workflows/xml-cii-229-r02-master-rows.yml'
 
 permissions:
@@ -29,7 +34,7 @@ jobs:
           node-version: '22'
       - name: Test shipped 10699-row master and safe user override
         run: |
-          node --test tests/xml-cii-229-master-row-autoload.test.mjs
+          node --test tests/xml-cii-229-master-row-autoload.test.mjs tests/xml-cii-229-master-cold-start.test.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
@@ -37,4 +42,7 @@ jobs:
       - name: Real Chromium served row-bearing master hydration
         run: node tests/xml-cii-229-master-real-browser.mjs
       - name: Verify root/served master loader parity
-        run: diff -u converters/xml-cii2019-core/master-context.js docs/converters/xml-cii2019-core/master-context.js
+        run: |
+          diff -u converters/xml-cii2019-core/master-context.js docs/converters/xml-cii2019-core/master-context.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js
