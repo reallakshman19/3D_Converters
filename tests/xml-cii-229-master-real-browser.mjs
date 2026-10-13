@@ -70,16 +70,14 @@ try {
   });
   await boot.waitForFunction(()=>{
     const root=document.querySelector('#xml229-real-standalone-app');
-    return root && root.textContent.includes('Masters: 1/4 loaded');
+    return root && /Masters: [2-4]\/4 loaded/.test(root.querySelector('.xml-cii-standalone-header')?.textContent || '');
   },null,{timeout:30000});
   const bootText=await boot.locator('#xml229-real-standalone-app .xml-cii-standalone-header').textContent();
-  const rootText=await boot.locator('#xml229-real-standalone-app').textContent();
   const bootBadge=await boot.locator('#xml229-real-standalone-app .xml-cii-standalone-badge').allTextContents();
-  console.log('COLD_UI_DIAGNOSTIC',JSON.stringify({headerText:bootText?.slice(0,650),badges:bootBadge,rootHasLoaded:rootText?.includes('Masters: 1/4 loaded'),bootMasterRequests:bootMasters.length,errors:bootErrors}));
-  assert(bootText.includes('Masters: 1/4 loaded'),'Header DOM must reflect physical autoload without upload');
+  assert(/Masters: [2-4]\/4 loaded/.test(bootText),'Header must include the newly applied default master without assuming all other masters start absent');
   assert.equal(bootMasters.length,1,'Cold start must fetch exactly one actual master');
   assert.deepEqual(bootErrors,[],'Fresh standalone UI boot errors');
-  console.log(JSON.stringify({schema:'XML229_REAL_BROWSER_MASTER_V1',ok:true,observation,pipingMasterRequests:sources.length,errors,unrelatedFailures:failures.map(f=>f.status),coldStandalone:{masterBadge:'Masters: 1/4 loaded',actualRowFileRequests:bootMasters.length,runtimeErrors:bootErrors}},null,2));
+  console.log(JSON.stringify({schema:'XML229_REAL_BROWSER_MASTER_V1',ok:true,observation,pipingMasterRequests:sources.length,errors,unrelatedFailures:failures.map(f=>f.status),coldStandalone:{masterBadge:bootBadge.find(x=>x.startsWith('Masters: ')),actualRowFileRequests:bootMasters.length,runtimeErrors:bootErrors}},null,2));
 } finally {
   await browser?.close();
   await new Promise(ok=>server.close(ok));
