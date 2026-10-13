@@ -174,7 +174,11 @@ function assignManualTokenRole(state, field, role, value) {
 
 function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
   const getSelectedTokens = (key) => {
-    const val = String(activeF[key]?.tokenPosition || '').trim();
+    const rule = activeF[key] || {};
+    const mode = String(rule.extractMode || '').toUpperCase();
+    // No stale token highlight while a regex is the effective extractor.
+    if (mode === 'REGEX' || (!mode && String(rule.regex || '').trim())) return [];
+    const val = String(rule.tokenPosition || '').trim();
     if (!val) return [];
     return val.split(/[,+]/).map(x => Number(x.trim())).filter(x => Number.isFinite(x));
   };
