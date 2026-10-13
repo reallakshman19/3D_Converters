@@ -37,7 +37,7 @@ function originalPhysicalAudit(document,projection,basisId) {
   }
   const fields=[
     ['source.position.xyz','Position','mm',raw=>{
-      const parts=raw.split(/\\s+/).map(Number);
+      const parts=raw.trim().split(/\s+/).map(Number);
       return parts.length===3&&parts.every(Number.isFinite)?parts:null;
     }],
     ['source.outsideDiameter.mm','OutsideDiameter','mm',raw=>
