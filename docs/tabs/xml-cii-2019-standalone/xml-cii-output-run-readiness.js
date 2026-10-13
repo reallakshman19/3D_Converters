@@ -56,12 +56,16 @@ function branchFormatAuthorityRows(input) {
   if (!explicit) return []; // Legacy single-format flows retain their current readiness contract.
   const selected = xmlCiiBranchScopeFromState(input);
   if (!selected.applicable) return [];
-  const audit = auditConfiguredBranchFormats(selected.selectedBranchOccurrences, config);
+  const audit = auditConfiguredBranchFormats(selected.selectedBranchOccurrences, config, null, { includeCandidates: true });
   const ok = !selected.blocked && !audit.blocked;
+  const unmatched = audit.failures.filter(failure => failure.status === 'UNMATCHED').length;
+  const ambiguous = audit.failures.filter(failure => failure.status === 'AMBIGUOUS').length;
   return [row('branch-format-authority', 'Configured branch format identity',
     ok,
     ok ? `${audit.checkedCount} selected branch occurrences have one resolved configured identity.`
-      : `${audit.failures.length} of ${audit.checkedCount} selected branch occurrences have unresolved or conflicting configured formats.`,
+      : selected.blocked && !audit.blocked
+        ? 'Selected branch scope cannot be resolved; refresh selection against the original XML.'
+        : `${audit.failures.length} of ${audit.checkedCount} selected branch occurrences have unresolved or conflicting configured formats (${unmatched} UNMATCHED; ${ambiguous} AMBIGUOUS). See first 20 format diagnostics below.`,
     { blocking: true, severity: 'error', detail: JSON.stringify(audit.failures.slice(0, 20)) })];
 }
 
