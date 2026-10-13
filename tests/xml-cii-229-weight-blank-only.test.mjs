@@ -173,3 +173,45 @@ test('T1 RED bridge master: revised weight master must not project stale saved s
  assert.equal(outputWeight(xml,prep(revised,xml)),0,
   'stale suggestion must require review after master change');
 });
+
+test('T1 negative: corrupt, mismatched and missing-component legacy proposal provenance stays saved but cannot reach effective output',()=>{
+ const key='/XML229-PROVENANCE/B1::20';
+ const historicalKey='/XML229-PROVENANCE/B1::30';
+ const issue={
+  key,branchName:'/XML229-PROVENANCE/B1',nodeNumber:'20',endpoint:'2',
+  componentType:'RIGID',componentRefNo:'=A/20',lengthMm:100,
+  elementLengthSource:'geometry',boreMm:50,rating:'150',
+ };
+ const config={weight:{masterRevision:3,masterRows:[{weight:11.5}]}};
+ const meta=buildXmlCiiRigidWeightMatch1Provenance(issue,config,{selectedWeight:11.5},{
+  weightKg:11.5,acceptanceMethod:'candidate',
+ });
+ const saved={...config,overrides:{rigidWeight:{[key]:11.5,[historicalKey]:8.25},rigidWeightProposalMeta:{[key]:meta}}};
+ const valid=buildXmlCiiValidatedRigidWeightLegacyView(saved,[issue]);
+ assert.equal(valid.config.overrides.rigidWeight[key],11.5);
+ assert.deepEqual(valid.validation.staleLegacyProposals,{});
+ const scenarios=[
+  ['missing-component',saved,[], 'component-not-found'],
+  ['missing-provenance',{...saved,overrides:{...saved.overrides,rigidWeightProposalMeta:{[key]:{}}}},[issue],'invalid-proposal-provenance'],
+  ['tampered-fingerprint',{...saved,overrides:{...saved.overrides,rigidWeightProposalMeta:{[key]:{...meta,fingerprint:'fnv1a:00000000'}}}},[issue],'invalid-proposal-fingerprint'],
+  ['accepted-number-changed',{...saved,overrides:{...saved.overrides,rigidWeight:{[key]:13.5,[historicalKey]:8.25}}},[issue],'accepted-weight-changed'],
+  ['rating-changed',saved,[{...issue,rating:'600'}],'basis-changed'],
+  ['ref-changed',saved,[{...issue,componentRefNo:'=OTHER/20'}],'basis-changed'],
+ ];
+ for(const [label,input,issues,reason] of scenarios){
+  const result=buildXmlCiiValidatedRigidWeightLegacyView(input,issues);
+  assert.equal(result.config.overrides.rigidWeight[key],undefined,label+' must withhold saved candidate');
+  assert.equal(result.config.overrides.rigidWeight[historicalKey],8.25,label+' must not affect historic no-metadata manual');
+  assert.equal(result.validation.staleLegacyProposals[key]?.reason,reason,label+' must provide a review reason');
+  assert.equal(input.overrides.rigidWeight[key],label==='accepted-number-changed'?13.5:11.5,
+   label+' must retain original saved proposal for review');
+  assert.ok(result.validation.suppressedLegacyKeys.includes(key),label+' flagged as withheld');
+ }
+});
+
+test('T1 source/served rigid authority modules remain byte-for-byte identical',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const root=new URL('../converters/xml-cii2019-core/rigid-weight-authority.js',import.meta.url);
+ const served=new URL('../docs/converters/xml-cii2019-core/rigid-weight-authority.js',import.meta.url);
+ assert.equal(await readFile(root,'utf8'),await readFile(served,'utf8'));
+});
