@@ -54,7 +54,29 @@ try {
   assert.deepEqual(errors,[]);
   // Material defaults may separately return 404 on some hosted routes; forbid errors for the Piping Class source.
   assert(!failures.some(f=>f.url.includes('Piping_class_master.json')),'row-bearing source HTTP failure');
-  console.log(JSON.stringify({schema:'XML229_REAL_BROWSER_MASTER_V1',ok:true,observation,pipingMasterRequests:sources.length,errors,unrelatedFailures:failures.map(f=>f.status)},null,2));
+  // Fresh standalone UI mount: the real shell must auto-hydrate the default
+  // only after persisted-dataset restoration, without asking for an upload.
+  const boot=await browser.newPage();
+  const bootErrors=[],bootMasters=[];
+  boot.on('pageerror',error=>bootErrors.push(String(error)));
+  boot.on('request',req=>{if(req.url().endsWith('/docs/Masters/Piping_class_master.json'))bootMasters.push(req.url())});
+  await boot.goto('http://127.0.0.1:'+server.address().port+'/xml229-master-probe.html');
+  await boot.evaluate(async()=>{
+    const module=await import('/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js');
+    const container=document.createElement('div');
+    container.id='xml229-real-standalone-app';
+    document.body.appendChild(container);
+    module.renderXmlCiiAdaptedWorkflowShell(container);
+  });
+  await boot.waitForFunction(()=>{
+    const root=document.querySelector('#xml229-real-standalone-app');
+    return root && root.textContent.includes('Masters: 1/4 loaded');
+  },null,{timeout:30000});
+  const bootText=await boot.locator('#xml229-real-standalone-app').innerText();
+  assert(bootText.includes('Masters: 1/4 loaded'),'Header must reflect physical autoload without upload');
+  assert.equal(bootMasters.length,1,'Cold start must fetch exactly one actual master');
+  assert.deepEqual(bootErrors,[],'Fresh standalone UI boot errors');
+  console.log(JSON.stringify({schema:'XML229_REAL_BROWSER_MASTER_V1',ok:true,observation,pipingMasterRequests:sources.length,errors,unrelatedFailures:failures.map(f=>f.status),coldStandalone:{masterBadge:'Masters: 1/4 loaded',actualRowFileRequests:bootMasters.length,runtimeErrors:bootErrors}},null,2));
 } finally {
   await browser?.close();
   await new Promise(ok=>server.close(ok));
