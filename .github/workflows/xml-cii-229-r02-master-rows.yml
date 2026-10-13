@@ -1,0 +1,34 @@
+name: XML CII 229 R02 Real Master Rows
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'converters/xml-cii2019-core/master-context.js'
+      - 'docs/converters/xml-cii2019-core/master-context.js'
+      - 'tests/xml-cii-229-master-row-autoload.test.mjs'
+      - '.github/workflows/xml-cii-229-r02-master-rows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  real-master:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test shipped 10699-row master and safe user override
+        run: |
+          node --test tests/xml-cii-229-master-row-autoload.test.mjs
+          node tests/xml-cii-master-context-default-rows.test.js
+      - name: Verify root/served master loader parity
+        run: diff -u converters/xml-cii2019-core/master-context.js docs/converters/xml-cii2019-core/master-context.js
