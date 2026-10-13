@@ -151,6 +151,14 @@ The last `xml-cii-229-weight-blank-only` test belongs to **draft PR #237**, not 
 
 **This narrows the next workpack:** prepare a B1-authorized *real source-selected Worker fact producer / census* followed by the existing GC-PW shadow port, not a new common service and not a local Preview UI weight-label patch. #239 is test-only and is not intended to merge into #237's conflicting test branch without separate reconciliation.
 
+## 7B. Independent public-original GLRD Worker source census — completed
+
+**Hosted original input, not an invented minimal fixture:** `Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml` on `main@0cda581c`, Git blob `8769ffe538ecacc621daf39919ca00ba27008211`, **627,599 bytes** and SHA-256 `923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba`. This is a public source benchmark for B4, **not** the Owner-private 28-branch or 808-page input.
+
+**Verified with actual Worker module:** [test-only DRAFT PR #239](https://github.com/reallakshman19/3D_Converters/pull/239) HEAD `ed62a295e65ee928271509a508e1f3a329feac96`; [hosted run #38454738869](https://github.com/reallakshman19/3D_Converters/actions/runs/38454738869) **SUCCESS 13/13 Node tests**, existing Chromium and docs parity passed. Test independently enumerated **41 original Branch and 1,166 Node tags**, then executed the current `xml-cii-adapted-preview-facts-worker-entry.js` message handler and verified its complete original `sourceOccurrences` census and coverage return exactly 41/1,166. The Worker still truthfully returns `engineeringAcceptance='NOT_ASSESSED'` and `fullFactPopulationAccepted=false`; those flags are **correct and not to be upgraded without positive facts**. A separately verified scoped request fails closed with `SCOPED_ENGINEERING_PENDING`.
+
+**Owner/writer implication:** independent *source-census custody* is demonstrably possible for 1,166 nodes, so the missing capability is **positive original-occurrence-bound physical engineering fields and selected-scope forwarding** rather than an inability to enumerate the original XML. Do not confuse physical Node coverage with verified weight fields, approved Match-1, authenticated per-file Zone selection, a browser-based GLRD Preview or native CII correctness. Implement positive facts only through the B1 lease + #96 GC-PW contract review, and retain their independent full-population/cancellation oracle.
+
 ## 8. Current engineering stop line and exact successor action
 
 - Keep **PR #237 OPEN/DRAFT/RED** at `eb673e45...` and product main unchanged. Its two deliberately failing Preview oracles are **evidence**, not a reason to throw tests away or modify unowned files.
