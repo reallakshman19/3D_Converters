@@ -239,3 +239,15 @@ test('T1 RED: Preview compatibility view must not re-enable an effective stale c
    'Preview raw compatibility path must never represent stale saved candidate as effective');
  });
 });
+
+test('T1 RED: actual standalone Preview node row must not advertise stale accepted suggestion',async()=>{
+ const {installWeightBasisXmlDom}=await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+ installWeightBasisXmlDom(globalThis);
+ const fixture=await t1StandaloneBridgeFixture();
+ const {xmlCiiDryRunPreview}=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js');
+ const preview=xmlCiiDryRunPreview(fixture.changedXml,fixture.saved,'');
+ const row=preview.nodeRows?.find(item=>item.key===fixture.key);
+ assert.ok(row,'Preview must derive the same actual original component node key');
+ assert.notEqual(row.weightMatch?.selectedOverride,true,
+  'stale saved suggestion must not appear in Preview as selected authoritative override');
+});
