@@ -1,3 +1,4 @@
+import { selectXmlCiiBlankWeightSuggestion } from '../../../../converters/xml-cii2019-core/weight-blank-fill-policy.js';
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { weightMatchContentFingerprint } from '../../../../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
@@ -301,7 +302,7 @@ function applyWeightRulePanelConfig(panelEl, config) { const cfg = plainObject(c
 
 export function xmlCiiRenderWeightMatchPhase() {
   const info = 'Rating uses saved manual input, then Preview, then Rating prefix mapping when No manual, Preview, or prefix Rating is available.';
-  return `<div class="model-converters-workflow-detail-title">5 Weight Match <span title="${attr(info)}" style="cursor:help;color:#8bb7ff;border:1px solid #406089;border-radius:50%;padding:0 5px;font-size:11px;">i</span></div><div class="model-converters-workflow-detail-text">Weight candidates use manual Rating, Preview Rating, or Rating prefix mapping. Edit Rating in the table; use ↓ to fill the same piping class. DTXR Rating requires the explicit button.</div><div id="mc-wm-hint-panel"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;"><button type="button" class="model-converters-run-btn" id="mc-wm-refresh">Build Weight Data</button><button type="button" class="model-converters-download-btn" id="mc-wm-use-dtxr-rating">Use Rating as per DTXR</button><button type="button" class="model-converters-download-btn" id="mc-wm-fill-best">Use all ★ preferred</button><button type="button" class="model-converters-download-btn" id="mc-wm-length-toggle" title="Convert small master lengths (<100) from inch to mm. Default OFF.">⇄ in→mm: OFF</button><span id="mc-wm-status" class="mc-diag-run-status"></span></div><div id="mc-wm-content"><div class="model-converters-workflow-detail-note">Click <strong>Build Weight Data</strong> to compute matches using Preview or Rating prefix mapping.</div></div>`;
+  return `<div class="model-converters-workflow-detail-title">5 Weight Match <span title="${attr(info)}" style="cursor:help;color:#8bb7ff;border:1px solid #406089;border-radius:50%;padding:0 5px;font-size:11px;">i</span></div><div class="model-converters-workflow-detail-text">Weight candidates use manual Rating, Preview Rating, or Rating prefix mapping. Edit Rating in the table; use ↓ to fill the same piping class. DTXR Rating requires the explicit button.</div><div id="mc-wm-hint-panel"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;"><button type="button" class="model-converters-run-btn" id="mc-wm-refresh">Build Weight Data</button><button type="button" class="model-converters-download-btn" id="mc-wm-use-dtxr-rating">Use Rating as per DTXR</button><button type="button" class="model-converters-download-btn" id="mc-wm-fill-best">Apply suggestion to blank cells</button><button type="button" class="model-converters-download-btn" id="mc-wm-length-toggle" title="Convert small master lengths (<100) from inch to mm. Default OFF.">⇄ in→mm: OFF</button><span id="mc-wm-status" class="mc-diag-run-status"></span></div><div id="mc-wm-content"><div class="model-converters-workflow-detail-note">Click <strong>Build Weight Data</strong> to compute matches using Preview or Rating prefix mapping.</div></div>`;
 }
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v2-preview-rating';
@@ -414,11 +415,14 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   const fillBest = () => {
     let count = 0;
     contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => {
-      const best = localIssues[index]?.candidates?.[0];
-      if (!best?.preferred || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return;
-      if (input.dataset.wmAccepted === 'true'
-        || (input.value.trim() && Number(input.value) !== Number(selectedWeight(best)))) return;
-      acceptCandidate(input, selectedWeight(best)); count += 1;
+      // Reinspect persisted overrides at every click: a rendered DOM value
+      // is not the sole source of acceptance authority.
+      const selection = selectXmlCiiBlankWeightSuggestion({
+        input, issue: localIssues[index], config: activeConfig(),
+      });
+      if (!selection) return;
+      acceptCandidate(input, selection.weight); // Existing Match-1 candidate/provenance path.
+      count += 1;
     });
     return count;
   };
