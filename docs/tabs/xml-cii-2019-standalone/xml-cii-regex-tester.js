@@ -257,9 +257,14 @@ function writeRegexConfig(supportConfigJson, extractionConfig) {
   config.regexTester = cfg;
   const f0 = cfg.formats[0];
   if (f0) {
-  config.linelist = { ...safeObject(config.linelist), branchNameRegex: f0.lineKey.regex, lineNoGroup: f0.lineKey.group, tokenDelimiter: f0.tokenDelimiter, lineKeyTokenPositions: String(f0.lineKey.tokenPosition || ''), lineKeyJoiner: f0.lineKeyJoiner };
-  config.rating = { ...safeObject(config.rating), pipingClassRegex: f0.pipingClass.regex, pipingClassGroup: f0.pipingClass.group, ratingRegex: f0.rating.regex, ratingGroup: f0.rating.group, tokenDelimiter: f0.tokenDelimiter, pipingClassTokenIndex: f0.pipingClass.tokenPosition, ratingSequence: cfg.ratingSequence };
-  config.weight = { ...safeObject(config.weight), boreRegex: f0.bore.regex, boreGroup: f0.bore.group, tokenDelimiter: f0.tokenDelimiter, boreTokenIndex: f0.bore.tokenPosition };
+    // Legacy single-format projections must not keep an old regex active when
+    // the canonical per-format rule explicitly selected token authority.
+    // The original authored regex remains intact in regexTester.formats.
+    const effectiveRegex = rule => text(rule?.extractMode).toUpperCase() === 'TOKEN'
+      ? '' : rule?.regex;
+    config.linelist = { ...safeObject(config.linelist), branchNameRegex: effectiveRegex(f0.lineKey), lineNoGroup: f0.lineKey.group, tokenDelimiter: f0.tokenDelimiter, lineKeyTokenPositions: String(f0.lineKey.tokenPosition || ''), lineKeyJoiner: f0.lineKeyJoiner };
+    config.rating = { ...safeObject(config.rating), pipingClassRegex: effectiveRegex(f0.pipingClass), pipingClassGroup: f0.pipingClass.group, ratingRegex: effectiveRegex(f0.rating), ratingGroup: f0.rating.group, tokenDelimiter: f0.tokenDelimiter, pipingClassTokenIndex: f0.pipingClass.tokenPosition, ratingSequence: cfg.ratingSequence };
+    config.weight = { ...safeObject(config.weight), boreRegex: effectiveRegex(f0.bore), boreGroup: f0.bore.group, tokenDelimiter: f0.tokenDelimiter, boreTokenIndex: f0.bore.tokenPosition };
   }
   
   // also store formats array in config for downstream parser usage if necessary
