@@ -105,13 +105,27 @@ try {
     requireValue(context.pipingClassRows.length === 0,
       'Regex evidence must not retain whole Piping Class rows in application state');
 
-    // Exercise the genuine native Worker/IndexedDB search path with a source
-    // branch sample, while enforcing the bounded query and index limits.
+    // Bind the branch sample to the exact original row imported by the #892
+    // native Worker and re-read from its compact first-load evidence receipt.
+    // Hardcoded illustrative class C1234M1 had no source matches.
+    const seedReceipt = JSON.parse(localStorage.getItem('xml-cii-issue-892-first-load-expected') || '{}');
+    const pipingReceipt = seedReceipt.masters?.find((entry) => entry.key === 'pipingClass');
+    const originalSourceRow = pipingReceipt?.firstRow;
+    const sourceClassToken = String(originalSourceRow?.['Piping Class'] || '').trim();
+    requireValue(/^\d{3,}$/.test(sourceClassToken),
+      'Native Worker seed did not retain a real numeric Piping Class source token');
+    requireValue(pipingReceipt.datasetId === refs.pipingClass.datasetId,
+      'Sample source row does not belong to the restored pipingClass dataset');
+    requireValue(Number(pipingReceipt.datasetRevision) === Number(refs.pipingClass.datasetRevision),
+      'Sample source row has stale pipingClass revision');
+
+    // Exercise real IndexedDB-backed Worker search/indexed-row retrieval for
+    // that source-attested sample. Keep 4 per query, 8 total, zero full scans.
     const searched = [];
     const rowFetches = [];
     const regexWithSamples = await regexModule.materializeRegexSmartMasterContext({
       ...stateRef.current,
-      regexTesterResult: { branchSamples: [{ branchName: '/LINE12345-C1234M1' }] },
+      regexTesterResult: { branchSamples: [{ branchName: '/LINE12345-' + sourceClassToken }] },
     }, {
       async search(masterKey, datasetId, query) {
         searched.push({ masterKey, datasetId, query });
@@ -126,12 +140,31 @@ try {
         requireValue(datasetRef.datasetRevision === refs.pipingClass.datasetRevision,
           'Regex bounded fetch lost the restored source revision');
         requireValue(indexes.length <= 8, 'Regex bounded fetch exceeds requested maximum indexes');
-        return runtime.getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes, datasetRef);
+        const nativeResult = await runtime.getMasterDatasetRowsByIndexes(masterKey, datasetId, indexes, datasetRef);
+        requireValue(nativeResult.datasetId === refs.pipingClass.datasetId,
+          'Native indexed-row response lost the original Piping Class datasetId');
+        requireValue(Number(nativeResult.datasetRevision) === Number(refs.pipingClass.datasetRevision),
+          'Native indexed-row response returned a stale dataset revision');
+        requireValue(Array.isArray(nativeResult.rows) && nativeResult.rows.length > 0,
+          'Native Worker returned no indexed source rows');
+        requireValue(nativeResult.rows.every((row) =>
+          String(row['Piping Class'] || '').trim() === sourceClassToken),
+          'Indexed-row values do not match the source-attested Piping Class token');
+        return nativeResult;
       },
       maxIndexesPerQuery: 4,
       maxTotalIndexes: 8,
     });
     requireValue(searched.length > 0, 'Regex branch sample did not trigger indexed search');
+    requireValue(searched.some((entry) => String(entry.query) === sourceClassToken),
+      'The original source-derived class token was not actually searched');
+    requireValue(rowFetches.length > 0,
+      'Source-matching bounded search returned no native indexed-row fetches');
+    requireValue(rowFetches.every((fetch) =>
+      fetch.indexes.length > 0 && fetch.indexes.length <= 8),
+      'Native indexed-row request exceeded the bounded nonempty fetch contract');
+    requireValue(regexWithSamples.pipingClassRowCount > 0,
+      'No original Piping Class source rows were retrieved from the native Worker');
     requireValue(regexWithSamples.evidenceBasis.includes(refs.pipingClass.datasetId),
       'sampled Regex evidence lost Piping Class dataset identity');
     requireValue(regexWithSamples.pipingClassRowCount <= 8,
@@ -223,6 +256,9 @@ try {
         regexSampledBoundedRows: regexWithSamples.pipingClassRowCount,
         regexSearches: searched.length,
         regexIndexedRowFetches: rowFetches.length,
+        regexSourceSampleToken: sourceClassToken,
+        regexFirstIndexedRowMatchesOriginalSource: regexWithSamples.masterContext.pipingClassRows.some(
+          (row) => String(row?.['Piping Class'] || '').trim() === sourceClassToken),
         materialMapRows: generic.material.mapRows.length,
         weightRows: generic.weight.masterRows.length,
         weightRankDatasetId: rankResult.datasetId,
@@ -244,7 +280,9 @@ try {
         noSecondMasterSourceImport: true,
         emptyRegexHasNoBulkHydration: true,
         nativeWorkerBoundedSearchQueriesObserved: searched.length > 0,
-        nativeWorkerIndexedRowRetrievalObserved: rowFetches.length > 0,
+        nativeWorkerIndexedRowRetrievalObserved: rowFetches.length > 0 && regexWithSamples.pipingClassRowCount > 0,
+        originalSourceRowIdentityVerified: true,
+        boundedNativeRowCountVerified: true,
         regexSourceRevisionPreserved: true,
       },
     };
