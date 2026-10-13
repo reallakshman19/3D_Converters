@@ -1,0 +1,80 @@
+name: XML229 Combined Main Qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tests/xml-cii-229-combined-main-cross-feature.test.mjs'
+      - '.github/workflows/xml-cii-229-combined-main-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  combined-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout frozen combined-main snapshot plus QA-only tests
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: All five feature units and real cross-feature source-state contract
+        run: |
+          node --test \
+            tests/xml-cii-229-regex-authority.test.mjs \
+            tests/xml-cii-229-run-format-diagnostics.test.mjs \
+            tests/xml-cii-229-readiness-cache-invalidation.test.mjs \
+            tests/xml-cii-229-private-run-audit.test.mjs \
+            tests/xml-cii-229-master-row-autoload.test.mjs \
+            tests/xml-cii-229-master-cold-start.test.mjs \
+            tests/xml-cii-229-weight-blank-only.test.mjs \
+            tests/xml-cii-229-weight-run-cache.test.mjs \
+            tests/xml-cii-229-lfj-progress.test.mjs \
+            tests/xml-cii-229-combined-main-cross-feature.test.mjs
+      - name: Compare all five root/served module pairs and shared contracts
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js docs/tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js
+          diff -u converters/xml-cii2019-core/master-context.js docs/converters/xml-cii2019-core/master-context.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-default-piping-autoload.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js
+          diff -u converters/xml-cii2019-core/weight-blank-fill-policy.js docs/converters/xml-cii2019-core/weight-blank-fill-policy.js
+          diff -u tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-progress.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-progress.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js
+
+  combined-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout same frozen integrated application
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Regex and Run UI synthetic original scopes and actual 41-branch fixture
+        run: |
+          node tests/xml-cii-229-p1-p2-browser-witness.mjs
+          node tests/xml-cii-issue-781-live-regex-browser.mjs
+      - name: Cold full-standalone 10699 Piping Class master network and UI
+        run: node tests/xml-cii-229-master-real-browser.mjs
+      - name: Actual Weight Match parent UI blank-only and idempotence
+        run: node tests/xml-cii-229-weight-blank-browser.mjs
+      - name: Actual LFJ standalone source Worker commit, revoke and corrupt replacement
+        run: node tests/xml-cii-229-lfj-progress-browser.mjs
