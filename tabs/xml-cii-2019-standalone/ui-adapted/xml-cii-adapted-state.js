@@ -329,7 +329,25 @@ export function updateWorkflowState(state, patch = {}) {
   const inputChanged = revisionChanged
     || ['stagedJsonText', 'branchSelection', 'options'].some((key) => JSON.stringify(state[key]) !== JSON.stringify(next[key]));
   const result = inputChanged && next.result === state.result ? null : next.result;
-  return { ...next, ...dependency, result, sourceBatch: invalidateBatchOutputs(state, next, dependency) };
+  // A Run readiness report describes the exact source/config/review snapshot.
+  // Do not show a cached blocker (or cached READY) after its input changes.
+  // A direct readiness refresh is deliberately excluded so its new report sticks.
+  const readinessInputsChanged = inputChanged || [
+    'sourceKind', 'sourceFile', 'sourceFileText', 'supportConfigJson',
+    'regexTesterConfig', 'regexTesterResult', 'resolverJsonTraceResult',
+    'manualElementSideloadResult', 'previewDiagnosticsAuditReport',
+    'weightMatchResult', 'weightMatchOverridesJson', 'supportTypeMapperResult',
+    'masterContext', 'elementSideLoadText', 'result', 'running',
+  ].some((key) => Object.prototype.hasOwnProperty.call(patch, key)
+    && next[key] !== state[key]);
+  const staleReadiness = readinessInputsChanged
+    && next.outputRunReadinessReport === state.outputRunReadinessReport;
+  return {
+    ...next, ...dependency, result,
+    outputRunReadinessReport: staleReadiness ? null : next.outputRunReadinessReport,
+    outputRunReadinessStatus: staleReadiness ? '' : next.outputRunReadinessStatus,
+    sourceBatch: invalidateBatchOutputs(state, next, dependency),
+  };
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return updateWorkflowState(state, { options: { ...state.options, ...optionPatch } }); }

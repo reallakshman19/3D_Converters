@@ -1,0 +1,46 @@
+name: XML CII 229 P1 P2 Served Chromium Witness
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tests/xml-cii-229-p1-p2-browser-witness.mjs'
+      - 'tests/browser/xml-cii-229-p1-p2-browser-witness.html'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'converters/xml-cii2019-core/branch-format-extraction.js'
+      - 'docs/converters/xml-cii2019-core/branch-format-extraction.js'
+      - '.github/workflows/xml-cii-229-chromium-witness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  served-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium for browser evidence
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Run P1 P2 synthetic 28 browser source and UI custody
+        run: node tests/xml-cii-229-p1-p2-browser-witness.mjs
+      - name: Run existing 41-branch real-fixture UI click-to-map smoke
+        run: node tests/xml-cii-issue-781-live-regex-browser.mjs
+      - name: Verify exact served mirror parity
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js docs/tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js docs/tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js

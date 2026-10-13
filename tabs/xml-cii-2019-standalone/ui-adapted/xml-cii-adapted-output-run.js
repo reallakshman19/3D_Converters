@@ -93,6 +93,38 @@ function renderChecklist(parent, report) {
   panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
 }
 
+function renderFormatFailures(parent, report) {
+  const authority = rows(report.checklistRows).find(item => item.id === 'branch-format-authority');
+  if (!authority?.blocking || !authority.detail) return;
+  let failures = [];
+  try { failures = JSON.parse(authority.detail); } catch { return; }
+  if (!Array.isArray(failures) || !failures.length) return;
+
+  const panel = section(parent, 'Branch format diagnosis (first 20 failed occurrences)');
+  panel.appendChild(createElement('div',
+    'UNMATCHED means no configured format extracted required Line Key and Piping Class. AMBIGUOUS means multiple formats disagree; Review Regex Tester Format 1 / Format 2 and re-run readiness. Preview and Weight status are separate.',
+    'xml-cii-phase-help'));
+  const diagnosticRows = failures.flatMap(failure => {
+    const candidates = rows(failure.formatCandidates);
+    if (!candidates.length) return [{
+      Occurrence: String(Number(failure.occurrenceIndex) + 1),
+      Branch: text(failure.branchName), Status: text(failure.status),
+      Format: 'none', Diagnosis: text(failure.reason),
+    }];
+    return candidates.map(candidate => ({
+      Occurrence: String(Number(failure.occurrenceIndex) + 1),
+      Branch: text(failure.branchName),
+      Status: text(failure.status),
+      Format: String(Number(candidate.formatIndex) + 1),
+      Diagnosis: failure.status === 'AMBIGUOUS'
+        ? `Line Key=${candidate.lineKey || '-'}, Piping Class=${candidate.pipingClass || '-'}, Rating=${candidate.rating || '-'}, Bore=${candidate.bore || '-'}`
+        : Object.entries(candidate.reasons || {}).map(([field, reason]) => `${field}: ${reason}`).join('; ') || 'Format did not resolve',
+    }));
+  });
+  // Native table cells use textContent; untrusted Branchname is never HTML.
+  panel.appendChild(table(['Occurrence', 'Branch', 'Status', 'Format', 'Diagnosis'], diagnosticRows, 'No examples available.'));
+}
+
 function renderArtifacts(parent, state, report) {
   const panel = section(parent, 'Output Artifacts / Downloads');
   panel.appendChild(table(['Kind', 'Artifact', 'Available', 'Filename', 'Bytes'], rows(report.artifactRows), 'No artifact rows yet.'));
@@ -299,6 +331,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   card.append(title, desc);
   renderSummary(card, report);
   renderChecklist(card, report);
+  renderFormatFailures(card, report);
   renderReadinessCard(card, config, state);
   renderRunOptions(card, stateRef, state, render);
   renderRunControls(card, stateRef, state, report, render);

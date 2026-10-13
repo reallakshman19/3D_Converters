@@ -1,0 +1,47 @@
+name: XML CII 229 P2 Format Diagnostics
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-229-run-format-diagnostics.test.mjs'
+      - 'tests/xml-cii-229-readiness-cache-invalidation.test.mjs'
+      - 'tests/xml-cii-229-private-run-audit.test.mjs'
+      - 'scripts/xml-cii-229-private-run-audit.mjs'
+      - '.github/workflows/xml-cii-229-p2-format-diagnostics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  branch-formats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run P1 and P2 regression suites and J04 custody tests
+        run: |
+          node --test \
+            tests/xml-cii-229-regex-authority.test.mjs \
+            tests/xml-cii-229-run-format-diagnostics.test.mjs \
+            tests/xml-cii-229-readiness-cache-invalidation.test.mjs \
+            tests/xml-cii-229-private-run-audit.test.mjs \
+            tests/xml-cii-j04-output-authority-readiness.test.mjs \
+            tests/xml-cii-j04-service-release-gate.test.mjs
+      - name: Parse changed UI and release modules
+        run: |
+          node --check tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+      - name: Verify all P2 served mirror assets
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js docs/tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
