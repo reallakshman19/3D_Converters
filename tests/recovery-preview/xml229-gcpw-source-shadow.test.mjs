@@ -67,8 +67,8 @@ test('actual GLRD 41 branches/1166 nodes are independently enumerated and read a
  do{
   const page=await session.getFacts({cursor,limit:200});
   assert.equal(page.basisId,session.basisId);
-  assert.equal(page.complete,page.nextCursor===null,
-   'only the final bounded fact page is complete; intermediate cursors must remain incomplete');
+  assert.equal(page.complete,false,
+   'complete signals verified ENGINEERING facts, never source-only cursor exhaustion');
   for(const fact of page.items){
    assert.equal(fact.authority==='source'||fact.authority==='unresolved',true);
    assert.equal(fact.basisId,session.basisId);
