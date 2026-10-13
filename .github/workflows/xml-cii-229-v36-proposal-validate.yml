@@ -1,0 +1,72 @@
+name: XML CII 229 v3.6 Proposal Contract (READ ONLY)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'relay/AIM/XML229-UX-RUN.yaml'
+      - 'relay/plans/XML229-V36-229-PLAN-1.yaml'
+      - 'docs/engineering-proposals/XML229-v36-Owner-approval.md'
+      - '.github/workflows/xml-cii-229-v36-proposal-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  proposal-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head (never target-write)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline YAML validator dependency
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+      - name: Fetch immutable Common v3.6 contract source
+        run: |
+          mkdir -p /tmp/xml229-v36
+          base="https://raw.githubusercontent.com/reallakshman19/Common/1523e32c9fc8d7d405f43d526166b9d311f5e636/skills/engineering-pr-delivery-v3.6/scripts"
+          curl --fail --show-error --silent --location --retry 3 "$base/lifecycle_v36.py" -o /tmp/xml229-v36/lifecycle_v36.py
+          curl --fail --show-error --silent --location --retry 3 "$base/decompose_v36.py" -o /tmp/xml229-v36/decompose_v36.py
+      - name: Validate proposed AIM and exact bound plan without GitHub writes
+        run: |
+          PYTHONPATH=/tmp/xml229-v36 python - <<'PY'
+          import copy
+          from lifecycle_v36 import ContractError, load_label, writable_lab
+          from decompose_v36 import load_plan, validate_plan
+
+          label = load_label("relay/AIM/XML229-UX-RUN.yaml")
+          plan = load_plan("relay/plans/XML229-V36-229-PLAN-1.yaml", label)
+          assert label["work"] == "XML229-UX-RUN"
+          assert label["version"] == "0.1.0"
+          assert label["engineering_critical"] == "critical"
+          assert plan["parent"] == "reallakshman19/3D_Converters#229"
+          assert len(plan["tasks"]) == 8
+          assert {t["outcome"] for t in plan["tasks"]} == {"O1","O2","O3","O4","O5"}
+          assert writable_lab(label, required=False) is None, "Do not infer a lab from this draft"
+          for mutated in ("label_sha", "version", "work"):
+              invalid = copy.deepcopy(plan)
+              invalid["label"][mutated] = "badvalue"
+              try:
+                  validate_plan(invalid,label)
+              except ContractError:
+                  pass
+              else:
+                  raise AssertionError("Unbound plan accepted: "+mutated)
+          invalid=copy.deepcopy(plan)
+          invalid["parent"]="reallakshman19/Common#229"
+          try:
+              validate_plan(invalid,label)
+          except ContractError:
+              pass
+          else:
+              raise AssertionError("Wrong parent repository accepted")
+          print("XML229 proposal: 1 label + 1 bound plan + 8 tasks; positive/negative v3.6 contract PASS")
+          print("PROPOSAL_ONLY=TRUE OWNER_APPROVAL=NOT_OBTAINED APPLY=FALSE")
+          PY
