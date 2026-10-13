@@ -585,7 +585,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
   });
   detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => {
     const count = fillBest();
-    status(`Applied ${count} preferred weight(s)`, count ? 'ok' : 'bad');
+    status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`, count ? 'ok' : 'bad');
   });
   panelEl?.addEventListener('change', () => {
     try {
