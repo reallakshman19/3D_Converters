@@ -49,3 +49,64 @@ test('blank whitespace only is allowed unless saved nonblank weight, including s
  assert.equal(check({input:input('  ')})?.weight,12.5);
  assert.equal(check({config:{overrides:{rigidWeight:{[issue().key]:' 12.5 '}}}}),null);
 });
+
+import {
+  buildXmlCiiRigidWeightMatch1Provenance,
+  buildXmlCiiValidatedRigidWeightLegacyView,
+  withXmlCiiRigidWeightFinal,
+} from '../converters/xml-cii2019-core/rigid-weight-authority.js';
+
+// T1 RED oracle: an explicit accepted suggestion is saved to the legacy bucket
+// with basis-bound proposal metadata, NOT the governed Match-1 bucket.
+// No production behavior or historical no-metadata manual override is edited.
+test('T1 RED: provenance-bearing legacy suggestion cannot survive changed physical basis',()=>{
+ const key='/XML229-STALENESS/B1::20';
+ const unchangedKey='/XML229-MANUAL/B1::30';
+ const finalKey='/XML229-FINAL/B1::40';
+ const issue={
+  key,branchName:'/XML229-STALENESS/B1',nodeNumber:'20',endpoint:'2',
+  componentType:'RIGID',componentRefNo:'=A/20',lengthMm:100,
+  elementLengthSource:'geometry',boreMm:50,rating:'150',
+ };
+ const weight={masterRevision:1,masterRows:[{type:'RIGID',rating:150,bore:50,weight:12.5}]};
+ const baseConfig={weight};
+ const provenance=buildXmlCiiRigidWeightMatch1Provenance(issue,baseConfig,
+  {selectedWeight:12.5,typeDesc:'ROW-1'}, {weightKg:12.5,acceptanceMethod:'candidate'});
+ const saved={
+  weight,
+  overrides:{
+   rigidWeight:{[key]:12.5,[unchangedKey]:8.25},
+   rigidWeightProposalMeta:{[key]:provenance},
+  },
+ };
+ const before=buildXmlCiiValidatedRigidWeightLegacyView(saved,[issue]);
+ assert.equal(before.config.overrides.rigidWeight[key],12.5,'unchanged explicit saved suggestion remains available');
+ const changedBasis=buildXmlCiiValidatedRigidWeightLegacyView(saved,[{...issue,lengthMm:200}]);
+ assert.equal(changedBasis.config.overrides.rigidWeight[key],undefined,
+  'basis-changed suggestion must not be projected solely from the legacy numeric override');
+ assert.equal(changedBasis.config.overrides.rigidWeight[unchangedKey],8.25,
+  'historical provenance-free manual override must keep its separate compatibility contract');
+ const final=withXmlCiiRigidWeightFinal(saved,{[finalKey]:42});
+ assert.equal(buildXmlCiiValidatedRigidWeightLegacyView(final,[{...issue,lengthMm:200}])
+  .config.overrides.rigidWeight[finalKey],42,'governed Final remains higher authority');
+});
+
+test('T1 RED: master-revised saved suggestion must require renewed review',()=>{
+ const key='/XML229-STALENESS/B1::21';
+ const issue={key,branchName:'/XML229-STALENESS/B1',nodeNumber:'21',
+  endpoint:'2',componentType:'RIGID',componentRefNo:'=B/21',lengthMm:100,
+  elementLengthSource:'geometry',boreMm:50,rating:'150'};
+ const config={weight:{masterRevision:1,masterRows:[{weight:12.5}]}};
+ const provenance=buildXmlCiiRigidWeightMatch1Provenance(issue,config,
+  {selectedWeight:12.5,typeDesc:'ROW-2'},{weightKg:12.5,acceptanceMethod:'candidate'});
+ const accepted={...config,overrides:{
+  rigidWeight:{[key]:12.5},
+  rigidWeightProposalMeta:{[key]:provenance},
+ }};
+ assert.equal(buildXmlCiiValidatedRigidWeightLegacyView(accepted,[issue])
+  .config.overrides.rigidWeight[key],12.5);
+ const revised={...accepted,weight:{...config.weight,masterRevision:2}};
+ assert.equal(buildXmlCiiValidatedRigidWeightLegacyView(revised,[issue])
+  .config.overrides.rigidWeight[key],undefined,
+  'stale saved suggestion must fail closed after master revision');
+});
