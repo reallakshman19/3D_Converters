@@ -13,7 +13,7 @@ import {
   specialValveFactorRows,
   rankXmlCiiWeightCandidates
 } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
-import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v1';
@@ -288,11 +288,18 @@ export function renderAdaptedWeightMatchPanel(card, stateOrRef, render) {
   bindParentWeightMatchPhase(card, stateRef, render);
 }
 
-function persistWeightMatchConfig(stateRef, config) {
+export function persistWeightMatchConfig(stateRef, config) {
   const nextJson = JSON.stringify(config, null, 2);
   const context = stateRef.current.masterContext || {};
-  context.config = config;
-  stateRef.current = { ...stateRef.current, supportConfigJson: nextJson, masterContext: { ...context, config } };
+  // Invoke the same revision-aware state updater used by Run and Regex.
+  // Invalidate the cached Run verdict in *all* supported application builds:
+  // a selected weight must never inherit another config's old READY/BLOCKED.
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    supportConfigJson: nextJson,
+    masterContext: { ...context, config },
+    outputRunReadinessReport: null,
+    outputRunReadinessStatus: '',
+  });
   saveMasterContextToLocalStorage(stateRef.current.masterContext);
 }
 
@@ -359,14 +366,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
   };
 
   const activeConfig = () => xmlCiiEnrichedConfigFromState(stateRef.current);
-  const onSaveConfig = (newCfg) => {
-    const nextJson = JSON.stringify(newCfg, null, 2);
-    stateRef.current.supportConfigJson = nextJson;
-    if (stateRef.current.masterContext) {
-      stateRef.current.masterContext.config = newCfg;
-      saveMasterContextToLocalStorage(stateRef.current.masterContext);
-    }
-  };
+  const onSaveConfig = (newCfg) => persistWeightMatchConfig(stateRef, newCfg);
 
   const syncToggle = () => {
     if (!toggleEl) return;
