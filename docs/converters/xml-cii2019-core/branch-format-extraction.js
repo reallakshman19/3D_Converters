@@ -74,7 +74,13 @@ function tokenField(source, rule, delimiter, joiner) {
 
 function extractField(source, ruleInput, delimiter, joiner, legacy) {
   const rule = record(ruleInput);
+  // Explicit click-to-map wins without destroying an authored regex.
+  // Missing mode keeps legacy regex-first precedence.
+  const mode = text(rule.extractMode).toUpperCase();
+  if (mode === 'TOKEN') return tokenField(source, rule, delimiter, joiner);
+  if (mode && mode !== 'REGEX') return { value: '', method: 'NONE', reason: 'INVALID_EXTRACTION_MODE' };
   const pattern = text(rule.regex);
+  if (mode === 'REGEX' && !pattern) return { value: '', method: 'REGEX', reason: 'REGEX_REQUIRED' };
   if (pattern) {
     try {
       const found = new RegExp(pattern).exec(source);
@@ -110,7 +116,7 @@ function unusedAlternativeTemplate(format, index) {
   const positions = { lineKey: 3, pipingClass: 4, rating: 4, bore: 2 };
   return Object.keys(positions).every((key) => {
     const rule = record(format[key]);
-    return !text(rule.regex) && Number(rule.group ?? 1) === 1
+    return !text(rule.regex) && !text(rule.extractMode) && Number(rule.group ?? 1) === 1
       && Number(rule.tokenPosition) === positions[key]
       && rule.fallbackOnRegexMiss !== true;
   }) && (text(format.tokenDelimiter) || '-') === '-'
