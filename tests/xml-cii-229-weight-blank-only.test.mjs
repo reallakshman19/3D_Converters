@@ -104,10 +104,21 @@ test('XML229 A2 real local Preview Worker emits source coverage but NOT governed
   ],
   expectedOriginalCount:4,expectedModelOccurrenceCount:5,expectedPhysicalFactCount:7,
  });
+ const {webcrypto}=await import('node:crypto');
+ if(!globalThis.crypto)globalThis.crypto=webcrypto;
+ const {createPreviewBasis}=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js');
+ const {digestUtf8}=await import('../contracts/gc-pw-v1/contract.mjs');
+ const basis=await createPreviewBasis({
+  domainId:'xml-cii/2019',
+  sources:[{sourceId:'OWNER-1',mediaType:'application/xml',text:XML229_A2_SOURCE}],
+  selection:[{sourceId:'OWNER-1',selectionRef:'all'}],
+  masters:{weight:{datasetId:'weight-fixture',revision:2,rows:XML229_A2_CONFIG.weight.masterRows,mapping:{}}},
+  stagedSource:null,config:XML229_A2_CONFIG,overrides:{},sha256:digestUtf8,
+ });
  await assert.rejects(port({
-  basis:{schemaVersion:'gc-pw/1.0',domainId:'xml-cii/2019',basisId:XML229_A2_BASIS},
-  requestId:'A2-VERIFY',report:()=>{},isCancelled:()=>false,
- }),e=>e?.code==='STALE_BASIS'||e?.code==='ENGINEERING_NOT_VERIFIED');
+  basis,requestId:'A2-VERIFY',report:()=>{},isCancelled:()=>false,
+ }),e=>e?.code==='ENGINEERING_NOT_VERIFIED',
+  'source-only completed real Worker must not reach the fact reader or Weight review');
 });
 test('XML229 A2 actual local Preview Worker rejects selected-zone compute before falsely deriving ALL',async()=>{
  const events=await executeRealPreviewWorker({scope:{mode:'A',sourceId:'OWNER-1',selection:[{zone:'ZONE-1'}]},requestId:'a2-selected'});
