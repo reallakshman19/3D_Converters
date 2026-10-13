@@ -80,10 +80,8 @@ export async function hydrateDefaultPipingClassMaster(stateRef, options = {}) {
   };
   const exactDefault=rows.length===10699 && filename==='Piping_class_master.json';
   const status=exactDefault
-    ? '✅ Loaded: Piping_class_master.xlsx (10699 rows) — bundled JSON master rows applied'
+    ? '✅ Loaded: Piping_class_master.json (10699 usable rows)'
     : `Loaded: ${filename} (${rows.length} usable rows) — automatic master`;
-  // A historical XLSX display label is not evidence of an XLSX upload:
-  // the status explicitly identifies the actual bundled JSON row source.
   stateRef.current=updateWorkflowState(latest,{
     masterContext:context,
     importMastersWriteBackStatus:status,
