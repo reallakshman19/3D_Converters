@@ -61,7 +61,7 @@ const XML229_A2_CONFIG={
  weight:{tokenDelimiter:'-',boreTokenIndex:3,masterRows:[{bore:25,rating:150,length:100,weight:3}],masterRevision:2},
 };
 const XML229_A2_BASIS='a'.repeat(64);
-async function executeRealPreviewWorker({scope={},requestId='a2-real'}={}){
+async function executeRealPreviewWorker({scope={},requestId='a2-real',xmlText=XML229_A2_SOURCE,config=XML229_A2_CONFIG}={}){
  const old={addEventListener:globalThis.addEventListener,postMessage:globalThis.postMessage,close:globalThis.close};
  let callback=null,closed=false;const events=[];
  globalThis.addEventListener=(kind,fn)=>{if(kind==='message')callback=fn;};
@@ -72,8 +72,8 @@ async function executeRealPreviewWorker({scope={},requestId='a2-real'}={}){
   assert.equal(typeof callback,'function','actual Preview Worker registers a message entrypoint');
   await callback({data:{
    protocol:'xml-cii-preview-local/1',kind:'execute',
-   requestId,basisId:XML229_A2_BASIS,xmlText:XML229_A2_SOURCE,
-   config:structuredClone(XML229_A2_CONFIG),stagedJsonText:'',scope,
+   requestId,basisId:XML229_A2_BASIS,xmlText,
+   config:structuredClone(config),stagedJsonText:'',scope,
   }});
   assert.equal(closed,true,'dedicated Worker closed after terminal event');
   return events;
@@ -126,4 +126,37 @@ test('XML229 A2 actual local Preview Worker rejects selected-zone compute before
  assert.equal(terminal?.state,'failed','selected source must fail closed without scoped adapter');
  assert.equal(terminal?.error?.code,'SCOPED_ENGINEERING_PENDING');
  assert.ok(!events.some(e=>e.state==='completed'));
+});
+
+test('XML229 A2 real GLRD original 41-branch/1166-node source census is lossless and NOT approved',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const {createHash}=await import('node:crypto');
+ const original=new URL('../Benchmarks/XML%20to%20CII%202019/GLRD-1000-PI-01.xml',import.meta.url);
+ const bytes=await readFile(original);
+ const xml=bytes.toString('utf8');
+ assert.equal(bytes.byteLength,627599,'independently pinned source file length must remain unchanged');
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),
+  '923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba',
+  'physical original source digest must match independent B4 custody');
+ const originalBranches=[...xml.matchAll(/<Branch(?=[\\s>])/g)].length;
+ const originalNodes=[...xml.matchAll(/<Node(?=[\\s>])/g)].length;
+ assert.equal(originalBranches,41);
+ assert.equal(originalNodes,1166);
+ const events=await executeRealPreviewWorker({
+  xmlText:xml,
+  scope:{mode:'A',sourceId:'GLRD-1000-PI-01'},
+  requestId:'a2-original-glrd',
+ });
+ const terminal=events.at(-1);
+ assert.equal(terminal?.state,'completed',
+  'real GLRD Worker must classify terminal state: '+JSON.stringify(terminal?.error));
+ assert.equal(terminal.result.coverage.sourceBranchCount,originalBranches,
+  'complete original source branch population must be preserved');
+ assert.equal(terminal.result.coverage.originalNodeCount,originalNodes,
+  'original physical nodes must not be replaced by the smaller reviewable subset');
+ assert.equal(terminal.result.sourceOccurrences.branches.length,originalBranches);
+ assert.equal(terminal.result.sourceOccurrences.nodes.length,originalNodes);
+ assert.equal(terminal.result.fullFactPopulationAccepted,false);
+ assert.equal(terminal.result.engineeringAcceptance,'NOT_ASSESSED');
+ assert.ok(terminal.result.coverage.legacyReviewNodeCount<=originalNodes);
 });
