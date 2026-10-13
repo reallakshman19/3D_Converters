@@ -111,16 +111,14 @@ test('T1 RED: master-revised saved suggestion must require renewed review',()=>{
   'stale saved suggestion must fail closed after master revision');
 });
 
-test('T1 RED: standalone Weight-to-Run bridge refuses stale legacy suggestion at source or master revision',async()=>{
- // This test reaches the real geometry/weight output bridge (not just its helper).
- // Provenance-free historical manual values and explicitly approved Final stay separate.
+
+async function t1StandaloneBridgeFixture(){
  const {installWeightBasisXmlDom}=await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
  installWeightBasisXmlDom(globalThis);
  const parity=await import('../tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js');
  const {prepareStandaloneRigidWeightAuthority,applyStandaloneAcceptedRigidWeights}
   =await import('../tabs/xml-cii-2019-standalone/xml-cii-weight-output-authority.js');
- const branch='/SYS-1-8"-L-31441C4-X/B1';
- const key=branch+'::20';
+ const branch='/SYS-1-8"-L-31441C4-X/B1',key=branch+'::20';
  const xml='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
   +'<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType><Endpoint>1</Endpoint><Position>0 0 0</Position></Node>'
   +'<Node><NodeNumber>20</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><Endpoint>2</Endpoint><ComponentRefNo>=A/20</ComponentRefNo><Position>112 0 0</Position><Weight>0</Weight></Node>'
@@ -132,35 +130,46 @@ test('T1 RED: standalone Weight-to-Run bridge refuses stale legacy suggestion at
  };
  const prep=(cfg,source)=>prepareStandaloneRigidWeightAuthority(
   parity,source,'',cfg,{splitCondensedValveFlange:true},{});
- const outputWeight=(result)=>{
+ const outputWeight=(source,authority)=>{
+  const result=applyStandaloneAcceptedRigidWeights(source,authority);
   const doc=new DOMParser().parseFromString(result.xmlText,'application/xml');
   const target=[...doc.getElementsByTagName('Node')]
    .find(node=>node.getElementsByTagName('NodeNumber')[0]?.textContent==='20');
-  return Number(target?.getElementsByTagName('Weight')[0]?.textContent);
+  assert.ok(target,'XML output still contains the same component identity');
+  return Number(target.getElementsByTagName('Weight')[0]?.textContent);
  };
  const row=prep(config,xml).basisRows.find(x=>x.key===key);
- assert.ok(row,'actual geometry MUST yield the expected original component');
- const meta=buildXmlCiiRigidWeightMatch1Provenance(row,config,
+ assert.ok(row,'real prepared geometry MUST include the original component');
+ const metadata=buildXmlCiiRigidWeightMatch1Provenance(row,config,
   {selectedWeight:12.5,typeDesc:'RANKED-1'},{weightKg:12.5,acceptanceMethod:'candidate'});
- const saved={...config,overrides:{
-  rigidWeight:{[key]:12.5},
-  rigidWeightProposalMeta:{[key]:meta},
- }};
- assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(saved,xml))),12.5,
-  'unchanged basis must preserve expressly accepted suggestion');
- const changedXml=xml.replace('112 0 0','120 0 0');
- const newBasis=prep(saved,changedXml);
- assert.ok(newBasis.basisRows.some(x=>x.key===key),
-  'changed geometry keeps same node identity, so a key mismatch cannot cause a false positive');
- assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(changedXml,newBasis)),0,
-  'stale suggestion must never reach XML output after geometry change');
- const newMaster={...saved,weight:{...config.weight,masterRevision:3}};
- assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(newMaster,xml))),0,
-  'stale suggestion must never reach XML output after master revision change');
- const legacyManual={...config,overrides:{rigidWeight:{[key]:8.25}}};
- assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(legacyManual,xml))),8.25,
-  'no-provenance historical manual overrides retain compatibility');
+ const saved={...config,overrides:{rigidWeight:{[key]:12.5},rigidWeightProposalMeta:{[key]:metadata}}};
+ return {xml,key,config,saved,prep,outputWeight,changedXml:xml.replace('112 0 0','120 0 0')};
+}
+
+test('T1 bridge positive: unchanged suggestion and historic manual and Final maintain correct precedence',async()=>{
+ const {xml,key,config,saved,prep,outputWeight,changedXml}=await t1StandaloneBridgeFixture();
+ assert.equal(outputWeight(xml,prep(saved,xml)),12.5,
+  'unchanged explicitly saved suggestion must remain usable');
+ const historical={...config,overrides:{rigidWeight:{[key]:8.25}}};
+ assert.equal(outputWeight(xml,prep(historical,xml)),8.25,
+  'provenance-free historical manual overrides remain compatible');
  const final={...saved,overrides:{...saved.overrides,rigidWeightFinal:{[key]:17.75}}};
- assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(changedXml,prep(final,changedXml))),17.75,
-  'explicit Final still supersedes weaker stale suggestion');
+ assert.equal(outputWeight(changedXml,prep(final,changedXml)),17.75,
+  'explicitly approved Final supersedes weaker stale suggestion');
+});
+
+test('T1 RED bridge geometry: changed source must not project a stale saved suggestion',async()=>{
+ const {key,saved,prep,outputWeight,changedXml}=await t1StandaloneBridgeFixture();
+ const updated=prep(saved,changedXml);
+ assert.ok(updated.basisRows.some(x=>x.key===key),
+  'same node identity survives geometry change; no false pass by vanished node');
+ assert.equal(outputWeight(changedXml,updated),0,
+  'stale provenance-bound accepted suggestion must not be projected to XML');
+});
+
+test('T1 RED bridge master: revised weight master must not project stale saved suggestion',async()=>{
+ const {xml,config,saved,prep,outputWeight}=await t1StandaloneBridgeFixture();
+ const revised={...saved,weight:{...config.weight,masterRevision:3}};
+ assert.equal(outputWeight(xml,prep(revised,xml)),0,
+  'stale suggestion must require review after master change');
 });
