@@ -8,18 +8,41 @@ function configured(config) {
   return Array.isArray(config?.regexTester?.formats) || Array.isArray(config?.formats);
 }
 
+// Diagnostics are opt-in for the Run checklist. The service's release-custody
+// audit still returns its original failure shape, with the same fail-closed gate.
+function formatDiagnosis(result) {
+  const selected = result.status === 'AMBIGUOUS'
+    ? result.candidates.filter(candidate => candidate.status === 'MATCHED')
+    : result.candidates;
+  return selected.map(candidate => result.status === 'AMBIGUOUS'
+    ? { formatIndex: candidate.formatIndex, status: candidate.status,
+      lineKey: candidate.lineKey, pipingClass: candidate.pipingClass,
+      rating: candidate.rating, bore: candidate.bore }
+    : { formatIndex: candidate.formatIndex, status: candidate.status,
+      reasons: candidate.reasons, fieldMethods: candidate.fieldMethods });
+}
+
 /** branchOccurrences: occurrence rows with branchName and optional branchOccurrenceId. */
-export function auditConfiguredBranchFormats(branchOccurrences = [], config = {}, previewRows = null) {
+export function auditConfiguredBranchFormats(branchOccurrences = [], config = {}, previewRows = null, options = {}) {
   const required = configured(config);
   const source = Array.isArray(branchOccurrences) ? branchOccurrences : [];
   if (!required) return { required: false, checkedCount: 0, blocked: false, failures: [] };
   const failures = [];
   const expected = source.map((branch, index) => {
     const result = extractBranchFieldsWithFormats(branch.branchName, config);
-    if (result.status !== 'MATCHED') failures.push({
-      branchName: branch.branchName, branchOccurrenceId: branch.branchOccurrenceId || '',
-      occurrenceIndex: index, status: result.status, reason: 'FORMAT_UNRESOLVED',
-    });
+    if (result.status !== 'MATCHED') {
+      const failure = {
+        branchName: branch.branchName, branchOccurrenceId: branch.branchOccurrenceId || '',
+        occurrenceIndex: index, status: result.status, reason: 'FORMAT_UNRESOLVED',
+      };
+      // Show the first 20 examples only. Preserve full failure count and every
+      // original occurrence while avoiding huge serializable diagnostic payloads.
+      if (options?.includeCandidates === true && failures.length < 20) {
+        failure.formatCandidates = formatDiagnosis(result);
+        failure.configOrigin = result.origin;
+      }
+      failures.push(failure);
+    }
     return result;
   });
   if (Array.isArray(previewRows)) {
