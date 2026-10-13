@@ -72,8 +72,8 @@ try {
     const root=document.querySelector('#xml229-real-standalone-app');
     return root && root.textContent.includes('Masters: 1/4 loaded');
   },null,{timeout:30000});
-  const bootText=await boot.locator('#xml229-real-standalone-app').innerText();
-  assert(bootText.includes('Masters: 1/4 loaded'),'Header must reflect physical autoload without upload');
+  const bootText=await boot.locator('#xml229-real-standalone-app .xml-cii-standalone-header').textContent();
+  assert(bootText.includes('Masters: 1/4 loaded'),'Header DOM must reflect physical autoload without upload');
   assert.equal(bootMasters.length,1,'Cold start must fetch exactly one actual master');
   assert.deepEqual(bootErrors,[],'Fresh standalone UI boot errors');
   console.log(JSON.stringify({schema:'XML229_REAL_BROWSER_MASTER_V1',ok:true,observation,pipingMasterRequests:sources.length,errors,unrelatedFailures:failures.map(f=>f.status),coldStandalone:{masterBadge:'Masters: 1/4 loaded',actualRowFileRequests:bootMasters.length,runtimeErrors:bootErrors}},null,2));
