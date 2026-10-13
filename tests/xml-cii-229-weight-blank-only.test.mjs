@@ -110,3 +110,57 @@ test('T1 RED: master-revised saved suggestion must require renewed review',()=>{
   .config.overrides.rigidWeight[key],undefined,
   'stale saved suggestion must fail closed after master revision');
 });
+
+test('T1 RED: standalone Weight-to-Run bridge refuses stale legacy suggestion at source or master revision',async()=>{
+ // This test reaches the real geometry/weight output bridge (not just its helper).
+ // Provenance-free historical manual values and explicitly approved Final stay separate.
+ const {installWeightBasisXmlDom}=await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+ installWeightBasisXmlDom(globalThis);
+ const parity=await import('../tabs/model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js');
+ const {prepareStandaloneRigidWeightAuthority,applyStandaloneAcceptedRigidWeights}
+  =await import('../tabs/xml-cii-2019-standalone/xml-cii-weight-output-authority.js');
+ const branch='/SYS-1-8"-L-31441C4-X/B1';
+ const key=branch+'::20';
+ const xml='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+  +'<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType><Endpoint>1</Endpoint><Position>0 0 0</Position></Node>'
+  +'<Node><NodeNumber>20</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><Endpoint>2</Endpoint><ComponentRefNo>=A/20</ComponentRefNo><Position>112 0 0</Position><Weight>0</Weight></Node>'
+  +'<Node><NodeNumber>30</NodeNumber><ComponentType>PIPE</ComponentType><Endpoint>1</Endpoint><Position>224 0 0</Position></Node>'
+  +'</Branch></Pipe></PipeStressExport>';
+ const config={
+  rating:{tokenDelimiter:'-',pipingClassTokenIndex:5,ratingSequence:[['3','300']]},
+  weight:{tokenDelimiter:'-',boreTokenIndex:3,masterRows:[{bore:25,rating:150,length:100,weight:3}],masterRevision:2},
+ };
+ const prep=(cfg,source)=>prepareStandaloneRigidWeightAuthority(
+  parity,source,'',cfg,{splitCondensedValveFlange:true},{});
+ const outputWeight=(result)=>{
+  const doc=new DOMParser().parseFromString(result.xmlText,'application/xml');
+  const target=[...doc.getElementsByTagName('Node')]
+   .find(node=>node.getElementsByTagName('NodeNumber')[0]?.textContent==='20');
+  return Number(target?.getElementsByTagName('Weight')[0]?.textContent);
+ };
+ const row=prep(config,xml).basisRows.find(x=>x.key===key);
+ assert.ok(row,'actual geometry MUST yield the expected original component');
+ const meta=buildXmlCiiRigidWeightMatch1Provenance(row,config,
+  {selectedWeight:12.5,typeDesc:'RANKED-1'},{weightKg:12.5,acceptanceMethod:'candidate'});
+ const saved={...config,overrides:{
+  rigidWeight:{[key]:12.5},
+  rigidWeightProposalMeta:{[key]:meta},
+ }};
+ assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(saved,xml))),12.5,
+  'unchanged basis must preserve expressly accepted suggestion');
+ const changedXml=xml.replace('112 0 0','120 0 0');
+ const newBasis=prep(saved,changedXml);
+ assert.ok(newBasis.basisRows.some(x=>x.key===key),
+  'changed geometry keeps same node identity, so a key mismatch cannot cause a false positive');
+ assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(changedXml,newBasis)),0,
+  'stale suggestion must never reach XML output after geometry change');
+ const newMaster={...saved,weight:{...config.weight,masterRevision:3}};
+ assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(newMaster,xml))),0,
+  'stale suggestion must never reach XML output after master revision change');
+ const legacyManual={...config,overrides:{rigidWeight:{[key]:8.25}}};
+ assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(xml,prep(legacyManual,xml))),8.25,
+  'no-provenance historical manual overrides retain compatibility');
+ const final={...saved,overrides:{...saved.overrides,rigidWeightFinal:{[key]:17.75}}};
+ assert.equal(outputWeight(applyStandaloneAcceptedRigidWeights(changedXml,prep(final,changedXml))),17.75,
+  'explicit Final still supersedes weaker stale suggestion');
+});
