@@ -5,6 +5,7 @@
  * Uses the existing R10 Worker and an independent page-batched, durable IndexedDB adapter.
  */
 import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
+import {createLfjSourceProgress,advanceLfjSourceProgress,mountLfjSourceProgress,updateLfjSourceProgress} from './xml-cii-adapted-lfj-o1-progress.js';
 import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/source-worker-port.mjs';
 import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
@@ -53,7 +54,7 @@ const safeCode=e=>{
     'O1_SOURCE_BYTE_LIMIT (original JSON must be at most 100 MiB / 104857600 bytes)':code;
 };
 const getSession=ref=>{
-  if(!sessions.has(ref))sessions.set(ref,{optIn:true,job:null,requestSeq:0,status:'O1 Worker ready; load original PSI116 XML and JSON, then Build.'});
+  if(!sessions.has(ref))sessions.set(ref,{optIn:true,job:null,requestSeq:0,status:'O1 Worker ready; load original PSI116 XML and JSON, then Build.',progress:createLfjSourceProgress(),progressRoot:null});
   return sessions.get(ref);
 };
 function eligibleSource(state){
@@ -66,6 +67,11 @@ function eligibleSource(state){
 function status(session,text){
   session.status=text;
   if(session.label)session.label.textContent=text;
+}
+function sourceProgress(session,kind,extra={}){
+  const nowMs=typeof performance==='object'?performance.now():0;
+  session.progress=advanceLfjSourceProgress(session.progress,{kind,nowMs,...extra});
+  updateLfjSourceProgress(session.progressRoot,session.progress);
 }
 function deleteDb(name){
   return new Promise(resolve=>{
@@ -129,6 +135,7 @@ async function scan(file,session,stateRef,container){
   // cleanup. A prior scan must never install a job after a newer selection.
   const request=++session.requestSeq;
   status(session,'LFJ Worker: replacing original source; previous receipt invalid.');
+  sourceProgress(session,'REVOKED');
   revokeLfjO1Domain(session);
   const old=session.job;
   session.job=null;
@@ -142,6 +149,7 @@ async function scan(file,session,stateRef,container){
   const job={id:uuid,ref:'lfj226-'+uuid,databaseName:'lfj226-source-'+uuid,
     file,worker:null,scopeWorker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
   session.job=job;
+  sourceProgress(session,'START');
   status(session,'LFJ Worker: reading original Blob off the UI thread...');
   return await new Promise((resolve,reject)=>{
     let settled=false;
@@ -160,9 +168,11 @@ async function scan(file,session,stateRef,container){
         try{
           if(m?.kind==='PROVISIONAL_PAGE'){
             await recordPage(job,m);
+            if(session.job===job&&!job.cancelled)sourceProgress(session,'PAGE',{pagesStaged:job.pages});
             if(job.pages===1||job.pages%8===0)
               status(session,'LFJ Worker: '+job.pages+' bounded pages staged (not committed)');
           }else if(m?.kind==='SCAN_DONE'){
+            if(session.job===job&&!job.cancelled)sourceProgress(session,'COMMIT_PENDING');
             const summary=await finish(job,m);
             worker.terminate();job.worker=null;
             settle(null,summary);
@@ -174,6 +184,7 @@ async function scan(file,session,stateRef,container){
     }catch(e){settle(e);}
   }).then(summary=>{
     if(session.job!==job||job.cancelled)throw error('LFJ_SOURCE_SUPERSEDED');
+    sourceProgress(session,'SOURCE_COMMITTED',{summary});
     status(session,'LFJ source index COMMITTED: '+summary.occurrenceCount+
       ' original occurrences; SHA '+summary.sourceSha256.slice(0,12)+
       '. Trace/CSV NOT authorized by this intake.');
@@ -188,7 +199,7 @@ async function scan(file,session,stateRef,container){
     return summary;
   }).catch(async e=>{
     if(request===session.requestSeq&&session.job===job){
-      session.job=null;status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
+      session.job=null;sourceProgress(session,'FAILED',{code:safeCode(e)});status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
     }
     await revoke(job);
     throw e;
@@ -201,6 +212,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   const supported=eligibleSource(stateRef.current);
   if(!supported&&session.job){
     const old=session.job;session.job=null;
+    sourceProgress(session,'UNAVAILABLE');
     revokeLfjO1Domain(session);void revoke(old);
   }
   const group=document.createElement('div');
@@ -219,6 +231,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   progress.textContent=supported?session.status:'O1 Worker unavailable for this source kind or processing mode; no Worker trace/CSV rights.';
   session.label=progress;
   group.append(label,progress);
+  session.progressRoot=mountLfjSourceProgress(group,supported?session.progress:advanceLfjSourceProgress(session.progress,{kind:'UNAVAILABLE'}));
   (field.parentElement?.parentElement || field.parentElement)?.appendChild(group);
   toggle.addEventListener('change',()=>{
     session.optIn=toggle.checked;
@@ -228,6 +241,7 @@ export function installLfjO1SourceIntake(container,stateRef){
       const old=session.job;session.job=null;
       void revoke(old);
       status(session,'LFJ Worker opt-in disabled. No source output was promoted.');
+      sourceProgress(session,'REVOKED');
     }
   });
   // Captured against the entire authored workspace. Original XML selection,
@@ -249,6 +263,7 @@ export function installLfjO1SourceIntake(container,stateRef){
         void revoke(old);
       }
       revokeLfjO1Domain(session);
+      sourceProgress(session,'REVOKED');
       status(session,'O1 source/config/selection changed; prior trace and CSV revoked. Build again.');
     }
   },true);
@@ -260,8 +275,10 @@ export function installLfjO1SourceIntake(container,stateRef){
     if(!file)return;
     void scan(file,session,stateRef,container).catch(e=>{
       // A superseded request is not a failure of the newer user selection.
-      if(e?.code!=='LFJ_SOURCE_SUPERSEDED'&&session.status.startsWith('LFJ Worker:'))
+      if(e?.code!=='LFJ_SOURCE_SUPERSEDED'&&session.status.startsWith('LFJ Worker:')){
+        sourceProgress(session,'FAILED',{code:safeCode(e)});
         status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
+      }
     });
   },true);
   // Opt-in is a distinct O1 owned Worker flow. Capture Build/CSV before
