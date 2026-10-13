@@ -10,6 +10,7 @@ import { classifyXmlCiiRenderScope } from './xml-cii-adapted-render-scope.js?v=2
 import { renderXmlCiiPerfEvidencePanel, syncXmlCiiPerfEvidencePanel } from './xml-cii-adapted-perf-evidence.js?v=20260818-perf-c1';
 import { perfCount } from './xml-cii-adapted-perf.js?v=20260818-perf-c1';
 import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260930-issue781-worker-weight-api-1';
+import { hydrateDefaultPipingClassMaster } from './xml-cii-adapted-default-piping-autoload.js';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -41,7 +42,14 @@ function restoreScrollStates(container, scrollStates) {
 
 function hydratePersistedMasters(stateRef, render) {
   void hydratePersistedMasterDatasets(stateRef)
-    .then((changed) => { if (changed) render(); })
+    .then(async (changed) => {
+      if (changed) render();
+      // Only after persisted IndexedDB custody is reconciled may the default
+      // Piping Class source fill a genuinely missing master. The guard rejects
+      // existing manual/session datasets and concurrent user imports.
+      const loaded = await hydrateDefaultPipingClassMaster(stateRef);
+      if (loaded) render();
+    })
     .catch((error) => {
       console.error('[xml-cii] IndexedDB master restore failed:', error);
       stateRef.current = {
