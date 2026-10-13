@@ -7,6 +7,7 @@ import {
   updateRegexTesterConfig,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js';
 import { buildOutputRunChecklist } from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
+import { runStandaloneRegexTester } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 
 const first = '/ASIM-1885-3-S8811000-91261M7-HC-01/B1';
 const second = '/ASIM-1885-PL-HOT-S8822000-91261M7-HC-01/B1';
@@ -136,4 +137,16 @@ test('P1 synthetic 28 occurrence Run gate becomes ready only for real resolved e
   const formatRow = rows.find(row => row.id === 'branch-format-authority');
   assert.equal(formatRow.blocking, false);
   assert.match(formatRow.message, /28 selected branch occurrences/);
+});
+
+test('P1 saved canonical and legacy projections both honor token mode', () => {
+  const changed = updateRegexTesterConfig(baseline(), 'regex-line-key-token', '4');
+  const cfg = changed.regexTesterConfig;
+  const run = runStandaloneRegexTester({ sourceText: '', sourceKind: 'xml', extractionConfig: cfg, supportConfigJson: '{}' });
+  const support = JSON.parse(run.supportConfigJson);
+  assert.equal(support.regexTester.formats[0].lineKey.regex, '(STALE)', 'reversible canonical rule');
+  assert.equal(support.regexTester.formats[0].lineKey.extractMode, 'TOKEN');
+  assert.equal(support.formats[0].lineKey.extractMode, 'TOKEN');
+  assert.equal(support.linelist.branchNameRegex, '', 'legacy consumers must not reuse old regex');
+  assert.equal(support.linelist.lineKeyTokenPositions, '4');
 });
