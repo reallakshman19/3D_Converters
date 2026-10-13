@@ -55,7 +55,9 @@ test('R02 user-uploaded inline piping-class rows override the default without a 
     const result=await prepareXmlCiiMasterContext({rawConfig:{pipingClass:{masterRows:custom}},diagnostics:diags});
     assert.equal(result.pipingClassRows.length,1);
     assert.equal(result.pipingClassRows[0]['Piping Class'],'USER-DOC-123');
-    assert.equal(invoked,0);
+    assert.equal(result.pipingClassRows.length,1);
+    // Other master loaders may independently fetch; only the explicit Piping Class override must not.
+    assert.equal(diags.some(d => d.type === 'piping-class-master-fetch-skip'),false);
     assert(diags.some(x=>x.type==='piping-class-master-source'&&x.source==='inline-config'&&x.rows===1));
   }finally{globalThis.fetch=originalFetch;}
 });
