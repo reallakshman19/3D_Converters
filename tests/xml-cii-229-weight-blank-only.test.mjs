@@ -215,3 +215,27 @@ test('T1 source/served rigid authority modules remain byte-for-byte identical',a
  const served=new URL('../docs/converters/xml-cii2019-core/rigid-weight-authority.js',import.meta.url);
  assert.equal(await readFile(root,'utf8'),await readFile(served,'utf8'));
 });
+
+test('T1 RED: Preview compatibility view must not re-enable an effective stale candidate suppressed by output authority',()=>{
+ // Read the actual exported production Preview adapter used by the standalone UI.
+ return import('../converters/xml-cii2019-core/rigid-weight-authority.js').then(({withXmlCiiEffectiveRigidWeightLegacyView})=>{
+  const key='/XML229-PREVIEW/B1::20';
+  const issue={key,branchName:'/XML229-PREVIEW/B1',nodeNumber:'20',
+   endpoint:'2',componentType:'RIGID',componentRefNo:'=A/20',
+   lengthMm:100,elementLengthSource:'geometry',boreMm:50,rating:'150'};
+  const config={weight:{masterRevision:1,masterRows:[{weight:12.5}]}};
+  const provenance=buildXmlCiiRigidWeightMatch1Provenance(issue,config,
+   {selectedWeight:12.5},{weightKg:12.5,acceptanceMethod:'candidate'});
+  const saved={...config,overrides:{
+   rigidWeight:{[key]:12.5},
+   rigidWeightProposalMeta:{[key]:provenance},
+  }};
+  const changedIssue={...issue,lengthMm:200};
+  const validated=buildXmlCiiValidatedRigidWeightLegacyView(saved,[changedIssue]);
+  assert.equal(validated.config.overrides.rigidWeight[key],undefined,
+   'Run output authority now correctly withholds the stale suggestion');
+  const preview=withXmlCiiEffectiveRigidWeightLegacyView(saved);
+  assert.equal(preview.overrides.rigidWeight[key],undefined,
+   'Preview raw compatibility path must never represent stale saved candidate as effective');
+ });
+});
