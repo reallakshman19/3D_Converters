@@ -26,7 +26,7 @@ function startupState() {
   return { current: { supportConfigJson: '{}', masterContext: blankContext() } };
 }
 
-test('C05.4.1 Valve Weight RED baseline isolates datasetRevision loss without disturbing weight identity semantics', async (t) => {
+test('C05.4.1 current Weight baseline preserves datasetRevision and separate Weight mapping/fingerprint semantics', async (t) => {
   const storage = installStorage();
   const rows = [{ Marker: 'WT-1' }, { Marker: 'WT-2' }];
   const expectedDatasetRevision = 5;
@@ -100,9 +100,9 @@ test('C05.4.1 Valve Weight RED baseline isolates datasetRevision loss without di
     t.diagnostic(JSON.stringify(observation));
 
     assert.equal(changed, true);
-    assert.equal(observation.commitDatasetRevision, null, 'RED: weight datasetRef currently drops worker datasetRevision');
-    assert.equal(observation.custodyDatasetRevision, null, 'RED: restart custody currently drops weight datasetRevision');
-    assert.equal(observation.coldDatasetRevision, null, 'RED: cold weight datasetRef currently drops datasetRevision');
+    assert.equal(observation.commitDatasetRevision, expectedDatasetRevision, 'Weight commit must preserve worker datasetRevision');
+    assert.equal(observation.custodyDatasetRevision, expectedDatasetRevision, 'Weight restart custody must preserve datasetRevision');
+    assert.equal(observation.coldDatasetRevision, expectedDatasetRevision, 'Weight cold datasetRef must preserve datasetRevision');
 
     assert.equal(observation.datasetIdStable, true);
     assert.equal(observation.fingerprintCommit, expectedFingerprint);
@@ -119,7 +119,7 @@ test('C05.4.1 Valve Weight RED baseline isolates datasetRevision loss without di
   }
 });
 
-test('C05.4.1 predecessor masters stay green while Valve Weight remains revision-RED', async () => {
+test('C05.4.1 predecessor masters and Valve Weight retain distinct dataset revisions', async () => {
   const storage = installStorage({
     'xml-cii-master-source-pipingClass': JSON.stringify({
       source: 'Piping class master.xlsx', datasetId: 'issue855:pc:r4', datasetRevision: 4,
@@ -168,9 +168,64 @@ test('C05.4.1 predecessor masters stay green while Valve Weight remains revision
 
     assert.equal(stateRef.current.masterContext.datasetRefs.pipingClass.datasetRevision, 4);
     assert.equal(stateRef.current.masterContext.datasetRefs.materialMap.datasetRevision, 3);
-    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, undefined);
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight.datasetRevision, 5);
     assert.equal(stateRef.current.masterContext.datasetRefs.weight.masterFingerprint, 'fp');
     assert.equal(stateRef.current.masterContext.config.weight.masterRevision, 4);
+  } finally {
+    storage.restore();
+  }
+});
+
+/*
+ * Keep the original #855 RED finding in immutable #203 evidence and the
+ * rollback commit. The mandatory current test must instead prove that a
+ * stale Weight revision is rejected before IndexedDB row retrieval.
+ */
+test('C05.4.1 stale persisted Weight revision is typed/quarantined before any rows are read', async () => {
+  const storage = installStorage({
+    'xml-cii-master-source-weight': JSON.stringify({
+      source: 'wtValveweights.xlsx',
+      datasetId: 'issue855:wt:r5',
+      datasetRevision: 5,
+      rowCount: 1,
+      fieldMap: {},
+      appliedRevision: 11,
+      persistenceMode: 'indexeddb',
+      masterFingerprint: 'fp-855-stale',
+    }),
+  });
+  const stateRef = startupState();
+  let invalidRowReads = 0;
+  try {
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata(id) {
+          assert.equal(id, 'issue855:wt:r5');
+          return {
+            datasetId: id,
+            datasetRevision: 6,
+            rowCount: 1,
+            fileName: 'wtValveweights.xlsx',
+            masterFingerprint: 'fp-855-stale',
+          };
+        },
+        async getRowsRange() { invalidRowReads++; throw Error('STALE_WEIGHT_READ_FORBIDDEN'); },
+        async getRows() { invalidRowReads++; throw Error('STALE_WEIGHT_READ_FORBIDDEN'); },
+      },
+    }), true);
+    assert.equal(invalidRowReads, 0);
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity?.weight, {
+      masterKey: 'weight',
+      datasetId: 'issue855:wt:r5',
+      domain: 'restore-storage',
+      code: 'REVISION_MISMATCH',
+      stage: 'metadata-validate',
+    });
+    assert.equal(stateRef.current.masterContext.datasetRefs?.weight, undefined,
+      'stale Weight datasetRef must never be activated');
+    assert.equal(stateRef.current.masterContext.appliedMappingRevision?.weight, undefined);
+    assert.equal(stateRef.current.masterContext.config?.weight, undefined,
+      'mismatched revision must not activate stale Weight mapping or fingerprint');
   } finally {
     storage.restore();
   }
