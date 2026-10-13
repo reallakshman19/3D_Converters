@@ -76,7 +76,7 @@ test('C05.4.3 cold hydration restores Valve Weight datasetRevision without confl
   }
 });
 
-test('C05.4.3 Valve Weight rejects stale positive restart revision against IndexedDB metadata', async () => {
+test('C05.4.3 stale positive Weight revision records typed refusal and never materializes stale rows', async () => {
   const storage = installStorage({
     'xml-cii-master-source-weight': JSON.stringify({
       source: 'wtValveweights.json',
@@ -90,25 +90,39 @@ test('C05.4.3 Valve Weight rejects stale positive restart revision against Index
     }),
   });
   const stateRef = startupState();
+  let invalidRowReads = 0;
   try {
-    await assert.rejects(
-      hydratePersistedMasterDatasets(stateRef, {
-        store: {
-          async getMetadata() {
-            return {
-              datasetId: 'issue857:wt:r5',
-              datasetRevision: 6,
-              rowCount: 1,
-              fileName: 'wtValveweights.json',
-              masterFingerprint: 'fp-857',
-            };
-          },
-          async getRowsRange() { return [{ Bore: 100 }]; },
-          async getRows() { return [{ Bore: 100 }]; },
+    assert.equal(await hydratePersistedMasterDatasets(stateRef, {
+      store: {
+        async getMetadata() {
+          return {
+            datasetId: 'issue857:wt:r5',
+            datasetRevision: 6,
+            rowCount: 1,
+            fileName: 'wtValveweights.json',
+            masterFingerprint: 'fp-857',
+          };
         },
-      }),
-      /weight dataset revision mismatch: expected 5, received 6/,
-    );
+        async getRowsRange() { invalidRowReads++; throw Error('MUST_NOT_READ_STALE_WEIGHT'); },
+        async getRows() { invalidRowReads++; throw Error('MUST_NOT_READ_STALE_WEIGHT'); },
+      },
+    }), true);
+    assert.equal(invalidRowReads, 0,
+      'Weight revision mismatch must veto IndexedDB row reads before fingerprint binding');
+    assert.deepEqual(stateRef.current.masterRestoreFailureIdentity.weight, {
+      masterKey: 'weight',
+      datasetId: 'issue857:wt:r5',
+      domain: 'restore-storage',
+      code: 'REVISION_MISMATCH',
+      stage: 'metadata-validate',
+    });
+    assert.match(stateRef.current.masterRestoreFailures.weight.message,
+      /Persisted weight dataset revision mismatch: expected 5, received 6/);
+    assert.equal(stateRef.current.masterContext.datasetRefs.weight, undefined,
+      'mismatched Weight dataset must not become active authority');
+    assert.equal(stateRef.current.masterContext.appliedMappingRevision.weight, undefined);
+    assert.equal(stateRef.current.masterContext.config.weight, undefined,
+      'Weight fingerprint/masterRevision cannot be published from invalid metadata');
   } finally {
     storage.restore();
   }

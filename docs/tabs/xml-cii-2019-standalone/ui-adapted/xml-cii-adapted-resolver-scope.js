@@ -29,7 +29,16 @@ function validScopeId(index, requested) {
 
 export function ensureResolverHierarchyScope(state = {}, stateRef = null) {
   const source = text(state.stagedJsonText);
-  if (!source) return { index: null, selectedScopeId: ALL_SCOPE_ID };
+  if (!source) {
+    const model=state.resolverJsonTraceO1ScopeReadModel;
+    const index=model?.schema==='LFJ.O1.HierarchyScopes.v1'
+      ? {indexable:model.indexable===true,itemCount:model.itemCount||0,
+         scopes:model.scopes||[],byteLength:model.byteLength||0,
+         defaultScopeId:ALL_SCOPE_ID,reason:model.reason||'',strategy:model.strategy||'worker'}
+      : null;
+    return {index,selectedScopeId:index?.indexable
+      ?validScopeId(index,text(state.jsonTraceScopeId)||ALL_SCOPE_ID):ALL_SCOPE_ID};
+  }
   const key = sourceKey(source);
   const cached = state.resolverJsonTraceUiScopeCache;
   const index = cached?.key === key
@@ -53,7 +62,8 @@ function scopeNote(scopeState) {
   const index = scopeState?.index;
   if (!index) return 'Load staged JSON to discover hierarchy scopes.';
   if (!index.indexable) {
-    return 'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
+    return index.reason ? 'All scopes only: '+index.reason :
+      'This JSON shape cannot be bounded by the current hierarchy index. Resolver will use explicit All scopes.';
   }
   const selected = (index.scopes || []).find((scope) => scope.id === scopeState.selectedScopeId);
   if (scopeState.selectedScopeId === ALL_SCOPE_ID) {
@@ -75,7 +85,7 @@ function selectControl(scopeState) {
     option.selected = item.id === scopeState.selectedScopeId;
     select.appendChild(option);
   }
-  select.disabled = !scopeState?.index;
+  select.disabled = scopeState?.index?.indexable !== true;
   return select;
 }
 
@@ -114,4 +124,17 @@ export function renderResolverHierarchyScopeControl(parent, stateRef, render, sc
   parent.appendChild(bar);
 }
 
+export function refreshResolverHierarchyScopeControl(container,stateRef){
+ if(!container||!stateRef?.current)return;
+ const data=ensureResolverHierarchyScope(stateRef.current,stateRef);
+ for(const select of container.querySelectorAll('[data-field="resolver-hierarchy-scope"]')){
+  const fresh=selectControl(data);
+  select.replaceChildren(...fresh.childNodes);
+  select.disabled=fresh.disabled;
+  select.value=data.selectedScopeId;
+  const note=select.closest('.xml-cii-resolver-scope-control')
+    ?.querySelector('.xml-cii-phase-help');
+  if(note)note.textContent=scopeNote(data);
+ }
+}
 export { ALL_SCOPE_ID };

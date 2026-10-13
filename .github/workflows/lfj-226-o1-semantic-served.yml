@@ -1,0 +1,51 @@
+name: LFJ 226 O1 W06 independent original semantics and served routes
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-semantic-served-browser.mjs'
+      - '.github/workflows/lfj-226-o1-semantic-served.yml'
+      - 'lfj/**'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'scripts/build-github-pages-docs.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-semantic-served-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Pin exact direct-main head and browser-test syntax
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-semantic-served-browser.mjs
+          echo "LFJ226_W06_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real headless Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Build canonical real docs route
+        run: node scripts/build-github-pages-docs.mjs
+      - name: Serve authored standalone, root and canonical docs
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w06-http.log 2>&1 &
+      - name: Independently compare original XML/JSON to complete Worker CSV and served routes
+        run: node scripts/lfj-226-o1-semantic-served-browser.mjs
+      - name: Retain semantic facts and hosted route evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-W06-semantic-served
+          path: |
+            ValidationRecords/lfj-226-o1-W06-semantic-served.json
+            /tmp/lfj226-w06-http.log
+          if-no-files-found: warn
+          retention-days: 30

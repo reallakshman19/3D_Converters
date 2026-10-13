@@ -1,0 +1,61 @@
+name: LFJ 226 O1 W10 raw and generated asset parity
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-w10-asset-parity-browser.mjs'
+      - '.github/workflows/lfj-226-o1-w10-asset-parity.yml'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-*.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'scripts/build-github-pages-docs.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-entry-asset-and-refusal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        route: [root-raw, docs-raw, docs-built]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert direct-main candidate and test script parse
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-w10-asset-parity-browser.mjs
+          echo "W10_HEAD=$(git rev-parse HEAD)"
+          git status --short
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Build docs only for generated-docs control
+        if: matrix.route == 'docs-built'
+        run: node scripts/build-github-pages-docs.mjs
+      - name: Start actual repository HTTP app
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w10-http.log 2>&1 &
+      - name: Verify actual network modules, original CSV and typed zero-rights boundaries
+        env:
+          W10_ROUTE: ${{ matrix.route }}
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/lfj-226-o1-w10-asset-parity-browser.mjs
+      - name: Preserve real Chromium receipts on PASS or RED
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-w10-${{ matrix.route }}
+          path: |
+            ValidationRecords/lfj-226-o1-W10-${{ matrix.route }}.json
+            /tmp/lfj226-w10-http.log
+          if-no-files-found: warn
+          retention-days: 30

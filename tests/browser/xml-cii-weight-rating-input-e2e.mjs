@@ -21,7 +21,7 @@ const server = createServer(async (request, response) => {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const target = path.resolve(root, `.${route.endsWith('/') ? `${route}index.html` : route}`);
     if (!target.toLowerCase().startsWith(`${root.toLowerCase()}${path.sep}`)) throw new Error('Outside root');
-    const types = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
+    const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.css': 'text/css' };
     response.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     response.end(await readFile(target));
   } catch (error) { response.writeHead(404); response.end(String(error)); }
@@ -32,18 +32,46 @@ const browser = await chromium.launch({ headless: true,
 try {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
-  const errors = [], modules = [], timings = [];
+  const errors = [], modules = [], timings = [], failedRequests = [], badResponses = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   page.on('request', (request) => { if (/\.js(?:\?|$)/.test(request.url())) modules.push(request.url()); });
+  page.on('requestfailed', (request) => failedRequests.push({ url: request.url(), reason: request.failure()?.errorText || 'unknown' }));
+  page.on('response', (response) => {
+    if (response.status() >= 400) badResponses.push({ status: response.status(), url: response.url() });
+  });
   const seed = createDefaultRegexTesterConfig();
   for (const format of seed.formats) {
     format.lineKey.tokenPosition = '4'; format.pipingClass.tokenPosition = '5'; format.bore.tokenPosition = '3';
   }
   await page.addInitScript((json) => {
+    // Persist the actual XML→CII tab before application startup. Otherwise
+    // the default heavyweight Model Converters import may still be pending
+    // while this test switches tabs, leaving a non-ready loading surface.
+    localStorage.setItem('format-converters.activeTabId', 'xml-cii-2019-standalone');
     if (!localStorage.getItem('xml-cii-regex-config-v1')) localStorage.setItem('xml-cii-regex-config-v1', json);
   }, JSON.stringify(seed));
   await page.goto(`http://127.0.0.1:${server.address().port}/docs/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // The tab can reopen on a remembered phase/subtab. Navigate explicitly
+  // to the actual Source loader before selecting the original XML.
+  try {
+    await page.locator('[data-phase="source"]').waitFor({ state: 'attached', timeout: 45000 });
+  } catch (error) {
+    const domDiagnostic = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      appHTML: document.querySelector('#app-layout')?.innerHTML?.slice(0, 2500) || '',
+      navButtons: [...document.querySelectorAll('button')].slice(0, 35).map((button) => button.textContent.trim()),
+      sourceInputCount: document.querySelectorAll('input[data-field="source-file"]').length,
+      contentState: document.querySelector('.app-content')?.textContent?.slice(0, 1300) || '',
+      errorPanel: document.querySelector('.tab-error')?.textContent || '',
+    }));
+    console.error('ISSUE_781_SOURCE_UI_MOUNT_DIAGNOSTIC',
+      JSON.stringify({ ...domDiagnostic, pageErrors: errors.slice(0, 12), failedRequests: failedRequests.slice(0, 25), badResponses: badResponses.slice(0, 50), moduleRequests: modules.slice(-25) }, null, 2));
+    throw error;
+  }
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /Valve Weights/ }).click();
   await page.locator('input[data-master-file="weight"]').setInputFiles(path.join(root, 'docs', 'Masters', 'wtValveweights.xlsx'));
@@ -59,6 +87,10 @@ try {
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')).config.rating.ratingSequence.some(([p, r]) => p === '3' && r === '600')));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'XML→CII 2019 Standalone' }).click();
+  // The tab can reopen on a remembered phase/subtab. Navigate explicitly
+  // to the actual Source loader before selecting the original XML.
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-sub-tab="loader"]').click();
   await page.locator('input[data-field="source-file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /^6 Weight Match/ }).click();
   await page.locator('#mc-wm-refresh').waitFor();
@@ -109,10 +141,13 @@ try {
   assert.equal(persisted.overrides.rating[source.line || source.branch], '900', 'A second save must preserve the first');
   const input = rows().nth(sourceIndex).locator('.mc-rigid-review-input');
   await input.fill('10.5'); await input.dispatchEvent('change');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5,
-    'Typed weights use manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], undefined,
-    'A typed value must not become a candidate match');
+  const typedWeightConfig = await savedConfig();
+  assert.equal(typedWeightConfig.overrides.rigidWeightMatch1?.[source.key], 10.5,
+    'Typed weight must be an explicitly accepted manual Match-1 decision');
+  assert.equal(typedWeightConfig.overrides.rigidWeightMatch1Provenance?.[source.key]?.acceptanceMethod, 'manual',
+    'Manual input must retain manual provenance, never be mislabeled as candidate');
+  assert.equal(typedWeightConfig.overrides.rigidWeightFinal?.[source.key], undefined,
+    'Typing a Weight Match value must not silently authorize separate Final Match-2');
 
   await measure(async () => { await rows().nth(sourceIndex).locator('.mc-wm-rating-input').fill('300');
     await rows().nth(sourceIndex).locator('[data-wm-rating-fill-class]').click(); }, 'class fill Rating 300');
@@ -121,8 +156,10 @@ try {
     if (initial[index].pipingClass === source.pipingClass) assert.equal(filled[index].rating, '300');
     else assert.equal(filled[index].rating, initial[index].rating, 'Class fill changed another class');
   }
-  assert.equal(filled[sourceIndex].accepted, 'true', 'Rating changes must preserve manual Final authority');
-  assert.equal((await savedConfig()).overrides.rigidWeightFinal[source.key], 10.5);
+  // The accepted value remains recorded for audit, but changed Rating must
+  // require fresh source-bound Match-1 validation instead of silent Final.
+  assert.equal((await savedConfig()).overrides.rigidWeightMatch1?.[source.key], 10.5);
+  assert.equal((await savedConfig()).overrides.rigidWeightFinal?.[source.key], undefined);
   const filledCount = filled.filter((row) => row.pipingClass === source.pipingClass).length;
   await measure(() => page.locator('#mc-wm-refresh').click(), 'repeat Build after class fill');
   assert.equal((await readRows())[sourceIndex].rating, '300');
@@ -133,14 +170,18 @@ try {
   assert.equal((await readRows())[sourceIndex].rating, '300');
   assert.equal((await readRows())[otherIndex].rating, '300');
   for (const file of ['weight-match-renderer', 'xml-cii-adapted-regex-rating', 'xml-cii-adapted-weight-match-v2', 'master-dataset-worker']) {
-    const expectedRelease = activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
-      ? activated.release : release;
+    const currentC05Consumer = file === 'master-dataset-worker' || file === 'xml-cii-adapted-weight-match-v2';
+    const expectedRelease = currentC05Consumer
+      ? '20261007-c05-6-2-consumer-authority-1'
+      : (activated.activatedModules.some((module) => module.endsWith(`/${file}.js`))
+        ? activated.release : release);
     assert.ok(modules.some((url) => url.includes(`${file}.js?v=${expectedRelease}`)), `Missing active release ${file}`);
   }
   assert.deepEqual(errors, []);
   const evidence = { status: 'PASS', fixture: '41 branches / 1654 nodes', rows: filled.length,
     editedPrefix: ['3', '600'], manual: ['900', '450'], classFill: { pipingClass: source.pipingClass, rating: '300', rows: filledCount },
-    manualFinalPreservedAfterRatingChange: 10.5, typedCandidateMatchAbsent: true,
+    manualMatch1RecordedForAudit: 10.5, typedManualProvenance: true,
+    noImplicitFinalMatch2: true,
     repeatBuild: true, reopen: true, timings, errors };
   if (process.env.XML_CII_RATING_EVIDENCE_DIR) {
     const dir = process.env.XML_CII_RATING_EVIDENCE_DIR;

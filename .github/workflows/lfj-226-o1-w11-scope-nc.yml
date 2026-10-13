@@ -1,0 +1,56 @@
+name: LFJ 226 O1 W11 authentic scope and NC qualification
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-w11-scope-nc-browser.mjs'
+      - '.github/workflows/lfj-226-o1-w11-scope-nc.yml'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'lfj/**'
+      - 'docs/lfj/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-scope-discriminator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [root, docs-raw]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify direct-main ancestry and syntax
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-w11-scope-nc-browser.mjs
+          echo "W11_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install hosted real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve RAW committed runtime, no docs regeneration
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w11-http.log 2>&1 &
+      - name: Report honest enabled-scope and real NC positive availability
+        env:
+          W11_CASE: ${{ matrix.case }}
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/lfj-226-o1-w11-scope-nc-browser.mjs
+      - name: Preserve positive, negative and NOT_PROVEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-w11-${{ matrix.case }}
+          path: |
+            ValidationRecords/lfj-226-o1-W11-${{ matrix.case }}.json
+            /tmp/lfj226-w11-http.log
+          if-no-files-found: warn
+          retention-days: 30

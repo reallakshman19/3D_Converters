@@ -1,0 +1,57 @@
+name: LFJ 226 O1 proposed 30 60 100MiB capacity (diagnostic)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-capacity-browser.mjs'
+      - '.github/workflows/lfj-226-o1-generated-capacity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generated-capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mib: 30, shape: repeated-firstpass}
+          - {mib: 60, shape: repeated-firstpass}
+          - {mib: 100, shape: repeated-firstpass}
+          - {mib: 100, shape: byte-heavy}
+    env:
+      O1_CAPACITY_MIB: ${{ matrix.mib }}
+      O1_CAPACITY_SHAPE: ${{ matrix.shape }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify direct-main exact-head and syntax
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          node --check scripts/lfj-226-o1-capacity-browser.mjs
+          echo "LFJ226_CAPACITY_HEAD=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Host actual authored XML CII standalone app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-capacity-http.log 2>&1 &
+      - name: Run real Chromium source indexing, independent domain Worker, both CSVs, memory and RAF
+        run: node scripts/lfj-226-o1-capacity-browser.mjs
+      - name: Retain generated-capacity diagnostics even if acceptance fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-proposed-${{ matrix.mib }}MiB-${{ matrix.shape }}
+          path: |
+            ValidationRecords/lfj-226-o1-capacity-${{ matrix.mib }}MiB-${{ matrix.shape }}.json
+            /tmp/lfj226-capacity-http.log
+          if-no-files-found: warn
+          retention-days: 30

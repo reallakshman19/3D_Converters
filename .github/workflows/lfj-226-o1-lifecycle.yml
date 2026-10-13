@@ -1,0 +1,54 @@
+name: LFJ 226 O1 W08 lifecycle and source-kind Chromium
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/lfj-226-o1-lifecycle-browser.mjs'
+      - '.github/workflows/lfj-226-o1-lifecycle.yml'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-intake.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [race, config, xml, scope, nc-kind, inflight]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Pin exact head and syntax
+        run: |
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+          echo "W08_EXACT_HEAD=$(git rev-parse HEAD)"
+          node --check scripts/lfj-226-o1-lifecycle-browser.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authored XML-to-CII tab
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lfj226-w08-http.log 2>&1 &
+      - name: Native source replacement and configuration race oracle
+        env:
+          W08_CASE: ${{ matrix.case }}
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/lfj-226-o1-lifecycle-browser.mjs
+      - name: Persist failures as well as protected passes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfj-226-o1-W08-${{ matrix.case }}
+          path: |
+            ValidationRecords/lfj-226-o1-W08-${{ matrix.case }}.json
+            /tmp/lfj226-w08-http.log
+          retention-days: 30
+          if-no-files-found: warn

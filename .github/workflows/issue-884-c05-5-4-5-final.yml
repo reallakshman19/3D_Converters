@@ -27,6 +27,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event.pull_request.number }}" = "228" ]; then
+              echo "Owner-approved #884-A: on integrated PR #228 run full nine-file qualification; dedicated child-only file fence remains on other PRs."
+            else
             base_sha="8eebbc9881dcb87fce0c1d2821408ddcfb1e2380"
             git diff --name-only "${base_sha}...HEAD" > /tmp/issue884_changed.txt
             cat /tmp/issue884_changed.txt
@@ -35,6 +38,7 @@ jobs:
               echo "Issue 884 must remain qualification-only; unexpected files:"
               printf '%s\n' "${disallowed}"
               exit 1
+            fi
             fi
           fi
 

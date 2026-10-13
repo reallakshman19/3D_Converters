@@ -76,9 +76,36 @@ const releasePaths = [
   'tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js',
   'tabs/xml-cii-2019-standalone/workers/master-dataset-service.js',
 ];
+// C05 advanced these five exact module consumers beyond the 2026-10-01
+// Weight ledger. Verify their active importing parent instead of an old tag.
+const currentConsumerParents = new Map([
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-evidence.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js'],
+  ['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-master-dataset-runtime.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-client.js', 'tabs/xml-cii-2019-standalone/workers/master-dataset-import-coordinator.js'],
+  ['tabs/xml-cii-2019-standalone/workers/master-dataset-worker.js', 'tabs/xml-cii-2019-standalone/workers/master-dataset-client.js'],
+]);
+
 for (const path of releasePaths) {
   const expectedRelease = activated.has(path) ? activation.release : (path.includes('master-dataset') || path.includes('/workers/') ? release : liveAcceptanceRelease);
-  assert.ok((await read(path)).includes(expectedRelease), `live acceptance cache release missing from ${path}`);
+  const source = await read(path);
+  if (path === 'tabs/xml-cii-2019-standalone-tab.js') {
+    // The tab is a thin entrypoint. Its current direct shell import is newer
+    // than the 2026-10-01 weight ledger; asserting the old literal here
+    // would silently reward a stale cached shell instead of the live graph.
+    assert.match(source, /import \{ renderXmlCiiAdaptedWorkflowShell \} from '\.\/xml-cii-2019-standalone\/ui-adapted\/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6\.js\?v=[^']+'/);
+    assert.match(source, /disposeCore\?\.\(\)/, 'tab must release its active shell on unmount');
+    const liveShell = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js');
+    assert.ok(liveShell.includes(activation.release),
+      'live shell must still load the activated shared Weight owners');
+  } else if (currentConsumerParents.has(path)) {
+    const importingParent = await read(currentConsumerParents.get(path));
+    const filename = path.split('/').at(-1);
+    assert.ok(importingParent.includes(filename + '?v=20261007-c05-6-2-consumer-authority-1'),
+      `active imported C05 consumer release missing from ${currentConsumerParents.get(path)} → ${path}`);
+  } else {
+    assert.ok(source.includes(expectedRelease), `live acceptance cache release missing from ${path}`);
+  }
 }
 
 const mirrorPairs = [

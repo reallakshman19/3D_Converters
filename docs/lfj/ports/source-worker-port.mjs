@@ -8,16 +8,28 @@ import {openBlobSourceSnapshot} from '../source/source-snapshot.mjs';
 import {streamJsonOccurrenceEvents} from '../index/source-occurrence-index.mjs';
 
 export const SOURCE_WORKER_SCHEMA='LFJ.CrossRuntimeSourcePort.v1';
+// Owner D-AIM-2 Option A (2026-10-12): both byte and original-value caps apply.
+// The Worker must enforce the byte fence independently of untrusted UI checks.
+export const O1_SOURCE_MAX_BYTES=100*1024*1024;
 
 export async function scanSourceInsideWorker(message,{publishPage}={}) {
   if(message?.schema!==SOURCE_WORKER_SCHEMA||message.kind!=='SCAN'||
       typeof message.jobId!=='string'||!message.jobId||
+      message.jobId.length>1024||
       typeof message.sourceRefId!=='string'||!message.sourceRefId||
+      message.sourceRefId.length>512||
       typeof message.revision!=='string'||!message.revision||
       !(message.blob instanceof Blob)||
       typeof publishPage!=='function') {
     const error=new Error('invalid Worker source scan request');
     error.code='SOURCE_PORT_INVALID';
+    throw error;
+  }
+  // Reject oversized original Blob before hashing, parsing, or provisional pages.
+  // No page, source commit, matching or CSV right can follow this exception.
+  if(message.blob.size>O1_SOURCE_MAX_BYTES){
+    const error=new Error('O1_SOURCE_BYTE_LIMIT');
+    error.code='O1_SOURCE_BYTE_LIMIT';
     throw error;
   }
   const limit=message.pageEvents??256;
@@ -30,31 +42,42 @@ export async function scanSourceInsideWorker(message,{publishPage}={}) {
   });
   try {
     const encoder=new TextEncoder();
-    // R05's pageEvents bound is a count, NOT a serialized byte budget.
-    // Cap upstream retained batches and split them again by transport bytes.
-    // 4KiB reserved for schema/job/ref/sequence JSON envelope.
-    const WIRE_PAYLOAD_LIMIT=1048576-4096;
+    const MAX_WIRE_BYTES=1048576;
+    // A Worker message is {schema,kind,jobId,sourceRefId,sequence,rows}.
+    // Reserve its EXACT JSON envelope at the maximum safe sequence integer.
+    // R05's event-page JSON array then fills only the proven remaining bytes.
+    const worstEnvelope=encoder.encode(JSON.stringify({
+      schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
+      jobId:message.jobId,sourceRefId:message.sourceRefId,
+      sequence:Number.MAX_SAFE_INTEGER,rows:[]
+    })).byteLength;
+    const pageBytes=MAX_WIRE_BYTES-worstEnvelope+2;
+    if(pageBytes<2){
+      const error=new Error('original Worker source identity exceeds page wire budget');
+      error.code='SOURCE_EVENT_WIRE_LIMIT';throw error;
+    }
     const publishBounded=async events=>{
-      let batch=[],bytes=2;
-      const flush=async()=>{
-        if(batch.length){
-          await publishPage(Object.freeze(batch));
-          batch=[];bytes=2;
-        }
-      };
-      for(const event of events){
-        const rowBytes=encoder.encode(JSON.stringify(event)).byteLength+1;
-        if(rowBytes>WIRE_PAYLOAD_LIMIT){
-          const e=new Error('one R05 occurrence event exceeds transport page wire budget');
-          e.code='SOURCE_EVENT_WIRE_LIMIT';throw e;
-        }
-        if(batch.length&&bytes+rowBytes>WIRE_PAYLOAD_LIMIT)await flush();
-        batch.push(event);bytes+=rowBytes;
+      if(!Array.isArray(events)||events.length<1||events.length>limit){
+        const error=new Error('R05 source page exceeded negotiated event count');
+        error.code='SOURCE_PAGE_LIMIT';throw error;
       }
-      await flush();
+      // Revalidate the actual full postMessage shape before any ACK.
+      // R05 has already admitted this page within the exact pageBytes cap;
+      // no second buffering or after-the-fact transport fragmentation.
+      const wire={
+        schema:SOURCE_WORKER_SCHEMA,kind:'PROVISIONAL_PAGE',
+        jobId:message.jobId,sourceRefId:message.sourceRefId,
+        sequence:Number.MAX_SAFE_INTEGER,rows:events
+      };
+      if(encoder.encode(JSON.stringify(wire)).byteLength>MAX_WIRE_BYTES){
+        const error=new Error('original R05 page exceeds whole Worker wire budget');
+        error.code='SOURCE_PAGE_WIRE_LIMIT';throw error;
+      }
+      await publishPage(events);
     };
     const summary=await streamJsonOccurrenceEvents(source,{
-      sourceRefId:message.sourceRefId,pageEvents:Math.min(limit,64),
+      sourceRefId:message.sourceRefId,pageEvents:limit,pageBytes,
+      sourceReadPageBytes:65536,
       onEventPage:publishBounded
     });
     return Object.freeze(summary);
