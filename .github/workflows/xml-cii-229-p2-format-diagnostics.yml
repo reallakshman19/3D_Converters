@@ -10,6 +10,8 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'tests/xml-cii-229-run-format-diagnostics.test.mjs'
       - 'tests/xml-cii-229-readiness-cache-invalidation.test.mjs'
+      - 'tests/xml-cii-229-private-run-audit.test.mjs'
+      - 'scripts/xml-cii-229-private-run-audit.mjs'
       - '.github/workflows/xml-cii-229-p2-format-diagnostics.yml'
 
 permissions:
@@ -30,6 +32,7 @@ jobs:
             tests/xml-cii-229-regex-authority.test.mjs \
             tests/xml-cii-229-run-format-diagnostics.test.mjs \
             tests/xml-cii-229-readiness-cache-invalidation.test.mjs \
+            tests/xml-cii-229-private-run-audit.test.mjs \
             tests/xml-cii-j04-output-authority-readiness.test.mjs \
             tests/xml-cii-j04-service-release-gate.test.mjs
       - name: Parse changed UI and release modules
