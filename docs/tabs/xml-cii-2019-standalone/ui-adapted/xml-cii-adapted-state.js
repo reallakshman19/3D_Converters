@@ -406,6 +406,10 @@ export function updateRegexTesterConfig(state, field, value) {
   const [ruleName, key] = path;
   const rule = { ...(activeF[ruleName] || {}) };
   rule[key] = numericRuleValue(key, value);
+  // The click-to-map position becomes the effective rule without erasing the
+  // previous manual regex. Editing a regex opts back into regex authority.
+  if (key === 'tokenPosition') rule.extractMode = 'TOKEN';
+  if (key === 'regex') rule.extractMode = String(value ?? '').trim() ? 'REGEX' : 'TOKEN';
   activeF[ruleName] = rule;
   formats[idx] = activeF;
   return updateAndPersistRegexConfig(state, { ...currentConfig, formats });
