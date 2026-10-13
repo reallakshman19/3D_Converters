@@ -1,0 +1,50 @@
+# PROPOSAL ONLY: NOT OWNER APPROVED; no right to decompose/apply/merge/deploy.
+# This label exists only on a draft PR until the Owner approves its exact wording, version,
+# work ID, label_sha and issue-scoped writable rights. Never treat schema-valid as authorized.
+work: "XML229-UX-RUN"
+repository: "reallakshman19/3D_Converters"
+engineering_critical: "critical"
+version: "0.1.0"
+label_sha: "10089fa8"
+label:
+  problem: "28 of 28 selected branch occurrences have unresolved or conflicting configured formats."
+  main_aim: "This does not happen\"✅ Loaded: Piping_class_master.xlsx (10699 rows)\" i.e, autoloading of piping class in a smart way like https://github.com/reallakshman19/Advanced_Analysis.git (Load case tab)\n\nWhen any icons is button is selected for Linekey/pipingclass/... the old/stale selection should turn off i.e, only on selection is allowed per column.\n\nCan you add progress bar type for \"LFJ Worker: 808 bounded pages staged (not committed)\" so that user can have a feel of how long its going to take\n\nAdd a button \"Apply suggestion to blank cells\" so that any blank entry in \"Weight(kg)\" is populated based on \"Nearest Suggestions\" (highest ranked one). If data is already there do not replace\n\n28 of 28 selected branch occurrences have unresolved or conflicting configured formats."
+  outcomes:
+    O1: "This does not happen\"✅ Loaded: Piping_class_master.xlsx (10699 rows)\" i.e, autoloading of piping class in a smart way like https://github.com/reallakshman19/Advanced_Analysis.git (Load case tab)"
+    O2: "When any icons is button is selected for Linekey/pipingclass/... the old/stale selection should turn off i.e, only on selection is allowed per column."
+    O3: "Can you add progress bar type for \"LFJ Worker: 808 bounded pages staged (not committed)\" so that user can have a feel of how long its going to take"
+    O4: "Add a button \"Apply suggestion to blank cells\" so that any blank entry in \"Weight(kg)\" is populated based on \"Nearest Suggestions\" (highest ranked one). If data is already there do not replace"
+    O5: "28 of 28 selected branch occurrences have unresolved or conflicting configured formats."
+  owner_constraints:
+    - "When any icons is button is selected for Linekey/pipingclass/... the old/stale selection should turn off i.e, only on selection is allowed per column."
+    - "If data is already there do not replace"
+    - "Load original XML + JSON, then Build to run the independent Worker."
+    - "Trace/CSV NOT authorized by this intake."
+    - "Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII."
+  task_outcome: "O1-O5"
+  task_aim: "This does not happen\"✅ Loaded: Piping_class_master.xlsx (10699 rows)\" i.e, autoloading of piping class in a smart way like https://github.com/reallakshman19/Advanced_Analysis.git (Load case tab)\n\nWhen any icons is button is selected for Linekey/pipingclass/... the old/stale selection should turn off i.e, only on selection is allowed per column.\n\nCan you add progress bar type for \"LFJ Worker: 808 bounded pages staged (not committed)\" so that user can have a feel of how long its going to take\n\nAdd a button \"Apply suggestion to blank cells\" so that any blank entry in \"Weight(kg)\" is populated based on \"Nearest Suggestions\" (highest ranked one). If data is already there do not replace\n\n28 of 28 selected branch occurrences have unresolved or conflicting configured formats."
+  done_when: "DRAFT acceptance only: five Owner reports are independently reproduced, source/data evidence and real Chromium oracles are current, existing Run/Preview/Weight/CII safety gates remain fail-closed, and each workpack has Owner decision recorded on #229. No authority or acceptance is inferred from this proposed wording."
+guidance:
+  not_now:
+    - "No task creation, --apply, canonical TASK_EVIDENCE, merge, deployment or product release before exact Owner approval of this proposal and explicit scoped write consent."
+    - "Do not silently rewrite the existing Common relay/AIM/3DC-XML-CII.yaml owner-approved worker/Preview/Weight label."
+    - "Do not modify historical LFJ #226, C05 #203, or Weight #96 leased paths without separately verified lease."
+    - "Do not remove configured-format UNMATCHED/AMBIGUOUS veto, Preview proof, or final Mode A/B release gates."
+  watch:
+    - "Exact Owner 28 XML occurrence IDs and source/config revision not obtained; require privately held source and safely redacted witness."
+    - "Master manifest rowCount 10699 is metadata; verify 10699 actual usable rows and uploaded master precedence."
+    - "Regex localStorage state vs supportConfigJson.regexTester.formats vs root formats; stale Run readiness cache."
+    - "Weight suggestion value displayed in UI is not an accepted stored value; preserve manual/approved rows in both UIs."
+    - "LFJ staged pages, source receipt, independently authorized domain Trace/CSV and honest unknown denominator must not be conflated."
+    - "Cross-work CI red historical C05 and LFJ fences must be adjudicated, not weakened."
+  notes:
+    - "Owner intake verbatim: reallakshman19/3D_Converters#229 (2026-10-13); programme parent #63."
+    - "BuddyRunner verified final G1 direction: https://github.com/reallakshman19/3D_Converters/issues/229#issuecomment-6142550843."
+    - "Independent successor review and exact-head test evidence: https://github.com/reallakshman19/3D_Converters/issues/229#issuecomment-6143367428."
+    - "Owner review is required before promoting this file into approved coordination/master; label_sha is a proposal identifier only."
+    - "No Writable lab: directive is claimed; proposed plan parent is this label repository reallakshman19/3D_Converters#229."
+    - "The production main baseline is aaa9b3e0bba2c6f5b0bd96998db6edf36e4e733e; draft candidates must be rebased/reverified at approval."
+bindings:
+  - "Session_Oct07:3 coordination/Session_Oct07/Tab3_LFJ_Resolver_Review"
+history:
+  - "v0.1.0 · 2026-10-13 · PROPOSED from Owner intake #229, not approved by Owner; no write authorization."
