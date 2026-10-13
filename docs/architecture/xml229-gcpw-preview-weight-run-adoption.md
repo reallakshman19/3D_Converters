@@ -139,6 +139,18 @@ The last `xml-cii-229-weight-blank-only` test belongs to **draft PR #237**, not 
 
 **D5 — authority and performance:** Accept the preexisting GC-PW/1.0 session and read-model as the integration boundary subject to real Owner A0 profiling and immutable selection custody, or identify a concrete contract defect with a versioned amendment, before coding.
 
+## 7A. A2 exact-head runtime audit — completed test-only, without granting acceptance
+
+**2026-10-13, new verified evidence:** [DRAFT test-only PR #239](https://github.com/reallakshman19/3D_Converters/pull/239) at exact `4be1e2a0f6b7b50df4cf6fea3d6739e1565da7b1`, [hosted run #38453795626](https://github.com/reallakshman19/3D_Converters/actions/runs/38453795626) **SUCCESS**. The job ran 12/12 Node tests (including two new tests that execute the **actual** `xml-cii-adapted-preview-facts-worker-entry.js` message handler) and existing Chromium Weight blank-only/served-parity checks PASS. Product main, Worker, Preview, Weight, Run and CI definitions were not modified.
+
+**Observed unscoped Worker:** real XML source and branch/node occurrence census can complete, but the actual Worker explicitly emits `engineeringAcceptance:'NOT_ASSESSED'` and `fullFactPopulationAccepted:false`. A real SHA-256 `createPreviewBasis` passed to `createGcPwPreviewWorkerFactPort` correctly causes `ENGINEERING_NOT_VERIFIED` **before** consulting any positive engineering fact read model or permitting a Weight decision. That is the correct safety outcome, and proves the current Worker cannot be an accepted positive FactPage producer merely by wiring a method.
+
+**Observed selected source:** a request with explicit `scope.selection` receives `SCOPED_ENGINEERING_PENDING` from the actual Worker, without an ALL-population completion. This is a verified low-level safety gate but **not** proof that the authored B1 Owner picker forwards the selection into the Worker (the earlier #133/#212 UI handoff remains separately RED/blocked).
+
+**Required A2-positive acceptance:** the B1 sole writer must provide a verified, full-population `FactRecord` engineering producer using the original source + selected zone identity and content-bound `basisId`; an integrator must feed its paged read model through the existing `createGcPwPreviewWorkerFactPort` and `openGcPwPreviewWeightSession`; the independent source census and all physically required fields must match. No artificial flag upgrade, fixture-only `verifyEngineeringComplete`, legacy `nodeRows` re-labelling, double geometry computation, automatic Match-1, or blocked selection fallback is admissible. Keep data path read-only/shadow until #96 and #133 authorize writer and file seams.
+
+**This narrows the next workpack:** prepare a B1-authorized *real source-selected Worker fact producer / census* followed by the existing GC-PW shadow port, not a new common service and not a local Preview UI weight-label patch. #239 is test-only and is not intended to merge into #237's conflicting test branch without separate reconciliation.
+
 ## 8. Current engineering stop line and exact successor action
 
 - Keep **PR #237 OPEN/DRAFT/RED** at `eb673e45...` and product main unchanged. Its two deliberately failing Preview oracles are **evidence**, not a reason to throw tests away or modify unowned files.
