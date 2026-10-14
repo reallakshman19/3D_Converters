@@ -24,7 +24,7 @@ function result(status, reason, stage) {
 
 /** Receipt shape:
  * {schema, stage, state:'COMPLETED', authority:'READ_ONLY',
- *  basisId, sourceSha256, selectionSha256, processedCount, expectedCount}
+ *  completionKind:'ENGINEERING_PREVIEW_PROJECTION'|'WEIGHT_CANDIDATE_RANKING',\n *  basisId, sourceSha256, selectionSha256, processedCount, expectedCount}
  *
  * currentBasis is an independently regenerated full source/master/config/
  * selection GC-PW InputBasis, not the result's self-declared fingerprint.
@@ -63,8 +63,12 @@ export function assessXmlCiiRunStageCompletion({stage, receipt, currentBasis} = 
   if (receipt.expectedCount <= 0) {
     return result('INCOMPLETE', 'EMPTY_ORIGINAL_POPULATION_NOT_ATTESTED', stage);
   }
-  if (receipt.sourceRightsBasis === 'SOURCE_FACTS_ONLY' ||
-      receipt.sourcePhase === 'INDEX_COMMITTED') {
+  // An O1 index may be an input to the real Preview Worker; its own
+  // SOURCE_FACTS_ONLY rights do not grant (or prohibit) a later completed
+  // calculation. Require a typed calculation completion, not the index alone.
+  const kind = stage === 'PREVIEW'
+    ? 'ENGINEERING_PREVIEW_PROJECTION' : 'WEIGHT_CANDIDATE_RANKING';
+  if (receipt.completionKind !== kind) {
     return result('UNVERIFIED', 'SOURCE_INDEX_IS_NOT_ENGINEERING_BUILD', stage);
   }
   return result(stage === 'WEIGHT_MATCH' ? 'BUILT_PROPOSED' : 'BUILT',
