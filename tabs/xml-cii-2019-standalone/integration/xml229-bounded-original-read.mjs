@@ -189,7 +189,7 @@ export async function readXml229SelectedOriginalValues({
       const value=completed.get(path);
       const buffer=await blob.slice(value.startByte,value.endByteExclusive).arrayBuffer();
       current();
-      if(buffer.byteLength!==value.byteLength)
+      if(buffer.byteLength!==value.valueByteLength)
         fail('P3B_READ_SOURCE_SLICE_INCOMPLETE');
       // Provisional source-only value. The consumer MUST NOT publish until
       // commit() is reached with the same source + dependencies still current.
