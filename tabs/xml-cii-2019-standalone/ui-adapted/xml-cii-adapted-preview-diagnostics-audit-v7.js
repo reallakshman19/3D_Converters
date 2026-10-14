@@ -102,6 +102,12 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     }
   };
 
+  // O1 original Owner/site selection is independent of XML branchSelection.
+  // Bind it to the actual Build Preview button, and invalidate it on change.
+  const scopeSnapshot = stateRef?.modeABaseRef?.current || state;
+  const capturedJsonTraceScopeId = scopeSnapshot?.jsonTraceScopeId ?? state.jsonTraceScopeId ?? '__ALL__';
+  const currentJsonTraceScopeId = () =>
+    (stateRef?.modeABaseRef?.current || stateRef?.current || {}).jsonTraceScopeId ?? '__ALL__';
   const stagedSource = {
     text: state.stagedJsonText || '',
     label: state.stagedJsonFile?.name || '',
@@ -119,6 +125,11 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       if (!cfg.overrides) cfg.overrides = {};
       return cfg.overrides;
     },
+    jsonTraceScopeId: capturedJsonTraceScopeId,
+    ...(state.selectedScopeId != null ? { selectedScopeId: state.selectedScopeId } : {}),
+    ...(state.requestedOwnerZoneScopeId != null ? {
+      requestedOwnerZoneScopeId: state.requestedOwnerZoneScopeId
+    } : {}),
     stagedJsonText: stagedSource.text,
     stagedSourceLabel: stagedSource.label,
     // These SOURCE_FACTS_ONLY fields do not provide Preview JSON data.
@@ -129,6 +140,9 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // state or reads/parses the JSON on the UI thread; the original source
     // Worker will independently verify its complete SHA before Preview.
     resolveOriginalWorkerPreviewSource: async () => {
+      if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
+        throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
+          {code:'XML229_PREVIEW_SCOPE_CHANGED'});
       if(!previewInputsCurrent(card,stateRef,state.modeASourceId,sourceInputs))
         throw Object.assign(new Error('Preview source/selection/config changed'),
           {code:'XML229_PREVIEW_INPUT_CHANGED'});
