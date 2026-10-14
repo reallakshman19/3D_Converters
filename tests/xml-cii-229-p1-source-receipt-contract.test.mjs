@@ -22,7 +22,7 @@ const summary = {
   rightsBasis:'SOURCE_FACTS_ONLY',
   engineeringReady:false,
   sourceRefId:context.sourceRefId,
-  sourceRevision:context.sourceRevision,
+  sourceRevision:context.sourceRevision+':sha256:'+sha,
   sourceSha256:sha,
   byteLength:context.byteLength,
   occurrenceCount:23754,
@@ -62,15 +62,16 @@ test('P1 correct original source progresses only after durable verified commit',
   const verified=commit(source);
   assert.equal(verified.phase,'INDEX_COMMITTED');
   assert.equal(verified.sha256,sha);
+  assert.equal(verified.sourceRevision,summary.sourceRevision);
   assert.equal(verified.occurrenceCount,23754);
   assert.equal(verified.pageCount,47);
   assert.equal(verified.engineeringReady,false);
-  assert.ok(isCurrentXml229StagedSourceReceipt(verified,{...context,sha256:sha}));
-  assert.equal(isCurrentXml229StagedSourceReceipt(verified,{...context,sha256:sha,
+  assert.ok(isCurrentXml229StagedSourceReceipt(verified,{...context,sourceRevision:summary.sourceRevision,sha256:sha}));
+  assert.equal(isCurrentXml229StagedSourceReceipt(verified,{...context,sourceRevision:summary.sourceRevision,sha256:sha,
     generationId:'another-generation'}),false);
   assert.equal(isCurrentXml229StagedSourceReceipt(verified,{...context,sha256:sha,
     sourceRevision:'another-revision'}),false);
-  assert.equal(isCurrentXml229StagedSourceReceipt(verified,{...context,sha256:sha,
+  assert.equal(isCurrentXml229StagedSourceReceipt(verified,{...context,sourceRevision:summary.sourceRevision,sha256:sha,
     byteLength:733807}),false);
 });
 
@@ -111,12 +112,12 @@ test('P1 revoked old generation can never revive with delayed Worker result',()=
   const current=move(move(selected,'INDEX_START'),'COMMIT_PENDING');
   const revoked=move(current,'REVOKE');
   assert.equal(revoked.phase,'REVOKED');
-  assert.equal(isCurrentXml229StagedSourceReceipt(revoked,{...context,sha256:sha}),false);
+  assert.equal(isCurrentXml229StagedSourceReceipt(revoked,{...context,sourceRevision:summary.sourceRevision,sha256:sha}),false);
   expectRejected(()=>commit(revoked),'XML229_SOURCE_TRANSITION_INVALID');
   assert.equal(move(revoked,'REVOKE'),revoked);
   const newer=commit(pending());
   assert.equal(isCurrentXml229StagedSourceReceipt(newer,{...context,
-    generationId:'not-current',sha256:sha}),false);
+    generationId:'not-current',sourceRevision:summary.sourceRevision,sha256:sha}),false);
 });
 
 test('P1 Owner 100MiB and 2M inclusive bounds enforced on source-only receipts',()=>{
@@ -143,7 +144,7 @@ test('P1 failed receipt removes SHA/commit rights and cannot be recommitted',()=
   assert.equal(failed.sha256,null);
   assert.equal(failed.pageCount,null);
   assert.equal(failed.occurrenceCount,null);
-  assert.equal(isCurrentXml229StagedSourceReceipt(failed,{...context,sha256:sha}),false);
+  assert.equal(isCurrentXml229StagedSourceReceipt(failed,{...context,sourceRevision:summary.sourceRevision,sha256:sha}),false);
   expectRejected(()=>commit(failed),'XML229_SOURCE_TRANSITION_INVALID');
 });
 
@@ -162,9 +163,10 @@ test('P1 a different valid SHA cannot be mislabeled as this current original Fil
   // A syntactically valid but different SHA is not intrinsically malformed;
   // source consumers MUST bind full SHA to the independently expected File.
   const anotherSha='a'.repeat(64);
-  const different=commit(pending(),{summary:{...summary,sourceSha256:anotherSha}});
+  const different=commit(pending(),{summary:{...summary,sourceSha256:anotherSha,
+    sourceRevision:context.sourceRevision+':sha256:'+anotherSha}});
   assert.equal(different.sha256,anotherSha);
-  assert.equal(isCurrentXml229StagedSourceReceipt(different,{...context,sha256:sha}),false);
+  assert.equal(isCurrentXml229StagedSourceReceipt(different,{...context,sourceRevision:summary.sourceRevision,sha256:sha}),false);
   assert.equal(isCurrentXml229StagedSourceReceipt(different,{
-    ...context,sourceRefId:'another-source',sha256:anotherSha}),false);
+    ...context,sourceRefId:'another-source',sourceRevision:different.sourceRevision,sha256:anotherSha}),false);
 });
