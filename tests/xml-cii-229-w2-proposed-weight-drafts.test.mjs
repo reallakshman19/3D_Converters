@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {proposeXmlCiiWeightDraft} from '../converters/xml-cii2019-core/weight-proposal-draft-ui.js';
+import {proposeXmlCiiWeightDraft,explainXmlCiiBlankWeightFill}
+  from '../converters/xml-cii2019-core/weight-proposal-draft-ui.js';
 const candidate=(weight,extras={})=>({
   selectedWeight:weight,preferred:true,lengthQualified:true,ratingExact:true,
   weightMethod:'exact',...extras,
@@ -60,6 +61,29 @@ test('blank-only accepted selection is unchanged and independent of displayed dr
  const i={value:'',dataset:{wmAccepted:'false'}};
  assert.equal(i.value,'','draft must not write accepted input');
 });
+test('blank-only rejection diagnostic has a row-level reason; does not alter selection',()=>{
+ const fresh=issue('RIGID300');
+ const input={value:'',dataset:{wmAccepted:'false'}};
+ let result=explainXmlCiiBlankWeightFill({input,issue:fresh,config:{}});
+ assert.equal(result.code,'ELIGIBLE');
+ assert.equal(result.selection.weight,35);
+ result=explainXmlCiiBlankWeightFill({input:{value:'35',dataset:{}},issue:fresh,config:{}});
+ assert.equal(result.code,'NONBLANK_WEIGHT_INPUT');
+ result=explainXmlCiiBlankWeightFill({input,issue:fresh,config:{
+  overrides:{rigidWeightProposalMeta:{RIGID300:{acceptanceMethod:'candidate'}}},
+ }});
+ assert.equal(result.code,'STORED_DECISION_OR_PROPOSAL');
+ result=explainXmlCiiBlankWeightFill({input,issue:issue('RIGID300',[candidate(35)],
+  {staleMatch1:{reason:'master changed'}}),config:{}});
+ assert.equal(result.code,'STALE_MATCH1');
+ result=explainXmlCiiBlankWeightFill({input,issue:issue('RIGID300',[candidate(35)],
+  {mapped:true,weight:35}),config:{}});
+ assert.equal(result.code,'EXISTING_ACCEPTED_WEIGHT');
+ result=explainXmlCiiBlankWeightFill({input,issue:issue('RIGID300',[]),config:{}});
+ assert.equal(result.code,'NO_QUALIFIED_BLANK_FILL_CANDIDATE');
+ assert.equal(result.eligible,false);
+});
+
 test('tab/docs mirrors are byte-equal',async()=>{
  for(const path of [
   'converters/xml-cii2019-core/weight-proposal-draft-ui.js',
