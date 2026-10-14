@@ -1,5 +1,4 @@
-import { selectXmlCiiBlankWeightSuggestion } from '../../../../converters/xml-cii2019-core/weight-blank-fill-policy.js';
-import { proposeXmlCiiWeightDraft } from '../../../../converters/xml-cii2019-core/weight-proposal-draft-ui.js';
+import { proposeXmlCiiWeightDraft, explainXmlCiiBlankWeightFill } from '../../../../converters/xml-cii2019-core/weight-proposal-draft-ui.js';
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { weightMatchContentFingerprint } from '../../../../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
@@ -441,17 +440,24 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   };
   const fillBest = () => {
     let count = 0;
+    const skipped = {};
     contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => {
-      // Reinspect persisted overrides at every click: a rendered DOM value
-      // is not the sole source of acceptance authority.
-      const selection = selectXmlCiiBlankWeightSuggestion({
+      // Explain but DO NOT loosen or replace the shared blank-only policy.
+      const check = explainXmlCiiBlankWeightFill({
         input, issue: localIssues[index], config: activeConfig(),
       });
-      if (!selection) return;
-      acceptCandidate(input, selection.weight); // Existing Match-1 candidate/provenance path.
+      if (!check.eligible) {
+        skipped[check.code] = (skipped[check.code] || 0) + 1;
+        input.dataset.wmBlankFillReason = check.code;
+        const cell = input.closest('tr')?.querySelector('[data-wm-status-cell]');
+        if (cell) cell.title = 'Blank-only fill skipped: ' + check.code.replaceAll('_', ' ').toLowerCase();
+        return;
+      }
+      delete input.dataset.wmBlankFillReason;
+      acceptCandidate(input, check.selection.weight); // Existing Match-1 candidate/provenance path.
       count += 1;
     });
-    return count;
+    return { count, skipped };
   };
   const computeCore = async (opts = {}) => {
     let liveConfig = activeConfig();
@@ -628,7 +634,21 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   refreshEl?.addEventListener('click', () => compute({ force: true }));
   ratingModeButton?.addEventListener('click', () => { if (activeComputePromise) return; ratingMode = ratingMode === 'preview' ? 'dtxr' : 'preview'; invalidateXmlCiiWeightCache(); syncRatingMode(); compute({ force: true }); });
   toggleEl?.addEventListener('click', () => { if (activeComputePromise) return; invalidateXmlCiiWeightCache(); const cfg = activeConfig(); cfg.weight = plainObject(cfg.weight) ? cfg.weight : {}; cfg.weight.convertSmallLengthsInToMm = cfg.weight.convertSmallLengthsInToMm !== true; onSaveConfig(cfg); contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">Length conversion changed. Click <strong>Build Weight Data</strong> to recompute.</div>'; localIssues = []; syncToggle(); });
-  detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => { if (activeComputePromise) return; const count = fillBest(); status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`, count ? 'ok' : 'bad'); });
+  detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => {
+     if (activeComputePromise) return;
+     const {count,skipped}=fillBest();
+     const labels={
+       NONBLANK_WEIGHT_INPUT:'nonblank input',
+       EXISTING_ACCEPTED_WEIGHT:'existing accepted weight',
+       STALE_MATCH1:'stale Match-1',
+       STORED_DECISION_OR_PROPOSAL:'stored decision/proposal',
+       NO_QUALIFIED_BLANK_FILL_CANDIDATE:'no eligible candidate',
+       INVALID_ROW:'invalid row',
+     };
+     const summary=Object.entries(skipped).map(([code,n])=>`${n} ${labels[code]||code}`).join(' · ');
+     status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`+
+       (summary ? ' · Skipped: '+summary : ''),count?'ok':'bad');
+   });
   panelEl?.addEventListener('change', () => { try { const cfg = applyWeightRulePanelConfig(panelEl, activeConfig()); cfg.weight.valveHintMapping = valveHintMappingRows(cfg); onSaveConfig(cfg); invalidateXmlCiiWeightCache(); contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">Weight keyword/factor rules changed. Click <strong>Build Weight Data</strong> to recompute.</div>'; localIssues = []; status('Weight rules saved'); } catch (error) { status(error?.message || String(error), 'bad'); } });
   contentEl.addEventListener('change', (event) => {
     const rating = event.target.closest?.('.mc-wm-rating-input');
