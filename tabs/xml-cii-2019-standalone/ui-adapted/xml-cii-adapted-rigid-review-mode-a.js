@@ -192,7 +192,10 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options
     }):'';
   const workingEntries = entries.map((entry) => ({ ...entry, issues: [...(entry.issues || [])] }));
   let rows = flattenedReviewRows(workingEntries);
-  if (!rows.length) return Promise.resolve({ cancelled: false, updates: {} });
+  // A verified original physical population MUST NOT be skipped because
+  // the old legacy popup produced zero issue.key rows. Show canonical read-only
+  // evidence and require explicit cancellation; never auto-continue Run.
+  if (!rows.length && !verifiedHtml) return Promise.resolve({ cancelled: false, updates: {} });
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
