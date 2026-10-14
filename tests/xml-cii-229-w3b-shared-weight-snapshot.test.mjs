@@ -7,6 +7,8 @@ import {createWeightReviewService,WEIGHT_SCHEMA} from '../converters/xml-cii2019
 import {legacyXmlCiiWeightFacts} from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import {readVerifiedSharedWeightReconciliation,selectVerifiedWeightReconciliation}
  from '../converters/xml-cii2019-core/weight-facts-shared-reconciliation.js';
+import {renderVerifiedWeightReconciliationPanel}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-shared-reconciliation-view.js';
 
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const b={schemaVersion:WEIGHT_SCHEMA,domainId:'xml-cii/2019',
@@ -132,8 +134,37 @@ test('all original physical occurrences are projected, even when no proposal exi
  assert.equal(snap.physicalCount,3);
  assert.equal(snap.rows.find(r=>r.occurrenceId===other).draftStatus,'NO_PROPOSAL');
 });
+test('same verified snapshot renders both stages with identical physical kg, without acceptance controls',()=>{
+ const shared=readVerifiedSharedWeightReconciliation(session());
+ const match1=renderVerifiedWeightReconciliationPanel(shared,{
+   stage:'RigidMatch1',sourceId:'one',expectedBasisId:b.basisId,
+ });
+ const final=renderVerifiedWeightReconciliationPanel(shared,{
+   stage:'Rigidmatch2',sourceId:'one',expectedBasisId:b.basisId,
+ });
+ assert.match(match1,/data-canonical-stage="RigidMatch1"/);
+ assert.match(final,/data-canonical-stage="Rigidmatch2"/);
+ assert.match(match1,/35 kg/);
+ assert.match(final,/35 kg/);
+ assert.match(match1,/166 kg/);
+ assert.match(final,/166 kg/);
+ assert.match(match1,/read-only/);
+ assert.doesNotMatch(match1,/data-rigid-review-apply/);
+ assert.throws(()=>renderVerifiedWeightReconciliationPanel(shared,{
+  stage:'Rigidmatch2',expectedBasisId:sha('stale-master'),
+ }),/basis mismatch/);
+ assert.throws(()=>renderVerifiedWeightReconciliationPanel(shared,{
+  stage:'Rigidmatch2',expectedBasisId:b.basisId,visibleLimit:1000,
+ }),/1\.\.100/);
+});
+
 test('root/served common snapshot is exactly mirrored',async()=>{
- const p='converters/xml-cii2019-core/weight-facts-shared-reconciliation.js';
- assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
+ for(const p of [
+  'converters/xml-cii2019-core/weight-facts-shared-reconciliation.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-shared-reconciliation-view.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js',
+ ]){
+  assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
    await readFile(new URL('../docs/'+p,import.meta.url)));
+ }
 });
