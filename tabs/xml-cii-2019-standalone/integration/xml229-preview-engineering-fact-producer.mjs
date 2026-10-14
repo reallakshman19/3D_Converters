@@ -208,7 +208,17 @@ export async function openXml229EngineeringFactModel({
   if(!model.info.engineeringReady||model.info.computationStage!=='engineering-verified')
     fail('ENGINEERING_NOT_VERIFIED','Independent original/physical population verification did not succeed');
   const workerResult=Object.freeze({
-    ...previewResult,engineeringAcceptance:'VERIFIED',
+    ...previewResult,
+    coverage:{
+      sourceBranchCount:projection.branchCount,
+      originalNodeCount:projection.nodeCount,
+      engineeringBranchCount:previewResult.branchRows.length,
+      legacyReviewNodeCount:previewResult.nodeRows.length,
+      verifiedOriginalOccurrenceCount:sourceOriginals.length,
+      verifiedPhysicalOwnerCount:physical.length,
+      verifiedPhysicalFactCount:physical.length*XML229_ENGINEERING_FIELDS.length,
+    },
+    engineeringAcceptance:'VERIFIED',
     fullFactPopulationAccepted:true,
     engineeringFactSnapshotId:model.info.snapshotId,
     engineeringFactCount:records.length,
