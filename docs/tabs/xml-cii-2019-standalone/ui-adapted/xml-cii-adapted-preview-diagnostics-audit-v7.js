@@ -143,8 +143,10 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
          scope.selectedBranchOccurrences.length!==scope.sourceBranchOccurrences.length)
         throw Object.assign(new Error('Selected partial scope needs a separate source-bound Preview implementation'),
           {code:'XML229_PREVIEW_PARTIAL_SCOPE_HELD'});
+      // O1 session is keyed by the unwrapped Mode-A ref in the workflow shell;
+      // B1 receives a branch-scoped wrapper. Never key O1 by that wrapper.
       return resolveXml229CurrentPreviewBlob(
-        stateRef,options.originalStagedSourceReceipt);
+        stateRef?.modeABaseRef||stateRef,options.originalStagedSourceReceipt);
     },
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
