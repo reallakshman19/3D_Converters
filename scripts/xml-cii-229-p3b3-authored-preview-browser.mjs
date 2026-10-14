@@ -93,6 +93,38 @@ try{
   assert.equal(actual.cacheStatus,'UNCACHED','do not publish unsafe JSON cache HIT');
   assert.ok(record.workerUrls.some(url=>url.includes('xml229-preview-original-blob-worker.mjs')));
   record.stages.workerScriptSeen=true;
+  const transportNegatives=await page.evaluate(async(sourceBytes,sourceSha)=>{
+    const {executeXml229OriginalPreview}=await import(
+      '/tabs/xml-cii-2019-standalone/integration/xml229-preview-original-blob-execution.mjs');
+    const bogus=new Blob([new Uint8Array(sourceBytes).fill(32)],{type:'application/json'});
+    const sourceRevision='bad-gen:sha256:'+sourceSha;
+    const receipt={
+      schema:'XML229.OriginalStagedSourceReceipt.v1',
+      sourceRefId:'p3b3-bogus',sourceRevision,generationId:'bad-gen',
+      sha256:sourceSha,byteLength:sourceBytes,
+      occurrenceCount:1,pageCount:1,phase:'INDEX_COMMITTED',
+      rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false,
+    };
+    const make=()=>executeXml229OriginalPreview({
+      requestId:crypto.randomUUID(),basisId:'a'.repeat(64),
+      xmlText:'<Root><Branch><Branchname>TEST</Branchname></Branch></Root>',
+      config:{},scope:{mode:'A',sourceId:'test-xml',selection:null},
+      originalSourceSession:{blob:bogus,receipt,isCurrent:()=>true},
+    });
+    let badSha='NO_REJECTION';
+    try{await make().promise;}catch(e){badSha=String(e?.code||e?.message||e);}
+    let cancelled='NO_REJECTION';
+    const job=make();
+    job.release();
+    try{await job.promise;}catch(e){cancelled=String(e?.code||e?.message||e);}
+    return {badSha,cancelled};
+  },j.byteLength,record.jsonSha);
+  record.stages.transportNegatives=transportNegatives;
+  assert.equal(transportNegatives.badSha,'XML229_PREVIEW_SOURCE_SHA_MISMATCH',
+    'forged original Blob must never reach engineering computation');
+  assert.equal(transportNegatives.cancelled,'XML229_PREVIEW_WORKER_RELEASED',
+    'released job must reject without publishing a late Preview result');
+
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles({
