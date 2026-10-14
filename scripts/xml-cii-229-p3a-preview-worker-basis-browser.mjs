@@ -88,8 +88,18 @@ try {
   // P3A: index custody by itself is never a JSON Preview read port.
   // The actual authored Preview phase must HOLD before a zero-byte cache hash.
   await page.locator('[data-phase="preview"]').click();
-  await page.waitForFunction(()=>document.querySelector('[data-mc-preview-cache-evidence]')!==null,
-    null,{timeout:45000});
+  try {
+    await page.waitForFunction(()=>document.querySelector('[data-mc-preview-cache-evidence]')!==null,
+      null,{timeout:15000});
+  }catch(err) {
+    record.observation.previewDiagnostic=await page.evaluate(()=>({
+      activePhase:document.querySelector('[data-active-phase]')?.dataset.activePhase,
+      hostExists:!!document.querySelector('#mc-preview-table-host'),
+      pageText:document.body.innerText.slice(-1800),
+      panelHtml:document.querySelector('.xml-cii-phase-panel')?.innerHTML?.slice(0,2200),
+    }));
+    throw err;
+  }
   record.observation.previewCacheStatus=await page.locator('[data-mc-preview-cache-evidence]')
     .evaluate(el=>el.parentElement?.dataset.mcPreviewCacheStatus || '');
   record.observation.previewCacheText=await page.locator('[data-mc-preview-cache-evidence]')
