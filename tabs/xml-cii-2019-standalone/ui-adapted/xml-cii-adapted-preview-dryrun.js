@@ -187,6 +187,7 @@ function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
   );
   const wallResult = applyPreviewBoreWallAuthority({
     xmlText, config: previewConfig, stagedJsonText, result: coreResult, sourceDocument,
+    requireSourceOrdinal: true,
   });
   const materialResult = applyPreviewMaterialCodeAuthority({ config: previewConfig, result: wallResult });
   return applyPreviewRatingAuthority({
