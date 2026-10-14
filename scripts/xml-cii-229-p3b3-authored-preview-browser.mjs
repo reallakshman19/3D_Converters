@@ -90,6 +90,17 @@ try{
   assert.equal(actual.branchCount,5);
   assert.equal(actual.originalSourceBranches,5);
   assert.ok(actual.tableCount>0);
+  // Independent fixed Firstpass engineering/source oracle: this original
+  // 6-inch Schedule 80 flange is 150 mm nominal bore and 10.97 mm B36.10 wall.
+  // An empty JSON or stale Preview could render 5 rows, but cannot satisfy
+  // the source-ref, DTXR schedule, bore and wall evidence together.
+  assert.equal(actual.firstBranchFields.dtxrWallComponentRefNo,'=1006649732/51234');
+  assert.equal(actual.firstBranchFields.dtxrWallEvidenceSource,'staged-json');
+  assert.equal(actual.firstBranchFields.dtxrWallSchedule,'80');
+  assert.equal(actual.firstBranchFields.dtxrWallEvidenceBoreMm,150);
+  assert.equal(Number(actual.firstBranchFields.dtxrWallThickness),10.97);
+  assert.equal(Number(actual.firstBranchFields.wallThickness),10.97);
+  assert.equal(actual.firstBranchFields.dtxrWallDtxr,'WELDING NECK FLANGE Sch 80 900#');
   assert.equal(actual.cacheStatus,'UNCACHED','do not publish unsafe JSON cache HIT');
   assert.ok(record.workerUrls.some(url=>url.includes('xml229-preview-original-blob-worker.mjs')));
   record.stages.workerScriptSeen=true;
