@@ -10,7 +10,7 @@ const id='GLRD-1000-PI-01';
 function check(ok,reason){if(!ok)throw new Error(reason);}
 const children=(node,tag)=>[...(node?.childNodes||[])].filter(el=>
  el.nodeType===1&&String(el.localName||el.nodeName).replace(/^.*:/,'')===tag);
-const runWorker=async ({xml,basisId,config,scope,physical})=>{
+const runWorker=async ({xml,basisId,config,scope,physical,physicalMode})=>{
  const url=new URL('../../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-worker-entry.js',import.meta.url);
  const worker=new Worker(url,{type:'module'}),start=performance.now(),events=[];
  try {
@@ -19,11 +19,17 @@ const runWorker=async ({xml,basisId,config,scope,physical})=>{
    worker.onerror=event=>{clearTimeout(stop);reject(new Error('module Worker error: '+event.message));};
    worker.onmessage=event=>{
     events.push(event.data);
+    if(event.data?.state==='source-physical-page'){
+     worker.postMessage({protocol:'xml-cii-preview-local/1',kind:'physical-page-ack',
+      requestId:event.data.requestId,basisId:event.data.basisId,
+      cursor:event.data.page.nextCursor??'END'});
+    }
     if(['completed','failed'].includes(event.data?.state)){clearTimeout(stop);resolve(event.data);}
    };
    worker.postMessage({protocol:'xml-cii-preview-local/1',kind:'execute',
     requestId:'xml229-a2-served-'+Math.random().toString(36).slice(2),
-    basisId,xmlText:xml,config,stagedJsonText:'',scope,sourcePhysicalAudit:physical});
+    basisId,xmlText:xml,config,stagedJsonText:'',scope,sourcePhysicalAudit:physical,
+    sourcePhysicalAuditMode:physicalMode});
   });
   return {terminal,events,elapsedMs:Math.round(performance.now()-start)};
  }finally{worker.terminate();}
@@ -87,11 +93,33 @@ try{
  const optOut=await runWorker({xml,basisId:basis.basisId,config,scope:{mode:'A',sourceId:id},physical:false});
  check(optOut.terminal.state==='completed'&&optOut.terminal.result.sourcePhysicalAudit===undefined,
   'non-opt-in original Worker behavior changed');
+ const paced=await runWorker({xml,basisId:basis.basisId,config,
+  scope:{mode:'A',sourceId:id},physical:false,physicalMode:'paced-pages'});
+ check(paced.terminal.state==='completed',JSON.stringify(paced.terminal.error));
+ const pageEvents=paced.events.filter(x=>x.state==='source-physical-page');
+ check(pageEvents.length===24,'real Chromium paced source packet count');
+ check(pageEvents.every(x=>x.page?.complete===false&&x.page.items.length<=200),
+  'ACK-paced transfer must retain bounded source-only pages');
+ const pacedRecords=pageEvents.flatMap(x=>x.page.items);
+ check(pacedRecords.length===4664,'paced browser source population');
+ check(paced.terminal.result.sourcePhysicalAudit===undefined,
+  'ACK-paced terminal must not materialize previous bulk payload');
+ check(paced.terminal.result.sourcePhysicalAuditStream?.pageCount===pageEvents.length,
+  'ACK-paced terminal receipt must match exact pages transferred');
+ check(paced.terminal.result.engineeringAcceptance==='NOT_ASSESSED'&&
+  paced.terminal.result.fullFactPopulationAccepted===false,
+  'ACK-paced transport cannot confer engineering authority');
+ for(let j=0;j<pacedRecords.length;j++){
+  check(JSON.stringify(pacedRecords[j])===JSON.stringify(facts[j]),
+   'ACK-paced original fact must agree with independently verified bulk source fact '+j);
+ }
  const result={ok:true,originalSha256:sourceSha,originalBranches:branches.length,
   originalNodes:nodes.length,sourcePhysicalFacts:facts.length,positiveFields:valueCounts,
   basisId:basis.basisId,workerTimeMs:run.elapsedMs,
   authority:data.engineeringAcceptance,engineeringReady:audit.engineeringReady,
-  selectedZoneGate:scopeRun.terminal.error.code,nonOptInPreserved:true};
+  selectedZoneGate:scopeRun.terminal.error.code,nonOptInPreserved:true,
+  pacedSourceFacts:pacedRecords.length,pacedPageCount:pageEvents.length,
+  pacedTransfer:'acknowledged',pacedEngineeringReady:false};
  globalThis.__XML229_BROWSER_RESULT__=result;
  document.querySelector('#result').textContent=JSON.stringify(result,null,2);
 }catch(error){
