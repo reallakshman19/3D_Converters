@@ -5,6 +5,13 @@ on:
     paths:
       - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs'
+      - 'tests/xml-cii-229-p4-real-worker-weight-session-browser.mjs'
       - 'tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs'
       - '.github/workflows/xml229-p4-engineering-physical-facts.yml'
 permissions:
@@ -29,6 +36,32 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
           node --check tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs
+          node --check tests/xml-cii-229-p4-real-worker-weight-session-browser.mjs
       - name: Real XML dryrun and GC-PW positive/negative regression
         run: |
           node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs
+
+  p4-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Native isolated Worker → canonical physical facts → GC-PW session
+        run: |
+          git rev-parse HEAD
+          node tests/xml-cii-229-p4-real-worker-weight-session-browser.mjs
