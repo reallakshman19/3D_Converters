@@ -1,3 +1,7 @@
+import {
+  assessXmlCiiRunStageCompletion,
+  xmlCiiRunStageReceiptMessage,
+} from './xml-cii-run-completion-receipt.mjs';
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
@@ -106,6 +110,21 @@ function weightMatchDone(input) {
   return cachedRows('xml-cii-wm-cache-v1', (data) => array(data).length > 0);
 }
 
+/**
+ * Explicit receipt takes precedence over old optional localStorage hints.
+ * Current basis MUST be supplied independently by the active source/master
+ * controller, not recovered from a receipt or an obsolete cache envelope.
+ * Until a producer supplies both, preserve legacy advisory display.
+ */
+function currentStageReceipt(input, key, stage) {
+  const receipts = object(input.runStageCompletionReceipts);
+  const bases = object(input.runStageCurrentBases);
+  if (!Object.hasOwn(receipts, key) && !Object.hasOwn(bases, key)) return null;
+  return assessXmlCiiRunStageCompletion({
+    stage, receipt: receipts[key], currentBasis: bases[key],
+  });
+}
+
 function supportMapperDone(input) {
   if (input.supportTypeMapperResult || array(input.supportTypeMapperConfig).length) return true;
   const parsed = parseConfig(input.supportConfigJson);
@@ -117,13 +136,25 @@ function supportMapperDone(input) {
 }
 
 function commonRows(input) {
-  const preview = previewDone(input);
-  const weight = weightMatchDone(input);
+  const previewReceipt = currentStageReceipt(input, 'preview', 'PREVIEW');
+  const weightReceipt = currentStageReceipt(input, 'weight', 'WEIGHT_MATCH');
+  const preview = previewReceipt ? previewReceipt.built : previewDone(input);
+  const weight = weightReceipt ? weightReceipt.built : weightMatchDone(input);
+  const previewMessage = previewReceipt
+    ? xmlCiiRunStageReceiptMessage(previewReceipt)
+    : (preview ? 'Legacy Preview result detected; input-basis verification is not provided by this checklist.'
+      : 'Preview has not been built or source-bound completion has not been published.');
+  const weightMessage = weightReceipt
+    ? xmlCiiRunStageReceiptMessage(weightReceipt)
+    : (weight ? 'Legacy Weight Match rows detected; candidate acceptance and input-basis verification remain separate.'
+      : 'Weight Match result has not been published to Run readiness.');
   const mapper = supportMapperDone(input);
   return [
     row('import-masters', 'Import Masters status', !!input.masterContext, 'Master context is available.'),
-    row('preview-audit', 'Preview / Diagnostics / Matched Audit status', preview, preview ? 'Preview / dry-run data is available.' : 'Preview has not been built yet.'),
-    row('weight-match', 'Weight Match status', weight, weight ? (input.weightMatchStatus || 'Weight Match data is available.') : 'Weight Match result is not available.'),
+    row('preview-audit', 'Preview / Diagnostics / Matched Audit status', preview, previewMessage,
+      {status: previewReceipt?.status === 'STALE' ? 'stale' : 'missing'}),
+    row('weight-match', 'Weight Match status', weight, weightMessage,
+      {status: weightReceipt?.status === 'STALE' ? 'stale' : 'missing'}),
     row('support-mapper', 'Support Type Mapper status', mapper, mapper ? (input.supportTypeMapperStatus || 'Support mapper rules are available.') : 'Support mapper result is not available.'),
     row('run-result', 'Run result available after run', hasResult(input), hasResult(input) ? 'Run result is available.' : 'No run result yet.', { status: 'pending' }),
   ];
