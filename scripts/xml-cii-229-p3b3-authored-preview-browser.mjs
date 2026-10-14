@@ -73,6 +73,12 @@ try{
       branchCount:r?.branchRows?.length||0,
       nodeCount:r?.nodeRows?.length||0,
       branches:r?.branchRows?.map(v=>v.branchName)||[],
+      firstBranchFields:r?.branchRows?.[0]
+        ? Object.fromEntries(Object.entries(r.branchRows[0])
+          .filter(([k,v])=>/dtxr|bore|wall|rating|material|source|branch|density/i.test(k)&&
+            (typeof v==='string'||typeof v==='number'||typeof v==='boolean'))
+          .slice(0,35)) : {},
+      firstBranchKeys:Object.keys(r?.branchRows?.[0]||{}).slice(0,80),
       originalSourceBranches:h?.__xmlCiiPreviewOriginalOccurrences?.branches?.length||0,
       errorText:(h?.textContent||'').slice(0,1000),
     };
