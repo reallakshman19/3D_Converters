@@ -79,6 +79,10 @@ test('P3B.1 reads only selected committed original spans once, with a source-onl
   assert.equal(manifest.rightsBasis,'SOURCE_FACTS_ONLY');
   assert.deepEqual(x.stages.map(v=>new TextDecoder().decode(v.bytes)),['{"a":1}','{"a":2}']);
   assert.ok(x.stages.every(v=>v.complete===false&&v.engineeringReady===false));
+  assert.ok(x.stages.every(v=>v.byteLength===x.receipt.byteLength),
+    'each staged value must retain source receipt byteLength, not selected span length');
+  assert.deepEqual(x.stages.map(v=>v.valueByteLength),[7,7],
+    'per-value span has a separate non-colliding field');
   assert.equal(x.commits.length,1);
   assert.equal(x.aborts.length,0);
 });
