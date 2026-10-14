@@ -302,3 +302,80 @@ test('T1 incremental Preview weight-master change cannot revive an unreviewed sa
   assert.ok(runtime.fullBuilds + runtime.weightOnlyBuilds >= 2, 'actual Preview executed both revisions');
   assert.equal(saved.overrides.rigidWeight[key], 12.5, 'neither cache path mutates the saved proposal');
 });
+
+
+test('T2 RED empirical report: stale saved proposal must not become resolved observed kg in the actual report event', async () => {
+  const { changedXml, saved, prep, key } = await t1StandaloneBridgeFixture();
+  const actualIssue = prep(saved, changedXml).basisRows.find(row => row.key === key);
+  assert.ok(actualIssue, 'current geometry supplies the exact original component');
+  const validated = buildXmlCiiValidatedRigidWeightLegacyView(saved, [actualIssue]);
+  assert.equal(validated.validation.staleLegacyProposals[key]?.reason, 'basis-changed',
+    'the same component is a proven source/geometry-stale saved proposal');
+
+  const { appendEmpiricalWeightValidationReport } = await import(
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js'
+  );
+  const listeners = new Map();
+  const makeControl = () => ({
+    disabled: false, textContent: '', innerHTML: '',
+    addEventListener() {}, querySelectorAll() { return []; },
+  });
+  const controls = new Map();
+  const section = {
+    style: {}, innerHTML: '',
+    querySelector(selector) {
+      if (!controls.has(selector)) controls.set(selector, makeControl());
+      return controls.get(selector);
+    },
+  };
+  const card = {
+    appendChild() {},
+    addEventListener(name, handler) { listeners.set(name, handler); },
+    querySelectorAll() { return []; },
+  };
+  const stateRef = { current: {} };
+  const originalDocument = globalThis.document;
+  try {
+    globalThis.document = { createElement(tag) {
+      assert.equal(tag, 'section', 'actual report registers an event-bound section');
+      return section;
+    } };
+    appendEmpiricalWeightValidationReport(card, stateRef);
+    const onReady = listeners.get('xml-cii-weight-validator-ready');
+    assert.equal(typeof onReady, 'function', 'actual report event listener must be active');
+    onReady({ detail: {
+      config: saved,
+      issues: [{ ...actualIssue, candidates: [{ typeDesc: 'RANKED-1', selectedWeight: 12.5, weight: 12.5 }] }],
+      masterRows: [],
+    } });
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+
+  const report = stateRef.current.empiricalWeightValidationReport;
+  assert.ok(report, 'actual report builds its data from the real emitted event');
+  assert.ok(report.skippedRows?.some(row => row.key === key
+    && /stale|proposal|not-accepted|review/.test(String(row.reason))),
+    'stale proposal must be present as HELD_FOR_REVIEW/unvalidated, not an accepted observed weight');
+  assert.equal((report.rows || []).some(row => row.rowId === key && Number(row.observedWeightKg) === 12.5), false,
+    '12.5 kg from the stale saved suggestion cannot count as resolved empirical observed weight');
+});
+
+test('T2 RED standalone Run: stale saved proposal needs source-bound hold diagnostics, not silent zero-weight substitution', async () => {
+  const { changedXml, saved, prep, key } = await t1StandaloneBridgeFixture();
+  const validated = prep(saved, changedXml);
+  assert.equal(validated.validation.staleLegacyProposals[key]?.reason, 'basis-changed');
+  const { enrichStandaloneXmlForRun } = await import('../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js');
+  const result = await enrichStandaloneXmlForRun({
+    sourceText: changedXml,
+    stagedJsonText: '',
+    supportConfigJson: JSON.stringify(saved),
+    options: { splitCondensedValveFlange: true },
+  });
+  assert.equal(result.error, null, 'existing process parity must execute for the same original component');
+  assert.ok(result.diagnostics?.some(item =>
+    item.key === key && /rigid-weight-(proposal|suggestion)-stale/.test(String(item.type))
+    && item.reason === 'basis-changed'),
+  'Run requires a structured, current-source stale PROPOSAL receipt distinct from Match-1');
+});
