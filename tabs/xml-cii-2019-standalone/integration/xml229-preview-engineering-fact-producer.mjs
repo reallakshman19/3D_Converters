@@ -93,6 +93,8 @@ export async function openXml229EngineeringFactModel({
   if(!prepared.document||prepared.ledger.originalCount!==projection.nodeCount)
     fail('SOURCE_CLEANUP_DRIFT','Original source cleanup census incomplete');
   const branches=[...prepared.document.getElementsByTagName('Branch')];
+  const sourceNodeByOrdinal=new Map(projection.nodes.map(row=>[
+    JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal]),row]));
   const weightRows=new Map();
   for(const row of previewResult.nodeRows){
     if(!Number.isSafeInteger(row.branchOccurrenceIndex)||
@@ -101,8 +103,7 @@ export async function openXml229EngineeringFactModel({
       fail('NONCANONICAL_PREVIEW_NODE','Preview weight row lacks pre-clean original source ordinal');
     const key=JSON.stringify([row.branchOccurrenceIndex,row.sourceNodeOrdinal]);
     if(weightRows.has(key))fail('DUPLICATE_PREVIEW_NODE','Duplicate physical original occurrence');
-    const original=projection.nodes.find(n=>n.branchOccurrenceIndex===row.branchOccurrenceIndex&&
-      n.nodeOrdinal===row.sourceNodeOrdinal);
+    const original=sourceNodeByOrdinal.get(key);
     if(!original||original.nodeNumber!==row.nodeNumber||
       original.componentType!==row.componentType||
       original.componentRefNo!==row.componentRefNo||
@@ -143,8 +144,8 @@ export async function openXml229EngineeringFactModel({
         !isXmlCiiWeightReviewConnectionEligible(node))continue;
       if(physical.length>=maxPhysical)
         fail('PHYSICAL_POPULATION_LIMIT','Too many selected physical facts for bounded P4 Worker; no main-thread fallback');
-      const src=projection.nodes.find(n=>n.branchOccurrenceIndex===branchIndex&&
-        n.nodeOrdinal===origin.sourceNodeOrdinal);
+      const src=sourceNodeByOrdinal.get(
+        JSON.stringify([branchIndex,origin.sourceNodeOrdinal]));
       if(!src||src.componentType!==field(node,'ComponentType')||
          src.componentRefNo!==field(node,'ComponentRefNo')||
          src.endpoint!==field(node,'Endpoint'))
@@ -180,6 +181,12 @@ export async function openXml229EngineeringFactModel({
       add(owner,'component.ref',src.componentRefNo||null,'source');
     }
   }
+  const physicalSet=new Set(physical.map(row=>
+    JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal])));
+  for(const key of weightRows.keys()){
+    if(!physicalSet.has(key))
+      fail('UNSELECTED_WEIGHT_COMPUTATION','Preview computed a candidate for a dropped or ineligible physical component');
+  }
   // Input may contain components with no ranked suggestions: still emit a
   // complete unresolved FactRecord for them; omission is never a success.
   if(!physical.length)fail('NO_PHYSICAL_WEIGHT_OWNERS','Selected original XML has no physical Weight owner');
@@ -207,9 +214,13 @@ export async function openXml229EngineeringFactModel({
     engineeringFactCount:records.length,
   });
   return Object.freeze({model,workerResult,
-    originalOccurrences:sourceOriginals,
+    sourceOccurrenceCensus:sourceOriginals,
+    workerOriginalCount:sourceOriginals.length,
+    originalOccurrences:projection.nodes.map(({sourceId,branchOccurrenceIndex,nodeOrdinal})=>({
+      sourceId,branchOccurrenceIndex,nodeOrdinal,
+    })),
     physicalOccurrences:physical,
-    expectedOriginalCount:sourceOriginals.length,
+    expectedOriginalCount:projection.nodeCount,
     expectedModelOccurrenceCount:expected.length,
     expectedPhysicalFactCount:physical.length*XML229_ENGINEERING_FIELDS.length,
     requiredFieldIds:XML229_ENGINEERING_FIELDS,
