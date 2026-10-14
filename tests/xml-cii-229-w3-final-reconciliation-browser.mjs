@@ -83,7 +83,7 @@ try {
  assert.match(initial.cells[2].label,/25 kg/);
  assert.match(initial.cells[2].label,/40 kg/);
  assert.equal(initial.cells[2].draft,'');
- assert.match(initial.cells[3].label,/55 kg/);
+ assert.equal(initial.cells[3].final,'55','accepted Final mass lives in its input value');
  assert.equal(initial.cells[4].source,'source-B');
  assert.equal(initial.cells[4].draft,'35');
  assert.notEqual(initial.cells[0].id,initial.cells[4].id,'same NodeNumber/key in another source must remain distinct');
