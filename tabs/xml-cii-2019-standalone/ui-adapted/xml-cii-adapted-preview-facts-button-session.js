@@ -57,12 +57,38 @@ async function resolveStaged(options,config) {
       label:String(supplied.label??supplied.sourceLabel??'')};
   return {text:String(supplied??''),label:String(options.stagedSourceLabel??'')};
 }
+/** Selected Owner/zone must not alias the full original source.
+ * Reconciled with R16 PR #222; O1 uses '__ALL__' as its real UI sentinel.
+ * Until A3 selected-original membership is wired, reject explicit non-ALL.
+ */
+function requestedOriginalScope(options) {
+  const keys=['selectedScopeId','requestedOwnerZoneScopeId','jsonTraceScopeId'];
+  const claims=[];
+  for(const key of keys) {
+    if(!Object.prototype.hasOwnProperty.call(options||{},key))continue;
+    const value=options[key];
+    if(typeof value!=='string'||!value.trim())
+      throw fail('PREVIEW_SCOPE_INVALID',
+        'Requested original Owner/zone scope '+key+' must be a nonempty string');
+    const s=value.trim();
+    claims.push(s==='ALL'||s==='__ALL__'?'__ALL__':s);
+  }
+  if(new Set(claims).size>1)
+    throw fail('PREVIEW_SCOPE_CONFLICT','Multiple original Owner/zone selection claims disagree');
+  return claims[0]||'__ALL__';
+}
 function sourceScope(host,config,options) {
   const sourceId=String(options?.sourceId||host?.dataset?.mcPreviewSourceId||'').trim();
   const manifest=options?.modeBManifest||options?.sourceOrderManifest||config?.modeBManifest||null;
   const advertised=String(options?.previewSourceMode||options?.sourceMode||config?.sourceMode||'').toUpperCase();
   const explicitB=advertised==='B'||config?.modeB?.enabled===true||config?.modeB===true;
   const mode=explicitB||manifest?'B':'A';
+  const requestedScopeId=requestedOriginalScope(options);
+  if(requestedScopeId!=='__ALL__')
+    throw fail('PREVIEW_SELECTED_SCOPE_NOT_INTEGRATED',
+      'Original Owner/zone '+requestedScopeId+
+      ' is selected, but this Preview Worker has no verified selected-root manifest. '+
+      'Select All or complete authenticated selected Preview integration.');
   if(mode==='B'&&!manifest)throw fail('MODE_B_MANIFEST_REQUIRED','Mode B source order/offset manifest required');
   // Mode B requires all original XML files, authenticated original->combined
   // mapping and content digests. Only the B3A+B3B1 attested Worker path can run.
@@ -104,12 +130,13 @@ export async function runPreviewButtonSession({
   const retry=()=>void runPreviewButtonSession({host,rootEl,xmlText,config,options,renderResult});
   const begun=Date.now();
   try {
+    // Validate explicit original scope before reading JSON or dispatching any Worker.
+    const scope=sourceScope(host,config,options);
     notice(host,{title:'Resolving staged source…',showCancel:true,cancel});
     let staged;
     try{staged=await resolveStaged(options,config);}
     catch(error){throw fail('STAGED_SOURCE_FAILED',String(error?.message||error));}
     if(!current())return null;
-    const scope=sourceScope(host,config,options);
     // XML229 P3B.3: original JSON stays in the O1 job. Existing Preview
     // controller, input basis and source-occurrence renderer remain in use.
     if(scope.mode==='A'&&typeof options.resolveOriginalWorkerPreviewSource==='function'){
