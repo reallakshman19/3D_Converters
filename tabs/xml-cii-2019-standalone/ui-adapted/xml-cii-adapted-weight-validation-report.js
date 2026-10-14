@@ -3,7 +3,11 @@ import {
   empiricalWeightValidationReportToCsv,
   downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
-import { resolveXmlCiiRigidWeight, buildXmlCiiValidatedRigidWeightLegacyView } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
+import {
+  resolveXmlCiiRigidWeight,
+  buildXmlCiiValidatedRigidWeightLegacyView,
+  withXmlCiiEffectiveRigidWeightLegacyView,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
@@ -23,7 +27,19 @@ function resolvedWeight(issue, config, verified) {
   const staleMatch1Key = keys.find((key) => Object.hasOwn(verified.validation.stale, key));
   const legacyStaleKey = keys.find((key) => Object.hasOwn(verified.validation.staleLegacyProposals, key));
   const reviewOnly = Boolean(proposalKey || staleMatch1Key || legacyStaleKey);
-  const resolved = resolveXmlCiiRigidWeight(verified.config, keys, null);
+  // The validated projection alone retains *current* saved proposals for
+  // legacy compatibility. The Preview projection intentionally excludes ALL
+  // proposal-meta keys, even a matching fingerprint, because proposed is not
+  // reviewed. Restrict Match-1 to current validated weights before resolving:
+  // its raw bucket may still contain out-of-date values.
+  const reviewedConfig = withXmlCiiEffectiveRigidWeightLegacyView({
+    ...verified.config,
+    overrides: {
+      ...verified.config.overrides,
+      rigidWeightMatch1: verified.validation.validWeights,
+    },
+  });
+  const resolved = resolveXmlCiiRigidWeight(reviewedConfig, keys, null);
   if (resolved.weightKg !== null) {
     return {
       weightKg: resolved.weightKg,
