@@ -13,6 +13,7 @@ import {
   shortPreviewCacheDigest,
 } from './xml-cii-adapted-preview-cache-v7.js';
 import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
+import {xml229PreviewSourceGate} from '../integration/xml229-preview-source-gate.mjs';
 
 export { xmlCiiRenderPreviewPhase };
 
@@ -135,14 +136,19 @@ function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   host.dataset.mcPreviewCacheSchema = XML_CII_PREVIEW_CACHE_SCHEMA;
   host.dataset.mcPreviewCacheStatus = status;
   host.dataset.mcPreviewCacheDigest = authority?.digest || '';
-  const digest = shortPreviewCacheDigest(authority);
+  // A real source SHA can be present while the *cache key* is intentionally
+  // not computed. Do not misleadingly label that original source SHA missing.
+  const heldOriginalJson = status === 'JSON_SOURCE_PENDING';
+  const digestLabel = heldOriginalJson ? 'Preview cache key: NOT COMPUTED'
+    : 'SHA-256 ' + shortPreviewCacheDigest(authority);
   const byteDetail = authority
     ? `XML ${authority.xmlBytes} B · staged JSON ${authority.stagedJsonBytes} B · canonical authority ${authority.canonicalBytes} B`
-    : 'SHA-256 authority unavailable';
+    : heldOriginalJson ? 'indexed original JSON is not yet Preview input data'
+      : 'SHA-256 authority unavailable';
   const reasonDetail = reason ? ` · ${reason}` : '';
   host.insertAdjacentHTML?.(
     'afterbegin',
-    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache authority: <strong>${esc(status)}</strong> · SHA-256 ${esc(digest)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
+    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache authority: <strong>${esc(status)}</strong> · ${esc(digestLabel)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
   );
 }
 
@@ -181,6 +187,22 @@ export function installInternalRebuildCapture(host, rootEl, xmlText, config, opt
       if (running || !previewRendered(host) || (!current.branchRows.length && !legacyBridgePresent())) return;
       running = true;
       try {
+        // No background rebuild may restore or capture old JSON cache
+        // after a Worker File source is selected without a Preview read port.
+        const gate = xml229PreviewSourceGate({
+          sourceReceipt: options.originalStagedSourceReceipt,
+          sourceStatus: options.originalStagedSourceStatus,
+          stagedJsonText: options.stagedJsonText,
+        });
+        if(gate.blocked) {
+          clearPreviewCacheBridge();
+          addCacheEvidence(host,{
+            status:'JSON_SOURCE_PENDING',authority:null,
+            reason:gate.reason+(gate.sourceSha256?
+              ' · original JSON '+gate.sourceBytes+' B · SHA256 '+gate.sourceSha256:''),
+          });
+          return;
+        }
         installDtxrRatingAction({
           host,
           rootEl,
@@ -220,6 +242,55 @@ export function installInternalRebuildCapture(host, rootEl, xmlText, config, opt
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const host = rootEl?.querySelector?.('#mc-preview-table-host');
   if (!host) return { branchRows: [], nodeRows: [] };
+  // The Worker source index is not a JSON value read port. It is unsafe to
+  // hash stagedJsonText='' or a legacy string from a prior File as this source.
+  // Refuse BEFORE legacy Preview, cache restore, rating publication or observer.
+  const workerGate = xml229PreviewSourceGate({
+    sourceReceipt:options.originalStagedSourceReceipt,
+    sourceStatus:options.originalStagedSourceStatus,
+    stagedJsonText:options.stagedJsonText,
+  });
+  // XML229 P3B.3: an indexed original File can now be consumed by the
+  // existing 4 Preview button's separate source-hashing Worker. The V7 cache
+  // must remain OFF for this route: it is not keyed to the full O1 SHA/generation.
+  // Do not sign an empty stagedJsonText cache, or promote source-only receipt.
+  if(workerGate.blocked &&
+     workerGate.reason==='ORIGINAL_JSON_INDEXED_NO_PREVIEW_READ_PORT' &&
+     typeof options.resolveOriginalWorkerPreviewSource==='function') {
+    host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
+    discardPreviewCacheV7();
+    const workerOptions={...options,skipLegacyCache:true,
+      onOriginalWorkerPreviewCompleted:({sourceReceipt})=>{
+        discardPreviewCacheV7();
+        if(host.isConnected===false)return;
+        addCacheEvidence(host,{status:'UNCACHED',authority:null,
+          reason:'Worker-verified original JSON SHA-256 '+sourceReceipt.sha256+
+            ' · generation '+sourceReceipt.generationId+
+            ' · cache reuse disabled pending complete source-basis cache contract.'});
+      },
+    };
+    const idle=await buildLegacyPreview(rootEl,xmlText,config,workerOptions);
+    addCacheEvidence(host,{status:'JSON_WORKER_READY',authority:null,
+      reason:'Original JSON '+workerGate.sourceBytes+' B · SHA256 '+
+        workerGate.sourceSha256+
+        ' · Build Preview runs source-verified JSON in a separate Worker; no cache HIT or CII approval.'});
+    return idle;
+  }
+  if(workerGate.blocked) {
+    host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
+    host.replaceChildren?.();
+    host.__xmlCiiPreviewResult=null;
+    clearPreviewCacheBridge();
+    addCacheEvidence(host,{
+      status:'JSON_SOURCE_PENDING',authority:null,
+      reason:workerGate.reason+(workerGate.sourceSha256?
+        ' · original JSON '+workerGate.sourceBytes+' B · SHA256 '+workerGate.sourceSha256:''),
+    });
+    addNotice(host,'Original staged JSON is held in a source-only Worker index. '+
+      'JSON-dependent Preview is awaiting a source-verified data reader; '+
+      'no cache HIT or engineering decision is authorized.',true);
+    return {branchRows:[],nodeRows:[],blocked:true,reason:workerGate.reason};
+  }
   installInternalRebuildCapture(host, rootEl, xmlText, config, options);
 
   const stagedSource = await resolveStagedSource(options, config);

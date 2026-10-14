@@ -16,6 +16,7 @@ import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261001-single-weight-owners-1';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js?v=20261001-weight-output-2';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
+import { XML229_STAGED_SOURCE_SCHEMA } from '../integration/xml229-staged-source-receipt.mjs';
 
 export function renderActivePhase(root, stateRef, render) {
   const state = stateRef.current;
@@ -110,6 +111,54 @@ export function renderImportPanel(card, state) {
   renderStandaloneImportMastersPanel(card, state);
 }
 
+/** The original JSON File is held by O1's Worker session, not stagedJsonText. */
+export function xml229StagedSourceBadgeView(state = {}) {
+  const receipt = state.xml229StagedSourceReceipt;
+  const recognized = receipt?.schema === XML229_STAGED_SOURCE_SCHEMA &&
+    receipt.rightsBasis === 'SOURCE_FACTS_ONLY' && receipt.engineeringReady === false;
+  if (recognized && receipt.phase === 'INDEX_COMMITTED' &&
+      /^[a-f0-9]{64}$/.test(receipt.sha256 || '') &&
+      Number.isSafeInteger(receipt.occurrenceCount) &&
+      Number.isSafeInteger(receipt.pageCount)) {
+    return {text: '✅ Staged JSON: Indexed in Worker · ' +
+      receipt.occurrenceCount.toLocaleString('en-US') + ' original occurrences · ' +
+      receipt.pageCount.toLocaleString('en-US') + ' source pages · SHA ' +
+      receipt.sha256.slice(0,12) + ' · Trace requires separate Build',color:'#8be28b',
+      phase:'index-committed'};
+  }
+  if (recognized && ['SELECTED','INDEXING','COMMIT_PENDING'].includes(receipt.phase)) {
+    const stage = receipt.phase === 'COMMIT_PENDING' ? 'committing durable index' :
+      receipt.phase === 'INDEXING' ? 'indexing in Worker' : 'selected for Worker';
+    return {text:'⏳ Staged JSON: '+stage+' · '+receipt.byteLength.toLocaleString('en-US')+
+      ' bytes · not yet source-verified',color:'#fbbf24',phase:'indexing'};
+  }
+  if (recognized && receipt.phase === 'FAILED')
+    return {text:'⚠️ Staged JSON: Worker source failed · '+receipt.reason,
+      color:'#f87171',phase:'failed'};
+  if (recognized && receipt.phase === 'REVOKED')
+    return {text:'⚠️ Staged JSON: Previous Worker source revoked; select JSON again',
+      color:'#fbbf24',phase:'revoked'};
+  if (state.xml229StagedSourceStatus === 'FAILED')
+    return {text:'⚠️ Staged JSON: Worker source rejected; no source index rights',
+      color:'#f87171',phase:'failed'};
+  return state.stagedJsonText
+    ? {text:'✅ Staged JSON: Loaded',color:'#8be28b',phase:'legacy-loaded'}
+    : {text:'⚠️ Staged JSON: Not loaded',color:'#fbbf24',phase:'absent'};
+}
+
+export function applyXml229StagedSourceBadge(badge,state) {
+  if (!badge) return;
+  const view = xml229StagedSourceBadgeView(state);
+  badge.textContent=view.text;
+  badge.dataset.sourcePhase=view.phase;
+  if (badge.style) badge.style.color=view.color;
+}
+
+export function refreshXml229StagedSourceBadge(container,state) {
+  const badge=container?.querySelector?.('[data-xml229-staged-json-source-badge]');
+  applyXml229StagedSourceBadge(badge,state);
+}
+
 export function renderJsonTracePanel(card, stateRef, render) {
   const state = stateRef.current;
   const fileRow = createElement('div');
@@ -135,8 +184,9 @@ export function renderJsonTracePanel(card, stateRef, render) {
   jsonInput.dataset.field = 'staged-json-file';
   jsonGroup.appendChild(jsonInput);
   if (state.stagedJsonFile) jsonGroup.appendChild(createElement('div', summarizeWorkflowFile(state.stagedJsonFile), 'xml-cii-file-summary'));
-  const jsonBadge = createElement('span', state.stagedJsonText ? '✅ Staged JSON: Loaded' : '⚠️ Staged JSON: Not loaded', 'xml-cii-phase-help');
-  if (jsonBadge.style) jsonBadge.style.color = state.stagedJsonText ? '#8be28b' : '#fbbf24';
+  const jsonBadge = createElement('span', '', 'xml-cii-phase-help');
+  jsonBadge.dataset.xml229StagedJsonSourceBadge = 'true';
+  applyXml229StagedSourceBadge(jsonBadge, state);
   jsonGroup.appendChild(jsonBadge);
   fileRow.appendChild(jsonGroup);
   card.appendChild(fileRow);

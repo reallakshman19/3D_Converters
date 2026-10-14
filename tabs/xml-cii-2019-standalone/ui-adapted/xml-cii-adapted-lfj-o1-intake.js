@@ -11,6 +11,10 @@ import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} fr
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
 import {refreshResolverHierarchyScopeControl} from './xml-cii-adapted-resolver-scope.js';
+import {
+  createXml229StagedSourceIntent,advanceXml229StagedSourceReceipt,
+} from '../integration/xml229-staged-source-receipt.mjs';
+import {refreshXml229StagedSourceBadge} from './xml-cii-adapted-phase-panels.js';
 
 const sessions=new WeakMap();
 const SCOPE_SCHEMA='LFJ.O1.HierarchyScopes.v1';
@@ -67,6 +71,26 @@ function eligibleSource(state){
 function status(session,text){
   session.status=text;
   if(session.label)session.label.textContent=text;
+}
+// Lightweight serializable state only. The original File/Blob, page store and
+// Worker remain in this module's session WeakMap. A receipt is source facts,
+// never a fallback stagedJsonText or engineering/Run/CSV approval.
+function publishJsonSourceReceipt(stateRef,container,receipt=null,sourceStatus='') {
+  if(!stateRef?.current)return;
+  stateRef.current={...stateRef.current,
+    xml229StagedSourceReceipt:receipt,
+    xml229StagedSourceStatus:sourceStatus,
+    outputRunReadinessReport:null,outputRunReadinessStatus:'',
+    result:null,
+  };
+  refreshXml229StagedSourceBadge(container,stateRef.current);
+}
+function revokeJsonSourceReceipt(stateRef,container) {
+  const receipt=stateRef?.current?.xml229StagedSourceReceipt;
+  if (receipt?.phase && receipt.phase!=='REVOKED') {
+    publishJsonSourceReceipt(stateRef,container,
+      advanceXml229StagedSourceReceipt(receipt,{kind:'REVOKE'}));
+  } else publishJsonSourceReceipt(stateRef,container,null);
 }
 function sourceProgress(session,kind,extra={}){
   const nowMs=typeof performance==='object'?performance.now():0;
@@ -135,20 +159,32 @@ async function scan(file,session,stateRef,container){
   // cleanup. A prior scan must never install a job after a newer selection.
   const request=++session.requestSeq;
   status(session,'LFJ Worker: replacing original source; previous receipt invalid.');
+  revokeJsonSourceReceipt(stateRef,container);
   sourceProgress(session,'REVOKED');
   revokeLfjO1Domain(session);
   const old=session.job;
   session.job=null;
   if(old)await revoke(old);
   if(request!==session.requestSeq)throw error('LFJ_SOURCE_SUPERSEDED');
-  if(!(file instanceof File)||!file.size)throw error('LFJ_SOURCE_MISSING');
+  if(!(file instanceof File)||!file.size){
+    publishJsonSourceReceipt(stateRef,container,null,'FAILED');
+    throw error('LFJ_SOURCE_MISSING');
+  }
   // Visible fail-closed policy rejection; prior source/domain/export rights
   // were revoked above before any new job or Worker is admitted.
-  if(file.size>O1_SOURCE_MAX_BYTES)throw error('O1_SOURCE_BYTE_LIMIT');
+  if(file.size>O1_SOURCE_MAX_BYTES){
+    publishJsonSourceReceipt(stateRef,container,null,'FAILED');
+    throw error('O1_SOURCE_BYTE_LIMIT');
+  }
   const uuid=crypto.randomUUID();
   const job={id:uuid,ref:'lfj226-'+uuid,databaseName:'lfj226-source-'+uuid,
     file,worker:null,scopeWorker:null,store:null,basis:null,summary:null,next:0,pages:0,cancelled:false};
   session.job=job;
+  job.receipt=advanceXml229StagedSourceReceipt(createXml229StagedSourceIntent({
+    generationId:job.id,sourceRefId:job.ref,sourceRevision:job.id,
+    byteLength:file.size,
+  }),{kind:'INDEX_START'});
+  publishJsonSourceReceipt(stateRef,container,job.receipt);
   sourceProgress(session,'START');
   status(session,'LFJ Worker: reading original Blob off the UI thread...');
   return await new Promise((resolve,reject)=>{
@@ -172,7 +208,11 @@ async function scan(file,session,stateRef,container){
             if(job.pages===1||job.pages%8===0)
               status(session,'LFJ Worker: '+job.pages+' bounded pages staged (not committed)');
           }else if(m?.kind==='SCAN_DONE'){
-            if(session.job===job&&!job.cancelled)sourceProgress(session,'COMMIT_PENDING');
+            if(session.job===job&&!job.cancelled){
+              sourceProgress(session,'COMMIT_PENDING');
+              job.receipt=advanceXml229StagedSourceReceipt(job.receipt,{kind:'COMMIT_PENDING'});
+              publishJsonSourceReceipt(stateRef,container,job.receipt);
+            }
             const summary=await finish(job,m);
             worker.terminate();job.worker=null;
             settle(null,summary);
@@ -184,6 +224,11 @@ async function scan(file,session,stateRef,container){
     }catch(e){settle(e);}
   }).then(summary=>{
     if(session.job!==job||job.cancelled)throw error('LFJ_SOURCE_SUPERSEDED');
+    job.receipt=advanceXml229StagedSourceReceipt(job.receipt,{
+      kind:'INDEX_COMMITTED',summary,durableCommitConfirmed:true,
+      committedPageCount:job.pages,
+    });
+    publishJsonSourceReceipt(stateRef,container,job.receipt);
     sourceProgress(session,'SOURCE_COMMITTED',{summary});
     status(session,'LFJ source index COMMITTED: '+summary.occurrenceCount+
       ' original occurrences; SHA '+summary.sourceSha256.slice(0,12)+
@@ -199,7 +244,14 @@ async function scan(file,session,stateRef,container){
     return summary;
   }).catch(async e=>{
     if(request===session.requestSeq&&session.job===job){
-      session.job=null;sourceProgress(session,'FAILED',{code:safeCode(e)});status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
+      session.job=null;
+      if(job.receipt?.phase){
+        job.receipt=advanceXml229StagedSourceReceipt(job.receipt,{
+          kind:'FAIL',reason:safeCode(e)});
+        publishJsonSourceReceipt(stateRef,container,job.receipt,'FAILED');
+      }else publishJsonSourceReceipt(stateRef,container,null,'FAILED');
+      sourceProgress(session,'FAILED',{code:safeCode(e)});
+      status(session,'LFJ Worker FAILED: '+safeCode(e)+'; no trace/export rights.');
     }
     await revoke(job);
     throw e;
@@ -211,6 +263,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   const session=getSession(stateRef);
   const supported=eligibleSource(stateRef.current);
   if(!supported&&session.job){
+    revokeJsonSourceReceipt(stateRef,container);
     const old=session.job;session.job=null;
     sourceProgress(session,'UNAVAILABLE');
     revokeLfjO1Domain(session);void revoke(old);
@@ -236,6 +289,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   toggle.addEventListener('change',()=>{
     session.optIn=toggle.checked;
     if(!toggle.checked){
+      revokeJsonSourceReceipt(stateRef,container);
       session.requestSeq++;
       revokeLfjO1Domain(session);
       const old=session.job;session.job=null;
@@ -258,6 +312,7 @@ export function installLfjO1SourceIntake(container,stateRef){
       // XML file/source kind is part of the job's user selection. Cancel
       // source admission too so a late receipt cannot revive old authority.
       if(originalXmlChanged){
+        revokeJsonSourceReceipt(stateRef,container);
         session.requestSeq++;
         const old=session.job;session.job=null;
         void revoke(old);
@@ -272,7 +327,10 @@ export function installLfjO1SourceIntake(container,stateRef){
     if(!session.optIn||!eligibleSource(stateRef.current))return;
     event.stopImmediatePropagation();
     const file=event.target.files?.[0];
-    if(!file)return;
+    if(!file){
+      revokeJsonSourceReceipt(stateRef,container);
+      return;
+    }
     void scan(file,session,stateRef,container).catch(e=>{
       // A superseded request is not a failure of the newer user selection.
       if(e?.code!=='LFJ_SOURCE_SUPERSEDED'&&session.status.startsWith('LFJ Worker:')){
@@ -299,4 +357,42 @@ export function installLfjO1SourceIntake(container,stateRef){
     },true);
   }
   mountLfjO1DomainUi(group,session);
+}
+
+
+/**
+ * XML229 P3B.3 — narrow read-only handoff to the existing Preview Worker.
+ * The original File never enters saved workspace state or the UI's JSON parser.
+ * The O1 source index remains SOURCE_FACTS_ONLY; this merely exposes the
+ * immutable Blob from the same committed job to one separately verified
+ * Preview Worker request. No new source/digest rights are created here.
+ */
+export function resolveXml229CurrentPreviewBlob(stateRef,expectedReceipt) {
+  const fail=code=>{const e=new Error(code);e.code=code;throw e;};
+  const session=sessions.get(stateRef),job=session?.job;
+  const live=stateRef?.current?.xml229StagedSourceReceipt;
+  const same=(a,b)=>a&&b&&[
+    'generationId','sourceRefId','sourceRevision','sha256',
+    'byteLength','occurrenceCount','pageCount'
+  ].every(key=>a[key]===b[key]);
+  if(!session?.optIn||!job||job.cancelled||!job.store||!job.file||
+     job.summary?.complete!==true||job.summary?.rightsBasis!=='SOURCE_FACTS_ONLY'||
+     job.summary?.engineeringReady!==false||
+     job.receipt?.phase!=='INDEX_COMMITTED'||live?.phase!=='INDEX_COMMITTED'||
+     !same(job.receipt,live)||!same(live,expectedReceipt)||
+     job.summary.sourceSha256!==live.sha256||
+     job.summary.byteLength!==job.file.size||
+     job.summary.sourceRevision!==live.sourceRevision||
+     job.id!==live.generationId||job.ref!==live.sourceRefId)
+    fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
+  // The identity test is synchronous and cheap; caller must run it around
+  // all awaits and again before accepting a Worker result.
+  const isCurrent=()=>session.job===job&&!job.cancelled&&session.optIn&&
+    same(stateRef?.current?.xml229StagedSourceReceipt,job.receipt)&&
+    stateRef?.current?.xml229StagedSourceReceipt?.phase==='INDEX_COMMITTED';
+  if(!isCurrent())fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
+  return Object.freeze({blob:job.file,receipt:job.receipt,isCurrent,
+    sourceSha256:live.sha256,sourceRevision:live.sourceRevision,
+    sourceRefId:live.sourceRefId,generationId:live.generationId,
+    byteLength:live.byteLength});
 }
