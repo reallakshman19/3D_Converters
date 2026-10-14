@@ -11,7 +11,7 @@ const server=createServer(async(req,res)=>{
   const p=new URL(req.url,'http://localhost').pathname;
   if(p==='/test.html'){
    res.writeHead(200,{'content-type':'text/html'});
-   res.end('<!doctype html><html><body><div id="weight-panel"></div></body></html>');return;
+   res.end('<!doctype html><html><body><div id="weight-panel"></div><div id="run-panel"></div></body></html>');return;
   }
   const file=path.resolve(root,'.'+decodeURIComponent(p));
   if(!file.startsWith(root+path.sep))throw Error('bad path');
@@ -59,8 +59,10 @@ try{
      originalStagedBlob:blob,originalStagedSourceReceipt:r,
      requestId:'p4-actual-worker-held-UI-review',isCurrent:()=>true,
    };
+   const stateRef={current:{}};
+   window.__p4StateRef=stateRef;
    const panel=installXml229WorkerHeldWeightPanel(
-     document.querySelector('#weight-panel'),{}, {resolveInputs:async()=>options});
+     document.querySelector('#weight-panel'),stateRef, {resolveInputs:async()=>options});
    window.__p4Panel=panel;
  });
  await page.locator('[data-p4-weight-build]').click();
@@ -94,6 +96,22 @@ try{
  assert.match(after.rows[0],/35 kg/);
  assert.match(after.rows[0],/40 kg/);
  assert.doesNotMatch(after.rows[1],/40 kg/);
+ // Run stage sees full source-bound review state, not old v1 cache.
+ await page.evaluate(async()=>{
+   const {installXml229P4RunAdvisory}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js');
+   installXml229P4RunAdvisory(document.querySelector('#run-panel'),window.__p4StateRef);
+ });
+ await page.waitForFunction(()=>document.querySelector('[data-p4-run-status]')?.textContent.includes('CII release HELD'),
+   {timeout:120000});
+ const runAdvisory=await page.locator('[data-xml229-p4-run-advisory]').textContent();
+ assert.match(runAdvisory,/2 original physical|Original physical components2/);
+ assert.match(runAdvisory,/Accepted Final Match-2/);
+ assert.match(runAdvisory,/1/);
+ assert.match(runAdvisory,/Unresolved \/ proposed/);
+ assert.match(runAdvisory,/CII output remains unauthorized/);
+ assert.match(runAdvisory,/0 blocking items/);
+
  assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
