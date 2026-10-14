@@ -100,12 +100,32 @@ try {
   // Observe the REAL authored Run panel on this smaller original fixture.
   record.observation.phaseOptions = await page.locator('[data-phase]').evaluateAll(
     els => [...new Set(els.map(el=>el.dataset.phase))].filter(Boolean));
-  if(record.observation.phaseOptions.includes('output-run')) {
-    await page.locator('[data-phase="output-run"]').click();
+  if(record.observation.phaseOptions.includes('run')) {
+    await page.locator('[data-phase="run"]').click();
     const refresh=page.locator('[data-action="refresh-output-run"]');
     if(await refresh.count()) await refresh.click();
     record.observation.runButtonDisabled=await maybe(()=>page.locator('[data-action="run"]').isDisabled());
-    record.observation.runPreflightText=(await maybe(()=>page.locator('[data-phase="output-run"]').textContent())).slice(0,320);
+    record.observation.runBlockingRows=await page.evaluate(()=>{
+      const records=[];
+      for(const table of document.querySelectorAll('table')) {
+        const header=[...table.querySelectorAll('thead th')].map(e=>e.textContent.trim());
+        const id=header.indexOf('ID'),blocking=header.indexOf('Blocking');
+        if(id<0||blocking<0)continue;
+        for(const tr of table.querySelectorAll('tbody tr')) {
+          const cells=[...tr.querySelectorAll('td')].map(e=>e.textContent.trim());
+          if(cells[blocking]!=='true')continue;
+          records.push({id:cells[id],label:cells[header.indexOf('Label')],
+            status:cells[header.indexOf('Status')],message:cells[header.indexOf('Message')]});
+        }
+      }
+      return records;
+    });
+    record.observation.runPreflightText=await maybe(()=>page.locator('[data-action="run"]')
+      .locator('xpath=../..').textContent());
+    record.observation.runPreflightText=String(record.observation.runPreflightText).slice(0,800);
+    assert.equal(record.observation.runButtonDisabled,
+      record.observation.runBlockingRows.length>0,
+      'real Run button state disagrees with visibly blocking Run rows for this fixture');
   }
   // A SEPARATE existing 28 synthetic-occurrence browser exercise captures
   // UNMATCHED -> unique effective token -> stale -> valid, not Owner 28 replay.
