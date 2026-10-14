@@ -1,0 +1,103 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const require=createRequire(import.meta.url),{chromium}=require('playwright');
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
+const server=createServer(async(req,res)=>{
+ try{
+  const p=new URL(req.url,'http://localhost').pathname;
+  if(p==='/test.html'){
+   res.writeHead(200,{'content-type':'text/html'});
+   res.end('<!doctype html><html><body><div id="weight-panel"></div></body></html>');return;
+  }
+  const file=path.resolve(root,'.'+decodeURIComponent(p));
+  if(!file.startsWith(root+path.sep))throw Error('bad path');
+  const bytes=await readFile(file);
+  res.writeHead(200,{'content-type':['.js','.mjs'].includes(path.extname(file))?
+    'text/javascript':'application/json'});res.end(bytes);
+ }catch(e){res.writeHead(404);res.end(String(e));}
+});
+await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
+let browser;
+try{
+ browser=await chromium.launch({headless:true});
+ const page=await browser.newPage();
+ const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
+ await page.evaluate(async()=>{
+   const {installXml229WorkerHeldWeightPanel}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const raw='{"owner":"real-blob-in-worker","items":[{"id":1},{"id":2}]}';
+   const blob=new Blob([raw],{type:'application/json'});
+   const sha=Array.from(new Uint8Array(await crypto.subtle.digest(
+      'SHA-256',await blob.arrayBuffer())),
+      v=>v.toString(16).padStart(2,'0')).join('');
+   const r={schema:'XML229.OriginalStagedSourceReceipt.v1',phase:'INDEX_COMMITTED',
+     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false,sha256:sha,
+     sourceRevision:'o1:sha256:'+sha,generationId:'p4-ui-generation-1',
+     sourceRefId:'owner-blob',byteLength:blob.size,occurrenceCount:2,pageCount:1};
+   const xml=`<PipeStressExport><Pipe><Branch><Branchname>/ASIM-1836-8"-P8810021-31441C4-PP/B4</Branchname>
+<Node><NodeNumber>280</NodeNumber><ComponentType>GASK</ComponentType><ElementLengthMm>2</ElementLengthMm><Position>0 0 0</Position></Node>
+<Node><NodeNumber>300</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><BoreMm>200</BoreMm>
+<ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint>
+<ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position><Weight>0</Weight></Node>
+<Node><NodeNumber>309</NodeNumber><ComponentType>VALV</ComponentType><BoreMm>200</BoreMm>
+<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>
+<ElementLengthMm>419</ElementLengthMm><Position>531 0 0</Position><Weight>0</Weight></Node>
+</Branch></Pipe></PipeStressExport>`;
+   const sourceId='P4-OWNER-WEIGHT-UI';
+   const weightRows=[{Rating:'300',Bore:200,Length:112,'RF/RTJ KG':35}];
+   const options={
+     xmlText:xml,sourceId,
+     masters:{weight:{datasetId:'owner-master',revision:'v1',
+       rows:weightRows,mapping:{weight:'RF/RTJ KG'}}},
+     config:{weight:{masterRows:weightRows},overrides:{}},overrides:{},
+     selection:[{sourceId,selectionRef:'all'}],
+     originalStagedBlob:blob,originalStagedSourceReceipt:r,
+     requestId:'p4-actual-worker-held-UI-review',isCurrent:()=>true,
+   };
+   const panel=installXml229WorkerHeldWeightPanel(
+     document.querySelector('#weight-panel'),{}, {resolveInputs:async()=>options});
+   window.__p4Panel=panel;
+ });
+ await page.locator('[data-p4-weight-build]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2,
+   {timeout:120000});
+ const original=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+  label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
+ })));
+ assert.equal(original.length,2);
+ // Neither proposed nor source-null value may be mistaken for accepted mass.
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/NOT auto-accepted/);
+ const first=page.locator('tr[data-p4-row]').first();
+ await first.locator('[data-p4-proposal]').fill('35');
+ await first.locator('[data-p4-reason]').fill('Engineer verified physical master 35 kg');
+ await first.locator('[data-p4-accept-match1]').click();
+ await page.waitForFunction(()=>document.querySelector('tr[data-p4-row]')?.textContent.includes('35 kg'),
+   {timeout:120000});
+ let rowText=await page.locator('tr[data-p4-row]').first().textContent();
+ assert.match(rowText,/35 kg/);
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Match-1 explicitly accepted/);
+ const refreshed=page.locator('tr[data-p4-row]').first();
+ await refreshed.locator('[data-p4-proposal]').fill('40');
+ await refreshed.locator('[data-p4-reason]').fill('Independent Final Match-2 approval of 40kg physical mass');
+ await refreshed.locator('[data-p4-accept-final]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-p4-weight-status]')?.textContent.includes('Final Match-2 explicitly accepted'),
+   {timeout:120000});
+ const after=await page.evaluate(()=>({
+   rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>tr.textContent),
+   status:document.querySelector('[data-p4-weight-status]').textContent,
+ }));
+ assert.match(after.rows[0],/35 kg/);
+ assert.match(after.rows[0],/40 kg/);
+ assert.doesNotMatch(after.rows[1],/40 kg/);
+ assert.deepEqual(errors,[]);
+ await page.evaluate(()=>window.__p4Panel.cancel());
+ console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
+   passed:true,original,after,errors},null,2));
+}finally{
+ await browser?.close();await new Promise(ok=>server.close(ok));
+}
