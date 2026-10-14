@@ -379,3 +379,94 @@ test('T2 RED standalone Run: stale saved proposal needs source-bound hold diagno
     && item.reason === 'basis-changed'),
   'Run requires a structured, current-source stale PROPOSAL receipt distinct from Match-1');
 });
+
+
+// Run the real report's event listener rather than a reimplemented resolver.
+// Minimal card/document shims are used only for the DOM host around the
+// empirical validator, which remains the production module.
+async function f4ActualEmpiricalReport(issue, config) {
+  const { appendEmpiricalWeightValidationReport } = await import(
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js'
+  );
+  const events = new Map();
+  const controls = new Map();
+  const section = {
+    style: {},
+    innerHTML: '',
+    querySelector(selector) {
+      if (!controls.has(selector)) controls.set(selector, {
+        disabled: false, innerHTML: '', textContent: '', addEventListener() {},
+      });
+      return controls.get(selector);
+    },
+  };
+  const card = {
+    appendChild() {},
+    addEventListener(name, handler) { events.set(name, handler); },
+    querySelectorAll() { return []; },
+  };
+  const stateRef = { current: {} };
+  const priorDocument = globalThis.document;
+  try {
+    globalThis.document = { createElement() { return section; } };
+    appendEmpiricalWeightValidationReport(card, stateRef);
+    const listener = events.get('xml-cii-weight-validator-ready');
+    assert.equal(typeof listener, 'function', 'actual report event handler is registered');
+    listener({ detail: {
+      config,
+      issues: [{ ...issue, candidates: [{ typeDesc: 'RANKED-1', selectedWeight: 12.5 }] }],
+      masterRows: [],
+    } });
+  } finally {
+    if (priorDocument === undefined) delete globalThis.document;
+    else globalThis.document = priorDocument;
+  }
+  return stateRef.current.empiricalWeightValidationReport;
+}
+
+test('T2 report positive controls: current proposal held; manual, Final, source and corrupt proposals obey authority', async () => {
+  const { xml, changedXml, key, saved, config, prep } = await t1StandaloneBridgeFixture();
+  const current = prep(saved, xml).basisRows.find(row => row.key === key);
+  const changed = prep(saved, changedXml).basisRows.find(row => row.key === key);
+  assert.ok(current && changed, 'both real source geometries retain the same physical key');
+
+  const currentProposal = await f4ActualEmpiricalReport(current, saved);
+  assert.ok(currentProposal.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:not-reviewed'),
+  'even unchanged fingerprinted suggestion is not explicit Match-1 or Final');
+  assert.equal((currentProposal.rows || []).filter(row => row.rowId === key).length, 0);
+
+  const changedProposal = await f4ActualEmpiricalReport(changed, saved);
+  assert.ok(changedProposal.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:basis-changed'),
+  'source geometry changes produce the distinct stale proposal reason');
+
+  const manual = await f4ActualEmpiricalReport(changed, {
+    ...config, overrides: { rigidWeight: { [key]: 8.25 } },
+  });
+  assert.equal(manual.rows.find(row => row.rowId === key)?.observedWeightKg, 8.25,
+    'provenance-free historical manual remains separately represented in compatibility report');
+
+  const final = await f4ActualEmpiricalReport(changed, {
+    ...saved, overrides: { ...saved.overrides, rigidWeightFinal: { [key]: 17.75 } },
+  });
+  assert.equal(final.rows.find(row => row.rowId === key)?.observedWeightKg, 17.75,
+    'explicit higher-authority Final wins even over a stale earlier proposal');
+
+  const original = await f4ActualEmpiricalReport(
+    { ...changed, originalWeight: 6.5, weight: 12.5 }, saved,
+  );
+  assert.equal(original.rows.find(row => row.rowId === key)?.observedWeightKg, 6.5,
+    'independent original XML weight is distinct from contaminated issue.weight');
+
+  const corrupt = await f4ActualEmpiricalReport(changed, {
+    ...saved,
+    overrides: {
+      ...saved.overrides,
+      rigidWeightProposalMeta: { [key]: { ...saved.overrides.rigidWeightProposalMeta[key], fingerprint: 'fnv1a:00000000' } },
+    },
+  });
+  assert.ok(corrupt.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:invalid-proposal-fingerprint'),
+  'tampered provenance must be held rather than automatically accepted');
+});
