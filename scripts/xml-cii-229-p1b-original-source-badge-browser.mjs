@@ -129,6 +129,9 @@ try {
       record.observation.runBlockingRows.length>0,
       'real Run button state disagrees with visibly blocking Run rows for this fixture');
   }
+  // The Run checklist was read above on its own panel. Return to the JSON
+  // phase before selecting a different original File (no synthetic rerender).
+  await page.locator('[data-phase="json-trace"]').click();
   // Original worker source replacement cannot inherit source-only or CSV rights.
   await page.locator('[data-field="staged-json-file"]').setInputFiles({
     name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('[{"broken":}'),
