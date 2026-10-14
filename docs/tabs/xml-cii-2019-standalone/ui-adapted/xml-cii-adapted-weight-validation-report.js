@@ -127,6 +127,8 @@ function unavailableCodes(row) {
 }
 
 function unavailableLabel(reason, codes = []) {
+  if (reason?.startsWith('proposal-held-for-review:') || reason?.startsWith('match1-held-for-review:'))
+    return '○ HELD_FOR_REVIEW';
   if (reason === 'no-positive-resolved-weight') return '○ Proposed — not accepted';
   if (reason === 'no-empirical-type-description') return '? TypeDesc missing';
   const first = codes[0] || '';
@@ -146,7 +148,8 @@ function rowHealth(row, skipped = null) {
   if (!row || !available(row)) {
     const reason = skipped?.reason || 'A1/A2 estimate unavailable';
     const codes = unavailableCodes(row);
-    return { label: unavailableLabel(reason, codes), color: '#fbbf24', state: reason === 'no-positive-resolved-weight' ? 'proposed' : 'unvalidated', reason, codes };
+    const held = reason.startsWith('proposal-held-for-review:') || reason.startsWith('match1-held-for-review:');
+    return { label: unavailableLabel(reason, codes), color: '#fbbf24', state: held ? 'held' : (reason === 'no-positive-resolved-weight' ? 'proposed' : 'unvalidated'), reason, codes };
   }
   if (row.approach1?.abnormal || row.approach2?.abnormal) return { label: '⚠ >30%', color: '#f87171', state: 'abnormal', reason: row.status, codes: [] };
   return { label: '✓ ±30%', color: '#86efac', state: 'within', reason: row.status, codes: [] };
