@@ -98,3 +98,60 @@ export async function openXml229AttestedWeightReview({
       dispose:()=>client.dispose()});
   }catch(error){client.dispose();throw error;}
 }
+
+/**
+ * Production-ready independent census invocation seam: do not extract
+ * expected original/physical IDs from the engineering Worker response.
+ * A second isolated source-only Worker independently prepares the census,
+ * then the engineering Worker must prove its own source computations match.
+ */
+export async function openXml229AttestedWeightReviewWithOriginalCensus({
+  censusWorkerFactory=()=>new Worker(new URL('./xml229-original-physical-census-worker.mjs',import.meta.url),
+    {type:'module'}),
+  ...options
+}={}){
+  if(options.stagedSource!==undefined&&options.stagedSource!==null)
+    fail('STAGED_BLOB_BASIS_WORKER_REQUIRED',
+      'Large original JSON requires a Worker-held full source basis, never a UI text copy');
+  const sources=options.sources;
+  if(!Array.isArray(sources)||sources.length!==1||typeof sources[0]?.text!=='string'||
+     !sources[0]?.sourceId||!options.config)
+    fail('ORIGINAL_SOURCE_CENSUS_REQUIRED','One loaded original XML and current configuration required');
+  const worker=censusWorkerFactory();
+  if(!worker||typeof worker.postMessage!=='function'||
+      typeof worker.addEventListener!=='function')
+    fail('CENSUS_WORKER_REQUIRED','Independent census must run in a real isolated Worker');
+  const requestId=String(options.requestId||'');
+  if(!requestId)fail('REQUEST_ID_REQUIRED','A unique source/census request ID is mandatory');
+  const protocol='XML229.P4.OriginalWeightCensus.v1';
+  let result;
+  try{
+    result=await new Promise((resolve,reject)=>{
+      worker.addEventListener('message',({data:m})=>{
+        if(m?.protocol!==protocol||m.requestId!==requestId)return;
+        if(m.state==='completed')resolve(m);
+        else if(m.state==='failed'){
+          const e=new Error(m.error?.message||'Original source census failed');
+          e.code=m.error?.code||'INDEPENDENT_CENSUS_FAILED';reject(e);
+        }
+      });
+      worker.addEventListener('error',e=>reject(new Error(String(e?.message||e))));
+      worker.postMessage({protocol,kind:'start',requestId,
+        xmlText:sources[0].text,sourceId:sources[0].sourceId,config:options.config});
+    });
+  }finally{
+    worker.terminate();
+  }
+  if(!Array.isArray(result.independentSourceOccurrences)||
+     !Array.isArray(result.independentOriginalNodeOccurrences)||
+     !Array.isArray(result.independentPhysicalOccurrences)||
+     result.counts?.original!==result.independentSourceOccurrences.length||
+     result.counts?.physical!==result.independentPhysicalOccurrences.length)
+    fail('CENSUS_PAYLOAD_DRIFT','Original census Worker produced an incomplete result');
+  return openXml229AttestedWeightReview({
+    ...options,
+    independentSourceOccurrences:result.independentSourceOccurrences,
+    independentOriginalNodeOccurrences:result.independentOriginalNodeOccurrences,
+    independentPhysicalOccurrences:result.independentPhysicalOccurrences,
+  });
+}
