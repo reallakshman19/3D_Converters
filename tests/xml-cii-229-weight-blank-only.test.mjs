@@ -251,3 +251,54 @@ test('T1 RED: actual standalone Preview node row must not advertise stale accept
  assert.notEqual(row.weightMatch?.selectedOverride,true,
   'stale saved suggestion must not appear in Preview as selected authoritative override');
 });
+
+
+test('T1 Preview calculation shows an unchanged saved candidate only as a proposal, while legacy manual and explicit Final stay distinct', async () => {
+  const { installWeightBasisXmlDom } = await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+  installWeightBasisXmlDom(globalThis);
+  const { xmlCiiDryRunPreview } = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const { xml, key, saved, config } = await t1StandaloneBridgeFixture();
+  const getNode = (cfg) => {
+    const preview = xmlCiiDryRunPreview(xml, cfg, '');
+    const row = preview.nodeRows?.find(item => item.key === key);
+    assert.ok(row, 'the source physical component remains in Preview');
+    return row;
+  };
+  const proposal = getNode(saved);
+  assert.notEqual(proposal.weightMatch?.selectedOverride, true,
+    'the proposed value is not an approved physical Preview override, even on the original basis');
+  assert.equal(saved.overrides.rigidWeight[key], 12.5, 'saved proposal survives for separate user review');
+
+  const manual = getNode({ ...config, overrides: { rigidWeight: { [key]: 8.25 } } });
+  assert.equal(manual.weightMatch?.selectedOverride, true,
+    'historical user-entered, provenance-free manual remains an effective compatibility value');
+  assert.equal(manual.weightMatch?.selectedWeight, 8.25);
+
+  const reviewedFinal = getNode({
+    ...saved,
+    overrides: { ...saved.overrides, rigidWeightFinal: { [key]: 17.75 } },
+  });
+  assert.equal(reviewedFinal.weightMatch?.selectedOverride, true,
+    'an explicit Final retains higher numeric authority than the saved proposal');
+  assert.equal(reviewedFinal.weightMatch?.selectedWeight, 17.75);
+});
+
+test('T1 incremental Preview weight-master change cannot revive an unreviewed saved proposal', async () => {
+  const { installWeightBasisXmlDom } = await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+  installWeightBasisXmlDom(globalThis);
+  const { resetIncrementalPreviewRuntime, snapshotIncrementalPreviewRuntime }
+    = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-incremental.js');
+  const { xmlCiiDryRunPreview } = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const { xml, key, saved } = await t1StandaloneBridgeFixture();
+  resetIncrementalPreviewRuntime();
+  const first = xmlCiiDryRunPreview(xml, saved, '');
+  assert.notEqual(first.nodeRows.find(row => row.key === key)?.weightMatch?.selectedOverride, true);
+  const changedMaster = { ...saved, weight: { ...saved.weight, masterRevision: saved.weight.masterRevision + 1 } };
+  const after = xmlCiiDryRunPreview(xml, changedMaster, '');
+  assert.ok(after.nodeRows?.some(row => row.key === key), 'same source node remains after Weight-master revision');
+  assert.notEqual(after.nodeRows.find(row => row.key === key)?.weightMatch?.selectedOverride, true,
+    'reranked Preview cannot reinstate a previously saved non-reviewed candidate');
+  const runtime = snapshotIncrementalPreviewRuntime();
+  assert.ok(runtime.fullBuilds + runtime.weightOnlyBuilds >= 2, 'actual Preview executed both revisions');
+  assert.equal(saved.overrides.rigidWeight[key], 12.5, 'neither cache path mutates the saved proposal');
+});
