@@ -89,7 +89,6 @@ test('P1 mixed/wrong original source summary fails closed for every authority fi
   const wrong=[
     {sourceRefId:'another-source'},
     {sourceRevision:'another-revision'},
-    {sourceSha256:'a'.repeat(64)},
     {sourceSha256:'A'.repeat(64)},
     {sourceSha256:'short'},
     {byteLength:733807},
@@ -156,4 +155,16 @@ test('P1 no arbitrary source event, missing source IDs or byte strings are accep
   expectRejected(()=>createXml229StagedSourceIntent({...context,byteLength:'733806'}),
     'XML229_SOURCE_MISSING');
   expectRejected(()=>move(pending(),'DOMAIN_READY'), 'XML229_SOURCE_EVENT_UNSUPPORTED');
+});
+
+test('P1 a different valid SHA cannot be mislabeled as this current original File',()=>{
+  // A pure receipt sees a trusted Worker digest, not original JSON bytes.
+  // A syntactically valid but different SHA is not intrinsically malformed;
+  // source consumers MUST bind full SHA to the independently expected File.
+  const anotherSha='a'.repeat(64);
+  const different=commit(pending(),{summary:{...summary,sourceSha256:anotherSha}});
+  assert.equal(different.sha256,anotherSha);
+  assert.equal(isCurrentXml229StagedSourceReceipt(different,{...context,sha256:sha}),false);
+  assert.equal(isCurrentXml229StagedSourceReceipt(different,{
+    ...context,sourceRefId:'another-source',sha256:anotherSha}),false);
 });
