@@ -91,9 +91,9 @@ try {
  await page.locator('.mc-mode-a-review-draft').first().fill('42');
  await page.locator('.mc-mode-a-review-draft').first().dispatchEvent('change',{bubbles:true});
  assert.equal(await page.locator('.mc-rigid-review-input').first().inputValue(),'');
- assert.match(await page.locator('[data-mode-a-rigid-status]').text(),/edited locally only/);
+ assert.match(await page.locator('[data-mode-a-rigid-status]').textContent(),/edited locally only/);
  await page.locator('[data-mode-a-rigid-apply]').click();
- assert.match(await page.locator('[data-mode-a-rigid-status]').text(),/Enter a positive weight/);
+ assert.match(await page.locator('[data-mode-a-rigid-status]').textContent(),/Enter a positive weight/);
  assert.equal(await page.locator('[data-mode-a-rigid-review-row]').count(),5);
  await page.locator('[data-mode-a-rigid-cancel]').click();
  const cancel=await page.evaluate(async()=>await window.w3Result);
