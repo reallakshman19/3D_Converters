@@ -152,6 +152,41 @@ test('source-only status remains unverified if purported Preview is already prom
   previewResult:{...f.result,engineeringAcceptance:'VERIFIED'}}),
  getCode('PREVIEW_INPUT_AUTHORITY_DRIFT'));
 });
+test('authentic repository Firstpass XML + staged JSON retains all original physical occurrences without inventing accepted mass',async()=>{
+ const xmlText=await readFile(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url),'utf8');
+ const stagedSource=await readFile(new URL('../Benchmarks/1885Sjson/Sjson.json',import.meta.url),'utf8');
+ assert(xmlText.length>100000);
+ assert(stagedSource.length>500000);
+ const sourceId='FIRSTPASS-AUTHENTIC';
+ const selection=[{sourceId,selectionRef:'all'}];
+ const actualMasters=structuredClone(masters);
+ const actualConfig=structuredClone(config);
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId,mediaType:'application/xml',text:xmlText}],
+  masters:actualMasters,selection,stagedSource,
+  config:actualConfig,overrides:{},sha256:digestUtf8});
+ const projection=projectXmlCiiOccurrences({xmlText,sourceId});
+ const derived=xmlCiiDryRunPreview(xmlText,actualConfig,stagedSource);
+ const result={...derived,sourceOccurrences:projection,
+  engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{sources:{[sourceId]:xmlText},masters:actualMasters,
+   selection,stagedSource,config:actualConfig,overrides:{}},
+  xmlText,sourceId,previewResult:result,
+  expectedOriginalCount:projection.branchCount+projection.nodeCount,
+ });
+ assert.equal(opened.workerResult.engineeringAcceptance,'VERIFIED');
+ assert.equal(opened.expectedOriginalCount,projection.nodeCount);
+ assert(opened.physicalOccurrences.length>0);
+ assert.equal(opened.expectedPhysicalFactCount,
+  opened.physicalOccurrences.length*XML229_ENGINEERING_FIELDS.length);
+ const snap=await opened.model.getFacts({basisId:basis.basisId,
+  subjectType:'physical-component',limit:100});
+ assert.equal(snap.complete,true);
+ assert.equal(snap.totalCount,opened.expectedPhysicalFactCount);
+ assert(snap.items.every(item=>item.sourceId===sourceId));
+});
+
 test('root and served docs producer are byte-for-byte identical',async()=>{
  const p='tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs';
  assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
