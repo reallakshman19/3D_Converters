@@ -275,7 +275,7 @@ function buildNodeBoreWallRows({
   return { rows, diagnostics };
 }
 
-function correctNodeRows(nodeRows, nodeBoreWallRows) {
+function correctNodeRows(nodeRows, nodeBoreWallRows, {requireSourceOrdinal = false} = {}) {
   const byKey = new Map();
   const byOccurrence = new Map();
   const ambiguous = new Set();
@@ -289,9 +289,18 @@ function correctNodeRows(nodeRows, nodeBoreWallRows) {
   return (nodeRows || []).map((row) => {
     const qualified = Number.isSafeInteger(row.branchOccurrenceIndex)
       && Number.isSafeInteger(row.nodeOrdinal);
+    // Never equate the effective post-cleanup ordinal with original XML.
+    // Legacy standalone callers without a cleanup ledger retain their
+    // existing source ordinal contract; actual Worker Preview requires it.
+    const sourceOrdinal = row.sourceNodeOrdinal == null
+      ? (requireSourceOrdinal ? null : row.nodeOrdinal)
+      : row.sourceNodeOrdinal;
+    if (qualified && (!Number.isSafeInteger(sourceOrdinal) || sourceOrdinal < 0)) {
+      throw new Error('Combined Preview original node occurrence missing; conversion blocked.');
+    }
     const key = nodeAuthorityKey(row);
     const authority = qualified
-      ? byOccurrence.get(`${row.branchOccurrenceIndex}::${row.nodeOrdinal}`)
+      ? byOccurrence.get(`${row.branchOccurrenceIndex}::${sourceOrdinal}`)
       : byKey.get(key);
     if (qualified && (!authority || authority.key !== key)) {
       throw new Error('Combined Preview node occurrence identity drift; conversion blocked.');
@@ -319,6 +328,7 @@ function correctNodeRows(nodeRows, nodeBoreWallRows) {
 
 export function applyPreviewBoreWallAuthority({
   xmlText, stagedJsonText, config = {}, result, sourceDocument = null,
+  requireSourceOrdinal = false,
 }) {
   if (!result || !Array.isArray(result.branchRows)) return result;
   const document = sourceDocumentOrParse(xmlText, sourceDocument);
@@ -349,7 +359,7 @@ export function applyPreviewBoreWallAuthority({
   return {
     ...result,
     branchRows,
-    nodeRows: correctNodeRows(result.nodeRows, nodeAuthority.rows),
+    nodeRows: correctNodeRows(result.nodeRows, nodeAuthority.rows, {requireSourceOrdinal}),
     nodeBoreWallRows: nodeAuthority.rows,
     boreAuthorityDiagnostics: nodeAuthority.diagnostics,
   };
