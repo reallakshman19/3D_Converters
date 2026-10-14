@@ -28,7 +28,7 @@ const provenanceKeys=[
   'pageCount','occurrenceCount',...selectedShaKeys,
 ];
 const text=x=>x===undefined||x===null?'':String(x);
-const limited=x=>text(x).slice(0,1000);
+const limited=x=>{const value=text(x);if(value.length>1000)fail('P3B_PROJECT_FIELD_BOUND');return value;};
 
 async function attestConfig(config,manifest){
   if(!config||typeof config!=='object'||Array.isArray(config))
@@ -44,7 +44,9 @@ async function attestConfig(config,manifest){
 function validateManifest(m,values){
   if(m?.schema!==XML229_BOUNDED_READ_SCHEMA||m.complete!==true||
      m.rightsBasis!=='SOURCE_FACTS_ONLY'||m.engineeringReady!==false||
-     !sha(m.sha256)||!m.sourceRevision?.endsWith(':sha256:'+m.sha256)||
+     !sha(m.sha256)||
+     ![m.generationId,m.sourceRefId,m.sourceRevision].every(x=>typeof x==='string'&&x.length>0&&x.length<=1024)||
+     !m.sourceRevision.endsWith(':sha256:'+m.sha256)||
      selectedShaKeys.some(k=>!sha(m[k]))||
      !Number.isSafeInteger(m.byteLength)||m.byteLength<1||
      !Number.isSafeInteger(m.pageCount)||m.pageCount<1||
