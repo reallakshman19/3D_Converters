@@ -5,6 +5,8 @@ on:
     paths:
       - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs'
       - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs'
       - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs'
@@ -37,6 +39,8 @@ jobs:
           node --check tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker-client.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs
