@@ -13,6 +13,7 @@ import {
   shortPreviewCacheDigest,
 } from './xml-cii-adapted-preview-cache-v7.js';
 import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
+import {xml229PreviewSourceGate} from '../integration/xml229-preview-source-gate.mjs';
 
 export { xmlCiiRenderPreviewPhase };
 
@@ -181,6 +182,22 @@ export function installInternalRebuildCapture(host, rootEl, xmlText, config, opt
       if (running || !previewRendered(host) || (!current.branchRows.length && !legacyBridgePresent())) return;
       running = true;
       try {
+        // No background rebuild may restore or capture old JSON cache
+        // after a Worker File source is selected without a Preview read port.
+        const gate = xml229PreviewSourceGate({
+          sourceReceipt: options.originalStagedSourceReceipt,
+          sourceStatus: options.originalStagedSourceStatus,
+          stagedJsonText: options.stagedJsonText,
+        });
+        if(gate.blocked) {
+          clearPreviewCacheBridge();
+          addCacheEvidence(host,{
+            status:'JSON_SOURCE_PENDING',authority:null,
+            reason:gate.reason+(gate.sourceSha256?
+              ' · original JSON '+gate.sourceBytes+' B · SHA256 '+gate.sourceSha256:''),
+          });
+          return;
+        }
         installDtxrRatingAction({
           host,
           rootEl,
@@ -220,6 +237,29 @@ export function installInternalRebuildCapture(host, rootEl, xmlText, config, opt
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const host = rootEl?.querySelector?.('#mc-preview-table-host');
   if (!host) return { branchRows: [], nodeRows: [] };
+  // The Worker source index is not a JSON value read port. It is unsafe to
+  // hash stagedJsonText='' or a legacy string from a prior File as this source.
+  // Refuse BEFORE legacy Preview, cache restore, rating publication or observer.
+  const workerGate = xml229PreviewSourceGate({
+    sourceReceipt:options.originalStagedSourceReceipt,
+    sourceStatus:options.originalStagedSourceStatus,
+    stagedJsonText:options.stagedJsonText,
+  });
+  if(workerGate.blocked) {
+    host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
+    host.replaceChildren?.();
+    host.__xmlCiiPreviewResult=null;
+    clearPreviewCacheBridge();
+    addCacheEvidence(host,{
+      status:'JSON_SOURCE_PENDING',authority:null,
+      reason:workerGate.reason+(workerGate.sourceSha256?
+        ' · original JSON '+workerGate.sourceBytes+' B · SHA256 '+workerGate.sourceSha256:''),
+    });
+    addNotice(host,'Original staged JSON is held in a source-only Worker index. '+
+      'JSON-dependent Preview is awaiting a source-verified data reader; '+
+      'no cache HIT or engineering decision is authorized.',true);
+    return {branchRows:[],nodeRows:[],blocked:true,reason:workerGate.reason};
+  }
   installInternalRebuildCapture(host, rootEl, xmlText, config, options);
 
   const stagedSource = await resolveStagedSource(options, config);
