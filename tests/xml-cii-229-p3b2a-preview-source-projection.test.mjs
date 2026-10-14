@@ -102,3 +102,15 @@ test('P3B.2A cannot run on an authored document main thread',async()=>{
     code:'P3B_PROJECT_BROWSER_MAIN_THREAD_FORBIDDEN'});}
   finally{if(prior===undefined)delete globalThis.document;else globalThis.document=prior;}
 });
+
+test('P3B.2A rejects long original evidence instead of silently truncating DTXR',async()=>{
+  const f=fixture();
+  const modified=structuredClone(input);
+  modified.children[0].attributes.DTXR='X'.repeat(1001);
+  const changed=new TextEncoder().encode(JSON.stringify(modified));
+  const value={...f.values[0],bytes:changed,valueByteLength:changed.length,
+    endByteExclusive:changed.length};
+  await assert.rejects(projectXml229SelectedPreviewSource({
+    ...f,manifest:{...f.manifest,byteCount:changed.length},values:[value],
+  }),{code:'P3B_PROJECT_FIELD_BOUND'});
+});
