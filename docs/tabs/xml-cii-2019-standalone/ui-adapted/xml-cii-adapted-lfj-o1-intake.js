@@ -358,3 +358,41 @@ export function installLfjO1SourceIntake(container,stateRef){
   }
   mountLfjO1DomainUi(group,session);
 }
+
+
+/**
+ * XML229 P3B.3 — narrow read-only handoff to the existing Preview Worker.
+ * The original File never enters saved workspace state or the UI's JSON parser.
+ * The O1 source index remains SOURCE_FACTS_ONLY; this merely exposes the
+ * immutable Blob from the same committed job to one separately verified
+ * Preview Worker request. No new source/digest rights are created here.
+ */
+export function resolveXml229CurrentPreviewBlob(stateRef,expectedReceipt) {
+  const fail=code=>{const e=new Error(code);e.code=code;throw e;};
+  const session=sessions.get(stateRef),job=session?.job;
+  const live=stateRef?.current?.xml229StagedSourceReceipt;
+  const same=(a,b)=>a&&b&&[
+    'generationId','sourceRefId','sourceRevision','sha256',
+    'byteLength','occurrenceCount','pageCount'
+  ].every(key=>a[key]===b[key]);
+  if(!session?.optIn||!job||job.cancelled||!job.store||!job.file||
+     job.summary?.complete!==true||job.summary?.rightsBasis!=='SOURCE_FACTS_ONLY'||
+     job.summary?.engineeringReady!==false||
+     job.receipt?.phase!=='INDEX_COMMITTED'||live?.phase!=='INDEX_COMMITTED'||
+     !same(job.receipt,live)||!same(live,expectedReceipt)||
+     job.summary.sourceSha256!==live.sha256||
+     job.summary.byteLength!==job.file.size||
+     job.summary.sourceRevision!==live.sourceRevision||
+     job.id!==live.generationId||job.ref!==live.sourceRefId)
+    fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
+  // The identity test is synchronous and cheap; caller must run it around
+  // all awaits and again before accepting a Worker result.
+  const isCurrent=()=>session.job===job&&!job.cancelled&&session.optIn&&
+    same(stateRef?.current?.xml229StagedSourceReceipt,job.receipt)&&
+    stateRef?.current?.xml229StagedSourceReceipt?.phase==='INDEX_COMMITTED';
+  if(!isCurrent())fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
+  return Object.freeze({blob:job.file,receipt:job.receipt,isCurrent,
+    sourceSha256:live.sha256,sourceRevision:live.sourceRevision,
+    sourceRefId:live.sourceRefId,generationId:live.generationId,
+    byteLength:live.byteLength});
+}
