@@ -20,6 +20,8 @@ import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
  from '../../../converters/xml-cii2019-core/weight-facts-individual-review.js';
+import {readVerifiedModeAFinalRows}
+ from '../../../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
 import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
 
@@ -168,6 +170,32 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(req.what==='completion'){
+     const full=readVerifiedModeAFinalRows(ready);
+     const counts={source:0,match1:0,final:0,unresolved:0};
+     for(const row of full.rows){
+       if(row.finalKg!==null)counts.final++;
+       else if(row.match1Kg!==null)counts.match1++;
+       else if(row.sourceKg!==null)counts.source++;
+       else counts.unresolved++;
+     }
+     if(full.physicalCount!==(physicalIdentityList?.length??-1)||
+        full.verifiedFactCount!==ready.openedFacts)
+       fail('GC_PW_FULL_SOURCE_COMPLETENESS_DRIFT',
+         'All original physical occurrences and FactRecords must be accounted for');
+     return {schema:'XML229.P4.RunAdvisory.v1',basisId,sourceId:ready.basis.scope[0]?.sourceId,
+       originalJsonSha256:sourceReceipt.sha256,
+       sourceGenerationId:sourceReceipt.generationId,
+       verifiedPhysicalCount:full.physicalCount,
+       verifiedFactCount:full.verifiedFactCount,
+       stageRevisions:full.revisionBySource,
+       counts,engineeringFactsVerified:true,
+       previewStatus:'FULL_SOURCE_FACTS_VERIFIED',
+       weightStatus:counts.unresolved>0?'PROPOSED_OR_UNRESOLVED':'REVIEWED_SOURCE_MASSES',
+       ciiReleaseAuthorized:false,
+       releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
+     };
+   }
    if(req.what==='page'){
      if(!Number.isSafeInteger(req.offset)||req.offset<0||
        !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25)
