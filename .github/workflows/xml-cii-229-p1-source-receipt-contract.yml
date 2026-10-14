@@ -1,0 +1,31 @@
+name: XML229 P1 original staged source receipt contract
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-staged-source-receipt.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-staged-source-receipt.mjs'
+      - 'tests/xml-cii-229-p1-source-receipt-contract.test.mjs'
+      - '.github/workflows/xml-cii-229-p1-source-receipt-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-receipt-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact source and served receipt bytes
+        run: |
+          echo "P1_HEAD=$(git rev-parse HEAD)"
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-staged-source-receipt.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-staged-source-receipt.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-staged-source-receipt.mjs
+          node --check tests/xml-cii-229-p1-source-receipt-contract.test.mjs
+      - name: P1 real contract positives and refusals, source-only not engineering-approved
+        run: node --test tests/xml-cii-229-p1-source-receipt-contract.test.mjs
