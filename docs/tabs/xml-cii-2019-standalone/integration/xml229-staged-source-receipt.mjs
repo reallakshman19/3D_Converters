@@ -86,8 +86,11 @@ export function advanceXml229StagedSourceReceipt(prior, event = {}) {
        summary.rightsBasis!=='SOURCE_FACTS_ONLY' ||
        summary.engineeringReady!==false ||
        summary.sourceRefId!==current.sourceRefId ||
-       summary.sourceRevision!==current.sourceRevision ||
        !hexSha256(summary.sourceSha256) ||
+       // R03 derives the authoritative revision after hashing the original
+       // Blob: <requested-revision>:sha256:<full-original-sha>. The initial
+       // source-intent value is the scan REQUEST revision, not final basis.
+       summary.sourceRevision!==current.sourceRevision+':sha256:'+summary.sourceSha256 ||
        summary.byteLength!==current.byteLength ||
        !safeCount(summary.occurrenceCount) ||
        summary.occurrenceCount>XML229_MAX_ORIGINAL_OCCURRENCES ||
@@ -96,7 +99,8 @@ export function advanceXml229StagedSourceReceipt(prior, event = {}) {
        !Number.isSafeInteger(event.committedPageCount) ||
        event.committedPageCount<1)
       reject('XML229_SOURCE_COMMIT_INVALID');
-    return record({...current,phase:'INDEX_COMMITTED',sha256:summary.sourceSha256,
+    return record({...current,phase:'INDEX_COMMITTED',
+      sourceRevision:summary.sourceRevision,sha256:summary.sourceSha256,
       occurrenceCount:summary.occurrenceCount,
       pageCount:event.committedPageCount,reason:null});
   }
