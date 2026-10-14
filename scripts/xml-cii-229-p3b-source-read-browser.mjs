@@ -127,7 +127,9 @@ try{
       if(productionRead.pagesScanned!==47||productionRead.valueCount!==2||
          acceptedManifest!==productionRead||accepted.length!==2||
          accepted.some(item=>item.engineeringReady!==false||
-           item.rightsBasis!=='SOURCE_FACTS_ONLY')||
+           item.rightsBasis!=='SOURCE_FACTS_ONLY'||
+           item.byteLength!==file.size||
+           item.valueByteLength!==item.bytes.length)||
          !new TextDecoder().decode(accepted[1].bytes).includes('ELBOW 90 DEG LR BW Sch 80'))
         throw Error('P3B1_REAL_ADAPTER_POSITIVE_FAILED');
       let staleDependency='NOT_REJECTED';
