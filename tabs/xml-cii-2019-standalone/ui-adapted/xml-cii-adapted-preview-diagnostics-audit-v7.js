@@ -53,6 +53,8 @@ function modeASourceInputs(stateRef, sourceId) {
     masterContext: base.masterContext,
     datasetRefs: base.masterContext?.datasetRefs,
     dependencyRevisions: JSON.stringify(base.dependencyRevisions || {}),
+    xml229StagedSourceReceipt: active ? base.xml229StagedSourceReceipt : null,
+    xml229StagedSourceStatus: active ? base.xml229StagedSourceStatus : '',
   };
 }
 
@@ -116,6 +118,10 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     },
     stagedJsonText: stagedSource.text,
     stagedSourceLabel: stagedSource.label,
+    // These SOURCE_FACTS_ONLY fields do not provide Preview JSON data.
+    // The V7 boundary must visibly HOLD instead of signing a JSON 0B digest.
+    originalStagedSourceReceipt:state.xml229StagedSourceReceipt || null,
+    originalStagedSourceStatus:state.xml229StagedSourceStatus || '',
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
         throw new Error('Preview source or branch selection changed during build; rebuild Preview.');
@@ -126,6 +132,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   try {
     const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    if (previewResult?.blocked) return; // No computed rows or review snapshot.
     if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
     installPreviewB313WallUpdateAuditController({
       host,
