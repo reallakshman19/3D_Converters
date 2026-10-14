@@ -113,7 +113,7 @@ async function streamOriginalPhysicalAudit(document,projection,basisId,requestId
   const totalCount=projection.nodeCount*4;
   const fields=[
     ['source.position.xyz','Position','mm',raw=>{
-      const parts=raw.trim().split(/\\s+/).map(Number);
+      const parts=raw.trim().split(/\s+/).map(Number);
       return parts.length===3&&parts.every(Number.isFinite)?parts:null;
     }],
     ['source.outsideDiameter.mm','OutsideDiameter','mm',raw=>Number.isFinite(Number(raw))?Number(raw):null],
