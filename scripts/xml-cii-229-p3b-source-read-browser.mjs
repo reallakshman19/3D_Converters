@@ -87,6 +87,70 @@ try{
         if(buffer.byteLength!==bytes)throw Error('P3B_TEST_SHORT_READ');
         return {path,occurrenceId:occurrenceId(path),bytes:new Uint8Array(buffer)};
       };
+      // P3B.1 actual production-facing additive source read adapter,
+      // independently exercised against the real O1 store and original Blob.
+      const {readXml229SelectedOriginalValues}=await import(
+        '/tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs');
+      const hash=async str=>{
+        const value=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+        return [...new Uint8Array(value)].map(n=>n.toString(16).padStart(2,'0')).join('');
+      };
+      const xmlText=await (await fetch('/Benchmarks/1885Sjson/FirstpassXML')).text();
+      const dependencyBasis={
+        xmlSha256:await hash(xmlText),
+        selectionSha256:await hash(JSON.stringify(['/0','/0/children/0'])),
+        configSha256:await hash(JSON.stringify({})),
+        mastersSha256:await hash(JSON.stringify([])),
+      };
+      const receipt=Object.freeze({
+        schema:'XML229.OriginalStagedSourceReceipt.v1',
+        generationId:uuid,sourceRefId,
+        sourceRevision:basis.sourceRevision,
+        sha256:expectedSha,byteLength:file.size,
+        pageCount,occurrenceCount:manifest.occurrenceCount,
+        phase:'INDEX_COMMITTED',rightsBasis:'SOURCE_FACTS_ONLY',
+        engineeringReady:false,
+      });
+      const active={blob:file,store,receipt,dependencyBasis,cancelled:false};
+      const accepted=[],aborted=[];
+      let acceptedManifest=null;
+      const transactionalSink={
+        async stage(row){accepted.push(row);},
+        async commit(x){acceptedManifest=x;},
+        async abort(e){aborted.push(e?.code||String(e));accepted.length=0;},
+      };
+      const productionRead=await readXml229SelectedOriginalValues({
+        blob:file,store,receipt,dependencyBasis,
+        paths:['/0','/0/children/0'],
+        getCurrentContext:()=>active,sink:transactionalSink,
+      });
+      if(productionRead.pagesScanned!==47||productionRead.valueCount!==2||
+         acceptedManifest!==productionRead||accepted.length!==2||
+         accepted.some(item=>item.engineeringReady!==false||
+           item.rightsBasis!=='SOURCE_FACTS_ONLY')||
+         !new TextDecoder().decode(accepted[1].bytes).includes('ELBOW 90 DEG LR BW Sch 80'))
+        throw Error('P3B1_REAL_ADAPTER_POSITIVE_FAILED');
+      let staleDependency='NOT_REJECTED';
+      const oldBasis=active.dependencyBasis;
+      const staleSink={
+        async stage(){active.dependencyBasis={...oldBasis,selectionSha256:'f'.repeat(64)};},
+        async commit(){throw Error('P3B1_STALE_DEPENDENCY_COMMITTED');},
+        async abort(e){staleDependency=e?.code||String(e);},
+      };
+      try{await readXml229SelectedOriginalValues({blob:file,store,receipt,dependencyBasis,
+        paths:['/0'],getCurrentContext:()=>active,sink:staleSink});}
+      catch(e){if(e?.code!=='P3B_READ_SOURCE_STALE')throw e;}
+      if(staleDependency!=='P3B_READ_SOURCE_STALE')throw Error('P3B1_STALE_NOT_ABORTED');
+      active.dependencyBasis=oldBasis;
+      let staleGeneration='NOT_REJECTED';
+      active.receipt={...receipt,generationId:'old-generation'};
+      try{await readXml229SelectedOriginalValues({
+        blob:file,store,receipt,dependencyBasis,paths:['/0'],
+        getCurrentContext:()=>active,sink:transactionalSink});
+      }catch(e){staleGeneration=e.code||String(e);}
+      if(staleGeneration!=='P3B_READ_SOURCE_STALE')throw Error('P3B1_GENERATION_NOT_REJECTED');
+      active.receipt=receipt;
+
       const branch=await readOne('/0'),elbow=await readOne('/0/children/0');
       const smallWitness=new TextDecoder().decode(elbow.bytes);
       if(!smallWitness.includes('ELBOW 90 DEG LR BW Sch 80')||
@@ -125,6 +189,12 @@ try{
       return {sourceCommitted:true,sourceIndexSha256:manifest.sourceSha256,
         sourceCount:manifest.occurrenceCount,sourceEvents:eventCount,committedPages:pageCount,
         sourceIndexWallMs:Math.round(performance.now()-started),
+        productionReadAdapter:{schema:productionRead.schema,verified:true,
+          requestedValueCount:productionRead.valueCount,
+          originalBytes:productionRead.byteCount,
+          pagesScanned:productionRead.pagesScanned,
+          stagedSourceOnlyValues:accepted.length,
+          wrongSelection:staleDependency,wrongGeneration:staleGeneration},
         scopedBranchSpanBytes:branch.bytes.byteLength,
         elbowSpanBytes:elbow.bytes.byteLength,
         existingProjection:{dtxrCount:readProof.dtxrCount,
