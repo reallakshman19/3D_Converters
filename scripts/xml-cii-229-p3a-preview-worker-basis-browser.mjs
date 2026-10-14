@@ -53,6 +53,16 @@ try {
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click({timeout:45000});
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlFile);
+  // The actual Preview requires a master. Load one via the authored Import
+  // Masters UI, not by disabling readiness or injecting hidden state.
+  await page.locator('[data-sub-tab="pipingClass"]').click();
+  await page.locator('input[data-master-file="pipingClass"]').setInputFiles({
+    name:'xml229-p3a-original-preview-master.csv',mimeType:'text/csv',
+    buffer:Buffer.from('PipingClass,Material\\n31441C4,ASTM A106-B\\n'.replaceAll('\\\\n','\\n')),
+  });
+  await page.locator('[data-master-mapping-status="pipingClass"]')
+    .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
+  record.observation.previewMasterLoaded='pipingClass:1 synthetic mapping row via existing master UI';
   await page.locator('[data-phase="json-trace"]').click();
   assert.equal(await page.locator('[data-lfj-o1-enable]').isChecked(), true,
     'actual ordinary single PSI116 route should default to independent Worker');
