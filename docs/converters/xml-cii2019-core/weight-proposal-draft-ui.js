@@ -43,3 +43,30 @@ export function proposeXmlCiiWeightDraft({issue,config={}}={}){
     return outcome('NEEDS_ENGINEERING_REVIEW',{proposedKg,alternatives});
   return outcome('ELIGIBLE_DRAFT',{draftKg:proposedKg,proposedKg,alternatives});
 }
+
+/** Explain why the EXISTING blank-only policy refused to accept a row.
+ * Does not change what the policy accepts. Unknown refusals remain skipped.
+ */
+export function explainXmlCiiBlankWeightFill({input,issue,config={}}={}){
+  const selection=selectXmlCiiBlankWeightSuggestion({input,issue,config});
+  if(selection)return Object.freeze({eligible:true,code:'ELIGIBLE',selection});
+  const t=v=>v==null?'':String(v).trim();
+  if(!input||!issue||!t(issue.key))
+    return Object.freeze({eligible:false,code:'INVALID_ROW'});
+  if(t(input.value))
+    return Object.freeze({eligible:false,code:'NONBLANK_WEIGHT_INPUT'});
+  if(input.dataset?.wmAccepted==='true'||issue.mapped||
+    (t(issue.weight)!==''&&Number(issue.weight)>0))
+    return Object.freeze({eligible:false,code:'EXISTING_ACCEPTED_WEIGHT'});
+  if(issue.staleMatch1)
+    return Object.freeze({eligible:false,code:'STALE_MATCH1'});
+  const buckets=['rigidWeightFinal','rigidWeightMatch1','rigidWeight',
+    'rigidWeightProposalMeta','rigidWeightMatch1Provenance'];
+  const overrides=config?.overrides||{};
+  if(buckets.some(key=>{
+    const record=overrides[key];
+    return record&&Object.hasOwn(record,issue.key)&&
+      record[issue.key]!=null&&t(record[issue.key])!=='';
+  }))return Object.freeze({eligible:false,code:'STORED_DECISION_OR_PROPOSAL'});
+  return Object.freeze({eligible:false,code:'NO_QUALIFIED_BLANK_FILL_CANDIDATE'});
+}
