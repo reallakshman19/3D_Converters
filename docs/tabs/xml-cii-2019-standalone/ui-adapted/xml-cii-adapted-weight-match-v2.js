@@ -306,6 +306,19 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
       });
       card.__xmlCiiWeightAuthorityPresentationCleanup = installWeightMatchAuthorityPresentation(card);
       appendEmpiricalWeightValidationReport(card, stateRef);
+      // W3-B2: display ONLY an already-completed same-basis GC-PW snapshot.
+      // Legacy issue.key / node numbers are never used as canonical joins.
+      if (options.verifiedSharedWeightSnapshot) {
+        const {renderVerifiedWeightReconciliationPanel} = await import(
+          './xml-cii-adapted-weight-shared-reconciliation-view.js');
+        const html=renderVerifiedWeightReconciliationPanel(options.verifiedSharedWeightSnapshot,{
+          stage:'RigidMatch1',sourceId:options.verifiedWeightSourceId||null,
+          expectedBasisId:options.currentVerifiedWeightBasisId,
+        });
+        const evidence=document.createElement('div');
+        evidence.innerHTML=html;
+        card.appendChild(evidence);
+      }
       // Explicitly injected by #999 AFTER complete Preview Worker FactRecords are
       // attested: never convert legacy issue keys or NodeNumber to canonical IDs.
       const canonicalIndividual = options.canonicalIndividual || null;
