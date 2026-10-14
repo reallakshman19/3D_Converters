@@ -139,6 +139,7 @@ try {
    const match=renderVerifiedWeightReconciliationPanel(snapshot,{
      stage:'RigidMatch1',sourceId:'source-A',expectedBasisId:basisId,
    });
+   window.__verifiedW3Snapshot=snapshot;
    window.verifiedFinalPromise=window.openFinal([{
      sourceId:'source-A',fileName:'OWNER-GLRD.xml',config:{overrides:{}},
      issues:[window.w3Entries[0].issues[0]],
@@ -165,6 +166,22 @@ try {
  const verifiedCancelled=await page.evaluate(async()=>await window.verifiedFinalPromise);
  assert.equal(verifiedCancelled.cancelled,true);
  assert.deepEqual(verifiedCancelled.updates,{});
+
+ // A canonical physical source can have items even if legacy UI found zero
+ // issue.key rows. Never auto-return non-cancelled/no-review status.
+ await page.evaluate(()=>{
+   const snap=window.__verifiedW3Snapshot;
+   window.w3EmptyVerified=window.openFinal([],{
+     verifiedSharedWeightSnapshot:snap,currentVerifiedWeightBasisId:snap.basisId,
+   });
+ });
+ await page.waitForFunction(()=>document.querySelector('[data-canonical-stage="Rigidmatch2"]'));
+ assert.equal(await page.locator('[data-mode-a-rigid-apply]').isDisabled(),true);
+ assert.equal(await page.locator('[data-canonical-occurrence]').count(),1);
+ await page.locator('[data-mode-a-rigid-cancel]').click();
+ const emptyVerifiedCancelled=await page.evaluate(async()=>await window.w3EmptyVerified);
+ assert.equal(emptyVerifiedCancelled.cancelled,true);
+ assert.deepEqual(emptyVerifiedCancelled.updates,{});
 
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229_W3_FINAL_POPUP_CHROMIUM_V1',ok:true,
