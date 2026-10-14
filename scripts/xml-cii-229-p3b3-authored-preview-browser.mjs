@@ -93,7 +93,7 @@ try{
   assert.equal(actual.cacheStatus,'UNCACHED','do not publish unsafe JSON cache HIT');
   assert.ok(record.workerUrls.some(url=>url.includes('xml229-preview-original-blob-worker.mjs')));
   record.stages.workerScriptSeen=true;
-  const transportNegatives=await page.evaluate(async(sourceBytes,sourceSha)=>{
+  const transportNegatives=await page.evaluate(async({sourceBytes,sourceSha})=>{
     const {executeXml229OriginalPreview}=await import(
       '/tabs/xml-cii-2019-standalone/integration/xml229-preview-original-blob-execution.mjs');
     const bogus=new Blob([new Uint8Array(sourceBytes).fill(32)],{type:'application/json'});
@@ -118,7 +118,7 @@ try{
     job.release();
     try{await job.promise;}catch(e){cancelled=String(e?.code||e?.message||e);}
     return {badSha,cancelled};
-  },j.byteLength,record.jsonSha);
+  },{sourceBytes:j.byteLength,sourceSha:record.jsonSha});
   record.stages.transportNegatives=transportNegatives;
   assert.equal(transportNegatives.badSha,'XML229_PREVIEW_SOURCE_SHA_MISMATCH',
     'forged original Blob must never reach engineering computation');
