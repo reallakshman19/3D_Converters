@@ -5,6 +5,11 @@ on:
     paths:
       - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
+      - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
       - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs'
       - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs'
@@ -46,6 +51,11 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-worker.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
+          node --check tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
@@ -80,3 +90,4 @@ jobs:
           git rev-parse HEAD
           node tests/xml-cii-229-p4-real-worker-weight-session-browser.mjs
           node tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs
+          node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
