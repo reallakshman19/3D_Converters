@@ -80,7 +80,7 @@ test('no qualification or two different corroborating masses => explicit review'
 
 test('other source with identical physical component identity is a separate source and cannot alias',()=>{
   const s2=id(other,0,0);
-  assert.throws(()=>build([view(s2)], [node300]),/physical source identity differs/);
+  assert.throws(()=>build([view(s2)], [node300]),/physical source identity differs/i);
   const rows2=build([{...view(s2),sourceId:other}],[s2],other);
   assert.equal(rows2.rows[0].sourceId,other);
   assert.notEqual(rows2.rows[0].occurrenceId,node300);
