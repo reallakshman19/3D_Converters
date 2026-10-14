@@ -113,6 +113,59 @@ try {
  const accepted=await page.evaluate(async()=>await window.w3Result);
  assert.equal(accepted.cancelled,false);
  assert.equal(accepted.updates['source-A'].weightsByKey.RIGID300,35);
+ // Verified canonical stage: one physical original ID, never converted into
+ // a legacy issue.key. The same snapshot displays in Match-1 and Final.
+ const shared=await page.evaluate(async()=>{
+   const basisId='a'.repeat(64);
+   const occurrenceId=JSON.stringify(['source-A',0,0,'RIGID:1006649732/119364_2']);
+   const snapshot={
+     schema:'gc-pw-weight-shared-reconciliation/1.0',basisId,
+     sources:['source-A'],physicalCount:1,proposalCount:1,
+     revisions:{'source-A':{match1:null,final:null}},
+     engineeringAccepted:false,
+     rows:[{
+       basisId,sourceId:'source-A',occurrenceId,
+       branchOccurrenceIndex:0,nodeOrdinal:0,componentSignature:'RIGID:1006649732/119364_2',
+       sourceKg:null,match1Kg:null,finalKg:null,
+       effectiveAcceptedKg:null,proposedKg:35,draftKg:35,
+       draftStatus:'UNACCEPTED_DRAFT',proposals:[{
+         basisId,occurrenceId,proposalId:'source-proposal-35',ranking:1,kg:35,
+         unit:'kg',qualified:true,method:'exact',scoringRevision:'test-v1',
+       }],
+     }],
+   };
+   const {renderVerifiedWeightReconciliationPanel}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-shared-reconciliation-view.js');
+   const match=renderVerifiedWeightReconciliationPanel(snapshot,{
+     stage:'RigidMatch1',sourceId:'source-A',expectedBasisId:basisId,
+   });
+   window.verifiedFinalPromise=window.openFinal([{
+     sourceId:'source-A',fileName:'OWNER-GLRD.xml',config:{overrides:{}},
+     issues:[window.w3Entries[0].issues[0]],
+   }],{verifiedSharedWeightSnapshot:snapshot,currentVerifiedWeightBasisId:basisId});
+   return {match,expected:occurrenceId};
+ });
+ await page.waitForFunction(()=>document.querySelector('[data-canonical-stage="Rigidmatch2"]'));
+ const verified=await page.evaluate(()=>({
+   canonical:document.querySelector('[data-canonical-stage="Rigidmatch2"]')?.outerHTML,
+   legacyApplyDisabled:document.querySelector('[data-mode-a-rigid-apply]')?.disabled,
+   legacyFillDisabled:document.querySelector('[data-mode-a-rigid-fill-exact]')?.disabled,
+   notice:document.querySelector('[data-mode-a-rigid-status]')?.textContent,
+ }));
+ assert.match(shared.match,/source-A/);
+ assert.match(shared.match,/35 kg/);
+ assert.match(verified.canonical,/35 kg/);
+ assert.match(verified.canonical,/data-canonical-stage="Rigidmatch2"/);
+ assert(verified.canonical.includes(shared.expected.replaceAll('&','&amp;').replaceAll('"','&quot;')) ||
+   verified.canonical.includes('source-A'));
+ assert.equal(verified.legacyApplyDisabled,true);
+ assert.equal(verified.legacyFillDisabled,true);
+ assert.match(verified.notice,/Legacy Final Apply is blocked/);
+ await page.locator('[data-mode-a-rigid-cancel]').click();
+ const verifiedCancelled=await page.evaluate(async()=>await window.verifiedFinalPromise);
+ assert.equal(verifiedCancelled.cancelled,true);
+ assert.deepEqual(verifiedCancelled.updates,{});
+
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229_W3_FINAL_POPUP_CHROMIUM_V1',ok:true,
   initial,cancel,accepted,errors},null,2));
