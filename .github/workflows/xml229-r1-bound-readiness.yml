@@ -1,0 +1,40 @@
+name: XML229 R1 Source-bound Run readiness
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-run-completion-receipt.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-run-completion-receipt.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js'
+      - 'tests/xml-cii-229-r1-completion-receipt-readiness.test.mjs'
+      - '.github/workflows/xml229-r1-bound-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r1-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact checked-out head
+        run: git rev-parse HEAD
+      - name: Syntax and serve mirrors
+        run: |
+          node --check tabs/xml-cii-2019-standalone/xml-cii-run-completion-receipt.mjs
+          node --check tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          node --check tests/xml-cii-229-r1-completion-receipt-readiness.test.mjs
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-run-completion-receipt.mjs docs/tabs/xml-cii-2019-standalone/xml-cii-run-completion-receipt.mjs
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+      - name: Run source-bound and legacy Run safety suites
+        run: |
+          node --test tests/xml-cii-229-r1-completion-receipt-readiness.test.mjs tests/xml-cii-229-run-format-diagnostics.test.mjs tests/xml-cii-229-weight-run-cache.test.mjs
