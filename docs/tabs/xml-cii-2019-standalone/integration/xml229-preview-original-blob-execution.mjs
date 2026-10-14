@@ -49,6 +49,10 @@ export function executeXml229OriginalPreview({
     }else if(m.state==='failed'){
       const e=fail(String(m.error?.code||'XML229_PREVIEW_WORKER_FAILED'));
       e.stage=String(m.error?.stage||'compute');
+      // Keep the Worker diagnostic; previously the adapter discarded it and
+      // showed only the generic fallback code twice. Bound visible text.
+      const detail=String(m.error?.message||'').replace(/\s+/g,' ').slice(0,360);
+      if(detail)e.message=detail;
       cleanup(e);
     }else if(m.state==='completed'){
       const x=m.result;
