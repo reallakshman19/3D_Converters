@@ -183,6 +183,91 @@ try {
  assert.equal(emptyVerifiedCancelled.cancelled,true);
  assert.deepEqual(emptyVerifiedCancelled.updates,{});
 
+ // An ACTUAL GC-PW review ledger: 101 original canonical physical components
+ // prove the second 100-row page and explicit CAS-backed Final decision.
+ await page.evaluate(async()=>{
+   const {createWeightReviewService,WEIGHT_SCHEMA}=await import(
+     '/docs/converters/xml-cii2019-core/weight-facts-review-service.js');
+   const {physicalOccurrenceId}=await import(
+     '/docs/contracts/gc-pw-v1/occurrence-bridge.mjs');
+   const {readVerifiedSharedWeightReconciliation}=await import(
+     '/docs/converters/xml-cii2019-core/weight-facts-shared-reconciliation.js');
+   const digest=v=>v.repeat(64);
+   const sourceId='source-A',basisId=digest('e');
+   const basis={
+     schemaVersion:WEIGHT_SCHEMA,domainId:'xml-cii/2019',basisId,
+     sourceRefs:[{sourceId,sha256:digest('b'),mediaType:'application/xml'}],
+     scope:[{sourceId,selectionRef:'exact-101-physical'}],
+     selectionSha256:digest('c'),stagedSourceSha256:null,
+     configSha256:digest('d'),overridesSha256:digest('f'),
+     masters:{weight:{datasetId:'real-scoped',revision:'v1',
+       sha256:digest('a'),mappingSha256:digest('1'),rowCount:1595}},
+   };
+   const facts=Array.from({length:101},(_,n)=>{
+     const occurrenceId=physicalOccurrenceId({
+       sourceId,branchOccurrenceIndex:0,nodeOrdinal:n,
+       componentSignature:'RIGID:1006649732/119364_2',
+     });
+     return {schemaVersion:WEIGHT_SCHEMA,domainId:'xml-cii/2019',basisId,
+       subjectType:'physical-component',sourceId,occurrenceId,fieldId:'mass.kg',
+       value:null,unit:'kg',authority:'unresolved',provenance:[],diagnostics:[]};
+   });
+   const service=createWeightReviewService({score:(records,basis)=>[{
+     basisId:basis.basisId,domainId:basis.domainId,occurrenceId:records[0].occurrenceId,
+     proposalId:records[0].occurrenceId+'-35',value:35,unit:'kg',
+     method:'exact',ranking:1,qualified:true,scoringRevision:'verified-test',
+     eligibilityReasons:['exact master'],evidenceRefs:[basis.masters.weight.sha256],
+   }]});
+   service.openBasis(basis,{facts});
+   const session={basis,review:service,openedFacts:facts.length};
+   const snapshot=readVerifiedSharedWeightReconciliation(session);
+   window.__w3Canonical={session,snapshot,finalOccurrence:facts[100].occurrenceId};
+   window.w3CanonicalResult=window.openFinal([],{
+     verifiedWeightSession:session,verifiedSharedWeightSnapshot:snapshot,
+     currentVerifiedWeightBasisId:basisId,
+   });
+ });
+ await page.waitForFunction(()=>document.querySelectorAll('[data-canonical-final-review]').length===100);
+ assert.equal(await page.locator('[data-mode-a-rigid-apply]').isDisabled(),true);
+ assert.equal(await page.locator('[data-canonical-next]').isEnabled(),true);
+ await page.locator('[data-canonical-next]').click();
+ assert.equal(await page.locator('[data-canonical-final-review]').count(),1);
+ const finalReview=page.locator('[data-canonical-final-review]');
+ assert.equal(await finalReview.getAttribute('data-occurrence-id'),
+   await page.evaluate(()=>window.__w3Canonical.finalOccurrence));
+ await finalReview.click();
+ await page.waitForFunction(()=>document.querySelector('.mc-weight-individual-overlay'));
+ assert.equal(await page.locator('.mc-weight-individual-overlay [role="dialog"]').getAttribute('aria-label'),
+   'Final Match-2 individual review');
+ await page.locator('.mc-weight-individual-overlay input[type="number"]').fill('35');
+ await page.locator('.mc-weight-individual-overlay button', {hasText:'Accept Final kg'}).click();
+ assert.match(await page.locator('.mc-weight-individual-overlay [role="status"]').textContent(),/Review not accepted/);
+ await page.locator('.mc-weight-individual-overlay textarea').fill('Engineer inspected source-correct 35 kg master match');
+ await page.locator('.mc-weight-individual-overlay button', {hasText:'Accept Final kg'}).click();
+ await page.waitForFunction(()=>!document.querySelector('.mc-weight-individual-overlay'));
+ assert.equal(await page.locator('[data-canonical-stage="Rigidmatch2"] [data-canonical-occurrence]').count(),1);
+ assert.match(await page.locator('[data-canonical-stage="Rigidmatch2"]').textContent(),/35 kg/);
+ const canonicalState=await page.evaluate(()=>{
+   const {session,finalOccurrence}=window.__w3Canonical;
+   return {state:session.review.getDecisionState({
+     basisId:session.basis.basisId,scopeId:'source-A',stage:'Rigidmatch2'
+   }),finalOccurrence};
+ });
+ assert.equal(canonicalState.state.decisions[canonicalState.finalOccurrence].value,35);
+ assert.equal(canonicalState.state.decisions[canonicalState.finalOccurrence].state,'accepted');
+ assert.equal(await page.locator('[data-mode-a-rigid-apply]').isDisabled(),true);
+ await page.locator('[data-mode-a-rigid-cancel]').click();
+ const canonicalCancelled=await page.evaluate(async()=>await window.w3CanonicalResult);
+ assert.equal(canonicalCancelled.cancelled,true);
+ assert.deepEqual(canonicalCancelled.updates,{});
+ const stillAccepted=await page.evaluate(()=>{
+   const {session,finalOccurrence}=window.__w3Canonical;
+   return session.review.getDecisionState({
+     basisId:session.basis.basisId,scopeId:'source-A',stage:'Rigidmatch2'
+   }).decisions[finalOccurrence]?.value;
+ });
+ assert.equal(stillAccepted,35,'batch cancel cannot undo separately explicit Final decision');
+
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229_W3_FINAL_POPUP_CHROMIUM_V1',ok:true,
   initial,cancel,accepted,errors},null,2));
