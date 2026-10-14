@@ -196,6 +196,9 @@ globalThis.addEventListener('message',async (event)=>{
       parseXml:xml=>{originalDocument=new DOMParser().parseFromString(xml,'application/xml');
         return originalDocument;},
     });
+    if(request.sourcePhysicalAuditMode==='paced-pages'&&original.nodeCount>MAX_STREAM_NODES)
+      throw Object.assign(new Error('Paced physical-source pilot exceeds 10000 original nodes'),
+        {code:'PHYSICAL_STREAM_BOUNDED_LIMIT'});
     // The same parsed original XML tree drives the ordinal source audit.
     // No second source parse, reinterpretation of NodeNumber, or silent
     // promotion of legacy review-eligible rows into all-source facts.
