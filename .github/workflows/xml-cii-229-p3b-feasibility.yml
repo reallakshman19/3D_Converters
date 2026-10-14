@@ -1,0 +1,77 @@
+name: XML229 P3B.0 Original object-input feasibility
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tests/xml-cii-229-p3b-original-object-parity.test.mjs'
+      - 'tests/browser/xml229-p3b-source-read-witness.html'
+      - 'tests/browser/xml229-p3b-source-projection-worker.mjs'
+      - 'scripts/xml-cii-229-p3b-source-read-browser.mjs'
+      - '.github/workflows/xml-cii-229-p3b-feasibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-object-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact original source proof and no production changes
+        run: |
+          echo "P3B0_HEAD=$(git rev-parse HEAD)"
+          echo "P3B0_NODE=$(node --version)"
+          printf '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json\n' | sha256sum --check -
+          node --check tests/xml-cii-229-p3b-original-object-parity.test.mjs
+          node --test tests/xml-cii-229-p3b-original-object-parity.test.mjs
+      - name: Retain baseline P3A served mirrors
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+
+  real-original-source-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact-head source and syntax
+        run: |
+          echo "P3B0C_HEAD=$(git rev-parse HEAD)"
+          printf '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json\n' | sha256sum --check -
+          node --check scripts/xml-cii-229-p3b-source-read-browser.mjs
+          node --check tests/browser/xml229-p3b-source-projection-worker.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual repository files
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p3b0c-http.log 2>&1 &
+      - name: Real O1 Worker committed IndexedDB pair to bounded original calculation input
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p3b-source-read-browser.mjs
+      - name: Persist actual browser result on pass and failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p3b0c-original-source-read
+          path: |
+            ValidationRecords/xml229-p3b0c-original-source-read.json
+            /tmp/xml229-p3b0c-http.log
+          if-no-files-found: warn
+          retention-days: 30
