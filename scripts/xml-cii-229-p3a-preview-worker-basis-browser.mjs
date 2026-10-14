@@ -115,8 +115,8 @@ try {
   record.observation.previewCacheText=await page.locator('[data-mc-preview-cache-evidence]')
     .textContent();
   record.observation.previewHasTable=await page.locator('#mc-preview-table-host table').count();
-  assert.equal(record.observation.previewCacheStatus,'JSON_SOURCE_PENDING',
-    'Worker original JSON must not be reported as a cache MISS over 0 staged bytes');
+  assert.equal(record.observation.previewCacheStatus,'JSON_WORKER_READY',
+    'Committed original JSON now supports a verified Worker Preview Build, not a 0B cache MISS');
   assert.ok(record.observation.previewCacheText.includes(sha(originalJson)),
     'Preview must identify actual original SHA, not an empty staged basis');
   assert.ok(!record.observation.previewCacheText.includes('staged JSON 0 B'),
@@ -203,7 +203,7 @@ try {
     record.observation.sourceBadgePositive && record.domain.verified &&
     record.synthetic28.ok;
   record.disposition=record.pass
-    ? 'P3A_PREVIEW_WORKER_SOURCE_HELD_AND_BADGE_PRESERVED'
+    ? 'P3B_PREVIEW_WORKER_READY_BEFORE_CLICK_AND_BADGE_PRESERVED'
     : 'P1B_SOURCE_BADGE_REGRESSION_FAILED';
 }catch(error){
   record.failures.push(String(error?.stack||error).slice(0,1800));

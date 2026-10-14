@@ -250,6 +250,32 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     sourceStatus:options.originalStagedSourceStatus,
     stagedJsonText:options.stagedJsonText,
   });
+  // XML229 P3B.3: an indexed original File can now be consumed by the
+  // existing 4 Preview button's separate source-hashing Worker. The V7 cache
+  // must remain OFF for this route: it is not keyed to the full O1 SHA/generation.
+  // Do not sign an empty stagedJsonText cache, or promote source-only receipt.
+  if(workerGate.blocked &&
+     workerGate.reason==='ORIGINAL_JSON_INDEXED_NO_PREVIEW_READ_PORT' &&
+     typeof options.resolveOriginalWorkerPreviewSource==='function') {
+    host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
+    discardPreviewCacheV7();
+    const workerOptions={...options,skipLegacyCache:true,
+      onOriginalWorkerPreviewCompleted:({sourceReceipt})=>{
+        discardPreviewCacheV7();
+        if(host.isConnected===false)return;
+        addCacheEvidence(host,{status:'UNCACHED',authority:null,
+          reason:'Worker-verified original JSON SHA-256 '+sourceReceipt.sha256+
+            ' · generation '+sourceReceipt.generationId+
+            ' · cache reuse disabled pending complete source-basis cache contract.'});
+      },
+    };
+    const idle=await buildLegacyPreview(rootEl,xmlText,config,workerOptions);
+    addCacheEvidence(host,{status:'JSON_WORKER_READY',authority:null,
+      reason:'Original JSON '+workerGate.sourceBytes+' B · SHA256 '+
+        workerGate.sourceSha256+
+        ' · Build Preview runs source-verified JSON in a separate Worker; no cache HIT or CII approval.'});
+    return idle;
+  }
   if(workerGate.blocked) {
     host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
     host.replaceChildren?.();
