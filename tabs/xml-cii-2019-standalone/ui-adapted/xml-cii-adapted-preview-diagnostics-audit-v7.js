@@ -132,11 +132,17 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       if(!previewInputsCurrent(card,stateRef,state.modeASourceId,sourceInputs))
         throw Object.assign(new Error('Preview source/selection/config changed'),
           {code:'XML229_PREVIEW_INPUT_CHANGED'});
-      const current=stateRef?.current||{};
+      // The branch-scoped UI ref already contains FILTERED XML. Test scope
+      // against the underlying unfiltered Mode-A original, otherwise a partial
+      // selection appears falsely to be "all" after filtering.
+      const current=stateRef?.modeABaseRef?.current||stateRef?.current||{};
       const scope=xmlCiiBranchScopeFromState({
-        sourceKind:'xml',sourceText:xmlText,
+        sourceKind:'xml',sourceText:current.sourceText||'',
         branchSelection:current.branchSelection||{},
       });
+      if(current.sourceText!==xmlText)
+        throw Object.assign(new Error('Filtered or replaced XML cannot claim full O1 source scope'),
+          {code:'XML229_PREVIEW_ORIGINAL_XML_SCOPE_STALE'});
       // Existing B1 Worker computes the original full XML only. A selected
       // subset needs its own original-occurrence join; do not silently use ALL.
       if(!scope.applicable||scope.blocked||
