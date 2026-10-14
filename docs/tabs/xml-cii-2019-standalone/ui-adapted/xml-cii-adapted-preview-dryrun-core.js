@@ -1,3 +1,4 @@
+import {preparePreviewNodeOccurrenceDocument} from './xml-cii-adapted-preview-node-occurrence-ledger.js';
 /** Builds read-only Preview rows from source XML, standalone config, and staged
  * JSON. Returns rows with provenance; invalid XML returns empty rows. */
 
@@ -385,40 +386,15 @@ export function _processDataText(config, keys, fieldKey) {
   return '';
 }
 
-function previewWorkingDocument(xmlText, sourceDocument = null) {
-  if (sourceDocument && typeof sourceDocument.cloneNode === 'function') {
-    try {
-      const document = sourceDocument.cloneNode(true);
-      return document.getElementsByTagName('parsererror').length ? null : document;
-    } catch {}
-  }
-  if (typeof DOMParser === 'undefined') return null;
-  try {
-    const document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
-    return document.getElementsByTagName('parsererror').length ? null : document;
-  } catch {
-    return null;
-  }
-}
-
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {}) {
-  const document = previewWorkingDocument(xmlText, runtime.sourceDocument);
+  // Original source ordinals are assigned before the working DOM is cleaned.
+  // Later bore/wall authority reads the unmodified sourceDocument.
+  const prepared = preparePreviewNodeOccurrenceDocument({
+    xmlText,config,sourceDocument:runtime.sourceDocument,
+  });
+  const document = prepared.document;
   if (!document) return { branchRows: [], nodeRows: [] };
-
-  // Node Block Invariant Cleanup Sync (Parity with xml-cii-node-block-cleanup.js)
-  const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
-  const dropGask = config.disableGasketNodes === true || config.disableGasketInOutput === true || (config.dropGasketNodes !== false && config.dropGasketsInEnrichment !== false);
-  const dropShort = config.dropShortElementLengthNodes !== false && thresholdMm > 0;
-
-  for (const node of [...document.getElementsByTagName('Node')]) {
-    const componentType = _toText(_xmlText(node, 'ComponentType')).toUpperCase();
-    const explicitLength = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm'));
-    const isGasket = dropGask && componentType === 'GASK';
-    const isShort = dropShort && explicitLength !== null && explicitLength <= thresholdMm;
-    if (isGasket || isShort) {
-      node.parentNode?.removeChild(node);
-    }
-  }
+  const nodeOccurrenceLedger = prepared.ledger;
 
   const branchRows = [];
   const nodeRows = [];
@@ -577,12 +553,12 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw })
     });
 
-    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows });
+    _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows, nodeOccurrenceLedger });
   }
   return { branchRows, nodeRows };
 }
 
-function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows }) {
+function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows, nodeOccurrenceLedger }) {
   let previousPosition = null;
   const branchNodes = _xmlChildrenByName(branch, 'Node');
   branchNodes.forEach((node, nodeIdx) => {
@@ -591,6 +567,14 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreM
     const explicitLengthMm = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm'));
     const lengthMm = explicitLengthMm !== null ? explicitLengthMm : computedLengthMm;
     const nodeNumber = _xmlText(node, 'NodeNumber');
+    // nodeIdx is an effective (post-cleanup) ordinal, not source identity.
+    const sourceOccurrence = nodeOccurrenceLedger?.retainedByBranch?.[branchOccurrenceIndex]?.[nodeIdx];
+    if (!sourceOccurrence ||
+        sourceOccurrence.nodeNumber !== nodeNumber ||
+        sourceOccurrence.componentRefNo !== _xmlText(node, 'ComponentRefNo') ||
+        sourceOccurrence.endpoint !== _xmlText(node, 'Endpoint')) {
+      throw new Error('Preview source node occurrence ledger mismatch; conversion blocked.');
+    }
     const componentType = _xmlText(node, 'ComponentType');
     const weightEligible = isXmlCiiWeightReviewNode(node);
     const dtxrRes = weightEligible ? resolveXmlCiiNodeDtxr(node, stagedIndex, config) : { value: '', source: 'not-weight-eligible', matchedKey: '' };
@@ -607,6 +591,8 @@ function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreM
         branchName,
         branchOccurrenceIndex,
         nodeOrdinal: nodeIdx,
+        sourceNodeOrdinal: sourceOccurrence.sourceNodeOrdinal,
+        effectiveNodeOrdinal: nodeIdx,
         nodeNumber,
         componentType,
         boreMm,
