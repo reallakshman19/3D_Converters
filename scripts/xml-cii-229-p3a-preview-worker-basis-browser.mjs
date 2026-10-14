@@ -58,7 +58,7 @@ try {
   await page.locator('[data-sub-tab="pipingClass"]').click();
   await page.locator('input[data-master-file="pipingClass"]').setInputFiles({
     name:'xml229-p3a-original-preview-master.csv',mimeType:'text/csv',
-    buffer:Buffer.from('PipingClass,Material\\n31441C4,ASTM A106-B\\n'.replaceAll('\\\\n','\\n')),
+    buffer:Buffer.from('PipingClass,Material\n31441C4,ASTM A106-B\n'),
   });
   await page.locator('[data-master-mapping-status="pipingClass"]')
     .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
