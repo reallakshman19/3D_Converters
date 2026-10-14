@@ -1,0 +1,57 @@
+name: XML229 P3A Worker JSON Preview cache authority
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs'
+      - 'scripts/xml-cii-229-p3a-preview-worker-basis-browser.mjs'
+      - 'tests/xml-cii-229-p3a-preview-worker-source-hold.test.mjs'
+      - '.github/workflows/xml-cii-229-p3a-preview-worker-authority.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker-preview-basis-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact head and served parity
+        run: |
+          echo "P3A_HEAD=$(git rev-parse HEAD)"
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js
+          node --check scripts/xml-cii-229-p3a-preview-worker-basis-browser.mjs
+          node --test tests/xml-cii-229-p3a-preview-worker-source-hold.test.mjs tests/xml-cii-preview-cache-v7.test.mjs tests/xml-cii-229-p1-source-receipt-contract.test.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual authored XML CII application
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p3a-http.log 2>&1 &
+      - name: Original indexed JSON requires Preview data reader; preserve domain and Run
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p3a-preview-worker-basis-browser.mjs
+      - name: Preserve source-bound evidence even on RED
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p3a-preview-worker-basis
+          path: |
+            ValidationRecords/xml229-p3a-preview-worker-basis-browser.json
+            /tmp/xml229-p3a-http.log
+          if-no-files-found: warn
+          retention-days: 30

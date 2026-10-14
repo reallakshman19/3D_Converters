@@ -17,6 +17,9 @@ import {
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
+import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {xmlCiiBranchScopeFromState} from '../xml-cii-branch-scope.js';
+
 export { renderStandaloneDiagnosticsReportPanel };
 
 export async function previewConfigFromState(state, options = {}) {
@@ -53,6 +56,8 @@ function modeASourceInputs(stateRef, sourceId) {
     masterContext: base.masterContext,
     datasetRefs: base.masterContext?.datasetRefs,
     dependencyRevisions: JSON.stringify(base.dependencyRevisions || {}),
+    xml229StagedSourceReceipt: active ? base.xml229StagedSourceReceipt : null,
+    xml229StagedSourceStatus: active ? base.xml229StagedSourceStatus : '',
   };
 }
 
@@ -97,6 +102,12 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     }
   };
 
+  // O1 original Owner/site selection is independent of XML branchSelection.
+  // Bind it to the actual Build Preview button, and invalidate it on change.
+  const scopeSnapshot = stateRef?.modeABaseRef?.current || state;
+  const capturedJsonTraceScopeId = scopeSnapshot?.jsonTraceScopeId ?? state.jsonTraceScopeId ?? '__ALL__';
+  const currentJsonTraceScopeId = () =>
+    (stateRef?.modeABaseRef?.current || stateRef?.current || {}).jsonTraceScopeId ?? '__ALL__';
   const stagedSource = {
     text: state.stagedJsonText || '',
     label: state.stagedJsonFile?.name || '',
@@ -114,8 +125,49 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       if (!cfg.overrides) cfg.overrides = {};
       return cfg.overrides;
     },
+    jsonTraceScopeId: capturedJsonTraceScopeId,
+    ...(state.selectedScopeId != null ? { selectedScopeId: state.selectedScopeId } : {}),
+    ...(state.requestedOwnerZoneScopeId != null ? {
+      requestedOwnerZoneScopeId: state.requestedOwnerZoneScopeId
+    } : {}),
     stagedJsonText: stagedSource.text,
     stagedSourceLabel: stagedSource.label,
+    // These SOURCE_FACTS_ONLY fields do not provide Preview JSON data.
+    // The V7 boundary must visibly HOLD instead of signing a JSON 0B digest.
+    originalStagedSourceReceipt:state.xml229StagedSourceReceipt || null,
+    originalStagedSourceStatus:state.xml229StagedSourceStatus || '',
+    // XML229 production B1 route. This callback never puts File/Blob into
+    // state or reads/parses the JSON on the UI thread; the original source
+    // Worker will independently verify its complete SHA before Preview.
+    resolveOriginalWorkerPreviewSource: async () => {
+      if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
+        throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
+          {code:'XML229_PREVIEW_SCOPE_CHANGED'});
+      if(!previewInputsCurrent(card,stateRef,state.modeASourceId,sourceInputs))
+        throw Object.assign(new Error('Preview source/selection/config changed'),
+          {code:'XML229_PREVIEW_INPUT_CHANGED'});
+      // The branch-scoped UI ref already contains FILTERED XML. Test scope
+      // against the underlying unfiltered Mode-A original, otherwise a partial
+      // selection appears falsely to be "all" after filtering.
+      const current=stateRef?.modeABaseRef?.current||stateRef?.current||{};
+      const scope=xmlCiiBranchScopeFromState({
+        sourceKind:'xml',sourceText:current.sourceText||'',
+        branchSelection:current.branchSelection||{},
+      });
+      if(current.sourceText!==xmlText)
+        throw Object.assign(new Error('Filtered or replaced XML cannot claim full O1 source scope'),
+          {code:'XML229_PREVIEW_ORIGINAL_XML_SCOPE_STALE'});
+      // Existing B1 Worker computes the original full XML only. A selected
+      // subset needs its own original-occurrence join; do not silently use ALL.
+      if(!scope.applicable||scope.blocked||
+         scope.selectedBranchOccurrences.length!==scope.sourceBranchOccurrences.length)
+        throw Object.assign(new Error('Selected partial scope needs a separate source-bound Preview implementation'),
+          {code:'XML229_PREVIEW_PARTIAL_SCOPE_HELD'});
+      // O1 session is keyed by the unwrapped Mode-A ref in the workflow shell;
+      // B1 receives a branch-scoped wrapper. Never key O1 by that wrapper.
+      return resolveXml229CurrentPreviewBlob(
+        stateRef?.modeABaseRef||stateRef,options.originalStagedSourceReceipt);
+    },
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
         throw new Error('Preview source or branch selection changed during build; rebuild Preview.');
@@ -126,6 +178,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   try {
     const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    if (previewResult?.blocked) return; // No computed rows or review snapshot.
     if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
     installPreviewB313WallUpdateAuditController({
       host,
