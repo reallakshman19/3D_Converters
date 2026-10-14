@@ -12,6 +12,7 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'scripts/xml-cii-229-p3b3-authored-preview-browser.mjs'
       - '.github/workflows/xml-cii-229-p3b3-real-preview.yml'
+      - 'tests/xml-cii-229-p3b3-owner-scope-failclosed.test.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,6 +46,9 @@ jobs:
           node --check scripts/xml-cii-229-p3b3-authored-preview-browser.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-original-blob-worker.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-original-blob-execution.mjs
+      - name: Reconciled original Owner/zone selection guard
+        run: |
+          node --test tests/xml-cii-229-p3b3-owner-scope-failclosed.test.mjs
       - name: Install real Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.52.0
