@@ -90,6 +90,18 @@ try{
   assert.equal(actual.branchCount,5);
   assert.equal(actual.originalSourceBranches,5);
   assert.ok(actual.tableCount>0);
+  // Independent checked-in original Firstpass oracle:
+  // Sjson.json /0/children/10 FLAN ref =1006649732/51234 has
+  // DTXR "WELDING NECK FLANGE Sch 80 900#" and ABORE/LBORE 150 mm.
+  // Existing NPS6 Sch80 wall table resolves the corresponding 10.97 mm.
+  const physical=actual.firstBranchFields;
+  assert.equal(physical.dtxrWallEvidenceSource,'staged-json');
+  assert.equal(physical.dtxrWallComponentRefNo,'=1006649732/51234');
+  assert.equal(physical.dtxrWallDtxr,'WELDING NECK FLANGE Sch 80 900#');
+  assert.equal(Number(physical.dtxrWallEvidenceBoreMm),150);
+  assert.equal(physical.dtxrWallSchedule,'80');
+  assert.equal(Number(physical.dtxrWallThickness),10.97);
+  record.stages.originalPhysicalOracle='SOURCE_REF_DTXR_BORE_WALL_MATCH';
   assert.equal(actual.cacheStatus,'UNCACHED','do not publish unsafe JSON cache HIT');
   assert.ok(record.workerUrls.some(url=>url.includes('xml229-preview-original-blob-worker.mjs')));
   record.stages.workerScriptSeen=true;
