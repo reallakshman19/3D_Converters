@@ -1,5 +1,6 @@
 import {projectXmlCiiFinalReviewRow} from '../../../converters/xml-cii2019-core/weight-final-review-reconciliation.js';
 import {renderVerifiedWeightReconciliationPanel} from './xml-cii-adapted-weight-shared-reconciliation-view.js';
+import {prepareVerifiedCanonicalFinalControls} from './xml-cii-adapted-weight-canonical-final-ui.js';
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
 import { isXmlCiiDirectQualifiedCandidate } from '../../../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
@@ -185,11 +186,8 @@ function bindCandidateButtons(overlay) {
 export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options={}) {
   // Canonical session read model is injected by the independently attested
   // integrator; do NOT join it to legacy issue rows by node number/ref/name.
-  const verifiedHtml=options.verifiedSharedWeightSnapshot
-    ?renderVerifiedWeightReconciliationPanel(options.verifiedSharedWeightSnapshot,{
-      stage:'Rigidmatch2',sourceId:options.verifiedWeightSourceId||null,
-      expectedBasisId:options.currentVerifiedWeightBasisId,
-    }):'';
+  const canonical=prepareVerifiedCanonicalFinalControls(options);
+  const verifiedHtml=canonical?.html||'';
   const workingEntries = entries.map((entry) => ({ ...entry, issues: [...(entry.issues || [])] }));
   let rows = flattenedReviewRows(workingEntries);
   // A verified original physical population MUST NOT be skipped because
@@ -201,6 +199,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options
     overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
     overlay.innerHTML = popupMarkup(rows, workingEntries, verifiedHtml);
     document.body.appendChild(overlay);
+    canonical?.attach(overlay);
     if (verifiedHtml) {
       // No legacy-weight issue.key Apply may write a *verified* original
       // physical session: canonical Final CAS must be used instead.
@@ -214,7 +213,9 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options
       }
       const notice=overlay.querySelector('[data-mode-a-rigid-status]');
       if(notice){
-        notice.textContent='Verified source evidence is read-only here. Legacy Final Apply is blocked until canonical Match-2 review is connected.';
+        notice.textContent=canonical?.hasSession
+          ?'Verified original physical Final review is available using the Review Final buttons. Legacy batch Apply remains disabled; each canonical decision commits explicitly.'
+          :'Verified source evidence is read-only here. Legacy Final Apply is blocked until a completed source-bound review session is connected.';
         notice.style.color='#fbbf24';
       }
     }
