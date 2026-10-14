@@ -34,6 +34,9 @@ export function renderVerifiedWeightReconciliationPanel(snapshot,{
       <td>${shown(row.finalKg)}</td>
       <td title="${esc(proposals)}">${shown(row.proposedKg)}</td>
       <td>${esc(row.draftStatus)}</td>
+      ${canonicalControls?`<td><button type="button" data-canonical-final-review
+        data-source-id="${esc(row.sourceId)}" data-occurrence-id="${esc(row.occurrenceId)}"
+        title="Explicit source-bound Final Match-2 review, reason required">Review Final</button></td>`:''}
     </tr>`;
   }).join('');
   return `<section class="xml-cii-gc-pw-reconciliation"
@@ -45,11 +48,16 @@ export function renderVerifiedWeightReconciliationPanel(snapshot,{
         Proposed weights are NOT accepted engineering values.
         No legacy Final/Match-1 action is authorized by this table.</p>
       <p style="font-size:11px;color:#cbd5e1;">Verified ${esc(view.rows.length)} original physical component(s);
-        displaying first ${esc(visible.length)}. Full accepted review requires canonical stage-specific decisions.</p>
+        displaying ${esc(offset+1)}–${esc(offset+visible.length)}. Full accepted review requires canonical stage-specific decisions.</p>
       <div style="max-height:220px;overflow:auto;">
       <table style="font-size:11px;text-align:left;border-collapse:collapse;min-width:760px;">
       <thead><tr><th>Source</th><th>Branch ordinal</th><th>Original node ordinal</th>
       <th>XML kg</th><th>Match-1 kg</th><th>Final kg</th><th>Proposed kg</th><th>Status</th>
       ${canonicalControls?'<th>Explicit Final action</th>':''}</tr></thead><tbody>${items}</tbody></table></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:5px;">
+        <button type="button" data-canonical-previous ${offset===0?'disabled':''}>Previous ${visibleLimit}</button>
+        <button type="button" data-canonical-next ${offset+visibleLimit>=view.rows.length?'disabled':''}>Next ${visibleLimit}</button>
+        <span>Original occurrences ${esc(view.rows.length)} · window ${esc(offset+1)}–${esc(offset+visible.length)}</span>
+      </div>
     </section>`;
 }
