@@ -51,7 +51,7 @@ export function executeXml229OriginalPreview({
       e.stage=String(m.error?.stage||'compute');
       // Keep the Worker diagnostic; previously the adapter discarded it and
       // showed only the generic fallback code twice. Bound visible text.
-      const detail=String(m.error?.message||'').replace(/[\\r\\n\\t]+/g,' ').slice(0,360);
+      const detail=String(m.error?.message||'').replace(/\s+/g,' ').slice(0,360);
       if(detail)e.message=detail;
       cleanup(e);
     }else if(m.state==='completed'){
