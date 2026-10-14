@@ -1,0 +1,72 @@
+name: XML229 P3B.1 Bounded committed original source reads
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs'
+      - 'tests/xml-cii-229-p3b1-bounded-read.test.mjs'
+      - 'scripts/xml-cii-229-p3b-source-read-browser.mjs'
+      - '.github/workflows/xml-cii-229-p3b1-bounded-read.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-read-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact head, syntax, root/served parity, contract
+        run: |
+          echo "P3B1_HEAD=$(git rev-parse HEAD)"
+          echo "P3B1_NODE=$(node --version)"
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs
+          node --check tests/xml-cii-229-p3b1-bounded-read.test.mjs
+          node --test tests/xml-cii-229-p3b1-bounded-read.test.mjs tests/xml-cii-229-p3b-original-object-parity.test.mjs
+  real-original-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact source and root/docs adapter
+        run: |
+          echo "P3B1_HEAD=$(git rev-parse HEAD)"
+          printf '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json\n' | sha256sum --check -
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs
+          node --check scripts/xml-cii-229-p3b-source-read-browser.mjs
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve repository
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p3b1-http.log 2>&1 &
+      - name: Original O1 index to new bounded read adapter to Worker calculation
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p3b-source-read-browser.mjs
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p3b1-bounded-read-original
+          path: |
+            ValidationRecords/xml229-p3b0c-original-source-read.json
+            /tmp/xml229-p3b1-http.log
+          if-no-files-found: warn
+          retention-days: 30
