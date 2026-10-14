@@ -10,14 +10,19 @@ const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 const shown=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?esc(n+' kg'):'—';
 /** Render only the first bounded 100 visible rows; underlying model includes ALL. */
 export function renderVerifiedWeightReconciliationPanel(snapshot,{
-  stage,sourceId=null,expectedBasisId,visibleLimit=100,
+  stage,sourceId=null,expectedBasisId,visibleLimit=100,offset=0,enableFinalIndividualReview=false,
 }={}){
   if(typeof expectedBasisId!=='string'||expectedBasisId!==snapshot?.basisId)
     throw new Error('Verified Weight basis mismatch: reopen reviewed source');
   if(!Number.isSafeInteger(visibleLimit)||visibleLimit<1||visibleLimit>100)
     throw new Error('Verified Weight window must contain 1..100 visible rows');
+  if(!Number.isSafeInteger(offset)||offset<0||offset>=Math.max(1,snapshot.rows.length))
+    throw new Error('Verified Weight offset outside complete source census');
   const view=selectVerifiedWeightReconciliation(snapshot,{stage,sourceId});
-  const visible=view.rows.slice(0,visibleLimit);
+  if(offset>=Math.max(1,view.rows.length))
+    throw new Error('Verified Weight offset outside selected source');
+  const visible=view.rows.slice(offset,offset+visibleLimit);
+  const canonicalControls=stage==='Rigidmatch2'&&enableFinalIndividualReview;
   const items=visible.map(row=>{
     const proposals=row.proposals.map(p=>p.kg+' kg'+(p.qualified?' exact':' review')).join(' / ');
     return `<tr data-canonical-occurrence="${esc(row.occurrenceId)}" data-canonical-source="${esc(row.sourceId)}">
@@ -45,6 +50,6 @@ export function renderVerifiedWeightReconciliationPanel(snapshot,{
       <table style="font-size:11px;text-align:left;border-collapse:collapse;min-width:760px;">
       <thead><tr><th>Source</th><th>Branch ordinal</th><th>Original node ordinal</th>
       <th>XML kg</th><th>Match-1 kg</th><th>Final kg</th><th>Proposed kg</th><th>Status</th>
-      </tr></thead><tbody>${items}</tbody></table></div>
+      ${canonicalControls?'<th>Explicit Final action</th>':''}</tr></thead><tbody>${items}</tbody></table></div>
     </section>`;
 }
