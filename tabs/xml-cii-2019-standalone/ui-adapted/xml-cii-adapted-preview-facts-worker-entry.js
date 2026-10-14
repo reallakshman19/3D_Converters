@@ -185,6 +185,9 @@ globalThis.addEventListener('message',async (event)=>{
     if(request.sourcePhysicalAuditMode!==undefined
       &&request.sourcePhysicalAuditMode!=='paced-pages')
       throw Object.assign(new Error('Unsupported physical source transport mode'),{code:'INVALID_PHYSICAL_AUDIT_MODE'});
+    if(request.sourcePhysicalAudit===true&&request.sourcePhysicalAuditMode==='paced-pages')
+      throw Object.assign(new Error('Paced pages and the legacy bulk source audit are mutually exclusive'),
+        {code:'PHYSICAL_AUDIT_MODE_CONFLICT'});
     if(request.scope?.selection != null)
       throw Object.assign(new Error('Selected subpopulation engineering compute needs an explicit scoped adapter'),{code:'SCOPED_ENGINEERING_PENDING'});
     const started=clock();
