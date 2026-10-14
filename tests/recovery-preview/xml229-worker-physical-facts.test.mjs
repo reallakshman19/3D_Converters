@@ -218,3 +218,13 @@ test('paced source transport can pass old 2500-node physical audit cap, but deni
  assert.equal(denied.at(-1)?.state,'failed');
  assert.equal(denied.at(-1).error?.code,'PHYSICAL_STREAM_BOUNDED_LIMIT');
 });
+
+test('conflicting old bulk and new paced protocols are rejected before any source approval',async()=>{
+ const xml=await original,o=options(xml),b=await basis(o);
+ const result=await executeRealWorker({xml,basisId:b.basisId,config:o.config,
+  sourcePhysicalAudit:true,sourcePhysicalAuditMode:'paced-pages'});
+ assert.equal(result.at(-1)?.state,'failed');
+ assert.equal(result.at(-1)?.error?.code,'PHYSICAL_AUDIT_MODE_CONFLICT');
+ assert.ok(!result.some(x=>x.state==='source-physical-page'));
+ assert.ok(!result.some(x=>x.state==='completed'));
+});
