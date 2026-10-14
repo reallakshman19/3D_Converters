@@ -31,7 +31,7 @@ try{
  page.on('console',m=>{if(m.type()==='error')pageErrors.push(m.text())});
  await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
  const output=await page.evaluate(async()=>{
-   const {openXml229AttestedWeightReview}=await import(
+   const {openXml229AttestedWeightReview,openXml229AttestedWeightReviewWithOriginalCensus}=await import(
      '/docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-session-orchestrator.mjs');
    const {projectXmlCiiOccurrences}=await import(
      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-xml-source.js');
@@ -76,8 +76,14 @@ try{
    const refusedPartial=await bad({selection:[{sourceId:src,selectionRef:'branch-0'}]});
    const refusedStaged=await bad({stagedSource:'{"owner":"not-authorized"}'});
    const progress=[];
-   const opened=await openXml229AttestedWeightReview({
-     ...options,onProgress:stage=>progress.push(stage),
+   const opened=await openXml229AttestedWeightReviewWithOriginalCensus({
+     ...options,
+     // Caller-supplied legacy IDs cannot override the separately executed
+     // original-source census Worker; same source is challenged twice.
+     independentSourceOccurrences:[],
+     independentOriginalNodeOccurrences:[],
+     independentPhysicalOccurrences:[],
+     onProgress:stage=>progress.push(stage),
    });
    const {basisId,session,workerSummary,engineeringFacts}=opened;
    const facts=session.review.getFacts({basisId,subjectType:'physical-component',limit:100});
