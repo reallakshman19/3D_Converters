@@ -90,7 +90,7 @@ test('Match-1 decisions are preserved, and candidate never becomes accepted Fina
 test('stale engineering decisions during scoring invalidate entire projection',()=>{
  const s=session(),old=s.review.getProposals.bind(s.review);
  let changed=false;
- s.review.getProposals=params=>{
+ const wrapped={...s,review:{...s.review,getProposals:params=>{
   const p=old(params);
   if(!changed){
    changed=true;
@@ -100,8 +100,8 @@ test('stale engineering decisions during scoring invalidate entire projection',(
    }]});
   }
   return p;
- };
- assert.throws(()=>readVerifiedSharedWeightReconciliation(s),e=>e.code==='STALE_WEIGHT_RECONCILIATION');
+ }}};
+ assert.throws(()=>readVerifiedSharedWeightReconciliation(wrapped),e=>e.code==='STALE_WEIGHT_RECONCILIATION');
 });
 test('truncated/foreign/invalid candidate pages fail closed',()=>{
  for(const damage of [
@@ -111,8 +111,8 @@ test('truncated/foreign/invalid candidate pages fail closed',()=>{
   p=>({...p,items:p.items.map((x,i)=>i?x:{...x,unit:'N'})}),
  ]){
   const s=session(),original=s.review.getProposals.bind(s.review);
-  s.review.getProposals=args=>damage(original(args));
-  assert.throws(()=>readVerifiedSharedWeightReconciliation(s));
+  const wrapped={...s,review:{...s.review,getProposals:args=>damage(original(args))}};
+  assert.throws(()=>readVerifiedSharedWeightReconciliation(wrapped));
  }
 });
 test('stage selection refuses unverified snapshots and foreign source',()=>{
@@ -123,12 +123,12 @@ test('stage selection refuses unverified snapshots and foreign source',()=>{
 });
 test('all original physical occurrences are projected, even when no proposal exists',()=>{
  const s=session();const original=s.review.getProposals.bind(s.review);
- s.review.getProposals=args=>{
+ const wrapped={...s,review:{...s.review,getProposals:args=>{
   const page=original(args);
   const keep=page.items.filter(p=>p.occurrenceId!==other);
   return {...page,items:keep,totalCount:keep.length,nextCursor:null};
- };
- const snap=readVerifiedSharedWeightReconciliation(s);
+ }}};
+ const snap=readVerifiedSharedWeightReconciliation(wrapped);
  assert.equal(snap.physicalCount,3);
  assert.equal(snap.rows.find(r=>r.occurrenceId===other).draftStatus,'NO_PROPOSAL');
 });
