@@ -1,0 +1,72 @@
+name: XML229 P3B.2A Worker source projection (pre-B1)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-source-projection.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-source-projection.mjs'
+      - 'tests/xml-cii-229-p3b2a-preview-source-projection.test.mjs'
+      - 'tests/browser/xml229-p3b2a-production-projection-worker.mjs'
+      - 'scripts/xml-cii-229-p3b-source-read-browser.mjs'
+      - '.github/workflows/xml-cii-229-p3b2a-projection.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  projection-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        node: ['22','24']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source parity, strict original tests and independent check
+        run: |
+          echo "P3B2A_HEAD=$(git rev-parse HEAD)"
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-source-projection.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-source-projection.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-bounded-original-read.mjs
+          printf '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json\n' | sha256sum --check -
+          node --check tests/xml-cii-229-p3b2a-preview-source-projection.test.mjs
+          node --test tests/xml-cii-229-p3b2a-preview-source-projection.test.mjs tests/xml-cii-229-p3b1-bounded-read.test.mjs
+  authored-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact SHA and script syntax
+        run: |
+          echo "P3B2A_HEAD=$(git rev-parse HEAD)"
+          node --check scripts/xml-cii-229-p3b-source-read-browser.mjs
+          node --check tests/browser/xml229-p3b2a-production-projection-worker.mjs
+      - name: Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve repository
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p3b2a-http.log 2>&1 &
+      - name: Real O1 IndexedDB to bounded read to actual current functions inside Worker
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p3b-source-read-browser.mjs
+      - name: Source-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p3b2a-source-projection
+          path: |
+            ValidationRecords/xml229-p3b0c-original-source-read.json
+            /tmp/xml229-p3b2a-http.log
+          if-no-files-found: warn
+          retention-days: 30

@@ -132,6 +132,45 @@ try{
            item.valueByteLength!==item.bytes.length)||
          !new TextDecoder().decode(accepted[1].bytes).includes('ELBOW 90 DEG LR BW Sch 80'))
         throw Error('P3B1_REAL_ADAPTER_POSITIVE_FAILED');
+      // Real source-only P3B.2A projection: one selected original branch,
+      // current committed O1 source basis, bounded Blob bytes and Worker parse.
+      const selectedBranchValues=[];
+      let selectedBranchManifest=null;
+      const branchSink={
+        async stage(value){selectedBranchValues.push(value);},
+        async commit(value){selectedBranchManifest=value;},
+        async abort(){selectedBranchValues.length=0;selectedBranchManifest=null;},
+      };
+      const selectedBranchRead=await readXml229SelectedOriginalValues({
+        blob:file,store,receipt,dependencyBasis,paths:['/0'],
+        getCurrentContext:()=>active,sink:branchSink,
+      });
+      if(selectedBranchManifest!==selectedBranchRead||selectedBranchValues.length!==1||
+          selectedBranchValues[0].byteLength!==file.size)
+        throw Error('P3B2A_SOURCE_INPUT_CONTRACT');
+      const projected=await new Promise((resolve,reject)=>{
+        const worker=new Worker('/tests/browser/xml229-p3b2a-production-projection-worker.mjs',{type:'module'});
+        const timeout=setTimeout(()=>{worker.terminate();reject(Error('P3B2A_PROJECT_TIMEOUT'));},30000);
+        worker.onerror=()=>{clearTimeout(timeout);worker.terminate();reject(Error('P3B2A_PROJECT_WORKER_ERROR'));};
+        worker.onmessage=({data:m})=>{clearTimeout(timeout);worker.terminate();
+          if(m?.kind==='P3B2A_TEST_SUCCESS')resolve(m.result);
+          else reject(Error(m?.code||'P3B2A_PROJECT_FAILED'));
+        };
+        worker.postMessage({kind:'P3B2A_TEST_PROJECT',
+          manifest:selectedBranchRead,values:selectedBranchValues,config:{}});
+      });
+      if(projected.schema!=='XML229.StagedPreviewSourceProjection.v1'||
+         projected.sha256!==expectedSha||
+         projected.engineeringReady!==false||
+         projected.scopeMembershipVerified!==false||
+         projected.consumerReady!==false||
+         projected.dtxr.count<1||
+         projected.wall.groupCount<1||
+         projected.geometry.count<1||
+         !projected.dtxr.candidates.some(x=>
+            x.dtxr==='ELBOW 90 DEG LR BW Sch 80'&&x.boreText==='150mm'))
+        throw Error('P3B2A_SOURCE_PROJECTION_INCOMPLETE');
+
       let staleDependency='NOT_REJECTED';
       const oldBasis=active.dependencyBasis;
       const staleSink={
@@ -191,6 +230,14 @@ try{
       return {sourceCommitted:true,sourceIndexSha256:manifest.sourceSha256,
         sourceCount:manifest.occurrenceCount,sourceEvents:eventCount,committedPages:pageCount,
         sourceIndexWallMs:Math.round(performance.now()-started),
+        productionProjection:{schema:projected.schema,
+          dtxrCandidates:projected.dtxr.count,
+          wallGroups:projected.wall.groupCount,
+          geometryCount:projected.geometry.count,
+          scopeMembershipVerified:projected.scopeMembershipVerified,
+          consumerReady:projected.consumerReady,
+          engineeringReady:projected.engineeringReady,
+          outputBytes:projected.outputByteLength},
         productionReadAdapter:{schema:productionRead.schema,verified:true,
           requestedValueCount:productionRead.valueCount,
           originalBytes:productionRead.byteCount,
