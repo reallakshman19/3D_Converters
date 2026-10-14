@@ -180,7 +180,7 @@ export async function readXml229SelectedOriginalValues({
       completed.set(entry.path,Object.freeze({
         occurrenceId:id,path:entry.path,ordinal:a.ordinal,
         sourceType:a.type,parentId:a.parentId,
-        startByte:a.startByte,endByteExclusive:b.endByteExclusive,byteLength:n,
+        startByte:a.startByte,endByteExclusive:b.endByteExclusive,valueByteLength:n,
       }));
     }
     // All selected pointers/pairs/budgets are validated before any staging.
