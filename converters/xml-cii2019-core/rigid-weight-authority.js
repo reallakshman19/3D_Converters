@@ -317,13 +317,34 @@ export function xmlCiiEffectiveRigidWeightMap(config) {
   };
 }
 
+// Preview/Weight calculation compatibility is a read-only projection, not
+// Review-1: the F4 blank-only action saves a proposed number in the legacy
+// bucket AND records rigidWeightProposalMeta. That proposal may be shown to
+// the reviewer but must not become selectedOverride in physical Preview just
+// because it was saved. This distinction is deliberately independent of the
+// proposal's previous fingerprint (current proposals also lack Review-1).
+// Preserve historic no-metadata manual records and explicitly reviewed
+// Match-1/Final precedence. The raw saved map is never mutated.
+function xmlCiiPreviewNonProposalRigidWeightMap(config) {
+  const overrides = plainObject(config?.overrides);
+  const legacy = positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]);
+  for (const key of Object.keys(plainObject(overrides.rigidWeightProposalMeta))) {
+    delete legacy[key];
+  }
+  return {
+    ...legacy,
+    ...positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.match1]),
+    ...positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.final]),
+  };
+}
+
 export function withXmlCiiEffectiveRigidWeightLegacyView(config) {
   const base = plainObject(config);
   return {
     ...base,
     overrides: {
       ...plainObject(base.overrides),
-      rigidWeight: xmlCiiEffectiveRigidWeightMap(base),
+      rigidWeight: xmlCiiPreviewNonProposalRigidWeightMap(base),
     },
   };
 }

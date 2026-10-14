@@ -251,3 +251,222 @@ test('T1 RED: actual standalone Preview node row must not advertise stale accept
  assert.notEqual(row.weightMatch?.selectedOverride,true,
   'stale saved suggestion must not appear in Preview as selected authoritative override');
 });
+
+
+test('T1 Preview calculation shows an unchanged saved candidate only as a proposal, while legacy manual and explicit Final stay distinct', async () => {
+  const { installWeightBasisXmlDom } = await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+  installWeightBasisXmlDom(globalThis);
+  const { xmlCiiDryRunPreview } = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const { xml, key, saved, config } = await t1StandaloneBridgeFixture();
+  const getNode = (cfg) => {
+    const preview = xmlCiiDryRunPreview(xml, cfg, '');
+    const row = preview.nodeRows?.find(item => item.key === key);
+    assert.ok(row, 'the source physical component remains in Preview');
+    return row;
+  };
+  const proposal = getNode(saved);
+  assert.notEqual(proposal.weightMatch?.selectedOverride, true,
+    'the proposed value is not an approved physical Preview override, even on the original basis');
+  assert.equal(saved.overrides.rigidWeight[key], 12.5, 'saved proposal survives for separate user review');
+
+  const manual = getNode({ ...config, overrides: { rigidWeight: { [key]: 8.25 } } });
+  assert.equal(manual.weightMatch?.selectedOverride, true,
+    'historical user-entered, provenance-free manual remains an effective compatibility value');
+  assert.equal(manual.weightMatch?.selectedWeight, 8.25);
+
+  const reviewedFinal = getNode({
+    ...saved,
+    overrides: { ...saved.overrides, rigidWeightFinal: { [key]: 17.75 } },
+  });
+  assert.equal(reviewedFinal.weightMatch?.selectedOverride, true,
+    'an explicit Final retains higher numeric authority than the saved proposal');
+  assert.equal(reviewedFinal.weightMatch?.selectedWeight, 17.75);
+});
+
+test('T1 incremental Preview weight-master change cannot revive an unreviewed saved proposal', async () => {
+  const { installWeightBasisXmlDom } = await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+  installWeightBasisXmlDom(globalThis);
+  const { resetIncrementalPreviewRuntime, snapshotIncrementalPreviewRuntime }
+    = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-incremental.js');
+  const { xmlCiiDryRunPreview } = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const { xml, key, saved } = await t1StandaloneBridgeFixture();
+  resetIncrementalPreviewRuntime();
+  const first = xmlCiiDryRunPreview(xml, saved, '');
+  assert.notEqual(first.nodeRows.find(row => row.key === key)?.weightMatch?.selectedOverride, true);
+  const changedMaster = { ...saved, weight: { ...saved.weight, masterRevision: saved.weight.masterRevision + 1 } };
+  const after = xmlCiiDryRunPreview(xml, changedMaster, '');
+  assert.ok(after.nodeRows?.some(row => row.key === key), 'same source node remains after Weight-master revision');
+  assert.notEqual(after.nodeRows.find(row => row.key === key)?.weightMatch?.selectedOverride, true,
+    'reranked Preview cannot reinstate a previously saved non-reviewed candidate');
+  const runtime = snapshotIncrementalPreviewRuntime();
+  assert.ok(runtime.fullBuilds + runtime.weightOnlyBuilds >= 2, 'actual Preview executed both revisions');
+  assert.equal(saved.overrides.rigidWeight[key], 12.5, 'neither cache path mutates the saved proposal');
+});
+
+
+test('T2 RED empirical report: stale saved proposal must not become resolved observed kg in the actual report event', async () => {
+  const { changedXml, saved, prep, key } = await t1StandaloneBridgeFixture();
+  const actualIssue = prep(saved, changedXml).basisRows.find(row => row.key === key);
+  assert.ok(actualIssue, 'current geometry supplies the exact original component');
+  const validated = buildXmlCiiValidatedRigidWeightLegacyView(saved, [actualIssue]);
+  assert.equal(validated.validation.staleLegacyProposals[key]?.reason, 'basis-changed',
+    'the same component is a proven source/geometry-stale saved proposal');
+
+  const { appendEmpiricalWeightValidationReport } = await import(
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js'
+  );
+  const listeners = new Map();
+  const makeControl = () => ({
+    disabled: false, textContent: '', innerHTML: '',
+    addEventListener() {}, querySelectorAll() { return []; },
+  });
+  const controls = new Map();
+  const section = {
+    style: {}, innerHTML: '',
+    querySelector(selector) {
+      if (!controls.has(selector)) controls.set(selector, makeControl());
+      return controls.get(selector);
+    },
+  };
+  const card = {
+    appendChild() {},
+    addEventListener(name, handler) { listeners.set(name, handler); },
+    querySelectorAll() { return []; },
+  };
+  const stateRef = { current: {} };
+  const originalDocument = globalThis.document;
+  try {
+    globalThis.document = { createElement(tag) {
+      assert.equal(tag, 'section', 'actual report registers an event-bound section');
+      return section;
+    } };
+    appendEmpiricalWeightValidationReport(card, stateRef);
+    const onReady = listeners.get('xml-cii-weight-validator-ready');
+    assert.equal(typeof onReady, 'function', 'actual report event listener must be active');
+    onReady({ detail: {
+      config: saved,
+      issues: [{ ...actualIssue, candidates: [{ typeDesc: 'RANKED-1', selectedWeight: 12.5, weight: 12.5 }] }],
+      masterRows: [],
+    } });
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+
+  const report = stateRef.current.empiricalWeightValidationReport;
+  assert.ok(report, 'actual report builds its data from the real emitted event');
+  assert.ok(report.skippedRows?.some(row => row.key === key
+    && /stale|proposal|not-accepted|review/.test(String(row.reason))),
+    'stale proposal must be present as HELD_FOR_REVIEW/unvalidated, not an accepted observed weight');
+  assert.equal((report.rows || []).some(row => row.rowId === key && Number(row.observedWeightKg) === 12.5), false,
+    '12.5 kg from the stale saved suggestion cannot count as resolved empirical observed weight');
+});
+
+test('T2 RED standalone Run: stale saved proposal needs source-bound hold diagnostics, not silent zero-weight substitution', async () => {
+  const { changedXml, saved, prep, key } = await t1StandaloneBridgeFixture();
+  const validated = prep(saved, changedXml);
+  assert.equal(validated.validation.staleLegacyProposals[key]?.reason, 'basis-changed');
+  const { enrichStandaloneXmlForRun } = await import('../tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js');
+  const result = await enrichStandaloneXmlForRun({
+    sourceText: changedXml,
+    stagedJsonText: '',
+    supportConfigJson: JSON.stringify(saved),
+    options: { splitCondensedValveFlange: true },
+  });
+  assert.equal(result.error, null, 'existing process parity must execute for the same original component');
+  assert.ok(result.diagnostics?.some(item =>
+    item.key === key && /rigid-weight-(proposal|suggestion)-stale/.test(String(item.type))
+    && item.reason === 'basis-changed'),
+  'Run requires a structured, current-source stale PROPOSAL receipt distinct from Match-1');
+});
+
+
+// Run the real report's event listener rather than a reimplemented resolver.
+// Minimal card/document shims are used only for the DOM host around the
+// empirical validator, which remains the production module.
+async function f4ActualEmpiricalReport(issue, config) {
+  const { appendEmpiricalWeightValidationReport } = await import(
+    '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-validation-report.js'
+  );
+  const events = new Map();
+  const controls = new Map();
+  const section = {
+    style: {},
+    innerHTML: '',
+    querySelector(selector) {
+      if (!controls.has(selector)) controls.set(selector, {
+        disabled: false, innerHTML: '', textContent: '', addEventListener() {},
+      });
+      return controls.get(selector);
+    },
+  };
+  const card = {
+    appendChild() {},
+    addEventListener(name, handler) { events.set(name, handler); },
+    querySelectorAll() { return []; },
+  };
+  const stateRef = { current: {} };
+  const priorDocument = globalThis.document;
+  try {
+    globalThis.document = { createElement() { return section; } };
+    appendEmpiricalWeightValidationReport(card, stateRef);
+    const listener = events.get('xml-cii-weight-validator-ready');
+    assert.equal(typeof listener, 'function', 'actual report event handler is registered');
+    listener({ detail: {
+      config,
+      issues: [{ ...issue, candidates: [{ typeDesc: 'RANKED-1', selectedWeight: 12.5 }] }],
+      masterRows: [],
+    } });
+  } finally {
+    if (priorDocument === undefined) delete globalThis.document;
+    else globalThis.document = priorDocument;
+  }
+  return stateRef.current.empiricalWeightValidationReport;
+}
+
+test('T2 report positive controls: current proposal held; manual, Final, source and corrupt proposals obey authority', async () => {
+  const { xml, changedXml, key, saved, config, prep } = await t1StandaloneBridgeFixture();
+  const current = prep(saved, xml).basisRows.find(row => row.key === key);
+  const changed = prep(saved, changedXml).basisRows.find(row => row.key === key);
+  assert.ok(current && changed, 'both real source geometries retain the same physical key');
+
+  const currentProposal = await f4ActualEmpiricalReport(current, saved);
+  assert.ok(currentProposal.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:not-reviewed'),
+  'even unchanged fingerprinted suggestion is not explicit Match-1 or Final');
+  assert.equal((currentProposal.rows || []).filter(row => row.rowId === key).length, 0);
+
+  const changedProposal = await f4ActualEmpiricalReport(changed, saved);
+  assert.ok(changedProposal.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:basis-changed'),
+  'source geometry changes produce the distinct stale proposal reason');
+
+  const manual = await f4ActualEmpiricalReport(changed, {
+    ...config, overrides: { rigidWeight: { [key]: 8.25 } },
+  });
+  assert.equal(manual.rows.find(row => row.rowId === key)?.observedWeightKg, 8.25,
+    'provenance-free historical manual remains separately represented in compatibility report');
+
+  const final = await f4ActualEmpiricalReport(changed, {
+    ...saved, overrides: { ...saved.overrides, rigidWeightFinal: { [key]: 17.75 } },
+  });
+  assert.equal(final.rows.find(row => row.rowId === key)?.observedWeightKg, 17.75,
+    'explicit higher-authority Final wins even over a stale earlier proposal');
+
+  const original = await f4ActualEmpiricalReport(
+    { ...changed, originalWeight: 6.5, weight: 12.5 }, saved,
+  );
+  assert.equal(original.rows.find(row => row.rowId === key)?.observedWeightKg, 6.5,
+    'independent original XML weight is distinct from contaminated issue.weight');
+
+  const corrupt = await f4ActualEmpiricalReport(changed, {
+    ...saved,
+    overrides: {
+      ...saved.overrides,
+      rigidWeightProposalMeta: { [key]: { ...saved.overrides.rigidWeightProposalMeta[key], fingerprint: 'fnv1a:00000000' } },
+    },
+  });
+  assert.ok(corrupt.skippedRows.some(row => row.key === key &&
+    row.reason === 'proposal-held-for-review:invalid-proposal-fingerprint'),
+  'tampered provenance must be held rather than automatically accepted');
+});

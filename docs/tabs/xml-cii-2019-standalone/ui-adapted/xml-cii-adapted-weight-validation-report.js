@@ -3,19 +3,64 @@ import {
   empiricalWeightValidationReportToCsv,
   downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
-import { resolveXmlCiiRigidWeight } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
+import {
+  resolveXmlCiiRigidWeight,
+  buildXmlCiiValidatedRigidWeightLegacyView,
+  withXmlCiiEffectiveRigidWeightLegacyView,
+} from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function positive(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? n : null; }
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 
-function resolvedWeight(issue, config) {
+// An empirical observed weight must be independent of an unreviewed saved
+// suggestion. Source-only issue.weight may already contain the legacy override,
+// so it is unsafe as a fallback when current proposal/Match-1 custody exists.
+// Reuse exactly the same current-basis validation as standalone output; this
+// report must not promote proposals into accepted engineering weights.
+function resolvedWeight(issue, config, verified) {
   const keys = [issue?.key, issue?.legacyKey, issue?.originalKey, issue?.componentRefEndpoint].map(text).filter(Boolean);
-  const resolved = resolveXmlCiiRigidWeight(config, keys, issue?.weight);
-  return resolved.weightKg === null
-    ? { weightKg: null, source: 'unresolved' }
-    : { weightKg: resolved.weightKg, source: `${resolved.source}${resolved.key ? `:${resolved.key}` : ''}` };
+  const overrides = object(config?.overrides);
+  const proposalMeta = object(overrides.rigidWeightProposalMeta);
+  const proposalKey = keys.find((key) => Object.hasOwn(proposalMeta, key));
+  const staleMatch1Key = keys.find((key) => Object.hasOwn(verified.validation.stale, key));
+  const legacyStaleKey = keys.find((key) => Object.hasOwn(verified.validation.staleLegacyProposals, key));
+  const reviewOnly = Boolean(proposalKey || staleMatch1Key || legacyStaleKey);
+  // The validated projection alone retains *current* saved proposals for
+  // legacy compatibility. The Preview projection intentionally excludes ALL
+  // proposal-meta keys, even a matching fingerprint, because proposed is not
+  // reviewed. Restrict Match-1 to current validated weights before resolving:
+  // its raw bucket may still contain out-of-date values.
+  const reviewedConfig = withXmlCiiEffectiveRigidWeightLegacyView({
+    ...verified.config,
+    overrides: {
+      ...verified.config.overrides,
+      rigidWeightMatch1: verified.validation.validWeights,
+    },
+  });
+  const resolved = resolveXmlCiiRigidWeight(reviewedConfig, keys, null);
+  if (resolved.weightKg !== null) {
+    return {
+      weightKg: resolved.weightKg,
+      source: `${resolved.source}${resolved.key ? `:${resolved.key}` : ''}`,
+    };
+  }
+
+  // originalWeight is the physical XML source cell retained by Weight Match;
+  // issue.weight can be a raw saved legacy proposal in the same row.
+  const hasOriginalWeight = issue?.originalWeight !== undefined && issue?.originalWeight !== null;
+  const originalSource = positive(hasOriginalWeight ? issue.originalWeight : (reviewOnly ? null : issue?.weight));
+  if (originalSource !== null) return { weightKg: originalSource, source: 'xml-weight' };
+  if (legacyStaleKey) {
+    const detail = verified.validation.staleLegacyProposals[legacyStaleKey];
+    return { weightKg: null, source: 'unresolved', reason: `proposal-held-for-review:${detail.reason}` };
+  }
+  if (proposalKey) return { weightKg: null, source: 'unresolved', reason: 'proposal-held-for-review:not-reviewed' };
+  if (staleMatch1Key) {
+    return { weightKg: null, source: 'unresolved', reason: `match1-held-for-review:${verified.validation.stale[staleMatch1Key].reason}` };
+  }
+  return { weightKg: null, source: 'unresolved', reason: 'no-positive-resolved-weight' };
 }
 
 function bestCandidate(issue) {
@@ -36,11 +81,12 @@ function candidateTarget(candidate) {
 function validationRowsFromResolvedIssues(issues, config) {
   const rows = [];
   const skipped = [];
+  const verified = buildXmlCiiValidatedRigidWeightLegacyView(config, issues);
   for (const issue of Array.isArray(issues) ? issues : []) {
     const rowId = issue?.key || issue?.componentRefEndpoint || issue?.nodeNumber || `row-${rows.length + skipped.length + 1}`;
-    const resolved = resolvedWeight(issue, config);
+    const resolved = resolvedWeight(issue, config, verified);
     if (resolved.weightKg === null) {
-      skipped.push({ key: rowId, nodeNumber: issue?.nodeNumber || '', reason: 'no-positive-resolved-weight' });
+      skipped.push({ key: rowId, nodeNumber: issue?.nodeNumber || '', reason: resolved.reason || 'no-positive-resolved-weight' });
       continue;
     }
     const candidate = bestCandidate(issue);
@@ -97,6 +143,8 @@ function unavailableCodes(row) {
 }
 
 function unavailableLabel(reason, codes = []) {
+  if (reason?.startsWith('proposal-held-for-review:') || reason?.startsWith('match1-held-for-review:'))
+    return '○ HELD_FOR_REVIEW';
   if (reason === 'no-positive-resolved-weight') return '○ Proposed — not accepted';
   if (reason === 'no-empirical-type-description') return '? TypeDesc missing';
   const first = codes[0] || '';
@@ -116,7 +164,8 @@ function rowHealth(row, skipped = null) {
   if (!row || !available(row)) {
     const reason = skipped?.reason || 'A1/A2 estimate unavailable';
     const codes = unavailableCodes(row);
-    return { label: unavailableLabel(reason, codes), color: '#fbbf24', state: reason === 'no-positive-resolved-weight' ? 'proposed' : 'unvalidated', reason, codes };
+    const held = reason.startsWith('proposal-held-for-review:') || reason.startsWith('match1-held-for-review:');
+    return { label: unavailableLabel(reason, codes), color: '#fbbf24', state: held ? 'held' : (reason === 'no-positive-resolved-weight' ? 'proposed' : 'unvalidated'), reason, codes };
   }
   if (row.approach1?.abnormal || row.approach2?.abnormal) return { label: '⚠ >30%', color: '#f87171', state: 'abnormal', reason: row.status, codes: [] };
   return { label: '✓ ±30%', color: '#86efac', state: 'within', reason: row.status, codes: [] };
