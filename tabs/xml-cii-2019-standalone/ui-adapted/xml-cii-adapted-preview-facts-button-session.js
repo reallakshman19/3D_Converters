@@ -9,6 +9,8 @@ import {startAttestedModeBPreviewWorkerSession}
 import {assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonicalJson}
   from '../../../contracts/gc-pw-v1/contract.mjs';
 
+import {executeXml229OriginalPreview} from '../integration/xml229-preview-original-blob-execution.mjs';
+
 const jobs=new WeakMap();
 const esc=(v)=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
   .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -108,6 +110,77 @@ export async function runPreviewButtonSession({
     catch(error){throw fail('STAGED_SOURCE_FAILED',String(error?.message||error));}
     if(!current())return null;
     const scope=sourceScope(host,config,options);
+    // XML229 P3B.3: original JSON stays in the O1 job. Existing Preview
+    // controller, input basis and source-occurrence renderer remain in use.
+    if(scope.mode==='A'&&typeof options.resolveOriginalWorkerPreviewSource==='function'){
+      notice(host,{title:'Verifying original JSON source custody…',showCancel:true,cancel});
+      const original=await options.resolveOriginalWorkerPreviewSource(config);
+      if(!current())return null;
+      const r=original?.receipt;
+      if(!r||original.isCurrent?.()!==true||!original.blob||
+         r.rightsBasis!=='SOURCE_FACTS_ONLY'||r.engineeringReady!==false||
+         r.phase!=='INDEX_COMMITTED')
+        throw fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE','Original indexed JSON source is no longer current');
+      // This descriptor is used ONLY for InputBasis hashing, never as JSON.
+      const sourceDescriptor=JSON.stringify({
+        schema:'XML229.PreviewOriginalBasis.v1',
+        sha256:r.sha256,sourceRefId:r.sourceRefId,
+        generationId:r.generationId,sourceRevision:r.sourceRevision,
+        byteLength:r.byteLength,occurrenceCount:r.occurrenceCount,
+      });
+      const calculateBasis=()=>createPreviewButtonBasis({
+        xmlText,config,stagedJsonText:sourceDescriptor,sourceId:scope.sourceId,
+      });
+      const basis=await calculateBasis();
+      if(!current()||original.isCurrent()!==true)return null;
+      const controller=createXmlCiiPreviewJobController({
+        execute:spec=>executeXml229OriginalPreview({
+          ...spec,originalSourceSession:original,
+        }),
+        verifyBasis:async(currentBasis)=>{
+          if(original.isCurrent()!==true)return false;
+          const live=await options.resolveOriginalWorkerPreviewSource(config);
+          if(live?.blob!==original.blob||live?.isCurrent?.()!==true||
+             live?.receipt?.sha256!==r.sha256||
+             live?.receipt?.generationId!==r.generationId)return false;
+          return (await calculateBasis()).basisId===currentBasis.basisId;
+        },
+      });
+      session.controller=controller;
+      controller.subscribe(state=>{
+        if(!current()||!['queued','running'].includes(state.state))return;
+        notice(host,{title:state.state==='queued'
+          ?'Original JSON Preview queued…':'Calculating original JSON Preview in Worker…',
+          progress:String(state.stage||'basis-attestation')+' · '+state.completed+'/'+state.total,
+          message:'Source SHA-256 and selected input revisions remain attested.',
+          showCancel:true,cancel});
+      });
+      const job=controller.start({
+        requestId:'xml229-preview-'+begun+'-'+basis.basisId.slice(0,12),
+        basis,input:{xmlText,config,stagedJsonText:'',scope},
+      });
+      const result=await job.promise;
+      if(!current())return null;
+      const latest=await options.resolveOriginalWorkerPreviewSource(config);
+      const now=await calculateBasis();
+      if(latest?.blob!==original.blob||latest?.isCurrent?.()!==true||
+         now.basisId!==basis.basisId)
+        throw fail('XML229_PREVIEW_INPUT_CHANGED','Original source/selection/master/config changed while Preview calculated');
+      const sourcePages=await openActualPreviewSourceFactPages({
+        basis,xmlText,sourceId:scope.sourceId,
+        sourceOccurrences:result.sourceOccurrences,mode:scope.mode,
+      });
+      if(!current()||original.isCurrent()!==true)return null;
+      const rendered=await renderResult(result,{text:'',label:'original Worker-indexed JSON'});
+      if(!current()||original.isCurrent()!==true)return null;
+      installActualPreviewSourceFactPanel(host,sourcePages);
+      host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
+      host.dataset.mcPreviewBasisId=basis.basisId;
+      host.dataset.mcPreviewOriginalJsonSha256=r.sha256;
+      host.dataset.mcPreviewJsonSource='O1_WORKER_VERIFIED';
+      options.onOriginalWorkerPreviewCompleted?.({result,sourceReceipt:r,basis});
+      return rendered;
+    }
     if(scope.mode==='B'){
       notice(host,{title:'Authenticating original Mode B XML files…',
         message:'Checking every original file, combined XML, source order and master revision.',
