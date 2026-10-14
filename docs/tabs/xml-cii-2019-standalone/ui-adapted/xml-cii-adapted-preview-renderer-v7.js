@@ -136,14 +136,19 @@ function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   host.dataset.mcPreviewCacheSchema = XML_CII_PREVIEW_CACHE_SCHEMA;
   host.dataset.mcPreviewCacheStatus = status;
   host.dataset.mcPreviewCacheDigest = authority?.digest || '';
-  const digest = shortPreviewCacheDigest(authority);
+  // A real source SHA can be present while the *cache key* is intentionally
+  // not computed. Do not misleadingly label that original source SHA missing.
+  const heldOriginalJson = status === 'JSON_SOURCE_PENDING';
+  const digestLabel = heldOriginalJson ? 'Preview cache key: NOT COMPUTED'
+    : 'SHA-256 ' + shortPreviewCacheDigest(authority);
   const byteDetail = authority
     ? `XML ${authority.xmlBytes} B · staged JSON ${authority.stagedJsonBytes} B · canonical authority ${authority.canonicalBytes} B`
-    : 'SHA-256 authority unavailable';
+    : heldOriginalJson ? 'indexed original JSON is not yet Preview input data'
+      : 'SHA-256 authority unavailable';
   const reasonDetail = reason ? ` · ${reason}` : '';
   host.insertAdjacentHTML?.(
     'afterbegin',
-    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache authority: <strong>${esc(status)}</strong> · SHA-256 ${esc(digest)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
+    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache authority: <strong>${esc(status)}</strong> · ${esc(digestLabel)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
   );
 }
 
