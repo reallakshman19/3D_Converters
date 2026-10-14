@@ -134,6 +134,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    originalPhysicalOccurrences:Object.freeze(census.independentPhysicalOccurrences.map(row=>({
      ...row,occurrenceId:physicalOccurrenceId(row),
    }))),
+   async readPage({offset=0,limit=25}={}){
+     return rpc({kind:'read',what:'page',sourceId,offset,limit});
+   },
    async readIndividual({occurrenceId,stage='RigidMatch1'}={}){
      return rpc({kind:'read',what:'individual',sourceId,occurrenceId,stage});
    },
