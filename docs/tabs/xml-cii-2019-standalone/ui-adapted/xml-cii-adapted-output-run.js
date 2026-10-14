@@ -1,4 +1,5 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
+import {installXml229P4RunAdvisory} from './xml-cii-adapted-p4-run-advisory.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
@@ -331,6 +332,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   card.append(title, desc);
   renderSummary(card, report);
   renderChecklist(card, report);
+  installXml229P4RunAdvisory(card,stateRef);
   renderFormatFailures(card, report);
   renderReadinessCard(card, config, state);
   renderRunOptions(card, stateRef, state, render);
