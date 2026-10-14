@@ -17,6 +17,9 @@ import {
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
+import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {xmlCiiBranchScopeFromState} from '../xml-cii-branch-scope.js';
+
 export { renderStandaloneDiagnosticsReportPanel };
 
 export async function previewConfigFromState(state, options = {}) {
@@ -122,6 +125,27 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // The V7 boundary must visibly HOLD instead of signing a JSON 0B digest.
     originalStagedSourceReceipt:state.xml229StagedSourceReceipt || null,
     originalStagedSourceStatus:state.xml229StagedSourceStatus || '',
+    // XML229 production B1 route. This callback never puts File/Blob into
+    // state or reads/parses the JSON on the UI thread; the original source
+    // Worker will independently verify its complete SHA before Preview.
+    resolveOriginalWorkerPreviewSource: async () => {
+      if(!previewInputsCurrent(card,stateRef,state.modeASourceId,sourceInputs))
+        throw Object.assign(new Error('Preview source/selection/config changed'),
+          {code:'XML229_PREVIEW_INPUT_CHANGED'});
+      const current=stateRef?.current||{};
+      const scope=xmlCiiBranchScopeFromState({
+        sourceKind:'xml',sourceText:xmlText,
+        branchSelection:current.branchSelection||{},
+      });
+      // Existing B1 Worker computes the original full XML only. A selected
+      // subset needs its own original-occurrence join; do not silently use ALL.
+      if(!scope.applicable||scope.blocked||
+         scope.selectedBranchOccurrences.length!==scope.sourceBranchOccurrences.length)
+        throw Object.assign(new Error('Selected partial scope needs a separate source-bound Preview implementation'),
+          {code:'XML229_PREVIEW_PARTIAL_SCOPE_HELD'});
+      return resolveXml229CurrentPreviewBlob(
+        stateRef,options.originalStagedSourceReceipt);
+    },
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
         throw new Error('Preview source or branch selection changed during build; rebuild Preview.');
