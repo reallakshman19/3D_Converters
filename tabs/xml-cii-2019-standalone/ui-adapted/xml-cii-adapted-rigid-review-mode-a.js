@@ -1,4 +1,5 @@
 import {projectXmlCiiFinalReviewRow} from '../../../converters/xml-cii2019-core/weight-final-review-reconciliation.js';
+import {renderVerifiedWeightReconciliationPanel} from './xml-cii-adapted-weight-shared-reconciliation-view.js';
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
 import { isXmlCiiDirectQualifiedCandidate } from '../../../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
@@ -139,7 +140,7 @@ function rowMarkup(issue, rowIndex) {
   </tr>`;
 }
 
-function popupMarkup(rows, entries) {
+function popupMarkup(rows, entries, verifiedHtml='') {
   const sourceOptions = entries.map((entry) => `<option value="${attr(entry.sourceId)}">${esc(entry.fileName)}</option>`).join('');
   return `<div class="mc-rigid-review-dialog" role="dialog" aria-modal="true" aria-label="Consolidated rigid zero weight review" style="color:#e2e8f0;max-height:90vh;overflow:auto;background:#0f172a;border:1px solid #253a55;border-radius:8px;padding:18px;max-width:1380px;width:96%;">
     <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px solid #253a55;padding-bottom:12px;margin-bottom:12px;">
@@ -154,6 +155,7 @@ function popupMarkup(rows, entries) {
       <button type="button" data-mode-a-rigid-fill-exact style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:7px 12px;">Use All Exact Suggestions</button>
       <span data-mode-a-rigid-status style="font-size:12px;color:#94a3b8;"></span>
     </div>
+    ${verifiedHtml}
     <div style="overflow:auto;max-height:55vh;border:1px solid rgba(148,163,184,.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,.55);color:#fff;position:sticky;top:0;z-index:1;"><th style="padding:7px;">Source XML</th><th style="padding:7px;">Branch</th><th style="padding:7px;">Bore</th><th style="padding:7px;">Rating</th><th style="padding:7px;">Node</th><th style="padding:7px;">DTXR</th><th style="padding:7px;">Length</th><th style="padding:7px;">Source XML kg</th><th style="padding:7px;">Accepted Match-1 kg</th><th style="padding:7px;">Proposed draft kg</th><th style="padding:7px;">Final reviewed kg</th><th style="padding:7px;">Nearest Suggestions</th></tr></thead><tbody data-mode-a-rigid-body>${rows.map(rowMarkup).join('')}</tbody></table></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px;border-top:1px solid #253a55;padding-top:14px;"><button type="button" data-mode-a-rigid-apply style="cursor:pointer;background:#1e4ed8;border:none;color:#fff;border-radius:6px;padding:9px 18px;font-weight:700;">Apply Weights and Run All Models</button></div>
   </div>`;
@@ -180,15 +182,39 @@ function bindCandidateButtons(overlay) {
   }));
 }
 
-export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
+export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options={}) {
+  // Canonical session read model is injected by the independently attested
+  // integrator; do NOT join it to legacy issue rows by node number/ref/name.
+  const verifiedHtml=options.verifiedSharedWeightSnapshot
+    ?renderVerifiedWeightReconciliationPanel(options.verifiedSharedWeightSnapshot,{
+      stage:'Rigidmatch2',sourceId:options.verifiedWeightSourceId||null,
+      expectedBasisId:options.currentVerifiedWeightBasisId,
+    }):'';
   const workingEntries = entries.map((entry) => ({ ...entry, issues: [...(entry.issues || [])] }));
   let rows = flattenedReviewRows(workingEntries);
   if (!rows.length) return Promise.resolve({ cancelled: false, updates: {} });
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
-    overlay.innerHTML = popupMarkup(rows, workingEntries);
+    overlay.innerHTML = popupMarkup(rows, workingEntries, verifiedHtml);
     document.body.appendChild(overlay);
+    if (verifiedHtml) {
+      // No legacy-weight issue.key Apply may write a *verified* original
+      // physical session: canonical Final CAS must be used instead.
+      for(const selector of ['[data-mode-a-rigid-apply]',
+        '[data-mode-a-rigid-fill-exact]','[data-mode-a-rigid-refresh]']){
+        const button=overlay.querySelector(selector);
+        if(button){
+          button.disabled=true;
+          button.title='Verified GC-PW source basis: legacy Final writes are disabled. Use a canonical Final review command.';
+        }
+      }
+      const notice=overlay.querySelector('[data-mode-a-rigid-status]');
+      if(notice){
+        notice.textContent='Verified source evidence is read-only here. Legacy Final Apply is blocked until canonical Match-2 review is connected.';
+        notice.style.color='#fbbf24';
+      }
+    }
     const body = overlay.querySelector('[data-mode-a-rigid-body]');
     const status = overlay.querySelector('[data-mode-a-rigid-status]');
     const summary = overlay.querySelector('[data-mode-a-rigid-summary]');
