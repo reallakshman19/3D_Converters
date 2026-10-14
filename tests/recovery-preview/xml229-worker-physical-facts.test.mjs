@@ -48,12 +48,19 @@ const basis=async o=>createPreviewBasis({
 });
 let serial=0;
 async function executeRealWorker({xml,basisId,sourcePhysicalAudit=true,scope={mode:'A',sourceId},
- config,stagedJsonText='',urlPrefix='root'}={}){
+ config,stagedJsonText='',urlPrefix='root',sourcePhysicalAuditMode,ackMode='correct'}={}){
  const originals={addEventListener:globalThis.addEventListener,
   postMessage:globalThis.postMessage,close:globalThis.close};
  let handler=null,closed=false;const messages=[];
  globalThis.addEventListener=(kind,fn)=>{if(kind==='message')handler=fn;};
- globalThis.postMessage=event=>messages.push(event);
+ globalThis.postMessage=event=>{
+  messages.push(event);
+  if(event.state==='source-physical-page'&&ackMode!=='none'){
+   const cursor=ackMode==='wrong'?'NOT-THE-CURSOR':(event.page.nextCursor??'END');
+   queueMicrotask(()=>handler({data:{protocol:'xml-cii-preview-local/1',kind:'physical-page-ack',
+    requestId:event.requestId,basisId:event.basisId,cursor}}));
+  }
+ };
  globalThis.close=()=>{closed=true;};
  try{
   const path=urlPrefix==='served'
@@ -62,7 +69,8 @@ async function executeRealWorker({xml,basisId,sourcePhysicalAudit=true,scope={mo
   await import(path+'?xml229-physical-audit='+ ++serial);
   assert.equal(typeof handler,'function');
   await handler({data:{protocol:'xml-cii-preview-local/1',kind:'execute',
-   requestId:'physical-'+serial,basisId,xmlText:xml,config,stagedJsonText,scope,sourcePhysicalAudit}});
+   requestId:'physical-'+serial,basisId,xmlText:xml,config,stagedJsonText,scope,sourcePhysicalAudit,
+   sourcePhysicalAuditMode}});
   assert.equal(closed,true,'terminal Worker message closes dedicated job');
   return messages;
  }finally{
@@ -151,4 +159,62 @@ test('oversized source audit fails with a typed gate rather than truncating orig
  assert.equal(end?.state,'failed',JSON.stringify(end));
  assert.equal(end.error?.code,'PHYSICAL_AUDIT_BOUNDED_LIMIT');
  assert.ok(!events.some(x=>x.state==='completed'));
+});
+
+test('ACK-paced original GLRD Worker publishes 200-entry frames and only source-only terminal metadata',async()=>{
+ const xml=await original,o=options(xml),b=await basis(o);
+ const messages=await executeRealWorker({xml,basisId:b.basisId,config:o.config,
+  sourcePhysicalAudit:false,sourcePhysicalAuditMode:'paced-pages'});
+ const end=messages.at(-1),frames=messages.filter(x=>x.state==='source-physical-page');
+ assert.equal(end?.state,'completed',JSON.stringify(end?.error));
+ assert.equal(end.result.engineeringAcceptance,'NOT_ASSESSED');
+ assert.equal(end.result.fullFactPopulationAccepted,false);
+ assert.equal(end.result.sourcePhysicalAudit,undefined,'terminal frame must not duplicate physical pages');
+ assert.equal(end.result.sourcePhysicalAuditStream.schema,'xml229-physical-page-stream/v1');
+ assert.equal(end.result.sourcePhysicalAuditStream.sourceFactCount,4664);
+ assert.equal(end.result.sourcePhysicalAuditStream.pageCount,frames.length);
+ assert.equal(frames.length,24,'4664/200 requires 24 paced frames');
+ assert.ok(frames.every(x=>x.page.complete===false&&x.page.items.length>0&&x.page.items.length<=200));
+ assert.ok(frames.every(x=>x.page.basisId===b.basisId&&x.basisId===b.basisId));
+ const all=frames.flatMap(x=>x.page.items);
+ assert.equal(all.length,4664);
+ const parsed=census(xml).nodes;
+ for(let i=0;i<parsed.length;i++){
+  for(let j=0;j<fields.length;j++){
+   const raw=String(children(parsed[i],fields[j])[0]?.textContent||'').trim();
+   assert.equal(all[4*i+j].extensions.originalText,raw||null);
+  }
+ }
+});
+
+test('ACK cursor corruption causes typed fail-closed Worker result, not forged terminal completion',async()=>{
+ const xml=await original,o=options(xml),b=await basis(o);
+ const events=await executeRealWorker({xml,basisId:b.basisId,config:o.config,
+  sourcePhysicalAudit:false,sourcePhysicalAuditMode:'paced-pages',ackMode:'wrong'});
+ const end=events.at(-1);
+ assert.equal(end.state,'failed',JSON.stringify(end));
+ assert.equal(end.error.code,'PHYSICAL_PAGE_ACK_MISMATCH');
+ assert.ok(!events.some(x=>x.state==='completed'));
+});
+
+test('paced source transport can pass old 2500-node physical audit cap, but denies >10000 before computation',async()=>{
+ const nodes=Array.from({length:2501},(_,i)=>'<Node><NodeNumber>'+i+
+  '</NodeNumber><Position>'+i+' 0 0</Position><OutsideDiameter>20</OutsideDiameter>'+
+  '<WallThickness>3</WallThickness><Weight>0</Weight></Node>').join('');
+ const make=body=>'<PipeStressExport><Pipe><Branch><Branchname>/PAGED/B1</Branchname>'+
+  body+'</Branch></Pipe></PipeStressExport>';
+ const xml=make(nodes);
+ const events=await executeRealWorker({xml,basisId:'a'.repeat(64),config:{},
+  sourcePhysicalAudit:false,sourcePhysicalAuditMode:'paced-pages'});
+ const end=events.at(-1);
+ assert.equal(end?.state,'completed',JSON.stringify(end?.error));
+ const pages=events.filter(x=>x.state==='source-physical-page');
+ assert.equal(pages.flatMap(x=>x.page.items).length,2501*4);
+ assert.ok(pages.every(p=>p.page.items.length<=200&&p.page.complete===false));
+ assert.equal(end.result.engineeringAcceptance,'NOT_ASSESSED');
+ const tooMany=make(nodes.repeat(4)+'<Node><NodeNumber>10001</NodeNumber></Node>');
+ const denied=await executeRealWorker({xml:tooMany,basisId:'a'.repeat(64),config:{},
+  sourcePhysicalAudit:false,sourcePhysicalAuditMode:'paced-pages'});
+ assert.equal(denied.at(-1)?.state,'failed');
+ assert.equal(denied.at(-1).error?.code,'PHYSICAL_STREAM_BOUNDED_LIMIT');
 });
