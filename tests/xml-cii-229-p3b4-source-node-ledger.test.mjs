@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {preparePreviewNodeOccurrenceDocument} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
 import {applyPreviewBoreWallAuthority} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js';
+import {xmlCiiDryRunPreview} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js';
 import {executeXml229OriginalPreview} from '../tabs/xml-cii-2019-standalone/integration/xml229-preview-original-blob-execution.mjs';
 
 installWeightBasisXmlDom(globalThis);
@@ -30,6 +31,23 @@ const reviewedRows=bores=>bores.map((bore,i)=>({
   nodeNumber:'300',componentRefNo:REF,endpoint:'1',
   rating:'900',boreMm:bore,lengthMm:100,
 }));
+
+test('end-to-end dry-run retains source ordinals after original node cleanup',()=>{
+  // Zero-master weight fallback ensures an actual review row is emitted,
+  // and an explicit rating avoids relying on heuristic branch token extraction.
+  const config={overrides:{rating:{[NAME]:'900'}},weight:{masterRows:[]}};
+  const single=xmlCiiDryRunPreview(xml(),config,'');
+  assert.equal(single.branchRows.length,1);
+  assert.equal(single.nodeRows.length,1,'must exercise real review-node + bore authority join');
+  assert.equal(single.nodeRows[0].nodeOrdinal,0,'working sequence is cleaned');
+  assert.equal(single.nodeRows[0].sourceNodeOrdinal,2,'original source identity survives cleanup');
+  assert.equal(single.nodeRows[0].boreMm,300);
+  const repeated=xmlCiiDryRunPreview(xml([300,250]),config,'');
+  assert.equal(repeated.branchRows.length,2);
+  assert.equal(repeated.nodeRows.length,2);
+  assert.deepEqual(repeated.nodeRows.map(n=>n.sourceNodeOrdinal),[2,2]);
+  assert.deepEqual(repeated.nodeRows.map(n=>n.boreMm),[300,250]);
+});
 
 test('GASK and <=6mm nodes are dropped, but original source ordinal 2 is retained',()=>{
   const {document,ledger}=preparePreviewNodeOccurrenceDocument({xmlText:xml(),config:cfg});
