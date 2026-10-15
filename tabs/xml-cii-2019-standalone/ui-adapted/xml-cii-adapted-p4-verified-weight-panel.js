@@ -15,9 +15,10 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
-
-const sessionByBase=new WeakMap();
-const sessionLeases=new WeakMap();
+import {
+ getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
+ publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
+} from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -171,22 +172,25 @@ export async function openXml229P4VerifiedSession(stateRef,{
  if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
  const inputs=await resolveInputs();
  const lease=inputs.inputLease||null;
- const previous=sessionByBase.get(key);
- if(previous&&lease&&lease===sessionLeases.get(key)){
-   try{await previous.readCompletion();return previous;}
-   catch{/* stale/cancelled prior session must not be reused */}
+ const previous=getXml229VerifiedEngineeringEntry(key);
+ if(previous&&lease&&lease===previous.lease){
+   try{await previous.session.readCompletion();return previous.session;}
+   catch{/* genuinely stale/cancelled prior session cannot be reused */}
  }
- if(previous){sessionByBase.delete(key);sessionLeases.delete(key);previous.cancel();}
+ // One source-bound authority per stable baseRef, independent of DOM
+ // ownership. A newer build invalidates an in-flight predecessor (CAS).
+ const ticket=beginXml229VerifiedEngineeringBuild(key);
  const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
  if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
    'Original source or master changed during Worker verification');}
- sessionByBase.set(key,session);
- if(lease)sessionLeases.set(key,lease);
+ const verifiedLease=lease||session.receipt?.basisId;
+ if(!publishXml229VerifiedEngineeringBuild(ticket,{lease:verifiedLease,session}))
+   err('ENGINEERING_BASIS_SUPERSEDED',
+     'A newer verified Preview replaced this engineering source review');
  return session;
 }
 export function getXml229CurrentWorkerHeldReview(stateRef){
- const key=stateRef?.modeABaseRef||stateRef;
- return key&&sessionByBase.get(key)||null;
+ return getXml229VerifiedEngineeringEntry(stateRef)?.session||null;
 }
 /** The opt-in panel remains usable even if legacy Weight Match/UI is present.
  * A supplied resolveInputs in a Chromium fixture does not bypass Worker
@@ -315,5 +319,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
  if(active)void render().then(()=>say('Existing verified Preview facts and Weight review loaded.'))
    .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
- return {cancel:()=>{active?.cancel();if(key)sessionByBase.delete(key);}};
+ // Removing the rendered panel is not authority to destroy its Worker.
+ // Explicit cancellation/rebuild remains a deliberate ownership transition.
+ return {dispose:()=>{},cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
