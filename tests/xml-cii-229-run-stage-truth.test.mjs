@@ -94,10 +94,25 @@ test('ordinary InputXML or plain XML without governed O1 scope retains historica
  assert.equal(input.summary.blockingCount,0);
  assert(input.summary.warningCount>0);
 });
+test('standard Mode A and fast ZIP enforce O1 receipt HOLD before any conversion or review',async()=>{
+ for(const path of [
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js',
+  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js',
+ ]){
+  const source=await readFile(new URL('../'+path,import.meta.url),'utf8');
+  assert.match(source,/hasOriginalJsonSourceOnlyRunHold\(state\)/);
+  assert.match(source,/original-json-engineering-authority/);
+  assert(source.indexOf('hasOriginalJsonSourceOnlyRunHold(state)')<
+    source.indexOf('replaceModeAState(stateRef, { ...state, batchRunning: true'),
+    path+' must refuse source-only original JSON before entering Run');
+ }
+});
 test('root and docs readiness/panel code stays byte identical',async()=>{
  for(const p of [
  'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
- 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js']){
+ 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
+ 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js',
+ 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js']){
   assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
    await readFile(new URL('../docs/'+p,import.meta.url)));
  }
