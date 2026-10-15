@@ -257,6 +257,8 @@ try{
   const confirm=page.locator('[data-p4-bulk-confirm]');
   if(await confirm.isVisible()){
     await confirm.click();
+    await page.waitForFunction(()=>/Match-1 decision\(s\) accepted/i.test(
+      document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
     record.stages.bulkAccepted=await page.locator('[data-p4-weight-status]').textContent();
     assert.match(record.stages.bulkAccepted,/Match-1 decision\(s\) accepted/i);
     // Final Match-2 was never bulk-applied or overwritten.
