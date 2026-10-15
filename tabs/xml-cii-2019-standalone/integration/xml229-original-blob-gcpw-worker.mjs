@@ -22,6 +22,8 @@ import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
  from '../../../converters/xml-cii2019-core/weight-facts-individual-review.js';
 import {readVerifiedModeAFinalRows}
  from '../../../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
+import {commitXml229NativeFinalIntent}
+ from '../../../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
 import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
 
@@ -170,6 +172,12 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(req.what==='native-final-intent'){
+     return commitXml229NativeFinalIntent(ready,{
+       originalJsonSha256:sourceReceipt.sha256,
+       sourceGenerationId:sourceReceipt.generationId,
+     });
+   }
    if(req.what==='completion'){
      const full=readVerifiedModeAFinalRows(ready);
      const counts={source:0,match1:0,final:0,unresolved:0};
