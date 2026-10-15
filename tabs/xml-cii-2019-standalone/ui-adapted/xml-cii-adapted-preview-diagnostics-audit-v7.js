@@ -135,8 +135,14 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     stagedSourceLabel: stagedSource.label,
     // These SOURCE_FACTS_ONLY fields do not provide Preview JSON data.
     // The V7 boundary must visibly HOLD instead of signing a JSON 0B digest.
-    originalStagedSourceReceipt:state.xml229StagedSourceReceipt || null,
-    originalStagedSourceStatus:state.xml229StagedSourceStatus || '',
+    get originalStagedSourceReceipt() {
+      const live = stateRef?.modeABaseRef?.current || stateRef?.current;
+      return live?.xml229StagedSourceReceipt || state.xml229StagedSourceReceipt || null;
+    },
+    get originalStagedSourceStatus() {
+      const live = stateRef?.modeABaseRef?.current || stateRef?.current;
+      return live?.xml229StagedSourceStatus || state.xml229StagedSourceStatus || '';
+    },
     // XML229 production B1 route. This callback never puts File/Blob into
     // state or reads/parses the JSON on the UI thread; the original source
     // Worker will independently verify its complete SHA before Preview.
@@ -168,8 +174,9 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
           {code:'XML229_PREVIEW_PARTIAL_SCOPE_HELD'});
       // O1 session is keyed by the unwrapped Mode-A ref in the workflow shell;
       // B1 receives a branch-scoped wrapper. Never key O1 by that wrapper.
+      const liveReceipt = (stateRef?.modeABaseRef?.current || stateRef?.current)?.xml229StagedSourceReceipt || options.originalStagedSourceReceipt;
       return resolveXml229CurrentPreviewBlob(
-        stateRef?.modeABaseRef||stateRef,options.originalStagedSourceReceipt);
+        stateRef?.modeABaseRef||stateRef, liveReceipt);
     },
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
