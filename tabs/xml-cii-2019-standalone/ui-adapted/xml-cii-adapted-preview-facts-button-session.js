@@ -148,6 +148,52 @@ export async function runPreviewButtonSession({
          r.rightsBasis!=='SOURCE_FACTS_ONLY'||r.engineeringReady!==false||
          r.phase!=='INDEX_COMMITTED')
         throw fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE','Original indexed JSON source is no longer current');
+      // XML229: use the actual 4 Preview Build as the sole user trigger.
+      // The verified engineering Worker already computed these Preview rows.
+      if(typeof options.openVerifiedEngineeringSession==='function'){
+        notice(host,{title:'Verifying original physical Preview in Worker…',
+          message:'Original XML census, staged JSON SHA-256, four masters and full FactRecords.',
+          showCancel:true,cancel});
+        const verified=await options.openVerifiedEngineeringSession({
+          onProgress:stage=>{
+            if(current())notice(host,{title:'Verifying engineering Preview…',
+              progress:String(stage),showCancel:true,cancel});
+          },
+        });
+        if(!current()){verified.cancel();return null;}
+        session.controller={cancel:()=>{verified.cancel();return true;}};
+        const result=await verified.readPreviewResult();
+        const proof=await verified.readCompletion();
+        if(!current())return null;
+        if(verified.receipt.originalJsonSha256!==r.sha256||
+          verified.receipt.sourceGenerationId!==r.generationId||
+          proof?.basisId!==verified.receipt.basisId||
+          proof?.engineeringFactsVerified!==true||
+          proof?.verifiedPhysicalCount!==verified.receipt.physicalCount||
+          proof?.ciiReleaseAuthorized!==false)
+          throw fail('ENGINEERING_PREVIEW_CUSTODY_DRIFT',
+            'Original Preview/GC-PW Worker does not match current indexed source');
+        const rendered=await renderResult(result,{text:'',
+          label:'original JSON source-verified engineering Worker'});
+        if(!current())return null;
+        host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
+        host.__xmlCiiVerifiedEngineeringReceipt=proof;
+        host.dataset.mcPreviewBasisId=verified.receipt.basisId;
+        host.dataset.mcPreviewOriginalJsonSha256=r.sha256;
+        host.dataset.mcPreviewJsonSource='P4_ENGINEERING_VERIFIED';
+        const evidence=document.createElement('div');
+        evidence.setAttribute('data-mc-preview-verified-engineering','');
+        evidence.setAttribute('role','status');
+        evidence.className='model-converters-workflow-detail-note';
+        evidence.textContent='Verified original engineering Preview: '+
+          proof.verifiedPhysicalCount+' physical components / '+
+          proof.verifiedFactCount+' complete FactRecords. '+
+          'Weight Match uses this same session; native CII Run remains HELD.';
+        host.prepend(evidence);
+        options.onOriginalWorkerPreviewCompleted?.({
+          result,sourceReceipt:r,basisId:verified.receipt.basisId});
+        return rendered;
+      }
       // This descriptor is used ONLY for InputBasis hashing, never as JSON.
       const sourceDescriptor=JSON.stringify({
         schema:'XML229.PreviewOriginalBasis.v1',
