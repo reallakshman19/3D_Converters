@@ -18,7 +18,7 @@ const scope=()=>({
  regexTesterResult:{status:'available'},
  options:{outputMode:'both'},masterContext:{rowCounts:{lineList:385,pipingClass:10699,
    materialMap:383,weight:1595}},
- result:{ok:true}, // a manifest artifact only, NOT a generated CII payload
+ result:{ok:false,diagnostics:{note:'synthetic diagnostics'}}, // one diagnostic artifact, not a generated CII payload
 });
 const gate=row=>row.checklistRows.find(r=>r.id==='xml229-original-json-engineering-authority');
 const summary=row=>row.checklistRows.find(r=>r.id==='branch-format-authority');
@@ -37,7 +37,7 @@ test('28/28 configured format READY does not hide 5 missing stages or 1 pending 
    assert.equal(row.status,'missing');
    assert.equal(row.severity,'warning');
  }
- assert.equal(report.checklistRows.find(x=>x.id==='run-result').status,'ready');
+ assert.equal(report.checklistRows.find(x=>x.id==='run-result').status,'pending');
  assert.equal(gate(report),undefined);
  assert.equal(report.artifactRows.find(x=>x.kind==='cii').available,false);
 });
