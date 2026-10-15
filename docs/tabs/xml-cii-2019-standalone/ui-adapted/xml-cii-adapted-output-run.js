@@ -321,11 +321,22 @@ function renderRunControls(parent, stateRef, state, report, render) {
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
+  // Available even before Run; Output artifacts/diagnostics may not exist
+  // while native CII release is correctly HELD. Explicit, inspectable export.
+  const exportEvidenceBtn=button('export-output-readiness','Download readiness diagnostics JSON');
+  exportEvidenceBtn.addEventListener('click',()=>{
+    const evidence={schema:'XML229.OutputRunReadinessEvidence.v1',
+      exportedAt:new Date().toISOString(),summary:report.summary,
+      checklistRows:report.checklistRows,logRows:report.logRows,
+      diagnostics:report.diagnostics,raw:report.raw};
+    downloadTextFile('xml-cii-output-run-readiness.json',
+      JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
+  });
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });
   finalizeBtn.disabled = !!(state.running || report.summary.blockingCount > 0);
   finalizeBtn.dataset.action = 'run';
-  actionDiv.append(runReviewBtn, noteDiv, refreshBtn, finalizeBtn);
+  actionDiv.append(runReviewBtn, noteDiv, refreshBtn, exportEvidenceBtn, finalizeBtn);
   ctrlCard.appendChild(actionDiv);
 }
 
