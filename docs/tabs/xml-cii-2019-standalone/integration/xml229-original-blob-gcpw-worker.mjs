@@ -299,10 +299,33 @@ async function rpc(req){
    if(req.what==='bulk-plan'){
      pendingBulk=null;
      const plan=planExactSourceWeightCommands(review,{basisId,scopeId:sourceId});
+     // The portable bulk planner is Match-1 scoped. Preserve ALREADY REVIEWED
+     // Final rows as an independent authority, including deferred/rejected
+     // Final decisions. Qualified competing masses are not unambiguous fill.
+     const finalState=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'});
+     let excludedFinal=0,ambiguousQualified=0;const commands=[];
+     for(let i=0;i<plan.commands.length;i+=80){
+       const chunk=plan.commands.slice(i,i+80);
+       const proposals=weightProjection.proposals(chunk.map(cmd=>cmd.occurrenceId));
+       for(const cmd of chunk){
+         if(Object.hasOwn(finalState.decisions,cmd.occurrenceId)){
+           excludedFinal++;continue;
+         }
+         const candidates=proposals.get(cmd.occurrenceId)||[];
+         const selected=candidates.find(p=>p.proposalId===cmd.proposalId);
+         if(!selected?.qualified||candidates.some(p=>
+           p.qualified&&p.proposalId!==cmd.proposalId&&p.value!==selected.value)){
+           ambiguousQualified++;continue;
+         }
+         commands.push(cmd);
+       }
+     }
+     const guarded={...plan,commands,qualified:commands.length};
      const planId=JSON.stringify([basisId,sourceId,plan.expectedDecisionRevision,
-       ++bulkSequence,plan.qualified]);
-     pendingBulk={planId,plan};
-     return {planId,basisId,qualified:plan.qualified,unresolved:plan.unresolved,
+       finalState.decisionRevision,++bulkSequence,commands.length]);
+     pendingBulk={planId,plan:guarded,finalRevision:finalState.decisionRevision};
+     return {planId,basisId,qualified:guarded.qualified,unresolved:plan.unresolved,
+       excludedFinal,ambiguousQualified,
        preservedSourceWeights:plan.preservedSourceWeights,
        alreadyReviewed:plan.alreadyReviewed,physicalCount:plan.physicalCount,
        reviewStage:'RigidMatch1',finalAcceptedAutomatically:false};
@@ -330,7 +353,12 @@ async function rpc(req){
  if(req.kind==='bulk-commit'){
    if(!pendingBulk||req.planId!==pendingBulk.planId)
      fail('BULK_PLAN_STALE','Review the current qualified blank-only bulk plan first');
-   const {plan}=pendingBulk;pendingBulk=null;
+   const {plan,finalRevision}=pendingBulk;pendingBulk=null;
+   const currentFinal=review.getDecisionState({
+     basisId,scopeId:sourceId,stage:'Rigidmatch2'});
+   if(currentFinal.decisionRevision!==finalRevision||
+      plan.commands.some(cmd=>Object.hasOwn(currentFinal.decisions,cmd.occurrenceId)))
+     fail('BULK_FINAL_REVIEW_CHANGED','Final review changed since blank-only bulk proposal; replan');
    const results=commitExactSourceWeightCommands(review,plan);
    return {basisId,acceptedCount:results.length,stage:'RigidMatch1',
      finalAcceptedAutomatically:false};
