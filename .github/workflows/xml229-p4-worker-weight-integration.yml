@@ -23,6 +23,7 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs'
       - 'tests/xml-cii-229-p4-owner-branch-scope.test.mjs'
+      - 'scripts/xml-cii-229-p4-private-scope-audit.mjs'
       - 'tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs'
       - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
       - '.github/workflows/xml229-p4-worker-weight-integration.yml'
@@ -46,6 +47,7 @@ jobs:
       - name: Exact HEAD and served root/docs parity
         run: |
           git rev-parse HEAD
+          node --check scripts/xml-cii-229-p4-private-scope-audit.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
