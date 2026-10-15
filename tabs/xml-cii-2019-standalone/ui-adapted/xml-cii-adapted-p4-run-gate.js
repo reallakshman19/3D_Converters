@@ -11,6 +11,8 @@
  */
 import {getXml229CurrentWorkerHeldReview}
  from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {hasSelectedXml229OriginalO1Receipt}
+ from '../xml-cii-original-run-scope.js';
 
 export const XML229_RUN_GATE_SCHEMA='XML229.P4.NativeRunGate.v1';
 function scopeState(stateRef){
@@ -18,21 +20,14 @@ function scopeState(stateRef){
   const state=base?.current||stateRef?.current||stateRef||{};
   return state&&typeof state==='object'?state:{};
 }
-function hasOriginalSourceReceipt(state){
-  if(state?.xml229StagedSourceReceipt)return true;
-  if(state?.workflow?.xml229StagedSourceReceipt)return true;
-  return Array.isArray(state?.sourceBatch?.sources)&&state.sourceBatch.sources
-    .some(source=>source?.enabled!==false&&
-      (source.xml229StagedSourceReceipt||source.workflow?.xml229StagedSourceReceipt));
-}
 /** An active canonical session must be checked even when a stale O1 receipt
  * was cleared from state. Conversely, an O1 receipt with no session is HOLD.
  */
 export function requiresXml229CanonicalRunGate(stateRef){
   const state=scopeState(stateRef);
-  return Boolean(hasOriginalSourceReceipt(state)||
+  return Boolean(hasSelectedXml229OriginalO1Receipt(state)||
     getXml229CurrentWorkerHeldReview(stateRef)||
-    (stateRef?.current!==state&&hasOriginalSourceReceipt(stateRef?.current)));
+    (stateRef?.current!==state&&hasSelectedXml229OriginalO1Receipt(stateRef?.current)));
 }
 const deny=(code,message,detail=null)=>Object.freeze({
   schema:XML229_RUN_GATE_SCHEMA,applies:true,authorized:false,
