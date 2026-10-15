@@ -260,6 +260,33 @@ try{
     assert.equal(item.blocking,'false');
   }
 
+  // #274: download the same canonical report that produced the visible
+  // checklist, log and Run controls. This must work even with native Run HELD.
+  const capture=page.locator('[data-action="export-output-readiness"]');
+  await capture.waitFor();
+  const [download]=await Promise.all([page.waitForEvent('download'),capture.click()]);
+  assert.equal(download.suggestedFilename(),'xml-cii-output-run-readiness.json');
+  const exported=JSON.parse(await readFile(await download.path(),'utf8'));
+  record.stages.runReadinessEvidence={
+    schema:exported.schema,summary:exported.summary,raw:exported.raw,
+    preview:exported.checklistRows.find(x=>x.id==='preview-audit'),
+    weight:exported.checklistRows.find(x=>x.id==='weight-match'),
+    release:exported.checklistRows.find(x=>x.id==='xml229-original-json-engineering-authority'),
+  };
+  assert.equal(exported.schema,'XML229.OutputRunReadinessEvidence.v1');
+  assert.equal(exported.raw.xml229VerifiedEngineering,true);
+  assert.equal(record.stages.runReadinessEvidence.preview?.status,'ready');
+  assert.equal(record.stages.runReadinessEvidence.release?.status,'held');
+  assert.equal(record.stages.runReadinessEvidence.release?.blocking,true);
+  assert.equal(exported.summary.blockingCount,
+    exported.checklistRows.filter(x=>x.blocking).length);
+  assert.equal(exported.summary.warningCount,
+    exported.checklistRows.filter(x=>!x.blocking&&x.status!=='ready').length);
+  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
+  for(const item of record.stages.runIndependentStages){
+    assert.equal(exported.checklistRows.find(x=>x.id===item.id)?.status,item.status,
+      'rendered independent stage must equal exported canonical status');
+  }
   assert.equal(await page.locator('[data-xml229-p4-run-advisory]').count(),0);
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
