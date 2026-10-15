@@ -151,6 +151,17 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
+  // Navigate through an unrelated stage after the Worker has verified its
+  // input. It must preserve the SAME review unless actual input bytes,
+  // original JSON generation, scope or master authority changed.
+  await page.locator('[data-phase="json-trace"]').click();
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
+  const afterNavigation=await page.locator('[data-p4-weight-status]').textContent();
+  record.stages.afterUnrelatedNavigation=afterNavigation;
+  assert.match(afterNavigation,/Existing verified Preview facts/);
+  assert.doesNotMatch(afterNavigation,/stale/i);
+
   // Explicit engineer Match-1 and distinct Final decisions through the
   // EXISTING Weight Match stage; never promote a default or blank draft.
   const reviewIndex=await page.evaluate(()=>{
