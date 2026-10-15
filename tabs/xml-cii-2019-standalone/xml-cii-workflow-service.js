@@ -5,6 +5,7 @@ import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261008-p0-mode-b-parity-1';
 import { buildXmlCiiBranchOccurrences } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
+import {observeXml229NativeEngineBoundary} from './xml-cii-native-output-consumption-evidence.js';
 
 function parseSupportConfig(raw) {
   try {
@@ -138,6 +139,14 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
 
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
+  // Opt-in, evidence-only SHA-256 custody of bytes ACTUALLY handed to the
+  // native engine and returned. It does not authorize any P4/O1 CII release,
+  // nor claim GC-PW Final weights were physically consumed.
+  const nativeBoundary=runtime?.captureNativeEngineBoundary===true
+    ?await observeXml229NativeEngineBoundary({
+      originalSourceText:factedJob.sourceText,parityXmlText:parity.xmlText,
+      parityEvidence:parity.evidence,engineJob,engineResult:result,
+    }):null;
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
   if (normalized.diagnostics) {
@@ -145,6 +154,7 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     normalized.diagnostics.runParityEvidence = parity.evidence;
     normalized.diagnostics.converterInputReleased = true;
     normalized.diagnostics.converterInputDigest = parity.evidence.engineInputDigest;
+    if (nativeBoundary) normalized.diagnostics.xml229NativeEngineBoundary=nativeBoundary;
   }
   return normalized;
 }
