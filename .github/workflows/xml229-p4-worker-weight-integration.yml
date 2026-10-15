@@ -9,6 +9,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs'
@@ -17,6 +18,7 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs'
@@ -55,6 +57,8 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
