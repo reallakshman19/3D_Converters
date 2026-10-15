@@ -70,7 +70,9 @@ try{
   assert.match(record.stages.indexStatus,/LFJ source index COMMITTED/);
   assert.match(record.stages.indexStatus,/23,?754/);
   await page.locator('[data-phase="preview"]').click();
-  const inventory=await page.locator('[data-active-phase="preview"]').textContent();
+  const inventory=await page.locator('#mc-preview-table-host').evaluate(
+    el=>el.parentElement?.textContent||'');
+  record.stages.previewInventoryText=inventory.slice(0,1200);
   record.stages.previewMasterInventory=Object.fromEntries([
     ['lineList',/Line List:\s*(\d+) row\(s\)/],
     ['pipingClass',/Piping Class:\s*(\d+) row\(s\)/],
