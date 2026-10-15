@@ -5,6 +5,8 @@ import {buildStandaloneOutputRunReadiness,hasOriginalJsonSourceOnlyRunHold}
  from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
 import {isXml229VerifiedCompletionForInput}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs';
+import {xml229CanonicalOutputBadgeCounts}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs';
 
 const sourceId='OWNER-ORIGINAL-XML', sha='a'.repeat(64),basisId='b'.repeat(64);
 const originalReceipt={
@@ -138,4 +140,20 @@ test('root and served docs implementation and tests compile byte-for-byte',async
   const docs=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
   assert.equal(root,docs,path+' served mirror differs');
  }
+});
+
+test('header badges count the exact Output/Run diagnostics instead of stale shell or runtime log totals',()=>{
+ const r=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:engineering()});
+ const actual=xml229CanonicalOutputBadgeCounts(r);
+ assert.equal(actual.errors,1,'native CII native release HOLD is an error');
+ assert.equal(actual.warnings,r.diagnostics.filter(x=>x.level==='warning').length);
+ assert.equal(actual.warnings,r.summary.warningCount);
+ const synthetic={diagnostics:[{level:'error'},{level:'warning'},{level:'info'},{level:'warning'}],
+  logRows:[{level:'error'},{level:'error'}]};
+ assert.deepEqual(xml229CanonicalOutputBadgeCounts(synthetic),{errors:1,warnings:2});
+});
+test('header badge module is mirrored for the served application',async()=>{
+ const p='tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs';
+ assert.equal(await readFile(new URL('../'+p,import.meta.url),'utf8'),
+  await readFile(new URL('../docs/'+p,import.meta.url),'utf8'));
 });
