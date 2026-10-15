@@ -1,4 +1,5 @@
 import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-single-weight-owners-1';
+import {hasOriginalJsonSourceOnlyRunHold} from '../xml-cii-output-run-readiness.js';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -160,7 +161,13 @@ export async function runModeABatchFastFromUi(stateRef, render, options = {}) {
   if (state.batchRunning || state.running) return null;
 
   const preflight = buildModeAPreflight(state.sourceBatch);
-  const globalBlocks = globalBlockingRows(preflight);
+  const globalBlocks = [
+    ...globalBlockingRows(preflight),
+    ...(hasOriginalJsonSourceOnlyRunHold(state) ? [{
+      id: 'xml229-original-json-engineering-authority',
+      message: 'Original JSON O1 source is indexed/selected only. Complete reviewed physical weights and native CII output-consumption authority are not established; batch Run and ZIP are HELD.',
+    }] : []),
+  ];
   if (globalBlocks.length) {
     const message = globalBlocks.map((row) => row.message).join(' | ');
     const blockedResult = {
