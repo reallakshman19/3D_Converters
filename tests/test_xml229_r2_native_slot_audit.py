@@ -53,7 +53,7 @@ class R2C2Slots(unittest.TestCase):
 
     def test_weight_scale_is_applied_to_native_output_only(self):
         data=audit_original_rigid_native_slots(
-          make_transfer(),make_model(),cii(343.233),weight_scale=9.80665)
+          make_transfer(),make_model(),cii(70),weight_scale=2)
         self.assertEqual(data["rigidSlots"][0]["approvedKg"],35.)
 
     def test_positive_engine_mass_mismatch_is_blocked(self):
