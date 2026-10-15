@@ -360,8 +360,12 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  const token=card.__xml229ReadinessToken;
  void Promise.resolve().then(()=>session.readCompletion()).then(proof=>{
    if(card.isConnected===false||card.__xml229ReadinessToken!==token||
-      stateRef.current!==state||getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
-   const verifiedReport=buildStandaloneOutputRunReadiness(state,{
+      getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
+   // Ordinary immutable UI updates may replace the state object while an
+   // independently verified Worker RPC is pending. Challenge the *latest*
+   // state against the Worker proof rather than requiring object identity.
+   const latest=stateRef.current;
+   const verifiedReport=buildStandaloneOutputRunReadiness(latest,{
      verifiedEngineering:{sessionReceipt:session.receipt,proof},
    });
    if(verifiedReport.raw?.xml229VerifiedEngineering!==true)return;
