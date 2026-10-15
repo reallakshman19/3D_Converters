@@ -11,10 +11,13 @@ import {xmlCiiEnrichedConfigFromState}
  from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig}
  from '../xml-cii-dataset-backed-config.js';
+import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
+import {digestCanonical} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 
 const sessionByBase=new WeakMap();
+const sessionLeases=new WeakMap();
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -82,26 +85,9 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const context=view.masterContext||raw.masterContext||{};
  const config=await materializeXmlCiiDatasetBackedConfig(
    xmlCiiEnrichedConfigFromState(view),{...view,masterContext:context});
- const definitions=[
-  ['lineList','linelist','masterRows'],
-  ['pipingClass','pipingClass','masterRows'],
-  ['materialMap','material','mapRows'],
-  ['weight','weight','masterRows'],
- ];
- const masters={};
- for(const [kind,section,property] of definitions){
-   const ref=context.datasetRefs?.[kind];
-   const rows=config?.[section]?.[property];
-   if(!ref?.datasetId||!Array.isArray(rows)||!rows.length||
-      rows.length!==Number(ref.rowCount))
-     err('FOUR_MASTER_CUSTODY_INCOMPLETE',
-       'Expected source-attested '+kind+' master rows; reimport current original master');
-   masters[kind]={
-     datasetId:ref.datasetId,
-     revision:context.appliedMappingRevision?.[kind]??ref.datasetRevision??'1',
-     rows,mapping:config[section]?.fieldMap||ref.fieldMap||null,
-   };
- }
+ const {masters,attestations}=await resolveXml229FourMasterCustody(config,context,{
+   restoreFailures:raw.masterRestoreFailures||view.masterRestoreFailures||{},
+ });
  const isCurrent=()=>{
    if(!source.isCurrent())return false;
    const current=baseRef.current;
@@ -112,13 +98,18 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  };
  if(!isCurrent())
    err('STALE_ORIGINAL_MASTER_SOURCE','Original XML, stage, master or Owner selection changed during hydration');
+ const inputLease=await digestCanonical({sourceId,xmlText:raw.sourceText,
+   receiptSha:source.receipt.sha256,generationId:source.receipt.generationId,
+   selectionRef:'all',config,attestations});
+ if(!isCurrent())err('STALE_ORIGINAL_MASTER_SOURCE',
+   'Original source/master changed during full content attestation');
  return {xmlText:raw.sourceText,sourceId,masters,
    selection:[{sourceId,selectionRef:'all'}],
    config,overrides:config.overrides||{},
    originalStagedBlob:source.blob,
    originalStagedSourceReceipt:source.receipt,
    requestId:'xml229-p4-'+source.generationId+'-'+sourceId,
-   isCurrent};
+   inputLease,isCurrent};
 }
 /** Reuse exactly one source-attested original Worker review across Preview
  * and Weight. Rebuild revokes the previous InputBasis and its decisions.
@@ -129,11 +120,19 @@ export async function openXml229P4VerifiedSession(stateRef,{
 }={}){
  const key=stateRef?.modeABaseRef||stateRef;
  if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
- const previous=sessionByBase.get(key);
- if(previous){sessionByBase.delete(key);previous.cancel();}
  const inputs=await resolveInputs();
+ const lease=inputs.inputLease||null;
+ const previous=sessionByBase.get(key);
+ if(previous&&lease&&lease===sessionLeases.get(key)){
+   try{await previous.readCompletion();return previous;}
+   catch{/* stale/cancelled prior session must not be reused */}
+ }
+ if(previous){sessionByBase.delete(key);sessionLeases.delete(key);previous.cancel();}
  const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
+ if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
+   'Original source or master changed during Worker verification');}
  sessionByBase.set(key,session);
+ if(lease)sessionLeases.set(key,lease);
  return session;
 }
 export function getXml229CurrentWorkerHeldReview(stateRef){
