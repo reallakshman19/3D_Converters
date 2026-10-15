@@ -156,6 +156,27 @@ try{
  assert.match(runGate.fastStatus,/CII Run HELD/);
  assert.equal(runGate.generatedOutput,false);
 
+ // The visible 5 Run control must also refuse an O1 source *before*
+ // a GC-PW session was built (source-only index is not engineering evidence).
+ const visualGate=await page.evaluate(async()=>{
+   const {renderStandaloneOutputRunPanel}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js');
+   const stateRef={current:{
+     sourceText:'<PipeStressExport/>',sourceKind:'xml',options:{},
+     xml229StagedSourceReceipt:{phase:'INDEX_COMMITTED',engineeringReady:false},
+     outputRunReadinessReport:{summary:{blockingCount:0},
+       checklistRows:[],artifactRows:[],logRows:[],diagnostics:[]},
+   }};
+   const host=document.querySelector('#run-panel');
+   renderStandaloneOutputRunPanel(host,stateRef,()=>{});
+   const btn=host.querySelector('[data-action="run"]');
+   return {disabled:btn?.disabled,title:btn?.title,label:btn?.textContent,
+     hasAdvisory:Boolean(host.querySelector('[data-xml229-p4-run-advisory]'))};
+ });
+ assert.equal(visualGate.disabled,true);
+ assert.match(visualGate.label,/CII Release Held/);
+ assert.equal(visualGate.hasAdvisory,true);
+
  assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
