@@ -12,7 +12,7 @@ import {xmlCiiEnrichedConfigFromState}
 import {materializeXmlCiiDatasetBackedConfig}
  from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
-import {digestCanonical} from '../../../contracts/gc-pw-v1/contract.mjs';
+import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 
@@ -22,16 +22,46 @@ const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?n+' kg':'—';
+/**
+ * The Worker InputBasis is source bytes + committed original Blob generation +
+ * effective config/master revisions + physical selection. UI-only revision
+ * bookkeeping and a new File wrapper around the same XML are NOT changes to
+ * the verified source/master basis. These were false-staling the live Weight
+ * Review after ordinary phase navigation and background UI hydration.
+ */
+const ownerScope=value=>{
+ const s=String(value??'').trim();
+ return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
+};
+const configEquivalent=(a,b)=>{
+ if(a===b)return true;
+ try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
+ catch{return false;}
+};
 const snapshotOf=(raw,sourceId)=>({
- sourceId,sourceText:raw?.sourceText,sourceFile:raw?.sourceFile,
+ sourceId,
+ sourceText:raw?.sourceText,
  supportConfigJson:raw?.supportConfigJson,
  scope:JSON.stringify(raw?.branchSelection||{}),
- jsonTraceScopeId:raw?.jsonTraceScopeId,
+ jsonTraceScopeId:ownerScope(raw?.jsonTraceScopeId),
+ selectedScopeId:raw?.selectedScopeId??null,
+ requestedOwnerZoneScopeId:raw?.requestedOwnerZoneScopeId??null,
  datasetRefs:JSON.stringify(raw?.masterContext?.datasetRefs||{}),
  mappingRevisions:JSON.stringify(raw?.masterContext?.appliedMappingRevision||{}),
- dependencyRevisions:JSON.stringify(raw?.dependencyRevisions||{}),
+ rowCounts:JSON.stringify(raw?.masterContext?.rowCounts||{}),
 });
-const unchanged=(a,b)=>Object.keys(a).every(k=>Object.is(a[k],b[k]));
+export function compareXml229P4LiveSourceSnapshot(basis,current,{
+ verifyFullSelection=()=>false,
+}={}){
+ if(!basis||!current)return false;
+ const latest=snapshotOf(current,basis.sourceId);
+ // A normalized/expanded "all branches" representation has the same
+ // physical identity. A genuine partial/stale selection still fails closed.
+ if(basis.scope!==latest.scope&&!verifyFullSelection(current))return false;
+ return Object.keys(basis).every(key=>key==='scope'||key==='supportConfigJson'
+   ? key==='scope'||configEquivalent(basis.supportConfigJson,latest.supportConfigJson)
+   : Object.is(basis[key],latest[key]));
+}
 
 /** Engineering physical scope cannot silently normalize a stale selection to ALL.
  * A genuine 28/28 original-source selection passes; 28/41 and stale data HOLD.
@@ -95,10 +125,16 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const isCurrent=()=>{
    if(!source.isCurrent())return false;
    const current=baseRef.current;
-   if(!unchanged(before,snapshotOf(current,sourceId)))return false;
-   const c=current?.masterContext;
-   return c?.datasetRefs===context.datasetRefs||
-     JSON.stringify(c?.datasetRefs||{})===before.datasetRefs;
+   return compareXml229P4LiveSourceSnapshot(before,current,{
+     verifyFullSelection:state=>{
+       try{
+         assertXml229P4OriginalFullSelection({
+           sourceText:state.sourceText,branchSelection:state.branchSelection||{},
+         });
+         return true;
+       }catch{return false;}
+     },
+   });
  };
  if(!isCurrent())
    err('STALE_ORIGINAL_MASTER_SOURCE','Original XML, stage, master or Owner selection changed during hydration');
