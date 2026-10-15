@@ -335,7 +335,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   renderSummary(card, report);
   renderChecklist(card, report);
   // Advisory only: the existing original-O1 Run HOLD is never lifted.
-  if (state?.xml229StagedSourceReceipt?.schema === 'XML229.OriginalStagedSourceReceipt.v1')
+  if ((stateRef?.modeABaseRef?.current || state)?.xml229StagedSourceReceipt?.schema === 'XML229.OriginalStagedSourceReceipt.v1')
     installXml229P4RunAdvisory(card,stateRef);
   renderFormatFailures(card, report);
   renderReadinessCard(card, config, state);
