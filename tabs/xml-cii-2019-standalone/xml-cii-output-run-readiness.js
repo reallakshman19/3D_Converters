@@ -95,6 +95,9 @@ function selectedOriginalJsonSourceReceipts(input) {
     .filter(Boolean);
   return [...(own ? [own] : []), ...selected];
 }
+export function hasOriginalJsonSourceOnlyRunHold(input = {}) {
+  return selectedOriginalJsonSourceReceipts(input).length > 0;
+}
 function originalJsonAuthorityRows(input) {
   const receipts=selectedOriginalJsonSourceReceipts(input);
   if (!receipts.length) return [];
