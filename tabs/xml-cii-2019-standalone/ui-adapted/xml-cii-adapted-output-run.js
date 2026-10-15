@@ -4,6 +4,7 @@ import { createElement, createOption, downloadTextFile } from './xml-cii-adapted
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
+import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
@@ -88,11 +89,13 @@ function renderSummary(parent, report) {
     { Source: 'artifacts', Status: report.summary.artifactCount,
       Message: 'available artifacts (not proof of a current CII output)' },
   ], 'No readiness summary yet.'));
+  return panel;
 }
 
 function renderChecklist(parent, report) {
   const panel = section(parent, 'Pre-run Checklist');
   panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
+  return panel;
 }
 
 function renderFormatFailures(parent, report) {
@@ -321,6 +324,80 @@ function renderRunControls(parent, stateRef, state, report, render) {
   ctrlCard.appendChild(actionDiv);
 }
 
+/**
+ * Project the SAME live GC-PW session into existing 5 Run checklist rows.
+ * Presentation only: NEVER mutate readiness state, blocking rules, cached
+ * results, weight decisions or the native Run button. A stale/disposed Worker
+ * fails closed, and Mode-A multi-source cannot borrow another source's proof.
+ */
+function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summaryPanel,checklistPanel){
+ const raw=(stateRef?.modeABaseRef||stateRef)?.current||state;
+ const receipt=state?.xml229StagedSourceReceipt||raw.xml229StagedSourceReceipt;
+ if(receipt?.schema!=='XML229.OriginalStagedSourceReceipt.v1')return;
+ const enabled=raw.sourceBatch?.sources?.filter(x=>x.enabled!==false)||null;
+ if(enabled&&enabled.length!==1)return;
+ const session=getXml229CurrentWorkerHeldReview(stateRef);
+ if(!session)return;
+ const activeId=raw.sourceBatch?.activeSourceId||state.modeASourceId||'';
+ if(enabled?.length===1&&enabled[0].sourceId!==activeId)return;
+ const ownSourceId=state.modeASourceId||activeId;
+ void Promise.resolve().then(()=>session.readCompletion()).then(proof=>{
+   if(card.isConnected===false)return;
+   if(proof?.schema!=='XML229.P4.RunAdvisory.v1'||
+      proof.ciiReleaseAuthorized!==false||
+      proof.engineeringFactsVerified!==true||
+      proof.previewStatus!=='FULL_SOURCE_FACTS_VERIFIED'||
+      proof.basisId!==session.receipt.basisId||
+      proof.originalJsonSha256!==receipt.sha256||
+      proof.sourceGenerationId!==receipt.generationId||
+      proof.verifiedPhysicalCount!==session.receipt.physicalCount||
+      !Number.isSafeInteger(proof.counts?.unresolved)||
+      (ownSourceId&&proof.sourceId!==ownSourceId))return;
+   const checklist=[...checklistPanel.querySelectorAll('tbody tr')];
+   const update=(id,{label,status,severity,message})=>{
+     const tr=checklist.find(row=>row.children[0]?.textContent===id);
+     if(!tr||tr.children.length<6)return;
+     tr.children[1].textContent=label;
+     tr.children[2].textContent=status;
+     tr.children[3].textContent=severity;
+     tr.children[4].textContent='false'; // these optional stage rows do NOT clear the native HOLD
+     tr.children[5].textContent=message;
+   };
+   update('preview-audit',{
+     label:'Original Preview engineering facts',
+     status:'ready',severity:'ok',
+     message:'Verified in actual 4 Preview: '+proof.verifiedPhysicalCount+
+       ' original physical components and '+proof.verifiedFactCount+
+       ' complete source-bound FactRecords. Separate Diagnostics/Matched Audit stages are not implied.',
+   });
+   const fullyFinal=proof.counts.unresolved===0&&proof.counts.match1===0;
+   const weightMessage='GC-PW source-bound review: '+
+     proof.counts.final+' Final, '+proof.counts.match1+' Match-1 only, '+
+     proof.counts.source+' source masses, '+proof.counts.unresolved+
+     ' unresolved. Final and native output consumption remain independent.';
+   update('weight-match',{
+     label:'Weight Match / Final review (GC-PW)',
+     status:fullyFinal?'ready':'pending',
+     severity:fullyFinal?'ok':'warning',message:weightMessage,
+   });
+   const optional=checklist.filter(tr=>tr.children.length>=6&&
+      tr.children[2].textContent!=='ready'&&tr.children[4].textContent!=='true').length;
+   const summary=summaryPanel.querySelector('tbody tr');
+   if(summary?.children?.length>=3)
+     summary.children[2].textContent=report.summary.blockingCount+
+       ' blocking items · '+optional+' incomplete/warning stages';
+   const logs=[...card.querySelectorAll('.xml-cii-weight-panel')]
+     .find(section=>section.querySelector('h3')?.textContent==='Logs');
+   for(const row of logs?.querySelectorAll('tbody tr')||[]){
+     const message=row.children[2]?.textContent||'';
+     if(message.startsWith('Preview / Diagnostics / Matched Audit status:'))
+       row.children[2].textContent='Original engineering Preview verified from current GC-PW source receipt.';
+     if(message.startsWith('Weight Match status:'))
+       row.children[2].textContent=weightMessage;
+   }
+ }).catch(()=>{/* Cannot publish a stale or unverified status; existing Run HOLD remains. */});
+}
+
 export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const isRef = stateOrRef && 'current' in stateOrRef;
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
@@ -331,8 +408,8 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
   const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
   card.append(title, desc);
-  renderSummary(card, report);
-  renderChecklist(card, report);
+  const summaryPanel=renderSummary(card,report);
+  const checklistPanel=renderChecklist(card,report);
   renderFormatFailures(card, report);
   renderReadinessCard(card, config, state);
   renderRunOptions(card, stateRef, state, render);
@@ -342,4 +419,5 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   renderLogs(card, report);
   renderManifest(card, report);
   renderRaw(card, report);
+  projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summaryPanel,checklistPanel);
 }
