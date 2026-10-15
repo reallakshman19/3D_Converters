@@ -6,6 +6,8 @@ import {xmlCiiBranchScopeFromState,buildXmlCiiBranchOccurrences,xmlCiiSourceDige
 import {assertXml229P4OriginalFullSelection}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js';
 
+import {auditXml229PrivateP4Scope}
+ from '../scripts/xml-cii-229-p4-private-scope-audit.mjs';
 const authentic=await readFile(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url),'utf8');
 const sourceRows=buildXmlCiiBranchOccurrences(authentic);
 const count=n=>assertXml229P4OriginalFullSelection(n);
@@ -94,4 +96,47 @@ test('unbound default ALL without explicit selection does not invent prior parti
  const scope=count({sourceText:xml,branchSelection:{}});
  assert.equal(scope.sourceBranchOccurrences.length,28);
  assert.equal(scope.selectedBranchOccurrences.length,28);
+});
+
+test('private audit emits only source SHA/count and HOLD, no raw branch names or CII authority',()=>{
+ const xml=derivedBranches(41);
+ const selection=bound(xml,buildXmlCiiBranchOccurrences(xml).slice(0,28)
+   .map(row=>row.branchOccurrenceId)).branchSelection;
+ const report=auditXml229PrivateP4Scope({
+   xml,branchSelection:selection,expectedSelectedCount:28,
+ });
+ assert.equal(report.sourceBranchOccurrenceCount,41);
+ assert.equal(report.status,'HOLD');
+ assert.equal(report.blocker,'PARTIAL_XML_SCOPE_HELD');
+ assert.equal(report.nativeCiiReleaseAuthorized,false);
+ assert.equal(report.originalPhysicalFactCensusVerified,false);
+ assert.match(report.sourceSha256,/^[a-f0-9]{64}$/);
+ const json=JSON.stringify(report);
+ assert(!json.includes('SYNTHETIC-1885'));
+ assert(!json.includes('<PipeStressExport>'));
+});
+test('private audit full genuine repository fixture emits source-only eligibility, never Run authority',()=>{
+ const ids=sourceRows.map(row=>row.branchOccurrenceId);
+ const report=auditXml229PrivateP4Scope({
+   xml:authentic,branchSelection:bound(authentic,ids).branchSelection,
+   expectedSelectedCount:5,
+ });
+ assert.equal(report.status,'FULL_ORIGINAL_XML_SCOPE_ELIGIBLE_ONLY');
+ assert.equal(report.verifiedFullSourceSelectedCount,5);
+ assert.equal(report.weightFinalEngineeringAccepted,false);
+ assert.equal(report.nativeCiiReleaseAuthorized,false);
+});
+test('private audit redacts stale source selections rather than reporting fictitious selected cardinality',()=>{
+ const prior=derivedBranches(41);
+ const changed=prior.replace('SYNTHETIC-1885','MODIFIED-SYNTHETIC-1885');
+ const report=auditXml229PrivateP4Scope({
+   xml:changed,
+   branchSelection:bound(prior,buildXmlCiiBranchOccurrences(prior).slice(0,28)
+    .map(x=>x.branchOccurrenceId)).branchSelection,
+   expectedSelectedCount:28,
+ });
+ assert.equal(report.status,'HOLD');
+ assert.equal(report.blocker,'STALE_OR_UNBOUND_SELECTION');
+ assert.equal(report.verifiedFullSourceSelectedCount,null);
+ assert.equal(report.selectionBoundToCurrentXml,false);
 });
