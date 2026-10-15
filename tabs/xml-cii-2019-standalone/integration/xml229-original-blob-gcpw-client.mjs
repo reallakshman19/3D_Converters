@@ -140,6 +140,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readNativeFinalIntent(){
      return rpc({kind:'read',what:'native-final-intent',sourceId});
    },
+   async attestEngineInput({engineInputXmlText}={}){
+     return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
+   },
    async readPage({offset=0,limit=25}={}){
      return rpc({kind:'read',what:'page',sourceId,offset,limit});
    },
