@@ -22,6 +22,7 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs'
+      - 'tests/xml-cii-229-p4-owner-branch-scope.test.mjs'
       - 'tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs'
       - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
       - '.github/workflows/xml229-p4-worker-weight-integration.yml'
@@ -65,7 +66,7 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
       - name: Source-attested Preview FactRecords, GC-PW session, negative drift
         run: |
-          node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs
+          node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs tests/xml-cii-229-p4-owner-branch-scope.test.mjs
   original-blob-chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 25
