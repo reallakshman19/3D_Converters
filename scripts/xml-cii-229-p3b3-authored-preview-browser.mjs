@@ -29,13 +29,23 @@ try{
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
-  await page.locator('[data-sub-tab="pipingClass"]').click();
-  await page.locator('input[data-master-file="pipingClass"]').setInputFiles({
-    name:'xml229-p3b3-preview-master.csv',mimeType:'text/csv',
-    buffer:Buffer.from('PipingClass,Material\n31441C4,ASTM A106-B\n'),
-  });
-  await page.locator('[data-master-mapping-status="pipingClass"]')
-    .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
+  // Verify the current four-master production custody, not just one
+  // temporary Piping Class dataset from the prior Preview-only route.
+  const inputs=[
+    ['lineList','LineKey,Rating\n/ASIM-1836-8-P8810021-31441C4-PP,300\n'],
+    ['pipingClass','PipingClass,Material\n31441C4,ASTM A106-B\n'],
+    ['materialMap','Material,Code\nASTM A106-B,A106B\n'],
+    ['weight','Rating,Bore,Length,RF/RTJ KG\n300,150,112,35\n'],
+  ];
+  for(const [kind,csv] of inputs){
+    await page.locator('[data-sub-tab="'+(kind==='lineList'?'linelist':kind)+'"]').click();
+    await page.locator('input[data-master-file="'+kind+'"]').setInputFiles({
+      name:'xml229-p3b3-'+kind+'.csv',mimeType:'text/csv',
+      buffer:Buffer.from(csv),
+    });
+    await page.locator('[data-master-mapping-status="'+kind+'"]')
+      .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
+  }
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles(jsonPath);
   await page.waitForFunction(()=>{
@@ -59,7 +69,7 @@ try{
   await button.click();
   await page.waitForFunction(()=>{
     const host=document.querySelector('#mc-preview-table-host');
-    return host?.dataset.mcPreviewJsonSource==='O1_WORKER_VERIFIED'||
+    return host?.dataset.mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'||
        /Preview failed/.test(host?.textContent||'');
   },null,{timeout:240000});
   const actual=await page.evaluate(()=>{
@@ -84,7 +94,7 @@ try{
     };
   });
   record.stages.after=actual;
-  assert.equal(actual.proof,'O1_WORKER_VERIFIED','actual Preview did not reach verified Worker route');
+  assert.equal(actual.proof,'P4_ENGINEERING_VERIFIED','actual Preview did not reach canonical verified engineering Worker');
   assert.equal(actual.sourceSha,record.jsonSha);
   assert.match(actual.basisId,/^[a-f0-9]{64}$/);
   assert.equal(actual.branchCount,5);
@@ -102,7 +112,7 @@ try{
   assert.equal(Number(actual.firstBranchFields.wallThickness),10.97);
   assert.equal(actual.firstBranchFields.dtxrWallDtxr,'WELDING NECK FLANGE Sch 80 900#');
   assert.equal(actual.cacheStatus,'UNCACHED','do not publish unsafe JSON cache HIT');
-  assert.ok(record.workerUrls.some(url=>url.includes('xml229-preview-original-blob-worker.mjs')));
+  assert.ok(record.workerUrls.some(url=>url.includes('xml229-original-blob-gcpw-worker.mjs')));
   record.stages.workerScriptSeen=true;
   const transportNegatives=await page.evaluate(async({sourceBytes,sourceSha})=>{
     const {executeXml229OriginalPreview}=await import(
