@@ -43,27 +43,38 @@ export function renderXml229WeightReviewPage(page,offset=0){
    const rejections=Array.isArray(r.rejectedCandidates)&&r.rejectedCandidates.length
      ?`<span style="display:block;color:#f87171;font-size:11px;margin-top:4px" title="${e(r.rejectedCandidates.map(c=>c.description+': '+(c.rejectionReasons||[]).join(', ')).join('; '))}">× ${r.rejectedCandidates.length} rejected candidate(s)</span>`:'';
    const refTag=r.componentRefEndpoint||r.componentRefNo||'';
-   const dimensions=[
+   const typeLabel=r.componentType||'COMPONENT';
+   const isValve=/VALV/i.test(typeLabel);
+   const isFlange=/FLAN/i.test(typeLabel);
+   const typeBadgeBg=isValve?'#7c2d12':isFlange?'#1e3a8a':'#1e293b';
+   const typeBadgeColor=isValve?'#fdba74':isFlange?'#93c5fd':'#38bdf8';
+   const ratingDisplay=r.rating
+     ?`<span style="background:#0f766e;color:#ccfbf1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px">${e(r.rating)}${r.rating.includes('#')?'':'#'}</span>`
+     :'<span style="color:#94a3b8;font-size:11px">Rating —</span>';
+   const boreLength=[
      r.boreMm!=null?`DN ${r.boreMm}`:null,
      r.lengthMm!=null?`L ${r.lengthMm}mm`:null,
-     r.rating?e(r.rating):null,
    ].filter(Boolean).join(' · ');
 
    return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
       data-p4-stage="${state.kind}" style="border-bottom:1px solid #253a55">
-    <td style="vertical-align:top;min-width:140px;max-width:200px;padding:8px">
-      <strong style="font-size:12px;display:block;color:#e2e8f0">${e(r.branchName||('Branch '+r.branchOccurrenceIndex))}</strong>
-      <div style="font-size:11px;color:#94a3b8;margin-top:2px">Node ${e(r.nodeNumber||r.nodeOrdinal)}${refTag?` · ${e(refTag)}`:''}</div>
-      <div style="margin-top:3px"><span style="background:#1e293b;color:#38bdf8;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600">${e(r.componentType||'COMPONENT')}</span></div>
+    <td style="vertical-align:top;min-width:140px;max-width:210px;padding:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="background:${typeBadgeBg};color:${typeBadgeColor};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700">${e(typeLabel)}</span>
+        <strong style="font-size:13px;color:#f8fafc">Node ${e(r.nodeNumber||r.nodeOrdinal)}</strong>
+      </div>
+      ${refTag?`<div style="font-size:11px;color:#93c5fd;margin-top:3px;font-family:monospace">${e(refTag)}</div>`:''}
+      <small style="color:#64748b;font-size:10px;display:block;margin-top:2px" title="${e(r.branchName||'')}">${e(r.branchName||('Branch '+r.branchOccurrenceIndex))}</small>
       <small style="color:#64748b;font-size:10px;display:block;overflow-wrap:anywhere">${e(r.sourceId)}</small>
       <small style="display:block;margin-top:2px;color:${state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#94a3b8'}" data-p4-decision-state="${state.kind}">${e(state.label)}</small>
     </td>
     <td style="vertical-align:top;min-width:160px;max-width:260px;padding:8px" title="${e(r.dtxr||'')}">
-      <div style="font-size:12px;color:#f1f5f9;line-height:1.35;word-break:break-word">${e(r.dtxr||'—')}</div>
+      <div style="font-size:12px;color:#f1f5f9;line-height:1.35;word-break:break-word;font-weight:500">${e(r.dtxr||'—')}</div>
       ${r.valveHint?`<small style="display:block;color:#a5b4fc;margin-top:2px">${e(r.valveHint)}</small>`:''}
     </td>
-    <td style="vertical-align:top;min-width:110px;white-space:nowrap;padding:8px;font-size:11px;color:#cbd5e1">
-      ${dimensions||'—'}
+    <td style="vertical-align:top;min-width:110px;padding:8px">
+      ${ratingDisplay}
+      ${boreLength?`<div style="font-size:11px;color:#cbd5e1;margin-top:4px">${e(boreLength)}</div>`:''}
     </td>
     <td style="vertical-align:top;white-space:nowrap;padding:8px;font-variant-numeric:tabular-nums">${kg(r.sourceKg)}</td>
     <td style="vertical-align:top;white-space:nowrap;padding:8px;font-variant-numeric:tabular-nums;color:${state.kind==='match1'?'#fde68a':'inherit'}">${kg(r.match1Kg)}</td>

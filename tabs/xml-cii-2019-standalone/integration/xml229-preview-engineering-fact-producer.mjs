@@ -23,6 +23,8 @@ import {openPreviewFactReadModel}
   from '../ui-adapted/xml-cii-adapted-preview-facts-read-model.js';
 import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
   from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import {buildStagedDtxrIndex,resolveXmlCiiNodeDtxr}
+  from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
 
 const good=v=>typeof v==='string'&&v.trim().length>0;
 const num=v=>v===null||v===undefined||String(v).trim()===''?null:
@@ -117,6 +119,8 @@ export async function openXml229EngineeringFactModel({
     weightRows.set(key,row);
   }
   const originalCensus=[],physical=[],expected=[];
+  const physicalComponentFacts=new Map();
+  const stagedDtxrIndex=live.stagedSource?buildStagedDtxrIndex(live.stagedSource,live.config||{}):null;
   const records=[];
   const add=(occ,fieldId,val,authority,unit,detail)=>records.push(
     recordsFor(basis,occ,fieldId,val,authority,unit,detail));
@@ -184,6 +188,23 @@ export async function openXml229EngineeringFactModel({
       add(owner,'mass.kg',xmlWeight,'source','kg','Original XML Weight; zero is unresolved, never accepted');
       add(owner,'component.type',src.componentType||null,'source');
       add(owner,'component.ref',src.componentRefNo||null,'source');
+      const dtxrRes=stagedDtxrIndex?resolveXmlCiiNodeDtxr(node,stagedDtxrIndex,live.config||{}):null;
+      const dtxr=matched?.dtxr||dtxrRes?.value||field(node,'DTXR')||field(node,'DTXR_POS')||field(node,'DESC')||field(node,'DESCRIPTION')||'';
+      const refClean=(src.componentRefNo||'').replace(/^=/,'').trim();
+      const epClean=(src.endpoint||'').trim();
+      const componentRefEndpoint=refClean&&epClean?`${refClean}_${epClean}`:refClean;
+      physicalComponentFacts.set(`${branchIndex}::${origin.sourceNodeOrdinal}`,{
+        branchIndex,branchOccurrenceIndex:branchIndex,
+        sourceNodeOrdinal:origin.sourceNodeOrdinal,nodeOrdinal:origin.sourceNodeOrdinal,
+        branchName:sourceBranch.branchName,
+        nodeNumber:src.nodeNumber||field(node,'NodeNumber')||'',
+        componentType:src.componentType||field(node,'ComponentType')||'',
+        componentRefNo:src.componentRefNo||field(node,'ComponentRefNo')||'',
+        endpoint:src.endpoint||field(node,'Endpoint')||'',
+        componentRefEndpoint,boreMm:bore,lengthMm:length,rating,xmlWeight,dtxr,
+        valveHint:matched?.valveHint||null,
+        rejectedCandidates:matched?.rejectedWeightCandidates||[],
+      });
     }
   }
   const physicalSet=new Set(physical.map(row=>
@@ -235,6 +256,7 @@ export async function openXml229EngineeringFactModel({
       sourceId,branchOccurrenceIndex,nodeOrdinal,
     })),
     physicalOccurrences:physical,
+    physicalComponentFacts,
     expectedOriginalCount:projection.nodeCount,
     expectedModelOccurrenceCount:expected.length,
     expectedPhysicalFactCount:physical.length*XML229_ENGINEERING_FIELDS.length,

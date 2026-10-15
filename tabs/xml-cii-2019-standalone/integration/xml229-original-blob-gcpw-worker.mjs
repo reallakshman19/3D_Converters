@@ -29,6 +29,8 @@ import {attestXml229OriginalPhysicalEngineInput}
  from './xml229-r2-physical-transfer-manifest.mjs';
 import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
+import {planExactSourceWeightCommands,commitExactSourceWeightCommands}
+ from '../../../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
 
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
@@ -157,6 +159,7 @@ async function start(req){
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
  physicalIdentityList=produced.physicalOccurrences;
+ previewNodeMap=produced.physicalComponentFacts||new Map();
  post(req.requestId,{state:'ready',basisId:basis.basisId,
    originalJsonSha256:r.sha256,sourceGenerationId:r.generationId,
    sourceId,originalCount:produced.workerOriginalCount,

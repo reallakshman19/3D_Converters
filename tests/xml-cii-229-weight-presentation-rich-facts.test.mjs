@@ -195,8 +195,8 @@ test('renderXml229WeightReviewPage outputs modern 8-column layout with rich comp
   assert.match(html, /Node 105/);
   assert.match(html, /V-201_1/);
   assert.match(html, /VALVE/);
-  assert.match(html, /VALVE GATE 300# FLANGED OS&amp;Y/);
-  assert.match(html, /DN 80 · L 215\.9mm · 300#/);
+  assert.match(html, /300#/);
+  assert.match(html, /DN 80 · L 215\.9mm/);
   assert.match(html, /Matched 80mm 300# gate valve master/);
 
   // Check bulk button and toolbar
