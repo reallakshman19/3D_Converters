@@ -103,10 +103,15 @@ export function buildXml229VerifiedWeightRowProjection({
     fail('PRESENTATION_BRANCH_PROCESS_DRIFT','Verified Line Key branch is inconsistent');
   const get=f=>fields.get(f)?.value??null;
   const length=get('length.mm'),bore=get('bore.mm'),rating=get('rating');
-  if(calc&&(positive(length)&&positive(calc.lengthMm)&&Math.abs(length-calc.lengthMm)>0.000001||
+  // The seven independently verified FactRecords are authoritative.
+  // Optional legacy Preview display fields are not a second engineering
+  // authority: a mismatch with FactRecords WITHHOLDS optional DTXR/Hint but
+  // cannot invalidate the Worker-held original Preview and approved facts.
+  const mismatch=calc&&(
+    positive(length)&&positive(calc.lengthMm)&&Math.abs(length-calc.lengthMm)>0.000001||
     positive(bore)&&positive(calc.boreMm)&&Math.abs(bore-calc.boreMm)>0.000001||
-    text(rating)&&text(calc.rating)&&text(rating)!==text(calc.rating)))
-    fail('PRESENTATION_GEOMETRY_DRIFT','Computed Preview metadata contradicts verified facts');
+    text(rating)&&text(calc.rating)&&text(rating)!==text(calc.rating));
+  const display=calc&&!mismatch?calc:null;
   const ref=text(orig.componentRefNo).replace(/^=/,'');
   const endpoint=text(orig.endpoint);
   rows.set(occ,Object.freeze({
@@ -116,9 +121,11 @@ export function buildXml229VerifiedWeightRowProjection({
     componentType:orig.componentType,nodeNumber:orig.nodeNumber,
     componentRefNoEndpoint:ref&&endpoint?ref+'_'+endpoint:ref,
     boreMm:bore,rating,lengthMm:length,
-    dtxr:calc?.dtxr||'',dtxrSource:calc?.dtxrSource||'',
-    dtxrMatchedKey:calc?.dtxrMatchedKey||'',
-    valveHint:calc?.valveHint||'',
+    dtxr:display?.dtxr||'',dtxrSource:display?.dtxrSource||'',
+    dtxrMatchedKey:display?.dtxrMatchedKey||'',
+    valveHint:display?.valveHint||'',
+    displayMetadataStatus:mismatch?'PREVIEW_METADATA_FACT_CONFLICT':
+      display?'VERIFIED_PREVIEW_METADATA':'OPTIONAL_METADATA_UNAVAILABLE',
     sourceKg:get('mass.kg'),
     factAuthority:Object.fromEntries([...fields].map(([field,v])=>[field,{
       authority:v.authority,unit:v.unit,provenance:v.provenance,

@@ -96,6 +96,17 @@ test('original-preclean index and exact physical field cardinality fail closed',
  assert.throws(()=>buildXml229VerifiedWeightRowProjection(b),/cannot join original facts/);
 });
 
+test('optional Preview UI metadata conflict does not revoke complete verified physical facts',()=>{
+ const args=fixture();
+ args.previewResult.nodeRows[0].rating='600'; // A legacy display disagreement, not source identity.
+ const result=buildXml229VerifiedWeightRowProjection(args);
+ const row=result.get(args.physicalOccurrences[0].occurrenceId);
+ assert.equal(row.rating,'300','verified FactRecord remains authoritative');
+ assert.equal(row.lengthMm,150);
+ assert.equal(row.dtxr,'','unverifiable optional DTXR is withheld');
+ assert.equal(row.displayMetadataStatus,'PREVIEW_METADATA_FACT_CONFLICT');
+});
+
 test('production integration uses existing GC-PW bulk planner and not legacy Weight calculator',async()=>{
  const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
