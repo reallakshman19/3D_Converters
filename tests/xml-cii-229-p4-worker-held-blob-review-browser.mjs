@@ -95,6 +95,18 @@ try{
        reason:'Independent Final engineering approval of original occurrence '+n}});
    }
    const completeIntent=await remote.readNativeFinalIntent();
+   const enriched=xml.replace('<Weight>0</Weight>','<Weight>40</Weight>')
+     .replace('<Weight>0</Weight>','<Weight>50</Weight>')
+     .replace('<Weight>0</Weight>','<Weight>51</Weight>');
+   const attested=await remote.attestEngineInput({engineInputXmlText:enriched});
+   const badMass=await remote.attestEngineInput({
+     engineInputXmlText:enriched.replace('<Weight>40</Weight>','<Weight>41</Weight>'),
+   }).then(()=>null,e=>e.code);
+   const duplicate=await remote.attestEngineInput({
+     engineInputXmlText:enriched.replace('</Branch>',
+       '<Node><NodeNumber>300</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><BoreMm>200</BoreMm><ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint><ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position><Weight>40</Weight></Node></Branch>'),
+   }).then(()=>null,e=>e.code);
+
    const stale=await remote.review({view:match1,choice:{
      action:'enter-manual',value:45,unit:'kg',reason:'Stale earlier review',
    }}).then(()=>null,e=>e.code);
@@ -107,7 +119,7 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent};
+     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent,attested,badMass,duplicate};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -142,6 +154,15 @@ try{
  assert.equal(data.completeIntent.match1OnlyCount,0);
  assert.equal(data.completeIntent.eligibleForEngineBinding,true);
  assert.equal(data.completeIntent.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.attested.complete,true);
+ assert.equal(data.attested.originalPhysicalCount,3);
+ assert.equal(data.attested.verifiedEnginePhysicalCount,3);
+ assert.equal(data.attested.matches.length,3);
+ assert.equal(data.attested.nativeCiiPhysicalSlotVerified,false);
+ assert.equal(data.attested.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.attested.finalIntentSha256,data.completeIntent.intentSha256);
+ assert.equal(data.badMass,'FINAL_WEIGHT_NOT_IN_ENGINE_INPUT');
+ assert.equal(data.duplicate,'ENRICHED_COMPONENT_LINEAGE_AMBIGUOUS');
  assert.equal(data.completeIntent.physicalEngineConsumptionVerified,false);
  assert.notEqual(data.intentAfter.intentSha256,data.completeIntent.intentSha256);
  assert.match(data.intentAfter.intentSha256,/^[0-9a-f]{64}$/);
