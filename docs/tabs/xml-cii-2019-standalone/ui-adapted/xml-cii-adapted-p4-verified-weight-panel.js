@@ -57,10 +57,17 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
  // A normalized/expanded "all branches" representation has the same
  // physical identity. A genuine partial/stale selection still fails closed.
- if(basis.scope!==latest.scope&&!verifyFullSelection(current))return false;
- return Object.keys(basis).every(key=>key==='scope'||key==='supportConfigJson'
-   ? key==='scope'||configEquivalent(basis.supportConfigJson,latest.supportConfigJson)
-   : Object.is(basis[key],latest[key]));
+ if(basis.scope!==latest.scope){
+   try{if(!verifyFullSelection(current))return false;}
+   catch{return false;}
+ }
+ for(const key of Object.keys(basis)){
+   if(key==='scope')continue;
+   if(key==='supportConfigJson'){
+     if(!configEquivalent(basis.supportConfigJson,latest.supportConfigJson))return false;
+   }else if(!Object.is(basis[key],latest[key]))return false;
+ }
+ return true;
 }
 
 /** Engineering physical scope cannot silently normalize a stale selection to ALL.
