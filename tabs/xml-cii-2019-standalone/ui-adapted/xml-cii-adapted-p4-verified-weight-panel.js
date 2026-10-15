@@ -145,15 +145,16 @@ export function getXml229CurrentWorkerHeldReview(stateRef){
  */
 export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  resolveInputs=()=>resolveXml229P4ProductionInputs(stateRef),
+ existingWorkflow=false,
 }={}){
  if(!container)throw new Error('Weight review container required');
  container.innerHTML=`<section data-p4-weight-root
   style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
-  <strong>Original-source Weight review (GC-PW)</strong>
+  <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
   <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
   Proposed weights are editable evidence only. Match-1 and Final are distinct explicit
   decisions. Native CII Run is NOT authorized by this panel.</p>
-  <button type="button" data-p4-weight-build>Build verified original-source Weight review</button>
+  ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
   <div data-p4-weight-table></div></section>`;
  const root=container.querySelector('[data-p4-weight-root]');
@@ -207,7 +208,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        Preview/Weight completion and reviewed Final output gates are verified.</p>`;
    root.__p4VisibleRows=page.rows;
  };
- build.addEventListener('click',async()=>{
+ build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
    try{
@@ -261,6 +262,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        (error?.code?' ['+error.code+']':''),true);
    }finally{busy=false;}
  });
+ if(existingWorkflow&&!active)
+   say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
  if(active)void render().then(()=>say('Existing verified Preview facts and Weight review loaded.'))
    .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
  return {cancel:()=>{active?.cancel();if(key)sessionByBase.delete(key);}};

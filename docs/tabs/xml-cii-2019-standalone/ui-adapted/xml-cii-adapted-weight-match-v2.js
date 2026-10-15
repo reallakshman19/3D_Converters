@@ -15,6 +15,7 @@ import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js'
 import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-single-weight-owners-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
+import {installXml229WorkerHeldWeightPanel} from './xml-cii-adapted-p4-verified-weight-panel.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -197,6 +198,13 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
 }
 
 export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
+  const source=(stateRef?.modeABaseRef||stateRef)?.current||{};
+  const receipt=stateRef?.current?.xml229StagedSourceReceipt||source.xml229StagedSourceReceipt;
+  if(receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'){
+    // One existing Weight Match stage, source-verifiable original GC-PW.
+    // Legacy issue.key writes are never authoritative for the O1 route.
+    return installXml229WorkerHeldWeightPanel(card,stateRef,{existingWorkflow:true});
+  }
   card.__xmlCiiWeightAuthorityPresentationCleanup?.();
   card.__xmlCiiWeightAuthorityPresentationCleanup = null;
   card.__xmlCiiWeightBuildSnapshotCleanup?.();
