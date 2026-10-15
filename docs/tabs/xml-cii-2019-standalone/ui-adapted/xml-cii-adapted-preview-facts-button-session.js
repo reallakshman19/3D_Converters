@@ -192,6 +192,10 @@ export async function runPreviewButtonSession({
         host.prepend(evidence);
         options.onOriginalWorkerPreviewCompleted?.({
           result,sourceReceipt:r,basisId:verified.receipt.basisId});
+        // This completed session belongs to the shared GC-PW review, not to
+        // the transient Preview job controller. A repeated Build with an
+        // unchanged basis must NOT cancel accepted Match-1/Final decisions.
+        session.controller=null;
         return rendered;
       }
       // This descriptor is used ONLY for InputBasis hashing, never as JSON.
