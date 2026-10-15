@@ -5,6 +5,7 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
@@ -397,6 +398,13 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
     renderLogs(card, report);
     renderManifest(card, report);
     renderRaw(card, report);
+    if(!syncXml229CanonicalOutputHeaderBadges(card,report)) {
+      // Initial shell paints the phase before attaching the shell root.
+      queueMicrotask(()=>{
+        if(card.isConnected!==false)
+          syncXml229CanonicalOutputHeaderBadges(card,report);
+      });
+    }
   };
   paint(reportFromState(state));
   projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint);
