@@ -89,6 +89,12 @@ try{
    const postFinal=await remote.readIndividual({
      occurrenceId:owner.occurrenceId,stage:'RigidMatch1'});
    const intentAfter=await remote.readNativeFinalIntent();
+   for(const [n,entry] of remote.originalPhysicalOccurrences.slice(1).entries()){
+     const view=await remote.readIndividual({occurrenceId:entry.occurrenceId,stage:'Rigidmatch2'});
+     await remote.review({view,choice:{action:'final-override',value:50+n,unit:'kg',
+       reason:'Independent Final engineering approval of original occurrence '+n}});
+   }
+   const completeIntent=await remote.readNativeFinalIntent();
    const stale=await remote.review({view:match1,choice:{
      action:'enter-manual',value:45,unit:'kg',reason:'Stale earlier review',
    }}).then(()=>null,e=>e.code);
@@ -101,7 +107,7 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress,intentBefore,intentAfter};
+     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -131,6 +137,13 @@ try{
  assert.equal(data.intentAfter.unresolvedCount,2);
  assert.notEqual(data.intentBefore.intentSha256,data.intentAfter.intentSha256);
  assert.equal(data.intentAfter.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.completeIntent.acceptedFinalCount,3);
+ assert.equal(data.completeIntent.unresolvedCount,0);
+ assert.equal(data.completeIntent.match1OnlyCount,0);
+ assert.equal(data.completeIntent.eligibleForEngineBinding,true);
+ assert.equal(data.completeIntent.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.completeIntent.physicalEngineConsumptionVerified,false);
+ assert.notEqual(data.intentAfter.intentSha256,data.completeIntent.intentSha256);
  assert.match(data.intentAfter.intentSha256,/^[0-9a-f]{64}$/);
  assert.equal(data.badReason,'ENGINEERING_REASON_REQUIRED');
  assert.equal(data.stale,'STALE_INDIVIDUAL_REVIEW');
