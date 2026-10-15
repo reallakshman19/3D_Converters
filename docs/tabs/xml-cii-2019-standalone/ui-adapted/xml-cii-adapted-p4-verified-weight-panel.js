@@ -44,8 +44,8 @@ export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
  supportConfigJson:raw?.supportConfigJson,
  scope:JSON.stringify(raw?.branchSelection||{}),
  jsonTraceScopeId:ownerScope(raw?.jsonTraceScopeId),
- selectedScopeId:raw?.selectedScopeId??null,
- requestedOwnerZoneScopeId:raw?.requestedOwnerZoneScopeId??null,
+ selectedScopeId:ownerScope(raw?.selectedScopeId),
+ requestedOwnerZoneScopeId:ownerScope(raw?.requestedOwnerZoneScopeId),
  datasetRefs:JSON.stringify(raw?.masterContext?.datasetRefs||{}),
  mappingRevisions:JSON.stringify(raw?.masterContext?.appliedMappingRevision||{}),
  rowCounts:JSON.stringify(raw?.masterContext?.rowCounts||{}),
@@ -54,6 +54,8 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  verifyFullSelection=()=>false,
 }={}){
  if(!basis||!current)return false;
+ const activeId=String(current?.modeASourceId||current?.sourceBatch?.activeSourceId||basis.sourceId);
+ if(activeId!==basis.sourceId)return false;
  const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
  // A normalized/expanded "all branches" representation has the same
  // physical identity. A genuine partial/stale selection still fails closed.
