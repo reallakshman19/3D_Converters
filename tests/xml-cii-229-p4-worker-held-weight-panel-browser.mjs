@@ -112,6 +112,50 @@ try{
  assert.match(runAdvisory,/CII output remains unauthorized/);
  assert.match(runAdvisory,/0 blocking items/);
 
+ // Exercise the REAL Run execution entrypoints — not only a disabled UI
+ // button. Canonical review remains non-authoritative for native CII.
+ const runGate=await page.evaluate(async()=>{
+   const {checkXml229CanonicalRunGate}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-gate.js');
+   const {runWorkflowFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js');
+   const {runModeABatchFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js');
+   const {runModeABatchFastFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js');
+   const stateRef=window.__p4StateRef;
+   const active=await checkXml229CanonicalRunGate(stateRef);
+   const single=await runWorkflowFromUi(stateRef,()=>{});
+   const owner={
+      xml229StagedSourceReceipt:{phase:'INDEX_COMMITTED',engineeringReady:false},
+      sourceBatch:{sources:[],activeSourceId:null},
+   };
+   const slowRef={current:{...owner}};
+   const fastRef={current:{...owner}};
+   await runModeABatchFromUi(slowRef,()=>{});
+   const fast=await runModeABatchFastFromUi(fastRef,()=>{},{
+     downloadZip:true,progressElement:document.createElement('div'),
+   });
+   return {
+     active:{code:active.code,authorized:active.authorized},
+     single:{ok:single?.ok,blocked:single?.blocked,gate:single?.gate},
+     slowStatus:slowRef.current.batchRunStatus,
+     slowBlocked:slowRef.current.batchRunResult?.summary?.blocked,
+     fastBlocked:fast?.summary?.blocked,
+     fastStatus:fastRef.current.batchRunStatus,
+     generatedOutput:Boolean(stateRef.current.result?.ciiText),
+   };
+ });
+ assert.equal(runGate.active.authorized,false);
+ assert.equal(runGate.active.code,'UNRESOLVED_OR_PROPOSED_WEIGHT');
+ assert.equal(runGate.single.blocked,true);
+ assert.equal(runGate.single.gate,'UNRESOLVED_OR_PROPOSED_WEIGHT');
+ assert.equal(runGate.slowBlocked,1);
+ assert.equal(runGate.fastBlocked,1);
+ assert.match(runGate.slowStatus,/CII Run HELD/);
+ assert.match(runGate.fastStatus,/CII Run HELD/);
+ assert.equal(runGate.generatedOutput,false);
+
  assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
