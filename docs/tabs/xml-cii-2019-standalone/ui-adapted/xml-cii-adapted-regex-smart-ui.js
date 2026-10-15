@@ -23,6 +23,14 @@ const ROLE_META = Object.freeze({
 const SMART_AUTO_ROLES = Object.freeze(['lineKey', 'pipingClass', 'bore']);
 
 function current(stateRef, fallback) { return stateRef?.current || fallback; }
+/** UI-only draft state lives in the stable owner; scoped processing getters
+ * may return transient filtered copies that would discard a draft. Never
+ * use this channel for engineering configuration or source data. */
+function publishRegexSuggestionDraft(stateRef,patch) {
+ const base=stateRef?.modeABaseRef||stateRef;
+ if(!base?.current)throw new Error('REGEX_DRAFT_STATE_OWNER_REQUIRED');
+ Object.assign(base.current,patch);
+}
 function resultOf(state) { return state?.regexTesterResult || {}; }
 function profileOf(state) { return state?.regexSuggestionProfile || createDefaultRegexSuggestionProfile(); }
 function locksOf(state) { return state?.regexSmartManualLocks || {}; }
@@ -197,9 +205,11 @@ function autoApplyHighestSafe(stateRef, render, receipt) {
   routeXml229AutomaticEngineeringProposal(stateRef,{
     proposal:{proposed,result,receipt},
     stage:()=> {
-      state.regexSmartPreview={receipt,proposed,result};
-      state.regexSmartDraftFingerprint=draftFingerprint;
-      state.regexSmartStatus='Automatic regex suggestions are DRAFT only. The current verified Preview and Weight review are unchanged. Apply suggestions explicitly, then rebuild Preview.';
+      publishRegexSuggestionDraft(stateRef,{
+        regexSmartPreview:{receipt,proposed,result},
+        regexSmartDraftFingerprint:draftFingerprint,
+        regexSmartStatus:'Automatic regex suggestions are DRAFT only. The current verified Preview and Weight review are unchanged. Apply suggestions explicitly, then rebuild Preview.',
+      });
     },
     commit:()=> {
       state.regexTesterConfig=proposed;
@@ -256,7 +266,12 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
       stage:()=> {
         // No writes to supportConfigJson or regexTesterConfig: this is a
         // proposed engineering edit, never an implicit committed input.
-        live.regexSmartPreview={receipt:bundle.receipt,proposed,result:rawResult};
+        publishRegexSuggestionDraft(stateRef,{
+          regexSmartPreview:{receipt:bundle.receipt,proposed,result:rawResult},
+          regexSmartAutoAnalysisPendingBasis:'',
+          regexSmartAutoAnalysisCompletedBasis:requestBasis,
+          regexSmartStatus:'Safe token analysis created a DRAFT proposal. Verified Preview and Weight inputs remain unchanged until explicit Apply and rebuild.',
+        });
       },
       commit:()=> {
         live.regexTesterConfig=proposed;
@@ -265,15 +280,15 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
       },
     });
     live=current(stateRef,{});
-    if(mode==='COMMITTED')live.regexSmartPreview=null;
-    live.regexSmartAutoAnalysisPendingBasis = '';
-    live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
-    const ratingNote = ratingCleanup.cleared ? ' Stale unlocked Rating mapping was cleared.' : ' Rating remains manual.';
-    live.regexSmartStatus = mode==='DRAFT'
-      ? 'Safe token analysis created a DRAFT proposal. The verified Preview/Weight InputBasis was not changed. Apply and rebuild explicitly to change engineering results.'
-      : changed.length
+    if(mode==='COMMITTED'){
+      live.regexSmartPreview=null;
+      live.regexSmartAutoAnalysisPendingBasis='';
+      live.regexSmartAutoAnalysisCompletedBasis=regexSmartReceiptRequestBasis(live);
+      const ratingNote=ratingCleanup.cleared?' Stale unlocked Rating mapping was cleared.':' Rating remains manual.';
+      live.regexSmartStatus=changed.length
         ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}.${ratingNote}`
         : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; configured mappings synchronized downstream.${ratingNote}`;
+    }
   } catch (error) {
     const live = current(stateRef, {});
     live.regexSmartAutoAnalysisPendingBasis = '';
