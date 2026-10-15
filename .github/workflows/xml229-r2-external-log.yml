@@ -1,0 +1,60 @@
+name: XML229 R2 External Diagnostic Log
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js'
+      - 'converters/xml-cii2019-core/weight-facts-native-consumption-intent.js'
+      - 'docs/converters/xml-cii2019-core/weight-facts-native-consumption-intent.js'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-r2-external-diagnostic-log.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-r2-external-diagnostic-log.mjs'
+      - 'scripts/xml229-r2-external-log-cli.mjs'
+      - 'tests/xml-cii-229-r2-physical-transfer.test.mjs'
+      - 'tests/xml-cii-229-r2-external-diagnostic-log.test.mjs'
+      - 'tests/fixtures/xml229-r2-synthetic-receipts.json'
+      - '.github/workflows/xml229-r2-external-log.yml'
+permissions:
+  contents: read
+jobs:
+  external-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Check exact head, JS syntax, and identical served source
+        run: |
+          git rev-parse HEAD
+          node --check tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js
+          node --check converters/xml-cii2019-core/weight-facts-native-consumption-intent.js
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-r2-external-diagnostic-log.mjs
+          node --check scripts/xml229-r2-external-log-cli.mjs
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js docs/tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js
+          diff -u converters/xml-cii2019-core/weight-facts-native-consumption-intent.js docs/converters/xml-cii2019-core/weight-facts-native-consumption-intent.js
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-r2-external-diagnostic-log.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-r2-external-diagnostic-log.mjs
+      - name: Check complete original physical matching and read-only log refusals
+        run: |
+          node --test tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml-cii-229-r2-external-diagnostic-log.test.mjs
+      - name: Produce synthetic external JSON and CSV audit logs
+        run: |
+          mkdir -p "$RUNNER_TEMP/xml229"
+          node scripts/xml229-r2-external-log-cli.mjs --input tests/fixtures/xml229-r2-synthetic-receipts.json --out "$RUNNER_TEMP/xml229/synthetic-diagnostic"
+          node --input-type=module -e "import fs from 'node:fs'; const log=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/xml229/synthetic-diagnostic.json','utf8')); if(log.releaseStatus!=='HOLD'||log.nativeCiiReleaseAuthorized!==false||log.heldCount!==1) process.exit(1);"
+      - name: Publish synthetic read-only evidence (NOT Owner acceptance)
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-r2-synthetic-audit-node-${{ matrix.node }}
+          path: ${{ runner.temp }}/xml229/synthetic-diagnostic.*
+          retention-days: 7
