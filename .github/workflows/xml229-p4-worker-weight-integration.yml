@@ -69,6 +69,17 @@ jobs:
       - name: Source-attested Preview FactRecords, GC-PW session, negative drift
         run: |
           node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs tests/xml-cii-229-p4-owner-branch-scope.test.mjs
+      - name: Redacted actual repository original XML source-scope audit
+        run: |
+          node scripts/xml-cii-229-p4-private-scope-audit.mjs --xml Benchmarks/1885Sjson/FirstpassXML --expect 5 --out "$RUNNER_TEMP/xml229-p4-firstpass-scope.json"
+          node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/xml229-p4-firstpass-scope.json','utf8')); if(r.sourceBranchOccurrenceCount!==5||r.status!=='FULL_ORIGINAL_XML_SCOPE_ELIGIBLE_ONLY'||r.nativeCiiReleaseAuthorized!==false) process.exit(1);"
+      - name: Publish nonprivate Firstpass scope receipt for independent review
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p4-firstpass-scope-node-${{ matrix.node }}
+          path: ${{ runner.temp }}/xml229-p4-firstpass-scope.json
+          retention-days: 14
+
   original-blob-chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 25
