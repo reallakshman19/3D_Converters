@@ -141,6 +141,11 @@ export async function buildXml229ExternalDiagnosticLog({
    if(!validMass(item.approvedKg)||
       typeof item.ciiSlotMass!=='number'||!Number.isFinite(item.ciiSlotMass))
      die('INVALID_CII_SLOT','Native CII slot mass is invalid');
+   const reviewed=expected.get(item.originalOccurrenceId);
+   if(!validMass(reviewed.effectiveKg)||
+      Math.abs(item.approvedKg-reviewed.effectiveKg)>1e-9||
+      !mapped.has(item.originalOccurrenceId))
+     die('NATIVE_SLOT_MASS_DRIFT','Native slot differs from original reviewed physical mass and mapped engine owner');
    slots.add(item.rigidSlotOrdinal);native.set(item.originalOccurrenceId,item);
  }
  const sorted=[...expected.values()].sort((a,b)=>
