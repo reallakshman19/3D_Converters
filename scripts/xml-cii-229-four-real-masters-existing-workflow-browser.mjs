@@ -151,6 +151,19 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
+
+  // The Owner's exact false-stale trigger: merely OPENING the Regex stage
+  // may auto-analyze masters and propose new extraction rules. Those
+  // proposals must remain draft when a GC-PW InputBasis is already verified.
+  await page.locator('[data-phase="regex"]').click();
+  await page.waitForTimeout(1500);
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
+  record.stages.afterRegexNavigation=
+    await page.locator('[data-p4-weight-status]').textContent();
+  assert.match(record.stages.afterRegexNavigation,/Existing verified Preview facts/);
+  assert.doesNotMatch(record.stages.afterRegexNavigation,/stale/i);
+  record.stages.afterRegexSameSession=true;
   // Navigate through an unrelated stage after the Worker has verified its
   // input. It must preserve the SAME review unless actual input bytes,
   // original JSON generation, scope or master authority changed.
