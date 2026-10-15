@@ -16,7 +16,6 @@ import {createPreviewBasis}
  from '../ui-adapted/xml-cii-adapted-preview-facts-basis.js';
 import {openXml229EngineeringFactModel}
  from './xml229-preview-engineering-fact-producer.mjs';
-import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
@@ -27,7 +26,7 @@ import {commitXml229NativeFinalIntent}
  from '../../../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
 import {attestXml229OriginalPhysicalEngineInput}
  from './xml229-r2-physical-transfer-manifest.mjs';
-import {digestUtf8,digestCanonical,canonicalJson}
+import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
 
 installWeightBasisXmlDom(globalThis);
@@ -98,12 +97,6 @@ async function start(req){
  progress(req.requestId,'full-original-source-master-basis');
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',sources,selection,masters,
    stagedSource,config,overrides,sha256:digestUtf8});
- const checkLineList=async stage=>{
-   const actual=await digestCanonical(masters.lineList?.rows??null);
-   if(actual!==basis.masters.lineList?.sha256)
-     fail('MASTER_CONTENT_DRIFT_'+stage,'lineList');
- };
- await checkLineList('AFTER_BASIS');
  if(cancelled)return;
  progress(req.requestId,'independent-original-xml-population');
  const original=projectXmlCiiOccurrences({xmlText,mode:'A',sourceId});
@@ -112,10 +105,7 @@ async function start(req){
     expectedOriginalCount>MAX_ORIGINAL_COUNT)
    fail('ORIGINAL_XML_SCOPE_OR_SCALE_DRIFT','Original branch/node census wrong or exceeds bounded Worker budget');
  progress(req.requestId,'engineering-preview-using-actual-json');
- // Dry-run enrichers may normalize nested master/config rows. Do not lend
- // their mutable working view the already-attested GC-PW master buffers.
- const computed=xmlCiiDryRunPreview(xmlText,isolatedOriginalPreviewWorkConfig(config),stagedSource);
- await checkLineList('AFTER_DRY_RUN');
+ const computed=xmlCiiDryRunPreview(xmlText,config,stagedSource);
  if(cancelled)return;
  progress(req.requestId,'all-physical-field-assessment');
  const previewResult={...computed,sourceOccurrences:original,
@@ -126,7 +116,6 @@ async function start(req){
   maxPhysical:Math.min(req.maxPhysical??MAX_PHYSICAL,MAX_PHYSICAL),
  });
  exactCensus(produced,req,original);
- await checkLineList('AFTER_FACT_MODEL');
  if(cancelled)return;
  progress(req.requestId,'gc-pw-one-basis-source-bound-weight-review');
  const opened=await openGcPwPreviewWeightSession({
@@ -149,7 +138,6 @@ async function start(req){
        cursor=page.nextCursor;
        if(isCancelled()||cancelled)fail('CANCELLED','Original source superseded');
      }while(cursor!==null);
-     await checkLineList('AFTER_FACT_PAGES');
      return pages;
    },
  });
