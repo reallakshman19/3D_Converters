@@ -31,10 +31,10 @@ try{
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
   // Four genuine application import controls, NOT synthetic P4 resolveInputs.
   const imports=[
-    ['lineList','LineKey,Rating\\n/ASIM-1836-8-P8810021-31441C4-PP,300\\n'],
-    ['pipingClass','PipingClass,Material\\n31441C4,ASTM A106-B\\n'],
-    ['materialMap','Material,Code\\nASTM A106-B,A106B\\n'],
-    ['weight','Rating,Bore,Length,RF/RTJ KG\\n300,150,112,35\\n'],
+    ['lineList','LineKey,Rating\n/ASIM-1836-8-P8810021-31441C4-PP,300\n'],
+    ['pipingClass','PipingClass,Material\n31441C4,ASTM A106-B\n'],
+    ['materialMap','Material,Code\nASTM A106-B,A106B\n'],
+    ['weight','Rating,Bore,Length,RF/RTJ KG\n300,150,112,35\n'],
   ];
   for(const [kind,csv] of imports){
     await page.locator('[data-sub-tab="'+kind+'"]').click();
