@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {createPreviewBasis,canonicalPreviewValue} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js';
 import {attestLiveBasis} from '../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import {digestUtf8,digestCanonical,canonicalJson} from '../contracts/gc-pw-v1/contract.mjs';
+import {isolatedOriginalPreviewWorkConfig} from '../tabs/xml-cii-2019-standalone/integration/xml229-original-preview-work-config.mjs';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 
 test('Preview and GC-PW canonicalization agree for numeric XLSX headers, unlike lexical-key string concatenation',async()=>{
@@ -39,6 +40,17 @@ test('actual 10699 Class and 1595 Valve rows plus Owner-shaped 385 Line List and
    selection,masters,config,overrides,sha256:digestUtf8});
  const live=()=>({basis,sources:{OwnerXML:sources[0].text},masters,selection,stagedSource:null,config,overrides});
  await attestLiveBasis(live());
+ // Legacy enrichers may normalize mapped XLSX source rows and nested config;
+ // their own working copies may change, but the InputBasis must not.
+ const dryRun=isolatedOriginalPreviewWorkConfig(config);
+ const cleanup=isolatedOriginalPreviewWorkConfig(config);
+ dryRun.linelist.masterRows[0]['2']='COMPUTATION_ONLY';
+ dryRun.linelist.masterRows.reverse();
+ cleanup.linelist.masterRows[1]['10']='SOURCE_CLEANUP_ONLY';
+ cleanup.weight.masterRows[0].weight=9999;
+ await attestLiveBasis(live());
+ assert.equal(config.linelist.masterRows[0]['2'],'LINE0');
+ assert.equal(config.weight.masterRows[0].weight,weightRows[0].weight);
  assert.equal(basis.masters.lineList.rowCount,385);
  for(const [kind,ref] of Object.entries(basis.masters))
    assert.equal(ref.sha256,await digestCanonical(masters[kind].rows),kind+' producer-consumer SHA mismatch');
@@ -56,6 +68,7 @@ test('strict Preview source input rules remain; docs modules match actual source
  for(const file of [
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js',
   'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',
+  'tabs/xml-cii-2019-standalone/integration/xml229-original-preview-work-config.mjs',
   'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs',
  ]){
    const r=await readFile(new URL('../'+file,import.meta.url),'utf8');
