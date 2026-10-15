@@ -98,9 +98,11 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  assert.match(panel,/await active\.review\(\{view,choice\}\)/);
  assert.match(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
- assert.match(run,/xml229UnbuiltIndependentStage/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
- assert.match(run,/fullyFinal\?'ready':'pending'/);
+ assert.match(run,/verifiedEngineering:/);
+ assert.match(run,/paint\\(verifiedReport\\)/);
+ assert.doesNotMatch(run,/tr\.children\[2\]\.textContent=status/,
+   'verification must publish one report, never hand-edit a checklist cell');
 });
 
 test('served production route is byte-identical to owned root files',async()=>{
