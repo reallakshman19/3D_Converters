@@ -66,6 +66,7 @@ try{
      requestId:'owner-p4-authentic-source-one',
      isCurrent:()=>current,onProgress:s=>progress.push(s)};
    const remote=await openXml229WorkerHeldOriginalWeightReview(inputs);
+   const intentBefore=await remote.readNativeFinalIntent();
    const owner=remote.originalPhysicalOccurrences[0];
    const match1=await remote.readIndividual({
      occurrenceId:owner.occurrenceId,stage:'RigidMatch1'});
@@ -87,6 +88,7 @@ try{
    }});
    const postFinal=await remote.readIndividual({
      occurrenceId:owner.occurrenceId,stage:'RigidMatch1'});
+   const intentAfter=await remote.readNativeFinalIntent();
    const stale=await remote.review({view:match1,choice:{
      action:'enter-manual',value:45,unit:'kg',reason:'Stale earlier review',
    }}).then(()=>null,e=>e.code);
@@ -99,7 +101,7 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress};
+     badReason,stale,changed,progress,intentBefore,intentAfter};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -121,6 +123,15 @@ try{
  assert.equal(data.subsequentFinalMatch1,35);
  assert.equal(data.finalAccepted,40);
  assert.equal(data.finalMatch1Remains,35);
+ assert.equal(data.intentBefore.physicalCount,3);
+ assert.equal(data.intentBefore.verifiedFactCount,21);
+ assert.equal(data.intentBefore.unresolvedCount,3);
+ assert.equal(data.intentBefore.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.intentAfter.acceptedFinalCount,1);
+ assert.equal(data.intentAfter.unresolvedCount,2);
+ assert.notEqual(data.intentBefore.intentSha256,data.intentAfter.intentSha256);
+ assert.equal(data.intentAfter.nativeCiiReleaseAuthorized,false);
+ assert.match(data.intentAfter.intentSha256,/^[0-9a-f]{64}$/);
  assert.equal(data.badReason,'ENGINEERING_REASON_REQUIRED');
  assert.equal(data.stale,'STALE_INDIVIDUAL_REVIEW');
  assert.equal(data.changed,'STALE_INPUT');
