@@ -125,9 +125,32 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
+  // The existing Preview Build must reuse the same canonical GC-PW basis,
+  // not silently open a different weight/final decision population.
+  const firstBasis=actual.basisId;
+  await page.locator('[data-phase="preview"]').click();
+  await page.locator('#mc-preview-table-host [data-mc-preview-build]').first().click();
+  await page.waitForFunction(()=>{
+    const host=document.querySelector('#mc-preview-table-host');
+    return host?.dataset.mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'||
+      /Preview failed/.test(host?.textContent||'');
+  },null,{timeout:240000});
+  record.stages.repeatBasis=await page.locator('#mc-preview-table-host').evaluate(el=>el.dataset.mcPreviewBasisId);
+  assert.equal(record.stages.repeatBasis,firstBasis,'same source/master Build replaced the reviewed InputBasis');
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:120000});
   await page.locator('[data-phase="run"]').click();
+  await page.waitForFunction(()=>{
+    const section=document.querySelector('[data-active-phase="run"]');
+    return [...(section?.querySelectorAll('tbody tr')||[])]
+      .some(tr=>tr.children[0]?.textContent==='preview-audit'&&
+        tr.children[1]?.textContent==='Original Preview engineering facts'&&
+        tr.children[2]?.textContent==='ready');
+  },null,{timeout:30000});
   record.stages.runText=await page.locator('[data-active-phase="run"]').textContent();
   assert.match(record.stages.runText,/HELD|blocking|Native CII|Run remains/i);
+  assert.match(record.stages.runText,/Original Preview engineering facts/);
+  assert.doesNotMatch(record.stages.runText,/Preview has not been built yet\./);
   assert.equal(await page.locator('[data-xml229-p4-run-advisory]').count(),0);
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
