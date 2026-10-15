@@ -37,7 +37,7 @@ try{
     ['weight','Rating,Bore,Length,RF/RTJ KG\n300,150,112,35\n'],
   ];
   for(const [kind,csv] of imports){
-    await page.locator('[data-sub-tab="'+kind+'"]').click();
+    await page.locator('[data-sub-tab="'+(kind==='lineList'?'linelist':kind)+'"]').click();
     await page.locator('input[data-master-file="'+kind+'"]').setInputFiles({
       name:'xml229-p263-'+kind+'.csv',mimeType:'text/csv',
       buffer:Buffer.from(csv),
