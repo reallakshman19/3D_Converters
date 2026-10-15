@@ -1,0 +1,50 @@
+name: XML229 Bundled Valve Weight Actual Preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-four-master-custody.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-four-master-custody.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js'
+      - 'scripts/xml-cii-229-bundled-weight-existing-workflow-browser.mjs'
+      - 'tests/xml-cii-229-p263-integration-correction.test.mjs'
+      - '.github/workflows/xml229-bundled-weight-existing-workflow.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bundled-valve-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify repository bundled master and source mirrors
+        run: |
+          node --check scripts/xml-cii-229-bundled-weight-existing-workflow-browser.mjs
+          node --test tests/xml-cii-229-p263-integration-correction.test.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-four-master-custody.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-four-master-custody.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+      - name: Install real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual authored application
+        run: python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/xml229-bundled-http.log 2>&1 &
+      - name: Build existing Preview using bundled Valve Weights without manual import
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-bundled-weight-existing-workflow-browser.mjs
+      - name: Retain authored source-based evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-bundled-weight-existing-workflow
+          path: ValidationRecords/xml229-bundled-weight-existing-workflow.json
+          if-no-files-found: warn
+          retention-days: 30
