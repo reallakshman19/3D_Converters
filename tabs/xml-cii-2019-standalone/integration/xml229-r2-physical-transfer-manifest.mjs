@@ -15,6 +15,8 @@ import {readVerifiedModeAFinalRows}
  from '../../../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
 import {commitXml229NativeFinalIntent}
  from '../../../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
+import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
+ from '../../../converters/xml-cii2019-core/weight-match-model.js';
 
 export const XML229_TRANSFER_SCHEMA='XML229.R2.OriginalPhysicalEngineInputTransfer.v1';
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
@@ -129,6 +131,19 @@ export async function attestXml229OriginalPhysicalEngineInput({
      engineWeightKg:written,
      status:'EXACT_ORIGINAL_COMPONENT_AND_MASS_IN_ENGINE_XML',
    });
+ }
+ // The enriched engine input must not introduce another eligible physical
+ // component outside the complete original source census, even if all
+ // expected originals were mapped. No invisible extra mass owners.
+ for(const [branchIndex,branch] of engine.entries()){
+   for(const [nodeOrdinal,node] of children(branch,'Node').entries()){
+     if(!isXmlCiiWeightReviewNode(node)||
+        !isXmlCiiWeightReviewConnectionEligible(node))continue;
+     const slot=canonicalJson([sourceId,branchIndex,nodeOrdinal]);
+     if(!engineUsed.has(slot))
+       fail('EXTRA_ENRICHED_PHYSICAL_OWNER',
+         'An eligible enriched physical weight owner has no verified original physical occurrence');
+   }
  }
  if(matches.length!==sourceRows.physicalCount||
     byId.size!==matches.length)
