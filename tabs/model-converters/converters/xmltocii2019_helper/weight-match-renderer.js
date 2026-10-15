@@ -1,4 +1,4 @@
-import { selectXmlCiiBlankWeightSuggestion } from '../../../../converters/xml-cii2019-core/weight-blank-fill-policy.js';
+import { proposeXmlCiiWeightDraft, explainXmlCiiBlankWeightFill } from '../../../../converters/xml-cii2019-core/weight-proposal-draft-ui.js';
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import { weightMatchContentFingerprint } from '../../../../converters/xml-cii2019-core/weight-facts-cache-custody.js';
 import { rankXmlCiiWeightIssue } from '../../../../converters/xml-cii2019-core/weight-match-ranking-service.js?v=20261001-weight-output-2';
@@ -385,6 +385,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   };
   const drawRows = (issues) => {
     if (!issues.length) { contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">No actual RIGID / FLAN* / VALVE / INST nodes with ElementLengthMm &gt; 6 mm were found.</div>'; return; }
+    const draftConfig = activeConfig();
     const rows = issues.map((issue, rowIndex) => {
       const best = issue.candidates?.[0];
       const initial = issue.weight && issue.weight > 0 ? issue.weight : ''; // Proposed is never an accepted input.
@@ -394,17 +395,42 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const rejected = (issue.rejectedCandidates || []).map(renderRejectedChip).join('');
       const chips = accepted || rejected || '<span class="model-converters-muted">No suggestion</span>';
       const hasProposal = Number(selectedWeight(best)) > 0 && !best?.zeroFallback;
+      // This is a display-only draft, NOT the accepted Weight(kg) input.
+      // The existing scorer and accepted Match-1 change handler stay untouched.
+      const draft = proposeXmlCiiWeightDraft({issue,config:draftConfig});
+      const draftNote = draft.status === 'ELIGIBLE_DRAFT'
+        ? 'Proposed — editable, not saved'
+        : draft.status === 'NEEDS_ENGINEERING_REVIEW'
+          ? 'Competing / inferred candidates: review'
+          : draft.status === 'EXISTING_OR_STALE_AUTHORITY'
+            ? 'Existing or stale weight decision: review'
+            : 'No eligible draft';
+      const proposedDraftCell = `<td data-wm-draft-status="${attr(draft.status)}" title="${attr(draftNote)}">
+        <input type="number" min="0" step="0.001"
+          class="mc-wm-draft-input" data-wm-draft-row="${rowIndex}"
+          data-wm-draft-status="${attr(draft.status)}"
+          value="${attr(draft.draftKg ?? '')}"
+          placeholder="${attr(draft.proposedKg ?? '—')}"
+          aria-label="Unaccepted proposed kg for ${attr(issue.branchName)} node ${attr(issue.nodeNumber)}"
+          title="Draft proposal only. Editing does not save an engineering weight. Use an explicit candidate button or the separate Weight(kg) input for Match-1."
+          style="width:92px;background:#374151;color:#d1d5db;border:1px dashed #9ca3af;opacity:.85;">
+        <small style="display:block;color:#9ca3af;">${esc(draft.status === 'ELIGIBLE_DRAFT'
+            ? 'Proposed · not accepted'
+            : draft.status === 'NEEDS_ENGINEERING_REVIEW'
+              ? 'Review alternatives'
+              : 'Not staged')}</small>
+      </td>`;
       const statusText = issue.mapped
         ? `Accepted · ${issue.weightSource || 'resolved weight'}`
         : (hasProposal ? `Proposed · ${methodLabel(best) || 'review'}` : 'Unresolved');
       const refEndpoint = issue.componentRefEndpoint || componentRefEndpoint(issue.componentRefNo, issue.endpoint);
       const nodeDisplay = issue.nodeNumberDisplay || issue.nodeNumber;
       const ratingInfo = ratingDisplayInfo(issue);
-      return `<tr style="${rowStyle}"><td data-wm-status-cell>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}"><div style="display:flex;gap:4px;align-items:center;"><input type="text" inputmode="numeric" class="mc-wm-rating-input" data-wm-rating-row="${rowIndex}" value="${attr(ratingInfo.shownRating)}" placeholder="Rating" aria-label="Rating for ${attr(issue.branchName)}" title="Manual Rating for this line or branch; clear to use Preview or prefix mapping." style="width:72px;"><button type="button" data-wm-rating-fill-class="${rowIndex}" title="Fill Rating to same piping class: ${attr(xmlCiiWeightRatingClass(issue))}" ${xmlCiiWeightRatingClass(issue) ? '' : 'disabled'}>↓</button></div><small>${esc(xmlCiiWeightRatingClass(issue))}</small></td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason, ratingInfo.dtxrRating ? `DTXR Rating ${ratingInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" data-wm-row-index="${rowIndex}" data-wm-accepted="${issue.mapped ? 'true' : 'false'}" value="${attr(initial)}" placeholder="kg" title="${attr(issue.mapped ? 'Accepted/resolved weight.' : (hasProposal ? 'Proposed value only. Select a candidate for Match-1, or type a weight for manual Match-1 authority.' : 'Type a positive weight for manual Match-1 authority.'))}" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
+      return `<tr style="${rowStyle}"><td data-wm-status-cell>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}"><div style="display:flex;gap:4px;align-items:center;"><input type="text" inputmode="numeric" class="mc-wm-rating-input" data-wm-rating-row="${rowIndex}" value="${attr(ratingInfo.shownRating)}" placeholder="Rating" aria-label="Rating for ${attr(issue.branchName)}" title="Manual Rating for this line or branch; clear to use Preview or prefix mapping." style="width:72px;"><button type="button" data-wm-rating-fill-class="${rowIndex}" title="Fill Rating to same piping class: ${attr(xmlCiiWeightRatingClass(issue))}" ${xmlCiiWeightRatingClass(issue) ? '' : 'disabled'}>↓</button></div><small>${esc(xmlCiiWeightRatingClass(issue))}</small></td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason, ratingInfo.dtxrRating ? `DTXR Rating ${ratingInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>${proposedDraftCell}<td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" data-wm-row-index="${rowIndex}" data-wm-accepted="${issue.mapped ? 'true' : 'false'}" value="${attr(initial)}" placeholder="kg" title="${attr(issue.mapped ? 'Accepted/resolved weight.' : (hasProposal ? 'Proposed value only. Select a candidate for Match-1, or type a weight for manual Match-1 authority.' : 'Type a positive weight for manual Match-1 authority.'))}" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
     }).join('');
-    const cfg = activeConfig();
+    const cfg = draftConfig;
     const authorityText = ratingMode === 'dtxr' ? 'Explicit DTXR Rating mode' : 'Manual → Preview → Rating prefix mapping';
-    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed</strong> values are not engineering authority until you select a candidate, edit/confirm the weight, or use an explicit accept/fill action; Typed entries are manual weights; accepted candidate selections are stored as Match-1. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed draft (kg)</strong> is muted, editable display-only evidence, never saved by editing or navigation. <strong>Weight (kg)</strong> holds accepted source/Match-1 values; only explicit candidate selection, manual entry in the accepted Weight column, or blank-only fill saves Match-1. Competing masses require review; accepted candidate selections remain Match-1, not Final. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Proposed draft (kg)', 145], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (input) acceptCandidate(input, button.dataset.wmWeight || ''); }));
   };
   const acceptCandidate = (input, value) => {
@@ -414,17 +440,24 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   };
   const fillBest = () => {
     let count = 0;
+    const skipped = {};
     contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => {
-      // Reinspect persisted overrides at every click: a rendered DOM value
-      // is not the sole source of acceptance authority.
-      const selection = selectXmlCiiBlankWeightSuggestion({
+      // Explain but DO NOT loosen or replace the shared blank-only policy.
+      const check = explainXmlCiiBlankWeightFill({
         input, issue: localIssues[index], config: activeConfig(),
       });
-      if (!selection) return;
-      acceptCandidate(input, selection.weight); // Existing Match-1 candidate/provenance path.
+      if (!check.eligible) {
+        skipped[check.code] = (skipped[check.code] || 0) + 1;
+        input.dataset.wmBlankFillReason = check.code;
+        const cell = input.closest('tr')?.querySelector('[data-wm-status-cell]');
+        if (cell) cell.title = 'Blank-only fill skipped: ' + check.code.replaceAll('_', ' ').toLowerCase();
+        return;
+      }
+      delete input.dataset.wmBlankFillReason;
+      acceptCandidate(input, check.selection.weight); // Existing Match-1 candidate/provenance path.
       count += 1;
     });
-    return count;
+    return { count, skipped };
   };
   const computeCore = async (opts = {}) => {
     let liveConfig = activeConfig();
@@ -601,11 +634,30 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
   refreshEl?.addEventListener('click', () => compute({ force: true }));
   ratingModeButton?.addEventListener('click', () => { if (activeComputePromise) return; ratingMode = ratingMode === 'preview' ? 'dtxr' : 'preview'; invalidateXmlCiiWeightCache(); syncRatingMode(); compute({ force: true }); });
   toggleEl?.addEventListener('click', () => { if (activeComputePromise) return; invalidateXmlCiiWeightCache(); const cfg = activeConfig(); cfg.weight = plainObject(cfg.weight) ? cfg.weight : {}; cfg.weight.convertSmallLengthsInToMm = cfg.weight.convertSmallLengthsInToMm !== true; onSaveConfig(cfg); contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">Length conversion changed. Click <strong>Build Weight Data</strong> to recompute.</div>'; localIssues = []; syncToggle(); });
-  detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => { if (activeComputePromise) return; const count = fillBest(); status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`, count ? 'ok' : 'bad'); });
+  detailEl.querySelector('#mc-wm-fill-best')?.addEventListener('click', () => {
+     if (activeComputePromise) return;
+     const {count,skipped}=fillBest();
+     const labels={
+       NONBLANK_WEIGHT_INPUT:'nonblank input',
+       EXISTING_ACCEPTED_WEIGHT:'existing accepted weight',
+       STALE_MATCH1:'stale Match-1',
+       STORED_DECISION_OR_PROPOSAL:'stored decision/proposal',
+       NO_QUALIFIED_BLANK_FILL_CANDIDATE:'no eligible candidate',
+       INVALID_ROW:'invalid row',
+     };
+     const summary=Object.entries(skipped).map(([code,n])=>`${n} ${labels[code]||code}`).join(' · ');
+     status(`Applied ${count} suggestion(s) to blank Weight(kg) cells`+
+       (summary ? ' · Skipped: '+summary : ''),count?'ok':'bad');
+   });
   panelEl?.addEventListener('change', () => { try { const cfg = applyWeightRulePanelConfig(panelEl, activeConfig()); cfg.weight.valveHintMapping = valveHintMappingRows(cfg); onSaveConfig(cfg); invalidateXmlCiiWeightCache(); contentEl.innerHTML = '<div class="model-converters-workflow-detail-note">Weight keyword/factor rules changed. Click <strong>Build Weight Data</strong> to recompute.</div>'; localIssues = []; status('Weight rules saved'); } catch (error) { status(error?.message || String(error), 'bad'); } });
   contentEl.addEventListener('change', (event) => {
     const rating = event.target.closest?.('.mc-wm-rating-input');
     if (rating) { saveRating(rating); return; }
+    const draft = event.target.closest?.('.mc-wm-draft-input');
+    if (draft) {
+      status('Draft edited locally only — no Match-1 or Final weight saved. Review candidates and explicitly accept using Weight (kg).');
+      return;
+    }
     const input = event.target.closest?.('.mc-rigid-review-input');
     if (input && !activeComputePromise) saveInput(input);
   });

@@ -1,0 +1,55 @@
+name: XML229 W2 Visible unaccepted weight drafts
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'converters/xml-cii2019-core/weight-proposal-draft-ui.js'
+      - 'docs/converters/xml-cii2019-core/weight-proposal-draft-ui.js'
+      - 'tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'
+      - 'docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'
+      - 'tests/xml-cii-229-w2-proposed-weight-drafts.test.mjs'
+      - 'tests/xml-cii-229-w2-proposed-weight-drafts-browser.mjs'
+      - '.github/workflows/xml229-w2-visible-weight-drafts.yml'
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['22','24']
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Source and served mirror plus syntax
+        run: |
+          git rev-parse HEAD
+          node --check converters/xml-cii2019-core/weight-proposal-draft-ui.js
+          node --check tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+          node --check tests/xml-cii-229-w2-proposed-weight-drafts-browser.mjs
+          diff -u converters/xml-cii2019-core/weight-proposal-draft-ui.js docs/converters/xml-cii2019-core/weight-proposal-draft-ui.js
+          diff -u tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js docs/tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js
+      - name: W2 drafts and existing blank-only policy
+        run: |
+          node --test tests/xml-cii-229-w2-proposed-weight-drafts.test.mjs tests/xml-cii-229-weight-blank-only.test.mjs
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+          node tests/xml-cii-229-w2-proposed-weight-drafts-browser.mjs
+          node tests/xml-cii-229-weight-blank-browser.mjs
