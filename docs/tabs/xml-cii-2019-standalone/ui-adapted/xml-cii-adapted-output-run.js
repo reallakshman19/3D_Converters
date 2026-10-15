@@ -83,8 +83,10 @@ function reportFromState(state) {
 function renderSummary(parent, report) {
   const panel = section(parent, 'Pre-run Summary');
   panel.appendChild(table(['Source', 'Status', 'Message'], [
-    { Source: 'source mode', Status: report.summary.sourceMode, Message: `${report.summary.blockingCount} blocking items` },
-    { Source: 'artifacts', Status: report.summary.artifactCount, Message: 'available artifacts' },
+    { Source: 'source mode', Status: report.summary.sourceMode,
+      Message: `${report.summary.blockingCount} blocking items · ${report.summary.warningCount ?? report.checklistRows.filter(item=>item.status!=='ready'&&!item.blocking).length} incomplete/warning stages` },
+    { Source: 'artifacts', Status: report.summary.artifactCount,
+      Message: 'available artifacts (not proof of a current CII output)' },
   ], 'No readiness summary yet.'));
 }
 
