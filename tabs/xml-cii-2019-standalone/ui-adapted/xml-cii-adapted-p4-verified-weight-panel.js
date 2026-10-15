@@ -76,6 +76,10 @@ export async function resolveXml229P4ProductionInputs(stateRef){
    err('ORIGINAL_O1_BLOB_REQUIRED','Load original XML + O1 indexed JSON first');
  const sourceId=String(view?.modeASourceId||raw?.modeASourceId||
    raw?.sourceBatch?.activeSourceId||'');
+ if(raw.sourceBatch?.activeSourceId&&view?.modeASourceId&&
+    raw.sourceBatch.activeSourceId!==view.modeASourceId)
+   err('INACTIVE_MODE_A_SOURCE_NOT_ATTESTED',
+     'Switch to this XML source in Source & Master before building its original-JSON engineering Preview; never borrow the active source Blob');
  if(!sourceId)err('ORIGINAL_SOURCE_ID_REQUIRED','Select one original XML source');
  const selection=assertXml229P4OriginalFullSelection({
   sourceText:raw.sourceText,branchSelection:raw.branchSelection||{},
