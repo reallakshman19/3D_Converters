@@ -1,0 +1,39 @@
+name: XML229 P4 Source-Bound Weight Presentation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs'
+      - '.github/workflows/xml229-p4-weight-presentation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-bound-presentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify source-bound adapter and honest run readiness
+        run: |
+          node --test tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs
+          node --test tests/xml-cii-229-review-session-live-basis.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs
+      - name: Check served parity
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
