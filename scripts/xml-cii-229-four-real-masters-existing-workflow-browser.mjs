@@ -80,8 +80,8 @@ try{
     ['weight',/Valve Weights:\s*(\d+) row\(s\)/],
   ].map(([key,re])=>[key,Number(inventory?.match(re)?.[1]??0)]));
   assert.deepEqual(record.stages.previewMasterInventory,{
-    lineList:385,pipingClass:10699,materialMap:383,weight:1595,
-  },'real loaded master row counts do not match the Owner 4 Preview acceptance case');
+    lineList:801,pipingClass:10699,materialMap:383,weight:1595,
+  },'real loaded master counts do not match the repo test XLSX/JSON/TXT + bundled Weight assets');
   const evidence=page.locator('[data-mc-preview-cache-evidence]');
   await evidence.waitFor({timeout:30000});
   record.stages.beforeStatus=await evidence.evaluate(el=>el.parentElement?.dataset.mcPreviewCacheStatus||'');
