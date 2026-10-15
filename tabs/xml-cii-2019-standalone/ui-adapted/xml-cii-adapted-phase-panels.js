@@ -11,6 +11,8 @@ import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualEle
 import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-2';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-2';
 import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-single-weight-owners-1';
+import {installXml229WorkerHeldWeightPanel} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {installXml229P4PreviewBridge} from './xml-cii-adapted-p4-preview-bridge.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js?v=20261001-weight-output-2';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?v=20261001-weight-output-2';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261001-single-weight-owners-1';
@@ -88,10 +90,36 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   }
   if (phaseId === 'regex') return renderRegexPanel(card, stateRef, render);
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, stateRef, render);
-  if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, stateRef, render);
+  if (phaseId === 'preview') {
+    const rendered=renderStandalonePreviewReportPanel(card,stateRef,render);
+    const original=(stateRef?.modeABaseRef?.current||state)?.xml229StagedSourceReceipt;
+    if(original?.schema==='XML229.OriginalStagedSourceReceipt.v1'){
+      // The legacy Preview renderer is asynchronous and replaces the card DOM.
+      // Append only AFTER its render; do not modify its Worker/cache authority.
+      void Promise.resolve(rendered).then(()=>{
+        if(card.isConnected===false||stateRef.current.activePhaseId!=='preview')return;
+        const host=document.createElement('div');
+        card.appendChild(host);
+        installXml229P4PreviewBridge(host,stateRef);
+      }).catch(error=>console.warn('Source-bound Preview bridge not mounted',error));
+    }
+    return rendered;
+  }
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
   if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state, render);
-  if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanelV2(card, stateRef);
+  if (phaseId === 'weight-match') {
+    // The original JSON source-bound panel is opt-in and independent of
+    // legacy Weight Match. No legacy issue.key write, cached proposal
+    // admission or CII Run release is implied.
+    if ((stateRef?.modeABaseRef?.current || state)?.xml229StagedSourceReceipt?.schema !== 'XML229.OriginalStagedSourceReceipt.v1')
+      return renderAdaptedWeightMatchPanelV2(card, stateRef);
+    const legacy = document.createElement('div');
+    const verified = document.createElement('div');
+    card.replaceChildren(legacy,verified);
+    renderAdaptedWeightMatchPanelV2(legacy,stateRef);
+    installXml229WorkerHeldWeightPanel(verified,stateRef);
+    return;
+  }
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') {
     renderAdaptedConfigPanel(card, stateRef, render);
