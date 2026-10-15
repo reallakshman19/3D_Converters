@@ -1,6 +1,7 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
+import { projectXml229RunChecklist } from './integration/xml229-verified-output-readiness.mjs';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -146,8 +147,11 @@ function supportMapperDone(input) {
 }
 
 function commonRows(input) {
-  const preview = previewDone(input);
-  const weight = weightMatchDone(input);
+  // Legacy cache records do not attest the current original XML + staged JSON
+  // Worker basis; only a live verified GC-PW completion may promote these rows.
+  const governed = hasOriginalJsonSourceOnlyRunHold(input);
+  const preview = !governed && previewDone(input);
+  const weight = !governed && weightMatchDone(input);
   const mapper = supportMapperDone(input);
   return [
     row('import-masters', 'Import Masters status', !!input.masterContext, 'Master context is available.'),
@@ -227,8 +231,12 @@ function readinessDiagnostics(checklistRows) {
   return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
 }
 
-export function buildStandaloneOutputRunReadiness(input = {}) {
-  const checklistRows = buildOutputRunChecklist(input);
+export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null} = {}) {
+  // Recompose one report from one checklist. No DOM-only patches: logs, counts,
+  // diagnostics and the Run button all see identical source-bound status.
+  const projection = projectXml229RunChecklist(
+    input,buildOutputRunChecklist(input),verifiedEngineering);
+  const checklistRows = projection.rows;
   const manifest = buildRunManifest(input);
   const artifactRows = buildOutputArtifactRows(input, manifest);
   const blockingCount = checklistRows.filter((item) => item.blocking).length;
@@ -245,6 +253,7 @@ export function buildStandaloneOutputRunReadiness(input = {}) {
     logRows: logRows(input, checklistRows),
     manifest,
     diagnostics: readinessDiagnostics(checklistRows),
-    raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto' },
+    raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto',
+      xml229VerifiedEngineering: projection.verified },
   };
 }
