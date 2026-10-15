@@ -1,6 +1,7 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
+import {hasSelectedXml229OriginalO1Receipt} from './xml-cii-original-run-scope.js';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -131,7 +132,19 @@ function commonRows(input) {
 
 export function buildOutputRunChecklist(input = {}) {
   const kind = resolvedKind(input);
-  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input), ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
+  const currentOriginalO1=hasSelectedXml229OriginalO1Receipt(input);
+  // An O1 INDEX_COMMITTED original Blob is source-only, never engineering
+  // Preview/Match-1/Final or native CII release. Do not show 0 blockers.
+  const p4Gate=currentOriginalO1?[row(
+    'xml229-original-source-final-release',
+    'Original JSON → physical Preview → Match-1 → Final → CII output authority',
+    false,
+    'Original O1 JSON index alone is not accepted engineering output. CII release is HELD until the same current source/master/Final basis is independently consumed by native CII.',
+    {status:'held',severity:'error',blocking:true},
+  )]:[];
+  return [...optionRows(input, kind), ...topologyRows(input, kind),
+    ...commonRows(input),...p4Gate,
+    ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
 }
 
 function artifact(kind, label, name, value, mime) {

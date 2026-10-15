@@ -1,4 +1,6 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
+import {installXml229P4RunAdvisory} from './xml-cii-adapted-p4-run-advisory.js';
+import {requiresXml229CanonicalRunGate} from './xml-cii-adapted-p4-run-gate.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
@@ -331,10 +333,24 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   card.append(title, desc);
   renderSummary(card, report);
   renderChecklist(card, report);
+  installXml229P4RunAdvisory(card,stateRef);
   renderFormatFailures(card, report);
   renderReadinessCard(card, config, state);
   renderRunOptions(card, stateRef, state, render);
   renderRunControls(card, stateRef, state, report, render);
+  // An independently verified physical source review is not the same as a
+  // native CII release transaction. Until the canonical Final snapshot/output
+  // consumer is wired and revalidated, the legacy 0-blocking-items result
+  // cannot authorize running while this P4 source session is selected.
+  if(requiresXml229CanonicalRunGate(stateRef)){
+    const legacy=card.querySelector('[data-action="run"]');
+    if(legacy){
+      legacy.disabled=true;
+      legacy.title='Original O1/GC-PW source needs current native CII source/Final/output attestation before conversion.';
+      legacy.textContent='CII Release Held — source-bound Final/output gate required';
+      legacy.style.background='#334155';
+    }
+  }
   renderArtifacts(card, state, report);
   renderTopologyArtifacts(card, state);
   renderLogs(card, report);

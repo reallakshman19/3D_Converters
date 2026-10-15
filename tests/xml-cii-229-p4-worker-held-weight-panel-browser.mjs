@@ -1,0 +1,186 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const require=createRequire(import.meta.url),{chromium}=require('playwright');
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
+const server=createServer(async(req,res)=>{
+ try{
+  const p=new URL(req.url,'http://localhost').pathname;
+  if(p==='/test.html'){
+   res.writeHead(200,{'content-type':'text/html'});
+   res.end('<!doctype html><html><body><div id="weight-panel"></div><div id="run-panel"></div></body></html>');return;
+  }
+  const file=path.resolve(root,'.'+decodeURIComponent(p));
+  if(!file.startsWith(root+path.sep))throw Error('bad path');
+  const bytes=await readFile(file);
+  res.writeHead(200,{'content-type':['.js','.mjs'].includes(path.extname(file))?
+    'text/javascript':'application/json'});res.end(bytes);
+ }catch(e){res.writeHead(404);res.end(String(e));}
+});
+await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
+let browser;
+try{
+ browser=await chromium.launch({headless:true});
+ const page=await browser.newPage();
+ const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
+ await page.evaluate(async()=>{
+   const {installXml229WorkerHeldWeightPanel}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const raw='{"owner":"real-blob-in-worker","items":[{"id":1},{"id":2}]}';
+   const blob=new Blob([raw],{type:'application/json'});
+   const sha=Array.from(new Uint8Array(await crypto.subtle.digest(
+      'SHA-256',await blob.arrayBuffer())),
+      v=>v.toString(16).padStart(2,'0')).join('');
+   const r={schema:'XML229.OriginalStagedSourceReceipt.v1',phase:'INDEX_COMMITTED',
+     rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false,sha256:sha,
+     sourceRevision:'o1:sha256:'+sha,generationId:'p4-ui-generation-1',
+     sourceRefId:'owner-blob',byteLength:blob.size,occurrenceCount:2,pageCount:1};
+   const xml=`<PipeStressExport><Pipe><Branch><Branchname>/ASIM-1836-8"-P8810021-31441C4-PP/B4</Branchname>
+<Node><NodeNumber>280</NodeNumber><ComponentType>GASK</ComponentType><ElementLengthMm>2</ElementLengthMm><Position>0 0 0</Position></Node>
+<Node><NodeNumber>300</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><BoreMm>200</BoreMm>
+<ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint>
+<ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position><Weight>0</Weight></Node>
+<Node><NodeNumber>309</NodeNumber><ComponentType>VALV</ComponentType><BoreMm>200</BoreMm>
+<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>
+<ElementLengthMm>419</ElementLengthMm><Position>531 0 0</Position><Weight>0</Weight></Node>
+</Branch></Pipe></PipeStressExport>`;
+   const sourceId='P4-OWNER-WEIGHT-UI';
+   const weightRows=[{Rating:'300',Bore:200,Length:112,'RF/RTJ KG':35}];
+   const options={
+     xmlText:xml,sourceId,
+     masters:{weight:{datasetId:'owner-master',revision:'v1',
+       rows:weightRows,mapping:{weight:'RF/RTJ KG'}}},
+     config:{weight:{masterRows:weightRows},overrides:{}},overrides:{},
+     selection:[{sourceId,selectionRef:'all'}],
+     originalStagedBlob:blob,originalStagedSourceReceipt:r,
+     requestId:'p4-actual-worker-held-UI-review',isCurrent:()=>true,
+   };
+   const stateRef={current:{}};
+   window.__p4StateRef=stateRef;
+   const panel=installXml229WorkerHeldWeightPanel(
+     document.querySelector('#weight-panel'),stateRef, {resolveInputs:async()=>options});
+   window.__p4Panel=panel;
+ });
+ await page.locator('[data-p4-weight-build]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2,
+   {timeout:120000});
+ const original=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+  label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
+ })));
+ assert.equal(original.length,2);
+ // Neither proposed nor source-null value may be mistaken for accepted mass.
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/NOT auto-accepted/);
+ const first=page.locator('tr[data-p4-row]').first();
+ await first.locator('[data-p4-proposal]').fill('35');
+ await first.locator('[data-p4-reason]').fill('Engineer verified physical master 35 kg');
+ await first.locator('[data-p4-accept-match1]').click();
+ await page.waitForFunction(()=>document.querySelector('tr[data-p4-row]')?.textContent.includes('35 kg'),
+   {timeout:120000});
+ let rowText=await page.locator('tr[data-p4-row]').first().textContent();
+ assert.match(rowText,/35 kg/);
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Match-1 explicitly accepted/);
+ const refreshed=page.locator('tr[data-p4-row]').first();
+ await refreshed.locator('[data-p4-proposal]').fill('40');
+ await refreshed.locator('[data-p4-reason]').fill('Independent Final Match-2 approval of 40kg physical mass');
+ await refreshed.locator('[data-p4-accept-final]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-p4-weight-status]')?.textContent.includes('Final Match-2 explicitly accepted'),
+   {timeout:120000});
+ const after=await page.evaluate(()=>({
+   rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>tr.textContent),
+   status:document.querySelector('[data-p4-weight-status]').textContent,
+ }));
+ assert.match(after.rows[0],/35 kg/);
+ assert.match(after.rows[0],/40 kg/);
+ assert.doesNotMatch(after.rows[1],/40 kg/);
+ // Run stage sees full source-bound review state, not old v1 cache.
+ await page.evaluate(async()=>{
+   const {installXml229P4RunAdvisory}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js');
+   installXml229P4RunAdvisory(document.querySelector('#run-panel'),window.__p4StateRef);
+ });
+ await page.waitForFunction(()=>document.querySelector('[data-p4-run-status]')?.textContent.includes('CII release HELD'),
+   {timeout:120000});
+ const runAdvisory=await page.locator('[data-xml229-p4-run-advisory]').textContent();
+ assert.match(runAdvisory,/2 original physical|Original physical components2/);
+ assert.match(runAdvisory,/Accepted Final Match-2/);
+ assert.match(runAdvisory,/1/);
+ assert.match(runAdvisory,/Unresolved \/ proposed/);
+ assert.match(runAdvisory,/CII output remains unauthorized/);
+ assert.match(runAdvisory,/0 blocking items/);
+
+ // Exercise the REAL Run execution entrypoints — not only a disabled UI
+ // button. Canonical review remains non-authoritative for native CII.
+ const runGate=await page.evaluate(async()=>{
+   const {checkXml229CanonicalRunGate}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-gate.js');
+   const {runWorkflowFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js');
+   const {runModeABatchFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js');
+   const {runModeABatchFastFromUi}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js');
+   const stateRef=window.__p4StateRef;
+   const active=await checkXml229CanonicalRunGate(stateRef);
+   const single=await runWorkflowFromUi(stateRef,()=>{});
+   const owner={
+      xml229StagedSourceReceipt:{phase:'INDEX_COMMITTED',engineeringReady:false},
+      sourceBatch:{sources:[],activeSourceId:null},
+   };
+   const slowRef={current:{...owner}};
+   const fastRef={current:{...owner}};
+   await runModeABatchFromUi(slowRef,()=>{});
+   const fast=await runModeABatchFastFromUi(fastRef,()=>{},{
+     downloadZip:true,progressElement:document.createElement('div'),
+   });
+   return {
+     active:{code:active.code,authorized:active.authorized},
+     single:{ok:single?.ok,blocked:single?.blocked,gate:single?.gate},
+     slowStatus:slowRef.current.batchRunStatus,
+     slowBlocked:slowRef.current.batchRunResult?.summary?.blocked,
+     fastBlocked:fast?.summary?.blocked,
+     fastStatus:fastRef.current.batchRunStatus,
+     generatedOutput:Boolean(stateRef.current.result?.ciiText),
+   };
+ });
+ assert.equal(runGate.active.authorized,false);
+ assert.equal(runGate.active.code,'UNRESOLVED_OR_PROPOSED_WEIGHT');
+ assert.equal(runGate.single.blocked,true);
+ assert.equal(runGate.single.gate,'UNRESOLVED_OR_PROPOSED_WEIGHT');
+ assert.equal(runGate.slowBlocked,1);
+ assert.equal(runGate.fastBlocked,1);
+ assert.match(runGate.slowStatus,/CII Run HELD/);
+ assert.match(runGate.fastStatus,/CII Run HELD/);
+ assert.equal(runGate.generatedOutput,false);
+
+ // The visible 5 Run control must also refuse an O1 source *before*
+ // a GC-PW session was built (source-only index is not engineering evidence).
+ const visualGate=await page.evaluate(async()=>{
+   const {renderStandaloneOutputRunPanel}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js');
+   const stateRef={current:{
+     sourceText:'<PipeStressExport/>',sourceKind:'xml',options:{},
+     xml229StagedSourceReceipt:{phase:'INDEX_COMMITTED',engineeringReady:false},
+     outputRunReadinessReport:{summary:{blockingCount:0},
+       checklistRows:[],artifactRows:[],logRows:[],diagnostics:[]},
+   }};
+   const host=document.querySelector('#run-panel');
+   renderStandaloneOutputRunPanel(host,stateRef,()=>{});
+   const btn=host.querySelector('[data-action="run"]');
+   return {disabled:btn?.disabled,title:btn?.title,label:btn?.textContent,
+     hasAdvisory:Boolean(host.querySelector('[data-xml229-p4-run-advisory]'))};
+ });
+ assert.equal(visualGate.disabled,true);
+ assert.match(visualGate.label,/CII Release Held/);
+ assert.equal(visualGate.hasAdvisory,true);
+
+ assert.deepEqual(errors,[]);
+ await page.evaluate(()=>window.__p4Panel.cancel());
+ console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
+   passed:true,original,after,errors},null,2));
+}finally{
+ await browser?.close();await new Promise(ok=>server.close(ok));
+}

@@ -1,5 +1,6 @@
 import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api-atta-default.js?v=20261008-p0-mode-b-parity-1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
+import {checkXml229CanonicalRunGate} from './xml-cii-adapted-p4-run-gate.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
 import {
   withXmlCiiRigidWeightFinal,
@@ -244,6 +245,15 @@ async function reviewRigidWeights(stateRef, config) {
 }
 
 export async function runWorkflowFromUi(stateRef, render) {
+  const sourceGate = await checkXml229CanonicalRunGate(stateRef);
+  if (sourceGate.applies && !sourceGate.authorized) {
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      outputRunReadinessStatus: sourceGate.message,
+      xml229NativeRunGate: {code:sourceGate.code,message:sourceGate.message,blocking:true},
+    });
+    render?.();
+    return {ok:false,blocked:true,error:sourceGate.message,gate:sourceGate.code};
+  }
   if (stateRef.current.running || !validateSupportConfigJson(stateRef.current.supportConfigJson).ok) return;
   const readiness = buildStandaloneOutputRunReadiness(stateRef.current);
   if (readiness.summary.blockingCount > 0) {

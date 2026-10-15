@@ -1,4 +1,5 @@
 import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-single-weight-owners-1';
+import {checkXml229CanonicalRunGate} from './xml-cii-adapted-p4-run-gate.js';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -154,6 +155,17 @@ async function consolidatedRigidReview(stateRef, state, enabled, preflight, prog
  * then the normal workspace is rendered once at completion.
  */
 export async function runModeABatchFastFromUi(stateRef, render, options = {}) {
+  const sourceGate = await checkXml229CanonicalRunGate(stateRef);
+  if (sourceGate.applies && !sourceGate.authorized) {
+    const state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
+    const blockedResult={summary:{succeeded:0,failed:0,blocked:1,cancelled:0,processed:0},
+      sources:[],manifest:null,sourceBoundGate:{code:sourceGate.code,blocking:true}};
+    replaceModeAState(stateRef,{...state,batchRunning:false,
+      batchRunStatus:sourceGate.message,batchRunResult:blockedResult});
+    setProgress(options.progressElement||null,sourceGate.message,'bad');
+    render?.();
+    return blockedResult;
+  }
   let state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   const progressElement = options.progressElement || null;
   const downloadZip = options.downloadZip === true;
