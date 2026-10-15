@@ -96,7 +96,7 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
     // The original JSON source-bound panel is opt-in and independent of
     // legacy Weight Match. No legacy issue.key write, cached proposal
     // admission or CII Run release is implied.
-    if (state?.xml229StagedSourceReceipt?.schema !== 'XML229.OriginalStagedSourceReceipt.v1')
+    if ((stateRef?.modeABaseRef?.current || state)?.xml229StagedSourceReceipt?.schema !== 'XML229.OriginalStagedSourceReceipt.v1')
       return renderAdaptedWeightMatchPanelV2(card, stateRef);
     const legacy = document.createElement('div');
     const verified = document.createElement('div');
