@@ -26,7 +26,7 @@ test('standard Mode A execution refuses source-only original JSON before generat
  assert.equal(ref.current.batchRunResult?.summary?.succeeded,0);
  assert(ref.current.batchRunResult?.summary?.blocked>=1);
  assert.equal(ref.current.batchRunResult?.sources?.length,0);
- assert.match(ref.current.batchRunStatus,/original JSON O1 source is indexed\/selected only/i);
+ assert.match(ref.current.batchRunStatus,/original JSON O1 (source is indexed\/selected only|indexing is source-only)/i);
  assert.equal(ref.current.batchRunning,false);
 });
 test('fast Mode A ZIP execution refuses source-only original JSON before consolidated review',async()=>{

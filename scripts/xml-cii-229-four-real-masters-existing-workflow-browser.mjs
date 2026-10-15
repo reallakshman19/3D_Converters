@@ -162,6 +162,16 @@ try{
   assert.match(afterNavigation,/Existing verified Preview facts/);
   assert.doesNotMatch(afterNavigation,/stale/i);
 
+  // Navigate through Regex (which evaluates token extraction in background)
+  await page.locator('[data-phase="regex"]').click();
+  await page.waitForTimeout(1000);
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
+  const afterRegexNavigation=await page.locator('[data-p4-weight-status]').textContent();
+  record.stages.afterRegexNavigation=afterRegexNavigation;
+  assert.match(afterRegexNavigation,/Existing verified Preview facts/);
+  assert.doesNotMatch(afterRegexNavigation,/stale/i);
+
   // Explicit engineer Match-1 and distinct Final decisions through the
   // EXISTING Weight Match stage; never promote a default or blank draft.
   const reviewIndex=await page.evaluate(()=>{

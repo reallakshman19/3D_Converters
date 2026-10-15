@@ -78,7 +78,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
  const current=()=>{
    if(disposed)throw err('CANCELLED','Worker closed');
    if(!isCurrent()){
-     const changed=err('STALE_INPUT','Source Blob, Owner selection or masters changed; rebuild and review');
+     const diag=typeof isCurrent?.diagnose==='function'?isCurrent.diagnose():null;
+     const detail=diag?.reason?` [${diag.code}: ${diag.reason}]`:'';
+     const changed=err('STALE_INPUT','Source Blob, Owner selection or masters changed; rebuild and review'+detail);
      stop(changed);throw changed;
    }
  };

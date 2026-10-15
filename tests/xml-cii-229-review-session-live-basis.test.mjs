@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureXml229P4LiveSourceSnapshot,compareXml229P4LiveSourceSnapshot}
+import {captureXml229P4LiveSourceSnapshot,compareXml229P4LiveSourceSnapshot,
+ diagnoseXml229P4LiveSourceSnapshot,canonicalPhysicalConfig}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js';
 
 const input=()=>({
@@ -60,6 +61,43 @@ test('selection normalization admits only separately validated full physical sou
  assert.equal(valid(basis,normalized,()=>true),true);
  assert.equal(valid(basis,normalized,()=>false),false);
  assert.equal(valid(basis,normalized,()=>{throw Error('stale selection');}),false);
+});
+
+test('workbench UI metadata mutations in supportConfigJson do not invalidate verified session, but physical calculation changes do',()=>{
+ const source=input(),basis=captureXml229P4LiveSourceSnapshot(source,'XML-1');
+ const benignConfigs=[
+  JSON.stringify({
+   linelist:{column:'P1',branchNameRegex:'(?<line>.*)',lineNoGroup:1,tokenDelimiter:'-',lineKeyTokenPositions:'3',lineKeyJoiner:'-'},
+   rating:{pipingClassRegex:'(?<class>.*)',pipingClassGroup:1,ratingRegex:'(?<rating>.*)',ratingGroup:1,tokenDelimiter:'-',pipingClassTokenIndex:4,ratingSequence:[['150','150']]},
+   weight:{boreToleranceMm:2,boreRegex:'(?<bore>.*)',boreGroup:1,tokenDelimiter:'-',boreTokenIndex:1},
+   regexTester:{tokenDelimiter:'-',formats:[{id:1}]},
+   formats:[{tokenDelimiter:'-'}],
+  }),
+  JSON.stringify({
+   linelist:{column:'P1'},weight:{boreToleranceMm:2},
+   jsonTrace:{activeSubTab:'index',nodeAliases:{A:'B'}},
+   supportTypeMapper:{testInput:'Saddle'},
+   manualElementSideload:{enabled:false},
+   previewDiagnostics:{filter:'ALL'},
+  }),
+ ];
+ for(const cfg of benignConfigs){
+  const state={...source,supportConfigJson:cfg};
+  assert.equal(valid(basis,state),true,'Benign workbench config unexpectedly invalidated session');
+ }
+
+ const physicalRejects=[
+  {cfg:JSON.stringify({linelist:{column:'P2'},weight:{boreToleranceMm:2}}),expectedKey:'linelist'},
+  {cfg:JSON.stringify({linelist:{column:'P1'},weight:{boreToleranceMm:5}}),expectedKey:'weight'},
+  {cfg:JSON.stringify({linelist:{column:'P1'},weight:{boreToleranceMm:2},useFrictionSentinelForNonYSupports:false}),expectedKey:'useFrictionSentinelForNonYSupports'},
+ ];
+ for(const {cfg,expectedKey} of physicalRejects){
+  const state={...source,supportConfigJson:cfg};
+  const diag=diagnoseXml229P4LiveSourceSnapshot(basis,state);
+  assert.equal(diag.match,false);
+  assert.equal(diag.code,'CONFIG_CONTENT_CHANGED');
+  assert.match(diag.reason,new RegExp(expectedKey));
+ }
 });
 
 test('real source and docs mirror guard remain exact',async()=>{
