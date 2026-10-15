@@ -1,0 +1,83 @@
+name: XML229 P4 source-bound Worker GC-PW integration
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs'
+      - 'tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs'
+      - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
+      - '.github/workflows/xml229-p4-worker-weight-integration.yml'
+permissions:
+  contents: read
+jobs:
+  worker-fact-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact HEAD and served root/docs parity
+        run: |
+          git rev-parse HEAD
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-census-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-run-advisory.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+      - name: Source-attested Preview FactRecords, GC-PW session, negative drift
+        run: |
+          node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs
+  original-blob-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Real native Worker original Blob + engineering preview + GC-PW, explicit Match-1/Final, Run HOLD
+        run: |
+          git rev-parse HEAD
+          node tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs
+          node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
