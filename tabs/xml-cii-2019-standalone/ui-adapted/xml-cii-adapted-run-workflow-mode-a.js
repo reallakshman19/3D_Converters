@@ -1,4 +1,5 @@
 import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261001-single-weight-owners-1';
+import {checkXml229CanonicalRunGate} from './xml-cii-adapted-p4-run-gate.js';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -66,6 +67,17 @@ function executionState(sharedState, source) {
 }
 
 export async function runModeABatchFromUi(stateRef, render) {
+  const sourceGate = await checkXml229CanonicalRunGate(stateRef);
+  if (sourceGate.applies && !sourceGate.authorized) {
+    const state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
+    replaceModeAState(stateRef, { ...state, batchRunning:false,
+      batchRunStatus:sourceGate.message,
+      batchRunResult:{summary:{succeeded:0,failed:0,blocked:1,cancelled:0,processed:0},
+        sources:[],manifest:null,sourceBoundGate:{code:sourceGate.code,blocking:true}},
+    });
+    render?.();
+    return;
+  }
   let state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   if (state.batchRunning || state.running) return;
   const preflight = buildModeAPreflight(state.sourceBatch);
