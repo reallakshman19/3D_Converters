@@ -154,7 +154,7 @@ try{
   // New source-bound presentation retains the existing 7-column review
   // contract and styling, while every review still RPCs into the GC-PW Worker.
   assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
-  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),7);
+  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
@@ -185,7 +185,7 @@ try{
   // EXISTING Weight Match stage; never promote a default or blank draft.
   const reviewIndex=await page.evaluate(()=>{
     const rows=[...document.querySelectorAll('tr[data-p4-row]')];
-    return rows.findIndex(tr=>tr.querySelectorAll('td')[2]?.textContent.trim()==='—');
+    return rows.findIndex(tr=>tr.dataset.p4Stage==='unresolved');
   });
   let reviewedOccurrence=null;
   if(reviewIndex>=0){
@@ -228,8 +228,8 @@ try{
       const row=[...document.querySelectorAll('tr[data-p4-row]')]
         .find(tr=>tr.dataset.p4Occurrence===occurrence);
       return row?{
-        match1:row.querySelectorAll('td')[3]?.textContent.trim(),
-        final:row.querySelectorAll('td')[4]?.textContent.trim(),
+        match1:row.querySelector('[data-p4-match1-mass]')?.textContent.trim(),
+        final:row.querySelector('[data-p4-final-mass]')?.textContent.trim(),
       }:null;
     },reviewedOccurrence);
     record.stages.retainedDecisions=retained;

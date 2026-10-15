@@ -218,36 +218,39 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
+ let mode='all',query='',pendingBulk=null,searchTimer=null,renderSequence=0;
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
  const render=async()=>{
    if(!active)return;
-   const page=await active.readPage({offset,limit:25});
-   table.innerHTML=renderXml229WeightReviewPage(page,offset);
+   const token=++renderSequence;
+   const page=mode==='all'&&!query
+     ?await active.readPage({offset,limit:25})
+     :await active.readPage({offset,limit:25,filter:mode,query});
+   if(token!==renderSequence)return;
+   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query});
    root.__p4VisibleRows=page.rows;
  };
- const applyPageFilter=()=>{
-   const term=String(root.querySelector('[data-p4-filter]')?.value||'').toLowerCase().trim();
-   const unresolved=root.querySelector('[data-p4-filter-unresolved]')?.checked===true;
-   let visible=0;
-   for(const tr of table.querySelectorAll('tr[data-p4-row]')){
-     const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
-     const searchable=String(row?.sourceId||'')+' '+String(row?.occurrenceId||'')+
-       ' '+String(row?.branchOccurrenceIndex||'')+'/'+String(row?.nodeOrdinal||'');
-     const match=(!term||searchable.toLowerCase().includes(term))&&
-       (!unresolved||tr.dataset.p4Stage==='unresolved');
-     tr.hidden=!match;
-     if(match)visible++;
-   }
-   const label=root.querySelector('[data-p4-filter-count]');
-   if(label)label.textContent=visible+' matching on this Worker page';
- };
  root.addEventListener('input',event=>{
-   if(event.target.closest?.('[data-p4-filter]'))applyPageFilter();
+   if(!event.target.closest?.('[data-p4-filter]'))return;
+   query=String(event.target.value||'').slice(0,120);
+   offset=0;pendingBulk=null;
+   if(searchTimer!==null)clearTimeout(searchTimer);
+   searchTimer=setTimeout(()=>{
+     searchTimer=null;
+     void render().then(()=>{
+       const input=table.querySelector('[data-p4-filter]');
+       input?.focus();input?.setSelectionRange?.(query.length,query.length);
+     }).catch(error=>say('Source-bound search unavailable: '+String(error.message||error),true));
+   },260);
  });
  root.addEventListener('change',event=>{
-   if(event.target.closest?.('[data-p4-filter-unresolved]'))applyPageFilter();
+   if(event.target.closest?.('[data-p4-filter-unresolved]')){
+     mode=event.target.checked?'needs-review':'all';
+     offset=0;pendingBulk=null;
+     void render().catch(error=>say('Source-bound filter unavailable: '+String(error.message||error),true));
+   }
  });
  build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
@@ -269,14 +272,41 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(busy||!active)return;
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
+   const scope=event.target.closest?.('[data-p4-scope]');
+   const planButton=event.target.closest?.('[data-p4-bulk-plan]');
+   const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!candidateChip&&!isMatch&&!isFinal)return;
+   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal)return;
    busy=true;
    try{
+     if(scope){
+       mode=scope.getAttribute('data-p4-scope')||'all';
+       offset=0;pendingBulk=null;await render();return;
+     }
+     if(planButton){
+       pendingBulk=await active.planQualifiedBlankFill();
+       if(!pendingBulk.qualified){
+         say('No qualified blank-only Match-1 suggestions on the verified full source.');
+       }else{
+         const confirm=table.querySelector('[data-p4-bulk-confirm]');
+         confirm.hidden=false;
+         confirm.textContent='Confirm '+pendingBulk.qualified+' qualified Match-1';
+         say('Review bulk proposal: '+pendingBulk.qualified+' qualified; '+
+           pendingBulk.unresolved+' not qualified; existing masses preserved. Confirm separately.');
+       }
+       return;
+     }
+     if(commitButton){
+       if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
+       const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
+       pendingBulk=null;offset=0;await render();
+       say(result.acceptedCount+' qualified blank-only Match-1 decision(s) accepted; Final remains independent.');
+       return;
+     }
      if(prev||next){
-       offset+=next?25:-25;await render();return;
+       offset+=next?25:-25;pendingBulk=null;await render();return;
      }
      const tr=event.target.closest('tr[data-p4-row]');
      const row=root.__p4VisibleRows?.[Number(tr?.dataset.p4Row)];
@@ -299,6 +329,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        value:draft.value,reason,
      });
      await active.review({view,choice});
+     pendingBulk=null;
      await render();
      say(isFinal?'Final Match-2 explicitly accepted for original physical source':
        'Match-1 explicitly accepted; Final remains a separate review.');
@@ -313,5 +344,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
  // Removing the rendered panel is not authority to destroy its Worker.
  // Explicit cancellation/rebuild remains a deliberate ownership transition.
- return {dispose:()=>{},cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
+ return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
+   cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
