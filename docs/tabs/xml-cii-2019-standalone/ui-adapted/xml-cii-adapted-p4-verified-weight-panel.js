@@ -11,7 +11,7 @@ import {xmlCiiEnrichedConfigFromState}
  from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig}
  from '../xml-cii-dataset-backed-config.js';
-import {xmlCiiBranchScopeFromState}
+import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 
 const sessionByBase=new WeakMap();
@@ -30,6 +30,39 @@ const snapshotOf=(raw,sourceId)=>({
 });
 const unchanged=(a,b)=>Object.keys(a).every(k=>Object.is(a[k],b[k]));
 
+/** Engineering physical scope cannot silently normalize a stale selection to ALL.
+ * A genuine 28/28 original-source selection passes; 28/41 and stale data HOLD.
+ */
+export function assertXml229P4OriginalFullSelection({
+ sourceText,branchSelection={},
+}={}){
+ if(typeof sourceText!=='string'||!sourceText.trim())
+  err('ORIGINAL_XML_REQUIRED','Original XML is required for physical-source custody');
+ const ids=branchSelection?.selectedBranchOccurrenceIds;
+ const names=branchSelection?.selectedBranchNames;
+ const explicitlySelected=Array.isArray(ids)||Array.isArray(names);
+ const digest=xmlCiiSourceDigest(sourceText);
+ if(explicitlySelected&&branchSelection?.sourceDigest!==digest)
+  err('STALE_OR_UNBOUND_SELECTION',
+   'Explicit branch selection is not bound to current original XML. Reselect before physical Weight review; no ALL fallback');
+ const scope=xmlCiiBranchScopeFromState({
+  sourceKind:'xml',sourceText,branchSelection,
+ });
+ if(!scope.applicable||scope.blocked||
+    !Array.isArray(scope.sourceBranchOccurrences)||!scope.sourceBranchOccurrences.length||
+    scope.selectedBranchOccurrences?.length!==scope.sourceBranchOccurrences.length||
+    scope.excludedBranchOccurrences?.length!==0)
+  err('PARTIAL_XML_SCOPE_HELD',
+   'Selected '+(scope.selectedBranchOccurrences?.length??0)+' of '+
+   (scope.sourceBranchOccurrences?.length??0)+
+   ' original branch occurrences. A verified subset census is required; no ALL fallback');
+ if(Array.isArray(ids)&&(new Set(ids).size!==ids.length||
+    ids.length!==scope.sourceBranchOccurrences.length))
+  err('ORIGINAL_BRANCH_OCCURRENCE_SET_DRIFT',
+   'Duplicate or missing original selected branch occurrence ID');
+ return scope;
+}
+
 /** Resolve a genuine existing O1 File Blob and all four current masters.
  * One complete original Mode A branch selection only; refuse uncertain joins.
  */
@@ -41,14 +74,9 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const sourceId=String(view?.modeASourceId||raw?.modeASourceId||
    raw?.sourceBatch?.activeSourceId||'');
  if(!sourceId)err('ORIGINAL_SOURCE_ID_REQUIRED','Select one original XML source');
- const selection=xmlCiiBranchScopeFromState({
-   sourceKind:'xml',sourceText:raw.sourceText,
-   branchSelection:raw.branchSelection||{},
+ const selection=assertXml229P4OriginalFullSelection({
+  sourceText:raw.sourceText,branchSelection:raw.branchSelection||{},
  });
- if(!selection?.applicable||selection.blocked||
-    selection.selectedBranchOccurrences?.length!==selection.sourceBranchOccurrences?.length)
-   err('PARTIAL_XML_SCOPE_HELD',
-     'P4 requires full original XML branch scope; partial 28-vs-41 selection cannot alias ALL');
  const source=resolveXml229CurrentPreviewBlob(baseRef,raw.xml229StagedSourceReceipt);
  const before=snapshotOf(raw,sourceId);
  const context=view.masterContext||raw.masterContext||{};
