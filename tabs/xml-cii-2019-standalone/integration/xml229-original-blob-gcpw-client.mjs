@@ -137,6 +137,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readCompletion(){
      return rpc({kind:'read',what:'completion',sourceId});
    },
+   async readNativeFinalIntent(){
+     return rpc({kind:'read',what:'native-final-intent',sourceId});
+   },
    async readPage({offset=0,limit=25}={}){
      return rpc({kind:'read',what:'page',sourceId,offset,limit});
    },
