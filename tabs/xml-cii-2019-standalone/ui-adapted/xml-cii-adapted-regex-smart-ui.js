@@ -1,5 +1,7 @@
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import {hasXml229VerifiedEngineeringBasis,routeXml229AutomaticEngineeringProposal}
+ from '../integration/xml229-engineering-basis-authority.mjs';
 import { decorateRegexSampleSelector } from './xml-cii-adapted-regex-sample-selector.js';
 import { createSmartIcon, createSmartIconButton, createSmartMetricChip, createSmartToolbar, smartStatusColor } from './xml-cii-adapted-smart-icons.js';
 import { applyHighestSafeSuggestions, applyRegexSuggestions, createDefaultRegexSuggestionProfile } from '../xml-cii-regex-smart-suggestions.js?v=20261001-weight-rating-1';
@@ -185,13 +187,29 @@ function autoApplyHighestSafe(stateRef, render, receipt) {
   const before = state.regexTesterConfig?.formats?.[index] || state.regexTesterConfig || {};
   const after = proposed.formats?.[index] || proposed || {};
   const changed = changedSmartRoles(before, after);
-  state.regexTesterConfig = proposed;
-  applyClassifiedTesterResult(stateRef, result, state.masterContext || {});
-  refreshReceiptWithContext(stateRef, state.masterContext || {}, 'resident-or-heuristic');
+  // A verified engineering basis is an immutable committed calculation, not
+  // the mutable Regex Workbench. Automatic heuristics after Preview are drafts
+  // requiring an explicit Apply; they must never silently invalidate Weight.
+  const draftFingerprint=receipt.fingerprint||JSON.stringify(proposed);
+  if(hasXml229VerifiedEngineeringBasis(stateRef)&&
+     state.regexSmartDraftFingerprint===draftFingerprint)return false;
   const ratingNote = ratingCleanup.cleared ? ' Stale unlocked Rating mapping cleared; Rating remains manual.' : '';
-  stateRef.current.regexSmartStatus = changed.length
-    ? `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.${ratingNote}`
-    : `Automatic token analysis completed; configured mappings synchronized downstream.${ratingNote}`;
+  routeXml229AutomaticEngineeringProposal(stateRef,{
+    proposal:{proposed,result,receipt},
+    stage:()=> {
+      state.regexSmartPreview={receipt,proposed,result};
+      state.regexSmartDraftFingerprint=draftFingerprint;
+      state.regexSmartStatus='Automatic regex suggestions are DRAFT only. The current verified Preview and Weight review are unchanged. Apply suggestions explicitly, then rebuild Preview.';
+    },
+    commit:()=> {
+      state.regexTesterConfig=proposed;
+      applyClassifiedTesterResult(stateRef,result,state.masterContext||{});
+      refreshReceiptWithContext(stateRef,state.masterContext||{},'resident-or-heuristic');
+      stateRef.current.regexSmartStatus=changed.length
+        ? `Auto-selected highest-confidence safe mapping for ${changed.join(', ')}.${ratingNote}`
+        : `Automatic token analysis completed; configured mappings synchronized downstream.${ratingNote}`;
+    },
+  });
   queueMicrotask(() => render?.());
   return true;
 }
@@ -233,18 +251,29 @@ async function autoAnalyzeDatasetEvidence(stateRef, render) {
     const changed = changedSmartRoles(before, after);
 
     const rawResult = runStandaloneRegexTester({ ...live, sourceText: live.sourceText, extractionConfig: proposed });
-    live.regexTesterConfig = proposed;
-    applyClassifiedTesterResult(stateRef, rawResult, bundle.masterContext);
-    refreshReceiptWithContext(stateRef, bundle.masterContext, bundle.evidenceBasis);
-    live = current(stateRef, {});
-
-    live.regexSmartPreview = null;
+    const mode=routeXml229AutomaticEngineeringProposal(stateRef,{
+      proposal:{proposed,result:rawResult,receipt:bundle.receipt},
+      stage:()=> {
+        // No writes to supportConfigJson or regexTesterConfig: this is a
+        // proposed engineering edit, never an implicit committed input.
+        live.regexSmartPreview={receipt:bundle.receipt,proposed,result:rawResult};
+      },
+      commit:()=> {
+        live.regexTesterConfig=proposed;
+        applyClassifiedTesterResult(stateRef,rawResult,bundle.masterContext);
+        refreshReceiptWithContext(stateRef,bundle.masterContext,bundle.evidenceBasis);
+      },
+    });
+    live=current(stateRef,{});
+    if(mode==='COMMITTED')live.regexSmartPreview=null;
     live.regexSmartAutoAnalysisPendingBasis = '';
     live.regexSmartAutoAnalysisCompletedBasis = regexSmartReceiptRequestBasis(live);
     const ratingNote = ratingCleanup.cleared ? ' Stale unlocked Rating mapping was cleared.' : ' Rating remains manual.';
-    live.regexSmartStatus = changed.length
-      ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}.${ratingNote}`
-      : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; configured mappings synchronized downstream.${ratingNote}`;
+    live.regexSmartStatus = mode==='DRAFT'
+      ? 'Safe token analysis created a DRAFT proposal. The verified Preview/Weight InputBasis was not changed. Apply and rebuild explicitly to change engineering results.'
+      : changed.length
+        ? `Auto-analyzed authoritative master evidence and selected ${changed.join(', ')}.${ratingNote}`
+        : `Auto-analyzed ${bundle.receipt.metrics.sampleCount} samples with ${bundle.receipt.masterEvidence?.mode || 'master'} evidence; configured mappings synchronized downstream.${ratingNote}`;
   } catch (error) {
     const live = current(stateRef, {});
     live.regexSmartAutoAnalysisPendingBasis = '';
