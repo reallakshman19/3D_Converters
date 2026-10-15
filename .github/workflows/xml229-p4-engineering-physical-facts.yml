@@ -12,6 +12,8 @@ on:
       - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
       - 'tests/xml-cii-229-p4-native-run-gate.test.mjs'
       - 'tests/xml-cii-229-r2-native-engine-boundary.test.mjs'
+      - 'converters/xml-cii2019-core/weight-facts-native-consumption-intent.js'
+      - 'docs/converters/xml-cii2019-core/weight-facts-native-consumption-intent.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js'
       - 'docs/tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'
@@ -78,6 +80,8 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/xml-cii-original-run-scope.js docs/tabs/xml-cii-2019-standalone/xml-cii-original-run-scope.js
           diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
           diff -u tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js docs/tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js
+          diff -u converters/xml-cii2019-core/weight-facts-native-consumption-intent.js docs/converters/xml-cii2019-core/weight-facts-native-consumption-intent.js
+          node --check converters/xml-cii2019-core/weight-facts-native-consumption-intent.js
           diff -u tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
           node --check tabs/xml-cii-2019-standalone/xml-cii-native-output-consumption-evidence.js
           node --check tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
