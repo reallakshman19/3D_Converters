@@ -81,6 +81,32 @@ function xmlRows(input) {
   ];
 }
 
+/**
+ * The original JSON O1 receipt attests *only* durable source indexing.
+ * Even INDEX_COMMITTED does not prove Preview, Weight/Final or native CII.
+ * Preserve ordinary standalone XML as legacy/optional; block the governed
+ * source-bound route whenever a selected original JSON source is present.
+ */
+function selectedOriginalJsonSourceReceipts(input) {
+  const own = input?.xml229StagedSourceReceipt;
+  const selected = (input?.sourceBatch?.sources || [])
+    .filter(source => source?.enabled !== false)
+    .map(source => source?.xml229StagedSourceReceipt || source?.workflow?.xml229StagedSourceReceipt)
+    .filter(Boolean);
+  return [...(own ? [own] : []), ...selected];
+}
+function originalJsonAuthorityRows(input) {
+  const receipts=selectedOriginalJsonSourceReceipts(input);
+  if (!receipts.length) return [];
+  const phaseCounts = [...new Set(receipts.map(receipt => String(receipt?.phase || 'UNKNOWN')))];
+  return [row('xml229-original-json-engineering-authority',
+    'Original JSON → Preview → Weight/Final → native CII release authority',
+    false,
+    'Original JSON O1 source indexing (' + phaseCounts.join(', ') +
+    ') is source-only. Complete source-bound engineering Preview, reviewed physical weights and native CII output-consumption authority are not established. Run is HELD; do not infer readiness from 28/28 Regex identity or legacy cached rows.',
+    {blocking:true,severity:'error',status:'held'})];
+}
+
 function inputXmlRows(input) {
   const matched = Number(input.manualElementSideloadResult?.summary?.matchedRows || input.result?.diagnostics?.sideLoadMatched || 0);
   return [row('inputxml-side-load', 'InputXML side-load status', matched > 0 || !!text(input.elementSideLoadText), `InputXML side-load evidence rows: ${matched || 'not built yet'}.`)];
@@ -131,7 +157,9 @@ function commonRows(input) {
 
 export function buildOutputRunChecklist(input = {}) {
   const kind = resolvedKind(input);
-  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input), ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
+  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input),
+    ...originalJsonAuthorityRows(input),
+    ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
 }
 
 function artifact(kind, label, name, value, mime) {
@@ -202,7 +230,13 @@ export function buildStandaloneOutputRunReadiness(input = {}) {
   const artifactRows = buildOutputArtifactRows(input, manifest);
   const blockingCount = checklistRows.filter((item) => item.blocking).length;
   return {
-    summary: { sourceMode: resolvedKind(input), blockingCount, checklistCount: checklistRows.length, artifactCount: artifactRows.filter((item) => item.available).length },
+    summary: {
+      sourceMode: resolvedKind(input), blockingCount,
+      warningCount: checklistRows.filter(item => !item.blocking && item.status !== 'ready').length,
+      incompleteStageCount: checklistRows.filter(item => !item.blocking && item.status === 'missing').length,
+      checklistCount: checklistRows.length,
+      artifactCount: artifactRows.filter(item => item.available).length,
+    },
     checklistRows,
     artifactRows,
     logRows: logRows(input, checklistRows),
