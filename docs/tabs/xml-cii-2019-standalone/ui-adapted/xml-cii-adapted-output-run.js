@@ -212,7 +212,7 @@ function renderReadinessCard(parent, config, state) {
   const counts = outputRunReadinessMasterCounts(state, config);
   readyCard.append(
     runStatusRow(counts.linelist > 0, 'Line List', counts.linelist ? `${counts.linelist} row(s)` : 'not loaded'),
-    runStatusRow(counts.pipingClass > 1, 'Piping Class Master', counts.pipingClass > 1 ? `${counts.pipingClass} row(s)` : 'not loaded'),
+    runStatusRow(counts.pipingClass > 0, 'Piping Class Master', counts.pipingClass > 0 ? `${counts.pipingClass} row(s)` : 'not loaded'),
     runStatusRow(counts.material > 0, 'Material Map', counts.material ? `${counts.material} row(s)` : 'not loaded'),
     runStatusRow(counts.weight > 0, 'Valve Weights', counts.weight ? `${counts.weight} row(s)` : 'not loaded')
   );
