@@ -1,0 +1,48 @@
+name: XML229 Full Master Original Preview Integrity
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-preview-work-config.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-preview-work-config.mjs'
+      - 'tests/xml-cii-229-master-content-isolation.test.mjs'
+      - 'scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs'
+      - '.github/workflows/xml229-full-master-original-preview-integrity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-master-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact source/mirror and full master regression
+        run: |
+          node --check scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs
+          node --test tests/xml-cii-229-master-content-isolation.test.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authored application
+        run: python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/xml229-four-master-http.log 2>&1 &
+      - name: Real XLSX Line List plus full Masters Preview and Weight
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-full-master-original-preview
+          path: ValidationRecords/xml229-four-original-masters-existing-workflow.json
+          retention-days: 30
+          if-no-files-found: warn

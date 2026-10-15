@@ -14,6 +14,7 @@ import {
 } from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage}
   from '../../../contracts/gc-pw-v1/contract.mjs';
+import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {preparePreviewNodeOccurrenceDocument}
@@ -89,7 +90,11 @@ export async function openXml229EngineeringFactModel({
   if(!matching(projection.branches,previewResult.sourceOccurrences.branches)||
      !matching(projection.nodes,previewResult.sourceOccurrences.nodes))
     fail('ORIGINAL_OCCURRENCE_ID_DRIFT','Preview source identity is different from original XML');
-  const prepared=preparePreviewNodeOccurrenceDocument({xmlText,config:live.config||{}});
+  // Independent source-cleanup calculation cannot mutate the original
+ // master/config buffers whose full content is attested by GC-PW.
+ const prepared=preparePreviewNodeOccurrenceDocument({
+   xmlText,config:isolatedOriginalPreviewWorkConfig(live.config||{}),
+ });
   if(!prepared.document||prepared.ledger.originalCount!==projection.nodeCount)
     fail('SOURCE_CLEANUP_DRIFT','Original source cleanup census incomplete');
   const branches=[...prepared.document.getElementsByTagName('Branch')];

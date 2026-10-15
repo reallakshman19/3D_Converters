@@ -1,4 +1,7 @@
 // GC-PW/1.0 Preview-only portable content identity. No DOM, transport, or master mutation.
+// All accepted Preview input hashes MUST use the same canonical JSON bytes
+// as the downstream GC-PW occurrence bridge and review service.
+import {canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 export const PREVIEW_BASIS_SCHEMA = 'gc-pw/1.0';
 export class PreviewBasisError extends Error {
   constructor(code, message) { super(message); this.name = 'PreviewBasisError'; this.code = code; }
@@ -7,39 +10,49 @@ function assert(condition, code, message) {
   if (!condition) throw new PreviewBasisError(code, message);
 }
 export function canonicalPreviewValue(value) {
+  // Retain the stricter Preview schema preflight (no sparse arrays, extra
+  // array properties, nonenumerable fields, undefined or cyclic values).
+  // Canonical content serialization itself must be owned by gc-pw/contract:
+  // JSON.stringify reorders JS array-index keys numerically. The former
+  // local object-string concatenation sorted these lexically, so imported
+  // XLSX Line List rows with keys "2"/"10" produced different master SHA256
+  // bytes at the Producer and Consumer ends of the *same* InputBasis.
   const seen = new Set();
-  const encode = (v) => {
-    if (v === null) return 'null';
-    if (typeof v === 'string' || typeof v === 'boolean') return JSON.stringify(v);
+  const validate = (v) => {
+    if (v === null || typeof v === 'string' || typeof v === 'boolean') return;
     if (typeof v === 'number') {
       assert(Number.isFinite(v), 'NONFINITE_VALUE', 'NaN/Infinity cannot enter engineering basis');
-      return JSON.stringify(v);
+      return;
     }
-    assert(v && typeof v === 'object' && !Array.isArray(v) || Array.isArray(v),
-      'UNSERIALIZABLE_VALUE', 'Only JSON-serializable objects and arrays enter engineering basis');
-    assert(Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null || Array.isArray(v),
-      'UNSERIALIZABLE_VALUE', 'Non-plain object in engineering basis');
+    assert(v && typeof v === 'object', 'UNSERIALIZABLE_VALUE',
+      'Only JSON-serializable objects and arrays enter engineering basis');
+    assert(Array.isArray(v) || Object.getPrototypeOf(v) === Object.prototype
+      || Object.getPrototypeOf(v) === null, 'UNSERIALIZABLE_VALUE',
+      'Non-plain object in engineering basis');
     assert(!seen.has(v), 'CYCLIC_VALUE', 'Cyclic engineering basis');
     seen.add(v);
     if (Array.isArray(v)) {
       for (let index = 0; index < v.length; index++) {
         assert(Object.hasOwn(v, index), 'SPARSE_ARRAY', 'Sparse array is not a valid engineering basis');
       }
-      assert(Reflect.ownKeys(v).length === v.length + 1, 'UNSERIALIZABLE_VALUE', 'Extra array properties are not serializable');
+      assert(Reflect.ownKeys(v).length === v.length + 1,
+        'UNSERIALIZABLE_VALUE', 'Extra array properties are not serializable');
+      v.forEach(validate);
     } else {
-      assert(Reflect.ownKeys(v).every((key) => typeof key === 'string' && Object.prototype.propertyIsEnumerable.call(v, key)),
-        'UNSERIALIZABLE_VALUE', 'Non-enumerable or symbol engineering fields are unsupported');
+      assert(Reflect.ownKeys(v).every((key) => typeof key === 'string'
+        && Object.prototype.propertyIsEnumerable.call(v, key)),
+      'UNSERIALIZABLE_VALUE', 'Non-enumerable or symbol engineering fields are unsupported');
+      for (const key of Object.keys(v)) {
+        assert(v[key] !== undefined, 'UNSERIALIZABLE_VALUE', 'Undefined engineering field: ' + key);
+        validate(v[key]);
+      }
     }
-    const out = Array.isArray(v) ? '[' + v.map(encode).join(',') + ']'
-      : '{' + Object.keys(v).sort().map((k) => {
-        assert(v[k] !== undefined, 'UNSERIALIZABLE_VALUE', 'Undefined engineering field: ' + k);
-        return JSON.stringify(k) + ':' + encode(v[k]);
-      }).join(',') + '}';
     seen.delete(v);
-    return out;
   };
-  return encode(value);
+  validate(value);
+  return canonicalJson(value);
 }
+
 function freezeBasis(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const child of Object.values(value)) freezeBasis(child);
