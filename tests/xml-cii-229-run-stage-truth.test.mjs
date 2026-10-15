@@ -59,7 +59,14 @@ test('indexed original JSON is source-only: 28/28 regex cannot authorize CII Run
  assert.match(gate(report).message,/source-only/);
  assert.match(gate(report).message,/28\/28/);
  assert.equal(summary(report).status,'ready');
- assert.equal(report.summary.incompleteStageCount,5);
+ // In a governed original-source route the independent optional stages are
+ // explicitly not-run, rather than pretending to be missing engineering proof.
+ assert.equal(report.summary.incompleteStageCount,2);
+ for(const id of ['support-mapper','resolver-json','manual-restraints']){
+  assert.equal(report.checklistRows.find(x=>x.id===id)?.status,'not-run');
+ }
+ assert.equal(report.checklistRows.find(x=>x.id==='preview-audit')?.status,'missing');
+ assert.equal(report.checklistRows.find(x=>x.id==='weight-match')?.status,'missing');
 });
 test('selected, indexing, failed or revoked original JSON cannot claim engineering release',()=>{
  for(const phase of ['SELECTED','INDEXING','COMMIT_PENDING','FAILED','REVOKED']){
