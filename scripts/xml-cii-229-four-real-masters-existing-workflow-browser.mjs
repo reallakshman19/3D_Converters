@@ -282,6 +282,17 @@ try{
     exported.checklistRows.filter(x=>x.blocking).length);
   assert.equal(exported.summary.warningCount,
     exported.checklistRows.filter(x=>!x.blocking&&x.status!=='ready').length);
+  // Header badges must come from the SAME canonical report exported above,
+  // even though the shell rendered its header before asynchronous GC-PW proof.
+  const badges=await page.locator('.xml-cii-header-status-row').evaluate(bar=>
+    [...bar.querySelectorAll('.xml-cii-standalone-badge')].map(x=>x.textContent.trim()));
+  const headerErrors=exported.diagnostics.filter(x=>x.level==='error').length;
+  const headerWarnings=exported.diagnostics.filter(x=>x.level==='warning').length;
+  assert(badges.includes(headerErrors+' Errors'),
+    'header error badge drifted from verified Output/Run report: '+badges);
+  assert(badges.includes(headerWarnings+' Warnings'),
+    'header warning badge drifted from verified Output/Run report: '+badges);
+  record.stages.runHeaderBadges={badges,headerErrors,headerWarnings};
   assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
   for(const item of record.stages.runIndependentStages){
     assert.equal(exported.checklistRows.find(x=>x.id===item.id)?.status,item.status,
