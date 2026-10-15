@@ -73,3 +73,18 @@ jobs:
           disallowed="$(grep -Ev '^\.github/workflows/issue-884-c05-5-4-5-final\.yml$' /tmp/issue884_base_files.txt || true)"
           echo "BASE_HEAD=$(git rev-parse HEAD) DISALLOWED_COUNT=$(printf '%s\n' "$disallowed" | wc -l)"
           test -z "$disallowed"
+
+  pinned-base-issue776-adjacent-calculation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9944a5bf521cb67dcabf887d8a5ccce61d4857d2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run adjacent engineering-calculation test against unchanged base
+        run: |
+          echo "BASE_HEAD=$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "9944a5bf521cb67dcabf887d8a5ccce61d4857d2"
+          node --test tests/engineering-calculation-core.test.mjs
