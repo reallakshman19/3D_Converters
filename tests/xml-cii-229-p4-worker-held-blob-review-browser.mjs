@@ -107,6 +107,10 @@ try{
        '<Node><NodeNumber>300</NodeNumber><ComponentType>RIGID</ComponentType><Rigid>2</Rigid><BoreMm>200</BoreMm><ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint><ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position><Weight>40</Weight></Node></Branch>'),
    }).then(()=>null,e=>e.code);
 
+   const extra=await remote.attestEngineInput({
+     engineInputXmlText:enriched.replace('</Branch>',
+       '<Node><NodeNumber>330</NodeNumber><ComponentType>INST</ComponentType><ComponentRefNo>extra-unclaimed</ComponentRefNo><Endpoint>2</Endpoint><Position>750 0 0</Position><Weight>44</Weight></Node></Branch>'),
+   }).then(()=>null,e=>e.code);
    const stale=await remote.review({view:match1,choice:{
      action:'enter-manual',value:45,unit:'kg',reason:'Stale earlier review',
    }}).then(()=>null,e=>e.code);
@@ -119,7 +123,7 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent,attested,badMass,duplicate};
+     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent,attested,badMass,duplicate,extra};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -163,6 +167,7 @@ try{
  assert.equal(data.attested.finalIntentSha256,data.completeIntent.intentSha256);
  assert.equal(data.badMass,'FINAL_WEIGHT_NOT_IN_ENGINE_INPUT');
  assert.equal(data.duplicate,'ENRICHED_COMPONENT_LINEAGE_AMBIGUOUS');
+ assert.equal(data.extra,'EXTRA_ENRICHED_PHYSICAL_OWNER');
  assert.equal(data.completeIntent.physicalEngineConsumptionVerified,false);
  assert.notEqual(data.intentAfter.intentSha256,data.completeIntent.intentSha256);
  assert.match(data.intentAfter.intentSha256,/^[0-9a-f]{64}$/);
