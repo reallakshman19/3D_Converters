@@ -92,6 +92,22 @@ export async function resolveXml229P4ProductionInputs(stateRef){
    requestId:'xml229-p4-'+source.generationId+'-'+sourceId,
    isCurrent};
 }
+/** Reuse exactly one source-attested original Worker review across Preview
+ * and Weight. Rebuild revokes the previous InputBasis and its decisions.
+ */
+export async function openXml229P4VerifiedSession(stateRef,{
+  resolveInputs=()=>resolveXml229P4ProductionInputs(stateRef),
+  onProgress=()=>{},
+}={}){
+ const key=stateRef?.modeABaseRef||stateRef;
+ if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
+ const previous=sessionByBase.get(key);
+ if(previous){sessionByBase.delete(key);previous.cancel();}
+ const inputs=await resolveInputs();
+ const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
+ sessionByBase.set(key,session);
+ return session;
+}
 export function getXml229CurrentWorkerHeldReview(stateRef){
  const key=stateRef?.modeABaseRef||stateRef;
  return key&&sessionByBase.get(key)||null;
@@ -118,7 +134,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const table=root.querySelector('[data-p4-weight-table]');
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
- let active=null,offset=0,busy=false;
+ let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
@@ -169,12 +185,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const prev=active;
    try{
      prev?.cancel();active=null;
-     const inputs=await resolveInputs();
-     say('Original source/master custody verified. Starting isolated Workers…');
-     active=await openXml229WorkerHeldOriginalWeightReview({
-       ...inputs,onProgress:stage=>say('GC-PW Worker: '+stage),
+     say('Checking original source/master custody and starting isolated Workers…');
+     active=await openXml229P4VerifiedSession(stateRef,{
+       resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
-     if(key)sessionByBase.set(key,active);
      offset=0;await render();
      say('Verified original physical facts ready; weights NOT auto-accepted.');
    }catch(error){
@@ -220,5 +234,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        (error?.code?' ['+error.code+']':''),true);
    }finally{busy=false;}
  });
+ if(active)void render().then(()=>say('Existing verified Preview facts and Weight review loaded.'))
+   .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
  return {cancel:()=>{active?.cancel();if(key)sessionByBase.delete(key);}};
 }
