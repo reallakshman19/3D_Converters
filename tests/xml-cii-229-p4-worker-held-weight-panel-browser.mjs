@@ -11,7 +11,7 @@ const server=createServer(async(req,res)=>{
   const p=new URL(req.url,'http://localhost').pathname;
   if(p==='/test.html'){
    res.writeHead(200,{'content-type':'text/html'});
-   res.end('<!doctype html><html><body><div id="weight-panel"></div><div id="run-panel"></div></body></html>');return;
+   res.end('<!doctype html><html><body><div id="preview-panel"></div><div id="weight-panel"></div><div id="run-panel"></div></body></html>');return;
   }
   const file=path.resolve(root,'.'+decodeURIComponent(p));
   if(!file.startsWith(root+path.sep))throw Error('bad path');
@@ -61,11 +61,41 @@ try{
    };
    const stateRef={current:{}};
    window.__p4StateRef=stateRef;
+   window.__p4Options=options;
+   const {installXml229P4PreviewBridge}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js');
+   window.__p4Preview=installXml229P4PreviewBridge(
+     document.querySelector('#preview-panel'),stateRef,
+     {resolveInputs:async()=>options});
    const panel=installXml229WorkerHeldWeightPanel(
      document.querySelector('#weight-panel'),stateRef, {resolveInputs:async()=>options});
    window.__p4Panel=panel;
  });
- await page.locator('[data-p4-weight-build]').click();
+ // First build verified engineering facts using the actual 4 Preview bridge.
+ await page.locator('[data-p4-preview-build]').click();
+ await page.waitForFunction(()=>
+   document.querySelector('[data-p4-preview-status]')?.textContent.includes('Preview engineering facts VERIFIED'),
+   {timeout:120000});
+ const previewReceipt=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const review=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   const completion=await review.readCompletion();
+   return {basisId:review.receipt.basisId,physicalCount:completion.verifiedPhysicalCount,
+     factCount:completion.verifiedFactCount,release:completion.ciiReleaseAuthorized};
+ });
+ assert.equal(previewReceipt.physicalCount,2);
+ assert.equal(previewReceipt.factCount,14);
+ assert.equal(previewReceipt.release,false);
+ // Switching to Weight Match reconnects to SAME reviewed InputBasis/session;
+ // it must not create another competing Weight/Final population.
+ await page.evaluate(async()=>{
+   const {installXml229WorkerHeldWeightPanel}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   window.__p4Panel=installXml229WorkerHeldWeightPanel(
+     document.querySelector('#weight-panel'),window.__p4StateRef,
+     {resolveInputs:async()=>window.__p4Options});
+ });
  await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2,
    {timeout:120000});
  const original=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
@@ -73,7 +103,7 @@ try{
  })));
  assert.equal(original.length,2);
  // Neither proposed nor source-null value may be mistaken for accepted mass.
- assert.match(await page.locator('[data-p4-weight-status]').textContent(),/NOT auto-accepted/);
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Existing verified Preview facts/);
  const first=page.locator('tr[data-p4-row]').first();
  await first.locator('[data-p4-proposal]').fill('35');
  await first.locator('[data-p4-reason]').fill('Engineer verified physical master 35 kg');
@@ -112,6 +142,12 @@ try{
  assert.match(runAdvisory,/CII output remains unauthorized/);
  assert.match(runAdvisory,/The legacy Pre-run Summary/);
 
+ const shared=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return getXml229CurrentWorkerHeldReview(window.__p4StateRef).receipt.basisId;
+ });
+ assert.equal(shared,previewReceipt.basisId);
  assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
