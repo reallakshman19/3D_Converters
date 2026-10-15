@@ -106,7 +106,7 @@ function originalJsonAuthorityRows(input) {
     'Original JSON → Preview → Weight/Final → native CII release authority',
     false,
     'Original JSON O1 source indexing (' + phaseCounts.join(', ') +
-    ') is source-only. Complete source-bound engineering Preview, reviewed physical weights and native CII output-consumption authority are not established. Run is HELD; do not infer readiness from 28/28 Regex identity or legacy cached rows.',
+    ') is source-only. Even a verified engineering Preview and reviewed GC-PW Weight/Final session do not establish independent native CII Final/output consumption. Run is HELD until native output authority is verified; 28/28 Regex identity and legacy cached rows never authorize it.',
     {blocking:true,severity:'error',status:'held'})];
 }
 

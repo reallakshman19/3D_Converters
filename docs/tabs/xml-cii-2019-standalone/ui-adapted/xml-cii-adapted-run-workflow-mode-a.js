@@ -74,7 +74,7 @@ export async function runModeABatchFromUi(stateRef, render) {
     ...globalBlockingRows(preflight),
     ...(hasOriginalJsonSourceOnlyRunHold(state) ? [{
       id: 'xml229-original-json-engineering-authority',
-      message: 'Original JSON O1 source is indexed/selected only. Complete reviewed physical weights and native CII output-consumption authority are not established; batch Run and ZIP are HELD.',
+      message: 'Original JSON O1 indexing is source-only. Verified Preview and GC-PW review cannot authorize conversion without independent native Final-to-CII output consumption; batch Run and ZIP remain HELD.',
     }] : []),
   ];
   if (globalBlocks.length) {

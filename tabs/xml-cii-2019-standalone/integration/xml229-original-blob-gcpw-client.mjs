@@ -137,6 +137,18 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readCompletion(){
      return rpc({kind:'read',what:'completion',sourceId});
    },
+   async readPreviewResult(){
+     const result=await rpc({kind:'read',what:'preview',sourceId});
+     if(result?.engineeringAcceptance!=='NOT_ASSESSED'||
+       result?.fullFactPopulationAccepted!==false||
+       result?.originalStagedSourceSha256!==originalStagedSourceReceipt.sha256||
+       result?.originalStagedSourceGeneration!==originalStagedSourceReceipt.generationId||
+       !Array.isArray(result?.branchRows)||!Array.isArray(result?.nodeRows)||
+       result?.sourceOccurrences?.branches?.length!==result?.coverage?.sourceBranchCount)
+       throw err('VERIFIED_PREVIEW_PRESENTATION_DRIFT',
+         'Preview rows do not belong to current original engineering session');
+     return result;
+   },
    async readNativeFinalIntent(){
      return rpc({kind:'read',what:'native-final-intent',sourceId});
    },

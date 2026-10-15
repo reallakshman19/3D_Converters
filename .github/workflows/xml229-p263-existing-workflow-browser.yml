@@ -1,0 +1,44 @@
+name: XML229 P263 Actual Existing Preview Weight Browser
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'scripts/xml-cii-229-p263-existing-workflow-browser.mjs'
+      - '.github/workflows/xml229-p263-existing-workflow-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authored-existing-stages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check scripts/xml-cii-229-p263-existing-workflow-browser.mjs
+          printf '6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288  Benchmarks/1885Sjson/Sjson.json\n' | sha256sum --check -
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual authored app
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p263-http.log 2>&1 &
+      - name: Real app existing Build Preview → Weight Match → Run
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p263-existing-workflow-browser.mjs
+      - name: Preserve authored app evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p263-existing-workflow
+          path: ValidationRecords/xml229-p263-existing-workflow.json
+          if-no-files-found: warn
+          retention-days: 30

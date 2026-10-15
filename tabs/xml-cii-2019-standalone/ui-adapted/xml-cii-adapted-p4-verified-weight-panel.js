@@ -11,10 +11,13 @@ import {xmlCiiEnrichedConfigFromState}
  from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig}
  from '../xml-cii-dataset-backed-config.js';
+import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
+import {digestCanonical} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 
 const sessionByBase=new WeakMap();
+const sessionLeases=new WeakMap();
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -73,6 +76,10 @@ export async function resolveXml229P4ProductionInputs(stateRef){
    err('ORIGINAL_O1_BLOB_REQUIRED','Load original XML + O1 indexed JSON first');
  const sourceId=String(view?.modeASourceId||raw?.modeASourceId||
    raw?.sourceBatch?.activeSourceId||'');
+ if(raw.sourceBatch?.activeSourceId&&view?.modeASourceId&&
+    raw.sourceBatch.activeSourceId!==view.modeASourceId)
+   err('INACTIVE_MODE_A_SOURCE_NOT_ATTESTED',
+     'Switch to this XML source in Source & Master before building its original-JSON engineering Preview; never borrow the active source Blob');
  if(!sourceId)err('ORIGINAL_SOURCE_ID_REQUIRED','Select one original XML source');
  const selection=assertXml229P4OriginalFullSelection({
   sourceText:raw.sourceText,branchSelection:raw.branchSelection||{},
@@ -82,26 +89,9 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const context=view.masterContext||raw.masterContext||{};
  const config=await materializeXmlCiiDatasetBackedConfig(
    xmlCiiEnrichedConfigFromState(view),{...view,masterContext:context});
- const definitions=[
-  ['lineList','linelist','masterRows'],
-  ['pipingClass','pipingClass','masterRows'],
-  ['materialMap','material','mapRows'],
-  ['weight','weight','masterRows'],
- ];
- const masters={};
- for(const [kind,section,property] of definitions){
-   const ref=context.datasetRefs?.[kind];
-   const rows=config?.[section]?.[property];
-   if(!ref?.datasetId||!Array.isArray(rows)||!rows.length||
-      rows.length!==Number(ref.rowCount))
-     err('FOUR_MASTER_CUSTODY_INCOMPLETE',
-       'Expected source-attested '+kind+' master rows; reimport current original master');
-   masters[kind]={
-     datasetId:ref.datasetId,
-     revision:context.appliedMappingRevision?.[kind]??ref.datasetRevision??'1',
-     rows,mapping:config[section]?.fieldMap||ref.fieldMap||null,
-   };
- }
+ const {masters,attestations}=await resolveXml229FourMasterCustody(config,context,{
+   restoreFailures:raw.masterRestoreFailures||view.masterRestoreFailures||{},
+ });
  const isCurrent=()=>{
    if(!source.isCurrent())return false;
    const current=baseRef.current;
@@ -112,13 +102,18 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  };
  if(!isCurrent())
    err('STALE_ORIGINAL_MASTER_SOURCE','Original XML, stage, master or Owner selection changed during hydration');
+ const inputLease=await digestCanonical({sourceId,xmlText:raw.sourceText,
+   receiptSha:source.receipt.sha256,generationId:source.receipt.generationId,
+   selectionRef:'all',config,attestations});
+ if(!isCurrent())err('STALE_ORIGINAL_MASTER_SOURCE',
+   'Original source/master changed during full content attestation');
  return {xmlText:raw.sourceText,sourceId,masters,
    selection:[{sourceId,selectionRef:'all'}],
    config,overrides:config.overrides||{},
    originalStagedBlob:source.blob,
    originalStagedSourceReceipt:source.receipt,
    requestId:'xml229-p4-'+source.generationId+'-'+sourceId,
-   isCurrent};
+   inputLease,isCurrent};
 }
 /** Reuse exactly one source-attested original Worker review across Preview
  * and Weight. Rebuild revokes the previous InputBasis and its decisions.
@@ -129,11 +124,19 @@ export async function openXml229P4VerifiedSession(stateRef,{
 }={}){
  const key=stateRef?.modeABaseRef||stateRef;
  if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
- const previous=sessionByBase.get(key);
- if(previous){sessionByBase.delete(key);previous.cancel();}
  const inputs=await resolveInputs();
+ const lease=inputs.inputLease||null;
+ const previous=sessionByBase.get(key);
+ if(previous&&lease&&lease===sessionLeases.get(key)){
+   try{await previous.readCompletion();return previous;}
+   catch{/* stale/cancelled prior session must not be reused */}
+ }
+ if(previous){sessionByBase.delete(key);sessionLeases.delete(key);previous.cancel();}
  const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
+ if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
+   'Original source or master changed during Worker verification');}
  sessionByBase.set(key,session);
+ if(lease)sessionLeases.set(key,lease);
  return session;
 }
 export function getXml229CurrentWorkerHeldReview(stateRef){
@@ -146,15 +149,16 @@ export function getXml229CurrentWorkerHeldReview(stateRef){
  */
 export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  resolveInputs=()=>resolveXml229P4ProductionInputs(stateRef),
+ existingWorkflow=false,
 }={}){
  if(!container)throw new Error('Weight review container required');
  container.innerHTML=`<section data-p4-weight-root
   style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
-  <strong>Original-source Weight review (GC-PW)</strong>
+  <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
   <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
   Proposed weights are editable evidence only. Match-1 and Final are distinct explicit
   decisions. Native CII Run is NOT authorized by this panel.</p>
-  <button type="button" data-p4-weight-build>Build verified original-source Weight review</button>
+  ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
   <div data-p4-weight-table></div></section>`;
  const root=container.querySelector('[data-p4-weight-root]');
@@ -208,7 +212,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        Preview/Weight completion and reviewed Final output gates are verified.</p>`;
    root.__p4VisibleRows=page.rows;
  };
- build.addEventListener('click',async()=>{
+ build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
    try{
@@ -262,6 +266,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        (error?.code?' ['+error.code+']':''),true);
    }finally{busy=false;}
  });
+ if(existingWorkflow&&!active)
+   say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
  if(active)void render().then(()=>say('Existing verified Preview facts and Weight review loaded.'))
    .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
  return {cancel:()=>{active?.cancel();if(key)sessionByBase.delete(key);}};

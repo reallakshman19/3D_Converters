@@ -10,6 +10,7 @@ import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20261001-weight-output-2';
 import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-output-2';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
+import {openXml229P4VerifiedSession} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
   saveMasterContextToLocalStorage,
@@ -139,6 +140,8 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // XML229 production B1 route. This callback never puts File/Blob into
     // state or reads/parses the JSON on the UI thread; the original source
     // Worker will independently verify its complete SHA before Preview.
+    openVerifiedEngineeringSession: ({onProgress}={})=>
+      openXml229P4VerifiedSession(stateRef,{onProgress}),
     resolveOriginalWorkerPreviewSource: async () => {
       if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
         throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
