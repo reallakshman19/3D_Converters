@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {webcrypto} from 'node:crypto';
 import {resolveXml229FourMasterCustody} from '../tabs/xml-cii-2019-standalone/integration/xml229-four-master-custody.mjs';
+import {DEFAULT_WEIGHT_MASTER_ROWS} from '../converters/xml-cii2019-core/default-weight-master-rows.js';
 
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const keys=['lineList','pipingClass','materialMap','weight'];
@@ -51,7 +52,7 @@ test('dataset-backed masters retain dataset identity and still challenge complet
  await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
    rejectCode('MASTER_DATASET_DRIFT'));
 });
-test('never accept partial preview samples, corrupt restores, stale counts or embedded default weight',async()=>{
+test('never accept partial preview samples, corrupt restores, stale counts or counterfeit default weight',async()=>{
  const {config,context}=fixture();
  config.linelist.masterRows=[];
  await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
@@ -64,10 +65,41 @@ test('never accept partial preview samples, corrupt restores, stale counts or em
  await assert.rejects(()=>resolveXml229FourMasterCustody(config,context,{
    restoreFailures:{lineList:{code:'MISSING_DB',message:'Corrupt IndexedDB'}}}),
    rejectCode('MASTER_RESTORE_FAILED'));
- context.sourceMetadata.weight.sourceType='default';
+ context.sourceMetadata.weight={status:'loaded',source:'Embedded default',sourceType:'default'};
  await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
-   rejectCode('WEIGHT_MASTER_NOT_IMPORTED'));
+   rejectCode('BUNDLED_WEIGHT_CUSTODY_INVALID'));
+ context.sourceMetadata.weight.sourceType='restore-pending';
+ await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
+   rejectCode('MASTER_RESTORE_PENDING'));
 });
+
+test('repository-bundled 1595 Valve Weights are verified proposals, not a forced reimport or reviewed decision',async()=>{
+ const shipped=JSON.parse(await readFile(new URL('../docs/Masters/wtValveweights.json',import.meta.url),'utf8'));
+ assert.equal(shipped.length,1595);
+ assert.deepEqual(DEFAULT_WEIGHT_MASTER_ROWS,shipped,'embedded default must match bundled repository master');
+ const {config,context}=fixture();
+ context.sourceMetadata.weight={status:'loaded',source:'Embedded default',sourceType:'default',rowCount:1595};
+ config.weight.masterRows=shipped.map(row=>({...row}));
+ context.rowCounts.weight=1595;
+ context.appliedMappingRevision.weight=1;
+ const {masters,attestations}=await resolveXml229FourMasterCustody(config,context);
+ assert.match(masters.weight.datasetId,/^bundled:docs\/Masters\/wtValveweights\.json:sha256:[a-f0-9]{64}$/);
+ assert.equal(attestations.weight.storage,'bundled');
+ assert.equal(attestations.weight.proposalOnly,true);
+ assert.equal(attestations.weight.source,'docs/Masters/wtValveweights.json');
+ assert.equal(masters.weight.rows.length,1595);
+ assert.equal(Object.hasOwn(masters.weight,'accepted'),false);
+ config.weight.masterRows[0].weight=999999;
+ await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
+   rejectCode('BUNDLED_WEIGHT_CUSTODY_DRIFT'));
+ context.sourceMetadata.weight.sourceType='restore-pending';
+ await assert.rejects(()=>resolveXml229FourMasterCustody(config,context),
+   rejectCode('MASTER_RESTORE_PENDING'));
+ await assert.rejects(()=>resolveXml229FourMasterCustody(config,context,{
+   restoreFailures:{weight:{code:'MISSING_DATASET',message:'Persisted Weight is missing'}}}),
+   rejectCode('MASTER_RESTORE_FAILED'));
+});
+
 test('active existing Preview/Weight/Run routes use the shared session without duplicate build panels',async()=>{
  const paths=[
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js',

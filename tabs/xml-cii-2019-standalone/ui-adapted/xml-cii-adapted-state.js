@@ -119,6 +119,8 @@ function getStoredMasterSourceCustody(key) {
       source: String(stored.source || ''),
       fieldMap: stored.fieldMap && typeof stored.fieldMap === 'object' && !Array.isArray(stored.fieldMap) ? { ...stored.fieldMap } : null,
       appliedRevision: Number.isInteger(revision) && revision >= 0 ? revision : null,
+      datasetId: String(stored.datasetId || ''),
+      persistenceMode: String(stored.persistenceMode || ''),
     };
   }
   return { source: stored == null ? '' : String(stored), fieldMap: null, appliedRevision: null };
@@ -151,6 +153,12 @@ function restorePersistentMasters() {
     weight: getStoredMasterSourceCustody('weight'),
   };
   const usingDefaultWeights = !storedWeightRows.length;
+  // A persisted IndexedDB import may be restoring asynchronously. Until
+  // restoration completes, fallback rows are DISPLAY data, not the current
+  // source of engineering Weight proposals.
+  const weightRestorePending = usingDefaultWeights &&
+    sourceCustody.weight.persistenceMode === 'indexeddb' &&
+    !!sourceCustody.weight.datasetId;
   const weightMasterRows = usingDefaultWeights ? DEFAULT_WEIGHT_MASTER_ROWS.map((row) => ({ ...row })) : storedWeightRows;
 
   let savedContext = null;
@@ -186,7 +194,7 @@ function restorePersistentMasters() {
       lineList: { key: 'lineList', source: lineRows.length ? (sourceCustody.lineList.source || 'LocalStorage') : 'not-loaded', sourceType: lineRows.length ? 'manual' : 'empty', status: lineRows.length ? 'loaded' : 'empty', rowCount: lineRows.length },
       pipingClass: { key: 'pipingClass', source: pipingClassRows.length ? (sourceCustody.pipingClass.source || 'LocalStorage') : 'not-loaded', sourceType: pipingClassRows.length ? 'manual' : 'empty', status: pipingClassRows.length ? 'loaded' : 'empty', rowCount: pipingClassRows.length },
       materialMap: { key: 'materialMap', source: materialMapRows.length ? (sourceCustody.materialMap.source || 'LocalStorage') : 'not-loaded', sourceType: materialMapRows.length ? 'manual' : 'empty', status: materialMapRows.length ? 'loaded' : 'empty', rowCount: materialMapRows.length },
-      weight: { key: 'weight', source: usingDefaultWeights ? 'Embedded default' : (sourceCustody.weight.source || 'LocalStorage'), sourceType: usingDefaultWeights ? 'default' : 'manual', status: 'loaded', rowCount: weightMasterRows.length }
+      weight: { key: 'weight', source: weightRestorePending ? (sourceCustody.weight.source || 'IndexedDB') : (usingDefaultWeights ? 'Embedded default' : (sourceCustody.weight.source || 'LocalStorage')), sourceType: weightRestorePending ? 'restore-pending' : (usingDefaultWeights ? 'default' : 'manual'), status: weightRestorePending ? 'pending' : 'loaded', rowCount: weightRestorePending ? 0 : weightMasterRows.length }
     },
     rawRows: {
       lineList: getStoredJson('xml-cii-master-raw-lineList', []),
