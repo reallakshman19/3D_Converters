@@ -15,6 +15,8 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
+import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
+ from './xml229-p4-weight-review-presentation.mjs';
 import {
  getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
@@ -222,45 +224,31 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const render=async()=>{
    if(!active)return;
    const page=await active.readPage({offset,limit:25});
-   const lines=page.rows.map((row,i)=>{
-     const alternatives=(row.proposals||[]).map(p=>p.value+' kg').join(' / ');
-     const singleDirect=(row.proposals||[]).length>0&&
-       row.proposals.every(p=>p.qualified&&p.value===row.proposals[0].value);
-     const accepted=row.finalKg??row.match1Kg??row.sourceKg??null;
-     return `<tr data-p4-row="${i}" data-p4-occurrence="${esc(row.occurrenceId)}">
-       <td>${esc(row.sourceId)}</td>
-       <td>${esc(row.branchOccurrenceIndex)}/${esc(row.nodeOrdinal)}</td>
-       <td>${esc(labelKg(row.sourceKg))}</td>
-       <td>${esc(labelKg(row.match1Kg))}</td>
-       <td>${esc(labelKg(row.finalKg))}</td>
-       <td title="${esc(alternatives)}">
-         <input data-p4-proposal type="number" min="0" step="any"
-           value="${singleDirect&&!accepted?esc(row.proposals[0].value):''}"
-           placeholder="${esc(row.proposedKg??'—')}"
-           style="width:85px;background:#374151;color:#d1d5db;opacity:.85;border:1px dashed #94a3b8;">
-         <small>Draft only</small></td>
-       <td><select data-p4-candidate><option value="">Manual or select candidate</option>
-         ${(row.proposals||[]).map(p=>`<option value="${esc(p.proposalId)}">
-          #${esc(p.ranking)} ${esc(p.value)} kg ${p.qualified?'exact':'review'}</option>`).join('')}
-         </select><input data-p4-reason placeholder="Engineering reason" style="width:145px;">
-         <button data-p4-accept-match1 type="button">Accept Match-1</button>
-         <button data-p4-accept-final type="button">Review Final</button>
-       </td>
-     </tr>`;
-   }).join('');
-   table.innerHTML=`<p>${page.totalCount} original physical components.
-     Showing ${offset+1}–${offset+page.rows.length}; values from same verified GC-PW source session.
-     Missing weights require explicit review, not zero-fill.</p>
-     <div style="max-height:320px;overflow:auto;"><table style="font-size:12px">
-     <thead><tr><th>Source</th><th>Original branch/node</th><th>XML kg</th>
-     <th>Match-1 kg</th><th>Final kg</th><th>Proposed kg</th><th>Review</th></tr></thead>
-     <tbody>${lines}</tbody></table></div>
-     <button data-p4-prev ${offset===0?'disabled':''}>Previous</button>
-     <button data-p4-next ${offset+25>=page.totalCount?'disabled':''}>Next</button>
-     <p style="color:#fbbf24">Run remains separately blocked until independent source-bound
-       Preview/Weight completion and reviewed Final output gates are verified.</p>`;
+   table.innerHTML=renderXml229WeightReviewPage(page,offset);
    root.__p4VisibleRows=page.rows;
  };
+ const applyPageFilter=()=>{
+   const term=String(root.querySelector('[data-p4-filter]')?.value||'').toLowerCase().trim();
+   const unresolved=root.querySelector('[data-p4-filter-unresolved]')?.checked===true;
+   let visible=0;
+   for(const tr of table.querySelectorAll('tr[data-p4-row]')){
+     const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
+     const searchable=String(row?.sourceId||'')+' '+String(row?.occurrenceId||'')+
+       ' '+String(row?.branchOccurrenceIndex||'')+'/'+String(row?.nodeOrdinal||'');
+     const match=(!term||searchable.toLowerCase().includes(term))&&
+       (!unresolved||tr.dataset.p4Stage==='unresolved');
+     tr.hidden=!match;
+     if(match)visible++;
+   }
+   const label=root.querySelector('[data-p4-filter-count]');
+   if(label)label.textContent=visible+' matching on this Worker page';
+ };
+ root.addEventListener('input',event=>{
+   if(event.target.closest?.('[data-p4-filter]'))applyPageFilter();
+ });
+ root.addEventListener('change',event=>{
+   if(event.target.closest?.('[data-p4-filter-unresolved]'))applyPageFilter();
+ });
  build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
@@ -281,9 +269,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(busy||!active)return;
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
+   const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!isMatch&&!isFinal)return;
+   if(!prev&&!next&&!candidateChip&&!isMatch&&!isFinal)return;
    busy=true;
    try{
      if(prev||next){
@@ -295,17 +284,20 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        err('STALE_PHYSICAL_ROW','Original physical source row changed');
      const draft=tr.querySelector('[data-p4-proposal]');
      const selection=tr.querySelector('[data-p4-candidate]');
-     const reason=String(tr.querySelector('[data-p4-reason]').value||'').trim();
-     let view,choice;
-     if(isFinal){
-       view=row.finalView;
-       choice={action:'final-override',value:Number(draft.value),unit:'kg',reason};
-     }else{
-       view=row.match1View;
-       choice=selection.value
-         ?{action:'accept-proposal',proposalId:selection.value,reason}
-         :{action:'enter-manual',value:Number(draft.value),unit:'kg',reason};
+     if(candidateChip){
+       const proposalId=candidateChip.getAttribute('data-p4-pick')||'';
+       const candidate=(row.proposals||[]).find(p=>p.proposalId===proposalId);
+       if(!candidate)err('STALE_PHYSICAL_PROPOSAL','Candidate no longer belongs to this occurrence');
+       selection.value=proposalId;
+       draft.value=String(candidate.value);
+       say('Source candidate selected as DRAFT only; explicit engineering acceptance is required.');
+       return;
      }
+     const reason=String(tr.querySelector('[data-p4-reason]').value||'').trim();
+     const {view,choice}=choiceForXml229WeightRow(row,{
+       stage:isFinal?'final':'match1',proposalId:selection.value,
+       value:draft.value,reason,
+     });
      await active.review({view,choice});
      await render();
      say(isFinal?'Final Match-2 explicitly accepted for original physical source':

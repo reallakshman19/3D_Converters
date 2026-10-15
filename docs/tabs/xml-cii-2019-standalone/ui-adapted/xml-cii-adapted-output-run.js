@@ -1,4 +1,5 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
+import {xml229UnbuiltIndependentStage} from './xml229-p4-run-readiness-presentation.mjs';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
@@ -380,6 +381,16 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summar
      status:fullyFinal?'ready':'pending',
      severity:fullyFinal?'ok':'warning',message:weightMessage,
    });
+   // Unexecuted independent stages are not broken master imports. Preserve
+   // the source readiness report and native Run HOLD; clarify presentation.
+   for(const tr of checklist){
+     if(tr.children.length<6)continue;
+     const id=tr.children[0].textContent;
+     const stage=xml229UnbuiltIndependentStage(id,{
+       status:tr.children[2].textContent,blocking:tr.children[4].textContent,
+     });
+     if(stage)update(id,stage);
+   }
    const optional=checklist.filter(tr=>tr.children.length>=6&&
       tr.children[2].textContent!=='ready'&&tr.children[4].textContent!=='true').length;
    const summary=summaryPanel.querySelector('tbody tr');

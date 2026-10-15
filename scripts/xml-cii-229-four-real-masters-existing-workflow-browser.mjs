@@ -151,6 +151,12 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
+  // New source-bound presentation retains the existing 7-column review
+  // contract and styling, while every review still RPCs into the GC-PW Worker.
+  assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
+  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),7);
+  assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
+
 
   // The Owner's exact false-stale trigger: merely OPENING the Regex stage
   // may auto-analyze masters and propose new extraction rules. Those
@@ -242,6 +248,18 @@ try{
   assert.match(record.stages.runText,/HELD|blocking|Native CII|Run remains/i);
   assert.match(record.stages.runText,/Original Preview engineering facts/);
   assert.doesNotMatch(record.stages.runText,/Preview has not been built yet\./);
+  // The independent workflows genuinely have no result, but "missing" must
+  // not falsely imply damaged masters or unverified GC-PW source provenance.
+  record.stages.runIndependentStages=await page.locator('[data-active-phase="run"]').evaluate(root=>
+    [...root.querySelectorAll('tbody tr')].filter(tr=>
+      ['support-mapper','resolver-json','manual-restraints'].includes(tr.children[0]?.textContent))
+      .map(tr=>({id:tr.children[0].textContent,status:tr.children[2].textContent,
+        blocking:tr.children[4].textContent})));
+  for(const item of record.stages.runIndependentStages){
+    assert.notEqual(item.status,'missing','Original GC-PW UI should describe unbuilt independent stage as not-run');
+    assert.equal(item.blocking,'false');
+  }
+
   assert.equal(await page.locator('[data-xml229-p4-run-advisory]').count(),0);
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
