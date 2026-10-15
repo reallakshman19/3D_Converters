@@ -1,5 +1,5 @@
 {
-  "lastId": 1277,
+  "lastId": 1287,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,76 @@
       "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
       "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Add dtxr to physical engineering facts",
+      "backupFile": "1278_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Add dtxr to physical engineering facts mirror",
+      "backupFile": "1279_docs_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Pass physical facts in readPage and add bulkReviewMatch1",
+      "backupFile": "1280_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Pass physical facts in readPage and add bulkReviewMatch1 mirror",
+      "backupFile": "1281_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1282,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "Expose bulkReviewMatch1 on client session",
+      "backupFile": "1282_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1283,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "Expose bulkReviewMatch1 on client session mirror",
+      "backupFile": "1283_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1284,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Enhanced 8-column layout and bulk action",
+      "backupFile": "1284_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1285,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Enhanced 8-column layout and bulk action mirror",
+      "backupFile": "1285_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1286,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Wire bulk action in weight panel",
+      "backupFile": "1286_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1287,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Wire bulk action in weight panel mirror",
+      "backupFile": "1287_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
     }
   ]
 }

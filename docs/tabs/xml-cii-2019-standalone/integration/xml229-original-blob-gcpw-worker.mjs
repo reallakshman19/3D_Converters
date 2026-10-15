@@ -37,7 +37,7 @@ const hash=v=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
 const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
-let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
+let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null,previewNodeMap=new Map();
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
 const sourceReceiptCheck=(r,blob)=>{
@@ -251,12 +251,20 @@ async function rpc(req){
        if(match1.basisId!==basisId||final.basisId!==basisId||
          match1.occurrenceId!==final.occurrenceId)
          fail('CROSS_STAGE_PROPOSAL_ID_DRIFT','Match-1 and Final are not the same physical occurrence');
+       const nodeFact=previewNodeMap.get(`${id.branchOccurrenceIndex}::${id.nodeOrdinal}`)||null;
        return {sourceId:id.sourceId,occurrenceId,
          branchOccurrenceIndex:id.branchOccurrenceIndex,nodeOrdinal:id.nodeOrdinal,
          componentSignature:id.componentSignature,sourceKg:match1.sourceKg,
          match1Kg:match1.match1Kg,finalKg:final.finalKg,
          proposedKg:match1.proposals?.[0]?.value??null,
-         proposals:match1.proposals,match1View:match1,finalView:final};
+         proposals:match1.proposals,match1View:match1,finalView:final,
+         branchName:nodeFact?.branchName||'',nodeNumber:nodeFact?.nodeNumber||'',
+         componentType:nodeFact?.componentType||'',componentRefNo:nodeFact?.componentRefNo||'',
+         endpoint:nodeFact?.endpoint||'',componentRefEndpoint:nodeFact?.componentRefEndpoint||'',
+         dtxr:nodeFact?.dtxr||'',lengthMm:nodeFact?.lengthMm??null,
+         boreMm:nodeFact?.boreMm??null,rating:nodeFact?.rating||'',
+         valveHint:nodeFact?.valveHint||null,
+         rejectedCandidates:nodeFact?.rejectedWeightCandidates||[]};
      });
      return {basisId,offset:req.offset,totalCount:seen.length,complete:true,rows};
    }
@@ -280,6 +288,24 @@ async function rpc(req){
    }
    fail('UNKNOWN_READ_KIND','Fact/proposal/individual/decisions only');
  }
+ if(req.kind==='bulk-decision'){
+   if(req.action==='accept-all-qualified-match1'){
+     const plan=planExactSourceWeightCommands(ready.review,{basisId,scopeId:sourceId});
+     const reason=typeof req.reason==='string'&&req.reason.trim()?req.reason.trim():'Bulk accepted verified qualified exact suggestions';
+     if(reason&&plan.commands?.length){
+       for(const cmd of plan.commands){cmd.reason=reason;}
+     }
+     const result=commitExactSourceWeightCommands(ready.review,plan);
+     const nextRevision=result[0]?.decisionRevision??plan.expectedDecisionRevision;
+     return {
+       schema:'XML229.P4.BulkReviewResult.v1',basisId,sourceId,stage:'RigidMatch1',
+       decisionRevision:nextRevision,acceptedCount:plan.qualified,
+       unresolved:plan.unresolved,physicalCount:plan.physicalCount,
+       alreadyReviewed:plan.alreadyReviewed,
+     };
+   }
+   fail('UNKNOWN_BULK_ACTION','Only accept-all-qualified-match1 supported');
+ }
  if(req.kind==='decision'){
    if(!req.view||req.view.basisId!==basisId||
      req.view.stage!==stage||req.view.sourceId!==sourceId||
@@ -296,7 +322,7 @@ async function rpc(req){
 self.addEventListener('message',async({data:req})=>{
  if(req?.protocol!==PROTOCOL||!req.requestId)return;
  if(req.kind==='cancel'&&req.requestId===active){
-   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;
+   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;previewNodeMap.clear();
    post(req.requestId,{state:'cancelled'});self.close();return;
  }
  if(req.kind==='start'){
@@ -308,7 +334,7 @@ self.addEventListener('message',async({data:req})=>{
       message:String(error?.message||error)}});}
    return;
  }
- if(req.kind==='read'||req.kind==='decision'){
+ if(req.kind==='read'||req.kind==='decision'||req.kind==='bulk-decision'){
    try{const value=await rpc(req);if(!cancelled)post(req.requestId,{
     state:'rpc-result',rpcId:req.rpcId,value,
    });}
