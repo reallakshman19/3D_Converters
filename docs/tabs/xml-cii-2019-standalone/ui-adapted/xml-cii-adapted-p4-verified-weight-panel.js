@@ -38,7 +38,7 @@ const configEquivalent=(a,b)=>{
  try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
  catch{return false;}
 };
-const snapshotOf=(raw,sourceId)=>({
+export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
  sourceId,
  sourceText:raw?.sourceText,
  supportConfigJson:raw?.supportConfigJson,
@@ -54,7 +54,7 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  verifyFullSelection=()=>false,
 }={}){
  if(!basis||!current)return false;
- const latest=snapshotOf(current,basis.sourceId);
+ const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
  // A normalized/expanded "all branches" representation has the same
  // physical identity. A genuine partial/stale selection still fails closed.
  if(basis.scope!==latest.scope&&!verifyFullSelection(current))return false;
@@ -115,7 +115,7 @@ export async function resolveXml229P4ProductionInputs(stateRef){
   sourceText:raw.sourceText,branchSelection:raw.branchSelection||{},
  });
  const source=resolveXml229CurrentPreviewBlob(baseRef,raw.xml229StagedSourceReceipt);
- const before=snapshotOf(raw,sourceId);
+ const before=captureXml229P4LiveSourceSnapshot(raw,sourceId);
  const context=view.masterContext||raw.masterContext||{};
  const config=await materializeXmlCiiDatasetBackedConfig(
    xmlCiiEnrichedConfigFromState(view),{...view,masterContext:context});
