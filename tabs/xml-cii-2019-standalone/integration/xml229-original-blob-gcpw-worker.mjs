@@ -16,6 +16,7 @@ import {createPreviewBasis}
  from '../ui-adapted/xml-cii-adapted-preview-facts-basis.js';
 import {openXml229EngineeringFactModel}
  from './xml229-preview-engineering-fact-producer.mjs';
+import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
@@ -105,7 +106,9 @@ async function start(req){
     expectedOriginalCount>MAX_ORIGINAL_COUNT)
    fail('ORIGINAL_XML_SCOPE_OR_SCALE_DRIFT','Original branch/node census wrong or exceeds bounded Worker budget');
  progress(req.requestId,'engineering-preview-using-actual-json');
- const computed=xmlCiiDryRunPreview(xmlText,config,stagedSource);
+ // Dry-run enrichers may normalize nested master/config rows. Do not lend
+ // their mutable working view the already-attested GC-PW master buffers.
+ const computed=xmlCiiDryRunPreview(xmlText,isolatedOriginalPreviewWorkConfig(config),stagedSource);
  if(cancelled)return;
  progress(req.requestId,'all-physical-field-assessment');
  const previewResult={...computed,sourceOccurrences:original,
