@@ -36,7 +36,7 @@ const hash=v=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
 const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
-let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null;
+let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
 const sourceReceiptCheck=(r,blob)=>{
@@ -146,6 +146,12 @@ async function start(req){
  if(session.basis.basisId!==basis.basisId||
     session.openedFacts!==produced.expectedPhysicalFactCount)
    fail('VERIFIED_WEIGHT_SOURCE_DRIFT','Review service did not open complete original physical population');
+ verifiedPreviewResult={branchRows:computed.branchRows,nodeRows:computed.nodeRows,
+   sourceOccurrences:original,coverage:{sourceBranchCount:original.branchCount,
+     originalNodeCount:original.nodeCount,engineeringBranchCount:computed.branchRows.length,
+     legacyReviewNodeCount:computed.nodeRows.length},
+   originalStagedSourceSha256:r.sha256,originalStagedSourceGeneration:r.generationId,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
  physicalIdentityList=produced.physicalOccurrences;
  post(req.requestId,{state:'ready',basisId:basis.basisId,
@@ -174,6 +180,10 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(req.what==='preview'){
+     if(!verifiedPreviewResult)fail('PREVIEW_RESULT_NOT_READY','Verified original engineering Preview result is missing');
+     return verifiedPreviewResult;
+   }
    if(req.what==='attest-engine-input'){
      if(typeof req.engineInputXmlText!=='string'||!req.engineInputXmlText.trim()||
        req.engineInputXmlText.length>24*1024*1024)
@@ -283,7 +293,7 @@ async function rpc(req){
 self.addEventListener('message',async({data:req})=>{
  if(req?.protocol!==PROTOCOL||!req.requestId)return;
  if(req.kind==='cancel'&&req.requestId===active){
-   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;
+   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;
    post(req.requestId,{state:'cancelled'});self.close();return;
  }
  if(req.kind==='start'){
