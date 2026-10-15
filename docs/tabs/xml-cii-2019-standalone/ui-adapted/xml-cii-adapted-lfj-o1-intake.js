@@ -385,13 +385,23 @@ export function resolveXml229CurrentPreviewBlob(stateRef,expectedReceipt) {
      job.summary.sourceRevision!==live.sourceRevision||
      job.id!==live.generationId||job.ref!==live.sourceRefId)
     fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
-  // The identity test is synchronous and cheap; caller must run it around
-  // all awaits and again before accepting a Worker result.
   const isCurrent=()=>session.job===job&&!job.cancelled&&session.optIn&&
     same(stateRef?.current?.xml229StagedSourceReceipt,job.receipt)&&
     stateRef?.current?.xml229StagedSourceReceipt?.phase==='INDEX_COMMITTED';
+  const diagnose=()=>{
+    if(!session?.optIn)return {match:false,code:'SESSION_CANCELLED',reason:'O1 intake session not opted in'};
+    if(!job)return {match:false,code:'SESSION_REF_CHANGED',reason:'No O1 intake job in session'};
+    if(session.job!==job)return {match:false,code:'SOURCE_GENERATION_CHANGED',reason:'O1 intake job replaced'};
+    if(job.cancelled)return {match:false,code:'SESSION_CANCELLED',reason:'O1 intake job cancelled'};
+    const currentReceipt=stateRef?.current?.xml229StagedSourceReceipt;
+    if(!currentReceipt)return {match:false,code:'SOURCE_GENERATION_CHANGED',reason:'No live staged source receipt in state'};
+    if(!same(currentReceipt,job.receipt))return {match:false,code:'SOURCE_GENERATION_CHANGED',reason:'Live staged source receipt does not match job receipt'};
+    if(currentReceipt.phase!=='INDEX_COMMITTED')return {match:false,code:'SOURCE_GENERATION_CHANGED',reason:`Live staged receipt phase is ${currentReceipt.phase}`};
+    return {match:true};
+  };
+  isCurrent.diagnose=diagnose;
   if(!isCurrent())fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE');
-  return Object.freeze({blob:job.file,receipt:job.receipt,isCurrent,
+  return Object.freeze({blob:job.file,receipt:job.receipt,isCurrent,diagnose,
     sourceSha256:live.sha256,sourceRevision:live.sourceRevision,
     sourceRefId:live.sourceRefId,generationId:live.generationId,
     byteLength:live.byteLength});

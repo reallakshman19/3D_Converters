@@ -33,9 +33,52 @@ const ownerScope=value=>{
  const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
 };
+export const canonicalPhysicalConfig=rawJson=>{
+ if(!rawJson)return '{}';
+ try{
+  const parsed=typeof rawJson==='string'?JSON.parse(rawJson||'{}'):(rawJson||{});
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return '{}';
+  const cfg={...parsed};
+  delete cfg.regexTester;
+  delete cfg.formats;
+  delete cfg.jsonTrace;
+  delete cfg.supportTypeMapper;
+  delete cfg.manualElementSideload;
+  delete cfg.previewDiagnostics;
+  delete cfg.regexTesterResult;
+  delete cfg.resolverJsonTraceResult;
+  delete cfg.supportTypeMapperResult;
+  delete cfg.manualElementSideloadResult;
+  delete cfg.weightMatchResult;
+  delete cfg.previewDiagnosticsAuditReport;
+  if(cfg.linelist&&typeof cfg.linelist==='object'&&!Array.isArray(cfg.linelist)){
+   const ll={...cfg.linelist};
+   delete ll.branchNameRegex;delete ll.lineNoGroup;delete ll.tokenDelimiter;
+   delete ll.lineKeyTokenPositions;delete ll.lineKeyJoiner;
+   if(Object.keys(ll).length===0)delete cfg.linelist;
+   else cfg.linelist=ll;
+  }
+  if(cfg.rating&&typeof cfg.rating==='object'&&!Array.isArray(cfg.rating)){
+   const rt={...cfg.rating};
+   delete rt.pipingClassRegex;delete rt.pipingClassGroup;delete rt.ratingRegex;
+   delete rt.ratingGroup;delete rt.tokenDelimiter;delete rt.pipingClassTokenIndex;
+   delete rt.ratingSequence;
+   if(Object.keys(rt).length===0)delete cfg.rating;
+   else cfg.rating=rt;
+  }
+  if(cfg.weight&&typeof cfg.weight==='object'&&!Array.isArray(cfg.weight)){
+   const wt={...cfg.weight};
+   delete wt.boreRegex;delete wt.boreGroup;delete wt.tokenDelimiter;
+   delete wt.boreTokenIndex;
+   if(Object.keys(wt).length===0)delete cfg.weight;
+   else cfg.weight=wt;
+  }
+  return canonicalJson(cfg);
+ }catch{return String(rawJson||'');}
+};
 const configEquivalent=(a,b)=>{
  if(a===b)return true;
- try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
+ try{return canonicalPhysicalConfig(a)===canonicalPhysicalConfig(b);}
  catch{return false;}
 };
 export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
@@ -46,29 +89,58 @@ export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
  jsonTraceScopeId:ownerScope(raw?.jsonTraceScopeId),
  selectedScopeId:ownerScope(raw?.selectedScopeId),
  requestedOwnerZoneScopeId:ownerScope(raw?.requestedOwnerZoneScopeId),
- datasetRefs:JSON.stringify(raw?.masterContext?.datasetRefs||{}),
- mappingRevisions:JSON.stringify(raw?.masterContext?.appliedMappingRevision||{}),
- rowCounts:JSON.stringify(raw?.masterContext?.rowCounts||{}),
+ datasetRefs:canonicalJson(raw?.masterContext?.datasetRefs||{}),
+ mappingRevisions:canonicalJson(raw?.masterContext?.appliedMappingRevision||{}),
+ rowCounts:canonicalJson(raw?.masterContext?.rowCounts||{}),
 });
-export function compareXml229P4LiveSourceSnapshot(basis,current,{
+export function diagnoseXml229P4LiveSourceSnapshot(basis,current,{
  verifyFullSelection=()=>false,
 }={}){
- if(!basis||!current)return false;
+ if(!basis)return {match:false,code:'SESSION_REF_CHANGED',reason:'No verified basis captured'};
+ if(!current)return {match:false,code:'SESSION_REF_CHANGED',reason:'No current live state reference'};
  const activeId=String(current?.modeASourceId||current?.sourceBatch?.activeSourceId||basis.sourceId);
- if(activeId!==basis.sourceId)return false;
+ if(activeId!==basis.sourceId){
+  return {match:false,code:'SOURCE_ID_CHANGED',reason:`Source ID: basis=${basis.sourceId} vs active=${activeId}`};
+ }
  const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
- // A normalized/expanded "all branches" representation has the same
- // physical identity. A genuine partial/stale selection still fails closed.
  if(basis.scope!==latest.scope){
-   try{if(!verifyFullSelection(current))return false;}
-   catch{return false;}
+  let full=false,errText=null;
+  try{full=verifyFullSelection(current);}catch(e){errText=String(e?.message||e);}
+  if(!full){
+   return {match:false,code:'OWNER_SELECTION_CHANGED',
+    reason:'Branch selection changed and is not full physical selection'+(errText?`: ${errText}`:'')};
+  }
  }
  for(const key of Object.keys(basis)){
-   if(key==='scope')continue;
-   if(key==='supportConfigJson'){
-     if(!configEquivalent(basis.supportConfigJson,latest.supportConfigJson))return false;
-   }else if(!Object.is(basis[key],latest[key]))return false;
+  if(key==='scope')continue;
+  if(key==='supportConfigJson'){
+   if(!configEquivalent(basis.supportConfigJson,latest.supportConfigJson)){
+    let detail='';
+    try{
+     const b=JSON.parse(canonicalPhysicalConfig(basis.supportConfigJson)||'{}');
+     const l=JSON.parse(canonicalPhysicalConfig(latest.supportConfigJson)||'{}');
+     const diffKeys=[...new Set([...Object.keys(b),...Object.keys(l)])].filter(k=>JSON.stringify(b[k])!==JSON.stringify(l[k]));
+     detail=': diffKeys=['+diffKeys.join(',')+']';
+    }catch(e){detail=': parseError='+e.message;}
+    return {match:false,code:'CONFIG_CONTENT_CHANGED',reason:'supportConfigJson content changed'+detail};
+   }
+  }else if(!Object.is(basis[key],latest[key])){
+   let code='EQUIVALENT_UI_STATE_FALSE_STALE';
+   if(key==='sourceText')code='SOURCE_GENERATION_CHANGED';
+   else if(key==='datasetRefs'||key==='mappingRevisions'||key==='rowCounts')code='MASTER_REVISION_CHANGED';
+   else if(key==='jsonTraceScopeId'||key==='selectedScopeId'||key==='requestedOwnerZoneScopeId')code='OWNER_SELECTION_CHANGED';
+   return {match:false,code,key,reason:`Snapshot field '${key}' changed: basis=${basis[key]} vs latest=${latest[key]}`};
+  }
  }
+ return {match:true};
+}
+export function compareXml229P4LiveSourceSnapshot(basis,current,options={}){
+ const diag=diagnoseXml229P4LiveSourceSnapshot(basis,current,options);
+ if(!diag.match){
+  compareXml229P4LiveSourceSnapshot.lastDiagnostic=diag;
+  return false;
+ }
+ compareXml229P4LiveSourceSnapshot.lastDiagnostic=null;
  return true;
 }
 
@@ -126,8 +198,10 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const source=resolveXml229CurrentPreviewBlob(baseRef,raw.xml229StagedSourceReceipt);
  const before=captureXml229P4LiveSourceSnapshot(raw,sourceId);
  const context=view.masterContext||raw.masterContext||{};
+ const physicalConfigJson=canonicalPhysicalConfig(view.supportConfigJson||raw.supportConfigJson);
  const config=await materializeXmlCiiDatasetBackedConfig(
-   xmlCiiEnrichedConfigFromState(view),{...view,masterContext:context});
+   xmlCiiEnrichedConfigFromState({...view,supportConfigJson:physicalConfigJson}),
+   {...view,masterContext:context});
  const {masters,attestations}=await resolveXml229FourMasterCustody(config,context,{
    restoreFailures:raw.masterRestoreFailures||view.masterRestoreFailures||{},
  });
@@ -142,6 +216,25 @@ export async function resolveXml229P4ProductionInputs(stateRef){
          });
          return true;
        }catch{return false;}
+     },
+   });
+ };
+ isCurrent.diagnose=()=>{
+   if(typeof source?.diagnose==='function'){
+     const d=source.diagnose();
+     if(!d.match)return d;
+   }else if(!source.isCurrent()){
+     return {match:false,code:'SOURCE_GENERATION_CHANGED',reason:'O1 Blob intake session or staged source receipt is no longer current'};
+   }
+   const current=baseRef.current;
+   return diagnoseXml229P4LiveSourceSnapshot(before,current,{
+     verifyFullSelection:state=>{
+       try{
+         assertXml229P4OriginalFullSelection({
+           sourceText:state.sourceText,branchSelection:state.branchSelection||{},
+         });
+         return true;
+       }catch(e){return false;}
      },
    });
  };
@@ -177,9 +270,24 @@ export async function openXml229P4VerifiedSession(stateRef,{
    catch{/* stale/cancelled prior session must not be reused */}
  }
  if(previous){sessionByBase.delete(key);sessionLeases.delete(key);previous.cancel();}
- const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
- if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
+ const rawSession=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
+ if(inputs.isCurrent?.()!==true){rawSession.cancel();err('STALE_INPUT',
    'Original source or master changed during Worker verification');}
+ const safeSummary=Object.freeze({
+   sourceId:inputs.sourceId,
+   originalBlobGenerationMatch:rawSession.receipt.sourceGenerationId===inputs.originalStagedSourceReceipt?.generationId,
+   originalSourceReceiptMatch:rawSession.receipt.originalJsonSha256===inputs.originalStagedSourceReceipt?.sha256,
+   inputBasisId:rawSession.receipt.basisId,
+   branchScopeIdentity:JSON.stringify(inputs.selection),
+   masterDatasetRevisionIdentities:Object.freeze({
+     datasetRefs:JSON.stringify(inputs?.config?.masterContext?.datasetRefs||{}),
+     mappingRevisions:JSON.stringify(inputs?.config?.masterContext?.appliedMappingRevision||{}),
+     rowCounts:JSON.stringify(inputs?.config?.masterContext?.rowCounts||{}),
+   }),
+   sessionLeaseIdentity:lease,
+   stateRefIdentityConsistency:key===(stateRef?.modeABaseRef||stateRef),
+ });
+ const session=Object.freeze(Object.create(rawSession,{safeSummary:{value:safeSummary,enumerable:true}}));
  sessionByBase.set(key,session);
  if(lease)sessionLeases.set(key,lease);
  return session;

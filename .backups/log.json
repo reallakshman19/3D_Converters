@@ -1,5 +1,5 @@
 {
-  "lastId": 1277,
+  "lastId": 1290,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,97 @@
       "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
       "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-10-15 16:55:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1278_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-10-15 16:55:32",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1279_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-10-15 16:55:41",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1280_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-10-15 16:55:41",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1281_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1282,
+      "timestamp": "2026-10-15 16:56:05",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-lfj-o1-intake.js",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1282_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_lfj_o1_intake_js.bak"
+    },
+    {
+      "id": 1283,
+      "timestamp": "2026-10-15 16:56:05",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-lfj-o1-intake.js",
+      "context": "XML229 Section 6 diagnostics",
+      "backupFile": "1283_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_lfj_o1_intake_js.bak"
+    },
+    {
+      "id": 1284,
+      "timestamp": "2026-10-15 17:27:23",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Diagnose supportConfigJson diff in reason",
+      "backupFile": "1284_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1285,
+      "timestamp": "2026-10-15 17:27:26",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Diagnose supportConfigJson diff in reason docs mirror",
+      "backupFile": "1285_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1286,
+      "timestamp": "2026-10-15 17:45:15",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Pre-fix backup for canonicalPhysicalConfig",
+      "backupFile": "1286_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1287,
+      "timestamp": "2026-10-15 17:45:23",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Pre-fix backup for canonicalPhysicalConfig docs mirror",
+      "backupFile": "1287_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1288,
+      "timestamp": "2026-10-15 17:55:04",
+      "file": "tests\\xml-cii-229-review-session-live-basis.test.mjs",
+      "context": "Add physical config and workbench isolation tests",
+      "backupFile": "1288_tests_xml_cii_229_review_session_live_basis_test_mjs.bak"
+    },
+    {
+      "id": 1289,
+      "timestamp": "2026-10-15 17:57:51",
+      "file": "tests\\xml-cii-229-run-stage-truth-entrypoints.test.mjs",
+      "context": "Update regex to match both wording variants",
+      "backupFile": "1289_tests_xml_cii_229_run_stage_truth_entrypoints_test_mjs.bak"
+    },
+    {
+      "id": 1290,
+      "timestamp": "2026-10-15 18:02:00",
+      "file": "scripts\\xml-cii-229-four-real-masters-existing-workflow-browser.mjs",
+      "context": "Add regex navigation check",
+      "backupFile": "1290_scripts_xml_cii_229_four_real_masters_existing_workflow_browser_mjs.bak"
     }
   ]
 }
