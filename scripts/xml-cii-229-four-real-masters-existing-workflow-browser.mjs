@@ -72,10 +72,10 @@ try{
   await page.locator('[data-phase="preview"]').click();
   const inventory=await page.locator('[data-active-phase="preview"]').textContent();
   record.stages.previewMasterInventory=Object.fromEntries([
-    ['lineList',/Line List:\\s*(\\d+) row\\(s\\)/],
-    ['pipingClass',/Piping Class:\\s*(\\d+) row\\(s\\)/],
-    ['materialMap',/Material Map:\\s*(\\d+) row\\(s\\)/],
-    ['weight',/Valve Weights:\\s*(\\d+) row\\(s\\)/],
+    ['lineList',/Line List:\s*(\d+) row\(s\)/],
+    ['pipingClass',/Piping Class:\s*(\d+) row\(s\)/],
+    ['materialMap',/Material Map:\s*(\d+) row\(s\)/],
+    ['weight',/Valve Weights:\s*(\d+) row\(s\)/],
   ].map(([key,re])=>[key,Number(inventory?.match(re)?.[1]??0)]));
   assert.deepEqual(record.stages.previewMasterInventory,{
     lineList:385,pipingClass:10699,materialMap:383,weight:1595,
