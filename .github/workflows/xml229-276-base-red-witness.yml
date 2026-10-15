@@ -1,0 +1,75 @@
+name: XML229 PR276 pinned-base failure witnesses
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/xml229-276-base-red-witness.yml'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+# These jobs are INTENTIONALLY red when the pre-existing issue is reproduced.
+# Each checkout is the exact unchanged PR #276 BASE COMMIT, never the PR head.
+# A PR failure is NOT called baseline-red unless its matching pinned-base job
+# actually fails for the same reason. Do not waive current-scope guards.
+jobs:
+  pinned-base-historical-merge-base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9944a5bf521cb67dcabf887d8a5ccce61d4857d2
+          fetch-depth: 0
+      - name: Reproduce exact historical guard on unmodified base
+        run: |
+          test "$(git rev-parse HEAD)" = "9944a5bf521cb67dcabf887d8a5ccce61d4857d2"
+          git fetch origin main
+          echo "BASE_HEAD=$(git rev-parse HEAD) MERGE_BASE=$(git merge-base HEAD origin/main)"
+          test "$(git merge-base HEAD origin/main)" = "4f14beb37bc0b719453c52a116c1c5d7183d2fd0"
+
+  pinned-base-standalone-output-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9944a5bf521cb67dcabf887d8a5ccce61d4857d2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reproduce standalone Output/Run isolated fixture on unmodified base
+        run: |
+          echo "BASE_HEAD=$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "9944a5bf521cb67dcabf887d8a5ccce61d4857d2"
+          node tests/xml-cii-standalone-output-run.test.js
+
+  pinned-base-issue776-weight-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9944a5bf521cb67dcabf887d8a5ccce61d4857d2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reproduce issue-776 current weight validation test on unchanged base
+        run: |
+          echo "BASE_HEAD=$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "9944a5bf521cb67dcabf887d8a5ccce61d4857d2"
+          node --test tests/xml-cii-issue-776-weight-acceptance-validation.test.mjs
+
+  pinned-base-c05-884-scope:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9944a5bf521cb67dcabf887d8a5ccce61d4857d2
+          fetch-depth: 0
+      - name: Reproduce existing issue-884-only scope fence against base
+        run: |
+          test "$(git rev-parse HEAD)" = "9944a5bf521cb67dcabf887d8a5ccce61d4857d2"
+          git diff --name-only 8eebbc9881dcb87fce0c1d2821408ddcfb1e2380...HEAD > /tmp/issue884_base_files.txt
+          disallowed="$(grep -Ev '^\.github/workflows/issue-884-c05-5-4-5-final\.yml$' /tmp/issue884_base_files.txt || true)"
+          echo "BASE_HEAD=$(git rev-parse HEAD) DISALLOWED_COUNT=$(printf '%s\n' "$disallowed" | wc -l)"
+          test -z "$disallowed"
