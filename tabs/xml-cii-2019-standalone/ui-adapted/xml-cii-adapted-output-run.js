@@ -369,11 +369,27 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    const verifiedReport=buildStandaloneOutputRunReadiness(latest,{
      verifiedEngineering:{sessionReceipt:session.receipt,proof},
    });
-   if(verifiedReport.raw?.xml229VerifiedEngineering!==true)return;
+   if(verifiedReport.raw?.xml229VerifiedEngineering!==true){
+     // Bad/partial proof is a diagnosable verification refusal, never READY.
+     paint(buildStandaloneOutputRunReadiness(latest,{
+       verifiedEngineering:{readError:{code:'UNVERIFIED_ENGINEERING_COMPLETION'}},
+     }),latest);
+     return;
+   }
    // One canonical report: table, summary, logs, diagnostics and controls all
    // derive from the same source-bound snapshot, not modified DOM cells.
-   paint(verifiedReport);
- }).catch(()=>{/* Stale/disposed/unverified Worker leaves fail-closed baseline. */});
+   paint(verifiedReport,latest);
+ }).catch(error=>{
+   // A failed Worker RPC used to disappear into a generic "missing" row.
+   // Publish only a bounded failure code for this SAME current session.
+   if(card.isConnected===false||card.__xml229ReadinessToken!==token||
+      getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
+   const latest=stateRef.current;
+   const held=buildStandaloneOutputRunReadiness(latest,{
+     verifiedEngineering:{readError:{code:error?.code}},
+   });
+   paint(held,latest);
+ });
 }
 
 export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
@@ -381,8 +397,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
   const state = stateRef.current;
   card.__xml229ReadinessToken=(card.__xml229ReadinessToken||0)+1;
-  const config = supportConfigForReadiness(state);
-  const paint=report=>{
+  const paint=(report,renderState=stateRef.current)=>{
     card.innerHTML = '';
     const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
     const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
@@ -390,11 +405,11 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
     renderSummary(card,report);
     renderChecklist(card,report);
     renderFormatFailures(card, report);
-    renderReadinessCard(card, config, state);
-    renderRunOptions(card, stateRef, state, render);
-    renderRunControls(card, stateRef, state, report, render);
-    renderArtifacts(card, state, report);
-    renderTopologyArtifacts(card, state);
+    renderReadinessCard(card, supportConfigForReadiness(renderState), renderState);
+    renderRunOptions(card, stateRef, renderState, render);
+    renderRunControls(card, stateRef, renderState, report, render);
+    renderArtifacts(card, renderState, report);
+    renderTopologyArtifacts(card, renderState);
     renderLogs(card, report);
     renderManifest(card, report);
     renderRaw(card, report);
