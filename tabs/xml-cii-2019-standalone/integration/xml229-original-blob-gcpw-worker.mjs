@@ -8,15 +8,14 @@
  * O1 INDEX_COMMITTED is never itself a Preview engineering approval.
  */
 import {installWeightBasisXmlDom} from '../workers/weight-basis-xml-dom.js';
-import {xmlCiiDryRunPreview}
- from '../ui-adapted/xml-cii-adapted-preview-dryrun.js';
+import {runXml229IndependentEngineeringPreview}
+ from './xml229-independent-engineering-preview-client.mjs';
 import {projectXmlCiiOccurrences}
  from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {createPreviewBasis}
  from '../ui-adapted/xml-cii-adapted-preview-facts-basis.js';
 import {openXml229EngineeringFactModel}
  from './xml229-preview-engineering-fact-producer.mjs';
-import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
@@ -46,7 +45,7 @@ const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=f
 const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
 let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
-let weightProjection=null,pendingBulk=null,bulkSequence=0;
+let weightProjection=null,pendingBulk=null,bulkSequence=0,previewAbortController=null;
 // Only contemporaneous successful Worker RPCs prove bulk confirmation.
 let confirmedBulkCommands=new Set(),restoringReview=false;
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
@@ -119,7 +118,16 @@ async function start(req){
  progress(req.requestId,'engineering-preview-using-actual-json');
  // Dry-run enrichers may normalize nested master/config rows. Do not lend
  // their mutable working view the already-attested GC-PW master buffers.
- const computed=xmlCiiDryRunPreview(xmlText,isolatedOriginalPreviewWorkConfig(config),stagedSource);
+ const abort=new AbortController();previewAbortController=abort;
+ let computed;
+ try{
+   computed=await runXml229IndependentEngineeringPreview({
+     requestId:req.requestId,sourceId,basisId:basis.basisId,
+     sourceGenerationId:r.generationId,originalJsonSha256:r.sha256,
+     originalStagedBlob,xmlText,config,signal:abort.signal,
+     onProgress:stage=>progress(req.requestId,stage),
+   });
+ }finally{if(previewAbortController===abort)previewAbortController=null;}
  if(cancelled)return;
  progress(req.requestId,'all-physical-field-assessment');
  const previewResult={...computed,sourceOccurrences:original,
@@ -409,7 +417,7 @@ async function rpc(req){
 self.addEventListener('message',async({data:req})=>{
  if(req?.protocol!==PROTOCOL||!req.requestId)return;
  if(req.kind==='cancel'&&req.requestId===active){
-   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;weightProjection=null;pendingBulk=null;confirmedBulkCommands=new Set();
+   cancelled=true;previewAbortController?.abort();previewAbortController=null;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;weightProjection=null;pendingBulk=null;confirmedBulkCommands=new Set();
    post(req.requestId,{state:'cancelled'});self.close();return;
  }
  if(req.kind==='start'){
