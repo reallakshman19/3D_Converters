@@ -77,7 +77,8 @@ function checkMassAndCandidateTotals(c,r,issues){
       n.positiveSourceMassCount+n.acceptedMatch1Count+n.acceptedFinalCount)
    error(issues,'G3_G4_MASS_AUTHORITY_CONFLICT');
 }
-export function reconcileXml229CandidateCoverage({coverage,readiness}={}){
+export function reconcileXml229CandidateCoverage(input={}){
+ const {coverage,readiness}=input??{};
  const issues=[];
  validCoverage(coverage,issues);
  validReadiness(readiness,issues);
