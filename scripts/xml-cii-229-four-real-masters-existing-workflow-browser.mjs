@@ -550,15 +550,37 @@ try{
   };
   // Full native output execution, not just a mock or readiness/button check.
   await page.locator('[data-action="run"]').click();
+  // Bound this witness: a visible enabled button does not by itself prove the
+  // native job was invoked, and a readCompletion observer may repaint it.
+  await page.waitForTimeout(10000);
+  const runSnapshot=()=>page.evaluate(()=>{
+    const body=document.querySelector('[data-active-phase="run"]');
+    const rows=[...body?.querySelectorAll('tbody tr')||[]]
+      .filter(tr=>['run-result','xml229-original-json-engineering-authority',
+        'xml229-xml-only-output-participation'].includes(tr.children[0]?.textContent||''))
+      .map(tr=>[...tr.children].map(td=>td.textContent?.trim().slice(0,220)));
+    const runBtn=body?.querySelector('[data-action="run"]');
+    return {runText:runBtn?.textContent,runDisabled:runBtn?.disabled,
+      route:body?.querySelector('[data-action="xml229-output-participation"]')?.value,
+      reviewOverlay:!!document.querySelector('[data-rigid-review-skip]'),
+      ciiAvailable:body?.querySelector('.xml-cii-adapted-cii-download')?.disabled===false,
+      rows,bodyTail:(body?.textContent||'').slice(-1700)};
+  });
+  record.stages.nativeClickTenSeconds=await runSnapshot();
   // The native runner has a separate rigid-weight popup. In this disposable
   // test, skip unreviewed suggestions; never invent an accepted Weight/Final.
-  await page.waitForFunction(()=>{
-    const popup=document.querySelector('[data-rigid-review-skip]');
-    const download=document.querySelector('.xml-cii-adapted-cii-download');
-    const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
-      .find(x=>x.children[0]?.textContent==='run-result');
-    return !!popup||download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
-  },null,{timeout:180000});
+  try{
+    await page.waitForFunction(()=>{
+      const popup=document.querySelector('[data-rigid-review-skip]');
+      const download=document.querySelector('.xml-cii-adapted-cii-download');
+      const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+        .find(x=>x.children[0]?.textContent==='run-result');
+      return !!popup||download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
+    },null,{timeout:180000});
+  }catch(err){
+    record.stages.nativeClickTimeout=await runSnapshot();
+    throw err;
+  }
   const skip=page.locator('[data-rigid-review-skip]');
   if(await skip.count())await skip.click();
   await page.waitForFunction(()=>{
