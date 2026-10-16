@@ -51,10 +51,10 @@ function receipts(basis,receipt,session,proof) {
     'PHYSICAL_FACT_OR_MASS_CENSUS_DRIFT');
   return sourceId;
 }
-function checkLease(current,basisId,generation,sourceId){
+function checkLease(current,basisId,generation,sourceId,requestId){
   ensure(obj(current)&&current.basisId===basisId&&
     current.sourceGenerationId===generation&&current.sourceId===sourceId&&
-    current.closed===false,'LEASE_SUPERSEDED_OR_CLOSED');
+    current.requestId===requestId&&current.closed===false,'LEASE_SUPERSEDED_OR_CLOSED');
 }
 /**
  * Attests actual live bytes against GC-PW InputBasis and rejects late results.
@@ -62,19 +62,20 @@ function checkLease(current,basisId,generation,sourceId){
  * cannot independently authenticate a malicious caller or its provenance.
  */
 export async function attestXml229G1LiveLease({
-  basis,sourceReceipt,sessionReceipt,completion,live,readCurrentLease,
+  basis,sourceReceipt,sessionReceipt,completion,live,readCurrentLease,requestId,
 }={}){
   ensure(typeof readCurrentLease==='function','CURRENT_LEASE_PORT_REQUIRED');
+  ensure(str(requestId),'CURRENT_REQUEST_ID_REQUIRED');
   const sourceId=receipts(basis,sourceReceipt,sessionReceipt,completion);
   ensure(obj(live)&&obj(live.sources)&&obj(live.masters)&&
     Array.isArray(live.selection),'LIVE_BYTES_REQUIRED');
-  checkLease(readCurrentLease(),basis.basisId,sourceReceipt.generationId,sourceId);
+  checkLease(readCurrentLease(),basis.basisId,sourceReceipt.generationId,sourceId,requestId);
   await assertBasisDigest(basis);
   await attestLiveBasis({basis,sources:live.sources,masters:live.masters,
     selection:live.selection,stagedSource:live.stagedSource,
     config:live.config,overrides:live.overrides});
-  checkLease(readCurrentLease(),basis.basisId,sourceReceipt.generationId,sourceId);
-  return Object.freeze({schema:G1_LEASE_SCHEMA,basisId:basis.basisId,sourceId,
+  checkLease(readCurrentLease(),basis.basisId,sourceReceipt.generationId,sourceId,requestId);
+  return Object.freeze({schema:G1_LEASE_SCHEMA,basisId:basis.basisId,sourceId,requestId,
     originalJsonSha256:sourceReceipt.sha256,
     sourceGenerationId:sourceReceipt.generationId,
     verifiedPhysicalCount:sessionReceipt.physicalCount,

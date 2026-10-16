@@ -32,8 +32,9 @@ async function scenario(){
  const live={sources:{S1:c.sources[0].text},masters:c.masters,selection:c.selection,
    stagedSource:c.stagedSource,config:c.config,overrides:c.overrides};
  const readCurrentLease=()=>({basisId:basis.basisId,
-   sourceId:'S1',sourceGenerationId:'GEN1',closed:false});
- return {basis,sourceReceipt,sessionReceipt,completion,live,readCurrentLease};
+   sourceId:'S1',sourceGenerationId:'GEN1',requestId:'REQUEST-1',closed:false});
+ return {basis,sourceReceipt,sessionReceipt,completion,live,readCurrentLease,
+   requestId:'REQUEST-1'};
 }
 test('GC-PW hashes actual source and master bytes; does not approve any weight or CII',async()=>{
  const result=await attestXml229G1LiveLease(await scenario());
@@ -75,7 +76,7 @@ test('incomplete fact population or unsupported release claim is refused',async(
 test('closed late Worker cannot publish proof following asynchronous hashing',async()=>{
  const s=await scenario();let calls=0;
  s.readCurrentLease=()=>({basisId:s.basis.basisId,sourceId:'S1',
-   sourceGenerationId:'GEN1',closed:++calls>1});
+   sourceGenerationId:'GEN1',requestId:'REQUEST-1',closed:++calls>1});
  await assert.rejects(attestXml229G1LiveLease(s),code('LEASE_SUPERSEDED_OR_CLOSED'));
  assert.equal(calls,2);
 });
@@ -101,7 +102,7 @@ test('receipt SHA must identify the same staged original JSON InputBasis',async(
 test('missing or ambiguous closed flag cannot pass a current Worker lease',async()=>{
  const s=await scenario();
  s.readCurrentLease=()=>({basisId:s.basis.basisId,sourceId:'S1',
-   sourceGenerationId:'GEN1'});
+   sourceGenerationId:'GEN1',requestId:'REQUEST-1'});
  await assert.rejects(attestXml229G1LiveLease(s),code('LEASE_SUPERSEDED_OR_CLOSED'));
 });
 test('secondary completion release assertions are rejected, not forwarded',async()=>{
@@ -110,4 +111,13 @@ test('secondary completion release assertions are rejected, not forwarded',async
    const s=await scenario();s.completion[key]=true;
    await assert.rejects(attestXml229G1LiveLease(s),code('UNVERIFIED_ENGINEERING_COMPLETION'));
  }
+});
+
+test('same InputBasis/source still rejects a superseded request identity',async()=>{
+ const s=await scenario();s.requestId='REQUEST-2';
+ await assert.rejects(attestXml229G1LiveLease(s),code('LEASE_SUPERSEDED_OR_CLOSED'));
+});
+test('a missing current request identity is not a valid lease challenge',async()=>{
+ const s=await scenario();delete s.requestId;
+ await assert.rejects(attestXml229G1LiveLease(s),code('CURRENT_REQUEST_ID_REQUIRED'));
 });
