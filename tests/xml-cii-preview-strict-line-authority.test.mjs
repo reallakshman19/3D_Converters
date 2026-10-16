@@ -31,6 +31,15 @@ await writeFile(join(tempRoot, 'converters/xml-cii2019-core/dtxr-resolver.js'), 
 
 const moduleDir = join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted');
 await mkdir(moduleDir, { recursive: true });
+// The imported production wrapper has these static/runtime dependencies.
+// Test substitutes no scorers; only the module-loading side effects are inert.
+await writeFile(join(moduleDir, 'xml-cii-adapted-authority-migration.js'),
+  'export {};\n', 'utf8');
+await writeFile(join(tempRoot, 'converters/xml-cii2019-core/rigid-weight-authority.js'),
+  'export function withXmlCiiEffectiveRigidWeightLegacyView(config) { return config; }\n', 'utf8');
+await mkdir(join(tempRoot, 'tabs'), { recursive: true });
+await writeFile(join(tempRoot, 'tabs/xml-cii-effective-class-shard-hydrator.js'),
+  'export function installXmlCiiEffectiveClassShardHydrator() {}\n', 'utf8');
 await writeFile(join(moduleDir, 'xml-cii-adapted-preview-dryrun-core.js'), `
 export function xmlCiiDryRunPreview() { return { branchRows: [], nodeRows: [] }; }
 `, 'utf8');
