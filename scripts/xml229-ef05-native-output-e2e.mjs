@@ -187,6 +187,21 @@ try{
     filename:download.suggestedFilename(),bytes:cii.length,
     sha256:sha(cii),lineCount:cii.toString('utf8').split(/\r?\n/).length};
   assert.match(download.suggestedFilename(),/\.cii$/i);
+  // Validate the *downloaded browser artifact*, not an in-memory string
+  // or a standalone native-engine fixture.
+  await mkdir('ValidationRecords',{recursive:true});
+  const ciiSyntaxPath='ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax.json';
+  execFileSync('python3',[
+    'converters/scripts/cii_syntax_check_2019.py',
+    '--input',await download.path(),'--output',ciiSyntaxPath,
+  ]);
+  const syntax=JSON.parse(await readFile(ciiSyntaxPath,'utf8'));
+  record.stages.conversion.syntax={
+    ok:syntax.ok,errors:syntax.errors,warnings:syntax.warnings,
+    elements:syntax.metrics?.elements,
+  };
+  assert.equal(syntax.ok,true,'Downloaded browser CII failed 2019 syntax check');
+  assert.deepEqual(syntax.errors,[]);
   record.passes.push('real native CII result downloaded, nonempty and SHA-attested');
 
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
