@@ -154,7 +154,11 @@ try{
   // New source-bound presentation retains the existing 7-column review
   // contract and styling, while every review still RPCs into the GC-PW Worker.
   assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
-  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),7);
+  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
+  record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
+  assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
+    'Status','Branch','Line Key','ComponentType','Bore','Rating','Node',
+    'ComponentRefNo_Endpoint','DTXR','Valve Hint','Length','Weight (kg)','Nearest Suggestions']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
@@ -228,13 +232,35 @@ try{
       const row=[...document.querySelectorAll('tr[data-p4-row]')]
         .find(tr=>tr.dataset.p4Occurrence===occurrence);
       return row?{
-        match1:row.querySelectorAll('td')[3]?.textContent.trim(),
-        final:row.querySelectorAll('td')[4]?.textContent.trim(),
+        match1:row.querySelector('[data-p4-match1-mass]')?.textContent.trim(),
+        final:row.querySelector('[data-p4-final-mass]')?.textContent.trim(),
       }:null;
     },reviewedOccurrence);
     record.stages.retainedDecisions=retained;
     assert.deepEqual(retained,{match1:'35 kg',final:'40 kg'},
       'Repeated existing Preview Build discarded accepted Match-1/Final decisions');
+  }
+  // Exact original Match-1 bulk planner: proposal is not acceptance. If the
+  // public fixture has qualified blanks, require an explicit second confirm.
+  await page.locator('[data-p4-bulk-plan]').click();
+  await page.waitForFunction(()=>/qualified|No qualified/i.test(
+    document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
+  record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
+  assert.match(record.stages.bulkPlanMessage,/qualified|No qualified/i);
+  const confirm=page.locator('[data-p4-bulk-confirm]');
+  if(await confirm.isVisible()){
+    await confirm.click();
+    await page.waitForFunction(()=>/Match-1 decision\(s\) accepted/i.test(
+      document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
+    record.stages.bulkAccepted=await page.locator('[data-p4-weight-status]').textContent();
+    assert.match(record.stages.bulkAccepted,/Match-1 decision\(s\) accepted/i);
+    // Final Match-2 was never bulk-applied or overwritten.
+    if(reviewedOccurrence){
+      const finalStill=await page.locator('tr[data-p4-row]').evaluateAll(
+        (rows,id)=>rows.find(row=>row.dataset.p4Occurrence===id)
+          ?.querySelector('[data-p4-final-mass]')?.textContent.trim()||'',reviewedOccurrence);
+      assert.equal(finalStill,'40 kg','bulk Match-1 overwrote independently reviewed Final');
+    }
   }
   await page.locator('[data-phase="run"]').click();
   await page.waitForFunction(()=>{
