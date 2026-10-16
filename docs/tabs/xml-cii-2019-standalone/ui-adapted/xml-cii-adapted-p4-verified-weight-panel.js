@@ -169,21 +169,28 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  */
 export async function openXml229P4VerifiedSession(stateRef,{
   resolveInputs=()=>resolveXml229P4ProductionInputs(stateRef),
-  onProgress=()=>{},
+  onProgress=()=>{},signal=null,
 }={}){
  const key=stateRef?.modeABaseRef||stateRef;
  if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
+ if(signal?.aborted)err('CANCELLED','Preview was cancelled before Worker attestation');
  const inputs=await resolveInputs();
+ if(signal?.aborted)err('CANCELLED','Preview was cancelled during source/master hydration');
  const lease=inputs.inputLease||null;
  const previous=getXml229VerifiedEngineeringEntry(key);
  if(previous&&lease&&lease===previous.lease){
-   try{await previous.session.readCompletion();return previous.session;}
+   try{
+     await previous.session.readCompletion();
+     if(signal?.aborted)err('CANCELLED','Preview was cancelled during existing verified Worker read');
+     return previous.session;
+   }
    catch{/* genuinely stale/cancelled prior session cannot be reused */}
  }
  // One source-bound authority per stable baseRef, independent of DOM
  // ownership. A newer build invalidates an in-flight predecessor (CAS).
  const ticket=beginXml229VerifiedEngineeringBuild(key);
- const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress});
+ const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress,signal});
+ if(signal?.aborted){session.cancel();err('CANCELLED','Preview was cancelled during Worker verification');}
  if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
    'Original source or master changed during Worker verification');}
  const verifiedLease=lease||session.receipt?.basisId;

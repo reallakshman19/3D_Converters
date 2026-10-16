@@ -399,7 +399,10 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
   const branchRows = [];
   const nodeRows = [];
   const pipingClassIndex = buildPipingClassIndex(config.pipingClass?.masterRows || []);
-  const stagedIndex = buildStagedDtxrIndex(stagedJsonText || '', config);
+  // Strict-Line fragment rebuilds may supply a source-bound read-only index.
+  // No supplied index => exactly the historical parser and identity semantics.
+  const stagedIndex = runtime.stagedIndex !== undefined
+    ? runtime.stagedIndex : buildStagedDtxrIndex(stagedJsonText || '', config);
   const materialMap = config.material?.mapRows || [];
 
   for (const [branchOccurrenceIndex, branch] of [...document.getElementsByTagName('Branch')].entries()) {
