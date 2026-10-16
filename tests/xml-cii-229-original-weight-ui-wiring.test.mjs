@@ -110,8 +110,13 @@ test('optional Preview UI metadata conflict does not revoke complete verified ph
 test('production integration uses existing GC-PW bulk planner and not legacy Weight calculator',async()=>{
  const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
- assert.match(worker,/planExactSourceWeightCommands/);
- assert.match(worker,/commitExactSourceWeightCommands/);
+ assert.match(worker,/planXml229QualifiedBlankFill/);
+ assert.match(worker,/commitXml229QualifiedBlankFill/);
+ // GC-PW planner/writer remain exclusively in the imported Worker-owned
+ // guard module, with no duplicate scoring or decision path.
+ const guard=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-source-weight-bulk-review.mjs',import.meta.url),'utf8');
+ assert.match(guard,/planExactSourceWeightCommands/);
+ assert.match(guard,/commitExactSourceWeightCommands/);
  assert.match(worker,/buildXml229VerifiedWeightRowProjection/);
  assert.match(panel,/planQualifiedBlankFill/);
  assert.match(panel,/commitQualifiedBlankFill/);
