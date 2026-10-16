@@ -150,7 +150,7 @@ test('source/docs parity and all native paths enforce opt-in rather than deletin
   assert.equal(a,b,path);
  }
  const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
- assert.match(ui,/data\.action='xml229-output-participation'/);
+ assert.match(ui,/dataset\.action='xml229-output-participation'/);
  const standard=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js',import.meta.url),'utf8');
  const fast=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js',import.meta.url),'utf8');
  for(const runner of [standard,fast]){
