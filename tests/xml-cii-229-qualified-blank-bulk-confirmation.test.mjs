@@ -31,9 +31,9 @@ const physical=i=>({
  originalWeight:i===0?59:null,
 });
 const id=i=>'one/branch:'+i+'/physical:0';
-function harness(count=112,{reviewed=true}={}){
+function harness(count=112,{reviewed=true,sourceMass=true}={}){
  const facts=Array.from({length:count},(_,i)=>legacyXmlCiiWeightFacts(
-  [physical(i)],basis,'one')).flat();
+  [{...physical(i),originalWeight:sourceMass&&i===0?59:null}],basis,'one')).flat();
  const score=(rows,b)=>{
   const oid=rows[0].occurrenceId;
   const proposals=[{basisId:b.basisId,domainId:b.domainId,occurrenceId:oid,
@@ -385,4 +385,68 @@ test('same source facts can restore explicit Match-1 overlay on an original sour
  assert.equal(decisions(fresh,'Rigidmatch2')[id(2)].value,22);
  assert.equal(backup.counts.source,0);
  assert.equal(result.nativeCiiReleaseAuthorized,false);
+});
+
+test('Owner-shaped 423 physical / 2961 facts / 125 explicitly accepted Match-1 + 298 unresolved survive exact-basis reload',async()=>{
+ const count=423;
+ const old=harness(count,{reviewed:false,sourceMass:false});
+ const commands=Array.from({length:125},(_,i)=>({
+  commandId:'owner-shaped-test-explicit-'+String(i),
+  basisId:basis.basisId,scopeId:'one',
+  occurrenceId:id(i),expectedDecisionRevision:null,
+  action:'enter-manual',value:15+i/10,unit:'kg',
+  reason:'Controlled fixture: explicit Match-1 acceptance; NOT an Owner corpus approval',
+ }));
+ const receipts=old.service.applyDecisions({
+  basisId:basis.basisId,scopeId:'one',stage:'RigidMatch1',
+  expectedDecisionRevision:null,commands,
+ });
+ assert.equal(receipts.length,125);
+ assert(receipts.every(x=>x.state==='accepted'));
+ const proof=proofForBackup(count,{
+  source:0,match1:125,final:0,unresolved:298,
+ },'GEN-FIRST');
+ const backup=await exportXml229SourceBoundReviewBackup(old.service,{
+  basisId:basis.basisId,sourceId:'one',proof,
+ });
+ assert.equal(backup.counts.source,0);
+ assert.equal(backup.counts.match1,125);
+ assert.equal(backup.counts.final,0);
+ assert.equal(backup.counts.unresolved,298);
+ assert.equal(backup.factCount,2961);
+ assert.equal(backup.nativeCiiReleaseAuthorized,false);
+ const fresh=harness(count,{reviewed:false,sourceMass:false});
+ const refreshed=proofForBackup(count,{
+  source:0,match1:0,final:0,unresolved:423,
+ },'GEN-COLD-REBUILT');
+ const outcome=await restoreXml229SourceBoundReviewBackup(fresh.service,
+  structuredClone(backup),{
+   basisId:basis.basisId,sourceId:'one',proof:refreshed,
+  });
+ assert.equal(outcome.match1Only,125);
+ assert.equal(outcome.final,0);
+ assert.equal(outcome.nativeCiiReleaseAuthorized,false);
+ const savedAgain=await exportXml229SourceBoundReviewBackup(fresh.service,{
+  basisId:basis.basisId,sourceId:'one',proof:{
+   ...refreshed,counts:backup.counts,
+  },
+ });
+ assert.deepEqual(savedAgain.reviewState,backup.reviewState,
+  'source-bound command IDs and review revisions changed across reload');
+ assert.equal(Object.keys(decisions(fresh,'RigidMatch1')).length,125);
+ assert.equal(Object.keys(decisions(fresh,'Rigidmatch2')).length,0);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(124)].value,27.4);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(125)],undefined,
+  '126th physical must remain unresolved rather than inherited acceptance');
+ const audit=projectXml229WeightDecisionProvenance({
+  reviewState:savedAgain.reviewState,basisId:basis.basisId,sourceId:'one',
+  completion:{...refreshed,counts:savedAgain.counts},
+ });
+ assert.equal(audit.summary.manual,125);
+ assert.equal(audit.summary.acceptedFinal,0);
+ assert.equal(audit.summary.bulkConfirmed,0);
+ assert.equal(audit.summary.effectiveMatch1Only,125);
+ assert.equal(audit.summary.provenanceComplete,true);
+ assert.equal(audit.summary.nativeCiiReleaseAuthorized,false);
+ assert.equal(audit.population.factCount,2961);
 });
