@@ -37,3 +37,16 @@ This audit checks caller-supplied records; it does **not** re-hash live source/m
 - Node v22.16.0 local **8/8 PASS** on GitHub-identical tested blobs: audit `0e3694d549ab23767c1c130446f326f2e969ba00`, test `bf980d9be1d95ff463bc198abf80f290da7e394b`. Manual Git blob comparisons established content equivalence to local test files.
 - Hosted CI at this final documentation checkpoint: **NOT_YET_VERIFIED**, repository-wide workflows may fail independently; no native engine, private data or served UI qualification.
 - EXACT_NEXT_ACTION remains source-bound G0 evidence and Owner/Coordinator approval for G1/runtime, not a second ad-hoc patch.
+
+## G1 candidate implementation checkpoint — 2026-10-16 16:09 UTC Owner continuation
+
+Owner expressly requested "proceed now"; G1 contract **candidate only** added inside the existing isolated draft without changing Worker execution paths:
+- contracts/xml229-evidence-v1/live-basis-attestation.mjs: imports ACTUAL GC-PW assertBasisDigest + attestLiveBasis; verifies original staged JSON SHA, source ID and generation, 7-per-physical fact census, current Worker lease before/after async SHA, and actual source/master rows and mapping bytes. Always returns reviewDecisionsAuthorized:false, nativeQualificationAuthorized:false, nativeCiiReleaseAuthorized:false. Rejected stale source/generation/master/lease, not a new scorer or Run authority.
+- tests/xml229-g1-live-basis-attestation.test.mjs: 12 authored Node 22 tests on synthetic four-master current-basis input (positive byte custody plus changed same-length XML, master content/mapper, staged JSON, wrong SHA/generation, fact census, late closed Worker, no lease, forged basis, selection/config changes). **G1 tests NOT_RUN** on exact head: code authored and statically inspected, not falsely marked PASS.
+- docs/architecture/xml229-g1-live-lease-contract.md: G1 schema, portability boundaries, trust model, unresolved live original JSON byte-encoding hypothesis and integration approval requirements.
+
+Validation: Previous immutable G0 candidate 8/8 locally PASS; earlier exact PR head 8ca495b had 30 hosted workflows, 24 success and 6 failures. Two failures inspected: Issue 835 is an intentional child-scope file fence rejecting PR281 out-of-scope paths; Issue 776 encountered an existing regex/Weight acceptance test expectation mismatch. Other CI failures not yet dispositioned. **No implication that latest G1 head has passed tests.**
+
+Work-specific v3.6 Owner-approved Common label 3DC-XML-CII at version 2.2.0 exists but task_outcome O1 applies to LFJ; it contains no Writable lab directive or work-specific implementation plan bound to #274. Do not hijack the label as G1 authorization. Explicit integration runtime writer lease, native qualification permissions, and Owner-only merge remain outstanding.
+
+EXACT_NEXT_ACTION: execute Node22/24 targeted G1 tests in approved checkout; compare six CI failures to main and post exact-head evidence. Then obtain chosen v3.6 plan / writable lab directive, current source/master byte provenance and exclusive Owner/Coordinator permission to connect this contract inside actual Worker; preserve independent workers and native release HELD.
