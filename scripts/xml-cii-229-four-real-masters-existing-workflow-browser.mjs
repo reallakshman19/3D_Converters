@@ -412,7 +412,7 @@ try{
   // rejected by review restore. Rehydrate the ORIGINAL IndexedDB custody.
   await page.waitForFunction(()=>{
     const bar=document.querySelector('.xml-cii-header-status-row');
-    return /Masters:\\s*4\\/4 loaded/.test(bar?.textContent||'');
+    return /Masters:\s*4\/4 loaded/.test(bar?.textContent||'');
   },null,{timeout:120000});
   record.stages.coldMasterStatus=await page.locator('.xml-cii-header-status-row').textContent();
   await page.locator('[data-phase="json-trace"]').click();
