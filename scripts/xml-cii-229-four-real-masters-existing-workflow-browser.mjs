@@ -376,6 +376,107 @@ try{
       'rendered independent stage must equal exported canonical status');
   }
   assert.equal(await page.locator('[data-xml229-p4-run-advisory]').count(),0);
+  // SAVE → full browser reload → same original input and masters rebuilt
+  // → RESTORE. The real portable GC-PW service must preserve decisions, NOT
+  // borrow any legacy localStorage or silently accept a stale snapshot.
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
+  const sourceRow=page.locator('tr[data-p4-row]').first();
+  const saveOccurrence=await sourceRow.getAttribute('data-p4-occurrence');
+  await sourceRow.locator('[data-p4-proposal]').fill('35');
+  await sourceRow.locator('[data-p4-reason]').fill(
+    'Disposable browser test: explicit source override for Match-1 only');
+  await sourceRow.locator('[data-p4-accept-match1]').click();
+  await page.waitForFunction(()=>/Match-1 explicitly accepted/.test(
+    document.querySelector('[data-p4-weight-status]')?.textContent||''
+  ),null,{timeout:30000});
+  const [backupFile]=await Promise.all([
+    page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
+  ]);
+  assert.equal(backupFile.suggestedFilename(),'xml229-source-bound-gcpw-review.json');
+  const backupPath=await backupFile.path();
+  const backup=JSON.parse(await readFile(backupPath,'utf8'));
+  assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
+  assert.equal(backup.basisId,firstBasis);
+  assert.equal(backup.counts.match1,1);
+  assert.equal(backup.counts.final,0);
+  assert.equal(backup.counts.source,30);
+  assert.equal(backup.nativeCiiReleaseAuthorized,false);
+
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
+  for(const [kind,filePath] of imports){
+    await page.locator('[data-sub-tab="'+(kind==='lineList'?'linelist':kind)+'"]').click();
+    await page.locator('input[data-master-file="'+kind+'"]').setInputFiles(filePath);
+    await page.locator('[data-master-mapping-status="'+kind+'"]')
+      .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
+  }
+  await page.locator('[data-phase="json-trace"]').click();
+  await page.locator('[data-field="staged-json-file"]').setInputFiles(jsonPath);
+  await page.waitForFunction(()=>(
+    document.querySelector('[data-lfj-o1-status]')?.textContent||''
+  ).startsWith('LFJ source index COMMITTED'),null,{timeout:240000});
+  await page.locator('[data-phase="preview"]').click();
+  await page.locator('#mc-preview-table-host [data-mc-preview-build]').first()
+    .click();
+  await page.waitForFunction(()=>(
+    document.querySelector('#mc-preview-table-host')?.dataset
+      .mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'),null,{timeout:240000});
+  const restoredBasis=await page.locator('#mc-preview-table-host').evaluate(
+    h=>h.dataset.mcPreviewBasisId);
+  assert.equal(restoredBasis,firstBasis,
+    'same file/master restored to a different InputBasis: reject review restore');
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.locator('tr[data-p4-row]').first().waitFor({timeout:120000});
+  // It must not auto-hydrate reviews merely because a private backup file
+  // exists. Select an explicit file, after a new verified Worker has opened.
+  const [fresh]=await Promise.all([
+    page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
+  ]);
+  const untouched=JSON.parse(await readFile(await fresh.path(),'utf8'));
+  assert.equal(untouched.counts.match1,0,'browser reload silently accepted old review');
+
+  const wrong=structuredClone(backup);
+  wrong.originalJsonSha256='f'.repeat(64);
+  await page.locator('input[data-p4-import-review]').setInputFiles({
+    name:'wrong-review.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify(wrong)),
+  });
+  await page.waitForFunction(()=>/Review restore HELD \[STALE_REVIEW_BACKUP\]/.test(
+    document.querySelector('[data-p4-weight-status]')?.textContent||''
+  ),null,{timeout:30000});
+  await page.locator('input[data-p4-import-review]').setInputFiles(backupPath);
+  await page.waitForFunction(()=>/Restored same-InputBasis GC-PW review/.test(
+    document.querySelector('[data-p4-weight-status]')?.textContent||''
+  ),null,{timeout:60000});
+  const restored=await page.locator('tr[data-p4-row]').evaluateAll(
+    (rows,id)=>rows.find(row=>row.dataset.p4Occurrence===id)
+      ?.querySelector('[data-p4-match1-mass]')?.textContent.trim()||'',
+    saveOccurrence);
+  assert.equal(restored,'35 kg','accepted manual Match-1 lost after file restore');
+  const [restoredExport]=await Promise.all([
+    page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
+  ]);
+  const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
+  assert.equal(afterRestore.counts.match1,1);
+  assert.equal(afterRestore.counts.source,30);
+  assert.equal(afterRestore.counts.final,0);
+  assert.deepEqual(afterRestore.reviewState,backup.reviewState,
+    'restored portable command ledger differs from original saved review');
+  record.stages.explicitReviewReloadRestore={
+    originalBasis:firstBasis,restoredBasis,
+    before:backup.counts,after:afterRestore.counts,
+    sameLedger:true,untrustedImportRejected:true,
+  };
+  await page.locator('[data-phase="run"]').click();
+  await page.waitForFunction(()=>[
+    ...document.querySelectorAll('[data-active-phase="run"] tbody tr'),
+  ].some(tr=>tr.children[0]?.textContent==='weight-match'&&
+    /1 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
+  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true,
+    'reload and restored review must never enable native CII Run');
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles({
