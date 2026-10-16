@@ -1,3 +1,5 @@
+import './xml-cii-preview-strict-line-authority.test.mjs';
+import './xml-cii-229-independent-preview-worker.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
