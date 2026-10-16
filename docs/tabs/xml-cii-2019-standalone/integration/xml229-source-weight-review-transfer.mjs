@@ -1,0 +1,110 @@
+/**
+ * XML229 explicit OWNER-LOCAL review backup/restore.
+ * Uses only the portable, attested GC-PW exportReviewState/restoreReviewState
+ * service. No alternate decision writer or native CII output authority.
+ * SHA-256 is a corruption digest, NOT an authentication signature:
+ * import files must remain Owner-controlled and exact-source bound.
+ */
+const SCHEMA='XML229.SourceBoundGC-PWReviewBackup.v1';
+const fail=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
+const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+const sha=x=>typeof x==='string'&&/^[0-9a-f]{64}$/i.test(x);
+const count=x=>Number.isSafeInteger(x)&&x>=0;
+const validCounts=c=>obj(c)&&['source','match1','final','unresolved']
+  .every(k=>count(c[k]));
+const checkProof=(proof,basisId,sourceId)=>{
+ if(!obj(proof)||proof.basisId!==basisId||proof.sourceId!==sourceId||
+  proof.engineeringFactsVerified!==true||proof.ciiReleaseAuthorized!==false||
+  !sha(proof.originalJsonSha256)||
+  typeof proof.sourceGenerationId!=='string'||!proof.sourceGenerationId||
+  !count(proof.verifiedPhysicalCount)||proof.verifiedPhysicalCount<1||
+  proof.verifiedFactCount!==proof.verifiedPhysicalCount*7||
+  !validCounts(proof.counts)||
+  proof.counts.source+proof.counts.match1+proof.counts.final+
+  proof.counts.unresolved!==proof.verifiedPhysicalCount)
+   fail('REVIEW_BACKUP_PROOF_REQUIRED',
+      'Current verified original source and full GC-PW completion required');
+};
+/** Worker owns this result until the Owner explicitly downloads the file. */
+export async function exportXml229SourceBoundReviewBackup(review,{
+ basisId,sourceId,proof,
+}={}){
+ checkProof(proof,basisId,sourceId);
+ if(typeof review?.exportReviewState!=='function')
+  fail('GC_PW_REVIEW_EXPORT_REQUIRED');
+ const reviewState=await review.exportReviewState({basisId});
+ if(reviewState?.basisId!==basisId||!sha(reviewState.contentSha256))
+  fail('GC_PW_REVIEW_DIGEST_REQUIRED');
+ return {
+  schema:SCHEMA,basisId,sourceId,
+  originalJsonSha256:proof.originalJsonSha256,
+  captureSourceGenerationId:proof.sourceGenerationId,
+  physicalCount:proof.verifiedPhysicalCount,
+  factCount:proof.verifiedFactCount,
+  counts:{...proof.counts},
+  stageRevisions:proof.stageRevisions||null,
+  reviewState,
+  nativeCiiReleaseAuthorized:false,
+  warning:'Local Owner-controlled backup includes private accepted command reasons and occurrence identities. SHA256 checks integrity, not authorship. Reimport only on an independently verified exact InputBasis. Native CII Run HELD. Prior-session bulk click confirmation is not independently certified by a restored ledger.',
+ };
+}
+/** Fail fast before calling portable GC-PW restore. Never merge a file into live decisions. */
+export async function restoreXml229SourceBoundReviewBackup(review,backup,{
+ basisId,sourceId,proof,
+}={}){
+ checkProof(proof,basisId,sourceId);
+ if(!obj(backup)||backup.schema!==SCHEMA||
+   backup.basisId!==basisId||backup.sourceId!==sourceId||
+   backup.originalJsonSha256!==proof.originalJsonSha256||
+   !sha(backup.originalJsonSha256)||
+   typeof backup.captureSourceGenerationId!=='string'||
+   !backup.captureSourceGenerationId||
+   backup.nativeCiiReleaseAuthorized!==false||
+   !count(backup.physicalCount)||backup.physicalCount!==proof.verifiedPhysicalCount||
+   backup.factCount!==proof.verifiedFactCount||
+   !validCounts(backup.counts)||
+   backup.counts.source!==proof.counts.source||
+   backup.counts.source+backup.counts.match1+backup.counts.final+
+     backup.counts.unresolved!==proof.verifiedPhysicalCount||
+   !obj(backup.reviewState)||backup.reviewState.basisId!==basisId||
+   !sha(backup.reviewState.contentSha256))
+  fail('STALE_REVIEW_BACKUP',
+   'Saved review does not match the newly verified original source/masters InputBasis and census');
+ if(typeof review?.restoreReviewState!=='function'||
+    typeof review?.getDecisionState!=='function')
+   fail('GC_PW_REVIEW_RESTORE_REQUIRED');
+ for(const stage of ['RigidMatch1','Rigidmatch2']){
+  const state=review.getDecisionState({basisId,scopeId:sourceId,stage});
+  if(state.decisionRevision!==null||Object.keys(state.decisions).length)
+   fail('REVIEW_BACKUP_LIVE_REVIEW_CONFLICT',
+    'Never overwrite or mix a live accepted Match-1 / independent Final review');
+ }
+ const entries=backup.reviewState.reviewStates;
+ if(!Array.isArray(entries)||!Array.isArray(backup.reviewState.frozenSnapshots)||
+   entries.length>2||entries.some(e=>!obj(e)||e.scopeId!==sourceId||
+    !['RigidMatch1','Rigidmatch2'].includes(e.stage))||
+   new Set(entries.map(e=>e.stage)).size!==entries.length)
+   fail('REVIEW_BACKUP_STAGE_SCOPE_INVALID');
+ const m=entries.find(x=>x.stage==='RigidMatch1')?.decisions||{};
+ const f=entries.find(x=>x.stage==='Rigidmatch2')?.decisions||{};
+ if(!obj(m)||!obj(f))fail('REVIEW_BACKUP_DECISIONS_INVALID');
+ const accepted=x=>new Set(Object.entries(x).filter(([,v])=>v?.state==='accepted')
+   .map(([id])=>id));
+ const finals=accepted(f),match1=accepted(m);
+ const match1Only=[...match1].filter(id=>!finals.has(id)).length;
+ if(match1Only!==backup.counts.match1||finals.size!==backup.counts.final)
+  fail('REVIEW_BACKUP_DECISION_CENSUS_DRIFT',
+    'Saved accepted Match-1 and Final decisions differ from the captured full-population counts');
+ // Portable service validates digest, every source occurrence, proposal value,
+ // command provenance and frozen snapshot BEFORE any ledger is published.
+ const result=await review.restoreReviewState({
+  basisId,payload:backup.reviewState,
+ });
+ return {basisId,sourceId,restoredStages:result.restoredStages,
+  restoredSnapshots:result.restoredSnapshots,match1Only,final:finals.size,
+  capturedSourceGenerationId:backup.captureSourceGenerationId,
+  currentSourceGenerationId:proof.sourceGenerationId,
+  nativeCiiReleaseAuthorized:false,
+  priorBulkConfirmationStatus:'not independently proven after reload',
+ };
+}
