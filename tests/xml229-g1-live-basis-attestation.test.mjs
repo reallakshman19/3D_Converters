@@ -83,3 +83,17 @@ test('live Worker ownership port is mandatory',async()=>{
  const s=await scenario();delete s.readCurrentLease;
  await assert.rejects(attestXml229G1LiveLease(s),code('CURRENT_LEASE_PORT_REQUIRED'));
 });
+test('basis metadata tampering fails GC-PW SHA validation',async()=>{
+ const s=await scenario();s.basis.configSha256='e'.repeat(64);
+ await assert.rejects(attestXml229G1LiveLease(s),code('STALE_BASIS'));
+});
+test('selection and config drift are detected from actual live inputs',async()=>{
+ const s=await scenario();s.live.selection[0].selectionRef='changed';
+ await assert.rejects(attestXml229G1LiveLease(s),code('SELECTION_DRIFT'));
+ const t=await scenario();t.live.config.policy='other';
+ await assert.rejects(attestXml229G1LiveLease(t),code('CONFIG_DRIFT'));
+});
+test('receipt SHA must identify the same staged original JSON InputBasis',async()=>{
+ const s=await scenario();s.sourceReceipt.sha256='d'.repeat(64);
+ await assert.rejects(attestXml229G1LiveLease(s),code('STAGED_JSON_BASIS_DRIFT'));
+});
