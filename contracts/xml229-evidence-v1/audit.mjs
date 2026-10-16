@@ -10,7 +10,6 @@ const isObject = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const nonblank = x => typeof x === 'string' && x.trim().length > 0;
 const whole = x => Number.isSafeInteger(x) && x >= 0;
 const same = (a, b) => nonblank(a) && a === b;
-const known = (x, key) => isObject(x) && Object.hasOwn(x, key);
 const shape = (x, schema) => isObject(x) && x.schema === schema;
 
 export function auditXml229Evidence(input = {}) {
@@ -52,7 +51,10 @@ export function auditXml229Evidence(input = {}) {
     missingEvidence: Object.freeze(missing), issues: Object.freeze(issues),
     physicalCount: whole(proof?.verifiedPhysicalCount) ? proof.verifiedPhysicalCount : null,
     factRecordCount: whole(proof?.verifiedFactCount) ? proof.verifiedFactCount : null,
-    massCounts: validCounts(proof?.counts) ? Object.freeze({ ...proof.counts }) : null });
+    massCounts: validCounts(proof?.counts) ? Object.freeze({
+      source:proof.counts.source,match1:proof.counts.match1,
+      final:proof.counts.final,unresolved:proof.counts.unresolved,
+    }) : null });
 }
 
 function validCounts(c) {
