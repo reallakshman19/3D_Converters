@@ -61,14 +61,18 @@ function harness(count=112){
    occurrenceId:id(1),expectedDecisionRevision:null,action:'enter-manual',
    value:20,unit:'kg',reason:'Engineer separately reviewed original physical #1',
   }]})[0];
- assert.equal(manual.value,20);
+ assert.equal(manual.state,'accepted');
+ assert.equal(service.getDecisionState({basisId:basis.basisId,scopeId:'one',
+  stage:'RigidMatch1'}).decisions[id(1)].value,20);
  const final=service.applyDecisions({basisId:basis.basisId,scopeId:'one',
   stage:'Rigidmatch2',commands:[{
    commandId:'explicit-final-two',basisId:basis.basisId,scopeId:'one',
    occurrenceId:id(2),expectedDecisionRevision:null,action:'final-override',
    value:22,unit:'kg',reason:'Independent Final Match-2 reviewed mass',
   }]})[0];
- assert.equal(final.value,22);
+ assert.equal(final.state,'accepted');
+ assert.equal(service.getDecisionState({basisId:basis.basisId,scopeId:'one',
+  stage:'Rigidmatch2'}).decisions[id(2)].value,22);
  return {service,projection};
 }
 const plan=(h,sequence=1)=>planXml229QualifiedBlankFill(
