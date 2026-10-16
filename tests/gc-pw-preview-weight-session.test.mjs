@@ -1,3 +1,5 @@
+import './xml229-evidence-audit.test.mjs';
+import './xml229-g1-live-basis-attestation.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
