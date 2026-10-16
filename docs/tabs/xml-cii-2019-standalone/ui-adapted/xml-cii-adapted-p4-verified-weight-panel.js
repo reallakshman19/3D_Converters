@@ -340,8 +340,19 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  });
  if(existingWorkflow&&!active)
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
- if(active)void render().then(()=>say('Existing verified Preview facts and Weight review loaded.'))
-   .catch(error=>say('Existing source review is stale: '+String(error?.message||error),true));
+ if(active)void render().then(async()=>{
+   const proof=await active.readCompletion();
+   if(root.isConnected===false||
+      getXml229CurrentWorkerHeldReview(stateRef)!==active)return;
+   const counts=proof?.counts||{};
+   say('Existing verified Preview facts loaded. Weight decisions: '+
+     (counts.source??0)+' original source masses, '+
+     (counts.match1??0)+' accepted Match-1, '+
+     (counts.final??0)+' accepted Final, '+
+     (counts.unresolved??0)+' unresolved. '+
+     'Suggestions are DRAFT until explicitly accepted (or a qualified blank-only plan is confirmed).');
+ }).catch(error=>say('Existing source review is stale: '+
+   (error?.code||'VERIFICATION_UNAVAILABLE'),true));
  // Removing the rendered panel is not authority to destroy its Worker.
  // Explicit cancellation/rebuild remains a deliberate ownership transition.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
