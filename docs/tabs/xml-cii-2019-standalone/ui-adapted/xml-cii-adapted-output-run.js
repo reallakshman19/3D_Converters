@@ -100,7 +100,31 @@ function renderSummary(parent, report) {
 
 function renderChecklist(parent, report) {
   const panel = section(parent, 'Pre-run Checklist');
-  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
+  // The original six-column table squeezed all values into the viewport,
+  // merging the Status/Severity/Blocking text and cutting off Owner messages.
+  // Keep exact report values, but make the message column readable and let
+  // narrow screens scroll horizontally instead of hiding provenance.
+  const wrap=createElement('div');
+  wrap.className='xml229-run-checklist-scroll';
+  wrap.style.cssText='width:100%;max-width:100%;overflow-x:auto;overflow-y:visible;'+
+    'border:1px solid #334155;border-radius:8px;margin:8px 0 16px;';
+  const audit=table(['ID','Label','Status','Severity','Blocking','Message'],
+    rows(report.checklistRows),'No checklist rows yet.');
+  audit.style.cssText='border-collapse:collapse;table-layout:fixed;'+
+    'min-width:1200px;width:100%;font-size:13px;line-height:1.45;';
+  const columns=['205px','230px','90px','95px','90px','auto'];
+  for(const group of [audit.querySelectorAll('th'),audit.querySelectorAll('td')]){
+    for(const cell of group){
+      const col=cell.cellIndex;
+      cell.style.cssText='padding:9px 10px;text-align:left;'+
+        'vertical-align:top;overflow-wrap:anywhere;'+
+        'border-bottom:1px solid #22334b;'+
+        (col===5?'min-width:460px;white-space:normal;':'');
+      if(columns[col]!=='auto')cell.style.width=columns[col];
+    }
+  }
+  wrap.appendChild(audit);
+  panel.appendChild(wrap);
   return panel;
 }
 
