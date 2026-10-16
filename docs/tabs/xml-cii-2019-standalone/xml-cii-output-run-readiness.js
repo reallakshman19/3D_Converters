@@ -2,7 +2,7 @@ import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 import { projectXml229RunChecklist } from './integration/xml229-verified-output-readiness.mjs';
-import { hasXml229GovernedNativeHold } from './integration/xml229-output-participation.mjs';
+import { hasXml229GovernedNativeHold, isXml229XmlOnlyApproved } from './integration/xml229-output-participation.mjs';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -202,6 +202,7 @@ export function buildRunManifest(input = {}) {
     schema: 'xml-cii-2019-output-run-manifest/v1',
     sourceMode: kind,
     outputMode: input.options?.outputMode || 'enriched-only',
+    nativeOutputParticipation: isXml229XmlOnlyApproved(input)?'explicit-xml-only':'governed',
     sourceBytes: sourceText(input).length ? bytes(sourceText(input)) : Number(input.sourceFile?.size || 0),
     masterRowCounts: object(input.masterContext?.rowCounts),
     regex: { matched: summaryCount(input.regexTesterResult, 'matchedCount'), rejected: summaryCount(input.regexTesterResult, 'rejectedCount') },
@@ -262,6 +263,7 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     manifest,
     diagnostics: readinessDiagnostics(checklistRows),
     raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto',
-      xml229VerifiedEngineering: projection.verified },
+      xml229VerifiedEngineering: projection.verified,
+      xml229XmlOnlyOutput: isXml229XmlOnlyApproved(input) },
   };
 }
