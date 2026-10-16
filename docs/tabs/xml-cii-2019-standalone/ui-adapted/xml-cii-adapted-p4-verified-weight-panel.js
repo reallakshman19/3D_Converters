@@ -263,6 +263,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      if(!file)return;
      if(busy||!active){say('Build verified 4 Preview before restoring a review file.',true);return;}
      busy=true;
+     say('Review file verification in progress…');
      try{
        if(!file.size||file.size>16*1024*1024)
          err('REVIEW_FILE_SIZE_INVALID','Review file must be nonempty and no larger than 16 MiB');
