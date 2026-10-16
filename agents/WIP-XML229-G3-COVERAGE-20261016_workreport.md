@@ -13,3 +13,11 @@ The 423 physical / 2961 FactRecord Owner screenshot previously established sourc
 
 ### Next step
 Create draft PR on updated main; run exact G3 P4 Node22/24 and Chromium, classify any regressions against the merged main head. Publish concise source-level aggregate census receipt from Owner-provided controlled execution without raw artifacts. Then complete actual-JSON G2 cold time/peak memory + G4 canonical UI parity and G5 independent native physical-slot kg/unit/split correspondence. Do not silently auto-review, auto-accept, enable Run, claim final v3.6 label approval, or deploy new code before validation.
+
+## G3/G4 Offline Comparator Continuation — Owner "ok proceed" 2026-10-16
+
+Added contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs; scripts/xml229-reconcile-candidate-coverage.mjs; tests/xml229-g3-candidate-readiness-reconciliation.test.mjs and docs/architecture/xml229-g3-candidate-reconciliation.md. Compares two small aggregate receipts for the same original source/generation/review state, prints whitelisted counts, disallows forged release, and never approves CII. Protects against confusing underlying accepted Match-1 and source kg with G4 mutually exclusive effective precedence counts.
+
+Search of connected Drive for the unique 'XML229' token returned no matching files; generic master-name results cannot be assumed to be the approved Owner originals. No private source/JSON/four-master run, and no real Owner candidate distribution, has been claimed. Exact-head GitHub CI must be independently observed after this documentation change. No merge authorization was inferred from the generic "ok proceed" continuation; PR286 remains DRAFT.
+
+EXACT NEXT: inspect exact-head P4 Node22/24 and original-Blob Chromium and canonical-readiness Actions, then have Owner privately run both read-only Worker RPCs on the same live source and reconcile the two redacted receipts. Native G5 actual CII physical-slot consumption remains HELD.
