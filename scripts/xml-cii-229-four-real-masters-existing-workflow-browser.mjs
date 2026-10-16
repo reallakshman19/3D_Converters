@@ -455,6 +455,21 @@ try{
   ]);
   const untouched=JSON.parse(await readFile(await fresh.path(),'utf8'));
   assert.equal(untouched.counts.match1,0,'browser reload silently accepted old review');
+  record.stages.backupRestoreGuardInputs={
+    saved:{basisId:backup.basisId,sourceId:backup.sourceId,
+      sourceSha:backup.originalJsonSha256,physicalCount:backup.physicalCount,
+      factCount:backup.factCount,counts:backup.counts,
+      captureGenerationType:typeof backup.captureSourceGenerationId,
+      captureGenerationPresent:Boolean(backup.captureSourceGenerationId),
+      nativeRelease:backup.nativeCiiReleaseAuthorized,
+      ledgerBasis:backup.reviewState?.basisId,
+      ledgerSha:backup.reviewState?.contentSha256},
+    rebuilt:{basisId:untouched.basisId,sourceId:untouched.sourceId,
+      sourceSha:untouched.originalJsonSha256,physicalCount:untouched.physicalCount,
+      factCount:untouched.factCount,counts:untouched.counts,
+      captureGenerationType:typeof untouched.captureSourceGenerationId,
+      captureGenerationPresent:Boolean(untouched.captureSourceGenerationId)},
+  };
 
   const wrong=structuredClone(backup);
   wrong.originalJsonSha256='f'.repeat(64);
