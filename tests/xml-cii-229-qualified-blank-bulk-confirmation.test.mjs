@@ -363,3 +363,26 @@ test('real frozen individual Match-1 and Final snapshots restore across independ
  assert.equal(decisions(fresh,'RigidMatch1')[id(1)].value,20);
  assert.equal(decisions(fresh,'Rigidmatch2')[id(2)].value,22);
 });
+
+test('same source facts can restore explicit Match-1 overlay on an original source mass',async()=>{
+ const reviewed=harness(14);
+ reviewed.service.applyDecisions({basisId:basis.basisId,scopeId:'one',
+  stage:'RigidMatch1',expectedDecisionRevision:'m1',commands:[{
+   commandId:'human-reviewed-source-mass-zero',basisId:basis.basisId,scopeId:'one',
+   occurrenceId:id(0),expectedDecisionRevision:'m1',action:'enter-manual',
+   value:62,unit:'kg',reason:'Engineer explicitly overrides original 59 kg source mass',
+  }]});
+ const backup=await exportXml229SourceBoundReviewBackup(reviewed.service,{
+  basisId:basis.basisId,sourceId:'one',
+  proof:proofForBackup(14,{source:0,match1:2,final:1,unresolved:11})});
+ const fresh=harness(14,{reviewed:false});
+ const result=await restoreXml229SourceBoundReviewBackup(fresh.service,backup,{
+  basisId:basis.basisId,sourceId:'one',
+  proof:proofForBackup(14,{source:1,match1:0,final:0,unresolved:13},'GEN-REBUILT')});
+ assert.equal(result.match1Only,2);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(0)].value,62);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(1)].value,20);
+ assert.equal(decisions(fresh,'Rigidmatch2')[id(2)].value,22);
+ assert.equal(backup.counts.source,0);
+ assert.equal(result.nativeCiiReleaseAuthorized,false);
+});
