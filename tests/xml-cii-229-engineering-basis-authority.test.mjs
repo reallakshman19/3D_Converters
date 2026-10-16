@@ -107,7 +107,22 @@ test('a terminated Worker cannot be returned or treated as verified authority',(
  assert.equal(getXml229VerifiedEngineeringEntry(key),null,
    'dead Worker must be evicted, not returned for new Weight Match reads');
  assert.equal(hasXml229VerifiedEngineeringBasis(key),false);
+ let committed=0,staged=0;
+ const closedMode=routeXml229AutomaticEngineeringProposal(key,{
+   proposal:{rigidWeightKg:123},
+   commit:()=>committed++,
+   stage:()=>staged++,
+ });
+ assert.equal(closedMode,'DRAFT',
+   'cancelled original review must never promote automatic weight/regex suggestions');
+ assert.equal(committed,0);
+ assert.equal(staged,1);
  const second=beginXml229VerifiedEngineeringBuild(key);
+ const rebuildingMode=routeXml229AutomaticEngineeringProposal(key,{
+   proposal:{rigidWeightKg:456},commit:()=>committed++,stage:()=>staged++,
+ });
+ assert.equal(rebuildingMode,'DRAFT','replacement Worker must attest before automatic proposals may commit');
+ assert.equal(committed,0);
  const replacement={closed:false,cancel(){}};
  assert.equal(publishXml229VerifiedEngineeringBuild(first,{lease:'old',session:worker}),false,
    'terminated predecessor cannot publish after source generation advances');
