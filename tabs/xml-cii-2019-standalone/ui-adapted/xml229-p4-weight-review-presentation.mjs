@@ -39,65 +39,119 @@ export function renderXml229WeightReviewPage(page,offset=0){
       title="${e('Rank '+p.ranking+' · '+(p.method||'source proposal')+' · '+(p.qualified?'qualified candidate':'requires independent review'))}">
       ${p.qualified?'★ ':'≈ '}${kg(p.value)} <small>· ${e(p.method||'candidate')}</small>
      </button>`).join('');
-   const more=choices.length>3?`<span style="color:#94a3b8;font-size:11px">+${choices.length-3} other candidates</span>`:'';
+   const more=choices.length>3?`<span style="color:#94a3b8;font-size:11px">+ ${choices.length-3} other</span>`:'';
+   const rejections=Array.isArray(r.rejectedCandidates)&&r.rejectedCandidates.length
+     ?`<span style="display:block;color:#f87171;font-size:11px;margin-top:4px" title="${e(r.rejectedCandidates.map(c=>c.description+': '+(c.rejectionReasons||[]).join(', ')).join('; '))}">× ${r.rejectedCandidates.length} rejected candidate(s)</span>`:'';
+   const refTag=r.componentRefEndpoint||r.componentRefNo||'';
+   const typeLabel=r.componentType||'COMPONENT';
+   const isValve=/VALV/i.test(typeLabel);
+   const isFlange=/FLAN/i.test(typeLabel);
+   const typeBadgeBg=isValve?'#7c2d12':isFlange?'#1e3a8a':'#1e293b';
+   const typeBadgeColor=isValve?'#fdba74':isFlange?'#93c5fd':'#38bdf8';
+   const ratingDisplay=r.rating
+     ?`<span style="background:#0f766e;color:#ccfbf1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px">${e(r.rating)}${r.rating.includes('#')?'':'#'}</span>`
+     :'<span style="color:#94a3b8;font-size:11px">Rating —</span>';
+   const boreLength=[
+     r.boreMm!=null?`DN ${r.boreMm}`:null,
+     r.lengthMm!=null?`L ${r.lengthMm}mm`:null,
+   ].filter(Boolean).join(' · ');
+
    return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
       data-p4-stage="${state.kind}" style="border-bottom:1px solid #253a55">
-    <td style="vertical-align:top;min-width:145px;max-width:220px;padding:10px 8px">
-      <strong style="font-size:12px;overflow-wrap:anywhere">${e(r.sourceId)}</strong>
-      <small style="display:block;color:${state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#94a3b8'}" data-p4-decision-state="${state.kind}">${e(state.label)}</small>
-      <small style="color:#64748b;display:block;overflow-wrap:anywhere" title="Exact original occurrence identity">${e(r.occurrenceId)}</small>
+    <td style="vertical-align:top;min-width:140px;max-width:210px;padding:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="background:${typeBadgeBg};color:${typeBadgeColor};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700">${e(typeLabel)}</span>
+        <strong style="font-size:13px;color:#f8fafc">Node ${e(r.nodeNumber||r.nodeOrdinal)}</strong>
+      </div>
+      ${refTag?`<div style="font-size:11px;color:#93c5fd;margin-top:3px;font-family:monospace">${e(refTag)}</div>`:''}
+      <small style="color:#64748b;font-size:10px;display:block;margin-top:2px" title="${e(r.branchName||'')}">${e(r.branchName||('Branch '+r.branchOccurrenceIndex))}</small>
+      <small style="color:#64748b;font-size:10px;display:block;overflow-wrap:anywhere">${e(r.sourceId)}</small>
+      <small style="display:block;margin-top:2px;color:${state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#94a3b8'}" data-p4-decision-state="${state.kind}">${e(state.label)}</small>
     </td>
-    <td style="vertical-align:top;min-width:95px;padding:10px 8px;font-variant-numeric:tabular-nums">
-     ${e(r.branchOccurrenceIndex)}/${e(r.nodeOrdinal)}
+    <td style="vertical-align:top;min-width:160px;max-width:260px;padding:8px" title="${e(r.dtxr||'')}">
+      <div style="font-size:12px;color:#f1f5f9;line-height:1.35;word-break:break-word;font-weight:500">${e(r.dtxr||'—')}</div>
+      ${r.valveHint?`<small style="display:block;color:#a5b4fc;margin-top:2px">${e(r.valveHint)}</small>`:''}
     </td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.sourceKg)}</td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.match1Kg)}</td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.finalKg)}</td>
-    <td style="vertical-align:top;min-width:195px;max-width:300px;padding:8px">
+    <td style="vertical-align:top;min-width:110px;padding:8px">
+      ${ratingDisplay}
+      ${boreLength?`<div style="font-size:11px;color:#cbd5e1;margin-top:4px">${e(boreLength)}</div>`:''}
+    </td>
+    <td style="vertical-align:top;white-space:nowrap;padding:8px;font-variant-numeric:tabular-nums">${kg(r.sourceKg)}</td>
+    <td style="vertical-align:top;white-space:nowrap;padding:8px;font-variant-numeric:tabular-nums;color:${state.kind==='match1'?'#fde68a':'inherit'}">${kg(r.match1Kg)}</td>
+    <td style="vertical-align:top;white-space:nowrap;padding:8px;font-variant-numeric:tabular-nums;color:${state.kind==='final'?'#86efac':'inherit'}">${kg(r.finalKg)}</td>
+    <td style="vertical-align:top;min-width:180px;max-width:280px;padding:8px">
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap">${chips||'<small style="color:#94a3b8">No verified candidate yet</small>'}${more}</div>
-      <small style="display:block;color:#94a3b8;margin-top:5px">Suggestions are evidence, never automatically accepted.</small>
+      ${rejections}
+      <small style="display:block;color:#94a3b8;margin-top:4px">Suggestions are evidence, never automatically accepted.</small>
     </td>
-    <td style="vertical-align:top;min-width:235px;max-width:315px;padding:7px 8px">
-      <div style="display:grid;grid-template-columns:minmax(80px,1fr) minmax(86px,1fr);gap:5px;align-items:center">
+    <td style="vertical-align:top;min-width:230px;max-width:300px;padding:7px 8px">
+      <div style="display:grid;grid-template-columns:minmax(75px,1fr) minmax(85px,1fr);gap:4px;align-items:center">
        <input data-p4-proposal type="number" min="0" step="any" inputmode="decimal"
         aria-label="Draft proposed weight in kilograms" placeholder="${e(r.proposedKg??'kg')}"
-        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
+        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:4px;padding:5px">
        <select data-p4-candidate aria-label="Verified source candidate"
-        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
-        <option value="">Manual entry</option>
-        ${choices.map(p=>`<option value="${e(p.proposalId)}">#${e(p.ranking)} · ${kg(p.value)}${p.qualified?' qualified':' review'}</option>`).join('')}
+        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:4px;padding:5px">
+        <option value="">Manual</option>
+        ${choices.map(p=>`<option value="${e(p.proposalId)}">#${e(p.ranking)} · ${kg(p.value)}${p.qualified?' ★':' ≈'}</option>`).join('')}
        </select>
-       <input data-p4-reason aria-label="Engineering review reason" placeholder="Engineering reason"
-        style="grid-column:1/-1;min-width:0;box-sizing:border-box;width:100%;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
+       <input data-p4-reason aria-label="Engineering review reason" placeholder="Reason (required for Final)"
+        style="grid-column:1/-1;min-width:0;box-sizing:border-box;width:100%;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:4px;padding:5px">
        <button data-p4-accept-match1 type="button" class="model-converters-run-btn"
-        style="padding:6px 8px;font-size:12px">Accept Match-1</button>
+        style="padding:5px 6px;font-size:11px">Accept Match-1</button>
        <button data-p4-accept-final type="button" class="model-converters-download-btn"
-        style="padding:6px 8px;font-size:12px">Review Final</button>
+        style="padding:5px 6px;font-size:11px">Review Final</button>
       </div>
-      <small style="color:#94a3b8;display:block;margin-top:5px">Two separate source-bound decisions</small>
+      <small style="color:#94a3b8;display:block;margin-top:4px">Two separate source-bound decisions</small>
     </td>
    </tr>`;
  }).join('');
  return `<div class="model-converters-workflow-detail-note" style="margin:8px 0;background:#101a29;border:1px solid #253a55;border-radius:8px;padding:10px">
-    <strong>Verified original physical facts</strong> · ${m.total} components · showing ${m.rows.length?m.start+1:0}–${m.end}
-    <div style="display:flex;gap:13px;flex-wrap:wrap;margin-top:6px;color:#cbd5e1;font-size:12px">
-     <span>On this page: ${m.counts.final} Final</span><span>${m.counts.match1} Match-1</span>
-     <span>${m.counts.source} original XML masses</span><span>${m.counts.unresolved} requiring review</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <strong>Verified original physical facts</strong> · ${m.total} components · showing ${m.rows.length?m.start+1:0}–${m.end}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;color:#cbd5e1;font-size:12px">
+          <span>${m.counts.final} Final</span><span>${m.counts.match1} Match-1</span>
+          <span>${m.counts.source} original XML masses</span><span>${m.counts.unresolved} requiring review</span>
+        </div>
+      </div>
+      <div>
+        <button data-p4-bulk-match1 type="button" class="model-converters-run-btn"
+         style="background:#047857;border-color:#10b981;color:#fff;padding:6px 12px;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer">
+          Accept All Qualified (★) as Match-1
+        </button>
+      </div>
     </div>
-    <small style="color:#94a3b8">Review counts above describe this page only. Full-source progress is shown in 5 Run.</small>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
-   <label style="font-size:12px;color:#b6c5da">Find on this page
-    <input data-p4-filter placeholder="Source or occurrence…" aria-label="Filter displayed original physical components"
-     style="background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px;max-width:250px">
+   <label style="font-size:12px;color:#b6c5da">Search:
+    <input data-p4-filter placeholder="DTXR, Ref, Node, Branch…" aria-label="Filter displayed original physical components"
+     style="background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:4px;padding:5px;width:200px">
    </label>
-   <label style="font-size:12px;color:#b6c5da"><input data-p4-filter-unresolved type="checkbox"> Unresolved on this page</label>
+   <label style="font-size:12px;color:#b6c5da">Stage:
+    <select data-p4-filter-stage aria-label="Filter by review stage"
+     style="background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:4px;padding:5px">
+      <option value="all">All components</option>
+      <option value="unresolved">Unresolved only</option>
+      <option value="match1">Match-1 reviewed</option>
+      <option value="final">Final reviewed</option>
+    </select>
+   </label>
+   <label style="font-size:12px;color:#b6c5da"><input data-p4-filter-unresolved type="checkbox"> Unresolved only</label>
    <small data-p4-filter-count style="color:#94a3b8"></small>
   </div>
   <div class="mc-rigid-review-table-wrap" style="max-height:460px;overflow:auto;border:1px solid #253a55;border-radius:8px">
-   <table class="mc-rigid-review-table" style="width:100%;min-width:980px;border-collapse:collapse;table-layout:auto;font-size:12px">
+   <table class="mc-rigid-review-table" style="width:100%;min-width:1100px;border-collapse:collapse;table-layout:auto;font-size:12px">
     <thead style="position:sticky;top:0;z-index:1;background:#14243a;color:#dceaff">
-     <tr><th style="padding:10px 8px">Source</th><th>Original branch/node</th><th>XML kg</th><th>Match-1 kg</th><th>Final kg</th><th>Ranked source candidates</th><th>Engineering decisions</th></tr>
+      <tr>
+        <th style="padding:8px">Component Ref / Tag</th>
+        <th style="padding:8px">Description (DTXR)</th>
+        <th style="padding:8px">Dimensions / Rating</th>
+        <th style="padding:8px">XML kg</th>
+        <th style="padding:8px">Match-1 kg</th>
+        <th style="padding:8px">Final kg</th>
+        <th style="padding:8px">Ranked Candidates & Evidence</th>
+        <th style="padding:8px">Engineering Decisions</th>
+      </tr>
     </thead><tbody>${rows}</tbody>
    </table>
   </div>

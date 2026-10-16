@@ -140,13 +140,16 @@ export function assertWeightDatasetResultAuthority(result = {}, datasetRef = {})
 }
 
 function persistConfig(stateRef, config) {
-  const compactConfig = compactDatasetBackedConfig(config, stateRef.current.masterContext || {});
-  const masterContext = { ...(stateRef.current.masterContext || {}), config: compactConfig };
-  stateRef.current = updateWorkflowState(stateRef.current, {
+  const targetRef = stateRef?.modeABaseRef || stateRef;
+  const currentMasterContext = targetRef.current?.masterContext || stateRef.current?.masterContext || {};
+  const compactConfig = compactDatasetBackedConfig(config, currentMasterContext);
+  const masterContext = { ...currentMasterContext, config: compactConfig };
+  targetRef.current = updateWorkflowState(targetRef.current || stateRef.current, {
     supportConfigJson: JSON.stringify(compactConfig, null, 2),
     masterContext,
+    weightMatchStatus: 'Weight decisions saved.',
   });
-  saveMasterContextToLocalStorage(stateRef.current.masterContext);
+  saveMasterContextToLocalStorage(targetRef.current.masterContext);
 }
 
 function ensureOverrides(config) {
@@ -198,12 +201,9 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
 }
 
 export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
-  const source=(stateRef?.modeABaseRef||stateRef)?.current||{};
-  const receipt=stateRef?.current?.xml229StagedSourceReceipt||source.xml229StagedSourceReceipt;
-  if(receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'){
-    // One existing Weight Match stage, source-verifiable original GC-PW.
-    // Legacy issue.key writes are never authoritative for the O1 route.
-    return installXml229WorkerHeldWeightPanel(card,stateRef,{existingWorkflow:true});
+  if (options?.useWorkerPanel || stateRef?.current?.useWorkerHeldWeightPanel) {
+    // Preserved for explicit worker-held review and test harnesses:
+    return installXml229WorkerHeldWeightPanel(card, stateRef, {existingWorkflow:true});
   }
   card.__xmlCiiWeightAuthorityPresentationCleanup?.();
   card.__xmlCiiWeightAuthorityPresentationCleanup = null;
@@ -304,6 +304,17 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
             && sameWeightSourceAndMaster(renderedAuthority, nextAuthority)) {
             renderedAuthority = nextAuthority;
             buildSnapshot = null;
+          }
+        },
+        onWeightMatchBuilt: (issues) => {
+          const targetRef = stateRef?.modeABaseRef || stateRef;
+          if (targetRef && targetRef.current !== undefined) {
+            targetRef.current = {
+              ...targetRef.current,
+              weightMatchResult: { issueRows: issues },
+              weightIssues: issues,
+              weightMatchStatus: `${issues.filter((r) => r.mapped).length} mapped of ${issues.length} components.`,
+            };
           }
         },
         ensureOverrides,

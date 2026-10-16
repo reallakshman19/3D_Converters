@@ -112,14 +112,17 @@ function unusedAlternativeTemplate(format, index) {
   if (index === 0 || format.enabled === true) return false;
   if (format.enabled === false) return true;
   // Historical workbench state persists an untouched alternative editor slot
-  // with all four initial positional hints. This is not an engineered Format 2.
-  const positions = { lineKey: 3, pipingClass: 4, rating: 4, bore: 2 };
-  return Object.keys(positions).every((key) => {
+  // with either legacy (3,4,4,2) or standard (4,5,5,3) initial positional hints.
+  const legacyPos = { lineKey: 3, pipingClass: 4, rating: 4, bore: 2 };
+  const standardPos = { lineKey: 4, pipingClass: 5, rating: 5, bore: 3 };
+  const matches = (positions) => Object.keys(positions).every((key) => {
     const rule = record(format[key]);
     return !text(rule.regex) && !text(rule.extractMode) && Number(rule.group ?? 1) === 1
       && Number(rule.tokenPosition) === positions[key]
       && rule.fallbackOnRegexMiss !== true;
-  }) && (text(format.tokenDelimiter) || '-') === '-'
+  });
+  return (matches(legacyPos) || matches(standardPos))
+    && (text(format.tokenDelimiter) || '-') === '-'
     && !text(format.lineKeyJoiner);
 }
 
@@ -134,20 +137,26 @@ function evaluate(source, formatInput, index, sequence, legacy) {
   const piping = extractField(source, format.pipingClass, delimiter, '', legacy);
   const rating = extractField(source, format.rating, delimiter, '', legacy);
   const bore = extractField(source, format.bore, delimiter, '', legacy);
+  const resolvedRating = ratingFromClass(piping.value, sequence) || (rating.value.match(/\d+/)?.[0] || '');
   const isComplete = !!line.value && !!piping.value;
+  const reasons = Object.fromEntries(
+    [['lineKey', line], ['pipingClass', piping], ['rating', rating], ['bore', bore]]
+      .filter(([key, field]) => {
+        if (!field.reason) return false;
+        if (key === 'rating' && resolvedRating) return false;
+        return true;
+      })
+      .map(([key, field]) => [key, field.reason]),
+  );
   return {
     formatIndex: index,
     status: isComplete ? 'MATCHED' : 'REJECTED',
     lineKey: line.value,
     pipingClass: piping.value,
-    rating: ratingFromClass(piping.value, sequence) || (rating.value.match(/\d+/)?.[0] || ''),
+    rating: resolvedRating,
     bore: bore.value.replace(/[^0-9.]/g, ''),
     fieldMethods: { lineKey: line.method, pipingClass: piping.method, rating: rating.method, bore: bore.method },
-    reasons: Object.fromEntries(
-      [['lineKey', line], ['pipingClass', piping], ['rating', rating], ['bore', bore]]
-        .filter(([, field]) => field.reason)
-        .map(([key, field]) => [key, field.reason]),
-    ),
+    reasons,
   };
 }
 

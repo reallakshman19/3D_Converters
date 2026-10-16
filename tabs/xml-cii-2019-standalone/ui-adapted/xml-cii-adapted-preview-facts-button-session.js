@@ -10,6 +10,7 @@ import {assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonic
   from '../../../contracts/gc-pw-v1/contract.mjs';
 
 import {executeXml229OriginalPreview} from '../integration/xml229-preview-original-blob-execution.mjs';
+import {xml229PreviewSourceGate} from '../integration/xml229-preview-source-gate.mjs';
 
 const jobs=new WeakMap();
 const esc=(v)=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
@@ -139,7 +140,18 @@ export async function runPreviewButtonSession({
     if(!current())return null;
     // XML229 P3B.3: original JSON stays in the O1 job. Existing Preview
     // controller, input basis and source-occurrence renderer remain in use.
-    if(scope.mode==='A'&&typeof options.resolveOriginalWorkerPreviewSource==='function'){
+    const workerGate = xml229PreviewSourceGate({
+      sourceReceipt: options?.originalStagedSourceReceipt,
+      sourceStatus: options?.originalStagedSourceStatus,
+      stagedJsonText: staged?.text,
+    });
+    if (workerGate.blocked && workerGate.reason !== 'ORIGINAL_JSON_INDEXED_NO_PREVIEW_READ_PORT') {
+      throw fail(workerGate.reason, 'Original JSON source is ' + workerGate.reason);
+    }
+    const hasOriginalWorker = scope.mode==='A'&&
+      workerGate.reason==='ORIGINAL_JSON_INDEXED_NO_PREVIEW_READ_PORT'&&
+      typeof options.resolveOriginalWorkerPreviewSource==='function';
+    if(hasOriginalWorker){
       notice(host,{title:'Verifying original JSON source custody…',showCancel:true,cancel});
       const original=await options.resolveOriginalWorkerPreviewSource(config);
       if(!current())return null;

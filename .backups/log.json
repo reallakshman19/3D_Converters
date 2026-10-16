@@ -1,5 +1,5 @@
 {
-  "lastId": 1277,
+  "lastId": 1319,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,300 @@
       "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
       "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Add dtxr to physical engineering facts",
+      "backupFile": "1278_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Add dtxr to physical engineering facts mirror",
+      "backupFile": "1279_docs_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-10-15 20:13:51",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Pass physical facts in readPage and add bulkReviewMatch1",
+      "backupFile": "1280_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Pass physical facts in readPage and add bulkReviewMatch1 mirror",
+      "backupFile": "1281_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1282,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "Expose bulkReviewMatch1 on client session",
+      "backupFile": "1282_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1283,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-client.mjs",
+      "context": "Expose bulkReviewMatch1 on client session mirror",
+      "backupFile": "1283_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_client_mjs.bak"
+    },
+    {
+      "id": 1284,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Enhanced 8-column layout and bulk action",
+      "backupFile": "1284_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1285,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Enhanced 8-column layout and bulk action mirror",
+      "backupFile": "1285_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1286,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Wire bulk action in weight panel",
+      "backupFile": "1286_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1287,
+      "timestamp": "2026-10-15 20:13:52",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-p4-verified-weight-panel.js",
+      "context": "Wire bulk action in weight panel mirror",
+      "backupFile": "1287_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_p4_verified_weight_panel_js.bak"
+    },
+    {
+      "id": 1288,
+      "timestamp": "2026-10-15 21:20:15",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Populate physical component facts with nodeNumber, componentType, rating, dtxr",
+      "backupFile": "1288_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1289,
+      "timestamp": "2026-10-15 21:20:24",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-preview-engineering-fact-producer.mjs",
+      "context": "Populate physical component facts with nodeNumber, componentType, rating, dtxr mirror",
+      "backupFile": "1289_docs_tabs_xml_cii_2019_standalone_integration_xml229_preview_engineering_fact_producer_mjs.bak"
+    },
+    {
+      "id": 1290,
+      "timestamp": "2026-10-15 21:20:32",
+      "file": "tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Import bulk decisions and attach physical facts map",
+      "backupFile": "1290_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1291,
+      "timestamp": "2026-10-15 21:20:39",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\integration\\xml229-original-blob-gcpw-worker.mjs",
+      "context": "Import bulk decisions and attach physical facts map mirror",
+      "backupFile": "1291_docs_tabs_xml_cii_2019_standalone_integration_xml229_original_blob_gcpw_worker_mjs.bak"
+    },
+    {
+      "id": 1292,
+      "timestamp": "2026-10-15 21:20:47",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Clear node, component type, and rating styling",
+      "backupFile": "1292_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1293,
+      "timestamp": "2026-10-15 21:21:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-p4-weight-review-presentation.mjs",
+      "context": "Clear node, component type, and rating styling mirror",
+      "backupFile": "1293_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml229_p4_weight_review_presentation_mjs.bak"
+    },
+    {
+      "id": 1294,
+      "timestamp": "2026-10-15 21:52:03",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-facts-button-session.js",
+      "context": "Gate original worker preview by committed source gate before custody check",
+      "backupFile": "1294_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_facts_button_session_js.bak"
+    },
+    {
+      "id": 1295,
+      "timestamp": "2026-10-15 21:52:09",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Make originalStagedSourceReceipt reactive to live stateRef",
+      "backupFile": "1295_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1296,
+      "timestamp": "2026-10-15 21:53:02",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-facts-button-session.js",
+      "context": "Mirror preview button session gate fix",
+      "backupFile": "1296_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_facts_button_session_js.bak"
+    },
+    {
+      "id": 1297,
+      "timestamp": "2026-10-15 21:53:49",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "Mirror preview diagnostics audit v7 reactive receipt fix",
+      "backupFile": "1297_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1298,
+      "timestamp": "2026-10-15 21:55:59",
+      "file": "tests\\xml-cii-229-p3a-preview-worker-source-hold.test.mjs",
+      "context": "Add XML-only preview and byte-parity regression tests",
+      "backupFile": "1298_tests_xml_cii_229_p3a_preview_worker_source_hold_test_mjs.bak"
+    },
+    {
+      "id": 1299,
+      "timestamp": "2026-10-15 23:47:32",
+      "file": "converters\\xml-cii2019-core\\branch-format-extraction.js",
+      "context": "pre-robust-fix",
+      "backupFile": "1299_converters_xml_cii2019_core_branch_format_extraction_js.bak"
+    },
+    {
+      "id": 1300,
+      "timestamp": "2026-10-15 23:49:48",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "restore Accepted Match-1 text",
+      "backupFile": "1300_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1301,
+      "timestamp": "2026-10-15 23:50:03",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "restore Accepted Match-1 text docs",
+      "backupFile": "1301_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1302,
+      "timestamp": "2026-10-15 23:50:59",
+      "file": "docs\\converters\\xml-cii2019-core\\branch-format-extraction.js",
+      "context": "pre-robust-fix docs",
+      "backupFile": "1302_docs_converters_xml_cii2019_core_branch_format_extraction_js.bak"
+    },
+    {
+      "id": 1303,
+      "timestamp": "2026-10-15 23:54:44",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-regex-tester.js",
+      "context": "default token positions 4, 5, 5, 3",
+      "backupFile": "1303_tabs_xml_cii_2019_standalone_xml_cii_regex_tester_js.bak"
+    },
+    {
+      "id": 1304,
+      "timestamp": "2026-10-15 23:54:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-regex-tester.js",
+      "context": "default token positions 4, 5, 5, 3 docs",
+      "backupFile": "1304_docs_tabs_xml_cii_2019_standalone_xml_cii_regex_tester_js.bak"
+    },
+    {
+      "id": 1305,
+      "timestamp": "2026-10-15 23:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "defaultFormat token positions 4, 5, 5, 3",
+      "backupFile": "1305_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 1306,
+      "timestamp": "2026-10-15 23:55:37",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "defaultFormat token positions 4, 5, 5, 3 docs",
+      "backupFile": "1306_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 1307,
+      "timestamp": "2026-10-16 05:45:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "xml229 independent stages presentation in renderChecklist",
+      "backupFile": "1307_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1308,
+      "timestamp": "2026-10-16 05:45:34",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "xml229 independent stages presentation in renderChecklist docs mirror",
+      "backupFile": "1308_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1309,
+      "timestamp": "2026-10-16 05:50:29",
+      "file": "tests\\xml-cii-229-p4-weight-presentation-adapter.test.mjs",
+      "context": "add test for renderChecklist independent stages and branch format authority",
+      "backupFile": "1309_tests_xml_cii_229_p4_weight_presentation_adapter_test_mjs.bak"
+    },
+    {
+      "id": 1310,
+      "timestamp": "2026-10-16 08:45:55",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "fix unaccepted proposal mapped bug and forward length",
+      "backupFile": "1310_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 1311,
+      "timestamp": "2026-10-16 08:46:06",
+      "file": "converters\\xml-cii2019-core\\weight-match-model.js",
+      "context": "allow unnumbered nodes coordinate length",
+      "backupFile": "1311_converters_xml_cii2019_core_weight_match_model_js.bak"
+    },
+    {
+      "id": 1312,
+      "timestamp": "2026-10-16 08:48:16",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
+      "context": "sync with root tabs",
+      "backupFile": "1312_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 1313,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-output-run-readiness.js",
+      "context": "readiness detection for preview and weight match",
+      "backupFile": "1313_tabs_xml_cii_2019_standalone_xml_cii_output_run_readiness_js.bak"
+    },
+    {
+      "id": 1314,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "fresh readiness calculation on panel render",
+      "backupFile": "1314_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1315,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "persist preview result to stateRef and restore on revisit",
+      "backupFile": "1315_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1316,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "allow precomputedPreview in worker mode",
+      "backupFile": "1316_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1317,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "precomputedPreview check and onPreviewBuilt hook",
+      "backupFile": "1317_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1318,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "pass onWeightMatchBuilt and persist weight status",
+      "backupFile": "1318_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1319,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "call onWeightMatchBuilt when localIssues are ready",
+      "backupFile": "1319_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
     }
   ]
 }

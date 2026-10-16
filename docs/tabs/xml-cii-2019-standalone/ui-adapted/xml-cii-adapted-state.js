@@ -403,10 +403,10 @@ export function updateRegexTesterConfig(state, field, value) {
     const defaultFormat = {
       tokenDelimiter: currentConfig.tokenDelimiter || '-',
       lineKeyJoiner: currentConfig.lineKeyJoiner || '',
-      lineKey: currentConfig.lineKey || { regex: '', group: 1, tokenPosition: 3 },
-      pipingClass: currentConfig.pipingClass || { regex: '', group: 1, tokenPosition: 4 },
-      rating: currentConfig.rating || { regex: '', group: 1, tokenPosition: 4 },
-      bore: currentConfig.bore || { regex: '', group: 1, tokenPosition: 2 },
+      lineKey: currentConfig.lineKey || { regex: '', group: 1, tokenPosition: 4 },
+      pipingClass: currentConfig.pipingClass || { regex: '', group: 1, tokenPosition: 5 },
+      rating: currentConfig.rating || { regex: '', group: 1, tokenPosition: 5 },
+      bore: currentConfig.bore || { regex: '', group: 1, tokenPosition: 3 },
     };
     currentConfig.formats = [{ ...defaultFormat }, { ...defaultFormat }];
     currentConfig.activeFormatIndex = 0;

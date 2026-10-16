@@ -79,7 +79,7 @@ function valueFor(item, header) {
 }
 
 function reportFromState(state) {
-  return state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
+  return buildStandaloneOutputRunReadiness(state);
 }
 
 function renderSummary(parent, report) {
@@ -95,7 +95,14 @@ function renderSummary(parent, report) {
 
 function renderChecklist(parent, report) {
   const panel = section(parent, 'Pre-run Checklist');
-  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
+  const presentationRows = rows(report.checklistRows).map((item) => {
+    const stage = xml229UnbuiltIndependentStage(item.id, {
+      status: item.status,
+      blocking: String(item.blocking),
+    });
+    return stage ? { ...item, ...stage } : item;
+  });
+  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], presentationRows, 'No checklist rows yet.'));
   return panel;
 }
 
@@ -412,7 +419,8 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summar
 export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const isRef = stateOrRef && 'current' in stateOrRef;
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
-  const state = stateRef.current;
+  const raw = (stateRef?.modeABaseRef || stateRef)?.current || {};
+  const state = { ...raw, ...(stateRef.current || {}) };
   const report = reportFromState(state);
   const config = supportConfigForReadiness(state);
   card.innerHTML = '';

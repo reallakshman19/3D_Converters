@@ -127,12 +127,34 @@ function cachedRows(storageKey, picker) {
 
 function previewDone(input) {
   if (input.previewDiagnosticsAuditReport) return true;
-  return ['xml-cii-pv-cache-v6', 'xml-cii-pv-cache-v5'].some((key) => cachedRows(key, (data) => array(data?.branchRows).length > 0 || array(data?.nodeRows).length > 0));
+  if (array(input.previewResult?.branchRows).length > 0) return true;
+  if (array(input.previewBranchRows).length > 0) return true;
+  return [
+    'xml-cii-pv-cache-v8-rating-policy',
+    'xml-cii-pv-cache-v8-dtxr',
+    'xml-cii-pv-cache-v7',
+    'xml-cii-pv-cache-v6',
+    'xml-cii-pv-cache-v5',
+    'xml-cii-pv-cache-v2',
+  ].some((key) => cachedRows(key, (data) => array(data?.branchRows).length > 0 || array(data?.nodeRows).length > 0 || array(data).length > 0));
 }
 
 function weightMatchDone(input) {
   if (input.weightMatchResult) return true;
-  return cachedRows('xml-cii-wm-cache-v1', (data) => array(data).length > 0);
+  if (array(input.weightIssues).length > 0) return true;
+  if (input.weightMatchStatus) return true;
+  const parsed = parseConfig(input.supportConfigJson);
+  if (parsed.ok && parsed.value?.overrides?.rigidWeight && typeof parsed.value.overrides.rigidWeight === 'object' && Object.keys(parsed.value.overrides.rigidWeight).length > 0) {
+    return true;
+  }
+  const masterConfig = input.masterContext?.config;
+  if (masterConfig?.overrides?.rigidWeight && typeof masterConfig.overrides.rigidWeight === 'object' && Object.keys(masterConfig.overrides.rigidWeight).length > 0) {
+    return true;
+  }
+  return [
+    'xml-cii-wm-cache-v2-preview-rating',
+    'xml-cii-wm-cache-v1',
+  ].some((key) => cachedRows(key, (data) => array(data).length > 0 || (data && typeof data === 'object' && Object.keys(data).length > 0)));
 }
 
 function supportMapperDone(input) {

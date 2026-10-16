@@ -543,9 +543,9 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
           componentRefEndpoint: nr.componentRefEndpoint || '',
           candidates: nr.weightCandidates || [],
           rejectedCandidates: nr.rejectedWeightCandidates || [],
-          weight: hasOverride ? overrideWeight : (nr.weightMatch?.weight || 0),
-          weightSource: hasOverride ? 'override' : (nr.weightMatch ? 'auto' : 'none'),
-          mapped: hasOverride || (nr.weightMatch && nr.weightMatch.weight > 0 && !nr.weightMatch.zeroFallback)
+          weight: hasOverride ? overrideWeight : (nr.weightMatch?.selectedOverride ? nr.weightMatch.weight : 0),
+          weightSource: hasOverride ? 'override' : (nr.weightMatch?.selectedOverride ? 'auto' : 'none'),
+          mapped: Boolean(hasOverride || (nr.weightMatch?.selectedOverride && nr.weightMatch.weight > 0 && !nr.weightMatch.zeroFallback)),
         };
 
         currentIssue = applyXmlCiiFlangeWeightFallbackToIssue(currentIssue, liveConfig);

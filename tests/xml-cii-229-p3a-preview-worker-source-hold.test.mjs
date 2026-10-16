@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {xml229PreviewSourceGate} from '../tabs/xml-cii-2019-standalone/integration/xml229-preview-source-gate.mjs';
 import {xmlCiiBuildAndRenderPreview} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js';
+import {runPreviewButtonSession} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js';
 import {XML_CII_PREVIEW_CACHE_KEY,XML_CII_PREVIEW_LEGACY_CACHE_KEY} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-cache-v7.js';
 
 const sha='6b2c8b01ab0ba6ec8e9e7c42eb4a719668ffd2dc4dbe4790d27cf426a1f60288';
@@ -73,3 +75,50 @@ test('P3A ordinary XML-only and existing real legacy JSON text remain eligible f
   assert.equal(xml229PreviewSourceGate({stagedJsonText:''}).blocked,false);
   assert.equal(xml229PreviewSourceGate({stagedJsonText:'{"current":true}'}).blocked,false);
 });
+
+test('P3A XML-only and non-indexed staged JSON never invoke resolveOriginalWorkerPreviewSource or throw XML229_PREVIEW_ORIGINAL_SOURCE_STALE', async () => {
+  let workerSourceInvoked = false;
+  const host = {
+    dataset: { mcPreviewSourceId: 'test-source' },
+    innerHTML: '',
+    querySelector() { return null; },
+  };
+  const rootEl = { querySelector: sel => sel === '#mc-preview-table-host' ? host : null };
+  const config = {
+    linelist: { masterRows: [{ line: 'L1' }] },
+    pipingClass: { masterRows: [{ class: 'PC1' }] },
+    material: { mapRows: [] },
+    weight: { masterRows: [] },
+    sourceMode: 'A',
+  };
+  const options = {
+    originalStagedSourceReceipt: null,
+    originalStagedSourceStatus: '',
+    resolveStagedJsonText: async () => '',
+    resolveOriginalWorkerPreviewSource: async () => {
+      workerSourceInvoked = true;
+      throw Object.assign(new Error('SHOULD_NOT_BE_INVOKED'), { code: 'XML229_PREVIEW_ORIGINAL_SOURCE_STALE' });
+    },
+  };
+  try {
+    await runPreviewButtonSession({
+      host, rootEl, xmlText: '<PipeStressExport><Line ID="L1"/></PipeStressExport>',
+      config, options,
+      renderResult: async () => true,
+    });
+  } catch {}
+  assert.equal(workerSourceInvoked, false, 'must not invoke original worker source when no indexed receipt is present');
+  assert.ok(!host.innerHTML.includes('XML229_PREVIEW_ORIGINAL_SOURCE_STALE'), 'must not fail with original source stale');
+});
+
+test('P3A tabs and docs parity is preserved for button session and diagnostics audit v7', async () => {
+  for (const file of [
+    'xml-cii-adapted-preview-facts-button-session.js',
+    'xml-cii-adapted-preview-diagnostics-audit-v7.js',
+  ]) {
+    const a = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/' + file, import.meta.url), 'utf8');
+    const b = await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/' + file, import.meta.url), 'utf8');
+    assert.equal(a, b, file + ' must have 0-diff parity between tabs/ and docs/tabs/');
+  }
+});
+

@@ -229,14 +229,19 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  };
  const applyPageFilter=()=>{
    const term=String(root.querySelector('[data-p4-filter]')?.value||'').toLowerCase().trim();
-   const unresolved=root.querySelector('[data-p4-filter-unresolved]')?.checked===true;
+   const stageFilter=String(root.querySelector('[data-p4-filter-stage]')?.value||'all').toLowerCase().trim();
+   const unresolved=root.querySelector('[data-p4-filter-unresolved]')?.checked===true||stageFilter==='unresolved';
    let visible=0;
    for(const tr of table.querySelectorAll('tr[data-p4-row]')){
      const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
-     const searchable=String(row?.sourceId||'')+' '+String(row?.occurrenceId||'')+
-       ' '+String(row?.branchOccurrenceIndex||'')+'/'+String(row?.nodeOrdinal||'');
-     const match=(!term||searchable.toLowerCase().includes(term))&&
-       (!unresolved||tr.dataset.p4Stage==='unresolved');
+     const searchable=[
+       row?.sourceId,row?.occurrenceId,row?.branchOccurrenceIndex,row?.nodeOrdinal,
+       row?.branchName,row?.nodeNumber,row?.componentType,row?.componentRefNo,
+       row?.componentRefEndpoint,row?.dtxr,row?.rating,row?.lengthMm,row?.boreMm,
+     ].map(x=>String(x||'')).join(' ').toLowerCase();
+     const stageMatch=stageFilter==='all'||tr.dataset.p4Stage===stageFilter;
+     const match=(!term||searchable.includes(term))&&
+       (!unresolved||tr.dataset.p4Stage==='unresolved')&&stageMatch;
      tr.hidden=!match;
      if(match)visible++;
    }
@@ -247,7 +252,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(event.target.closest?.('[data-p4-filter]'))applyPageFilter();
  });
  root.addEventListener('change',event=>{
-   if(event.target.closest?.('[data-p4-filter-unresolved]'))applyPageFilter();
+   if(event.target.closest?.('[data-p4-filter-unresolved]')||event.target.closest?.('[data-p4-filter-stage]'))applyPageFilter();
  });
  build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
@@ -267,14 +272,24 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  });
  root.addEventListener('click',async event=>{
    if(busy||!active)return;
+   const isBulk=event.target.closest?.('[data-p4-bulk-match1]');
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!candidateChip&&!isMatch&&!isFinal)return;
+   if(!isBulk&&!prev&&!next&&!candidateChip&&!isMatch&&!isFinal)return;
    busy=true;
    try{
+     if(isBulk){
+       say('Applying audited bulk Match-1 review for verified qualified candidates…');
+       const res=await active.bulkReviewMatch1({
+         reason:'Bulk accepted verified qualified exact suggestions',
+       });
+       await render();
+       say(`Bulk accepted ${res.acceptedCount} qualified candidate(s) as Match-1. Final Match-2 remains an explicit individual review.`);
+       return;
+     }
      if(prev||next){
        offset+=next?25:-25;await render();return;
      }

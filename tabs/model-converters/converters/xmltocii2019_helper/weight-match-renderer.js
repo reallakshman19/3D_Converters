@@ -313,7 +313,7 @@ function writeCache(storageKey, fingerprint, data) { try { const payload = JSON.
 export function invalidateXmlCiiWeightCache() { try { localStorage.removeItem(WM_CACHE_KEY); } catch {} }
 export function invalidateXmlCiiPreviewCache() { try { localStorage.removeItem(PV_CACHE_KEY); } catch {} }
 
-export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, onSaveConfig, ensureOverrides, resolveStagedJsonText, resolveConfig = null, weightDatasetRef = null, rankWeightIssues = null, prepareWeightBasis = null, resolveWeightValidationMasterRows = null }) {
+export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, config, onSaveConfig, ensureOverrides, resolveStagedJsonText, resolveConfig = null, weightDatasetRef = null, rankWeightIssues = null, prepareWeightBasis = null, resolveWeightValidationMasterRows = null, onWeightMatchBuilt = null }) {
   if (!detailEl) return;
   const contentEl = detailEl.querySelector('#mc-wm-content');
   const statusEl = detailEl.querySelector('#mc-wm-status');
@@ -380,7 +380,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     input.dataset.wmAccepted = 'true';
     const row = input.closest('tr');
     const statusCell = row?.querySelector('[data-wm-status-cell]');
-    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Suggested' : 'Accepted · Manual';
+    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Match-1' : 'Accepted · Manual';
     if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });
   };
   const drawRows = (issues) => {
@@ -406,6 +406,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     const authorityText = ratingMode === 'dtxr' ? 'Explicit DTXR Rating mode' : 'Manual → Preview → Rating prefix mapping';
     contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Rating authority: <strong>${esc(authorityText)}</strong>. Edit Rating to override this line or branch; ↓ fills the same piping class and rebuilds suggestions. <strong>Proposed</strong> values are not engineering authority until you select a candidate, edit/confirm the weight, or use an explicit accept/fill action; Typed entries are manual weights; accepted candidate selections are stored as Match-1. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (input) acceptCandidate(input, button.dataset.wmWeight || ''); }));
+    if (typeof onWeightMatchBuilt === 'function') onWeightMatchBuilt(localIssues);
   };
   const acceptCandidate = (input, value) => {
     input.value = String(value); input.dataset.wmSelectionOrigin = 'candidate';
