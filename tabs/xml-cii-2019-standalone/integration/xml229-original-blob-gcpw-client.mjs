@@ -178,6 +178,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readDecisions({stage='RigidMatch1'}={}){
      return rpc({kind:'read',what:'decisions',sourceId,stage});
    },
+   async readDecisionProvenance(){
+     return rpc({kind:'read',what:'decision-provenance',sourceId});
+   },
    async review({view,choice}={}){
      if(!view||!choice)
        throw err('EXPLICIT_REVIEW_REQUIRED','A current original physical view and explicit engineering decision required');
