@@ -140,6 +140,7 @@ test('source/docs parity and all native paths enforce opt-in rather than deletin
  'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
  'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js',
  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
+ 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',
  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js',
  'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js',
  'tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch-core.js',
@@ -151,6 +152,9 @@ test('source/docs parity and all native paths enforce opt-in rather than deletin
  }
  const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  assert.match(ui,/dataset\.action='xml229-output-participation'/);
+ const events=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js',import.meta.url),'utf8');
+ assert.match(events,/querySelectorAll/, 'CII artifact and canvas buttons must both be wired');
+ assert.match(events,/button => button\.addEventListener\('click', handler\)/);
  const standard=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js',import.meta.url),'utf8');
  const fast=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a-fast.js',import.meta.url),'utf8');
  for(const runner of [standard,fast]){
