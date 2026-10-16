@@ -10,7 +10,10 @@ import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
 import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-preview-b313-wall-audit-controller.js?v=20261001-weight-output-2';
 import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-output-2';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
-import {openXml229P4VerifiedSession} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {openXml229P4VerifiedSession,getXml229CurrentWorkerHeldReview}
+ from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {readXml229LivePreviewForCurrentInput}
+ from '../integration/xml229-live-preview-restoration.mjs';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import {
   saveMasterContextToLocalStorage,
@@ -180,7 +183,60 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
   };
 
   try {
-    const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    // Tab navigation recreates #mc-preview-table-host. Do not lose a LIVE,
+    // verified original-source engineering Preview or substitute an unrelated
+    // legacy localStorage result. A full reload without its Worker must Build.
+    const originalState=stateRef?.modeABaseRef?.current||state;
+    const governed=originalState?.xml229StagedSourceReceipt?.schema===
+      'XML229.OriginalStagedSourceReceipt.v1';
+    let previewResult=null;
+    const existing=governed?getXml229CurrentWorkerHeldReview(stateRef):null;
+    if(existing){
+      const isCurrent=()=>previewInputsCurrent(card,stateRef,
+        state.modeASourceId,sourceInputs) &&
+        currentJsonTraceScopeId()===capturedJsonTraceScopeId;
+      try{
+        const {result,proof,receipt}=await readXml229LivePreviewForCurrentInput({
+          session:existing,input:originalState,isCurrent,
+        });
+        if(!isCurrent())return;
+        previewResult=await xmlCiiBuildAndRenderPreview(card,xmlText,config,{
+          ...options,forceBuild:true,skipLegacyCache:true,
+          precomputedPreview:result,
+          precomputedStagedSource:{text:'',label:'original verified GC-PW Worker'},
+        });
+        if(!isCurrent())return;
+        host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
+        host.__xmlCiiVerifiedEngineeringReceipt=proof;
+        host.dataset.mcPreviewBasisId=receipt.basisId;
+        host.dataset.mcPreviewOriginalJsonSha256=proof.originalJsonSha256;
+        host.dataset.mcPreviewJsonSource='P4_ENGINEERING_VERIFIED';
+        const evidence=document.createElement('div');
+        evidence.setAttribute('data-mc-preview-verified-engineering','');
+        evidence.setAttribute('role','status');
+        evidence.className='model-converters-workflow-detail-note';
+        evidence.textContent='Restored current source-bound engineering Preview: '+
+          proof.verifiedPhysicalCount+' physical components / '+
+          proof.verifiedFactCount+' complete FactRecords. '+
+          'Match-1/Final are separately reviewed; native CII Run HELD.';
+        host.prepend(evidence);
+      }catch(error){
+        if(!isCurrent())return;
+        // The missing/stale Worker is not a license for legacy cache reuse.
+        // Only a bounded error code is exposed; private paths are not logged.
+        const code=String(error?.code||'PREVIEW_RESTORE_UNAVAILABLE');
+        const safeCode=/^[A-Z][A-Z0-9_]{2,79}$/.test(code)
+          ?code:'PREVIEW_RESTORE_UNAVAILABLE';
+        const notice=document.createElement('div');
+        notice.setAttribute('data-mc-preview-restore-held','');
+        notice.setAttribute('role','status');
+        notice.textContent='Source-bound Preview restore HELD ['+safeCode+
+          ']. Use Build Preview to verify current source and masters.';
+        host.append(notice);
+      }
+    }
+    if(!previewResult)previewResult=await xmlCiiBuildAndRenderPreview(
+      card,xmlText,config,{...options,skipLegacyCache:governed});
     if (previewResult?.blocked) return; // No computed rows or review snapshot.
     if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
     installPreviewB313WallUpdateAuditController({
