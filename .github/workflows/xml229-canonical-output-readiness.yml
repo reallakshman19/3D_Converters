@@ -6,6 +6,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/**'
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'tests/xml-cii-229-canonical-output-run-readiness.test.mjs'
+      - 'tests/xml-cii-229-xml-only-output-regression.test.mjs'
       - 'tests/xml-cii-229-canonical-readiness-worker.test.mjs'
       - 'tests/xml-cii-229-live-preview-restoration.test.mjs'
       - 'tests/xml-cii-229-run-stage-truth.test.mjs'
@@ -32,14 +33,18 @@ jobs:
       - name: Parse exact served modules
         run: |
           node --check tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+      - name: Load immutable pre-fix red control
+        run: git fetch --no-tags --depth=1 origin 7d2aa5300597fa8ddc3d47b1a492944229afa8a6
       - name: Run canonical readiness, session and Run hold regression
         run: |
           node --test tests/xml-cii-229-canonical-output-run-readiness.test.mjs
+          node --test tests/xml-cii-229-xml-only-output-regression.test.mjs
           node --test tests/xml-cii-229-canonical-readiness-worker.test.mjs
           node --test tests/xml-cii-229-live-preview-restoration.test.mjs
           node --test tests/xml-cii-229-run-stage-truth.test.mjs
@@ -48,6 +53,9 @@ jobs:
       - name: Verify source/docs asset parity
         run: |
           diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch-core.js docs/tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch-core.js
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs
           diff -u tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs
