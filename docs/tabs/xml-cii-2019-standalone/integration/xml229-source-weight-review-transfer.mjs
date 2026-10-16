@@ -55,28 +55,39 @@ export async function restoreXml229SourceBoundReviewBackup(review,backup,{
  basisId,sourceId,proof,
 }={}){
  checkProof(proof,basisId,sourceId);
- if(!obj(backup)||backup.schema!==SCHEMA||
-   backup.basisId!==basisId||backup.sourceId!==sourceId||
+ if(!obj(backup)||backup.schema!==SCHEMA)
+  fail('REVIEW_BACKUP_SCHEMA_INVALID','Expected original-source GC-PW review backup schema');
+ if(backup.basisId!==basisId||backup.sourceId!==sourceId||
    backup.originalJsonSha256!==proof.originalJsonSha256||
-   !sha(backup.originalJsonSha256)||
-   typeof backup.captureSourceGenerationId!=='string'||
-   !backup.captureSourceGenerationId||
-   backup.nativeCiiReleaseAuthorized!==false||
-   !count(backup.physicalCount)||backup.physicalCount!==proof.verifiedPhysicalCount||
-   backup.factCount!==proof.verifiedFactCount||
-   !validCounts(backup.counts)||
-   // Saved counts are EFFECTIVE precedence (Final > Match-1 > source).
-   // A reviewed Match-1 may supersede a real source mass: e.g. 31 source
-   // masses before restore, but 30 source + 1 Match-1 after restore.
-   // Exact InputBasis + 7x full facts attest immutable SOURCE masses;
-   // never require effective source counts to be equal pre/post review.
-   backup.counts.source>proof.counts.source||
-   backup.counts.source+backup.counts.match1+backup.counts.final+
-     backup.counts.unresolved!==proof.verifiedPhysicalCount||
-   !obj(backup.reviewState)||backup.reviewState.basisId!==basisId||
-   !sha(backup.reviewState.contentSha256))
+   !sha(backup.originalJsonSha256))
   fail('STALE_REVIEW_BACKUP',
-   'Saved review does not match the newly verified original source/masters InputBasis and census');
+   'Backup is bound to a different verified source, staged JSON or exact InputBasis');
+ if(typeof backup.captureSourceGenerationId!=='string'||
+   !backup.captureSourceGenerationId||
+   backup.nativeCiiReleaseAuthorized!==false)
+  fail('REVIEW_BACKUP_CAPTURE_INVALID',
+   'Backup must record the original source generation and native Run HELD');
+ if(!count(backup.physicalCount)||backup.physicalCount!==proof.verifiedPhysicalCount||
+    backup.factCount!==proof.verifiedFactCount)
+  fail('REVIEW_BACKUP_POPULATION_DRIFT',
+   'Physical occurrence and complete FactRecord census must match current verification');
+ if(!validCounts(backup.counts))
+  fail('REVIEW_BACKUP_COUNTS_INVALID',
+   'Every captured source, Match-1, Final and unresolved count must be bounded');
+ // Captured counts represent EFFECTIVE precedence (Final > Match-1 > source).
+ // A reviewed Match-1 can supersede one of the immutable original source
+ // masses; exact basis and seven fields per physical attest underlying data.
+ if(backup.counts.source>proof.counts.source)
+  fail('REVIEW_BACKUP_SOURCE_COUNT_DRIFT',
+    'A restored overlay cannot invent additional original source masses');
+ if(backup.counts.source+backup.counts.match1+backup.counts.final+
+    backup.counts.unresolved!==proof.verifiedPhysicalCount)
+  fail('REVIEW_BACKUP_SUM_DRIFT',
+   'Saved effective source + Match-1 + Final + unresolved census must be exact');
+ if(!obj(backup.reviewState)||backup.reviewState.basisId!==basisId||
+    !sha(backup.reviewState.contentSha256))
+  fail('REVIEW_BACKUP_LEDGER_DRIFT',
+   'Attested original-source portable GC-PW ledger and SHA256 required');
  if(typeof review?.restoreReviewState!=='function'||
     typeof review?.getDecisionState!=='function')
    fail('GC_PW_REVIEW_RESTORE_REQUIRED');
