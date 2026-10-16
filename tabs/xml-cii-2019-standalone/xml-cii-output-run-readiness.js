@@ -2,6 +2,7 @@ import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 import { projectXml229RunChecklist } from './integration/xml229-verified-output-readiness.mjs';
+import { hasXml229GovernedNativeHold } from './integration/xml229-output-participation.mjs';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -97,11 +98,18 @@ function selectedOriginalJsonSourceReceipts(input) {
   return [...(own ? [own] : []), ...selected];
 }
 export function hasOriginalJsonSourceOnlyRunHold(input = {}) {
-  return selectedOriginalJsonSourceReceipts(input).length > 0;
+  return hasXml229GovernedNativeHold(input);
 }
 function originalJsonAuthorityRows(input) {
   const receipts=selectedOriginalJsonSourceReceipts(input);
   if (!receipts.length) return [];
+  if (!hasOriginalJsonSourceOnlyRunHold(input))return [row(
+    'xml229-xml-only-output-participation',
+    'Explicit XML-only native output participation',
+    true,
+    'Owner selected current-basis XML-only conversion. Optional original JSON, GC-PW decisions and preview facts are excluded from the native conversion job; normal XML branch-format and converter preflights still apply.',
+    {blocking:false}
+  )];
   const phaseCounts = [...new Set(receipts.map(receipt => String(receipt?.phase || 'UNKNOWN')))];
   return [row('xml229-original-json-engineering-authority',
     'Original JSON → Preview → Weight/Final → native CII release authority',
