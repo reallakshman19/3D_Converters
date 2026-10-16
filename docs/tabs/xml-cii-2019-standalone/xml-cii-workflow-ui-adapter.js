@@ -3,6 +3,8 @@ import {
   normalizeXmlCiiBranchSelection,
 } from './xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 import { materializeXmlCiiDatasetBackedConfig } from './xml-cii-dataset-backed-config.js?v=20261007-c05-6-2-consumer-authority-1';
+import {hasXml229GovernedNativeHold,isXml229XmlOnlyApproved,sanitizeXml229XmlOnlyJob}
+  from './integration/xml229-output-participation.mjs';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
@@ -106,15 +108,22 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
 }
 
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
+  // Second, executable boundary; UI-only readiness can never bypass an O1 hold.
+  if(hasXml229GovernedNativeHold(state))
+    throw new Error('XML229_GOVERNED_NATIVE_CII_HELD');
+  const xmlOnly=isXml229XmlOnlyApproved(state);
+  if(!xmlOnly&&state.xml229XmlOnlyApproval)
+    throw new Error('XML229_XML_ONLY_BASIS_STALE');
   const [sourceFileText, stagedFileText] = await Promise.all([
     readTextFile(state.sourceFile),
-    readTextFile(state.stagedJsonFile),
+    xmlOnly?Promise.resolve(null):readTextFile(state.stagedJsonFile),
   ]);
-  const sourceText = String(state.branchScope?.filteredSourceText ?? sourceFileText ?? state.sourceText ?? '');
-  const stagedJsonText = String(state.branchScope?.filteredStagedJsonText ?? stagedFileText ?? state.stagedJsonText ?? '');
-  const branchScope = branchScopeFromState(state, sourceText, stagedJsonText);
+  const sourceText = String((xmlOnly?null:state.branchScope?.filteredSourceText) ?? sourceFileText ?? state.sourceText ?? '');
+  const stagedJsonText = xmlOnly?'':String(state.branchScope?.filteredStagedJsonText ?? stagedFileText ?? state.stagedJsonText ?? '');
+  const branchScope = branchScopeFromState(
+    xmlOnly?{...state,branchScope:null}:state,sourceText,stagedJsonText);
   if (branchScope.blocked) throw new Error('Select at least one source branch before running XML→CII.');
-  return {
+  const job = {
     sourceKind: state.sourceKind || 'auto',
     sourceText: branchScope.filteredSourceText,
     sourceName: sourceNameFromState(state),
@@ -129,6 +138,7 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     sifFacts: state.previewDiagnosticsAuditReport?.sifFacts || state.resolverJsonTraceResult?.sifFacts || [],
     branchSelection: branchScope.manifest,
   };
+  return xmlOnly?sanitizeXml229XmlOnlyJob(job):job;
 }
 
 export function sourceNameFromState(state) {
