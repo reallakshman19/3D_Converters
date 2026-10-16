@@ -189,11 +189,23 @@ try{
      document.querySelector('#weight-panel'),window.__p4StateRef,
      {resolveInputs:async()=>window.__p4Options,existingWorkflow:true});
  });
- await page.waitForFunction(()=>
-   document.querySelectorAll('tr[data-p4-row]').length===2 &&
-   /0 accepted Match-1, 0 accepted Final/.test(
-     document.querySelector('[data-p4-weight-status]')?.textContent||''),
-   {timeout:120000});
+ try{
+   await page.waitForFunction(()=>
+     document.querySelectorAll('tr[data-p4-row]').length===2 &&
+     /0 accepted Match-1, 0 accepted Final/.test(
+       document.querySelector('[data-p4-weight-status]')?.textContent||''),
+     null,{timeout:120000});
+ }catch(error){
+   const snapshot=await page.evaluate(()=>({
+     weightStatus:document.querySelector('[data-p4-weight-status]')?.textContent,
+     rows:document.querySelectorAll('tr[data-p4-row]').length,
+     previewStatus:document.querySelector('[data-p4-preview-status]')?.textContent,
+     connected:!!document.querySelector('[data-p4-weight-root]')?.isConnected,
+     errors:window.__p4Errors||[],
+   }));
+   throw new Error('Reattached Worker physical review did not render: '+
+     JSON.stringify(snapshot)+' | '+String(error?.message||error));
+ }
  assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V2',
