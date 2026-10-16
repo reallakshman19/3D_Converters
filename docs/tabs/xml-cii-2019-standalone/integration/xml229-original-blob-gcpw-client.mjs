@@ -62,10 +62,11 @@ export async function openXml229WorkerHeldOriginalWeightReview({
  if(!worker||typeof worker.postMessage!=='function'||
     typeof worker.addEventListener!=='function')
    throw err('ENGINEERING_WORKER_REQUIRED','Native original JSON source Worker required');
- let disposed=false,counter=0,ready=null,settle;
+ let disposed=false,counter=0,ready=null,settle,closureCode=null;
  const outstanding=new Map();
  const stop=error=>{
    if(disposed)return;disposed=true;ready=null;
+   closureCode=String(error?.code||'WORKER_TERMINATED').slice(0,80);
    try{worker.terminate()}catch{}
    for(const {reject} of outstanding.values())reject(error);
    outstanding.clear();
@@ -134,6 +135,8 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    // Read-only liveness; disposing a Worker must invalidate its registry
    // authority even when navigation leaves the original entry reachable.
    get closed(){return disposed;},
+   // Expose only a bounded lifecycle error code, never original source data.
+   get closureCode(){return closureCode;},
    originalPhysicalOccurrences:Object.freeze(census.independentPhysicalOccurrences.map(row=>({
      ...row,occurrenceId:physicalOccurrenceId(row),
    }))),
