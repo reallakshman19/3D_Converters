@@ -60,12 +60,20 @@ try{
    const config={weight:{masterRows:rows},overrides:{}};
    let current=true;
    const progress=[];
+   // Monotonic, non-authorizing stage timings for the actual Worker-held
+   // original JSON path. Do not collect raw source/master data or infer RAM.
+   const stageTimings=[];
+   const coldStartedMs=performance.now();
    const inputs={xmlText:xml,sourceId,masters,config,overrides:{},
      selection:[{sourceId,selectionRef:'all'}],
      originalStagedBlob:blob,originalStagedSourceReceipt:receipt,
      requestId:'owner-p4-authentic-source-one',
-     isCurrent:()=>current,onProgress:s=>progress.push(s)};
+     isCurrent:()=>current,onProgress:s=>{
+       progress.push(s);
+       stageTimings.push({stage:s,elapsedMs:Math.round(performance.now()-coldStartedMs)});
+     }};
    const remote=await openXml229WorkerHeldOriginalWeightReview(inputs);
+   const previewReadyElapsedMs=Math.round(performance.now()-coldStartedMs);
    const intentBefore=await remote.readNativeFinalIntent();
    const owner=remote.originalPhysicalOccurrences[0];
    const match1=await remote.readIndividual({
@@ -123,7 +131,8 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress,intentBefore,intentAfter,completeIntent,attested,badMass,duplicate,extra};
+     badReason,stale,changed,progress,previewReadyElapsedMs,stageTimings,
+     intentBefore,intentAfter,completeIntent,attested,badMass,duplicate,extra};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -176,6 +185,18 @@ try{
  assert.equal(data.changed,'STALE_INPUT');
  assert.equal(data.badBlob,'ORIGINAL_JSON_SHA256_DRIFT');
  assert(data.progress.includes('original-json-blob-sha256'));
+ // This stage exists only in the independent child Preview Worker. It is
+ // source-bound evidence of actual child execution, not a mass/Run approval.
+ assert(data.progress.includes('preview-json-byte-sha256'),
+   'No independent Preview Worker JSON SHA stage was observed');
+ assert(Number.isSafeInteger(data.previewReadyElapsedMs)&&data.previewReadyElapsedMs>=0);
+ assert(Array.isArray(data.stageTimings)&&data.stageTimings.length>0);
+ assert(data.stageTimings.every((entry,index,array)=>
+   typeof entry.stage==='string'&&Number.isSafeInteger(entry.elapsedMs)&&
+   entry.elapsedMs>=0&&entry.elapsedMs<=data.previewReadyElapsedMs&&
+   (index===0||entry.elapsedMs>=array[index-1].elapsedMs)),
+   'Stage durations must be ordered and bounded by cold Preview readiness');
+ assert(data.stageTimings.some(entry=>entry.stage==='preview-json-byte-sha256'));
  assert(data.progress.includes('gc-pw-one-basis-source-bound-weight-review'));
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_ORIGINAL_BLOB_V1',
