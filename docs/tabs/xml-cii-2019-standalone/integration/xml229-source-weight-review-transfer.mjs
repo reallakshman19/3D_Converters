@@ -5,6 +5,8 @@
  * SHA-256 is a corruption digest, NOT an authentication signature:
  * import files must remain Owner-controlled and exact-source bound.
  */
+import {projectXml229WeightDecisionProvenance}
+ from './xml229-weight-decision-provenance.mjs';
 const SCHEMA='XML229.SourceBoundGC-PWReviewBackup.v1';
 const fail=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
@@ -95,6 +97,16 @@ export async function restoreXml229SourceBoundReviewBackup(review,backup,{
  if(match1Only!==backup.counts.match1||finals.size!==backup.counts.final)
   fail('REVIEW_BACKUP_DECISION_CENSUS_DRIFT',
     'Saved accepted Match-1 and Final decisions differ from the captured full-population counts');
+ // Provenance consistency must be checked BEFORE mutating the current Worker
+ // ledger. An imported bulk command cannot regain its prior click evidence.
+ const candidateAudit=projectXml229WeightDecisionProvenance({
+  reviewState:backup.reviewState,basisId,sourceId,
+  completion:{...proof,counts:backup.counts,stageRevisions:backup.stageRevisions},
+  confirmedBulkCommandIds:[],
+ });
+ if(candidateAudit.summary.issues.some(i=>i!=='BULK_CONFIRMATION_NOT_PROVEN'))
+  fail('REVIEW_BACKUP_COMMAND_PROVENANCE_DRIFT',
+   'Saved source-bound command events or accepted decision census are inconsistent');
  // Portable service validates digest, every source occurrence, proposal value,
  // command provenance and frozen snapshot BEFORE any ledger is published.
  const result=await review.restoreReviewState({
