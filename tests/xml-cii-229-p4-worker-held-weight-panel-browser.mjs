@@ -152,7 +152,13 @@ try{
  // Reproduce production symptom: an existing reviewed Worker closes while
  // panel ownership remains in the browser. The next Weight tab render MUST
  // not query a terminated Worker or retain its old Match-1/Final rows.
- await page.evaluate(()=>window.__p4Panel.cancel());
+ await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   // Deliberate crash/cancellation without registry revoke: old production
+   // failure left this dead object published and Weight tried to read it.
+   getXml229CurrentWorkerHeldReview(window.__p4StateRef).cancel();
+ });
  const closed=await page.evaluate(async()=>{
    const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
