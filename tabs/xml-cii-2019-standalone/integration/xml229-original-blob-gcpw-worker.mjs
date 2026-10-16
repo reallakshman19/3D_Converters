@@ -33,6 +33,8 @@ import {buildXml229VerifiedWeightRowProjection}
  from './xml229-verified-weight-row-adapter.mjs';
 import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from './xml229-source-weight-bulk-review.mjs';
+import {projectXml229WeightDecisionProvenance}
+ from './xml229-weight-decision-provenance.mjs';
 
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
@@ -43,6 +45,8 @@ const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
 let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
 let weightProjection=null,pendingBulk=null,bulkSequence=0;
+// Only contemporaneous successful Worker RPCs prove bulk confirmation.
+let confirmedBulkCommands=new Set();
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
 const sourceReceiptCheck=(r,blob)=>{
@@ -241,6 +245,16 @@ async function rpc(req){
        releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
      };
    }
+   if(req.what==='decision-provenance'){
+     // Current complete engineering proof + original service command ledger.
+     // The raw command payloads remain inside this private Worker.
+     const completion=await rpc({...req,what:'completion'});
+     const reviewState=await review.exportReviewState({basisId});
+     return projectXml229WeightDecisionProvenance({
+       reviewState,basisId,sourceId,completion,
+       confirmedBulkCommandIds:[...confirmedBulkCommands],
+     });
+   }
    if(req.what==='page'){
      if(!Number.isSafeInteger(req.offset)||req.offset<0||
         !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25)
@@ -326,9 +340,12 @@ async function rpc(req){
  }
  if(req.kind==='bulk-commit'){
    const pending=pendingBulk;pendingBulk=null;
-   return commitXml229QualifiedBlankFill(review,{
+   const result=commitXml229QualifiedBlankFill(review,{
      basisId,sourceId,pending,planId:req.planId,
    });
+   if(result.acceptedCount>0)for(const cmd of pending.plan.commands)
+     confirmedBulkCommands.add(cmd.commandId);
+   return result;
  }
  if(req.kind==='decision'){
    pendingBulk=null;
@@ -347,10 +364,11 @@ async function rpc(req){
 self.addEventListener('message',async({data:req})=>{
  if(req?.protocol!==PROTOCOL||!req.requestId)return;
  if(req.kind==='cancel'&&req.requestId===active){
-   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;weightProjection=null;pendingBulk=null;
+   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;weightProjection=null;pendingBulk=null;confirmedBulkCommands=new Set();
    post(req.requestId,{state:'cancelled'});self.close();return;
  }
  if(req.kind==='start'){
+   confirmedBulkCommands=new Set();
    if(started){post(req.requestId,{state:'failed',error:{code:'ONE_SHOT_SOURCE_WORKER'}});return;}
    started=true;active=req.requestId;
    try{await start(req)}
