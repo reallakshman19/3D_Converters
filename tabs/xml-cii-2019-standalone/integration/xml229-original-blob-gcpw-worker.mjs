@@ -31,8 +31,8 @@ import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
 import {buildXml229VerifiedWeightRowProjection}
  from './xml229-verified-weight-row-adapter.mjs';
-import {planExactSourceWeightCommands,commitExactSourceWeightCommands}
- from '../../../converters/xml-cii2019-core/weight-facts-bulk-decisions.js';
+import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
+ from './xml229-source-weight-bulk-review.mjs';
 
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
@@ -298,37 +298,11 @@ async function rpc(req){
    }
    if(req.what==='bulk-plan'){
      pendingBulk=null;
-     const plan=planExactSourceWeightCommands(review,{basisId,scopeId:sourceId});
-     // The portable bulk planner is Match-1 scoped. Preserve ALREADY REVIEWED
-     // Final rows as an independent authority, including deferred/rejected
-     // Final decisions. Qualified competing masses are not unambiguous fill.
-     const finalState=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'});
-     let excludedFinal=0,ambiguousQualified=0;const commands=[];
-     for(let i=0;i<plan.commands.length;i+=80){
-       const chunk=plan.commands.slice(i,i+80);
-       const proposals=weightProjection.proposals(chunk.map(cmd=>cmd.occurrenceId));
-       for(const cmd of chunk){
-         if(Object.hasOwn(finalState.decisions,cmd.occurrenceId)){
-           excludedFinal++;continue;
-         }
-         const candidates=proposals.get(cmd.occurrenceId)||[];
-         const selected=candidates.find(p=>p.proposalId===cmd.proposalId);
-         if(!selected?.qualified||candidates.some(p=>
-           p.qualified&&p.proposalId!==cmd.proposalId&&p.value!==selected.value)){
-           ambiguousQualified++;continue;
-         }
-         commands.push(cmd);
-       }
-     }
-     const guarded={...plan,commands,qualified:commands.length};
-     const planId=JSON.stringify([basisId,sourceId,plan.expectedDecisionRevision,
-       finalState.decisionRevision,++bulkSequence,commands.length]);
-     pendingBulk={planId,plan:guarded,finalRevision:finalState.decisionRevision};
-     return {planId,basisId,qualified:guarded.qualified,unresolved:plan.unresolved,
-       excludedFinal,ambiguousQualified,
-       preservedSourceWeights:plan.preservedSourceWeights,
-       alreadyReviewed:plan.alreadyReviewed,physicalCount:plan.physicalCount,
-       reviewStage:'RigidMatch1',finalAcceptedAutomatically:false};
+     const result=planXml229QualifiedBlankFill(review,weightProjection,{
+       basisId,sourceId,sequence:++bulkSequence,
+     });
+     pendingBulk=result.pending; // Worker private; only planId + summary leave.
+     return result.summary;
    }
    if(req.what==='individual'){
      return readVerifiedIndividualWeightReview(ready,{sourceId,occurrenceId,stage});
@@ -351,17 +325,10 @@ async function rpc(req){
    fail('UNKNOWN_READ_KIND','Fact/proposal/individual/decisions only');
  }
  if(req.kind==='bulk-commit'){
-   if(!pendingBulk||req.planId!==pendingBulk.planId)
-     fail('BULK_PLAN_STALE','Review the current qualified blank-only bulk plan first');
-   const {plan,finalRevision}=pendingBulk;pendingBulk=null;
-   const currentFinal=review.getDecisionState({
-     basisId,scopeId:sourceId,stage:'Rigidmatch2'});
-   if(currentFinal.decisionRevision!==finalRevision||
-      plan.commands.some(cmd=>Object.hasOwn(currentFinal.decisions,cmd.occurrenceId)))
-     fail('BULK_FINAL_REVIEW_CHANGED','Final review changed since blank-only bulk proposal; replan');
-   const results=commitExactSourceWeightCommands(review,plan);
-   return {basisId,acceptedCount:results.length,stage:'RigidMatch1',
-     finalAcceptedAutomatically:false};
+   const pending=pendingBulk;pendingBulk=null;
+   return commitXml229QualifiedBlankFill(review,{
+     basisId,sourceId,pending,planId:req.planId,
+   });
  }
  if(req.kind==='decision'){
    pendingBulk=null;
