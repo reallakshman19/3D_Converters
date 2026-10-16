@@ -217,6 +217,31 @@ try{
   // not silently open a different weight/final decision population.
   const firstBasis=actual.basisId;
   await page.locator('[data-phase="preview"]').click();
+  // Exact Owner regression: navigating 4 Preview -> 6 Weight -> 4 Preview
+  // must rehydrate the visible original engineering rows from the SAME live
+  // Worker (never from an unauthenticated localStorage Preview cache).
+  await page.locator('[data-mc-preview-verified-engineering]').waitFor({timeout:120000});
+  const revisited=await page.locator('#mc-preview-table-host').evaluate(host=>({
+    status:host.dataset.mcPreviewJsonSource,
+    basisId:host.dataset.mcPreviewBasisId,
+    cacheStatus:host.dataset.mcPreviewCacheStatus,
+    tableCount:host.querySelectorAll('table').length,
+    branchCount:host.__xmlCiiPreviewResult?.branchRows?.length||0,
+    facts:host.__xmlCiiVerifiedEngineeringReceipt?.verifiedFactCount||0,
+    note:host.querySelector('[data-mc-preview-verified-engineering]')?.textContent||'',
+  }));
+  record.stages.revisitedPreview=revisited;
+  assert.equal(revisited.status,'P4_ENGINEERING_VERIFIED',
+    'return to 4 Preview lost source-bound Worker engineering proof');
+  assert.equal(revisited.basisId,firstBasis,
+    'tab navigation replaced original Preview/GC-PW input basis');
+  assert.equal(revisited.branchCount,actual.branchCount);
+  assert.equal(revisited.facts,217);
+  assert.ok(revisited.tableCount>0,'revisited Preview omitted its editable data table');
+  assert.match(revisited.note,/Restored current source-bound engineering Preview/);
+  assert.equal(revisited.cacheStatus,'UNCACHED',
+    'revisited original Preview may never claim localStorage cache HIT');
+  // Explicit rebuild on the unchanged basis must still retain Match-1/Final.
   await page.locator('#mc-preview-table-host [data-mc-preview-build]').first().click();
   await page.waitForFunction(()=>{
     const host=document.querySelector('#mc-preview-table-host');
