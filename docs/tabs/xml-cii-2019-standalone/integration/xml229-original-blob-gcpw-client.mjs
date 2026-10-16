@@ -179,6 +179,10 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readCompletion(){
      return rpc({kind:'read',what:'completion',sourceId});
    },
+   // Aggregate-only source-bound review evidence; no raw physical owners.
+   async readCandidateCoverage(){
+     return rpc({kind:'read',what:'candidate-coverage',sourceId});
+   },
    async readPreviewResult(){
      const result=await rpc({kind:'read',what:'preview',sourceId});
      if(result?.engineeringAcceptance!=='NOT_ASSESSED'||

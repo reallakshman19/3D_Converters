@@ -77,6 +77,7 @@ try{
    // Freeze the Preview-only window. Subsequent review/transfer RPCs may
    // report later progress and must not distort cold Preview readiness.
    const previewStageTimings=stageTimings.slice();
+   const coverageBefore=await remote.readCandidateCoverage();
    const intentBefore=await remote.readNativeFinalIntent();
    const owner=remote.originalPhysicalOccurrences[0];
    const match1=await remote.readIndividual({
@@ -106,6 +107,7 @@ try{
        reason:'Independent Final engineering approval of original occurrence '+n}});
    }
    const completeIntent=await remote.readNativeFinalIntent();
+   const coverageAfter=await remote.readCandidateCoverage();
    const enriched=xml.replace('<Weight>0</Weight>','<Weight>40</Weight>')
      .replace('<Weight>0</Weight>','<Weight>50</Weight>')
      .replace('<Weight>0</Weight>','<Weight>51</Weight>');
@@ -135,7 +137,8 @@ try{
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
      badReason,stale,changed,progress,previewReadyElapsedMs,stageTimings:previewStageTimings,
-     intentBefore,intentAfter,completeIntent,attested,badMass,duplicate,extra};
+     intentBefore,intentAfter,completeIntent,coverageBefore,coverageAfter,
+     attested,badMass,duplicate,extra};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
    const bad=await openXml229WorkerHeldOriginalWeightReview({
@@ -151,6 +154,20 @@ try{
  assert.equal(data.receipt.finalEngineeringAccepted,false);
  assert.equal(data.physCount,3);
  assert.equal(data.factsCount,21);
+ assert.equal(data.coverageBefore.schema,'XML229.G3.CandidateCoverageReport.v1');
+ assert.equal(data.coverageBefore.physicalCount,3);
+ assert.equal(data.coverageBefore.verifiedFactCount,21);
+ assert.equal(data.coverageBefore.counts.acceptedFinalCount,0);
+ assert.equal(data.coverageBefore.counts.acceptedMatch1Count,0);
+ assert.equal(data.coverageBefore.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.coverageAfter.counts.acceptedFinalCount,3);
+ assert.equal(data.coverageAfter.counts.acceptedMatch1Count,1);
+ assert.equal(data.coverageAfter.nativeCiiReleaseAuthorized,false);
+ assert.equal(data.coverageAfter.proposalCount,
+   data.coverageAfter.counts.qualifiedCandidateCount+
+   data.coverageAfter.counts.unqualifiedCandidateCount);
+ assert(!Object.hasOwn(data.coverageBefore,'occurrenceIds'));
+ assert(!Object.hasOwn(data.coverageAfter,'candidates'));
  assert.equal(data.match1Before,null);
  assert.equal(data.finalBefore,null);
  assert.equal(data.acceptedMatch1,35);
