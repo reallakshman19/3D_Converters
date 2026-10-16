@@ -287,6 +287,27 @@ try{
       assert.equal(finalStill,'40 kg','bulk Match-1 overwrote independently reviewed Final');
     }
   }
+  // Source-basis-pinned GC-PW provenance audit is inspectable even with
+  // native Run HELD. The Firstpass public fixture has original source masses.
+  const auditButton=page.locator('[data-p4-audit-decisions]');
+  await auditButton.waitFor();
+  const [auditDownload]=await Promise.all([
+    page.waitForEvent('download'),auditButton.click(),
+  ]);
+  assert.equal(auditDownload.suggestedFilename(),'xml229-weight-decision-provenance.json');
+  const audited=JSON.parse(await readFile(await auditDownload.path(),'utf8'));
+  assert.equal(audited.schema,'XML229.WeightDecisionProvenanceAudit.v1');
+  assert.equal(audited.basisId,firstBasis);
+  assert.equal(audited.population.physicalCount,31);
+  assert.equal(audited.population.factCount,217);
+  assert.equal(audited.population.counts.source,31);
+  assert.equal(audited.summary.nativeCiiReleaseAuthorized,false);
+  assert.equal(audited.summary.provenanceComplete,true);
+  assert.equal(audited.summary.auditedAcceptedDecisions,0);
+  record.stages.weightProvenanceAudit={
+    basisId:audited.basisId,summary:audited.summary,
+    physicalCount:audited.population.physicalCount,
+  };
   await page.locator('[data-phase="run"]').click();
   await page.waitForFunction(()=>{
     const section=document.querySelector('[data-active-phase="run"]');
@@ -295,6 +316,11 @@ try{
         tr.children[1]?.textContent==='Original Preview engineering facts'&&
         tr.children[2]?.textContent==='ready');
   },null,{timeout:30000});
+  assert.equal(await page.locator('.xml229-run-checklist-scroll').count(),1,
+    'Output checklist must be readable with horizontal scroll');
+  const minWidth=await page.locator('.xml229-run-checklist-scroll table')
+    .evaluate(el=>el.style.minWidth);
+  assert.equal(minWidth,'1200px');
   record.stages.runText=await page.locator('[data-active-phase="run"]').textContent();
   assert.match(record.stages.runText,/HELD|blocking|Native CII|Run remains/i);
   assert.match(record.stages.runText,/Original Preview engineering facts/);
