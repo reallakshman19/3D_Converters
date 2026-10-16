@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {reconcileXml229CandidateCoverage as reconcile}
  from '../contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs';
 const s='a'.repeat(64),h='b'.repeat(64);
@@ -117,4 +118,11 @@ test('missing revision keys cannot impersonate matching no-decision states',()=>
  assert.equal(reconcile(p).status,'INCOMPLETE');
  const q=pair();q.readiness.stageRevisions.S1={};
  has(reconcile(q),'G3_G4_REVIEW_REVISION_DRIFT');
+});
+
+test('reconciliation contract is byte-identical in served docs Worker asset tree',async()=>{
+ const moduleUrl=new URL('../contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs',import.meta.url);
+ const docsUrl=new URL('../docs/contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs',import.meta.url);
+ const [source,served]=await Promise.all([readFile(moduleUrl,'utf8'),readFile(docsUrl,'utf8')]);
+ assert.equal(served,source,'the browser Worker must resolve the same reconciliation contract');
 });
