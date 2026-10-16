@@ -10,6 +10,8 @@ import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-source-weight-bulk-review.mjs';
 import {projectXml229WeightDecisionProvenance}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-decision-provenance.mjs';
+import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs';
 
 const hash=x=>createHash('sha256').update(String(x)).digest('hex');
 const basis={
@@ -29,7 +31,7 @@ const physical=i=>({
  originalWeight:i===0?59:null,
 });
 const id=i=>'one/branch:'+i+'/physical:0';
-function harness(count=112){
+function harness(count=112,{reviewed=true}={}){
  const facts=Array.from({length:count},(_,i)=>legacyXmlCiiWeightFacts(
   [physical(i)],basis,'one')).flat();
  const score=(rows,b)=>{
@@ -59,6 +61,7 @@ function harness(count=112){
   }
   return found;
  }};
+ if(reviewed){
  const manual=service.applyDecisions({basisId:basis.basisId,scopeId:'one',
   stage:'RigidMatch1',commands:[{
    commandId:'explicit-manual-one',basisId:basis.basisId,scopeId:'one',
@@ -77,6 +80,7 @@ function harness(count=112){
  assert.equal(final.state,'accepted');
  assert.equal(service.getDecisionState({basisId:basis.basisId,scopeId:'one',
   stage:'Rigidmatch2'}).decisions[id(2)].value,22);
+ }
  return {service,projection};
 }
 const plan=(h,sequence=1)=>planXml229QualifiedBlankFill(
@@ -237,4 +241,100 @@ test('audit fails closed for stale source, modified receipt and decision/complet
  });
  assert.equal(drift.summary.provenanceComplete,false);
  assert(drift.summary.issues.includes('COMPLETION_DECISION_CENSUS_MISMATCH'));
+});
+
+const proofForBackup=(count,counts,gen='GEN-ORIGINAL')=>({
+ basisId:basis.basisId,sourceId:'one',
+ originalJsonSha256:basis.stagedSourceSha256,
+ sourceGenerationId:gen,
+ engineeringFactsVerified:true,ciiReleaseAuthorized:false,
+ verifiedPhysicalCount:count,verifiedFactCount:count*7,counts,
+ stageRevisions:{one:{match1:'m1',final:'f1'}},
+});
+
+test('explicit GC-PW file export → fresh attested basis restore preserves 107 bulk + manual Match-1 + distinct Final',async()=>{
+ const old=harness(),prepared=plan(old);confirm(old,prepared.pending);
+ const before=proofForBackup(112,{source:1,match1:108,final:1,unresolved:2});
+ const backup=await exportXml229SourceBoundReviewBackup(old.service,{
+  basisId:basis.basisId,sourceId:'one',proof:before});
+ assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
+ assert.equal(backup.counts.match1,108);
+ assert.equal(backup.captureSourceGenerationId,'GEN-ORIGINAL');
+ assert.equal(backup.nativeCiiReleaseAuthorized,false);
+ assert.equal(backup.reviewState.schemaVersion,WEIGHT_SCHEMA);
+ assert.match(backup.reviewState.contentSha256,/^[0-9a-f]{64}$/);
+ const fresh=harness(112,{reviewed:false});
+ assert.equal(Object.keys(decisions(fresh,'RigidMatch1')).length,0);
+ const current=proofForBackup(112,{source:1,match1:0,final:0,unresolved:111},'GEN-REBUILT');
+ const result=await restoreXml229SourceBoundReviewBackup(fresh.service,backup,{
+  basisId:basis.basisId,sourceId:'one',proof:current});
+ assert.equal(result.match1Only,108);
+ assert.equal(result.final,1);
+ assert.equal(result.capturedSourceGenerationId,'GEN-ORIGINAL');
+ assert.equal(result.currentSourceGenerationId,'GEN-REBUILT');
+ assert.equal(result.nativeCiiReleaseAuthorized,false);
+ assert.equal(result.priorBulkConfirmationStatus,'not independently proven after reload');
+ assert.equal(Object.keys(decisions(fresh,'RigidMatch1')).length,108);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(1)].value,20);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(111)].value,15);
+ assert.equal(decisions(fresh,'Rigidmatch2')[id(2)].value,22);
+ const recaptured=await exportXml229SourceBoundReviewBackup(fresh.service,{
+  basisId:basis.basisId,sourceId:'one',proof:{...current,
+   counts:{source:1,match1:108,final:1,unresolved:2}}});
+ assert.deepEqual(recaptured.reviewState,backup.reviewState,
+  'exact command ledger, source evidence and Final preserved across restart');
+ const audit=projectXml229WeightDecisionProvenance({
+  reviewState:recaptured.reviewState,basisId:basis.basisId,sourceId:'one',
+  completion:{...current,counts:recaptured.counts}});
+ assert.equal(audit.summary.bulkConfirmationUnknown,107,
+  'reloaded command ledger is NOT an independent bulk click attestation');
+ await assert.rejects(restoreXml229SourceBoundReviewBackup(fresh.service,backup,{
+  basisId:basis.basisId,sourceId:'one',proof:current}),
+  e=>e.code==='REVIEW_BACKUP_LIVE_REVIEW_CONFLICT');
+});
+
+test('GC-PW restore refuses modified file digest, source/master basis, count mismatch and forged accepted ledger',async()=>{
+ const reviewed=harness(14),plan1=plan(reviewed);confirm(reviewed,plan1.pending);
+ const backup=await exportXml229SourceBoundReviewBackup(reviewed.service,{
+  basisId:basis.basisId,sourceId:'one',
+  proof:proofForBackup(14,{source:1,match1:10,final:1,unresolved:2})});
+ const current=proofForBackup(14,{source:1,match1:0,final:0,unresolved:13},'GEN-NEW');
+ const attempt=async file=>restoreXml229SourceBoundReviewBackup(
+  harness(14,{reviewed:false}).service,file,{
+   basisId:basis.basisId,sourceId:'one',proof:current});
+ const corrupted=structuredClone(backup);
+ corrupted.reviewState.reviewStates[0].decisions[id(1)].value=777;
+ await assert.rejects(attempt(corrupted),e=>e.code==='REVIEW_DIGEST_MISMATCH'||
+  e.code==='REVIEW_BACKUP_COMMAND_PROVENANCE_DRIFT');
+ const wrongSha=structuredClone(backup);wrongSha.originalJsonSha256='f'.repeat(64);
+ await assert.rejects(attempt(wrongSha),e=>e.code==='STALE_REVIEW_BACKUP');
+ const wrongBasis=structuredClone(backup);wrongBasis.basisId='f'.repeat(64);
+ await assert.rejects(attempt(wrongBasis),e=>e.code==='STALE_REVIEW_BACKUP');
+ const wrongPopulation=structuredClone(backup);wrongPopulation.factCount=97;
+ await assert.rejects(attempt(wrongPopulation),e=>e.code==='STALE_REVIEW_BACKUP');
+ const wrongCount=structuredClone(backup);wrongCount.counts.match1=9;
+ wrongCount.counts.unresolved=3;
+ await assert.rejects(attempt(wrongCount),e=>e.code==='REVIEW_BACKUP_DECISION_CENSUS_DRIFT');
+ const forged=structuredClone(backup);
+ forged.reviewState.reviewStates[0].decisions[id(1)].value=777;
+ forged.reviewState.contentSha256=hash(JSON.stringify((({contentSha256,...rest})=>rest)(
+  forged.reviewState)));
+ await assert.rejects(attempt(forged),e=>
+  e.code==='REVIEW_BACKUP_COMMAND_PROVENANCE_DRIFT');
+ const crossSource=structuredClone(backup);crossSource.sourceId='not-this-source';
+ await assert.rejects(attempt(crossSource),e=>e.code==='STALE_REVIEW_BACKUP');
+});
+
+test('GC-PW review transfer does not add a new decision writer, passes source/docs mirror',async()=>{
+ const path='tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs';
+ const code=await readFile(new URL('../'+path,import.meta.url),'utf8');
+ assert.equal(code,await readFile(new URL('../docs/'+path,import.meta.url),'utf8'));
+ assert.match(code,/review\.exportReviewState/);
+ assert.match(code,/review\.restoreReviewState/);
+ assert.match(code,/REVIEW_BACKUP_LIVE_REVIEW_CONFLICT/);
+ assert.match(code,/projectXml229WeightDecisionProvenance/);
+ const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
+ assert.match(worker,/req\.what==='review-backup'/);
+ assert.match(worker,/req\.kind==='restore-review'/);
+ assert.match(worker,/restoringReview=true/);
 });
