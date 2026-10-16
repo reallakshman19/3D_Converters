@@ -550,20 +550,30 @@ try{
   };
   // Full native output execution, not just a mock or readiness/button check.
   await page.locator('[data-action="run"]').click();
+  // The native runner has a separate rigid-weight popup. In this disposable
+  // test, skip unreviewed suggestions; never invent an accepted Weight/Final.
   await page.waitForFunction(()=>{
-    const btn=document.querySelector('[data-action="run"]');
-    const cii=document.querySelector('[data-action="download-cii"]');
-    const text=document.querySelector('[data-active-phase="run"]')?.textContent||'';
-    return cii?.disabled===false||(!btn?.disabled&&(
-      /Conversion failed|Run failed|Run error|run-result/.test(text)));
+    const popup=document.querySelector('[data-rigid-review-skip]');
+    const download=document.querySelector('.xml-cii-adapted-cii-download');
+    const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .find(x=>x.children[0]?.textContent==='run-result');
+    return !!popup||download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
   },null,{timeout:180000});
-  const nativeEnabled=await page.locator('[data-action="download-cii"]').isEnabled();
+  const skip=page.locator('[data-rigid-review-skip]');
+  if(await skip.count())await skip.click();
+  await page.waitForFunction(()=>{
+    const download=document.querySelector('.xml-cii-adapted-cii-download');
+    const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .find(x=>x.children[0]?.textContent==='run-result');
+    return download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
+  },null,{timeout:180000});
+  const nativeEnabled=await page.locator('.xml-cii-adapted-cii-download').isEnabled();
   record.stages.xmlOnlyNativeRun={downloadEnabled:nativeEnabled,
-    resultText:(await page.locator('[data-active-phase="run"]').innerText()).slice(0,2600)};
+    resultText:(await page.locator('[data-active-phase="run"]').innerText()).slice(0,4600)};
   assert.equal(nativeEnabled,true,'Explicit XML-only job did not generate a downloadable .cii');
   const [ciiDownload]=await Promise.all([
     page.waitForEvent('download'),
-    page.locator('[data-action="download-cii"]').click(),
+    page.locator('.xml-cii-adapted-cii-download').click(),
   ]);
   const ciiBytes=await readFile(await ciiDownload.path());
   record.stages.xmlOnlyNativeRun.ciiFile=ciiDownload.suggestedFilename();
