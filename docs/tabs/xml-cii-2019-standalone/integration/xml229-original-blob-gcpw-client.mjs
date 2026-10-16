@@ -131,6 +131,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
  };
  return Object.freeze({
    receipt:ready,
+   // Read-only liveness; disposing a Worker must invalidate its registry
+   // authority even when navigation leaves the original entry reachable.
+   get closed(){return disposed;},
    originalPhysicalOccurrences:Object.freeze(census.independentPhysicalOccurrences.map(row=>({
      ...row,occurrenceId:physicalOccurrenceId(row),
    }))),
