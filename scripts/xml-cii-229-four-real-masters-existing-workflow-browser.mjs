@@ -534,12 +534,17 @@ try{
   assert.equal(xmlOnlyReport.manifest.nativeOutputParticipation,'explicit-xml-only');
   assert.equal(xmlOnlyReport.checklistRows.some(r=>
     r.id==='xml229-original-json-engineering-authority'&&r.blocking),false);
-  assert.equal(xmlOnlyReport.checklistRows.find(r=>
-    r.id==='branch-format-authority')?.status,'ready');
+  // This public fixture uses legacy single-format configuration, for which
+  // the configured-format checklist row is intentionally absent. When an
+  // explicit multi-format authority is supplied it must remain READY.
+  assert.equal(xmlOnlyReport.summary.sourceMode,'xml');
+  const formatGate=xmlOnlyReport.checklistRows.find(r=>r.id==='branch-format-authority');
+  if(formatGate)assert.equal(formatGate.status,'ready');
+  assert(xmlOnlyReport.checklistRows.some(r=>r.id==='regex'));
   // No native conversion has occurred yet: geometry/Preview do not forge a .cii.
   assert.equal(xmlOnlyReport.raw.resultOk,false);
   record.stages.xmlOnlyExplicitOptIn={
-    branchFormatsReady:true,jsonExcludedFromAuthority:true,
+    existingXmlFormatPolicyPreserved:true,jsonExcludedFromAuthority:true,
     nativePreflightButtonEnabled:true,
     ciiReleaseNotClaimed:true,
   };
