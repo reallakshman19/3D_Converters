@@ -296,7 +296,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   if (!host) return { branchRows: [], nodeRows: [] };
 
   const _pvFp = pvCacheFingerprint(xmlText, config);
-  const _pvCached = !forceBuild ? readCache(PV_CACHE_KEY) : null;
+  const _pvCached = !forceBuild && !options.skipLegacyCache ? readCache(PV_CACHE_KEY) : null;
   const _pvFromCache = _pvCached?.fp === _pvFp && Array.isArray(_pvCached?.data?.branchRows) && _pvCached.data.branchRows.length > 0;
 
   if (!forceBuild && !_pvFromCache) {

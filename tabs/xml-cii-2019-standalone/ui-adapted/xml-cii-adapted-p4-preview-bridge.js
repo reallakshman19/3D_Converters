@@ -60,6 +60,10 @@ export function installXml229P4PreviewBridge(container,stateRef,{
  build.addEventListener('click',async()=>{
    if(busy||disposed)return;busy=true;build.disabled=true;
    facts.replaceChildren();
+   // The previous green VERIFIED label belongs to the old Worker. Clear it
+   // immediately, before async master hydration or source attestation begins.
+   say('Reverifying original XML, staged JSON Blob and four masters in isolated '+
+     'Workers. Prior Preview proof cannot be reused while this build runs.',true);
    try{
      const session=await openXml229P4VerifiedSession(stateRef,{
        resolveInputs,onProgress:stage=>say('Engineering Preview Worker: '+stage),

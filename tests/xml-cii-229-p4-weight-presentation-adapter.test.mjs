@@ -30,7 +30,10 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
  assert.match(html,/data-p4-filter-unresolved/);
  assert.match(html,/423 components/);
  assert.match(html,/showing 1–1/);
- assert.match(html,/Suggestions are evidence, never automatically accepted/);
+ assert.match(html,/Candidate chips are draft evidence/);
+ assert.equal((html.match(/<th style=/g)||[]).length,13);
+ assert.match(html,/data-p4-bulk-plan/);
+ assert.match(html,/data-p4-scope="rigid"/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
@@ -94,13 +97,18 @@ test('5 Run distinguishes unperformed independent stages but cannot admit a bloc
 test('adapter uses Worker readPage/review and keeps native Run HOLD and full source custody',async()=>{
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
- assert.match(panel,/active\.readPage\(\{offset,limit:25\}\)/);
+ assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
+   'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
+ assert.match(panel,/planQualifiedBlankFill/);
+ assert.match(panel,/commitQualifiedBlankFill/);
  assert.match(panel,/await active\.review\(\{view,choice\}\)/);
  assert.match(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
- assert.match(run,/xml229UnbuiltIndependentStage/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
- assert.match(run,/fullyFinal\?'ready':'pending'/);
+ assert.match(run,/verifiedEngineering:/);
+ assert(run.includes('paint(verifiedReport,latest)'), 'must paint one verified canonical report using the latest workflow state');
+ assert.doesNotMatch(run,/tr\.children\[2\]\.textContent=status/,
+   'verification must publish one report, never hand-edit a checklist cell');
 });
 
 test('served production route is byte-identical to owned root files',async()=>{

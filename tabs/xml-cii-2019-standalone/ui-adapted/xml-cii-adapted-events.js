@@ -336,4 +336,10 @@ export function downloadArtifact(state, kind) {
 
 export function parseTriState(value) { if (value === 'true') return true; if (value === 'false') return false; return null; }
 export function onChange(container, field, handler) { container.querySelector(`[data-field="${field}"]`)?.addEventListener('change', (event) => handler(event.target.value, event)); }
-export function onClick(container, action, handler) { container.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler); }
+export function onClick(container, action, handler) {
+  // Output/Run has both the artifact download and CII Preview download
+  // controls with data-action="download-cii". Both must invoke the same
+  // source-bound artifact handler; querySelector() silently left the latter inert.
+  container.querySelectorAll(`[data-action="${action}"]`).forEach(
+    button => button.addEventListener('click', handler));
+}

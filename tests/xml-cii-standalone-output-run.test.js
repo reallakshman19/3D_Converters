@@ -2,13 +2,22 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
+const { createStaticEsmFixture, staticModuleSpecifiers } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 
 function prepareEsmFixture() {
-  return createStaticEsmFixture(root, {
+  // Regression: a side-effect migration import immediately preceding a named
+  // import must not be consumed by the multiline import regexp.
+  const imports = staticModuleSpecifiers(
+    "import './xml-cii-adapted-authority-migration.js';\n" +
+    "import { buildPreview } from './xml-cii-adapted-preview-dryrun-core.js?v=1';\n"
+  );
+  assert(imports.includes('./xml-cii-adapted-authority-migration.js'),
+    'side-effect schema migration missing from ESM fixture dependency closure');
+  assert(imports.includes('./xml-cii-adapted-preview-dryrun-core.js?v=1'));
+  const fixture = createStaticEsmFixture(root, {
     prefix: 'xml-cii-output-run-test-',
     entryFiles: [
       'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
@@ -17,7 +26,11 @@ function prepareEsmFixture() {
       'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
       'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     ],
-  }).tempRoot;
+  });
+  assert(fixture.files.includes(
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-authority-migration.js'
+  ), 'Run UI fixture must copy its real schema/cache migration side-effect import');
+  return fixture.tempRoot;
 }
 
 class TestElement {
@@ -25,8 +38,28 @@ class TestElement {
     this.tagName = tag; this.children = []; this.dataset = {}; this.className = ''; this.attributes = {};
     this.value = ''; this.checked = false; this.disabled = false; this.style = {}; this._text = ''; this.listeners = {};
   }
-  appendChild(child) { this.children.push(child); return child; }
-  append(...items) { for (const item of items) this.children.push(item); }
+  appendChild(child) {
+    if (this.tagName === 'tr' && child && (child.tagName === 'td' || child.tagName === 'th')) {
+      child.cellIndex = this.children.filter((item) =>
+        item && (item.tagName === 'td' || item.tagName === 'th')).length;
+    }
+    this.children.push(child);
+    return child;
+  }
+  append(...items) { for (const item of items) this.appendChild(item); }
+  querySelectorAll(selector) {
+    // Minimal real DOM-equivalent tag traversal needed for checklist cells.
+    // Do not replace production table rendering with a test-only shortcut.
+    const tag = String(selector).toLowerCase();
+    const found = [];
+    const walk = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (String(node.tagName || '').toLowerCase() === tag) found.push(node);
+      for (const child of node.children || []) walk(child);
+    };
+    for (const child of this.children) walk(child);
+    return found;
+  }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   addEventListener(type, handler) { this.listeners[type] = handler; }
   removeEventListener(type) { delete this.listeners[type]; }

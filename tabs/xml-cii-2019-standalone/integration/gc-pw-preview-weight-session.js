@@ -100,8 +100,12 @@ export async function openGcPwPreviewWeightSession({
     masters, selection, stagedSource, config, overrides,
   });
   const scorer = createXmlCiiFactWeightScorer(scoringConfig ?? config);
+  // The portable service already supports a SHA-256-attested review command
+  // ledger. Enable read-only export *inside* the source-held Worker so a
+  // decision-provenance audit can distinguish actual accepted commands from
+  // draft UI proposals, without adding a second review store.
   const review = createAttestedWeightReviewService({
-    score: scorer, digestUtf8, digestCanonical,
+    score: scorer, digestUtf8, digestCanonical,digestReview:digestCanonical,
   });
   const job = review.openBasisJob(basis, {
     requestId,

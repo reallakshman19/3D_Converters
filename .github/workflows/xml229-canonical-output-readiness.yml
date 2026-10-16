@@ -1,0 +1,167 @@
+name: XML229 Canonical Verified Output Readiness
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-229-canonical-output-run-readiness.test.mjs'
+      - 'tests/xml-cii-229-xml-only-output-regression.test.mjs'
+      - 'tests/xml-cii-229-canonical-readiness-worker.test.mjs'
+      - 'tests/xml-cii-229-live-preview-restoration.test.mjs'
+      - 'tests/xml-cii-229-run-stage-truth.test.mjs'
+      - 'tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs'
+      - 'tests/xml-cii-229-p4-preview-startup-watchdog.test.mjs'
+      - 'tests/xml-cii-229-engineering-basis-authority.test.mjs'
+      - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
+      - '.github/workflows/xml229-canonical-output-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  canonical-worker-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Parse exact served modules
+        run: |
+          node --check tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+      - name: Load immutable pre-fix red control
+        run: git fetch --no-tags --depth=1 origin 7d2aa5300597fa8ddc3d47b1a492944229afa8a6
+      - name: Run canonical readiness, session and Run hold regression
+        run: |
+          node --test tests/xml-cii-229-canonical-output-run-readiness.test.mjs
+          node --test tests/xml-cii-229-xml-only-output-regression.test.mjs
+          node --test tests/xml-cii-229-canonical-readiness-worker.test.mjs
+          node --test tests/xml-cii-229-live-preview-restoration.test.mjs
+          node --test tests/xml-cii-229-run-stage-truth.test.mjs
+          node --test tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs
+          node --test tests/xml-cii-229-p4-preview-startup-watchdog.test.mjs
+          node --test tests/xml-cii-229-engineering-basis-authority.test.mjs
+          node --test tests/xml-cii-229-run-stage-truth-entrypoints.test.mjs
+      - name: Verify source/docs asset parity
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch-core.js docs/tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch-core.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+  e2e-local-source-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pack immutable public runtime for local private-attachment E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -cf /tmp/xml229-site-runtime.tar --exclude='./.git' --exclude='./node_modules' --exclude='./Benchmarks' --exclude='./agents' --exclude='./tests' --exclude='./ValidationRecords' --exclude='./.backups' .
+          tar -rf /tmp/xml229-site-runtime.tar Benchmarks/EF-05-PRO.TEST.xml Benchmarks/ASIM-1836_managed_stage-2.zip
+          gzip -1 /tmp/xml229-site-runtime.tar
+          mkdir -p ValidationRecords
+          cp /tmp/xml229-site-runtime.tar.gz ValidationRecords/xml229-site-runtime.tar.gz
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > ValidationRecords/xml229-site-runtime-commit.txt
+          ls -lh ValidationRecords/xml229-site-runtime.tar.gz
+      - name: Export public runtime artifact, no private attachments
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-site-runtime-exact-pr
+          path: |
+            ValidationRecords/xml229-site-runtime.tar.gz
+            ValidationRecords/xml229-site-runtime-commit.txt
+          if-no-files-found: error
+          retention-days: 2
+
+  ef05-real-native-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual site for real EF05
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-ef05-run-http.log 2>&1 &
+      - name: EF05 XML / zipped JSON / four masters / native CII E2E
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml229-ef05-native-output-e2e.mjs
+      - name: Preserve source-safe E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-ef05-native-e2e
+          path: |
+            ValidationRecords/xml229-ef05-native-output-e2e.json
+            ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax.json
+            /tmp/xml229-ef05-run-http.log
+          if-no-files-found: error
+          retention-days: 30
+
+  existing-stages-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual app
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-canonical-run-http.log 2>&1 &
+      - name: Real cancelled-worker Weight Match recovery regression
+        env:
+          XML_CII_CHROMIUM_EXECUTABLE: ''
+        run: node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
+      - name: Original Preview to Weight browser regression
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs
+      - name: EF-05 41-branch public benchmark and zipped original JSON E2E
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml229-ef05-native-output-e2e.mjs
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-canonical-output-readiness-browser
+          path: |
+            ValidationRecords/xml229-*.json
+            /tmp/xml229-canonical-run-http.log
+          if-no-files-found: warn
+          retention-days: 30

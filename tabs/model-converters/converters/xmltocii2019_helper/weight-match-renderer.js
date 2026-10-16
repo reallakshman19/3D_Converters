@@ -380,7 +380,12 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     input.dataset.wmAccepted = 'true';
     const row = input.closest('tr');
     const statusCell = row?.querySelector('[data-wm-status-cell]');
-    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Suggested' : 'Accepted · Manual';
+    // Only saveInput (after explicit candidate selection or manual positive
+    // edit) may report Match-1 authority. Preserve acceptance provenance,
+    // but never call a mere proposal accepted.
+    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate'
+      ? 'Accepted · Match-1 · Suggested'
+      : 'Accepted · Match-1 · Manual';
     if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });
   };
   const drawRows = (issues) => {

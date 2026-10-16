@@ -1,11 +1,13 @@
-import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import {xml229UnbuiltIndependentStage} from './xml229-p4-run-readiness-presentation.mjs';
+import { buildStandaloneOutputRunReadiness, hasOriginalJsonSourceOnlyRunHold } from '../xml-cii-output-run-readiness.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
+import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
+  from '../integration/xml229-output-participation.mjs';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
@@ -79,7 +81,12 @@ function valueFor(item, header) {
 }
 
 function reportFromState(state) {
-  return state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
+  // Never trust an old stored legacy report for a selected governed O1 source.
+  // This conservative baseline is replaced only after a live verified Worker
+  // read; its native CII release HOLD is preserved throughout.
+  return hasOriginalJsonSourceOnlyRunHold(state)
+    ? buildStandaloneOutputRunReadiness(state)
+    : state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
 }
 
 function renderSummary(parent, report) {
@@ -95,7 +102,31 @@ function renderSummary(parent, report) {
 
 function renderChecklist(parent, report) {
   const panel = section(parent, 'Pre-run Checklist');
-  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
+  // The original six-column table squeezed all values into the viewport,
+  // merging the Status/Severity/Blocking text and cutting off Owner messages.
+  // Keep exact report values, but make the message column readable and let
+  // narrow screens scroll horizontally instead of hiding provenance.
+  const wrap=createElement('div');
+  wrap.className='xml229-run-checklist-scroll';
+  wrap.style.cssText='width:100%;max-width:100%;overflow-x:auto;overflow-y:visible;'+
+    'border:1px solid #334155;border-radius:8px;margin:8px 0 16px;';
+  const audit=table(['ID','Label','Status','Severity','Blocking','Message'],
+    rows(report.checklistRows),'No checklist rows yet.');
+  audit.style.cssText='border-collapse:collapse;table-layout:fixed;'+
+    'min-width:1200px;width:100%;font-size:13px;line-height:1.45;';
+  const columns=['205px','230px','90px','95px','90px','auto'];
+  for(const group of [audit.querySelectorAll('th'),audit.querySelectorAll('td')]){
+    for(const cell of group){
+      const col=cell.cellIndex;
+      cell.style.cssText='padding:9px 10px;text-align:left;'+
+        'vertical-align:top;overflow-wrap:anywhere;'+
+        'border-bottom:1px solid #22334b;'+
+        (col===5?'min-width:460px;white-space:normal;':'');
+      if(columns[col]!=='auto')cell.style.width=columns[col];
+    }
+  }
+  wrap.appendChild(audit);
+  panel.appendChild(wrap);
   return panel;
 }
 
@@ -307,21 +338,67 @@ function optionCheckbox(optionKey, labelText, checked, stateRef, render, disable
 
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
+  const routeLabel=createElement('label','','model-converters-workflow-regex-field');
+  routeLabel.appendChild(createElement('span','Native output input authority'));
+  const routeSelect=createElement('select');
+  routeSelect.dataset.action='xml229-output-participation';
+  const approved=isXml229XmlOnlyApproved(state);
+  routeSelect.append(
+    createOption('governed','JSON-governed: native CII HELD until independent Final/output authorization',!approved),
+    createOption('xml-only','XML-only: ignore optional JSON and unverified engineering facts',approved),
+  );
+  routeSelect.disabled=actualSourceKind(state)!=='xml'||!!state.running;
+  routeSelect.addEventListener('change',event=>{
+    // Never infer XML-only from merely opening this tab or loading an O1 JSON.
+    let next=updateWorkflowState(stateRef.current,{
+      result:null,outputRunReadinessReport:null,xml229XmlOnlyApproval:null,
+    });
+    const active=next.sourceBatch?.sources?.find(x=>x.sourceId===next.sourceBatch.activeSourceId);
+    const selected=event.target.value==='xml-only'
+      ?captureXml229XmlOnlyApproval(next,active):null;
+    if(active){
+      next={
+        ...next,xml229XmlOnlyApproval:selected,
+        sourceBatch:{...next.sourceBatch,
+          sources:next.sourceBatch.sources.map(x=>x.sourceId===active.sourceId
+            ?{...x,xml229XmlOnlyApproval:selected}:x)},
+      };
+    }else next={...next,xml229XmlOnlyApproval:selected};
+    stateRef.current=next;
+    if(typeof render==='function')render();
+  });
+  routeLabel.appendChild(routeSelect);
+  ctrlCard.append(routeLabel,createElement('div',
+    approved
+      ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
+      :'Default: original JSON engineering output remains governed and HELD. Explicit XML-only selection uses independent native XML preflight and excludes optional JSON-derived facts.',
+    'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
   const runReviewBtn = createElement('button', 'Run - Review Weight Matches', 'model-converters-run-btn');
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
   runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = 'Opens <strong>4A Weight Match</strong> to review approximate weights, then Finalize and Run.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to review approximate weights, then Finalize and Run.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
+  // Available even before Run; Output artifacts/diagnostics may not exist
+  // while native CII release is correctly HELD. Explicit, inspectable export.
+  const exportEvidenceBtn=button('export-output-readiness','Download readiness diagnostics JSON');
+  exportEvidenceBtn.addEventListener('click',()=>{
+    const evidence={schema:'XML229.OutputRunReadinessEvidence.v1',
+      exportedAt:new Date().toISOString(),summary:report.summary,
+      checklistRows:report.checklistRows,logRows:report.logRows,
+      diagnostics:report.diagnostics,raw:report.raw,manifest:report.manifest};
+    downloadTextFile('xml-cii-output-run-readiness.json',
+      JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
+  });
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });
   finalizeBtn.disabled = !!(state.running || report.summary.blockingCount > 0);
   finalizeBtn.dataset.action = 'run';
-  actionDiv.append(runReviewBtn, noteDiv, refreshBtn, finalizeBtn);
+  actionDiv.append(runReviewBtn, noteDiv, refreshBtn, exportEvidenceBtn, finalizeBtn);
   ctrlCard.appendChild(actionDiv);
 }
 
@@ -331,7 +408,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
  * results, weight decisions or the native Run button. A stale/disposed Worker
  * fails closed, and Mode-A multi-source cannot borrow another source's proof.
  */
-function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summaryPanel,checklistPanel){
+function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  const raw=(stateRef?.modeABaseRef||stateRef)?.current||state;
  const receipt=state?.xml229StagedSourceReceipt||raw.xml229StagedSourceReceipt;
  if(receipt?.schema!=='XML229.OriginalStagedSourceReceipt.v1')return;
@@ -341,94 +418,70 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summar
  if(!session)return;
  const activeId=raw.sourceBatch?.activeSourceId||state.modeASourceId||'';
  if(enabled?.length===1&&enabled[0].sourceId!==activeId)return;
- const ownSourceId=state.modeASourceId||activeId;
+ // An older in-flight Worker completion must never repaint a newer Run panel.
+ const token=card.__xml229ReadinessToken;
  void Promise.resolve().then(()=>session.readCompletion()).then(proof=>{
-   if(card.isConnected===false)return;
-   if(proof?.schema!=='XML229.P4.RunAdvisory.v1'||
-      proof.ciiReleaseAuthorized!==false||
-      proof.engineeringFactsVerified!==true||
-      proof.previewStatus!=='FULL_SOURCE_FACTS_VERIFIED'||
-      proof.basisId!==session.receipt.basisId||
-      proof.originalJsonSha256!==receipt.sha256||
-      proof.sourceGenerationId!==receipt.generationId||
-      proof.verifiedPhysicalCount!==session.receipt.physicalCount||
-      !Number.isSafeInteger(proof.counts?.unresolved)||
-      (ownSourceId&&proof.sourceId!==ownSourceId))return;
-   const checklist=[...checklistPanel.querySelectorAll('tbody tr')];
-   const update=(id,{label,status,severity,message})=>{
-     const tr=checklist.find(row=>row.children[0]?.textContent===id);
-     if(!tr||tr.children.length<6)return;
-     tr.children[1].textContent=label;
-     tr.children[2].textContent=status;
-     tr.children[3].textContent=severity;
-     tr.children[4].textContent='false'; // these optional stage rows do NOT clear the native HOLD
-     tr.children[5].textContent=message;
-   };
-   update('preview-audit',{
-     label:'Original Preview engineering facts',
-     status:'ready',severity:'ok',
-     message:'Verified in actual 4 Preview: '+proof.verifiedPhysicalCount+
-       ' original physical components and '+proof.verifiedFactCount+
-       ' complete source-bound FactRecords. Separate Diagnostics/Matched Audit stages are not implied.',
+   if(card.isConnected===false||card.__xml229ReadinessToken!==token||
+      getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
+   // Ordinary immutable UI updates may replace the state object while an
+   // independently verified Worker RPC is pending. Challenge the *latest*
+   // state against the Worker proof rather than requiring object identity.
+   const latest=stateRef.current;
+   const verifiedReport=buildStandaloneOutputRunReadiness(latest,{
+     verifiedEngineering:{sessionReceipt:session.receipt,proof},
    });
-   const fullyFinal=proof.counts.unresolved===0&&proof.counts.match1===0;
-   const weightMessage='GC-PW source-bound review: '+
-     proof.counts.final+' Final, '+proof.counts.match1+' Match-1 only, '+
-     proof.counts.source+' source masses, '+proof.counts.unresolved+
-     ' unresolved. Final and native output consumption remain independent.';
-   update('weight-match',{
-     label:'Weight Match / Final review (GC-PW)',
-     status:fullyFinal?'ready':'pending',
-     severity:fullyFinal?'ok':'warning',message:weightMessage,
+   if(verifiedReport.raw?.xml229VerifiedEngineering!==true){
+     // Bad/partial proof is a diagnosable verification refusal, never READY.
+     paint(buildStandaloneOutputRunReadiness(latest,{
+       verifiedEngineering:{readError:{code:'UNVERIFIED_ENGINEERING_COMPLETION'}},
+     }),latest);
+     return;
+   }
+   // One canonical report: table, summary, logs, diagnostics and controls all
+   // derive from the same source-bound snapshot, not modified DOM cells.
+   paint(verifiedReport,latest);
+ }).catch(error=>{
+   // A failed Worker RPC used to disappear into a generic "missing" row.
+   // Publish only a bounded failure code for this SAME current session.
+   if(card.isConnected===false||card.__xml229ReadinessToken!==token||
+      getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
+   const latest=stateRef.current;
+   const held=buildStandaloneOutputRunReadiness(latest,{
+     verifiedEngineering:{readError:{code:error?.code}},
    });
-   // Unexecuted independent stages are not broken master imports. Preserve
-   // the source readiness report and native Run HOLD; clarify presentation.
-   for(const tr of checklist){
-     if(tr.children.length<6)continue;
-     const id=tr.children[0].textContent;
-     const stage=xml229UnbuiltIndependentStage(id,{
-       status:tr.children[2].textContent,blocking:tr.children[4].textContent,
-     });
-     if(stage)update(id,stage);
-   }
-   const optional=checklist.filter(tr=>tr.children.length>=6&&
-      tr.children[2].textContent!=='ready'&&tr.children[4].textContent!=='true').length;
-   const summary=summaryPanel.querySelector('tbody tr');
-   if(summary?.children?.length>=3)
-     summary.children[2].textContent=report.summary.blockingCount+
-       ' blocking items · '+optional+' incomplete/warning stages';
-   const logs=[...card.querySelectorAll('.xml-cii-weight-panel')]
-     .find(section=>section.querySelector('h3')?.textContent==='Logs');
-   for(const row of logs?.querySelectorAll('tbody tr')||[]){
-     const message=row.children[2]?.textContent||'';
-     if(message.startsWith('Preview / Diagnostics / Matched Audit status:'))
-       row.children[2].textContent='Original engineering Preview verified from current GC-PW source receipt.';
-     if(message.startsWith('Weight Match status:'))
-       row.children[2].textContent=weightMessage;
-   }
- }).catch(()=>{/* Cannot publish a stale or unverified status; existing Run HOLD remains. */});
+   paint(held,latest);
+ });
 }
 
 export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const isRef = stateOrRef && 'current' in stateOrRef;
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
   const state = stateRef.current;
-  const report = reportFromState(state);
-  const config = supportConfigForReadiness(state);
-  card.innerHTML = '';
-  const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
-  const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
-  card.append(title, desc);
-  const summaryPanel=renderSummary(card,report);
-  const checklistPanel=renderChecklist(card,report);
-  renderFormatFailures(card, report);
-  renderReadinessCard(card, config, state);
-  renderRunOptions(card, stateRef, state, render);
-  renderRunControls(card, stateRef, state, report, render);
-  renderArtifacts(card, state, report);
-  renderTopologyArtifacts(card, state);
-  renderLogs(card, report);
-  renderManifest(card, report);
-  renderRaw(card, report);
-  projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summaryPanel,checklistPanel);
+  card.__xml229ReadinessToken=(card.__xml229ReadinessToken||0)+1;
+  const paint=(report,renderState=stateRef.current)=>{
+    card.innerHTML = '';
+    const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
+    const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
+    card.append(title, desc);
+    renderSummary(card,report);
+    renderChecklist(card,report);
+    renderFormatFailures(card, report);
+    renderReadinessCard(card, supportConfigForReadiness(renderState), renderState);
+    renderRunOptions(card, stateRef, renderState, render);
+    renderRunControls(card, stateRef, renderState, report, render);
+    renderArtifacts(card, renderState, report);
+    renderTopologyArtifacts(card, renderState);
+    renderLogs(card, report);
+    renderManifest(card, report);
+    renderRaw(card, report);
+    if(!syncXml229CanonicalOutputHeaderBadges(card,report)) {
+      // Initial shell paints the phase before attaching the shell root.
+      queueMicrotask(()=>{
+        if(card.isConnected!==false)
+          syncXml229CanonicalOutputHeaderBadges(card,report);
+      });
+    }
+  };
+  paint(reportFromState(state));
+  projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint);
 }

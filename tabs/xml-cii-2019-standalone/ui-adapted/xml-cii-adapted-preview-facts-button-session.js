@@ -116,12 +116,17 @@ export async function runPreviewButtonSession({
 }={}) {
   if(!host||typeof renderResult!=='function')throw fail('INVALID_PREVIEW_HOST','Preview renderer port missing');
   const previous=jobs.get(host);
-  if(previous){previous.cancelled=true;previous.controller?.cancel('Superseded Preview request');}
-  const session={cancelled:false,controller:null};
+  if(previous){
+    previous.cancelled=true;
+    previous.abortController?.abort();
+    previous.controller?.cancel('Superseded Preview request');
+  }
+  const session={cancelled:false,controller:null,abortController:new AbortController()};
   jobs.set(host,session);
   const current=()=>!session.cancelled&&jobs.get(host)===session&&rootEl?.querySelector('#mc-preview-table-host')===host;
   const cancel=()=>{
     session.cancelled=true;
+    session.abortController.abort();
     session.controller?.cancel('User cancelled');
     if(jobs.get(host)===session)notice(host,{title:'Preview cancelled',code:'CANCELLED',
       message:'Inputs and overrides remain unchanged.',retry:()=>void runPreviewButtonSession({
@@ -155,6 +160,7 @@ export async function runPreviewButtonSession({
           message:'Original XML census, staged JSON SHA-256, four masters and full FactRecords.',
           showCancel:true,cancel});
         const verified=await options.openVerifiedEngineeringSession({
+          signal:session.abortController.signal,
           onProgress:stage=>{
             if(current())notice(host,{title:'Verifying engineering Preview…',
               progress:String(stage),showCancel:true,cancel});

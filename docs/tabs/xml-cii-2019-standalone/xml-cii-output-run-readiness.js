@@ -1,6 +1,8 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
+import { projectXml229RunChecklist } from './integration/xml229-verified-output-readiness.mjs';
+import { hasXml229GovernedNativeHold, isXml229XmlOnlyApproved } from './integration/xml229-output-participation.mjs';
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
@@ -96,17 +98,24 @@ function selectedOriginalJsonSourceReceipts(input) {
   return [...(own ? [own] : []), ...selected];
 }
 export function hasOriginalJsonSourceOnlyRunHold(input = {}) {
-  return selectedOriginalJsonSourceReceipts(input).length > 0;
+  return hasXml229GovernedNativeHold(input);
 }
 function originalJsonAuthorityRows(input) {
   const receipts=selectedOriginalJsonSourceReceipts(input);
   if (!receipts.length) return [];
+  if (!hasOriginalJsonSourceOnlyRunHold(input))return [row(
+    'xml229-xml-only-output-participation',
+    'Explicit XML-only native output participation',
+    true,
+    'Owner selected current-basis XML-only conversion. Optional original JSON, GC-PW decisions and preview facts are excluded from the native conversion job; normal XML branch-format and converter preflights still apply.',
+    {blocking:false}
+  )];
   const phaseCounts = [...new Set(receipts.map(receipt => String(receipt?.phase || 'UNKNOWN')))];
   return [row('xml229-original-json-engineering-authority',
     'Original JSON → Preview → Weight/Final → native CII release authority',
     false,
     'Original JSON O1 source indexing (' + phaseCounts.join(', ') +
-    ') is source-only. Even a verified engineering Preview and reviewed GC-PW Weight/Final session do not establish independent native CII Final/output consumption. Run is HELD until native output authority is verified; 28/28 Regex identity and legacy cached rows never authorize it.',
+    ') is source-only. Even a verified engineering Preview and reviewed GC-PW Weight/Final session do not establish independent native CII Final/output consumption. Run is HELD until native output authority is verified; configured branch identity (whatever its verified occurrence count) and legacy cached rows never authorize it.',
     {blocking:true,severity:'error',status:'held'})];
 }
 
@@ -146,8 +155,11 @@ function supportMapperDone(input) {
 }
 
 function commonRows(input) {
-  const preview = previewDone(input);
-  const weight = weightMatchDone(input);
+  // Legacy cache records do not attest the current original XML + staged JSON
+  // Worker basis; only a live verified GC-PW completion may promote these rows.
+  const governed = hasOriginalJsonSourceOnlyRunHold(input);
+  const preview = !governed && previewDone(input);
+  const weight = !governed && weightMatchDone(input);
   const mapper = supportMapperDone(input);
   return [
     row('import-masters', 'Import Masters status', !!input.masterContext, 'Master context is available.'),
@@ -190,6 +202,7 @@ export function buildRunManifest(input = {}) {
     schema: 'xml-cii-2019-output-run-manifest/v1',
     sourceMode: kind,
     outputMode: input.options?.outputMode || 'enriched-only',
+    nativeOutputParticipation: isXml229XmlOnlyApproved(input)?'explicit-xml-only':'governed',
     sourceBytes: sourceText(input).length ? bytes(sourceText(input)) : Number(input.sourceFile?.size || 0),
     masterRowCounts: object(input.masterContext?.rowCounts),
     regex: { matched: summaryCount(input.regexTesterResult, 'matchedCount'), rejected: summaryCount(input.regexTesterResult, 'rejectedCount') },
@@ -227,8 +240,12 @@ function readinessDiagnostics(checklistRows) {
   return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
 }
 
-export function buildStandaloneOutputRunReadiness(input = {}) {
-  const checklistRows = buildOutputRunChecklist(input);
+export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null} = {}) {
+  // Recompose one report from one checklist. No DOM-only patches: logs, counts,
+  // diagnostics and the Run button all see identical source-bound status.
+  const projection = projectXml229RunChecklist(
+    input,buildOutputRunChecklist(input),verifiedEngineering);
+  const checklistRows = projection.rows;
   const manifest = buildRunManifest(input);
   const artifactRows = buildOutputArtifactRows(input, manifest);
   const blockingCount = checklistRows.filter((item) => item.blocking).length;
@@ -245,6 +262,8 @@ export function buildStandaloneOutputRunReadiness(input = {}) {
     logRows: logRows(input, checklistRows),
     manifest,
     diagnostics: readinessDiagnostics(checklistRows),
-    raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto' },
+    raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto',
+      xml229VerifiedEngineering: projection.verified,
+      xml229XmlOnlyOutput: isXml229XmlOnlyApproved(input) },
   };
 }

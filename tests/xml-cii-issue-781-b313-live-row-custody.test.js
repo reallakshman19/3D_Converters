@@ -21,7 +21,12 @@ assert(rendererV7.includes('const previewResult = currentPreviewResult(host, leg
 assert(rendererV7.includes('branchRows: previewResult.branchRows'));
 assert(rendererV7.includes('return previewResult;'));
 
-assert(activation.includes('const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options)'));
+assert(activation.includes('precomputedPreview:result'),
+  'current Worker-attested Preview rows must be published through the existing editable renderer');
+assert(activation.includes('if(!previewResult)previewResult=await xmlCiiBuildAndRenderPreview('),
+  'non-restorable or non-governed Preview continues through original renderer');
+assert(activation.includes('readXml229LivePreviewForCurrentInput'),
+  'Worker Preview restoration must validate source, generation and full FactRecords');
 assert(activation.includes('rows: previewResult?.branchRows || []'));
 
 assert(updateController.includes('export function selectPreviewB313ActionRows'));
