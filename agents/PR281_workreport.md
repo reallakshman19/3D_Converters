@@ -30,3 +30,10 @@ A1: existing XML229 source receipt, complete Preview facts, GC-PW Match-1/Final,
 This audit checks caller-supplied records; it does **not** re-hash live source/master bytes, validate cryptographic provenance of exported receipts, or prove native CII lineage. It always returns `authoritative:false` and `nativeCiiReleaseAuthorized:false`; even a structurally `CONSISTENT` result is not release approval. An actual current-basis evidence chain or Worker read may later differ; that does not justify changing the audit to output `ready` automatically.
 
 **EXACT_NEXT_ACTION:** Reconcile final GitHub CI exact latest head and independently compare against untouched main for failing checks. Capture real Owner-served asset URL/hash, permitted redacted readiness export and candidate distribution. Obtain work-specific v3.6 label/plan and exclusive integrator/Worker/native write leases before any shared runtime or engineering semantics mutation. Post progress on #274, retain draft; no merge/deploy.
+
+## Hardening checkpoint — 2026-10-16
+- Code SHA after privacy hardening: `2ea1ceee13d20353953c8e81b55020b1e0270bad` (this work report will create a documentation-only successor commit).
+- `auditXml229Evidence` now explicitly whitelists `source,match1,final,unresolved` numeric counters; arbitrary extra caller fields are not echoed into diagnostics. Removed unused helper.
+- Node v22.16.0 local **8/8 PASS** on GitHub-identical tested blobs: audit `0e3694d549ab23767c1c130446f326f2e969ba00`, test `bf980d9be1d95ff463bc198abf80f290da7e394b`. Manual Git blob comparisons established content equivalence to local test files.
+- Hosted CI at this final documentation checkpoint: **NOT_YET_VERIFIED**, repository-wide workflows may fail independently; no native engine, private data or served UI qualification.
+- EXACT_NEXT_ACTION remains source-bound G0 evidence and Owner/Coordinator approval for G1/runtime, not a second ad-hoc patch.
