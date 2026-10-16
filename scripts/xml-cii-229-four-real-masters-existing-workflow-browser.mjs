@@ -407,12 +407,14 @@ try{
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
-  for(const [kind,filePath] of imports){
-    await page.locator('[data-sub-tab="'+(kind==='lineList'?'linelist':kind)+'"]').click();
-    await page.locator('input[data-master-file="'+kind+'"]').setInputFiles(filePath);
-    await page.locator('[data-master-mapping-status="'+kind+'"]')
-      .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:45000});
-  }
+  // Fresh upload of identical master bytes creates NEW dataset IDs and
+  // applied revisions. That is a different GC-PW InputBasis, correctly
+  // rejected by review restore. Rehydrate the ORIGINAL IndexedDB custody.
+  await page.waitForFunction(()=>{
+    const bar=document.querySelector('.xml-cii-header-status-row');
+    return /Masters:\\s*4\\/4 loaded/.test(bar?.textContent||'');
+  },null,{timeout:120000});
+  record.stages.coldMasterStatus=await page.locator('.xml-cii-header-status-row').textContent();
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles(jsonPath);
   await page.waitForFunction(()=>(
