@@ -35,6 +35,8 @@ import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from './xml229-source-weight-bulk-review.mjs';
 import {projectXml229WeightDecisionProvenance}
  from './xml229-weight-decision-provenance.mjs';
+import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
+ from './xml229-source-weight-review-transfer.mjs';
 
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
@@ -46,7 +48,7 @@ const toHex=bytes=>Array.from(new Uint8Array(bytes),
 let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
 let weightProjection=null,pendingBulk=null,bulkSequence=0;
 // Only contemporaneous successful Worker RPCs prove bulk confirmation.
-let confirmedBulkCommands=new Set();
+let confirmedBulkCommands=new Set(),restoringReview=false;
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
 const sourceReceiptCheck=(r,blob)=>{
@@ -193,6 +195,10 @@ function verifiedRequest(req){
 }
 async function rpc(req){
  verifiedRequest(req);
+ if(restoringReview&&(req.kind==='decision'||req.kind==='bulk-commit'||
+    req.kind==='restore-review'||req.kind==='read'&&req.what==='bulk-plan'))
+   fail('REVIEW_RESTORE_IN_PROGRESS',
+    'Do not mix individual or bulk decisions with review restoration');
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
@@ -244,6 +250,12 @@ async function rpc(req){
        ciiReleaseAuthorized:false,
        releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
      };
+   }
+   if(req.what==='review-backup'){
+     const proof=await rpc({...req,what:'completion'});
+     return exportXml229SourceBoundReviewBackup(review,{
+       basisId,sourceId,proof,
+     });
    }
    if(req.what==='decision-provenance'){
      // Current complete engineering proof + original service command ledger.
@@ -338,6 +350,27 @@ async function rpc(req){
    }
    fail('UNKNOWN_READ_KIND','Fact/proposal/individual/decisions only');
  }
+ if(req.kind==='restore-review'){
+   // One-shot user-selected file import after a separately rebuilt verified
+   // source/master Worker. Never implicitly hydrate legacy localStorage.
+   if(restoringReview)fail('REVIEW_RESTORE_IN_PROGRESS');
+   restoringReview=true;
+   try{
+     const proof=await rpc({...req,kind:'read',what:'completion'});
+     const result=await restoreXml229SourceBoundReviewBackup(review,req.backup,{
+       basisId,sourceId,proof,
+     });
+     const after=await rpc({...req,kind:'read',what:'completion'});
+     const expected=req.backup?.counts;
+     if(!expected||['source','match1','final','unresolved'].some(
+       key=>after.counts[key]!==expected[key]))
+       fail('RESTORED_REVIEW_CENSUS_DRIFT',
+         'Restored decision census differs from exact saved original-source counts');
+     pendingBulk=null;
+     confirmedBulkCommands=new Set();
+     return {...result,counts:after.counts,stageRevisions:after.stageRevisions};
+   }finally{restoringReview=false;}
+ }
  if(req.kind==='bulk-commit'){
    const pending=pendingBulk;pendingBulk=null;
    const result=commitXml229QualifiedBlankFill(review,{
@@ -377,7 +410,8 @@ self.addEventListener('message',async({data:req})=>{
       message:String(error?.message||error)}});}
    return;
  }
- if(req.kind==='read'||req.kind==='decision'||req.kind==='bulk-commit'){
+ if(req.kind==='read'||req.kind==='decision'||req.kind==='bulk-commit'||
+    req.kind==='restore-review'){
    try{const value=await rpc(req);if(!cancelled)post(req.requestId,{
     state:'rpc-result',rpcId:req.rpcId,value,
    });}
