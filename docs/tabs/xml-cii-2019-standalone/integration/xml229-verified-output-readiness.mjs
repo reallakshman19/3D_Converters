@@ -7,6 +7,12 @@
 const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const whole=x=>Number.isSafeInteger(x)&&x>=0;
 const same=(a,b)=>typeof a==='string'&&a.length>0&&a===b;
+// Failures are visible, but cannot carry exception messages, private paths,
+// stack traces, or attacker-controlled content into checklist diagnostics.
+const safeFailureCode=value=>{
+  const code=String(value?.code||'GC_PW_COMPLETION_UNAVAILABLE');
+  return /^[A-Z][A-Z0-9_]{2,79}$/.test(code)?code:'GC_PW_COMPLETION_UNAVAILABLE';
+};
 const optional=Object.freeze({
   'support-mapper':Object.freeze({
     label:'Support Type Mapper (separate stage)',
@@ -74,13 +80,18 @@ export function projectXml229RunChecklist(input,rows,verifiedEngineering=null) {
   const verified=isXml229VerifiedCompletionForInput(
     input,verifiedEngineering?.sessionReceipt,verifiedEngineering?.proof);
   const proof=verified?verifiedEngineering.proof:null;
+  const failure=!verified&&verifiedEngineering?.readError
+    ?safeFailureCode(verifiedEngineering.readError):null;
   const c=proof?.counts;
   const reviewed=!!c&&c.unresolved===0&&c.match1===0;
   return {verified,rows:rows.map(row=>{
     if(row.id==='preview-audit'){
       if(!proof)return rowUpdated(row,{
-        status:'missing',severity:'warning',blocking:false,
-        message:'Original engineering 4 Preview is not verified for the current source and masters. Open 4 Preview → Build Preview.',
+        status:failure?'held':'missing',severity:'warning',blocking:false,
+        message:failure
+          ? 'Original engineering verification could not be read ['+failure+
+            ']. No Preview/Weight evidence accepted. Open 4 Preview → Build Preview to reverify the current source and masters.'
+          : 'Original engineering 4 Preview is not verified for the current source and masters. Open 4 Preview → Build Preview.',
       });
       return rowUpdated(row,{
         label:'Original Preview engineering facts',status:'ready',severity:'ok',blocking:false,
@@ -91,8 +102,11 @@ export function projectXml229RunChecklist(input,rows,verifiedEngineering=null) {
     }
     if(row.id==='weight-match'){
       if(!proof)return rowUpdated(row,{
-        status:'missing',severity:'warning',blocking:false,
-        message:'Current source-bound GC-PW Weight/Final review is not verified. Open 6 Weight Match; proposals are not decisions.',
+        status:failure?'held':'missing',severity:'warning',blocking:false,
+        message:failure
+          ? 'Current GC-PW Weight/Final verification is HELD ['+failure+
+            ']. Review is not accepted; reverify 4 Preview, then inspect 6 Weight Match.'
+          : 'Current source-bound GC-PW Weight/Final review is not verified. Open 6 Weight Match; proposals are not decisions.',
       });
       return rowUpdated(row,{
         label:'Weight Match / Final review (GC-PW)',
