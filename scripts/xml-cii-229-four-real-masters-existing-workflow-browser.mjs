@@ -590,20 +590,34 @@ try{
     return download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
   },null,{timeout:180000});
   const nativeEnabled=await page.locator('.xml-cii-adapted-cii-download').isEnabled();
-  record.stages.xmlOnlyNativeRun={downloadEnabled:nativeEnabled,
-    resultText:(await page.locator('[data-active-phase="run"]').innerText()).slice(0,4600)};
-  assert.equal(nativeEnabled,true,'Explicit XML-only job did not generate a downloadable .cii');
-  const [ciiDownload]=await Promise.all([
-    page.waitForEvent('download'),
-    page.locator('.xml-cii-adapted-cii-download').click(),
-  ]);
-  const ciiBytes=await readFile(await ciiDownload.path());
-  record.stages.xmlOnlyNativeRun.ciiFile=ciiDownload.suggestedFilename();
-  record.stages.xmlOnlyNativeRun.bytes=ciiBytes.length;
-  record.stages.xmlOnlyNativeRun.sha256=sha(ciiBytes);
-  assert.match(ciiDownload.suggestedFilename(),/\\.cii$/i);
-  assert(ciiBytes.length>0,'Native engine returned an empty CII artifact');
-  record.stages.xmlOnlyExplicitOptIn.ciiReleaseNotClaimed=false;
+  const actualRunText=await page.locator('[data-active-phase="run"]').innerText();
+  record.stages.xmlOnlyNativeRun={
+    downloadEnabled:nativeEnabled,
+    resultText:actualRunText.slice(-4000),
+  };
+  if(nativeEnabled){
+    const [ciiDownload]=await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.xml-cii-adapted-cii-download').click(),
+    ]);
+    const ciiBytes=await readFile(await ciiDownload.path());
+    record.stages.xmlOnlyNativeRun.ciiFile=ciiDownload.suggestedFilename();
+    record.stages.xmlOnlyNativeRun.bytes=ciiBytes.length;
+    record.stages.xmlOnlyNativeRun.sha256=sha(ciiBytes);
+    assert.match(ciiDownload.suggestedFilename(),/\\.cii$/i);
+    assert(ciiBytes.length>0,'Native engine returned an empty CII artifact');
+    record.stages.xmlOnlyExplicitOptIn.ciiReleaseNotClaimed=false;
+  }else{
+    // FirstpassXML deliberately includes a weighted component without a
+    // matching native CII owner. Native output MUST be withheld instead of
+    // turning an enabled XML-only route into an unowned weight artifact.
+    assert.match(actualRunText,/CII_WEIGHT_OWNER_UNRESOLVED/,
+      'Native converter neither generated CII nor identified the missing weight owner');
+    assert.match(actualRunText,/CII withheld; enriched XML retained/);
+    assert.equal(await page.locator('.xml-cii-adapted-cii-download').isDisabled(),true);
+    record.stages.xmlOnlyNativeRun.ownerGuard='CII_WEIGHT_OWNER_UNRESOLVED';
+    record.stages.xmlOnlyNativeRun.outputWithheld=true;
+  }
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
   await page.waitForFunction(()=>document.querySelector('[data-action="run"]')?.disabled===true &&
     [...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
