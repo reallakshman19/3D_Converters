@@ -100,7 +100,7 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
- assert(run.includes('paint(verifiedReport)'), 'must paint one verified canonical report');
+ assert(run.includes('paint(verifiedReport,latest)'), 'must paint one verified canonical report using the latest workflow state');
  assert.doesNotMatch(run,/tr\.children\[2\]\.textContent=status/,
    'verification must publish one report, never hand-edit a checklist cell');
 });
