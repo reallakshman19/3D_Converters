@@ -8,6 +8,8 @@ import {legacyXmlCiiWeightFacts}
  from '../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-source-weight-bulk-review.mjs';
+import {projectXml229WeightDecisionProvenance}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-decision-provenance.mjs';
 
 const hash=x=>createHash('sha256').update(String(x)).digest('hex');
 const basis={
@@ -40,7 +42,9 @@ function harness(count=112){
     proposalId:oid+'/competing-qualified',qualified:true});
   return proposals;
  };
- const service=createWeightReviewService({score});
+ const service=createWeightReviewService({score,
+  digestReview:async data=>hash(JSON.stringify(data)),
+ });
  service.openBasis(basis,{facts});
  const projection={proposals:ids=>{
   const found=new Map(ids.map(i=>[i,[]]));
@@ -154,4 +158,83 @@ test('worker sources import the same plan/confirm guards, and served root/docs a
  const root=await readFile(new URL('../'+path,import.meta.url),'utf8');
  const docs=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
  assert.equal(root,docs);
+});
+
+test('same GC-PW command ledger proves 107 confirmed bulk, one manual Match-1, one independent Final; never proposals',async()=>{
+ const h=harness(),prepared=plan(h,1);
+ const before=await h.service.exportReviewState({basisId:basis.basisId});
+ const beforeProof={basisId:basis.basisId,sourceId:'one',
+  originalJsonSha256:basis.stagedSourceSha256,sourceGenerationId:'test-generation',
+  verifiedPhysicalCount:112,verifiedFactCount:784,engineeringFactsVerified:true,
+  ciiReleaseAuthorized:false,counts:{source:1,match1:1,final:1,unresolved:109}};
+ const beforeAudit=projectXml229WeightDecisionProvenance({
+  reviewState:before,basisId:basis.basisId,sourceId:'one',completion:beforeProof});
+ assert.equal(beforeAudit.summary.manual,1);
+ assert.equal(beforeAudit.summary.finalOverride,1);
+ assert.equal(beforeAudit.summary.bulkConfirmed,0);
+ assert.equal(beforeAudit.summary.auditedAcceptedDecisions,2);
+ assert.equal(beforeAudit.summary.provenanceComplete,true);
+ confirm(h,prepared.pending);
+ const proof={...beforeProof,counts:{source:1,match1:108,final:1,unresolved:2}};
+ const reviewState=await h.service.exportReviewState({basisId:basis.basisId});
+ const verified=projectXml229WeightDecisionProvenance({
+  reviewState,basisId:basis.basisId,sourceId:'one',completion:proof,
+  confirmedBulkCommandIds:prepared.pending.plan.commands.map(c=>c.commandId),
+ });
+ assert.equal(verified.population.physicalCount,112);
+ assert.equal(verified.population.factCount,784);
+ assert.equal(verified.summary.bulkConfirmed,107);
+ assert.equal(verified.summary.manual,1);
+ assert.equal(verified.summary.finalOverride,1);
+ assert.equal(verified.summary.acceptedMatch1All,108);
+ assert.equal(verified.summary.effectiveMatch1Only,108);
+ assert.equal(verified.summary.acceptedFinal,1);
+ assert.equal(verified.summary.unverified,0);
+ assert.equal(verified.summary.provenanceComplete,true);
+ assert.equal(verified.rows.length,109);
+ assert.equal(verified.rows.find(r=>r.occurrenceId===id(111)).provenanceKind,'bulk-confirmed');
+ assert.equal(verified.rows.find(r=>r.occurrenceId===id(1)).kg,20);
+ assert.equal(verified.rows.find(r=>r.occurrenceId===id(2)).stage,'Rigidmatch2');
+ assert.equal(verified.summary.nativeCiiReleaseAuthorized,false);
+ assert(!JSON.stringify(verified).includes('Engineer separately reviewed original physical #1'),
+   'no raw engineering reason or original source bytes in exported audit');
+});
+
+test('bulk command ledger without same-Worker confirmation remains honestly unproven',async()=>{
+ const h=harness(14),p=plan(h);confirm(h,p.pending);
+ const proof={basisId:basis.basisId,sourceId:'one',
+  originalJsonSha256:basis.stagedSourceSha256,sourceGenerationId:'test-generation',
+  verifiedPhysicalCount:14,verifiedFactCount:98,engineeringFactsVerified:true,
+  ciiReleaseAuthorized:false,counts:{source:1,match1:10,final:1,unresolved:2}};
+ // 14 components: 1 source + 1 manual + 1 Final + 2 excluded
+ // unqualified/ambiguous + 9 approved = 14, so Match-1 = 10.
+ const envelope=await h.service.exportReviewState({basisId:basis.basisId});
+ const audit=projectXml229WeightDecisionProvenance({
+  reviewState:envelope,basisId:basis.basisId,sourceId:'one',completion:proof});
+ assert.equal(audit.summary.bulkConfirmationUnknown,9);
+ assert.equal(audit.summary.bulkConfirmed,0);
+ assert.equal(audit.summary.provenanceComplete,false);
+ assert(audit.summary.issues.includes('BULK_CONFIRMATION_NOT_PROVEN'));
+ assert.equal(audit.summary.nativeCiiReleaseAuthorized,false);
+});
+
+test('audit fails closed for stale source, modified receipt and decision/completion census drift',async()=>{
+ const h=harness(14),p=plan(h);confirm(h,p.pending);
+ const envelope=await h.service.exportReviewState({basisId:basis.basisId});
+ const proof={basisId:basis.basisId,sourceId:'one',
+  verifiedPhysicalCount:14,verifiedFactCount:98,engineeringFactsVerified:true,
+  ciiReleaseAuthorized:false,counts:{source:1,match1:10,final:1,unresolved:2}};
+ assert.throws(()=>projectXml229WeightDecisionProvenance({
+  reviewState:envelope,basisId:basis.basisId,sourceId:'another',completion:proof,
+ }),e=>e.code==='PROVENANCE_SOURCE_PROOF_REQUIRED');
+ assert.throws(()=>projectXml229WeightDecisionProvenance({
+  reviewState:envelope,basisId:basis.basisId,sourceId:'one',
+  completion:{...proof,verifiedFactCount:97},
+ }),e=>e.code==='PROVENANCE_SOURCE_PROOF_REQUIRED');
+ const drift=projectXml229WeightDecisionProvenance({
+  reviewState:envelope,basisId:basis.basisId,sourceId:'one',
+  completion:{...proof,counts:{source:0,match1:11,final:1,unresolved:2}},
+ });
+ assert.equal(drift.summary.provenanceComplete,false);
+ assert(drift.summary.issues.includes('COMPLETION_DECISION_CENSUS_MISMATCH'));
 });
