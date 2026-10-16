@@ -179,18 +179,14 @@ try{
  // An old accepted Match-1/Final cannot silently reappear: backups need
  // separate Owner-controlled file restore on an identical InputBasis.
  await page.locator('[data-p4-preview-build]').click();
- await page.waitForFunction(async()=>{
-   const {getXml229CurrentWorkerHeldReview}=await import(
-     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-   const session=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
-   const label=document.querySelector('[data-p4-preview-status]')?.textContent||'';
-   if(session && session.closed!==true &&
-      label.includes('Preview engineering facts VERIFIED')){
-     window.__p4RebuiltSession=session;
-     return true;
-   }
-   return false;
- },null,{timeout:120000});
+ // Use a synchronous polling predicate. An async function returns a
+ // Promise object, which some waitForFunction observers treat as truthy before
+ // its resolved value; that previously navigated to Weight prematurely.
+ await page.waitForFunction(()=>
+   document.querySelector('[data-p4-preview-status]')?.textContent
+     .includes('Preview engineering facts VERIFIED') &&
+   document.querySelector('[data-p4-preview-build]')?.disabled===false,
+   null,{timeout:120000});
  const reattached=await page.evaluate(async()=>{
    const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
