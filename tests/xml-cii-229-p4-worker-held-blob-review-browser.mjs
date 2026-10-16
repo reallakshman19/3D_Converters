@@ -74,6 +74,9 @@ try{
      }};
    const remote=await openXml229WorkerHeldOriginalWeightReview(inputs);
    const previewReadyElapsedMs=Math.round(performance.now()-coldStartedMs);
+   // Freeze the Preview-only window. Subsequent review/transfer RPCs may
+   // report later progress and must not distort cold Preview readiness.
+   const previewStageTimings=stageTimings.slice();
    const intentBefore=await remote.readNativeFinalIntent();
    const owner=remote.originalPhysicalOccurrences[0];
    const match1=await remote.readIndividual({
@@ -131,7 +134,7 @@ try{
      subsequentFinalMatch1:postMatch1.match1Kg,
      finalAccepted:final.view.finalKg,
      finalMatch1Remains:postFinal.match1Kg,
-     badReason,stale,changed,progress,previewReadyElapsedMs,stageTimings,
+     badReason,stale,changed,progress,previewReadyElapsedMs,stageTimings:previewStageTimings,
      intentBefore,intentAfter,completeIntent,attested,badMass,duplicate,extra};
    remote.cancel();
    const badBlob=new Blob([raw.slice(0,-1)+' '],{type:'application/json'});
