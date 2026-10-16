@@ -270,10 +270,15 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
       },
     };
     const idle=await buildLegacyPreview(rootEl,xmlText,config,workerOptions);
-    addCacheEvidence(host,{status:'JSON_WORKER_READY',authority:null,
+    const restoredWorkerRows=options.forceBuild===true &&
+      Array.isArray(options.precomputedPreview?.branchRows);
+    addCacheEvidence(host,{status:restoredWorkerRows?'UNCACHED':'JSON_WORKER_READY',
+      authority:null,
       reason:'Original JSON '+workerGate.sourceBytes+' B · SHA256 '+
         workerGate.sourceSha256+
-        ' · Build Preview runs source-verified JSON in a separate Worker; no cache HIT or CII approval.'});
+        (restoredWorkerRows
+          ? ' · Preview displayed from current verified Worker; no cache HIT or CII approval.'
+          : ' · Build Preview runs source-verified JSON in a separate Worker; no cache HIT or CII approval.')});
     return idle;
   }
   if(workerGate.blocked) {
