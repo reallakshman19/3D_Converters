@@ -57,7 +57,8 @@ test('indexed original JSON is source-only: 28/28 regex cannot authorize CII Run
  assert.equal(gate(report).severity,'error');
  assert.equal(gate(report).blocking,true);
  assert.match(gate(report).message,/source-only/);
- assert.match(gate(report).message,/28\/28/);
+ assert.match(gate(report).message,/configured branch identity/);
+ assert.doesNotMatch(gate(report).message,/28\/28 Regex identity/);
  assert.equal(summary(report).status,'ready');
  // In a governed original-source route the independent optional stages are
  // explicitly not-run, rather than pretending to be missing engineering proof.
@@ -123,4 +124,24 @@ test('root and docs readiness/panel code stays byte identical',async()=>{
   assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
    await readFile(new URL('../docs/'+p,import.meta.url)));
  }
+});
+
+test('Output/Run native CII hold never lies about fixed 28/28 when 41 configured branches resolve',()=>{
+ const fortyOne=Array.from({length:41},(_,i)=>
+  '/ASIM-1885-3-S8811000-91261M7-HC-01/B'+(i+1));
+ const sourceText='<Plant>'+fortyOne.map(name=>
+  '<Branch><Branchname>'+name+'</Branchname></Branch>').join('')+'</Plant>';
+ const report=buildStandaloneOutputRunReadiness({
+  ...scope(),sourceText,
+  xml229StagedSourceReceipt:{schema:'XML229.OriginalStagedSourceReceipt.v1',
+   phase:'INDEX_COMMITTED',sha256:'a'.repeat(64),
+   generationId:'GEN-41',rightsBasis:'SOURCE_FACTS_ONLY'},
+ });
+ assert.equal(summary(report)?.status,'ready');
+ assert.match(summary(report).message,/41 selected branch occurrences/);
+ assert.equal(gate(report)?.status,'held');
+ assert.equal(gate(report)?.blocking,true);
+ assert.match(gate(report).message,/configured branch identity/);
+ assert.doesNotMatch(gate(report).message,/28\/28/);
+ assert.equal(report.summary.blockingCount,1);
 });
