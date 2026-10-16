@@ -155,6 +155,7 @@ test('production served copies and no-stripping contract stay identical',async()
    'tabs/xml-cii-2019-standalone/integration/xml229-engineering-basis-authority.mjs',
    'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs',
    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',
+   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js',
    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js',
  ]){
    const a=await readFile(new URL('../'+path,import.meta.url),'utf8');
