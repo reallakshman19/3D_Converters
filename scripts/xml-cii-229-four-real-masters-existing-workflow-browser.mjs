@@ -514,6 +514,40 @@ try{
     /1 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
   assert.equal(await page.locator('[data-action="run"]').isDisabled(),true,
     'reload and restored review must never enable native CII Run');
+  // XML229: explicitly allow ordinary XML native preflight while excluding
+  // optional JSON; reselect governed and prove its native O1 HOLD persists.
+  const participation=page.locator('[data-action="xml229-output-participation"]');
+  assert.equal(await participation.inputValue(),'governed',
+    'loading original JSON must not silently opt into XML-only conversion');
+  await participation.selectOption('xml-only');
+  await page.waitForFunction(()=>(
+    ![...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .some(tr=>tr.children[0]?.textContent==='xml229-original-json-engineering-authority') &&
+    document.querySelector('[data-action="run"]')?.disabled===false
+  ),null,{timeout:30000});
+  const [xmlOnlyEvidence]=await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('[data-action="export-output-readiness"]').click(),
+  ]);
+  const xmlOnlyReport=JSON.parse(await readFile(await xmlOnlyEvidence.path(),'utf8'));
+  assert.equal(xmlOnlyReport.raw.xml229XmlOnlyOutput,true);
+  assert.equal(xmlOnlyReport.manifest.nativeOutputParticipation,'explicit-xml-only');
+  assert.equal(xmlOnlyReport.checklistRows.some(r=>
+    r.id==='xml229-original-json-engineering-authority'&&r.blocking),false);
+  assert.equal(xmlOnlyReport.checklistRows.find(r=>
+    r.id==='branch-format-authority')?.status,'ready');
+  // No native conversion has occurred yet: geometry/Preview do not forge a .cii.
+  assert.equal(xmlOnlyReport.raw.resultOk,false);
+  record.stages.xmlOnlyExplicitOptIn={
+    branchFormatsReady:true,jsonExcludedFromAuthority:true,
+    nativePreflightButtonEnabled:true,
+    ciiReleaseNotClaimed:true,
+  };
+  await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
+  await page.waitForFunction(()=>document.querySelector('[data-action="run"]')?.disabled===true &&
+    [...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .some(tr=>tr.children[0]?.textContent==='xml229-original-json-engineering-authority'),
+    null,{timeout:30000});
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles({
