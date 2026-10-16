@@ -18,6 +18,8 @@ import {openXml229EngineeringFactModel}
  from './xml229-preview-engineering-fact-producer.mjs';
 import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
+import {buildXml229CandidateCoverageReport}
+ from './xml229-candidate-coverage-report.mjs';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
  from '../../../converters/xml-cii2019-core/weight-facts-individual-review.js';
 import {readVerifiedModeAFinalRows}
@@ -285,6 +287,19 @@ async function rpc(req){
      return projectXml229WeightDecisionProvenance({
        reviewState,basisId,sourceId,completion,
        confirmedBulkCommandIds:[...confirmedBulkCommands],
+     });
+   }
+   if(req.what==='candidate-coverage'){
+     const source=ready.basis.scope[0]?.sourceId;
+     if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
+       fail('COVERAGE_PRESENTATION_NOT_READY','Current source-bound physical projection required');
+     return buildXml229CandidateCoverageReport({
+       session:ready,sourceId:source,physicalOccurrences:physicalIdentityList,
+       weightProjection,sourceReceipt,requestId:active,
+       readCurrentSession:()=>({
+         basisId:ready?.basis?.basisId,sourceGenerationId:sourceReceipt?.generationId,
+         requestId:active,closed:cancelled,
+       }),
      });
    }
    if(req.what==='page'){
