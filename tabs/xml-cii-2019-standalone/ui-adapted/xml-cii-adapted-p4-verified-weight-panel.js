@@ -17,6 +17,7 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
  from './xml229-p4-weight-review-presentation.mjs';
+import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {
  getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
@@ -211,6 +212,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   decisions. Native CII Run is NOT authorized by this panel.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
+  <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
+   class="model-converters-download-btn">Download verified decision provenance JSON</button>
+   <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
   <div data-p4-weight-table></div></section>`;
  const root=container.querySelector('[data-p4-weight-root]');
  const status=root.querySelector('[data-p4-weight-status]');
@@ -275,12 +279,32 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const scope=event.target.closest?.('[data-p4-scope]');
    const planButton=event.target.closest?.('[data-p4-bulk-plan]');
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
+   const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal)return;
+   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton)return;
    busy=true;
    try{
+     if(auditButton){
+       const live=getXml229CurrentWorkerHeldReview(stateRef);
+       if(live!==active)err('PROVENANCE_SESSION_STALE',
+         'Current verified source changed before decision provenance audit');
+       const report=await active.readDecisionProvenance();
+       if(getXml229CurrentWorkerHeldReview(stateRef)!==active||
+          report?.basisId!==active.receipt?.basisId)
+         err('PROVENANCE_SESSION_STALE','Original source changed during decision audit');
+       downloadTextFile('xml229-weight-decision-provenance.json',
+         JSON.stringify({...report,exportedAt:new Date().toISOString()},null,2),
+         'application/json;charset=utf-8');
+       say('Decision audit exported: '+report.summary.auditedAcceptedDecisions+
+         ' accepted Match-1/Final records, '+
+         report.summary.bulkConfirmed+' same-Worker confirmed bulk, '+
+         report.summary.bulkConfirmationUnknown+' bulk commands without independently provable confirmation. '+
+         (report.summary.provenanceComplete?'All audited decisions have sufficient provenance.':
+           'Inspect audit issues before Owner approval.'));
+       return;
+     }
      if(scope){
        mode=scope.getAttribute('data-p4-scope')||'all';
        offset=0;pendingBulk=null;await render();return;
