@@ -92,3 +92,11 @@ test('invalid and attacker-shaped documents have deterministic safe issue codes'
   const e=fixture();e.sourceReceipt.sha256='malformed';
   issue(e,'INVALID_SOURCE_RECEIPT');
 });
+
+test('audit output never echoes unrelated caller-supplied mass-count data',()=>{
+  const d=fixture();d.completion.counts.privateXml='PRIVATE_OWNER_XML';
+  const r=auditXml229Evidence(d);
+  assert.equal(r.status,'CONSISTENT');
+  assert.equal(JSON.stringify(r).includes('PRIVATE_OWNER_XML'),false);
+  assert.deepEqual(Object.keys(r.massCounts).sort(),['final','match1','source','unresolved']);
+});
