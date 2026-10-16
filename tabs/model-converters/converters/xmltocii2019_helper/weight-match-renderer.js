@@ -380,7 +380,7 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     input.dataset.wmAccepted = 'true';
     const row = input.closest('tr');
     const statusCell = row?.querySelector('[data-wm-status-cell]');
-    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Suggested' : 'Accepted · Manual';
+    if (statusCell) statusCell.textContent = input.dataset.wmSelectionOrigin === 'candidate' ? 'Accepted · Match-1' : 'Accepted · Manual';
     if (detailEl?.dataset?.wmValidationActive === 'true') queueMicrotask(() => { void publishValidation(cfg); });
   };
   const drawRows = (issues) => {

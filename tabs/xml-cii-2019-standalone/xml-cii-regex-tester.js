@@ -17,10 +17,10 @@ export function createDefaultRegexTesterConfig() {
   const defaultFormat = {
     tokenDelimiter: '-',
     lineKeyJoiner: '',
-    lineKey: { regex: '', group: 1, tokenPosition: 3 },
-    pipingClass: { regex: '', group: 1, tokenPosition: 4 },
-    rating: { regex: '', group: 1, tokenPosition: 4 },
-    bore: { regex: '', group: 1, tokenPosition: 2 },
+    lineKey: { regex: '', group: 1, tokenPosition: 4 },
+    pipingClass: { regex: '', group: 1, tokenPosition: 5 },
+    rating: { regex: '', group: 1, tokenPosition: 5 },
+    bore: { regex: '', group: 1, tokenPosition: 3 },
   };
   return {
     activeFormatIndex: 0,

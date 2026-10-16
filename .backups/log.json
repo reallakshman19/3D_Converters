@@ -1,5 +1,5 @@
 {
-  "lastId": 1298,
+  "lastId": 1309,
   "entries": [
     {
       "id": 1,
@@ -9086,6 +9086,83 @@
       "file": "tests\\xml-cii-229-p3a-preview-worker-source-hold.test.mjs",
       "context": "Add XML-only preview and byte-parity regression tests",
       "backupFile": "1298_tests_xml_cii_229_p3a_preview_worker_source_hold_test_mjs.bak"
+    },
+    {
+      "id": 1299,
+      "timestamp": "2026-10-15 23:47:32",
+      "file": "converters\\xml-cii2019-core\\branch-format-extraction.js",
+      "context": "pre-robust-fix",
+      "backupFile": "1299_converters_xml_cii2019_core_branch_format_extraction_js.bak"
+    },
+    {
+      "id": 1300,
+      "timestamp": "2026-10-15 23:49:48",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "restore Accepted Match-1 text",
+      "backupFile": "1300_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1301,
+      "timestamp": "2026-10-15 23:50:03",
+      "file": "docs\\tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "restore Accepted Match-1 text docs",
+      "backupFile": "1301_docs_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
+    },
+    {
+      "id": 1302,
+      "timestamp": "2026-10-15 23:50:59",
+      "file": "docs\\converters\\xml-cii2019-core\\branch-format-extraction.js",
+      "context": "pre-robust-fix docs",
+      "backupFile": "1302_docs_converters_xml_cii2019_core_branch_format_extraction_js.bak"
+    },
+    {
+      "id": 1303,
+      "timestamp": "2026-10-15 23:54:44",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-regex-tester.js",
+      "context": "default token positions 4, 5, 5, 3",
+      "backupFile": "1303_tabs_xml_cii_2019_standalone_xml_cii_regex_tester_js.bak"
+    },
+    {
+      "id": 1304,
+      "timestamp": "2026-10-15 23:54:50",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-regex-tester.js",
+      "context": "default token positions 4, 5, 5, 3 docs",
+      "backupFile": "1304_docs_tabs_xml_cii_2019_standalone_xml_cii_regex_tester_js.bak"
+    },
+    {
+      "id": 1305,
+      "timestamp": "2026-10-15 23:55:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "defaultFormat token positions 4, 5, 5, 3",
+      "backupFile": "1305_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 1306,
+      "timestamp": "2026-10-15 23:55:37",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-state.js",
+      "context": "defaultFormat token positions 4, 5, 5, 3 docs",
+      "backupFile": "1306_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_state_js.bak"
+    },
+    {
+      "id": 1307,
+      "timestamp": "2026-10-16 05:45:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "xml229 independent stages presentation in renderChecklist",
+      "backupFile": "1307_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1308,
+      "timestamp": "2026-10-16 05:45:34",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "xml229 independent stages presentation in renderChecklist docs mirror",
+      "backupFile": "1308_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1309,
+      "timestamp": "2026-10-16 05:50:29",
+      "file": "tests\\xml-cii-229-p4-weight-presentation-adapter.test.mjs",
+      "context": "add test for renderChecklist independent stages and branch format authority",
+      "backupFile": "1309_tests_xml_cii_229_p4_weight_presentation_adapter_test_mjs.bak"
     }
   ]
 }

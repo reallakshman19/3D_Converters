@@ -7,6 +7,8 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
+import { buildStandaloneOutputRunReadiness } from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
+import { createDefaultRegexTesterConfig } from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 
 const row=()=>({
   sourceId:'SRC-TEST',occurrenceId:'exact-source::occ-01',
@@ -115,3 +117,33 @@ test('served production route is byte-identical to owned root files',async()=>{
    assert.equal(root,served,path);
  }
 });
+
+test('default Regex Tester config resolves standard 41-branch fixture with 0 blocking items',async()=>{
+ const xml=await readFile(new URL('../Benchmarks/EF-05-PRO.TEST.xml',import.meta.url),'utf8');
+ const config=createDefaultRegexTesterConfig();
+ const report=buildStandaloneOutputRunReadiness({
+   sourceKind:'xml',sourceText:xml,
+   supportConfigJson:JSON.stringify(config),
+   regexTesterResult:{status:'available'},
+   options:{outputMode:'both'},
+ });
+ assert.equal(report.summary.blockingCount,0);
+ const bfa=report.checklistRows.find(r=>r.id==='branch-format-authority');
+ assert.equal(bfa.status,'ready');
+ assert.equal(bfa.blocking,false);
+ assert.match(bfa.message,/41 selected branch occurrences/);
+
+ const presentationRows=report.checklistRows.map(item=>{
+   const stage=xml229UnbuiltIndependentStage(item.id,{
+     status:item.status,blocking:String(item.blocking),
+   });
+   return stage?{...item,...stage}:item;
+ });
+ for(const id of ['resolver-json','manual-restraints','support-mapper']){
+   const row=presentationRows.find(r=>r.id===id);
+   assert.equal(row.status,'not-run');
+   assert.equal(row.blocking,false);
+   assert.match(row.label,/separate stage/);
+ }
+});
+

@@ -95,7 +95,14 @@ function renderSummary(parent, report) {
 
 function renderChecklist(parent, report) {
   const panel = section(parent, 'Pre-run Checklist');
-  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], rows(report.checklistRows), 'No checklist rows yet.'));
+  const presentationRows = rows(report.checklistRows).map((item) => {
+    const stage = xml229UnbuiltIndependentStage(item.id, {
+      status: item.status,
+      blocking: String(item.blocking),
+    });
+    return stage ? { ...item, ...stage } : item;
+  });
+  panel.appendChild(table(['ID', 'Label', 'Status', 'Severity', 'Blocking', 'Message'], presentationRows, 'No checklist rows yet.'));
   return panel;
 }
 
