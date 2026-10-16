@@ -38,8 +38,28 @@ class TestElement {
     this.tagName = tag; this.children = []; this.dataset = {}; this.className = ''; this.attributes = {};
     this.value = ''; this.checked = false; this.disabled = false; this.style = {}; this._text = ''; this.listeners = {};
   }
-  appendChild(child) { this.children.push(child); return child; }
-  append(...items) { for (const item of items) this.children.push(item); }
+  appendChild(child) {
+    if (this.tagName === 'tr' && child && (child.tagName === 'td' || child.tagName === 'th')) {
+      child.cellIndex = this.children.filter((item) =>
+        item && (item.tagName === 'td' || item.tagName === 'th')).length;
+    }
+    this.children.push(child);
+    return child;
+  }
+  append(...items) { for (const item of items) this.appendChild(item); }
+  querySelectorAll(selector) {
+    // Minimal real DOM-equivalent tag traversal needed for checklist cells.
+    // Do not replace production table rendering with a test-only shortcut.
+    const tag = String(selector).toLowerCase();
+    const found = [];
+    const walk = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (String(node.tagName || '').toLowerCase() === tag) found.push(node);
+      for (const child of node.children || []) walk(child);
+    };
+    for (const child of this.children) walk(child);
+    return found;
+  }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   addEventListener(type, handler) { this.listeners[type] = handler; }
   removeEventListener(type) { delete this.listeners[type]; }
