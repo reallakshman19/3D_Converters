@@ -184,8 +184,12 @@ try{
      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
    const session=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
    const label=document.querySelector('[data-p4-preview-status]')?.textContent||'';
-   return !!session && session.closed!==true &&
-     label.includes('Preview engineering facts VERIFIED');
+   if(session && session.closed!==true &&
+      label.includes('Preview engineering facts VERIFIED')){
+     window.__p4RebuiltSession=session;
+     return true;
+   }
+   return false;
  },null,{timeout:120000});
  const reattached=await page.evaluate(async()=>{
    const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
@@ -195,9 +199,12 @@ try{
      document.querySelector('#weight-panel'),window.__p4StateRef,
      {resolveInputs:async()=>window.__p4Options,existingWorkflow:true});
    const after=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   const observed=window.__p4RebuiltSession;
    return {hadLiveBefore:!!before,hadLiveAfter:!!after,
      closedBefore:before?.closed,closedAfter:after?.closed,
      basisBefore:before?.receipt?.basisId,basisAfter:after?.receipt?.basisId,
+     observedClosed:observed?.closed,observedClosureCode:observed?.closureCode,
+     observedBasis:observed?.receipt?.basisId,
      weightInitial:document.querySelector('[data-p4-weight-status]')?.textContent};
  });
  assert.equal(reattached.hadLiveBefore,true,
