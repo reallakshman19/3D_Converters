@@ -29,8 +29,13 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
  assert.match(html,/data-p4-accept-final/);
  assert.match(html,/data-p4-filter-unresolved/);
  assert.match(html,/423 components/);
+ assert.equal((html.match(/<th style=/g)||[]).length,13);
+ assert.match(html,/ComponentRefNo_Endpoint/);
+ assert.match(html,/Nearest Suggestions/);
+ assert.match(html,/data-p4-bulk-plan/);
+ assert.match(html,/data-p4-scope="rigid"/);
  assert.match(html,/showing 1–1/);
- assert.match(html,/Suggestions are evidence, never automatically accepted/);
+ assert.match(html,/Candidate chips are draft evidence/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });

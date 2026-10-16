@@ -29,84 +29,109 @@ export function xml229WeightReviewPageModel(page,offset=0){
      return a;
    },{final:0,match1:0,source:0,unresolved:0,proposed:0})};
 }
-export function renderXml229WeightReviewPage(page,offset=0){
+export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query=''}={}){
  const m=xml229WeightReviewPageModel(page,offset);
+ const fmt=(x,unit='')=>typeof x==='number'&&Number.isFinite(x)
+   ?e(Number(x).toFixed(unit==='mm'?1:0))+(unit?' '+unit:''):'—';
+ const label=x=>txt(x)?e(x):'<span title="No verified source value" style="color:#94a3b8">—</span>';
  const rows=m.rows.map((r,i)=>{
-   const state=xml229WeightReviewStatus(r);
-   const choices=Array.isArray(r.proposals)?r.proposals:[];
-   const chips=choices.slice(0,3).map(p=>`<button type="button"
-      class="mc-rigid-review-candidate${p.qualified?' best':''}" data-p4-pick="${e(p.proposalId)}"
-      title="${e('Rank '+p.ranking+' · '+(p.method||'source proposal')+' · '+(p.qualified?'qualified candidate':'requires independent review'))}">
-      ${p.qualified?'★ ':'≈ '}${kg(p.value)} <small>· ${e(p.method||'candidate')}</small>
-     </button>`).join('');
-   const more=choices.length>3?`<span style="color:#94a3b8;font-size:11px">+${choices.length-3} other candidates</span>`:'';
-   return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
-      data-p4-stage="${state.kind}" style="border-bottom:1px solid #253a55">
-    <td style="vertical-align:top;min-width:145px;max-width:220px;padding:10px 8px">
-      <strong style="font-size:12px;overflow-wrap:anywhere">${e(r.sourceId)}</strong>
-      <small style="display:block;color:${state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#94a3b8'}" data-p4-decision-state="${state.kind}">${e(state.label)}</small>
-      <small style="color:#64748b;display:block;overflow-wrap:anywhere" title="Exact original occurrence identity">${e(r.occurrenceId)}</small>
-    </td>
-    <td style="vertical-align:top;min-width:95px;padding:10px 8px;font-variant-numeric:tabular-nums">
-     ${e(r.branchOccurrenceIndex)}/${e(r.nodeOrdinal)}
-    </td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.sourceKg)}</td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.match1Kg)}</td>
-    <td style="vertical-align:top;white-space:nowrap;padding:10px 8px;font-variant-numeric:tabular-nums">${kg(r.finalKg)}</td>
-    <td style="vertical-align:top;min-width:195px;max-width:300px;padding:8px">
-      <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap">${chips||'<small style="color:#94a3b8">No verified candidate yet</small>'}${more}</div>
-      <small style="display:block;color:#94a3b8;margin-top:5px">Suggestions are evidence, never automatically accepted.</small>
-    </td>
-    <td style="vertical-align:top;min-width:235px;max-width:315px;padding:7px 8px">
-      <div style="display:grid;grid-template-columns:minmax(80px,1fr) minmax(86px,1fr);gap:5px;align-items:center">
-       <input data-p4-proposal type="number" min="0" step="any" inputmode="decimal"
-        aria-label="Draft proposed weight in kilograms" placeholder="${e(r.proposedKg??'kg')}"
-        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
-       <select data-p4-candidate aria-label="Verified source candidate"
-        style="min-width:0;width:100%;box-sizing:border-box;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
-        <option value="">Manual entry</option>
-        ${choices.map(p=>`<option value="${e(p.proposalId)}">#${e(p.ranking)} · ${kg(p.value)}${p.qualified?' qualified':' review'}</option>`).join('')}
-       </select>
-       <input data-p4-reason aria-label="Engineering review reason" placeholder="Engineering reason"
-        style="grid-column:1/-1;min-width:0;box-sizing:border-box;width:100%;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px">
-       <button data-p4-accept-match1 type="button" class="model-converters-run-btn"
-        style="padding:6px 8px;font-size:12px">Accept Match-1</button>
-       <button data-p4-accept-final type="button" class="model-converters-download-btn"
-        style="padding:6px 8px;font-size:12px">Review Final</button>
+  const state=xml229WeightReviewStatus(r),proposals=Array.isArray(r.proposals)?r.proposals:[];
+  const chips=proposals.map(p=>{
+   const score=typeof p.score==='number'&&Number.isFinite(p.score)&&p.score>=0&&p.score<=100
+     ?' · '+fmt(p.score)+'%':'';
+   const hint=[p.method,p.matchType,p.qualified?'Qualified source candidate':'Review required',
+     ...(p.eligibilityReasons||[]),...(p.evidenceRefs||[])].filter(Boolean).join(' · ');
+   return `<button type="button" class="mc-rigid-review-candidate${p.qualified?' best':''}"
+     data-p4-pick="${e(p.proposalId)}" title="${e(hint)}"
+     style="font-size:11px;white-space:nowrap;margin:1px;padding:4px 6px">
+     ${p.qualified?'★':'≈'} ${kg(p.value)}${score} · ${e(p.method||'source proposal')}</button>`;
+  }).join('');
+  const tooltip=[r.dtxrSource,r.dtxrMatchedKey,
+    r.dtxrSourcePath].filter(Boolean).join(' · ')||
+    'DTXR metadata not independently available for this original physical occurrence';
+  const accepted=positive(r.finalKg)?r.finalKg:positive(r.match1Kg)?r.match1Kg:r.sourceKg;
+  const statusColor=state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#fca5a5';
+  return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
+    data-p4-stage="${state.kind}" style="border-bottom:1px solid #253a55">
+    <td style="color:${statusColor}" data-p4-decision-state="${state.kind}">${e(state.label)}
+     <small style="display:block;color:#94a3b8">${e(r.sourceId)}</small></td>
+    <td title="${e(r.branchName)}" style="min-width:230px;max-width:290px;overflow-wrap:anywhere">${label(r.branchName)}</td>
+    <td style="min-width:95px">${label(r.lineKey)}</td>
+    <td>${label(r.componentType)}</td>
+    <td title="Verified FactRecord bore.mm">${fmt(r.boreMm,'mm')}</td>
+    <td title="Verified rating. Changes must be explicitly committed to engineering config and Preview rebuilt.">
+     <input data-p4-rating-readonly class="mc-wm-rating-input" type="text"
+       value="${e(r.rating??'')}" readonly aria-label="Verified Preview rating (edit upstream)"
+       style="width:72px;background:#0b1320;color:#dceaff;border:1px solid #405a78;border-radius:4px">
+     <small style="display:block;color:#94a3b8">Verified Preview</small></td>
+    <td title="Original NodeNumber; physical identity uses branch and original node ordinal">${label(r.nodeNumber)}</td>
+    <td title="Original component reference and endpoint">${label(r.componentRefNoEndpoint)}</td>
+    <td title="${e(tooltip)}" style="min-width:140px;max-width:260px;overflow-wrap:anywhere">${label(r.dtxr)}</td>
+    <td style="min-width:105px">${label(r.valveHint)}</td>
+    <td title="Verified FactRecord length.mm from source geometry or explicit source length">${fmt(r.lengthMm,'mm')}</td>
+    <td style="min-width:260px">
+      <div title="Accepted mass is distinct from an unaccepted proposal" style="margin-bottom:3px">
+        <b>${kg(accepted)}</b>
+        <small style="display:block;color:#94a3b8">
+         Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span> ·
+         Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
       </div>
-      <small style="color:#94a3b8;display:block;margin-top:5px">Two separate source-bound decisions</small>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+       <input data-p4-proposal class="mc-rigid-review-input" type="number"
+         min="0" step="any" placeholder="${e(r.proposedKg??'kg')}"
+         aria-label="Proposed draft kilograms, not accepted" style="width:84px;background:#202c40;color:#f1f5f9">
+       <select data-p4-candidate aria-label="Verified candidate" style="max-width:115px;background:#0b1320;color:#e5eefc">
+        <option value="">Manual</option>
+        ${proposals.map(p=>`<option value="${e(p.proposalId)}">#${e(p.ranking)} ${kg(p.value)}</option>`).join('')}
+       </select>
+       <input data-p4-reason placeholder="Engineering reason" aria-label="Engineering reason" style="width:110px;background:#0b1320;color:#e5eefc">
+       <button data-p4-accept-match1 type="button" class="model-converters-run-btn">Accept Match-1</button>
+       <button data-p4-accept-final type="button" class="model-converters-download-btn">Review Final</button>
+      </div>
+      <small style="color:#94a3b8">Proposed value is not accepted automatically</small>
     </td>
+    <td style="max-width:420px;min-width:190px">
+      <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
+       ${chips||'<span style="color:#94a3b8">No verified candidate yet</span>'}
+      </div></td>
    </tr>`;
  }).join('');
- return `<div class="model-converters-workflow-detail-note" style="margin:8px 0;background:#101a29;border:1px solid #253a55;border-radius:8px;padding:10px">
-    <strong>Verified original physical facts</strong> · ${m.total} components · showing ${m.rows.length?m.start+1:0}–${m.end}
-    <div style="display:flex;gap:13px;flex-wrap:wrap;margin-top:6px;color:#cbd5e1;font-size:12px">
-     <span>On this page: ${m.counts.final} Final</span><span>${m.counts.match1} Match-1</span>
-     <span>${m.counts.source} original XML masses</span><span>${m.counts.unresolved} requiring review</span>
-    </div>
-    <small style="color:#94a3b8">Review counts above describe this page only. Full-source progress is shown in 5 Run.</small>
+ const tabs=[['all','All'],['rigid','Rigid'],['needs-review','Needs Review']]
+  .map(([id,name])=>`<button data-p4-scope="${id}" type="button"
+   aria-pressed="${filter===id?'true':'false'}"
+   style="background:${filter===id?'#1e40af':'#1e293b'};border:1px solid #466489;border-radius:6px;
+    padding:5px 10px;color:#e5eefc">${name}</button>`).join('');
+ return `<div class="model-converters-workflow-detail-note" style="margin:8px 0">
+   <strong>Verified original physical facts</strong> · ${m.total} components${page?.populationCount!==undefined?' filtered from '+e(page.populationCount):''}
+   · showing ${m.rows.length?m.start+1:0}–${m.end}.
+   <small style="display:block;color:#94a3b8">Page only: ${m.counts.match1} Match-1, ${m.counts.final} Final, ${m.counts.unresolved} unresolved.
+    Source-bound Worker is the sole scorer and reviewer. Candidate chips are draft evidence.</small>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
-   <label style="font-size:12px;color:#b6c5da">Find on this page
-    <input data-p4-filter placeholder="Source or occurrence…" aria-label="Filter displayed original physical components"
-     style="background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;padding:6px;max-width:250px">
-   </label>
-   <label style="font-size:12px;color:#b6c5da"><input data-p4-filter-unresolved type="checkbox"> Unresolved on this page</label>
-   <small data-p4-filter-count style="color:#94a3b8"></small>
+    ${tabs}
+    <label>Search full verified population
+      <input data-p4-filter value="${e(query)}" placeholder="Branch, line key, Node, DTXR, source..."
+       style="padding:6px;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;min-width:220px"></label>
+    <label><input data-p4-filter-unresolved type="checkbox" ${filter==='needs-review'?'checked':''}> Unresolved</label>
+    <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Fill qualified suggestions</button>
+    <button data-p4-bulk-confirm type="button" hidden class="model-converters-run-btn">Confirm Match-1 bulk review</button>
+    <small data-p4-filter-count style="color:#94a3b8">Filters apply to all original occurrences.</small>
   </div>
-  <div class="mc-rigid-review-table-wrap" style="max-height:460px;overflow:auto;border:1px solid #253a55;border-radius:8px">
-   <table class="mc-rigid-review-table" style="width:100%;min-width:980px;border-collapse:collapse;table-layout:auto;font-size:12px">
-    <thead style="position:sticky;top:0;z-index:1;background:#14243a;color:#dceaff">
-     <tr><th style="padding:10px 8px">Source</th><th>Original branch/node</th><th>XML kg</th><th>Match-1 kg</th><th>Final kg</th><th>Ranked source candidates</th><th>Engineering decisions</th></tr>
-    </thead><tbody>${rows}</tbody>
-   </table>
+  <div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;border:1px solid #253a55;border-radius:8px">
+    <table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;min-width:1940px">
+      <thead style="position:sticky;top:0;background:#14243a;color:#dceaff">
+       <tr>${['Status','Branch','Line Key','ComponentType','Bore','Rating','Node',
+        'ComponentRefNo_Endpoint','DTXR','Valve Hint','Length','Weight (kg)',
+        'Nearest Suggestions'].map(h=>`<th style="padding:8px;white-space:nowrap">${e(h)}</th>`).join('')}</tr>
+      </thead><tbody>${rows}</tbody>
+    </table>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px">
-   <span style="font-size:12px;color:#94a3b8">Source-bound Worker page ${m.rows.length?Math.floor(m.start/25)+1:0}</span>
-   <div style="display:flex;gap:7px"><button data-p4-prev type="button" ${m.start===0?'disabled':''}>Previous</button>
-   <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+    <button data-p4-prev type="button" ${m.start===0?'disabled':''}>Previous</button>
+    <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button>
+    <small>Showing ${m.rows.length?m.start+1:0}–${m.end} of ${m.total} matching original physical owners.</small>
   </div>
-  <p style="color:#fbbf24;font-size:12px;margin-top:10px">Native CII Run remains HELD: a verified Weight review does not authorize downstream Final/output consumption.</p>`;
+  <p style="color:#fbbf24">Native CII Run remains HELD until separate Final/output authority is verified.</p>`;
 }
 export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reason=''}={}){
  const explanation=txt(reason).trim();
