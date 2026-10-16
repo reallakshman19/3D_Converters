@@ -124,7 +124,10 @@ test('visible Output/Run builds canonical report and never patches checklist cel
  const path='../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js';
  const src=await readFile(new URL(path,import.meta.url),'utf8');
  assert.match(src,/verifiedEngineering:\{sessionReceipt:session\.receipt,proof\}/);
- assert.match(src,/paint\(verifiedReport\)/);
+ assert.match(src,/paint\(verifiedReport,latest\)/);
+ assert.match(src,/readError:\{code:error\?\.code\}/);
+ assert.match(src,/paint\(held,latest\)/);
+ assert.match(src,/renderRunControls\(card, stateRef, renderState, report, render\)/);
  assert.match(src,/card\.__xml229ReadinessToken/);
  assert.doesNotMatch(src,/tr\.children\[2\]\.textContent='ready'/);
  assert.doesNotMatch(src,/tr\.children\[4\]\.textContent='false'/);
@@ -156,4 +159,37 @@ test('header badge module is mirrored for the served application',async()=>{
  const p='tabs/xml-cii-2019-standalone/ui-adapted/xml229-canonical-output-header-badges.mjs';
  assert.equal(await readFile(new URL('../'+p,import.meta.url),'utf8'),
   await readFile(new URL('../docs/'+p,import.meta.url),'utf8'));
+});
+
+test('a rejected original GC-PW completion produces a diagnosable HELD stage without inventing readiness',()=>{
+ for(const code of ['STALE_INPUT','GC_PW_RPC_FAILED','ENGINEERING_WORKER_CRASH']){
+  const report=buildStandaloneOutputRunReadiness(input(),{
+   verifiedEngineering:{readError:{code}},
+  });
+  for(const id of ['preview-audit','weight-match']){
+   const row=by(report,id);
+   assert.equal(row.status,'held');
+   assert.equal(row.blocking,false,'native CII hold independently owns the blocking gate');
+   assert.equal(row.severity,'warning');
+   assert.match(row.message,new RegExp('\\['+code+'\\]'));
+   assert(report.diagnostics.some(d=>d.type===id&&d.message===row.message));
+   assert(report.logRows.some(d=>d.source==='readiness'&&d.message.includes('['+code+']')));
+  }
+  assert.equal(report.raw.xml229VerifiedEngineering,false);
+  assert.equal(by(report,'xml229-original-json-engineering-authority').blocking,true);
+  assert.equal(report.summary.blockingCount,1);
+ }
+});
+test('completion diagnostics sanitize private exception text and reject untrusted failure codes',()=>{
+ const report=buildStandaloneOutputRunReadiness(input(),{
+  verifiedEngineering:{readError:{
+   code:'../../private/dataset.xml <script>alert(1)</script>',
+   message:'secret Owner source XML data',stack:'private/path/stack',
+  }},
+ });
+ for(const row of report.checklistRows){
+  assert.doesNotMatch(row.message,/private\/dataset|secret Owner|<script>|private\/path/);
+ }
+ assert.match(by(report,'preview-audit').message,/\[GC_PW_COMPLETION_UNAVAILABLE\]/);
+ assert.equal(by(report,'xml229-original-json-engineering-authority').status,'held');
 });
