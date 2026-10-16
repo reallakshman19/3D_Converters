@@ -96,6 +96,27 @@ test('only explicit revoke invalidates verified review; stale panel cannot revok
  assert.equal(hasXml229VerifiedEngineeringBasis(key),false);
 });
 
+test('a terminated Worker cannot be returned or treated as verified authority',()=>{
+ const {key}=fixture();
+ let closed=false;
+ const worker={get closed(){return closed;},cancel(){closed=true}};
+ const first=beginXml229VerifiedEngineeringBuild(key);
+ assert.equal(publishXml229VerifiedEngineeringBuild(first,{lease:'same-xml-json-masters',session:worker}),true);
+ assert.equal(hasXml229VerifiedEngineeringBasis(key),true);
+ closed=true; // Worker terminated independently of the UI panel
+ assert.equal(getXml229VerifiedEngineeringEntry(key),null,
+   'dead Worker must be evicted, not returned for new Weight Match reads');
+ assert.equal(hasXml229VerifiedEngineeringBasis(key),false);
+ const second=beginXml229VerifiedEngineeringBuild(key);
+ const replacement={closed:false,cancel(){}};
+ assert.equal(publishXml229VerifiedEngineeringBuild(first,{lease:'old',session:worker}),false,
+   'terminated predecessor cannot publish after source generation advances');
+ assert.equal(publishXml229VerifiedEngineeringBuild(second,{
+   lease:'same-xml-json-masters',session:replacement,
+ }),true);
+ assert.equal(getXml229VerifiedEngineeringEntry(key).session,replacement);
+});
+
 test('approved Regex formats are engineering inputs, not disposable UI metadata',()=>{
  const source='/L100-PC10-150-6';
  const format={
@@ -117,6 +138,7 @@ test('approved Regex formats are engineering inputs, not disposable UI metadata'
 test('production served copies and no-stripping contract stay identical',async()=>{
  for(const path of [
    'tabs/xml-cii-2019-standalone/integration/xml229-engineering-basis-authority.mjs',
+   'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs',
    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',
    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-smart-ui.js',
  ]){
