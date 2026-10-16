@@ -17,6 +17,18 @@ async function copy(relativePath) {
 
 await writeFile(join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
 await copy(sourcePath);
+
+await mkdir(join(tempRoot, 'converters/xml-cii2019-core'), { recursive: true });
+await writeFile(join(tempRoot, 'converters/xml-cii2019-core/dtxr-resolver.js'), [
+  'let rebuilds = 0;',
+  'export function buildStagedDtxrIndex(json, config) {',
+  '  rebuilds += 1;',
+  '  return { sourceText: json, config, rebuilt: rebuilds };',
+  '}',
+  'export function stagedIndexBuildCount() { return rebuilds; }',
+  '',
+].join('\n'), 'utf8');
+
 const moduleDir = join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted');
 await mkdir(moduleDir, { recursive: true });
 await writeFile(join(moduleDir, 'xml-cii-adapted-preview-dryrun-core.js'), `
@@ -192,4 +204,50 @@ test('deployment invalidates the previous fuzzy Preview cache once', async () =>
   assert.match(source, /xml-cii-pv-cache-v8-rating-policy/);
   assert.match(source, /automaticMatchesRemoved/);
   assert.doesNotMatch(source, /lineKeyProposed:\s*similar\.proposedKey/);
+});
+
+
+test('multiple strict branch repairs share one staged JSON index without changing rejection', async () => {
+  const indexModule = await import(pathToFileURL(join(
+    tempRoot, 'converters/xml-cii2019-core/dtxr-resolver.js')).href);
+  const before = indexModule.stagedIndexBuildCount();
+  const seen = [];
+  const output = strict.buildStrictLineAuthorityCorePreview('<Plant/>', {
+    linelist: { masterRows: [{ lineKey: 'A-11' }] },
+  }, '{"staged":"original-DTXR"}', {
+    buildCorePreview: (_xml, config, _json, runtime = {}) => {
+      seen.push({ config, runtime });
+      if (seen.length === 1) return {
+        branchRows: [
+          { branchName:'A', lineKeyMethod:'similar-linekey' },
+          { branchName:'B', lineKeyMethod:'similar-lineseq' },
+        ],
+        nodeRows: [],
+      };
+      return { branchRows:[{lineKeyMethod:'none'}], nodeRows:[] };
+    },
+    branchFragments: () => [
+      {xmlText:'<Root><Branch name="A"/></Root>'},
+      {xmlText:'<Root><Branch name="B"/></Root>'},
+    ],
+  });
+  assert.equal(indexModule.stagedIndexBuildCount() - before, 1,
+    'full staged JSON DTXR index constructed only once for both fragments');
+  assert.equal(seen.length, 3, 'initial full build plus two strict fragments');
+  assert.strictEqual(seen[1].runtime.stagedIndex, seen[2].runtime.stagedIndex);
+  assert.deepEqual(seen[1].config.linelist.masterRows, []);
+  assert.equal(output.strictLineAuthority.automaticMatchesRemoved, 2);
+  assert(output.branchRows.every(row => row.lineKeyMethod === 'none'));
+});
+
+test('without automatic matches the optimization builds no staged JSON index', async () => {
+  const indexModule = await import(pathToFileURL(join(
+    tempRoot, 'converters/xml-cii2019-core/dtxr-resolver.js')).href);
+  const before = indexModule.stagedIndexBuildCount();
+  const output = strict.buildStrictLineAuthorityCorePreview('<Plant/>', {}, '{"large":"json"}', {
+    buildCorePreview: () => ({branchRows:[{branchName:'A',lineKeyMethod:'exact'}],nodeRows:[]}),
+    branchFragments: () => { throw new Error('No branch repair should be performed'); },
+  });
+  assert.equal(indexModule.stagedIndexBuildCount(), before);
+  assert.equal(output.branchRows[0].lineKeyMethod, 'exact');
 });
