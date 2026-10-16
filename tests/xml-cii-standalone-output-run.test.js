@@ -2,13 +2,22 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
+const { createStaticEsmFixture, staticModuleSpecifiers } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 
 function prepareEsmFixture() {
-  return createStaticEsmFixture(root, {
+  // Regression: a side-effect migration import immediately preceding a named
+  // import must not be consumed by the multiline import regexp.
+  const imports = staticModuleSpecifiers(
+    "import './xml-cii-adapted-authority-migration.js';\n" +
+    "import { buildPreview } from './xml-cii-adapted-preview-dryrun-core.js?v=1';\n"
+  );
+  assert(imports.includes('./xml-cii-adapted-authority-migration.js'),
+    'side-effect schema migration missing from ESM fixture dependency closure');
+  assert(imports.includes('./xml-cii-adapted-preview-dryrun-core.js?v=1'));
+  const fixture = createStaticEsmFixture(root, {
     prefix: 'xml-cii-output-run-test-',
     entryFiles: [
       'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
@@ -17,7 +26,11 @@ function prepareEsmFixture() {
       'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
       'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     ],
-  }).tempRoot;
+  });
+  assert(fixture.files.includes(
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-authority-migration.js'
+  ), 'Run UI fixture must copy its real schema/cache migration side-effect import');
+  return fixture.tempRoot;
 }
 
 class TestElement {

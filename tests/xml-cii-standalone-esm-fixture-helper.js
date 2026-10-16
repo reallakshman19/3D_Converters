@@ -4,6 +4,10 @@ const path = require('path');
 
 const STATIC_IMPORT_RE = /(?:^|\n)\s*import\s+(?:[\s\S]*?\s+from\s+)?(['"])([^'"]+)\1\s*;?/g;
 const STATIC_EXPORT_RE = /(?:^|\n)\s*export\s+(?:\*|\{[\s\S]*?\})\s+from\s+(['"])([^'"]+)\1\s*;?/g;
+// A multiline named import may cause STATIC_IMPORT_RE to swallow a preceding
+// side-effect import. Scan side-effect imports independently so the temporary
+// ESM fixture includes cache/schema migrations required by production modules.
+const STATIC_SIDE_EFFECT_IMPORT_RE = /(?:^|\n)[ \t]*import[ \t]+(['"])([^'"\r\n]+)\1[ \t]*;?/g;
 
 function normalizeRelativePath(value) {
   return String(value || '').replace(/\\/g, '/');
@@ -42,6 +46,7 @@ function staticModuleSpecifiers(sourceText) {
   const source = String(sourceText || '');
   const specifiers = [];
   collectSpecifiers(STATIC_IMPORT_RE, source, specifiers);
+  collectSpecifiers(STATIC_SIDE_EFFECT_IMPORT_RE, source, specifiers);
   collectSpecifiers(STATIC_EXPORT_RE, source, specifiers);
   return [...new Set(specifiers)];
 }
