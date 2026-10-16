@@ -18,3 +18,13 @@ No independent source-byte, mapping/DTXR, complete 385/10,699/383/1,595 master, 
 
 ## Tests and rollback
 P4 Worker Node 22/24 suite imports tests/xml229-g3-candidate-readiness-reconciliation.test.mjs: basis/hash/selection/revision, mass/proposal arithmetic, missing/null receipts, forged authority, privacy and unresolved with qualified candidates. These standalone contract and CLI files add no scorer, no Final writer and no native release switch. If validation fails, keep draft and revert the focused comparator code, not production scorer behavior.
+
+## One-Worker-turn consistent pair (preferred after G3 Worker integration)
+
+The Worker now provides `session.readCandidateReadinessPair()`, which computes `coverage` and `readiness` synchronously in one Worker message event with no asynchronous gap, checks the same current live InputBasis/source/generation and review stage revisions through the read-only comparator, and **rejects** an inconsistent pair. Review restoration in progress fails closed. The response schema is `XML229.G3G4.SourceBoundAggregatePair.v1`, containing only those existing two aggregate receipts, the structural reconciliation and explicit false native/review authority flags.
+
+For future Owner-controlled collection prefer the single call:
+`const pair = await currentVerifiedSourceReview.readCandidateReadinessPair();`
+Save `pair.coverage` as `coverage.json` and `pair.readiness` as `run-advisory.json` **locally**, then run the existing CLI. This prevents an explicit review edit or source generation change from occurring between two separate RPCs; it is still neither an independent source-byte oracle nor per-physical CII output proof.
+
+The legacy `readCandidateCoverage()` and `readCompletion()` remain available and unchanged for established UI consumers. If using legacy separate calls, revisions and source identity must match and stale pairs must be discarded. Never allow `CONSISTENT` to unlock Run. Public Chromium tests assert a consistent before-and-after pair with explicit, separate Match-1/Final decisions and unchanged CII release denial. No Owner private data has been processed.

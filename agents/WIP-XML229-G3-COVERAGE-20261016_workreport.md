@@ -21,3 +21,9 @@ Added contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs; scrip
 Search of connected Drive for the unique 'XML229' token returned no matching files; generic master-name results cannot be assumed to be the approved Owner originals. No private source/JSON/four-master run, and no real Owner candidate distribution, has been claimed. Exact-head GitHub CI must be independently observed after this documentation change. No merge authorization was inferred from the generic "ok proceed" continuation; PR286 remains DRAFT.
 
 EXACT NEXT: inspect exact-head P4 Node22/24 and original-Blob Chromium and canonical-readiness Actions, then have Owner privately run both read-only Worker RPCs on the same live source and reconcile the two redacted receipts. Native G5 actual CII physical-slot consumption remains HELD.
+
+## Same-Worker-turn pair upgrade — 2026-10-16
+
+Added read-only `candidate-readiness-pair` RPC / client `readCandidateReadinessPair()`. It constructs G3 and G4 synchronously within a single Worker event turn, rejects differing source/basis/mass/decision revision by invoking the existing G3/G4 structural comparator, and emits only the two aggregate receipts and explicitly nonauthoritative comparison. During review-restore it fails closed. Legacy separate readCandidateCoverage/readCompletion remain for UI backward compatibility. Test is the exact real original-Blob Chromium before/after explicitly accepted decisions; exact-head CI must be read after the new code commit.
+
+This solves only a TOCTOU window in *collecting receipts*; it cannot prove that raw Owner data is correct or that native physical output uses Final mass. Runbook includes the preferred single Worker call. No production merge/approval from Owner "proceed".
