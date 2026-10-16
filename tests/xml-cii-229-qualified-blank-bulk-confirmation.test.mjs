@@ -338,3 +338,28 @@ test('GC-PW review transfer does not add a new decision writer, passes source/do
  assert.match(worker,/req\.kind==='restore-review'/);
  assert.match(worker,/restoringReview=true/);
 });
+
+test('real frozen individual Match-1 and Final snapshots restore across independent service restart',async()=>{
+ const reviewed=harness(14);
+ reviewed.service.freezeSnapshot({basisId:basis.basisId,scopeId:'one',
+  stage:'RigidMatch1',expectedDecisionRevision:'m1'});
+ reviewed.service.freezeSnapshot({basisId:basis.basisId,scopeId:'one',
+  stage:'Rigidmatch2',expectedDecisionRevision:'f1'});
+ const counts={source:1,match1:1,final:1,unresolved:11};
+ const file=await exportXml229SourceBoundReviewBackup(reviewed.service,{
+  basisId:basis.basisId,sourceId:'one',
+  proof:proofForBackup(14,counts)});
+ assert.equal(file.reviewState.frozenSnapshots.length,2);
+ const fresh=harness(14,{reviewed:false});
+ const imported=await restoreXml229SourceBoundReviewBackup(fresh.service,file,{
+  basisId:basis.basisId,sourceId:'one',
+  proof:proofForBackup(14,{source:1,match1:0,final:0,unresolved:13},
+    'GEN-NEW')});
+ assert.equal(imported.restoredSnapshots,2);
+ assert.equal(fresh.service.getSnapshot({basisId:basis.basisId,
+  stage:'RigidMatch1',scopeId:'one'}).length,1);
+ assert.equal(fresh.service.getSnapshot({basisId:basis.basisId,
+  stage:'Rigidmatch2',scopeId:'one'}).length,1);
+ assert.equal(decisions(fresh,'RigidMatch1')[id(1)].value,20);
+ assert.equal(decisions(fresh,'Rigidmatch2')[id(2)].value,22);
+});
