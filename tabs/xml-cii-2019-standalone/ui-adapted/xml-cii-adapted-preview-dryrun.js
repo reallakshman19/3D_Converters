@@ -9,6 +9,7 @@ import { applyPreviewRatingAuthority, rerankPreviewNodeRows } from './xml-cii-ad
 import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.js';
 import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
 import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js?v=20261001-weight-output-2';
+import { buildStagedDtxrIndex } from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
@@ -134,13 +135,22 @@ export function buildStrictLineAuthorityCorePreview(
 
   const fragments = fragmentBuilder(xmlText, sourceDocument) || [];
   const strictConfig = strictLineListConfig(config);
+  // The legacy fragment rebuild parsed the entire staged JSON independently
+  // for every automatic match. Index exactly once per strict-config revision.
+  let sharedStrictDtxrIndex;
+  let sharedStrictDtxrIndexBuilt = false;
   for (const index of automaticIndexes) {
     const original = branchRows[index];
     const fragment = fragments[index];
     let replacement = null;
     let replacementNodes = [];
     if (fragment?.xmlText) {
-      const rebuilt = build(fragment.xmlText, strictConfig, stagedJsonText) || {};
+      if (!sharedStrictDtxrIndexBuilt && typeof stagedJsonText === 'string' && stagedJsonText.length) {
+        sharedStrictDtxrIndex = buildStagedDtxrIndex(stagedJsonText, strictConfig);
+        sharedStrictDtxrIndexBuilt = true;
+      }
+      const rebuilt = build(fragment.xmlText, strictConfig, stagedJsonText,
+        sharedStrictDtxrIndexBuilt ? { stagedIndex: sharedStrictDtxrIndex } : {}) || {};
       replacement = Array.isArray(rebuilt.branchRows) ? rebuilt.branchRows[0] : null;
       replacementNodes = Array.isArray(rebuilt.nodeRows) ? rebuilt.nodeRows : [];
     }
