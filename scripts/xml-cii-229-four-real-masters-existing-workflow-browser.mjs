@@ -466,9 +466,13 @@ try{
     document.querySelector('[data-p4-weight-status]')?.textContent||''
   ),null,{timeout:30000});
   await page.locator('input[data-p4-import-review]').setInputFiles(backupPath);
-  await page.waitForFunction(()=>/Restored same-InputBasis GC-PW review/.test(
+  await page.waitForFunction(()=>/Restored same-InputBasis GC-PW review|Review restore HELD/.test(
     document.querySelector('[data-p4-weight-status]')?.textContent||''
   ),null,{timeout:60000});
+  const restoredStatus=await page.locator('[data-p4-weight-status]').textContent();
+  record.stages.reviewImportStatus=restoredStatus;
+  assert.match(restoredStatus,/Restored same-InputBasis GC-PW review/,
+    'restored same-basis GC-PW review was refused: '+restoredStatus);
   const restored=await page.locator('tr[data-p4-row]').evaluateAll(
     (rows,id)=>rows.find(row=>row.dataset.p4Occurrence===id)
       ?.querySelector('[data-p4-match1-mass]')?.textContent.trim()||'',
