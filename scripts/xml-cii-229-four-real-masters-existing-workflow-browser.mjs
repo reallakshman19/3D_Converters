@@ -548,6 +548,30 @@ try{
     nativePreflightButtonEnabled:true,
     ciiReleaseNotClaimed:true,
   };
+  // Full native output execution, not just a mock or readiness/button check.
+  await page.locator('[data-action="run"]').click();
+  await page.waitForFunction(()=>{
+    const btn=document.querySelector('[data-action="run"]');
+    const cii=document.querySelector('[data-action="download-cii"]');
+    const text=document.querySelector('[data-active-phase="run"]')?.textContent||'';
+    return cii?.disabled===false||(!btn?.disabled&&(
+      /Conversion failed|Run failed|Run error|run-result/.test(text)));
+  },null,{timeout:180000});
+  const nativeEnabled=await page.locator('[data-action="download-cii"]').isEnabled();
+  record.stages.xmlOnlyNativeRun={downloadEnabled:nativeEnabled,
+    resultText:(await page.locator('[data-active-phase="run"]').innerText()).slice(0,2600)};
+  assert.equal(nativeEnabled,true,'Explicit XML-only job did not generate a downloadable .cii');
+  const [ciiDownload]=await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('[data-action="download-cii"]').click(),
+  ]);
+  const ciiBytes=await readFile(await ciiDownload.path());
+  record.stages.xmlOnlyNativeRun.ciiFile=ciiDownload.suggestedFilename();
+  record.stages.xmlOnlyNativeRun.bytes=ciiBytes.length;
+  record.stages.xmlOnlyNativeRun.sha256=sha(ciiBytes);
+  assert.match(ciiDownload.suggestedFilename(),/\\.cii$/i);
+  assert(ciiBytes.length>0,'Native engine returned an empty CII artifact');
+  record.stages.xmlOnlyExplicitOptIn.ciiReleaseNotClaimed=false;
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
   await page.waitForFunction(()=>document.querySelector('[data-action="run"]')?.disabled===true &&
     [...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
