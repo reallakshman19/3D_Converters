@@ -84,7 +84,7 @@ test('live Worker ownership port is mandatory',async()=>{
  await assert.rejects(attestXml229G1LiveLease(s),code('CURRENT_LEASE_PORT_REQUIRED'));
 });
 test('basis metadata tampering fails GC-PW SHA validation',async()=>{
- const s=await scenario();s.basis.configSha256='e'.repeat(64);
+ const s=await scenario();s.basis={...s.basis,configSha256:'e'.repeat(64)};
  await assert.rejects(attestXml229G1LiveLease(s),code('STALE_BASIS'));
 });
 test('selection and config drift are detected from actual live inputs',async()=>{
@@ -96,4 +96,18 @@ test('selection and config drift are detected from actual live inputs',async()=>
 test('receipt SHA must identify the same staged original JSON InputBasis',async()=>{
  const s=await scenario();s.sourceReceipt.sha256='d'.repeat(64);
  await assert.rejects(attestXml229G1LiveLease(s),code('STAGED_JSON_BASIS_DRIFT'));
+});
+
+test('missing or ambiguous closed flag cannot pass a current Worker lease',async()=>{
+ const s=await scenario();
+ s.readCurrentLease=()=>({basisId:s.basis.basisId,sourceId:'S1',
+   sourceGenerationId:'GEN1'});
+ await assert.rejects(attestXml229G1LiveLease(s),code('LEASE_SUPERSEDED_OR_CLOSED'));
+});
+test('secondary completion release assertions are rejected, not forwarded',async()=>{
+ for(const key of ['nativeCiiReleaseAuthorized','nativeQualificationAuthorized',
+   'reviewDecisionsAuthorized']){
+   const s=await scenario();s.completion[key]=true;
+   await assert.rejects(attestXml229G1LiveLease(s),code('UNVERIFIED_ENGINEERING_COMPLETION'));
+ }
 });

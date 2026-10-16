@@ -30,7 +30,10 @@ function receipts(basis,receipt,session,proof) {
   ensure(obj(proof)&&proof.schema==='XML229.P4.RunAdvisory.v1'&&
     proof.engineeringFactsVerified===true&&
     proof.previewStatus==='FULL_SOURCE_FACTS_VERIFIED'&&
-    proof.ciiReleaseAuthorized===false&&obj(proof.counts)&&
+    proof.ciiReleaseAuthorized===false&&
+    proof.nativeCiiReleaseAuthorized!==true&&
+    proof.nativeQualificationAuthorized!==true&&
+    proof.reviewDecisionsAuthorized!==true&&obj(proof.counts)&&
     keys.every(k=>whole(proof.counts[k]))&&whole(proof.verifiedPhysicalCount)&&
     whole(proof.verifiedFactCount),'UNVERIFIED_ENGINEERING_COMPLETION');
   const sourceId=basis.sourceRefs[0].sourceId;
@@ -51,7 +54,7 @@ function receipts(basis,receipt,session,proof) {
 function checkLease(current,basisId,generation,sourceId){
   ensure(obj(current)&&current.basisId===basisId&&
     current.sourceGenerationId===generation&&current.sourceId===sourceId&&
-    current.closed!==true,'LEASE_SUPERSEDED_OR_CLOSED');
+    current.closed===false,'LEASE_SUPERSEDED_OR_CLOSED');
 }
 /**
  * Attests actual live bytes against GC-PW InputBasis and rejects late results.
