@@ -62,9 +62,23 @@ try{
   });
   assert.equal(record.stages.masters.weight,1595);
   assert.equal(record.stages.masters.weightSourceType,'default');
-  assert.equal(record.stages.masters.pipingClass,10699);
-  assert.equal(record.stages.masters.materialMap,383);
-  record.passes.push('real four-master import and autoload');
+  // createXmlCiiAdaptedWorkflowState() is a *new* state and intentionally
+  // does not include already imported browser-memory class/map/line rows.
+  // Verify those imports from the active Preview inventory instead.
+  await page.locator('[data-phase="preview"]').click();
+  const masterInventory=await page.locator('#mc-preview-table-host').evaluate(el=>
+    el.parentElement?.textContent||'');
+  record.stages.activeMasterInventory=Object.fromEntries([
+    ['lineList',/Line List:\\s*(\\d+) row\\(s\\)/],
+    ['pipingClass',/Piping Class:\\s*(\\d+) row\\(s\\)/],
+    ['materialMap',/Material Map:\\s*(\\d+) row\\(s\\)/],
+    ['weight',/Valve Weights:\\s*(\\d+) row\\(s\\)/],
+  ].map(([k,re])=>[k,Number(masterInventory.match(re)?.[1]||0)]));
+  assert(record.stages.activeMasterInventory.lineList>0);
+  assert.equal(record.stages.activeMasterInventory.pipingClass,10699);
+  assert.equal(record.stages.activeMasterInventory.materialMap,383);
+  assert.equal(record.stages.activeMasterInventory.weight,1595);
+  record.passes.push('real four-master active import and default Valve autoload');
 
   // Original indexed JSON is *optional for XML-only*. Load it to prove that
   // the new explicit selector is effective despite an active O1 receipt.
