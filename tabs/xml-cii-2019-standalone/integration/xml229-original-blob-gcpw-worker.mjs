@@ -29,6 +29,14 @@ import {attestXml229OriginalPhysicalEngineInput}
  from './xml229-r2-physical-transfer-manifest.mjs';
 import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
+import {buildXml229VerifiedWeightRowProjection}
+ from './xml229-verified-weight-row-adapter.mjs';
+import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
+ from './xml229-source-weight-bulk-review.mjs';
+import {projectXml229WeightDecisionProvenance}
+ from './xml229-weight-decision-provenance.mjs';
+import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
+ from './xml229-source-weight-review-transfer.mjs';
 
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
@@ -38,6 +46,9 @@ const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=f
 const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
 let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
+let weightProjection=null,pendingBulk=null,bulkSequence=0;
+// Only contemporaneous successful Worker RPCs prove bulk confirmation.
+let confirmedBulkCommands=new Set(),restoringReview=false;
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
 const sourceReceiptCheck=(r,blob)=>{
@@ -155,8 +166,12 @@ async function start(req){
      legacyReviewNodeCount:computed.nodeRows.length},
    originalStagedSourceSha256:r.sha256,originalStagedSourceGeneration:r.generationId,
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
+ const display=buildXml229VerifiedWeightRowProjection({
+   session,sourceId,physicalOccurrences:produced.physicalOccurrences,
+   originalOccurrences:original,previewResult:verifiedPreviewResult,
+ });
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
- physicalIdentityList=produced.physicalOccurrences;
+ physicalIdentityList=produced.physicalOccurrences;weightProjection=display;
  post(req.requestId,{state:'ready',basisId:basis.basisId,
    originalJsonSha256:r.sha256,sourceGenerationId:r.generationId,
    sourceId,originalCount:produced.workerOriginalCount,
@@ -180,6 +195,10 @@ function verifiedRequest(req){
 }
 async function rpc(req){
  verifiedRequest(req);
+ if(restoringReview&&(req.kind==='decision'||req.kind==='bulk-commit'||
+    req.kind==='restore-review'||req.kind==='read'&&req.what==='bulk-plan'))
+   fail('REVIEW_RESTORE_IN_PROGRESS',
+    'Do not mix individual or bulk decisions with review restoration');
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
@@ -232,33 +251,96 @@ async function rpc(req){
        releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
      };
    }
+   if(req.what==='review-backup'){
+     const proof=await rpc({...req,what:'completion'});
+     const backup=await exportXml229SourceBoundReviewBackup(review,{
+       basisId,sourceId,proof,
+     });
+     // Digest-only metadata (no source/master contents). Useful to locate
+     // which exact InputBasis field changed on a legitimate browser restart.
+     const basis=ready.basis;
+     return {...backup,inputBasisDigests:{
+       sourceRefs:basis.sourceRefs,
+       masters:basis.masters,
+       selectionSha256:basis.selectionSha256,
+       stagedSourceSha256:basis.stagedSourceSha256,
+       configSha256:basis.configSha256,
+       overridesSha256:basis.overridesSha256,
+       scope:basis.scope,
+     }};
+   }
+   if(req.what==='decision-provenance'){
+     // Current complete engineering proof + original service command ledger.
+     // The raw command payloads remain inside this private Worker.
+     const completion=await rpc({...req,what:'completion'});
+     const reviewState=await review.exportReviewState({basisId});
+     return projectXml229WeightDecisionProvenance({
+       reviewState,basisId,sourceId,completion,
+       confirmedBulkCommandIds:[...confirmedBulkCommands],
+     });
+   }
    if(req.what==='page'){
      if(!Number.isSafeInteger(req.offset)||req.offset<0||
-       !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25)
+        !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25)
        fail('INVALID_REVIEW_PAGE','Physical review page offset and length 1..25 required');
-     const seen=physicalIdentityList||[];
-     if(req.offset>=seen.length)
-       fail('REVIEW_PAGE_OUTSIDE_SOURCE','Page exceeds selected original physical census');
-     const selected=seen.slice(req.offset,req.offset+req.limit);
-     const rows=selected.map(id=>{
-       const occurrenceId=JSON.stringify([
-         id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature,
-       ]);
+     if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
+       fail('PRESENTATION_NOT_VERIFIED','Complete original physical presentation projection required');
+     const mode=req.filter??'all',query=String(req.query??'').toLowerCase().trim();
+     if(!['all','rigid','needs-review'].includes(mode)||query.length>120)
+       fail('INVALID_WEIGHT_REVIEW_FILTER','Filter must be all, rigid or needs-review');
+     const match=review.getDecisionState({basisId,scopeId:sourceId,stage:'RigidMatch1'}).decisions;
+     const final=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'}).decisions;
+     const candidates=(physicalIdentityList||[]).filter(id=>{
+       const oid=id.occurrenceId||JSON.stringify([
+         id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
+       const meta=weightProjection.get(oid);
+       if(mode==='rigid'&&!/^RIGID/i.test(meta.componentType))return false;
+       if(mode==='needs-review'&&(
+         final[oid]?.state==='accepted'||match[oid]?.state==='accepted'||
+         (typeof meta.sourceKg==='number'&&meta.sourceKg>0)))return false;
+       if(query){
+         const hay=[meta.branchName,meta.lineKey,meta.componentType,meta.nodeNumber,
+           meta.componentRefNoEndpoint,meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
+           .join(' ').toLowerCase();
+         if(!hay.includes(query))return false;
+       }
+       return true;
+     });
+     if(req.offset>=candidates.length&&req.offset!==0)
+       fail('REVIEW_PAGE_OUTSIDE_SOURCE','Review filter offset exceeds current population');
+     const selected=candidates.slice(req.offset,req.offset+req.limit);
+     const ids=selected.map(x=>x.occurrenceId||JSON.stringify([
+       x.sourceId,x.branchOccurrenceIndex,x.nodeOrdinal,x.componentSignature]));
+     const sourceProposals=ids.length?weightProjection.proposals(ids):new Map();
+     const rows=selected.map((id,i)=>{
+       const occurrenceId=ids[i];
        const match1=readVerifiedIndividualWeightReview(ready,{
          sourceId:id.sourceId,occurrenceId,stage:'RigidMatch1'});
-       const final=readVerifiedIndividualWeightReview(ready,{
+       const finalReview=readVerifiedIndividualWeightReview(ready,{
          sourceId:id.sourceId,occurrenceId,stage:'Rigidmatch2'});
-       if(match1.basisId!==basisId||final.basisId!==basisId||
-         match1.occurrenceId!==final.occurrenceId)
-         fail('CROSS_STAGE_PROPOSAL_ID_DRIFT','Match-1 and Final are not the same physical occurrence');
-       return {sourceId:id.sourceId,occurrenceId,
-         branchOccurrenceIndex:id.branchOccurrenceIndex,nodeOrdinal:id.nodeOrdinal,
+       if(match1.basisId!==basisId||finalReview.basisId!==basisId||
+          match1.occurrenceId!==finalReview.occurrenceId)
+         fail('CROSS_STAGE_PROPOSAL_ID_DRIFT','Match-1/Final identity mismatch');
+       const provenance=sourceProposals.get(occurrenceId)||[];
+       if(match1.proposals.length!==provenance.length||
+          match1.proposals.some((p,j)=>p.proposalId!==provenance[j]?.proposalId))
+         fail('PRESENTATION_PROPOSAL_DRIFT','Scored candidates differ from reviewed proposals');
+       return {...weightProjection.get(occurrenceId),
          componentSignature:id.componentSignature,sourceKg:match1.sourceKg,
-         match1Kg:match1.match1Kg,finalKg:final.finalKg,
-         proposedKg:match1.proposals?.[0]?.value??null,
-         proposals:match1.proposals,match1View:match1,finalView:final};
+         match1Kg:match1.match1Kg,finalKg:finalReview.finalKg,
+         proposedKg:provenance[0]?.value??null,proposals:provenance,
+         match1View:match1,finalView:finalReview};
      });
-     return {basisId,offset:req.offset,totalCount:seen.length,complete:true,rows};
+     return {basisId,offset:req.offset,totalCount:candidates.length,
+       populationCount:physicalIdentityList.length,complete:true,rows};
+   }
+   if(req.what==='bulk-plan'){
+     pendingBulk=null;
+     const result=planXml229QualifiedBlankFill(review,weightProjection,{
+       basisId,sourceId,sequence:++bulkSequence,
+     });
+     pendingBulk=result.pending; // Worker private; only planId + summary leave.
+     return result.summary;
    }
    if(req.what==='individual'){
      return readVerifiedIndividualWeightReview(ready,{sourceId,occurrenceId,stage});
@@ -280,7 +362,38 @@ async function rpc(req){
    }
    fail('UNKNOWN_READ_KIND','Fact/proposal/individual/decisions only');
  }
+ if(req.kind==='restore-review'){
+   // One-shot user-selected file import after a separately rebuilt verified
+   // source/master Worker. Never implicitly hydrate legacy localStorage.
+   if(restoringReview)fail('REVIEW_RESTORE_IN_PROGRESS');
+   restoringReview=true;
+   try{
+     const proof=await rpc({...req,kind:'read',what:'completion'});
+     const result=await restoreXml229SourceBoundReviewBackup(review,req.backup,{
+       basisId,sourceId,proof,
+     });
+     const after=await rpc({...req,kind:'read',what:'completion'});
+     const expected=req.backup?.counts;
+     if(!expected||['source','match1','final','unresolved'].some(
+       key=>after.counts[key]!==expected[key]))
+       fail('RESTORED_REVIEW_CENSUS_DRIFT',
+         'Restored decision census differs from exact saved original-source counts');
+     pendingBulk=null;
+     confirmedBulkCommands=new Set();
+     return {...result,counts:after.counts,stageRevisions:after.stageRevisions};
+   }finally{restoringReview=false;}
+ }
+ if(req.kind==='bulk-commit'){
+   const pending=pendingBulk;pendingBulk=null;
+   const result=commitXml229QualifiedBlankFill(review,{
+     basisId,sourceId,pending,planId:req.planId,
+   });
+   if(result.acceptedCount>0)for(const cmd of pending.plan.commands)
+     confirmedBulkCommands.add(cmd.commandId);
+   return result;
+ }
  if(req.kind==='decision'){
+   pendingBulk=null;
    if(!req.view||req.view.basisId!==basisId||
      req.view.stage!==stage||req.view.sourceId!==sourceId||
      req.view.occurrenceId!==occurrenceId)
@@ -296,10 +409,11 @@ async function rpc(req){
 self.addEventListener('message',async({data:req})=>{
  if(req?.protocol!==PROTOCOL||!req.requestId)return;
  if(req.kind==='cancel'&&req.requestId===active){
-   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;
+   cancelled=true;ready=null;sourceReceipt=null;physicalIdentityList=null;originalXmlCustody=null;verifiedPreviewResult=null;weightProjection=null;pendingBulk=null;confirmedBulkCommands=new Set();
    post(req.requestId,{state:'cancelled'});self.close();return;
  }
  if(req.kind==='start'){
+   confirmedBulkCommands=new Set();
    if(started){post(req.requestId,{state:'failed',error:{code:'ONE_SHOT_SOURCE_WORKER'}});return;}
    started=true;active=req.requestId;
    try{await start(req)}
@@ -308,7 +422,8 @@ self.addEventListener('message',async({data:req})=>{
       message:String(error?.message||error)}});}
    return;
  }
- if(req.kind==='read'||req.kind==='decision'){
+ if(req.kind==='read'||req.kind==='decision'||req.kind==='bulk-commit'||
+    req.kind==='restore-review'){
    try{const value=await rpc(req);if(!cancelled)post(req.requestId,{
     state:'rpc-result',rpcId:req.rpcId,value,
    });}

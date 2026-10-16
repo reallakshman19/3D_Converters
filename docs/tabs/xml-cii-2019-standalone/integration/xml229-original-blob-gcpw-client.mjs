@@ -155,8 +155,16 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async attestEngineInput({engineInputXmlText}={}){
      return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
    },
-   async readPage({offset=0,limit=25}={}){
-     return rpc({kind:'read',what:'page',sourceId,offset,limit});
+   async readPage({offset=0,limit=25,filter='all',query=''}={}){
+     return rpc({kind:'read',what:'page',sourceId,offset,limit,filter,query});
+   },
+   async planQualifiedBlankFill(){
+     return rpc({kind:'read',what:'bulk-plan',sourceId});
+   },
+   async commitQualifiedBlankFill({planId}={}){
+     if(typeof planId!=='string'||!planId)
+       throw err('BULK_PLAN_REQUIRED','Review current source-bound Match-1 bulk plan first');
+     return rpc({kind:'bulk-commit',sourceId,planId});
    },
    async readIndividual({occurrenceId,stage='RigidMatch1'}={}){
      return rpc({kind:'read',what:'individual',sourceId,occurrenceId,stage});
@@ -169,6 +177,17 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    },
    async readDecisions({stage='RigidMatch1'}={}){
      return rpc({kind:'read',what:'decisions',sourceId,stage});
+   },
+   async readDecisionProvenance(){
+     return rpc({kind:'read',what:'decision-provenance',sourceId});
+   },
+   async exportReviewBackup(){
+     return rpc({kind:'read',what:'review-backup',sourceId});
+   },
+   async restoreReviewBackup({backup}={}){
+     if(!backup||typeof backup!=='object'||Array.isArray(backup))
+       throw err('REVIEW_BACKUP_REQUIRED','Explicit Owner-chosen review file required');
+     return rpc({kind:'restore-review',sourceId,backup});
    },
    async review({view,choice}={}){
      if(!view||!choice)

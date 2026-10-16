@@ -30,7 +30,10 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
  assert.match(html,/data-p4-filter-unresolved/);
  assert.match(html,/423 components/);
  assert.match(html,/showing 1–1/);
- assert.match(html,/Suggestions are evidence, never automatically accepted/);
+ assert.match(html,/Candidate chips are draft evidence/);
+ assert.equal((html.match(/<th style=/g)||[]).length,13);
+ assert.match(html,/data-p4-bulk-plan/);
+ assert.match(html,/data-p4-scope="rigid"/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
@@ -95,6 +98,8 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  assert.match(panel,/active\.readPage\(\{offset,limit:25\}\)/);
+ assert.match(panel,/planQualifiedBlankFill/);
+ assert.match(panel,/commitQualifiedBlankFill/);
  assert.match(panel,/await active\.review\(\{view,choice\}\)/);
  assert.match(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
