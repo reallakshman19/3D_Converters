@@ -38,7 +38,7 @@ try{
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
   const actualBranches=await page.locator('.xml-cii-header-status-row').textContent();
-  assert.match(actualBranches,/Branches:\\s*41\\/41/);
+  assert.match(actualBranches,/Branches:\s*41\/41/);
   record.passes.push('real 41/41 loaded');
   for(const [kind,file] of [
     ['lineList','docs/Masters/ImportedRawLineListLL.xlsx'],
@@ -164,8 +164,8 @@ try{
   assert(cii.length>0);
   record.stages.conversion={ciiEnabled:true,
     filename:download.suggestedFilename(),bytes:cii.length,
-    sha256:sha(cii),lineCount:cii.toString('utf8').split(/\\r?\\n/).length};
-  assert.match(download.suggestedFilename(),/\\.cii$/i);
+    sha256:sha(cii),lineCount:cii.toString('utf8').split(/\r?\n/).length};
+  assert.match(download.suggestedFilename(),/\.cii$/i);
   record.passes.push('real native CII result downloaded, nonempty and SHA-attested');
 
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
