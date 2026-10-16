@@ -143,8 +143,8 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // XML229 production B1 route. This callback never puts File/Blob into
     // state or reads/parses the JSON on the UI thread; the original source
     // Worker will independently verify its complete SHA before Preview.
-    openVerifiedEngineeringSession: ({onProgress}={})=>
-      openXml229P4VerifiedSession(stateRef,{onProgress}),
+    openVerifiedEngineeringSession: ({onProgress,signal}={})=>
+      openXml229P4VerifiedSession(stateRef,{onProgress,signal}),
     resolveOriginalWorkerPreviewSource: async () => {
       if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
         throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
