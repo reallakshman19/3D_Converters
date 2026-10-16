@@ -207,12 +207,27 @@ test('explicit branch mapping that resolves exactly is preserved', () => {
   assert.equal(result.branchRows[0].p1, '11600');
 });
 
-test('deployment invalidates the previous fuzzy Preview cache once', async () => {
+test('strict Line List authority invalidates cached non-weight Preview basis', async () => {
   const source = await readFile(fileURLToPath(new URL(`../${sourcePath}`, import.meta.url)), 'utf8');
   assert.match(source, /strict-explicit-or-exact-v1/);
-  assert.match(source, /xml-cii-pv-cache-v8-rating-policy/);
+  assert.match(source, /buildIncrementalPreview\(\{/);
   assert.match(source, /automaticMatchesRemoved/);
   assert.doesNotMatch(source, /lineKeyProposed:\s*similar\.proposedKey/);
+
+  const {buildIncrementalPreview,resetIncrementalPreviewRuntime} = await import(
+    new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-incremental.js', import.meta.url));
+  resetIncrementalPreviewRuntime();
+  let fullBuilds=0,weightOnly=0;
+  const evaluate=config=>buildIncrementalPreview({
+    xmlText:'<Plant><Branch/></Plant>',stagedJsonText:'{"source":"A"}',config,
+    fullBuild:()=>{fullBuilds++;return {branchRows:[{lineKeyMethod:'none'}],nodeRows:[]};},
+    rerankWeight:()=>{weightOnly++;return [];},
+  });
+  evaluate({linelist:{allowSimilar:true},weight:{revision:1}});
+  evaluate({linelist:{allowSimilar:false},weight:{revision:2}});
+  assert.equal(fullBuilds,2,'strict Line List configuration drift must force full Preview');
+  assert.equal(weightOnly,0,'cannot reuse old fuzzy branch rows through weight-only cache');
+  resetIncrementalPreviewRuntime();
 });
 
 
