@@ -215,6 +215,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
    <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
+   <div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button type="button" data-p4-save-review class="model-converters-download-btn">Save GC-PW review file</button>
+    <button type="button" data-p4-choose-review class="model-converters-download-btn">Restore GC-PW review file</button>
+    <input type="file" data-p4-import-review accept=".json,application/json"
+      aria-label="Select an Owner-controlled GC-PW review file" hidden>
+    <small style="color:#94a3b8">Explicit local file only, same exact verified source/masters InputBasis. Save BEFORE reload; restoring does not approve Final or native CII Run.</small>
+   </div>
   <div data-p4-weight-table></div></section>`;
  const root=container.querySelector('[data-p4-weight-root]');
  const status=root.querySelector('[data-p4-weight-status]');
@@ -249,7 +256,32 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      }).catch(error=>say('Source-bound search unavailable: '+String(error.message||error),true));
    },260);
  });
- root.addEventListener('change',event=>{
+ root.addEventListener('change',async event=>{
+   const fileInput=event.target.closest?.('[data-p4-import-review]');
+   if(fileInput){
+     const file=fileInput.files?.[0];fileInput.value='';
+     if(!file)return;
+     if(busy||!active){say('Build verified 4 Preview before restoring a review file.',true);return;}
+     busy=true;
+     try{
+       if(!file.size||file.size>16*1024*1024)
+         err('REVIEW_FILE_SIZE_INVALID','Review file must be nonempty and no larger than 16 MiB');
+       const backup=JSON.parse(await file.text());
+       if(getXml229CurrentWorkerHeldReview(stateRef)!==active)
+         err('STALE_REVIEW_BACKUP_SOURCE','Original source changed during local review file read');
+       const result=await active.restoreReviewBackup({backup});
+       offset=0;pendingBulk=null;await render();
+       say('Restored same-InputBasis GC-PW review: '+
+         result.counts.match1+' Match-1 only, '+result.counts.final+' independent Final, '+
+         result.counts.unresolved+' unresolved. Old bulk-confirmation clicks are not reattested. Native CII Run remains HELD.');
+     }catch(error){
+       // Never show raw private file contents or stack in UI.
+       const code=String(error?.code||'REVIEW_FILE_REJECTED');
+       say('Review restore HELD ['+(/^[A-Z][A-Z0-9_]{2,79}$/.test(code)?code:
+         'REVIEW_FILE_REJECTED')+']. No automatic decisions accepted.',true);
+     }finally{busy=false;}
+     return;
+   }
    if(event.target.closest?.('[data-p4-filter-unresolved]')){
      mode=event.target.checked?'needs-review':'all';
      offset=0;pendingBulk=null;
@@ -279,13 +311,33 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const scope=event.target.closest?.('[data-p4-scope]');
    const planButton=event.target.closest?.('[data-p4-bulk-plan]');
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
+   const saveButton=event.target.closest?.('[data-p4-save-review]');
+   const restoreButton=event.target.closest?.('[data-p4-choose-review]');
    const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
+     if(restoreButton){
+       root.querySelector('[data-p4-import-review]')?.click();
+       return;
+     }
+     if(saveButton){
+       if(getXml229CurrentWorkerHeldReview(stateRef)!==active)
+         err('STALE_REVIEW_BACKUP_SOURCE','Original verified source changed');
+       const backup=await active.exportReviewBackup();
+       if(getXml229CurrentWorkerHeldReview(stateRef)!==active||
+          backup?.basisId!==active.receipt?.basisId)
+         err('STALE_REVIEW_BACKUP_SOURCE','Original source changed during review backup');
+       downloadTextFile('xml229-source-bound-gcpw-review.json',
+         JSON.stringify(backup,null,2),'application/json;charset=utf-8');
+       say('Saved local GC-PW review: '+backup.counts.match1+' Match-1 only, '+
+         backup.counts.final+' Final and '+backup.counts.unresolved+
+         ' unresolved. Keep this private file to restore only after verified 4 Preview rebuild.');
+       return;
+     }
      if(auditButton){
        const live=getXml229CurrentWorkerHeldReview(stateRef);
        if(live!==active)err('PROVENANCE_SESSION_STALE',
