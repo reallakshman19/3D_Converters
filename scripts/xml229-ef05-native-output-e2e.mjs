@@ -89,10 +89,10 @@ try{
     el.parentElement?.textContent||'');
   record.stages.activeMasterInventoryText=masterInventory.slice(0,1300);
   record.stages.activeMasterInventory=Object.fromEntries([
-    ['lineList',/Line List:\\s*(\\d+) row\\(s\\)/],
-    ['pipingClass',/Piping Class:\\s*(\\d+) row\\(s\\)/],
-    ['materialMap',/Material Map:\\s*(\\d+) row\\(s\\)/],
-    ['weight',/Valve Weights:\\s*(\\d+) row\\(s\\)/],
+    ['lineList',/Line List:\s*(\d+) row\(s\)/],
+    ['pipingClass',/Piping Class:\s*(\d+) row\(s\)/],
+    ['materialMap',/Material Map:\s*(\d+) row\(s\)/],
+    ['weight',/Valve Weights:\s*(\d+) row\(s\)/],
   ].map(([k,re])=>[k,Number(masterInventory.match(re)?.[1]||0)]));
   assert(record.stages.activeMasterInventory.lineList>0);
   assert.equal(record.stages.activeMasterInventory.pipingClass,10699);
