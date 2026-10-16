@@ -65,7 +65,12 @@ export async function restoreXml229SourceBoundReviewBackup(review,backup,{
    !count(backup.physicalCount)||backup.physicalCount!==proof.verifiedPhysicalCount||
    backup.factCount!==proof.verifiedFactCount||
    !validCounts(backup.counts)||
-   backup.counts.source!==proof.counts.source||
+   // Saved counts are EFFECTIVE precedence (Final > Match-1 > source).
+   // A reviewed Match-1 may supersede a real source mass: e.g. 31 source
+   // masses before restore, but 30 source + 1 Match-1 after restore.
+   // Exact InputBasis + 7x full facts attest immutable SOURCE masses;
+   // never require effective source counts to be equal pre/post review.
+   backup.counts.source>proof.counts.source||
    backup.counts.source+backup.counts.match1+backup.counts.final+
      backup.counts.unresolved!==proof.verifiedPhysicalCount||
    !obj(backup.reviewState)||backup.reviewState.basisId!==basisId||
