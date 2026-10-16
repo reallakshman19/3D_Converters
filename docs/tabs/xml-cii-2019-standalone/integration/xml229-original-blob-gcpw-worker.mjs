@@ -253,9 +253,21 @@ async function rpc(req){
    }
    if(req.what==='review-backup'){
      const proof=await rpc({...req,what:'completion'});
-     return exportXml229SourceBoundReviewBackup(review,{
+     const backup=await exportXml229SourceBoundReviewBackup(review,{
        basisId,sourceId,proof,
      });
+     // Digest-only metadata (no source/master contents). Useful to locate
+     // which exact InputBasis field changed on a legitimate browser restart.
+     const basis=ready.basis;
+     return {...backup,inputBasisDigests:{
+       sourceRefs:basis.sourceRefs,
+       masters:basis.masters,
+       selectionSha256:basis.selectionSha256,
+       stagedSourceSha256:basis.stagedSourceSha256,
+       configSha256:basis.configSha256,
+       overridesSha256:basis.overridesSha256,
+       scope:basis.scope,
+     }};
    }
    if(req.what==='decision-provenance'){
      // Current complete engineering proof + original service command ledger.
