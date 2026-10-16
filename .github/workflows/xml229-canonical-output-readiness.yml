@@ -64,7 +64,7 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
   existing-stages-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 24
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,6 +82,10 @@ jobs:
         env:
           EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/xml-cii-229-four-real-masters-existing-workflow-browser.mjs
+      - name: EF-05 41-branch public benchmark and zipped original JSON E2E
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml229-ef05-native-output-e2e.mjs
       - name: Preserve evidence
         if: always()
         uses: actions/upload-artifact@v4
