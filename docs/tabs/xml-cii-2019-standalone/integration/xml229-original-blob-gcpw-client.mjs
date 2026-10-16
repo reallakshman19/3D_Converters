@@ -181,6 +181,14 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readDecisionProvenance(){
      return rpc({kind:'read',what:'decision-provenance',sourceId});
    },
+   async exportReviewBackup(){
+     return rpc({kind:'read',what:'review-backup',sourceId});
+   },
+   async restoreReviewBackup({backup}={}){
+     if(!backup||typeof backup!=='object'||Array.isArray(backup))
+       throw err('REVIEW_BACKUP_REQUIRED','Explicit Owner-chosen review file required');
+     return rpc({kind:'restore-review',sourceId,backup});
+   },
    async review({view,choice}={}){
      if(!view||!choice)
        throw err('EXPLICIT_REVIEW_REQUIRED','A current original physical view and explicit engineering decision required');
