@@ -37,6 +37,11 @@ try{
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
+  // Source FileReader is async; the header can still say "Source: Not Loaded"
+  // immediately after setInputFiles resolves.
+  await page.waitForFunction(()=>/Branches:\s*41\/41/.test(
+    document.querySelector('.xml-cii-header-status-row')?.textContent||''
+  ),null,{timeout:60000});
   const actualBranches=await page.locator('.xml-cii-header-status-row').textContent();
   assert.match(actualBranches,/Branches:\s*41\/41/);
   record.passes.push('real 41/41 loaded');
