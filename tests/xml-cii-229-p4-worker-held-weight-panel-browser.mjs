@@ -149,9 +149,84 @@ try{
  });
  assert.equal(shared,previewReceipt.basisId);
  assert.deepEqual(errors,[]);
+ // Reproduce production symptom: an existing reviewed Worker closes while
+ // panel ownership remains in the browser. The next Weight tab render MUST
+ // not query a terminated Worker or retain its old Match-1/Final rows.
+ await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   // Deliberate crash/cancellation without registry revoke: old production
+   // failure left this dead object published and Weight tried to read it.
+   getXml229CurrentWorkerHeldReview(window.__p4StateRef).cancel();
+ });
+ const closed=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const stale=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   window.__p4Panel=installXml229WorkerHeldWeightPanel(
+     document.querySelector('#weight-panel'),window.__p4StateRef,
+     {resolveInputs:async()=>window.__p4Options,existingWorkflow:true});
+   return {registryEmpty:stale===null};
+ });
+ assert.equal(closed.registryEmpty,true,
+   'dead verified session must be removed before Weight Match renders');
+ await page.waitForFunction(()=>/Build 4 Preview/.test(
+   document.querySelector('[data-p4-weight-status]')?.textContent||''));
+ assert.equal(await page.locator('tr[data-p4-row]').count(),0);
+ assert.doesNotMatch(await page.locator('[data-p4-weight-status]').textContent(),
+   /Existing source review is stale: Worker closed/);
+ // Explicit Preview rebuild re-attests same original Blob and masters.
+ // An old accepted Match-1/Final cannot silently reappear: backups need
+ // separate Owner-controlled file restore on an identical InputBasis.
+ await page.locator('[data-p4-preview-build]').click();
+ // Use a synchronous polling predicate. An async function returns a
+ // Promise object, which some waitForFunction observers treat as truthy before
+ // its resolved value; that previously navigated to Weight prematurely.
+ await page.waitForFunction(()=>
+   document.querySelector('[data-p4-preview-status]')?.textContent
+     .includes('Preview engineering facts VERIFIED') &&
+   document.querySelector('[data-p4-preview-build]')?.disabled===false,
+   null,{timeout:120000});
+ const reattached=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const before=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   window.__p4Panel=installXml229WorkerHeldWeightPanel(
+     document.querySelector('#weight-panel'),window.__p4StateRef,
+     {resolveInputs:async()=>window.__p4Options,existingWorkflow:true});
+   const after=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   const observed=window.__p4RebuiltSession;
+   return {hadLiveBefore:!!before,hadLiveAfter:!!after,
+     closedBefore:before?.closed,closedAfter:after?.closed,
+     basisBefore:before?.receipt?.basisId,basisAfter:after?.receipt?.basisId,
+     observedClosed:observed?.closed,observedClosureCode:observed?.closureCode,
+     observedBasis:observed?.receipt?.basisId,
+     weightInitial:document.querySelector('[data-p4-weight-status]')?.textContent};
+ });
+ assert.equal(reattached.hadLiveBefore,true,
+   'Preview reported VERIFIED but no live engineering Worker was held at Weight render: '+JSON.stringify(reattached));
+ try{
+   await page.waitForFunction(()=>
+     document.querySelectorAll('tr[data-p4-row]').length===2 &&
+     /0 accepted Match-1, 0 accepted Final/.test(
+       document.querySelector('[data-p4-weight-status]')?.textContent||''),
+     null,{timeout:120000});
+ }catch(error){
+   const snapshot=await page.evaluate(()=>({
+     weightStatus:document.querySelector('[data-p4-weight-status]')?.textContent,
+     rows:document.querySelectorAll('tr[data-p4-row]').length,
+     previewStatus:document.querySelector('[data-p4-preview-status]')?.textContent,
+     connected:!!document.querySelector('[data-p4-weight-root]')?.isConnected,
+     errors:window.__p4Errors||[],
+   }));
+   snapshot.reattached=reattached;
+   throw new Error('Reattached Worker physical review did not render: '+
+     JSON.stringify(snapshot)+' | '+String(error?.message||error));
+ }
+ assert.deepEqual(errors,[]);
  await page.evaluate(()=>window.__p4Panel.cancel());
- console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V1',
-   passed:true,original,after,errors},null,2));
+ console.log(JSON.stringify({schema:'XML229_P4_WORKER_HELD_UI_CHROMIUM_V2',
+   passed:true,closed,original,after,errors},null,2));
 }finally{
  await browser?.close();await new Promise(ok=>server.close(ok));
 }

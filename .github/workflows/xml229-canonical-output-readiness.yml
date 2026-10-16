@@ -11,6 +11,8 @@ on:
       - 'tests/xml-cii-229-live-preview-restoration.test.mjs'
       - 'tests/xml-cii-229-run-stage-truth.test.mjs'
       - 'tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs'
+      - 'tests/xml-cii-229-engineering-basis-authority.test.mjs'
+      - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
       - '.github/workflows/xml229-canonical-output-readiness.yml'
   workflow_dispatch:
 permissions:
@@ -49,6 +51,7 @@ jobs:
           node --test tests/xml-cii-229-live-preview-restoration.test.mjs
           node --test tests/xml-cii-229-run-stage-truth.test.mjs
           node --test tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs
+          node --test tests/xml-cii-229-engineering-basis-authority.test.mjs
           node --test tests/xml-cii-229-run-stage-truth-entrypoints.test.mjs
       - name: Verify source/docs asset parity
         run: |
@@ -138,6 +141,10 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Serve actual app
         run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-canonical-run-http.log 2>&1 &
+      - name: Real cancelled-worker Weight Match recovery regression
+        env:
+          XML_CII_CHROMIUM_EXECUTABLE: ''
+        run: node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
       - name: Original Preview to Weight browser regression
         env:
           EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}

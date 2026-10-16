@@ -233,13 +233,24 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
+ const live=()=>getXml229CurrentWorkerHeldReview(stateRef);
+ const requireRebuild=()=>{
+   active=null;pendingBulk=null;root.__p4VisibleRows=[];
+   table.replaceChildren();
+   say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
+     'to verify the current XML, JSON Blob and four masters again. '+
+     'No Match-1/Final decisions were restored or accepted automatically.',true);
+ };
  const render=async()=>{
    if(!active)return;
-   const token=++renderSequence;
+   const session=active,token=++renderSequence;
    const page=mode==='all'&&!query
-     ?await active.readPage({offset,limit:25})
-     :await active.readPage({offset,limit:25,filter:mode,query});
-   if(token!==renderSequence)return;
+     ?await session.readPage({offset,limit:25})
+     :await session.readPage({offset,limit:25,filter:mode,query});
+   // A late response from a cancelled/replaced Worker cannot paint rows that
+   // appear current, even when a new Worker carries a different InputBasis.
+   if(token!==renderSequence||session!==active||
+      root.isConnected===false||live()!==session)return;
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query});
    root.__p4VisibleRows=page.rows;
  };
@@ -417,10 +428,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  });
  if(existingWorkflow&&!active)
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
- if(active)void render().then(async()=>{
-   const proof=await active.readCompletion();
-   if(root.isConnected===false||
-      getXml229CurrentWorkerHeldReview(stateRef)!==active)return;
+ const attach=async(session)=>{
+   await render();
+   const proof=await session.readCompletion();
+   if(root.isConnected===false||live()!==session||active!==session)return;
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
      (counts.source??0)+' original source masses, '+
@@ -428,8 +439,28 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      (counts.final??0)+' accepted Final, '+
      (counts.unresolved??0)+' unresolved. '+
      'Suggestions are DRAFT until explicitly accepted (or a qualified blank-only plan is confirmed).');
- }).catch(error=>say('Existing source review is stale: '+
-   (error?.code||'VERIFICATION_UNAVAILABLE'),true));
+ };
+ if(active){
+   const initial=active;
+   void attach(initial).catch(async error=>{
+     if(root.isConnected===false)return;
+     const latest=live();
+     // A second valid Preview build can replace an in-flight Worker read.
+     // Reattach only to that already attested Worker; never manufacture
+     // source facts, replay decisions, or silently build against old inputs.
+     if(latest&&latest!==initial){
+       active=latest;pendingBulk=null;offset=0;
+       try{await attach(latest);return;}
+       catch(error){
+         if(root.isConnected===false)return;
+       }
+     }
+     if(!live()){requireRebuild();return;}
+     say('Existing source review verification unavailable; reopen 4 Preview. '+
+       'Match-1/Final are not authorized by this view. ['+
+       String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
+   });
+ }
  // Removing the rendered panel is not authority to destroy its Worker.
  // Explicit cancellation/rebuild remains a deliberate ownership transition.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},

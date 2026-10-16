@@ -97,7 +97,8 @@ test('5 Run distinguishes unperformed independent stages but cannot admit a bloc
 test('adapter uses Worker readPage/review and keeps native Run HOLD and full source custody',async()=>{
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
- assert.match(panel,/active\.readPage\(\{offset,limit:25\}\)/);
+ assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
+   'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
  assert.match(panel,/planQualifiedBlankFill/);
  assert.match(panel,/commitQualifiedBlankFill/);
  assert.match(panel,/await active\.review\(\{view,choice\}\)/);
