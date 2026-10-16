@@ -18,7 +18,7 @@ function basis(state,source=null){
   const row=sourceRow(state,source);
   const resolved=row||state;
   return {
-    sourceId:row?.sourceId||'',
+    sourceId:row?.sourceId||state.modeASourceId||'',
     sourceText:resolved.sourceText||'',
     sourceFile:resolved.sourceFile||null,
     sourceKind:row?'xml':(state.sourceKind||'auto'),
