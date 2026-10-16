@@ -390,7 +390,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     const evidence={schema:'XML229.OutputRunReadinessEvidence.v1',
       exportedAt:new Date().toISOString(),summary:report.summary,
       checklistRows:report.checklistRows,logRows:report.logRows,
-      diagnostics:report.diagnostics,raw:report.raw};
+      diagnostics:report.diagnostics,raw:report.raw,manifest:report.manifest};
     downloadTextFile('xml-cii-output-run-readiness.json',
       JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
   });
