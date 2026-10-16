@@ -311,7 +311,7 @@ test('GC-PW restore refuses modified file digest, source/master basis, count mis
  const wrongBasis=structuredClone(backup);wrongBasis.basisId='f'.repeat(64);
  await assert.rejects(attempt(wrongBasis),e=>e.code==='STALE_REVIEW_BACKUP');
  const wrongPopulation=structuredClone(backup);wrongPopulation.factCount=97;
- await assert.rejects(attempt(wrongPopulation),e=>e.code==='STALE_REVIEW_BACKUP');
+ await assert.rejects(attempt(wrongPopulation),e=>e.code==='REVIEW_BACKUP_POPULATION_DRIFT');
  const wrongCount=structuredClone(backup);wrongCount.counts.match1=9;
  wrongCount.counts.unresolved=3;
  await assert.rejects(attempt(wrongCount),e=>e.code==='REVIEW_BACKUP_DECISION_CENSUS_DRIFT');
