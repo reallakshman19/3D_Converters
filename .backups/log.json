@@ -1,5 +1,5 @@
 {
-  "lastId": 1312,
+  "lastId": 1319,
   "entries": [
     {
       "id": 1,
@@ -9184,6 +9184,55 @@
       "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match.js",
       "context": "sync with root tabs",
       "backupFile": "1312_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_js.bak"
+    },
+    {
+      "id": 1313,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-output-run-readiness.js",
+      "context": "readiness detection for preview and weight match",
+      "backupFile": "1313_tabs_xml_cii_2019_standalone_xml_cii_output_run_readiness_js.bak"
+    },
+    {
+      "id": 1314,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "fresh readiness calculation on panel render",
+      "backupFile": "1314_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1315,
+      "timestamp": "2026-10-16 09:22:17",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-diagnostics-audit-v7.js",
+      "context": "persist preview result to stateRef and restore on revisit",
+      "backupFile": "1315_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_diagnostics_audit_v7_js.bak"
+    },
+    {
+      "id": 1316,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer-v7.js",
+      "context": "allow precomputedPreview in worker mode",
+      "backupFile": "1316_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_v7_js.bak"
+    },
+    {
+      "id": 1317,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-preview-renderer.js",
+      "context": "precomputedPreview check and onPreviewBuilt hook",
+      "backupFile": "1317_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_preview_renderer_js.bak"
+    },
+    {
+      "id": 1318,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-weight-match-v2.js",
+      "context": "pass onWeightMatchBuilt and persist weight status",
+      "backupFile": "1318_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_weight_match_v2_js.bak"
+    },
+    {
+      "id": 1319,
+      "timestamp": "2026-10-16 09:22:18",
+      "file": "tabs\\model-converters\\converters\\xmltocii2019_helper\\weight-match-renderer.js",
+      "context": "call onWeightMatchBuilt when localIssues are ready",
+      "backupFile": "1319_tabs_model_converters_converters_xmltocii2019_helper_weight_match_renderer_js.bak"
     }
   ]
 }

@@ -140,13 +140,16 @@ export function assertWeightDatasetResultAuthority(result = {}, datasetRef = {})
 }
 
 function persistConfig(stateRef, config) {
-  const compactConfig = compactDatasetBackedConfig(config, stateRef.current.masterContext || {});
-  const masterContext = { ...(stateRef.current.masterContext || {}), config: compactConfig };
-  stateRef.current = updateWorkflowState(stateRef.current, {
+  const targetRef = stateRef?.modeABaseRef || stateRef;
+  const currentMasterContext = targetRef.current?.masterContext || stateRef.current?.masterContext || {};
+  const compactConfig = compactDatasetBackedConfig(config, currentMasterContext);
+  const masterContext = { ...currentMasterContext, config: compactConfig };
+  targetRef.current = updateWorkflowState(targetRef.current || stateRef.current, {
     supportConfigJson: JSON.stringify(compactConfig, null, 2),
     masterContext,
+    weightMatchStatus: 'Weight decisions saved.',
   });
-  saveMasterContextToLocalStorage(stateRef.current.masterContext);
+  saveMasterContextToLocalStorage(targetRef.current.masterContext);
 }
 
 function ensureOverrides(config) {
@@ -301,6 +304,17 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
             && sameWeightSourceAndMaster(renderedAuthority, nextAuthority)) {
             renderedAuthority = nextAuthority;
             buildSnapshot = null;
+          }
+        },
+        onWeightMatchBuilt: (issues) => {
+          const targetRef = stateRef?.modeABaseRef || stateRef;
+          if (targetRef && targetRef.current !== undefined) {
+            targetRef.current = {
+              ...targetRef.current,
+              weightMatchResult: { issueRows: issues },
+              weightIssues: issues,
+              weightMatchStatus: `${issues.filter((r) => r.mapped).length} mapped of ${issues.length} components.`,
+            };
           }
         },
         ensureOverrides,

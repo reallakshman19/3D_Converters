@@ -37,6 +37,18 @@
 8. **`tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js` & `docs/`**:
    - Fixed issue where unaccepted candidate suggestions were erroneously marked with `mapped: true` and `weight: nr.weightMatch.weight`.
    - Now only explicit overrides mark `mapped: true`, ensuring blank rows retain unmapped status so `selectXmlCiiBlankWeightSuggestion` can populate them via `#mc-wm-fill-best` ("Apply suggestion to blank cells").
+9. **`tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js` & `docs/`**:
+   - Modernized `previewDone(input)` to inspect in-memory `input.previewResult?.branchRows?.length > 0`, `input.previewBranchRows?.length > 0`, and modern cache keys (`xml-cii-pv-cache-v8-rating-policy`, `xml-cii-pv-cache-v8-dtxr`, `xml-cii-pv-cache-v7`, `xml-cii-pv-cache-v6`, `xml-cii-pv-cache-v5`, `xml-cii-pv-cache-v2`).
+   - Modernized `weightMatchDone(input)` to inspect in-memory `weightIssues`, `weightMatchStatus`, `masterContext.config.overrides.rigidWeight`, and modern cache keys (`xml-cii-wm-cache-v2-preview-rating`, `xml-cii-wm-cache-v1`).
+10. **`tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js` & `docs/`**:
+    - Changed `reportFromState` to compute live `buildStandaloneOutputRunReadiness(state)` instead of returning stale cached reports.
+    - Merged mode-A root state (`stateRef?.modeABaseRef?.current`) with branch-scoped state in `renderStandaloneOutputRunPanel` so stage completions are detected irrespective of ref layer.
+11. **`tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js`, `xml-cii-adapted-preview-renderer-v7.js`, `xml-cii-adapted-preview-renderer.js` & `docs/`**:
+    - Added `savePreviewToState` writing through `targetRef = stateRef?.modeABaseRef || stateRef`.
+    - Hooked `onPreviewBuilt` and `onOriginalWorkerPreviewCompleted` to persist preview rows and reports across tab unmounting.
+    - Ensured `precomputedPreview` bypasses idle reset and preserves table rendering on tab revisit.
+12. **`tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js` & `tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js` & `docs/`**:
+    - Added `onWeightMatchBuilt` callback hook in `bindXmlCiiWeightMatchPhase` and persisted issues and `weightMatchStatus` to `targetRef = stateRef?.modeABaseRef || stateRef`.
 
 ---
 
@@ -67,6 +79,17 @@
 - When an O1 staged JSON file is loaded into `3 Resolver / JSON Trace`, PR #262's fail-closed governance holds native CII run authority (`INDEX_COMMITTED` is source-only for trace/CSV exports).
 - In pure XML mode (or when no staged JSON is present), `xml229StagedSourceReceipt` is null and `0 blocking items` are reported.
 
+### D. Tab 4 ("4 Preview") Data Reset on Tab Navigation
+- `createXmlCiiBranchScopedStateRef` produces an ephemeral proxy object on every `.current` property access. Direct assignments like `stateRef.current.previewResult = result` wrote only to a discarded wrapper, dropping state on tab transition.
+- In `xml-cii-adapted-preview-renderer.js`, preview click passed `skipLegacyCache: true`, preventing cache persistence.
+- `renderStandalonePreviewReportPanel` lacked state hydration, and `xmlCiiBuildAndRenderPreview` defaulted to idle if `options.precomputedPreview` was omitted or unhandled in the worker gate.
+- **Fix**: Writes persist to `stateRef.modeABaseRef || stateRef`, cache saving is enabled, and precomputed preview data bypasses idle prompts on remount.
+
+### E. Tab 10 ("Output / Run") Failing to Detect Preview and Weight Match
+- `previewDone(input)` and `weightMatchDone(input)` in `xml-cii-output-run-readiness.js` only checked obsolete legacy localStorage keys (`xml-cii-pv-cache-v6/v5`, `xml-cii-wm-cache-v1`) and ignored memory rows and modern cache keys.
+- `reportFromState` returned stale memoized reports instead of re-evaluating readiness when returning to Tab 10.
+- **Fix**: Modernized detection to check in-memory rows (`previewResult`, `weightIssues`, `weightMatchStatus`), modern cache versions, and fresh readiness compilation on every render.
+
 ---
 
 ## 4. Validation Status
@@ -75,7 +98,11 @@
   - `node --test tests/xml-cii-j04-*.test.mjs`: **30 of 30 PASS** (100% GREEN).
   - `node --test tests/xml-cii-issue-*.test.mjs`: **204 of 204 PASS** (100% GREEN).
 - **Playwright Browser Tests**:
-  - `scratch/test_run_button.mjs`: Verified 188 suggestions applied and Tab 10 pre-run checklist reports 0 blocking items.
+  - `scratch/test_tab_persistence_and_detection.mjs`:
+    - Build Preview -> 85 rows rendered.
+    - Weight Match -> 189 rows rendered, 188 suggestions applied.
+    - Output / Run -> `preview-audit: ready` ("Preview / dry-run data is available."), `weight-match: ready` ("Weight decisions saved.").
+    - Revisit Tab 4 Preview -> 85 rows retained immediately (0 idle prompts).
 - **Parity Check**:
   - Strict 0-diff parity across all modified pairs between `tabs/` and `docs/`.
 
@@ -89,5 +116,6 @@
 ---
 
 ## 6. Exact Work Location & Next Action
-- **Work Tree**: Committed to `feat/xml229-weight-presentation-rich-facts-and-bulk` (Head commit: `1011f7603`).
-- **Exact Next Action**: Provide clear summary to user and await user review.
+- **Work Tree**: Committed to `feat/xml229-weight-presentation-rich-facts-and-bulk`.
+- **Exact Next Action**: Provide summary of committed fixes and verification to user.
+

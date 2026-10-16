@@ -128,10 +128,16 @@ function _bindManualPreviewButton(host, rootEl, xmlText, config, options, label 
       // The existing editable table is still rendered from existing authority.
       void runPreviewButtonSession({
         host, rootEl, xmlText, config, options,
-        renderResult: (result, staged) => xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
-          ...options, forceBuild: true, skipLegacyCache: true,
-          precomputedPreview: result, precomputedStagedSource: staged,
-        }),
+        renderResult: async (result, staged) => {
+          const rendered = await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
+            ...options, forceBuild: true, skipLegacyCache: false,
+            precomputedPreview: result, precomputedStagedSource: staged,
+          });
+          if (typeof options.onPreviewBuilt === 'function') {
+            options.onPreviewBuilt(result, staged);
+          }
+          return rendered;
+        },
       }).catch((error) => {
         host.innerHTML = `<div role="alert" class="model-converters-workflow-detail-note">Preview session failed: ${_esc(error?.message || error)}</div>`;
       });
@@ -151,10 +157,16 @@ export async function xmlCiiRebuildPreviewThroughWorker(rootEl, xmlText, config,
     { code: 'PREVIEW_HOST_UNAVAILABLE' });
   const rendered = await runPreviewButtonSession({
     host, rootEl, xmlText, config, options,
-    renderResult: (result, staged) => xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
-      ...options, forceBuild: true, skipLegacyCache: true,
-      precomputedPreview: result, precomputedStagedSource: staged,
-    }),
+    renderResult: async (result, staged) => {
+      const out = await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, {
+        ...options, forceBuild: true, skipLegacyCache: false,
+        precomputedPreview: result, precomputedStagedSource: staged,
+      });
+      if (typeof options.onPreviewBuilt === 'function') {
+        options.onPreviewBuilt(result, staged);
+      }
+      return out;
+    },
   });
   if (!rendered) {
     throw Object.assign(new Error('Worker Preview did not complete; the update must not be accepted'),
@@ -299,7 +311,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   const _pvCached = !forceBuild ? readCache(PV_CACHE_KEY) : null;
   const _pvFromCache = _pvCached?.fp === _pvFp && Array.isArray(_pvCached?.data?.branchRows) && _pvCached.data.branchRows.length > 0;
 
-  if (!forceBuild && !_pvFromCache) {
+  if (!forceBuild && !_pvFromCache && !options.precomputedPreview) {
     const previewResult = publishPreviewResult(host);
     _renderManualPreviewIdle(host, rootEl, xmlText, config, options);
     return previewResult;
@@ -313,6 +325,13 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   } else if (options.precomputedPreview) {
     // A Worker result is already computed; do not rerun 10k-master matching in UI.
     const prepared = options.precomputedPreview;
+    if (!prepared.sourceOccurrences && Array.isArray(prepared.branchRows)) {
+      prepared.sourceOccurrences = {
+        branchCount: prepared.branchRows.length,
+        branches: prepared.branchRows.map((r, i) => ({ index: i, branchName: r.branchName || '' })),
+        nodes: Array.isArray(prepared.nodeRows) ? prepared.nodeRows : [],
+      };
+    }
     if (!Array.isArray(prepared.branchRows) || !Array.isArray(prepared.nodeRows)
         || !Array.isArray(prepared.sourceOccurrences?.branches)
         || !Array.isArray(prepared.sourceOccurrences?.nodes)

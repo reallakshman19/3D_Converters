@@ -113,7 +113,33 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     text: state.stagedJsonText || '',
     label: state.stagedJsonFile?.name || '',
   };
+  const precomputed = state.previewResult || (Array.isArray(state.previewBranchRows) && state.previewBranchRows.length
+    ? { branchRows: state.previewBranchRows, nodeRows: state.previewNodeRows || [] }
+    : null);
+
+  const savePreviewToState = (result) => {
+    if (!result || !Array.isArray(result.branchRows) || !result.branchRows.length) return;
+    const targetRef = stateRef?.modeABaseRef || stateRef;
+    if (targetRef && targetRef.current !== undefined) {
+      const diagReport = result.diagnosticsReport || {
+        summary: { matchedFacts: result.branchRows.length, rejectedFacts: 0 },
+        diagnostics: [],
+        branchRows: result.branchRows,
+        nodeRows: result.nodeRows || [],
+      };
+      targetRef.current = {
+        ...targetRef.current,
+        previewResult: result,
+        previewBranchRows: result.branchRows,
+        previewNodeRows: result.nodeRows || [],
+        previewDiagnosticsAuditReport: diagReport,
+      };
+    }
+  };
+
   const options = {
+    ...(precomputed ? { precomputedPreview: precomputed } : {}),
+    onPreviewBuilt: savePreviewToState,
     onSaveConfig: (newCfg) => persistConfig(newCfg, { clearPreview: true }),
     onSaveConfigPreservePreview: (newCfg) => persistConfig(newCfg, { clearPreview: false }),
     onB313WallUpdateReport: (report) => {
@@ -148,6 +174,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // Worker will independently verify its complete SHA before Preview.
     openVerifiedEngineeringSession: ({onProgress}={})=>
       openXml229P4VerifiedSession(stateRef,{onProgress}),
+    onOriginalWorkerPreviewCompleted: ({ result } = {}) => savePreviewToState(result),
     resolveOriginalWorkerPreviewSource: async () => {
       if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
         throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
@@ -190,6 +217,9 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     const previewResult = await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
     if (previewResult?.blocked) return; // No computed rows or review snapshot.
     if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) return;
+    if (Array.isArray(previewResult?.branchRows) && previewResult.branchRows.length > 0) {
+      savePreviewToState(previewResult);
+    }
     installPreviewB313WallUpdateAuditController({
       host,
       config,

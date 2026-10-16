@@ -79,7 +79,7 @@ function valueFor(item, header) {
 }
 
 function reportFromState(state) {
-  return state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
+  return buildStandaloneOutputRunReadiness(state);
 }
 
 function renderSummary(parent, report) {
@@ -419,7 +419,8 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,report,summar
 export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const isRef = stateOrRef && 'current' in stateOrRef;
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
-  const state = stateRef.current;
+  const raw = (stateRef?.modeABaseRef || stateRef)?.current || {};
+  const state = { ...raw, ...(stateRef.current || {}) };
   const report = reportFromState(state);
   const config = supportConfigForReadiness(state);
   card.innerHTML = '';

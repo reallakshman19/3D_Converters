@@ -254,14 +254,15 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   // existing 4 Preview button's separate source-hashing Worker. The V7 cache
   // must remain OFF for this route: it is not keyed to the full O1 SHA/generation.
   // Do not sign an empty stagedJsonText cache, or promote source-only receipt.
-  if(workerGate.blocked &&
+  if(!options.precomputedPreview && workerGate.blocked &&
      workerGate.reason==='ORIGINAL_JSON_INDEXED_NO_PREVIEW_READ_PORT' &&
      typeof options.resolveOriginalWorkerPreviewSource==='function') {
     host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
     discardPreviewCacheV7();
     const workerOptions={...options,skipLegacyCache:true,
-      onOriginalWorkerPreviewCompleted:({sourceReceipt})=>{
+      onOriginalWorkerPreviewCompleted:({sourceReceipt, result, basis})=>{
         discardPreviewCacheV7();
+        options.onOriginalWorkerPreviewCompleted?.({sourceReceipt, result, basis});
         if(host.isConnected===false)return;
         addCacheEvidence(host,{status:'UNCACHED',authority:null,
           reason:'Worker-verified original JSON SHA-256 '+sourceReceipt.sha256+
@@ -276,7 +277,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
         ' · Build Preview runs source-verified JSON in a separate Worker; no cache HIT or CII approval.'});
     return idle;
   }
-  if(workerGate.blocked) {
+  if(!options.precomputedPreview && workerGate.blocked) {
     host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
     host.replaceChildren?.();
     host.__xmlCiiPreviewResult=null;
