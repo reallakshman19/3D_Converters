@@ -1,4 +1,4 @@
-import { createElement } from './xml-cii-adapted-dom.js';
+import { createElement, downloadTextFile } from './xml-cii-adapted-dom.js';
 
 function text(value) {
   return String(value ?? '');
@@ -133,6 +133,15 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   download.type = 'button';
   download.dataset.action = 'download-cii';
   download.disabled = !available;
+  // A source-bound Worker read can repaint this canvas after shell action
+  // listeners were bound. Bind on the actual button each render instead of
+  // trusting a one-time querySelector against the older artifact button.
+  download.addEventListener('click', (event) => {
+    event.stopImmediatePropagation();
+    if (!available || !ciiText.trim()) return;
+    downloadTextFile(ciiRow?.filename || state?.result?.ciiName || 'output.cii',
+      ciiText, 'text/plain;charset=utf-8');
+  });
   head.appendChild(download);
   const refresh = createElement('button', 'Refresh geometry', 'model-converters-download-btn');
   refresh.type = 'button';

@@ -514,6 +514,115 @@ try{
     /1 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
   assert.equal(await page.locator('[data-action="run"]').isDisabled(),true,
     'reload and restored review must never enable native CII Run');
+  // XML229: explicitly allow ordinary XML native preflight while excluding
+  // optional JSON; reselect governed and prove its native O1 HOLD persists.
+  const participation=page.locator('[data-action="xml229-output-participation"]');
+  assert.equal(await participation.inputValue(),'governed',
+    'loading original JSON must not silently opt into XML-only conversion');
+  await participation.selectOption('xml-only');
+  await page.waitForFunction(()=>(
+    ![...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .some(tr=>tr.children[0]?.textContent==='xml229-original-json-engineering-authority') &&
+    document.querySelector('[data-action="run"]')?.disabled===false
+  ),null,{timeout:30000});
+  const [xmlOnlyEvidence]=await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('[data-action="export-output-readiness"]').click(),
+  ]);
+  const xmlOnlyReport=JSON.parse(await readFile(await xmlOnlyEvidence.path(),'utf8'));
+  assert.equal(xmlOnlyReport.raw.xml229XmlOnlyOutput,true);
+  assert.equal(xmlOnlyReport.manifest.nativeOutputParticipation,'explicit-xml-only');
+  assert.equal(xmlOnlyReport.checklistRows.some(r=>
+    r.id==='xml229-original-json-engineering-authority'&&r.blocking),false);
+  // This public fixture uses legacy single-format configuration, for which
+  // the configured-format checklist row is intentionally absent. When an
+  // explicit multi-format authority is supplied it must remain READY.
+  assert.equal(xmlOnlyReport.summary.sourceMode,'xml');
+  const formatGate=xmlOnlyReport.checklistRows.find(r=>r.id==='branch-format-authority');
+  if(formatGate)assert.equal(formatGate.status,'ready');
+  assert(xmlOnlyReport.checklistRows.some(r=>r.id==='regex'));
+  // No native conversion has occurred yet: geometry/Preview do not forge a .cii.
+  assert.equal(xmlOnlyReport.raw.resultOk,false);
+  record.stages.xmlOnlyExplicitOptIn={
+    existingXmlFormatPolicyPreserved:true,jsonExcludedFromAuthority:true,
+    nativePreflightButtonEnabled:true,
+    ciiReleaseNotClaimed:true,
+  };
+  // Full native output execution, not just a mock or readiness/button check.
+  await page.locator('[data-action="run"]').click();
+  // Bound this witness: a visible enabled button does not by itself prove the
+  // native job was invoked, and a readCompletion observer may repaint it.
+  await page.waitForTimeout(10000);
+  const runSnapshot=()=>page.evaluate(()=>{
+    const body=document.querySelector('[data-active-phase="run"]');
+    const rows=[...body?.querySelectorAll('tbody tr')||[]]
+      .filter(tr=>['run-result','xml229-original-json-engineering-authority',
+        'xml229-xml-only-output-participation'].includes(tr.children[0]?.textContent||''))
+      .map(tr=>[...tr.children].map(td=>td.textContent?.trim().slice(0,220)));
+    const runBtn=body?.querySelector('[data-action="run"]');
+    return {runText:runBtn?.textContent,runDisabled:runBtn?.disabled,
+      route:body?.querySelector('[data-action="xml229-output-participation"]')?.value,
+      reviewOverlay:!!document.querySelector('[data-rigid-review-skip]'),
+      ciiAvailable:body?.querySelector('.xml-cii-adapted-cii-download')?.disabled===false,
+      rows,bodyTail:(body?.textContent||'').slice(-1700)};
+  });
+  record.stages.nativeClickTenSeconds=await runSnapshot();
+  // The native runner has a separate rigid-weight popup. In this disposable
+  // test, skip unreviewed suggestions; never invent an accepted Weight/Final.
+  try{
+    await page.waitForFunction(()=>{
+      const popup=document.querySelector('[data-rigid-review-skip]');
+      const download=document.querySelector('.xml-cii-adapted-cii-download');
+      const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+        .find(x=>x.children[0]?.textContent==='run-result');
+      return !!popup||download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
+    },null,{timeout:180000});
+  }catch(err){
+    record.stages.nativeClickTimeout=await runSnapshot();
+    throw err;
+  }
+  const skip=page.locator('[data-rigid-review-skip]');
+  if(await skip.count())await skip.click();
+  await page.waitForFunction(()=>{
+    const download=document.querySelector('.xml-cii-adapted-cii-download');
+    const row=[...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .find(x=>x.children[0]?.textContent==='run-result');
+    return download?.disabled===false||row?.children[2]?.textContent?.trim()==='ready';
+  },null,{timeout:180000});
+  const nativeEnabled=await page.locator('.xml-cii-adapted-cii-download').isEnabled();
+  const actualRunText=await page.locator('[data-active-phase="run"]').innerText();
+  record.stages.xmlOnlyNativeRun={
+    downloadEnabled:nativeEnabled,
+    resultText:actualRunText.slice(-4000),
+  };
+  if(nativeEnabled){
+    const [ciiDownload]=await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.xml-cii-adapted-cii-download').click(),
+    ]);
+    const ciiBytes=await readFile(await ciiDownload.path());
+    record.stages.xmlOnlyNativeRun.ciiFile=ciiDownload.suggestedFilename();
+    record.stages.xmlOnlyNativeRun.bytes=ciiBytes.length;
+    record.stages.xmlOnlyNativeRun.sha256=sha(ciiBytes);
+    assert.match(ciiDownload.suggestedFilename(),/\\.cii$/i);
+    assert(ciiBytes.length>0,'Native engine returned an empty CII artifact');
+    record.stages.xmlOnlyExplicitOptIn.ciiReleaseNotClaimed=false;
+  }else{
+    // FirstpassXML deliberately includes a weighted component without a
+    // matching native CII owner. Native output MUST be withheld instead of
+    // turning an enabled XML-only route into an unowned weight artifact.
+    assert.match(actualRunText,/CII_WEIGHT_OWNER_UNRESOLVED/,
+      'Native converter neither generated CII nor identified the missing weight owner');
+    assert.match(actualRunText,/CII withheld; enriched XML retained/);
+    assert.equal(await page.locator('.xml-cii-adapted-cii-download').isDisabled(),true);
+    record.stages.xmlOnlyNativeRun.ownerGuard='CII_WEIGHT_OWNER_UNRESOLVED';
+    record.stages.xmlOnlyNativeRun.outputWithheld=true;
+  }
+  await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
+  await page.waitForFunction(()=>document.querySelector('[data-action="run"]')?.disabled===true &&
+    [...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
+      .some(tr=>tr.children[0]?.textContent==='xml229-original-json-engineering-authority'),
+    null,{timeout:30000});
   // Real replacement must revoke old Worker File custody / CSV rights.
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles({

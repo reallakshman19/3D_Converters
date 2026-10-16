@@ -62,9 +62,23 @@ function selectedBranchCount(scope, source) {
 }
 
 function executionState(sharedState, source) {
+  const scoped=buildModeAExecutionState(sharedState,source);
+  const originalReceipt=source.xml229StagedSourceReceipt||
+    source.workflow?.xml229StagedSourceReceipt||
+    (sharedState.sourceBatch?.activeSourceId===source.sourceId
+      ?sharedState.xml229StagedSourceReceipt:null)||null;
   return {
-    ...buildModeAExecutionState(sharedState, source),
+    ...scoped,
     ...(source.workflow || {}),
+    // Keep the *unscoped* selected source and its exact identity for the
+    // explicit XML-only lease. The job builder independently scopes it.
+    modeASourceId:source.sourceId,
+    sourceText:source.sourceText,
+    sourceFile:source.sourceFile||null,
+    stagedJsonText:source.stagedJsonText||'',
+    stagedJsonFile:source.stagedJsonFile||null,
+    xml229StagedSourceReceipt:originalReceipt,
+    xml229XmlOnlyApproval:source.xml229XmlOnlyApproval||null,
     sourceBatch: null,
     batchRunResult: null,
     result: null,

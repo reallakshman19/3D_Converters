@@ -101,6 +101,8 @@ export function createModeASourceEntry(input = {}, defaults = {}) {
     sourceText,
     stagedJsonFile: input.stagedJsonFile || null,
     stagedJsonText: String(input.stagedJsonText ?? ''),
+    xml229StagedSourceReceipt: input.xml229StagedSourceReceipt || input.workflow?.xml229StagedSourceReceipt || null,
+    xml229XmlOnlyApproval: input.xml229XmlOnlyApproval || null,
     branchSelection: normalizeXmlCiiBranchSelection(sourceText, input.branchSelection || {}),
     supportConfigJson: text(input.supportConfigJson || defaults.supportConfigJson || '{}'),
     workflow: input.workflow && typeof input.workflow === 'object' ? { ...input.workflow } : {},
@@ -110,6 +112,7 @@ export function createModeASourceEntry(input = {}, defaults = {}) {
 
 export function modeASourceWorkflowSnapshot(state = {}) {
   return {
+    xml229StagedSourceReceipt: state.xml229StagedSourceReceipt || null,
     regexTesterResult: state.regexTesterResult || null,
     resolverJsonTraceResult: state.resolverJsonTraceResult || null,
     resolverJsonTraceJsonResult: state.resolverJsonTraceJsonResult || null,
@@ -131,6 +134,8 @@ export function applyModeASourceToState(state = {}, source = {}) {
     sourceText: source.sourceText || '',
     stagedJsonFile: source.stagedJsonFile || null,
     stagedJsonText: source.stagedJsonText || '',
+    xml229StagedSourceReceipt: source.xml229StagedSourceReceipt || workflow.xml229StagedSourceReceipt || null,
+    xml229XmlOnlyApproval: source.xml229XmlOnlyApproval || null,
     branchSelection: source.branchSelection || {},
     supportConfigJson: source.supportConfigJson || state.supportConfigJson,
     regexTesterResult: workflow.regexTesterResult || null,
@@ -154,6 +159,7 @@ export function syncActiveModeASource(state = {}) {
     sourceText: state.sourceText || '',
     stagedJsonFile: state.stagedJsonFile || null,
     stagedJsonText: state.stagedJsonText || '',
+    xml229StagedSourceReceipt: state.xml229StagedSourceReceipt || null,
     branchSelection: state.branchSelection || source.branchSelection || {},
     supportConfigJson: state.supportConfigJson || source.supportConfigJson || '{}',
     workflow: modeASourceWorkflowSnapshot(state),
@@ -172,6 +178,8 @@ export function normalizeModeABatchState(state = {}) {
       sourceText: state.sourceText,
       stagedJsonFile: state.stagedJsonFile,
       stagedJsonText: state.stagedJsonText,
+      xml229StagedSourceReceipt: state.xml229StagedSourceReceipt,
+      xml229XmlOnlyApproval: state.xml229XmlOnlyApproval,
       branchSelection: state.branchSelection,
       supportConfigJson: state.supportConfigJson,
       workflow: modeASourceWorkflowSnapshot(state),

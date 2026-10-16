@@ -10,6 +10,7 @@ import {
 } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { modeABatchArtifactValue } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-2';
 import { runModeABatchFromUi } from './xml-cii-adapted-run-workflow-mode-a.js?v=20261001-single-weight-owners-1';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261008-p0-mode-b-parity-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
 import { xmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
 import {
@@ -239,8 +240,33 @@ function bindDownloads(container, stateRef) {
   });
 }
 
+// An independent asynchronous GC-PW completion can repaint the Output/Run
+// controls after the shell's direct listeners were attached. Delegate native
+// Run from the stable shell container, not an ephemeral button. Replace the
+// handler on each shell render to avoid accumulating duplicate invocations.
+const nativeRunDelegates=new WeakMap();
+function installNativeRunDelegation(container,stateRef,render){
+  const previous=nativeRunDelegates.get(container);
+  if(previous)container.removeEventListener('click',previous,true);
+  const handle=event=>{
+    const button=event.target?.closest?.('[data-action="run"]');
+    if(!button||!container.contains(button)||button.disabled)return;
+    const rawRef=modeARawRef(stateRef);
+    const mode=xmlCiiProcessingMode(rawRef.current);
+    // Even a repainted Mode B button must never authorize native CII.
+    if(mode==='mode-b')return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if(mode==='mode-a')void runModeABatchFromUi(rawRef,render);
+    else void runSingleWorkflow(stateRef,render);
+  };
+  container.addEventListener('click',handle,true);
+  nativeRunDelegates.set(container,handle);
+}
+
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   const rawRef = modeARawRef(stateRef);
+  installNativeRunDelegation(container,stateRef,render);
   installMultipleSourceCapture(container, rawRef, render);
   if (xmlCiiProcessingMode(rawRef.current) !== 'mode-a') {
     const result = bindSmartWorkflowEvents(container, stateRef, render);
