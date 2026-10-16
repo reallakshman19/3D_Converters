@@ -102,3 +102,19 @@ test('zero physical or nonsensical counter values are incomplete',()=>{
  const q=pair();q.coverage.counts.qualifiedCandidateCount=-1;
  assert.equal(reconcile(q).status,'INCOMPLETE');
 });
+
+test('absent and null receipts remain incomplete instead of throwing',()=>{
+ for(const arg of [undefined,null,{},
+   {coverage:null,readiness:null},
+   {coverage:undefined,readiness:undefined}]){
+   const result=reconcile(arg);
+   assert.equal(result.status,'INCOMPLETE');
+   assert.equal(result.nativeCiiReleaseAuthorized,false);
+ }
+});
+test('missing revision keys cannot impersonate matching no-decision states',()=>{
+ const p=pair();p.coverage.decisionRevisions={};
+ assert.equal(reconcile(p).status,'INCOMPLETE');
+ const q=pair();q.readiness.stageRevisions.S1={};
+ has(reconcile(q),'G3_G4_REVIEW_REVISION_DRIFT');
+});
