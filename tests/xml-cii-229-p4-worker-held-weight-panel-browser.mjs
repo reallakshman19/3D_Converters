@@ -179,9 +179,14 @@ try{
  // An old accepted Match-1/Final cannot silently reappear: backups need
  // separate Owner-controlled file restore on an identical InputBasis.
  await page.locator('[data-p4-preview-build]').click();
- await page.waitForFunction(()=>
-   document.querySelector('[data-p4-preview-status]')?.textContent.includes('Preview engineering facts VERIFIED'),
-   {timeout:120000});
+ await page.waitForFunction(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const session=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   const label=document.querySelector('[data-p4-preview-status]')?.textContent||'';
+   return !!session && session.closed!==true &&
+     label.includes('Preview engineering facts VERIFIED');
+ },null,{timeout:120000});
  await page.evaluate(async()=>{
    const {installXml229WorkerHeldWeightPanel}=await import(
     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
