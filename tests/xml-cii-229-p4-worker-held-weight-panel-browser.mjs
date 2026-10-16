@@ -187,13 +187,21 @@ try{
    return !!session && session.closed!==true &&
      label.includes('Preview engineering facts VERIFIED');
  },null,{timeout:120000});
- await page.evaluate(async()=>{
-   const {installXml229WorkerHeldWeightPanel}=await import(
+ const reattached=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview,installXml229WorkerHeldWeightPanel}=await import(
     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const before=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
    window.__p4Panel=installXml229WorkerHeldWeightPanel(
      document.querySelector('#weight-panel'),window.__p4StateRef,
      {resolveInputs:async()=>window.__p4Options,existingWorkflow:true});
+   const after=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   return {hadLiveBefore:!!before,hadLiveAfter:!!after,
+     closedBefore:before?.closed,closedAfter:after?.closed,
+     basisBefore:before?.receipt?.basisId,basisAfter:after?.receipt?.basisId,
+     weightInitial:document.querySelector('[data-p4-weight-status]')?.textContent};
  });
+ assert.equal(reattached.hadLiveBefore,true,
+   'Preview reported VERIFIED but no live engineering Worker was held at Weight render: '+JSON.stringify(reattached));
  try{
    await page.waitForFunction(()=>
      document.querySelectorAll('tr[data-p4-row]').length===2 &&
@@ -208,6 +216,7 @@ try{
      connected:!!document.querySelector('[data-p4-weight-root]')?.isConnected,
      errors:window.__p4Errors||[],
    }));
+   snapshot.reattached=reattached;
    throw new Error('Reattached Worker physical review did not render: '+
      JSON.stringify(snapshot)+' | '+String(error?.message||error));
  }
