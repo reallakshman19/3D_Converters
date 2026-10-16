@@ -6,6 +6,8 @@ import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-cor
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
+import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
+  from '../integration/xml229-output-participation.mjs';
 
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
@@ -336,13 +338,48 @@ function optionCheckbox(optionKey, labelText, checked, stateRef, render, disable
 
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
+  const routeLabel=createElement('label','','model-converters-workflow-regex-field');
+  routeLabel.appendChild(createElement('span','Native output input authority'));
+  const routeSelect=createElement('select');
+  routeSelect.dataset.action='xml229-output-participation';
+  const approved=isXml229XmlOnlyApproved(state);
+  routeSelect.append(
+    createOption('governed','JSON-governed: native CII HELD until independent Final/output authorization',!approved),
+    createOption('xml-only','XML-only: ignore optional JSON and unverified engineering facts',approved),
+  );
+  routeSelect.disabled=actualSourceKind(state)!=='xml'||!!state.running;
+  routeSelect.addEventListener('change',event=>{
+    // Never infer XML-only from merely opening this tab or loading an O1 JSON.
+    let next=updateWorkflowState(stateRef.current,{
+      result:null,outputRunReadinessReport:null,xml229XmlOnlyApproval:null,
+    });
+    const active=next.sourceBatch?.sources?.find(x=>x.sourceId===next.sourceBatch.activeSourceId);
+    const selected=event.target.value==='xml-only'
+      ?captureXml229XmlOnlyApproval(next,active):null;
+    if(active){
+      next={
+        ...next,xml229XmlOnlyApproval:selected,
+        sourceBatch:{...next.sourceBatch,
+          sources:next.sourceBatch.sources.map(x=>x.sourceId===active.sourceId
+            ?{...x,xml229XmlOnlyApproval:selected}:x)},
+      };
+    }else next={...next,xml229XmlOnlyApproval:selected};
+    stateRef.current=next;
+    if(typeof render==='function')render();
+  });
+  routeLabel.appendChild(routeSelect);
+  ctrlCard.append(routeLabel,createElement('div',
+    approved
+      ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
+      :'Default: original JSON engineering output remains governed and HELD. Explicit XML-only selection uses independent native XML preflight and excludes optional JSON-derived facts.',
+    'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
   const runReviewBtn = createElement('button', 'Run - Review Weight Matches', 'model-converters-run-btn');
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
   runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = 'Opens <strong>4A Weight Match</strong> to review approximate weights, then Finalize and Run.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to review approximate weights, then Finalize and Run.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
