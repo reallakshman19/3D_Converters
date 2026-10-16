@@ -426,8 +426,24 @@ try{
       .mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'),null,{timeout:240000});
   const restoredBasis=await page.locator('#mc-preview-table-host').evaluate(
     h=>h.dataset.mcPreviewBasisId);
+  record.stages.restoreDigestAudit={old:backup.inputBasisDigests||null,
+    newBasisId:restoredBasis};
+  if(restoredBasis!==firstBasis){
+    await page.locator('[data-phase="weight-match"]').click();
+    await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
+    const [digestFile]=await Promise.all([
+      page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
+    ]);
+    const second=JSON.parse(await readFile(await digestFile.path(),'utf8'));
+    const firstFields=backup.inputBasisDigests||{},newFields=second.inputBasisDigests||{};
+    record.stages.restoreDigestAudit.new=newFields;
+    record.stages.restoreDigestAudit.changed=Object.keys(firstFields).filter(
+      k=>JSON.stringify(firstFields[k])!==JSON.stringify(newFields[k]));
+  }
   assert.equal(restoredBasis,firstBasis,
-    'same file/master restored to a different InputBasis: reject review restore');
+    'same file/master rebuilt with DIFFERENT InputBasis fields: '+
+      JSON.stringify(record.stages.restoreDigestAudit.changed||[]) +
+      '; refusing review import');
   await page.locator('[data-phase="weight-match"]').click();
   await page.locator('tr[data-p4-row]').first().waitFor({timeout:120000});
   // It must not auto-hydrate reviews merely because a private backup file
