@@ -66,6 +66,12 @@ test('P0 blank RIGID name and missing DTXR are UNKNOWN, never auto accepted', ()
   assert.equal(p.qualified,false);
   assert.ok(p.eligibilityReasons.includes('SOURCE_FAMILY_UNKNOWN'));
 });
+test('P0 RIGID blank name with DTXR-only family remains held without attestation', () => {
+  const p=score({nodeName:'',dtxr:'Weldneck Flange'},[row('Weldneck Flange')]).proposals[0];
+  assert.equal(p.qualified,false);
+  assert.ok(p.eligibilityReasons.includes('SOURCE_FAMILY_UNKNOWN'));
+  assert.deepEqual(p.extensions.familyEligibility.source.evidence.map(e=>e.origin),['dtxr']);
+});
 test('P0 VGT contradicting flange DTXR is held, not silently resolved', () => {
   const p=score({dtxr:'Weldneck Flange'},[row('Gate Valve')]).proposals[0];
   assert.equal(p.qualified,false);
