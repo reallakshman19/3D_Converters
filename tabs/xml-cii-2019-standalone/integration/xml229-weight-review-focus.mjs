@@ -13,7 +13,8 @@ export function xml229IsExcludedWeightFitting({nodeName='',dtxr=''}={}){
  return tokenFit.test(word(nodeName))||fit.test(word(dtxr));
 }
 export function xml229WeightReviewEligible(row={}){
- return /^RIGID/i.test(word(row.componentType))&&!xml229IsExcludedWeightFitting(row);
+ return /^(?:RIGID|VALV|INST|FLAN|GASK)/i.test(word(row.componentType))&&
+   !xml229IsExcludedWeightFitting(row);
 }
 export function xml229ProposalScorePercent(proposal){
  const raw=proposal?.score;
