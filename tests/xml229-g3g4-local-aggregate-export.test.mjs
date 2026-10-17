@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {prepareXml229G3G4LocalAggregateExport as prepare}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-g3g4-local-aggregate-export.mjs';
 const s='a'.repeat(64),h='b'.repeat(64);
@@ -72,4 +76,37 @@ test('source and served local export contract remain byte-identical',async()=>{
  const served=new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-g3g4-local-aggregate-export.mjs',import.meta.url);
  const [a,b]=await Promise.all([readFile(src,'utf8'),readFile(served,'utf8')]);
  assert.equal(a,b);
+});
+
+test('one-click downloaded local aggregate validates with a single offline CLI argument',async()=>{
+ const temp=await mkdtemp(join(tmpdir(),'xml229-g3g4-redacted-'));
+ try{
+   const p=join(temp,'aggregate.json');
+   await writeFile(p,prepare(fixture()).text,'utf8');
+   const cli=fileURLToPath(new URL('../scripts/xml229-reconcile-candidate-coverage.mjs',import.meta.url));
+   const run=(input)=>spawnSync(process.execPath,[cli,input],{encoding:'utf8'});
+   const ok=run(p);
+   assert.equal(ok.status,0,ok.stderr+' '+ok.stdout);
+   assert.equal(JSON.parse(ok.stdout).status,'CONSISTENT');
+   assert.equal(JSON.parse(ok.stdout).nativeCiiReleaseAuthorized,false);
+
+   const forged=JSON.parse(await readFile(p,'utf8'));
+   forged.nativeCiiReleaseAuthorized=true;
+   await writeFile(p,JSON.stringify(forged),'utf8');
+   const denied=run(p);
+   assert.equal(denied.status,3);
+   assert.equal(JSON.parse(denied.stdout).status,'INCOMPLETE');
+
+   forged.nativeCiiReleaseAuthorized=false;
+   forged.coverage.originalJsonSha256='c'.repeat(64);
+   await writeFile(p,JSON.stringify(forged),'utf8');
+   const drift=run(p);
+   assert.equal(drift.status,2);
+   assert(JSON.parse(drift.stdout).issues.includes('G3_G4_INPUT_BASIS_DRIFT'));
+
+   await writeFile(p,'X'.repeat(65537),'utf8');
+   const oversized=run(p);
+   assert.equal(oversized.status,1);
+   assert(!oversized.stdout.includes('X'.repeat(50)));
+ }finally{await rm(temp,{recursive:true,force:true});}
 });

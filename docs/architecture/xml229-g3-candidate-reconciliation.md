@@ -28,3 +28,15 @@ For future Owner-controlled collection prefer the single call:
 Save `pair.coverage` as `coverage.json` and `pair.readiness` as `run-advisory.json` **locally**, then run the existing CLI. This prevents an explicit review edit or source generation change from occurring between two separate RPCs; it is still neither an independent source-byte oracle nor per-physical CII output proof.
 
 The legacy `readCandidateCoverage()` and `readCompletion()` remain available and unchanged for established UI consumers. If using legacy separate calls, revisions and source identity must match and stale pairs must be discarded. Never allow `CONSISTENT` to unlock Run. Public Chromium tests assert a consistent before-and-after pair with explicit, separate Match-1/Final decisions and unchanged CII release denial. No Owner private data has been processed.
+
+## Verified Weight-panel private download (preferred Owner workflow)
+
+On the exact Owner source in the live application, complete **4 Preview** and switch to **6 Weight Match**. In the **verified original physical facts** panel, select **Download candidate coverage + readiness (private)**. This is a read-only operation: it asks the current source-bound Worker for one atomic G3/G4 aggregate pair, checks the live receipt again after the response, and downloads `xml229-g3-g4-source-bound-aggregate.json` to your computer. It includes only source-binding digests and aggregate numeric counts; there are **no individual candidates, master rows, original XML/JSON contents or accepted kg values**. The digests and source ID still belong to your private project; keep the downloaded JSON in your private engineering workspace, not in a public issue.
+
+Run the verifier directly on this **single downloaded file** (Node.js required):
+
+```sh
+node scripts/xml229-reconcile-candidate-coverage.mjs xml229-g3-g4-source-bound-aggregate.json
+```
+
+Legacy two-file mode remains supported for existing controlled workflows. The tool refuses non-small files (larger than 64 KiB), malformed local envelope metadata, forged native release, contradictory InputBasis/generation/counts/revisions and inconsistent review status. Exit **0** means structural agreement ONLY, **2** discrepancy, **3** incomplete envelope, **1** bad input/file. The command never enables native CII. Capture the report **before accepting Match-1**, and again **after explicit Match-1 and separate Final** if an engineer independently approves them. The Owner's 41/423/2961 observation is not a substitute for a report from the current verified source.
