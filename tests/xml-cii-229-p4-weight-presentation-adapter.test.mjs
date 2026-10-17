@@ -7,6 +7,8 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
+import {matchesXml229WeightReviewFilter,xml229WeightReviewFilters}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-page-filter.mjs';
 
 const row=()=>({
   sourceId:'SRC-TEST',occurrenceId:'exact-source::occ-01',
@@ -34,6 +36,9 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
  assert.equal((html.match(/<th style=/g)||[]).length,13);
  assert.match(html,/data-p4-bulk-plan/);
  assert.match(html,/data-p4-scope="rigid"/);
+  assert.match(html,/data-p4-scope="blank-rigid"/);
+  assert.match(html,/Filter Blank/);
+  assert.match(html,/Auto Fill Match-1/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
@@ -80,6 +85,23 @@ test('review stage semantics remain distinct, including source-only mass',()=>{
  assert.equal(xml229WeightReviewStatus({...r,finalKg:15}).kind,'final');
 });
 
+test('Filter Blank shows only source-bound RIGID rows with no accepted mass',()=>{
+ assert.deepEqual(xml229WeightReviewFilters,
+  ['all','rigid','blank-rigid','needs-review']);
+ const unresolved={componentType:'RIGID',sourceKg:null,match1State:'deferred',finalState:'rejected'};
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',unresolved),true);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,sourceKg:0}),true);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,sourceKg:NaN}),true);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,componentType:'PIPE'}),false);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,sourceKg:15}),false);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,match1State:'accepted'}),false);
+ assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,finalState:'accepted'}),false);
+ assert.equal(matchesXml229WeightReviewFilter('needs-review',{...unresolved,componentType:'PIPE'}),true);
+ assert.equal(matchesXml229WeightReviewFilter('rigid',{...unresolved,sourceKg:15}),true);
+ assert.equal(matchesXml229WeightReviewFilter('all',{...unresolved,componentType:'PIPE'}),true);
+ assert.throws(()=>matchesXml229WeightReviewFilter('unverified',unresolved),/Unknown/);
+});
+
 test('5 Run distinguishes unperformed independent stages but cannot admit a blocked stage',()=>{
  for(const id of ['support-mapper','resolver-json','manual-restraints']){
   const p=xml229UnbuiltIndependentStage(id,{status:'missing',blocking:'false'});
@@ -97,6 +119,10 @@ test('5 Run distinguishes unperformed independent stages but cannot admit a bloc
 test('adapter uses Worker readPage/review and keeps native Run HOLD and full source custody',async()=>{
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
+  const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
+  assert.match(worker,/matchesXml229WeightReviewFilter\(mode,/);
+  assert.match(panel,/planQualifiedBlankFill/);
+  assert.match(panel,/commitQualifiedBlankFill/);
  assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
  assert.match(panel,/planQualifiedBlankFill/);

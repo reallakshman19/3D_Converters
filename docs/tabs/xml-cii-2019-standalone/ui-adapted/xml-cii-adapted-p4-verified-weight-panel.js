@@ -436,13 +436,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      if(planButton){
        pendingBulk=await active.planQualifiedBlankFill();
        if(!pendingBulk.qualified){
-         say('No qualified blank-only Match-1 suggestions on the verified full source.');
+         table.querySelector('[data-p4-bulk-confirm]').hidden=true;
+         say('Auto Fill Match-1: no qualified blank-only candidates on the verified full source. Nothing accepted.');
        }else{
          const confirm=table.querySelector('[data-p4-bulk-confirm]');
          confirm.hidden=false;
          confirm.textContent='Confirm '+pendingBulk.qualified+' qualified Match-1';
-         say('Review bulk proposal: '+pendingBulk.qualified+' qualified; '+
-           pendingBulk.unresolved+' not qualified; existing masses preserved. Confirm separately.');
+         say('Auto Fill Match-1 planned: '+pendingBulk.qualified+' qualified; '+
+           pendingBulk.unresolved+' unresolved. Existing masses preserved. Confirm Match-1 separately; Final and native CII remain HELD.');
        }
        return;
      }
@@ -450,7 +451,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
        const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
        pendingBulk=null;offset=0;await render();
-       say(result.acceptedCount+' qualified blank-only Match-1 decision(s) accepted; Final remains independent.');
+       say(result.acceptedCount+' qualified blank-only Match-1 decision(s) accepted; Final review and native CII release remain independent.');
        return;
      }
      if(prev||next){
