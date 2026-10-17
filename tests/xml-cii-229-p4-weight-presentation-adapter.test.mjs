@@ -105,7 +105,7 @@ test('Filter Blank shows only source-bound RIGID rows with no accepted mass',()=
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,sourceKg:15}),false);
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,match1State:'accepted'}),false);
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,finalState:'accepted'}),false);
- assert.equal(matchesXml229WeightReviewFilter('needs-review',{...unresolved,componentType:'PIPE'}),true);
+ assert.equal(matchesXml229WeightReviewFilter('needs-review',{...unresolved,componentType:'PIPE'}),false);
  assert.equal(matchesXml229WeightReviewFilter('rigid',{...unresolved,sourceKg:15}),true);
  assert.equal(matchesXml229WeightReviewFilter('all',{...unresolved,componentType:'PIPE'}),true);
  assert.throws(()=>matchesXml229WeightReviewFilter('unverified',unresolved),/Unknown/);
