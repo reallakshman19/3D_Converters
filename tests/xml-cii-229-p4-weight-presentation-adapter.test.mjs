@@ -7,6 +7,8 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
+import {planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs';
 import {matchesXml229WeightReviewFilter,xml229WeightReviewFilters}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-page-filter.mjs';
 
@@ -39,6 +41,9 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
   assert.match(html,/data-p4-scope="blank-rigid"/);
   assert.match(html,/Filter Blank/);
   assert.match(html,/Auto Fill Match-1/);
+  assert.match(html,/data-p4-draft-unqualified/);
+  assert.match(html,/Fill unqualified drafts/);
+  assert.match(html,/data-p4-draft-marker/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
@@ -100,6 +105,83 @@ test('Filter Blank shows only source-bound RIGID rows with no accepted mass',()=
  assert.equal(matchesXml229WeightReviewFilter('rigid',{...unresolved,sourceKg:15}),true);
  assert.equal(matchesXml229WeightReviewFilter('all',{...unresolved,componentType:'PIPE'}),true);
  assert.throws(()=>matchesXml229WeightReviewFilter('unverified',unresolved),/Unknown/);
+});
+
+test('source-wide unqualified draft action plans all Worker pages without review writes',async()=>{
+ const rows=Array.from({length:53},(_,i)=>({
+   sourceId:'SOURCE',occurrenceId:'id-'+i,componentType:'RIGID',
+   sourceKg:null,match1Kg:null,finalKg:null,
+   match1View:{match1Revision:'m1',stageDecision:i===2?{state:'rejected'}:null},
+   finalView:{finalRevision:'f1',stageDecision:null},
+   proposals:i===0?[]:i===1?[{proposalId:'q',ranking:1,value:5,qualified:true}]:
+     [{proposalId:'p-'+i,ranking:1,value:i+1,qualified:false}],
+ }));
+ const calls=[],writes=[];
+ const session={receipt:{basisId:'b'.repeat(64),sourceId:'SOURCE'},async readPage(args){
+   calls.push(args);
+   return {basisId:this.receipt.basisId,offset:args.offset,
+     totalCount:rows.length,complete:true,rows:rows.slice(args.offset,args.offset+args.limit)};
+ },review:()=>writes.push('write')};
+ const saved=new Map([['id-3',{value:'123',proposalId:'p-3',reason:'reviewer draft'}]]);
+ const result=await planXml229UnqualifiedDrafts(session,{existingDrafts:saved});
+ assert.equal(result.counts.blankRigid,53);
+ assert.equal(result.counts.withoutProposal,1);
+ assert.equal(result.counts.qualifiedPresent,1);
+ assert.equal(result.counts.existingReview,1);
+ assert.equal(result.counts.alreadyDrafted,1);
+ assert.equal(result.counts.prepared,49);
+ assert.equal(result.drafts.size,49);
+ assert.deepEqual(calls.map(x=>x.offset),[0,25,50]);
+ assert(calls.every(x=>x.filter==='blank-rigid'&&x.query===''&&x.limit===25));
+ assert.equal(result.drafts.has('id-3'),false);
+ assert.equal(result.drafts.has('id-2'),false);
+ assert.equal(result.drafts.get('id-52').value,'53');
+ assert.equal(result.drafts.get('id-52').proposalId,'p-52');
+ assert.deepEqual(writes,[]);
+ assert.equal(result.reviewDecisionsAuthorized,false);
+ assert.equal(result.finalAcceptedAutomatically,false);
+ assert.equal(result.nativeCiiReleaseAuthorized,false);
+});
+
+test('unqualified draft scan fails closed on stale Worker and changed review revision',async()=>{
+ const mk=(revision='m1')=>({
+   sourceId:'SOURCE',occurrenceId:'id-'+revision,componentType:'RIGID',
+   match1View:{match1Revision:revision,stageDecision:null},
+   finalView:{finalRevision:'f1',stageDecision:null},
+   proposals:[{proposalId:'p',ranking:1,value:5,qualified:false}],
+ });
+ const receipt={basisId:'b'.repeat(64),sourceId:'SOURCE'};
+ const stale={receipt,readPage:async()=>({
+   basisId:'c'.repeat(64),offset:0,totalCount:1,complete:true,rows:[mk()],
+ })};
+ await assert.rejects(planXml229UnqualifiedDrafts(stale),{code:'UNQUALIFIED_DRAFT_PAGE_DRIFT'});
+ let current=true;
+ const closed={receipt,readPage:async()=>{current=false;return {
+   basisId:receipt.basisId,offset:0,totalCount:1,complete:true,rows:[mk()],
+ };}};
+ await assert.rejects(planXml229UnqualifiedDrafts(closed,{isCurrent:()=>current}),
+  {code:'UNQUALIFIED_DRAFT_STALE_SOURCE'});
+ const drift={receipt,readPage:async({offset})=>({
+   basisId:receipt.basisId,offset,totalCount:26,complete:true,
+   rows:Array.from({length:Math.min(25,26-offset)},(_,i)=>({
+     ...mk(offset? 'm2':'m1'),occurrenceId:'id-'+(offset+i),
+   })),
+ })};
+ await assert.rejects(planXml229UnqualifiedDrafts(drift),{code:'UNQUALIFIED_DRAFT_REVIEW_DRIFT'});
+});
+
+test('Match-1 exclusion display describes disjoint reasons, never engineering acceptance',()=>{
+ const report=formatXml229Match1Exclusions({qualified:0,exclusions:{
+   sourceMassPresent:2,match1DecisionPresent:125,noRank1Proposal:88,
+   topRankUnqualified:205,lowerRankQualified:3,
+   finalDecisionPresent:0,conflictingQualifiedCandidates:2,
+ }});
+ assert.match(report,/No rank-1 proposal: 88/);
+ assert.match(report,/Rank-1 not qualified: 205/);
+ assert.match(report,/qualified only at lower rank: 3/);
+ assert.match(report,/Existing Match-1 decision.*: 125/);
+ assert.match(report,/ready for explicit confirmation/);
+ assert.match(report,/Final\/native CII remain independent/);
 });
 
 test('5 Run distinguishes unperformed independent stages but cannot admit a blocked stage',()=>{
