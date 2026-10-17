@@ -139,7 +139,7 @@ test('P0 Worker exports accepted audit through the read-only provenance endpoint
   import.meta.url),'utf8');
  assert.match(worker,/projectXml229AuditedDecisionProvenance/);
  assert.match(auditModule,/acceptedFamilyAudit/);
- assert.match(auditModule,/getProposals:ids=>weightProjection.proposals\\(ids\\)/);
+ assert.ok(auditModule.includes('getProposals:ids=>weightProjection.proposals(ids)'));
 });
 test('P0 new root and served modules are byte-identical',async()=>{
  for(const path of [
