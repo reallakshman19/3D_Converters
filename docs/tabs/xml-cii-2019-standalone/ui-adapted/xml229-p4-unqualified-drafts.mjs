@@ -175,7 +175,7 @@ export function hydrateXml229WeightDraftInputs(table,rows,draftValues){
      draftValues.delete(row.occurrenceId);continue;
    }
    const candidate=(row.proposals||[]).find(p=>p.proposalId===saved.proposalId);
-   if(saved.proposalId&&(!candidate||!positive(candidate.value)||
+   if(saved.autoFilled&&saved.proposalId&&(!candidate||!positive(candidate.value)||
       String(candidate.value)!==String(saved.value)))
      deny('SUGGESTION_VISIBLE_PROPOSAL_DRIFT');
    const input=tr.querySelector('[data-p4-proposal]');
