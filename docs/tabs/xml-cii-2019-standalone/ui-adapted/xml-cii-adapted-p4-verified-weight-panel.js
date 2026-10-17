@@ -18,6 +18,8 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
 import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
  from './xml229-p4-weight-review-presentation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
+import {prepareXml229G3G4LocalAggregateExport}
+ from './xml229-g3g4-local-aggregate-export.mjs';
 import {
  getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
@@ -219,6 +221,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   decisions. Native CII Run is NOT authorized by this panel.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
+  <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
+   class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
+   <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
    <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
@@ -333,10 +338,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
    const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
+   const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -355,6 +361,23 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        say('Saved local GC-PW review: '+backup.counts.match1+' Match-1 only, '+
          backup.counts.final+' Final and '+backup.counts.unresolved+
          ' unresolved. Keep this private file to restore only after verified 4 Preview rebuild.');
+       return;
+     }
+     if(coverageButton){
+       const session=active;
+       if(live()!==session||root.isConnected===false)
+         err('G3_G4_AGGREGATE_EXPORT_HELD','Current original source review is stale');
+       const pair=await session.readCandidateReadinessPair();
+       if(live()!==session||active!==session||root.isConnected===false)
+         err('G3_G4_AGGREGATE_EXPORT_HELD','Original source changed during aggregate export');
+       const receipt=prepareXml229G3G4LocalAggregateExport({
+         pair,receipt:session.receipt,
+       });
+       downloadTextFile(receipt.filename,receipt.text,'application/json;charset=utf-8');
+       say('Private G3/G4 aggregate exported: '+
+         pair.coverage.physicalCount+' original physicals, '+
+         pair.coverage.counts.occurrencesWithQualifiedCandidates+
+         ' with qualified proposals; native CII remains HELD.');
        return;
      }
      if(auditButton){

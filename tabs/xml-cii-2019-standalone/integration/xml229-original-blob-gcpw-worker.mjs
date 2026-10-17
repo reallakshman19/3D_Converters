@@ -18,6 +18,10 @@ import {openXml229EngineeringFactModel}
  from './xml229-preview-engineering-fact-producer.mjs';
 import {openGcPwPreviewWeightSession}
  from './gc-pw-preview-weight-session.js';
+import {buildXml229CandidateCoverageReport}
+ from './xml229-candidate-coverage-report.mjs';
+import {reconcileXml229CandidateCoverage}
+ from '../../../contracts/xml229-evidence-v1/candidate-readiness-reconciliation.mjs';
 import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
  from '../../../converters/xml-cii2019-core/weight-facts-individual-review.js';
 import {readVerifiedModeAFinalRows}
@@ -201,10 +205,51 @@ function verifiedRequest(req){
    fail('STALE_OR_UNVERIFIED_WEIGHT_SESSION',
     'Complete original source/GC-PW session is unavailable or has been replaced');
 }
+function currentRunAdvisory(){
+ const basisId=ready.basis.basisId;
+     const full=readVerifiedModeAFinalRows(ready);
+   const counts={source:0,match1:0,final:0,unresolved:0};
+   for(const row of full.rows){
+     if(row.finalKg!==null)counts.final++;
+     else if(row.match1Kg!==null)counts.match1++;
+     else if(row.sourceKg!==null)counts.source++;
+     else counts.unresolved++;
+   }
+   if(full.physicalCount!==(physicalIdentityList?.length??-1)||
+      full.verifiedFactCount!==ready.openedFacts)
+     fail('GC_PW_FULL_SOURCE_COMPLETENESS_DRIFT',
+       'All original physical occurrences and FactRecords must be accounted for');
+   return {schema:'XML229.P4.RunAdvisory.v1',basisId,sourceId:ready.basis.scope[0]?.sourceId,
+     originalJsonSha256:sourceReceipt.sha256,
+     sourceGenerationId:sourceReceipt.generationId,
+     verifiedPhysicalCount:full.physicalCount,
+     verifiedFactCount:full.verifiedFactCount,
+     stageRevisions:full.revisionBySource,
+     counts,engineeringFactsVerified:true,
+     previewStatus:'FULL_SOURCE_FACTS_VERIFIED',
+     weightStatus:counts.unresolved>0?'PROPOSED_OR_UNRESOLVED':'REVIEWED_SOURCE_MASSES',
+     ciiReleaseAuthorized:false,
+     releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
+   };
+}
+function currentCandidateCoverage(){
+     const source=ready.basis.scope[0]?.sourceId;
+     if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
+       fail('COVERAGE_PRESENTATION_NOT_READY','Current source-bound physical projection required');
+     return buildXml229CandidateCoverageReport({
+       session:ready,sourceId:source,physicalOccurrences:physicalIdentityList,
+       weightProjection,sourceReceipt,requestId:active,
+       readCurrentSession:()=>({
+         basisId:ready?.basis?.basisId,sourceGenerationId:sourceReceipt?.generationId,
+         requestId:active,closed:cancelled,
+       }),
+     });
+}
 async function rpc(req){
  verifiedRequest(req);
  if(restoringReview&&(req.kind==='decision'||req.kind==='bulk-commit'||
-    req.kind==='restore-review'||req.kind==='read'&&req.what==='bulk-plan'))
+    req.kind==='restore-review'||req.kind==='read'&&
+    ['bulk-plan','candidate-coverage','candidate-readiness-pair'].includes(req.what)))
    fail('REVIEW_RESTORE_IN_PROGRESS',
     'Do not mix individual or bulk decisions with review restoration');
  const {sourceId,occurrenceId,stage}=req;
@@ -233,32 +278,7 @@ async function rpc(req){
        sourceGenerationId:sourceReceipt.generationId,
      });
    }
-   if(req.what==='completion'){
-     const full=readVerifiedModeAFinalRows(ready);
-     const counts={source:0,match1:0,final:0,unresolved:0};
-     for(const row of full.rows){
-       if(row.finalKg!==null)counts.final++;
-       else if(row.match1Kg!==null)counts.match1++;
-       else if(row.sourceKg!==null)counts.source++;
-       else counts.unresolved++;
-     }
-     if(full.physicalCount!==(physicalIdentityList?.length??-1)||
-        full.verifiedFactCount!==ready.openedFacts)
-       fail('GC_PW_FULL_SOURCE_COMPLETENESS_DRIFT',
-         'All original physical occurrences and FactRecords must be accounted for');
-     return {schema:'XML229.P4.RunAdvisory.v1',basisId,sourceId:ready.basis.scope[0]?.sourceId,
-       originalJsonSha256:sourceReceipt.sha256,
-       sourceGenerationId:sourceReceipt.generationId,
-       verifiedPhysicalCount:full.physicalCount,
-       verifiedFactCount:full.verifiedFactCount,
-       stageRevisions:full.revisionBySource,
-       counts,engineeringFactsVerified:true,
-       previewStatus:'FULL_SOURCE_FACTS_VERIFIED',
-       weightStatus:counts.unresolved>0?'PROPOSED_OR_UNRESOLVED':'REVIEWED_SOURCE_MASSES',
-       ciiReleaseAuthorized:false,
-       releaseReason:'Native CII output has not consumed independent source-bound Final snapshot or authoritative Run gates',
-     };
-   }
+   if(req.what==='completion')return currentRunAdvisory();
    if(req.what==='review-backup'){
      const proof=await rpc({...req,what:'completion'});
      const backup=await exportXml229SourceBoundReviewBackup(review,{
@@ -286,6 +306,20 @@ async function rpc(req){
        reviewState,basisId,sourceId,completion,
        confirmedBulkCommandIds:[...confirmedBulkCommands],
      });
+   }
+   if(req.what==='candidate-coverage')return currentCandidateCoverage();
+   if(req.what==='candidate-readiness-pair'){
+     // Synchronous inside one Worker message event: review writes/restore RPCs
+     // cannot interleave these two reads. Read-only, no release authority.
+     const coverage=currentCandidateCoverage();
+     const readiness=currentRunAdvisory();
+     const reconciliation=reconcileXml229CandidateCoverage({coverage,readiness});
+     if(reconciliation.status!=='CONSISTENT')
+       fail('COVERAGE_READINESS_INCONSISTENT','Current full-source candidate and Run advisory receipts disagree');
+     verifiedRequest(req);
+     return {schema:'XML229.G3G4.SourceBoundAggregatePair.v1',
+       coverage,readiness,reconciliation,readOnly:true,
+       reviewDecisionsAuthorized:false,nativeCiiReleaseAuthorized:false};
    }
    if(req.what==='page'){
      if(!Number.isSafeInteger(req.offset)||req.offset<0||

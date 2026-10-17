@@ -1,3 +1,6 @@
+import './xml229-g3-candidate-readiness-reconciliation.test.mjs';
+import './xml229-g3g4-local-aggregate-export.test.mjs';
+import './xml229-g3-candidate-coverage.test.mjs';
 import './xml-cii-preview-strict-line-authority.test.mjs';
 import './xml-cii-229-independent-preview-worker.test.mjs';
 import test from 'node:test';
