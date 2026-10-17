@@ -303,6 +303,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      const row=page.rows[Number(tr.dataset.p4Row)];
      const saved=row&&draftValues.get(row.occurrenceId);
      if(!saved||row.occurrenceId!==tr.dataset.p4Occurrence)continue;
+     // A confirmed weight is not an outstanding draft on subsequent pages.
+     if(row.match1View?.stageDecision||row.finalView?.stageDecision){
+       draftValues.delete(row.occurrenceId);continue;
+     }
      const candidate=(row.proposals||[]).find(p=>p.proposalId===saved.proposalId);
      if(saved.proposalId&&!candidate)continue; // never hydrate a stale proposal
      tr.querySelector('[data-p4-proposal]').value=saved.value;
@@ -339,7 +343,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        event.target.value=String(minScorePercent);
        say('Suggestion score must be between 0 and 100%.',true);return;
      }
-     minScorePercent=value;pendingBulk=null;clearDrafts();
+     minScorePercent=value;pendingBulk=null;
+     // Regenerate suggested drafts without erasing manually edited weights.
+     for(const [id,saved] of draftValues)if(saved.autoFilled)draftValues.delete(id);
+     bulkDetail.hidden=true;bulkDetail.textContent='';
      await render();
      say('Suggestion threshold set to '+minScorePercent+'%. Apply all suggestions again.');
      return;
@@ -538,7 +545,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      if(commitButton){
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
        const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
-       pendingBulk=null;clearDrafts();offset=0;await render();
+       pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
+       offset=0;await render();
        say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
        return;
      }
