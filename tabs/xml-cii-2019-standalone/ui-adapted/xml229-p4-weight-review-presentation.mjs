@@ -96,7 +96,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       </div></td>
    </tr>`;
  }).join('');
- const tabs=[['all','All'],['rigid','Rigid'],['needs-review','Needs Review']]
+ const tabs=[['all','All'],['rigid','Rigid'],['blank-rigid','Filter Blank'],['needs-review','Needs Review']]
   .map(([id,name])=>`<button data-p4-scope="${id}" type="button"
    aria-pressed="${filter===id?'true':'false'}"
    style="background:${filter===id?'#1e40af':'#1e293b'};border:1px solid #466489;border-radius:6px;
@@ -113,7 +113,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       <input data-p4-filter value="${e(query)}" placeholder="Branch, line key, Node, DTXR, source..."
        style="padding:6px;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;min-width:220px"></label>
     <label><input data-p4-filter-unresolved type="checkbox" ${filter==='needs-review'?'checked':''}> Unresolved</label>
-    <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Fill qualified suggestions</button>
+    <button data-p4-bulk-plan type="button" class="model-converters-download-btn" title="Prepare qualified blank-only Match-1 decisions across the verified source. A separate confirmation is mandatory.">Auto Fill Match-1</button>
     <button data-p4-bulk-confirm type="button" hidden class="model-converters-run-btn">Confirm Match-1 bulk review</button>
     <small data-p4-filter-count style="color:#94a3b8">Filters apply to all original occurrences.</small>
   </div>
