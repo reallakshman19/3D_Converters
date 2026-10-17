@@ -30,3 +30,18 @@ Qualify with Node 22/24 contract tests (privacy, bounds, event order, 7x facts, 
 ## Coordination
 
 PR #273 remains a separate overlapping draft; coordinate before merging this diagnostic. Backups exist for every changed production file. Rollback removes trace modules/observer ports/button; the scorer, accepted kg and native output are unchanged.
+## Independent first-divergence auditor
+
+The trace collector is only an observer. The separate `contracts/xml229-flow-trace-v1/audit.mjs` independently parses the downloaded trace without trusting the collector's derived findings. It validates the event sequence, allowed actor/type/counter fields, bounded size, 7-to-1 physical facts, RPC request/response pairing, census dispatch/result, child Preview start/return, fact and review readiness, Output read and native hold. It returns a first missing or conflicting causal handoff as a generic issue code and sequence only, never source strings or engineering mass values.
+
+Owner-local verification (Node.js checkout of this PR):
+
+```sh
+node scripts/xml229-audit-cross-worker-flow.mjs xml229-cross-worker-flow-trace.json
+```
+
+Exit 0 means structurally consistent or a correctly observed native hold, 2 means a contradictory/broken flow, 3 means invalid trace shape, 1 means unreadable/malformed/private file outside 128KiB cap. Structural consistency is NEVER native CII authorization.
+
+Suggested evidence sequence: load original source and four correct masters; build 4 Preview; switch to 6 Weight Match; inspect/explicitly review only if authorized; open 10 Output/Run; return to 6 Weight Match and download the causal flow trace and separate G3/G4 aggregate. Keep both private. Expect a typed `RUN_GATE_HELD` edge even if physical/fact census is correct. A broken causal edge is a software integration fault; `ENGINEERING_MASS_UNRESOLVED` is a missing engineering decision; `NATIVE_RELEASE_HOLD_EXPECTED` is the required G5 safety control. A missing G5 physical-output oracle remains a separate implementation and acceptance workstream.
+
+The trace begins with a new source-bound Preview build, not pre-indexing O1's internal worker lifetime. O1 is attested at Source input resolution and the current original staged receipt. This boundary is explicit; do not infer a complete O1 worker performance trace. When browser source/master/selection changes, restart the diagnostic and do not mix trace exports across epochs.

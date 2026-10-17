@@ -12,3 +12,8 @@ A5 falsifier: if Chromium trace lacks census-verified, child Preview completed, 
 
 Changed: new contract+served module, per-UI-ref registry+served module, GC-PW client/Worker and served twins, verified Weight UI and Output UI and twins, Chromium browser test, Node suite/isolated contract tests, ADR. Backups under .backups/20261017-xml229-flow-trace. No native writer/workflow changes.
 EXACT_NEXT_ACTION: open draft PR, run actual P4 Chromium and Node22/24 from exact head, repair any trace-only defect without weakening native hold, record real results in #274. Owner review and any merge separately.
+## Independent first-causal-gap auditor — 2026-10-17
+
+Added contracts/xml229-flow-trace-v1/audit.mjs and served mirror, offline scripts/xml229-audit-cross-worker-flow.mjs and five tests imported into Node22/24 fact suite. It independently checks semantic stage ordering, orphaned RPC replies, missing child Preview request, 7x original facts, unknown properties and protected native hold. A first Node run failed three negative *test fixtures* that mutated Object.freeze snapshots; those fixtures now use structuredClone and focused Node CI PASS on head 55aa863. The real original-Blob Chromium was PASS on the prior head, and has an expanded latest-head canonical Output/Run guard assertion still awaiting CI. No weakening of test expected values or native gate.
+
+Full Owner source and masters remain NOT_RUN. No G5 native emitted-output proof. DRAFT PR287 is the one trace work package; no new production merge.
