@@ -42,6 +42,8 @@ import {xml229WeightReviewEligible,xml229ProposalScorePercent,xml229WeightThresh
  from './xml229-weight-review-focus.mjs';
 import {projectXml229WeightDecisionProvenance}
  from './xml229-weight-decision-provenance.mjs';
+import {auditXml229AcceptedMatch1Population}
+ from './xml229-accepted-match1-family-audit.mjs';
 import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
  from './xml229-source-weight-review-transfer.mjs';
 
@@ -316,10 +318,17 @@ async function rpc(req){
      // The raw command payloads remain inside this private Worker.
      const completion=await rpc({...req,what:'completion'});
      const reviewState=await review.exportReviewState({basisId});
-     return projectXml229WeightDecisionProvenance({
+     const familyAudit=auditXml229AcceptedMatch1Population({
+       basisId,sourceId,physicalCount:weightProjection.count,
+       decisions:review.getDecisionState({basisId,scopeId:sourceId,
+         stage:'RigidMatch1'}).decisions,
+       getRow:id=>weightProjection.get(id),
+       getProposals:ids=>weightProjection.proposals(ids),
+     });
+     return {...projectXml229WeightDecisionProvenance({
        reviewState,basisId,sourceId,completion,
        confirmedBulkCommandIds:[...confirmedBulkCommands],
-     });
+     }),acceptedFamilyAudit:familyAudit};
    }
    if(req.what==='candidate-coverage')return currentCandidateCoverage();
    if(req.what==='candidate-readiness-pair'){
