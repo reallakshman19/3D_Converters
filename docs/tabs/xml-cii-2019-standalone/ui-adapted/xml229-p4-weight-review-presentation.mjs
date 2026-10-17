@@ -29,7 +29,7 @@ export function xml229WeightReviewPageModel(page,offset=0){
      return a;
    },{final:0,match1:0,source:0,unresolved:0,proposed:0})};
 }
-export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query=''}={}){
+export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='',minScorePercent=80}={}){
  const m=xml229WeightReviewPageModel(page,offset);
  const fmt=(x,unit='')=>typeof x==='number'&&Number.isFinite(x)
    ?e(Number(x).toFixed(unit==='mm'?1:0))+(unit?' '+unit:''):'—';
@@ -114,7 +114,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
        style="padding:6px;background:#0b1320;color:#e5eefc;border:1px solid #405a78;border-radius:5px;min-width:220px"></label>
     <label><input data-p4-filter-unresolved type="checkbox" ${filter==='needs-review'?'checked':''}> Unresolved</label>
     <label style="font-size:12px">Suggested score ≥
-      <input data-p4-min-score type="number" min="0" max="100" step="1" value="80"
+      <input data-p4-min-score type="number" min="0" max="100" step="1" value="${e(minScorePercent)}"
        aria-label="Minimum suggestion score percentage" style="width:58px;background:#0b1320;color:#fff"> %</label>
     <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Apply all suggestions</button>
     <button data-p4-bulk-confirm type="button" disabled class="model-converters-run-btn">Apply all Match-1</button>
