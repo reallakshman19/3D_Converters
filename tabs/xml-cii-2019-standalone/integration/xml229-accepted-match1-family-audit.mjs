@@ -137,5 +137,9 @@ export async function projectXml229AuditedDecisionProvenance({
    getRow:id=>weightProjection.get(id),
    getProposals:ids=>weightProjection.proposals(ids),
  });
+ if(acceptedFamilyAudit.acceptedMatch1Count!==provenance.summary.acceptedMatch1All||
+    acceptedFamilyAudit.physicalCount!==provenance.population.physicalCount||
+    provenance.basisId!==basisId||provenance.sourceId!==sourceId)
+   throw new Error('ACCEPTED_AUDIT_PROVENANCE_CENSUS_DRIFT');
  return {...provenance,acceptedFamilyAudit};
 }
