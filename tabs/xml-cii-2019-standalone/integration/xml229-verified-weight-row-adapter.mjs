@@ -173,6 +173,8 @@ export function buildXml229VerifiedWeightRowProjection({
      lengthDelta:p.extensions?.candidate?.lengthDelta??null,
      eligibilityReasons:p.eligibilityReasons||[],
      evidenceRefs:p.evidenceRefs||[],
+     familyEligibility:p.extensions?.familyEligibility||null,
+     masterRowOrdinal:p.extensions?.candidate?.masterRowOrdinal??null,
     }));
    }
    for(const entries of indexed.values())entries.sort((a,b)=>a.ranking-b.ranking);

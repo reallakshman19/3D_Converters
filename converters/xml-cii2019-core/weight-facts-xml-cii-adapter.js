@@ -1,6 +1,7 @@
 // Read-only XML-CII compatibility adapter. The canonical Preview fact producer replaces
 // this adapter without changing the portable ledger or the existing ranking algorithm.
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
+import { evaluateCandidateEligibility } from './weight-family-eligibility.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from './flange-weight-fallback.js';
 import { WEIGHT_SCHEMA } from './weight-facts-review-service.js';
 const ID = 'xml-cii/2019';
@@ -94,12 +95,8 @@ function rankedFromFacts(records, config) {
 }
 // One direct-exact eligibility rule for proposal authority and Final UI bulk actions.
 // Keep the mature ranking untouched; qualification governs user acceptance only.
-export function isXmlCiiDirectQualifiedCandidate(candidate) {
-  if (candidate?.preferred !== true || candidate.lengthQualified === false ||
-      candidate.ratingExact === false || candidate.inferredWeight ||
-      candidate.specialFactorRule || candidate.flangeWeightFallback ||
-      candidate.fallbackSuggestion || candidate.zeroFallback || candidate.oddEntry) return false;
-  return !/interpolat|extrapolat|factor|fallback|inferred/i.test(String(candidate.weightMethod || ''));
+export function isXmlCiiDirectQualifiedCandidate(candidate, sourceContext) {
+  return evaluateCandidateEligibility(sourceContext, candidate).qualified;
 }
 export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-weight-rank/v1') {
   // A proposal's master identity cannot drift through a mutable host config or
@@ -112,21 +109,25 @@ export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-
     const identity = records[0];
     if (!identity || basis.domainId !== ID || identity.domainId !== ID) throw new Error('XML-CII scorer requires matching FactRecord domain');
     const ranking = rankedFromFacts(records, pinnedConfig);
+    const source = fromFacts(records);
     return ranking.candidates.slice(0, 5).flatMap((candidate, index) => {
       const value = num(candidate.selectedWeight ?? candidate.suggestedWeight ?? candidate.weight);
       if (value === null || value <= 0 || candidate.zeroFallback) return [];
+      const eligibility = evaluateCandidateEligibility(source, candidate);
       return [{
         basisId: basis.basisId, domainId: ID, occurrenceId: identity.occurrenceId,
         proposalId: [basis.basisId, identity.occurrenceId, scoringRevision,
           'master-row:' + rowOrdinal(candidate), 'rank:' + (index + 1),
           'method:' + (candidate.weightMethod || 'master'), 'kg:' + value].join('/'),
         value, unit: 'kg', method: candidate.weightMethod || 'master',
-        ranking: index + 1, qualified: isXmlCiiDirectQualifiedCandidate(candidate),
-        eligibilityReasons: [isXmlCiiDirectQualifiedCandidate(candidate) ? 'exact-bore-rating-length' : 'explicit-review-required', candidate.weightWarning || ''].filter(Boolean),
+        ranking: index + 1, qualified: eligibility.qualified,
+        eligibilityReasons: [eligibility.qualified ? 'exact-bore-rating-length' : 'explicit-review-required',
+          ...eligibility.reasons, candidate.weightWarning || ''].filter(Boolean),
         evidenceRefs: [basis.basisId, basis.masters?.weight?.sha256 || '', identity.sourceId,
           rowOrdinal(candidate) < 0 ? 'weight:derived-fallback' : 'weight:master-row:' + rowOrdinal(candidate)].filter(Boolean),
         scoringRevision,
         extensions: { candidate: candidateSummary(candidate, rowOrdinal(candidate)),
+          familyEligibility: eligibility,
           rejectedCandidates: index === 0 ? ranking.rejectedCandidates.map(c => candidateSummary(c, rowOrdinal(c))) : [] },
       }];
     });
