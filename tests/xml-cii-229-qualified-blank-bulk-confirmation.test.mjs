@@ -106,7 +106,7 @@ test('Worker guarded source bulk: qualified off-page blanks commit only AFTER ex
    sourceMassPresent:1,match1DecisionPresent:1,noRank1Proposal:0,
    topRankUnqualified:1,topRankInvalidMass:0,topRankInvalidUnit:0,
    lowerRankQualified:0,finalDecisionPresent:1,
-   conflictingQualifiedCandidates:1,planProjectionMismatch:0,
+   conflictingQualifiedCandidates:1,planProjectionMismatch:0,excludedByScope:0,
    readyForConfirmation:107,
  });
  assert.equal(prepared.summary.reviewStage,'RigidMatch1');
@@ -466,7 +466,7 @@ test('Worker bulk scope predicate blocks excluded/low-score commands before Matc
    candidateEligibility:occurrenceId=>occurrenceId===allowed,
  });
  assert.equal(planned.summary.qualified,1);
- assert.equal(planned.summary.exclusions.excludedByScope,11);
+ assert.equal(planned.summary.exclusions.excludedByScope,12);
  assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,0);
  const committed=confirm(h,planned.pending);
  assert.equal(committed.acceptedCount,1);
