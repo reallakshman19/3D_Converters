@@ -1,5 +1,6 @@
 import './xml229-g3-candidate-readiness-reconciliation.test.mjs';
 import './xml229-cross-worker-flow-trace.test.mjs';
+import './xml229-cross-worker-flow-audit.test.mjs';
 import './xml229-g3g4-local-aggregate-export.test.mjs';
 import './xml229-g3-candidate-coverage.test.mjs';
 import './xml-cii-preview-strict-line-authority.test.mjs';
