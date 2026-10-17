@@ -36,6 +36,8 @@ import {buildXml229VerifiedWeightRowProjection}
  from './xml229-verified-weight-row-adapter.mjs';
 import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from './xml229-source-weight-bulk-review.mjs';
+import {xml229WeightReviewFilters,matchesXml229WeightReviewFilter}
+ from './xml229-weight-page-filter.mjs';
 import {projectXml229WeightDecisionProvenance}
  from './xml229-weight-decision-provenance.mjs';
 import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
@@ -338,7 +340,7 @@ async function rpc(req){
      if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
        fail('PRESENTATION_NOT_VERIFIED','Complete original physical presentation projection required');
      const mode=req.filter??'all',query=String(req.query??'').toLowerCase().trim();
-     if(!['all','rigid','blank-rigid','needs-review'].includes(mode)||query.length>120)
+     if(!xml229WeightReviewFilters.includes(mode)||query.length>120)
        fail('INVALID_WEIGHT_REVIEW_FILTER','Filter must be all, rigid, blank-rigid or needs-review');
      const match=review.getDecisionState({basisId,scopeId:sourceId,stage:'RigidMatch1'}).decisions;
      const final=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'}).decisions;
@@ -346,13 +348,10 @@ async function rpc(req){
        const oid=id.occurrenceId||JSON.stringify([
          id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
        const meta=weightProjection.get(oid);
-       // Blank means no accepted Final/Match-1 mass and no positive original XML mass.
-       // A suggestion or draft is not a committed decision.
-       const isRigid=/^RIGID/i.test(meta.componentType);
-       const hasWeight=final[oid]?.state==='accepted'||match[oid]?.state==='accepted'||
-         (typeof meta.sourceKg==='number'&&Number.isFinite(meta.sourceKg)&&meta.sourceKg>0);
-       if((mode==='rigid'||mode==='blank-rigid')&&!isRigid)return false;
-       if((mode==='needs-review'||mode==='blank-rigid')&&hasWeight)return false;
+       if(!matchesXml229WeightReviewFilter(mode,{
+         componentType:meta.componentType,sourceKg:meta.sourceKg,
+         match1State:match[oid]?.state,finalState:final[oid]?.state,
+       }))return false;
        if(query){
          const hay=[meta.branchName,meta.lineKey,meta.componentType,meta.nodeNumber,
            meta.componentRefNoEndpoint,meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
