@@ -26,7 +26,7 @@ export function planXml229QualifiedBlankFill(review,projection,{
  if(!object(final)||!object(final.decisions))
    fail('FINAL_REVIEW_UNAVAILABLE','Final decision state must be available before Match-1 bulk review');
  let excludedFinal=0,ambiguousQualified=0,notQualifiedAtGuard=0,excludedByScope=0;
- const commands=[];
+ const commands=[],qualifiedSuggestions=[];
  for(let i=0;i<plan.commands.length;i+=80){
    const chunk=plan.commands.slice(i,i+80);
    const proposals=projection.proposals(chunk.map(c=>c.occurrenceId));
@@ -46,6 +46,16 @@ export function planXml229QualifiedBlankFill(review,projection,{
          p.qualified&&p.proposalId!==cmd.proposalId&&p.value!==selected.value)){
        ambiguousQualified++;continue;
      }
+     // Read-only display evidence from the SAME Worker/CAS acceptance plan.
+     // This is NOT an approval: only the separate planId commit can write.
+     if(typeof selected.proposalId!=='string'||!selected.proposalId||
+        typeof selected.value!=='number'||!Number.isFinite(selected.value)||
+        selected.value<=0||selected.unit!=='kg')
+       fail('BULK_DISPLAY_CANDIDATE_INVALID','Qualified plan contains an invalid kg proposal');
+     qualifiedSuggestions.push(Object.freeze({
+       occurrenceId:cmd.occurrenceId,proposalId:selected.proposalId,
+       value:selected.value,unit:'kg',qualified:true,
+     }));
      commands.push(cmd);
    }
  }
@@ -54,7 +64,8 @@ export function planXml229QualifiedBlankFill(review,projection,{
    final.decisionRevision,sequence,commands.length]);
  return {
    pending:{planId,plan:guarded,finalRevision:final.decisionRevision},
-   summary:{planId,basisId,qualified:guarded.qualified,unresolved:plan.unresolved,
+   summary:{planId,basisId,qualified:guarded.qualified,
+     qualifiedSuggestions:Object.freeze(qualifiedSuggestions),unresolved:plan.unresolved,
      excludedFinal,ambiguousQualified,
      exclusions:{...plan.exclusions,
        finalDecisionPresent:excludedFinal,
