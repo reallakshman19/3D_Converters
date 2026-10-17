@@ -17,6 +17,8 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
  from './xml229-p4-weight-review-presentation.mjs';
+import {planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+ from './xml229-p4-unqualified-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
@@ -230,6 +232,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   decisions. Native CII Run is NOT authorized by this panel.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
+  <pre data-p4-bulk-detail role="status" hidden
+   style="white-space:pre-wrap;font-size:12px;color:#cbd5e1;background:#101e32;padding:8px;border-radius:6px;"></pre>
   <div style="margin:10px 0"><button type="button" data-p4-export-flow-trace
    class="model-converters-download-btn">Download Worker/UI causal flow trace (private)</button>
    <small style="display:block;color:#94a3b8">Read-only session/Worker transitions, typed failures, fact/review counts and native gate. No source or master rows.</small></div>
@@ -249,17 +253,32 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   <div data-p4-weight-table></div></section>`;
  const root=container.querySelector('[data-p4-weight-root]');
  const status=root.querySelector('[data-p4-weight-status]');
+ const bulkDetail=root.querySelector('[data-p4-bulk-detail]');
  const table=root.querySelector('[data-p4-weight-table]');
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='all',query='',pendingBulk=null,searchTimer=null,renderSequence=0;
+ // Drafts are local to exactly one source-attested Worker, never the decision ledger.
+ let draftOwner=active,draftValues=new Map();
+ const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
+ const captureDraft=tr=>{
+   if(!tr||!active||draftOwner!==active||live()!==active)return;
+   const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
+   if(!row||row.occurrenceId!==tr.dataset.p4Occurrence)return;
+   draftValues.set(row.occurrenceId,{
+     value:tr.querySelector('[data-p4-proposal]')?.value??'',
+     proposalId:tr.querySelector('[data-p4-candidate]')?.value??'',
+     reason:tr.querySelector('[data-p4-reason]')?.value??'',
+     autoUnqualified:false,
+   });
+ };
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
  const live=()=>getXml229CurrentWorkerHeldReview(stateRef);
  const requireRebuild=()=>{
-   active=null;pendingBulk=null;root.__p4VisibleRows=[];
+   active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
    say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
      'to verify the current XML, JSON Blob and four masters again. '+
@@ -275,10 +294,28 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    // appear current, even when a new Worker carries a different InputBasis.
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
+   if(draftOwner!==session)clearDrafts();
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query});
    root.__p4VisibleRows=page.rows;
+   for(const tr of table.querySelectorAll('tr[data-p4-row]')){
+     const row=page.rows[Number(tr.dataset.p4Row)];
+     const saved=row&&draftValues.get(row.occurrenceId);
+     if(!saved||row.occurrenceId!==tr.dataset.p4Occurrence)continue;
+     const candidate=(row.proposals||[]).find(p=>p.proposalId===saved.proposalId);
+     if(saved.proposalId&&!candidate)continue; // never hydrate a stale proposal
+     tr.querySelector('[data-p4-proposal]').value=saved.value;
+     tr.querySelector('[data-p4-candidate]').value=saved.proposalId;
+     tr.querySelector('[data-p4-reason]').value=saved.reason;
+     if(saved.autoUnqualified){
+       const flag=tr.querySelector('[data-p4-draft-marker]');
+       if(flag)flag.textContent='Unqualified draft only — enter an engineering reason before acceptance';
+     }
+   }
  };
  root.addEventListener('input',event=>{
+   if(event.target.closest?.('[data-p4-proposal],[data-p4-reason]')){
+     captureDraft(event.target.closest('tr[data-p4-row]'));return;
+   }
    if(!event.target.closest?.('[data-p4-filter]'))return;
    query=String(event.target.value||'').slice(0,120);
    offset=0;pendingBulk=null;
@@ -292,6 +329,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    },260);
  });
  root.addEventListener('change',async event=>{
+   if(event.target.closest?.('[data-p4-candidate]')){
+     captureDraft(event.target.closest('tr[data-p4-row]'));return;
+   }
    const fileInput=event.target.closest?.('[data-p4-import-review]');
    if(fileInput){
      const file=fileInput.files?.[0];fileInput.value='';
@@ -306,7 +346,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(getXml229CurrentWorkerHeldReview(stateRef)!==active)
          err('STALE_REVIEW_BACKUP_SOURCE','Original source changed during local review file read');
        const result=await active.restoreReviewBackup({backup});
-       offset=0;pendingBulk=null;await render();
+       offset=0;pendingBulk=null;clearDrafts();await render();
        say('Restored same-InputBasis GC-PW review: '+
          result.counts.match1+' Match-1 only, '+result.counts.final+' independent Final, '+
          result.counts.unresolved+' unresolved. Old bulk-confirmation clicks are not reattested. Native CII Run remains HELD.');
@@ -328,12 +368,12 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
    try{
-     prev?.cancel();active=null;
+     prev?.cancel();active=null;clearDrafts();
      say('Checking original source/master custody and starting isolated Workers…');
      active=await openXml229P4VerifiedSession(stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
-     offset=0;await render();
+     offset=0;clearDrafts();await render();
      say('Verified original physical facts ready; weights NOT auto-accepted.');
    }catch(error){
      say('Weight verification held: '+String(error?.message||error)+
@@ -346,6 +386,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const next=event.target.closest?.('[data-p4-next]');
    const scope=event.target.closest?.('[data-p4-scope]');
    const planButton=event.target.closest?.('[data-p4-bulk-plan]');
+   const draftFillButton=event.target.closest?.('[data-p4-draft-unqualified]');
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
@@ -355,7 +396,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -435,6 +476,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      }
      if(planButton){
        pendingBulk=await active.planQualifiedBlankFill();
+       bulkDetail.hidden=false;
+       bulkDetail.textContent=formatXml229Match1Exclusions(pendingBulk);
        if(!pendingBulk.qualified){
          table.querySelector('[data-p4-bulk-confirm]').hidden=true;
          say('Auto Fill Match-1: no qualified blank-only candidates on the verified full source. Nothing accepted.');
@@ -447,10 +490,26 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        }
        return;
      }
+     if(draftFillButton){
+       const session=active;
+       const planned=await planXml229UnqualifiedDrafts(session,{
+         existingDrafts:draftValues,
+         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+       });
+       for(const [id,draft] of planned.drafts)if(!draftValues.has(id))
+         draftValues.set(id,draft);
+       pendingBulk=null;mode='blank-rigid';offset=0;await render();
+       const c=planned.counts;
+       say(c.prepared+' new unqualified editable draft(s) across '+c.blankRigid+
+         ' blank RIGIDs; '+c.withoutProposal+' have no proposal, '+
+         c.qualifiedPresent+' have qualified candidates and '+c.alreadyDrafted+
+         ' already had local drafts. Zero decisions accepted. Drafts are session-local.');
+       return;
+     }
      if(commitButton){
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
        const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
-       pendingBulk=null;offset=0;await render();
+       pendingBulk=null;clearDrafts();offset=0;await render();
        say(result.acceptedCount+' qualified blank-only Match-1 decision(s) accepted; Final review and native CII release remain independent.');
        return;
      }
@@ -469,6 +528,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(!candidate)err('STALE_PHYSICAL_PROPOSAL','Candidate no longer belongs to this occurrence');
        selection.value=proposalId;
        draft.value=String(candidate.value);
+       captureDraft(tr);
        say('Source candidate selected as DRAFT only; explicit engineering acceptance is required.');
        return;
      }
@@ -478,6 +538,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        value:draft.value,reason,
      });
      await active.review({view,choice});
+     draftValues.delete(row.occurrenceId);bulkDetail.hidden=true;
      pendingBulk=null;
      await render();
      say(isFinal?'Final Match-2 explicitly accepted for original physical source':
@@ -510,7 +571,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      // Reattach only to that already attested Worker; never manufacture
      // source facts, replay decisions, or silently build against old inputs.
      if(latest&&latest!==initial){
-       active=latest;pendingBulk=null;offset=0;
+       active=latest;pendingBulk=null;clearDrafts();offset=0;
        try{await attach(latest);return;}
        catch(error){
          if(root.isConnected===false)return;
