@@ -301,7 +301,7 @@ test('Auto Fill actually hydrates input values and selected candidates rather th
  assert.match(file,/planXml229RigidWeightDrafts\(session,/);
  assert.match(file,/tr\.querySelector\('\[data-p4-proposal\]'\)\.value=saved\.value/);
  assert.match(file,/tr\.querySelector\('\[data-p4-candidate\]'\)\.value=saved\.proposalId/);
- assert.match(file,/confirm\.hidden=!plan\.qualified/);
+ assert.match(file,/confirm\.disabled=!plan\.qualified/);
  assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
  const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
