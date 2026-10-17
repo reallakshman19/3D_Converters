@@ -232,8 +232,8 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readPage({offset=0,limit=25,filter='all',query=''}={}){
      return rpc({kind:'read',what:'page',sourceId,offset,limit,filter,query});
    },
-   async planQualifiedBlankFill(){
-     return rpc({kind:'read',what:'bulk-plan',sourceId});
+   async planQualifiedBlankFill({minScorePercent=0}={}){
+     return rpc({kind:'read',what:'bulk-plan',sourceId,minScorePercent});
    },
    async commitQualifiedBlankFill({planId}={}){
      if(typeof planId!=='string'||!planId)
