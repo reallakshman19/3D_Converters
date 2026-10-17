@@ -4,6 +4,7 @@
  * Candidate chips and table controls cannot write legacy issue.keys, mutate
  * masters, infer a Final decision, or authorize native CII Run.
  */
+import {xml229ProposalScorePercent} from '../integration/xml229-weight-review-focus.mjs';
 const txt=x=>String(x??'');
 export const escapeXml229WeightHtml=x=>txt(x).replaceAll('&','&amp;')
  .replaceAll('<','&lt;').replaceAll('>','&gt;')
@@ -37,8 +38,8 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
  const rows=m.rows.map((r,i)=>{
   const state=xml229WeightReviewStatus(r),proposals=Array.isArray(r.proposals)?r.proposals:[];
   const chips=proposals.map(p=>{
-   const score=typeof p.score==='number'&&Number.isFinite(p.score)&&p.score>=0&&p.score<=100
-     ?' · '+fmt(p.score)+'%':'';
+   const scorePercent=xml229ProposalScorePercent(p);
+   const score=scorePercent===null?'':' · '+e(Math.round(scorePercent))+'%';
    const hint=[p.method,p.matchType,p.qualified?'Qualified source candidate':'Review required',
      ...(p.eligibilityReasons||[]),...(p.evidenceRefs||[])].filter(Boolean).join(' · ');
    return `<button type="button" class="mc-rigid-review-candidate${p.qualified?' best':''}"
