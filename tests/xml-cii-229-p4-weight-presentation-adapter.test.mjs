@@ -389,5 +389,5 @@ test('proposal confidence displays normalized percentage rather than 0 or 1 perc
  const html=renderXml229WeightReviewPage({totalCount:1,rows:[x]});
  assert.match(html,/91%/);
  assert.doesNotMatch(html,/0\.91%/);
- assert.doesNotMatch(html,/1% · master-match/);
+ assert.doesNotMatch(html,/ · 1% · master-match/);
 });
