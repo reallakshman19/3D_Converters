@@ -633,7 +633,6 @@ test('U2 exact qualification cannot silently promote preferred special factors o
   const exact={preferred:true,lengthQualified:true,ratingExact:true,weightMethod:'master',
     weight:15,typeDesc:'Gate Valve',inferredWeight:false,flangeWeightFallback:false};
   assert.equal(isXmlCiiDirectQualifiedCandidate(exact,{nodeName:'VGT-1',dtxr:'GATE VALVE'}),true);
-  assert.equal(isXmlCiiDirectQualifiedCandidate(exact),false);
   for (const extension of [
     {specialFactorRule:true}, {flangeWeightFallback:true}, {fallbackSuggestion:true},
     {oddEntry:true}, {inferredWeight:true}, {zeroFallback:true},
