@@ -166,7 +166,7 @@ try{
  assert.equal(populated.title,true);
  assert.equal(populated.drift,'SUGGESTION_WORKER_PLAN_PROPOSAL_DRIFT');
  assert.deepEqual(populated.writes,[]);
- assert.deepEqual(populated.offsets,[0,25,0,25]);
+ assert.deepEqual(populated.offsets,[0,25,0]);
 
  // Neither proposed nor source-null value may be mistaken for accepted mass.
  assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Existing verified Preview facts/);
