@@ -382,3 +382,12 @@ test('two click Match-1 UI retains explicit Worker planId commitment',async()=>{
  assert.match(worker,/xml229ProposalScorePercent\(selected\)/);
  assert.doesNotMatch(panel,/nativeCiiReleaseAuthorized:true/);
 });
+
+test('proposal confidence displays normalized percentage rather than 0 or 1 percent',()=>{
+ const x=row();
+ x.proposals[0].score=0.91;
+ const html=renderXml229WeightReviewPage({totalCount:1,rows:[x]});
+ assert.match(html,/91%/);
+ assert.doesNotMatch(html,/0\.91%/);
+ assert.doesNotMatch(html,/1% · master-match/);
+});
