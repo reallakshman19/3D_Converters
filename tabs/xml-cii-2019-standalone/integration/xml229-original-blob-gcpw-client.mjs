@@ -48,7 +48,7 @@ function independentCensus({xmlText,sourceId,config,requestId,workerFactory,
 export async function openXml229WorkerHeldOriginalWeightReview({
  xmlText,sourceId,masters,selection,config,overrides={},
  originalStagedBlob,originalStagedSourceReceipt,requestId,maxPhysical=10000,
- isCurrent,onProgress=()=>{},signal=null,
+ isCurrent,onProgress=()=>{},onFlowTrace=()=>{},signal=null,
  censusTimeoutMs=120000,phaseTimeoutMs=180000,startupTimeoutMs=720000,
  censusWorkerFactory=()=>new Worker(new URL('./xml229-original-physical-census-worker.mjs',import.meta.url),
   {type:'module'}),
@@ -66,11 +66,15 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    throw err('ORIGINAL_SOURCE_SCOPE_REQUIRED',
      'Original XML, one full source selection, masters and config required');
  if(!isCurrent())throw err('STALE_INPUT','Original source changed before Worker start');
+ const emit=(kind,actor,extra={})=>{try{onFlowTrace({kind,actor,...extra})}catch{}};
+ emit('CENSUS_REQUESTED','ui-controller');
  const census=await independentCensus({xmlText,sourceId,config,requestId,
    workerFactory:censusWorkerFactory,signal,
    timeoutMs:censusTimeoutMs});
+ emit('CENSUS_VERIFIED','census-worker',{counts:{physical:census.counts?.physical,branches:census.counts?.branches}});
  if(signal?.aborted)throw err('CANCELLED','Preview cancelled during source verification');
  if(!isCurrent())throw err('STALE_INPUT','Original source changed during census');
+ emit('GC_PW_WORKER_REQUESTED','ui-controller');
  const worker=weightWorkerFactory();
  if(!worker||typeof worker.postMessage!=='function'||
     typeof worker.addEventListener!=='function')
@@ -82,6 +86,8 @@ export async function openXml229WorkerHeldOriginalWeightReview({
  const stop=error=>{
    if(disposed)return;disposed=true;ready=null;
    closureCode=String(error?.code||'WORKER_TERMINATED').slice(0,80);
+   emit(closureCode==='CANCELLED'?'SESSION_CANCELLED':'FLOW_ERROR','ui-controller',
+     {code:closureCode});
    clearTimeout(phaseTimer);clearTimeout(deadlineTimer);
    signal?.removeEventListener?.('abort',abort);
    try{worker.terminate()}catch{}
@@ -110,9 +116,14 @@ export async function openXml229WorkerHeldOriginalWeightReview({
  const started=new Promise((resolve,reject)=>{settle={resolve,reject}});
  worker.addEventListener('message',({data:m})=>{
    if(m?.protocol!==PROTOCOL||m.requestId!==requestId||disposed)return;
+   if(m.state==='flow-trace'){
+     if(m.trace&&typeof m.trace==='object')emit(m.trace.kind,'gc-pw-worker',m.trace);
+     return;
+   }
    if(m.state==='progress'){
      lastStage=String(m.stage||'engineering-worker-progress').slice(0,96);
-     armStageTimeout();onProgress(lastStage);return;
+     armStageTimeout();emit('PREVIEW_CHILD_PROGRESS','gc-pw-worker',{step:lastStage});
+     onProgress(lastStage);return;
    }
    if(m.state==='ready'){
      if(!m.engineeringFactsVerified||m.weightEngineeringAccepted!==false||
@@ -123,6 +134,7 @@ export async function openXml229WorkerHeldOriginalWeightReview({
        stop(err('UNVERIFIED_WEIGHT_RESPONSE','Worker asserted wrong original source/fact population'));return;
      }
      ready=Object.freeze(m);
+     emit('GC_PW_READY','gc-pw-worker',{counts:{physical:m.physicalCount,facts:m.physicalFactCount}});
      clearTimeout(phaseTimer);clearTimeout(deadlineTimer);
      signal?.removeEventListener?.('abort',abort);
      settle.resolve(ready);settle=null;return;
@@ -135,8 +147,18 @@ export async function openXml229WorkerHeldOriginalWeightReview({
      const request=outstanding.get(m.rpcId);
      if(!request)return;
      outstanding.delete(m.rpcId);
-     if(m.state==='rpc-failed')request.reject(err(m.error?.code||'GC_PW_RPC_FAILED',m.error?.message));
-     else request.resolve(m.value);
+     if(m.state==='rpc-failed'){
+       emit('RPC_FAILED','ui-controller',{rpcSeq:Number(String(m.rpcId||'').split('-').pop()),code:m.error?.code});
+       request.reject(err(m.error?.code||'GC_PW_RPC_FAILED',m.error?.message));
+     }else{
+       const value=m.value;
+       emit('RPC_COMPLETED','ui-controller',{rpcSeq:Number(String(m.rpcId||'').split('-').pop()),
+         counts:value?.schema==='XML229.P4.RunAdvisory.v1'
+           ?{physical:value.verifiedPhysicalCount,facts:value.verifiedFactCount,
+             sourceMass:value.counts?.source,match1:value.counts?.match1,
+             final:value.counts?.final,unresolved:value.counts?.unresolved}:undefined});
+       request.resolve(value);
+     }
    }
  });
  worker.addEventListener('error',e=>stop(err('ENGINEERING_WORKER_CRASH',String(e?.message||e))));
@@ -159,6 +181,8 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    current();
    if(!ready)throw err('REVIEW_SESSION_NOT_READY','Original JSON Weight review not verified');
    const rpcId='source-review-'+(++counter);
+   const op=payload.kind==='read'?payload.what:payload.kind;
+   emit('RPC_REQUESTED','ui-controller',{rpcSeq:counter,step:op});
    return new Promise((resolve,reject)=>{
      outstanding.set(rpcId,{resolve,reject});
      try{send({...payload,kind:payload.kind,rpcId,basisId:ready.basisId,

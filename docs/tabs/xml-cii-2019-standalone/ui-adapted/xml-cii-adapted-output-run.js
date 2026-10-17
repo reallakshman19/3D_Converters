@@ -5,6 +5,7 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
   from '../integration/xml229-output-participation.mjs';
@@ -416,6 +417,7 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  if(enabled&&enabled.length!==1)return;
  const session=getXml229CurrentWorkerHeldReview(stateRef);
  if(!session)return;
+ recordXml229FlowTrace(stateRef,{kind:'OUTPUT_READ_REQUESTED',actor:'output-ui'});
  const activeId=raw.sourceBatch?.activeSourceId||state.modeASourceId||'';
  if(enabled?.length===1&&enabled[0].sourceId!==activeId)return;
  // An older in-flight Worker completion must never repaint a newer Run panel.
@@ -430,6 +432,14 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    const verifiedReport=buildStandaloneOutputRunReadiness(latest,{
      verifiedEngineering:{sessionReceipt:session.receipt,proof},
    });
+   recordXml229FlowTrace(stateRef,{kind:'OUTPUT_READ_VERIFIED',actor:'output-ui',
+     counts:{physical:proof?.verifiedPhysicalCount,facts:proof?.verifiedFactCount,
+       sourceMass:proof?.counts?.source,match1:proof?.counts?.match1,
+       final:proof?.counts?.final,unresolved:proof?.counts?.unresolved}});
+   if(verifiedReport.checklistRows?.some(r=>
+      r.id==='xml229-original-json-engineering-authority'&&r.blocking))
+     recordXml229FlowTrace(stateRef,{kind:'RUN_GATE_HELD',actor:'native-gate',
+       code:'NATIVE_CONSUMPTION_UNVERIFIED'});
    if(verifiedReport.raw?.xml229VerifiedEngineering!==true){
      // Bad/partial proof is a diagnosable verification refusal, never READY.
      paint(buildStandaloneOutputRunReadiness(latest,{
@@ -446,6 +456,8 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    if(card.isConnected===false||card.__xml229ReadinessToken!==token||
       getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
    const latest=stateRef.current;
+   recordXml229FlowTrace(stateRef,{kind:'OUTPUT_READ_FAILED',actor:'output-ui',
+     code:error?.code||'WORKER_READ_UNAVAILABLE'});
    const held=buildStandaloneOutputRunReadiness(latest,{
      verifiedEngineering:{readError:{code:error?.code}},
    });

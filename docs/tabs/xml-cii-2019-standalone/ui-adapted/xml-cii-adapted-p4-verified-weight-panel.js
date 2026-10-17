@@ -20,6 +20,8 @@ import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
+import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace}
+ from './xml229-flow-trace-registry.mjs';
 import {
  getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
@@ -176,13 +178,17 @@ export async function openXml229P4VerifiedSession(stateRef,{
  const key=stateRef?.modeABaseRef||stateRef;
  if(!key)err('STATE_REF_REQUIRED','Stable source reference required');
  if(signal?.aborted)err('CANCELLED','Preview was cancelled before Worker attestation');
+ const trace=beginXml229FlowTrace(key);
+ trace.record({kind:'BUILD_REQUESTED',actor:'preview-ui'});
  const inputs=await resolveInputs();
+ trace.record({kind:'SOURCE_INPUTS_VERIFIED',actor:'ui-controller'});
  if(signal?.aborted)err('CANCELLED','Preview was cancelled during source/master hydration');
  const lease=inputs.inputLease||null;
  const previous=getXml229VerifiedEngineeringEntry(key);
  if(previous&&lease&&lease===previous.lease){
    try{
      await previous.session.readCompletion();
+     trace.record({kind:'SESSION_REUSED',actor:'ui-controller'});
      if(signal?.aborted)err('CANCELLED','Preview was cancelled during existing verified Worker read');
      return previous.session;
    }
@@ -191,7 +197,8 @@ export async function openXml229P4VerifiedSession(stateRef,{
  // One source-bound authority per stable baseRef, independent of DOM
  // ownership. A newer build invalidates an in-flight predecessor (CAS).
  const ticket=beginXml229VerifiedEngineeringBuild(key);
- const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress,signal});
+ const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress,signal,
+   onFlowTrace:event=>{try{trace.record(event)}catch{}}});
  if(signal?.aborted){session.cancel();err('CANCELLED','Preview was cancelled during Worker verification');}
  if(inputs.isCurrent?.()!==true){session.cancel();err('STALE_INPUT',
    'Original source or master changed during Worker verification');}
@@ -199,6 +206,8 @@ export async function openXml229P4VerifiedSession(stateRef,{
  if(!publishXml229VerifiedEngineeringBuild(ticket,{lease:verifiedLease,session}))
    err('ENGINEERING_BASIS_SUPERSEDED',
      'A newer verified Preview replaced this engineering source review');
+ trace.record({kind:'GC_PW_READY',actor:'ui-controller',
+   counts:{physical:session.receipt?.physicalCount,facts:session.receipt?.physicalFactCount}});
  return session;
 }
 export function getXml229CurrentWorkerHeldReview(stateRef){
@@ -221,6 +230,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   decisions. Native CII Run is NOT authorized by this panel.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
+  <div style="margin:10px 0"><button type="button" data-p4-export-flow-trace
+   class="model-converters-download-btn">Download Worker/UI causal flow trace (private)</button>
+   <small style="display:block;color:#94a3b8">Read-only session/Worker transitions, typed failures, fact/review counts and native gate. No source or master rows.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
    class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
    <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
@@ -339,10 +351,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
    const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
+   const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -361,6 +374,23 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        say('Saved local GC-PW review: '+backup.counts.match1+' Match-1 only, '+
          backup.counts.final+' Final and '+backup.counts.unresolved+
          ' unresolved. Keep this private file to restore only after verified 4 Preview rebuild.');
+       return;
+     }
+     if(traceButton){
+       const session=active,trace=getXml229FlowTrace(stateRef);
+       if(!trace||live()!==session||root.isConnected===false)
+         err('FLOW_TRACE_SESSION_STALE','Current Worker flow trace unavailable');
+       const proof=await session.readCompletion();
+       if(live()!==session||active!==session||root.isConnected===false)
+         err('FLOW_TRACE_SESSION_STALE','Source changed during trace collection');
+       recordXml229FlowTrace(stateRef,{kind:'WEIGHT_UI_RENDERED',actor:'weight-ui',
+         counts:{physical:proof.verifiedPhysicalCount,facts:proof.verifiedFactCount,
+           sourceMass:proof.counts?.source,match1:proof.counts?.match1,
+           final:proof.counts?.final,unresolved:proof.counts?.unresolved}});
+       const json=JSON.stringify(trace.snapshot(),null,2);
+       if(json.length>131072)err('FLOW_TRACE_EXPORT_TOO_LARGE','Trace exceeds private export budget');
+       downloadTextFile('xml229-cross-worker-flow-trace.json',json,'application/json;charset=utf-8');
+       say('Private Worker/UI trace exported; native CII remains HELD.');
        return;
      }
      if(coverageButton){
