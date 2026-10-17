@@ -39,7 +39,7 @@ test('independent audit distinguishes correctly held native gate from broken flo
  assert.equal(result.summary.hasPreviewChild,true);
 });
 test('the first missing child Worker handoff is precisely identified',()=>{
- const s=chain();
+ const s=structuredClone(chain());
  s.events=s.events.filter(e=>e.kind!=='PREVIEW_CHILD_REQUESTED');
  s.totalEvents=s.events.length;
  const result=audit(s);
@@ -47,17 +47,17 @@ test('the first missing child Worker handoff is precisely identified',()=>{
  assert.equal(result.firstGap.code,'PREVIEW_CHILD_RETURN_WITHOUT_DISPATCH');
 });
 test('corrupt physical fact census and orphan reply are independently detected',()=>{
- const s=chain();
+ const s=structuredClone(chain());
  const facts=s.events.find(e=>e.kind==='FACTS_OPENED');
  facts.counts.facts=13;
  assert.equal(audit(s).firstGap.code,'PHYSICAL_FACT_SEVEN_TO_ONE_DRIFT');
- const q=chain();
+ const q=structuredClone(chain());
  q.events=q.events.filter(e=>e.kind!=='RPC_REQUESTED');
  q.totalEvents=q.events.length;
  assert.equal(audit(q).firstGap.code,'RPC_RESPONSE_WITHOUT_REQUEST');
 });
 test('no owner strings, rogue properties or asserted release may enter a valid audit',()=>{
- const s=chain();s.events[3].rawPrivateMaster='secret';
+ const s=structuredClone(chain());s.events[3].rawPrivateMaster='secret';
  assert.equal(audit(s).status,'INVALID');
  delete s.events[3].rawPrivateMaster;
  s.nativeCiiReleaseAuthorized=true;
