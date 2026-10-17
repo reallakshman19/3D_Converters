@@ -24,7 +24,7 @@ await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 let browser;
 try{
  browser=await chromium.launch({headless:true});
- const page=await browser.newPage();
+ const page=await browser.newPage({acceptDownloads:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
  await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
  await page.evaluate(async()=>{
@@ -104,6 +104,22 @@ try{
  assert.equal(original.length,2);
  // Neither proposed nor source-null value may be mistaken for accepted mass.
  assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Existing verified Preview facts/);
+ const aggregateButton=page.locator('[data-p4-export-candidate-readiness]');
+ const [aggregateDownload]=await Promise.all([
+   page.waitForEvent('download'),aggregateButton.click(),
+ ]);
+ assert.equal(aggregateDownload.suggestedFilename(),
+   'xml229-g3-g4-source-bound-aggregate.json');
+ const evidence=JSON.parse(await readFile(await aggregateDownload.path(),'utf8'));
+ assert.equal(evidence.schema,'XML229.G3G4.LocalAggregateEvidenceExport.v1');
+ assert.equal(evidence.structuralStatus,'CONSISTENT');
+ assert.equal(evidence.coverage.physicalCount,2);
+ assert.equal(evidence.coverage.verifiedFactCount,14);
+ assert.equal(evidence.coverage.counts.acceptedFinalCount,0);
+ assert.equal(evidence.nativeCiiReleaseAuthorized,false);
+ assert.equal(evidence.reviewDecisionsAuthorized,false);
+ assert(!JSON.stringify(evidence).includes('real-blob-in-worker'));
+ assert(!JSON.stringify(evidence).includes('Engineer verified physical master'));
  const first=page.locator('tr[data-p4-row]').first();
  await first.locator('[data-p4-proposal]').fill('35');
  await first.locator('[data-p4-reason]').fill('Engineer verified physical master 35 kg');
@@ -126,6 +142,17 @@ try{
  assert.match(after.rows[0],/35 kg/);
  assert.match(after.rows[0],/40 kg/);
  assert.doesNotMatch(after.rows[1],/40 kg/);
+ const [afterDownload]=await Promise.all([
+   page.waitForEvent('download'),aggregateButton.click(),
+ ]);
+ const afterEvidence=JSON.parse(await readFile(await afterDownload.path(),'utf8'));
+ assert.equal(afterEvidence.coverage.basisId,evidence.coverage.basisId);
+ assert.equal(afterEvidence.coverage.counts.acceptedMatch1Count,1);
+ assert.equal(afterEvidence.coverage.counts.acceptedFinalCount,1);
+ assert.equal(afterEvidence.readiness.counts.final,1);
+ assert.equal(afterEvidence.nativeCiiReleaseAuthorized,false);
+ assert(!Object.hasOwn(afterEvidence.coverage,'candidateRows'));
+ assert(!Object.hasOwn(afterEvidence.coverage,'originalPhysicalOccurrences'));
  // Run stage sees full source-bound review state, not old v1 cache.
  await page.evaluate(async()=>{
    const {installXml229P4RunAdvisory}=await import(
