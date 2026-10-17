@@ -102,6 +102,13 @@ test('Worker guarded source bulk: qualified off-page blanks commit only AFTER ex
  assert.equal(prepared.summary.ambiguousQualified,1);
  assert.equal(prepared.summary.unresolved,1);
  assert.equal(prepared.summary.qualified,107);
+ assert.deepEqual(prepared.summary.exclusions,{
+   sourceMassPresent:1,match1DecisionPresent:1,noRank1Proposal:0,
+   topRankUnqualified:1,topRankInvalidMass:0,topRankInvalidUnit:0,
+   lowerRankQualified:0,finalDecisionPresent:1,
+   conflictingQualifiedCandidates:1,planProjectionMismatch:0,
+   readyForConfirmation:107,
+ });
  assert.equal(prepared.summary.reviewStage,'RigidMatch1');
  assert.equal(prepared.summary.finalAcceptedAutomatically,false);
  assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,1,
