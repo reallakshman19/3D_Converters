@@ -102,6 +102,72 @@ try{
   label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
  })));
  assert.equal(original.length,2);
+ // Owner regression: real numeric DOM input values on two 25-row pages,
+ // source-pinned proposal selection, independent acceptance unchanged.
+ const populated=await page.evaluate(async()=>{
+   const {planXml229RigidWeightDrafts,hydrateXml229WeightDraftInputs}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs');
+   const {renderXml229WeightReviewPage}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs');
+   const basisId='b'.repeat(64),sourceId='SOURCE',writes=[],offsets=[];
+   const rows=Array.from({length:27},(_,i)=>{
+     const p={proposalId:'master-'+i,ranking:1,value:100+i/10,
+       unit:'kg',qualified:true,score:.95};
+     return {sourceId,occurrenceId:'occ-'+i,componentType:'VALV',
+       nodeName:'VGT-'+i,shortName:'Gate Valve',dtxr:'GATE VALVE 300#',
+       sourceKg:null,match1Kg:null,finalKg:null,proposals:[p],
+       match1View:{match1Revision:'m1',stageDecision:null,proposals:[p]},
+       finalView:{finalRevision:'f1',stageDecision:null}};
+   });
+   const qualifiedSuggestions=rows.map(r=>({
+     occurrenceId:r.occurrenceId,proposalId:r.proposals[0].proposalId,
+     value:r.proposals[0].value,unit:'kg',qualified:true,
+   }));
+   const session={receipt:{basisId,sourceId},async readPage(args){
+     offsets.push(args.offset);
+     return {basisId,offset:args.offset,totalCount:rows.length,complete:true,
+       rows:rows.slice(args.offset,args.offset+args.limit)};
+   },review(){writes.push('write');}};
+   const prepared=await planXml229RigidWeightDrafts(session,{
+     minScorePercent:80,qualifiedSuggestions});
+   const host=document.createElement('div');
+   const renderPage=(start,end)=>{
+     const subset=rows.slice(start,end);
+     host.innerHTML=renderXml229WeightReviewPage({
+       totalCount:rows.length,rows:subset},start,{filter:'blank-rigid'});
+     const count=hydrateXml229WeightDraftInputs(host,subset,prepared.drafts);
+     const entries=[...host.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+       value:tr.querySelector('[data-p4-proposal]').value,
+       selected:tr.querySelector('[data-p4-candidate]').value,
+       filled:tr.dataset.p4DraftFilled,
+       accepted:tr.querySelector('[data-p4-match1-mass]').textContent,
+     }));
+     return {count,entries};
+   };
+   const first=renderPage(0,25),second=renderPage(25,27);
+   let drift='';
+   try{await planXml229RigidWeightDrafts(session,{
+     minScorePercent:80,qualifiedSuggestions:[{...qualifiedSuggestions[0],value:999}],
+   });}catch(e){drift=e.code||e.message;}
+   return {prepared:prepared.counts.prepared,qualified:prepared.counts.workerQualified,
+     firstPreparedIndex:prepared.firstPreparedIndex,first,second,
+     offsets,writes,drift,
+     title:host.textContent.includes('Draft / Accepted kg')};
+ });
+ assert.equal(populated.prepared,27);
+ assert.equal(populated.qualified,27);
+ assert.equal(populated.firstPreparedIndex,0);
+ assert.equal(populated.first.count,25);
+ assert.equal(populated.second.count,2);
+ assert(populated.first.entries.every((p,i)=>p.value===String(100+i/10)&&
+   p.selected==='master-'+i&&p.filled==='true'&&p.accepted==='—'));
+ assert(populated.second.entries.every((p,i)=>p.value===String(102.5+i/10)&&
+   p.selected==='master-'+(25+i)&&p.filled==='true'));
+ assert.equal(populated.title,true);
+ assert.equal(populated.drift,'SUGGESTION_WORKER_PLAN_PROPOSAL_DRIFT');
+ assert.deepEqual(populated.writes,[]);
+ assert.deepEqual(populated.offsets,[0,25,0]);
+
  // Neither proposed nor source-null value may be mistaken for accepted mass.
  assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Existing verified Preview facts/);
  const flowButton=page.locator('[data-p4-export-flow-trace]');

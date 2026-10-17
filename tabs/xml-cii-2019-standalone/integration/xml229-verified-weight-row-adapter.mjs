@@ -166,7 +166,7 @@ export function buildXml229VerifiedWeightRowProjection({
     if(p.basisId!==basisId||!indexed.has(p.occurrenceId))
      fail('PRESENTATION_CROSS_BASIS_PROPOSAL','Candidate belongs to another physical owner');
     indexed.get(p.occurrenceId).push(Object.freeze({
-     proposalId:p.proposalId,ranking:p.ranking,value:p.value,
+     proposalId:p.proposalId,ranking:p.ranking,value:p.value,unit:p.unit,
      method:p.method,qualified:p.qualified,
      score:p.extensions?.candidate?.score??null,
      matchType:p.extensions?.candidate?.weightMethod||p.method,

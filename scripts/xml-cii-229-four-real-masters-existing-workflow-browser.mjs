@@ -158,7 +158,7 @@ try{
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
     'Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-    'ComponentRefNo_Endpoint','Length','Weight (kg)','Nearest Suggestions']);
+    'ComponentRefNo_Endpoint','Length','Draft / Accepted kg','Nearest Suggestions']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
