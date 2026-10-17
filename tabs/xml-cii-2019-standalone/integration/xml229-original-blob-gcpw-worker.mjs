@@ -38,6 +38,8 @@ import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from './xml229-source-weight-bulk-review.mjs';
 import {xml229WeightReviewFilters,matchesXml229WeightReviewFilter}
  from './xml229-weight-page-filter.mjs';
+import {xml229WeightReviewEligible,xml229ProposalScorePercent,xml229WeightThreshold}
+ from './xml229-weight-review-focus.mjs';
 import {projectXml229WeightDecisionProvenance}
  from './xml229-weight-decision-provenance.mjs';
 import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
@@ -190,7 +192,7 @@ async function start(req){
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
  const display=buildXml229VerifiedWeightRowProjection({
    session,sourceId,physicalOccurrences:produced.physicalOccurrences,
-   originalOccurrences:original,previewResult:verifiedPreviewResult,
+   originalOccurrences:original,previewResult:verifiedPreviewResult,config,
  });
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
  physicalIdentityList=produced.physicalOccurrences;weightProjection=display;
@@ -349,12 +351,14 @@ async function rpc(req){
          id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
        const meta=weightProjection.get(oid);
        if(!matchesXml229WeightReviewFilter(mode,{
-         componentType:meta.componentType,sourceKg:meta.sourceKg,
+         componentType:meta.componentType,nodeName:meta.nodeName,dtxr:meta.dtxr,
+         sourceKg:meta.sourceKg,
          match1State:match[oid]?.state,finalState:final[oid]?.state,
        }))return false;
        if(query){
          const hay=[meta.branchName,meta.lineKey,meta.componentType,meta.nodeNumber,
-           meta.componentRefNoEndpoint,meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
+           meta.componentRefNoEndpoint,meta.nodeName,meta.shortName,meta.inferredValveName,
+           meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
            .join(' ').toLowerCase();
          if(!hay.includes(query))return false;
        }
@@ -390,8 +394,14 @@ async function rpc(req){
    }
    if(req.what==='bulk-plan'){
      pendingBulk=null;
+     const minScorePercent=xml229WeightThreshold(req.minScorePercent??0);
      const result=planXml229QualifiedBlankFill(review,weightProjection,{
        basisId,sourceId,sequence:++bulkSequence,
+       candidateEligibility:(occurrenceId,selected)=>{
+         const meta=weightProjection.get(occurrenceId);
+         return xml229WeightReviewEligible(meta)&&
+           (xml229ProposalScorePercent(selected)??-1)>=minScorePercent;
+       },
      });
      pendingBulk=result.pending; // Worker private; only planId + summary leave.
      return result.summary;
