@@ -157,8 +157,8 @@ try{
   assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
-    'Status','Branch','Line Key','ComponentType','Bore','Rating','Node',
-    'ComponentRefNo_Endpoint','DTXR','Valve Hint','Length','Weight (kg)','Nearest Suggestions']);
+    'Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
+    'ComponentRefNo_Endpoint','Length','Weight (kg)','Nearest Suggestions']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
@@ -273,12 +273,12 @@ try{
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.bulkPlanMessage,/qualified|No qualified/i);
   const confirm=page.locator('[data-p4-bulk-confirm]');
-  if(await confirm.isVisible()){
+  if(await confirm.isEnabled()){
     await confirm.click();
-    await page.waitForFunction(()=>/Match-1 decision\(s\) accepted/i.test(
+    await page.waitForFunction(()=>/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i.test(
       document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
     record.stages.bulkAccepted=await page.locator('[data-p4-weight-status]').textContent();
-    assert.match(record.stages.bulkAccepted,/Match-1 decision\(s\) accepted/i);
+    assert.match(record.stages.bulkAccepted,/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i);
     // Final Match-2 was never bulk-applied or overwritten.
     if(reviewedOccurrence){
       const finalStill=await page.locator('tr[data-p4-row]').evaluateAll(
