@@ -302,10 +302,13 @@ try{
   assert.equal(audited.basisId,firstBasis);
   assert.equal(audited.population.physicalCount,31);
   assert.equal(audited.population.factCount,217);
-  assert.equal(audited.population.counts.source,31);
+  assert.equal(audited.population.counts.source,reviewedOccurrence?30:31);
+  assert.equal(audited.population.counts.match1,0);
+  assert.equal(audited.population.counts.final,reviewedOccurrence?1:0);
+  assert.equal(Object.values(audited.population.counts).reduce((a,b)=>a+b,0),31);
   assert.equal(audited.summary.nativeCiiReleaseAuthorized,false);
   assert.equal(audited.summary.provenanceComplete,true);
-  assert.equal(audited.summary.auditedAcceptedDecisions,0);
+  assert.equal(audited.summary.auditedAcceptedDecisions,reviewedOccurrence?2:0);
   record.stages.weightProvenanceAudit={
     basisId:audited.basisId,summary:audited.summary,
     physicalCount:audited.population.physicalCount,
