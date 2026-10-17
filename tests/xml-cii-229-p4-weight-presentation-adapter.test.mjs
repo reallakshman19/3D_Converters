@@ -320,6 +320,8 @@ test('pinned Match-1 candidate cannot accept manually edited different kilograms
 
 test('focused RIGID queue excludes ordinary fittings but preserves full-source audit',()=>{
  assert.equal(xml229WeightReviewEligible({componentType:'RIGID',nodeName:'VGT-100'}),true);
+ assert.equal(xml229WeightReviewEligible({componentType:'VALV',nodeName:'VGT-100'}),true);
+ assert.equal(xml229WeightReviewEligible({componentType:'INST',nodeName:'PCV-100'}),true);
  for(const r of [
   {componentType:'RIGID',nodeName:'TEE REDUCING BW'},
   {componentType:'RIGID',dtxr:'TEE REDUCING BW SCH 80'},
