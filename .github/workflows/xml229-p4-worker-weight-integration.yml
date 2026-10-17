@@ -33,6 +33,13 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js'
       - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-review-mode-a.js'
       - 'tests/xml229-weight-semantic-eligibility.test.mjs'
+      - 'tests/xml229-accepted-match1-family-audit.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-row-adapter.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-row-adapter.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs'
       - 'tests/xml-cii-agent-w-weight-facts-review.test.mjs'
       - '.github/workflows/xml229-p4-worker-weight-integration.yml'
 permissions:
@@ -55,6 +62,12 @@ jobs:
       - name: Exact HEAD and served root/docs parity
         run: |
           git rev-parse HEAD
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-row-adapter.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-weight-row-adapter.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
           node --check converters/xml-cii2019-core/weight-family-eligibility.js
           node --check converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js
           diff -u converters/xml-cii2019-core/weight-family-eligibility.js docs/converters/xml-cii2019-core/weight-family-eligibility.js
@@ -81,7 +94,7 @@ jobs:
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
       - name: P0 semantic family eligibility and existing GC-PW scorer regression
         run: |
-          node --test tests/xml229-weight-semantic-eligibility.test.mjs tests/xml-cii-agent-w-weight-facts-review.test.mjs
+          node --test tests/xml229-weight-semantic-eligibility.test.mjs tests/xml229-accepted-match1-family-audit.test.mjs tests/xml-cii-agent-w-weight-facts-review.test.mjs
       - name: Source-attested Preview FactRecords, GC-PW session, negative drift
         run: |
           node --test tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs tests/gc-pw-preview-worker-fact-port.test.mjs tests/xml-cii-229-p4-owner-branch-scope.test.mjs
