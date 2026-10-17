@@ -71,16 +71,14 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <td title="Original component reference and endpoint">${label(r.componentRefNoEndpoint)}</td>
     <td title="Verified FactRecord length.mm from source geometry or explicit source length">${fmt(r.lengthMm,'mm')}</td>
     <td style="min-width:260px">
-      <div title="Accepted mass is distinct from an unaccepted proposal" style="margin-bottom:3px">
-        <b>${kg(accepted)}</b>
-        <small style="display:block;color:#94a3b8">
-         Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span> ·
-         Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
-      </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-       <input data-p4-proposal class="mc-rigid-review-input" type="number"
-         min="0" step="any" placeholder="${e(r.proposedKg??'kg')}"
-         aria-label="Proposed draft kilograms, not accepted" style="width:84px;background:#202c40;color:#f1f5f9">
+       <label style="display:inline-flex;flex-direction:column;gap:2px;color:#a5b4fc;font-weight:600">
+        Suggested draft (kg)
+        <input data-p4-proposal class="mc-rigid-review-input" type="number"
+          min="0" step="any" placeholder="${e(r.proposedKg??'kg')}"
+          aria-label="Editable suggested draft kilograms, not accepted"
+          style="width:110px;padding:5px;background:#243b5d;color:#fff;border:1px solid #818cf8;font-weight:700">
+       </label>
        <select data-p4-candidate aria-label="Verified candidate" style="max-width:115px;background:#0b1320;color:#e5eefc">
         <option value="">Manual</option>
         ${proposals.map(p=>`<option value="${e(p.proposalId)}">#${e(p.ranking)} ${kg(p.value)}</option>`).join('')}
@@ -89,7 +87,12 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
        <button data-p4-accept-match1 type="button" class="model-converters-run-btn">Accept Match-1</button>
        <button data-p4-accept-final type="button" class="model-converters-download-btn">Review Final</button>
       </div>
-      <small data-p4-draft-marker style="color:#94a3b8">Proposed value is not accepted automatically</small>
+      <div title="Accepted engineering mass is independent from the editable draft" style="margin-top:5px">
+       <small style="color:#94a3b8">Accepted kg: <b>${kg(accepted)}</b>
+         · Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span>
+         · Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
+      </div>
+      <small data-p4-draft-marker style="color:#94a3b8">Suggested weights are drafts, not approvals</small>
     </td>
     <td style="max-width:420px;min-width:190px">
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
@@ -125,7 +128,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;min-width:1940px">
       <thead style="position:sticky;top:0;background:#14243a;color:#dceaff">
        <tr>${['Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-        'ComponentRefNo_Endpoint','Length','Weight (kg)',
+        'ComponentRefNo_Endpoint','Length','Draft / Accepted kg',
         'Nearest Suggestions'].map(h=>`<th style="padding:8px;white-space:nowrap">${e(h)}</th>`).join('')}</tr>
       </thead><tbody>${rows}</tbody>
     </table>
