@@ -338,18 +338,21 @@ async function rpc(req){
      if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
        fail('PRESENTATION_NOT_VERIFIED','Complete original physical presentation projection required');
      const mode=req.filter??'all',query=String(req.query??'').toLowerCase().trim();
-     if(!['all','rigid','needs-review'].includes(mode)||query.length>120)
-       fail('INVALID_WEIGHT_REVIEW_FILTER','Filter must be all, rigid or needs-review');
+     if(!['all','rigid','blank-rigid','needs-review'].includes(mode)||query.length>120)
+       fail('INVALID_WEIGHT_REVIEW_FILTER','Filter must be all, rigid, blank-rigid or needs-review');
      const match=review.getDecisionState({basisId,scopeId:sourceId,stage:'RigidMatch1'}).decisions;
      const final=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'}).decisions;
      const candidates=(physicalIdentityList||[]).filter(id=>{
        const oid=id.occurrenceId||JSON.stringify([
          id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
        const meta=weightProjection.get(oid);
-       if(mode==='rigid'&&!/^RIGID/i.test(meta.componentType))return false;
-       if(mode==='needs-review'&&(
-         final[oid]?.state==='accepted'||match[oid]?.state==='accepted'||
-         (typeof meta.sourceKg==='number'&&meta.sourceKg>0)))return false;
+       // Blank means no accepted Final/Match-1 mass and no positive original XML mass.
+       // A suggestion or draft is not a committed decision.
+       const isRigid=/^RIGID/i.test(meta.componentType);
+       const hasWeight=final[oid]?.state==='accepted'||match[oid]?.state==='accepted'||
+         (typeof meta.sourceKg==='number'&&Number.isFinite(meta.sourceKg)&&meta.sourceKg>0);
+       if((mode==='rigid'||mode==='blank-rigid')&&!isRigid)return false;
+       if((mode==='needs-review'||mode==='blank-rigid')&&hasWeight)return false;
        if(query){
          const hay=[meta.branchName,meta.lineKey,meta.componentType,meta.nodeNumber,
            meta.componentRefNoEndpoint,meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
