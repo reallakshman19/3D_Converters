@@ -104,6 +104,22 @@ try{
  assert.equal(original.length,2);
  // Neither proposed nor source-null value may be mistaken for accepted mass.
  assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Existing verified Preview facts/);
+ const flowButton=page.locator('[data-p4-export-flow-trace]');
+ const [flowDownload]=await Promise.all([
+   page.waitForEvent('download'),flowButton.click(),
+ ]);
+ assert.equal(flowDownload.suggestedFilename(),'xml229-cross-worker-flow-trace.json');
+ const trace=JSON.parse(await readFile(await flowDownload.path(),'utf8'));
+ assert.equal(trace.schema,'XML229.CrossWorkerFlowTrace.v1');
+ assert.equal(trace.nativeCiiReleaseAuthorized,false);
+ for(const kind of ['BUILD_REQUESTED','CENSUS_REQUESTED','CENSUS_VERIFIED',
+   'GC_PW_WORKER_STARTED','PREVIEW_CHILD_REQUESTED','PREVIEW_CHILD_COMPLETED',
+   'FACTS_OPENED','GC_PW_READY','RPC_REQUESTED','RPC_COMPLETED',
+   'WEIGHT_UI_RENDERED'])
+   assert(trace.events.some(e=>e.kind===kind),'missing causal edge '+kind);
+ assert(trace.events.some(e=>e.counts?.physical===2&&e.counts?.facts===14));
+ assert(!JSON.stringify(trace).includes('Engineer verified physical master'));
+ assert(!JSON.stringify(trace).includes('real-blob-in-worker'));
  const aggregateButton=page.locator('[data-p4-export-candidate-readiness]');
  const [aggregateDownload]=await Promise.all([
    page.waitForEvent('download'),aggregateButton.click(),

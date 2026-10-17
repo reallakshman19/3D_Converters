@@ -54,6 +54,9 @@ let weightProjection=null,pendingBulk=null,bulkSequence=0,previewAbortController
 let confirmedBulkCommands=new Set(),restoringReview=false;
 const post=(id,data)=>postMessage({protocol:PROTOCOL,requestId:id,...data});
 const progress=(id,stage)=>post(id,{state:'progress',stage});
+// Bounded categorical events only; request/source/master bytes never leave Worker.
+const flow=(id,kind,counts)=>post(id,{state:'flow-trace',trace:{kind,
+  ...(counts?{counts}:{}),actor:'gc-pw-worker'}});
 const sourceReceiptCheck=(r,blob)=>{
  if(r?.schema!=='XML229.OriginalStagedSourceReceipt.v1'||
     r.phase!=='INDEX_COMMITTED'||r.rightsBasis!=='SOURCE_FACTS_ONLY'||
@@ -101,6 +104,7 @@ async function start(req){
    fail('ORIGINAL_XML_FULL_SCOPE_REQUIRED',
      'One full original Mode A XML, current masters, selected scope and config required');
  sourceReceiptCheck(r,originalStagedBlob);
+ flow(req.requestId,'GC_PW_WORKER_STARTED');
  progress(req.requestId,'original-json-blob-sha256');
  const buffer=await originalStagedBlob.arrayBuffer();
  const actualSha=toHex(await crypto.subtle.digest('SHA-256',buffer));
@@ -120,6 +124,7 @@ async function start(req){
     expectedOriginalCount>MAX_ORIGINAL_COUNT)
    fail('ORIGINAL_XML_SCOPE_OR_SCALE_DRIFT','Original branch/node census wrong or exceeds bounded Worker budget');
  progress(req.requestId,'engineering-preview-using-actual-json');
+ flow(req.requestId,'PREVIEW_CHILD_REQUESTED');
  // Dry-run enrichers may normalize nested master/config rows. Do not lend
  // their mutable working view the already-attested GC-PW master buffers.
  const abort=new AbortController();previewAbortController=abort;
@@ -133,6 +138,7 @@ async function start(req){
    });
  }finally{if(previewAbortController===abort)previewAbortController=null;}
  if(cancelled)return;
+ flow(req.requestId,'PREVIEW_CHILD_COMPLETED');
  progress(req.requestId,'all-physical-field-assessment');
  const previewResult={...computed,sourceOccurrences:original,
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
@@ -169,6 +175,8 @@ async function start(req){
  });
  const session=await opened.awaitReady();
  if(cancelled)return;
+ flow(req.requestId,'FACTS_OPENED',{physical:produced.physicalOccurrences.length,
+   facts:session.openedFacts});
  if(session.basis.basisId!==basis.basisId||
     session.openedFacts!==produced.expectedPhysicalFactCount)
    fail('VERIFIED_WEIGHT_SOURCE_DRIFT','Review service did not open complete original physical population');
@@ -184,6 +192,8 @@ async function start(req){
  });
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
  physicalIdentityList=produced.physicalOccurrences;weightProjection=display;
+ flow(req.requestId,'GC_PW_READY',{physical:produced.physicalOccurrences.length,
+   facts:session.openedFacts});
  post(req.requestId,{state:'ready',basisId:basis.basisId,
    originalJsonSha256:r.sha256,sourceGenerationId:r.generationId,
    sourceId,originalCount:produced.workerOriginalCount,
